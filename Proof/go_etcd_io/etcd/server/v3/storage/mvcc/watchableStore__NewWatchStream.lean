@@ -10,7 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progre
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchClose
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -41,7 +41,7 @@ theorem mvcc.isWatchable_store
       mvcc.isWatchableStore s st γ ⊢
     mvcc.isWatchable (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
       (mvcc.storeWatchParams s st γ) := by
-  have hRev := mvcc.watchableStore.rev.spec_frozen hRev
+  have hRev := mvcc.watchableStore.rev.spec_R hRev
   iintro ⟨#Hpkg, #Hws⟩
   iunfold mvcc.isWatchable
   iexists ⟨go.GoType.PointerType watchableStore.ty, #s⟩

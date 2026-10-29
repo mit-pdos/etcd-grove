@@ -1,0 +1,16 @@
+# With bodies (project k8s-daemonset; notes/k8s-daemonset-goose.md): the DaemonSet controller's
+# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8sdaemonset/go.mod).
+#
+# Names only: the functions that call a typed client's method (`KubeClient.CoreV1().Pods(ns)
+# .Create`, ...) or a `hash.Hash32`'s: the interface's package (client-go's typed `apps/v1`,
+# `core/v1`; the standard library's `hash`) is not imported by the file, and Goose names it
+# through an imported package of the same name (`k8s.io/api/apps/v1`; this repository's
+# `pkg/util/hash`), which has no such type (gap D2, G3 of notes/k8s-etcd3-goose.md). Among them
+# the pod creates and deletes the DaemonSet controller makes (`RealPodControl.createPods`,
+# `DeletePod`) and its template hash (`ComputeHash`).
+translate = ["*",
+  "!RealPodControl.createPods", "!RealPodControl.DeletePod", "!RealPodControl.PatchPod",
+  "!RealRSControl.PatchReplicaSet", "!RealControllerRevisionControl.PatchControllerRevision",
+  "!AddOrUpdateTaintOnNode", "!RemoveTaintOffNode", "!PatchNodeTaints",
+  "!AddOrUpdateLabelsOnNode", "!ComputeHash"]
+imports = ["*"]

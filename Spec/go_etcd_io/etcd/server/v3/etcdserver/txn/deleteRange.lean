@@ -31,16 +31,16 @@ and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range r
 abbrev txn.deleteRange.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (dr : Loc) (o : OpFull) (L : List w64) (tyX : go.GoType) (vX : val),
+    (dr : Loc) (o : OpFull) (L : List w64) (tyX : go.GoType) (vX : val) (crev : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ mvcc.twWrap tyX vX mw ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev ∗ mvcc.twWrap tyX vX mw ∗
       txn.deleteRangeRequestIs dr o ∗ lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
     (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #dr))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗
         (∃ deletes' : w64, mvcc.isTxnWrite mw s γ trace ilog
-          (pend ++ txn.delChanges (txn.pendState ilog pend) o) puts deletes' putSize) ∗
+          (pend ++ txn.delChanges (txn.pendState ilog pend) o) puts deletes' putSize crev) ∗
         txn.deleteRangeResponseIs resp
           (W64 ((mvcc.writeRev ilog (pend ++ txn.delChanges (txn.pendState ilog pend) o) : Nat) :
             Int))
@@ -50,7 +50,7 @@ abbrev txn.deleteRange.spec : Prop :=
         lease.leaseOwn γ.leases L
           (mvcc.pendItems ilog (pend ++ txn.delChanges (txn.pendState ilog pend) o))) ∨
       (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-        mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗
+        mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev ∗
         lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend)) }}
 
 end spec

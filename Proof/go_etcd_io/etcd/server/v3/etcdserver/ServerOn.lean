@@ -376,6 +376,8 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuiltM on s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
+    -- (M2, S4) the compactor's run, once (`start` spends it)
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     "#Hai" ∷ srvAppliedInvM on s E γr ∗
     "#Hkvi" ∷ srvKVInvsM on E γr ∗

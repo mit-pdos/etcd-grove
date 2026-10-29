@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-daemonset-goose.md, "The informers": what tools/cache names: its expiring and mutation caches).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

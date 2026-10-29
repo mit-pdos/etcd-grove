@@ -1,0 +1,26 @@
+# client-go's work queue (k8s.io/client-go/util/workqueue, notes/k8s-daemonset-plan.md phase 2):
+# every linked result of Proof/k8s_io/client_go/util/workqueue/Link.lean (the typed queue, the
+# rate limiters, the delaying and rate-limiting queues; those reaching a promoted method, gap C2,
+# take its spec as a hypothesis).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/clientgo-workqueue.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/k8s_io/client_go/util/workqueue/Link\.lean$
+axiom clock.RealClock.NewTicker.wp_proof
+axiom clock.RealClock.NewTimer.wp_proof
+axiom clock.RealClock.Now.wp_proof
+axiom clock.realTicker.C.wp_proof
+axiom clock.realTicker.Stop.wp_proof
+axiom clock.realTimer.C.wp_proof
+axiom clock.realTimer.Stop.wp_proof
+axiom heap.Init_.wp_proof
+axiom heap.Pop.wp_proof
+axiom klog.Background.wp_proof
+axiom math.Pow.wp_proof
+axiom rate.Limiter.Reserve.wp_proof
+axiom rate.NewLimiter.wp_proof
+axiom rate.Reservation.Delay.wp_proof
+axiom time.Duration.Nanoseconds_ptr.wp_proof
+axiom utilruntime.HandleCrashWithLogger.wp_proof

@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 watchable store): the last revision of a committed log, which extends the initial one (so the
 revision is at least `1`: `isStore`'s certificate); with a lent fraction of the committed log's
 authority (`logLent`, unit W-K: `progressIfSync`'s, under `s.mu`), that log. Of a store that may be compacted
-(`storeReaderC`; 2026-10-13, unit 6a); the frozen statement (`storeReader`) is `specFrozen`
-(`spec_frozen`, `FrozenSpecs.lean`). -/
+(`storeReaderC`; 2026-10-13, unit 6a); the readers' statement (`storeReader`) is `specR`
+(`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.watchableStore.rev.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

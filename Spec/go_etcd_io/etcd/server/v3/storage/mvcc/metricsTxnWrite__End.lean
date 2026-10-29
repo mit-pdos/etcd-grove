@@ -26,8 +26,8 @@ key-values, `isTxnEnd`: `isTxn_toEnd`): the metrics updated, the wrapped transac
 (`storeTxnRead.End` or `storeTxnWrite.End`): the tokens are back, and a write transaction's
 committed log is certified (`txnEndPost`). A write transaction's `Unlock` takes the batch
 lock's invariant back (`txnEndPre`). At any compaction revision `crev`, the tokens back as
-`storeReaderC` with the reader's tag `Z` (2026-10-13, unit 6a); the frozen statement
-(`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+`storeReaderC` with the reader's tag `Z` (2026-10-13, unit 6a); the readers' statement
+(`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
     (Z : IProp GF),

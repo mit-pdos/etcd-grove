@@ -42,17 +42,23 @@ attribute [irreducible] UID.ty
 
 axiom Separator [GooseExts] [GoGlobalContext] : val
 
-axiom JSONPatchType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def JSONPatchType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"application/json-patch+json")
 
-axiom MergePatchType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def MergePatchType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"application/merge-patch+json")
 
-axiom StrategicMergePatchType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StrategicMergePatchType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"application/strategic-merge-patch+json")
 
-axiom ApplyPatchType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ApplyPatchType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"application/apply-patch+yaml")
 
-axiom ApplyYAMLPatchType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ApplyYAMLPatchType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"application/apply-patch+yaml")
 
-axiom ApplyCBORPatchType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ApplyCBORPatchType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"application/apply-patch+cbor")
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.types where
   pkgImportedPkgs := []

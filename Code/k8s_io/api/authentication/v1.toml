@@ -1,0 +1,6 @@
+# Names only (project k8s-apiserver; notes/k8s-apimodel-goose.md): types the typed clients'
+# interfaces name (`kubernetes.Interface`, `typed/{core,apps}/v1`), which the model API server
+# implements (examples/k8sdaemonset/apimodel); their definitions stay axiomatized. Nothing here is
+# called.
+translate = ["!*"]
+imports = ["!*"]

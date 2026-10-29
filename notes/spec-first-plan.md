@@ -23,32 +23,48 @@ cheaply (by tests and a few proofs), freezes them, and only then does the bulk o
   `notes/decisions.md`) found trust-boundary specs false of the Go code after proofs rested on
   them.
 
-So three causes, each with its own remedy: scope that grows a feature at a time (phase 0),
-caller needs discovered bottom-up after the callee is proved (phase 1), specs nobody checked
-against the code (phase 2). Step 1 below measures their shares.
+So three causes, each with its own remedy: scope that grows a feature at a time (Scope),
+caller needs discovered bottom-up after the callee is proved (Draft), specs nobody checked
+against the code (Test). Step 1 below measures their shares.
 
 ## The phases
 
-**Phase 0: scope and the top-level statement first.** Before any spec of a slice, fix the
+Seven steps, in order (renamed 2026-10-28; the notes and commits before then number them):
+
+| step | was | what it does |
+|---|---|---|
+| **Scope** | phase 0 | fix the configuration and the top-level statement; for a widening, draft the layers' statements; check what the callees' proofs assume |
+| **Draft** | phase 1 | every spec written, proofs `sorry`, links generated; the glue proved |
+| **Review** | phase 1b | fresh reviewers, rounds until nothing first-tier is left |
+| **Test** | phase 2 | the spec-guided tester runs the specs against the Go code |
+| **Probe** | phase 3 | an easy and a hard proof; the list of cross-package unfolds |
+| **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified |
+| **Prove** | phase 4 | the remaining proofs, in parallel |
+
+**Scope (was phase 0): the configuration and the top-level statement first.** Before any spec of a slice, fix the
 configuration the result covers (features on or off, message types, membership changes,
 snapshots, failure modes) and write the top-level theorem (e.g. the example's linearizability
 adequacy). Widening later is a new, deliberate stage, not a series of spec edits.
+*For a widening of code already proved* (M2, 2026-10-28): Scope drafts the top-level statements
+and the statements of the layers it changes, not a survey of the files: M2's Scope, decided from
+a survey, was revised four times in Draft by drafting alone (C3, the watch store, Restore, and
+delete-then-put twice).
 
-**Phase 1: the spec skeleton, top-down.** Every function's spec written, internal and external,
+**Draft (was phase 1): the spec skeleton, top-down.** Every function's spec written, internal and external,
 every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then prove the *glue*:
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
 
-**Phase 1b: review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
-phase 1). Writing a spec and proving its callers' glue alternate per package boundary: write the
+**Review (was phase 1b): review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
+Draft step). Writing a spec and proving its callers' glue alternate per package boundary: write the
 spec, prove the glue of *every* caller, review, revise; a spec is frozen only when every caller's
 glue proves and the review leaves nothing in the first tier below. The review is a fresh reviewer's
 (the `spec-reviewer` agent, which judges by the `spec` skill's `PRINCIPLES.md` and `examples/`), given the specs, the Go code and the callers, not the
 author's conclusions; it ranks each spec that crosses a package boundary (internal helpers' specs may
 mirror the code) in two tiers:
 
-- *Requirements* (fail one and the spec is wrong): **true** of the code (phase 2's tester, then the
+- *Requirements* (fail one and the spec is wrong): **true** of the code (the tester (Test), then the
   proof); **sufficient for every caller** (each caller can establish the pre and gets what its proof
   needs from the post: the glue proofs check it); **faithful to concurrency** (callers that invoke it
   concurrently need persistent contracts, a once-only or exclusive use a token; and an exclusive
@@ -90,15 +106,15 @@ and after the freeze.
 
 | metric | what it catches | how |
 |---|---|---|
-| scope premises | premises restricting the configuration or workload (`AutoCompactionRetention = 0`): each a future SCOPE revision, step 1's first cause | count per spec; each must cite a phase-0 decision or an `issues/` file |
+| scope premises | premises restricting the configuration or workload (`AutoCompactionRetention = 0`): each a future SCOPE revision, step 1's first cause | count per spec; each must cite a Scope decision or an `issues/` file |
 | caller burden | a missing law: callers unfold the spec's predicates or open its invariants | `unfold`/`iunfold` of the callee's definitions in callers' proofs; glue lines per call |
 | law coverage | persistence, timelessness, fractions, agreement callers need and the API lacks | the laws exported next to each predicate against those callers use |
-| trust exposure | axioms the spec rests on, and whether each is tested | `etc/tcb-report.py --roots`; phase 2's tester coverage of them |
-| testability | how much of the spec phase 2 can check | the pure, decidable share of the pre/post; opaque predicates needing a test interpretation |
-| strength margin | a post weaker than the code guarantees: a future CALLER revision, step 1's second cause | phase 2's tester with a strengthened post: if no execution refutes it, note it (strengthen only when a caller needs it) |
+| trust exposure | axioms the spec rests on, and whether each is tested | `etc/tcb-report.py --roots`; the tester (Test) coverage of them |
+| testability | how much of the spec Test can check | the pure, decidable share of the pre/post; opaque predicates needing a test interpretation |
+| strength margin | a post weaker than the code guarantees: a future CALLER revision, step 1's second cause | the tester (Test) with a strengthened post: if no execution refutes it, note it (strengthen only when a caller needs it) |
 
 *The feedback loop.* The review's criteria are themselves under test:
-1. every spec revision after the review (glue, phase 3, phase 4, after the freeze) records its cause
+1. every spec revision after the review (glue, Probe, Prove, after the freeze) records its cause
    (step 1's rubric) and the review criterion that should have caught it, or "none";
 2. a "none" becomes a new or sharper criterion; a miss of an existing criterion adds an example to
    the reviewer's brief;
@@ -110,7 +126,7 @@ and after the freeze.
 Each attributed miss becomes a principle (new or sharpened) in the `spec` skill's `PRINCIPLES.md`,
 so later reviews in the repository start from it.
 
-**Phase 2: test the specs against the Go code** (no proof).
+**Test (was phase 2): the specs against the Go code** (no proof).
 - Canonical form: `own σ ∗ ⌜Pre σ args⌝ -∗ WP f args {r, ∃ σ', own σ' ∗ ⌜Post σ args r σ'⌝ ∗ …}`
   with `Pre`, `Post` decidable definitions on the pure records the predicates are indexed by
   (CLAUDE.md, "Records").
@@ -130,7 +146,7 @@ so later reviews in the repository start from it.
   same treatment: random call sequences against the real library, checked against the axiom's pure
   model. One refuting trace is what the audit had to find by reading.
 
-**Phase 3: a few proofs per package.** Prove fully the one or two riskiest bodies of each
+**Probe (was phase 3): a few proofs per package.** Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
 sufficiency, the ghost design, logical atomicity. Then freeze the specs: a change after the
 freeze needs a `notes/decisions.md` entry with its cause. Do an easy proof too, not only the riskiest one (the user, 2026-10-27): an easy
@@ -140,7 +156,7 @@ and so whether a hard proof per package is needed or an easy one is enough. Reco
 it took, and the spec problems it found that the review and the glue had not.
 
 *Unfolds across a package boundary* (added 2026-10-27, the user's: a client of a good spec does not
-unfold its definitions). Phase 1b's caller-burden metric predicts them; phase 1's glue and phase 3's
+unfold its definitions). Review's caller-burden metric predicts them; Draft's glue and Probe's
 proofs are where they show. List, for each proof, every `unfold`/`iunfold`/destructuring of a
 definition of another package (its predicates, its package initializer's fact, its contracts; not
 Perennial's proof-mode patterns such as `chan.blockingClausePre`). Each is a finding against that
@@ -151,12 +167,24 @@ definition of the proof's own package is normal. The pilot's two `Run` proofs ha
 by its 31st of 42 conjuncts (now `mvcc.ErrCompacted_target`), and Perennial's `context.isContextDef`
 (`isContext_Done`, a Perennial branch). **The freeze requires the list empty**, or each remaining
 unfold justified in `notes/decisions.md` (a law pending in Perennial, say).
+**The freeze also requires every caller's glue** (M2, 2026-10-28), callers in planned later stages
+included; a spec whose callers are not all written is "frozen pending" them. The compactor's
+`compactableOk` passed five reviews and the freeze, then failed at the first glue of its real
+implementation's caller in M2: the reviews had checked it against `EtcdServer.Compact.spec`, itself
+an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
+`Value(TraceKey{})`).
 
-**Phase 4: the remaining proofs**, against frozen specs, in parallel (independent per function,
+**Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
 
+**Agents in Draft and Review** (M2, 2026-10-28): a long agent drifts toward proving. Its brief says
+skeleton only from the start (statements; the glue; a marked `sorry` on the failing step of anything
+else) and **never deletes a finished proof**: a broken one keeps its text, with the `sorry` on the
+failing step naming the commit that had the proof. (M2's S1 agent re-proved about 45 files before
+S2-S4 had statements, and replaced finished proofs wholesale with `sorry`s, until redirected.)
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
-atomicity). Only phase 1's glue proofs and phase 3's sampled proofs check it before phase 4.
+atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
 **Costs.** The Go abstraction functions; decidable `Pre`/`Post` where a spec quantifies over
 ghost state (a weaker test-only projection where needed); restating existing specs in the
@@ -168,8 +196,8 @@ canonical form (for the pilot slice only, at first).
    cause, and say for each which phase would have found the need earlier. Gives the shares of the
    three causes, hence which phases are worth building. Done: below.
 2. **The checker on known bugs**: replay the trust-boundary axioms later found false (the audit's
-   rows, step 1's three) and the library calls with a reproduction in `issues/` through the phase-2
-   checker; how many does it catch? If few, phase 2 is not worth its cost. (Narrowed to the
+   rows, step 1's three) and the library calls with a reproduction in `issues/` through the Test
+   checker; how many does it catch? If few, Test is not worth its cost. (Narrowed to the
    trust boundary by step 1.) Done: below.
 3. **A prospective pilot** (started 2026-10-27: etcd's auto-compactor, `notes/compactor-pilot-plan.md`): one unverified slice of comparable size done spec-first, compared with
    a slice done the current way (from git history: e.g. cindex, the read-index loop). Metrics:
@@ -194,7 +222,7 @@ docstrings, renames, the Perennial pin, linter options), CODE (the Go code chang
 
 **Results** (64 commits; 49 classified with high confidence, 15 medium):
 
-| cause | primary | phase that would have found it earlier |
+| cause | primary | step that would have found it earlier (P0 Scope, P1 Draft, P2 Test, P3 Probe) |
 |---|---|---|
 | CALLER | 23 | P1 19, P0 2, P2 1, P3 1 |
 | SCOPE | 20 | P0 19, P1 1 |
@@ -204,8 +232,8 @@ docstrings, renames, the Perennial pin, linter options), CODE (the Go code chang
 | FALSE-BEH | 2 (+1 secondary) | P2 |
 | FALSE-RES | 0 (3 secondary) | P1 2, P3 1 |
 
-Of the 50 that are not INFRA or CODE: 42 (84%) are SCOPE or CALLER, which phases 0 and 1 address;
-3 (6%) are false behavior, which phase 2 would have caught. The `Proof/` lines changed in the same
+Of the 50 that are not INFRA or CODE: 42 (84%) are SCOPE or CALLER, which Scope and Draft address;
+3 (6%) are false behavior, which Test would have caught. The `Proof/` lines changed in the same
 commits (a rough measure: such commits also do new proof work) follow the same order: SCOPE
 18 472, CALLER 13 381, FALSE-BEH 294.
 
@@ -219,24 +247,24 @@ trust-boundary axioms, which no proof will ever check):
   the traces record sub-revisions).
 
 **What the sample says about the plan.**
-- **Phases 0 and 1 matter most; phase 2 is narrow.** Trace testing checks that a spec is true; it
+- **Scope and Draft matter most; Test is narrow.** Trace testing checks that a spec is true; it
   cannot see a spec too weak for its caller, and most CALLER changes strengthen a true post
   (`Advance` keeps the term, `decodeLoop`'s error is never nil, `deleteOnce`'s `ok` implies
-  `err = nil`). Build phase 2 for the trust-boundary axioms (717 of them) first, not for proved
+  `err = nil`). Build Test for the trust-boundary axioms (717 of them) first, not for proved
   specs.
-- **Phase 0 must fix the deployed configuration and the strongest top-level property, not just
+- **Scope must fix the deployed configuration and the strongest top-level property, not just
   "a scope".** `596c72e0e6`: etcd runs raft with `CheckQuorum: true`, the proof required it off,
   so the closed theorem did not cover etcd's configuration until then (PreVote likewise).
   `e273d4457d`: the top-level property went from "a client write may fire repeatedly" to "at most
   once", which changed about 22 spec files from the client's retry interceptor down to
   `raft.Step`. Scope also shrinks (`1f26594335`: the bridge, proved, declared network;
   `19a919ec00`: leader transfer off where the network contract cannot describe `MsgTimeoutNow`).
-- **Phase 1's glue proofs must be full separation-logic proofs.** The CALLER needs are mostly
+- **Draft's glue proofs must be full separation-logic proofs.** The CALLER needs are mostly
   resources (a ghost fraction lent, a token threaded, ownership given back: `6e5a820e9f`,
   `38ca631867`, `bbbbfd238b`, `22473bd085`, `0d418fec3c`), not pure facts. A glue proof finds
-  that something is missing; the shape of the fix is often a ghost design, phase 3's work, so
-  phases 1 and 3 interleave per package rather than run in sequence.
-- **A satisfiability check of preconditions** belongs in phase 1: `5239c8b0e3`'s pre could not be
+  that something is missing; the shape of the fix is often a ghost design, Probe's work, so
+  Draft and Probe interleave per package rather than run in sequence.
+- **A satisfiability check of preconditions** belongs in Draft: `5239c8b0e3`'s pre could not be
   met with auth on, which composing the top-level theorem shows without any proof of a body. Some
   premises are false only in the model (`f2ac4e6c88`: `Campaign`'s `leaderRev - 1` is 0 only
   because the model's first write is revision 1): no Go trace refutes them, only the glue.
@@ -255,14 +283,14 @@ of 64).
 
 **Revisions to the plan from step 1.** Step 2 (the checker on known bugs) is narrowed to the
 trust-boundary axioms: the audit's false rows, the three above, and the libraries' calls with
-`issues/` reproductions. The pilot (step 3) measures phase 0 (is the configuration that of
-deployed etcd, is the top-level property the strongest one wanted) and phase 1 (glue proofs in
-full Iris, interleaved with the phase-3 proofs of the package) first.
+`issues/` reproductions. The pilot (step 3) measures Scope (is the configuration that of
+deployed etcd, is the top-level property the strongest one wanted) and Draft (glue proofs in
+full Iris, interleaved with the Probe proofs of the package) first.
 
 ## Step 2: the checker on the known false axioms (2026-10-27)
 
 Two parts: a paper replay of every trust-boundary axiom known to have been false, and a working
-prototype of the phase-2 checker on one library, bbolt.
+prototype of the Test checker on one library, bbolt.
 
 **The paper replay.** The 44 axioms known false (the audit's 41, `notes/audit.md`, and step 1's
 three), each classified by what would refute it: `notes/spec-first-study/step2-false-axioms.jsonl`
@@ -323,13 +351,46 @@ blocking). Each axiom is transcribed by hand from its Lean statement. Runs of 60
   Rare sequences take many runs (`wBkt`: about 1 run in 100).
 - **The cost and the gap**: about 25 lines of Go per axiom, by hand, plus the pure model
   (`bktEnts`, `seekIdx`). The transcription is unchecked: a wrong transcription tests another spec.
-  Specs in phase 2's canonical form (pure `Pre`/`Post` as Lean definitions) would let a generated
+  Specs in Test's canonical form (pure `Pre`/`Post` as Lean definitions) would let a generated
   checker evaluate the Lean text instead; not built.
 
-**Revisions to the plan from step 2.** Phase 2 is worth building for the trust boundary (717
+**Revisions to the plan from step 2.** Test is worth building for the trust boundary (717
 axioms, which no proof will check), as spec-guided call-sequence testing with predicate tracking,
 not as checking of recorded traces alone: the sequences the specs allow are where the false
 resource parts show. Next libraries by the paper replay's yield: etcd's own names-only axioms
 (mvcc, lease, quota: call sequences), prometheus and `strconv`-like single calls (cheap), rafthttp.
 The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
 a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).
+
+## Checkpoint: the compactor pilot and M2 to review round 1 (2026-10-28)
+
+**What works.**
+- *Review before proofs finds most spec problems*: the compactor's 18 of 19 first-tier revisions
+  came from the reviews, before any proof (the glue the 19th; proofs and the tester none); M2's
+  round 1 found 4 first-tier problems in S2-S4, none in S1, at no proof cost.
+- *Drafting statements tests the design cheaply*: M2's Scope was revised four times in Draft by
+  writing statements alone; the reversal after round 1 (one family, the Go bug fixed instead of
+  a compaction-mode family through the serving stack) discarded statements and stubs, not proofs.
+- *The glue finds what the reviews miss*: `Compact`'s context `Value` (after five rounds), the
+  `rangeResult` bound.
+
+**What does not, yet.**
+- *The freeze leaked*: one revision after it (`compactableOk`'s context, above); "0 after the
+  freeze" held only while the spec's real caller did not exist. Revision: the freeze requires every
+  caller's glue (the freeze, above).
+- *Scope from a survey underestimates a widening of proved code* (M2 is mostly that, which the
+  plan was not designed for). Revision: Scope drafts statements (above).
+- *Reviews introduce defects*: M2's future-revision defect came from the compactor's first review
+  repair ("any revision" instead of "a revision the store reached"), as round 2 of the pilot saw.
+  The rule stands: a round after every repair, looking hardest at what changed.
+- *Reviews trusted unproved specs*: a sharpened principle (`.claude/skills/spec/PRINCIPLES.md`,
+  "Complete": a contract against its implementation's Go body when that implementation's spec is
+  unproved).
+- *Execution*: agents drifted to proving and deleted finished proofs. Revision: the agents' brief
+  (above).
+- *Cost*: a round is about 10-15 minutes of agent time plus long builds, and M2 needed many of the
+  user's decisions (eight so far): cheaper than re-proofs, not free.
+
+**The comparison** (step 3's main metric): spec revisions after the freeze, 1 for the compactor (by
+M2's glue), against about 5 for the read-index baseline over two weeks; not yet fair (hours against
+weeks, and M2 not finished).

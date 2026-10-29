@@ -248,7 +248,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Import the Lean module of every package whose types a translated body names, and
   make `pkgRef` an error, never a substitution, when the package is not imported under its own
   name.
-- **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+- **Status.** The substitution is fixed in the pin `ad74ee4f6` (`e5e31069a`: `pkgRef` names a package by
+  its own path). The workarounds here remain: the DaemonSet's D2 exclusions (their bodies are named
+  hypotheses, `Spec/**/*_body.lean`, of the unlinked phase-5 proofs), `util/feature.toml`,
+  `cacher.toml`. Next: drop the D2 exclusions and discharge the body hypotheses by the generated
+  unfolds; the missing imports (the first half) are not checked yet.
 - **Also the watch cache (2026-10-26, branch `kep-6404`, `notes/kep-6404-plan.md`).** The cacher's
   `processEvent`, `UpdateResourceVersion` and `waitUntilFreshLocked` use the cacher's `metrics`
   variables, of component-base's `metrics` types (`CounterVec`, `HistogramVec`), which the cacher
@@ -259,6 +263,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `timeline` field is a `metrics.DispatchTimeline`, is axiomatized (`translate_types` skips a type
   naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
   cannot be proved until the general fix.
+- **Also the DaemonSet controller (2026-10-27, branch `k8s-daemonset-proof`; gap D2 of
+  `notes/k8s-daemonset-goose.md`).** Kubernetes names nearly every API and client package `v1`, so
+  the substitution hits the controller's main path: `syncDaemonSet` (component-base's
+  `metrics.CounterMetric` named as the controller's `daemon/metrics`), `RealPodControl.createPods`
+  and `DeletePod` (client-go's typed `PodInterface` named as `k8s.io/api/apps/v1`'s), `ComputeHash`
+  (the standard library's `hash.Hash32` as `pkg/util/hash`'s), the node-affinity `Match`es
+  (metav1's `ObjectMeta` as core/v1's); ten functions names only. **Tried**: `pkgRef` returning the
+  package's own path always (the substitution loop deleted) in a scratch copy of the pinned
+  translator: all ten translate and their modules elaborate (the interfaces' modules are in scope
+  through public imports), and no other file of the project changes. Now the most needed of the
+  open Goose changes for the DaemonSet proof.
 
 ### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
 
@@ -275,10 +290,145 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (client-go's `tools/cache.Object`: `interface { GetName() string; GetNamespace() string;
   comparable }`) and emits `go.type_term.TypeTerm go.comparable`, which Perennial does not define
   (`Unknown identifier go.comparable`).
-- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only.
-- **Workaround here.** `client_go/tools/cache.toml` without `translate_types` (types axiomatized).
+- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only;
+  (2026-10-26) the local half of `tools/cache` (store, thread-safe map, indexers) does not use
+  `Object`; the typed informers (`TypedResourceEventHandler[T Object]`, DaemonSet plan phase 4) will.
+- **Workaround here.** `client_go/tools/cache.toml` without `translate_types`: the types it
+  translates are listed by name (2026-10-26, `notes/k8s-clientgo-goose.md`, C6), `Object` stays
+  axiomatized.
 - **Proposed.** Either a `go.comparable` type set in Perennial's semantics, or Goose rejecting
   (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
+- **Status.** Not started.
+
+### Goose: an axiomatized type alias is declared under another name than its uses (2026-10-26, client-go survey C3)
+
+- **Missing.** An axiomatized alias is declared `axiom X : go.GoType` (`goose/types.go:65`) but
+  referred to as `X.ty` like every type.
+- **Needed by.** client-go's workqueue (`klog.Logger = logr.Logger` in its configs).
+- **Workaround here.** klog's config imports `github.com/go-logr/logr` (names only), so the alias
+  translates.
+- **Proposed.** Declare the axiomatized alias as `X.ty`.
+- **Status.** Not started.
+
+### Goose: `min`/`max` of a named integer type (2026-10-26, client-go survey C4)
+
+- **Missing.** `min(a, b)` on `time.Duration` is rejected (`comparison between non-assignable
+  types`): `goose.go:926` joins the first parameter's underlying type with the others' types.
+- **Needed by.** client-go's `flowcontrol.Backoff.Next` and `tools/cache`'s
+  `threadSafeMap.Transaction` (names only here).
+- **Workaround here.** The two names only.
+- **Proposed.** Emit `go.min` at the parameters' (named) type and let its semantics take the
+  underlying type (type choices are the Lean semantics', Perennial's `AGENTS.md`); joining the
+  underlying types in Goose also works (tried in a scratch copy: both translate and elaborate) but
+  makes that choice in Goose.
+- **Status.** Fixed in the pin `ad74ee4f6` (`0227e444b`: `min`/`max` take the type `go/types` reports);
+  the two functions are still names only here.
+
+### Goose: a struct field named like a type of its package (2026-10-26, client-go survey C5)
+
+- **Missing.** In `S.TypeAssumptions` (in `S`'s namespace), a field type that is a package type of
+  the same name as a field (`intstr.IntOrString`'s field `Type` of type `Type`) resolves to the
+  field's projection (`(y : Type')` is `IntOrString.Type'`).
+- **Needed by.** `k8s.io/apimachinery/pkg/util/intstr.IntOrString` (the DaemonSet's rolling-update
+  fields).
+- **Workaround here.** `intstr`'s structs axiomatized (`translate_types_except_structs`).
+- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`).
+- **Status.** Not started.
+
+### Goose: range over a string (2026-10-26, client-go survey C1)
+
+- **Missing.** `for i := range s` over a string (`[unsupported]: range over string`).
+- **Needed by.** apimachinery's `resourceversion.isWellFormed` (the consistency store's
+  comparisons).
+- **Workaround here.** `isWellFormed` names only (a trust-boundary spec, or a trusted model as the
+  byte loop, which computes the same result).
+- **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
+  `utf8.DecodeRuneInString`).
+- **Status.** Fixed on Perennial's `lean` (`474911152`, with `wp_string_for_range`; in the pin since
+  `edcadb1e5`); `isWellFormed` is still names only here.
+
+### Tactics: `wp_apply` after an atomic spec applied with `iapply` (2026-10-27, client-go consistency)
+
+- **Missing.** In a proof that applies a logically atomic spec (the `<<{ … }>>` triples of
+  `Perennial/ProgramLogic/AtomicFupd.lean`) with `wp_bind; iapply spec $$ [...]`, a later
+  `wp_apply lem $$ [...]` in the continuation (after the atomic update is closed) silently does
+  nothing: no error at the tactic, the declaration reports only "unsolved goals" at its `by`, and
+  `wp_apply_core` there fails with "unknown free variable" and "declaration has metavariables".
+  Seen in `Proof/k8s_io/client_go/util/consistency/consistencyStore__WroteAt.lean` (the call of
+  `ownerRecord.WroteAt` after `ensureWrittenRecord`'s atomic spec). `wp_apply` directly on the
+  atomic spec has the same symptom.
+- **Workaround here.** `wp_bind; iapply lem $$ [...]` for the later call too, then `inext; iintro`
+  its postcondition.
+- **Proposed.** Find the metavariable `wp_apply` leaves (probably the continuation `Φ` of the
+  atomic spec, instantiated late, whose context then loses a local cleared by `wp_auto`), and make
+  `wp_apply` support atomic specs directly.
+- **Status.** Not started.
+
+### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
+
+- **Missing.** Perennial's `fmt.Errorf` spec requires each argument well formed (`ArgWf`), which
+  has no case for a value of a named map type without a `String`/`Error` method (`sets.Set[string]`,
+  printed with `%v`). client-go's `AddIndexers` passes two.
+- **Workaround here.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean` proves
+  `wp_Errorf_setArgs` from the model with the faithfulness of that case as its premise.
+- **Proposed.** An `ArgWf` case for maps whose type has no formatting method (the value printed
+  structurally; the spec needs only that `Errorf` returns a non-nil error).
+- **Status.** Not started.
+
+### Tactics: `wp_load` misses a field of a whole-struct points-to with a generic-struct field (2026-10-27, client-go listers)
+
+- **Missing.** With `s ↦{dq} (⟨ri⟩ : daemonSetLister)` in context (a struct whose one field is the
+  generic `listers.ResourceIndexer[T]`), `wp_load` of `s.[daemonSetLister, "ResourceIndexer"]`
+  reports "could not find a points-to in context covering the address", although the generated
+  `AccessStrict` instance `daemonSetLister_access_load_ResourceIndexer` exists and applies when
+  used by hand.
+- **Workaround here.** Specs state the field points-to (`s.[daemonSetLister, "ResourceIndexer"] ↦
+  ri`); constructors split the allocation with the instance's `access_strict`
+  (`Proof/k8s_io/client_go/listers/apps/v1/NewDaemonSetLister.lean`).
+- **Status.** Not investigated.
+
+### Tactics: `iframe` leaves persistent hypotheses unframed after `iapply` of an atomic spec (2026-10-27, client-go listers)
+
+- **Missing.** After `iapply (atomicSpec ...) $$ [Hr] HAU`, the precondition goal
+  `isPkgInit ∗ isCache … ∗ typedOK …` (all available as `□` hypotheses) is not closed by `iframe`;
+  `isplitr; iexact H` per conjunct is needed. Similarly after `wp_apply (wp_Pop …) $$ [Hpop Hdn]`
+  for `isFIFO`/`processOk` in `controller__processLoop.lean`.
+- **Status.** Not investigated.
+
+### Semantics: `sync.Mutex{}` (2026-10-26, client-go workqueue)
+
+- **Missing.** `sync.Mutex`'s model has underlying type `go.bool` (`TrustedCode/sync.lean`), and a
+  composite literal at a named type steps at its underlying type, so `&sync.Mutex{}` reaches
+  `CompositeLiteral go.bool (LiteralValueV [])`, which has no step (composite literals step at
+  structs, arrays, slices, maps and pointers only).
+- **Needed by.** client-go's `newQueue` (`sync.NewCond(&sync.Mutex{})`); the backend's
+  `backend.wp_mutexLit` (`storage/backend/MutexLit.lean`) states the same gap as an axiom.
+- **Workaround here.** A hypothesis class, `EtcdGrove.MutexLitSemantics`
+  (`Proof/sync/MutexLitSemantics.lean`, in `SEM_PREMISES`): the empty literal of `go.bool` is
+  `false`.
+- **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
+  has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
+- **Status.** Not started.
+
+### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
+
+- **Missing.** `backoff > math.MaxInt64` with `backoff : float64` is emitted as `Convert
+  go.untypedInt go.float64 #c` at run time, and `UntypedIntSemantics` converts untyped integers to
+  the integer types only.
+- **Needed by.** client-go's `TypedItemExponentialFailureRateLimiter.When`.
+- **Workaround here.** A hypothesis class, `EtcdGrove.UntypedIntToFloat64Semantics`
+  (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`, in `SEM_PREMISES`): it steps to
+  an uninterpreted float of the integer, as `float64(n)` of a typed integer does.
+- **Proposed.** Goose folding the constant conversion, or the step in `UntypedIntSemantics`.
+- **Status.** Not started.
+
+### Specs: `container/heap` (2026-10-27, client-go workqueue)
+
+- **Missing.** No specs of `container/heap` in Perennial. This repository states `heap.Push`,
+  `heap.Fix` (the lessor's), `heap.Init`, `heap.Pop` (the work queue's) as trust-boundary axioms
+  over the contract `heap.heapIface` (`Proof/container/heap/Defs.lean`); `Init` and `Pop` are
+  stated up to a permutation (no heap order).
+- **Proposed.** Proved specs in Perennial (the package is plain Go over `heap.Interface`).
 - **Status.** Not started.
 
 ### Specs: `reflect`
@@ -299,7 +449,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 - **Missing translations.** `encoding/json`, `encoding/base64`, `path` (Perennial translates
   none of them; `iter` is Perennial's since the pin `edcadb1e5`, 2026-10-27).
-- **Missing specs.** `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
+- **Missing specs.** (2026-10-26) client-go's leaf libraries add `sync.WaitGroup.Go`,
+  `container/heap.Init`/`Pop`, `math.Pow`, `os.LookupEnv`, `time.Time.Add/Before/Sub`,
+  `math/rand.New`/`Rand.Float64` (the full list per package: `notes/k8s-clientgo-goose.md`).
+  Earlier: `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
   some of `strings`; `fmt.Sprint`, `Sprintln`, `Fprintf`; `os.Getenv`; `json.Marshal`,
   `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`. (2026-10-24, rafthttp stage 7d)
   `io.MultiReader` (names-only: an axiom here, `Proof/io/MultiReader.lean`, stated over the
@@ -350,6 +503,24 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   proved from it.
 - **Status.** Not started in Perennial.
 
+### `reflect.Type` in a struct field: the struct's instances rest on a `sorry` (2026-10-27, client-go reflector)
+
+- **Limitation.** `reflect` is names-only (`Perennial/Code/reflect.toml`: `translate = ["!*"]`), so
+  `reflect.Type` (a Go *interface* type) is an axiomatized Lean type whose generated instances
+  (`GeneratedProof/reflect.lean`: `Type'_typed_pointsto`, `Type'_into_val_typed`) are
+  `sorry -- axiomatized type`. A translated struct with a `reflect.Type` field gets its own
+  instances from them when it is generated, so every proof that touches such a struct's fields
+  reaches the `sorry`s; a later higher-priority instance (as `Proof/reflect/Values.lean` does for
+  `reflect.Value`) does not help, the struct's instance is already elaborated.
+- **Needed by.** client-go's `Reflector` (`expectedType reflect.Type`): the reflector's proofs
+  (`Proof/k8s_io/client_go/tools/cache/Reflector__*.lean`, phase 4 of
+  `notes/k8s-daemonset-plan.md`) rest on the two `sorry`s (in `etc/tcb-baseline.txt` and the
+  client-go collections since 2026-10-27).
+- **Proposed.** Translate `reflect`'s type declarations (`translate_types`, or `Type` alone: an
+  interface type, whose values Perennial represents as any interface's), keeping its functions
+  names only. A Perennial change, designed and reviewed on its own.
+- **Status.** Not started.
+
 ### Goose: a names-only package's constants are values of unknown shape
 
 - **Need.** A names-only package's constants are axiomatized `val`s
@@ -389,18 +560,53 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   has no conversion step.
 - **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
 - **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
-  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom.
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom. Also met by
+  client-go's pager (2026-10-28, `k8s-daemonset-proof`): `meta.List` (`type List
+  metav1.ListInterface`), two named types deep; a local instance `metaList_underlying`
+  (`Proof/k8s_io/client_go/tools/pager/Defs.lean`), no axiom.
 - **Proposed fix.** An instance `[t <u t'] [t' ≤u t''] : t ≤u t''` (in place of
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
 - **Status.** Not started.
 
-### `os.Getenv`, `strconv.ParseBool` have no specs
+### `time.Time.IsZero` has no model
 
-- **Limitation.** Both are names-only in Perennial (no body, no spec).
+- **Missing.** Perennial's `time` translation at the pin has no `(*Time).IsZero` method, so a
+  call to it does not step.
+- **Needed by.** client-go's `retryWithDeadlineImpl.After` (`tools/cache/retry_with_deadline.go`:
+  `if r.firstErrorTime.IsZero() ...`), called by `Reflector.watch` on every watch error
+  (2026-10-28, `k8s-daemonset-proof`, phase 4 fifth round).
+- **Workaround here.** `retryWithDeadlineImpl.After`'s spec is a named hypothesis (`?` in
+  `etc/link-lean-first-k8scache.txt`, `links_pending`): it updates the retry's own fields and
+  returns; no axiom.
+- **Proposed change.** `Time.IsZero` in Perennial's `time` model (true exactly of the zero value)
+  with its spec beside `Time.Sub`'s.
+- **Status.** Not started.
+
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Status.** Not started.
+
+### `os.Getenv`, `strconv.ParseBool`, `strconv.ParseInt` have no specs
+
+- **Limitation.** All three are names-only in Perennial (no body, no spec).
 - **Needed by.** `k8s.io/apiserver/pkg/storage/etcd3`'s `init` (`watcher.go`: whether
   `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true), which the driver's initialization runs.
+  (2026-10-27, branch `k8s-leaf-cache`) `ParseInt`: client-go's thread-safe store
+  (`tools/cache`, `parseRVForMetricsWithTruncation`, the resource-version metric).
 - **Workaround here.** Trust-boundary specs (`Spec/os/Getenv.lean`, `Spec/strconv/ParseBool.lean`,
-  axioms in `Proof/`): each returns some value.
+  `Spec/strconv/ParseInt.lean`, axioms in `Proof/`): each returns some value.
 - **Proposed fix.** Specs in Perennial (`ParseBool` can be translated: it is pure).
 - **Status.** Not started.
 
@@ -542,7 +748,117 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   turn `StdEncoding_init`'s method clause and `selectPassword`'s decode clause into theorems, and
   serve the k8s etcd3 store's continue tokens.
 
+### `wp_load` of a struct field through a fractional points-to (2026-10-27, DaemonSet plan phase 3)
+
+- **Missing.** Loading a field (`![t] (StructFieldRef T f l)`) needs `l`'s struct points-to at
+  fraction 1 for `wp_auto` to split it; at a fraction `dq` (a persistent configuration, a shared
+  `*Preconditions`) the load is stuck.
+- **Workaround here.** Persistent structs are stated field by field (the model's `cfgAt`); a
+  fractional one is split by `iStructNamed` and recombined with `typedPointsto_combine` around the
+  loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
+- **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
+
 ## Landed
+
+### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
+
+- **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded
+  ones as type terms (`TypeElem [TypeTerm Object.ty]`), and `typeSetContains` reads a type term
+  as that exact type: an assertion of a concrete type to such an interface panics in the
+  semantics where Go's succeeds. The model API server's `copyObject`
+  (`o.DeepCopyObject().(object)`, `object` embedding `runtime.Object` and `metav1.Object`) is a
+  `sorry` (`notes/k8s-apimodel-goose.md`).
+- **Landed** (in the pin since `6b58510f9`: `8ef540a62`, `d30f71f36`, an interface written as all its
+  methods, method sets emitted). `copyObject` proved (2026-10-28, pin `ad74ee4f6`): `DeepCopyObject`'s
+  spec per type and each pointer type's membership in `object` by `go_type_set`.
+
+### Goose: a promoted method of a generic struct, through a pointer (2026-10-26, client-go survey C2)
+
+- **Missing.** For a generic struct `S[T]` with an embedded field, the pointer receiver's unfolding
+  of a promoted method (`ptr_M_unfold` in `S.TypeAssumptions`, `goose/lean_types.go:338`) names the
+  struct as `ctx.glangType(t.Obj(), t)`, the generic type without its type argument
+  (`StructFieldRef delayingType.ty ...`, ill-typed); the value receiver's case uses `ty`.
+- **Needed by.** client-go's workqueue (`delayingType[T]`, `rateLimitingType[T]`,
+  `TypedBucketRateLimiter[T]`): every call through `TypedRateLimitingInterface[T]` (the DaemonSet
+  controller's `Get`, `Done`, `AddRateLimited`) resolves through these unfolds.
+- **Workaround here.** The promoted methods excluded in `Code/k8s_io/client_go/util/workqueue.toml`
+  (no `MethodUnfold` for them); their specs are hypotheses of the work queue's results that reach
+  them (2026-10-27, `notes/k8s-clientgo-goose.md`, "What C2 leaves unlinked").
+- **Proposed.** `glang.VerbatimExpr(ty)` for the struct there (one line; tried in a scratch copy of
+  the pinned translator: workqueue's translation then elaborates, nothing else changes), with a
+  Goose test of a generic struct embedding an interface.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`21c6ea377`, `02109a551`: the unfolding names the
+  instantiated struct; Case 18 of `fix-semantics`). The exclusions in `workqueue.toml` are gone and
+  the 14 promoted methods proved (each the embedded queue's): the work queue's `Link.lean` has no
+  pending hypotheses.
+
+### Goose: a deferred call drops its variadic argument (2026-10-27, client-go workqueue)
+
+- **Missing.** `deferStmt` (`goose/goose.go:2128`) calls the deferred function `$f` with
+  `$a0 .. $a(n-1)` for the call's `n` syntactic arguments, but `callExprPrelude` binds the
+  arguments as the callee's parameters: for a variadic callee, the variadic slice is one more name
+  (`$a1`, `slice.nil` when no variadic argument is passed). So `defer
+  utilruntime.HandleCrashWithLogger(logger)` (`HandleCrashWithLogger(logger, handlers ...)`)
+  becomes `$f $a0`, a partial application: the deferred function never runs. (With variadic
+  arguments passed, presumably the converse: more names applied than bound.)
+- **Soundness.** The model is not Go's: a deferred variadic call does nothing in it, so a proof says
+  nothing about that call's effects (a trust-base bug, not a missing feature).
+- **Needed by.** client-go's workqueue: `delayingType.waitingLoop` (`defer
+  utilruntime.HandleCrashWithLogger(logger)`) and `Typed.updateUnfinishedWorkLoop`
+  (`HandleCrashWithContext`); client-go's informers: `processorListener.pop` and `run`
+  (`HandleCrashWithLogger`, one `sorry`, `ListenerDefs.lean`'s `deferred_HandleCrashWithLogger`).
+- **Workaround here.** None: `delayingType.waitingLoop`'s proof leaves its two returns (where the
+  deferred call runs) `sorry` (gap G-defer-variadic) rather than prove the model's no-op.
+- **Proposed.** In `deferStmt`, apply `$f` to the names the prelude binds (the callee signature's
+  parameter count for a variadic call); a Goose test of `defer f(x)` with `f(x int, ys ...int)`.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`87c564ff5`, Case 20 of `fix-semantics`: `defer` and
+  `go` pass a call's arguments by parameter, the variadic slice included). The `sorry`s are gone:
+  `waitingLoop`'s two returns and `cache.deferred_HandleCrashWithLogger` (the listeners' `pop` and
+  `run` take `HandleCrashWithLogger`'s boundary spec, as `waitingLoop` does).
+
+### Goose rejects a store of `*new(T)` (2026-10-28, merge of `lean` into `k8s-daemonset-proof`)
+
+- **Limitation.** Goose at `edcadb1e5` refuses `(*q)[0] = *new(T)` (client-go's
+  `util/workqueue/queue.go`, `queue[T].Pop`): its check R4 (`docs/design/unsafe-memory.md`,
+  `modelcheck.Assign`) flags a copy of a `T` between two memory places, which gc does not copy by
+  value when they partially overlap. `*new(T)` is a fresh allocation: it overlaps nothing, so the
+  statement is safe and the semantics' by-value copy is exact.
+- **Needed by.** The work queue's `Typed.Get` (every worker's `processNextWorkItem`); `queue.Pop`
+  was translated and proved before the bump (`queue__Pop.lean`).
+- **Workaround here.** `queue[T].Pop` translated names only (`!queue[T].Pop` in
+  `Code/k8s_io/client_go/util/workqueue.toml`); its spec a named hypothesis in the work queue's
+  `Link.lean`; no axiom. (Goose's `trusted` applies to functions and variables, not methods.)
+- **Proposed change.** In `modelcheck.Assign`, treat a dereference of a fresh allocation
+  (`*new(T)`, and a composite literal's address) as a value, not a memory place.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`a56246e8a`: a place whose base is a fresh object is
+  not reported). `queue[T].Pop` is translated again, its proof restored (`queue__Pop.lean`).
+
+### Goose: an excluded method keeps its unfold; a method set in the receiver's type-parameter names (2026-10-28)
+
+Two bugs of the method sets Goose emits since Perennial `8ef540a62` (pin `6b58510f9`), found
+translating client-go's `util/workqueue` (nothing on `lean` translates it, so `lean`'s build does
+not see them). Each makes the generated `Code/k8s_io/client_go/util/workqueue.lean` fail to
+elaborate:
+
+- **An excluded declared method.** With `!queue[T].Pop` in the package's `translate` list (the
+  workaround above), Goose emits no `queue.Pop.impl` but still lists `Pop` in the pointer type's
+  method set with `ptr_Pop_unfold : MethodUnfold ... (queue.Pop.impl T)`: an unknown constant. A
+  names-only function gets no `impl` and no unfold; an excluded method should get the same (or an
+  `axiom` impl, as an axiomatized declaration does).
+- **The type parameter's name.** `type Typed[t comparable] struct {...}` with methods on
+  `*Typed[T]` (`queue.go`): `ptr_method_set : ∀ (t : go.GoType), go.MethodSetIs (go.GoType.PointerType
+  (Typed.ty t)) [(go!"Add", some (Signature [T] ...)), ...]` binds `t` but writes the signatures
+  with the methods' receiver parameter `T`: unknown identifier. The signatures must be substituted
+  into the type declaration's parameter names (Go lets each method rename them).
+- **Workaround here.** None that keeps the pinned translation (`etc/goose.py --check`): the
+  committed `workqueue.lean` is patched by hand (an `axiom queue.Pop.impl`, `T` renamed `t` in
+  `Typed`'s method set) until a Goose fix lands and the pin moves. **Blocks the merge into
+  `lean`**: CI's `goose.py --check` rejects the patched file.
+- **Proposed change.** Both in Goose's method-set emission (`goose/`): skip a method the filter
+  does not translate (or emit its axiom), and rename the receiver's type parameters to the type's.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`e549a845a`: a method's filter name is `T.m`;
+  `ad74ee4f6`: a generic type's method set in its own type parameters). The hand patch of
+  `Code/k8s_io/client_go/util/workqueue.lean` is gone; `etc/goose.py --check` passes.
 
 ### GooseLang: extensions outside Perennial, named in the syntax (2026-10-27, branch `worktree-durable-kv`)
 
@@ -893,3 +1209,13 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   trivial⟩`.
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
+
+## `WithCancel`'s `Value` delegates to its parent (2026-10-28, M2)
+
+Perennial's `context.WithCancel` spec gives `isContext` of the child, whose `Value` is specified only
+for `cancelCtxKey`. etcd's server reads `ctx.Value(TraceKey{})` (`traceutil.EnsureTrace`) on the
+auto-compactor's context, `WithCancel(Background())`; proving that it carries no trace needs: for a
+key other than `cancelCtxKey`, the child's `Value(k)` is the parent's (Go's `cancelCtx.Value`,
+`value(c.Context, key)`). General (every derived context: `WithCancel`, `WithTimeout`,
+`WithDeadline`). Meanwhile: a local lemma over Perennial's context, justified in
+`notes/m2-plan.md` (the compactor's freeze repair).

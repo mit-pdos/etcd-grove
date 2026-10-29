@@ -1,0 +1,13 @@
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the
+# typed informers of the apps/v1 resources (the example uses DaemonSets and ControllerRevisions).
+# Names only: each resource's `NewTyped<R>InformerWithOptions`, whose list-watch closures call
+# `client.AppsV1().<R>s(ns).List/Watch` through client-go's typed `kubernetes/typed/apps/v1`, a
+# package the file does not import, which the pinned Goose names through the imported
+# `k8s.io/api/apps/v1` (gap D2).
+translate = ["*",
+  "!NewTypedControllerRevisionInformerWithOptions", "!NewTypedReplicaSetInformerWithOptions",
+  "!NewTypedStatefulSetInformerWithOptions", "!NewTypedDaemonSetInformerWithOptions",
+  "!NewTypedDeploymentInformerWithOptions"]
+imports = ["*"]
+
+translate_types = true

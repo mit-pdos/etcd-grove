@@ -1,0 +1,16 @@
+# Types and names only (project k8s-apiserver; notes/k8s-apimodel-goose.md): the typed clients'
+# interfaces (`CoreV1Interface`, `PodInterface`, ...; `AppsV1Interface`, `DaemonSetInterface`,
+# ...), which the model API server implements (examples/k8sdaemonset/apimodel) and its callers
+# convert to. An interface is concrete only if every type its methods name is translated, so this
+# imports what they name (names only). The structs (client-go's own REST clients) stay axiomatized.
+translate = ["!*"]
+imports = ["!*", "context", "net/http", "k8s.io/api/core/v1", "k8s.io/api/apps/v1",
+  "k8s.io/api/policy/v1", "k8s.io/api/policy/v1beta1", "k8s.io/api/authentication/v1",
+  "k8s.io/api/autoscaling/v1", "k8s.io/apimachinery/pkg/apis/meta/v1",
+  "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/watch",
+  "k8s.io/apimachinery/pkg/fields", "k8s.io/apimachinery/pkg/runtime",
+  "k8s.io/client-go/applyconfigurations/core/v1", "k8s.io/client-go/applyconfigurations/apps/v1",
+  "k8s.io/client-go/applyconfigurations/autoscaling/v1", "k8s.io/client-go/rest"]
+
+translate_types = true
+translate_types_except_structs = true

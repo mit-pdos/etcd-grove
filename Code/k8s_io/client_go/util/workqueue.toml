@@ -1,0 +1,13 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): the typed queue, the delaying
+# queue, the rate-limiting queue and the rate limiters, for the DaemonSet controller
+# (notes/k8s-daemonset-plan.md, phase 2); the metrics providers too (no-ops by default).
+#
+# (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only: translated, each
+# would be an allocation for `etc/gen-init.py`'s `Init.lean` to step through)
+translate = ["*", "!_",
+  # (`*rate.Limiter`'s methods, exported and not)
+  "!TypedBucketRateLimiter.*", "TypedBucketRateLimiter.When", "TypedBucketRateLimiter.NumRequeues",
+  "TypedBucketRateLimiter.Forget"]
+imports = ["*"]
+
+translate_types = true

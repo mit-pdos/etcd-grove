@@ -8,7 +8,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 
 @[expose] public section
@@ -76,7 +76,7 @@ theorem txn.DeleteRange.wp_proof
   (try wp_auto)
   wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f false m Lw)
     $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $Hpre $Htr $Htrc]
-    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
+    as %tyX %vX ⟨%ilog, %mw, %crev, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
   · ipureintro; exact ⟨fun h => Hsole h, Ht⟩
   ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw ilog $$ Hte
   have hsole : γ.watchQ = true → m + 1 = txn.soleBudget ilog := by
@@ -85,15 +85,15 @@ theorem txn.DeleteRange.wp_proof
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
   -- the pin of the transaction's committed log
-  ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m
+  ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m crev
     $$ [$Htoks $Hc0 $Htx]
-  ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) $$ Htx
+  ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) crev $$ Htx
   -- `deleteRange(ctx, txnWrite, dr)`
   ihave %HI := HIp $$ %ilog %Hpin
   ihave Hown : EtcdGrove.lease.leaseOwn γ.leases L (mvcc.pendItems ilog []) $$ [Hown]
   · rw [show mvcc.pendItems ilog [] = I from HI.symm]; iexact Hown
   wp_apply (hdel trace ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o
-      L tyX vX) $$ [$Hctx' $Htx $Hw $Hdr $Hown] as %resp %err Hout
+      L tyX vX crev) $$ [$Hctx' $Htx $Hw $Hdr $Hown] as %resp %err Hout
   · cases nd
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
@@ -103,7 +103,7 @@ theorem txn.DeleteRange.wp_proof
   · -- deleted: the deferred `End` commits (if something was deleted)
     (try wp_auto)
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
-        (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0) deletes' (W64 0) m P f)
+        (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0) deletes' (W64 0) crev m P f)
       $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
     · iframe HP Hhook
       isplitl []
@@ -130,7 +130,7 @@ theorem txn.DeleteRange.wp_proof
     iexact Hown
   · -- the range read's context error: nothing written, the token back
     (try wp_auto)
-    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) m P f)
+    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) crev m P f)
       $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
     · iframe HP Hhook
       isplitl []

@@ -1,0 +1,6 @@
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the
+# group's `V1` (the other versions names only, not imported: `Interface` stays axiomatized).
+translate = ["!*", "group", "New", "group.V1"]
+imports = ["!*", "k8s.io/client-go/informers/core/v1", "k8s.io/client-go/informers/internalinterfaces"]
+
+translate_types = false

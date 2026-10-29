@@ -52,8 +52,8 @@ a logger; 2026-10-12, the request path's unit 3b): or `executeTxn`'s context err
 abbrev txn.txn.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (rt : Loc)
-    (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ trace ro ilog [] ∗ mvcc.txnCtx ctx cd ∗
+    (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64) (crev : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ trace ro ilog [] crev ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx (some trace) ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       txn.txnRequestIs rt t ∗ pl ↦*□ txn.txnPath (mvcc.stateAfter ilog) t ∗
       txn.leasesOk L (txn.opsLeases (mvcc.stateAfter ilog)
@@ -69,7 +69,7 @@ abbrev txn.txn.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗
         txn.txnWriteIs tw s γ trace ro ilog
-          (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1 ∗
+          (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1 crev ∗
         txn.txnResponseIs skip resp
           (W64 (mvcc.writeRev ilog (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1
             : Int)) t
@@ -83,7 +83,7 @@ abbrev txn.txn.spec : Prop :=
           (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
           (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1)))) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
-        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') ∗
+        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend' crev) ∗
         txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) }}
 

@@ -120,7 +120,7 @@ def rangeReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F 
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
-    txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+    (∃ crev : Int, txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp))
 
 theorem rangeReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)

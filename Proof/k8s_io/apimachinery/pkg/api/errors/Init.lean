@@ -11,6 +11,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Perennial.Proof.fmt.Link
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
 public import Proof.net.http.Init
 public import Proof.runtime.PkgInitExt
 
@@ -69,6 +70,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.net.http.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'

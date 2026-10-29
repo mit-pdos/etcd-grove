@@ -27,6 +27,7 @@ public import Code.go_etcd_io.raft.v3.raftpb
 public import Code.google_golang_org.protobuf.proto
 public import Code.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.Code.bytes
+public import Perennial.Code.cmp
 public import Perennial.Code.context
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
@@ -37,6 +38,7 @@ public import Perennial.Code.iter
 public import Perennial.Code.log
 public import Perennial.Code.math
 public import Perennial.Code.os
+public import Perennial.Code.slices
 public import Perennial.Code.sort
 public import Perennial.Code.strconv
 public import Perennial.Code.strings
@@ -58,6 +60,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 /-- The initializers of the packages whose `wp_initialize'` is not generated here. -/
 inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where
   | bytes : ExternalInit pkg_id.bytes _root_.Perennial.bytes.initialize'
+  | cmp : ExternalInit pkg_id.cmp _root_.Perennial.cmp.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'
   | encoding_binary : ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
   | errors : ExternalInit pkg_id.errors _root_.Perennial.errors.initialize'
@@ -72,6 +75,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
   | os : ExternalInit pkg_id.os _root_.Perennial.os.initialize'
+  | slices : ExternalInit pkg_id.slices _root_.Perennial.slices.initialize'
   | sort : ExternalInit pkg_id.sort _root_.Perennial.sort.initialize'
   | strconv : ExternalInit pkg_id.strconv _root_.Perennial.strconv.initialize'
   | strings : ExternalInit pkg_id.strings _root_.Perennial.strings.initialize'

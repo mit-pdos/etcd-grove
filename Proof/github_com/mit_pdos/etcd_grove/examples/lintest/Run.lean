@@ -105,12 +105,13 @@ theorem Run.wp_proof
     icases BigSepL.bigSepL_cons.1 $$ Hcells with ⟨Hcell, Hcells⟩
     icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Htok, Htoks⟩
     ipersist idc
-    wp_apply wp_fork $$ [Hdone Hcell Htok]
-    · wp_auto
-      wp_apply wp_runClient σ S inOk libState clockVal Eapp Eclk (sint.nat clients) γ apply gen clock k
-        ops t0 HEapp HEclk Hk.1 $$ [Htok] as %sl ⟨%hc, %Lc, %lr', Hsl, Htok, %Hok, #Hio⟩
+    wp_apply wp_fork_tok_body $$ [Hdone Hcell Htok]
+    · iintro Htt
+      wp_auto
+      wp_apply wp_runClient σ S inOk libState clockVal Eapp Eclk (sint.nat clients) γ apply gen
+        clock k ops t0 HEapp HEclk Hk.1 $$ [Htok Htt] as %sl ⟨%hc, %Lc, %lr', Hsl, Htok, %Hok, #Hio, Htt⟩
       · iframe #
-        iexact Htok
+        iframe
       have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z hsl.len := by
         have := Hhl.1
         simp only [List.length_replicate] at this
@@ -131,7 +132,7 @@ theorem Run.wp_proof
         isplitr
         · ipureintro; exact Hok
         iframe #
-      itrivial
+      iframe Htt
     wp_for_post
     have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
     iframe

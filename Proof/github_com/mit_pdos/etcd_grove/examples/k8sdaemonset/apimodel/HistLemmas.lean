@@ -1,0 +1,277 @@
+/-
+**The state's history and the operations' linearization points** (lemmas). The clients' half of
+the history (`apiState`) and the lock invariant's agree; a write appends a later well-formed
+state to both; a linearization point fires the caller's fancy update (`au_read`, `au_write`,
+`au_noop`). Lean-first.
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Defs
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace apimodel
+
+open Iris Iris.BI Iris.ProofMode
+
+section pure
+variable [GooseExts]
+
+theorem histOk_snoc {L : List St} {σ σ' : St} (h : histOk (L ++ [σ])) (hle : St.le σ σ')
+    (hwf : σ'.wf) : histOk ((L ++ [σ]) ++ [σ']) := by
+  obtain ⟨hw, hp⟩ := h
+  refine ⟨?_, ?_⟩
+  · intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact hw x hx
+    · simp at hx; subst hx; exact hwf
+  · rw [List.pairwise_append]
+    refine ⟨hp, List.pairwise_singleton _ _, ?_⟩
+    intro a ha b hb
+    simp at hb; subst hb
+    rcases List.mem_append.mp ha with ha | ha
+    · have : St.le a σ := (List.pairwise_append.mp hp).2.2 a ha σ (by simp)
+      exact St.le_trans this hle
+    · simp at ha; subst ha; exact hle
+
+theorem histOk_last_wf {L : List St} {σ : St} (h : histOk (L ++ [σ])) : σ.wf := h.1 σ (by simp)
+
+end pure
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- The two halves of the history agree. -/
+theorem hist_agree (γ : ApiNames) (H1 H2 : List St) (σ1 σ2 : St) :
+    monoListAuthOwn (GF := GF) γ.hist (1 : Qp).half (H1 ++ [σ1]) ∗
+      monoListAuthOwn γ.hist (1 : Qp).half (H2 ++ [σ2]) ⊢ ⌜H1 = H2 ∧ σ1 = σ2⌝ := by
+  iintro ⟨Ha, Hb⟩
+  ihave %h := monoListAuthOwn_agree γ.hist _ _ _ _ $$ Ha Hb
+  ipureintro
+  have := List.append_inj' h.2 rfl
+  exact ⟨this.1, by simpa using this.2⟩
+
+theorem monoList_halves {A : Type} [Pos.Countable A] (γ : GName) (l : List A) :
+    monoListAuthOwn (GF := GF) γ (1 : Qp).half l ∗ monoListAuthOwn γ (1 : Qp).half l ⊣⊢
+      monoListAuthOwn γ 1 l := by
+  have h := (monoListAuthOwn_fractional (GF := GF) γ l).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  exact ⟨h.2, h.1⟩
+
+/-- **A write's ghost update**: both halves take a later well-formed state. -/
+theorem hist_update (γ : ApiNames) (H : List St) (σ σ' : St) (hok : histOk (H ++ [σ]))
+    (hle : St.le σ σ') (hwf : σ'.wf) :
+    ⊢ monoListAuthOwn (GF := GF) γ.hist (1 : Qp).half (H ++ [σ]) -∗
+      monoListAuthOwn γ.hist (1 : Qp).half (H ++ [σ]) ==∗
+      monoListAuthOwn γ.hist (1 : Qp).half ((H ++ [σ]) ++ [σ']) ∗
+      monoListAuthOwn γ.hist (1 : Qp).half ((H ++ [σ]) ++ [σ']) ∗
+      ⌜histOk ((H ++ [σ]) ++ [σ'])⌝ := by
+  iintro Ha Hb
+  ihave Hf := (monoList_halves (GF := GF) γ.hist (H ++ [σ])).1 $$ [$Ha $Hb]
+  imod (monoListAuthOwn_update_app (GF := GF) (γ := γ.hist) (l := H ++ [σ]) [σ']) $$ Hf with ⟨Hf, -⟩
+  ihave ⟨Ha, Hb⟩ := (monoList_halves (GF := GF) γ.hist ((H ++ [σ]) ++ [σ'])).2 $$ Hf
+  imodintro
+  iframe
+  ipureintro
+  exact histOk_snoc hok hle hwf
+
+/-- A state of the history is a past state. -/
+theorem pastSt_of_auth (γ : ApiNames) (q : Qp) (H : List St) (σ : St) (hok : histOk (H ++ [σ])) :
+    monoListAuthOwn (GF := GF) γ.hist q (H ++ [σ]) ⊢ pastSt γ σ := by
+  iintro Ha
+  ihave #Hlb := monoListLbOwn_get γ.hist q _ $$ Ha
+  unfold pastSt
+  iexists (H ++ [σ])
+  iframe #
+  ipureintro
+  exact ⟨by simp, histOk_last_wf hok, hok⟩
+
+theorem pairwise_cmp {R : St → St → Prop} (hrefl : ∀ a, R a a) :
+    ∀ (l : List St), l.Pairwise R → ∀ a ∈ l, ∀ b ∈ l, R a b ∨ R b a
+  | [], _, a, ha, _, _ => by simp at ha
+  | x :: l, h, a, ha, b, hb => by
+    rw [List.pairwise_cons] at h
+    rcases List.mem_cons.1 ha with h1 | ha
+    · rcases List.mem_cons.1 hb with h2 | hb
+      · rw [h1, h2]; exact Or.inl (hrefl _)
+      · rw [h1]; exact Or.inl (h.1 b hb)
+    · rcases List.mem_cons.1 hb with h2 | hb
+      · rw [h2]; exact Or.inr (h.1 a ha)
+      · exact pairwise_cmp hrefl l h.2 a ha b hb
+
+/-- **Two past states are ordered** (the history is a chain). -/
+theorem pastSt_cmp (γ : ApiNames) (a b : St) :
+    ⊢ pastSt (GF := GF) γ a -∗ pastSt γ b -∗ ⌜St.le a b ∨ St.le b a⌝ := by
+  iintro Hpa Hpb
+  iunfold pastSt at Hpa Hpb
+  icases Hpa with ⟨%Ha, Hla, %ha⟩
+  icases Hpb with ⟨%Hb, Hlb, %hb⟩
+  ihave %hp := mono_list_lb_valid γ.hist Ha Hb $$ Hla Hlb
+  ipureintro
+  rcases hp with hp | hp
+  · exact pairwise_cmp St.le_refl Hb hb.2.2.2 a (hp.subset ha.1) b hb.1
+  · exact pairwise_cmp St.le_refl Ha ha.2.2.2 a ha.1 b (hp.subset hb.1)
+
+/-- **A read's linearization point**: the caller's update fires at the state `σ` the lock
+invariant holds. -/
+theorem au_read (γ : ApiNames) (H : List St) (σ : St) (K : St → IProp GF) :
+    monoListAuthOwn (GF := GF) γ.hist (1 : Qp).half (H ++ [σ]) ∗
+      (|={⊤ \ ∅, ∅}=> ∃ σ', apiState γ σ' ∗ (apiState γ σ' -∗ |={∅, ⊤ \ ∅}=> K σ')) ⊢
+      |={⊤}=> monoListAuthOwn γ.hist (1 : Qp).half (H ++ [σ]) ∗ K σ := by
+  iintro ⟨Ha, HAU⟩
+  rw [show (⊤ : CoPset) \ ∅ = ⊤ from by simp]
+  imod HAU with ⟨%σ', Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H', Hb, %Hok'⟩
+  ihave %Hag := hist_agree γ H H' σ σ' $$ [$Ha $Hb]
+  obtain ⟨-, Heq⟩ := Hag
+  subst Heq
+  imod Hcl $$ [Hb] with HK
+  · iunfold apiState; iexists H'; iframe; ipureintro; exact Hok'
+  imodintro
+  iframe
+
+/-- **A write's linearization point**: the caller's update fires from the state `σ` the lock
+invariant holds to a later well-formed `σ'`, with the outcome `oc` it allows. -/
+theorem au_write {O : Type} (γ : ApiNames) (H : List St) (σ σ' : St) (oc : O)
+    (R : St → O → St → Prop) (K : St → St → O → IProp GF) (hok : histOk (H ++ [σ]))
+    (hle : St.le σ σ') (hwf : σ'.wf) (hR : R σ oc σ') :
+    monoListAuthOwn (GF := GF) γ.hist (1 : Qp).half (H ++ [σ]) ∗
+      (|={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K σ0 σ1 o)) ⊢
+      |={⊤}=> monoListAuthOwn γ.hist (1 : Qp).half ((H ++ [σ]) ++ [σ']) ∗
+        ⌜histOk ((H ++ [σ]) ++ [σ'])⌝ ∗ K σ σ' oc := by
+  iintro ⟨Ha, HAU⟩
+  rw [show (⊤ : CoPset) \ ∅ = ⊤ from by simp]
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H', Hb, %Hok'⟩
+  ihave %Hag := hist_agree γ H H' σ σ0 $$ [$Ha $Hb]
+  obtain ⟨HH, Heq⟩ := Hag
+  subst Heq HH
+  imod (hist_update γ H σ σ' hok hle hwf) $$ Ha Hb with ⟨Ha, Hb, %Hok2⟩
+  imod Hcl $$ %σ' %oc [Hb] with HK
+  · isplitl
+    · iunfold apiState; iexists (H ++ [σ]); iframe; ipureintro; exact Hok2
+    · ipureintro; exact hR
+  imodintro
+  iframe
+  ipureintro; exact Hok2
+
+/-- **A write with no effect** (`σ' = σ`), at the state the lock invariant holds. -/
+theorem au_write_noop {O : Type} (γ : ApiNames) (H : List St) (σ : St) (oc : O)
+    (R : St → O → St → Prop) (K : St → St → O → IProp GF) (hR : R σ oc σ) :
+    monoListAuthOwn (GF := GF) γ.hist (1 : Qp).half (H ++ [σ]) ∗
+      (|={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K σ0 σ1 o)) ⊢
+      |={⊤}=> monoListAuthOwn γ.hist (1 : Qp).half (H ++ [σ]) ∗ K σ σ oc := by
+  iintro ⟨Ha, HAU⟩
+  rw [show (⊤ : CoPset) \ ∅ = ⊤ from by simp]
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H', Hb, %Hok'⟩
+  ihave %Hag := hist_agree γ H H' σ σ0 $$ [$Ha $Hb]
+  obtain ⟨HH, Heq⟩ := Hag
+  subst Heq HH
+  imod Hcl $$ %σ %oc [Hb] with HK
+  · isplitl
+    · iunfold apiState; iexists H; iframe; ipureintro; exact Hok'
+    · ipureintro; exact hR
+  imodintro
+  iframe
+
+/-- **A failure without effect, before the lock** (`σ' = σ`, whatever `σ`): the update fires
+with an outcome the relation allows at every state. -/
+theorem au_fail {O : Type} (γ : ApiNames) (oc : O) (R : St → O → St → Prop)
+    (K : St → St → O → IProp GF) (hR : ∀ σ, R σ oc σ) :
+    (|={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K σ0 σ1 o)) ⊢
+      |={⊤}=> ∃ σ, K σ σ oc := by
+  iintro HAU
+  rw [show (⊤ : CoPset) \ ∅ = ⊤ from by simp]
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  imod Hcl $$ %σ0 %oc [Hst] with HK
+  · iframe; ipureintro; exact hR σ0
+  imodintro
+  iexists σ0
+  iframe
+
+/-- **A read that fails before the lock**: the update fires at whatever state. -/
+theorem au_read_any (γ : ApiNames) (K : St → IProp GF) :
+    (|={⊤ \ ∅, ∅}=> ∃ σ', apiState γ σ' ∗ (apiState γ σ' -∗ |={∅, ⊤ \ ∅}=> K σ')) ⊢
+      |={⊤}=> ∃ σ, K σ := by
+  iintro HAU
+  rw [show (⊤ : CoPset) \ ∅ = ⊤ from by simp]
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  imod Hcl $$ Hst with HK
+  imodintro
+  iexists σ0
+  iframe
+
+/-- **A caller's linearization point passed on** (a client method over the server's): the
+caller's update, with its continuation weakened (knowing both states well formed). -/
+theorem au_mono {O : Type} (γ : ApiNames) (R : St → O → St → Prop) (K1 K2 : St → St → O → IProp GF) :
+    (|={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K1 σ0 σ1 o)) ∗
+      (∀ σ0 σ1 o, ⌜R σ0 o σ1 ∧ σ0.wf ∧ σ1.wf⌝ -∗ K1 σ0 σ1 o -∗ K2 σ0 σ1 o) ⊢
+    |={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K2 σ0 σ1 o) := by
+  iintro ⟨HAU, Hw⟩
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H0, Ha0, %Hok0⟩
+  imodintro
+  iexists σ0
+  isplitl [Ha0]
+  · iunfold apiState
+    iexists H0
+    iframe
+    ipureintro; exact Hok0
+  iintro %σ1 %o ⟨Hst, %HR⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H1, Ha1, %Hok1⟩
+  imod Hcl $$ %σ1 %o [Ha1] with HK
+  · isplitl
+    · iunfold apiState
+      iexists H1
+      iframe
+      ipureintro; exact Hok1
+    · ipureintro; exact HR
+  imodintro
+  iapply Hw $$ %σ0 %σ1 %o %(And.intro HR (And.intro (histOk_last_wf Hok0) (histOk_last_wf Hok1))) HK
+
+/-- The same for a read (the state unchanged). -/
+theorem au_mono_read (γ : ApiNames) (K1 K2 : St → IProp GF) :
+    (|={⊤ \ ∅, ∅}=> ∃ σ, apiState γ σ ∗ (apiState γ σ -∗ |={∅, ⊤ \ ∅}=> K1 σ)) ∗
+      (∀ σ, ⌜σ.wf⌝ -∗ K1 σ -∗ K2 σ) ⊢
+    |={⊤ \ ∅, ∅}=> ∃ σ, apiState γ σ ∗ (apiState γ σ -∗ |={∅, ⊤ \ ∅}=> K2 σ) := by
+  iintro ⟨HAU, Hw⟩
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H0, Ha0, %Hok0⟩
+  imodintro
+  iexists σ0
+  isplitl [Ha0]
+  · iunfold apiState
+    iexists H0
+    iframe
+    ipureintro; exact Hok0
+  iintro Hst
+  imod Hcl $$ Hst with HK
+  imodintro
+  iapply Hw $$ %σ0 %(histOk_last_wf Hok0) HK
+
+end lemmas
+
+end apimodel
+end EtcdGrove
+end Perennial

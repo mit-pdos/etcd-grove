@@ -1,0 +1,31 @@
+# The functions linked in `Proof/k8s_io/client_go/util/consistency/Link.lean` (all Lean-first),
+# read by `etc/gen-link.py --consistency`: `<fn>: <callees in the order of <fn>.wp_proof's
+# hypotheses>`. client-go's consistency store (`k8s.io/client-go/util/consistency`,
+# notes/k8s-daemonset-plan.md phase 2) and apimachinery's resource versions
+# (`k8s.io/apimachinery/pkg/util/resourceversion`); the results are in the namespace
+# `consistency`.
+#
+# the trust boundary: names-only functions (axioms)
+resourceversion_isWellFormed:
+schema_GroupResource__String_ptr:
+#
+# k8s.io/apimachinery/pkg/util/resourceversion
+resourceversion_isDigit:
+resourceversion_CompareResourceVersion: resourceversion_isWellFormed =_root_.Perennial.strings.wp_Compare
+#
+# the consistency store (`consistency.go`)
+ConsistencyError__Error: schema_GroupResource__String_ptr
+newOwnerRecord:
+consistencyStore__getWrittenRecord:
+consistencyStore__ensureWrittenRecord: consistencyStore__getWrittenRecord newOwnerRecord
+ownerRecord__WroteAt: resourceversion_CompareResourceVersion
+consistencyStore__WroteAt: consistencyStore__ensureWrittenRecord ownerRecord__WroteAt
+consistencyStore__Clear:
+ownerRecord__EnsureReady: resourceversion_CompareResourceVersion schema_GroupResource__String_ptr
+consistencyStore__EnsureReady: consistencyStore__getWrittenRecord consistencyStore__Clear ownerRecord__EnsureReady
+newConsistencyStore:
+NewConsistencyStore: newConsistencyStore
+noopConsistencyStore__WroteAt:
+noopConsistencyStore__Clear:
+noopConsistencyStore__EnsureReady:
+NewNoopConsistencyStore:

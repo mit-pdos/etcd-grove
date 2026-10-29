@@ -1,0 +1,19 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --lintest-logkvappend`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# the driver, linked in lintest's `Link.lean`.
+Run: @
+# the instance (examples/lintest/logkvappend/logkvappend.go)
+logkvappend_Model:
+logkvappend_Server__applyLoop:
+logkvappend_New: logkvappend_Server__applyLoop
+logkvappend_Server__write:
+logkvappend_Server__Put: logkvappend_Server__write
+logkvappend_Server__Append: logkvappend_Server__write
+logkvappend_Server__Get:
+logkvappend_Server__Apply: logkvappend_Server__Put logkvappend_Server__Append logkvappend_Server__Get
+logkvappend_Check: Run logkvappend_Model logkvappend_New logkvappend_Server__Apply
+# the program (Main), over the driver's clock (linked in lintest's `Link.lean`)
+CounterClock: @
+logkvappend_Main: CounterClock logkvappend_Check

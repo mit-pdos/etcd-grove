@@ -1,7 +1,8 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
+# notes/k8s-etcd3-goose.md). It imports `logr` (names only), so that the alias `Logger = logr.Logger`
+# translates (client-go's workqueue names it; notes/k8s-clientgo-goose.md, gap C3).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "github.com/go-logr/logr"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

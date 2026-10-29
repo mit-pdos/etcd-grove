@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.watch
 
@@ -147,44 +148,6 @@ noncomputable instance broadcasterWatcher_into_val_typed :
 end def_
 end broadcasterWatcher
 
-namespace Decoder
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
-
-noncomputable instance Decoder_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Decoder :=
-  sorry -- axiomatized type
-
-noncomputable instance Decoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Decoder k8s_io.apimachinery.pkg.watch.Decoder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Decoder
-
-namespace Reporter
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
-
-noncomputable instance Reporter_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Reporter :=
-  sorry -- axiomatized type
-
-noncomputable instance Reporter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Reporter k8s_io.apimachinery.pkg.watch.Reporter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Reporter
-
 namespace StreamWatcher
 section def_
 
@@ -213,12 +176,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance Event_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Event :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Event where
+  typedPointstoDef l v dq := iprop(
+    "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq ∗
+    "Object" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Event_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Event k8s_io.apimachinery.pkg.watch.Event.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Event k8s_io.apimachinery.pkg.watch.Event.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Event_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Event_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (Type' : k8s_io.apimachinery.pkg.watch.EventType) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) Type' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Event_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Event_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) Object' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := Object' } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Event

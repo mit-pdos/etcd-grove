@@ -63,33 +63,36 @@ def rangeRespShow (resp : Loc) : IProp GF :=
     structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv)
 
-theorem rangeResult_show (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
-    (wt : Bool) : txn.rangeResult (GF := GF) resp err log rev o wt ⊢ rangeRespShow resp := by
+theorem rangeResult_show (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (o : OpFull) (wt : Bool) :
+    txn.rangeResult (GF := GF) resp err log rev crev o wt ⊢ rangeRespShow resp := by
   iunfold txn.rangeResult
   iunfold rangeRespShow
-  iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨-, %kvs, %more, #Hr, -⟩)
+  iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨-, %kvs, %more, #Hr, -⟩ | ⟨%H, -⟩)
   · ileft; ipureintro; exact H.2
-  · ileft; ipureintro; exact H.2.2.2
+  · ileft; ipureintro; exact H.2.2.2.1
   · iunfold txn.rangeResponseIs at Hr
     icases Hr with ⟨-, %h, %sl, %ps, #Hh, -, #Hrv, #Hk, -⟩
     iright
     iexists h, sl, rev
     iframe #
+  · ileft; ipureintro; exact H.2.2
 
 /-- What `WarnOfExpensiveReadOnlyRangeRequest` needs of a range's answer (unit P4, 2026-10-14):
 no response, or one whose `Kvs` it reads and whose `proto.Size` returns lent the header's id
 fields (`rangeHdr`: a response comes with no error). -/
 theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
-    (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) :
-    txn.rangeResult (GF := GF) resp err log rev o wt ⊢
+    (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev : Int) (o : OpFull)
+    (wt : Bool) :
+    txn.rangeResult (GF := GF) resp err log rev crev o wt ⊢
       ⌜resp = null⌝ ∨
         (∃ sl : GoSlice, structFieldRef etcdserverpb.RangeResponse go!"Kvs" resp ↦□ sl) ∗
         txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeResponse.ty) #resp)
           (txn.rangeHdr resp err) := by
   iunfold txn.rangeResult
-  iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, %kvs, %more, #Hr, -⟩)
+  iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, %kvs, %more, #Hr, -⟩ | ⟨%H, -⟩)
   · ileft; ipureintro; exact H.2
-  · ileft; ipureintro; exact H.2.2.2
+  · ileft; ipureintro; exact H.2.2.2.1
   · iright
     ihave #Hr' := Hr
     iunfold txn.rangeResponseIs at Hr'
@@ -99,47 +102,56 @@ theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
     iunfold txn.sizeOk
     iintro !> %Φ !> ⟨#Hp, HP⟩ HΦ
     iunfold txn.rangeHdr at HP
-    ihave Hh := HP $$ %H.2
+    ihave Hh := HP $$ %H.2.1
     wp_apply (hSize.2.1 resp _ kvs more _) $$ [$Hp $Hr $Hh] as %n ⟨-, Hh⟩
     iapply HΦ
     iunfold txn.rangeHdr
     iintro -
     iexact Hh
+  · ileft; ipureintro; exact H.2.2
 
 instance readIndexOk_persistent_r (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
   unfold readIndexOk; infer_instance
 
 /-- A range's answer without error has a response. -/
-theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) :
-    txn.rangeResult (GF := GF) resp GoInterface.nil log rev o wt ⊢ ⌜resp ≠ null⌝ := by
+theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (crev : Int) (o : OpFull)
+    (wt : Bool) :
+    txn.rangeResult (GF := GF) resp GoInterface.nil log rev crev o wt ⊢ ⌜resp ≠ null⌝ := by
   iunfold txn.rangeResult
-  iintro (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hr, -⟩)
+  iintro (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hr, -⟩ | ⟨-, %ec, -, %He⟩)
   · cases He
   · ihave %Hn := mvcc.errorfIs_ne_nil _ $$ He
     exact absurd rfl Hn
   · iunfold txn.rangeResponseIs at Hr
     icases Hr with ⟨%Hn, -⟩
     ipureintro; exact Hn
+  · cases He
 
 /-- A range's error: no response, and one the gRPC layer can take (mvcc's `ErrFutureRev`, or
-the context's `fmt.Errorf` error, by the leaf fact of `*errors.errorString`). -/
+the context's `fmt.Errorf` error, by the leaf fact of `*errors.errorString`, or (M2, S1) mvcc's
+`ErrCompacted`). -/
 theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (err : GoInterface)
-    (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) (hne : err ≠ GoInterface.nil)
+    (log : mvcc.Log) (rev : w64) (crev : Int) (o : OpFull) (wt : Bool) (hne : err ≠ GoInterface.nil)
     (hleaf : ∀ x : Loc, errLeaf ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) :
     errVarLeaf (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ⊢
-      txn.rangeResult resp err log rev o wt -∗ ⌜resp = null⌝ ∗ applyErrIs err := by
-  iintro #Hv
+      errVarLeaf (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted -∗
+      txn.rangeResult resp err log rev crev o wt -∗ ⌜resp = null⌝ ∗ applyErrIs err := by
+  iintro #Hv #Hvc
   iunfold txn.rangeResult
-  iintro (⟨%H, %ef, #Hef, %He⟩ | ⟨%H, #He⟩ | ⟨%H, -⟩)
+  iintro (⟨%H, %ef, #Hef, %He⟩ | ⟨%H, #He⟩ | ⟨%H, -⟩ | ⟨%H, %ec, #Hec, %He⟩)
   · isplitr
     · ipureintro; exact H.2
     iapply errVar_applyErrIs _ _ $$ Hv
     iexists ef; iframe Hef; ipureintro; exact He
   · isplitr
-    · ipureintro; exact H.2.2.2
+    · ipureintro; exact H.2.2.2.1
     iapply applyErrIs_errorf _ hleaf $$ He
-  · exact absurd H.2 hne
+  · exact absurd H.2.1 hne
+  · isplitr
+    · ipureintro; exact H.2.2
+    iapply errVar_applyErrIs _ _ $$ Hvc
+    iexists ec; iframe Hec; ipureintro; exact He
 
 set_option hygiene false in
 /-- The deferred closure from `LogIfLong` on, then the span's `End`. -/
@@ -205,7 +217,7 @@ local macro "range_defer" : tactic => `(tactic| (
   · isplitr; · ipureintro; exact Hlgn
     isplitr; · iexact Hstr
     iframe Hhdr
-    iapply rangeResult_warn hSize _ _ _ _ _ _ $$ Hres
+    iapply rangeResult_warn hSize _ _ _ _ _ _ _ $$ Hres
   (try wp_auto)
   range_defer_b))
 
@@ -215,10 +227,10 @@ local macro "range_tail" : tactic => `(tactic| (
   wp_apply (hDS s E ρ γr ctx2 _ _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
       srvLgReader s)
-    iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
+    iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log) (crev : Int), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
       mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
-      txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
+      txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) crev o true ∗
       txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te))
     (fun info => apply.rangeClass E.authMode info o) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
@@ -259,7 +271,7 @@ local macro "range_tail" : tactic => `(tactic| (
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
       wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
           $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, -⟩
+        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, %crev, #Hcert, #Hrok, -, %Hlog, #Hres, Hhdr, -⟩
       · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
@@ -275,7 +287,7 @@ local macro "range_tail" : tactic => `(tactic| (
         ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
         ihave %Hs := Hsmall $$ %log' Hs'
         ipureintro; intro _; exact Hs
-      obtain ⟨Hl1, Hl2, Hl3, rfl⟩ := Hlog
+      obtain ⟨Hl1, Hl2, Hl3, rfl, -⟩ := Hlog
       have htv := Hteq trc rfl rfl
       subst htv
       iapply HΦ'
@@ -284,13 +296,13 @@ local macro "range_tail" : tactic => `(tactic| (
       iframe #
       ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls⟩, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls⟩, %respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
-    ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
+    ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
     rcases errv with ei | _
     · range_defer
-      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut Hres
+      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -311,7 +323,7 @@ local macro "range_tail" : tactic => `(tactic| (
           imodintro; itrivial
       imod HQf with #HQf
       range_defer
-      ihave %Hrn1 := rangeResult_nil_ne _ _ _ _ _ $$ Hres
+      ihave %Hrn1 := rangeResult_nil_ne _ _ _ _ _ _ $$ Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -321,8 +333,11 @@ local macro "range_tail" : tactic => `(tactic| (
       isplitl [Hcls]
       · iexists infoc; iexact Hcls
       iunfold rangeReadOk
+      ihave #Hres2 : iprop(∃ crev' : Int,
+          txn.rangeResult respv GoInterface.nil log (W64 ((log.length : Int) - 1)) crev' o true) $$ []
+      · iexists crev; iexact Hres
       iexists log
-      iframe Hcert Hrok Hres
+      iframe Hcert Hrok Hres2
       isplitr
       · ipureintro
         have := Hlog.1.length_le
@@ -338,7 +353,7 @@ local macro "range_tail" : tactic => `(tactic| (
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩)
+        ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -358,7 +373,7 @@ local macro "range_tail" : tactic => `(tactic| (
         iright
         iframe HsE
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
-      · ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
+      · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
         wp_auto
         range_defer
         iapply HΦ
@@ -375,10 +390,10 @@ local macro "range_tailOn" : tactic => `(tactic| (
   wp_apply (hDS s E ρ γr ctx2 _ _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
       srvLgReader s)
-    iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
+    iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log) (crev : Int), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
       mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
-      txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
+      txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) crev o true ∗
       txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te))
     (fun info => apply.rangeClassFrom E.authMode nA info o) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
@@ -419,7 +434,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
       wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
           $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, -⟩
+        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, %crev, #Hcert, #Hrok, -, %Hlog, #Hres, Hhdr, -⟩
       · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
@@ -435,7 +450,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
         ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
         ihave %Hs := Hsmall $$ %log' Hs'
         ipureintro; intro _; exact Hs
-      obtain ⟨Hl1, Hl2, Hl3, rfl⟩ := Hlog
+      obtain ⟨Hl1, Hl2, Hl3, rfl, -⟩ := Hlog
       have htv := Hteq trc rfl rfl
       subst htv
       iapply HΦ'
@@ -444,13 +459,13 @@ local macro "range_tailOn" : tactic => `(tactic| (
       iframe #
       ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls, #Hib⟩, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls, #Hib⟩, %respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
-    ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
+    ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
     rcases errv with ei | _
     · range_defer
-      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut Hres
+      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -471,7 +486,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
           imodintro; itrivial
       imod HQf with #HQf
       range_defer
-      ihave %Hrn1 := rangeResult_nil_ne _ _ _ _ _ $$ Hres
+      ihave %Hrn1 := rangeResult_nil_ne _ _ _ _ _ _ $$ Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -487,8 +502,11 @@ local macro "range_tailOn" : tactic => `(tactic| (
         · iapply (infoBoundM_ctx true s E _ _ infoc (by rw [Hinc2, Hinc1])) $$ Hib
         rw [hM]; iexact Hfl
       iunfold rangeReadOkM
+      ihave #Hres2 : iprop(∃ crev' : Int,
+          txn.rangeResult respv GoInterface.nil log (W64 ((log.length : Int) - 1)) crev' o true) $$ []
+      · iexists crev; iexact Hres
       iexists log
-      iframe Hcert Hrok Hres
+      iframe Hcert Hrok Hres2
       isplitr
       · ipureintro
         have := Hlog.1.length_le
@@ -504,7 +522,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩)
+        ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -524,7 +542,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
         iright
         iframe HsE
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
-      · ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
+      · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
         wp_auto
         range_defer
         iapply HΦ
@@ -586,7 +604,7 @@ theorem EtcdServer.Range.wp_proof
   · iPkgInit
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Papply
-  icases HaInit with ⟨-, -, ⟨-, -, -, -, #HFut, -⟩⟩
+  icases HaInit with ⟨-, -, ⟨-, -, -, -, #HFut, #HCmp, -⟩⟩
   ihave #Hstr : txn.stringerOk (GF := GF)
       (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r) $$ []
   · ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
@@ -846,7 +864,7 @@ theorem EtcdServer.Range.wp_proofOn
   · iPkgInit
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Papply
-  icases HaInit with ⟨-, -, ⟨-, -, -, -, #HFut, -⟩⟩
+  icases HaInit with ⟨-, -, ⟨-, -, -, -, #HFut, #HCmp, -⟩⟩
   ihave #Hstr : txn.stringerOk (GF := GF)
       (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r) $$ []
   · ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []

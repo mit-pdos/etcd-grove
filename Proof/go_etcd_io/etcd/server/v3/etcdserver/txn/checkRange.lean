@@ -30,7 +30,7 @@ theorem txn.checkRange.wp_proof
     (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
     (hFirst : mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG)) :
     txn.checkRange.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev req o
+  intro trace mw s γ log rev req o crev
   wp_start as ⟨Htx, #Hr⟩
   ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -49,11 +49,11 @@ theorem txn.checkRange.wp_proof
     exact ⟨rfl, Or.inl (by simp_all)⟩
   · skip
     have hne : ¬ rv = W64 0 := by simpa using Hif
-    ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
+    ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) crev $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply +noauto (hRev trace mw s γ (.read log rev)) $$ [$Htx] as Htx
+    wp_apply +noauto (hRev trace mw s γ (.read log rev) crev iprop(True)) $$ [$Htx] as Htx
     rw [show (mvcc.TxnKind.read log rev).beginRev = rev from rfl]
-    ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
+    ihave Htx : mvcc.isTxnRead mw s γ trace log rev crev $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     wp_auto
     wp_if_destruct
@@ -68,11 +68,16 @@ theorem txn.checkRange.wp_proof
       iexists ef; iframe Hfut; ipureintro; rfl
     · skip
       have hle : ¬ sint.Z rev < sint.Z rv := by simpa using Hif
-      have hm1 : sint.Z (W64 (-1)) = -1 := by decide
-      wp_apply (hFirst trace mw s γ log rev) $$ [$Htx] as Htx
+      ihave %Hcr := mvcc.isTxnRead_crev mw s γ trace log rev crev iprop(True) $$ Htx
+      have hm1 : sint.Z (W64 crev) = crev := by
+        have : sint.Z rev < 2 ^ 63 := by word
+        unfold sint.Z W64
+        rw [BitVec.toInt_ofInt_eq_self (by decide) (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+      wp_apply (hFirst trace mw s γ log rev crev iprop(True)) $$ [$Htx] as Htx
       wp_if_destruct
       · skip
-        have hc : sint.Z rv < sint.Z (W64 (-1)) := by simpa using Hif
+        have hc : sint.Z rv < sint.Z (W64 crev) := by simpa using Hif
         iapply HΦ
         iframe Htx
         iunfold txn.checkRangeErr
@@ -82,7 +87,7 @@ theorem txn.checkRange.wp_proof
           exact ⟨hne, by omega, by omega⟩
         iexists ec; iframe Hcomp; ipureintro; rfl
       · skip
-        have hge : ¬ sint.Z rv < sint.Z (W64 (-1)) := by simpa using Hif
+        have hge : ¬ sint.Z rv < sint.Z (W64 crev) := by simpa using Hif
         iapply HΦ
         iframe Htx
         iunfold txn.checkRangeErr

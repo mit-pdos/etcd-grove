@@ -42,7 +42,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckShape
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
@@ -217,7 +217,7 @@ def rangeAnsOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
-    txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true)
+    (∃ crev : Int, txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true))
 
 /-- **A successful read-only `Txn` of `t`, at the handler's level** (`txnReadOk` but the
 header's fields; unit W-M3: with the read deposit's result, as `rangeAnsOk`'s). -/
@@ -674,11 +674,14 @@ theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG
     iunfold rangeReadOk at Hok'
     icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hres, Hown⟩
     ihave #Hres' := Hres
+    icases Hres' with ⟨%crev, Hres'⟩
     iunfold txn.rangeResult at Hres'
-    icases Hres' with (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hresp, -⟩)
+    icases Hres' with (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hresp, -⟩ | ⟨-, %ec, -, %He⟩)
     · cases He
     · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
       exact absurd rfl Hne
+    rotate_left
+    · cases He
     iunfold txn.rangeResponseIs at Hresp
     icases Hresp with ⟨-, %h, %sl, %ps, #Hhf, %Hhn, #Hrev, -⟩
     ileft
@@ -859,7 +862,7 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       kvGetOk s (srvKVAns s E ρ γr c F d) := by
-  have hRev := mvcc.store.Rev.spec_frozen hRev
+  have hRev := mvcc.store.Rev.spec_R hRev
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit

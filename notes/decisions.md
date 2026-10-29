@@ -21944,6 +21944,93 @@ tracks own): what blocks the rest, so that the next pass starts from it.
 - Taken up in parallel: `container/heap`'s `Fix`/`Push` and `unicode/utf8`'s `ValidString`
   (translated here, names-only until now).
 
+## D49: the DaemonSet controller over a model API server; client-go's libraries verified (2026-10-26 · the user: "What we should *avoid* verifying is the apiserver itself", "Some of these libaries (util/workqueue) are better off being verified directly")
+
+**The goal.** Safety of the real DaemonSet controller (`k8s.io/kubernetes/pkg/controller/daemon`),
+first `MaxOnePodPerNode` (kubernetes/kubernetes#139657's robustness test), in every execution of a
+Go example that runs it (`notes/k8s-daemonset-plan.md`).
+
+**The cut.** The API server is modeled, not verified: the model implements the typed clients the
+controller and its informers call (`k8s.io/client-go/kubernetes`, `kubernetes/typed/{apps,core}/v1`:
+the few CRUD methods, `List`, `Watch`), over one shared state, with nondeterministic failures (a
+failed write has no effect) and watch ends; its spec is the trusted statement of the API server.
+Everything above it is real code: client-go's informers (the reflector, the FIFO, the shared
+informer: they reach the server only through the `ListWatch` closures over the typed clients'
+`List`/`Watch`), its leaf libraries (`util/workqueue`, `util/consistency` (the consistency store, moved into client-go on master, 2026-10), `tools/cache`'s stores and indexers, the
+listers, `util/flowcontrol`, `util/retry`, `features`: none reaches `k8s.io/client-go/rest`), and
+the controller. The event recorder (`tools/record`) reaches the server only at its sink; events do
+not affect safety, so it is a trusted no-op or verified over a no-op sink (open).
+
+**Why not mock the informers too** (the first proposal, at the controller's constructor). The
+consistency store's guarantee is only as good as the informer's `LastStoreSyncResourceVersion`;
+a mocked informer would make that contract an assumption. Verifying the informers over List/Watch
+proves it from the API server's List/Watch semantics, which are simpler and better understood.
+
+**Why not the real API server.** The etcd3 store's proofs cover its unary methods only (`GetList`
+and the watcher do not translate: G2, G1 of `notes/k8s-etcd3-goose.md`), and kube-apiserver's
+handlers, registry, admission and serialization are far larger than the controller.
+
+## D50: the model API server is trusted Go code; the theorem is about a test program over it (2026-10-26 · the user: "focus on writing a high quality model in Go and treat it as part of the TCB. The top-level theorem will be about a test program that operations against this Go model")
+
+**The choice.** D49 left open whether the trusted statement of the API server is a Lean spec
+(with a Go model proved to meet it) or the Go model itself. It is the Go model:
+`examples/k8sdaemonset/apimodel`, a `kubernetes.Interface` over one shared state. The top-level
+theorem is about a Go test program (the robustness test's scenario: one node, one DaemonSet, the
+real controller and informers over the model, a checker) whose execution includes the model's
+code; the proofs step through that code like any other, and no spec of the model is stated or
+proved. What a reader must trust is that the model behaves like kube-apiserver for these calls:
+its package documentation (`doc.go`) says how, operation by operation, with the deviations.
+
+**What follows for the code.** The model is written to be read and to be stepped through: one
+mutex and condition variable, maps, one append-only change log per resource, resource versions
+issued as `strconv.FormatUint(n, 10)` (injective; never parsed: issued versions are looked up),
+no reflection, no `fmt`, nondeterminism only through `math/rand.Int63n` gated by `Config`
+flags. Client-go's typed interfaces are embedded with nil values, so a method the model does not
+implement panics: the no-panic theorem shows none is called (a Goose check pending: an embedded
+interface field).
+
+**The premise as configuration** (superseded by D51: the program now runs with the flag on).
+`Config.AmbiguousWrites` (a write may commit and still report failure) is the realistic behavior;
+the theorem's program ran with it off, which was the premise "a failed write had no effect". It
+matters: with it on, the real controller puts two pods on a node in 4 of 50 runs
+(`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), with it off 0 of 30.
+
+**The model's spec is an internal layer** (2026-10-27 · the user: "The go model is *still* the
+trust base ... The proven spec is an internal proof detail that does not show up in the spec
+boundary."). Phase 3 of `notes/k8s-daemonset-plan.md` gives the model's code specs and proves
+it meets them (`Spec/.../k8sdaemonset/apimodel/`, `Proof/.../k8sdaemonset/apimodel/`): an
+abstract state (`State.lean`'s `St`: the resource version counter, the UIDs issued, per resource
+the stored objects and the change log), each operation logically atomic over it, the typed
+clients over the server's operations. This does not change the trust base: the Go model stays
+what a reader trusts, and the top-level theorem is still about the test program executing the
+model's code. The specs are a proof device, so that the informers' and the controller's proofs
+reason about one abstract state rather than step through the model; a wrong spec would make a
+proof fail, not a theorem say something false, since no statement at the spec boundary mentions
+it.
+
+## D51: realistic failures in the theorem's program; a bug is fixed only when a proof is genuinely stuck on it (2026-10-27 · the user: "I want AmbiguousWrites on Main, and for now, leave the thing unfixed. We'll only fix it when we genuinely get stuck in a proof (or I might do it earlier myself)"; "This will cause the test to fail, and that's ok for now")
+
+**The choice.** The DaemonSet theorem's program (`examples/k8sdaemonset/dsmain`) runs the model API
+server with every failure flag, `AmbiguousWrites` included: a write may commit and still report
+failure, as a timeout after the commit does in practice. D50's premise "a failed write had no
+effect" (the flag off) is withdrawn: it removed exactly the behavior that breaks the controller.
+
+**What follows.** With ambiguous writes the unmodified controller can put two pods of the DaemonSet
+on one node (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`; reproduced on a real API
+server), so `Main`'s checker can panic: the adequacy theorem for `Main` is false of the code as it
+is, and `Main`'s Go test `TestMainNeverPanics` fails in such runs (2 of 100 at the change). Both are
+accepted. The bug is not fixed now: the proofs go on bottom up, and the controller is changed only
+when a proof genuinely gets stuck on it (the S1 proof is expected to, at the ambiguous create in
+`syncNodes`), or by the user. The candidate fixes are in
+`issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/` (04, 05).
+
+**The rule, generally.** Implementations and the program's configuration are not changed to make a
+property provable or to dodge a gap; a gap that blocks a proof is left open (a named hypothesis)
+until a proof is genuinely stuck on it, then raised. So the informers stay on their default batch
+path (`InOrderInformersBatchProcess` on, gaps C4/D3), and the proposal to turn the gate off is
+withdrawn. `Main` setting its feature gates in code (phase B) is configuration of the scenario the
+robustness test runs, not a dodge, and stays.
+
 ## E2x of the auth plan: `encoding/base64` names-only here with a package fact; `EtcdServer.UserAdd` proposes a `pwSure` request (2026-10-26 · `notes/auth-plan.md`, the user's option (1))
 
 The handler `EtcdServer.UserAdd` (`v3_server.go`) hashes the password
@@ -25067,3 +25154,107 @@ Drafted before any proof (the user's instruction). What changed in existing stat
   kind `adminKindOk` admits but `Authenticate`, which it excluded; dropping it admits `Authenticate`
   through the admin path of `reqPropOkOn` rather than a fourth disjunct, so A4 can follow the admin
   proposers' path. The commit keeps the model's state for it.
+
+## lintest's `genSpec`: the generator is called with a client's index (`id ≥ 0`)
+
+**2026-10-28 · accepted; approved by the user 2026-10-28** (branch `logkv-eval`)
+
+`lintest.genSpec gen inOk` was `∀ id, {{ True }} gen id {{ i, □ inOk i }}`: every `id`, negative
+ones included. logkv's generator (`examples/lintest/logkv`) indexes `vals[id%4]`; Go's `%` is
+negative for a negative `id`, so it panics there and cannot meet that spec, though `Run` only ever
+calls `gen` with `0, ..., clients - 1` (`runClient.spec` already has `0 ≤ sint.Z id`). Now
+`{{ ⌜0 ≤ sint.Z id⌝ }}`: `Run.spec` is strictly stronger (a weaker premise; the PRINCIPLES' "no
+unneeded premise"), `runClient`'s proof discharges it (one line), and the existing generators'
+proofs are unchanged (they drop the premise). The `Gen.spec`s of linkvtxn and k8setcd3, stated
+as `genSpec`, now say less than their Go code (any `id`); their only caller is `Run`. Not a Go
+bug: nothing in `issues/`.
+
+## logkv: the writer's update fired in the apply goroutine, its result back by a saved proposition
+
+**2026-10-28 · accepted** (branch `logkv-eval`, `notes/logkv-eval.md`)
+
+`Put`'s linearization point is in `applyLoop`. The writer's atomic update (Perennial's one-shot
+fancy update) goes into the lock invariant (a pending slot), the apply goroutine fires it under
+the mutex, and the result `P` waits in a done slot, which the writer identifies by a monotone
+list of request names and claims with a ticket; a saved proposition says the slot's `P'` is its
+`P` (`▷ (P' ≡ P)`, paid by `Unlock`'s step). Rejected: an invariant per request (puts a
+namespace in `Put`'s mask, `@@ ↑logkvN` instead of `∅`, visible to every client); the writer
+firing its own update once applied (wrong: later operations may have seen the value). The API
+(`regState γ`, `isServer γ s`, mask `∅`) is the one a register under a mutex would have.
+
+## The compactor's contract after the freeze: the context carries no trace (2026-10-28)
+
+**2026-10-28 · taken (the user's repair; M2's S3 glue, `notes/m2-plan.md`)**
+
+**What it was.** The frozen `v3compactor.compactableOk` (the compactor pilot's freeze,
+`notes/compactor-pilot-plan.md`) let the server's `Compact` run under any context
+(`context.isContext ctx cd`), and the pilot's `EtcdServer.Compact.spec` said the same.
+
+**Why it changed: the freeze test.** M2's S3 glue (`EtcdServer.Compact`'s proof over the request
+path) found `Compact`'s body calling `traceutil.EnsureTrace(ctx, …)`, which reads
+`ctx.Value(TraceKey{})` and writes to a trace it finds there; Perennial's `isContext` specifies
+`Value` only for `cancelCtxKey`, so the statement was unprovable. The first revision after the
+pilot's freeze (cause: a callee body's need; the reviews had checked the contract against
+`Compact.spec`, itself an unproved `sorry`: `LESSONS.md`, 2026-10-28).
+
+**The repair.** `compactableOk`'s per-call precondition and `Compact.spec`/`specOn` gain
+`traceutil.ctxTraceIs ctx none`. The compactor's objects (`isRevision`, `isPeriodic`) carry it for
+their context, which their constructors make with `traceutil.wp_WithCancelBackground_noTrace`
+(`Proof/go_etcd_io/etcd/pkg/v3/traceutil/CtxLaws.lean`): `WithCancel(Background())` proved from
+Perennial's `wp_WithCancel_gen` (whose post gives the child's parent field) and
+`ctxTraceIs_cancelCtx_background` (the child's `Value(TraceKey{})` goes through `cancelCtx.Value`
+and `value` to `Background()`'s `nil`: an unfold of Perennial's context code, one lemma, pending
+the law that a derived context's `Value` delegates to its parent, `notes/perennial-changes.md`).
+The constructors no longer rest on the trust-boundary axiom `context.WithCancelBackground.wp_proof`.
+The `Run` proofs needed no change beyond the destructuring.
+
+**The server side, found by the same glue** (not frozen): `Compact.spec` also lacked the server's
+read facts and the logger's reader slot (`isServerRead s E γr`, `srvLgReader s`, given back: for
+`s.Logger()` and `s.kv.Rev()`), and the request path's compaction variant's result
+(`compactResultIs`) now owns the apply thread's trace whatever the error (`Compact` uses
+`result.Trace` before it checks `result.Err`).
+
+## M2's compaction mode in the request path's statements (2026-10-28)
+
+**2026-10-28 · taken (review round 1's repair; the family's extent open, for the user)**
+
+Review round 1 of M2's skeleton (`notes/spec-first-study/m2-review-1.md`, S2-1) found the
+compaction mode in no statement: the compaction request path took the compaction-off view
+`isServerReq`, whose KV invariant (`kvInv`: `plainLog`, `logShape` over `dispatchOk`) excludes a
+compaction entry, so it was unprovable. Repair: a compaction-mode family beside the off one, as
+auth's `…On` family (`CompactMode.lean`): `kvInvC` (over `plainLogC`, a plain request or a
+compaction; `logShapeC`, `rqShapeC` with `dispatchOkC` and option (a)'s `irrNoDelPut` on the
+admitted writes; `compactClaims`, every committed compaction's revision reached), and
+`srvReqFieldsAtC`/`isServerReqC` (`isServerReq` over `kvInvC`). The compaction-off definitions and
+every statement over them are unchanged. Used by `processInternalRaftRequestOnce.specCompact` and
+`EtcdServer.Compact.spec`, which also take the revision reached (`srvRevLb`: `store.Compact` needs
+its certificate, S2-3; the compactor's permit gives it, `compactableOk_server`, `CompactEnv.lean`).
+Rejected: a mode bit in the ghost names (`ρ.kv`) read by `kvInv` (the off-mode proofs would need
+the bit's value, a premise on every off-mode statement). **Open:** the family stops at the request
+path's compaction; `NewServer.specCompact`'s post, and `common`'s `memberBuilt`/`memberUp` that
+`putgetc` goes through, still give the off view `isServerReq` (and the watch readers), which cannot
+coexist with `kvInvC` over the same names: a compaction-mode serving stack (the request path's
+`Put`/`Range`/`Txn`/`DeleteRange`, v3rpc, the client, `common`'s member predicates) is the family's
+remaining extent.
+
+## lintest: the library spec lends the client's thread token
+
+**2026-10-28 · accepted; approved by the user 2026-10-28** (branch `logkv-eval`,
+`notes/logkv-eval-rw.md`)
+
+`lintest.applySpec` gave the library nothing per call, and `Run` forked its clients with
+`wp_fork`, which keeps each goroutine's thread token out of reach. A library that read-locks a
+`sync.RWMutex` needs a reader slot, which Perennial lends against a thread token
+(`Perennial/Proof/sync/RWMutexThreads.lean`), so it could not meet `applySpec` (logkvrw worked
+around it with ~630 lines of local copies of `Run`/`runClient`). Now `applySpec` has `threadTok`
+in its pre and its post, `runClient.spec` takes and returns the client goroutine's `threadTok`
+(lending it to each `apply` through `wp_apply_commit`), and `Run`'s proof forks its clients with
+`wp_fork_tok_body`. `Run.spec` is stronger (its premise on the library is weaker); its statement
+changes only inside `applySpec`. One spec per function, no token-free form beside it (the
+user, 2026-10-28; a first version kept the old spec as `applySpecNoTok` with a framing lemma
+`applySpec_of_noTok`, removed): every library's `Apply` is stated with `applySpec`, and a library
+that needs no token frames it itself (counter, logkv, logkvcompact, logkvsnap, logkvappend:
+`⟨%Hin, Htt⟩` at the intro and `iframe Htt` at the return; kv, kvwitness, linkvtxn, linkv3p,
+k8setcd3, whose closures are proved inline in `Check`: the same, the token added to the
+continuation they pass on). logkvrw's `Apply` passes it to `Get`, and its copies of the driver
+are gone.

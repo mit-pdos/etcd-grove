@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `rv.FirstRev()`: a read transaction opened and closed; the compaction revision it observed
 (`store.Read`'s `firstRev`), at or above the caller's lower bound `c` (2026-10-13, unit 6a). The
-frozen statement (`storeReader`, `-1`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+frozen statement (`storeReader`, `-1`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.readView.FirstRev.spec : Prop :=
   ∀ (rv s : Loc) (γ : mvcc.StoreNames) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

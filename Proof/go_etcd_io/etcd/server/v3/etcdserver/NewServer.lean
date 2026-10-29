@@ -101,6 +101,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactEnv
 
 @[expose] public section
 
@@ -1442,7 +1444,12 @@ theorem NewServer.wp_proofM (on : Bool)
     iexists ⟨errc, null, null, func.nil, GoInterface.nil, sstats, null⟩
     unfold srvRunBuilt compactorOk
     iframe compactor errorc Hltg stats Herrb
-    ipureintro; rfl
+    ileft; ipureintro; rfl
+  isplitr
+  · -- `Hcrun` (M2, S4): the compactor off, nothing to run
+    iexists GoInterface.nil
+    iframe compactor
+    iunfold compactorRun; ileft; ipureintro; rfl
   isplitr
   · -- `#Hsab`: (D19p) `msgSnapC` never delivers
     unfold srvApplyAllBuilt
@@ -1956,6 +1963,21 @@ theorem NewServer.wp_proof
   isplitr
   · ipureintro; exact ⟨H1.1, H1.2.1⟩
   iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+
+
+/-- **`NewServer` with the auto-compactor on** (M2, S4, `notes/m2-plan.md`): to prove, from
+`v3compactor.New.spec` and the compactor's environment built from the store's `Rev` (`E.rg`,
+`mvcc.store.Rev.spec`) and the server's `Compact` (`E.c`: `compactableOk_server`, `CompactEnv.lean`,
+over `EtcdServer.Compact.spec`, the revision permit over `srvRevLb`, `srvCompactR` borrowed), and
+the apply thread's compaction right (in place of the frozen store). The callees are hypotheses
+(review round 1, S4-2), so that the results over this proof rest on theirs. -/
+theorem NewServer.wp_proofCompact
+    (wp_New : v3compactor.New.spec (GF := GF) (hG := hG))
+    (wp_Compact : EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    (wp_Rev : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
+    NewServer.specCompact (GF := GF) (hG := hG) := by
+  have _hC := compactableOk_server wp_Compact
+  sorry -- M2 S4: NewServer with the compactor (the compactor's environment over wp_New/wp_Rev/compactableOk_server, the apply thread's compaction right)
 
 end proof
 

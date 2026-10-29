@@ -1,0 +1,7 @@
+# Types and names only (project etcd, which owns `hash`): the FNV hash the DaemonSet controller's
+# `controller.ComputeHash` writes into (notes/k8s-daemonset-goose.md).
+translate = ["!*"]
+imports = ["!*", "hash"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

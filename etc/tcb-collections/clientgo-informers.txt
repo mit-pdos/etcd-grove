@@ -1,0 +1,26 @@
+# client-go's informer layer (k8s.io/client-go/tools/cache, notes/k8s-daemonset-plan.md phase 4):
+# the `cache` store over the thread-safe store (store.go), the RealFIFO, the reflector, the
+# shared informer, the listers; the linked results of Proof/k8s_io/client_go/tools/cache/Link.lean
+# whose specs are phase 4's, and of Proof/k8s_io/client_go/informers/Link.lean (the listers,
+# the factory).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/clientgo-informers.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/k8s_io/client_go/tools/cache/(cache__|RealFIFO__|Reflector__|sharedIndexInformer__|sharedProcessor__|processorListener__|controller__|ListAll|processDeltas|processReplacedAllInfo|reconcileReplacement)
+roots ^Spec/k8s_io/client_go/(listers|informers)/
+axiom appsv1.Resource.wp_proof
+axiom corev1.Resource.wp_proof
+axiom labels.Everything.wp_proof
+axiom labels.LabelSelectorAsSelector.wp_proof
+axiom labels.reqsValid
+axiom schema.GroupResource.String_ptr.wp_proof
+axiom schema.GroupVersionResource.Empty_ptr.wp_proof
+axiom strconv.ParseInt.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom trace.New.wp_proof
+axiom trace.Trace.LogIfLong.wp_proof
+axiom utilruntime.HandleCrashWithLogger.wp_proof
+sorry Perennial.reflect.Type'.Type'_into_val_typed
+sorry Perennial.reflect.Type'.Type'_typed_pointsto

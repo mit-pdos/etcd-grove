@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 `context.TODO()`, `todo`, no context error), at the compaction revision `crev` the transaction
 observed (its hold of `s.mu`, `muHeld` at `crev`, given back: `ErrCompacted` below it, the
 uncompacted outcome at or above it, `rangeOutcomeC`; 2026-10-13, unit 6a), under the
-transaction's reader (`txReader`, kept). The frozen statement (a store never compacted, `crev =
--1`: `rangeOutcome`) is `specFrozen`, a corollary (`spec_frozen`, `FrozenSpecs.lean`). -/
+transaction's reader (`txReader`, kept). The readers' statement (a store never compacted, `crev =
+-1`: `rangeOutcome`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)

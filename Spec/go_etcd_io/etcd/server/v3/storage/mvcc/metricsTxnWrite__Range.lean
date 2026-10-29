@@ -27,7 +27,7 @@ log and revision, a write transaction's (`storeTxnWrite.Range`) at its log with 
 revision appended, at `writeRev` (`TxnKind.readLog`, `readRev`). At `context.TODO()` (`todo`), no
 context error. (The read case, at an `isContext`, is the spec before the txn package's unit 1.)
 At the compaction revision `crev` the transaction observed (`rangeOutcomeC`; 2026-10-13, unit
-6a); the frozen statement (`crev = -1`: `rangeOutcome`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+6a); the readers' statement (`crev = -1`: `rangeOutcome`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.metricsTxnWrite.Range.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)

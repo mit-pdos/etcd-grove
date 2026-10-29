@@ -13,7 +13,7 @@ other to choose among specs that keep the hard rules, and say so when you knowin
 
 These judgments are for specs that cross a package boundary: what another package's proof sees. An
 internal helper's spec, used only inside its own package, may simply mirror its code.
-(`notes/spec-first-plan.md`, phase 1b)
+(`notes/spec-first-plan.md`, Review)
 
 ## Hard rules
 
@@ -23,7 +23,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   trust-boundary axiom true of the library's code or documented behavior.
 - **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
   the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
-  changes, the callers as restated.
+  changes, the callers as restated. A contract an implementation must meet (an environment's
+  interface, a callback) is complete only against the implementation's Go body when its own spec is
+  unproved: every value the body reads from an argument (a context's `Value(key)`, a field) needs a
+  premise. (The compactor's `compactableOk` passed five reviews checked against
+  `EtcdServer.Compact.spec`, a `sorry`, and failed at the first glue: `Compact` reads
+  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.)
 - **Local**: a spec is about its function's footprint, the state that function touches, and nothing
   else, so that a change elsewhere (a new feature, a conjunct added to some other component's
   predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an
@@ -55,7 +60,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **Facts that can be combined**: a fact at an unknown point (a clock reading) that is not related to
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
-  code guarantees. (`notes/spec-first-plan.md`, phase 1b)
+  code guarantees. (`notes/spec-first-plan.md`, Review)
 
 ## Preferences: abstraction
 
@@ -63,7 +68,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   would satisfy it unchanged (for a replicated server: a single in-memory server). No ghost names,
   fractions, helper definitions that hide part of the statement, internal records or fields,
   internal namespaces in masks, or the implementation's own logs and certificates. (`put.md`,
-  critique 2; `notes/spec-first-plan.md`, phase 1b)
+  critique 2; `notes/spec-first-plan.md`, Review)
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
 - **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
@@ -111,7 +116,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
   for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
 - **Know what it rests on**: the axioms a spec depends on (`etc/tcb-report.py --roots`), whether a
-  tester covers them, and how much of the pre and post is pure and decidable. The tester is phase 2
+  tester covers them, and how much of the pre and post is pure and decidable. The tester is the Test step
   of `notes/spec-first-plan.md`: instrumented Go runs record each call's state, arguments and result,
   and the spec's decidable pre and post are evaluated on them, so the decidable part of a spec is
   the part checked before any proof.
@@ -121,7 +126,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 Preferences too, but counted for each spec: on its unfolded statement (as `etc/gen-interface.py`
 renders it), or in its callers' proofs. Each is a cost; lower is better among specs that keep the
 hard rules. (`notes/spec-first-plan.md`,
-phase 1b)
+Review)
 
 - **Coupling**: the other packages' predicates and definitions the statement mentions. Each is a
   place where a change in that package forces this spec, and its callers' proofs, to change: in this

@@ -40,6 +40,11 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
+       etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/Link.lean
+       etc/gen-link.py --lintest-logkvcompact > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/Link.lean
+       etc/gen-link.py --lintest-logkvsnap > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/Link.lean
+       etc/gen-link.py --lintest-logkvrw > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/Link.lean
+       etc/gen-link.py --lintest-logkvappend > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/Link.lean
        etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
@@ -50,6 +55,11 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
        etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean
        etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean
+       etc/gen-link.py --workqueue > Proof/k8s_io/client_go/util/workqueue/Link.lean
+       etc/gen-link.py --consistency > Proof/k8s_io/client_go/util/consistency/Link.lean
+       etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
+       etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
+       etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -165,6 +175,11 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
     "EtcdGrove.ErrorStringNotWriter",
+    # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
+    "EtcdGrove.MutexLitSemantics",
+    # (client-go's work queue) `float64(n)` of an untyped integer constant
+    # (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`)
+    "EtcdGrove.UntypedIntToFloat64Semantics",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
@@ -305,6 +320,43 @@ LEAN_FIRST = {
                           "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
                           "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
                           [""]),
+    # the log-applied register (examples/lintest/logkv): writes take effect in the apply
+    # goroutine; over the driver's (`@`)
+    "--lintest-logkv": ("link-lean-first-lintest-logkv.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkv "
+                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkv.Assumptions",
+                        "The log-applied register's proofs (`examples/lintest/logkv`)",
+                        [""]),
+    "--lintest-logkvcompact": ("link-lean-first-lintest-logkvcompact.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact "
+                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lintest/logkvcompact`)",
+                        [""]),
+    "--lintest-logkvsnap": ("link-lean-first-lintest-logkvsnap.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap "
+                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lintest/logkvsnap`)",
+                        [""]),
+    "--lintest-logkvrw": ("link-lean-first-lintest-logkvrw.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw "
+                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lintest/logkvrw`)",
+                        [""]),
+    "--lintest-logkvappend": ("link-lean-first-lintest-logkvappend.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend "
+                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lintest/logkvappend`)",
+                        [""]),
     # the linearizability instance over the robustness tester's KV workload (examples/linkvtxn,
     # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
     # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
@@ -377,6 +429,46 @@ LEAN_FIRST = {
     # the examples' shared start (examples/common, D33): a member's configuration and server
     # (over the server's, `@`), its gRPC service (over v3rpc's, `@`) and a client (over the
     # client's `New`, `@`), which the examples' Links take as `@` callees
+    # client-go's work queue (k8s.io/client-go/util/workqueue, notes/k8s-daemonset-plan.md phase 2):
+    # the typed queue, the rate limiters, the delaying and rate-limiting queues, over sets' and
+    # the trust boundary of k8s.io/utils/clock, klog, x/time/rate, container/heap and math
+    "--workqueue": ("link-lean-first-workqueue.txt",
+                    "k8s_io.client_go.util.workqueue k8s_io.apimachinery.pkg.util.sets",
+                    "k8s_io.client_go.util.workqueue.Assumptions",
+                    "client-go's work queue's proofs (`k8s.io/client-go/util/workqueue`)", [""]),
+    # client-go's consistency store (k8s.io/client-go/util/consistency, notes/k8s-daemonset-plan.md
+    # phase 2) and apimachinery's resource versions, over the trust boundary of
+    # `resourceversion.isWellFormed` (gap C1) and `schema.GroupResource.String`
+    "--consistency": ("link-lean-first-consistency.txt",
+                      "k8s_io.client_go.util.consistency k8s_io.apimachinery.pkg.util.resourceversion",
+                      "k8s_io.client_go.util.consistency.Assumptions",
+                      "client-go's consistency store's proofs (`k8s.io/client-go/util/consistency`)",
+                      [""]),
+    # client-go's local cache (k8s.io/client-go/tools/cache, notes/k8s-daemonset-plan.md phase 2):
+    # the store keys and the thread-safe store, over sets' and the trust boundary of
+    # `strconv.ParseInt`
+    "--k8scache": ("link-lean-first-k8scache.txt",
+                   "k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets "
+                   "k8s_io.client_go.tools.cache.synctrack k8s_io.utils.buffer",
+                   "k8s_io.client_go.tools.cache.Assumptions",
+                   "client-go's local cache's proofs (`k8s.io/client-go/tools/cache`)", [""]),
+    # client-go's informers above the store (k8s.io/client-go/listers, informers,
+    # notes/k8s-daemonset-plan.md phase 4): the listers, over the store's results (`@`, linked in
+    # the cache's Link) and apimachinery's errors, under the informer factory's assumptions (which
+    # include the listers' and the store's)
+    "--k8sinformers": ("link-lean-first-k8sinformers.txt",
+                       "k8s_io.client_go.listers k8s_io.client_go.listers.apps.v1 "
+                       "k8s_io.client_go.listers.core.v1 k8s_io.client_go.informers",
+                       "k8s_io.client_go.informers.Assumptions",
+                       "client-go's informers' proofs above the store (`k8s.io/client-go/listers`, "
+                       "`k8s.io/client-go/informers`)", [""]),
+    # the model API server (examples/k8sdaemonset/apimodel, notes/k8s-daemonset-plan.md phase 3):
+    # trusted Go (D50) whose specs are an internal layer of the DaemonSet controller's proof, over
+    # the trust boundary of the API types' `DeepCopyObject` and apimachinery's error constructors
+    "--apimodel": ("link-lean-first-apimodel.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel",
+                   "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions",
+                   "The model API server's proofs (`examples/k8sdaemonset/apimodel`)", [""]),
     "--common": ("link-lean-first-common.txt",
                  "github_com.mit_pdos.etcd_grove.examples.common",
                  "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
@@ -385,13 +477,24 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
+              "--apimodel": "apimodel"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
-EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
+EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
+                 "--k8scache": ["Perennial.Proof.slices.Link", "Perennial.Proof.cmp.Link"],
+                 # the informer factory's package (its assumptions, the section's variable)
+                 "--k8sinformers": ["GeneratedProof.k8s_io.client_go.informers",
+                                    "Proof.k8s_io.client_go.Base"],
+                 # Perennial's linked results the model's proofs take as terms (`=` callees)
+                 "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
+                                "Perennial.Proof.time.Link"],
+                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
                  # rafthttp's proofs take as terms (`=` callees)
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
@@ -414,7 +517,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv3p",
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))

@@ -9,8 +9,9 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, durable, durablekv, putget, putget3, linkvtxn, porcupine, bridge,
-               lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
+  --project    only this project (raft, etcd, kv, durable, durablekv, putget, putgetc, putget3, linkvtxn, porcupine, bridge,
+               lintest, raft-witness, kvwitness, k8s-apiserver or k8s-daemonset; repeatable;
+               default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -185,12 +186,16 @@ PROJECTS = [
         # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md). Then (the
         # spec-first pilot, 2026-10-27) branch `goose-lean-grantfix-compactorstart` (on acafa0317):
         # the auto-compactor run by `start()`, not by `NewServer` (a20f6760f, the cherry-pick of
-        # 964dccdb4; issues/etcd-compactor-started-before-start.md).
+        # 964dccdb4; issues/etcd-compactor-started-before-start.md). Then (M2, 2026-10-28) branch
+        # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
+        # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
+        # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
+        # issues/etcd-compaction-delete-then-put.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="a20f6760ff4312d40cd6b1ff04f9b4dd58e827c6",
+        rev="249d76bea78d0c8980251d5fa7b26c35ef21263a",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -376,6 +381,10 @@ PROJECTS = [
             # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
             # `kvHasher.hash` field, so that Goose translates `kvHasher`
             "hash",
+            # types and names only: the FNV hash the DaemonSet controller's `controller.ComputeHash`
+            # writes into (project k8s-daemonset; notes/k8s-daemonset-goose.md); here since this
+            # project owns `hash`
+            "hash/fnv",
             # names only (D38, rafthttp's stage 1): what rafthttp's message path calls of the
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
             # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
@@ -511,6 +520,19 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
     ),
     Project(
+        name="putgetc",
+        # putget with the auto-compactor on (notes/m2-plan.md, M2's first result): one member
+        # started in-process with the compactor in revision mode (common.StartCompactingServer),
+        # a client's Put and Get of one key.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "putgetc"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putgetc")],
+    ),
+    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
         # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,
@@ -644,8 +666,10 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "lintest"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine="],
-        # the driver, and an instance of it (a counter under a mutex, its model)
-        packages=[".", "./counter"],
+        # the driver, and instances of it: a counter under a mutex, its model; and the scalable-proof
+        # experiment's log-applied register (logkv) and its variants, each adding one feature
+        packages=[".", "./counter", "./logkv", "./logkvcompact", "./logkvsnap", "./logkvrw",
+                  "./logkvappend"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
     ),
     Project(
@@ -690,7 +714,10 @@ PROJECTS = [
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
-                    "github.com/anishathalye/porcupine="],
+                    "github.com/anishathalye/porcupine=",
+                    # the etcd project's names-only translations, which client-go's workqueue
+                    # and flowcontrol name (notes/k8s-clientgo-goose.md)
+                    "golang.org/x/time=", "container/heap=", "github.com/go-logr="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -707,6 +734,87 @@ PROJECTS = [
             "k8s.io/apiserver/pkg/storage/cacher/consistency",
             "k8s.io/apiserver/pkg/storage/cacher/key",
             "k8s.io/client-go/tools/cache",
+            # client-go's leaf libraries, with bodies (notes/k8s-clientgo-goose.md; the DaemonSet
+            # controller, notes/k8s-daemonset-plan.md)
+            "k8s.io/client-go/util/workqueue",
+            "k8s.io/client-go/util/consistency",
+            "k8s.io/apimachinery/pkg/util/sets",
+            "k8s.io/apimachinery/pkg/util/resourceversion",
+            "k8s.io/client-go/util/flowcontrol",
+            "k8s.io/client-go/util/retry",
+            "k8s.io/client-go/features",
+            "k8s.io/client-go/listers",
+            "k8s.io/client-go/listers/apps/v1",
+            "k8s.io/client-go/listers/core/v1",
+            # the typed clients' interfaces the model API server implements (project
+            # k8s-daemonset; notes/k8s-apimodel-goose.md), types and names only, and what their
+            # methods name, names only
+            "k8s.io/client-go/kubernetes",
+            "k8s.io/client-go/kubernetes/typed/admissionregistration/v1",
+            "k8s.io/client-go/kubernetes/typed/admissionregistration/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/apiserverinternal/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/apps/v1",
+            "k8s.io/client-go/kubernetes/typed/apps/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/apps/v1beta2",
+            "k8s.io/client-go/kubernetes/typed/authentication/v1",
+            "k8s.io/client-go/kubernetes/typed/authentication/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/authentication/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/authorization/v1",
+            "k8s.io/client-go/kubernetes/typed/authorization/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/authorization/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/autoscaling/v1",
+            "k8s.io/client-go/kubernetes/typed/autoscaling/v2",
+            "k8s.io/client-go/kubernetes/typed/batch/v1",
+            "k8s.io/client-go/kubernetes/typed/batch/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/certificates/v1",
+            "k8s.io/client-go/kubernetes/typed/certificates/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/certificates/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/coordination/v1",
+            "k8s.io/client-go/kubernetes/typed/coordination/v1alpha2",
+            "k8s.io/client-go/kubernetes/typed/coordination/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/core/v1",
+            "k8s.io/client-go/kubernetes/typed/discovery/v1",
+            "k8s.io/client-go/kubernetes/typed/discovery/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/events/v1",
+            "k8s.io/client-go/kubernetes/typed/events/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/extensions/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/flowcontrol/v1",
+            "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2",
+            "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta3",
+            "k8s.io/client-go/kubernetes/typed/lifecycle/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/networking/v1",
+            "k8s.io/client-go/kubernetes/typed/networking/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/node/v1",
+            "k8s.io/client-go/kubernetes/typed/node/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/node/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/policy/v1",
+            "k8s.io/client-go/kubernetes/typed/policy/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/rbac/v1",
+            "k8s.io/client-go/kubernetes/typed/rbac/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/rbac/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/resource/v1",
+            "k8s.io/client-go/kubernetes/typed/resource/v1alpha3",
+            "k8s.io/client-go/kubernetes/typed/resource/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/resource/v1beta2",
+            "k8s.io/client-go/kubernetes/typed/scheduling/v1",
+            "k8s.io/client-go/kubernetes/typed/scheduling/v1alpha3",
+            "k8s.io/client-go/kubernetes/typed/scheduling/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/storage/v1",
+            "k8s.io/client-go/kubernetes/typed/storage/v1alpha1",
+            "k8s.io/client-go/kubernetes/typed/storage/v1beta1",
+            "k8s.io/client-go/kubernetes/typed/storagemigration/v1",
+            "k8s.io/client-go/kubernetes/typed/storagemigration/v1beta1",
+            "k8s.io/client-go/rest",
+            "k8s.io/client-go/discovery",
+            "k8s.io/client-go/applyconfigurations/core/v1",
+            "k8s.io/client-go/applyconfigurations/apps/v1",
+            "k8s.io/client-go/applyconfigurations/autoscaling/v1",
+            "k8s.io/api/policy/v1",
+            "k8s.io/api/policy/v1beta1",
+            "k8s.io/api/authentication/v1",
+            "k8s.io/api/autoscaling/v1",
             # types and names only (their .toml): what the two name
             "k8s.io/apimachinery/pkg/api/errors",
             "k8s.io/apimachinery/pkg/api/validate/content",
@@ -724,6 +832,13 @@ PROJECTS = [
             "k8s.io/apimachinery/pkg/util/runtime",
             "k8s.io/apimachinery/pkg/util/validation/field",
             "k8s.io/apimachinery/pkg/util/wait",
+            "k8s.io/apimachinery/pkg/util/version",
+            "k8s.io/apimachinery/pkg/util/naming",
+            "k8s.io/apimachinery/pkg/util/intstr",
+            "k8s.io/apimachinery/pkg/api/resource",
+            # (the API types the listers return: concrete structs, notes/k8s-clientgo-goose.md)
+            "k8s.io/api/apps/v1",
+            "k8s.io/api/core/v1",
             "k8s.io/apimachinery/pkg/watch",
             "k8s.io/apiserver/pkg/audit",
             "k8s.io/apiserver/pkg/endpoints/request",
@@ -736,18 +851,108 @@ PROJECTS = [
             "k8s.io/component-base/tracing",
             "k8s.io/component-base/featuregate",
             "k8s.io/klog/v2",
+            # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
+            "github.com/go-logr/logr",
             "k8s.io/utils/clock",
+            "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
+            # types and names only: what the DaemonSet controller and its example name beyond the
+            # above (project k8s-daemonset translates the controller; notes/k8s-daemonset-goose.md),
+            # here because this project owns their directories and translates them from the same
+            # client-go, apimachinery and component-base (CLIENT_GO_PINS)
+            "k8s.io/api/extensions/v1beta1",
+            "k8s.io/apimachinery/pkg/api/equality",
+            "k8s.io/apimachinery/pkg/selection",
+            "k8s.io/apimachinery/pkg/util/json",
+            "k8s.io/apimachinery/pkg/util/rand",
+            "k8s.io/apimachinery/pkg/util/strategicpatch",
+            "k8s.io/apimachinery/pkg/util/validation",
+            "k8s.io/client-go/informers",
+            "k8s.io/client-go/informers/apps",
+            "k8s.io/client-go/informers/core",
+            "k8s.io/client-go/informers/apps/v1",
+            "k8s.io/client-go/informers/core/v1",
+            "k8s.io/client-go/kubernetes/scheme",
+            "k8s.io/client-go/tools/record",
+            "k8s.io/component-base/metrics/legacyregistry",
+            "k8s.io/component-base/zpages/features",
+            "k8s.io/utils/dump",
+            "k8s.io/utils/ptr",
+            # the informer layer (phase 4 of notes/k8s-daemonset-plan.md;
+            # notes/k8s-daemonset-goose.md, "The informers"): with bodies the factory's
+            # interfaces, the reflector's pager, the shared informer's sync tracking and its
+            # listeners' ring buffer (tools/cache itself and the typed informers above, with
+            # bodies now); names only what they name beyond the above
+            "k8s.io/client-go/informers/internalinterfaces",
+            "k8s.io/client-go/tools/pager",
+            "k8s.io/client-go/tools/cache/synctrack",
+            "k8s.io/utils/buffer",
+            "k8s.io/apimachinery/pkg/apis/meta/v1beta1",
+            "k8s.io/apimachinery/pkg/apis/meta/internalversion",
+            "k8s.io/apimachinery/pkg/util/net",
+            "k8s.io/apimachinery/pkg/util/diff",
+            "k8s.io/apimachinery/pkg/util/cache",
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "api"),
                os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
-               os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
+               os.path.join("k8s_io", "utils", "clock"), os.path.join("k8s_io", "utils", "trace"),
+               os.path.join("k8s_io", "utils", "dump"), os.path.join("k8s_io", "utils", "ptr"),
+               os.path.join("k8s_io", "utils", "buffer"),
+               os.path.join("encoding", "json"),
+               os.path.join("github_com", "go_logr"),
                os.path.join("encoding", "base64"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
         counted_modules=["k8s.io/apiserver"],
+    ),
+    Project(
+        name="k8s-daemonset",
+        # The model API server of the DaemonSet controller's example (notes/k8s-daemonset-plan.md,
+        # D50; notes/k8s-apimodel-goose.md): package `apimodel` of examples/k8sdaemonset, a Go
+        # module of its own requiring client-go, apimachinery and k8s.io/api at the pins of
+        # examples/k8setcd3/go.mod (CLIENT_GO_PINS checks they agree), with bodies. Everything it
+        # names outside the package is project k8s-apiserver's translation (the empty root).
+        # And (2026-10-27, notes/k8s-daemonset-goose.md) the theorem's program `dsmain.Main` and
+        # the DaemonSet controller's closure from k8s.io/kubernetes 878cfa6c4cc7 (the module's
+        # go.mod: k8s.io/kubernetes and the staging modules it needs, pinned by `replace`), with
+        # bodies, and the k8s.io/kubernetes, component-helpers, controller-manager and
+        # apiextensions-apiserver packages they name, names only; client-go, apimachinery,
+        # component-base and the rest are project k8s-apiserver's (the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8sdaemonset"),
+        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=",
+                    "github.com/go-logr="],
+        packages=[
+            "./apimodel",
+            "./dsmain",
+            # with bodies (their .toml)
+            "k8s.io/kubernetes/pkg/controller/daemon",
+            "k8s.io/kubernetes/pkg/controller/daemon/util",
+            "k8s.io/kubernetes/pkg/controller/daemon/metrics",
+            "k8s.io/kubernetes/pkg/controller",
+            "k8s.io/kubernetes/pkg/api/v1/pod",
+            "k8s.io/kubernetes/pkg/apis/core/v1/helper",
+            "k8s.io/kubernetes/pkg/util/labels",
+            "k8s.io/kubernetes/pkg/util/hash",
+            "k8s.io/kubernetes/pkg/features",
+            "k8s.io/component-helpers/scheduling/corev1",
+            "k8s.io/component-helpers/scheduling/corev1/nodeaffinity",
+            # types and names only
+            "k8s.io/kubernetes/pkg/apis/core/helper",
+            "k8s.io/kubernetes/pkg/apis/core/install",
+            "k8s.io/kubernetes/pkg/apis/core/validation",
+            "k8s.io/kubernetes/pkg/util/taints",
+            "k8s.io/apiextensions-apiserver/pkg/features",
+            "k8s.io/controller-manager/pkg/features",
+        ],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8sdaemonset"),
+               os.path.join("k8s_io", "kubernetes"), os.path.join("k8s_io", "component_helpers"),
+               os.path.join("k8s_io", "apiextensions_apiserver"),
+               os.path.join("k8s_io", "controller_manager")],
     ),
     Project(
         name="kvwitness",
@@ -784,10 +989,41 @@ GO_MOD_PINS = {
 }
 
 
+# Go modules of this repository whose Kubernetes requirements must be those of another: the model
+# API server's and the DaemonSet controller's module (project k8s-daemonset) names the types,
+# interfaces and functions project k8s-apiserver translates from examples/k8setcd3's module, so
+# both must be at the same versions (examples/k8sdaemonset/go.mod pins the staging ones by
+# `replace`).
+CLIENT_GO_PINS = {
+    os.path.join("examples", "k8sdaemonset", "go.mod"): (
+        os.path.join("examples", "k8setcd3", "go.mod"),
+        ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
+         "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
+}
+
+
+def go_mod_requires(f):
+    """The versions a go.mod file selects, by module path: its requirements, except that a module
+    replaced by the same path at a version (`M => M vX`, as examples/k8sdaemonset/go.mod replaces
+    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version."""
+    text = open(os.path.join(ROOT, f), encoding="utf-8").read()
+    reqs = dict(re.findall(r"^\s*(?:require\s+)?(\S+)\s+(v\S+)(?:\s*//.*)?$", text, re.M))
+    for old, new, ver in re.findall(r"^\s*(?:replace\s+)?(\S+)\s+=>\s+(\S+)\s+(v\S+)\s*$", text, re.M):
+        if old == new:
+            reqs[old] = ver
+    return reqs
+
+
 def go_mod_pin_errors():
-    """The replaces of GO_MOD_PINS's go.mod files not at their project's pinned revision."""
+    """The replaces of GO_MOD_PINS's go.mod files not at their project's pinned revision, and the
+    requirements of CLIENT_GO_PINS's that differ from their reference's."""
     revs = {p.name: p.rev for p in PROJECTS}
     errors = []
+    for f, (ref, mods) in CLIENT_GO_PINS.items():
+        have, want = go_mod_requires(f), go_mod_requires(ref)
+        for m in mods:
+            if have.get(m) is None or have.get(m) != want.get(m):
+                errors.append(f"{f}: {m} {have.get(m)} is not {ref}'s {want.get(m)}")
     for f, pins in GO_MOD_PINS.items():
         text = open(os.path.join(ROOT, f), encoding="utf-8").read()
         found = set()

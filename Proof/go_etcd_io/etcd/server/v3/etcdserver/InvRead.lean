@@ -200,7 +200,7 @@ def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
-    txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+    (∃ crev : Int, txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp))
 
 /-- **A successful read-only `Txn` of `t`** (as `rangeReadOk`): the server's run of `t` on the

@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.checkAndGetPrevKV.wp_proof
     (hGet : txn.getPrevKV.spec (GF := GF) (hG := hG)) :
     txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind p o tyX vX
+  intro trace mw s γ kind p o tyX vX crev
   wp_start as ⟨%Htr, Htx, #Hwrap, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

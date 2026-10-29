@@ -12,7 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -332,7 +332,8 @@ theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBRe
         go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
-        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
+        (∃ (ilog : mvcc.Log) (crev : Int),
+          mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev) ∗ Q }} :=
   mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te
 
 end store
@@ -420,9 +421,9 @@ The store's readers hold of a store whose compaction revision moves: a reader is
 `ErrCompacted` below it (`mvcc_rangeOutcomeC_lt`), the uncompacted outcome at or above it
 (`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted, because the
 one who compacts asserts `NoDelPutAt` at its revision (`store.Compact`'s premise, carried by the
-keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The statements of
-a store never compacted (the readers of the packages above mvcc, `storeReader`, `rangeOutcome`)
-are corollaries (`spec_frozen`), printed here linked. -/
+keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The readers' statements (the packages above mvcc: `storeReader`, the
+transactions at the tag `True`, the observed `crev` exposed; `ReaderSpecs.lean`) are corollaries
+(`spec_R`), printed here linked. -/
 
 noncomputable section
 
@@ -514,30 +515,31 @@ theorem mvcc_readView_Range : mvcc.readView.Range.spec (GF := GF) (hG := hG) :=
 theorem mvcc_readView_FirstRev : mvcc.readView.FirstRev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.wp_FirstRev
 
-/-! The frozen statements (a store never compacted: the readers of the packages above mvcc),
-corollaries of the linked results. -/
-theorem mvcc_store_Read_frozen : mvcc.store.Read.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.store.Read.spec_frozen mvcc.store.wp_Read
-theorem mvcc_store_Write_frozen : mvcc.store.Write.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.store.Write.spec_frozen mvcc.store.wp_Write
+/-! The readers' statements (the packages above mvcc; `ReaderSpecs.lean`), corollaries of the
+linked results. Their names are those of the frozen statements they replaced (M2,
+`notes/m2-plan.md`, S1: until then of a store never compacted, the compaction revision `-1`). -/
+theorem mvcc_store_Read_frozen : mvcc.store.Read.specR (GF := GF) (hG := hG) :=
+  mvcc.store.Read.spec_R mvcc.store.wp_Read
+theorem mvcc_store_Write_frozen : mvcc.store.Write.specR (GF := GF) (hG := hG) :=
+  mvcc.store.Write.spec_R mvcc.store.wp_Write
 theorem mvcc_storeTxnCommon_Range_frozen :
-    mvcc.storeTxnCommon.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.Range.spec_frozen mvcc.storeTxnCommon.wp_Range
+    mvcc.storeTxnCommon.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.Range.spec_R mvcc.storeTxnCommon.wp_Range
 theorem mvcc_storeTxnWrite_Range_frozen :
-    mvcc.storeTxnWrite.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.Range.spec_frozen mvcc.storeTxnWrite.wp_Range
+    mvcc.storeTxnWrite.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Range.spec_R mvcc.storeTxnWrite.wp_Range
 theorem mvcc_metricsTxnWrite_Range_frozen :
-    mvcc.metricsTxnWrite.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.metricsTxnWrite.Range.spec_frozen mvcc.metricsTxnWrite.wp_Range
+    mvcc.metricsTxnWrite.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.Range.spec_R mvcc.metricsTxnWrite.wp_Range
 theorem mvcc_metricsTxnWrite_End_frozen :
-    mvcc.metricsTxnWrite.End.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.metricsTxnWrite.End.spec_frozen mvcc.metricsTxnWrite.wp_End
-theorem mvcc_readView_Range_frozen : mvcc.readView.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.readView.Range.spec_frozen mvcc.readView.wp_Range
-theorem mvcc_readView_FirstRev_frozen : mvcc.readView.FirstRev.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.readView.FirstRev.spec_frozen mvcc.readView.wp_FirstRev
-theorem mvcc_store_Rev_frozen : mvcc.store.Rev.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.store.Rev.spec_frozen mvcc.store.wp_Rev
+    mvcc.metricsTxnWrite.End.specR (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.End.spec_R mvcc.metricsTxnWrite.wp_End
+theorem mvcc_readView_Range_frozen : mvcc.readView.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.readView.Range.spec_R mvcc.readView.wp_Range
+theorem mvcc_readView_FirstRev_frozen : mvcc.readView.FirstRev.specR (GF := GF) (hG := hG) :=
+  mvcc.readView.FirstRev.spec_R mvcc.readView.wp_FirstRev
+theorem mvcc_store_Rev_frozen : mvcc.store.Rev.specR (GF := GF) (hG := hG) :=
+  mvcc.store.Rev.spec_R mvcc.store.wp_Rev
 
 end readers
 
