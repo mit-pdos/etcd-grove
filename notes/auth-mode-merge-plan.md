@@ -219,3 +219,15 @@ Ready for when it resumes: the merged `apply.spec` (drafted) and the
 `M` lemmas of its proof (`srvApplyKVM_small`/`_idxCert`/`_ua_rt`, `srvWTPool_take_nM`,
 `entryOkM_of_shape`, `srvApplyKVM_appliedPub`, `kv_cc_stepM`; compiled) and `applyEntryNormal.specE`, the bridge, parked on branch `auth-mm-apply-wip` (`notes/auth-mm-drafts/`):
 unused until then).
+
+**`AuthInfoFromCtx`'s family merged** (branch `auth-bound`, 2026-10-29; `notes/decisions.md`,
+"`AuthInfoFromCtx`: one spec, the binding gated by the mode"). The user chose G (the binding gated
+by `⌜M.isOn = true⌝`, `M` a binder) and, for the guards, the same gate: one spec each for the
+server's `checkMembershipOperationPermission` and `requireAuthInfo` and v3rpc's
+`AuthAdmin.isPermitted`, `AuthAdmin.requireAuthInfo`, `authMaintenanceServer.requireAuthInfo`,
+`serverWatchStream.isWatchPermitted`, whose posts carry the gated binding (`adminOutB`,
+`authedOutB`, `principalBoundI`). `boundSpec`, `AuthInfoFromCtx_bound`, `GuardBound.lean`,
+`WatchBound.lean` and the seven `*_bound` exported results are gone: the guards' linked results
+now state the binding. `AuthInfoFromCtx.wpM`'s `hAuthB` premise is gone, so the request path's
+proofs link over `.spec` alone. Next: the request path's mode merge (step 5), then
+`applyEntryNormal`'s families.

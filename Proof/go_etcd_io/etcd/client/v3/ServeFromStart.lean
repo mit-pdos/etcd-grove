@@ -89,7 +89,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
-    -, -, -, -, #Hstp, #Hstc⟩
+    -, -, -, -, #Hstp, #Hstc, #Hrb⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩
@@ -162,7 +162,7 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
-    -, -, -, -, #Hstp, #Hstc⟩
+    -, -, -, -, #Hstp, #Hstc, #Hrb⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩

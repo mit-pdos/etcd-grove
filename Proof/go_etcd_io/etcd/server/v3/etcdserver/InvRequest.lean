@@ -88,6 +88,7 @@ public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.Token
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -1541,6 +1542,25 @@ def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
 instance isReqAuth_persistent (st : GoInterface) (RD : IProp GF) :
     Persistent (isReqAuth (GF := GF) st RD) := by
   unfold isReqAuth; infer_instance
+
+/-- **The request side with the token binding** (persistent; the auth plan's S5, 2026-10-24):
+`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's own token in
+the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carries, the auth plan's
+E2c; in `on γa`, its user is one the token was issued to). Stated beside
+`isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it; with
+auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
+`isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). -/
+def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
+  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+      {{ mvcc.txnCtx ctx cd ∗ RD }}
+        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+          applyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
+
+instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
+    Persistent (isReqAuthBound (GF := GF) st RD M) := by
+  unfold isReqAuthBound; infer_instance
 
 end read
 

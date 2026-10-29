@@ -72,6 +72,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, Review)
+- **One spec, a gated row, not two specs**: a stronger variant that holds only under a condition the
+  caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
+  the condition is there only because a trust-boundary axiom is too weak to give the row
+  unconditionally, the docstring names that axiom as the margin. (`authinfo.md`)
 
 ## Preferences: abstraction
 

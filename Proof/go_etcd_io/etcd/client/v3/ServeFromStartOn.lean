@@ -73,7 +73,7 @@ theorem grpcCfgOk_of_started_on_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
-    -, -, -, -, #Hstp, #Hstc⟩
+    -, -, -, -, #Hstp, #Hstc, #Hrb⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩

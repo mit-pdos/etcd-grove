@@ -575,7 +575,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               -- the registration's authorization (the auth plan's A4): the passed check's class
               isplitr
               · iunfold v3rpc.watchAuthed
-                ihave ⟨%info, #Hcl⟩ := Hcls $$ %rfl
+                ihave ⟨%info, #Hcl, -⟩ := Hcls $$ %rfl
                 iexists r.srv.E.authMode, info
                 iframe Htag
                 isplitl

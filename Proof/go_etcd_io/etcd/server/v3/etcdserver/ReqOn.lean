@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
 
 @[expose] public section
 
@@ -400,11 +401,12 @@ theorem srvReqFieldsAtM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v :
 
 /-- **The server's store's bound request side, in the auth mode `on`** (persistent): `True` off;
 on, `srvAuthBound` (`AuthInfoFromCtx`'s auth info bound to the request context's token; the auth
-plan's E3zb). -/
+plan's E3zb), and the environment's auth on (the auth-mode merge, 2026-10-29: `AuthInfoFromCtx`'s
+binding is gated by the mode). -/
 def srvAuthBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   match on with
   | false => iprop(True)
-  | true => srvAuthBound s E
+  | true => iprop(srvAuthBound s E ∗ ⌜E.authOn = true⌝)
 
 instance srvAuthBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvAuthBoundM (GF := GF) on s E) := by
@@ -533,7 +535,8 @@ definition. -/
 def isServerReqM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
   match on with
   | false => iprop(∃ v : ReqFields, srvReqFieldsAtM false s E ρ v)
-  | true => iprop((∃ v : ReqFields, srvReqFieldsAtM true s E ρ v) ∗ srvAuthBound s E)
+  | true => iprop((∃ v : ReqFields, srvReqFieldsAtM true s E ρ v) ∗ srvAuthBound s E ∗
+      ⌜E.authOn = true⌝)
 
 instance isServerReqM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     Persistent (isServerReqM (GF := GF) on s E ρ) := by
@@ -704,7 +707,6 @@ store's bound request side (`srvAuthBoundM`), the auth info bound to the context
 (`boundSpec`'s `ctxBoundOrTLS`). -/
 theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
     (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (st : GoInterface) (cca : Bool) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -717,22 +719,24 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
       □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) }} := by
   cases on
   · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, Hrd⟩ HΦ
-    iapply (hAuth s st E.RD cca ctx cd) $$ [Hrd] [HΦ]
+    iapply (hAuth s st E.RD .off cca ctx cd) $$ [Hrd] [HΦ]
     · iframe Hrd; iframe #
-    · iintro !> %a %err ⟨Hrd, Ha, #Herr⟩
+      iintro !> %h; exact absurd h (by decide)
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, -⟩
       iapply HΦ; iframe Hrd Ha Herr
       iintro !> %h; cases h
   · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩ HΦ
     unfold srvAuthBoundM
-    iunfold srvAuthBound at Hbd
-    icases Hbd with ⟨%st3, #Has3, #Hreqb⟩
-    icombine Hst Has3 gives %Heq3
-    subst Heq3
-    iapply (hAuthB rfl s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
+    icases Hbd with ⟨#Hbd, %hon⟩
+    ihave #Hbd2 : □ (⌜E.authOn = true⌝ → srvAuthBound s E) $$ []
+    · iintro !> -; iexact Hbd
+    ihave #Hreqb := srvAuthBound_gate s E st $$ [$Hst $Hbd2]
+    iapply (hAuth s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
     · iframe Hrd; iframe #
     · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb⟩
       iapply HΦ; iframe Hrd Ha Herr
-      iintro !> -; iexact Hb
+      iintro !> -
+      iapply Hb; ipureintro; exact hon
 
 end lemmas
 

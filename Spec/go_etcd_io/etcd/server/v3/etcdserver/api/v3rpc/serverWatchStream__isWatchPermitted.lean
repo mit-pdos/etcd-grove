@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 
 @[expose] public section
 
@@ -32,7 +33,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 stream's context, then the auth store's `IsRangePermitted` of the request's range: an error the
 apply package's `applyErrIs` describes (`nil`: permitted). 2026-10-23 (auth plan A1): permitted
 only with, for some auth info (the stream's context's, or the empty one), that info's read
-permission class of the watch's range (`apply.classRes`, with auth on: `classOk`). -/
+permission class of the watch's range (`apply.classRes`, with auth on: `classOk`).
+With auth on, a passed check's principal is moreover the anonymous one or bound to the request's
+token (`principalBoundI`; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec). -/
 abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (wcr : Loc) (ks es : GoSlice) (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r ∗ r.srv.E.RD ∗
@@ -46,7 +49,9 @@ abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
       structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" wcr ↦{de} es ∗
       applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, ∃ info,
-        apply.classRes r.srv.E.authMode info [(k, e, auth.PermType.read)]) }}
+        apply.classRes r.srv.E.authMode info [(k, e, auth.PermType.read)] ∗
+        □ (⌜r.srv.E.authMode.isOn = true⌝ →
+          principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) info)) }}
 
 end spec
 

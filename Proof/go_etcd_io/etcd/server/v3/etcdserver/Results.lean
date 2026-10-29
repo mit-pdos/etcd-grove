@@ -1154,22 +1154,6 @@ theorem apply_RoleAdd_step :
     EtcdGrove.apply.applierV3backend.RoleAdd.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleAdd.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
 
-/-- **The token binding at the server's guards** (the auth plan's E1, `AuthBound.lean`): the
-server's `AuthInfoFromCtx` returns an auth info bound to the request's token (or from the TLS
-fallback), and the member operations' admin guard checks such a principal, over a store with the
-bound request side (`srvAuthBound`, of the real store once `NewAuthStore` is proved). -/
-theorem server_AuthInfoFromCtx_bound :
-    EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG) :=
-  EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore
-
-theorem server_membership_guard_bound :
-    EtcdServer.checkMembershipOperationPermission.boundSpec (GF := GF) (hG := hG) :=
-  EtcdServer.checkMembershipOperationPermission_bound EtcdServer.wp_AuthStore
-
-theorem server_requireAuthInfo_bound :
-    EtcdServer.requireAuthInfo.boundSpec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo_bound EtcdServer.wp_AuthStore
-
 theorem apply_UserGrantRole_step :
     EtcdGrove.apply.applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGrantRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
@@ -1249,9 +1233,6 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_UserDelete_step
 #print axioms Perennial.EtcdGrove.apply_UserChangePassword_step
 #print axioms Perennial.EtcdGrove.apply_RoleAdd_step
-#print axioms Perennial.EtcdGrove.server_AuthInfoFromCtx_bound
-#print axioms Perennial.EtcdGrove.server_membership_guard_bound
-#print axioms Perennial.EtcdGrove.server_requireAuthInfo_bound
 #print axioms Perennial.EtcdGrove.apply_UserGrantRole_step
 #print axioms Perennial.EtcdGrove.apply_RoleGrantPermission_step
 #print axioms Perennial.EtcdGrove.apply_UserRevokeRole_step
@@ -1856,7 +1837,7 @@ theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
     traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
     (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore) traceutil.Trace.wp_Step)
+      traceutil.Trace.wp_Step)
     RangeRequest.wp_String proto.wp_Size
 
 /-- **A read-only `Txn` with auth on** (the auth plan's E3v, 2026-10-27; `EtcdServer.Txn.specOnR`,
@@ -1876,7 +1857,7 @@ theorem server_txn_ro_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool
     time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn
     (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore) traceutil.Trace.wp_Step)
+      traceutil.Trace.wp_Step)
     proto.wp_Size
 
 end adminLatest
@@ -2311,7 +2292,7 @@ theorem server_process_irr_on :
   EtcdServer.processInternalRaftRequestOnce.wp_proofM true (EtcdServer.getAppliedIndex.wp_proofM true)
     EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
     idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx
-    (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore)
+   
     wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
     (EtcdServer.parseProposeCtxErr.wp_proofM true errors.wp_IsCtxErr time.Time.wp_After
       EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members

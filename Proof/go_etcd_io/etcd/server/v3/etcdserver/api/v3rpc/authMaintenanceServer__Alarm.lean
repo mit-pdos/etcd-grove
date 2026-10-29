@@ -50,6 +50,7 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
     (try wp_auto)
     wp_apply (hR p ms aa s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
     · iframe #
+    ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
     iunfold authedOut at Hout
     icases Hout with ⟨#Herr, -, #Htok, -⟩
     (try wp_auto)

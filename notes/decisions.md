@@ -25274,3 +25274,25 @@ by the mode. A free `Bool` (candidate A) kept the exported results split, and it
 far: `snapshotIfNeededAndCompactRaftLog`, `setAppliedIndex`, `setTerm`. The rest waits on the
 auth-on variant families being merged into `.spec`s (the plan's "Blocked": `gen-link` passes only
 `.spec`).
+
+## `AuthInfoFromCtx`: one spec, the binding gated by the mode (2026-10-29)
+
+`EtcdServer.AuthInfoFromCtx` had `spec` (unbound: `isReqAuth` gives `authInfoOpt`) and `boundSpec`
+(`isReqAuthBound` gives also `ctxBoundOrTLS`), and the guards above it a `boundSpec` each, exported
+as `*_bound` results beside their linked `.spec` results. `gen-link` passes only `.spec`, so a
+merged auth-on proof over `boundSpec` could not be linked (`notes/auth-mode-merge-plan.md`,
+"Blocked"). The spec reviewer weighed G (the binding gated by `⌜M.isOn = true⌝`, `M` a binder) and U
+(ungated). **The user chose G** (2026-10-29): U is the stronger statement and true of the code
+(`isReqAuthBound_of_authInv` holds at every mode), but with auth off the server's store comes from
+`NewAuthStore`'s axiom, which gives only `isReqAuth`; U would need that axiom strengthened, a
+trust-base change. The gate is that margin, not a property of the code. **The guards are gated the
+same way (the user's choice)**: one spec each, whose post carries `□ (⌜M.isOn⌝ → principalBound …)`
+inside `adminOutB`/`authedOutB` (`principalBoundI` for `isWatchPermitted`).
+
+Decided by the agent: where the guards get the gated `isReqAuthBound`. First drafted as a new
+precondition `□ (⌜E.authOn⌝ → srvAuthBound s E)` of each guard, which would have reached 13+
+callers' specs; instead the row went into the server views the guards already take: `srvAuthAt`
+(`AuthGuard.lean`) and the reader fields (`srvReadFieldsAt`, `srvReadFieldsAtM`), each with
+`□ (⌜E.authMode.isOn⌝ → isReqAuthBound st E.RD E.authMode)`. The guards' preconditions are
+unchanged. `start` builds the row: with auth on from `srvUberBase`'s store fact, with auth off
+vacuously (`authOn_false_of_run`, `AppliedOn.lean`: the off start state has the off chain).

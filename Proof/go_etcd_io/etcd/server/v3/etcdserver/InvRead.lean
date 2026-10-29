@@ -134,7 +134,10 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
     srvAppliedInv s E γr ∗ srvKVInvs E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
-    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping)
+    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
+    -- (the auth-mode merge, 2026-10-29) with auth on, the store's request side bound to the
+    -- request's token (`AuthInfoFromCtx.spec`'s gated row)
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode))
 
 instance srvReadFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAt s E γr v) := by

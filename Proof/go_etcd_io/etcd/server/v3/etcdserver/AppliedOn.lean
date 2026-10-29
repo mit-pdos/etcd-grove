@@ -343,6 +343,31 @@ theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI 
   iframe Hka
   ipureintro; exact Hx
 
+/-- **With the mode-`off` start state, auth is off** (`authOn_false_of_off`'s reasoning at the apply
+thread's start, `kvRun`; the auth-mode merge, 2026-10-29: `start`'s reader view's gated row). -/
+theorem authOn_false_of_run (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterface)
+    (x : apply.ApplyKV) (ai₀ c₀ : w64) (A : List EntryModel) :
+    srvKVInvs (GF := GF) E γr ∗ apply.applyKV E ua x ∗ kvRun γr ai₀ c₀ A x ={⊤}=∗
+      ⌜E.authOn = false⌝ ∗ apply.applyKV E ua x ∗ kvRun γr ai₀ c₀ A x := by
+  iintro ⟨#Hki, Hakv, Hkr⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨#Hki, -⟩
+  imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %Hch
+  icases applyKV_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
+  iunfold kvRun at Hkr
+  icases Hkr with ⟨Hka, %Hr⟩
+  iunfold kvApplied at Hka
+  icases Hka with ⟨Hka, %Hx⟩
+  imodintro
+  isplitr
+  · ipureintro
+    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+  iframe Hakv
+  iunfold kvRun
+  iunfold kvApplied
+  iframe Hka
+  ipureintro; exact ⟨Hx, Hr⟩
+
 end offlemma
 
 

@@ -37,8 +37,6 @@ Unit 3a (2026-10-12): the server's contract discharged for `Put` and `DeleteRang
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchBound
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GuardBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
@@ -1420,29 +1418,6 @@ theorem watch_registered_authorized (γ : mvcc.WsNames) (γo : mvcc.WsStreamName
                 ∃ p ∈ auth.userPerms st u, p.covers .read x))⌝ :=
   ctrlWatcher_authorized γ γo γa c m h
 
-/-- **The gRPC layer's guards with the token binding** (`GuardBound.lean`): over a server whose
-store has the bound request side, `AuthAdmin.isPermitted`'s admin token and the
-`requireAuthInfo`s' authenticated user are bound principals. -/
-theorem authAdmin_isPermitted_bound :
-    v3rpc.AuthAdmin.isPermitted.boundSpec (GF := GF) (hG := hG) :=
-  v3rpc.AuthAdmin.isPermitted_bound EtcdServer.wp_AuthStore
-
-theorem authAdmin_requireAuthInfo_bound :
-    v3rpc.AuthAdmin.requireAuthInfo.boundSpec (GF := GF) (hG := hG) :=
-  v3rpc.AuthAdmin.requireAuthInfo_bound EtcdServer.wp_AuthStore
-
-theorem maintenance_requireAuthInfo_bound :
-    v3rpc.authMaintenanceServer.requireAuthInfo.boundSpec (GF := GF) (hG := hG) :=
-  v3rpc.authMaintenanceServer.requireAuthInfo_bound
-    (v3rpc.AuthAdmin.requireAuthInfo_bound EtcdServer.wp_AuthStore)
-
-/-- **The watch's check with the token binding** (the auth plan's E1, `WatchBound.lean`): over a
-server whose store has the bound request side (`srvAuthBound`), a passed `isWatchPermitted`'s
-principal is the anonymous one, a user to whom some token was issued, or the TLS fallback's. -/
-theorem watch_check_bound :
-    v3rpc.serverWatchStream.isWatchPermitted.boundSpec (GF := GF) (hG := hG) :=
-  v3rpc.serverWatchStream.isWatchPermitted_bound EtcdServer.wp_AuthStore
-
 end watch
 
 /-! ## The watch service on the wire (unit W-W)
@@ -1712,10 +1687,6 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.watch_server
 #print axioms Perennial.EtcdGrove.v3rpc.new_watch_server
 #print axioms Perennial.EtcdGrove.v3rpc.watch_registered_authorized
-#print axioms Perennial.EtcdGrove.v3rpc.watch_check_bound
-#print axioms Perennial.EtcdGrove.v3rpc.authAdmin_isPermitted_bound
-#print axioms Perennial.EtcdGrove.v3rpc.authAdmin_requireAuthInfo_bound
-#print axioms Perennial.EtcdGrove.v3rpc.maintenance_requireAuthInfo_bound
 #print axioms Perennial.EtcdGrove.v3rpc.watchStreamSpec_step
 #print axioms Perennial.EtcdGrove.v3rpc.srvStep_of_watch
 #print axioms Perennial.EtcdGrove.v3rpc.watch_handler

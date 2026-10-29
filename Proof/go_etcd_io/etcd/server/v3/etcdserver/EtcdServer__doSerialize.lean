@@ -47,7 +47,6 @@ set_option maxHeartbeats 4000000 in
 theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.specM (GF := GF) (hG := hG) on := by
   intro s E ρ γr ctx cd chk get G Q C t e
@@ -67,7 +66,7 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
   wp_auto
   wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
   subst tr
-  wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAI hAuthB s E v.auth v.cca ctx cd $$ [Hard]
+  wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAI s E v.auth v.cca ctx cd $$ [Hard]
     as %a %err ⟨Hard, Ha, #HaE, #Hab⟩
   · iframe; iframe #
   cases err with
@@ -159,7 +158,7 @@ theorem EtcdServer.doSerialize.wp_proof
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd chk get G Q C t e
   iintro %Φ Hpre HΦ
-  iapply (EtcdServer.doSerialize.wp_proofM false hGet hAI (fun h => by cases h) hStep
+  iapply (EtcdServer.doSerialize.wp_proofM false hGet hAI hStep
     s E ρ γr ctx cd chk get G Q C t e) $$ %Φ [Hpre]
   · rw [isServerReqM_false, isServerReadM_false]; iexact Hpre
   inext
