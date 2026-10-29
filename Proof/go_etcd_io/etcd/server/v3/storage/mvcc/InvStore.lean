@@ -478,9 +478,15 @@ over such data (`bkNoCmp_of_fkCl`), and under which a held reader's state has ne
 (`backend.fkRd_abs`). -/
 def bkNoCmp (γB : backend.BNames) : IProp GF := backend.fkOwn γB 0
 
-/-- The same for mvcc's assumed backend (`kb = none`, the store's own ghost map `γb`): opaque,
-given by that backend's creator with its fresh key bucket (no caller in this repository). -/
-opaque viewNoCmp (γb : GName) : IProp GF
+/-- **mvcc's assumed backend's compaction-key flag** (`kb = none`, the store's own ghost map
+`γb`; question 5's wiring, (iii), 2026-10-29): opaque, the assumed backend's counterpart of the real
+backend's `backend.fkOwn` (`0`: neither compaction key recorded), given by that backend's creator. -/
+opaque viewFk (γb : GName) (f : Nat) : IProp GF
+
+/-- The same as `bkNoCmp` for mvcc's assumed backend: its flag at `0` (`viewFk`; until question 5's
+wiring, 2026-10-29, opaque itself), given by that backend's creator with its fresh key bucket (no
+caller in this repository). -/
+def viewNoCmp (γb : GName) : IProp GF := viewFk γb 0
 
 /-- **The backend of the instance `kb` records no compaction** (`bkNoCmp`, `viewNoCmp`): what
 `restore` consumes in place of the opaque premise `backendNoCompaction` (D22 S-g). -/

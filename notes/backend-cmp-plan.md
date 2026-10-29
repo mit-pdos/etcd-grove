@@ -1707,3 +1707,14 @@ clauses. So the last variant is gone, and the old bridge's statement, with its c
 fewer changes than the Draft predicted: the Draft's "the old bridge's exports gain `fkV`, `hHK`,
 `hFV` and three callee specs" is not needed. The other option, the old bridge as the `Cmp := True`
 bridge weakened, would have pushed those premises into D22's walk and `NewServer`'s link list.
+
+**Stage (iii), partly done (2026-10-29).** `viewFk γb f` is the assumed backend's opaque flag, and
+`viewNoCmp γb := viewFk γb 0` (until now opaque itself). No statement's text changes.
+
+Moved into the core stage (decided by the agent): `kbMW` over the bucket's name, with
+`kbMW none γb := ∃ f, viewFk γb f`. Switching the assumed backend's right from `True` breaks the
+proofs that produce it trivially today: the job's `Meta` put in `store__scheduleCompaction`
+(`unfold mvcc.kbMW; itrivial`) and `SetScheduledCompact`/`SetFinishedCompact`. They can take it only
+from the store, once the right has its home (`mwSlotW`/`physCmpW`/`mwSwapW`, the core stage). The
+signature change alone would be churn with no use. `WiringDraft`'s `viewFkW`/`kbMWW` stay as the
+Draft's statements until then.
