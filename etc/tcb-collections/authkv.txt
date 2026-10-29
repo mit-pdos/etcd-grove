@@ -93,6 +93,7 @@ axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.WithCancelBackground.wp_proof
+axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
