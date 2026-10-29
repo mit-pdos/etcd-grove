@@ -917,12 +917,12 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/RoleGrantPermission"
-          (v3rpc.etcdRoleGrantPermissionSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec E ρ) := by
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleGrantPermission"
+          (v3rpc.etcdRoleGrantPermissionSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec s E ρ) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Has, #Hast, #Hcost, #Hil, #Him, #Hiu,
     Hl, Hslots⟩
   ihave #Hp := etcd_putHandlerOn p s E ρ γr cid mid n γa hγa $$ []
@@ -988,18 +988,13 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
   · iframe #
   have hs1 := (etcdGrpcSlot_auth (GF := GF) s E γr).1
   have hs2 := (etcdGrpcSlot_auth (GF := GF) s E γr).2
-  ihave #Hmu0 := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmu
-  ihave #Hmu' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmu0
-  ihave #Hmg0 := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
-  ihave #Hmg' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmg0
-  ihave #Hmra0 := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmra
-  ihave #Hmra' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmra0
-  ihave #Hmrp0 := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmrp
-  ihave #Hmrp' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmrp0
-  ihave #Hme0 := (grpcMethodOk_md _ _ _ _ _).1 $$ Hme
-  ihave #Hme' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hme0
+  ihave #Hmu' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmu
+  ihave #Hmg' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmg
+  ihave #Hmra' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmra
+  ihave #Hmrp' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hmrp
+  ihave #Hme' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hs1 hs2 $$ Hme
   imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethodsOn q s E ρ γr cid mid ++
-      v3rpc.etcdAuthMethods pa E ρ)
+      v3rpc.etcdAuthMethods pa s E ρ)
     (etcdGrpcSlot s E γr) N
     (by simp only [etcdKVMethodsOn, v3rpc.etcdAuthMethods, List.map, List.cons_append,
           List.nil_append]
@@ -1021,11 +1016,6 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
     itrivial
   simp only [etcdKVMethodsOn, v3rpc.etcdAuthMethods, List.cons_append, List.nil_append]
   icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, -⟩
-  ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
-  ihave #H6' := (isGrpcRpc_md _ _ _).2 $$ H6
-  ihave #H7' := (isGrpcRpc_md _ _ _).2 $$ H7
-  ihave #H8' := (isGrpcRpc_md _ _ _).2 $$ H8
-  ihave #H9' := (isGrpcRpc_md _ _ _).2 $$ H9
   imodintro
   iframe #
 

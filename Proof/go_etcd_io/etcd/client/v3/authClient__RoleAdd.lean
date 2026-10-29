@@ -28,10 +28,10 @@ theorem authClient.RoleAdd.wp_proof
     (wp_retry : retryAuthClient.RoleAdd.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.RoleAdd.spec (GF := GF) (hG := hG) := by
-  intro api addr ci cd name Spec Q
+  intro api conn addr ci cd name Spec Q
   wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
-  iunfold authObjAt at Hapi
-  icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
+  iunfold authObjAtC at Hapi
+  icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   ihave Hsend : (pbAuthRoleAddRequest (GF := GF)).send «$a1_ptr» name $$ [«$a1»]
   · simp only [pbAuthRoleAddRequest]

@@ -314,11 +314,13 @@ theorem histAu_mono (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthSta
   iapply h $$ Hb
 
 /-- **An admin request's result for its client's history update** at the log `L` before its
-entry (persistent; 5b): recorded (`admRec`) with the update's result at the history along `L`,
-or not recorded (the auth state kept). -/
+entry (persistent; 5b): a lower bound of the history along `L` (`authHistLb`: what ties a reply's
+state to its client's view), and recorded (`admRec`) with the update's result at the history along
+`L`, or not recorded (the auth state kept). -/
 def adminRecRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
     (Q : List auth.AuthState → IProp GF) (L : List EntryModel) : IProp GF :=
-  iprop((⌜admRec γk st₀ rq L⌝ ∗ □ Q (admStates γk st₀ L)) ∨ ⌜¬ admRec γk st₀ rq L⌝)
+  iprop(authHistLb γk (admStates γk st₀ L) ∗
+    ((⌜admRec γk st₀ rq L⌝ ∗ □ Q (admStates γk st₀ L)) ∨ ⌜¬ admRec γk st₀ rq L⌝))
 
 instance adminRecRes_persistent (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
     (Q : List auth.AuthState → IProp GF) (L : List EntryModel) :
@@ -685,6 +687,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           iunfold srvRLog at HL
           ihave #Hlbe := monoListLbOwn_get γ.raft.log _ (L ++ [e]) $$ HL
           ihave #HlbL := monoListLbOwn_le L (List.prefix_append L [e]) $$ Hlbe
+          ihave #HhL := monoListLbOwn_get γk.hist _ (admStates γk st₀ L) $$ Hh
           iunfold histAu at Hha
           ihave Hacc := aupd_aacc $$ Hha
           unfold atomic_acc
@@ -724,12 +727,15 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           iunfold adminRecRes
           isplitr
           · ipureintro; exact ⟨hsrt, hdet⟩
+          iunfold authHistLb
+          iframe HhL
           ileft
           iframe HQ
           ipureintro; exact hr
         · -- not recorded: the auth state, and so the history, kept
           have hae : ¬ admEntry γk.c0 (srvAuthAtLog γk st₀ L) e := fun h =>
             hr ((admEntry_iff_admRec γk st₀ L e _ het hdata hdec' hidxe hna0).1 h)
+          ihave #HhL := monoListLbOwn_get γk.hist _ (admStates γk st₀ L) $$ Hh
           imod Hclose $$ [HL Hσ Hh] with -
           · inext
             iexists L ++ [e]
@@ -743,6 +749,8 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           iunfold adminRecRes
           isplitr
           · ipureintro; exact ⟨hsrt, hdet⟩
+          iunfold authHistLb
+          iframe HhL
           iright
           ipureintro; exact hr
 
@@ -788,7 +796,7 @@ theorem reqPropOkOn_qinv (γ γl : ServerRaftNames) (γk : KVNames) (st₀ : aut
       rw [Had.2.2.2]; rfl
     · ipureintro
       refine ⟨fun x hs => iprop(⌜rolesSorted x.1 ∧ authDet (apply.withHeader rq₀ hm) x.1⌝ ∗
-        ((⌜auth.adminOk x.1 (some (auth.authInfoM (apply.principalOf (apply.withHeader rq₀ hm)))) ∧
+        authHistLb γk hs ∗ ((⌜auth.adminOk x.1 (some (auth.authInfoM (apply.principalOf (apply.withHeader rq₀ hm)))) ∧
             adminNext (apply.withHeader rq₀ hm) x.1 ≠ x.1⌝ ∗ □ Qh hs) ∨
           ⌜¬ (auth.adminOk x.1 (some (auth.authInfoM (apply.principalOf (apply.withHeader rq₀ hm)))) ∧
             adminNext (apply.withHeader rq₀ hm) x.1 ≠ x.1)⌝)), ?_⟩

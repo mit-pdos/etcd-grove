@@ -264,7 +264,7 @@ def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRMo
   match on with
   | false => iprop(True)
   | true => iprop(∃ e : EntryModel, srvRLogLb ρ.raft (L ++ [e]) ∗
-      ⌜e.typ = W32 0 ∧ apply.irrDecode e.data = some rq'⌝ ∗
+      ⌜e.typ = W32 0 ∧ e.data ≠ [] ∧ apply.irrDecode e.data = some rq'⌝ ∗
       authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1)
 
 instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)

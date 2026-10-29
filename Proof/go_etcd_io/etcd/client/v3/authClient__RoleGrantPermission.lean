@@ -28,10 +28,10 @@ theorem authClient.RoleGrantPermission.wp_proof
     (wp_retry : retryAuthClient.RoleGrantPermission.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.RoleGrantPermission.spec (GF := GF) (hG := hG) := by
-  intro api addr ci cd name key rangeEnd permType Spec Q
+  intro api conn addr ci cd name key rangeEnd permType Spec Q
   wp_start as ⟨#Hapi, #Hctx, #Hce, %Hkl, #Hrpc, #Hpre⟩
-  iunfold authObjAt at Hapi
-  icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
+  iunfold authObjAtC at Hapi
+  icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   wp_apply wp_string_to_bytes key as %ksl ⟨Hksl, -⟩
   try wp_auto

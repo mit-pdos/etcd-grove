@@ -28,10 +28,10 @@ theorem authClient.UserAdd.wp_proof
     (wp_retry : retryAuthClient.UserAdd.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.UserAdd.spec (GF := GF) (hG := hG) := by
-  intro api addr ci cd name pw Spec Q
+  intro api conn addr ci cd name pw Spec Q
   wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
-  iunfold authObjAt at Hapi
-  icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
+  iunfold authObjAtC at Hapi
+  icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   ihave %Hvn := typedPointsto_not_null _ _ _ $$ «$v2»
   ipersist «$v2»
