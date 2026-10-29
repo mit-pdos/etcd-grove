@@ -520,6 +520,18 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
     ),
     Project(
+        name="axiomcx-bboltnan",
+        # A counterexample to the bbolt key-value axioms (notes/axiom-review/bbolt.md): a NaN
+        # FillPercent makes Commit panic, which the axioms exclude. A package of the examples' Go
+        # module; bbolt is the etcd project's names-only translation.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "axiomcx", "bboltnan"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/bbolt="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "axiomcx", "bboltnan")],
+    ),
+    Project(
         name="putgetc",
         # putget with the auto-compactor on (notes/m2-plan.md, M2's first result): one member
         # started in-process with the compactor in revision mode (common.StartCompactingServer),

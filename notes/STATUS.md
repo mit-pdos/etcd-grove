@@ -490,6 +490,20 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## Two bbolt axioms refuted (2026-10-29, on `lean`)
+
+The `axiom` skill's review of the bbolt axioms (`notes/axiom-review/bbolt.md`): **`backend.ownWTxG_fill`
+is false**, with a counterexample proved: `examples/axiomcx/bboltnan`'s `Run` sets a bucket's
+`FillPercent` to NaN, puts 70000 keys and commits; the axioms prove it returns
+(`Proof/.../examples/axiomcx/bboltnan/Run.lean`, no `sorry`), Go panics in `Commit`
+(`inode overflow`, amd64; `issues/bbolt-fillpercent-nan.md`). **`bbolt.Bucket.Put_kv` is false**
+too (with `Commit_kv` and the cursor specs), by two earlier `issues/` reproductions
+(`bbolt-max-value-size-unusable`, `bbolt-large-values-leaf-unreadable`) not yet reflected in the
+axiom. Neither reaches etcd (it writes `FillPercent = 0.9` and bounds requests at 1.5 MiB), but
+every result through the backend's writes rests on both. Not fixed: the report proposes
+restatements, awaiting a decision. The rest survived the attacks listed there, including a
+differential fuzzer (`etc/spec-test/bbolt-diff`, 24000 runs). `notes/audit.md`'s two rows updated.
+
 ## The Perennial pin `ad74ee4f6` in the DaemonSet branch: the Goose blocker gone (2026-10-28, branch `worktree-k8s-pin-ad74`)
 
 `origin/lean` (`20bd2a6337`, the Perennial pin `ad74ee4f6`) merged into `k8s-daemonset-proof`
