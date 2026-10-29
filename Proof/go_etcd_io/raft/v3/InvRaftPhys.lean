@@ -345,8 +345,8 @@ def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
 /-- No queued message has responses (`SentMsgShape`'s last clause): what `isRaftMsg` and a
 transport need. -/
 theorem XfOk.resps {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
-    ∀ m ∈ l, m.st.resps = [] := by
-  sorry
+    ∀ m ∈ l, m.st.resps = [] :=
+  fun m hm => (H.1 m hm).2.2.2.2.2.2.2
 
 /-- The empty queues, at a term past `0` if a leader or candidate. -/
 theorem XfOk.nil {id : w64} {s : NState}
@@ -365,7 +365,16 @@ theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s
 /-- The term raised. -/
 theorem XfOk.term_le {id : w64} {s : NState} {l : List QMsg} {v : w64} (H : XfOk id s l)
     (Hle : uint.Z s.term ≤ uint.Z v) : XfOk id { s with term := v } l := by
-  sorry
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨H1, H2, H3, fun h => ?_⟩
+  intro hv
+  have h0 := H4 h
+  apply h0
+  subst hv
+  apply word.unsigned_inj
+  have : uint.Z s.term ≥ 0 := by word
+  rw [show uint.Z (W64 0) = 0 by rfl] at Hle ⊢
+  omega
 
 /-- A role stored: a leader or candidate past term `0` (`raft.wp_store_stateC`). -/
 theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk id s l)
@@ -375,11 +384,13 @@ theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk
 /-- A record added (`ownRaftPhysC_xw_record`). -/
 theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
     XfOk id { s with gh := { s.gh with xw := insert p s.gh.xw } } l := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  sorry
-  -/
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨H1, H2, fun m hm h1 h2 => ?_, H4⟩
+  have h := H3 m hm h1 h2
+  show ((<[p := ()]> s.gh.xw) !! (m.st.msg.To', m.st.msg.Term')).isSome = true
+  by_cases hp : p = (m.st.msg.To', m.st.msg.Term')
+  · rw [hp, GMap.lookup_insert]; rfl
+  · rw [GMap.lookup_insert_ne _ _ hp]; exact h
 
 /-- A message queued: its own facts. -/
 theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
@@ -387,7 +398,17 @@ theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk i
     (hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk id s l' := by
-  sorry
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨fun m hm => ?_, fun m hm => ?_, fun m hm => ?_, H4⟩
+  · rcases hl m hm with h | h
+    · exact H1 m h
+    · subst h; exact hsh
+  · rcases hl m hm with h | h
+    · exact H2 m h
+    · subst h; exact hfr
+  · rcases hl m hm with h | h
+    · exact H3 m h
+    · subst h; exact hxw
 
 /-- (2026-10-17) The ceiling raised. -/
 theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
@@ -1651,11 +1672,14 @@ forwards the request. -/
 theorem ownRaftPhysC_xw_record (r : Loc) (id : w64) (s : NState) (p : w64 × w64) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
       ownRaftPhysCV c V r id { s with gh := { s.gh with xw := insert p s.gh.xw } } := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  sorry
-  -/
+  iintro H
+  iNamed_physC H
+  iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with xw := insert p s.gh.xw } } _ msgs
+    msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
+    Hvoter Hprok Hnsl (Hxf.xw_insert p)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
 
 /-- Changing only the outbox, up to permutation. -/
 theorem ownRaftPhysC_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
@@ -2074,9 +2098,6 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) #(stateW64 ro))))
     {{ RET #(); ownRaftPhysCV c V r id { s with role := ro } }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro %Φ H HΦ
   iNamed_physC H
   wp_apply wp_store_access _ rv.state' (stateW64 ro) _ _ (raftOwn_access_store_state _ _ _) $$ Hr as Hr
@@ -2091,9 +2112,8 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) Hvoter' Hpr Hnsl (by first | exact Hxf | exact Hxf.term_le Hle)
+    (by phys_pure) (by phys_pure) Hvoter' Hpr Hnsl (Hxf.role Hrt)
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
-  -/
 
 theorem raft.wp_store_stepC (r : Loc) (id : w64) (s : NState) (f : GoFunc) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
