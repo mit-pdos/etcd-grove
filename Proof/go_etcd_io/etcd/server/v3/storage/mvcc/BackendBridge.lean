@@ -52,6 +52,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__LockForSafeRangeDelete
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ForceCommit
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
@@ -2437,6 +2439,8 @@ theorem isKeyBackendG_of_backendC
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -2509,9 +2513,25 @@ theorem isKeyBackendG_of_backendC
   · iapply bk_size hSz γ P W Pk b $$ [$Hpkg $Hb]
   isplitr
   · iapply bk_sizeInUse hSzU γ P W Pk b $$ [$Hpkg $Hb]
-  -- `LockForSafeRangeDelete`/`UnlockForSafeRangeDelete` over the slot, and `ReadTx` of the `Meta`
-  -- keys (3.3, 3.4)
-  iintro !> -; sorry -- backend-cmp Draft: new case (the safe-range slot and metaReadTx, 3.3-3.4)
+  -- `LockForSafeRangeDelete`/`UnlockForSafeRangeDelete` over the slot (3.4), and `ReadTx` of the
+  -- `Meta` keys (3.3)
+  iintro !> -
+  isplitr
+  · iintro !> %Φ !> Hs HΦ
+    iunfold backend.srSlot at Hs
+    wp_apply (hLSR γ P W Pk b) $$ [$Hb $Hs] as Hh
+    iapply HΦ
+    iunfold backend.srHeld
+    iexact Hh
+  isplitr
+  · iintro !> %Φ !> Hh HΦ
+    iunfold backend.srHeld at Hh
+    wp_apply (hUSR γ P W Pk b) $$ [$Hb $Hh] as Hs
+    iapply HΦ
+    iunfold backend.srSlot
+    iexact Hs
+  -- `metaReadTx`: the `Meta` keys' value invariant (3.3, `BParams.VI`), not yet in the backend
+  sorry -- backend-cmp Draft: new case (metaReadTx: needs BParams.VI, 3.3)
 
 /-- **The store's backend contract with the witness `True`, of the real backend** (D22 receiver
 epochs, S6; `storeBackendT`: what `store.Restore` takes of its new backend). As

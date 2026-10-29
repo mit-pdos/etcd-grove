@@ -684,3 +684,15 @@ bucket" was backwards: they stay in, as mvcc needs. **R5-3** the R4-4 monotonici
 `SnapApplyWalk` its only user). **R5-6** the flag is fixed in two places (`StoreBackend.lean:116`,
 `BuildLemmas.lean:101`); M2 must change both. Next (independent of R4-2): the new bridge's two read
 cases, the `Meta` value case and the slot/`metaReadTx` case; the limited-range case waits for R4-2.
+
+**After round 5's batch (2026-10-29, the agent, the user away).** The new bridge's two read cases
+are proved (`keyView_thin`, `bridge_crtC`, `bridge_rtC`: the physical `Key` bucket, a snapshot thinned
+by `bkDel`; independent of R4-2, as round 5 said). The slot triples (`LockForSafeRangeDelete`/
+`UnlockForSafeRangeDelete` over `srSlot`/`srHeld`) are proved too; the new bridge takes their specs
+as hypotheses (it is linked nowhere yet). **Not independent after all: the `Meta` value case and
+`metaReadTx`** need the `Meta` keys' value invariant in the backend (`BParams.VI` with `viOk` in the
+invariants, every put keeping it: 3.3), which is not written (only `viOk` is defined); that is a Draft
+item of its own, not R4-2-dependent. The new bridge's sorries: the limited range (R4-2), the `Meta`
+put and `metaReadTx` (`BParams.VI`). R5-4 done (the unused `vData_rebase`/`vData_rebase_or` removed).
+**R5-6 (fold list)**: M2 changes both fix sites of the deletable-keys flag (`NewStore_backend`,
+`server_kv_watchable_of`: the latter calls `storeBackend_of_backend` itself).
