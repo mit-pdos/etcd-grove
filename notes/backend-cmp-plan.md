@@ -458,3 +458,23 @@ spec is not cheap now, so here is what each needs:
 - `isKeyBackendG_of_backendC` (beside `isKeyBackendG_of_backend`): its three new cases proved (the
   range's token, the `Meta` put, the slot and `metaReadTx`); then the old bridge is its instance with
   `Cmp` false and goes. Until then folding would put the cases' `sorry`s under every server result.
+
+## After Review round 3 (2026-10-29)
+
+Round 3 (`notes/spec-first-study/backend-review-3.md`): nothing first-tier; the delete-only token is
+true of Go and fixes R2-1, R2-2, R2-4 and F5. The user's answers to the round's batch:
+- **`batchLimitOk` (`CompactionBatchLimit ≤ 2^56`) on every store** (the user's, 2026-10-29): accepted
+  as placed by the agent (the range clause is one statement for every backend; 2^56 excludes nothing
+  real, etcd's default is 1000), a filed scope premise; it changes `NewServer.spec`'s premises.
+- **R2-7's D22-side changes made by this stage at the wiring step** (the user's): `srvWTPool`'s
+  invariant exposing the receipt-to-token conversion at the boot backend when the compactor is on, and
+  D22's split of `wbInit` made explicit; statements first, minimal, recorded here for the collaborator.
+- **The variants fold in a thin-view Draft round next** (the user's): the backend's invariants over the
+  logical view fold `UnsafeDelete`/`UnsafeSeqPut`/`Unlock.specC`, `safeStC`, `cacheValidC` into one
+  spec each; the bridge folds once its three cases are proved, before the Freeze.
+**The stage's exit condition**: every `…C` replaced (the one-spec rule). **The full fold list** (R3-1):
+the five backend variants above; the bridge (`isKeyBackendG_of_backendC`: its cases, then the old
+bridge an instance through `isKeyBackendG_congrDel` and a fixed registration); the compaction proved
+over the real backend (the job and `updateCompactRev`, now through `isKeyBackendG_cmp` over mvcc's
+assumed backend; `SetScheduledCompact`/`SetFinishedCompact.spec` over `batchTxSpec`) when `kbCmp :=
+True`; `Cmp` removed (O5).
