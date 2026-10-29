@@ -181,4 +181,8 @@ happens after `SetUp`. The options:
 - (B) per-request attribution, as for writes: a grant for admin requests, root's token only on
   root's connection, and that connection sending no admin request.
 
-(A) changes the admin `On` specs, so it is for the user and the merge session.
+(A) changes the admin `On` specs, so it is for the user and the merge session. **Decided (the
+user, 2026-10-29): (A).** The merge session places it (step 5 or 6) and sends the statement before
+proving it. S6 needs from it: a client-side view of the auth history that the update fires on;
+`SetUp`'s `Q`s from the fired updates, so that `Main` holds the view at the eight steps' result;
+and the view's last state equal to `srvAuthAtLog … L` for every requested log `L ⊇ Lset`.
