@@ -63,10 +63,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem kbP_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
+    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
       mvcc.KBReal).P = d.P := rfl
 theorem kbgx_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
+    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
       mvcc.KBReal).gx = g := rfl
 
 theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :

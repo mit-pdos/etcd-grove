@@ -77,7 +77,9 @@ the backend's ghost names `γB`, its parameters but the fixed ones (the clients'
 `BT`, the hook's bound `hookMax`, the batch limit `limit`: the hook's buckets are all but `Key`,
 the safe-range bucket is `Key`), the backend's location `be`, and the name `gx` of the batch
 lock's late-bound resource (`lateW`: the store registers its own at `NewStore`'s first
-`Unlock`). -/
+`Unlock`); and the compaction mode `cm` (the backend-compaction stage's question 5, Q5-1, the
+user's: whether the store over this backend compacts, M2's `ρ.kv.cmp`; `false` for D22's received
+backends, "no restore in compaction mode"; read by `kbCmp` at the wiring's switch). -/
 structure KBReal where
   γB : backend.BNames
   BT : GMap GoString w64
@@ -85,6 +87,7 @@ structure KBReal where
   limit : w64
   be : Loc
   gx : GName
+  cm : Bool
 
 /-- **etcd's rest buckets**: the buckets the server's stores keep besides `Key` and `Meta` (the
 lessor's `lease`, the alarm store's `alarm`, the auth store's `auth`, `authUsers`, `authRoles`,
@@ -217,8 +220,9 @@ instance bNames_countable : Pos.Countable backend.BNames :=
     (fun _ => rfl)
 
 instance kbReal_countable : Pos.Countable KBReal :=
-  countableOfLeftInverse (fun x : KBReal => (x.γB, x.BT, x.hookMax, x.limit, x.be, x.gx))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun x : KBReal => (x.γB, x.BT, x.hookMax, x.limit, x.be, x.gx, x.cm))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse

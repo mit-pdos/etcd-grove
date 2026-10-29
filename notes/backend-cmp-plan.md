@@ -1635,3 +1635,47 @@ cost (2026-10-29): the `cm = false` premise travels down D22's snapshot path as 
 - The snapshot's post carries `d'.cm = false`.
 - At boot, `NewServer`'s proof uses `{ d with cm := false }`.
 - Of `InvApplier`'s facts, only `srvEnvOk` takes the conjunct.
+
+### Question 5's switch: stage 1, and the stages left (2026-10-29)
+
+**Stage 1, done.** `KBReal` gains `cm : Bool` (Q5-1), with its `Countable` instance; D22's two
+record literals in `SnapApplyDefs` set `cm := false`. `SnapApplyWalk`'s `{ d with … }` copies it.
+`kbCmp` is not switched yet (still `kb = none`), so no statement means anything new.
+
+**Why the switch is staged** (decided by the agent). Every compaction proof (`updateCompactRev`,
+`scheduleCompaction` and its job, `checkPrevCompactionCompleted`, `compactLockfree`, `Compact`)
+reaches the backend through `isKeyBackendG_cmp`, which reduces to mvcc's assumed backend
+(`kb = none`: no tokens). Switching `kbCmp (some d) := d.cm` re-proves all of them over the real
+backend's tokens: the job's reader and slot, the write-back supply, the key swap, and the
+registration. That is the bulk of the 1300-1650 lines. The two switch laws
+(`isKeyBackendG_congrDel`, `isKeyBackendG_weaken`) need the `Del`-monotonicity of `keyReadSnap` and
+`isBatchTxG`, which is R4-4's pending lemma. So the laws are a stage of their own too.
+
+**Stages left, in order, each built and committed:**
+1. **Q5-2:** `newPost`/`newPostK` gain `srSlot b`, proved in `New` from the zero
+   `safeRangeDeleteMu`. Repair the positional `newPost` patterns its importers use
+   (`etc/importers.py --uses newPost InvNew.lean`).
+2. **R4-4:** `Del`-monotonicity of `keyReadSnap`/`keyReadLocked` and `isBatchTxG`/`batchTxSpecG`.
+   Then prove `isKeyBackendG_congrDel` and `isKeyBackendG_weaken` (F7), and make the old bridge an
+   instance of the new. The old bridge's exports gain `fkV`, `hHK`, `hFV` and the three callee specs;
+   `server_kv_*` get `fkV` from `newPost`'s `fkCl`.
+3. **(iii):** `viewFk γb f` (opaque), `viewNoCmp := viewFk γb 0`, `kbMW` over the bucket's name.
+4. **The core:**
+   - `kbCmp (some d) := d.cm`, and a general compaction contract in place of `isKeyBackendG_cmp`;
+   - `mwSlotW` in `writerRes`, `physCmpW` in `physOk`, `PhysNames.mk`, `mwSwap_of_inv` and
+     `mwSwap_of_physOk`;
+   - `store.restore` gives the half back;
+   - `NewStore`/`New`/`newWatchableStore`;
+   - `store.Compact` lending `storeRT`;
+   - `Set*Compact` over `batchTxSpecG` with `mwSwapW`;
+   - `compactTok` with `compactJobResM`;
+   - re-prove the compaction proofs over the real backend.
+5. **D22's side (Q5-3/Q5-4, M1):**
+   - `store.Restore`/`watchableStore.Restore`'s premises;
+   - `applySnapshot.specSnap` and its two walk lemmas' `hcm`, and the snapshot's post `d'.cm = false`;
+   - `srvEnvOk`'s conjunct, and `NewServer`'s `{ d with cm := false }`;
+   - `restore_switch`/`restore_finish`'s facts and `poolBody`'s sum (`restore_noCmp`);
+   - `server_kv_*` `hcm`.
+6. **Close:** `mvcc_NewStore_backend` at `cm := true` (the exported compaction results over a
+   compacting real backend), delete `WiringDraft.lean`, and run the axiom skill on `OpenBackend`
+   (Q5-2).
