@@ -85,8 +85,11 @@ follower with a leader -- the leader it was sent to stays leader for the term, o
 `checkQuorum` on) steps down at it to a follower with no leader, and no other node leads it -- since a follower would
 forward it again and `send` panics on a stamped `MsgTransferLeader`; and it carries no
 entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it); and
-(2026-10-19, D21 M2r) only at a node with leader transfer on (`NGhost.xf = false`): with it
-off no transferee is recorded, so no `MsgTimeoutNow` is sent.
+(raft-final, 2026-10-29, U7: the design's §2.3) The stamped request's refutation (a follower of
+its term with a leader) is no longer a premise: `raft.Step.spec` takes the request's witness that
+its receiver leads its term (`"#Hxfer"`, from `isRaftMsg`), and the arm derives it
+(`ownStepGhost_xferRefute`). (From 2026-10-19, D21 M2r, until then also only at a node with leader
+transfer on, `NGhost.xf = false`.)
 These are transport premises, like the others: no message fact carries them
 (`MsgTransferLeader` and `MsgTimeoutNow` are outside the model, `mtypeOf` is `none`). -/
 def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
@@ -96,11 +99,7 @@ def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
   -- (D19i part 1) and with the floor at most `applied` (`hup`'s)
   (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64 ∧
      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
-  (m.Type' = MsgTransferLeader →
-     ents = [] ∧ ctx = [] ∧
-     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) ∧
-     -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
-     s.gh.xf = false)
+  (m.Type' = MsgTransferLeader → ents = [] ∧ ctx = [])
 
 /-- `RestMsgOk` of a message of none of those types. -/
 theorem RestMsgOk.of_ne [GooseExts] {s : NState} {m : MessageM} {ents : List EntryM}
@@ -634,6 +633,11 @@ abbrev raft.Step.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗
+      -- (raft-final, 2026-10-29, U7: the design's §2.3) a stamped transfer request's witness that
+      -- the node leads its term (`isRaftMsg`'s transfer clause, from the forwarder's `xfW`):
+      -- `ownStepGhost_xferRefute` refutes a follower of that term with a leader, which would forward
+      -- it again (`send` panics on a stamped `MsgTransferLeader`); until then `RestMsgOk`'s premise
+      "#Hxfer" ∷ □ (⌜m.Type' = MsgTransferLeader ∧ m.Term' ≠ W64 0⌝ -∗ isLeader γ id m.Term') ∗
       -- The message's `Entries` slice, holding `ents` (`[]` for a message without
       -- entries, `Entries = nil`):
       -- - a proposal is a local message whose batch the caller owns outright --

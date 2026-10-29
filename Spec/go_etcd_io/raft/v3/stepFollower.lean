@@ -200,8 +200,10 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         ents = [] ∧ cl = [] ∧
-        -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
-        s.gh.xf = false) ∧
+        -- (raft-final, 2026-10-29, U7: the design's A8) a forward to the leader recorded with its
+        -- witness (`NGhost.xw`: `raft.Step`'s transfer arm, `send`'s clause (c)); until then only
+        -- with leader transfer on (`NGhost.xf = false`, D21 M2r)
+        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome)) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        -- (D19i part 1) the floor at most `applied` (`hup`'s)
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →

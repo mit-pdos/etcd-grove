@@ -99,22 +99,21 @@ abbrev RawNode.Step.spec : Prop :=
   -- a node at term `0` has an empty log and grants it, `ownStepGhost_term0`)
   -- (D19i part 1) the floor not raised past `applied` (a `MsgTimeoutNow` campaigns: `Campaign`'s)
   rs.flw = false →
-  -- (2026-10-19, D21 M2r) a leader-transfer request only outside the cluster's no-transfer mode,
-  -- where leader transfer is off (`NGhost.xf`, `NsLink`; D22 S-a: `RaftNames.reNoXfer`, until
-  -- then the no-snapshot mode's flag)
-  (st.msg.Type' = MsgTransferLeader → γ.reNoXfer = false) →
-  -- (2026-10-20, D22 S-c) a snapshot only outside the cluster's no-snapshot mode, where no node
-  -- sends one (`NsLink`, `raft.Step`'s premise). (D22 S-c to S-d3a also with no `Ready`
-  -- outstanding, `rs.steps = []`: a restore replaces the log's boundary, which a queued
-  -- `MsgStorageAppendResp` acknowledges against; since D22 S-d3b, 2026-10-21, the node keeps what
-  -- the acknowledgement's miss after a restore needs, `ackInv`.)
-  (st.msg.Type' = MsgSnap → γ.reNoSnap = false) →
+  -- (raft-final, 2026-10-29, U9) a leader-transfer request and a snapshot in every cluster (from
+  -- 2026-10-19, D21 M2r, and 2026-10-20, D22 S-c, until then a transfer request only outside the
+  -- cluster's no-transfer mode, `RaftNames.reNoXfer = false`, and a snapshot only outside its
+  -- no-snapshot mode, `RaftNames.reNoSnap = false`: the former mode is gone, the latter off at raft's
+  -- level, `NsCap`)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then
       -- `#Hents`, `Hents_cap`, `#Hctx`: the entries read-only with the slice's capacity, the
       -- context read-only)
       "Hm" ∷ msgIn ml DFrac.discard st ∗
+      -- (raft-final, 2026-10-29, U7: the design's §2.6) a stamped transfer request's witness that
+      -- the node leads its term (`raft.Step`'s `"#Hxfer"`; `isRaftMsg`'s transfer clause)
+      "#Hxfer" ∷ □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+        isLeader γ id st.msg.Term') ∗
       -- (2026-10-20, D22 S-c) but a snapshot's, whose abstraction is `absSnap` (`"#Hsnap"`)
       "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
         isMessage γ (absMsg ty st.msg st.ents st.ctx)) ∗

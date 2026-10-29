@@ -322,76 +322,9 @@ theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
   rw [List.getElem?_append_left (by omega)] at he
   exact he
 
-/-- The message types `RawNode.Step` is specified for: replication, leader election,
-(2026-10-13) read-index, leader transfer and the local reports, (2026-10-17) pre-vote and
-(2026-10-20, D22 S-c) a leader's snapshot. -/
-def netStepTypes : List w32 :=
-  [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
-   MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader,
-   MsgUnreachable, MsgSnapStatus,
-   -- (2026-10-17) pre-vote
-   MsgPreVote, MsgPreVoteResp,
-   -- (2026-10-20, D22 S-c) a snapshot
-   MsgSnap]
-
-/-- (2026-10-13) The types of `netStepTypes` that come unstamped (`Term = 0`): a read-index
-request (forwarded or local), `TransferLeadership`'s request, and the local reports. -/
-def UnstampedType (t : w32) : Prop :=
-  t = MsgReadIndex ∨ t = MsgTransferLeader ∨ t = MsgForgetLeader ∨ t = MsgUnreachable ∨
-    t = MsgSnapStatus
-
-/-- A message from the network, as the transport and the peers deliver it to node `id`
-(see `RawNode__Step.lean`'s header): but for the unstamped types (`Term = 0`, 2026-10-13),
-addressed to `id`, of a nonzero term, from a nonzero sender; a transfer request with no
-entries and no context. (2026-10-16, stage R5: on the message's state, the last clause over its
-entries and context, `st.ents = [] ∧ st.ctx = []`; until then over the Goose value, `Entries' =
-slice.nil ∧ Context' = slice.nil`.) (2026-10-20, D22 S-c) A `MsgSnap`, a leader's, from another
-node, like its `MsgApp`. -/
-def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
-  st.msg.Type' ∈ netStepTypes ∧
-  (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
-  (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
-  (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-     st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
-  -- (2026-10-17) a pre-vote request from another node
-  (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧
-  -- (2026-10-22, D38a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
-  st.resps = []
-
-/-- (2026-10-22, D38a) A network message has no responses. -/
-theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = [] := by
-  unfold NetMsgOk at h; exact h.2.2.2.2.2.2.2
-
-theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) :
-    st.msg.Type' ≠ MsgTimeoutNow := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
-
-theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) :
-    st.msg.Type' ≠ MsgTransferLeader := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
-
-/-- **`NetMsgOk` of a sent message at its destination** (D21g (A)): what `node.Step`'s `netP`
-takes of a message from the network, from the sender's `SentMsgOk` and the transport's delivery to
-the node it is addressed to; but for a forwarded proposal (`fwdP`). -/
-theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.msg.To' = dst)
-    (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
-  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft, -, Hrs⟩ := H
-  subst Hto
-  unfold NetMsgOk UnstampedType
-  simp only [sentTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-  rcases Hty with h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] at Ht0 Ht1 Hft Hnp ⊢ <;>
-    simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-      MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap] at Ht0 Ht1 Hft Hnp ⊢ <;>
-    simp_all
+-- (raft-final phase 1, 2026-10-29, U7: the design's A7) `netStepTypes`, `UnstampedType`, `NetMsgOk`
+-- and their lemmas moved to the internal `NetMsgOk.lean`: `stepIn_intro` no longer mentions
+-- `NetMsgOk`, so no client proves it.
 
 /-- `DynCCPre` (below) on its components (2026-10-15, stage N): the committed log handed out
 `D`, the configuration index `ca` and configuration `cfg`, and the change as `AsV2` makes it
@@ -450,12 +383,17 @@ S-c) in the no-transfer mode alone: its types exclude the transfer messages (adm
 which the `Ready` took from the storage's registry (`qSrc`, `certLink`). (2026-10-21, D22 S-r)
 And its snapshot's data certificate (`msgDat`), from the same registry. (2026-10-22, D38a) In every
 mode, no responses, and a `MsgApp` from the node `id` that sent it (`AppFrom`; `XfOk`), so that a
-transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. -/
+transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. (raft-final, 2026-10-29,
+U7: the design's §2.5) In every cluster the shape raft sends (`SentMsgShape`, `XfOk`; its last clause
+the old "no responses"), and a stamped transfer request's witness that its destination leads its
+term (from the sender's `xfW`), which the receiver's `raft.Step` takes; until then the modes'
+clauses, no `MsgSnap` in the no-snapshot mode and `SentMsgOk` in the no-transfer mode. -/
 def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
-    ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
+  iprop(⌜SentMsgShape st⌝ ∗
     (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
-    msgDat γ st ∗ ⌜st.resps = [] ∧ AppFrom id st⌝)
+    msgDat γ st ∗ ⌜AppFrom id st⌝ ∗
+    □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+      isLeader γ st.msg.To' st.msg.Term'))
 
 instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ id st) := by
@@ -465,7 +403,7 @@ instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
 theorem isRaftMsg_dat (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg (GF := GF) γ id st ⊢ msgDat γ st := by
   unfold isRaftMsg
-  iintro ⟨-, -, -, #H, -⟩
+  iintro ⟨-, -, #H, -, -⟩
   iexact H
 
 end

@@ -323,67 +323,66 @@ theorem OutTermOk.mono {t t' tc : w64} {m : MessageM}
 
 -- (2026-10-26, raft's signature, stage 1) `AppFrom` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-19, D21 M2r) **The modes' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the
-queued messages `l`): with leader transfer off (`NGhost.xf`) no transferee is recorded and every
-queued message is of a type the model describes (so neither a `MsgTimeoutNow` nor a forwarded
-`MsgTransferLeader`); past term `0` for good (`NGhost.bt`) the term is not `0` (the bootstrap's),
-and with transfer off too every queued message is `SentMsgOk`. (2026-10-19, D22 S-a, to
-2026-10-20, D22 S-c) The term was the no-snapshot mode's (`NGhost.ns`), so that `SentMsgOk` was of
-both modes and its types excluded `MsgSnap`: leaving the no-snapshot mode (S-l) would have lost the
-receiver's facts. (2026-10-22, D38a) And in every mode, no queued message has responses (`send`'s
-premise): what a `Ready` says of its messages (`isRaftMsg`), so that a transport can marshal them. -/
+/-- **The queued messages' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the queued messages
+`l`; raft-final, 2026-10-29, U7: the design's §2.2, in every cluster): every queued message has the
+shape raft sends (`SentMsgShape`, what a receiver's `NetMsgOk` and a transport need of it), a `MsgApp`
+is the node's own (`AppFrom`, the msgappv2 codec's), a stamped `MsgTransferLeader` (the only one raft
+queues: `stepFollower`'s forward to its leader) is recorded in `NGhost.xw` (whose witnesses, `xfW`,
+the `Ready` hands out with it), and a leader or candidate is past term `0` (what `send`'s stamped
+clauses take, U7 (ii): a candidate stores its role after `reset(r.Term + 1)`, a leader under
+`becomeLeader`'s `term ≠ 0`; a pre-candidate may be at term `0`). (Until then, from 2026-10-19, D21
+M2r: the modes' facts -- with leader transfer off, `NGhost.xf`, no transferee recorded and every
+queued message of a type the model describes; past term `0` for good, `NGhost.bt`, the term not `0`
+and with transfer off every queued message `SentMsgOk` -- and, 2026-10-22, D38a, no responses and
+`AppFrom` in every mode.) -/
 def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
-  (s.gh.xf = true → s.lt = W64 0 ∧ ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧
-  (s.gh.bt = true → s.term ≠ W64 0 ∧ (s.gh.xf = true → ∀ m ∈ l, SentMsgOk m.st)) ∧
-  (∀ m ∈ l, m.st.resps = [] ∧ AppFrom id m.st)
+  (∀ m ∈ l, SentMsgShape m.st) ∧
+  (∀ m ∈ l, AppFrom id m.st) ∧
+  (∀ m ∈ l, m.st.msg.Type' = MsgTransferLeader → m.st.msg.Term' ≠ W64 0 →
+     (s.gh.xw !! (m.st.msg.To', m.st.msg.Term')).isSome) ∧
+  ((s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0)
 
-/-- Out of both modes. -/
-theorem XfOk.off {id : w64} {s : NState} {l : List QMsg} (hx : s.gh.xf = false) (hn : s.gh.bt = false)
-    (hr : ∀ m ∈ l, m.st.resps = [] ∧ AppFrom id m.st) : XfOk id s l :=
-  ⟨fun h => absurd (hx.symm.trans h) (by decide), fun h => absurd (hn.symm.trans h) (by decide), hr⟩
+/-- No queued message has responses (`SentMsgShape`'s last clause): what `isRaftMsg` and a
+transport need. -/
+theorem XfOk.resps {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
+    ∀ m ∈ l, m.st.resps = [] := by
+  sorry
 
-/-- The empty queues, with no transferee with transfer off and, past term `0` for good, a term
-past `0`. -/
-theorem XfOk.nil {id : w64} {s : NState} (hl : s.gh.xf = true → s.lt = W64 0)
-    (hn : s.gh.bt = true → s.term ≠ W64 0) : XfOk id s [] :=
-  ⟨fun h => ⟨hl h, fun _ hm => by cases hm⟩,
-   fun h => ⟨hn h, fun _ _ hm => by cases hm⟩, fun _ hm => by cases hm⟩
+/-- The empty queues, at a term past `0` if a leader or candidate. -/
+theorem XfOk.nil {id : w64} {s : NState}
+    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) : XfOk id s [] :=
+  ⟨fun _ hm => by cases hm, fun _ hm => by cases hm, fun _ hm => by cases hm, ht⟩
 
-/-- The same flags, transferee and term, at the same queues. -/
-theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l) (hx : s'.gh.xf = s.gh.xf)
-    (hn : s'.gh.bt = s.gh.bt) (hl : s'.lt = s.lt) (ht : s'.term = s.term) : XfOk id s' l := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨fun h => ?_, fun h => ?_, H3⟩
-  · rw [hx] at h; rw [hl]; exact H1 h
-  · rw [hn] at h; rw [hx, ht]; exact H2 h
+/-- The same records, role and term, at the same queues. -/
+theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l)
+    (hx : s'.gh.xw = s.gh.xw) (hr : s'.role = s.role) (ht : s'.term = s.term) : XfOk id s' l := by
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨H1, H2, fun m hm h1 h2 => ?_, fun h => ?_⟩
+  · rw [hx]; exact H3 m hm h1 h2
+  · rw [ht]; rw [hr] at h; exact H4 h
 
 /-- The term raised. -/
 theorem XfOk.term_le {id : w64} {s : NState} {l : List QMsg} {v : w64} (H : XfOk id s l)
     (Hle : uint.Z s.term ≤ uint.Z v) : XfOk id { s with term := v } l := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨H1, fun h => ?_, H3⟩
-  obtain ⟨b, c⟩ := H2 h
-  refine ⟨fun hv => b ?_, c⟩
-  subst hv
-  word
+  sorry
 
-/-- A message queued: its own facts at the node's flags. -/
+/-- A role stored: a leader or candidate past term `0` (`raft.wp_store_stateC`). -/
+theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk id s l)
+    (Hr : (ro = .leader ∨ ro = .candidate) → s.term ≠ W64 0) : XfOk id { s with role := ro } l :=
+  ⟨H.1, H.2.1, H.2.2.1, Hr⟩
+
+/-- A record added (`ownRaftPhysC_xw_record`). -/
+theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
+    XfOk id { s with gh := { s.gh with xw := insert p () s.gh.xw } } l := by
+  sorry
+
+/-- A message queued: its own facts. -/
 theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
-    (hx : s.gh.xf = true → mtypeOf q.st.msg.Type' ≠ none)
-    (hn : s.gh.bt = true → s.gh.xf = true → SentMsgOk q.st)
-    (hr : q.st.resps = [] ∧ AppFrom id q.st)
+    (hsh : SentMsgShape q.st) (hfr : AppFrom id q.st)
+    (hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
+      (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk id s l' := by
-  refine ⟨fun h => ⟨(H.1 h).1, fun m hm => ?_⟩, fun h => ⟨(H.2.1 h).1, fun hx' m hm => ?_⟩,
-    fun m hm => ?_⟩
-  · rcases hl m hm with hm | rfl
-    · exact (H.1 h).2 m hm
-    · exact hx h
-  · rcases hl m hm with hm | rfl
-    · exact (H.2.1 h).2 hx' m hm
-    · exact hn h hx'
-  · rcases hl m hm with hm | rfl
-    · exact H.2.2 m hm
-    · exact hr
+  sorry
 
 /-- (2026-10-17) The ceiling raised. -/
 theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
@@ -997,9 +996,8 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
   "#Hnscap" ∷ NsCap s.gh.ns s.logst.storage ∗
   -- (D22 S-b′3, 2026-10-20) the queued messages' certificates' source (`qSrc`)
   "#Hscert" ∷ qSrcs s.gh.sn (msgs ++ msgsAA) ∗
-  -- (2026-10-19, D21 M2r) leader transfer off and the no-snapshot mode: no transferee, the queued
-  -- messages' types and (in the no-snapshot and, D22 S-a, no-transfer modes) their `SentMsgOk`,
-  -- the term past `0` in the no-snapshot mode (`XfOk`)
+  -- (raft-final, 2026-10-29, U7) the queued messages' shapes, the stamped transfer requests
+  -- recorded, a leader or candidate past term `0` (`XfOk`; until then the modes' facts, D21 M2r)
   "%Hxf" ∷ ⌜XfOk id s (msgs ++ msgsAA)⌝ ∗
 
   -- `r.preVote`, recorded (since 2026-10-04; until then a scope conjunct pinned it to
@@ -1629,17 +1627,26 @@ theorem ownRaftPhysC_lt_ne (r : Loc) (id : w64) (s : NState) :
   · ipureintro; exact HnoTransfer.2
   resealC c s
 
-/-- (2026-10-19, D21 M2r) With leader transfer off no transferee is recorded; past term `0` for
-good (`NGhost.bt`; until D22 S-c the no-snapshot mode) the term is past `0` (`XfOk`). -/
-theorem ownRaftPhysC_xf (r : Loc) (id : w64) (s : NState) :
+/-- (raft-final, 2026-10-29, U7: the design's §2.2) **A leader or candidate is past term `0`**
+(`XfOk`): what `send`'s stamped clauses take (until then, D21 M2r, `ownRaftPhysC_xf`: the modes'
+facts, no transferee with transfer off and the term past `0` past term `0` for good). -/
+theorem ownRaftPhysC_term_nz (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜(s.gh.xf = true → s.lt = W64 0) ∧ (s.gh.bt = true → s.term ≠ W64 0)⌝ ∗
-        ownRaftPhysCV c V r id s := by
+      ⌜(s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
   iNamed_physC H
   isplitr
-  · ipureintro; exact ⟨fun h => (Hxf.1 h).1, fun h => (Hxf.2.1 h).1⟩
+  · ipureintro; exact Hxf.2.2.2
   resealC c s
+
+/-- (raft-final, 2026-10-29, U7: the design's §2.2) **Recording a stamped transfer request** (a
+ghost step, `NGhost.xw`): the physical state does not read it, and `XfOk` only gains a record. With
+`ownStepGhost_xw_record` (its witness), what `raft.Step`'s transfer arm does before `stepFollower`
+forwards the request. -/
+theorem ownRaftPhysC_xw_record (r : Loc) (id : w64) (s : NState) (p : w64 × w64) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ownRaftPhysCV c V r id { s with gh := { s.gh with xw := insert p () s.gh.xw } } := by
+  sorry
 
 /-- Changing only the outbox, up to permutation. -/
 theorem ownRaftPhysC_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
@@ -1980,48 +1987,8 @@ theorem ownRaftPhysC_raise_tc (r : Loc) (id : w64) (s : NState) (tc : w64)
 -- (U8 v2, 2026-10-29) `ownRaftPhysC_set_ns` (the no-snapshot mode set, with the storage's cap) removed:
 -- the mode is dropped at raft's level (`NsCap`).
 
-/-- (2026-10-20, D22 S-c) **Past term `0` for good** (a ghost step, `NGhost.bt`): at a term past `0`,
-with nothing in the outbox (so, with transfer off, nothing queued, and `SentMsgOk` holds of every
-queued message). `Bootstrap`'s, in the cluster's no-transfer mode. -/
-theorem ownRaftPhysC_set_bt (r : Loc) (id : w64) (s : NState)
-    (Ht : s.term ≠ W64 0) (Hob : s.outbox = []) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ownRaftPhysCV c V r id { s with gh := { s.gh with bt := true } } := by
-  iintro H
-  iNamed_physC H
-  ihave Houtbox : outboxRel (GF := GF) [] msgs msgsAA $$ [Houtbox]
-  · rw [← Hob]; iexact Houtbox
-  icases outboxRel_nil_types msgs msgsAA $$ Houtbox with ⟨%Hnone, Houtbox⟩
-  ihave Houtbox : outboxRel (GF := GF) s.outbox msgs msgsAA $$ [Houtbox]
-  · rw [Hob]; iexact Houtbox
-  have Hxf' : XfOk id { s with gh := { s.gh with bt := true } } (msgs ++ msgsAA) :=
-    ⟨Hxf.1, fun _ => ⟨Ht, fun hx m hm => absurd (Hnone m hm) ((Hxf.1 hx).2 m hm)⟩, Hxf.2.2⟩
-  iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with bt := true } } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
-    (PrvalsOk.of_fields Hprok rfl rfl rfl rfl) Hnsl Hxf'
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
-
-/-- (2026-10-19, D21 M2r) **Leader transfer turned on** (a ghost step, `NGhost.xf`): nothing more
-is promised of the queues. (2026-10-19, D22 S-a) In either no-snapshot mode: `SentMsgOk` is now
-of both modes, so the no-snapshot mode keeps only its term past `0`. -/
-theorem ownRaftPhysC_xf_off (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ownRaftPhysCV c V r id { s with gh := { s.gh with xf := false } } := by
-  iintro H
-  iNamed_physC H
-  have Hxf' : XfOk id { s with gh := { s.gh with xf := false } } (msgs ++ msgsAA) :=
-    ⟨fun h => absurd h Bool.false_ne_true,
-     fun h => ⟨(Hxf.2.1 h).1, fun h' => absurd h' Bool.false_ne_true⟩, Hxf.2.2⟩
-  iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with xf := false } } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
-    (PrvalsOk.of_fields Hprok rfl rfl rfl rfl) Hnsl Hxf'
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+-- (raft-final phase 1, 2026-10-29, U9) `ownRaftPhysC_set_bt` and `ownRaftPhysC_xf_off` (the
+-- no-transfer mode's ghost steps, `NGhost.bt`/`xf`) deleted with the mode.
 
 /-- (2026-10-19, D21 M3) In the no-snapshot mode the log is not empty: its last index is at least
 the commit index, at least `1`. -/
@@ -2090,7 +2057,10 @@ computation. -/
 theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
     (Hro : ro ≠ .follower → ro ≠ .leader → id ∈ V)
     (Hpc : ro = .preCandidate → s.prevote = true := by intro h; cases h)
-    (Hpr : ro = .leader → ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p := by intro h; cases h) :
+    (Hpr : ro = .leader → ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p := by intro h; cases h)
+    -- (raft-final, 2026-10-29, U7) a leader or candidate past term `0` (`XfOk`'s last clause)
+    (Hrt : (ro = .leader ∨ ro = .candidate) → s.term ≠ W64 0 := by
+      intro h; rcases h with h | h <;> cases h) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) #(stateW64 ro))))
@@ -2227,10 +2197,10 @@ theorem raft.wp_store_leadTransfereeC (r : Loc) (id : w64) (s : NState) :
   wp_apply wp_store_access _ rv.leadTransferee' (W64 0) _ _ (raftOwn_access_store_leadTransferee _ _ _) $$ Hr as Hr
   iapply HΦ; resealC c { s with lt := W64 0 }
 
-/-- Another node (2026-10-13, `stepLeader`'s `MsgTransferLeader`); (2026-10-19, D21 M2r) with
-leader transfer on (`NGhost.xf`). -/
+/-- Another node (2026-10-13, `stepLeader`'s `MsgTransferLeader`); (raft-final, 2026-10-29, U9) in
+every cluster (from 2026-10-19, D21 M2r, until then with leader transfer on, `NGhost.xf`). -/
 theorem raft.wp_store_leadTransferee_toC (r : Loc) (id : w64) (s : NState) (x : w64)
-    (Hx : x ≠ id) (Hxo : s.gh.xf = false) :
+    (Hx : x ≠ id) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
       (App (Val (GoInstruction (GoStore go.uint64)))
         (Val (PairV #(r.[raft, go!"leadTransferee"]) #x)))
@@ -2530,10 +2500,11 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            ⌜OutTermOk s.term s.gh.tc st'.msg⌝ -∗
            -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
-           -- (2026-10-19, D21 M2r) a type the model describes with transfer off, and `SentMsgOk`
-           -- in the no-snapshot and (D22 S-a) no-transfer modes (`XfOk`)
-           ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧
-             (s.gh.bt = true → s.gh.xf = true → SentMsgOk st') ∧ st'.resps = [] ∧ AppFrom id st'⌝ -∗
+           -- (raft-final, 2026-10-29, U7) the shape raft sends, a `MsgApp` the node's own, a
+           -- stamped transfer request recorded (`XfOk`; until then the modes' facts, D21 M2r)
+           ⌜SentMsgShape st' ∧ AppFrom id st' ∧
+             (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
+               (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
@@ -2598,10 +2569,11 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            ⌜OutTermOk s.term s.gh.tc st'.msg⌝ -∗
            -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
-           -- (2026-10-19, D21 M2r) a type the model describes with transfer off, and `SentMsgOk`
-           -- in the no-snapshot and (D22 S-a) no-transfer modes (`XfOk`)
-           ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧
-             (s.gh.bt = true → s.gh.xf = true → SentMsgOk st') ∧ st'.resps = [] ∧ AppFrom id st'⌝ -∗
+           -- (raft-final, 2026-10-29, U7) the shape raft sends, a `MsgApp` the node's own, a
+           -- stamped transfer request recorded (`XfOk`; until then the modes' facts, D21 M2r)
+           ⌜SentMsgShape st' ∧ AppFrom id st' ∧
+             (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
+               (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by

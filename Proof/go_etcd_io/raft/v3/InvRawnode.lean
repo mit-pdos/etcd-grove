@@ -84,6 +84,7 @@ DecidableEq`. (`hs_empty_abs`'s port `hsEmptyAbs` had no user and is gone, 2026-
 module
 
 public import Proof.go_etcd_io.raft.v3.ApiVocab
+public import Proof.go_etcd_io.raft.v3.NetMsgOk
 public import Proof.go_etcd_io.raft.v3.InvReadylog
 -- (2026-10-14, reconfiguration stage B7 part 2) the ghost modes
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
@@ -525,17 +526,17 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     (h : NetMsgOk id st)
     (ht : st.msg.Type' = MsgTimeoutNow →
       uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64 ∧
-      uint.Z s.logst.fl ≤ uint.Z s.logst.applied)
-    -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on
-    (hx : st.msg.Type' = MsgTransferLeader → s.gh.xf = false) :
+      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) :
+    -- (raft-final, 2026-10-29, U9: until then also a transfer request only with leader transfer
+    -- on, `hx`)
     RestMsgOk s st.msg st.ents st.ctx := by
-  obtain ⟨-, -, Hun, -, -, Htl, -⟩ := h
-  refine ⟨fun h' => Hun ?_, ht, fun h' => ⟨(Htl h').1, (Htl h').2, fun hz => ?_, hx h'⟩⟩
+  obtain ⟨-, -, Hun, -, -, -, Htl, -⟩ := h
+  refine ⟨fun h' => Hun ?_ ?_, ht, fun h' => Htl h'⟩
   · rcases h' with h' | h' | h'
     · exact .inr (.inr (.inl h'))
     · exact .inr (.inr (.inr (.inl h')))
     · exact .inr (.inr (.inr (.inr h')))
-  · exact absurd (Hun (.inr (.inl h'))) hz
+  · rcases h' with h' | h' | h' <;> rw [h'] <;> decide
 
 -- (2026-10-28, stage U3c) `DynNoSnap` (the dynamic mode took no snapshot message, from 2026-10-14,
 -- stage B7 part 2) is gone: `RawNode.Step` takes a `MsgSnap` in either mode.

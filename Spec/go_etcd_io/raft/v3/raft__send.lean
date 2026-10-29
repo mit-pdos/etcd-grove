@@ -80,9 +80,11 @@ clause per shape a caller builds:
     nothing in scope sends, takes exactly this path through the body and holds its
     place, so that a caller's `by right; right; right` still picks `MsgHeartbeatResp`.)
 (c) a message the model does not describe (`mtypeOf = none`). It is queued and drops
-    out of the abstract outbox. `Term` unset, not self-addressed. (2026-10-19, D21 M2r) Only
-    with leader transfer on (`NGhost.xf = false`): raft sends two such types, `MsgTimeoutNow`
-    and a forwarded `MsgTransferLeader`, both of a transfer.
+    out of the abstract outbox. `Term` unset, not self-addressed. Raft sends two such types,
+    `MsgTimeoutNow` and a forwarded `MsgTransferLeader`, both of a transfer (2026-10-29, U7 (ii):
+    with no entries and no context). (raft-final, 2026-10-29) A forwarded `MsgTransferLeader`'s
+    destination and the node's term recorded in `NGhost.xw` (what `XfOk` keeps of a stamped one;
+    until then, D21 M2r, only with leader transfer on, `NGhost.xf = false`).
 (c') `MsgSnap` (2026-10-02): stamped and queued like (b), but the abstract message is
     `absSnapFrom` of the snapshot `m.Snapshot` points to and of that snapshot's
     `ConfState.Voters`. `send` does not read the pointer, so the caller names the two
@@ -144,9 +146,11 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     out = [] ∧
-    -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`): the types the model does
-    -- not describe that raft sends are `MsgTimeoutNow` and a forwarded `MsgTransferLeader`
-    s.gh.xf = false))
+    -- (raft-final, 2026-10-29, U7: the design's §2.3) a forwarded `MsgTransferLeader`, stamped with
+    -- the node's term, to a destination and at a term recorded with a witness that it leads it
+    -- (`NGhost.xw`, `xfW`; `raft.Step`'s transfer arm records its leader before `stepFollower`
+    -- forwards). Until then only with leader transfer on (`NGhost.xf = false`, D21 M2r).
+    (m.Type' = MsgTransferLeader → (s.gh.xw !! (m.To', s.term)).isSome)))
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧

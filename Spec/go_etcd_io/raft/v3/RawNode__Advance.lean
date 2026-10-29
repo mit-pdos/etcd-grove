@@ -98,8 +98,11 @@ abbrev RawNode.Advance.spec : Prop :=
       -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
       -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
       -- configuration index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the
-      -- decision switch) or skipped, rejected over decisions recorded (`undecFree`)
-      "#HA1" ∷ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length }}
+      -- decision switch) or skipped, rejected over decisions recorded (`undecFree`); (raft-final,
+      -- 2026-10-29, the design's A1) only after a `Ready` without a snapshot: after one with a
+      -- snapshot the configuration is the snapshot's (`appliedSnap`, `StepR.applySnap`, which needs
+      -- none; a newcomer that catches up by a snapshot has decided its conf entries `.apply`)
+      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
       -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised;

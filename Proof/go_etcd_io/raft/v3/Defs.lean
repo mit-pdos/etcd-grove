@@ -1068,26 +1068,20 @@ structure NGhost [GooseExts] where
   bootstrap log whose storage is never compacted past index `1` (`storCap`, `ownRaftPhys`'s
   `Hns`). A leader then keeps every peer's `Next ≥ 2` (`PrLo`), so `term(Next - 1)` and
   `entries(Next)` never fail and it sends no `MsgSnap` (D21 M0's (N)). Set once, when the node
-  is built (`ownRaftPhys_set_ns`), never changed: every step and `Ready` keeps it. -/
+  is built (`ownRaftPhys_set_ns`), never changed: every step and `Ready` keeps it. (U8 v2: always
+  `false`, `ownRaftPhys`'s `NsCap`. raft-final phase 1: kept until its mechanical removal, with
+  `LogNsOk`, `NsCap`, `PrOkN`'s and `LogNsKeep`'s flag, in phase 2's raft-level track; no statement
+  depends on its value.) -/
   ns : Bool := false
-  /-- (2026-10-19, D21 M2r) **Leader transfer off**: the node never records a transferee
-  (`leadTransferee = 0`, `ownRaftPhys`'s `Hxf`) and queues no message of a type the model does not
-  describe (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`): `raft.Step` takes no
-  `MsgTransferLeader` (`RestMsgOk`). On when the struct is built (`newRaft`, its queues empty:
-  the default), turned off by a ghost step (`ownRaftPhysC_xf_off`) when the node's construction
-  leaves the cluster's no-transfer mode (`RestartNode`, `Bootstrap` outside it), so that a node
-  is in it exactly when in the cluster's mode (`NsLink`; 2026-10-19, D22 S-a:
-  `RaftNames.reNoXfer`, independent of the no-snapshot mode, which until then implied it). With
-  the no-snapshot mode it makes the queued messages `SentMsgOk` (`XfOk`). (D22 S-c) With the
-  boot flag `bt` instead: the no-snapshot mode no longer enters. -/
-  xf : Bool := true
-  /-- (2026-10-20, D22 S-c) **Past term `0` for good**: the node's term is not `0` (`ownRaftPhys`'s
-  `Hxf`, `XfOk`), which `SentMsgOk`'s stamped terms need. Off when the struct is built (`newRaft`,
-  at term `0`), set with leader transfer's flag when the node's construction is of a cluster with
-  a bootstrap log (`Bootstrap`, at term `1`; `ownRaftPhys_set_ns`), at the cluster's no-transfer
-  mode (`NsLink`: `RaftNames.reNoXfer`, which needs a bootstrap log, `reNoXfer_ok`). Until D22
-  S-c the no-snapshot mode (`ns`) gave the term, so that `SentMsgOk` was of both modes. -/
-  bt : Bool := false
+  /-- (raft-final phase 1, 2026-10-29, U7: the design's §2.2) **The transfer requests stamped**:
+  the destination and term `(To, Term)` of every stamped `MsgTransferLeader` the node queued
+  (`XfOk`'s third clause), each with a witness that its destination leads at that term
+  (`ghostRest`'s `xfW`). The only one raft queues is `stepFollower`'s forward to its leader, at
+  the follower's term: `raft.Step`'s transfer arm records `(s.lead, s.term)` first, from the leader
+  witness (`ownStepGhost_lead`), which `send`'s clause (c) then takes. Only grows; a step keeps it
+  (`NetFrame`). (Until then the flags `xf`, leader transfer off, and `bt`, past term `0` for good,
+  which the cluster's no-transfer mode set; both deleted with the mode, U9.) -/
+  xw : GMap (w64 × w64) Unit := ∅
   /-- (D22 S-d3a, 2026-10-21) **The storage lent**: a mirror of `LogState.lent` (`SnpOk`), which a
   step keeps (`NetFrame`'s `s'.gh = s.gh`), so that the `RawNode` knows across the steps between a
   snapshot's `Ready` and its `Advance` that the application holds the storage. Only the `RawNode`'s

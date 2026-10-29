@@ -379,8 +379,8 @@ abbrev stepLeader.spec : Prop :=
       2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
       (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
         uint.Z t0 ≤ 1))) →
-  -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on (`NGhost.xf`)
-  (m.Type' = MsgTransferLeader → s.gh.xf = false) →
+  -- (raft-final, 2026-10-29, U9: until then a transfer request only with leader transfer on,
+  -- `NGhost.xf`, D21 M2r)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
