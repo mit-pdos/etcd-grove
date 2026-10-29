@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 
 @[expose] public section
@@ -164,8 +165,10 @@ theorem EtcdServer.applyAll.wp_proof
   ihave #Hfl' : memFloorAtLeast mst γs (uint.Z ai') $$ []
   · rw [hai']; iexact Hflb
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs γp
-      (w + (unapplied ai ms).length) hok' hcap (by push_cast; omega)
+  imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x' _ $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
+  wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off hSINC s E ρ.wait γ ci b γr ep st'
+      ai' at' cs' a' t' x' mst γs γp (w + (unapplied ai ms).length) Hoff hok' hcap
+      (by push_cast; omega)
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe
@@ -239,7 +242,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
-    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG)) :
+    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w γa sa hM hRB
     Hms Hai1 Hok hEok hcap hdv haw
@@ -363,8 +366,9 @@ theorem EtcdServer.applyAll.wp_proofOn
   ihave #Hfl' : memFloorAtLeast mst γs (uint.Z ai') $$ []
   · rw [hai']; iexact Hflb
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs γp
-      (w + (unapplied ai ms).length) sa' hok' hcap (by push_cast; omega)
+  wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on hSINC s E ρ.wait γ ci b γr ep st'
+      ai' at' cs' a' t' x' mst γs γp (w + (unapplied ai ms).length) sa'
+      (by rw [apply.AEnv.authOn_eq, hM]; rfl) hok' hcap (by push_cast; omega)
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe

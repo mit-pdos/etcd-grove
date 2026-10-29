@@ -181,3 +181,8 @@ Decided by the agent:
 
 For the user (a top-level and structural choice, "Who decides"): A or B; under B, the nine
 existing `specM (on : Bool)` converted in this stage, and the exported results' pairs merged.
+
+**Step 2 decided by the user (2026-10-29):** B, as amended by the reviewer: one spec per function
+with no mode parameter, the mode `E.authOn` (`.any` excluded); the nine `specM (on : Bool)`
+converted in this stage; each pair of exported results (`server_*`/`server_*_on`, v3rpc's
+`*_of_server`/`*_of_serverOn`) merged into one.

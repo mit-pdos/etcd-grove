@@ -301,5 +301,50 @@ theorem kvAppliedM_true (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
 
 end server
 
+section offlemma
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open Iris.ProofMode in
+/-- **The mode-off apply thread is in an environment with auth off** (the auth-mode merge,
+2026-10-29: what a mode-off caller passes to a merged spec's `E.authOn = false`): the KV
+invariant's start chain has the auth layer off (`kvInv_ch0_off`), the applier state's chain is it
+(`kvApplied`), and the applier's chain's auth layer is the environment's (`applyKV_authOn`). -/
+theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γw : GName) (x : apply.ApplyKV)
+    (A : List EntryModel) :
+    isServer (GF := GF) s γ ci TM E ρ γr ∗ srvApplyKV s E γw x ∗ kvApplied γr.raft γr.kv A x ={⊤}=∗
+      ⌜E.authOn = false⌝ ∗ srvApplyKV s E γw x ∗ kvApplied γr.raft γr.kv A x := by
+  iintro ⟨#Hsrv, Hkv, Hka⟩
+  iunfold isServer at Hsrv
+  icases Hsrv with ⟨-, -, -, Hat, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hki⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨#Hki, -⟩
+  imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %Hch
+  iunfold srvApplyKV at Hkv
+  icases Hkv with ⟨%ua, Hua, Hap, Hakv, Hrest⟩
+  icases applyKV_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
+  iunfold kvApplied at Hka
+  icases Hka with ⟨Hka, %Hx⟩
+  imodintro
+  isplitr
+  · ipureintro
+    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+  isplitl [Hua Hap Hakv Hrest]
+  · iunfold srvApplyKV
+    iexists ua
+    iframe Hua Hap Hakv; iexact Hrest
+  iunfold kvApplied
+  iframe Hka
+  ipureintro; exact Hx
+
+end offlemma
+
+
 end EtcdGrove
 end Perennial

@@ -846,6 +846,16 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   · iexact Har
   iexact Hw
 
+/-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
+theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvApplyKVM (GF := GF) on s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗
+        (srvApplyKVCore s E γw x ua -∗ srvApplyKVM on s E γw x st) := by
+  cases on
+  · exact srvApplyKV_core s E γw x
+  · exact srvApplyKVOn_core s E γw x st
+
 end row
 
 end EtcdGrove
