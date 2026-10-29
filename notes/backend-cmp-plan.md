@@ -1062,3 +1062,24 @@ statement takes it through `openPre`.
 - **The new bridge** (`isKeyBackendG_of_backendC`, unwired) takes `hFV : ∀ v, P.FV v ↔ metaRevVal v`
   and the persistent `fkV γ true`. Its `metaReadTx` case is proved (`rt_metaWf`): one `sorry` fewer.
   The wiring step supplies `fkV γ true` from `fkV_of_fkCl`, over data without compaction keys.
+
+### Question 2: recorded, not implemented in this round (2026-10-29)
+
+Implementing option (a) is the plan's "group 2" (R4-2), and it is larger than one repair round.
+Measured:
+- **The batch lock's quarter of `γ.view` moves to an existential logical view**
+  (`∃ L, viewQ γ ¼ (vData P (st.C, st.R)) L`). It is updated in `batchGhostAt`, `batchGhostW`, the
+  commit lemmas (`InvCommit`, 150 lines), the allocation, `Unlock`'s write-backs (275 lines) and the
+  read side's closes (`ReadSide`, 772 lines), each establishing `thinV` for its new `L`. Then
+  `viewAt γ vd := ∃ L, the quarter at L ∗ thinV γ vd L` (`InvSnapshot`).
+- **`relog`**: the session's writes over `L`, falling back to `L` only at safe-range keys (R5-1),
+  with its laws.
+- **The fold** of `Unlock.specC` and `UnsafeDelete.specC`: both are unproved Draft statements, used
+  nowhere. They need `Unlock`'s deleting-session branch proved, and `Unlock.spec` has 40 client
+  files.
+- **The limited range's case** (the last `sorry` of the new bridge) after that: the job's session
+  token with its pending deletes, its `Meta` put and its budget (3.1-3.5).
+
+Recommended: a dedicated round, with its own Draft of `relog` and the fold's statement, and a review
+before the proofs, since it changes `Unlock.spec`, a statement 40 files use. Until then
+`Unlock.specC`/`UnsafeDelete.specC` stay beside their specs, and the limited-range `sorry` stays.
