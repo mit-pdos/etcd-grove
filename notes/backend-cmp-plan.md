@@ -1685,3 +1685,25 @@ registration. That is the bulk of the 1300-1650 lines. The two switch laws
 (`sync.init_RWMutex` at the predicate `True`, one of the slots), and `backend_init` passes it into
 `newPostK`. `bootBackend_of_newPost` drops it: the server stays `cm := false`. `storage.OpenBackend`'s
 text is unchanged and its post means more, so the axiom check before Freeze stays listed.
+
+**Stage R4-4 and the switch laws, done (2026-10-29).** New module `mvcc/ContractLaws.lean`, all
+proved:
+- **Monotone in the deletable keys:** `snapThin_mono`, `keyReadSnap_monoDel`,
+  `batchTxSpecG_weaken`, `isBatchTxG_weaken`, `isKeyBackendG_weaken` (F7: at any `Cmp'` that does
+  not hold, any `SR'`/`SRh'`/`MW'`), and `isKeyBackendG_weaken_noDel` (no deletable key).
+- **Up to `◇`:** `except0_pure_wand`, `snapThin_congr`, `keyReadSnap_congrDel`,
+  `batchTxSpecG_congrDel`, `isBatchTxG_congrDel`, `isKeyBackendG_congrDel` (the Draft's `.stmt`,
+  with `□ (∀ k, Del k ∗-∗ ◇ Del' k)`). Covariant positions eliminate the `◇` through `wp_fupd`;
+  the contravariant one (the job's delete) uses `Del' k ⊢ ◇ Del' k ⊢ Del k`.
+
+**The old bridge is the new one's instance** (decided by the agent). `isKeyBackendG_of_backendC` now
+takes the compaction condition `Cmp` as a parameter. Its compaction-only premises are guarded by
+it: the three callee specs (`hLSR`, `hUSR`, `hUP : Cmp → …`), `hHK`/`hFV : Cmp → …`, and
+`□ (⌜Cmp⌝ -∗ fkV γ true)`. `isKeyBackendG_of_backend` is that bridge at `Cmp := False`, weakened by
+`isKeyBackendG_weaken_noDel` under `dlNoDel`. Its old proof is gone; the new bridge shares its
+clauses. So the last variant is gone, and the old bridge's statement, with its callers
+(`storeBackendT_of_backend`, `storeBackend_of_backend`, `mvcc_backend_bridge`,
+`mvcc_storeBackend_of_backend`, `StoreBackend`, `BuildLemmas`, D22's walk), is unchanged. That is
+fewer changes than the Draft predicted: the Draft's "the old bridge's exports gain `fkV`, `hHK`,
+`hFV` and three callee specs" is not needed. The other option, the old bridge as the `Cmp := True`
+bridge weakened, would have pushed those premises into D22's walk and `NewServer`'s link list.
