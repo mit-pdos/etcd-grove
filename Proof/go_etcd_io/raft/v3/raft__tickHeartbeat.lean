@@ -38,6 +38,9 @@ theorem raft.tickHeartbeat.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickHeartbeat.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro c md γ r id s Hwf Hpc
   wp_start as H
   iNamed H
@@ -325,6 +328,7 @@ theorem raft.tickHeartbeat.wp_proof
     iframe Hphys Hghost
     ipureintro
     exact ⟨Hwf1, Hcm1, Htr _ (TickStep.refl s1)⟩
+  -/
 
 end proof
 

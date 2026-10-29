@@ -68,6 +68,9 @@ private theorem node.Campaign.wp_raw
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Campaign.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n ctx cd
   wp_start as ⟨#Hnode, #Hctx⟩
   -- the campaign's tick credit, a time receipt of a Go step of its own (`MsgHup.Enum()`'s
@@ -97,6 +100,7 @@ private theorem node.Campaign.wp_raw
   wp_auto
   iapply HΦ
   iexact Herr
+  -/
 
 end proof
 
@@ -115,6 +119,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Campaign_impl
     (hS : EtcdGrove.node.Campaign.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Campaign.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.Campaign.spec EtcdGrove.Cluster EtcdGrove.isNode
   intro n γ N id ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
@@ -123,6 +130,7 @@ private theorem node.wp_Campaign_impl
   iapply (hS γn id n ctx cd) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
+  -/
 
 end wrap
 

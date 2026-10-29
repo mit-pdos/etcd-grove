@@ -40,6 +40,9 @@ theorem RawNode.Campaign.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Campaign.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs Hterm Hflw
   wp_start as H
   iNamed H
@@ -111,6 +114,7 @@ theorem RawNode.Campaign.wp_proof
     rw [Htrm]
     exact ⟨⟨Ht1, Ht2'⟩, Herr⟩
   · exfalso; revert Hc'; msg_ne
+  -/
 
 end proof
 

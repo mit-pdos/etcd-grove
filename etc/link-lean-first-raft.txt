@@ -335,7 +335,6 @@ RestartNode: NewRawNode newNode node__run
 # Stage R8b (D12): the new cluster's start -- Bootstrap (proto.Marshal at the boot changes is the
 # premise bootMarshal, not a callee), setupNode (StartNode: no spec since U9, 2026-10-29, until the server's repair)
 RawNode__Bootstrap: raft__becomeFollower raftpb_ConfChangeType__Enum raftpb_EntryType__Enum raftLog__append raftpb_ConfChange__AsV2 raft__applyConfChange
-setupNode: NewRawNode RawNode__Bootstrap newNode
 RawNode__Campaign: raft__Step raftpb_MessageType__Enum
 RawNode__ForgetLeader: raft__Step raftpb_MessageType__Enum
 RawNode__ReportUnreachable: raft__Step raftpb_MessageType__Enum

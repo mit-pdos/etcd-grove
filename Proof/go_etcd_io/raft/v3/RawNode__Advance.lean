@@ -237,6 +237,9 @@ private theorem wp_step_pending
          SnapRoleBack s s' ∧
          -- (2026-10-28, stage U3) an append acknowledgement does not move `applied`
          (st.msg.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied)⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
@@ -428,6 +431,7 @@ private theorem wp_step_pending
         fun _ => PreGuardF.step (Hterm (by msg_ne)), Hfr.2.2.2.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.2.2.2,
         fun ce' h => by injection h with h; subst h; exact Happ rfl,
         (Hterm (by msg_ne)).2.2.2.2.2.2, fun h => absurd h (by msg_ne)⟩
+  -/
 
 /-- (2026-10-28, stage U3c) The dynamic mode's invariant (`RInv`), read off the ghost state. -/
 private theorem ownStepGhost_rinv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
@@ -513,6 +517,9 @@ private theorem wp_step_snapack
          ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), s' = { s with
            logst := ackSnapLog s.logst (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) s.term sv,
            progress := prs, prvals := pvs, isLearner := il }⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, Hlc, #HD⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   obtain ⟨Hle0, -⟩ := Hok
@@ -699,6 +706,7 @@ private theorem wp_step_snapack
     iframe Hphys Hghost
     ipureintro
     exact ⟨Hwf', fun h => by subst h; exact Hstp.1, Hmd2, Hs'⟩
+  -/
 
 /-- (D22 S-d3a) What a snapshot's acknowledgement leaves of the log (`ackSnapLog`), the snapshot the
 pending one, `applying` at most its index, `applied` at most `applying`: the snapshot dropped, nothing
@@ -913,6 +921,9 @@ private theorem RNMode.toG_static {mode : RNMode} (h : mode.isDyn = false) (g g'
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs rd Hunp0 Hunst0
   wp_start as H
   iNamed H
@@ -1866,6 +1877,7 @@ theorem RawNode.Advance.wp_proof
     ipureintro
     exact ⟨fun _ => ⟨Hca.1, Hca.2.1⟩, (fun l (h : rs.slent = some l) => by rw [hsl] at h; cases h),
       Hca.2.2⟩
+  -/
 
 end proof
 

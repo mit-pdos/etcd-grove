@@ -41,8 +41,12 @@ private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NStat
     {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
-    {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} :=
+    {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+
   raft.wp_store_stateC c r id s .leader (fun _ _ => Hcfg) (Hpr := fun _ => Hpr)
+  -/
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))

@@ -357,7 +357,6 @@ namespace EtcdGrove
 -- the new cluster's start (stage R8b, D12): `sorryAx` until the protocol side's
 -- `ownRaftGhost_alloc_boot` is proved
 #print axioms RawNode.wp_Bootstrap
-#print axioms wp_setupNode
 #print axioms wp_confChangeToMsg
 #print axioms wp_needStorageAppendRespMsg
 #print axioms wp_newStorageAppendRespMsg

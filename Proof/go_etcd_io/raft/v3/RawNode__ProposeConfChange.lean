@@ -42,6 +42,9 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs c o dq
   wp_start as H
   iNamed H
@@ -138,6 +141,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd
+  -/
 
 end proof
 

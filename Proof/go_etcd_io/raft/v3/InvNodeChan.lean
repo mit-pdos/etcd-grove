@@ -81,7 +81,8 @@ public import Proof.go_etcd_io.raft.v3.CCApply
 public import Proof.go_etcd_io.raft.v3.InvConfchange
 public import Proof.go_etcd_io.raft.v3.InvStorage
 public import Proof.go_etcd_io.raft.v3.InvStatus
-import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.NetMsgOk
 -- (2026-10-16, stage R5) `netStepTypes`, `NetMsgOk`, `DynCCPreOp`, `propEntryM` are
 -- `InvRawnode.lean`'s (until then `RawNode__Step`'s, `RawNode__Propose`'s,
 -- `RawNode__ApplyConfChange`'s)
@@ -546,6 +547,9 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
       termLB γ.bud (W64 0) -∗ rdCred γ.raft 0 -∗ tickCred γ.bud 0 -∗
       netP γ id ml := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   have Hun : UnstampedType st.msg.Type' := by
     rcases Hty with h | h | h | h <;> simp [UnstampedType, h]
   have Hnr : st.msg.Type' ≠ MsgReadIndex := by
@@ -593,6 +597,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     iintro %h
     exact absurd h Hns
   iframe Hlb Hcr Htc
+  -/
 
 /-- (2026-10-29, stage U7) `Campaign`'s `MsgHup` on `recvc`, with its tick credit. -/
 theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
@@ -608,6 +613,9 @@ theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
 theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     netP (GF := GF) γ id ml ⊢ ∃ st : MsgSt, msgIn ml DFrac.discard st ∗
       ⌜st.msg.Type' ∈ netStepTypes ∨ st = hupSt⌝ ∗ (msgIn ml DFrac.discard st -∗ netP γ id ml) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hnet
   unfold netP
   icases Hnet with (⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
@@ -629,6 +637,7 @@ theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iintro Hm
     iright
     iframe Hm Htc
+  -/
 
 /-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
 channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/
@@ -909,8 +918,12 @@ theorem runCfg_congr (γ : NodeNames) {rs rs' : RNState} (hm : rs'.mode = rs.mod
     (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg)
     (hsn : rs'.sn = rs.sn := by rfl) :
     runCfg (GF := GF) γ rs ⊢ runCfg γ rs' := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold runCfg rsDlv
   rw [hm, hc, hd, hf, hp, hs, hcfg, hsn]
+  -/
 
 /-! ### `advancec` (D19i part 1): the floor raised at the rendezvous
 
@@ -1191,6 +1204,9 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
           nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -1213,6 +1229,7 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
+  -/
 
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) :
@@ -1279,6 +1296,9 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
         dlvLb γ (dlvAfter ds ce L) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro HP Hdrv
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -1293,6 +1313,7 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
+  -/
 
 /-- The handshake's send, where the payload is made only when the send happens (a ghost
 update inside the atomic update): `run` hands out the storage's append right with a

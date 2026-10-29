@@ -65,19 +65,19 @@ private abbrev node.Advance.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat)
     (cfg : CCState) (p : HardStateM) (L : Option SnapLoan),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg ∗
+      nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor ds.length es L ∗ nodeCfg γ ca cfg ∗
       -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
       -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
       -- index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the decision switch) or
-      -- skipped, rejected over decisions recorded (`undecFree`)
-      undecFree γ.raft γ.mode ds ca ds.length }}
+      -- skipped, rejected over decisions recorded (`undecFree`); (raft-final, 2026-10-29, the
+      -- design's A1) only after a `Ready` without a snapshot
+      □ (⌜L = none⌝ -∗ undecFree γ.raft γ.mode ds ca ds.length) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriverChan γ id n ds p ∗
       -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
       -- dynamically, the snapshot's (`loanCfg`), which a snapshot `Ready` has only outside the
       -- no-snapshot mode
       nodeCfg γ (loanCfg γ.mode L (ca, cfg)).1 (loanCfg γ.mode L (ca, cfg)).2 ∗
-      ⌜L ≠ none → γ.raft.reNoSnap = false⌝ ∗
       -- (D19i part 1) the floor's witness for `ds`; (D22 S-d4) after a `Ready` without a snapshot,
       -- unless one was restored since (`reqWit`)
       reqWit γ (reqOf L ds)) ∨
@@ -99,6 +99,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; (2026-10-29, stage U9a) or `n.done` fires: the node stopped. -/
 private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n ds es ca cfg p' L
   wp_start as ⟨Hbusy, Hrcpt, Hcfg, #HA1⟩
   unfold nodeDriverBusy
@@ -185,6 +188,7 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
     iframe Hr1 Hr2
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 
@@ -229,6 +233,9 @@ view is at `m`, and its lists report `m`. -/
 private theorem node.wp_Advance_impl
     (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Advance.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.Advance.spec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
     EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt EtcdGrove.nodeStopped
   intro n γ N st es L v Hh Hloan
@@ -408,6 +415,7 @@ private theorem node.wp_Advance_impl
     ipureintro
     obtain ⟨c1', c2, c3, c4⟩ := Hcl
     exact ⟨c1', c2, c3, c4, Hal⟩
+  -/
 
 end wrap
 

@@ -269,6 +269,9 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
          (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
            uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
         ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c } := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hmsgs Hmsgs_cap Hown H
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
@@ -342,6 +345,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc
+  -/
 
 /-! ## The tick channel -/
 
@@ -441,6 +445,9 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
           (st.msg.Type' ≠ MsgPreVoteResp →
             uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
               (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   have Hok0 := Hok
   simp only [NetMsgOk] at Hok0 Htn Hmtc Hxt Hsnp ⊢
@@ -599,6 +606,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   ipureintro
   rw [Htrm]
   exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
+  -/
 
 /-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
@@ -729,6 +737,9 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hty Hfr Hrs ⊢
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Htk, Hlc⟩ HΦ
@@ -831,6 +842,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (Hloan.keep Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1)
       Hfr'.2.2.1 Hap' Hc)
     (Hsdt.ofRec Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.1) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+  -/
 
 end step
 
@@ -1068,6 +1080,9 @@ theorem wp_applyConf_dyn
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
     #Hstrecs, #Hloanc, #Hsloc, Hch, Hlc, #HDd⟩ HΦ
@@ -1204,6 +1219,7 @@ theorem wp_applyConf_dyn
       (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')
       (by unfold SdtTie; rw [Hls']; exact Hsdt) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hsloc'
   ipureintro; exact Hcs0
+  -/
 
 /-! ### The static mode -/
 
@@ -1245,10 +1261,13 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       ackInv γ rs s -∗
       loanCom γ rs.slent -∗
       -- (D22 S-b′3) the storage's certificate link
-      certLink γ s.logst.storage -∗
+      certLink γ s.gh.sn -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
     (applyCCOkC_step (B := 0) _ _ _ _ Hok).resolve_right
       (fun ⟨_, Hv, _⟩ => Hv (by rw [CfgM.voters_simple]; exact Hin))
@@ -1282,6 +1301,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (by unfold SdtTie; rw [Hls]; exact Hsdt)
     Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc'
+  -/
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
@@ -1587,8 +1607,11 @@ theorem headRest_flw (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan
 2026-10-28, stage U3d, also in the static mode): what `run`'s `MsgSnap` step needs. -/
 theorem headRest_snapIn (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : Ready) :
     ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗
-      ⌜γ.snapIn = true → γ.raft.reNoSnap = false⌝ ∗ ⌜rs.mode = γ.mode⌝ ∗
+      ⌜rs.mode = γ.mode⌝ ∗
       headRest γ nv rs ac rc rd := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro H
   unfold headRest
   icases H with ⟨#Hlb, %Hst, Hcfg, H⟩
@@ -1604,6 +1627,7 @@ theorem headRest_snapIn (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoC
   iunfold runCfg
   iframe Hcfg
   ipureintro; exact Hm0
+  -/
 
 /-- A step changes only the node's term and (2026-10-17) the term ceiling, which the budget
 covers. -/
@@ -1623,9 +1647,12 @@ theorem headRest_term (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoCha
 /-- (D22 S-d4) A network step: the term, the term ceiling, and after a `MsgSnap` (`b`, only at a
 node that takes snapshots) a snapshot may be pending. -/
 theorem headRest_step (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : Ready)
-    (t tc : w64) (b : Bool) (Hb : b = true → γ.snapIn = true) :
+    (t tc : w64) (b : Bool) :
     ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗ termLB γ.bud tc -∗
       headRest γ nv { { rs with tc := tc } with term := t, psnap := rs.psnap || b } ac rc rd := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro H #Hlb
   unfold headRest
   icases H with ⟨-, %Hst, Hcfg, H⟩
@@ -1651,6 +1678,7 @@ theorem headRest_step (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoCha
     iExactEq Hcfg; rfl
   iExactEq H
   rfl
+  -/
 
 /-- With no `Ready` handed out (`ac` nil). -/
 theorem headRest_nil (γ : NodeNames) (nv : node) (rs : RNState) (rc : GoChan) (rd : Ready)
@@ -2045,6 +2073,9 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
         ⌜DynCCPreOp (effDec dec M') (rsDlv rs) rs.capplied rs.cfg op k e cs'⌝) ∗
       |==> (runCfg γ { rs with cfg := cs', capplied := k + 1 } ∗
         dghostVar γ.cap (DFrac.own (1 : Qp).half) (k + 1, cs') ∗ monoNatLbOwn γ.cam (k + 1)) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hcfg #Hlb #HM Hcap
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
@@ -2075,6 +2106,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   isplitr
   · ipureintro; exact Nat.le_refl _
   iapply undecFree_empty
+  -/
 
 /-- The `readyc` arm: the committed log handed out grows by the `Ready`'s committed entries
 (the configuration and its index unchanged); a lower bound of it for the driver. (D22 S-d4,
@@ -2093,6 +2125,9 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
     ⊢ dlvKeysAt (GF := GF) γ.sn rs.delivered.length X -∗ runCfg γ rs ==∗
       runCfg γ rs' ∗ monoListLbOwn γ.dlm (dlvAfter rs.delivered ce L) ∗
       dlvKeys γ.sn (dlvAfter rs.delivered ce L) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro #HX' Hcfg
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
@@ -2133,6 +2168,7 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
   · ipureintro; exact Hinv
   iapply undecFree_prefix γ.raft γ.mode Hext Hcp
   iexact Hinv2
+  -/
 
 /-- (D22 S-d4) What `runCfg` says of snapshots: none pending or lent at a node that takes none,
 and one that takes them is outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the
@@ -2140,9 +2176,13 @@ static mode). (Until D22 S-d4
 `runCfg_psnap`/`runCfg_slent`: none at all.) -/
 theorem runCfg_snap (γ : NodeNames) (rs : RNState) :
     ⊢ runCfg (GF := GF) γ rs -∗
-      ⌜(γ.snapIn = false → rs.psnap = false ∧ rs.slent = none) ∧
-        (γ.snapIn = true → γ.raft.reNoSnap = false) ∧ rs.mode = γ.mode⌝ ∗
+      -- (raft-final, 2026-10-29, U9: until then also no snapshot at a node that takes none,
+      -- `NodeNames.snapIn`)
+      ⌜rs.mode = γ.mode⌝ ∗
       runCfg γ rs := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hcfg
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, Hrest⟩
@@ -2151,6 +2191,7 @@ theorem runCfg_snap (γ : NodeNames) (rs : RNState) :
   iunfold runCfg
   iframe Hdlm Hrest
   ipureintro; exact Hm0
+  -/
 
 /-- The `advancec` arm, before `Advance`: the driver's A1 (no conf entry of the committed log
 handed out past its configuration index, a lower bound of `run`'s) is A1 at the `RawNode`. -/
@@ -2159,6 +2200,9 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
       undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length -∗
       undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
       runCfg γ rs := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hcfg #Hlb #HA
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
@@ -2175,6 +2219,7 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
   iexists ca_r
   iframe Hcap_r Hcam Hinv2
   ipureintro; exact Hinv
+  -/
 
 /-- (2026-10-28, stage U3d) The `advancec` arm, before `Advance`, from `run`'s side after the
 rendezvous (`runCfgR`): A1 at the `RawNode` (`runCfg_a1`, or the loan's `runCfgLoan`), and,
@@ -2184,6 +2229,9 @@ theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
       undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length -∗
       undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
       runCfgR γ rs := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hcfg #Hlb #HA
   by_cases hc : rs.slent = none ∨ rs.mode.isDyn = false
   · ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs hc).1 $$ Hcfg
@@ -2210,6 +2258,7 @@ theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
     iunfold runCfgLoan
     iframe Hrest HA1
     ipureintro; exact Hm
+  -/
 
 /-- The `advancec` arm, after `Advance`: the configuration index moved up to at most the
 committed log handed out, over no conf entry (A1), not at all in the static mode. (D22 S-d4,
@@ -2224,6 +2273,9 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     :
     ⊢ undecFree (GF := GF) γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length -∗
       runCfgR γ rs -∗ runCfg γ (advRS rs t ca) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro #HA1 Hcfg
   cases hsl : rs.slent with
   | none =>
@@ -2327,6 +2379,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       isplitr
       · ipureintro; exact Nat.le_refl _
       iapply undecFree_empty
+  -/
 
 end cfgshare
 

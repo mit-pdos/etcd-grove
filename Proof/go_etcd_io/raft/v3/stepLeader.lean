@@ -84,6 +84,9 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
@@ -205,6 +208,7 @@ theorem stepLeader.wp_proof
       (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
+  -/
 
 end proof
 

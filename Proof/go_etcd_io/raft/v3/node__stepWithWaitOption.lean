@@ -42,6 +42,9 @@ theorem node.stepWithWaitOption.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n m wait ctx cd
   wp_start as ⟨#Hnode, #Hctx, Harg⟩
   -- (2026-10-29, stage U9a) `ErrStopped`, for the `n.done` cases
@@ -310,6 +313,7 @@ theorem node.stepWithWaitOption.wp_proof
       iapply nodeErr_stopped $$ HeStop
     iapply BigAndL.bigAndL_nil.2
     itrivial
+  -/
 
 end proof
 

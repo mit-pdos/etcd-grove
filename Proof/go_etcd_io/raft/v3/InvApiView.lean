@@ -222,6 +222,9 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
 theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold nodeDriver
   iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩
   ihave #Hl : iprop(EtcdGrove.isNodeChan (GF := GF) γn id n ∗ dlvLb γn ds) $$ [Htok]
@@ -242,9 +245,13 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
   iexists γn, id, ds
   iframe Hnd Htb Hdl
   ipureintro; exact ⟨Hf.1, Hf.2.2⟩
+  -/
 
 theorem deliveredLogLb_mono_impl (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hp
   unfold deliveredLogLb
   iintro ⟨⟨%γn, %id, %ds, %Hf, #Hnd, #Htb, #Hdl⟩, #Hlb⟩
@@ -260,6 +267,7 @@ theorem deliveredLogLb_mono_impl (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2
     unfold dlvLb
     iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ Hdl
   iapply isCommittedLogLb_mono_impl γ l1 l2 Hp $$ Hlb
+  -/
 
 theorem deliveredLogLb_committed_impl (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     deliveredLogLb (GF := GF) n γ N l ⊢ isCommittedLogLb γ l := by
@@ -299,6 +307,9 @@ tickets persistent. -/
 theorem msgCredits_copy_impl (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.raft.dup = true → st.msg.Type' = MsgProp →
     msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hd Hty
   unfold msgCredits stTks
   have h1 : st.msg.Type' ≠ MsgReadIndex := by rw [Hty]; simp [MsgReadIndex, MsgProp]
@@ -314,6 +325,7 @@ theorem msgCredits_copy_impl (γ : Cluster) (N : Namespace) (st : MsgSt) :
   ihave #Hts := entTks_persist_impl γ.raft Hd st.ents $$ Hts
   imodintro
   iframe Hr Hts
+  -/
 
 /-- The `.snap` clause of `isMessage` does not read the `ConfState` lists or `AutoLeave` (as the
 server's `isMessage_snap_lists`). -/
@@ -339,6 +351,9 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
     ⊢ sentMsg (GF := GF) γ N src st -∗ committedAtTerm γ N st.msg.Term' c -∗
       isCommittedLogLb γ l -∗ snapshotCert γ N (snapTrip sv' sv'.Metadata'.ConfState'.lists) ={E}=∗
       sentMsg γ N src { st with snap := some sv' } := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro HE Hty Hsn Hix Hc Hl Hlt
   iintro #Hs #Hca #Hlb #Hk
   unfold sentMsg
@@ -432,6 +447,7 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
         snapDataOk γ.raft sv'.Metadata'.Index' sv'.Data' := rfl
     rw [← Hd]; iexact Hdat
   ipureintro; exact Hra
+  -/
 
 /-- No conf entry in a range of the delivered log is none in raft's. -/
 theorem noConfIn_of_strip (ds : List EntryM) (lo hi : Nat) (H : NoConfChangeIn (strip ds) lo hi) :

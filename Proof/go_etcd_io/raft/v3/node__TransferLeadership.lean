@@ -85,6 +85,9 @@ into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new ca
 private theorem node.TransferLeadership.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.TransferLeadership.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n lead transferee ctx cd Hns
   wp_start as ⟨#Hnode, #Hctx⟩
   ihave #Hnode' := Hnode
@@ -154,6 +157,7 @@ private theorem node.TransferLeadership.wp_raw
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 
@@ -172,6 +176,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_TransferLeadership_impl
     (hT : EtcdGrove.node.TransferLeadership.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.leaderTransferOn
   intro n γ N id lead transferee ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hx⟩ HΦ
@@ -183,6 +190,7 @@ private theorem node.wp_TransferLeadership_impl
   iapply (hT γn id n lead transferee ctx cd (by rw [Hγr]; exact Hx)) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
+  -/
 
 end wrap
 

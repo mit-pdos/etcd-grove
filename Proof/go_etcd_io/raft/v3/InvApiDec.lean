@@ -618,6 +618,9 @@ theorem snapshotCert_make_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE :
       ownSnapsMadeU γ S ={E}=∗
       ownSnapsMadeU γ (S ++ [⟨l.length, m, d⟩]) ∗
       snapshotCert γ N ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩ := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hlen Hlast Hok Hcs
   iintro #Hc #Hlb #Ha Hown
   ihave #Ha' := Ha
@@ -681,6 +684,7 @@ theorem snapshotCert_make_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE :
   iexists K ++ [(i, d)]
   iframe Hlb'
   ipureintro; exact List.mem_append_right _ (List.mem_singleton_self _)
+  -/
 
 /-- **What a certificate says** (`InvNodeRule`'s `snapshotCert_made`). -/
 theorem snapshotCert_made_impl (γ : Cluster) (N : Namespace) (k : SnapTrip) :

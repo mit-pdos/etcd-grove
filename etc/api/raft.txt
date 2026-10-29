@@ -82,6 +82,8 @@ importable Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 importable Proof.go_etcd_io.raft.v3.InvStorage
 importable Proof.go_etcd_io.raft.v3.InvMemstorage
 importable Proof.go_etcd_io.raft.v3.MemstorageInstance
+# (raft-final, 2026-10-29) `MemoryStorage` at the node API: `memStorInv`, `memStorage_isStorage`
+importable Proof.go_etcd_io.raft.v3.MemstorageApi
 importable Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 ## raftpb: the getters' specs, the protobuf records' models

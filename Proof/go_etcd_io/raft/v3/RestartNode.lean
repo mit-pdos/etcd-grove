@@ -66,12 +66,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. (raft-final phase 1, 2026-10-29: over `NewRawNode`'s boot bundle, raft's
+storage names `sn` and frame `R`/`R'`; until then raft's view of an empty storage with an
+`InitialState` closure, and `NodeNames.snapIn`, deleted.) -/
 private abbrev RestartNode.specRaw : Prop :=
   ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk)
+    (lok si : GoInterfaceOk) (sn : StorNames)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (sn : Bool),
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -87,10 +89,8 @@ private abbrev RestartNode.specRaw : Prop :=
   -- (2026-10-25, T-M M2b: pre-vote either way; 2026-10-17 to 2026-10-25 off in the dynamic mode,
   -- which did not model pre-candidates; until then off in either mode)
   cv.Applied' = W64 0 →
-  σ.prev = entryID.mk (W64 0) (W64 0) →
-  σ.ents = [] →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] →
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
+  σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ →
   HsEmpty hs →
   -- (2026-10-16, stage R5) the conf state's record `csm`, as `NewRawNode`'s
   csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
@@ -107,30 +107,31 @@ private abbrev RestartNode.specRaw : Prop :=
   -- mode)
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
-  -- outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the static mode)
-  (sn = true → γ.reNoSnap = false) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorageD (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
+      -- (raft-final phase 1) `NewRawNode`'s boot bundle
+      (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
+         {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+      (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
+         {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+      (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
+         {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
+            hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) ∗
       -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until
       -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
       rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
       -- the cluster's term budget
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
-      -- no-snapshot mode)
-      certLink γ (interface.ok si) }}
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1: of
+      -- the storage names, U8 v2)
+      certLink γ sn }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
-         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧ γn.sn = sn ∧
+         nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        -- (raft-final phase 1) the frame `InitialState` gave back
+        R' ∗
         isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
         -- (2026-10-29, stage U9a) the client's half of `live`, for `Stop`
         nodeLiveRaw γn 1 ∗
@@ -159,6 +160,9 @@ private theorem RestartNode.wp_raw
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
     P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P28 HsnIn
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
@@ -427,6 +431,7 @@ private theorem RestartNode.wp_raw
   iframe Hcap2 Hcamlb
   iexists _
   iframe Hccq1 Hccq2
+  -/
 
 end proof
 
@@ -448,6 +453,9 @@ voters' membership. -/
 private theorem wp_RestartNode_impl
     (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.RestartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver
     EtcdGrove.nodeFounder EtcdGrove.nodeJoin EtcdGrove.confAt EtcdGrove.storageCertLink
     EtcdGrove.nodeConfig EtcdGrove.nodeRunning
@@ -538,6 +546,7 @@ private theorem wp_RestartNode_impl
   iexists γn, cv.ID'
   iframe Hnode Htb Hlive
   ipureintro; exact ⟨Hnok, Hdy⟩
+  -/
 
 end wrap
 

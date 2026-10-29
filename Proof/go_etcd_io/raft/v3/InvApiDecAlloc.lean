@@ -46,6 +46,9 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
         [∗list] id ∈ vs, nodeFounderU γ N vs id := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hrb Hne Hnd Hnz Hlen
   imod budget_alloc (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
   imod alloc_maps (GF := GF) (K := w64) (V := CfgNames) allNodeIds with ⟨%tab, -, Htab⟩
@@ -153,6 +156,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
   unfold nodeFounderU
   iframe Hj
   ipureintro; exact ⟨Hcfg, ⟨gd, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩
+  -/
 
 end alloc
 

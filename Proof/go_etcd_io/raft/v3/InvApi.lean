@@ -1660,8 +1660,12 @@ theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf 
 
 theorem dlvLb_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ds : List EntryM) :
     dlvLb (GF := GF) γ1 ds ⊢ dlvLb γ2 ds := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   simp only [cfgNamesOf, Prod.mk.injEq] at H
   unfold dlvLb dlvKeys; rw [H.1, H.2.2.2.2.2.2.2.2.1]
+  -/
 
 /-- Raft's nodes at one location have one id (`isNode`'s persistent points-to's). -/
 theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
@@ -1726,6 +1730,9 @@ theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (id1 id2 : w64
 
 theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold nodeRunning nodeStopped
   iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩, ⟨%γ2, %id2, %Hok2, #H2, Hd, #Hs⟩⟩
   have Hm : γ2.mode.isDyn = true := by rw [Hok2.2.2.2.1, ← Hok1.1.2.2.2.1]; exact Hok1.2
@@ -1736,6 +1743,7 @@ theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Q
   rw [Hlv]
   ihave %H := dghostVar_agree _ _ _ _ _ $$ Hl Hs
   cases H
+  -/
 
 theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Qp) :
     nodeRunning (GF := GF) n γ N (p + q) ⊣⊢ nodeRunning n γ N p ∗ nodeRunning n γ N q := by
@@ -1788,7 +1796,7 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
        -- post, `nodeAppliedLb`, is then)
        (match L with
         | none => iprop(True)
-        | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index'))))
+        | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')))))
 
 /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
 def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
@@ -1818,17 +1826,24 @@ theorem sentMsg_snapshot_impl (γ : Cluster) (N : Namespace) (src : w64) (st : M
     st.msg.Type' = MsgSnap →
     sentMsg (GF := GF) γ N src st ⊢
       ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty
   unfold sentMsg sentSnapCert
   iintro ⟨-, -, -, (%Hn | H)⟩
   · exact absurd Hty Hn
   · iexact H
+  -/
 
 /-- A message's snapshot certificate, from raft's (`isRaftMsg`'s abstraction and data
 certificate). -/
 theorem api_sentSnapCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (src : w64)
     (st : MsgSt) :
     ⊢ clusterInv (GF := GF) γ N -∗ isRaftMsg γ.raft src st ={E}=∗ sentSnapCert γ N st := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro #Hci #Hraft
   unfold sentSnapCert
   by_cases Hty : st.msg.Type' = MsgSnap
@@ -1863,13 +1878,18 @@ theorem api_sentSnapCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   iexists sv
   iframe Hk
   ipureintro; exact Hsv
+  -/
 
 /-- A `MsgApp` is from the node that sent it (`AppFrom`). -/
 theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold sentMsg isRaftMsg
   iintro ⟨-, ⟨-, -, -, -, %H⟩, -⟩
   ipureintro; exact H.2
+  -/
 
 /-- (open) **What a sent message carries for its receiver's `Step`**: a forwarded proposal's tickets
 (`stTks`). (raft-final, 2026-10-29, U7: the design's §2.9; until then also a `MsgReadIndex`'s read
@@ -1945,6 +1965,9 @@ theorem api_msg (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (�
       rdCred γn.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0) -∗
       stTks γn.raft q.st ={E}=∗
       msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N γn.id q.st ∗ msgCredits γ N q.st := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro #Hci ⟨Ho, #Hraft, #Htlb⟩ Hcr Htk
   ihave #Hraft' : isRaftMsg γ.raft γn.id q.st $$ []
   · rw [← Hγr]; iexact Hraft
@@ -1954,6 +1977,7 @@ theorem api_msg (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (�
   unfold sentMsg msgCredits
   rw [← Hγr, ← Hγb]
   iframe Hci Htlb Hcr Htk Hraft Hsc
+  -/
 
 /-- The messages a `Ready` hands out, as the client sees them. -/
 theorem api_msgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (γn : NodeNames)
@@ -1983,15 +2007,6 @@ theorem api_msgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (
     iapply BigSepL.bigSepL_cons.2
     iframe H1 H
 
-theorem readyOut_cert (st : Storage) (es : List EntryM) (l : SnapLoan) :
-    readyOut (GF := GF) st es (some l) ⊢
-      readyOut st es (some l) ∗ storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) := by
-  simp only [readyOut]
-  iintro ⟨Hs, #Hc⟩
-  isplitl [Hs]
-  · iframe Hs Hc
-  · iexact Hc
-
 /-- **Receiving a `Ready`, opened**: the node's raft channel and driver token, and the update
 from what raft's receive gives to `readyPost`. -/
 theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
@@ -2003,6 +2018,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
             (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
             nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L) ={⊤}=∗
           readyPost n γ N id0 st rd) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro #Hrc #Hnode0 Hdrv
   iunfold nodeDriver at Hdrv
   icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩
@@ -2195,6 +2213,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     isplitr
     · ipureintro; rfl
     rw [← Hp', show l.dlv = dlvAfter ds [] (some l) from rfl]; iexact Hbusy
+  -/
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   intro n ch γ N id0 st Hh
@@ -2218,6 +2237,9 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms p p' L ∗
           nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L) -∗ Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hlc #Hrc Hdrv HΦ
   iunfold EtcdGrove.nodeDriverChan at Hdrv
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -2241,6 +2263,7 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
+  -/
 
 /-- **Receiving a `Ready` as a channel's receive** (the draft's `isReadyChan_recvAu`). -/
 theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
@@ -2827,6 +2850,9 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ⊢
     |==> stepIn γ N id ml := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hnet Hsnap _
   iintro ⟨#Hsent, Hm, Hcr⟩
   icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
@@ -2929,6 +2955,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     · iexact Htc
     · icases receipt_zero_of 1 $$ Htc with ⟨H0, -⟩
       iexact H0
+  -/
 
 end misc
 

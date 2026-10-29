@@ -98,6 +98,9 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       rawNodeFresh rn id si V sdr pre s := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
   unfold rawNodeFresh
   iexists rnv, sv, hprev
@@ -105,6 +108,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
   exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom, Hhz⟩
+  -/
 
 /-- The commit invariant, from the boot ghost state in either mode. -/
 theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)

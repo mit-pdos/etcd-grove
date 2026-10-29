@@ -212,6 +212,9 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs
   wp_start as H
   iNamed H
@@ -440,6 +443,7 @@ theorem raft.send.wp_proof
     · iapply tsSrc_ne; simp only [Hty1, HRI]; tyne
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1 Hsrc_eq; simp only [sendMsgs, absMsg, Hmterm]; rfl
+  -/
 
 end proof
 

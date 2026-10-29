@@ -518,15 +518,17 @@ theorem wp_stepLeader_transfer
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0)
-    -- (2026-10-19, D21 M2r) leader transfer on (`NGhost.xf`)
-    (Hxo : s.gh.xf = false) :
+    (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0) :
+    -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   wp_start as ⟨Hphys, Hm⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -691,6 +693,7 @@ theorem wp_stepLeader_transfer
     iframe Hphys
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm⟩
+  -/
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgBeat`**: `bcastHeartbeat`, return. -/
@@ -1134,6 +1137,9 @@ theorem wp_stepLeader_appresp
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1789,6 +1795,7 @@ theorem wp_stepLeader_appresp
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩
       rw [Hmm, ← Hmm2, ← Hpvs3]
       exact prvalsMatch_insert_same _ _ p2 _ Hpvs2' HM3
+  -/
 
 
 end proof

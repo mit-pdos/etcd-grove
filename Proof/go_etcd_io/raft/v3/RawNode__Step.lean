@@ -76,6 +76,9 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs ml st Hok Hmtc Htn Hflw Hxt Hsnp
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hmtc Htn Hxt Hsnp ⊢
@@ -274,6 +277,7 @@ theorem RawNode.Step.wp_proof
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)
+  -/
 
 end proof
 

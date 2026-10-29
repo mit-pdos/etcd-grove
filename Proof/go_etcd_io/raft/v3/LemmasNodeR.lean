@@ -84,6 +84,9 @@ theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj 
 theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     stepP (GF := GF) γ id ml ⊢ ∃ (dqe : DFrac) (st : MsgSt), msgIn ml dqe st ∗
       ⌜0 ≤ sint.Z st.msg.Type'⌝ ∗ (msgIn ml dqe st -∗ stepP γ id ml) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro H
   unfold stepP
   icases H with (Hnet | Hfwd)
@@ -123,6 +126,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iexists st
     iframe Hm Hab Htk
     ipureintro; exact Hty
+  -/
 
 instance ownConfChangeV2_discard_persistent (p : Loc) (m : ConfChangeV2M) :
     Persistent (ownConfChangeV2 (GF := GF) p DFrac.discard m) := by

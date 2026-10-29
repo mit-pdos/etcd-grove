@@ -102,6 +102,9 @@ private theorem node.Step.wp_raw
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     node.Step.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n m ctx cd
   wp_start as ⟨#Hnode, #Hctx, %Hnn, Hstep⟩
   -- (2026-10-29, stage U7) the receipt, at the `nil` check's comparison
@@ -142,6 +145,7 @@ private theorem node.Step.wp_raw
       iexact Herr
     · iapply HΦ
       iapply nodeErr_nil
+  -/
 
 end proof
 
@@ -160,6 +164,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Step_impl
     (hS : EtcdGrove.node.Step.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Step.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.Step.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.stepIn
   intro n γ N id ml ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hin⟩ HΦ
@@ -173,6 +180,7 @@ private theorem node.wp_Step_impl
     iapply Hin
     ipureintro; exact Hf
   iexact HΦ
+  -/
 
 end wrap
 

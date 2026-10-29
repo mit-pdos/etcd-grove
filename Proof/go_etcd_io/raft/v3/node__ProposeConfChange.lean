@@ -105,6 +105,9 @@ private theorem node.ProposeConfChange.wp_raw
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n c o dq ctx cd γc N HNo
   wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, Harg⟩
   wp_auto
@@ -144,6 +147,7 @@ private theorem node.ProposeConfChange.wp_raw
   iapply HΦ
   iframe Hc
   iexact Herr
+  -/
 
 end proof
 
@@ -162,6 +166,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ProposeConfChange_impl
     (hP : EtcdGrove.node.ProposeConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id c o dq ctx cd
@@ -193,6 +200,7 @@ private theorem node.wp_ProposeConfChange_impl
   iintro !> %err ⟨Hcc, #Herr⟩
   iapply HΦ
   iframe Hcc Herr
+  -/
 
 end wrap
 

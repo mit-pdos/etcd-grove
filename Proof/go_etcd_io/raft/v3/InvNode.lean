@@ -411,19 +411,35 @@ by a snapshot `Ready`). -/
 
 instance nodeAppliedLb_persistent (γ : Cluster) (id : w64) (k : Nat) :
     Persistent (nodeAppliedLb (GF := GF) γ id k) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold nodeAppliedLb; infer_instance
+  -/
 
 instance nodeAppliedLb_timeless (γ : Cluster) (id : w64) (k : Nat) :
     Timeless (nodeAppliedLb (GF := GF) γ id k) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold nodeAppliedLb; infer_instance
+  -/
 
 instance snapGiven_persistent (γ : Cluster) (id : w64) (k : Nat) :
     Persistent (snapGiven (GF := GF) γ id k) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold snapGiven; infer_instance
+  -/
 
 instance snapGiven_timeless (γ : Cluster) (id : w64) (k : Nat) :
     Timeless (snapGiven (GF := GF) γ id k) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold snapGiven; infer_instance
+  -/
 
 theorem nodeAppliedLb_zero (γ : Cluster) (id : w64) : ⊢ nodeAppliedLb (GF := GF) γ id 0 := by
   unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_zero γ id

@@ -96,6 +96,9 @@ theorem node.run.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_getStatus : getStatus.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n
   wp_start as ⟨#Hnode, Hpre⟩
   ihave #Hnode' := Hnode
@@ -1181,6 +1184,7 @@ theorem node.run.wp_proof
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 

@@ -116,11 +116,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `newRaft(c)`: see the file header. -/
+/-- `newRaft(c)`: see the file header. (raft-final phase 1, 2026-10-29: U8 v2 step 4's boot bundle,
+decision (B), `notes/u8v2/step4-boot-newLogWithSize.patch`) Over a fresh storage: a frame `R` with
+`FirstIndex` answering `1` and `LastIndex` `0` over it (`newLogWithSize` reads them before
+`InitialState`), and `InitialState` answering the hard state and conf state, after which the caller
+makes raft's view of the storage (`isStorageD sn ∗ ownStorage sn σ`, `σ` fresh) and gets back its
+frame `R'`; the API's `bootStorage` is this at the contract `isStorage γ id`. (Until then raft's view
+of a possibly non-empty storage as a premise, with an `InitialState` closure over `ownStorage`.) -/
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (sn : StorNames) (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF),
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF),
   -- the Config
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -129,53 +135,36 @@ abbrev newRaft.spec : Prop :=
   cv.DisableProposalForwarding' = false →
   -- `ReadOnlySafe` (2026-10-12): lease-based reads need bounded clock drift
   cv.ReadOnlyOption' = W64 0 →
-  -- conf-change validation on (2026-10-13): `stepLeader` refuses a conf change while one
-  -- is pending (as `ReadOnlyOption`, a scope premise: with validation off a leader may
-  -- append a second conf change before the first is applied)
+  -- conf-change validation on (2026-10-13)
   cv.DisableConfChangeValidation' = false →
-  -- a positive applying-size limit (2026-10-05): with both `MaxCommittedSizePerReady`
-  -- and `MaxSizePerMsg` zero -- `validate` accepts that, and the documentation reads
-  -- `MaxSizePerMsg = 0` as "at most one entry per message" -- the log starts with
-  -- `maxApplyingEntsSize = 0` and applying unpaused, and the first `Ready` with a
-  -- committed entry reaches `nextCommittedEnts`' `Panicf` (`maxSize <= 0`)
+  -- a positive applying-size limit (2026-10-05)
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  -- the stored log
-  LogIndicesOk σ.prev σ.ents →
-  -- (U8 v2) raft's view of it fresh: frozen only at the compaction point, no snapshot handed out,
-  -- no term certified (`newLogWithSize`'s); until U8 v2 the storage's own snapshot at most the
-  -- boundary (`σ.ss`)
-  σ.fr = uint.nat σ.prev.index' → σ.sg = 0 → σ.dt = ∅ →
-  -- nothing pending (2026-10-10)
-  σ.pend = [] →
-  -- the persisted HardState
-  (¬ HsEmpty hs →
-   uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
-     uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
-  (cv.Applied' = W64 0 ∨
-   uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
-     uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
+  -- (raft-final phase 1) nothing applied, an empty hard state
+  cv.Applied' = W64 0 →
+  HsEmpty hs →
+  -- the storage's view raft makes: fresh (empty, frozen only at the compaction point `0`, no
+  -- snapshot handed out, no term certified, the floor not raised)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
+  σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ → σ.fl = W64 0 →
   -- the persisted ConfState: voters only
-  -- (2026-10-16, stage R8b: no longer at least one voter -- a new cluster's conf state is empty,
-  -- and `ownRaftPhys ∅` is the result; `RawNode.Bootstrap` installs the peers)
   csm.Voters'.Nodup → W64 0 ∉ csm.Voters' → (csm.Voters'.length : Int) ≤ 2 ^ 62 →
   csm.VotersOutgoing' = [] →
   csm.Learners' = [] →
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
-  σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      -- (U8 v2) raft's view of its storage (`newLogWithSize`'s); until U8 v2 also the storage's
-      -- snapshot certified in its registry (`initKsnCert`)
-      isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
-      (∀ (Φ : val → IProp GF), ownStorage sn (interface.ok si) σ -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage sn (interface.ok si) σ -∗
-            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
+      -- (raft-final phase 1) the boot bundle (`bootStorage`'s shape)
+      (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
+         {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+      (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
+         {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+      (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
+         {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
+            hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) }}
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
-      R ∗ ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
+      R' ∗ ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
       -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
       c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧

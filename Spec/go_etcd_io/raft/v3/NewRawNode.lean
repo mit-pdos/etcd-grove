@@ -86,11 +86,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 -- (2026-10-26, raft's signature, stage 1) `rnInit` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- See the file header. -/
+/-- See the file header. (raft-final phase 1, 2026-10-29: over `newRaft`'s boot bundle, U8 v2 step 4's
+decision (B); until then raft's view of an empty storage with an `InitialState` closure.) -/
 abbrev NewRawNode.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF),
+    (sn : StorNames) (σ : StorState)
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF),
   -- the Config, as for `newRaft`
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -106,11 +107,9 @@ abbrev NewRawNode.spec : Prop :=
   cv.AsyncStorageWrites' = false →
   -- (2026-10-17) pre-vote either way (2026-10-10 to 2026-10-17: off, `cv.PreVote' = false`)
   cv.Applied' = W64 0 →
-  -- an empty storage: no entries, no `HardState`
-  σ.prev = entryID.mk (W64 0) (W64 0) →
-  σ.ents = [] →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] →
+  -- an empty storage: no entries, no `HardState` (raft's view of it fresh, `newRaft`'s)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
+  σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ →
   HsEmpty hs →
   -- the persisted ConfState: voters only (2026-10-16, stage R5: the record `csm`, as
   -- `newRaft`'s; until then the Goose value `cs` and the list `voters` its slice held);
@@ -123,20 +122,20 @@ abbrev NewRawNode.spec : Prop :=
   csm.AutoLeave' = false →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorageD (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
-      -- `hsOpt hp hs` and the conf state read-only for good (stage R6b: its `AutoLeave` cell set
-      -- or not, `al`), `ownStorage` back at once
-      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
+      -- (raft-final phase 1) `newRaft`'s boot bundle
+      (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
+         {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+      (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
+         {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+      (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
+         {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
+            hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       -- (D17d, 2026-10-18) what the `InitialState` premise's caller gets back
-      R ∗
+      R' ∗
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
         rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' cv.PreVote' s ∗

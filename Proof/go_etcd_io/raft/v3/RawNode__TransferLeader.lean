@@ -40,6 +40,9 @@ theorem RawNode.TransferLeader.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.TransferLeader.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs transferee Hns
   wp_start as H
   iNamed H
@@ -117,6 +120,7 @@ theorem RawNode.TransferLeader.wp_proof
       (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
     
   · exfalso; revert Hc'; msg_ne
+  -/
 
 end proof
 

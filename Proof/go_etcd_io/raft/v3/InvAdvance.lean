@@ -42,6 +42,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     (L : Option SnapLoan) (x : Nat × CCState) :
     ⊢ dlvLb (GF := GF) γ ds -∗ advDep γ rn id -∗ advanceP γ L x ==∗
       advRet γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro #Hlb Hdep HP
   iunfold advDep at Hdep
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
@@ -205,6 +208,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       · itrivial
       iframe Hpay Hcl
       ipureintro; exact Hns
+  -/
 
 /-- **`run`'s receive on `advancec`**, with its node at the rendezvous (`advDep`): back with
 the node after it (`advRet`). -/

@@ -46,6 +46,9 @@ theorem RawNode.Propose.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Propose.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ rn id rs data_sl data
   wp_start as H
   iNamed H
@@ -179,6 +182,7 @@ theorem RawNode.Propose.wp_proof
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd
+  -/
 
 end proof
 

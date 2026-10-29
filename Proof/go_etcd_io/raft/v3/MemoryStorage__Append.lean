@@ -97,6 +97,9 @@ theorem MemoryStorage.Append.wp_proof
     (wp_MemoryStorage_firstIndex : MemoryStorage.firstIndex.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro ms γs k old es s dq Hidx Hlen
   wp_start as ⟨#Hlock, Hold, Hend, Hs⟩
   iunfold entsPts at Hs
@@ -339,6 +342,7 @@ theorem MemoryStorage.Append.wp_proof
     have h2 : se.len ≠ e0.Index' - p.index' := fun h => Hif (by simp [h])
     have h3 : uint.Z se.len ≠ uint.Z (e0.Index' - p.index') := fun h => h2 (uint_Z_inj.1 h)
     word
+  -/
 
 end proof
 

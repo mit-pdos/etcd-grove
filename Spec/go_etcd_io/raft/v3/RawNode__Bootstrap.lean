@@ -69,12 +69,10 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       -- this node's ghost state at the bootstrap state in the mode `md` (2026-10-25, T-M M2a;
       -- until then static), and the committed boot log
       bootInit γ md id (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
-      -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode, a storage that never compacts
-      -- past index `1`
-      NsCap γ.reNoSnap (interface.ok si) ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
-      -- no-snapshot mode)
-      certLink γ (interface.ok si) }}
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1, over
+      -- the node's storage names, U8 v2; until then also, D21 M3, the no-snapshot mode's storage cap
+      -- `NsCap`)
+      certLink γ s.gh.sn }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Bootstrap")) (Val #peers))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗

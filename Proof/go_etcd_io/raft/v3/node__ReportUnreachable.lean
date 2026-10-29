@@ -71,6 +71,9 @@ by `msgIn_of_scalar_struct`; `MsgUnreachable.Enum()` is a new callee.) -/
 private theorem node.ReportUnreachable.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReportUnreachable.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n to
   wp_start as #Hnode
   ihave #Hnode' := Hnode
@@ -128,6 +131,7 @@ private theorem node.ReportUnreachable.wp_raw
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 

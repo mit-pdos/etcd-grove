@@ -72,6 +72,9 @@ built into `msgIn` by `msgIn_of_scalar_struct`; `MsgSnapStatus.Enum()` is a new 
 private theorem node.ReportSnapshot.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReportSnapshot.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n to st
   wp_start as #Hnode
   ihave #Hnode' := Hnode
@@ -131,6 +134,7 @@ private theorem node.ReportSnapshot.wp_raw
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+  -/
 
 end proof
 

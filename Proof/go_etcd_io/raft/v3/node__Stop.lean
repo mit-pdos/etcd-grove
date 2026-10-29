@@ -111,6 +111,9 @@ needed). -/
 private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
   intro n γ N id
   iintro %Φ ⟨#Hinit, -, Hlive⟩ HΦ
@@ -126,6 +129,7 @@ private theorem node.wp_Stop_impl
   isplitr
   · ipureintro; exact Hok.1
   iright; iexact Htb
+  -/
 
 end wrap
 

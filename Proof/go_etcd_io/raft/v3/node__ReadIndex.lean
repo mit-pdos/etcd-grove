@@ -84,6 +84,9 @@ private theorem node.ReadIndex.wp_raw
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReadIndex.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n rctx c Lc ctx cd
   wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, Hcred⟩
   wp_auto
@@ -178,6 +181,7 @@ private theorem node.ReadIndex.wp_raw
   wp_auto
   iapply HΦ
   iframe Herr
+  -/
 
 end proof
 
@@ -196,6 +200,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ReadIndex_impl
     (hR : EtcdGrove.node.ReadIndex.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx EtcdGrove.readCredit
   intro n γ N id rctx c Q ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, Hcred⟩ HΦ
@@ -212,6 +219,7 @@ private theorem node.wp_ReadIndex_impl
   iintro !> %err #Herr
   iapply HΦ
   iexact Herr
+  -/
 
 end wrap
 

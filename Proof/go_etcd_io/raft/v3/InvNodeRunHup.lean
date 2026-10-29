@@ -52,6 +52,9 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     {{ (err : GoInterface) (t : w64), RET #err;
         ownRawNode γ rn id { rs with term := t } ∗
         ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   subst Hst
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hm, Hlc1⟩ HΦ
   unfold hupSt
@@ -111,6 +114,7 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   ipureintro
   rw [Htrm]
   exact ⟨Ht1, Ht2'⟩
+  -/
 
 end proof
 

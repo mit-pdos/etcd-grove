@@ -37,6 +37,9 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
@@ -572,6 +575,7 @@ theorem RawNode.Bootstrap.wp_proof
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
   · iexact Hpeers
+  -/
 
 end proof
 

@@ -268,6 +268,9 @@ private theorem node.ApplyConfChange.wp_raw
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG)) :
     node.ApplyConfChange.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n c o ds ca cfg k e cs' M Hshr Hdyn
   wp_start as ⟨#Hnode, Hc, HR⟩
   ihave #Hnode' := Hnode
@@ -293,6 +296,7 @@ private theorem node.ApplyConfChange.wp_raw
     wp_apply +noauto wp_ConfChangeV2_AsV2
     -- the payload, by the mode; the driver keeps the answer slot's other half
     apply_cc_send
+  -/
 
 end proof
 
@@ -315,6 +319,9 @@ node's decoder gives the change at `k` and rejects the entries before it (`DynCC
 private theorem node.wp_ApplyConfChange_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.ApplyConfChange.spec EtcdGrove.Cluster EtcdGrove.Membership.applyChange
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig EtcdGrove.nodeStopped
@@ -417,6 +424,7 @@ private theorem node.wp_ApplyConfChange_impl
   have := confStateIs_of_ok cs _ Hok
   rw [stOf_cfg, memOf_cfgOf] at this
   exact this
+  -/
 
 end wrap
 

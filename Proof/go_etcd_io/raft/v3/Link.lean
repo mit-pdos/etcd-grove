@@ -275,7 +275,6 @@ public import Proof.go_etcd_io.raft.v3.readOnly__maybeAdvance
 public import Proof.go_etcd_io.raft.v3.readOnly__recvAck
 public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
-public import Proof.go_etcd_io.raft.v3.setupNode
 public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
@@ -421,8 +420,12 @@ theorem MemoryStorage.wp_firstIndex [AllG GF] [StorageModel GF] :
   MemoryStorage.firstIndex.wp_proof raftpb.Entry.wp_GetIndex
 
 theorem MemoryStorage.wp_Append :
-    MemoryStorage.Append.spec (GF := GF) (hG := hG) :=
+    MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+
   MemoryStorage.Append.wp_proof MemoryStorage.wp_firstIndex raftpb.Entry.wp_GetIndex
+  -/
 
 theorem raftpb.wp_EnsureConfState :
     raftpb.EnsureConfState.spec (GF := GF) (hG := hG) :=
@@ -477,12 +480,20 @@ theorem wp_limitSize [StorageModel GF] :
   limitSize.wp_proof proto.wp_SizeEntry
 
 theorem MemoryStorage.wp_Entries :
-    MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
+    MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+
   MemoryStorage.Entries.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex wp_limitSize
+  -/
 
 theorem MemoryStorage.wp_FirstIndex :
-    MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
+    MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+
   MemoryStorage.FirstIndex.wp_proof MemoryStorage.wp_firstIndex
+  -/
 
 theorem raftpb.SnapshotMetadata.wp_GetConfState :
     raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG) :=
@@ -1678,10 +1689,6 @@ theorem node.wp_Tick [StorageModel GF] :
 theorem node.wp_TransferLeadership [StorageModel GF] :
     node.TransferLeadership.spec (GF := GF) (hG := hG) :=
   node.TransferLeadership.wp_proof raftpb.MessageType.wp_Enum
-
-theorem wp_setupNode [StorageModel GF] :
-    setupNode.spec (GF := GF) (hG := hG) :=
-  setupNode.wp_proof wp_NewRawNode RawNode.wp_Bootstrap wp_newNode
 
 end links_hasLC
 

@@ -29,6 +29,9 @@ theorem raft.sendTimeoutNow.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendTimeoutNow.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro c r id s to Hto Hxo Htz
   wp_start as Hphys
   wp_auto
@@ -53,6 +56,7 @@ theorem raft.sendTimeoutNow.wp_proof
   ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
   iapply HΦ
   iexact Hphys
+  -/
 
 end proof
 

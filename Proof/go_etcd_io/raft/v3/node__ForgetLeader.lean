@@ -71,6 +71,9 @@ private theorem node.ForgetLeader.wp_raw
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ForgetLeader.specRaw (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro γ id n ctx cd
   wp_start as ⟨#Hnode, #Hctx⟩
   wp_auto
@@ -98,6 +101,7 @@ private theorem node.ForgetLeader.wp_raw
   wp_auto
   iapply HΦ
   iexact Herr
+  -/
 
 end proof
 
@@ -116,6 +120,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ForgetLeader_impl
     (hS : EtcdGrove.node.ForgetLeader.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ForgetLeader.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   unfold EtcdGrove.node.ForgetLeader.spec EtcdGrove.Cluster EtcdGrove.isNode
   intro n γ N id ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
@@ -124,6 +131,7 @@ private theorem node.wp_ForgetLeader_impl
   iapply (hS γn id n ctx cd) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
+  -/
 
 end wrap
 
