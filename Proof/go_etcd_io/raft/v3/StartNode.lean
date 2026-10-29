@@ -160,6 +160,8 @@ private abbrev StartNode.specRaw : Prop :=
         -- (D43 M3, 2026-10-25) the mode is static exactly when the names are (`ownRawNode_mode`)
         ⌜md = .static ↔ γ.reDyn = none⌝ ∗
         isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
+        -- (2026-10-29, stage U9a) the client's half of `live`, for `Stop`
+        nodeLiveRaw γn 1 ∗
         -- the driver's view of the configuration: the peers'
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the peers' slice, read only
@@ -213,6 +215,9 @@ private theorem StartNode.wp_raw
   -- (D19i part 1) the driver's request on `advancec`
   imod dghostVar_alloc (((none, none) : AdvReq)) with ⟨%γreq, Hreq⟩
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
+  -- (2026-10-29, stage U9a) whether the node is stopped: the client's half and `run`'s
+  imod dghostVar_alloc false with ⟨%γlive, Hlive⟩
+  icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
     #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
@@ -220,16 +225,20 @@ private theorem StartNode.wp_raw
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
                           mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
-                          snapIn := sn }
+                          snapIn := sn, live := γlive }
+  ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1]
+  · unfold nodeLiveRaw; iexact Hlive1
+  ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2]
+  · unfold nodeLiveRaw; iexact Hlive2
   imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
   imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
   imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
   imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
   imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
-  imod start_handshake nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) γd $$ Hcd Hod
-    with #Hhd
-  imod start_handshake nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) γs $$ Hcs Hos
+  imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
+  icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
+  imod start_handshake nv.stop' (fun (_ : Unit) => nodeLiveRaw γn 1) iprop(True) γs $$ Hcs Hos
     with #Hhs
   imod start_handshake nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) γst
     $$ Hcst Host with #Hhst
@@ -249,8 +258,8 @@ private theorem StartNode.wp_raw
     iframe #
     ipureintro; rfl
   -- `go n.run()`
-  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
-  · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
+  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1]
+  · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1]
     · iframe Hnode
       unfold runPre
       iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
@@ -260,6 +269,7 @@ private theorem StartNode.wp_raw
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl⟩
       iframe Hdlv1 Hlb1
+      iframe Hpend Hlive1
       unfold runCfg
       isplitr
       · ipureintro
@@ -279,7 +289,7 @@ private theorem StartNode.wp_raw
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · ipureintro; exact Hmd
-  iframe Hnode Hpeers
+  iframe Hnode Hpeers Hlive2
   isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriverChan dlvLb
     iframe Hnode Hdlv2 Hdlb
@@ -326,7 +336,7 @@ private theorem wp_StartNode_impl
     isplitr
     · unfold NsCap; imodintro; iintro %h; rw [Hns] at h; cases h
     · unfold certLink; iright; iexact Hok'
-  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hcfg, -⟩
+  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hlive, Hcfg, -⟩
   obtain ⟨Hγr, Hγb, Hγs, Hmd, Hsn, Hnd'⟩ := Hf
   have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, by rw [Hmd, Hγm, RNMode.all_self], .inl Hsn⟩
   iapply HΦ
@@ -360,6 +370,7 @@ private theorem wp_StartNode_dynamic_impl
     (hS : EtcdGrove.StartNode.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.StartNode.dynamicSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.dynamicSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeConfig EtcdGrove.nodeDriver EtcdGrove.nodeDynamicBoot
+    EtcdGrove.nodeRunning
   intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
     Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hcap⟩ HΦ
@@ -380,7 +391,7 @@ private theorem wp_StartNode_dynamic_impl
     isplitr
     · unfold NsCap; imodintro; iintro -; iexact Hcap
     · unfold certLink; ileft; ipureintro; exact Hns
-  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hcf, -⟩
+  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hlive, Hcf, -⟩
   obtain ⟨Hγr, Hγb, Hγs, Hmd, -, Hnd'⟩ := Hf
   have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, Hmd, .inr Hns⟩
   have Hdy := Hdn.isDyn Hnok
@@ -417,15 +428,21 @@ private theorem wp_StartNode_dynamic_impl
     isplitr
     · ipureintro; rfl
     iexact Hdrv
-  unfold nodeConfig
+  isplitl [Hcf]
+  · unfold nodeConfig
+    iexists γn, cv.ID'
+    iframe Hnode Htb
+    isplitr
+    · ipureintro
+      refine ⟨Hnok, Hdy, ?_⟩
+      show CCGood (stOf (Membership.simple (GMap.listToSet ps)))
+      rw [stOf_simple]; exact ccGood_cfgState _
+    rw [stOf_simple]; iexact Hcf
+  -- (2026-10-29, stage U9a) the node runs
+  unfold nodeRunning
   iexists γn, cv.ID'
-  iframe Hnode Htb
-  isplitr
-  · ipureintro
-    refine ⟨Hnok, Hdy, ?_⟩
-    show CCGood (stOf (Membership.simple (GMap.listToSet ps)))
-    rw [stOf_simple]; exact ccGood_cfgState _
-  rw [stOf_simple]; iexact Hcf
+  iframe Hnode Htb Hlive
+  ipureintro; exact ⟨Hnok, Hdy⟩
 
 end wrap
 

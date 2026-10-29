@@ -16,6 +16,10 @@ theorem NoConfIn.confCount {l : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi
 theorem RInv.leader_drop_cidx {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r) (hl :
     r.p.role = Role.leader) : confCount (List.drop r.cidx r.full) ≤ 1
 
+theorem propConf_leave (joint : Bool) {applied li pci : w64} {ents : List EntryM} {cs : List (Option
+    ConfChangeIM)} (hcs : CCTypesOk ents cs) (hlv : CCLeaveOk ents cs) (y : EntryM) : y ∈ (propConf
+    applied li pci ents cs joint).fst → y.Data' = [] → y.Type' = W32 2 → joint = true
+
 theorem NoConfIn.mono {l : List EntryM} {lo hi lo' hi' : Nat} (h : NoConfIn l lo hi) (h1 : lo ≤ lo')
     (h2 : hi' ≤ hi) : NoConfIn l lo' hi'
 
@@ -159,6 +163,14 @@ theorem RInv_heartbeat {dec : CCDec} {c0 : CCState} {r : RState} (src cm : w64) 
 theorem confCount_drop_zero {l : List EntryM} {a : Nat} (h : ∀ (k : Nat) (e : EntryM), l[k]? = some
     e → IsConfEnt e → k < a) : confCount (List.drop a l) = 0
 
+theorem RInv_propose_ev2 {dec : CCDec} {c0 : CCState} {r : RState} {m : Msg} {cs : List (Option
+    ConfChangeIM)} (H : RInv dec c0 r) (hrole : r.p.role = Role.leader) (hcs : CCTypesOk m.entries
+    cs) (hlv : CCLeaveOk m.entries cs) (hnw : plogLastIndexZ r.p.base r.p.log + ↑m.entries.length <
+    2 ^ 64) (k : Nat) (x : EntryM) (hk : (List.mapIdx (stamp r.p.term (plastIndex r.p)) (propBatch r
+    m.entries cs).fst)[k]? = some x) (hx : x.Data' = [] ∧ x.Type' = W32 2) : r.cfg.cfg.joint = true
+    ∧ cfgFold dec c0 (r.full ++ List.take k (List.mapIdx (stamp r.p.term (plastIndex r.p))
+    (propBatch r m.entries cs).fst)) = some r.cfg
+
 theorem preadRespondAll_fields (id : w64) (s : PState) (qs : List ReadReq) : (preadRespondAll id s
     qs).base = s.base ∧ (preadRespondAll id s qs).log = s.log ∧ (preadRespondAll id s qs).commit =
     s.commit ∧ (preadRespondAll id s qs).role = s.role
@@ -174,6 +186,14 @@ theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List EntryM} 
     ↑ents.length < 2 ^ 64) : PCInv applied li pci (propConf applied li pci ents cs joint)
 
 theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') : ConfI1 l c'
+
+theorem propConf_foldl_leave (joint : Bool) {applied li : w64} (xs : List (EntryM × Option
+    ConfChangeIM)) (hx : ∀ (x : EntryM × Option ConfChangeIM), x ∈ xs → x.snd.isSome = decide
+    (IsConfEnt x.fst)) (hl : ∀ (x : EntryM × Option ConfChangeIM), x ∈ xs → x.fst.Data' = [] →
+    x.fst.Type' = W32 2 → ∀ (c : ConfChangeIM), x.snd = some c → ccWantsLeave c = true) (acc : List
+    EntryM × w64) : (∀ (y : EntryM), y ∈ acc.fst → y.Data' = [] → y.Type' = W32 2 → joint = true) →
+    ∀ (y : EntryM), y ∈ (List.foldl (propConfStep joint applied li) acc xs).fst → y.Data' = [] →
+    y.Type' = W32 2 → joint = true
 
 def PCInv (applied li pci : w64) (acc : List EntryM × w64) : Prop :=
   uint.Z pci ≤ uint.Z acc.snd ∧

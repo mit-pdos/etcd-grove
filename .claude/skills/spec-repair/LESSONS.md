@@ -102,3 +102,18 @@ mind) missed one (`fmt.argsOk` in `New`); the fresh reviewer found it by reading
 [...]` and positional `icases` of a package fact in the callers' proofs, filtered by the defining
 module), not from memory; and a package's proof-only definitions (a loop invariant) go in a module
 only that proof imports, not the package's public `Defs`.
+
+## 2026-10-29, raft's `node.Propose` (unified node API, candidates 4-12; `notes/spec-first-study/raft-propose-dup-spec.md`)
+
+Review 3 found that a client whose network duplicates a forwarded `MsgProp` cannot pay for the copy;
+the fix adopted, a client-owned proposal registry (`ownProposals`/`proposalReg`) with `Propose` taking a
+registration, was reported to the user only as one bullet of a round's summary, and stayed through the
+freeze. The user, on finding it: the ghost state is unnecessary, `lean`'s `Propose` (one atomic update)
+is better, and a duplicating client should instead make the credit raft hands back for the message
+persistent, by giving persistent updates when it proposes (`propCredit γ P := if γ.dup then □ P else P`,
+the client choosing `dup` at allocation; the case split explicitly permitted, kept local). Rules: (1) a
+new premise, or new client-owned ghost state, on a spec that already has clients is a decision for the
+user, presented as such (the old and new statement side by side), not a line in a review summary; (2)
+when only some clients need a resource the library hands back to be duplicable, let the client choose
+its persistence where it gives it (a persistent update in, a persistent credit out) instead of adding
+identification state that every client threads.

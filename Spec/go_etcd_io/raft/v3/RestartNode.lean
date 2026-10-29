@@ -110,7 +110,9 @@ abbrev RestartNode.unifiedSpec : Prop :=
   {{ (nd : GoInterface), RET #nd;
       ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
-        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ }}
+        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩∗
+        -- (2026-10-29, stage U9a) the node runs (`node.Stop` takes it whole)
+        nodeRunning n γ N 1 }}
 
 end spec
 

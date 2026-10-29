@@ -99,45 +99,6 @@ theorem effDec_base (dec : CCDec) (M : DecMap) : DecLe dec (effDec dec M) := by
 theorem reDyn_of {γ : RaftNames} {D : DynCfg} (HD : γ.dyn = some D) : γ.reDyn ≠ none := by
   intro h; rw [RaftNames.dyn_none h] at HD; cases HD
 
-/-- `full_take_eq`'s pure core: two full logs whose records agree (`RecsAgree`) and that have
-the same term at `c` have the same first `c` entries. -/
-theorem full_take_eq_pure (F1 F2 : List EntryM) (c : w64) (Hw1 : PlogWf base0 F1)
-    (Hw2 : PlogWf base0 F2) (HRA : RecsAgree base0 F1 base0 F2)
-    (Hs : (plogTermAt base0 F1 c).isSome) (Heq : plogTermAt base0 F1 c = plogTermAt base0 F2 c) :
-    F1.take (uint.Z c).toNat = F2.take (uint.Z c).toNat := by
-  have Hm : ∀ j : w64, uint.Z j ≤ uint.Z c → plogTermAt base0 F1 j = plogTermAt base0 F2 j := by
-    intro j Hj
-    have := uint_Z_nonneg j
-    exact plog_match_down _ _ _ _ c (PlogWf_wfR _ _ Hw1) (PlogWf_wfR _ _ Hw2) HRA Hs Heq j
-      (by rw [base0_index]; omega) (by rw [base0_index]; omega) Hj
-  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
-  have Hc1 := (plogTermAt_some_range _ _ _ _ Hx).2
-  rw [Heq] at Hx
-  have Hc2 := (plogTermAt_some_range _ _ _ _ Hx).2
-  unfold plogLastIndexZ at Hc1 Hc2; rw [base0_index] at Hc1 Hc2
-  apply List.ext_getElem?
-  intro k
-  rw [List.getElem?_take, List.getElem?_take]
-  by_cases Hk : k < (uint.Z c).toNat
-  · simp only [Hk, ite_true]
-    obtain ⟨e1, He1⟩ : ∃ e, F1[k]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    obtain ⟨e2, He2⟩ : ∃ e, F2[k]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    rw [He1, He2]
-    have Hi1 := Hw1 _ _ He1
-    have Hi2 := Hw2 _ _ He2
-    rw [base0_index] at Hi1 Hi2
-    have := uint_Z_lt c
-    have HW : uint.Z (W64 ((k : Int) + 1)) = (k : Int) + 1 :=
-      uint_Z_W64 _ (by omega) (by omega)
-    have Ht := Hm (W64 ((k : Int) + 1)) (by rw [HW]; omega)
-    rw [plogTermAt_lookup _ _ _ k e1 He1 (by rw [HW, base0_index]; push_cast; omega),
-      plogTermAt_lookup _ _ _ k e2 He2 (by rw [HW, base0_index]; push_cast; omega)] at Ht
-    simp only [Option.some.injEq] at Ht
-    obtain ⟨H, -⟩ := HRA k k e1 e2 He1 He2 (by rw [base0_index]; omega)
-      (by rw [base0_index]; omega) Ht (uint_Z_inj.mp (by omega))
-    rw [H]
-  · simp only [Hk, ite_false]
-
 /-- What an `MsgApp` tells its receiver for I1 (`AppKnow`), from the sender's log `fp ++ l` the
 message knows (its previous term, the batch in it, I1 at `Commit`) and log matching with the
 receiver's full log (their records agree). -/
@@ -850,7 +811,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     iintro %_
     dsimp only [psendMsgs, pbecomeCandidate, RState.full]
     iexact HcK
-  | propose m r cs h1 h2 h3 h4 =>
+  | propose m r cs h1 h2 h3 h4 h5 =>
     iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
     iapply fupd_frame_left
     iframe Hregs
@@ -868,14 +829,34 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     iunfold msgTks at Htk
     rw [if_pos h1]
     ihave Htk' := entTk_propRepl γ _ _ hrep $$ Htk
+    -- (2026-10-29, stage U5) an empty `ConfChangeV2` of the batch at the joint configuration
+    ihave #Hev : □ (∀ (fp' : List EntryM) (k : Nat) (x : EntryM),
+        ⌜FullOk r.p.base fp' ∧
+          ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p)))[k]? = some x ∧
+          γ.reDyn ≠ none ∧ IsEmptyV2 x⌝ -∗
+        logRecs γ base0 fp' -∗
+        ∃ (M' : DecMap) (c : CfgM), decLb γ M' ∗
+          ⌜CfgAt γ M' ((fp' ++ r.p.log) ++
+            ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))).take k) c ∧
+            c.joint = true⌝) $$ []
+    · imodintro
+      iintro %fp' %k %x %Hc #Hfr'
+      obtain ⟨Hf', Hk, -, Hx⟩ := Hc
+      icases FullOk_unique γ r.p.base fp' r.fp Hf' HI.full $$ Hfr' Hfr with %Heq
+      subst Heq
+      have Hj := RInv_propose_ev2 HI h2 h3 h5 (by omega) k x Hk Hx
+      iexists M, r.cfg.cfg
+      iframe HM
+      ipureintro
+      exact ⟨cfgAt_of_fold HD Hj.2, Hj.1⟩
     imod ownRaftGhost_step_propose γ id r.p (propBatch r m.entries cs).1
       (B.toNat - γ.reBoot.length) h2 (by rw [hrep.length]; omega) (by rw [hrep.length]; omega)
-      $$ Hrc Hed' Htk' Hg with Hg
+      $$ Hrc Hed' Htk' Hev Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.propose m r cs h1 h2 h3 h4) HB (noApp1 (by rw [h1]; decide)) HI)
+    · ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.propose m r cs h1 h2 h3 h4 h5) HB (noApp1 (by rw [h1]; decide)) HI)
     iintro %h
     exfalso
     revert h

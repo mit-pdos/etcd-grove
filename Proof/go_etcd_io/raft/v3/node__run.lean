@@ -98,7 +98,7 @@ theorem node.run.wp_proof
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold runPre
-  icases Hpre with ⟨%nv0, %rs, %x, #Hn0, Hrn, %Hrs, Hdlv, Hr1, Hr2, #Hlb, Hcfg⟩
+  icases Hpre with ⟨%nv0, %rs, %x, #Hn0, Hrn, %Hrs, Hdlv, Hr1, Hr2, #Hlb, Hcfg, Hpend, Hlive⟩
   icombine Hn Hn0 gives %Heq
   subst Heq
   -- (D22 S-d4) nothing queued, so nothing lent
@@ -304,7 +304,7 @@ theorem node.run.wp_proof
       · simp only [↓reduceIte]
         itrivial
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists nv.propc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -331,7 +331,7 @@ theorem node.run.wp_proof
       rotate_left
       · exact absurd rfl Hif
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists nv.propc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -387,7 +387,7 @@ theorem node.run.wp_proof
     -- filtered out: `break`
     all_goals try (
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists pc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -424,7 +424,7 @@ theorem node.run.wp_proof
         (fun h => Hpvb.2 (of_decide_eq_true h)) $$ Hrest Hlbtb
       try wp_auto
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists pc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -519,7 +519,7 @@ theorem node.run.wp_proof
         iintro -
         wp_auto
         wp_for_post
-        iframe HΦ n r
+        iframe HΦ n r Hpend Hlive
         iexists pc', rc', ac, rdv', ld'
         iframe propc readyc advancec rd lead
         isplitr
@@ -534,8 +534,8 @@ theorem node.run.wp_proof
         isplitr
         · ipureintro; rfl
         isplitr
-        · iapply isHandshake_isChan $$ Hdone
-        iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+        · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+        iapply node_done_recv_live_au γ nv.done' 1 _ $$ Hlive Hdone
       iapply BigAndL.bigAndL_nil.2
       itrivial
     -- (2026-10-15, stage N) the dynamic mode: the next committed conf entry's change
@@ -717,7 +717,7 @@ theorem node.run.wp_proof
       iintro -
       wp_auto
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists pc'', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -732,8 +732,8 @@ theorem node.run.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      iapply node_done_recv_live_au γ nv.done' 1 _ $$ Hlive Hdone
     iapply BigAndL.bigAndL_nil.2
     itrivial
   -- `<-n.tickc`
@@ -764,7 +764,7 @@ theorem node.run.wp_proof
     iNamed H
     ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
     wp_for_post
-    iframe HΦ n r
+    iframe HΦ n r Hpend Hlive
     iexists pc', rc', ac, rdv', ld'
     iframe propc readyc advancec rd lead
     isplitr
@@ -952,7 +952,7 @@ theorem node.run.wp_proof
     wp_auto
     ihave Hrn := Hrnback $$ Hrnown
     wp_for_post
-    iframe HΦ n r
+    iframe HΦ n r Hpend Hlive
     iexists pc', chan.nil, nv.advancec', rdv', ld'
     iframe propc readyc advancec rd lead
     isplitr
@@ -1007,8 +1007,8 @@ theorem node.run.wp_proof
     wp_auto
     -- (2026-10-15, stage N) A1, from the driver's; (2026-10-28, stage U3d) dynamically after a
     -- snapshot `Ready`, its `ConfState` no auto-leave one (the driver's, `advanceP`)
-    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb HA with ⟨#HA1, %Hal1, Hcfg⟩
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 Hal1
+    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb HA with ⟨#HA1, Hcfg⟩
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1
       $$ [$Hrn $Hlr $HA1] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
@@ -1022,7 +1022,7 @@ theorem node.run.wp_proof
       | some l => simp [advRS, rsDlv, hs]
     obtain ⟨Ha1, Ha2, Ha3, Ha4, Ha5, Ha6, Ha7⟩ := Hadv
     wp_for_post
-    iframe HΦ n r
+    iframe HΦ n r Hpend Hlive
     iexists pc', chan.nil, chan.nil, zero_val Ready, ld'
     iframe propc readyc advancec rd lead
     isplitr
@@ -1056,7 +1056,8 @@ theorem node.run.wp_proof
     isplitr
     · iapply isHandshake_isChan $$ Hstatus
     iapply handshake_false_recv_au γ.status nv.status' $$ [$Hlc1 $Hlc2] Hstatus
-  -- `<-n.stop`: never
+  -- `<-n.stop` (2026-10-29, stage U9a): the client's half of `live`; the node stopped,
+  -- `close(n.done)` and return
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -1066,7 +1067,21 @@ theorem node.run.wp_proof
     · ipureintro; rfl
     isplitr
     · iapply isHandshake_isChan $$ Hstop
-    iapply handshake_false_recv_au γ.stop nv.stop' $$ [$Hlc1 $Hlc2] Hstop
+    iapply handshake_receive_au γ.stop nv.stop' _ iprop(True) _ $$ [$Hlc1 $Hlc2] Hstop []
+    · itrivial
+    inext
+    iintro %v Hcl
+    unfold nodeLiveRaw
+    imod dghostVar_update_halves true _ _ _ $$ Hlive Hcl with ⟨Hl1, -⟩
+    imod dghostVar_persist _ _ _ $$ Hl1 with #Hst
+    wp_auto
+    wp_apply wp_broadcast_chan_close nv.done' γ.done (nodeStoppedRaw γ) $$ [$Hpend]
+    · unfold nodeStoppedRaw; iexact Hst
+    iintro -
+    wp_auto
+    wp_for_post
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

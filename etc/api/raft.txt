@@ -40,7 +40,10 @@ importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance
 importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-# (2026-10-28) `node__ForgetLeader` is not importable: its spec is still over raft's internals (`isNodeChan`)
+# (2026-10-29, stage U9a) `node__ForgetLeader` over the node API (until then over raft's internals,
+# `isNodeChan`, and not importable); `node__Stop`
+importable Spec.go_etcd_io.raft.v3.node__ForgetLeader
+importable Spec.go_etcd_io.raft.v3.node__Stop
 importable Spec.go_etcd_io.raft.v3.node__Propose
 importable Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 importable Spec.go_etcd_io.raft.v3.node__ReadIndex

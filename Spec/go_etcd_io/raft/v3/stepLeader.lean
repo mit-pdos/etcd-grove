@@ -154,7 +154,7 @@ R4) What is appended is `appendEntry`'s clones of the loop's batch, which hold t
 (D6). -/
 def LeaderProposeResult (id : w64) (s : NState) (ents : List EntryM)
     (dropped : Bool) (s' : NState) (joint : Bool := false) : Prop :=
-  ∃ cs : List (Option ConfChangeIM), CCTypesOk ents cs ∧
+  ∃ cs : List (Option ConfChangeIM), CCTypesOk ents cs ∧ CCLeaveOk ents cs ∧
   if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs joint).2 }
   else ∃ (ms : List Msg) (pvs : GMap w64 Progress),
     s' = { sendMsgs (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }

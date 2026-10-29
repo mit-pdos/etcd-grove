@@ -186,7 +186,7 @@ theorem LeaderStepResultC.not_precand {c : CfgM} {id : w64} {s : NState} {m : Me
   intro hpc
   unfold LeaderStepResultC at H
   split at H
-  · obtain ⟨cs, -, H⟩ := H
+  · obtain ⟨cs, -, -, H⟩ := H
     split at H
     · rcases H with rfl | rfl <;> simp_all
     · obtain ⟨ms, pvs, rfl, -, -⟩ := H

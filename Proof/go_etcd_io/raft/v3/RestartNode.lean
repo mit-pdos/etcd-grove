@@ -132,6 +132,8 @@ private abbrev RestartNode.specRaw : Prop :=
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
          γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
+        -- (2026-10-29, stage U9a) the client's half of `live`, for `Stop`
+        nodeLiveRaw γn 1 ∗
         -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
         nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
 
@@ -314,7 +316,7 @@ private theorem RestartNode.wp_raw
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
             storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
-          s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
+          s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) Hasync
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) (Hrnpv _) (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
@@ -345,6 +347,9 @@ private theorem RestartNode.wp_raw
   -- (D19i part 1) the driver's request on `advancec`
   imod dghostVar_alloc (((none, none) : AdvReq)) with ⟨%γreq, Hreq⟩
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
+  -- (2026-10-29, stage U9a) whether the node is stopped: the client's half and `run`'s
+  imod dghostVar_alloc false with ⟨%γlive, Hlive⟩
+  icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
     #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
@@ -352,16 +357,20 @@ private theorem RestartNode.wp_raw
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
                           mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
-                          snapIn := sn }
+                          snapIn := sn, live := γlive }
+  ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1]
+  · unfold nodeLiveRaw; iexact Hlive1
+  ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2]
+  · unfold nodeLiveRaw; iexact Hlive2
   imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
   imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
   imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
   imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
   imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
-  imod start_handshake nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) γd $$ Hcd Hod
-    with #Hhd
-  imod start_handshake nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) γs $$ Hcs Hos
+  imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
+  icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
+  imod start_handshake nv.stop' (fun (_ : Unit) => nodeLiveRaw γn 1) iprop(True) γs $$ Hcs Hos
     with #Hhs
   imod start_handshake nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) γst
     $$ Hcst Host with #Hhst
@@ -380,8 +389,8 @@ private theorem RestartNode.wp_raw
     iframe #
     ipureintro; rfl
   -- `go n.run()`
-  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
-  · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
+  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1]
+  · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1]
     · iframe Hnode
       unfold runPre
       iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
@@ -391,6 +400,7 @@ private theorem RestartNode.wp_raw
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl⟩
       iframe Hdlv1 Hlb0
+      iframe Hpend Hlive1
       unfold runCfg
       isplitr
       · ipureintro
@@ -407,7 +417,7 @@ private theorem RestartNode.wp_raw
   iexists γn, n_ptr
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-  iframe Hnode
+  iframe Hnode Hlive2
   isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriverChan dlvLb
     iframe Hnode Hdlv2 Hdlb
@@ -453,7 +463,7 @@ private theorem wp_RestartNode_impl
     isplitl [Hg]
     · unfold rnInit; iexact Hg
     · unfold certLink; iright; iexact Hok'
-  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hcfg⟩
+  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hlive, Hcfg⟩
   obtain ⟨Hγr, Hγb, Hγs, Hmd, Hsn, Hnd'⟩ := Hf
   have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, by rw [Hmd, Hγm, RNMode.all_self], .inl Hsn⟩
   iapply HΦ
@@ -490,7 +500,7 @@ private theorem wp_RestartNode_unified_impl
     EtcdGrove.RestartNode.unifiedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.unifiedSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver
     EtcdGrove.nodeFounder EtcdGrove.nodeJoin EtcdGrove.confAt EtcdGrove.storageCertLink
-    EtcdGrove.nodeConfig
+    EtcdGrove.nodeConfig EtcdGrove.nodeRunning
   intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
     Hal Hfl
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
@@ -509,7 +519,7 @@ private theorem wp_RestartNode_unified_impl
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
   icases Hcl' with ⟨%Hu, #Hci⟩
-  obtain ⟨-, Hsl, Hcert⟩ := Hu
+  obtain ⟨-, Hsl, Hcert, -⟩ := Hu
   have Hdyn := Hmr.1.2.2.1
   have Hns := Hmr.1.2.2.2.1
   obtain ⟨h0, h1, Hmd⟩ := Hmr.mode
@@ -527,7 +537,7 @@ private theorem wp_RestartNode_unified_impl
       · ipureintro; exact ⟨Hdyn, stOf_simple _⟩
       iapply ownRaftGhostR_rinit $$ Hg
     · unfold certLink; iright; iexact Hok'
-  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hcf⟩
+  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hlive, Hcf⟩
   obtain ⟨Hγr, Hγb, Hγs, Hmd', Hsn, Hnd'⟩ := Hf
   have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, Hmd', .inl Hsn⟩
   have Hdy : γn.mode.isDyn = true := by rw [Hmd', Hmd]; rfl
@@ -563,15 +573,21 @@ private theorem wp_RestartNode_unified_impl
     isplitr
     · ipureintro; rfl
     iexact Hdrv
-  unfold nodeConfig
+  isplitl [Hcf]
+  · unfold nodeConfig
+    iexists γn, cv.ID'
+    iframe Hnode Htb
+    isplitr
+    · ipureintro
+      refine ⟨Hnok, Hdy, ?_⟩
+      show CCGood (stOf (Membership.simple (GMap.listToSet csm.Voters')))
+      rw [stOf_simple]; exact ccGood_cfgState _
+    rw [stOf_simple]; iexact Hcf
+  -- (2026-10-29, stage U9a) the node runs
+  unfold nodeRunning
   iexists γn, cv.ID'
-  iframe Hnode Htb
-  isplitr
-  · ipureintro
-    refine ⟨Hnok, Hdy, ?_⟩
-    show CCGood (stOf (Membership.simple (GMap.listToSet csm.Voters')))
-    rw [stOf_simple]; exact ccGood_cfgState _
-  rw [stOf_simple]; iexact Hcf
+  iframe Hnode Htb Hlive
+  ipureintro; exact ⟨Hnok, Hdy⟩
 
 end wrap
 

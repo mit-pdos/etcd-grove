@@ -490,6 +490,39 @@ They are derived from the internal specs (`ConfchangeApiProof.lean`, over `Confc
 linked in `Linked.lean` (`RaftLink.*_api`). No `sorry` or axiom is added. The client proof (`validConf`)
 is not written yet. Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U11's
 `confchange`/`tracker` specs".
+## Raft unified, track A: U7 (in part) and U9a (2026-10-29, branch `raft-unified`)
+
+- U7: raft takes its own time receipts for `Tick` (`node.Tick.spec` without `tickCredit`) and a
+  stepped `MsgTimeoutNow` (`stepIn_intro` without its tick credit). The proposal registry is parked
+  (the user reconsidering it; work in `refs/wip/trackA-registry`). Not done: read credits from
+  receipts, `SentMsgShape` in the decision cluster, a stamped `MsgTransferLeader` admitted, the
+  transfer choice. Their design is in `notes/decisions.md`, "Stage U7: messages, track A".
+- U9a (stopped nodes): see the spec changes in `notes/raft-unified-plan.md`, "Spec changes during
+  track A, U7 and U9a".
+- Clients broken further: etcd's server (`InvNet.lean`'s `stepIn_intro` arguments), examples/kv
+  (`node.Tick` callers pass a `tickCredit` no longer taken).
+
+## Raft unified, track A: the committed conf-entry laws (2026-10-29, branch `raft-unified`)
+
+`committed_emptyV2_joint` and `committed_confDecodes` proved (`InvNodeRule.lean`; reasoning:
+`notes/decisions.md`, "Stage U5: the committed conf-entry laws"; spec changes: `notes/raft-unified-plan.md`,
+"Spec changes during track A"). U5 is done but for the start specs' `csm.AutoLeave' = false` (U9).
+Not started in this run: U7 (messages), U9a (stopped nodes). Clients broken further: etcd's server
+(`noopAu`'s commit gives `ev2At`; `isCommittedLogLb`/`apiInvBody` grew), examples/kv (as before).
+
+## Raft unified, stage U5: automatic leaves (2026-10-29, branch `raft-unified`)
+
+Raft's tree builds (`Link`, `Linked`, `Results`, `Api`, `ConfPolicy`, `MemstorageAU`); the only axiom
+added to raft's results is the approved `ccDecodeV2_nil`; no `sorry`.
+- `raft.appliedTo`'s leave proposal proved (through `Step`'s `MsgProp` branch, no link cycle;
+  `LeaveStep`), so `c.autoLeave → role ≠ leader` left `appliedTo`, `appliedSnap`, `raft.Step`; the
+  `RawNode`'s `cf.autoLeave = false` and every API premise feeding it gone (`ApplyConfChange`'s
+  `m'.autoLeave = false`, `Advance`'s lent snapshot).
+- An empty `ConfChangeV2` is a filler again; `opsOf` drops it (`isEmptyV2`, `opsOf_noType2`);
+  `ProposeConfChange`'s post `ops ++ opsOf [entry]`.
+- Remaining for U5: `committed_emptyV2_joint` (a per-entry record of the leader's configuration at the
+  append; `notes/decisions.md`, "Stage U5: automatic leaves"); the start specs' `csm.AutoLeave' = false`
+  (U9). Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U5".
 
 ## Raft unified, stage U4: joiners (2026-10-29, branch `raft-unified`)
 

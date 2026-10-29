@@ -426,11 +426,12 @@ theorem GMap.exists_fresh_nat {V : Type} (K : GMap Nat V) : ∃ k, K !! k = none
 
 /-- **Depositing a proposal of a registered `d`** (2026-10-21; `Propose`, before the proposal
 leaves the node): the client's update, with the predicate `d` was registered under, goes into a
-new deposit of `d`'s slot, whose ticket (`propTk`) travels with the proposal. -/
+new deposit of `d`'s slot, whose ticket (`propTk`) travels with the proposal. (2026-10-29, S1) In
+a `dup` cluster the update is persistent (`□?γ.dup`), and so is the ticket. -/
 theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
     (Q : List EntryM → IProp GF) :
     ↑(raftN γ) ⊆ E →
-    ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ propAu1 γ d Q ={E}=∗ propTk γ d := by
+    ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ □?γ.dup propAu1 γ d Q ={E}=∗ propTk γ d := by
   intro HE
   iintro #Hinv #Hpi Hau
   unfold propIs
@@ -475,10 +476,15 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
     iexists R, RR
     iframe Hreads Hnoop Hra
     iexact Hs
-  imodintro
   unfold propTk
-  iexists p, k, γt
-  iframe Hfrag Hkf Htk
+  cases hd : γ.dup <;> simp only [Bool.false_eq_true, ↓reduceIte]
+  · imodintro
+    iexists p, k, γt
+    iframe Hfrag Hkf Htk
+  · imod dghostVar_persist γt 1 (none : Option w64) $$ Htk with #Htk
+    imodintro
+    iexists p, k, γt
+    iframe Hfrag Hkf Htk
 
 /-- Collecting (2026-10-14, stage R): at every committed occurrence of `d` -- an entry `e` at
 position `m` of a committed log `L` holding `d` --, the update's result at the log before it
@@ -1096,7 +1102,9 @@ theorem boot_register (γ : RaftNames) (Lc : List EntryM) (γq : GName) :
         · unfold deposited; iexists ((γq, γd) : PropRec); iexact Hfrag
       · unfold propIdx
         iexists ((γq, γd) : PropRec), 0, γt
-        iframe Hfrag Hkf Hv
+        iframe Hfrag Hkf
+        ileft
+        iexact Hv
     ihave Hslot : propSlot (GF := GF) γ (entKey e.Type' e.Data') ((γq, γd) : PropRec) Lc $$ [HKa]
     · unfold propSlot propSlotRes
       isplitr
@@ -1207,7 +1215,9 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-28, stage U4a) the registry of the snapshots made (`RaftNames.reSnapReg`)
     (reg : Option GName)
     -- (2026-10-28, the decision switch) the client's decision map (`RaftNames.reDec`)
-    (rdec : Option GName) :
+    (rdec : Option GName)
+    -- (2026-10-29, S1) whether the network may duplicate a `MsgProp` (`RaftNames.dup`)
+    (dup : Bool) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1216,7 +1226,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
           γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
-          γ.reDec = rdec⌝ ∗
+          γ.reDec = rdec ∧ γ.dup = dup⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1257,7 +1267,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1382,7 +1392,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
   imodintro
   iexists γ0
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
-    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
+    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1409,7 +1419,8 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
-          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none⌝ ∗
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none ∧
+          γ.dup = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1418,13 +1429,13 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   intro a b c d
   iintro H
   imod ownRaftGhost_alloc_core_reg E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
-    none none a b c d $$ H with ⟨%γ, %Hp, Hrest⟩
+    none none false a b c d $$ H with ⟨%γ, %Hp, Hrest⟩
   imodintro
   iexists γ
   iframe Hrest
   ipureintro
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, -⟩ := Hp
-  exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12⟩
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, -, a13⟩ := Hp
+  exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩
 
 
 /-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,

@@ -122,7 +122,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   iframe Hc
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
-  · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal Hasync
+  · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, (logStoreRec_stored Hfr.2.2.2.2.2.1)⟩ Hc Hap'

@@ -28,11 +28,6 @@ theorem ownRaftGhostR_stepR [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (decB : C
 theorem noApp0 {dec : CCDec} {c0 : CCState} (r1 : RState) (m' : Msg) : m' ∈ [] → m'.ty = MsgType.app
     → RInv dec c0 r1 → AppKnow r1 m'
 
-theorem full_take_eq_pure (F1 F2 : List EntryM) (c : w64) (Hw1 : PlogWf base0 F1) (Hw2 : PlogWf
-    base0 F2) (HRA : RecsAgree base0 F1 base0 F2) (Hs : (plogTermAt base0 F1 c).isSome = true) (Heq
-    : plogTermAt base0 F1 c = plogTermAt base0 F2 c) : List.take (uint.Z c).toNat F1 = List.take
-    (uint.Z c).toNat F2
-
 theorem ownRaftGhostR_env [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (dec : CCDec) (M : DecMap) (c0 :
     CCState) (h0 : CfgOk c0) (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (id : w64) (r : RState)
     (HI : RInv (effDec dec M) c0 r) : ⊢ decLb γ M -∗ logRecs γ base0 r.fp -∗ (∀ x, isCampK γ id

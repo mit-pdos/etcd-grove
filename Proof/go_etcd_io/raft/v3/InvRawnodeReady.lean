@@ -1168,7 +1168,6 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "#Hout" ∷ ([∗list] x ∈ s.outbox, isMessage γ x) ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
-  "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
   "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
@@ -1353,7 +1352,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
               clb := s.logst.committed }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ c id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
-  iapply ownRawNode_intro γ rn id rs' s' c fp rnv sv hprev [] Hwf Hin Hal Hasync Hdlen
+  iapply ownRawNode_intro γ rn id rs' s' c fp rnv sv hprev [] Hwf Hin Hasync Hdlen
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
@@ -1562,7 +1561,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       ipureintro
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
-    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+    exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb, Hrnfl, Hceok, Hes, Hrdc, Hprc, Hnsout, Hsdt⟩
   isplitl [Hout]
   · iexact Hout
@@ -1606,7 +1605,6 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
-  "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
   "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
@@ -1640,7 +1638,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
-    (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hal : c.autoLeave = false)
+    (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg)
     (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
@@ -1669,14 +1667,14 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   simp only [named]
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
-  exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
+  exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt⟩
 
 theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
   iintro H
   iNamed H
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
@@ -1703,7 +1701,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · rcases Hgh.1.1 Hu with H | H
       · exact absurd Hidle.2.1 H
       · exact absurd Hsn H
-  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
+  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hidle
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
@@ -1803,7 +1801,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
       %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hsc' Hl
   ipureintro
-  refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff,
+  refine ⟨Hwf, Hin, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff,
     Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,

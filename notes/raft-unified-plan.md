@@ -85,6 +85,9 @@ commit per lemma.
   `c.autoLeave → role ≠ leader` goes from `appliedTo`, `appliedSnap`, `raft.Step`; the invariant that a
   committed empty `EntryConfChangeV2` is raft's leave where the configuration is joint (`RaftLeave`, for
   `opsOf`); the trust-base fact `ccDecodeV2 [] = some` the empty change (the user's approval).
+  (2026-10-29: done but for `committed_emptyV2_joint`: `notes/decisions.md`, "Stage U5: automatic
+  leaves"; spec changes below. Later that day, track A: `committed_emptyV2_joint` and
+  `committed_confDecodes` proved, `notes/decisions.md`, "Stage U5: the committed conf-entry laws".)
 - **U6m. Rejection in the model.** The protocol's decoder a decision (`apply op | reject`); `entStep` of
   a rejection keeps the state (joint configurations included); `applyConf` and `advance` require "no
   undecided conf entry between".
@@ -186,6 +189,142 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   changes `Hhandout` back (no `h`, keeping `HdAbove`) and `Hfloor` (or a new law) to allow raising the hold alone
   while a batch is pending.
 - (open) The storage-wrapper law (§4): not started.
+## Spec changes during U5 (2026-10-29)
+
+Each: old → new, and why. (a)-(e) sent to the coordinator and approved (the cross-track rule).
+
+- (a) `opsOf l` (`NodeApiVocab`): `l.filter (!isFiller)` → `l.filter (!isFiller && !isEmptyV2)`, with the
+  new `LogEntry.isEmptyV2 e := e.data = [] ∧ e.type = W32 2` and `opsOf_noType2`. As designed: raft's
+  automatic leave (an empty `ConfChangeV2`) is no client operation. `isFiller` (and `isFiller_normal`)
+  unchanged. Internal: the protocol's `Filler` is again `d = [] ∧ (ty = 0 ∨ ty = 2)`.
+- (b) `node.ProposeConfChange.spec`'s update: `ownCommittedOps γ (ops ++ [⟨t, ty, bs⟩])` → `ownCommittedOps
+  γ (ops ++ opsOf [⟨t, ty, bs⟩])` (the design's). An explicit `ConfChangeV2{}` is a filler (no deposit,
+  `ccPropArg`'s filler case), so its update may not fire.
+- (c) `node.ApplyConfChange.unifiedSpec` and `.dynamicSpec`: premise `m'.autoLeave = false` → none.
+  Internal: `DynCCPreOp` loses `cs'.cfg.autoLeave = false`; `ownRawNode` (and `ownRawNodeReady`/`Idle`)
+  lose the field `cf.autoLeave = false`.
+- (d) `node.Advance.unifiedSpec`: `l.snap...AutoLeave' = false ∧ l.dlv.length = …` → `l.dlv.length = …`.
+  Internal: `advanceP`'s and `runCfgLoan`'s auto-leave facts, `node.Advance.specRaw`'s premise gone.
+- (e) `RawNode.Advance.spec`: premise `∀ l, rs.slent = some l → rs.mode.isDyn → …AutoLeave' = false` →
+  none.
+- Raft-internal: `raft.appliedTo.spec`: premise `c.autoLeave = true → s.role ≠ .leader` → at a leader
+  `NStateWf s`, `s.term ≠ 0`, the last index a word, and a receipt `⧖ k0` in the pre; post `RET #()`
+  at `logAppliedTo` → `∃ s' B recv, … ⌜LeaveStep c id s1 s' B recv⌝ ∗ (⌜last < B⌝ -∗ ⧖ (k0+1))`; stated
+  at `HasLC.hasLC` (was generic `hlc`), as `raft.appliedSnap.spec` is now too (it calls it).
+  `raft.Step.spec`: premise `m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader` →
+  none (its post unchanged). `StepProof.wp_Step_MsgProp` takes four callee specs, not
+  `raft.Step.Postulates`, and its post gives `s'.logst.applied = s.logst.applied`.
+- Not changed, though now unneeded upstream of `ownRawNode`: `csm.AutoLeave' = false` premises of
+  `NewRawNode`, `StartNode`, `RestartNode`, `setupNode`, `newRaft` (starting at an auto-leave joint
+  `ConfState`); left for U9 (`newRaft`'s tracker invariant still uses it).
+
+## Spec changes during track A (2026-10-29)
+
+Each: old → new, and why. New laws (no old text): `committed_confDecodes`, `committed_emptyV2_joint`
+(`InvNodeRule.lean`), as the frozen design states them (`raft-node-unified-candidate.md`:170,
+`raft-decisions-spec.md`:87; `committed_emptyV2_joint` takes the cluster's `N` explicitly, as
+`confPolicy_decide` does). Raft-internal (no other track uses them):
+
+- `isCommittedLogLb` (`InvApi.lean`, sealed): adds `cmtFactsS γ l` (raft's per-entry facts:
+  `CCDecodes`, `ev2At`) beside the receipts' bound; `apiInvBody` adds `cmtFacts γ L`. Why: the two
+  laws are pure entailments, so the facts must ride on the client's lower bound.
+- `noopAu` (`GhostState.lean`): its commit also gives `ev2At γ L e` (in the dynamic mode, with no empty
+  `ConfChangeV2` in the bootstrap log, an empty `ConfChangeV2` filler folds after `L` to a joint
+  configuration over some recorded decisions); `noopAu_fire` takes it. **Breaks etcd's server**
+  (`NewServerAlloc.lean`, `Spec/.../NewServer.lean` build a `noopAu`), already broken.
+- `isEntryR` (`Ghost.lean`): its leader arm adds `ev2Rec γ e pt` (the entry's prefix, with the cores
+  of its records `logRecsC`, folds to a joint configuration); the old body is `isEntryC`.
+- `ownRaftGhost_step_propose` (`Refinement.lean`): one premise more (the batch's empty
+  `ConfChangeV2`s at a joint configuration of the full log before them).
+- `StepR.propose` (`StepR.lean`): premise `CCLeaveOk m.entries cs` added (the loop's decoded change
+  of an empty `ConfChangeV2` wants to leave: `ccDecodeV2_nil`).
+- `stepLeader`'s `LeaderProposeResult` (`Spec/go_etcd_io/raft/v3/stepLeader.lean`): `∃ cs, CCTypesOk
+  ents cs ∧ …` → `∃ cs, CCTypesOk ents cs ∧ CCLeaveOk ents cs ∧ …` (proved from `ccEntsOk`,
+  `ccEntsOk_leaveOk`; `stepLeader`'s proof now rests on `ccDecodeV2_nil` too).
+- `UniNames` (`InvApiDec.lean`, behind `isCluster`): adds `∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x` (the
+  decision cluster's bootstrap log is empty).
+
+## Spec changes during track A, U7 and U9a (2026-10-29)
+
+Each: old → new, and why. Approved by the coordinator where marked (the cross-track rule).
+
+- `node.Tick.spec`: pre `isNode n γ N id ∗ tickCredit γ 1` → `isNode n γ N id` (the frozen text). Raft
+  takes the tick's time receipt from a Go step of `Tick`'s own (`node__Tick.lean`, at a
+  `StructFieldRef`); the old `tickCredit` stays (still exported) until U9.
+- `stepIn_intro` (`InvNode.lean`): premise `tickCredit γ (if MsgTimeoutNow then 1 else 0)` → none (the
+  frozen text's credit-free form). Internal: the API's `stepIn γ N id ml` is now `⌜ml ≠ null⌝ ∗ ∀ γn,
+  ⌜NodeOk γ γn⌝ -∗ ⧗ 1 -∗ stepP γn id ml`, and `node.Step`'s raw spec takes `⌜ml ≠ null⌝ ∗ (⧗ 1 -∗
+  stepP …)`, its proof taking the receipt at the `nil` check's comparison. The `NetMsgOk` / `≠
+  MsgTransferLeader` premises stay until `SentMsgShape` lands (below).
+- **Parked by the coordinator (the user is reconsidering it):** the proposal registry (`ownProposals`,
+  `proposalReg`, `proposals_register`/`_elem`/`_all`, `Propose` taking `proposalReg`, `sentMsg_prop`,
+  `msgCredits_intro` for `MsgProp`). Approved shapes before the hold: `cluster_alloc_dec` giving
+  `ownProposals γ ∅`; one `node.Propose.spec` with `proposalReg γ data`, the old allocations giving `□ ∀
+  d, proposalReg γ d`; `sentMsg_prop`'s normal disjunct `⌜e.Type' = W32 0⌝ ∗ (⌜e.Data' = []⌝ ∨
+  proposalReg γ e.Data')` (an empty normal entry is a filler, with no registry key); `msgCredits_intro`'s
+  per-entry update committing `ops ++ opsOf [entry]` (a filler's update is then the identity). Work in
+  progress, checked in `InvApi.lean` but not committed: the ref `refs/wip/trackA-registry`
+  (`2b5e6ebaf8`; `Cluster.pr`/`prAll`, the laws, `keyOk` in `freshOk`, `api_key_register` taking
+  `keyOk`, `Protocol/Facts.lean`'s `deposited_fresh`).
+- U9a, decided by the coordinator: (A) `node.ApplyConfChange`'s stopped disjunct is `⌜csp = null⌝ ∗
+  nodeStopped n γ N`, without the frozen `nodeConfig v` (after `confc <- cc` the driver's view is with
+  `run`, and the second select's `done` arm, unreachable, would need a sent/answered accounting to
+  refute); `node.Advance`'s post is the running post ∨ `nodeStopped ∗ nodeDriver {handling := none}` (no
+  storage facts: raft's `Advance` never ran). (B) K9's `P ∨ nodeStopped` preconditions are **not
+  provided**: kvreconf's `Replica.stop()` waits for its loop and ticker before `node.Stop`, so no client
+  calls a method holding only `nodeStopped`. A later client wanting them needs a send arm (`confc`,
+  `advancec`, `propc`, `recvc`) shown never to commit once `run` is dead: `run`'s receive obligation on
+  each channel a fraction of the liveness token, each fraction lent out returned to a "fraction bank"
+  invariant at once (so that `run` reassembles the whole token at `Stop`), and handshake-lemma variants
+  for the five channels.
+
+- **The user's decisions (2026-10-29), changing the frozen design:** (1) no transfer choice
+  (`transferChoice`/`transferAllowed`/`noTransfer` dropped, no mode): `node.TransferLeadership.spec`
+  takes only `isNode` (and the context), `SentMsgShape` holds in every cluster (the `MsgTransferLeader`
+  and `MsgTimeoutNow` shapes included), and `stepIn_intro` admits every sent message;
+  `leaderTransferOn/Off` go with the old families in U9; the server's repair handles the new shapes.
+  (2) (Corrected, confirmed by the user the same day.) `node.Stop.spec` takes the whole fractional
+  `nodeRunning n γ N 1` (the frozen `nodeLive`, renamed) and gives `nodeStopped n γ N`; the law
+  `nodeRunning_stopped : isCluster γ N ∗ nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False` lets a
+  holder of a fraction refute every stopped answer. (An intermediate decision, `Stop` taking
+  `nodeDriver`, was withdrawn.) (3) The proposal registry (S1, `Propose`) is not frozen yet.
+- U9a as built (2026-10-29): `NodeNames.live` (a `dghostVar` of `Bool`: `false` in halves, the
+  client's `nodeLiveRaw γ 1` and `run`'s; `true`, discarded, `nodeStoppedRaw`); `done` is Perennial's
+  broadcast idiom with `Q := nodeStoppedRaw` (`isNodeChan`'s `ownBroadcastChan … .Unknown`, `run`'s
+  `.Pending` in `runPre`); `stop` carries `nodeLiveRaw γ 1`. The names agree through the table:
+  `CfgNames`/`cfgNamesOf` gained `live`, so `nodeRunning` (sealed, `InvApi.nodeRunning`: `NodeOk`,
+  `isDyn`, `isNodeChan`, `nodeTabOk`, `nodeLiveRaw`) exists only in a dynamic cluster
+  (`StartNode.dynamicSpec`, `RestartNode.unifiedSpec`; the static `StartNode.spec`/`RestartNode.spec`
+  give none, temporary until U9), and `nodeStopped` is `∃ γn id, NodeOk ∗ isNodeChan ∗ (⌜static⌝ ∨
+  nodeTabOk) ∗ nodeStoppedRaw` (the static disjunct the weak form). `nodeRunning_stopped`'s
+  `isCluster` premise is unused by its proof (`nodeRunning` carries `isDyn`). `node.ForgetLeader.spec`
+  is over `isNode` (its old triple the private `specRaw`). Not done: `node.Status.spec` (a False
+  `status` handshake refutes `run`'s receive but not `Status`'s send, which needs the payload up front;
+  `run`'s status arm needs `getStatus`'s spec: `getBasicStatus`, `getProgressCopy`'s `Visit`,
+  `Config.Clone`); `node.Campaign.spec` (`MsgHup` is not in `netStepTypes`, so `netP_local` does not
+  admit it; and `run`'s `r.Step(MsgHup)` raises the term by one, `raft.Step`'s `uint.Z s'.term ≤ uint.Z
+  s.term + 1`, which `netP`'s `termLB` ceiling does not cover: a hup needs a budget step like a
+  tick's, `budget_spend` with a time receipt. Admitting it through `NetMsgOk`/`netStepTypes` would
+  change `stepIn`, a public vocabulary; a separate local case of `netP`, internal, would not).
+- S1 as built (2026-10-29; candidate 15 rev 2, `spec-first-study/raft-propose-dup-spec.md`, as
+  frozen): `RaftNames.dup : Bool := false` (`Protocol/Ghost.lean`), `Cluster.dup γ := γ.raft.dup`
+  (`InvNode.lean`, sealed); `cluster_alloc_dec` takes `dup` and gives `⌜γ.dup = dup⌝`
+  (`ownRaftGhost_alloc_core_reg` takes it; `ownRaftGhost_alloc_core` passes `false`);
+  `node.Propose.spec`/`node.ProposeConfChange.spec` wrap the update in `□?γ.dup`; `msgCredits_copy`.
+  `msgCredits_none`/`_snapshot` kept. Departures and details: (a) `cluster_alloc_static` also gives
+  `⌜γ.dup = false⌝` (the frozen text names two old allocations; F2's every-allocation rule covers this
+  third one, still exported). (b) The ticket's split is on its ghost variable's fraction: `propTk`'s
+  `dghostVar γt (if γ.dup then □ else 1) none`, and `propIdx` gains the disjunct `⌜γ.dup = true⌝ ∗
+  dghostVar γt □ none` (the ticket kept), instead of a bare persistent witness: the bootstrap
+  entries' deposits are fired (`some i`, `boot_register`), and `fire_one`'s dup case still refutes a
+  fired deposit by `none`/`some i` agreement. `entDataIs` is textually unchanged (its ticket part is
+  `propIdx`). (c) `depSlot`'s unfired disjunct holds `□?γ.dup propAu1` (the deposited update), so
+  `prop_deposit`, `propArg` (`InvNodeChan.lean`) and `ccPropArg` (`ApiVocab.lean`) take `□?γ.dup
+  propAu1`; `api_propAu1_if` (`InvApi.lean`) lifts `api_propAu1`. (d) `nodeRunning_stopped`: isCluster
+  premise dropped (unused). Not repaired (raft first): etcd's server (`NewServerAlloc*`, the
+  allocation's post; `NodeBridge`, `Propose`'s `□?γ.dup`) and `examples/kv`.
+- A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
+  public spec is escalated before it is built on; never a minor change.
 
 ## Machinery (the map of the two modes, 2026-10-28)
 

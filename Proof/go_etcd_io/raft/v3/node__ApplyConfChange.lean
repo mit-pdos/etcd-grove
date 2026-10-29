@@ -69,7 +69,8 @@ matter.
 `*ConfChangeV2`, `cc` itself), sent on `confc` read-only (`confcP`: `ownConfChangeV2 v □`, hence
 `ownConfChangeI c □`); the answer is the `*pb.ConfState` `run`'s `applyConfChange` returned, owned
 (`csPts csp 1 cs true`), its lists the record's (`confstateS`/`confstateOk` pure). Go returns
-`nil` if `done` fires first, which it never does.
+`nil` if `done` fires (2026-10-29, stage U9a: the node stopped, `nodeStoppedRaw`; until then it never
+did).
 -/
 
 open Iris Iris.BI go_etcd_io.raft.v3
@@ -102,9 +103,11 @@ private abbrev node.ApplyConfChange.specRaw : Prop :=
   {{ (csp : Loc) (cs : ConfStateM), RET #csp;
       -- (2026-10-16, stage R5) `applyConfChange`'s fresh `*pb.ConfState`, owned (`confstateP`;
       -- until then `csp ↦ cs` with the slices in `confstateS`/`confstateOk`)
-      csPts csp (DFrac.own 1) cs true ∗
-      ((⌜γ.mode = .static⌝ ∗ ⌜confstateS γ cs⌝) ∨
-       (⌜γ.mode.isDyn = true⌝ ∗ nodeCfg γ (k + 1) cs' ∗ ⌜confstateOk cs cs'.cfg⌝)) }}
+      (csPts csp (DFrac.own 1) cs true ∗
+        ((⌜γ.mode = .static⌝ ∗ ⌜confstateS γ cs⌝) ∨
+         (⌜γ.mode.isDyn = true⌝ ∗ nodeCfg γ (k + 1) cs' ∗ ⌜confstateOk cs cs'.cfg⌝))) ∨
+      -- (2026-10-29, stage U9a) or the node stopped (`done` fired): `nil`
+      (⌜csp = null⌝ ∗ nodeStoppedRaw γ) }}
 
 end spec
 
@@ -118,9 +121,77 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 set_option hygiene false in
+/-- (2026-10-29, stage U9a) The second `select` of `ApplyConfChange`: the `*ConfState` from
+`confstatec` (`confstateP`, recognized by the answer slot's half the driver kept, `Hkeep`), or
+`done`: the node stopped, `nil`. Reached after the send on `confc` or after `done` fired instead. -/
+local macro "apply_cc_recv" : tactic => `(tactic| (
+  wp_auto_lc 2
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · simp only [chan.blockingClausePre]
+    iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
+      nv.confstatec', γ.confstatec
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply isHandshake_isChan $$ Hconfstatec
+    iapply handshake_receive_au γ.confstatec nv.confstatec' (confstateP γ) iprop(True) _
+      $$ [$(frameH `Hlc1) $(frameH `Hlc2)] Hconfstatec []
+    · itrivial
+    inext
+    iintro %csv Hcs
+    wp_auto
+    iunfold confstateP at Hcs
+    icases Hcs with ⟨%csm, Hcs, (%Hs | ⟨%Hd, %w, Hcap, Hq, #Hlb, %Hok⟩)⟩
+    · icases Hkeep with (%Hs' | ⟨%Hd', -⟩)
+      · iapply HΦ $$ %csv %csm
+        ileft
+        iframe Hcs
+        ileft
+        ipureintro; exact Hs
+      · rw [Hs.1] at Hd'; cases Hd'
+    · icases Hkeep with (%Hs' | ⟨%Hd', Hq'⟩)
+      · rw [Hs'] at Hd; cases Hd
+      ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hq Hq'
+      subst Heq
+      iapply HΦ $$ %csv %csm
+      ileft
+      iframe Hcs
+      iright
+      isplitr
+      · ipureintro; exact Hd
+      isplitl
+      rotate_left
+      · ipureintro; exact Hok
+      unfold nodeCfg
+      iframe Hcap Hlb
+      iexists (k + 1, cs')
+      iframe Hq Hq'
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    -- (2026-10-29, stage U9a) the node stopped: `cs` is still `nil`
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro #Hst
+    wp_auto
+    iapply HΦ $$ %null %(ConfStateM.mk [] [] [] [] false)
+    iright
+    iframe Hst
+    ipureintro; rfl
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
+  ))
+
+set_option hygiene false in
 /-- The rest of `ApplyConfChange` once `AsV2` gave the `ConfChangeV2` `v2` (`#Hch`), in both
 arms (`ConfChange`, `ConfChangeV2`): the payload by the mode, the send on `confc`, the receive
-on `confstatec`. -/
+on `confstatec` (`apply_cc_recv`). -/
 local macro "apply_cc_send" : tactic => `(tactic| (
     ihave Hpay : iprop(|==> (confcP γ v2 ∗ (⌜γ.mode = .static⌝ ∨ (⌜γ.mode.isDyn = true⌝ ∗
         dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))) $$ [HR]
@@ -170,58 +241,7 @@ local macro "apply_cc_send" : tactic => `(tactic| (
         $$ [$(frameH `Hlc1) $(frameH `Hlc2) $(frameH `Hlc3)] Hconfc HP
       inext
       iintro -
-      wp_auto_lc 2
-      wp_apply_core chan.wp_select_blocking
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · simp only [chan.blockingClausePre]
-        iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
-          nv.confstatec', γ.confstatec
-        isplitr
-        · ipureintro; rfl
-        isplitr
-        · iapply isHandshake_isChan $$ Hconfstatec
-        iapply handshake_receive_au γ.confstatec nv.confstatec' (confstateP γ) iprop(True) _
-          $$ [$(frameH `Hlc1) $(frameH `Hlc2)] Hconfstatec []
-        · itrivial
-        inext
-        iintro %csv Hcs
-        wp_auto
-        iunfold confstateP at Hcs
-        icases Hcs with ⟨%csm, Hcs, (%Hs | ⟨%Hd, %w, Hcap, Hq, #Hlb, %Hok⟩)⟩
-        · icases Hkeep with (%Hs' | ⟨%Hd', -⟩)
-          · iapply HΦ $$ %csv %csm
-            iframe Hcs
-            ileft
-            ipureintro; exact Hs
-          · rw [Hs.1] at Hd'; cases Hd'
-        · icases Hkeep with (%Hs' | ⟨%Hd', Hq'⟩)
-          · rw [Hs'] at Hd; cases Hd
-          ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hq Hq'
-          subst Heq
-          iapply HΦ $$ %csv %csm
-          iframe Hcs
-          iright
-          isplitr
-          · ipureintro; exact Hd
-          isplitl
-          rotate_left
-          · ipureintro; exact Hok
-          unfold nodeCfg
-          iframe Hcap Hlb
-          iexists (k + 1, cs')
-          iframe Hq Hq'
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · simp only [chan.blockingClausePre]
-        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
-        isplitr
-        · ipureintro; rfl
-        isplitr
-        · iapply isHandshake_isChan $$ Hdone
-        iapply handshake_false_recv_au γ.done nv.done' $$ [$(frameH `Hlc1) $(frameH `Hlc2)] Hdone
-      iapply BigAndL.bigAndL_nil.2
-      itrivial
+      apply_cc_recv
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
@@ -229,14 +249,18 @@ local macro "apply_cc_send" : tactic => `(tactic| (
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$(frameH `Hlc1) $(frameH `Hlc2)] Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped before the send: on to the second `select`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro -
+      iclear Hlc1 Hlc2 Hlc3 HP
+      apply_cc_recv
     iapply BigAndL.bigAndL_nil.2
     itrivial
   ))
 
 /-- `cc.AsV2()` on `confc` (`confcP`, by the mode; the driver keeps the answer slot's other
-half), then the `*ConfState` from `confstatec` (`confstateP`); `n.done` never fires. (Raft v3.7,
+half), then the `*ConfState` from `confstatec` (`confstateP`), or `nil` once `n.done` fired. (Raft v3.7,
 stage R5: `confc` carries `AsV2`'s pointer: a `ConfChange`'s fresh `ConfChangeV2`
 (`m.asV2`), frozen (`ownConfChangeV2_persist`), or a `ConfChangeV2` itself, read-only already; the
 answer a `*pb.ConfState` owned, `csPts csp 1 cs true`.) -/
@@ -288,6 +312,7 @@ private theorem node.wp_ApplyConfChange_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ApplyConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isStaticCluster
+    EtcdGrove.nodeStopped
   intro n γ N id vs so c o Hsh
   iintro %Φ ⟨#Hinit, #Hnode, #Hst, Hcc⟩ HΦ
   iunfold isStaticCluster at Hst
@@ -295,6 +320,7 @@ private theorem node.wp_ApplyConfChange_impl
   obtain ⟨Hcfg, -, -, -, Hγm, -, -, -, -, -, Hnd, -⟩ := Hsn
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hnok, #Hrn, -⟩
+  have Hnok0 := Hnok
   obtain ⟨Hγr, -, -, Hmd, -⟩ := Hnok
   rw [Hγm, RNMode.all_self] at Hmd
   iapply (hA γn id n c o [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, []⟩ (cfgState ∅ ∅) ∅
@@ -302,9 +328,23 @@ private theorem node.wp_ApplyConfChange_impl
     $$ [Hcc]
   · iframe Hinit Hrn Hcc
     ileft; ipureintro; exact Hmd
-  iintro !> %csp %cs ⟨Hcs, Hor⟩
+  iintro !> %csp %cs Hpost
+  icases Hpost with (⟨Hcs, Hor⟩ | ⟨%Hnull, #Hst⟩)
+  rotate_left
+  · -- (2026-10-29, stage U9a) the node stopped
+    iapply HΦ $$ %csp %cs
+    iright
+    isplitr
+    · ipureintro; exact Hnull
+    unfold nodeStopped
+    iexists γn, id
+    iframe Hrn Hst
+    isplitr
+    · ipureintro; exact Hnok0
+    ileft; ipureintro; rw [Hmd]; rfl
   icases Hor with (⟨-, %Hs⟩ | ⟨%Hd, -⟩)
   · iapply HΦ
+    ileft
     iframe Hcs
     ipureintro
     obtain ⟨h1, h2, h3, h4, h5⟩ := Hs
@@ -317,8 +357,8 @@ private theorem node.wp_ApplyConfChange_impl
 private theorem node.wp_ApplyConfChange_dynamic_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ApplyConfChange.dynamicSpec EtcdGrove.Cluster EtcdGrove.Membership.applyChange EtcdGrove.deliveredLogLb EtcdGrove.isDynamicCluster EtcdGrove.isNode EtcdGrove.nodeConfig
-  intro n γ N id c0 decode c o o' l k e v m' Hk He Hcc Hno Hdec Hap' Hap Hal
+  unfold EtcdGrove.node.ApplyConfChange.dynamicSpec EtcdGrove.Cluster EtcdGrove.Membership.applyChange EtcdGrove.deliveredLogLb EtcdGrove.isDynamicCluster EtcdGrove.isNode EtcdGrove.nodeConfig EtcdGrove.nodeStopped
+  intro n γ N id c0 decode c o o' l k e v m' Hk He Hcc Hno Hdec Hap' Hap
   iintro %Φ ⟨#Hinit, -, #Hdc, Hcc0, Hcfg, #Hdl⟩ HΦ
   iunfold isDynamicCluster at Hdc
   icases Hdc with ⟨%Hdn, -⟩
@@ -348,7 +388,7 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
   obtain ⟨Hs, -⟩ := memApply_some Hgood Hap
   have Hpre : DynCCPreOp (decOf decode) ds v.applied (stOf v.membership) (ccV2Of o) k eM
       (stOf m') := by
-    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
+    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs⟩
     · rw [← HeMe] at Hcc; exact Hcc
     · refine NoConfIn.noUndec ?_
       intro k' e' h1 h2 he hc
@@ -365,10 +405,24 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
   · iframe Hinit Hn1 Hcc0
     iright; iframe Hcf Hlb'
     iapply decLb_empty
-  iintro !> %csp %cs ⟨Hcs, Hor⟩
+  iintro !> %csp %cs Hpost
+  icases Hpost with (⟨Hcs, Hor⟩ | ⟨%Hnull, #Hst⟩)
+  rotate_left
+  · -- (2026-10-29, stage U9a) the node stopped
+    iapply HΦ $$ %csp %cs
+    iright
+    isplitr
+    · ipureintro; exact Hnull
+    unfold nodeStopped
+    iexists γn, id1
+    iframe Hn1 Hst
+    isplitr
+    · ipureintro; exact Hnok
+    iright; iexact Htab1
   icases Hor with (⟨%Hst, -⟩ | ⟨-, Hcf', %Hok⟩)
   · exfalso; rw [Hmd] at Hst; cases Hst
   iapply HΦ
+  ileft
   iframe Hcs
   isplitl [Hcf']
   · unfold nodeConfig
@@ -390,8 +444,8 @@ private theorem node.wp_ApplyConfChange_unified_impl
     EtcdGrove.node.ApplyConfChange.unifiedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ApplyConfChange.unifiedSpec EtcdGrove.Cluster EtcdGrove.Membership.applyChange
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
-    EtcdGrove.nodeConfig
-  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Hal
+    EtcdGrove.nodeConfig EtcdGrove.nodeStopped
+  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap
   iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, Hcfg, #Hdl, Hsk⟩ HΦ
   iunfold isClusterU at Hcl
   icases Hcl with ⟨%Hu, -⟩
@@ -439,7 +493,7 @@ private theorem node.wp_ApplyConfChange_unified_impl
     simp [GMap.singleton, GMap.lookup_insert_eq_iff, ConfDecision.toOpt]
   have Hpre : DynCCPreOp (effDec noDec U) ds v.applied (stOf v.membership) (ccV2Of o) k eM
       (stOf m') := by
-    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
+    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs⟩
     · rw [← HeMe] at Hcc; exact Hcc
     · intro k' e' h1 h2 he hc
       have hl' : l[k']? = some (LogEntry.ofEntryM e') := by
@@ -462,10 +516,24 @@ private theorem node.wp_ApplyConfChange_unified_impl
   · iframe Hinit Hn1 Hcc0
     iright; iframe Hcf Hlb'
     rw [Hnok.1]; iexact HU
-  iintro !> %csp %cs ⟨Hcs, Hor⟩
+  iintro !> %csp %cs Hpost
+  icases Hpost with (⟨Hcs, Hor⟩ | ⟨%Hnull, #Hst⟩)
+  rotate_left
+  · -- (2026-10-29, stage U9a) the node stopped
+    iapply HΦ $$ %csp %cs
+    iright
+    isplitr
+    · ipureintro; exact Hnull
+    unfold nodeStopped
+    iexists γn, id1
+    iframe Hn1 Hst
+    isplitr
+    · ipureintro; exact Hnok
+    iright; iexact Htab1
   icases Hor with (⟨%Hst', -⟩ | ⟨-, Hcf', %Hok⟩)
   · exfalso; rw [Hmd] at Hst'; cases Hst'
   iapply HΦ
+  ileft
   iframe Hcs
   isplitl [Hcf']
   · unfold nodeConfig

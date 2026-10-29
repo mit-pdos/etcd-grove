@@ -88,9 +88,9 @@ abbrev RawNode.Advance.spec : Prop :=
   -- (`loanRet`, the storage at the snapshot holding them) comes back here
   (rs.slent = none → rs.unpersisted = []) →
   rs.unst = false →
-  -- (2026-10-28, stage U3c) in the dynamic mode a snapshot's `ConfState` is no auto-leave joint one
-  -- (`appliedTo`'s auto-leave proposal is out of `raft.Step`'s scope, as `ApplyConfChange`'s)
-  (∀ l, rs.slent = some l → rs.mode.isDyn = true → l.snap.Metadata'.ConfState'.AutoLeave' = false) →
+  -- (From 2026-10-28, stage U3c, to 2026-10-29, stage U5, in the dynamic mode a snapshot's
+  -- `ConfState` was no auto-leave joint one: `appliedTo`'s automatic leave was out of `raft.Step`'s
+  -- scope.)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (D22 S-d3a, 2026-10-21) after a snapshot `Ready`, the application's receipt

@@ -32,6 +32,9 @@ def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Pro
                     MarshalsConfChange
                       (some (ConfChangeIM.v1 { type := W32 0, nodeId := id, context := ctx, id := W64 0 })) e.data
 
+def instDecidableIsEmptyV2_1 (e : LogEntry) : Decidable e.isEmptyV2 :=
+  id inferInstance
+
 def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
   List.mapIdx (fun i e => LogEntry.toEntryM (W64 (↑base + ↑i + 1)) e) l
 
@@ -89,9 +92,6 @@ theorem LogEntry.isFiller_normal (e : LogEntry) (h : e.isFiller) : e.type = W32 
 
 def ConfChangeDecoder : Type :=
   List LogEntry → LogEntry → Option ConfChangeIM
-
-def instDecidableIsEmptyV2 (e : LogEntry) : Decidable e.isEmptyV2 :=
-  id inferInstance
 
 def LogEntry.toEntryM (idx : w64) (e : LogEntry) : EntryM :=
   { Term' := e.term, Index' := idx, Type' := e.type, Data' := e.data }

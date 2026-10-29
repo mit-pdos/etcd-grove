@@ -411,7 +411,10 @@ theorem ownRaftGhost_step_heartbeat [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : 
 theorem ownRaftGhost_step_propose [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (ents : List EntryM) (n : Nat) : s.role = Role.leader → plogLastIndexZ s.base s.log
     + ↑ents.length < 2 ^ 64 → plogLastIndexZ s.base s.log + ↑ents.length ≤ ↑n + ↑γ.reBoot.length → ⊢
-    ⧖n -∗ ([∗list] e ∈ ents, propData γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗ ownRaftGhost γ id s
+    ⧖n -∗ ([∗list] e ∈ ents, propData γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗ (□ ∀ fp' k x, ⌜FullOk
+    s.base fp' ∧ (List.mapIdx (stamp s.term (plastIndex s)) ents)[k]? = some x ∧ γ.reDyn ≠ none ∧
+    IsEmptyV2 x⌝ -∗ logRecs γ base0 fp' -∗ ∃ M c, decLb γ M ∗ ⌜CfgAt γ M (fp' ++ s.log ++ List.take
+    k (List.mapIdx (stamp s.term (plastIndex s)) ents)) c ∧ c.joint = true⌝) -∗ ownRaftGhost γ id s
     md ==∗ ownRaftGhost γ id (psendMsgs (pappend s (List.mapIdx (stamp s.term (plastIndex s)) ents))
     [pselfAck id (pappend s (List.mapIdx (stamp s.term (plastIndex s)) ents))]) md
 

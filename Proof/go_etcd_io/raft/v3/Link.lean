@@ -106,6 +106,7 @@ public import Proof.go_etcd_io.raft.v3.node__Ready
 public import Proof.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Proof.go_etcd_io.raft.v3.node__ReportUnreachable
 public import Proof.go_etcd_io.raft.v3.node__Step
+public import Proof.go_etcd_io.raft.v3.node__Stop
 public import Proof.go_etcd_io.raft.v3.node__Tick
 public import Proof.go_etcd_io.raft.v3.node__TransferLeadership
 public import Proof.go_etcd_io.raft.v3.node__run
@@ -1654,6 +1655,10 @@ theorem node.wp_ReportSnapshot [StorageModel GF] :
 theorem node.wp_ReportUnreachable [StorageModel GF] :
     node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
   node.ReportUnreachable.wp_proof raftpb.MessageType.wp_Enum
+
+theorem node.wp_Stop [StorageModel GF] :
+    node.Stop.spec (GF := GF) (hG := hG) :=
+  node.Stop.wp_proof
 
 theorem node.wp_Tick [StorageModel GF] :
     node.Tick.spec (GF := GF) (hG := hG) :=

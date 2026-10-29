@@ -104,7 +104,7 @@ theorem RawNode.ForgetLeader.wp_proof
     simp only [named]
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
-    · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal
+    · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) Htrm' (by rw [Hsg]; exact Hstor)
         (Hpvoff.step rfl rfl Hpre Hgh (by rw [← Htrm', Htrm]; exact Hpvoff.2.2.1) Hpcs

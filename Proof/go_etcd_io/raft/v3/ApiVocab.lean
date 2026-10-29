@@ -344,14 +344,14 @@ def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : 
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
   NoUndecConfIn dec D ca k ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
-  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
+  ccStepB op cfg = some cs'
 
 /-- (2026-10-28, the decision switch) More decisions keep the premise. -/
 theorem DynCCPreOp.mono_dec {d d' : CCDec} (h : DecLe d d') {D : List EntryM} {ca : Nat}
     {cfg : CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState}
     (H : DynCCPreOp d D ca cfg op k e cs') : DynCCPreOp d' D ca cfg op k e cs' := by
-  obtain ⟨h1, h2, h3, h4, h5, ⟨op', hd, hs⟩, h6, h7⟩ := H
-  exact ⟨h1, h2, h3, h4, h5.mono_dec h, ⟨op', h _ _ _ hd, hs⟩, h6, h7⟩
+  obtain ⟨h1, h2, h3, h4, h5, ⟨op', hd, hs⟩, h6⟩ := H
+  exact ⟨h1, h2, h3, h4, h5.mono_dec h, ⟨op', h _ _ _ hd, hs⟩, h6⟩
 
 end
 
@@ -617,12 +617,13 @@ most once, when the entry commits (never if a leader refuses the change: its rep
 normal entry, is a filler). The bytes are known only once `o` is marshaled (`MarshalsConfChange`
 is a relation), so this is a ghost step the proposal takes then, at mask `⊤` (the caller may
 register the key there, `prop_register`); for bytes that make the entry a filler (`Filler`: an
-empty `ConfChangeV2`) the caller may give nothing. -/
+empty `ConfChangeV2`) the caller may give nothing. (2026-10-29, S1) In a `dup` cluster
+(`RaftNames.dup`) the update is persistent (`□?γ.dup`), fired at every committed copy. -/
 def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
   iprop(∀ bs, ⌜MarshalsConfChange (some o) bs⌝ ={⊤}=∗
     ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
     ∃ Q : List EntryM → IProp GF, propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
-      propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
+      □?γ.dup propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 end
 

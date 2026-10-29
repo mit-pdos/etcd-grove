@@ -376,6 +376,7 @@ namespace EtcdGrove
 #print axioms node.wp_Advance
 #print axioms node.wp_ApplyConfChange
 #print axioms node.wp_ForgetLeader
+#print axioms node.wp_Stop
 #print axioms node.wp_TransferLeadership
 #print axioms node.wp_ReportSnapshot
 #print axioms node.wp_ReportUnreachable

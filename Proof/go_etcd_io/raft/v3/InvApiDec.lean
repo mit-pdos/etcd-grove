@@ -103,7 +103,9 @@ theorem ModeDec.fold {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec �
 the client's decisions, with snapshots and a registry of them, no snapshot directories, the storages'
 certificate registries in `N`. -/
 def UniNames (γ : Cluster) (N : Namespace) : Prop :=
-  (∃ c0 g, ModeDec γ c0 g) ∧ γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N
+  (∃ c0 g, ModeDec γ c0 g) ∧ γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧
+    -- (2026-10-29, stage U5) no empty `ConfChangeV2` in the bootstrap log (it is empty)
+    (∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x)
 
 /-- **A cluster of client decisions, with snapshots** (`InvNodeRule`'s `isCluster`). -/
 def isClusterU (γ : Cluster) (N : Namespace) : IProp GF :=
@@ -259,6 +261,94 @@ theorem confAt_agree_impl (γ : Cluster) (k : Nat) (m1 m2 : Membership) :
   obtain ⟨hk2, c2, g2, hm2, hf2⟩ := P2
   exact fold_agree hm1 hm2 Hc Hl hk1 hk2 hf1 hf2
 
+/-- (2026-10-29, stage U5) **Every committed conf entry decodes** (`committed_confDecodes`). -/
+theorem committed_confDecodes_impl (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    isClusterU (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢
+      ⌜∀ e ∈ l, e.isConfChange → ConfEntryDecodes e⌝ := by
+  unfold isCommittedLogLb
+  iintro ⟨-, (%Hnil | ⟨-, -, -, #Hcf⟩)⟩
+  · ipureintro; subst Hnil; intro e he; simp at he
+  iunfold cmtFactsS at Hcf
+  icases Hcf with ⟨%L, %HL, #Hc⟩
+  iunfold cmtFacts at Hc
+  icases Hc with ⟨%Hd, -⟩
+  ipureintro
+  intro e he hc
+  rw [← HL] at he
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.mp he
+  obtain ⟨h1, h2⟩ := Hd x hx
+  unfold ConfEntryDecodes ccDecode
+  simp only [LogEntry.ofEntryM]
+  rcases hc with hc | hc
+  · simp only [LogEntry.ofEntryM] at hc
+    obtain ⟨m, hm⟩ := h1 hc
+    exact ⟨.v1 m, by simp [hc, hm]⟩
+  · simp only [LogEntry.ofEntryM] at hc
+    obtain ⟨m, hm⟩ := h2 hc
+    have h12 : ¬ x.Type' = W32 1 := fun h => by rw [hc] at h; revert h; word
+    exact ⟨.v2 m, by simp [h12, hc, hm]⟩
+
+/-- (2026-10-29, stage U5) **A committed empty `ConfChangeV2` sits at a joint configuration**
+(`committed_emptyV2_joint`): raft's `ev2At` of the entry (`cmtFacts`, from the leader's `ev2Rec`),
+compared with `confAt` (`fold_agree`). -/
+theorem committed_emptyV2_joint_impl (γ : Cluster) (N : Namespace) (l : List LogEntry) (k : Nat)
+    (e : LogEntry) (m : Membership) (hk : l[k]? = some e) (he : e.isEmptyV2) :
+    isClusterU (GF := GF) γ N ∗ isCommittedLogLb γ l ∗ confAtU γ k m ⊢ ⌜m.isJoint⌝ := by
+  unfold isClusterU
+  iintro ⟨⟨%Hu, -⟩, #Hl, #Hm⟩
+  obtain ⟨⟨c0, g, hmd⟩, -, -, Hboot⟩ := Hu
+  ihave #Hl' := Hl
+  iunfold isCommittedLogLb at Hl'
+  icases Hl' with (%Hnil | ⟨-, -, -, #Hcf⟩)
+  · subst Hnil; simp at hk
+  iunfold cmtFactsS at Hcf
+  icases Hcf with ⟨%L, %HL, #Hc⟩
+  iunfold cmtFacts at Hc
+  icases Hc with ⟨-, #Hev⟩
+  rw [← HL] at hk
+  unfold strip at hk
+  rw [List.getElem?_map] at hk
+  cases hx : L[k]? with
+  | none => rw [hx] at hk; cases hk
+  | some x =>
+    rw [hx] at hk
+    simp only [Option.map_some, Option.some.injEq] at hk
+    subst hk
+    have hmd' := hmd
+    obtain ⟨⟨h0, -, hd, -⟩, -⟩ := hmd'
+    have Hdyn : γ.raft.reDyn ≠ none := by
+      intro h; have := RaftNames.dyn_eq_none.2 h; rw [hd] at this; cases this
+    have Hx : IsEmptyV2 x := by
+      obtain ⟨h1, h2⟩ := he; exact ⟨h1, h2⟩
+    ihave #Hx := Hev $$ %k %x %hx
+    iunfold ev2At at Hx
+    icases Hx $$ %(⟨Hdyn, Hboot, Hx⟩ : γ.raft.reDyn ≠ none ∧ (∀ y ∈ γ.raft.reBoot, ¬ IsEmptyV2 y) ∧
+      IsEmptyV2 x) with ⟨%M, %c, #HM, %Hcj⟩
+    obtain ⟨Hca, Hj⟩ := Hcj
+    have Hfd := CfgAt.dyn hd Hca
+    rw [ModeDec.fold hmd _ hd] at Hfd
+    have Hst : strip (L.take k) = l.take k := by
+      rw [← HL]; unfold strip; rw [List.map_take]
+    rw [Hst] at Hfd
+    obtain ⟨m', Hm', Hcm'⟩ := Option.map_eq_some_iff.mp Hfd
+    have hkl : k ≤ l.length := by
+      have := (List.getElem?_eq_some_iff.mp hx).1
+      rw [← HL, strip_length]; omega
+    iunfold confAtU at Hm
+    icases Hm with ⟨%l2, %M2, #Hl2, #HM2, %Hp2⟩
+    obtain ⟨hk2, c2, g2, hmd2, hf2⟩ := Hp2
+    icases isCommittedLogLb_agree_impl γ l l2 $$ [Hl Hl2] with %Hcmp
+    · iframe Hl Hl2
+    icases decLb_compat γ.raft M M2 $$ [HM HM2] with %Hcp
+    · iframe HM HM2
+    have Heq := fold_agree hmd hmd2 Hcp Hcmp hkl hk2 Hm' hf2
+    subst Heq
+    ipureintro
+    intro h
+    rw [← Hcm'] at Hj
+    simp only [CfgM.joint, cfgOf, h, decide_eq_true_eq] at Hj
+    rw [GMap.map_size_empty] at Hj; exact absurd Hj (Nat.lt_irrefl 0)
+  
 theorem confAt_valid_impl (γ : Cluster) (k : Nat) (m : Membership) :
     confAtU (GF := GF) γ k m ⊢ ⌜m.Valid⌝ := by
   unfold confAtU

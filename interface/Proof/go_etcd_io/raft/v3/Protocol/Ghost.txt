@@ -50,6 +50,7 @@ structure RaftNames : Type 1 where
   reCertNs : Namespace
   reSnapReg : Option GName
   reDec : Option GName
+  dup : Bool
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
     List.take lim F' = List.take lim F → ⊢ witsB γ F lim B -∗ witsB γ F' lim B
@@ -143,6 +144,9 @@ theorem snapRegOk_timeless (γ : RaftNames) (i : w64) (d : List w8) : Timeless (
 theorem entDataIs_agree [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)) : ⊢
     entDataIs γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝
 
+theorem logRecs_core [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) : logRecs γ b
+    es ⊢ logRecsC γ b es
+
 def BootRec (L : List EntryM) (e : EntryM) (pt : w64) : Prop :=
   1 ≤ uint.Z e.Index' ∧
     L[(uint.Z e.Index' - 1).toNat]? = some e ∧ e.Term' = W64 1 ∧ pt = if uint.Z e.Index' = 1 then W64 0 else W64 1
@@ -160,7 +164,8 @@ theorem logRecs_agree [ReceiptGS GF] (γ : RaftNames) (b1 : entryID) (es1 : List
     es2⌝
 
 def propTk (γ : RaftNames) (d : List w8) : IProp GF :=
-  iprop(∃ p k γt, d ↪[γ.reProps]□ p ∗ k ↪[p.snd]□ γt ∗ dghostVar γt (DFrac.own 1) none)
+  iprop(∃ p k γt,
+      d ↪[γ.reProps]□ p ∗ k ↪[p.snd]□ γt ∗ dghostVar γt (if γ.dup = true then DFrac.discard else DFrac.own 1) none)
 
 def logRecs [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) : IProp GF :=
   [∗list] k ↦ e ∈ es,
@@ -197,6 +202,11 @@ theorem ackIn_persistent [ReceiptGS GF] (γ : RaftNames) (t i : w64) : Persisten
 
 theorem isCommitted_prefix [ReceiptGS GF] (γ : RaftNames) (l l' : List EntryM) : ⊢ isCommitted γ l
     -∗ ownCommitted γ l' -∗ ⌜l <+: l'⌝
+
+def logRecsC [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) : IProp GF :=
+  [∗list] k ↦ e ∈ es,
+    if uint.Z b.index' + ↑k + 1 < 2 ^ 64 then iprop(∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC γ e pt)
+    else iprop(True)
 
 theorem isCamp_boot [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F : List EntryM) : ⊢ isCamp γ c T F
     -∗ ⌜γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝
@@ -238,7 +248,8 @@ def isEntryR [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF 
           isTermLog γ ldr e.Term' γt b l0 ∗
             isCamp γ ldr e.Term' F0 ∗
               e.Index' ↪[γt]□ (e, pt) ∗
-                ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝ ∗ entData γ e ∗ ⧖((uint.Z e.Index').toNat - γ.reBoot.length)) ∨
+                ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝ ∗
+                  entData γ e ∗ ⧖((uint.Z e.Index').toNat - γ.reBoot.length) ∗ ev2Rec γ e pt) ∨
       ⌜BootRec γ.reBoot e pt⌝ ∗ entData γ e)
 
 theorem ownCommitted_timeless (γ : RaftNames) (l : List EntryM) : Timeless (ownCommitted γ l)
@@ -260,6 +271,10 @@ def DynCfg.all [ext : GooseExts] (D : DynCfg) (e : GooseExts) : DynCfg :=
 
 theorem leadPrefix_wf [ReceiptGS GF] (γ : RaftNames) (L t : w64) (b : entryID) (l : List EntryM) : ⊢
     leadPrefix γ L t b l -∗ ⌜PlogWfR b l⌝ ∗ logRecs γ b l
+
+theorem isEntryC_agree [ReceiptGS GF] (γ : RaftNames) (e1 : EntryM) (pt1 : w64) (e2 : EntryM) (pt2 :
+    w64) : e1.Term' = e2.Term' → e1.Index' = e2.Index' → ⊢ isEntryC γ e1 pt1 -∗ isEntryC γ e2 pt2 -∗
+    ⌜e1 = e2 ∧ pt1 = pt2⌝
 
 theorem isVote_timeless (γ : RaftNames) (v term cand : w64) : Timeless (isVote γ v term cand)
 
@@ -312,8 +327,16 @@ theorem isCommitted_agree [ReceiptGS GF] (γ : RaftNames) (l1 l2 : List EntryM) 
 theorem lpfull_persistent [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List
     EntryM) : Persistent (lpfull γ ldr t bL l fp)
 
+theorem logRecs_ev2 [ReceiptGS GF] (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) : PlogWf
+    base0 G → G[m]? = some e → γ.reDyn ≠ none → (∀ (x : EntryM), x ∈ γ.reBoot → ¬IsEmptyV2 x) →
+    IsEmptyV2 e → ⊢ logRecs γ base0 G -∗ ∃ M c, decLb γ M ∗ ⌜CfgAt γ M (List.take m G) c ∧ c.joint =
+    true⌝
+
 def TrackedOk (γ : RaftNames) (c : CfgM) (id : w64) : Prop :=
   ∀ (T : GSet w64), γ.reTracked = some T → c.voters ∪ c.learners ⊆ T ∧ id ∈ T
+
+theorem isEntryR_core [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : isEntryR γ e pt ⊢
+    isEntryC γ e pt
 
 def isCommitted (γ : RaftNames) (l : List EntryM) : IProp GF :=
   isCommittedDef γ l
@@ -428,6 +451,10 @@ theorem CfgAt.member {γ : RaftNames} {M : DecMap} {P : List EntryM} {c : CfgM} 
 theorem cq_full [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : ⊢ cq γ t n G -∗
     ⌜PlogWf base0 G⌝ ∗ logRecs γ base0 G
 
+theorem logRecsC_agree [ReceiptGS GF] (γ : RaftNames) (b1 : entryID) (es1 : List EntryM) (b2 :
+    entryID) (es2 : List EntryM) : ⊢ logRecsC γ b1 es1 -∗ logRecsC γ b2 es2 -∗ ⌜RecsAgree b1 es1 b2
+    es2⌝
+
 def raftSnapCertD [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : IProp GF :=
   iprop(raftSnapCert γ k ∗ snapDataOk γ k.sid.index' k.dat)
 
@@ -471,6 +498,11 @@ theorem leadPrefix_timeless [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : 
     EntryM) : Timeless (leadPrefix γ ldr t bL l)
 
 theorem propData_zero [ReceiptGS GF] (γ : RaftNames) : ⊢ propData γ (zero_val EntryM)
+
+theorem full_take_eq_pure (F1 F2 : List EntryM) (c : w64) (Hw1 : PlogWf base0 F1) (Hw2 : PlogWf
+    base0 F2) (HRA : RecsAgree base0 F1 base0 F2) (Hs : (plogTermAt base0 F1 c).isSome = true) (Heq
+    : plogTermAt base0 F1 c = plogTermAt base0 F2 c) : List.take (uint.Z c).toNat F1 = List.take
+    (uint.Z c).toNat F2
 
 theorem isLeader_timeless (γ : RaftNames) (id term : w64) : Timeless (isLeader γ id term)
 
@@ -557,11 +589,17 @@ theorem decLb_timeless (γ : RaftNames) (M : DecMap) : Timeless (decLb γ M)
 def leadFull [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) : IProp GF :=
   iprop(∃ ldr bL l fp, leadPrefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗ ⌜G = fp ++ l⌝)
 
+theorem isEntryR_of_core [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) (h : γ.reDyn ≠ none
+    → ¬IsEmptyV2 e) : isEntryC γ e pt ⊢ isEntryR γ e pt
+
 theorem snapDataOk_persistent (γ : RaftNames) (i : w64) (d : List w8) : Persistent (snapDataOk γ i
     d)
 
 theorem cq_timeless [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : Timeless (cq γ t
     n G)
+
+theorem isEntryC_timeless [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : Timeless
+    (isEntryC γ e pt)
 
 theorem cq_base [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : ⊢ cq γ t n G -∗
     ⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G
@@ -580,6 +618,9 @@ def ownCommittedDef (γ : RaftNames) (l : List EntryM) : IProp GF :=
 
 def isLeader (γ : RaftNames) (id term : w64) : IProp GF :=
   iprop(∃ q, isWin γ id term q)
+
+theorem logRecsC_take [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (n : Nat) : ⊢ logRecsC γ
+    base0 F -∗ logRecsC γ base0 (List.take n F)
 
 theorem witsB_persistent [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (lim : Nat) (B : Int) :
     Persistent (witsB γ F lim B)
@@ -643,6 +684,9 @@ theorem dynOn_timeless (γ : RaftNames) (P : IProp GF) [Timeless P] : Timeless (
 
 theorem isWin_votes [ReceiptGS GF] (γ : RaftNames) (id term : w64) (q : GSet w64) : ⊢ isWin γ id
     term q -∗ [∗map] v ↦ _u ∈ toMap q, isVote γ v term id
+
+theorem logRecsC_full [ReceiptGS GF] (γ : RaftNames) (b : entryID) (fp es : List EntryM) : FullOk b
+    fp → ⊢ logRecsC γ base0 fp -∗ logRecsC γ b es -∗ logRecsC γ base0 (fp ++ es)
 
 theorem raftSnapCertD_persistent [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : Persistent
     (raftSnapCertD γ k)
@@ -744,8 +788,14 @@ theorem CfgAt.of_static {γ : RaftNames} {c : CfgM} (M : DecMap) (P : List Entry
 def WinRec : Type :=
   (w64 × CfgM) × GSet w64
 
+def IsEmptyV2 (e : EntryM) : Prop :=
+  e.Data' = [] ∧ e.Type' = W32 2
+
 theorem raftSnapCert_empty [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) (h : ∀ (x : w64), ¬k.cl.Has
     x) (hr : γ.reSnapReg = none) : ⊢ raftSnapCert γ k
+
+theorem isEntryC_persistent [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : Persistent
+    (isEntryC γ e pt)
 
 def isVote (γ : RaftNames) (v term cand : w64) : IProp GF :=
   iprop(∃ γv, ⌜γ.reVotes !! v = some γv⌝ ∗ term ↪[γv]□ cand)
@@ -838,8 +888,13 @@ theorem isTermLog_agree [ReceiptGS GF] (γ : RaftNames) (v t : w64) (γt1 : GNam
     : List EntryM) (γt2 : GName) (b2 : entryID) (l2 : List EntryM) : ⊢ isTermLog γ v t γt1 b1 l1 -∗
     isTermLog γ v t γt2 b2 l2 -∗ ⌜γt1 = γt2 ∧ b1 = b2 ∧ l1 = l2⌝
 
+theorem logRecsC_timeless [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) : Timeless
+    (logRecsC γ b es)
+
 def propIdx (γ : RaftNames) (d : List w8) (i : w64) : IProp GF :=
-  iprop(∃ p k γt, d ↪[γ.reProps]□ p ∗ k ↪[p.snd]□ γt ∗ dghostVar γt DFrac.discard (some i))
+  iprop(∃ p k γt,
+      d ↪[γ.reProps]□ p ∗
+        k ↪[p.snd]□ γt ∗ (dghostVar γt DFrac.discard (some i) ∨ ⌜γ.dup = true⌝ ∗ dghostVar γt DFrac.discard none))
 
 theorem isCampK_persistent (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) : Persistent
     (isCampK γ c T F k)
@@ -849,6 +904,9 @@ def propDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF :=
   | none => iprop(⌜Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data'⌝)
   | some k => iprop(⌜entKey e.Type' e.Data' = k ∧ ¬Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data'⌝ ∗ deposited γ k)
 
+theorem ev2Rec_timeless [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : Timeless (ev2Rec γ
+    e pt)
+
 theorem snapLocal_persistent (γ : RaftNames) (id i : w64) : Persistent (snapLocal γ id i)
 
 theorem isCommittedIdx_persistent [ReceiptGS GF] (γ : RaftNames) (i : w64) : Persistent
@@ -856,6 +914,9 @@ theorem isCommittedIdx_persistent [ReceiptGS GF] (γ : RaftNames) (i : w64) : Pe
 
 theorem ownCommitted_lb [ReceiptGS GF] (γ : RaftNames) (l : List EntryM) : ⊢ ownCommitted γ l -∗
     isCommitted γ l
+
+theorem isEntryR_of_core_ev2 [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : ⊢ isEntryC γ e
+    pt -∗ ev2Rec γ e pt -∗ isEntryR γ e pt
 
 theorem leadFrags_timeless (γt : GName) (l0 l : List EntryM) : Timeless (leadFrags γt l0 l)
 
@@ -994,6 +1055,9 @@ theorem snapDataOk_triv [ReceiptGS GF] (γ : RaftNames) (L : List EntryM) (i : w
     (hok : ∀ (L : List BootEntry) (d : List w8), γ.reSnapOkRaw L d) (hl : L.length = uint.nat i) (hr
     : γ.reSnapReg = none) : isCommitted γ L ⊢ snapDataOk γ i d
 
+theorem ev2Rec_persistent [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : Persistent
+    (ev2Rec γ e pt)
+
 theorem CfgStatic.voters {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) : c.voters = γ.reCfg
 
 def cqDyn [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) (a : w64) : IProp GF :=
@@ -1001,6 +1065,15 @@ def cqDyn [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) (a : w64) 
 
 theorem isCamp_agree [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F1 F2 : List EntryM) : ⊢ isCamp γ c
     T F1 -∗ isCamp γ c T F2 -∗ ⌜F1 = F2⌝
+
+def isEntryC [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
+  iprop((∃ ldr γt b l0 F0,
+        isLeader γ ldr e.Term' ∗
+          isTermLog γ ldr e.Term' γt b l0 ∗
+            isCamp γ ldr e.Term' F0 ∗
+              e.Index' ↪[γt]□ (e, pt) ∗
+                ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝ ∗ entData γ e ∗ ⧖((uint.Z e.Index').toNat - γ.reBoot.length)) ∨
+      ⌜BootRec γ.reBoot e pt⌝ ∗ entData γ e)
 
 theorem logRecs_boot_termAt [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf base0 F → ⊢
     logRecs γ base0 F -∗ ⌜∀ (c : w64), uint.Z c ≤ ↑γ.reBoot.length → uint.Z c ≤ ↑F.length →
@@ -1044,6 +1117,12 @@ theorem isLeader_persistent (γ : RaftNames) (id term : w64) : Persistent (isLea
 theorem leadFull_timeless [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) : Timeless
     (leadFull γ t G)
 
+def instDecidableIsEmptyV2 (e : EntryM) : Decidable (IsEmptyV2 e) :=
+  id inferInstance
+
+theorem logRecsC_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) :
+    Persistent (logRecsC γ b es)
+
 theorem forall_prop_timeless.{u_1} {PROP : Type u_1} [BI PROP] {P : Prop} (Ψ : P → PROP) [∀ (x : P),
     Timeless (Ψ x)] : Timeless («forall» Ψ)
 
@@ -1058,6 +1137,18 @@ theorem baseOk_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) : Persis
 theorem isEntryR_boot_leader [ReceiptGS GF] (γ : RaftNames) (e1 : EntryM) (pt1 : w64) (e2 : EntryM)
     (pt2 ldr : w64) : e1.Term' = e2.Term' → BootRec γ.reBoot e1 pt1 → isLeader γ ldr e2.Term' ⊢
     False
+
+def ev2Rec [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
+  iprop(∀ x,
+      ∃ P M c,
+        logRecsC γ base0 P ∗
+          decLb γ M ∗
+            ⌜PlogWf base0 P ∧
+                ↑P.length + 1 = uint.Z e.Index' ∧
+                  plogTermAt base0 P (W64 ↑P.length) = some pt ∧ CfgAt γ M P c ∧ c.joint = true⌝)
+
+theorem propTk_persist [ReceiptGS GF] (γ : RaftNames) (d : List w8) (h : γ.dup = true) : propTk γ d
+    ⊢ □ propTk γ d
 
 theorem snapAtOk_timeless (γ : RaftNames) (k : SnapTrip) : Timeless (snapAtOk γ k)
 

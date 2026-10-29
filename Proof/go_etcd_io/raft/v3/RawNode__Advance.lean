@@ -200,7 +200,7 @@ private theorem wp_step_pending
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (md : GMode) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (st : MsgSt) (p : Pending)
-    (Hwf : NStateWf s) (Hok : PendingOk s p) (Hal : c.autoLeave = false)
+    (Hwf : NStateWf s) (Hok : PendingOk s p)
     -- (D22 S-d3a) an acknowledgement of no snapshot (a snapshot's is `wp_step_snapack`'s); (D22
     -- S-d3b) its `StableOk` the caller's (`stableOk_of_stored`, or after a restore its miss,
     -- `stableOk_restored`)
@@ -470,7 +470,7 @@ private theorem wp_step_snapack
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (t : w64) (b : entryID) (e : Option entryID) (sv : SnapshotM) (D : List EntryM)
-    (Hwf : NStateWf s) (Hok : PendingOk s (.appendAck t b e (some sv))) (Hal : c.autoLeave = false)
+    (Hwf : NStateWf s) (Hok : PendingOk s (.appendAck t b e (some sv)))
     (Hhit : snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat)
     (Hle : uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index')
     (Hsok : ∀ x, e = some x → (t = W64 0 ∨ t = s.term) → StableOk (ackLog s.logst (some sv)) x)
@@ -491,8 +491,7 @@ private theorem wp_step_snapack
       (s.logst.snap = none ∨ snapHit s.logst.snap sv.Metadata'.Index' = true →
         sv.Metadata'.Index' = s.logst.prev.index') ∧
       D.length = uint.nat sv.Metadata'.Index' ∧ plogLast base0 D = snapId sv ∧
-      uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed ∧
-      sv.Metadata'.ConfState'.AutoLeave' = false)
+      uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed)
     -- (2026-10-28, the decision switch) dynamically `D` folds over the decisions `Ml` (the loan's,
     -- `loanDec`) to the snapshot's configuration, `Ml` among the ghost's (the caller absorbed them)
     (Ml : DecMap)
@@ -511,7 +510,6 @@ private theorem wp_step_snapack
          (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
             md' = .dyn dec c0 h0
               ⟨uint.nat sv.Metadata'.Index', (cfgFold (effDec dec Ml) c0 D).getD g.cfg, g.fp, g.decs⟩) ∧
-         (snapCfg sv sv.Metadata'.ConfState'.lists).autoLeave = false ∧
          ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), s' = { s with
            logst := ackSnapLog s.logst (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) s.term sv,
            progress := prs, prvals := pvs, isLearner := il }⌝ }} := by
@@ -554,8 +552,7 @@ private theorem wp_step_snapack
     | some x => exact Hsok x rfl ht
   -- the mode's acknowledgement premise and the configuration's auto-leave flag, with the ghost
   -- state closed again; dynamically `D` the full prefix up to the snapshot, its fold some
-  ihave ⟨%Hmode, %Hal', %HcsD, Hghost⟩ : ⌜(md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv⌝ ∗
-      ⌜(snapCfg sv sv.Metadata'.ConfState'.lists).autoLeave = false⌝ ∗
+  ihave ⟨%Hmode, %HcsD, Hghost⟩ : ⌜(md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv⌝ ∗
       ⌜∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
         g.fp.take (uint.nat sv.Metadata'.Index') = D ∧ ∃ cs, cfgFold (effDec dec Ml) c0 D = some cs ∧
           cfgFold (effDec dec g.decs) c0 D = some cs⌝ ∗
@@ -574,8 +571,6 @@ private theorem wp_step_snapack
         · show GMap.listToSet sv.Metadata'.ConfState'.lists.outgoing = ∅
           rw [Hout']; rfl
       isplitr
-      · ipureintro; simp only [snapCfg, csCfgM, Hout', ↓reduceIte]
-      isplitr
       · ipureintro; intro _ _ _ _ h; cases h
       unfold ownStepGhost ghostRest
       iframe Hg Hlink
@@ -583,7 +578,7 @@ private theorem wp_step_snapack
       · ipureintro; exact Hnlk
       simp only [ghostRestM]; ipureintro; exact HC
     | dyn dec c0 h0 g =>
-      obtain ⟨Hlt, Hsnb, Hdl, Hdlast, Hic, Half⟩ := Hdyn rfl
+      obtain ⟨Hlt, Hsnb, Hdl, Hdlast, Hic⟩ := Hdyn rfl
       simp only [ghostRestM]
       icases Hrm with ⟨%Hdgc, #HMg, #Hfr, Hcamp⟩
       obtain ⟨HDy, hc, HI⟩ := Hdgc
@@ -613,8 +608,6 @@ private theorem wp_step_snapack
       isplitr
       · ipureintro
         exact .inr ⟨Hl x Hx, Hlt, Hsnb, cs', by rw [Htake]; exact Hcs1, Hcs2⟩
-      isplitr
-      · ipureintro; simp only [snapCfg, csCfgM, Half]; split <;> rfl
       isplitr
       · ipureintro; intro _ _ _ _ h; cases h; exact ⟨Htake, cs', Hcs0, Hcs1⟩
       iexact Hghost
@@ -705,7 +698,7 @@ private theorem wp_step_snapack
     iapply HΦ $$ %err %s' %md'
     iframe Hphys Hghost
     ipureintro
-    exact ⟨Hwf', fun h => by subst h; exact Hstp.1, Hmd2, Hal', Hs'⟩
+    exact ⟨Hwf', fun h => by subst h; exact Hstp.1, Hmd2, Hs'⟩
 
 /-- (D22 S-d3a) What a snapshot's acknowledgement leaves of the log (`ackSnapLog`), the snapshot the
 pending one, `applying` at most its index, `applied` at most `applying`: the snapshot dropped, nothing
@@ -920,7 +913,7 @@ private theorem RNMode.toG_static {mode : RNMode} (h : mode.isDyn = false) (g g'
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd Hunp0 Hunst0 Hal1
+  intro γ rn id rs rd Hunp0 Hunst0
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -1082,7 +1075,7 @@ theorem RawNode.Advance.wp_proof
         "%Hfl1" ∷ ⌜s1.logst.fl = s0.logst.fl ∧ uint.Z s0.logst.applied ≤ uint.Z s1.logst.applied⌝ ∗
         -- (2026-10-28, stage U0) the configuration `cf` until the snapshot's acknowledgement,
         -- the snapshot's after it (`appliedSnap`); a node with a snapshot pending a follower
-        "%Hcf1" ∷ ⌜cf1.autoLeave = false ∧ (sint.nat n ≤ pre.length → cf1 = cf)⌝ ∗
+        "%Hcf1" ∷ ⌜sint.nat n ≤ pre.length → cf1 = cf⌝ ∗
         "%Hsf1" ∷ ⌜SnapFol s1⌝ ∗
         "Hpend" ∷ pendList γ id (steps.drop (sint.nat n)) (rs.steps.drop (sint.nat n)))
       $$ [i m ib Hphys Hghost Hsteps Hpend]
@@ -1098,7 +1091,7 @@ theorem RawNode.Advance.wp_proof
         ⟨Hs0f.2.1, by simp, by simp, by simp,
           fun h => absurd h (by omega)⟩, by simp, Int.le_refl _, Hstok0,
         stepsOk_selfBound s0 rs.steps Hstok0, ⟨Int.le_refl _, by omega, fun _ _ => rfl, ?_, ?_⟩,
-        ⟨by simp, Int.le_refl _⟩, ⟨Hal, fun _ => by first | rfl | trivial⟩,
+        ⟨by simp, Int.le_refl _⟩, fun _ => by first | rfl | trivial,
         fun h => by
           rw [Hs0f.2.2.2.2.2.2.2.2.2.2.2.1]
           exact Hpvoff.2.2.2.2 (by rw [← Hs0f.2.2.1]; exact h)⟩
@@ -1126,7 +1119,7 @@ theorem RawNode.Advance.wp_proof
       have Hnl : sint.nat n < pre.length + 1 := by
         rw [← Hlen2]; exact (List.getElem?_eq_some_iff.1 Hp_lookup).1
       -- (U0) before the snapshot's acknowledgement: still at `cf`; (U3c) and at the mode's
-      have Hcfe := Hcf1.2 (by omega)
+      have Hcfe := Hcf1 (by omega)
       subst cf1
       have Hmde := Hmd1.1 (by omega)
       subst md1
@@ -1155,7 +1148,7 @@ theorem RawNode.Advance.wp_proof
             (RNMode.guard_of (fun _ => preGuardF_of_fol Hfol1) rs.capplied rs.cfg) $$ Hphys
           with ⟨%Hpf1, Hphys⟩
         wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st (.self pv0 t0) Hwf1
-          Hpok Hal (fun _ _ _ _ h => by cases h) Hs1.1 Hnw1
+          Hpok (fun _ _ _ _ h => by cases h) Hs1.1 Hnw1
           (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst) Hpf1
           (fun _ _ h => by cases h)
           $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
@@ -1186,7 +1179,7 @@ theorem RawNode.Advance.wp_proof
           stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, logStoreRec_stored Hsd2⟩ Hc12 Ha2 (tc_le_of_gh Hsg2'') Hrest,
           fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
           termInv_step s0 s1 s2 _ _ Hok1 Hsb1 Hti1 Ht2 Hps2 Hrl2,
-          ⟨Hfl2.trans Hfl1.1, Int.le_trans Hfl1.2 Hap2⟩, ⟨Hal, fun _ => by first | rfl | trivial⟩, Hsf1.step Hsrb2⟩
+          ⟨Hfl2.trans Hfl1.1, Int.le_trans Hfl1.2 Hap2⟩, fun _ => by first | rfl | trivial, Hsf1.step Hsrb2⟩
         rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
           Hsteps1.2]
       · -- the snapshot's acknowledgement, last
@@ -1214,9 +1207,6 @@ theorem RawNode.Advance.wp_proof
           have := Hs0f.2.2.2.2.2.2.2.1; rw [this] at Hc1; omega
         have Hdlen' : l.dlv.length = uint.nat l.snap.Metadata'.Index' := by
           have := uint_nat_eq l.snap.Metadata'.Index'; omega
-        have Hal1' : (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩).isDyn = true →
-            l.snap.Metadata'.ConfState'.AutoLeave' = false := fun hd =>
-          Hal1 l hsl (by rw [← RNMode.toG_isDyn rs.mode ⟨rs.capplied, rs.cfg, fp, ds⟩]; exact hd)
         -- (D22 S-d3b) the acknowledgement's facts (`ackInv`): the records of what the storage
         -- holds after the lent snapshot, and the arm
         have Hmem : Pending.appendAck tA (snapId l.snap) eA (some l.snap) ∈ rs.steps := by
@@ -1253,17 +1243,17 @@ theorem RawNode.Advance.wp_proof
             $$ [$HlD $Hghost] with ⟨%Hsub, Hghost⟩
           wp_apply wp_step_snapack wp_raft_Step γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds ∪ l.decs⟩) cf rnv.raft'
             id s1 mm tA (snapId l.snap) eA l.snap l.dlv
-            Hwf1 Hpok Hal (by rw [Hsn1', Hsat1]; simp [snapHit, snapId])
+            Hwf1 Hpok (by rw [Hsn1', Hsat1]; simp [snapHit, snapId])
             (by rw [Hpv1]; exact Int.le_refl _)
             (fun x hx _ => by rw [← (Hpok.2 x hx).1, ← Hpv1]; exact Hsok)
             (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
             (fun hs hl => (Hgh1.1.2.2.2.2.2 _ Hsnp1 hl).1 hs)
             (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
-            (fun hd => ⟨Happ1, fun _ => by rw [Hpv1]; rfl, Hdlen', Hdlast, Hcm1, Hal1' (by rw [RNMode.toG_isDyn] at hd ⊢; exact hd)⟩)
+            (fun hd => ⟨Happ1, fun _ => by rw [Hpv1]; rfl, Hdlen', Hdlast, Hcm1⟩)
             l.decs HlDf (subDecs_of Hsub)
             $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
-          obtain ⟨Hwf2, Hmds, Hmdd, Hal2, prs2, pvs2, il2, Hs2⟩ := Hst2
+          obtain ⟨Hwf2, Hmds, Hmdd, prs2, pvs2, il2, Hs2⟩ := Hst2
           have Hmd2 := snapack_mode Hmds Hmdd
           have Hl2 : s2.logst =
               ackSnapLog s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term l.snap := by
@@ -1300,7 +1290,7 @@ theorem RawNode.Advance.wp_proof
             fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
             termInv_step s0 s1 s2 _ _ Hok1 Hsb1 Hti1 (by rw [Ht2]; exact Int.le_refl _) Ht2
               (fun h => ⟨Hr2 ▸ h, Ht2⟩),
-            ⟨by rw [b10]; exact Hfl1.1, ?_⟩, ⟨Hal2, fun h => absurd h (by omega)⟩,
+            ⟨by rw [b10]; exact Hfl1.1, ?_⟩, fun h => absurd h (by omega),
             fun _ => Hr2.trans (Hsf1 (by rw [Hsn1']; simp))⟩
           · rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
               Hsteps1.2]
@@ -1401,17 +1391,17 @@ theorem RawNode.Advance.wp_proof
             · rw [Hhit1] at h; cases h
           wp_apply wp_step_snapack wp_raft_Step γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds ∪ l.decs⟩) cf rnv.raft'
             id s1 mm tA (snapId l.snap) eA l.snap l.dlv
-            Hwf1 Hpok Hal (by rw [Hhit1, Hsat1])
+            Hwf1 Hpok (by rw [Hhit1, Hsat1])
             (by rw [Hpv1]; exact Int.le_of_lt Hl2)
             (fun x hx ht => by rw [Hak]; exact fun h => absurd h (Hnh x hx ht))
             (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
             (fun hs hl => (Hgh1.1.2.2.2.2.2 _ Hsnp1 hl).1 hs)
             (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
-            (fun hd => ⟨Happ1, Hsnb1, Hdlen', Hdlast, Hcm1, Hal1' (by rw [RNMode.toG_isDyn] at hd ⊢; exact hd)⟩)
+            (fun hd => ⟨Happ1, Hsnb1, Hdlen', Hdlast, Hcm1⟩)
             l.decs HlDf (subDecs_of Hsub)
             $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2' %md2 ⟨Hphys, Hghost, %Hst2⟩
-          obtain ⟨Hwf2, Hmds, Hmdd, Hal2, prs2, pvs2, il2, Hs2'⟩ := Hst2
+          obtain ⟨Hwf2, Hmds, Hmdd, prs2, pvs2, il2, Hs2'⟩ := Hst2
           have Hmd2 := snapack_mode Hmds Hmdd
           have Hl2' : s2'.logst =
               ackSnapLog s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term l.snap := by
@@ -1450,7 +1440,7 @@ theorem RawNode.Advance.wp_proof
             fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
             termInv_step s0 s1 s2' _ _ Hok1 Hsb1 Hti1 (by rw [Ht2]; exact Int.le_refl _) Ht2
               (fun h => ⟨Hr2 ▸ h, Ht2⟩),
-            ⟨by rw [b10]; exact Hfl1.1, ?_⟩, ⟨Hal2, fun h => absurd h (by omega)⟩,
+            ⟨by rw [b10]; exact Hfl1.1, ?_⟩, fun h => absurd h (by omega),
             fun _ => Hr2.trans (Hsf1 (by rw [Hsn1']; simp))⟩
           · rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
               Hsteps1.2]
@@ -1532,7 +1522,7 @@ theorem RawNode.Advance.wp_proof
           cf1 fp
           { rnv with stepsOnAdvance' :=
               slice.slice rnv.stepsOnAdvance' Loc (W64 0) (W64 0) }
-          sv hprev [] Hwf1 Hin Hcf1.1 Hasync
+          sv hprev [] Hwf1 Hin Hasync
           (by show l.dlv.length = _; rw [Hap1]; exact Hdll)
           Hs1.1.symm
           (fun h => Hsn1 h.1) trivial rfl
@@ -1758,7 +1748,7 @@ theorem RawNode.Advance.wp_proof
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
     icases Hres with ⟨%Hpre1, Hghost⟩
-    wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st p Hwf1 Hpok Hal
+    wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st p Hwf1 Hpok
       Hack (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
       $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
@@ -1856,7 +1846,7 @@ theorem RawNode.Advance.wp_proof
         cf fp
         { rnv with stepsOnAdvance' :=
             slice.slice rnv.stepsOnAdvance' Loc (W64 0) (W64 0) }
-        sv hprev [] Hwf1 Hin Hal Hasync (by rw [Hs1.1]; exact Hdlen) (by rw [Hs1.2.1]; exact Hunp)
+        sv hprev [] Hwf1 Hin Hasync (by rw [Hs1.1]; exact Hdlen) (by rw [Hs1.2.1]; exact Hunp)
         (fun h => by rw [Hs1.2.2.1]; exact Hsnap h) trivial rfl (by rw [Hsg1.1]; exact Hstor)
         ⟨fun h => Hpg1 fp (Hpvoff.1 h), by rw [Hsg1.2.2]; exact Hpvoff.2.1,
           by rw [Hsg1.2.2]; exact Hti1.2.2.2.1, fun h => by rw [Hsg1.2.2]; exact Hti1.2.2.2.2 h, Hsf1⟩

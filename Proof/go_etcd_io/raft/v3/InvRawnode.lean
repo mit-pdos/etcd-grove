@@ -547,8 +547,8 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
 it) of the next conf-change entry `e` of the committed log handed out, at position `k` (log index
 `k + 1`), past every applied one (`capplied ≤ k`, none in between: in order, once); it applies to
 the configuration in use (`ccStepB`: no `confchange` error, fewer than `2^62` tracked ids -- Go
-panics otherwise); and its result is no auto-leave joint configuration (`appliedTo`'s auto-leave
-proposal is out of `raft.Step`'s scope). -/
+panics otherwise). (Until 2026-10-29, stage U5, also its result no auto-leave joint configuration:
+`appliedTo`'s automatic leave was out of `raft.Step`'s scope.) -/
 def DynCCPre (dec : CCDec) (rs : RNState) (o : ConfChangeIM) (k : Nat) (e : EntryM)
     (cs' : CCState) : Prop :=
   DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccV2Of o) k e cs'
@@ -2196,7 +2196,6 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- configuration, `cf.autoLeave = false`: `appliedTo`'s automatic leave was out of `raft.Step`'s
   -- scope.)
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
-  "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
   -- scope: synchronous storage writes (`Config.AsyncStorageWrites` unset); `NewRawNode`
   -- copies the `Config` field
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
@@ -2254,7 +2253,7 @@ queue `pendList`, owned; no `pendingOwn`.) -/
 theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
-    (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hal : c.autoLeave = false)
+    (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg)
     (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
@@ -2282,7 +2281,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   simp only [named]
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
-  exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
+  exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hsdt⟩
 
 /-! ### The static mode, as before (2026-10-14, stage B7 part 2)
@@ -2359,7 +2358,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     isplitr
     · ipureintro; exact Hnl
     ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
-  iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
+  iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor (Hpvoff.static_fp Hm) Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
@@ -2380,7 +2379,7 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     cases hm : rs.mode with
     | static => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Hm]
     | dyn dec c0 h0 _ => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
@@ -2576,7 +2575,7 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     (s' := { s with gh := { s.gh with tc := tc } }) rfl rfl rfl rfl $$ Hghost
   obtain ⟨H1, -, H3, H4, H5⟩ := Hpvoff
   iapply ownRawNode_intro γ rn id { rs with tc := tc } { s with gh := { s.gh with tc := tc } } cf fp
-    rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+    rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
     ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle', H5⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, Hloan.2.2⟩
@@ -2590,7 +2589,7 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iNamed H
   isplitr
   · ipureintro; rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
@@ -2625,7 +2624,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl $$ Hghost
   imodintro
   iapply ownRawNode_intro γ rn id { rs with unpersisted := [] }
-    { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hal Hasync
+    { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hasync
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
@@ -2721,7 +2720,7 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   imodintro
   isplitr [Hfw Ht]
   · iapply ownRawNode_intro γ rn id { rs with flw := true }
-      { s with logst := { s.logst with fl := s.logst.applying } } cf fp rnv sv hprev steps Hwf Hin Hal
+      { s with logst := { s.logst with fl := s.logst.applying } } cf fp rnv sv hprev steps Hwf Hin
       Hasync Hdlen Hunp Hsnap
       (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
       Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
