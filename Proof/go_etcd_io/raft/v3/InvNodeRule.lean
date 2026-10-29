@@ -319,6 +319,22 @@ theorem snapshotCert_made (γ : Cluster) (N : Namespace) (k : SnapTrip) :
   unfold isCluster isCommittedLogLb confAt snapMade snapshotCert
   exact ApiImpl.snapshotCert_made_impl γ N k
 
+/-- **The snapshot `sv` is valid** for the cluster (persistent; U8 v2, candidate 17 rev 3 §2,
+`notes/spec-first-study/raft-storage-spec.md`): it is of a non-empty committed prefix `l` of its
+index and last term, its `ConfState` reports the membership `m` after `l` (`confAt`), and it was made
+(`snapMade`, with its data). Exposed: what a client's `Storage.Snapshot` promises of a non-empty
+snapshot (`isStorage`), replacing the certificate registry (`snapshotCert` with `storCert`). -/
+def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
+  iprop(∃ (l : List LogEntry) (m : Membership), isCommittedLogLb γ l ∗ confAt γ l.length m ∗
+    snapMade γ ⟨l.length, m, sv.Data'⟩ ∗
+    ⌜l.length = uint.nat sv.Metadata'.Index' ∧ 0 < l.length ∧
+      Option.map LogEntry.term l.getLast? = some sv.Metadata'.Term' ∧
+      confStateIs sv.Metadata'.ConfState' m⌝)
+
+instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
+    Persistent (snapshotValid (GF := GF) γ sv) := by
+  unfold snapshotValid; infer_instance
+
 end api
 
 end EtcdGrove

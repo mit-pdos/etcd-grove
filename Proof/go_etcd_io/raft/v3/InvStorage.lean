@@ -208,6 +208,12 @@ def TermsOn [GooseExts] (σ : StorState) (ts : List w64) : Prop :=
   ∀ (j t : w64), uint.Z σ.prev.index' < uint.Z j → ts[uint.nat j - 1]? = some t →
     termAt σ.prev σ.ents j = some t
 
+/-- (U8 v2) Two ranges of the log, `es1` from index `k1` and `es2` from `k2`, agree where they
+overlap (`storLog_agree`). -/
+def LogAgree [GooseExts] (k1 : Nat) (es1 : List EntryM) (k2 : Nat) (es2 : List EntryM) : Prop :=
+  ∀ (i : Nat) (e1 e2 : EntryM), k1 ≤ i → k2 ≤ i → es1[i - k1]? = some e1 → es2[i - k2]? = some e2 →
+    e1 = e2
+
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
 raft's and is not in scope, so every result holds for whichever predicate the client
@@ -264,9 +270,43 @@ class StorageModel (GF : BundledGFunctors) [GooseExts] where
   storTermsAt_intro : ∀ (st : Storage) (σ : StorState) (ts : List w64),
     σ.pend = [] → (ts.length : Int) ≤ uint.Z σ.fl → TermsOn σ ts →
     ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
+  -- The storage as range ownership (U8 v2, candidate 17 rev 3 §1,
+  -- `notes/spec-first-study/raft-storage-spec.md`; γ-free).
+  /-- `storLog st k dq es`: the storage's entries at the indices `k, k+1, …, k+|es|-1` are `es`, or
+  compacted (at the compaction point itself only the term is kept). `own 1` lets its holder write the
+  range; `□` (`DFrac.discard`) is the frozen committed prefix, which nobody writes again. -/
+  storLog : Storage → Nat → DFrac → List EntryM → IProp GF
+  /-- `storEnd st e`: the storage's last index is exactly `e - 1` (exclusive). -/
+  storEnd : Storage → Nat → IProp GF
+  /-- `storCompacted st c` (persistent): the compaction point has reached `c`: `Term(i)` for `i < c`
+  and `Entries(lo, …)` for `lo ≤ c` answer `ErrCompacted`; `FirstIndex` answers at least `c + 1`. -/
+  storCompacted : Storage → Nat → IProp GF
+  storLog_app : ∀ st k dq (a b : List EntryM),
+    storLog st k dq (a ++ b) ⊣⊢ storLog st k dq a ∗ storLog st (k + a.length) dq b
+  storLog_frac : ∀ st k (dq1 dq2 : DFrac) es,
+    storLog st k (dq1 • dq2) es ⊣⊢ storLog st k dq1 es ∗ storLog st k dq2 es
+  /-- (U8 v2: only of a non-empty range, which `storLog_nil` would otherwise contradict) -/
+  storLog_valid : ∀ st k dq (es : List EntryM), es ≠ [] → storLog st k dq es ⊢ ⌜✓ dq⌝
+  storLog_agree : ∀ st k1 k2 dq1 dq2 es1 es2,
+    storLog st k1 dq1 es1 ∗ storLog st k2 dq2 es2 ⊢ ⌜LogAgree k1 es1 k2 es2⌝
+  storLog_persist : ∀ st k dq es, storLog st k dq es ⊢ |==> storLog st k DFrac.discard es
+  storLog_persistent : ∀ st k es, Persistent (storLog st k DFrac.discard es)
+  storLog_nil : ∀ st k dq, ⊢ storLog st k dq []
+  storEnd_excl : ∀ st e e', storEnd st e ∗ storEnd st e' ⊢ False
+  storCompacted_persistent : ∀ st c, Persistent (storCompacted st c)
+  storCompacted_zero : ∀ st, ⊢ storCompacted st 0
+  storCompacted_mono : ∀ st c c', c' ≤ c → storCompacted st c ⊢ storCompacted st c'
 
 export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert
-  storTermsAt)
+  storTermsAt storLog storEnd storCompacted)
+
+instance storLog_discard_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (k : Nat) (es : List EntryM) : Persistent (storLog (GF := GF) st k DFrac.discard es) :=
+  StorageModel.storLog_persistent st k es
+
+instance storCompacted_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (c : Nat) : Persistent (storCompacted (GF := GF) st c) :=
+  StorageModel.storCompacted_persistent st c
 
 instance storCut_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
     (n : Int) : Persistent (storCut (GF := GF) st n) :=
@@ -634,6 +674,85 @@ theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM)
   iexact Htok
 
 end proof
+
+/-! ## The contract over range ownership (U8 v2, candidate 17 rev 3 §2)
+
+`isStorageP SV Bnd st`: the five methods raft reads while running, as ordinary triples over the
+range vocabulary (`storLog`, `storEnd`, `storCompacted`), and two laws. It is parameterized by its
+two cluster-level pieces, which this file (below raft's log, far below the node API) cannot name:
+
+- `SV sv`, what a non-empty stored snapshot is (the API's `snapshotValid γ`);
+- `Bnd c`, why the storage is compacted at most to `c` (the API's `∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ
+  id k ∨ snapGiven γ id k)`).
+
+Raft's API module fixes both (`isStorage γ id st`); no client supplies them (`notes/
+raft-unified-plan.md`, "U8 v2"). Persistent: it says which methods the interface value dispatches to.
+
+The laws: `Hbound` (`storCompacted_bound`), under an update at `⊤` (the justification is behind the
+implementation's invariant: review 4, M3), and `Hlen`, the no-wrap bound of the old contract's
+`Hbounded`, now over a range (U8 v2: a stored entry's index stays below `2^61`). -/
+
+section rangeContract
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See above. -/
+def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (st : Storage) : IProp GF :=
+  iprop(∃ (i : GoInterfaceOk),
+  "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
+  "#HLastIndex" ∷ (∀ (e : Nat),
+     {{ storEnd st e }}
+       (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
+     {{ (li : w64), RET (PairV #li #interface.nil);
+         storEnd st e ∗ ⌜uint.nat li + 1 = e⌝ }}) ∗
+  "#HTerm" ∷ (∀ (k : Nat) (dq : DFrac) (es : List EntryM) (i0 : w64) (ec : GoInterface),
+     {{ storLog st k dq es ∗ ⌜k ≤ uint.nat i0 ∧ uint.nat i0 < k + es.length⌝ ∗
+         globalAddr ErrCompacted ↦□ ec }}
+       (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
+     {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
+         storLog st k dq es ∗
+         (⌜err = interface.nil ∧ (fun e : EntryM => e.Term') <$> es[uint.nat i0 - k]? = some t⌝ ∨
+          (⌜err = ec⌝ ∗ storCompacted st (uint.nat i0 + 1))) }}) ∗
+  -- two pieces, a frozen prefix and an owned tail (possibly empty): N4
+  "#HEntries" ∷ (∀ (k : Nat) (dq1 dq2 : DFrac) (a b : List EntryM) (lo hi maxSize : w64)
+      (ec : GoInterface),
+     {{ storLog st k dq1 a ∗ storLog st (k + a.length) dq2 b ∗
+         ⌜k ≤ uint.nat lo ∧ uint.nat lo < uint.nat hi ∧
+           uint.nat hi ≤ k + a.length + b.length⌝ ∗
+         globalAddr ErrCompacted ↦□ ec }}
+       (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
+         (Val #maxSize))
+     {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
+         storLog st k dq1 a ∗ storLog st (k + a.length) dq2 b ∗
+         ((⌜err = ec⌝ ∗ storCompacted st (uint.nat lo)) ∨
+          (⌜err = interface.nil⌝ ∗ entsRO s es ∗
+           ⌜es ≠ [] ∧ s.cap = s.len ∧
+             es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}) ∗
+  "#HFirstIndex" ∷ (∀ (c : Nat),
+     {{ storCompacted st c }}
+       (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
+     {{ (fi : w64), RET (PairV #fi #interface.nil);
+         ⌜c + 1 ≤ uint.nat fi⌝ ∗ storCompacted st (uint.nat fi - 1) }}) ∗
+  "#HSnapshot" ∷ (∀ (c : Nat) (esu : GoInterface),
+     {{ storCompacted st c ∗ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
+       (App (Val #(methods i.ty go!"Snapshot" i.v)) (Val #()))
+     {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
+         ⌜err = esu⌝ ∨
+         (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+           ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
+           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SV sv)) }}) ∗
+  "#Hbound" ∷ □ (∀ (c : Nat), storCompacted st c ={⊤}=∗ Bnd c) ∗
+  "#Hlen" ∷ □ (∀ (k : Nat) (dq : DFrac) (es : List EntryM),
+     storLog st k dq es -∗ ⌜es = [] ∨ k + es.length ≤ 2^61⌝))
+
+instance isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (st : Storage) :
+    Persistent (isStorageP SV Bnd st) := by
+  unfold isStorageP; infer_instance
+
+end rangeContract
 
 end EtcdGrove
 end Perennial
