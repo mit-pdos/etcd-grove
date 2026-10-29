@@ -117,6 +117,11 @@ def evFactR (R : Nat → GoString → GoString → IProp GF) (P : List (GoString
   iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
     kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ R r e.key v)
 
+/-- **The `Event` `Collect` appends** for the event `e` whose key-value's value is `v`: its
+revision (the key-value's `ModRevision`), key, value, and whether it is a put. -/
+def evWev (e : EvModel) (v : GoString) : wev :=
+  { Rev' := e.rev, Key' := e.key, Val' := v, Put' := decide (e.typ = W32 0) }
+
 /-- **What `Collect` returns with `true`**, at `upTo`: the events are the puts at revisions
 `2, 3, ...` (one per revision, in order), each of a key and value of the plan `P`, at least up to
 `upTo`, and fewer than `2 ^ 63 - 1`; each the put `R` has at its revision. -/

@@ -29,6 +29,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Writer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.CollectPlan
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.StateResp
 public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
@@ -500,7 +501,7 @@ theorem Main.wp_proof
     rw [← h10]
     iframe Hcons Hcur
     ipureintro; rfl
-  wp_apply (wp_Collect (common.stateOk (opWatchModel wkPfx [withPrefixM, withRevM (W64 1), withProgressNotifyM, withCreatedNotifyM]) (wkReadQ γc (trs.map pairOf)))
+  wp_apply (common.wp_Collect_plan wp_Collect (common.stateOk (opWatchModel wkPfx [withPrefixM, withRevM (W64 1), withProgressNotifyM, withCreatedNotifyM]) (wkReadQ γc (trs.map pairOf)))
       (wkRevAt γc) iprop(True) (trs.map pairOf) wch γw m (fun _ _ _ _ => inferInstance)
       (fun c c' v r => common.stateOk_closeErr _ _ c c' v r)
       (fun n c c' v r hne hcur => by

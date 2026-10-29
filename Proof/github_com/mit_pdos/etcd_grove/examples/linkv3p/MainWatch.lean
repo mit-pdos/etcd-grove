@@ -25,6 +25,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.writer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.CollectPlan
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.WatchWrites
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Boot
@@ -570,7 +571,7 @@ theorem MainWatch.wp_proof
   · rw [← h10]; iexact Hcons
   ihave #Hrc := common.isRespChan_of_etcdWatchChan (EM := client.etcdModelOfKV γ) wch γw wkPfx
     $$ Hwch
-  wp_apply (wp_Collect (watchRespOk (EM := client.etcdModelOfKV γ) wkPfx) (revAtK γ)
+  wp_apply (common.wp_Collect_plan wp_Collect (watchRespOk (EM := client.etcdModelOfKV γ) wkPfx) (revAtK γ)
       (client.kmInv γ) (trs.map pairOf) wch γw m (fun _ _ _ _ => inferInstance)
       (fun c c' v r => common.watchRespOk_closeErr' (EM := client.etcdModelOfKV γ) wkPfx c c' v r)
       (fun n c c' v r hne hcur => by
