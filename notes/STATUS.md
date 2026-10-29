@@ -505,8 +505,13 @@ Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; 
 - **Since** (2026-10-29, after merging track B's client confchange API): `validConf` and
   `Replica.applyOp` proved; `Defs` splits the replicated state between the applier (`repOwn`) and the
   lock (`repShared`). Next steps: the plan's Track C log, last entry.
-- **Not started**: the store's the storage instance, the replica's loop and methods, the
-  cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
+- **Since** (2026-10-29, second agent): the conf entries' shape in the invariant (`ConfShaped`;
+  `committed_confDecodes` left `RaftAssume`); the Go change `stop` waits for `run`/`ticker` before
+  stopping the node (the applier never meets a stopped node: it holds `nodeLive`); proved `Stats.add`,
+  `Replica.applyConf`, `Replica.applyEntry`, `Replica.answer`, `Replica.install`. Next: the plan's
+  Track C log, last entry.
+- **Not started**: the storage instance and the wrapper's methods, `maybeSnapshot`, `maybeCompact`,
+  `run`, the replica's client methods, the cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
   hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).
 
 ## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)

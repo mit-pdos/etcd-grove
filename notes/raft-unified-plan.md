@@ -256,3 +256,23 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   on the wrapper storage with `σ.hd = W64 0` (U8), the storage-wrapper law, the storage hold-mark
   specs, U7's message shapes (Propose/msgCredits being redesigned: do not build on them yet). Next:
   `answer` (kv's proof, with `kvr_read_minted`), `install`, then the storage ones and `run`.
+- 2026-10-29 (checkpoint, second track C agent, context nearly full; last commit `c077a7058e`):
+  proved since the entry above: `Replica.answer` (kv's, the lock held across the loop) and
+  `Replica.install` (spec: the snapshot's maps for a committed `L` of the metadata's index, its
+  `ConfState` cloned, `confAt |L| mL`; the covered waiters answered over `wp_map_for_range_mut`).
+  The applier's interface now: `repOwn γr r ap idx csp m mA A` (no stopped case), `appNode γr n l k m`
+  (the node's view), `RA.nodeLive n γ N q` threaded through `applyConf`/`applyEntry`; `isReplica`
+  (persistent fields, `isStats`, `kvrCluster`, the lock). Not yet in `isReplica`: `tick`, `stopc`,
+  `runDone`/`tickDone` (the new Go fields; the run loop's exit hands its `nodeLive` fraction to `stop`
+  through `runDone`, a buffered channel: a `Handoff` like the waiters'). **Next, in order**: (1) state in
+  `RaftAssume` `Advance_spec` (today's `node.Advance.unifiedSpec` without the snapshot loan's
+  `AutoLeave' = false` premise, running post only; the coordinator's answer on its stopped case is
+  pending, see the messages: track A cannot give storage facts on a stopped node, which the
+  stop-after-loop Go change makes moot for `run`), the Ready receive (today's `node.wp_readyRecv`
+  suffices), RestartNode on the wrapper storage with `σ.hd = W64 0` (U8, when track B lands; Propose
+  and `msgCredits_intro` are being redesigned: wait for the frozen shape); (2) the storage: the
+  wrapper's methods (`Storage.InitialState`, `Storage.Snapshot`, the promoted `MemoryStorage` ones)
+  and `maybeSnapshot` (`snapshotCert_make` over `kvrSnapInv`, `CreateSnapshot.unifiedSpec` from the
+  hold: track B's shapes), `maybeCompact`; (3) `Replica.run` (kv's `KV__run.lean` as the model; the
+  `select` on `Ready()`/`stopc`); then `propose`, `read`, `conf`, `contents`, `stop`, `ticker`, the
+  cluster's functions, `newReplica`, `Link.lean`, `kvreconf_porcupine_safe`, `Results.lean`.

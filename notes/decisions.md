@@ -25473,6 +25473,13 @@ over the frozen designs (`notes/spec-first-study/raft-node-unified-candidate.md`
   sequence number with another read's), and `within` in kv's form (Goose's `range` loop with an early
   `return` is harder to prove; the answers are the same). No bound on ticks, campaigns or transfers
   (raft takes its own time receipts, frozen design); no random choice removed.
+- **`stop` waits for the loop** (2026-10-29, coordinator-approved, from track A's U9a analysis):
+  `Replica.stop` closes `stopc`, waits for `run` and `ticker` to return (`runDone`/`tickDone`, one value
+  each), and only then calls `Node.Stop`. The loop then never calls a stopped node, so its proof holds
+  a fraction of `nodeLive` and refutes every stopped answer, and raft needs no triple of a stopped
+  node for it (a stopped `Advance` cannot give the storage facts the loop goes on with: raft's storage
+  tokens stay in its dead run loop). The first idea, `applyConf` returning on a `nil` answer, was
+  dropped for this. Other goroutines (proposers, readers, the network) may still meet a stopped node.
 - **Names.** The pure model is kv's copied under `EtcdGrove.kvreconf` (not shared with kv: kv's proof
   is being changed on its own track, and `etc/tcb-report.py` runs every `Link.lean` in one Lean
   process, so the names must differ). The specs are `EtcdGrove.kvreconf.<fn>.spec`.
