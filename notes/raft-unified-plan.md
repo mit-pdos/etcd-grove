@@ -570,6 +570,52 @@ Step 4 (the node level, 2026-10-29; in progress):
   `ownRawNode_appended` takes the frozen prefix `a` within `delivered`; `ownRaftPhys_set_ns` only
   at `b = false` (no `NsCap`).
 
+### Where step 4 stopped (2026-10-29, the user's wrap-up)
+
+The tree builds up to the log and raft level and `InvRawnode`; the node level does not build.
+Committed and building: the log level's step-4 lemmas (`ownRaftLog_handout`'s frozen range,
+`ownRaftLog_lend`'s `k ≤ s`, `ownRaftLog_certify`, `FrOk`'s new first conjunct, `LogState.dtk`,
+`dtk` in `logStoreRec`/`SnapLogStep`), every `raft.*`/`raftLog.*` proof and `newRaft`, `ApiVocab`'s
+new storage vocabulary, `InvRawnode`, `SnapValidCert`, `LemmasCeFrozen`. The unbuilt node-level work
+is `notes/u8v2/step4-node-wip.patch` (apply with `git apply`): `InvRawnodeReady` (`rdyLog`'s
+certified height `dk`, `dlvAfter` moved there, `ownRaftLog_rdy_out` and `ownRawNodeReady_handout`
+rewritten with the frozen `ceFrozen` and the keys `dlvKeysAt`, `ownRaftLog_certify_list`,
+`ownRaftLog_applying_lt`; still ~15 errors, mostly `acceptReady`'s consumers of `rdyLog`/`Hgh0`
+projections and the snapshot `Advance` side), `InvNodeChan` (`NodeNames.sn`, `readyData`'s
+`readyOut`/`ceFrozen`, `readyP`'s `dlvKeys`, `dlvLb` with the keys, `runCfg`'s keys and `rs.sn =
+γ.sn`, `reqWit` over `storFloor γ.sn`, `advDep`'s `sn`), `InvNodeRun` (`runCfg_extend` with the
+keys), `InvAdvance` (the none branch over `advReceipt`'s frozen prefix), `InvApi` (`CfgNames` with
+the storage names, `nodeStorNames`, `nodeAppliedLbU`, `snapGivenU`, the certificate registry and
+`storageCertLink` removed, `nodeDriver` keeps `storGiven` after a snapshot `Ready`), `InvNode`
+(sealed `nodeAppliedLb`/`snapGiven` with their laws, `readySnap`'s new storage part,
+`storageCertInv`/`storageCertLink` removed), `InvNodeRule` (`snapshotValid`'s two bounds,
+`storBnd`, `storDL`, `isStorage γ id st`, `bootStorage`), and the specs `RestartNode.spec` (the
+unified one, over `bootStorage`; the static one dropped) and `node.Advance.spec` (the unified one,
+post `nodeAppliedLb γ id |st.delivered|`; static and dynamic dropped).
+
+Remaining, in order: `InvRawnodeReady` (finish: `acceptReady` with `rdyLog`'s `dk`, the
+`SdtTie` of the accepted state from `dk`); `RawNode__Advance` (the snapshot receipt over
+`snapReceipt`, `ownRaftLog_absorb_snap`'s new `Hsid` from `LoanOk` and `SnpOk`: the loan's snapshot
+is pending with `sip = true`, or a later one is); `InvNodeChan`/`InvNodeRun`/`node__run` (the
+Ready arm: keys and frozen range through `readyP`; the advance arm); `InvApi`/`InvApiDyn`/`InvNode`
+(`wp_readyRecv_impl` builds `dlvLb` with the keys and `readySnap` from `readySnapData`, converting
+`storGiven γn.sn` to `snapGiven γ id` by `nodeTabOk_storNames`); the conversion `isStorage γ id st
+⊢ isStorageV sn st` and the pins (`sn.gsv` at `snapshotValid γ`, `sn.gk` at `raftSnapCertD γ.raft`)
+with `storCertOk γ.raft sn` from `SnapValidCert` (a module above `InvNodeRule`); `RestartNode` over
+`bootStorage` (allocate `sn`'s authorities and the table entry, `newRaft` over the boot bundle);
+`MemstorageInstance` (`memStorInv` at the API's `J`, its `isStorage` law, `memStorage_bootStorage`);
+the other node-level proofs (mechanical: `Hstor`'s pair, `runCfg`'s patterns, `Hgh0` projections);
+StartNode/static variants deleted with their `Linked` results; `Link.lean` regenerated.
+
+The boot bundle at `newLogWithSize` (decision (B)) is built but not committed, since `newRaft`
+does not yet use it: `notes/u8v2/step4-boot-newLogWithSize.patch` (the spec over a frame `R` with
+`FirstIndex`/`LastIndex` answering `1`/`0`, the post a wand from `isStorageD sn st ∗ ownStorage
+sn st σ0` to the log). Its helper's findings: `wp_apply` on a hypothesis triple with no binders in
+its post drops the continuation (workaround `wp_apply_raw H $$ [$HR]; inext; iintro HR`), and
+`word` on fully concrete goals failed the kernel's check (replaced by `rfl`/`simp`): candidates for
+`notes/perennial-changes.md`. Its open question: should the caller's frame come out of the update
+(`R' ={⊤}=∗ isStorageD ∗ ownStorage σ0 ∗ Q`)?
+
 ### What builds, what is broken (at the step-2 commit)
 
 Builds: `InvStorage`, `InvStorageRead`, `InvStorageLaws`, `InvRaftlog`, `InvReadylog`,

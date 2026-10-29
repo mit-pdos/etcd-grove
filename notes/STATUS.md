@@ -481,7 +481,16 @@ third parameter `DL` (a stored snapshot's index at most what raft committed, `ra
 `rcvSrc`, keyed by the mirror `NGhost.sn`), the no-snapshot mode off at raft's level (`NsCap := ns = false`), and
 every `raft.*`/`raft.Step`/`step*`/`newRaft` proof. Broken as expected: RawNode/node (step 4), `MemoryStorage`
 (step 3), clients.
-Architecture, spec changes and the next steps: `notes/raft-unified-plan.md`, "U8 v2".
+Step 3 (MemoryStorage, generic in its justifications) built. Step 4 (the node level) stopped part way
+(2026-10-29, the user's wrap-up): built and committed are the log level's hand-out lemmas (a `Ready`'s
+frozen committed entries, the lend's start at most the snapshot, raft's certified terms `ownRaftLog_certify`
+with the height `LogState.dtk`, `FrOk`'s frozen end at most `committed`), `ApiVocab`'s storage vocabulary
+(`readyOut`, `ceFrozen`, `snapReceipt`, `advReceipt`, `dlvKeys`), `InvRawnode`, `SnapValidCert`,
+`LemmasCeFrozen`; the node level (from `InvRawnodeReady` on), `MemstorageInstance`, `Link`/`Linked`/`Results`
+and the API do not build. The unbuilt work is kept as patches (`notes/u8v2/`). Decisions: the static
+cluster's variants dropped (U9 ahead of schedule); the boot bundle (`bootStorage`, decision (B)); the API's
+`nodeAppliedLb`/`snapGiven` over the per-id table, the delivered bound over `isNode`/`deliveredLogLb`.
+Architecture, spec changes and the next steps: `notes/raft-unified-plan.md`, "U8 v2" ("Where step 4 stopped").
 
 ## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)
 
