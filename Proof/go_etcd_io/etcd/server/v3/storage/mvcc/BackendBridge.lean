@@ -1359,7 +1359,7 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
   icases Hrt with ⟨Hrd, Ho⟩
   wp_apply (hCRT γ P W Pk b q rdOpen vd) $$ [$Hb $Hrd $Hv $Ho]
     as %crt %rtx %rv ⟨Hsnap, #Hth, Hback, Hv, Ho⟩
-  -- a backend that never compacts (nothing deletable, `dlNoDel`): the thin view is exact, with no
+  -- a backend whose creator registered nothing as deletable (`dlNoDel`): the thin view is exact, with no
   -- later (O1's fallback, a discrete flag)
   ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
   subst Hrv
@@ -1417,7 +1417,7 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   iunfold bkView at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_view γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', #Hth⟩
-  -- a backend that never compacts (nothing deletable, `dlNoDel`): the thin view is exact, with no
+  -- a backend whose creator registered nothing as deletable (`dlNoDel`): the thin view is exact, with no
   -- later (O1's fallback, a discrete flag)
   ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
   subst Hrv
@@ -1469,7 +1469,7 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
   iunfold bkViewC at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_clean γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', %Hcl, #Hth⟩
-  -- a backend that never compacts (nothing deletable, `dlNoDel`): the thin view is exact, with no
+  -- a backend whose creator registered nothing as deletable (`dlNoDel`): the thin view is exact, with no
   -- later (O1's fallback, a discrete flag)
   ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
   subst Hrv

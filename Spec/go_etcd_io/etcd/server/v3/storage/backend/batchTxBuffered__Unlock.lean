@@ -57,7 +57,8 @@ invariants are over it, Draft round 2's next step; the clients' view keeps it), 
 buffer holds no puts to the non-hook buckets (review round 1, F8: `Unlock` writes the buffer back
 into the read buffer before committing, so such a put would be seen by readers between the two).
 `spec`'s first branch (`viewSame`) is the instance with an exact view (`thinV_refl`), so it is not
-repeated. Replaces `spec` once proved (`cacheValidC`, the commit path). -/
+repeated. Replaces `spec` once proved (`cacheValid` over the logical view, the batch lock's quarter over it:
+review round 4, R4-2). -/
 abbrev backend.batchTxBuffered.Unlock.specC : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF),
   st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →

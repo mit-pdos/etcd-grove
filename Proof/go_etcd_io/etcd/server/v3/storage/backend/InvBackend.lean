@@ -423,8 +423,10 @@ def dlReg (γ : BNames) (Φ : GoString × GoString → IProp GF) : IProp GF :=
   iprop(savedPredOwn γ.dlg DFrac.discard Φ ∗ dghostVar γ.dlb DFrac.discard true)
 
 /-- **Nothing is deletable** (persistent; O1's fallback): the creator fixed the backend's
-deletable-keys flag at `false` (a backend that never compacts: the old bridge's, D22's restore over a
-new backend). Rules out every deletable key with no later (`dlNoDel_noDel`). -/
+deletable-keys flag at `false` (a backend whose creator registered nothing as deletable: the old
+bridge's, D22's restore over a new backend). Not `mvcc.bkNoCmp`, which says the backend's data
+records no compaction (no compaction keys in `meta`): a fact about the data at opening, for
+`restore`. Rules out every deletable key with no later (`dlNoDel_noDel`). -/
 def dlNoDel (γ : BNames) : IProp GF := dghostVar γ.dlb DFrac.discard false
 
 instance dlNoDel_persistent (γ : BNames) : Persistent (dlNoDel (GF := GF) γ) := by

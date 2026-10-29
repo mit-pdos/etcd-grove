@@ -146,23 +146,38 @@ theorem vData_rebase_or (P : BParams) (C C' : Data) (X R : RBuf)
     | none => right; first | rfl | simp
     | some x => left; first | rfl | simp
 
-/-- **A cached copy thin of the view stays thin after a commit that kept the view** (the thin-view
-Draft round: `vData_rebase` over `thinV`), the old state `(C, R)` itself thin of the view. -/
+/-- Over the new data of a commit, a cached copy `X` reads at each key either as it did over the
+old data, or as the new state `(C', R.reset)` (the thin view's rebase, below: no hypothesis on the
+commit). -/
+theorem vData_rebase_or' (P : BParams) (C C' : Data) (X R : RBuf) (nk : GoString × GoString) :
+    (vData P (C', X)).lookup nk = (vData P (C, X)).lookup nk ∨
+      (vData P (C', X)).lookup nk = (vData P (C', R.reset)).lookup nk := by
+  simp only [vData_lookup]
+  split
+  · left; rfl
+  · rw [vOf_reset]
+    unfold vOf ovB
+    cases hA : (P.BT.lookup nk.1).bind (fun i => lastVal (bkOf X.bks i) nk.2) with
+    | none => right; simp
+    | some x => left; simp
+
+/-- **A cached copy thin of the view stays thin after a commit** (the thin-view Draft round:
+`vData_rebase` over `thinV`; review round 4, R4-3: no hypothesis that the commit kept the view, so
+the deleting commit uses it too), the new state `(C', R.reset)` itself thin of the view. -/
 theorem thinV_rebase {hlc : HasLC} {GF : BundledGFunctors} [HeapGS hlc GF] (γ : BNames)
-    (P : BParams) (C C' : Data) (X R : RBuf) (L : VData)
-    (h2 : vData P (C', R.reset) = vData P (C, R)) :
-    thinV (GF := GF) γ (vData P (C, X)) L ∗ thinV γ (vData P (C, R)) L ⊢
+    (P : BParams) (C C' : Data) (X R : RBuf) (L : VData) :
+    thinV (GF := GF) γ (vData P (C, X)) L ∗ thinV γ (vData P (C', R.reset)) L ⊢
       thinV γ (vData P (C', X)) L := by
   iunfold thinV
   iintro ⟨⟨%Hsub, #Hdel⟩, ⟨%Hsub2, #Hdel2⟩⟩
   isplitr
   · ipureintro
     intro nk v hv
-    rcases vData_rebase_or P C C' X R h2 nk with h | h
+    rcases vData_rebase_or' P C C' X R nk with h | h
     · rw [h] at hv; exact Hsub nk v hv
     · rw [h] at hv; exact Hsub2 nk v hv
   · iintro !> %nk %h
-    rcases vData_rebase_or P C C' X R h2 nk with h' | h'
+    rcases vData_rebase_or' P C C' X R nk with h' | h'
     · iapply Hdel
       ipureintro
       exact ⟨h.1, h'.symm.trans h.2⟩

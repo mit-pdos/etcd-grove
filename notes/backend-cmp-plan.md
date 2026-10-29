@@ -613,3 +613,28 @@ compacted keys from mvcc's logical bucket); R4-4 (replace `isKeyBackendG_congrDe
 `Del` and `Cmp`, which also removes the old bridge's duplicate read proofs); R4-3 (`thinV_rebase`
 without its hypothesis); R4-5/6 (docs). **For the D22 track**: `SnapApplyWalk` now fixes its new
 backend's registration from that backend's `dlInit` (a proof edit; no D22 statement changed).
+
+## Review round 4's repairs (2026-10-29, the user away)
+
+- **R4-1 done** (`d15ac9cf49`): `mvcc.NewStore_backend`, `server_kv_watchable_of` and their linked
+  results take the registration unfixed (`dlInit`), restoring the user's F6/F7; the two lemmas fix it
+  to `dlNoDel` where the store's compaction mode is chosen (today: never compacts); `NewServer` passes
+  `dlInit` down instead of fixing it. The exported statements' remaining differences from `lean`: the
+  premise `dlInit d.γB` (new) and `batchLimitOk` (the user's, 2026-10-29); the old bridge's exports
+  (`mvcc_backend_bridge`, `mvcc_storeBackend_of_backend`, `keyCleanRead_of_backend`) take `dlNoDel`
+  (they describe a backend whose creator registered nothing as deletable).
+- **R4-3 done**: `thinV_rebase` takes the new state's thinness (`thinV γ (vData P (C', R.reset)) L`)
+  in place of "the commit kept the view" (`vData_rebase_or'`, no hypothesis); its one use passes it
+  from the old hypothesis. The deleting commit can use it.
+- **R4-5/6 done**: `DelKeys.lean`'s header (O2 dropped, the flag, where it is fixed, what is next),
+  `Unlock.specC`'s docstring, `dlNoDel` against `mvcc.bkNoCmp` (a creator's registration vs a fact
+  about the data at opening), the bridge's comments.
+- **R4-4, decided by the agent while the user was away: recorded, not written yet.** The statement
+  replacing `isKeyBackendG_congrDel`:
+  `isKeyBackendG … Del … Cmp … ∗ □ (∀ k, Del k -∗ Del' k) ∗ □ (⌜Cmp'⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
+  isKeyBackendG … Del' … Cmp' …` for `Cmp' → Cmp` (`Del` positive in the posts' `snapThin`, negative
+  only in the `⌜Cmp⌝`-guarded clauses). The old bridge is then the new one with `Cmp' := False` and
+  `Del' := fun _ => False` under `dlNoDel` (`dlNoDel_noDel` gives `bkDel k -∗ False`). Not written now:
+  it is worth having only once the new bridge's cases are proved (deriving the old bridge from the new
+  one before that would put the new bridge's `sorry`s under every server result), and its proof walks
+  `keyReadSnap`, `isBatchTxG` and `batchTxSpecG`'s clauses (about 100 lines).

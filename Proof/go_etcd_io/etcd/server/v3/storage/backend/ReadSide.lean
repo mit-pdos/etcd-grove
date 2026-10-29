@@ -623,7 +623,9 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
         rw [hview rfl]
         iexact Hth
       · ihave #Hold := Hcv $$ %i %rv' %(by omega) Hh Hc
-        iapply thinV_rebase γ P C C' rv'.2 R (vData P (C, R)) (hview rfl) $$ [Hold Hth]
+        ihave #Hth' : thinV (GF := GF) γ (vData P (C', R.reset)) (vData P (C, R)) $$ []
+        · rw [hview rfl]; iexact Hth
+        iapply thinV_rebase γ P C C' rv'.2 R (vData P (C, R)) $$ [Hold Hth']
         iframe #
     imod Hclose $$ [Hca Hcurinv Hcvw] with -
     · inext

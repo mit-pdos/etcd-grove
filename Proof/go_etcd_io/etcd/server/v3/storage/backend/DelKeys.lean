@@ -1,6 +1,6 @@
 /-
 **The backend's deletable keys** (the backend-compaction stage, `notes/backend-cmp-plan.md` 3.2,
-decisions O1 and O2; Draft, 2026-10-28). Lean-first (no Rocq counterpart).
+decision O1 and its fallback; Draft, 2026-10-28; O2's `dlNone` dropped after review round 1). Lean-first (no Rocq counterpart).
 
 mvcc's compaction deletes keys from the safe-range `Key` bucket, and readers never look them up
 again (Go relies on it: a reader reads at or above the compaction revision). The backend's view
@@ -15,11 +15,14 @@ the registration unfixed (`dlInit`, the opener's), which rules out every deletab
 discrete flag: no later), so that a thin view is exact for them (`thinV_exact`) (after review round 1, F6: the exclusive
 token `dlNone` of decision O2, linked to nothing, was dropped).
 
-Draft: the definitions the changed statements are written in. The registration's name is the
-backend's (`BNames.dlg`, Draft round 2): the constructor allocates it at `False` and gives its whole
-fraction to the creator (`dlInit`, in the constructor's post), who fixes the predicate once
-(`dlReg_fix`) or keeps it unfixed for an exact view (`dlInit_noDel`). The invariants' use of `thinV` (`rtRest`, `batchGhostAt`,
-`cacheValid`) is the stage's next Draft step.
+Draft: the definitions the changed statements are written in. The registration is the backend's
+(`BNames.dlg`, the predicate, and `BNames.dlb`, the flag): the constructor allocates them unfixed
+and gives their whole fraction to the creator (`dlInit`, in the constructor's post), who fixes them
+once: at `true` with the predicate (`dlReg_fix`, a compacting store) or at `false` (`dlNoDel_fix`,
+nothing deletable; the store does it where its compaction mode is chosen, `NewStore_backend`; review
+round 4, R4-1), or keeps them unfixed for an exact view (`dlInit_noDel`). The readers' invariants are
+over the logical view (`rtRest`, `cacheValid`: the thin-view Draft round); the batch lock's
+(`batchGhostAt`) is the next step (review round 4, R4-2).
 -/
 module
 
@@ -62,7 +65,8 @@ theorem dlReg_fix (γ : BNames) (Φ : GoString × GoString → IProp GF) :
   iframe Hs Hb
 
 /-- **The creator fixes nothing deletable** (O1's fallback, decided by the agent while the user was
-away, 2026-10-29): the flag at `false`, persistent (`dlNoDel`), for a backend that never compacts. -/
+away, 2026-10-29): the flag at `false`, persistent (`dlNoDel`), for a backend whose creator registered nothing as deletable (not `mvcc.bkNoCmp`, a fact about
+the backend's data at opening: no compaction keys in `meta`). -/
 theorem dlNoDel_fix (γ : BNames) : dlInit (GF := GF) γ ⊢ |==> dlNoDel γ := by
   unfold dlInit
   iintro ⟨-, Hb⟩
@@ -97,7 +101,7 @@ def viOk (VI : GoString → GoString → GoString → Prop) (D : Data) : Prop :=
   ∀ n k v, (bktOf D n).lookup k = some v → VI n k v
 
 /-- **With nothing deletable, a thin view is exact** (the thin-view Draft round; O1's fallback: no
-later): under `dlNoDel` (a backend that never compacts: the old bridge's, D22's restore over a new
+later): under `dlNoDel` (a backend whose creator registered nothing as deletable: the old bridge's, D22's restore over a new
 backend), a physical view thin of `L` is `L`. -/
 theorem thinV_exact (γ : BNames) (vd L : VData) :
     dlNoDel (GF := GF) γ ∗ thinV γ vd L ⊢ ⌜vd = L⌝ := by
