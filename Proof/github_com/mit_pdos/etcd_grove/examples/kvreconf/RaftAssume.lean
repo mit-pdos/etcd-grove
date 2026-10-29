@@ -12,8 +12,7 @@ result over it carries the record as a premise until then.
 
 - `committed_confDecodes` (track A, `notes/spec-first-study/raft-decisions-spec.md` §5): every
   committed conf entry decodes; kvreconf's `applyEntry` panics on one that does not.
-- `applyChange_asV2` (track B): a legacy change acts as its `AsV2`; kvreconf validates `cc.AsV2()`
-  (`validConf`) and applies `cc`.
+- (`applyChange_asV2` was here until track B proved it, `ConfchangeApi.lean`, 2026-10-29.)
 - The stopped node (track A, U9a; frozen K5/K9): `nodeLive n γ N q` (fractional; whole from
   `RestartNode`), `nodeStopped n γ N` (persistent), `nodeLive_stopped`, `node.Stop` taking the whole
   `nodeLive` and giving `nodeStopped`; each method's stopped answer (the frozen design's one triple is
@@ -55,9 +54,6 @@ structure RaftAssume where
   /-- (track A) Every committed conf entry decodes. -/
   committed_confDecodes : ∀ (γ : Cluster) (N : Namespace) (l : List LogEntry),
     isCluster (GF := GF) γ N ∗ isCommittedLogLb (GF := GF) γ l ⊢ ⌜∀ e ∈ l, e.isConfChange → ConfEntryDecodes e⌝
-  /-- (track B) A legacy change acts as its `AsV2`. -/
-  applyChange_asV2 : ∀ (c : ConfChangeM) (m : Membership),
-    Membership.applyChange (.v1 c) m = Membership.applyChange (.v2 c.asV2) m
   /-- (track A, U9a) The running node's token, fractional. -/
   nodeLive : Loc → Cluster → Namespace → Qp → IProp GF
   /-- (track A, U9a) The node has stopped (persistent). -/

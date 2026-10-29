@@ -13,9 +13,8 @@ is the recorded one (`confPolicy_decide`).
 
 `validConf` answers whether `confchange` accepts the change, as `AsV2` makes it, on the
 configuration restored from the replica's `ConfState`, with fewer than `2^62` ids after it: raft's
-`Membership.applyChange` gives a result exactly then, and the result is `Valid`
-(`Membership.applyChange_valid`; the frozen design's `ConfRule.validated`, notes/spec-first-study/
-raft-node-unified-candidate.md §1, which the decision switch removed from raft's API). An entry
+`Membership.applyChange` gives a result exactly then (`Membership.applyChange_eq_applyGo`, Go's
+`confchange` as `applyGo`, cut at `2^62` ids). An entry
 that does not decode is rejected (`applyEntry` panics on one; the store's proof refutes it by the
 committed entries' decoding, a raft law).
 -/
@@ -43,7 +42,7 @@ variable [GooseExts]
 open Classical in
 /-- `validConf`'s answer on the change `o` at the membership `m` (see the file header). -/
 def ConfOk (o : ConfChangeIM) (m : Membership) : Prop :=
-  ∃ m', Membership.applyChange o m = some m' ∧ m'.Valid
+  ∃ m', Membership.applyChange o m = some m'
 
 open Classical in
 /-- **The store's rule** (see the file header): a committed conf entry's decoded change if
@@ -61,8 +60,8 @@ theorem kvrRule_step (pre : List LogEntry) (m : Membership) (e : LogEntry) :
   split
   · rename_i o _
     by_cases h : ConfOk o m
-    · obtain ⟨m', h1, h2⟩ := h
-      exact ⟨m', by rw [if_pos ⟨m', h1, h2⟩]; exact h1⟩
+    · obtain ⟨m', h1⟩ := h
+      exact ⟨m', by rw [if_pos ⟨m', h1⟩]; exact h1⟩
     · exact ⟨m, by rw [if_neg h]; rfl⟩
   · exact ⟨m, rfl⟩
 
