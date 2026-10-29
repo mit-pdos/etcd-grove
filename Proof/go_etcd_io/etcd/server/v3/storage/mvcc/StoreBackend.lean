@@ -85,8 +85,9 @@ theorem mvcc.NewStore_backend
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
-        -- (the backend-compaction stage) the backend never compacts: nothing deletable
-        backend.dlNoDel d.γB ∗
+        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
+        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
+        backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -110,7 +111,9 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, #Hnd, Hv, Hncmp, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  -- this store never compacts: the registration fixed at "nothing deletable"
+  imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz $Hnd]
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)

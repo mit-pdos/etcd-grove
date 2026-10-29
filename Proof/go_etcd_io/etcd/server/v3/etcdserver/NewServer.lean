@@ -507,8 +507,6 @@ theorem NewServer.wp_proofM (on : Bool)
   · iPkgInit
   ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl⟩ := bootBackend_of_newPost d.γB d.P
     (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN $$ Hnew
-  -- (the backend-compaction stage) the server's backend never compacts: nothing deletable
-  imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
@@ -582,12 +580,12 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply (lc := 2) (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h94 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil func.nil N E₀.γ.idx E₀.γ.cok M Hcbl Hrb)
-    $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok]
+    $$ [Hdl Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
       Hwrds, Hwcl, Hret0, -, #Htag⟩
   · ihave #Hsz0 : mvcc.keySized (GF := GF) d.γB d.P d.be $$ []
     · iapply Hsz
-    iframe Hisl HB Hsz0 Hnd
+    iframe Hisl HB Hsz0 Hdl
     iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩

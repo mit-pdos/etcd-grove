@@ -260,8 +260,9 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
-        -- (the backend-compaction stage) the backend never compacts: nothing deletable
-        backend.dlNoDel d.γB ∗
+        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
+        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
+        backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
