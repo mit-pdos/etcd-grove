@@ -321,6 +321,7 @@ newStorageApplyRespMsg: raftpb_MessageType__Enum
 node__stepWithWaitOption: raftpb_Message__GetType context_ErrDone
 node__step: node__stepWithWaitOption
 node__ForgetLeader: node__step raftpb_MessageType__Enum
+node__Campaign: node__step raftpb_MessageType__Enum
 node__Stop:
 node__stepWait: node__stepWithWaitOption
 node__Propose: node__stepWait raftpb_MessageType__Enum

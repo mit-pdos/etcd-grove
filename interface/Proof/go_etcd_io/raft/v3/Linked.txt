@@ -321,6 +321,18 @@ theorem RaftLink.wp_IsEmptyHardState [package_sem : Assumptions] : IsEmptyHardSt
           ▷ (True -∗ Φ (intoVal (decide (hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0)))) -∗
             WP ((intoVal (functions IsEmptyHardState [])) (intoVal st)) {{ Φ }}
 
+theorem RaftLink.node.wp_Campaign [package_sem : Assumptions] : node.Campaign.spec
+  -- `Perennial.EtcdGrove.node.Campaign.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+          (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
+            WP
+              ((intoVal (methods node.ty.PointerType go!"Campaign" (intoVal n)))
+                (intoVal (GoInterface.ok ctx)))
+              {{ Φ }}
+
 theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemoryStorage.Append.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Append.spec`, unfolded:
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List EntryM) (s : GoSlice) (dq : DFrac),

@@ -23,6 +23,7 @@ public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
+public import Spec.go_etcd_io.raft.v3.node__Campaign
 public import Spec.go_etcd_io.raft.v3.node__Stop
 import Proof.go_etcd_io.raft.v3.Link
 
@@ -95,6 +96,12 @@ theorem node.wp_Stop [StorageModel GF] :
 theorem node.wp_ForgetLeader [StorageModel GF] :
     node.ForgetLeader.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.node.wp_ForgetLeader
+
+/-! (2026-10-29, stage U7) `Campaign` over the node API. -/
+
+theorem node.wp_Campaign [StorageModel GF] :
+    node.Campaign.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Campaign
 
 end linksLC
 

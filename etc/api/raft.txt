@@ -39,6 +39,8 @@ importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 # `isNodeChan`, and not importable); `node__Stop`
 importable Spec.go_etcd_io.raft.v3.node__ForgetLeader
 importable Spec.go_etcd_io.raft.v3.node__Stop
+# (2026-10-29, stage U7) `node__Campaign`
+importable Spec.go_etcd_io.raft.v3.node__Campaign
 importable Spec.go_etcd_io.raft.v3.node__Propose
 importable Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 importable Spec.go_etcd_io.raft.v3.node__ReadIndex

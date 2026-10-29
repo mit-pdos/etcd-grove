@@ -98,6 +98,7 @@ public import Proof.go_etcd_io.raft.v3.newStorageAppendRespMsg
 public import Proof.go_etcd_io.raft.v3.newStorageApplyRespMsg
 public import Proof.go_etcd_io.raft.v3.node__Advance
 public import Proof.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Proof.go_etcd_io.raft.v3.node__Campaign
 public import Proof.go_etcd_io.raft.v3.node__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.node__Propose
 public import Proof.go_etcd_io.raft.v3.node__ProposeConfChange
@@ -1619,6 +1620,10 @@ theorem node.wp_stepWithWaitOption [StorageModel GF] :
 theorem node.wp_step [StorageModel GF] :
     node.step.spec (GF := GF) (hG := hG) :=
   node.step.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_Campaign [StorageModel GF] :
+    node.Campaign.spec (GF := GF) (hG := hG) :=
+  node.Campaign.wp_proof node.wp_step raftpb.MessageType.wp_Enum
 
 theorem node.wp_ForgetLeader [StorageModel GF] :
     node.ForgetLeader.spec (GF := GF) (hG := hG) :=
