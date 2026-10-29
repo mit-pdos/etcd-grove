@@ -158,6 +158,30 @@ theorem NoUndecConfIn.mono {dec : CCDec} {l : List EntryM} {lo hi lo' hi' : Nat}
     (h : NoUndecConfIn dec l lo hi) (h1 : lo ≤ lo') (h2 : hi' ≤ hi) : NoUndecConfIn dec l lo' hi' :=
   fun k e hk1 hk2 he hc => h k e (by omega) (by omega) he hc
 
+/-- (2026-10-28, the decision switch) Over two adjacent ranges. -/
+theorem NoUndecConfIn.trans {dec : CCDec} {l : List EntryM} {a b c : Nat}
+    (h1 : NoUndecConfIn dec l a b) (h2 : NoUndecConfIn dec l b c) : NoUndecConfIn dec l a c :=
+  fun k e hk1 hk2 he hc => if hb : k < b then h1 k e hk1 hb he hc else h2 k e (by omega) hk2 he hc
+
+/-- (2026-10-28, the decision switch) In a log extending `l`, below `l`'s length. -/
+theorem NoUndecConfIn.prefix {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} (hp : l <+: l')
+    (hh : hi ≤ l.length) (h : NoUndecConfIn dec l lo hi) : NoUndecConfIn dec l' lo hi := by
+  intro k e hk1 hk2 he hc
+  obtain ⟨t, rfl⟩ := hp
+  have hk : k < l.length := by omega
+  rw [List.getElem?_append_left hk] at he
+  rw [List.take_append_of_le_length (by omega)]
+  exact h k e hk1 hk2 he hc
+
+/-- (2026-10-28, the decision switch) In a prefix of `l`, below its length. -/
+theorem NoUndecConfIn.of_prefix {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} (hp : l <+: l')
+    (hh : hi ≤ l.length) (h : NoUndecConfIn dec l' lo hi) : NoUndecConfIn dec l lo hi := by
+  intro k e hk1 hk2 he hc
+  obtain ⟨t, rfl⟩ := hp
+  have hk : k < l.length := by omega
+  have := h k e hk1 hk2 (by rw [List.getElem?_append_left hk]; exact he) hc
+  rwa [List.take_append_of_le_length (by omega)] at this
+
 /-- (2026-10-28, stage U6m) With every conf entry in `[lo, hi)` rejected, the fold up to `hi` is the
 fold up to `lo`. -/
 theorem cfgFold_noUndec (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : Nat}

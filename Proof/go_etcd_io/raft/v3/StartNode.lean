@@ -268,7 +268,9 @@ private theorem StartNode.wp_raw
       · iExactEq Hdlm; rfl
       iexists 0
       iframe Hcap1 Hcam
-      ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩
+      isplitr
+      · ipureintro; exact Nat.le_refl _
+      iapply undecFree_empty
     itrivial
   iapply HΦ
   iframe HR

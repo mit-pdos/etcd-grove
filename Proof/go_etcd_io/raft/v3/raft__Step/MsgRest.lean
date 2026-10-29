@@ -703,7 +703,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
     refine ⟨Hwf1, ⟨[stepdownMsg id m] ++ [], by simp,
       StepCD.trans_frame (stepdown_rest c id s m pvs Hgt) (by rframe) HCD
-        (fun g hd => ⟨hd.1, fun h => by simp [becomeFollower] at h, hd.2.2.1,
+        (fun _ g hd => ⟨hd.1, fun h => by simp [becomeFollower] at h, hd.2.2.1,
           fun h => absurd (Hty.symm.trans h) (by w32_ne),
           fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩)⟩, rfl,
       Hfr.1.trans (NetFrame.of_logst Hl1 Hpv1 Hg1), ?_⟩

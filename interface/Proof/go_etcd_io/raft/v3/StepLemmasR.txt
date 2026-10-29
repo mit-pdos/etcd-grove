@@ -4,15 +4,15 @@
 
 theorem StepCD.trans_frame [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c : CfgM} {id : w64}
     {m : MessageM} {s s1 s' : NState} {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState
-    s1)) (hf : RFrame s s1) (h2 : StepCD c id B m s1 r2 s') (hd : ∀ (g : RGh), DynHyp m s s' g →
-    DynHyp m s1 s' g) : StepCD c id B m s (r1 ++ r2) s'
+    s1)) (hf : RFrame s s1) (h2 : StepCD c id B m s1 r2 s') (hd : ∀ (dec : CCDec) (g : RGh), DynHyp
+    dec m s s' g → DynHyp dec m s1 s' g) : StepCD c id B m s (r1 ++ r2) s'
 
 def StepCD (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState) (recv : List Msg) (s' :
     NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
     ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh),
       g.cfg.cfg = c →
-        DynHyp m s s' g →
+        DynHyp dec m s s' g →
           ∃ cidx',
             CidxMove m s' g cidx' ∧
               StepR Adm dec id B (rOf s g) recv (rOf s' { cidx := cidx', cfg := g.cfg, fp := g.fp, decs := g.decs })
@@ -202,11 +202,11 @@ theorem rOf.proj_pci (s : NState) (g : RGh) : (rOf s g).pci = pciR s
 
 theorem rOf.proj_fp (s : NState) (g : RGh) : (rOf s g).fp = g.fp
 
-def DynHyp (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
+def DynHyp (dec : CCDec) (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
   m.Type' ≠ MsgSnap ∧
     PreGuard g.fp s ∧
       FullOk (toPState s).base g.fp ∧
-        (m.Type' = MsgStorageApplyResp → NoConfIn (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
+        (m.Type' = MsgStorageApplyResp → NoUndecConfIn dec (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
           (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
 theorem SnapAgree.restore [GoGlobalContext] [GoSemanticsFunctions] {s : NState} {g : RGh} {fp' :

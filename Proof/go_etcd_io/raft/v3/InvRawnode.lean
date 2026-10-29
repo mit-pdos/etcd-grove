@@ -1998,6 +1998,122 @@ def loanDec (γ : RaftNames) (l : SnapLoan) : IProp GF :=
 instance loanDec_pers (γ : RaftNames) (l : SnapLoan) : Persistent (loanDec (GF := GF) γ l) := by
   unfold loanDec; infer_instance
 
+/-- (2026-10-28, the decision switch) A lower bound of the decisions joins the ghost part, in
+either mode (`ownStepGhost_absorb`). -/
+theorem ownStepGhost_absorbM (γ : RaftNames) (mode : RNMode) (g : RGh) (c : CfgM) (id : w64)
+    (s : NState) (M : DecMap) :
+    decLb (GF := GF) γ M ∗ ownStepGhost γ (mode.toG g) c id s ⊢
+      ⌜M ⊆ g.decs ∪ M ∨ mode.isDyn = false⌝ ∗
+        ownStepGhost γ (mode.toG { g with decs := g.decs ∪ M }) c id s := by
+  cases mode with
+  | static =>
+    have e : ∀ g' : RGh, RNMode.static.toG g' = GMode.static := fun _ => rfl
+    rw [e, e]
+    iintro ⟨-, H⟩
+    isplitr
+    · ipureintro; right; rfl
+    iexact H
+  | dyn dec c0 h0 h1 =>
+    iintro ⟨#HM, H⟩
+    simp only [RNMode.toG]
+    icases (ownStepGhost_dyn γ dec c0 h0 g c id s).1 $$ H with ⟨%Hp, #Hg, Hr, #Hl⟩
+    icases decLb_compat γ g.decs M $$ [Hg HM] with %Hc
+    · iframe Hg HM
+    ihave H := (ownStepGhost_dyn γ dec c0 h0 g c id s).2 $$ [Hr]
+    · iframe Hg Hr Hl; ipureintro; exact Hp
+    isplitr
+    · ipureintro; left; exact DecCompat.sub_right Hc
+    iapply ownStepGhost_absorb γ dec c0 h0 g c id s M
+    iframe HM H
+
+/-- (2026-10-28, the conf-change decision switch) **A1 over the client's decisions**: in the dynamic
+mode, every conf entry of `D` at the positions `[lo, hi)` is rejected by the mode's decoder over
+some decisions recorded (`NoUndecConfIn`, `decLb`): skipped. (Until then no conf entry at all,
+`NoConfIn`.) Nothing in the static mode. Persistent. -/
+def undecFree (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) : IProp GF :=
+  iprop(∃ M : DecMap, decLb γ M ∗ ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
+    NoUndecConfIn (effDec dec M) D lo hi⌝)
+
+instance undecFree_pers (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) :
+    Persistent (undecFree (GF := GF) γ md D lo hi) := by
+  unfold undecFree; infer_instance
+
+theorem undecFree_noConf (γ : RaftNames) (md : RNMode) {D : List EntryM} {lo hi : Nat}
+    (h : NoConfIn D lo hi) : ⊢ undecFree (GF := GF) γ md D lo hi := by
+  unfold undecFree
+  iexists ∅
+  isplitr; · iapply decLb_empty
+  ipureintro; intro _ _ _ _ _; exact h.noUndec
+
+theorem undecFree_empty (γ : RaftNames) (md : RNMode) (D : List EntryM) (a : Nat) :
+    ⊢ undecFree (GF := GF) γ md D a a :=
+  undecFree_noConf γ md (fun _ _ _ h2 _ => absurd h2 (by omega))
+
+theorem undecFree_static (γ : RaftNames) {md : RNMode} (h : md.isDyn = false) (D : List EntryM)
+    (lo hi : Nat) : ⊢ undecFree (GF := GF) γ md D lo hi := by
+  unfold undecFree
+  iexists ∅
+  isplitr; · iapply decLb_empty
+  ipureintro; intro _ _ _ _ hm; rw [hm] at h; cases h
+
+theorem undecFree_mono (γ : RaftNames) (md : RNMode) {D : List EntryM} {lo hi lo' hi' : Nat}
+    (h1 : lo ≤ lo') (h2 : hi' ≤ hi) :
+    undecFree (GF := GF) γ md D lo hi ⊢ undecFree γ md D lo' hi' := by
+  unfold undecFree
+  iintro ⟨%M, #HM, %H⟩
+  iexists M
+  iframe HM
+  ipureintro; intro dec c0 h0 h1' hm; exact (H dec c0 h0 h1' hm).mono h1 h2
+
+theorem undecFree_prefix (γ : RaftNames) (md : RNMode) {D D' : List EntryM} {lo hi : Nat}
+    (hp : D <+: D') (hh : hi ≤ D.length) :
+    undecFree (GF := GF) γ md D lo hi ⊢ undecFree γ md D' lo hi := by
+  unfold undecFree
+  iintro ⟨%M, #HM, %H⟩
+  iexists M
+  iframe HM
+  ipureintro; intro dec c0 h0 h1 hm; exact (H dec c0 h0 h1 hm).prefix hp hh
+
+theorem undecFree_of_prefix (γ : RaftNames) (md : RNMode) {D D' : List EntryM} {lo hi : Nat}
+    (hp : D <+: D') (hh : hi ≤ D.length) :
+    undecFree (GF := GF) γ md D' lo hi ⊢ undecFree γ md D lo hi := by
+  unfold undecFree
+  iintro ⟨%M, #HM, %H⟩
+  iexists M
+  iframe HM
+  ipureintro; intro dec c0 h0 h1 hm; exact (H dec c0 h0 h1 hm).of_prefix hp hh
+
+/-- With more decisions recorded (`M`, which joins the witness). -/
+theorem undecFree_join (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) (M : DecMap) :
+    decLb (GF := GF) γ M ∗ undecFree γ md D lo hi ⊢
+      ∃ M' : DecMap, decLb γ M' ∗ ⌜M ⊆ M'⌝ ∗
+        ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 → NoUndecConfIn (effDec dec M') D lo hi⌝ := by
+  unfold undecFree
+  iintro ⟨#HM, %M2, #HM2, %H⟩
+  icases decLb_compat γ M M2 $$ [HM HM2] with %Hc
+  · iframe HM HM2
+  ihave #Hu := decLb_union γ M M2 $$ [HM HM2]
+  · iframe HM HM2
+  iexists M ∪ M2
+  iframe Hu
+  ipureintro
+  refine ⟨DecCompat.sub_left M M2, fun dec c0 h0 h1 hm => ?_⟩
+  exact (H dec c0 h0 h1 hm).mono_dec (effDec_mono dec (DecCompat.sub_right Hc))
+
+theorem undecFree_trans (γ : RaftNames) (md : RNMode) (D : List EntryM) (a b c : Nat) :
+    undecFree (GF := GF) γ md D a b ∗ undecFree γ md D b c ⊢ undecFree γ md D a c := by
+  iintro ⟨H1, H2⟩
+  ihave ⟨%M1, #HM1, %H1p⟩ : iprop(∃ M : DecMap, decLb γ M ∗ ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
+      NoUndecConfIn (effDec dec M) D a b⌝) $$ [H1]
+  · unfold undecFree; iexact H1
+  icases undecFree_join γ md D b c M1 $$ [HM1 H2] with ⟨%M', #HM', %Hsub, %H2p⟩
+  · iframe HM1 H2
+  unfold undecFree
+  iexists M'
+  iframe HM'
+  ipureintro; intro dec c0 h0 h1 hm
+  exact ((H1p dec c0 h0 h1 hm).mono_dec (effDec_mono dec Hsub)).trans (H2p dec c0 h0 h1 hm)
+
 /-- `loanDec` of a loan, if any (what the driver holds of a `Ready`'s loan, `nodeDriverBusy`). -/
 def loanDecO (γ : RaftNames) : Option SnapLoan → IProp GF
   | none => iprop(True)

@@ -338,11 +338,12 @@ theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.m
 driver knows. (D43 M3, 2026-10-25) The change `op` applied need not be the decoder's `op'`, only
 have its effect on `cfg` (`ccStepB`): the ghost step folds `op'`, the code applies `op`, both
 giving `cs'` (etcd hands raft a failed validation's change with `NodeId` `0`, a no-op, in place
-of the entry's `AddNode` of a member, also a no-op). -/
+of the entry's `AddNode` of a member, also a no-op). (2026-10-28, the decision switch) The conf
+entries between the view and `k` rejected by the decoder (skipped; until then none, `NoConfIn`). -/
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp)
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
-  NoConfIn D ca k ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
+  NoUndecConfIn dec D ca k ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
   ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
 
 /-- (2026-10-28, the decision switch) More decisions keep the premise. -/
@@ -350,7 +351,7 @@ theorem DynCCPreOp.mono_dec {d d' : CCDec} (h : DecLe d d') {D : List EntryM} {c
     {cfg : CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState}
     (H : DynCCPreOp d D ca cfg op k e cs') : DynCCPreOp d' D ca cfg op k e cs' := by
   obtain ⟨h1, h2, h3, h4, h5, ⟨op', hd, hs⟩, h6, h7⟩ := H
-  exact ⟨h1, h2, h3, h4, h5, ⟨op', h _ _ _ hd, hs⟩, h6, h7⟩
+  exact ⟨h1, h2, h3, h4, h5.mono_dec h, ⟨op', h _ _ _ hd, hs⟩, h6, h7⟩
 
 end
 

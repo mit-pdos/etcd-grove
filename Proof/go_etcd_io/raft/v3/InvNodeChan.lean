@@ -774,8 +774,9 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
       l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
+    -- (2026-10-28, the decision switch) or skipped (`undecFree`)
     ∃ ca : Nat, monoNatLbOwn γ.cam ca ∗
-      ⌜γ.mode.isDyn = true → NoConfIn (dlvAfter d ce L) ca (dlvAfter d ce L).length⌝)
+      undecFree γ.raft γ.mode (dlvAfter d ce L) ca (dlvAfter d ce L).length)
 
 /-- (D22 S-d4) The driver's request at `advancec` (`NodeNames.req`): the floor at least the
 committed log it was handed (`some`), or after a snapshot `Ready` nothing (`none`): the storage was
@@ -852,7 +853,9 @@ apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
       (∀ l, rs.slent = some l → rs.delivered <+: l.dlv)⌝ ∗
     monoListAuthOwn γ.dlm 1 (rsDlv rs) ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
-      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn (rsDlv rs) ca rs.capplied⌝)
+      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied⌝ ∗
+      -- (2026-10-28, the decision switch) over skipped entries (until then none, `NoConfIn`)
+      undecFree γ.raft γ.mode (rsDlv rs) ca rs.capplied)
 
 /-- (2026-10-28, stage U3d) `run`'s side of the configuration after the `advancec` rendezvous of a
 snapshot `Ready` in the dynamic mode (the loan `l`): the shared configuration already at the
@@ -861,8 +864,8 @@ installs (`advRS`), the committed log handed out the loan's; A1 at the `RawNode`
 driver's) and the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s premises). -/
 @[no_expose] def runCfgLoan (γ : NodeNames) (rs : RNState) (l : SnapLoan) : IProp GF :=
   iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv ∧
-      NoConfIn rs.delivered rs.capplied rs.delivered.length ∧
       l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
+    undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
     monoListAuthOwn γ.dlm 1 l.dlv ∗
     dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) ∗
     monoNatAuthOwn γ.cam 1 l.dlv.length)
@@ -945,8 +948,8 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     (∃ x : List EntryM × List EntryM × List EntryM × HardStateM × Option SnapLoan,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
-    ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = []) ∧
-      (γ.mode.isDyn = true → NoConfIn rs.delivered ca_d rs.delivered.length)⌝)
+    ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
+    undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length)
 
 /-- The `advancec` protocol (see above). (D22 S-d4) The driver's payload for its `Ready`'s loan
 `L`, its request `reqOf L ds`, `run`'s answer `reqWit`. -/
@@ -985,10 +988,11 @@ of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). (2026-10-16, sta
   iprop(∃ ccm : ConfChangeV2M, ownConfChangeV2 v DFrac.discard ccm ∗
     ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg ccm.transition ccm.changes⌝) ∨
      (∃ (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
-        (cs' : CCState),
+        (cs' : CCState) (M : DecMap),
+        -- (2026-10-28, the decision switch) over decisions recorded (`decLb`)
         ⌜γ.mode.isDyn = true ∧ ∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 →
-          DynCCPreOp dec ds ca cfg (ccm.transition, ccm.changes) k e cs'⌝ ∗
-        monoListLbOwn γ.dlm ds ∗ dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) ∗
+          DynCCPreOp (effDec dec M) ds ca cfg (ccm.transition, ccm.changes) k e cs'⌝ ∗
+        decLb γ.raft M ∗ monoListLbOwn γ.dlm ds ∗ dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) ∗
         dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))
 
 /-- A `ConfState`'s four lists are a configuration's (2026-10-15, stage N). (2026-10-16, stage

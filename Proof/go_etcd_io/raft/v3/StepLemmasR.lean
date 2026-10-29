@@ -552,9 +552,12 @@ def PreGuardF (fp : List EntryM) (s : NState) : Prop :=
 
 /-- The dynamic model's premises of a step of `raft.Step` (see the file header). (Until
 2026-10-25, T-M M2b, no pre-candidate: now one with its campaign guard, `PreGuard`.) -/
-def DynHyp (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
+def DynHyp (dec : CCDec) (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
   m.Type' ≠ MsgSnap ∧ PreGuard g.fp s ∧ FullOk (toPState s).base g.fp ∧
-  (m.Type' = MsgStorageApplyResp → NoConfIn (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
+  -- (2026-10-28, the decision switch) A1: no conf entry the decoder `dec` has not rejected (until
+  -- then none at all, `NoConfIn`)
+  (m.Type' = MsgStorageApplyResp →
+    NoUndecConfIn dec (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
   -- a proposal the leader drops still moves `pendingConfIndex` (`StepR.propDrop`), whose
   -- indices the model computes without wrapping: the log is short enough for any batch
   -- `raft.Step` takes (below `2^61` entries)
@@ -572,7 +575,7 @@ def StepCD (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState) (recv : L
     (s' : NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
-    DynHyp m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
+    DynHyp dec m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
       StepR Adm dec id B (rOf s g) recv (rOf s' { g with cidx := cidx' })
 
 /-- A frame step of the code is a `StepCD` one. -/
@@ -594,10 +597,10 @@ theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : MessageM} {s : NState}
 /-- A frame step, then a `StepCD` one (2026-10-14, stage B7). -/
 theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : MessageM} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
-    (h2 : StepCD c id B m s1 r2 s') (hd : ∀ g, DynHyp m s s' g → DynHyp m s1 s' g) :
+    (h2 : StepCD c id B m s1 r2 s') (hd : ∀ dec g, DynHyp dec m s s' g → DynHyp dec m s1 s' g) :
     StepCD c id B m s (r1 ++ r2) s' := by
   refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g hc hdy => ?_⟩
-  obtain ⟨cidx', Hcm, H2⟩ := h2.2 Adm dec g hc (hd g hdy)
+  obtain ⟨cidx', Hcm, H2⟩ := h2.2 Adm dec g hc (hd dec g hdy)
   refine ⟨cidx', Hcm, .trans _ _ _ _ _ ?_ H2⟩
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)

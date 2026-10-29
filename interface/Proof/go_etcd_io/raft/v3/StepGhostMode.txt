@@ -94,10 +94,10 @@ theorem ghost_stepCDM [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [I
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (B : Int) (HB : B < 2 ^ 64) (s :
     NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s') (Hdh : ∀ (dec :
     CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = GMode.dyn dec c0 h0 g → ∀ (d' : CCDec),
-    RInv d' c0 (rOf s g) → DynHyp m s s' g) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv,
-    isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ id
-    (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
-    ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c id s'
+    RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗
+    ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
+    ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id
+    m s s' md'⌝ ∗ ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c id s'
 
 theorem ownStepGhost_dyn [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh) (c : CfgM) (id : w64) (s :
@@ -124,8 +124,8 @@ theorem GMode.Pre.dynHyp [GoGlobalContext] [GoSemanticsFunctions] {md : GMode} {
     : List EntryM} {s s' : NState} (h : md.Pre m ents s) (Hns : m.Type' ≠ MsgSnap) (Hap : m.Type' =
     MsgStorageApplyResp → s'.logst.applied = s.logst.applied ∨ ∃ e, ents.getLast? = some e ∧
     s'.logst.applied = w64Max e.Index' s.logst.applied) {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0}
-    {g : RGh} (hmd : md = GMode.dyn dec c0 h0 g) {d' : CCDec} (HI : RInv d' c0 (rOf s g)) : DynHyp m
-    s s' g
+    {g : RGh} (hmd : md = GMode.dyn dec c0 h0 g) {d' : CCDec} (HI : RInv d' c0 (rOf s g)) : DynHyp
+    (effDec dec g.decs) m s s' g
 
 def ghostRestM [ReceiptGS GF] (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF :=
   match x✝³, x✝², x✝¹, x✝ with
@@ -168,11 +168,11 @@ theorem ghost_stepCD [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [In
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (B : Int) (HB : B < 2 ^ 64) (s :
     NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s') (Hdh : ∀ (dec :
     CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = GMode.dyn dec c0 h0 g → ∀ (d' : CCDec),
-    RInv d' c0 (rOf s g) → DynHyp m s s' g) (Hng : s'.gh = s.gh ∧ s'.logst.storage =
-    s.logst.storage) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred
-    γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
-    ghostRest γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownRaftGhost γ id (toPState
-    s') md'.isDyn ∗ ghostRest γ md' c id s'
+    RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g) (Hng : s'.gh = s.gh ∧
+    s'.logst.storage = s.logst.storage) : ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv,
+    isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗ ownRaftGhost γ id
+    (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+    ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s'
 
 theorem ownStepGhost_nsLink [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : ownStepGhost γ md c id s ⊢ ⌜NsLink
@@ -236,7 +236,8 @@ def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Pr
   | GMode.dyn dec c0 h0 g =>
     PreGuardF g.fp s ∧
       (m.Type' = MsgStorageApplyResp →
-          ∀ (e : EntryM), ents.getLast? = some e → NoConfIn (rOf s g).full g.cidx (uint.nat e.Index')) ∧
+          ∀ (e : EntryM),
+            ents.getLast? = some e → NoUndecConfIn (effDec dec g.decs) (rOf s g).full g.cidx (uint.nat e.Index')) ∧
         (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
 theorem GMode.Pre.of_other [GoGlobalContext] [GoSemanticsFunctions] {md : GMode} {m : MessageM}

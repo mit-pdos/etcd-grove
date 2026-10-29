@@ -88,14 +88,16 @@ private abbrev node.ApplyConfChange.specRaw : Prop :=
     -- lower bound of `run`'s), its view of the configuration, the conf entry applied (at
     -- position `k`) and the configuration it gives
     (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
-    (cs' : CCState),
+    (cs' : CCState) (M : DecMap),
   -- the static mode (the voters fixed): a change that keeps the voters, drops learners
   (γ.mode = .static → CCShrink γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2) →
-  -- the dynamic mode: the next committed conf entry's decoded change, which applies
-  (∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 → DynCCPreOp dec ds ca cfg (ccV2Of o) k e cs') →
+  -- the dynamic mode: the next committed conf entry's decoded change, which applies; (2026-10-28,
+  -- the decision switch) over decisions recorded (`M`, `decLb`)
+  (∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 →
+    DynCCPreOp (effDec dec M) ds ca cfg (ccV2Of o) k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       ownConfChangeI c DFrac.discard (some o) ∗
-      (⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds) }}
+      (⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds ∗ decLb γ.raft M) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
   {{ (csp : Loc) (cs : ConfStateM), RET #csp;
       -- (2026-10-16, stage R5) `applyConfChange`'s fresh `*pb.ConfState`, owned (`confstateP`;
@@ -132,7 +134,7 @@ local macro "apply_cc_send" : tactic => `(tactic| (
           ipureintro
           exact ⟨hm, Hshr hm⟩
         ileft; ipureintro; exact hm
-      · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
+      · icases HR with (%Hs | ⟨Hcfg, #Hdlb, #HdM⟩)
         · rw [hm] at Hs; cases Hs
         unfold nodeCfg
         icases Hcfg with ⟨Hcap, ⟨%x, Hq1, Hq2⟩, #Hcamlb⟩
@@ -143,9 +145,9 @@ local macro "apply_cc_send" : tactic => `(tactic| (
           iexists _
           iframe Hch
           iright
-          iexists ds, ca, cfg, k, e, cs'
+          iexists ds, ca, cfg, k, e, cs', M
           unfold dlvLb
-          iframe Hdlb Hcap Hq1
+          iframe Hdlb Hcap Hq1 HdM
           ipureintro
           refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
           exact Hdyn dec' c0' h0' h1' hm'
@@ -242,7 +244,7 @@ private theorem node.ApplyConfChange.wp_raw
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG)) :
     node.ApplyConfChange.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n c o ds ca cfg k e cs' Hshr Hdyn
+  intro γ id n c o ds ca cfg k e cs' M Hshr Hdyn
   wp_start as ⟨#Hnode, Hc, HR⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -295,7 +297,7 @@ private theorem node.wp_ApplyConfChange_impl
   icases Hnode with ⟨%γn, %Hnok, #Hrn, -⟩
   obtain ⟨Hγr, -, -, Hmd, -⟩ := Hnok
   rw [Hγm, RNMode.all_self] at Hmd
-  iapply (hA γn id n c o [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, []⟩ (cfgState ∅ ∅)
+  iapply (hA γn id n c o [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, []⟩ (cfgState ∅ ∅) ∅
     (fun _ => by rw [Hγr, Hcfg]; exact Hsh) (fun dec c0 h0 h1 h => by rw [Hmd] at h; cases h))
     $$ [Hcc]
   · iframe Hinit Hrn Hcc
@@ -348,7 +350,8 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
       (stOf m') := by
     refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
     · rw [← HeMe] at Hcc; exact Hcc
-    · intro k' e' h1 h2 he hc
+    · refine NoConfIn.noUndec ?_
+      intro k' e' h1 h2 he hc
       apply Hno k' (LogEntry.ofEntryM e') h1 h2
       · rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
       · exact hc
@@ -356,11 +359,12 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
       have : strip (ds.take k) = l.take k := by
         rw [← Hds]; unfold strip; rw [List.map_take]
       rw [this, HeMe, Hdec]; rfl
-  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m')
+  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m') ∅
     (fun h => by rw [Hmd] at h; cases h)
-    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)) $$ [Hcc0 Hcf]
+    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; rw [effDec_empty]; exact Hpre)) $$ [Hcc0 Hcf]
   · iframe Hinit Hn1 Hcc0
     iright; iframe Hcf Hlb'
+    iapply decLb_empty
   iintro !> %csp %cs ⟨Hcs, Hor⟩
   icases Hor with (⟨%Hst, -⟩ | ⟨-, Hcf', %Hok⟩)
   · exfalso; rw [Hmd] at Hst; cases Hst
@@ -439,15 +443,17 @@ private theorem node.wp_ApplyConfChange_unified_impl
       (stOf m') := by
     refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', Hdecd, Hs'⟩, Hs, Hal⟩
     · rw [← HeMe] at Hcc; exact Hcc
-    · intro k' e' h1 h2 he hc
+    · refine NoConfIn.noUndec ?_
+      intro k' e' h1 h2 he hc
       apply Hno k' (LogEntry.ofEntryM e') h1 h2
       · rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
       · exact hc
-  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m')
+  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m') ∅
     (fun h => by rw [Hmd] at h; cases h)
-    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)) $$ [Hcc0 Hcf]
+    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; rw [effDec_empty]; exact Hpre)) $$ [Hcc0 Hcf]
   · iframe Hinit Hn1 Hcc0
     iright; iframe Hcf Hlb'
+    iapply decLb_empty
   iintro !> %csp %cs ⟨Hcs, Hor⟩
   icases Hor with (⟨%Hst', -⟩ | ⟨-, Hcf', %Hok⟩)
   · exfalso; rw [Hmd] at Hst'; cases Hst'

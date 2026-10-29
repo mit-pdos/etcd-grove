@@ -59,10 +59,12 @@ header); none in the static mode. -/
 def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Prop :=
   match md with
   | .static => True
-  | .dyn _ _ _ g =>
+  | .dyn dec _ _ g =>
     PreGuardF g.fp s ∧
+    -- (2026-10-28, the decision switch) A1 over the node's decisions (until then no conf entry)
     (m.Type' = MsgStorageApplyResp →
-      ∀ e, ents.getLast? = some e → NoConfIn (rOf s g).full g.cidx (uint.nat e.Index')) ∧
+      ∀ e, ents.getLast? = some e →
+        NoUndecConfIn (effDec dec g.decs) (rOf s g).full g.cidx (uint.nat e.Index')) ∧
     (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
 /-- How a step moves the dynamic mode's ghost part (2026-10-14, stage B7 part 2): only a
@@ -218,12 +220,12 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
       s'.logst.applied = s.logst.applied ∨
       ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied)
     {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0} {g : RGh} (hmd : md = .dyn dec c0 h0 g)
-    {d' : CCDec} (HI : RInv d' c0 (rOf s g)) : DynHyp m s s' g := by
+    {d' : CCDec} (HI : RInv d' c0 (rOf s g)) : DynHyp (effDec dec g.decs) m s s' g := by
   subst hmd
   obtain ⟨h2, h3, h4⟩ := h
   refine ⟨Hns, h2 HI.full.1, HI.full, fun hty => ?_, h4⟩
   have Hac : uint.nat s.logst.applied ≤ g.cidx := HI.applied_cidx
-  have Hempty : ∀ n, n ≤ g.cidx → NoConfIn (rOf s g).full g.cidx n :=
+  have Hempty : ∀ n, n ≤ g.cidx → NoUndecConfIn (effDec dec g.decs) (rOf s g).full g.cidx n :=
     fun n hn k e hk1 hk2 => absurd (Nat.lt_of_lt_of_le hk2 hn) (Nat.not_lt.2 hk1)
   rcases Hap hty with ha | ⟨e, he, ha⟩
   · rw [ha]; exact Hempty _ Hac
@@ -492,7 +494,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     (B : Int) (HB : B < 2 ^ 64)
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
-      ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp m s s' g) :
+      ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
@@ -551,7 +553,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     (B : Int) (HB : B < 2 ^ 64)
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
-      ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp m s s' g)
+      ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g)
     (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
 
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗

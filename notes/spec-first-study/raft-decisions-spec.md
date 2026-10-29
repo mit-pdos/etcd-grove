@@ -114,3 +114,13 @@ dynamic clause and `snapAtOk` fold over `∃ M, decLb γ M` (was the empty map);
 `decs : DecMap` (the decisions its committed log folds over, from the pending snapshot's certificate at
 `readyWithoutAccept`), and `RNMode.foldCfg` takes it; the interim rule cluster's `RuleNames` gains
 `γ.raft.reDec = none` (its lower bounds are empty).
+
+Item 2 (the node loop taking decisions in, 2026-10-28): no statement of §1-§5 changed (the
+`unifiedSpec`s still pass empty decisions). Internal: `DynCCPreOp`'s conf entries between the view and
+`k` are rejected by the decoder (`NoUndecConfIn dec`, was `NoConfIn`); `confcP` and the private
+`node.ApplyConfChange.specRaw` carry `decLb γ.raft M` with `DynCCPreOp (effDec dec M)`; A1 becomes
+the persistent `undecFree γ md D lo hi` (`∃ M, decLb γ M ∗ NoUndecConfIn (effDec dec M) D lo hi` in the
+dynamic mode), a separating premise of `RawNode.Advance.spec` (was the pure `NoConfIn rs.delivered
+rs.capplied rs.delivered.length`) and of the private `node.Advance.specRaw`, and in `runCfg`,
+`runCfgLoan`, `advanceP`, `advRet`; `DynHyp` takes the decoder (its storage-apply clause
+`NoUndecConfIn dec`, was `NoConfIn`), `GMode.Pre`'s at `effDec dec g.decs`.

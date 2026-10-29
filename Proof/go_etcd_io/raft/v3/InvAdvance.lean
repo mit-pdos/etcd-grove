@@ -47,13 +47,13 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
-  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, %Hal, %ca_d, #Hcamlb, %HA⟩
+  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, %Hal, %ca_d, #Hcamlb, #HA⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl, rfl, rfl, HL⟩ := Heq
   -- the driver's lower bound, against `run`'s authority
   iunfold runCfg at Hcfg
-  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv⟩
+  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
   iunfold dlvLb at Hlb
   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
   ihave %Hcle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hcamlb
@@ -67,11 +67,11 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       isplitr
       · ipureintro; exact ⟨Hmd, Hcap, Hflw, Hsn, Hsi, Hpre⟩
       iexists ca_r
-      iframe Hcap_r Hcam
+      iframe Hcap_r Hcam Hinv2
       ipureintro; exact Hinv
     rw [rsDlv_none Hsl] at Hpfx
     rw [Hsl]
-    simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_none, capAns] at HA ⊢
+    simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_none, capAns]
     -- the receipt: the `Ready`'s entries are appended
     ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
     · rw [Hstor]; iexact Hrcpt
@@ -96,8 +96,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         iframe Hrof Hrof'
       isplitr
       · simp only [loanRet, Hsl]; iempintro
-      ipureintro
-      exact ⟨Hstor, Hunst, fun _ => rfl, fun h => by simp only; rw [Hdel]; exact HA h⟩
+      isplitr
+      · ipureintro; exact ⟨Hstor, Hunst, fun _ => rfl⟩
+      simp only; rw [Hdel]; iexact HA
     isplitr
     · iexists x
       isplitr [Hts]
@@ -118,29 +119,28 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     have Hns := Hsi Hsin
     have Hdp := Hpre l Hsl
     rw [Hsl]
-    simp only [rsDlv, Hsl] at Hpfx Hcap Hinv
+    simp only [rsDlv, Hsl] at Hpfx Hcap Hinv ⊢
     simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_some, capAns, capPay]
-      at HA ⊢
     ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hpay
     subst Hx
     -- A1 at the `RawNode`'s committed log, from the driver's over the loan's
-    have HA' : γ.mode.isDyn = true → NoConfIn rs.delivered ca_d rs.delivered.length := by
-      intro hd k e hk1 hk2 he
-      obtain ⟨t, ht⟩ := Hdp
-      refine HA hd k e hk1 (by have := congrArg List.length ht; simp at this; omega) ?_
-      rw [← ht, List.getElem?_append_left hk2]; exact he
+    ihave #HA' : undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length $$ []
+    · iapply undecFree_of_prefix γ.raft γ.mode Hdp (Nat.le_refl _)
+      iapply undecFree_mono γ.raft γ.mode (Nat.le_refl _) Hdp.length_le
+      iexact HA
     cases hd : γ.mode.isDyn with
     | false =>
       have Hst : rs.mode.isDyn = false := by rw [Hmd, hd]
       ihave #Hcl := monoNatLbOwn_get _ _ _ $$ Hcam
       ihave Hcfg : runCfg γ rs $$ [Hdlm Hcap_r Hcam]
       · iunfold runCfg
+        simp only [rsDlv, Hsl]
         iframe Hdlm
         isplitr
-        · ipureintro; exact ⟨Hmd, by simp only [rsDlv, Hsl]; exact Hcap, Hflw, Hsn, Hsi, Hpre⟩
+        · ipureintro; exact ⟨Hmd, Hcap, Hflw, by rw [← Hsl]; exact Hsn, Hsi, by rw [← Hsl]; exact Hpre⟩
         iexists ca_r
-        iframe Hcap_r Hcam
-        ipureintro; simp only [rsDlv, Hsl]; exact Hinv
+        iframe Hcap_r Hcam Hinv2
+        ipureintro; exact Hinv
       rw [loanCfg_static hd]
       imodintro
       isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt]
@@ -158,16 +158,16 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
           iframe Hrof Hrof'
         isplitl [Hrcpt]
         · simp only [loanRet, Hsl]; rw [Hstor]; iexact Hrcpt
-        ipureintro
         have H1 : rs.slent = none → rs.unpersisted = [] := fun h => by rw [Hsl] at h; cases h
-        exact ⟨Hstor, Hunst, H1, fun h => HA' h⟩
+        iframe HA'
+        ipureintro; exact ⟨Hstor, Hunst, H1⟩
       isplitr
       · itrivial
       iframe Hpay Hcl
       ipureintro; exact Hns
     | true =>
       have Hdy : rs.mode.isDyn = true := by rw [Hmd, hd]
-      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv.1 Hcap
+      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv Hcap
       imod dghostVar_update_halves (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) γ.cap _ _
         $$ Hcap_r Hpay with ⟨Hcap_r, Hpay⟩
       imod mono_nat_own_update l.dlv.length Hle $$ Hcam with ⟨Hcam, #Hcl⟩
@@ -183,12 +183,13 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         isplitl [Hdlm Hcap_r Hcam]
         · iapply (runCfgR_loan (GF := GF) γ rs l Hsl Hdy).2
           iunfold runCfgLoan
-          rw [show rsDlv rs = l.dlv by simp only [rsDlv, Hsl]]
+          try rw [show rsDlv rs = l.dlv by simp only [rsDlv, Hsl]]
           iframe Hdlm Hcap_r Hcam
-          ipureintro
-          refine ⟨Hmd, Hsin, Hns, Hdp, ?_, Hal l rfl hd Hns⟩
-          intro k e hk1 hk2 he
-          exact HA' hd k e (by omega) hk2 he
+          isplitr
+          · ipureintro; exact ⟨Hmd, Hsin, Hns, Hdp, Hal l rfl hd Hns⟩
+          rw [Hmd]
+          iapply undecFree_mono γ.raft γ.mode (Nat.le_trans Hcle.2 Hinv) (Nat.le_refl _)
+          iexact HA'
         isplitl [Hdlv]
         · simp only [rsDlv, Hsl]; iexact Hdlv
         isplitl [Hrof Hrof']
@@ -196,9 +197,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
           iframe Hrof Hrof'
         isplitl [Hrcpt]
         · simp only [loanRet, Hsl]; rw [Hstor]; iexact Hrcpt
-        ipureintro
         have H1 : rs.slent = none → rs.unpersisted = [] := fun h => by rw [Hsl] at h; cases h
-        exact ⟨Hstor, Hunst, H1, fun h => HA' h⟩
+        iframe HA'
+        ipureintro; exact ⟨Hstor, Hunst, H1⟩
       isplitr
       · itrivial
       iframe Hpay Hcl

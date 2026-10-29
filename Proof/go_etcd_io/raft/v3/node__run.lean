@@ -457,7 +457,7 @@ theorem node.run.wp_proof
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
     icases headRest_mode γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hrm, Hrest⟩
     icases ownRawNode_mode γ.raft nv.rn' id rs $$ Hrn with ⟨%Hmd, Hrn⟩
-    icases HP with (%Hn | ⟨%ds, %ca, %cfg, %k, %e, %cs', %Hpre, #Hdlb, Hcap, Hccq⟩)
+    icases HP with (%Hn | ⟨%ds, %ca, %cfg, %k, %e, %cs', %Mc, %Hpre, #HMc, #Hdlb, Hcap, Hccq⟩)
     · -- the static mode: a shrinking change (2026-10-13)
       have Hstatic : γ.raft.reDyn = none := Hmd.1 (Hrm.trans Hn.1)
       have Hgm := Hn.1
@@ -549,8 +549,8 @@ theorem node.run.wp_proof
     -- the driver's view agrees with `run`'s: the change's premises at the `RawNode`; the shared
     -- configuration moves to the entry applied
     icases headRest_cfg γ nv rs ac rc' rdv' cs' (k + 1) $$ Hrest with ⟨Hcfg, Hrestb⟩
-    icases runCfg_confc γ rs ds ca cfg _ k e cs' dec (by rw [Hgm]; rfl) Hp $$ Hcfg Hdlb Hcap
-      with ⟨%Hp', Hupd⟩
+    icases runCfg_confc γ rs ds ca cfg _ k e cs' dec c0 h0 h1 Hgm Mc Hp $$ Hcfg Hdlb HMc Hcap
+      with ⟨⟨%Mr, #HMr, %Hp'⟩, Hupd⟩
     imod Hupd with ⟨Hcfg, Hcap, #Hcamlb⟩
     ihave Hrest := Hrestb $$ Hcfg
     -- `_, okBefore := r.trk.Progress[r.id]`
@@ -564,8 +564,8 @@ theorem node.run.wp_proof
     try wp_auto
     -- `cs := r.applyConfChange(cc)`
     wp_apply wp_rn_raft_applyConfChange_dyn wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
-      dec c0 h0 h1 hm k e cs' Hp'
-      $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcsp, %Hcs⟩
+      dec c0 h0 h1 hm k e cs' Mr Hp'
+      $$ [$Hrn $Hrnraft $Hccs $Hlc1 $HMr] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcsp, %Hcs⟩
     -- `_, okAfter := r.trk.Progress[r.id]`
     icases ownRawNode_borrow γ.raft nv.rn' id _ r $$ Hrn Hrnraft with ⟨%cf2, %s2, Hphys, Hback⟩
     try wp_auto
@@ -1002,16 +1002,15 @@ theorem node.run.wp_proof
     inext
     iintro Hret
     iunfold advRet at Hret
-    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, %Hr1⟩
-    obtain ⟨Hstor1, Hunst1, Hunp1, HA⟩ := Hr1
+    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, %Hr1, #HA⟩
+    obtain ⟨Hstor1, Hunst1, Hunp1⟩ := Hr1
     wp_auto
     -- (2026-10-15, stage N) A1, from the driver's; (2026-10-28, stage U3d) dynamically after a
     -- snapshot `Ready`, its `ConfState` no auto-leave one (the driver's, `advanceP`)
-    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, %Hal1, Hcfg⟩
-    · ipureintro; exact HA
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1 Hal1
-      $$ [$Hrn $Hlr] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
-    ihave Hcfg := runCfg_advance γ rs1 t ca Hca HA1 $$ Hcfg
+    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb HA with ⟨#HA1, %Hal1, Hcfg⟩
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 Hal1
+      $$ [$Hrn $Hlr $HA1] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+    ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
     -- committed log handed out the driver's
     have Hadv : (advRS rs1 t ca).steps = [] ∧ (advRS rs1 t ca).unpersisted = [] ∧

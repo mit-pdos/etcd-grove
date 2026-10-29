@@ -88,17 +88,18 @@ abbrev RawNode.Advance.spec : Prop :=
   -- (`loanRet`, the storage at the snapshot holding them) comes back here
   (rs.slent = none → rs.unpersisted = []) →
   rs.unst = false →
-  -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
-  -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
-  -- configuration index (`issues/raft-advance-before-applyconfchange.md`)
-  (rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) →
   -- (2026-10-28, stage U3c) in the dynamic mode a snapshot's `ConfState` is no auto-leave joint one
   -- (`appliedTo`'s auto-leave proposal is out of `raft.Step`'s scope, as `ApplyConfChange`'s)
   (∀ l, rs.slent = some l → rs.mode.isDyn = true → l.snap.Metadata'.ConfState'.AutoLeave' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (D22 S-d3a, 2026-10-21) after a snapshot `Ready`, the application's receipt
-      "Hret" ∷ loanRet rs }}
+      "Hret" ∷ loanRet rs ∗
+      -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
+      -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
+      -- configuration index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the
+      -- decision switch) or skipped, rejected over decisions recorded (`undecFree`)
+      "#HA1" ∷ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
       -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised;

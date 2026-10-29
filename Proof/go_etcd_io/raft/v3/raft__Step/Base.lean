@@ -245,7 +245,7 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
 invariant: from `raft.Step`'s premises (`GMode.Pre.dynHyp`). -/
 def DynHypFor (md : GMode) (m : MessageM) (s s' : NState) : Prop :=
   ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
-    ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp m s s' g
+    ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g
 
 section u0
 variable [GooseExts]

@@ -67,6 +67,9 @@ def LogMatchL (F G : List EntryM) : Prop :=
   ∀ (k : Nat) (e e' : EntryM),
     F[k]? = some e → G[k]? = some e' → e.Term' = e'.Term' → List.take (k + 1) F = List.take (k + 1) G
 
+theorem NoUndecConfIn.prefix {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} (hp : l <+: l') (hh :
+    hi ≤ l.length) (h : NoUndecConfIn dec l lo hi) : NoUndecConfIn dec l' lo hi
+
 theorem RInv.frame {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec c0 r) (hfp : r'.fp =
     r.fp) (hb : r'.p.base = r.p.base) (hl : r'.p.log = r.p.log) (hc : r'.p.commit = r.p.commit) (ha
     : r'.applied = r.applied) (hs : r'.snap = r.snap) (hci : r'.cidx = r.cidx) (hcf : r'.cfg =
@@ -93,6 +96,9 @@ theorem ConfI1.prefix {l1 l2 : List EntryM} {c : Nat} (h : ConfI1 (l1 ++ l2) c) 
 
 theorem ConfI1.confCount_drop {l : List EntryM} {a c : Nat} (h : ConfI1 l c) (hn : NoConfIn l a c) :
     confCount (List.drop a l) ≤ 1
+
+theorem NoUndecConfIn.trans {dec : CCDec} {l : List EntryM} {a b c : Nat} (h1 : NoUndecConfIn dec l
+    a b) (h2 : NoUndecConfIn dec l b c) : NoUndecConfIn dec l a c
 
 theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List EntryM × w64} {x : EntryM
     × Option ConfChangeIM} (h : PCInv applied li pci acc) (hx : x.snd.isSome = decide (IsConfEnt
@@ -129,6 +135,9 @@ def AppKnow (r : RState) (m : Msg) : Prop :=
         List.drop (uint.nat m.index) G = m.entries ∧
           ConfI1 G (uint.nat m.commit) ∧
             (0 < uint.nat m.index → ∃ e, G[uint.nat m.index - 1]? = some e ∧ e.Term' = m.logterm) ∧ LogMatchL r.full G
+
+theorem NoUndecConfIn.of_prefix {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} (hp : l <+: l') (hh
+    : hi ≤ l.length) (h : NoUndecConfIn dec l' lo hi) : NoUndecConfIn dec l lo hi
 
 theorem RInv.commitUp {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec c0 r) (hfp : r'.fp
     = r.fp) (hb : r'.p.base = r.p.base) (hl : r'.p.log = r.p.log) (hc : uint.Z r.p.commit ≤ uint.Z

@@ -63,16 +63,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private abbrev node.Advance.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat)
     (cfg : CCState) (p : HardStateM) (L : Option SnapLoan),
-  -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
-  -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
-  -- index (`issues/raft-advance-before-applyconfchange.md`)
-  (γ.mode.isDyn = true → NoConfIn ds ca ds.length) →
   -- (2026-10-28, stage U3d) dynamically, a snapshot's `ConfState` no auto-leave one
   -- (`RawNode.Advance`'s, until U5)
   (∀ l, L = some l → γ.mode.isDyn = true → γ.raft.reNoSnap = false →
     l.snap.Metadata'.ConfState'.AutoLeave' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg }}
+      nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg ∗
+      -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
+      -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
+      -- index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the decision switch) or
+      -- skipped, rejected over decisions recorded (`undecFree`)
+      undecFree γ.raft γ.mode ds ca ds.length }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); nodeDriverChan γ id n ds p ∗
       -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
@@ -98,8 +99,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; `n.done` never fires. -/
 private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n ds es ca cfg p' L HA1 Hal
-  wp_start as ⟨Hbusy, Hrcpt, Hcfg⟩
+  intro γ id n ds es ca cfg p' L Hal
+  wp_start as ⟨Hbusy, Hrcpt, Hcfg, #HA1⟩
   unfold nodeDriverBusy
   icases Hbusy with ⟨#Hnode, #Hdlb, -, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
   ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
@@ -152,7 +153,7 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
       · ipureintro; exact Hal
       iexists ca
       iframe Hcamlb
-      ipureintro; exact HA1
+      iexact HA1
     inext
     iintro Hfl Hans Hreq
     ihave ⟨Hcfg, %Hns⟩ := Hback $$ Hans
@@ -209,9 +210,11 @@ private theorem node.wp_Advance_impl
   rw [Hh] at Hh'
   cases Hh'
   iapply (hA γn id n ds es ca cfg st.hardState L
-    (fun h => by rw [Hmd] at h; cases h) (fun _ _ h _ => by rw [Hmd] at h; cases h)) $$ [Htok Hrc Hcfg]
+    (fun _ _ h _ => by rw [Hmd] at h; cases h)) $$ [Htok Hrc Hcfg]
   · iframe Hinit Htok Hcfg
-    rw [Hγs]; iexact Hrc
+    isplitl
+    · rw [Hγs]; iexact Hrc
+    iapply undecFree_static _ (by rw [Hmd]; rfl)
   iintro !> ⟨Hdrv, Hcfg, -, #Hw⟩
   rw [loanCfg_static (by rw [Hmd]; rfl)]
   iapply HΦ
@@ -274,10 +277,12 @@ private theorem node.wp_Advance_dynamic_impl
     rw [Hl]; exact Hno
   -- a dynamic cluster is in raft's no-snapshot mode: no snapshot `Ready`
   have Hns : γn.raft.reNoSnap = true := by rw [Hnok.1]; exact Hdn.noSnap
-  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L (fun _ => HA1)
+  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L
     (fun _ _ _ h => by rw [Hns] at h; cases h)) $$ [Htok Hrc Hcf]
   · iframe Hinit Htok Hcf
-    rw [Hγs]; iexact Hrc
+    isplitl
+    · rw [Hγs]; iexact Hrc
+    iapply undecFree_noConf _ _ HA1
   iintro !> ⟨Hdrv, Hcf, %HLn, #Hw⟩
   have HL : L = none := by
     cases L with
@@ -389,10 +394,12 @@ private theorem node.wp_Advance_unified_impl
     apply this
     have Hl : ds.length = st.delivered.length := by rw [← Hds, strip_length]
     rw [Hl]; exact Hno
-  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L (fun _ => HA1)
+  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L
     (fun l hl _ _ => (Hloan l hl).1)) $$ [Htok Hrc Hcf]
   · iframe Hinit Htok Hcf
-    rw [Hγs]; iexact Hrc
+    isplitl
+    · rw [Hγs]; iexact Hrc
+    iapply undecFree_noConf _ _ HA1
   iintro !> ⟨Hdrv, Hcf, -, #Hw⟩
   iapply HΦ
   isplitl [Hdrv Hstc]

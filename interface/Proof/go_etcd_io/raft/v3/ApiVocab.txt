@@ -261,6 +261,6 @@ def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : 
     k < D.length ∧
       D[k]? = some e ∧
         IsConfEnt e ∧
-          NoConfIn D ca k ∧
+          NoUndecConfIn dec D ca k ∧
             (∃ op', dec (List.take k D) e = some (CCDecision.apply op') ∧ ccStepB op' cfg = some cs') ∧
               ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false

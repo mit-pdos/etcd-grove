@@ -898,34 +898,6 @@ private theorem snapack_mode {mode : RNMode} {ca j : Nat} {cfg : CCState} {fp D 
   | static => exact h1 rfl
   | dyn dec c0 h0 _ => exact h2 dec c0 h0 _ rfl
 
-/-- (2026-10-28, the decision switch) A lower bound of the decisions joins the ghost part, in
-either mode (`ownStepGhost_absorb`). -/
-private theorem ownStepGhost_absorbM (γ : RaftNames) (mode : RNMode) (g : RGh) (c : CfgM) (id : w64)
-    (s : NState) (M : DecMap) :
-    decLb (GF := GF) γ M ∗ ownStepGhost γ (mode.toG g) c id s ⊢
-      ⌜M ⊆ g.decs ∪ M ∨ mode.isDyn = false⌝ ∗
-        ownStepGhost γ (mode.toG { g with decs := g.decs ∪ M }) c id s := by
-  cases mode with
-  | static =>
-    have e : ∀ g' : RGh, RNMode.static.toG g' = GMode.static := fun _ => rfl
-    rw [e, e]
-    iintro ⟨-, H⟩
-    isplitr
-    · ipureintro; right; rfl
-    iexact H
-  | dyn dec c0 h0 h1 =>
-    iintro ⟨#HM, H⟩
-    simp only [RNMode.toG]
-    icases (ownStepGhost_dyn γ dec c0 h0 g c id s).1 $$ H with ⟨%Hp, #Hg, Hr, #Hl⟩
-    icases decLb_compat γ g.decs M $$ [Hg HM] with %Hc
-    · iframe Hg HM
-    ihave H := (ownStepGhost_dyn γ dec c0 h0 g c id s).2 $$ [Hr]
-    · iframe Hg Hr Hl; ipureintro; exact Hp
-    isplitr
-    · ipureintro; left; exact DecCompat.sub_right Hc
-    iapply ownStepGhost_absorb γ dec c0 h0 g c id s M
-    iframe HM H
-
 /-- (2026-10-28, the decision switch) `wp_step_snapack`'s inclusion of the loan's decisions. -/
 private theorem subDecs_of {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List EntryM} {ds M : DecMap}
     (h : M ⊆ ds ∪ M ∨ mode.isDyn = false) :
@@ -950,10 +922,22 @@ private theorem RNMode.toG_static {mode : RNMode} (h : mode.isDyn = false) (g g'
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd Hunp0 Hunst0 Ha1 Hal1
+  intro γ rn id rs rd Hunp0 Hunst0 Hal1
   wp_start as H
   iNamed H
   iNamed Hrn
+  -- (2026-10-28, the decision switch) A1's decisions join the ghost part
+  iunfold undecFree at HA1
+  icases HA1 with ⟨%Ma, #HMa, %HMa⟩
+  icases ownStepGhost_absorbM γ rs.mode ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s Ma
+    $$ [$HMa $Hghost] with ⟨%Hsuba, Hghost⟩
+  have Ha1 : ∀ dec c0 h0 h1, rs.mode = .dyn dec c0 h0 h1 →
+      NoUndecConfIn (effDec dec (ds ∪ Ma)) rs.delivered rs.capplied rs.delivered.length := by
+    intro dec c0 h0 h1 hm
+    rcases Hsuba with h | h
+    · exact (HMa dec c0 h0 h1 hm).mono_dec (effDec_mono dec h)
+    · rw [hm] at h; cases h
+  generalize ds ∪ Ma = ds at Ha1 ⊢
   have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
   rcases Option.eq_none_or_eq_some rs.slent with hsl | ⟨l, hsl⟩
   rotate_left
@@ -1771,8 +1755,8 @@ theorem RawNode.Advance.wp_proof
           fun h => absurd (hty.symm.trans h) (by simp [MsgStorageApplyResp, MsgProp])⟩
         have He' := (Hpok e He).2
         rw [Hs1.1] at He'
-        have HA := Ha1 (by rw [hm]; rfl)
-        refine NoConfIn_prefix Hpre ?_ (HA.mono Hca.1 ?_)
+        have HA := Ha1 _ _ _ _ hm
+        refine (HA.mono Hca.1 ?_).prefix Hpre ?_
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
     icases Hres with ⟨%Hpre1, Hghost⟩
