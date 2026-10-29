@@ -32,7 +32,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
     (h1 : mvcc.UnsafeReadFinishedCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) := by
   intro s γ hcmp
-  wp_start as ⟨#Hs, #Hstop⟩
+  wp_start as ⟨#Hs, #Hstop, HRTok⟩
   iunfold mvcc.isStore at Hs
   iNamed Hs
   -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
@@ -42,7 +42,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
-  ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
+  ihave #Hbk' := mvcc.isKeyBackendG_cmpRT b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, -, -, -, -, #HCmp⟩
   subst Hbi
@@ -55,7 +55,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   wp_apply HRT as %rt #Hrt
   iunfold mvcc.metaReadTx at Hrt
   (try wp_auto)
-  wp_apply Hrt as ⟨%Rd, %Tok, Htok, #Hcap, #Hrd, #HRU⟩
+  wp_apply Hrt $$ [$HRTok] as ⟨%Rd, %Tok, Htok, #Hcap, #Hrd, #HRU⟩
   (try wp_auto)
   wp_apply (h0 rt false Rd Tok) $$ [$Htok] as %x1 %f1 ⟨Htok, -⟩
   · iframe #
@@ -66,10 +66,10 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   wp_if_destruct
   all_goals
     (try wp_auto)
-    wp_apply HRU $$ [$Htok]
+    wp_apply HRU $$ [$Htok] as HRTok
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iexact HRTok
 
 end proof
 

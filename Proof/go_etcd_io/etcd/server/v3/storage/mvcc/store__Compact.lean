@@ -42,9 +42,9 @@ theorem mvcc.store.Compact.wp_of_le
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
@@ -54,7 +54,7 @@ theorem mvcc.store.Compact.wp_of_le
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
         mvcc.compactRight γ c ∗ Pre)) }} := by
-  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc⟩
+  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc, HRTok⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -85,7 +85,7 @@ theorem mvcc.store.Compact.wp_of_le
   · iunfold mvcc.muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
   ihave Hright : mvcc.compactRight γ c' $$ [Hcr Hq]
   · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
-  wp_apply (h0 s γ hcmp) $$ [] as %pcc -
+  wp_apply (h0 s γ hcmp) $$ [$HRTok] as %pcc HRTok
   · iframe #
   (try wp_auto)
   wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW] as %ch %prev %err Hres
@@ -107,7 +107,7 @@ theorem mvcc.store.Compact.wp_of_le
     wp_apply (h3 s γ trace rev prev pcc te htr) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, Htrc⟩
     (try wp_auto)
     iapply HΦ
-    iframe Htrc
+    iframe Htrc HRTok
     ileft
     iframe HPost Hch'
     isplitr
@@ -123,7 +123,7 @@ theorem mvcc.store.Compact.wp_of_le
     · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
-    iframe Htrc
+    iframe Htrc HRTok
     iright; ileft
     iframe Hright HPre Hch
     isplitr
@@ -135,7 +135,7 @@ theorem mvcc.store.Compact.wp_of_le
     · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
-    iframe Htrc
+    iframe Htrc HRTok
     iright; iright
     iframe Hright HPre Hcert
     isplitr

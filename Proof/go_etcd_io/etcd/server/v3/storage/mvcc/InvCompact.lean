@@ -197,6 +197,25 @@ theorem compactJobPreR_none (s : Loc) (γ : StoreNames) (rev : w64) (hk : γ.kb 
   isplitr; · itrivial
   isplitr <;> itrivial
 
+/-- **The store's backend contract for the compaction's reads, its reader's token kept**
+(question 5's switch, decision (i), 2026-10-29): `isKeyBackendG_cmp` with the reader's token left
+as the store's (`storeRT γ`), not reduced: what `checkPrevCompactionCompleted` reads `Meta` with
+(its `ReadTx` clause's `RLock` takes the token, `RUnlock` gives it back), so its proof does not
+depend on the token being `True`. -/
+theorem isKeyBackendG_cmpRT (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF)
+    (HF : val → IProp GF) (h : storeCmp γ) :
+    isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+      (storePutOk γ) (delKey γ)
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ)
+      (MW := kbMW γ.kb) ⊢
+    isKeyBackendG b (bucketView γ) (storeRT γ) iprop(True) (kbNoCmp γ.kb γ.bucket) noPutCond
+      (delKey γ) (writerRes s γ) iprop(True) Dep True P HF (MW := kbMW none) := by
+  unfold storeCmp kbCmp at h
+  unfold storeW kbWi storeWT storePutOk storeCmp kbCmp kbWT kbPutOk storeReq kbReq
+    storeRb kbRb storeBt kbBt
+  simp only [h]
+  exact .rfl
+
 end chans
 
 end mvcc

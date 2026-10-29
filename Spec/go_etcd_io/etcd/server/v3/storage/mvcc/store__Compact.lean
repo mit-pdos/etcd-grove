@@ -55,7 +55,12 @@ is what makes the readers' specs hold of a compacted store (`rangeAnswers_not_de
 **The physical bound** (item 8, 2026-10-17; not a premise since 2026-10-18, D19b): the log up to
 `rev` has fewer than `2 ^ 62` changes (`CompactSmall`), so the job's count of deleted keys (an
 `int`) never wraps and `dbCompactionKeysCounter.Add(float64(count))` gets a non-negative value;
-the job derives it from the certificate's time-receipt bound (`CompactSmall_of_cert`). -/
+the job derives it from the certificate's time-receipt bound (`CompactSmall_of_cert`).
+
+**The reader's token** (question 5's switch, decision (i), 2026-10-29): the caller lends the store's
+reader token `storeRT γ` (the apply thread's, from `writerOwn`) for `checkPrevCompactionCompleted`'s
+`ReadTx`, and gets it back in every case.
+-/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
@@ -64,9 +69,9 @@ abbrev mvcc.store.Compact.spec : Prop :=
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗

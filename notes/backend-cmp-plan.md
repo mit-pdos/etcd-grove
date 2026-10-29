@@ -1718,3 +1718,12 @@ proofs that produce it trivially today: the job's `Meta` put in `store__schedule
 from the store, once the right has its home (`mwSlotW`/`physCmpW`/`mwSwapW`, the core stage). The
 signature change alone would be churn with no use. `WiringDraft`'s `viewFkW`/`kbMWW` stay as the
 Draft's statements until then.
+
+**Core stage, part 1: the read token (decision (i)), done (2026-10-29).** `checkPrevCompactionCompleted`,
+`compactLockfree` and `store.Compact` take the store's reader token `storeRT γ` and give it back in
+every case (`store.Compact`'s from the apply thread's `writerOwn`; no server caller yet: M2's). The
+`ReadTx` clause's `RLock` takes it and `RUnlock` returns it (`metaReadTx rt RT`). New law
+`isKeyBackendG_cmpRT` (`InvCompact.lean`): the contract over mvcc's assumed backend with the reader's
+token left as `storeRT γ`, so `checkPrevCompactionCompleted`'s proof no longer depends on it being
+`True`. Exported: `mvcc_store_Compact`'s text is unchanged (it is `store.Compact.spec`); its meaning
+gains the token.
