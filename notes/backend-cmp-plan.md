@@ -974,3 +974,34 @@ Review round 8 (`notes/spec-first-study/backend-review-8.md`, committed with the
 
   This would close `metaReadTx`'s value case without a new `BParams` field. Not done: it is
   question 4's answer.
+
+### Review round 9 and the end of this increment (2026-10-29)
+
+Round 9 (`notes/spec-first-study/backend-review-9.md`, on `aa2dcdcac0`) has no first-tier finding.
+Round 8's repairs hold: only two contract clauses produce a `Meta` put, and both carry `MW`. `NC`
+and `MW` are the same half of the flag, so no token is held twice. Under the stop rule this
+increment (rounds 7-9) is done: no first-tier finding came from a repair, and none ran three rounds.
+
+Left from round 9, all second tier:
+- **R9-1 and R9-2: docstrings, deferred to the next code change in `InvStore.lean`.**
+  - `batchTxSpecG`'s and `isKeyBackendG`'s docstrings should name `MW`.
+  - `kbMW`'s docstring should state the cost of `kbMW none := True` (R9-2). The compaction specs
+    (`store.Compact`, `updateCompactRev`, `scheduleCompaction`) need `storeCmp`, i.e. mvcc's
+    assumed backend. Every such store comes from `NewStore`/`New`/`newWatchableStore`, which take
+    the opaque `viewNoCmp` that nothing supplies. So the compaction results hold of no backend
+    until the wiring step, and must not be counted as verified until then. This goes to the user
+    with question 5.
+  - A docstring edit there rebuilds about 1700 modules, so it waits to ride with the next real
+    change.
+- **R9-1, the trust-base list:** add `MustUnsafeSaveConfStateToBackend`. It writes the confState
+  key through its own triple, not a compaction key, so it stays true.
+- **R9-3:** `SetScheduledCompact.spec` and `SetFinishedCompact.spec` take a general `MW` at the
+  wiring step.
+
+**Before the freeze (the plan's new rule):** `storage.OpenBackend`'s axiom was restated in
+`2e49ff1aa9` (its wand dropped; `newPostK` now carries the flag's half), and so was
+`OpenSnapshotBackend`'s. Both get the `axiom` skill before Freeze.
+
+Still the user's: question 4 (`BParams.VI`, which blocks `metaReadTx`'s value case) and question 5
+(the compaction's tokens at wiring: `storeRT` and now the flag's half, which `store.restore` would
+hand to the store instead of consuming `kbNoCmp`).
