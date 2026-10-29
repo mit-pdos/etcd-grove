@@ -1775,3 +1775,37 @@ first-tier finding is repaired, as decided by the agent:
   `InvCompact`'s comments are updated. D2: `kbMW`'s docstring now treats `viewFk` as existing.
 - **M1, a note for later:** a future `Defrag` proof needs `safeRangeDeleteMu`'s guard
   (`isRWMutexGuard`) in `isBackend`, or a slot. `newBackend` keeps only one reader's slot today.
+
+**Core stage, part (1a): the resources' definitions in their home (2026-10-29).** Moved from
+`WiringDraft` into `InvStore.lean`, with the mode read from the field `KBReal.cm` instead of the
+Draft's parameter `cm : KBReal → Bool`:
+- `kbCmpM kb` (`none ↦ True`, `some d ↦ d.cm = true`) with its `Decidable` instance;
+- `compactJobResM`, `kbWTSupplyM`, `kbSRM`, `nJobRd`;
+- the laws `cmOff_res` (a real backend with `cm = false`: no reader kept back, every budget `True`)
+  and `kbSRM_of_kbSR`;
+- `delKeyI`, `delKey_eq_delKeyI`, `delKeyI_timeless` and `storeDlReg`.
+
+`WiringDraft` drops its copies and the `cm` parameter; its other statements, glue and proofs are
+unchanged. Nothing uses the new definitions yet, so no statement means anything new and `kbCmp` is
+still `kb = none`.
+
+**Part (1b), a finding for the next step** (decided by the agent; supersedes N5's `poolSumW`). The job's
+reader can leave the readers' pool through the pool's existing retired count, not through a new sum.
+`poolBody` already has `k + j + w + r = nReaders` with `r` the retired readers, and `NewStore` hands
+out `retiredAt γ 0`. In compaction mode `NewStore` instead:
+- starts the pool at `r = nJobRd kb`;
+- gives `retiredAt γ (nJobRd kb)`;
+- hands out `nReaders - nJobRd kb` readers.
+
+So D22's `poolBody` and `restore_switch` don't change. Only the text of `NewStore`/`New`/
+`newWatchableStore`'s posts and `BuildLemmas`' `retiredAt γw.st 0` do. With `d.cm = false` that text
+is today's, via `cmOff_res`.
+
+What part (1) still needs:
+- **Tokens:** `compactTok` carrying `compactJobResM γ.kb`, and `NewStore` taking `kbSRM kb` (from
+  `newPost`'s `srSlot`: `bootBackend_of_newPost` must keep it instead of dropping it).
+- **The write right's home:** `mwKeyW`/`mwSlotW`/`mwInvW`/`physCmpW`/`PhysNames.mk`, which need
+  `kbMW` over the bucket's name, the switch moved here from stage (iii).
+- **`store.restore`** handing back the half.
+- **`NewServer` at `{ d with cm := false }`** (M1). Its `d` is quantified in `bootOk`, so this is
+  where stage 5's D22 changes become necessary.

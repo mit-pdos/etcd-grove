@@ -1567,6 +1567,64 @@ assumed backend. -/
 def compactJobRes (kb : Option KBReal) : IProp GF :=
   iprop(kbRT kb ∗ kbSR kb ∗ kbWTSupply kb)
 
+/-- **The compaction mode of the instance** (question 5, Q5-1, the user's: the mode lives in the
+instance): the real backend supports mvcc's compaction when its creator chose it (`KBReal.cm`, M2's
+`ρ.kv.cmp`; `false` for D22's received backends, "no restore in compaction mode"); mvcc's assumed
+backend always. What gates the compaction's resources below; `kbCmp` switches to it at the core
+stage's flip (`notes/backend-cmp-plan.md`, "Question 5's switch"). -/
+def kbCmpM (kb : Option KBReal) : Prop :=
+  match kb with
+  | none => True
+  | some d => d.cm = true
+
+instance kbCmpM_dec (kb : Option KBReal) : Decidable (kbCmpM kb) := by
+  unfold kbCmpM; cases kb <;> infer_instance
+
+/-- **The compaction job's budgets, by the mode** (F2/F3/F5): for a compacting real backend, a
+reader's token (taken out of the store's own pool: F2, the user's) and the safe-range slot (from the
+backend's creation: Q5-2); nothing otherwise. The write-back supply is persistent and kept apart
+(`kbWTSupplyM`, F5). -/
+def compactJobResM (kb : Option KBReal) : IProp GF :=
+  if kbCmpM kb then iprop(kbRT kb ∗ kbSR kb) else iprop(True)
+
+/-- **The write-back supply, by the mode** (F5; persistent: `store.Compact` and the job pay their
+sessions' `Unlock`s and `ForceCommit` from the receipts of their own steps). -/
+def kbWTSupplyM (kb : Option KBReal) : IProp GF :=
+  if kbCmpM kb then kbWTSupply kb else iprop(True)
+
+/-- **The slot `NewStore` takes from its caller, by the mode** (F3; the reader comes from the pool it
+already takes: F2). -/
+def kbSRM (kb : Option KBReal) : IProp GF :=
+  if kbCmpM kb then kbSR kb else iprop(True)
+
+/-- **The readers `NewStore` keeps back for the job** (F2, the user's): one when the store compacts
+over the real backend, none otherwise (mvcc's assumed backend's `kbRT` is `True`). -/
+def nJobRd (kb : Option KBReal) : Nat :=
+  match kb with
+  | none => 0
+  | some d => if d.cm then 1 else 0
+
+/-- A real backend that does not compact (`cm = false`: today's stores, D22's received backends, the
+server) keeps no reader back and needs no budgets, slot or supply (the core of `restore_noCmp`). -/
+theorem cmOff_res (d : KBReal) (hcm : d.cm = false) :
+    ¬ kbCmpM (some d) ∧ nJobRd (some d) = 0 ∧
+      (compactJobResM (GF := GF) (some d) ⊣⊢ iprop(True)) ∧
+      (kbWTSupplyM (GF := GF) (some d) ⊣⊢ iprop(True)) ∧
+      (kbSRM (GF := GF) (some d) ⊣⊢ iprop(True)) := by
+  have hnc : ¬ kbCmpM (some d) := by unfold kbCmpM; simp [hcm]
+  refine ⟨hnc, ?_, ?_, ?_, ?_⟩
+  · unfold nJobRd; simp [hcm]
+  · unfold compactJobResM; simp only [hnc, ↓reduceIte]; exact .rfl
+  · unfold kbWTSupplyM; simp only [hnc, ↓reduceIte]; exact .rfl
+  · unfold kbSRM; simp only [hnc, ↓reduceIte]; exact .rfl
+
+/-- The slot by the mode, from the slot itself (what a creator holding `srSlot` gives). -/
+theorem kbSRM_of_kbSR (kb : Option KBReal) : kbSR (GF := GF) kb ⊢ kbSRM kb := by
+  unfold kbSRM
+  split
+  · exact .rfl
+  · iintro -; itrivial
+
 /-- **The real backend's commit requests** (D22 the stored-index window, 2026-10-23): a plain wand,
 or a request its hooks serve (`backend.commitReq`) for some batch-lock and hooks' resources of
 the backend. -/
@@ -1944,6 +2002,24 @@ instance delKey_timeless (γ : StoreNames) (k : GoString) : Timeless (delKey (GF
 
 instance delKey_persistent (γ : StoreNames) (k : GoString) : Persistent (delKey (GF := GF) γ k) := by
   unfold delKey; infer_instance
+
+/-- **The store's deletable keys, by the index's names** (question 5): `delKey` depends on the store's
+names only through the index's (`γ.idx`), which `NewStore`'s caller allocates before the store
+exists, so the creator can fix the backend's registration to it before `NewStore`. -/
+def delKeyI (γi : IdxNames) (k : GoString) : IProp GF :=
+  iprop(∃ (c : Int) (log : Log), crevLb γi c ∗ idxCert γi log ∗ ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+
+theorem delKey_eq_delKeyI (γ : StoreNames) (k : GoString) :
+    delKey (GF := GF) γ k = delKeyI γ.idx k := rfl
+
+instance delKeyI_timeless (γi : IdxNames) (k : GoString) : Timeless (delKeyI (GF := GF) γi k) := by
+  unfold delKeyI idxCert crevLb; infer_instance
+
+/-- **The registration a compacting store fixes** (question 5): the `Key` bucket's keys that the
+store's index says compaction may delete. -/
+def storeDlReg (γB : backend.BNames) (γi : IdxNames) : IProp GF :=
+  backend.dlReg γB (fun nk => iprop(⌜nk.1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+    delKeyI γi nk.2))
 
 /-- Two parts of the compaction revision's authority agree. -/
 theorem crevUB_agree (γ : IdxNames) (q1 q2 : Qp) (c1 c2 : Int) (h1 : -1 ≤ c1) (h2 : -1 ≤ c2) :
