@@ -387,7 +387,7 @@ Steps 1-2 of it are built (vocabulary and contract; raft's log over it); steps 3
   st k dq es` -- the old contract's `Hbounded` (the stable log's last index below `2^61`, which
   `appendEntry`'s no-wrap needs and no invariant of the log can carry), restated over ranges. The
   design has no bound at all; without one `raft.appendEntry` is unprovable (`InvRaftlog.lean`'s
-  header). Client-visible once `isStorage γ id st` is defined: **to confirm with the user**.
+  header). Client-visible once `isStorage γ id st` is defined: **approved by the user** (via the coordinator, 2026-10-29), as are the two deviations above.
 - `HEntries`' post: the design's "cut by max" is the old prefix statement
   (`es <+: ((a ++ b).drop (lo - k)).take (hi - lo)`), as before.
 - `raftLog.snapshot.spec`: the storage's snapshot is at or past the log's boundary and valid
