@@ -496,7 +496,13 @@ Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; 
   `nodeLive`/`nodeStopped`, `Stop`, the stopped `ApplyConfChange`/`Advance`; more as the proofs need
   them); `ConfStep.lean` (proved): a replica's `confAt` past a normal entry and past a conf entry
   (the recorded decision, `confPolicy_decide` under `kvrConfN`).
-- **Not started**: the store's invariant, the storage instance, the replica's loop and methods, the
+- **The invariant** (`Defs.lean`, builds): the store's invariant as kv's, minting by the cluster's
+  operation ids and per-replica read sequence numbers; a replica's lock holding its replicated state
+  (map, applied table, `r.cs` with `confAt` at `r.index` or `nil` with `nodeStopped`, `r.index`), the
+  waiters and reads; the snapshot registry (`kvrSnapRecOk`: committed prefix, `confAt`, `StateEnc`
+  data); `kvrCluster`. Not yet: the cluster's lock invariant (replicas, `nextOp`, `nextID`,
+  `joinAuth`), the run loop's own state, the storage's (waits for track B's hold mark).
+- **Not started**: the store's the storage instance, the replica's loop and methods, the
   cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
   hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).
 
