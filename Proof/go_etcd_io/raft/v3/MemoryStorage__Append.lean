@@ -97,11 +97,8 @@ theorem MemoryStorage.Append.wp_proof
     (wp_MemoryStorage_firstIndex : MemoryStorage.firstIndex.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro ms γs k old es s dq Hidx Hlen
-  wp_start as ⟨#Hlock, Hold, Hend, Hs⟩
+  wp_start as ⟨#Hlock, Hr, Hs⟩
   iunfold entsPts at Hs
   icases Hs with ⟨%lsb, Hsb, #Hbigb⟩
   ihave %Hblen := entsBig_length $$ Hbigb
@@ -115,10 +112,11 @@ theorem MemoryStorage.Append.wp_proof
     wp_apply wp_with_defer as %defer defer
     wp_if_destruct
     · iapply HΦ
-      iframe Hold Hend
       iunfold entsPts
-      iexists lsb
-      iframe Hsb Hbigb
+      isplitl [Hsb]
+      · iexists lsb
+        iframe Hsb Hbigb
+      · iempintro
     · exfalso
       apply Hif
       word
@@ -127,6 +125,8 @@ theorem MemoryStorage.Append.wp_proof
     | nil => exact absurd rfl Hnil
     | cons a b => exact ⟨a, b, rfl⟩
   have Hk0 : uint.nat e0.Index' = k := by simpa using Hidx 0 e0 rfl
+  ihave ⟨Hold, Hend⟩ : (memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) $$ [Hr]
+  · rw [ite_eq_right (fun h => absurd h (List.cons_ne_nil e0 rest))]; iexact Hr
   ihave %Hslen := ownSlice_len $$ Hsb
   simp only [List.length_cons] at Hslen Hblen Hlen
   icases entsBig_lookup lsb (e0 :: rest) 0 e0 rfl $$ Hbigb with ⟨%lb0, %Hlb0, #Heb0⟩
@@ -342,7 +342,6 @@ theorem MemoryStorage.Append.wp_proof
     have h2 : se.len ≠ e0.Index' - p.index' := fun h => Hif (by simp [h])
     have h3 : uint.Z se.len ≠ uint.Z (e0.Index' - p.index') := fun h => h2 (uint_Z_inj.1 h)
     word
-  -/
 
 end proof
 
