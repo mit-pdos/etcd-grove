@@ -31,57 +31,36 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 Either the distinguished `ErrSnapshotTemporarilyUnavailable` -- whose points-to the
 caller passes in, since the comparison in `maybeSendSnapshot` is against the
-package-level variable, not against a claim about `errors.New` -- or a `nil` error and a
-snapshot whose metadata `(Term, Index)` is
+package-level variable -- or a `nil` error and a fresh, owned snapshot, non-empty
+(`IsEmptySnap`'s test, so `maybeSendSnapshot`'s `panic` is dead), from one of two sources:
 
-- non-zero (`IsEmptySnap`'s test, so `maybeSendSnapshot`'s `panic` is dead),
-- at or below `committed`, and an entry id of the log: the log has `Term` at `Index`
-  (`plogTermAt`, possibly as its base) -- since 2026-10-03, for `SnapOk`
-  (`Protocol/Model.lean`),
+- a pending snapshot (`LogState.snap`), cloned: one the node may send (`ksn`), the log's base,
+  at or below `committed`;
+- (U8 v2, candidate 17 rev 3) the storage's (`Storage.Snapshot()`): at or past the log's
+  boundary, and valid (`svCert`, the contract's `snapshotValid` as raft carries it). Until U8 v2
+  this branch also related the snapshot to raft's log (commit bound and term, through the
+  storage's state raft owned, `StoredSnapOk`) and to the certificate registry (`storCert`); the
+  storage's snapshot is now the client's, and what it is comes from its validity.
 
-with its `ConfState.Voters` slice read-only, for good (since 2026-10-03, so that the
-`MsgSnap` built from it is abstracted from the heap, `msgAbs`).
-
-Two sources. A pending snapshot (`LogState.snap`) is returned by value from
-`*l.unstable.snapshot`: it *is* the log's base (`LogStoreOk`), at or below `committed`
-by `ownRaftLog`; its voters are `ownSnap`'s. Otherwise `Storage.Snapshot()`:
-`isStorage`'s `HSnapshot` says the snapshot is the storage's own, `ss`, and
-`ownRaftLog`'s `StoredSnapOk` relates `ss` to the log and the commit index.
-
-(2026-10-15, stage S) The snapshot, with its lists, is one the node may send (`ksn`): the
-storage's is (`ownRaftLog`'s `Hsksn`, the lists those `HSnapshot` returns), and so is the pending
-one (`Hpksn`).
-
-The log comes back at the same state, like `raftLog.firstIndex`: the one caller,
-`raft.maybeSendSnapshot`, calls both on the same log.
-
-raft v3.7 (stage R3, 2026-10-15): both sources return a **fresh clone**, owned by the caller
-(`proto.Clone(l.unstable.snapshot)`, `log.go:295`; the storage's `Snapshot()` clones too), where
-until the retarget the snapshot came by value with its `ConfState` slices read-only (`ownCSL`).
-The lists are the record's. -/
+The premise: the log is compacted (its boundary non-zero), or the storage is (`storPast`), so a
+storage snapshot is non-empty. The log comes back at the same state. -/
 abbrev raftLog.snapshot.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "#Hesu" ∷ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
-      -- (2026-10-16, stage R8a, D11) the log is compacted: `Storage.Snapshot` promises a
-      -- non-empty snapshot only then (`HSnapshot`); with a pending snapshot `LogStoreOk` gives it
-      -- anyway. (D19i part 1, 2026-10-18) Or the storage is, by the application (`storPast`).
       "#Hcompact" ∷ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownRaftLog l ls ∗
       (⌜err = esu⌝ ∨
        (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-        ⌜sv.Metadata'.Index' ≠ W64 0 ∧
-          uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
-          plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
-            = some sv.Metadata'.Term' ∧
-          -- (2026-10-15, stage S) one the node may send; (D19i part 1) or one the application
-          -- took, at or below the floor (its certificate is the application's: A3, `SnapObl`)
-          (snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∨
-           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝ ∗
-        -- (D22 S-b′3, 2026-10-20) certified in the storage's registry, either way
-        storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists))) }}
+        ⌜sv.Metadata'.Index' ≠ W64 0⌝ ∗
+        (⌜ls.snap ≠ none ∧ snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+            plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
+              = some sv.Metadata'.Term'⌝ ∨
+         (⌜ls.snap = none ∧ uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+           svCert ls.sn sv)))) }}
 
 end spec
 

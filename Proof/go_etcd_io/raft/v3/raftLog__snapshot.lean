@@ -59,17 +59,15 @@ theorem raftLog.snapshot.wp_proof
     · ipureintro; rfl
     iexists sv
     iframe Hc
-    isplitr
-    rotate_left
-    · ihave ⟨#Hkc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$
-      rw [← Hstor]; iexact Hkc
-    ipureintro
     obtain ⟨Hp, -, Hsid0⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     subst Hp
     rw [← Hsid] at Hsid0 Happlied ⊢
     simp only [snapId] at Hsid0 Happlied ⊢
-    refine ⟨?_, Happlied.1, plogTermAt_base _ _, .inl Hk⟩
-    intro Hz; rw [Hz] at Hsid0; simp at Hsid0
+    isplitr
+    · ipureintro; intro Hz; rw [Hz] at Hsid0; simp at Hsid0
+    ileft
+    ipureintro
+    exact ⟨by simp, Hk, Happlied.1, plogTermAt_base _ _⟩
   | none =>
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
@@ -102,7 +100,7 @@ theorem raftLog.snapshot.wp_proof
     · ileft; ipureintro; exact Herr
     iright
     icases Hv with ⟨%sv, Hv, %Hsv, Hvc⟩
-    obtain ⟨Hnz', Hwhich⟩ := Hsv
+    have Hnz' := Hsv.1
     obtain ⟨Hp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     -- (stage R8a) the storage is compacted -- its boundary is the log's, or (D19i part 1) the
     -- application compacted it -- so `HSnapshot`'s snapshot is non-empty
@@ -116,35 +114,13 @@ theorem raftLog.snapshot.wp_proof
     iexists sv
     iframe Hv
     isplitr
-    rotate_left
-    · icases Hvc with (%Hz | #Hvc)
-      · exact absurd Hz Hnz
-      · rw [← Hstor]; iexact Hvc
-    ipureintro
-    rcases Hwhich with ⟨Hid, Hal, Hcs, Hdt⟩ | ⟨Hgt, Hge, Hle, Ht⟩
-    · have Hss : σ.ss.index' ≠ W64 0 := by
-        rw [← Hid]; simp only [snapId]; exact Hnz
-      have Hk := Hss
-      rw [← Hid, ← Hal, ← Hcs, ← Hdt] at Hk
-      rcases Hsn with Hz | ⟨Hle, Ht⟩
-      · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
-      · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
-        exact ⟨Hnz, Hle, Ht, .inl Hk⟩
-    · -- (D19i part 1) the application's snapshot, at or below the floor: committed, and an
-      -- entry of the log (`termAt_log_below`)
-      obtain ⟨HflE, Hfla, Hflip, Hab, -⟩ := Hfl
-      rw [HflE] at Hle
-      have Hip := Hflip
-      have Hpers := Hpersist Hsn
-      rw [← Hpend.1] at Hpers
-      refine ⟨Hnz, by omega, ?_, .inr Hle⟩
-      have HpZ : uint.Z σ.prev.index' = uint.Z ls.prev.index' := by rw [Hp]
-      rw [← Hp]
-      refine termAt_log_below σ ls.sents ls.uents _ σ.pend ls.stored _ _ Hpers
-        ⟨by omega, by omega⟩ Hge (by omega) (fun e0 He0 => ?_) Ht
-      have := Hab e0 He0
-      rw [HflE] at this
-      omega
+    · ipureintro; exact Hnz
+    iright
+    isplitr
+    · ipureintro; rw [← Hp]; exact ⟨rfl, Hsv.2.1⟩
+    icases Hvc with (%Hz | #Hvc)
+    · exact absurd Hz Hnz
+    · iexact Hvc
 
 end proof
 
