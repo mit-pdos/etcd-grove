@@ -199,6 +199,8 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · unfold authApplyResPre
     itrivial
+  isplitr
+  · unfold authCapM; itrivial
   iintro !> -
   iexact HauR
 
@@ -349,8 +351,6 @@ theorem authStoreKit_on
   iframe HisReq HisAuth HstL HstLb HstPub HAR
   isplitr
   · ipureintro; rfl
-  isplitl [Hcap]
-  · unfold authCapM; iframe Hcap; iexists R; iexact Hinv
   isplitl [Hbe]
   · iunfold authBeOn
     iexists abl, lg
@@ -363,6 +363,11 @@ theorem authStoreKit_on
       (by iintro ⟨⟨He, Hc, Hb⟩, HR⟩; unfold auth.authRd; iframe He Hc Hb HR)) $$ Hsl
   isplitr
   · iintro !> -; iexact HbB
+  isplitl [Hcap]
+  · unfold authCapM
+    isplitl [Hcap]
+    · iexact Hcap
+    iexists R; iexact Hinv
   -- (D22 J1a) the mode is `on`: no `Recover` clause
   iintro !> %Hm
   exfalso; cases Hm

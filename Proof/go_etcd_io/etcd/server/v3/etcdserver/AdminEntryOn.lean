@@ -49,12 +49,14 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 /-- **An admin entry's application with auth on** (see the file header): the triple. (C1's A2) An
 `Authenticate` entry too (`adminKindOk`; it needs no admin permission): with `v3`, the right to
 its token at the index `ConsistentIndex()` reads under what it borrows from `Pre`
-(`apply.adminExtra`), giving back the response (`adminAuthnAr`). -/
+(`apply.adminExtra`, H5: guarded by the check's verdict, `apply.adminExtraG`; an appending
+step's cap permission at the history `hs`), giving back the response (`adminAuthnAr`). -/
 abbrev adminEntryOn.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : apply.AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : apply.IRRModel) (id : w64) (RD : IProp GF)
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (γa : auth.AuthNames)
-    (stl bel : Loc) (T : IProp GF) (st : auth.AuthState) (rs : apply.RestM),
+    (stl bel : Loc) (T : IProp GF) (st : auth.AuthState) (rs : apply.RestM)
+    (hs : List auth.AuthState),
     E.authMode = .on γa → apply.noSideEffect rq = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         Perennial.EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
@@ -68,10 +70,9 @@ abbrev adminEntryOn.spec : Prop :=
         ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
           apply.dispatchOk E.authOn rq ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
         ⌜x.chain = apply.baseChain E.authOn⌝ ∗
-        (∃ (hs : List auth.AuthState), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-          ⌜hs.getLast? = some st⌝) ∗
+        (auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝) ∗
         T ∗ auth.tpAdmin stl (.on γa) ∗ authWBackendAt bel (.on γa) E.P E.f T ∗
-        roLendsAuthBe E.RO stl bel ∗ E.RO rs ∗ ⧗ 1 ∗ (if v3 then apply.adminExtra E γa rq Pre else iprop(True)) }}
+        roLendsAuthBe E.RO stl bel ∗ E.RO rs ∗ ⧗ 1 ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)) }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
         (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
     {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
@@ -137,9 +138,9 @@ theorem adminStateR_authn (rq : apply.IRRModel) (st : auth.AuthState)
 theorem apply_admin_entry_on
     (hAL : Perennial.EtcdGrove.apply.Apply.adminSpecL (GF := GF) (hG := hG)) :
     adminEntryOn.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot γa stl bel T st rs hM hns
+  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot γa stl bel T st rs hs hM hns
   iintro %Φ ⟨#Hpkg, #Hsteps, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, %Hch,
-    ⟨%hs, Hfu, Htie, %Hl⟩, HT, Htp, #Hwa, #Hro, HRO, Hrc, Hx⟩ HΦ
+    ⟨Hfu, Htie, %Hl⟩, HT, Htp, #Hwa, #Hro, HRO, Hrc, Hx⟩ HΦ
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hrb⟩ := Hprem
   ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
