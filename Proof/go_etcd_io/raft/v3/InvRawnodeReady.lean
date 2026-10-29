@@ -1817,7 +1817,9 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
         simp only [snapId]; word
       rw [hw, plogTermAt_base, Hpv l rfl, ht]; rfl
   imod ownRaftLog_certify_list s.log ((dlvAfter rs.delivered ce L).drop rs.delivered.length)
-    s.logst rs.delivered.length Hsdt HKc HKt $$ Hlog with ⟨Hlog, #Hkeys⟩
+    s.logst rs.delivered.length
+    (by have h := Hsdt; unfold SdtTie sdtLen at h; rw [Hloan.2] at h; exact h) HKc HKt $$ Hlog
+    with ⟨Hlog, #Hkeys⟩
   rw [HKlen]
   imod ownRaftLog_rdy_out s.log { s.logst with dtk := (dlvAfter rs.delivered ce L).length } es L
     rs.storage Hunp Hes Hstor.1
