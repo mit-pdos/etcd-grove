@@ -24,7 +24,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-theorem newUserClient.wp_proof : newUserClient.spec (GF := GF) (hG := hG) := by
+theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
+    newUserClient.spec (GF := GF) (hG := hG) := by
   sorry
 
 end proof

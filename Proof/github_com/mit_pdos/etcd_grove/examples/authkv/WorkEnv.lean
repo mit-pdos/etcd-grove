@@ -3,15 +3,15 @@
 2026-10-29). Lean-first (no Rocq counterpart).
 
 `Work(c, who)` runs on a client `c` of authkv's member after `SetUp`. What it needs:
-- **the principal's token** (`akPrincipal`). `u` and `v`'s clients were built with their user name
-  (C1: `userClientAt`, a token issued to the user or the context's own). `anon` and `bad` share the
-  set-up's client, which has no user name: its attempts carry the context's own token only
-  (`attemptTokOk` at `False`), so `anon`'s none, and `bad`'s `badtoken` (`reqCtx`,
-  `badCtx_unbound`);
+- **the principal's tokens** (`akTokP`, at `clientTokAt`). `u` and `v`'s clients were built with
+  their user name (C1: a token issued to the user or the context's own). `anon` and `bad` share the
+  set-up's client, which has no user name: its attempts carry the context's own token only, so
+  `anon`'s none, and `bad`'s `badtoken` (`reqCtx`, `badCtx_unbound`; round 1, F-W4: `reqCtx.spec`
+  does not yet say the timeout context has no outgoing token);
 - **the member's KV methods with auth on** (`akKVOn`: what `etcd_kv_auth_served_on` gives);
 - **the history invariant** (S1, `Hist.lean`);
-- **the auth state fixed after the set-up** (S6, `akAuthFixed`): every requested log extending the
-  set-up's `Lset` has the auth state `setupSt _`.
+- **the auth state fixed after the set-up** (S6, `akAuthFixed`): every auth state from the set-up's
+  published index on, and every requested log extending the set-up's `Lset`, at `setupSt _`.
 
 S4 (the watch with auth on) is not here: `watcher.Watch.spec` covers prefix watches of a non-empty
 key, at the state's events, with nothing of auth. `Work`'s refused watch, `u`'s range watch and
@@ -47,41 +47,46 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **The principal `who`'s token on the connection `conn`** (persistent): `u`'s and `v`'s clients
-send a token issued to their user (C1); `anon`'s and `bad`'s, the context's own. -/
-def akPrincipal (conn : Loc) (γa : auth.AuthNames) (who : GoString) : IProp GF :=
-  if who = go!"u" ∨ who = go!"v" then userClientAt conn γa who
-  else attemptTokOk conn (fun _ => iprop(False))
-
-instance akPrincipal_persistent (conn : Loc) (γa : auth.AuthNames) (who : GoString) :
-    Persistent (akPrincipal (GF := GF) conn γa who) := by
-  unfold akPrincipal; split <;> infer_instance
+/-- **The tokens principal `who`'s client sends** (round 1, F-W5: `Work` takes
+`clientTokAt cl [addr] (akTokP γa who)`, what `Main` holds): `u`'s and `v`'s clients were built
+with their user name, so tokens issued to it (`newUserClient`, `clientTokAt_user`); `anon` and
+`bad` share the set-up's client, built with none (`common.NewClient`, at `False`), so their
+attempts carry the context's own token only. -/
+def akTokP (γa : auth.AuthNames) (who : GoString) : GoString → IProp GF :=
+  if who = go!"u" ∨ who = go!"v" then fun t => auth.tokIssued γa t who else fun _ => iprop(False)
 
 /-- **The member's KV methods with auth on, at `addr`** (persistent; what
 `etcd_kv_auth_served_on` gives). -/
-def akKVOn (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (cid mid : w64) : IProp GF :=
+def akKVOn (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
+    IProp GF :=
   iprop(isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-    isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E ρ.rd cid mid) ∗
     isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
-    isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ γr cid mid))
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ ρ.rd cid mid))
 
 instance akKVOn_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
-    (γr : ReadNames) (cid mid : w64) : Persistent (akKVOn (GF := GF) addr s E ρ γr cid mid) := by
+    (cid mid : w64) : Persistent (akKVOn (GF := GF) addr s E ρ cid mid) := by
   unfold akKVOn; infer_instance
 
 /-- The model's auth state after the requested log `L` (draft: step 5's `srvAuthAtLog`). -/
 def akAuthAt (ρ : ReqNames) (L : List EntryModel) : auth.AuthState :=
   (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) L).1
 
-/-- **The auth state fixed after the set-up** (S6; persistent): the set-up's log `Lset` is
-committed, and every committed log extending it has the auth state `setupSt` at some revision. -/
-def akAuthFixed (ρ : ReqNames) (Lset : List EntryModel) : IProp GF :=
-  iprop(srvRLogLb ρ.raft Lset ∗
+/-- **The auth state fixed after the set-up** (S6; persistent): for reads (round 1, F-W1), the
+set-up's published index `n` and every state of the auth history from it on `setupSt` at some
+revision (`client_range_on`/`client_txn_on`'s verdicts are from states at indices at least the
+published bound they are given); for writes (draft, F-E1: to be stated over 5b's client history
+view, which `G` carries), the set-up's log `Lset` committed and every committed log extending it at
+`setupSt`. -/
+def akAuthFixed (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) :
+    IProp GF :=
+  iprop(auth.authPubLb γa n ∗
+    □ (∀ m st, ⌜n ≤ m⌝ -∗ auth.authStateAt γa m st -∗ ⌜∃ r, st = setupSt r⌝) ∗
+    srvRLogLb ρ.raft Lset ∗
     □ ∀ L, ⌜Lset <+: L⌝ -∗ srvRLogLb ρ.raft L -∗ ⌜∃ r, akAuthAt ρ L = setupSt r⌝)
 
-instance akAuthFixed_persistent (ρ : ReqNames) (Lset : List EntryModel) :
-    Persistent (akAuthFixed (GF := GF) ρ Lset) := by
+instance akAuthFixed_persistent (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel)
+    (n : Nat) : Persistent (akAuthFixed (GF := GF) γa ρ Lset n) := by
   unfold akAuthFixed; infer_instance
 
 end defs

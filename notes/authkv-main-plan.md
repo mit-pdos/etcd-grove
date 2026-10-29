@@ -231,3 +231,58 @@ On the branch (`d9e2f09fbf`), all compiling (`Proof...authkv.Results` builds):
   is the client package's spec, owned by the merge session's area, and a change to a frozen spec.
   **Decided (the user, 2026-10-29): the merge session owns it.** It sends the statement before
   proving it; S1's read update (`akHist_readAu`) fixes what its events must come from.
+
+## Review, round 1 (2026-10-29)
+
+An independent `spec-reviewer` read the skeleton (S2, S3, S5, S1's laws, WorkEnv, ClientOn): not
+freezable yet; no bug in the Go code. Its findings and what was done:
+
+**Repaired (this commit).**
+- F-H1/F-H2: `akHist_writeAu` took a closed entailment `∀ σ, G σ ⊢ ⌜opHistOk op⌝`, unusable (the
+  refutation of a grant needs Iris facts the caller holds), and fixed `Q := True`. Now
+  `akHistInv ∗ □ (∀ σ, G σ -∗ |={mask \ akHistN}=> ⌜opHistOk op⌝ ∗ Q σ) ⊢ □ kvAu1G … G Q`: a
+  refused write takes `Q := False`, and its reply (`putReplied … Q`) then cannot exist, so the
+  reply's own grant is no longer needed.
+- F-W1: reads' verdicts come from the auth states at indices at least the published bound they
+  are given, which `akAuthFixed` (raft logs) did not speak of. `akAuthFixed γa ρ Lset n` now also
+  has `authPubLb γa n` and every `authStateAt γa m st` with `n ≤ m` at `setupSt _` (S6 supplies it).
+- F-W2: `Work.spec` takes `□ (srvTLSId s -∗ False)` (from `ClientCertAuthEnabled ↦□ false`; the
+  merge's step 4 exports the field), so the statement does not change when step 4 lands.
+- F-W5: `Work.spec` takes `clientTokAt cl [addr] (akTokP γa who)`, what `Main` holds from
+  `newUserClient`/`NewClient` (G1), instead of its unfolded parts; `akPrincipal` is gone.
+- Minor: `akKVOn` without `γr`; `Work.wp_proof` takes its callees (keyOf, reqCtx, refused,
+  checkKVs, checkTxnReads, Permitted); `newUserClient` without `name ≠ ""`, `pw ≠ ""` (F-N1) and
+  with `clientv3.New.spec`, so `authkv_Main` takes `DialWithBalancerBody` as every client-building
+  `Main` does.
+
+**Open, waiting on the merge session.**
+- F-E1: `akAuthFixed`'s write part is over `srvRLogLb ρ.raft L`, which step 5's grant
+  (`opGrantT … L₀`: `L₀ <+: L`, with the lower bound `srvReqLogLb ρ.raft L₀`, not one of `L`) does
+  not give. Restate over 5b's client view of the auth history once it is stated.
+- F-W3 (G2): the watch has no auth fact, so `Work`'s refused watch of `c/` from revision 1 is not
+  excluded from reporting the set-up's puts; and the token fact is about the KV object's
+  connection, while `isNewClient`'s watcher is on a separately existential one. G2's watch spec
+  must take the watcher's connection's tokens, or `isNewClient` say the connections are one.
+- F-C1: `client_Put_on` (ClientOn.lean) is a second spec of `(*Client).Put`, beside
+  `client_Put_any`. A temporary local, not frozen: the merge replaces it by the one
+  `(*Client).Put` spec in `client/v3`.
+
+**Open, for the user.**
+- F-S2: `SetUp`'s puts take persistent updates (`□ kvOpAu1`, "may be delivered several times"). A
+  late firing of `c/<who>/d` above `setupRev` would put a key the history does not admit into
+  root's watch, so the invariant can be allocated neither after `SetUp` (the updates keep needing
+  the state) nor before. In Go it cannot happen: a refused attempt did not apply, and a put is
+  resent only after a refusal. The interfaces lose this: `writeOnce` needs `noRefusalAt`, and
+  `etcd_noRefusal` requires auth off. A gap in the proof interfaces, not in the Go code.
+- F-W4: `anon`'s and `bad`'s tokens depend on `reqCtx`'s timeout context having no outgoing
+  metadata, which `reqCtx.spec` does not say (Perennial's context model says nothing of the
+  values of a new context at other keys). Needs `reqCtx.spec` strengthened, from a Perennial
+  context fact (`notes/perennial-changes.md` if so).
+
+**Not yet drafted** (`Main.wp_proof`'s other callees): `startServer`, `Serve`, root's `Put`, the
+wait group, the watches (G2, for `Work`, root's whole keyspace and `u`'s range), a `Collect.spec`
+general in its per-event predicate (F-H3: today's demands each event be a put at `2+n+j` of a
+plan's key; root's history has a DELETE), `akHist_events` (an event of `σ.revEvents r` has
+`modRev = r`, so `stateHistOk` gives `histOk` of the collected events), S4, and S6's
+`akAuthFixed_alloc`. F-S1: `SetUp.spec`'s post says nothing of `rev`; restated with F-S2's answer
+(the last put's revision, and the client's `etcdKV` back at it).

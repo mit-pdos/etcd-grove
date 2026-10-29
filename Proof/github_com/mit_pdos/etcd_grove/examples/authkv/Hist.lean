@@ -95,12 +95,15 @@ theorem akHist_alloc (γk : KVNames) (σ : KVState) (setupRev : Nat) (h : σ.rev
     etcdKV (GF := GF) γk σ ⊢ |={⊤}=> akHistInv γk setupRev := by
   sorry
 
-/-- **A write's update under the invariant** (stub): an update whose grant `G` makes the operation
-one the history admits keeps the invariant. Its result is `True`; the caller's own result goes
-through `Q`'s other conjuncts in S2. -/
-theorem akHist_writeAu (γk : KVNames) (setupRev : Nat) (op : KVOp) (G : KVState → IProp GF)
-    (hG : ∀ σ, G σ ⊢ ⌜opHistOk op⌝) :
-    akHistInv (GF := GF) γk setupRev ⊢ kvAu1G γk (kvOpStep op) G (fun _ => iprop(True)) := by
+/-- **A write's update under the invariant** (stub; round 1, F-H1/F-H2): an update whose grant
+`G`, as it fires, makes the operation one the history admits keeps the invariant. The caller
+refutes or uses the grant with what it holds (`clientTokAt`, `akAuthFixed`, the TLS refutation)
+inside `hG`, in the mask the update fires in, the invariant opened; `Q` is the caller's result: a
+refused principal's write takes `Q := False`, so its reply (`putReplied … Q`) cannot exist. -/
+theorem akHist_writeAu (γk : KVNames) (setupRev : Nat) (op : KVOp) (G Q : KVState → IProp GF) :
+    akHistInv (GF := GF) γk setupRev ∗
+      □ (∀ σ, G σ -∗ |={((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑akHistN}=> ⌜opHistOk op⌝ ∗ Q σ) ⊢
+    □ kvAu1G γk (kvOpStep op) G Q := by
   sorry
 
 /-- **A read's update under the invariant** (stub): a read (root's watch, `u`'s watch: the

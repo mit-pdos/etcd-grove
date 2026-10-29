@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 /-- See the file header. -/
 abbrev newUserClient.spec : Prop :=
   ∀ (name pw : GoString) (lg : Loc) (V : WEnv GF) (P : GoString → IProp GF),
-  lg ≠ null → name ≠ go!"" → pw ≠ go!"" → threadBound GF ≤ 2 ^ 30 →
+  lg ≠ null → threadBound GF ≤ 2 ^ 30 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       client.ctxErrClientAll ∗ authTokReg [go!"127.0.0.1:23916"] name pw P }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.newUserClient))

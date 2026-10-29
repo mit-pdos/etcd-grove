@@ -73,13 +73,13 @@ theorem wp_keyOf :
     EtcdGrove.authkv.keyOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.keyOf.wp_proof
 
-theorem wp_checkKVs :
-    EtcdGrove.authkv.checkKVs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.checkKVs.wp_proof wp_Permitted
-
 theorem wp_refused :
     EtcdGrove.authkv.refused.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.refused.wp_proof
+
+theorem wp_checkKVs :
+    EtcdGrove.authkv.checkKVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.checkKVs.wp_proof wp_Permitted
 
 end links
 
@@ -100,21 +100,9 @@ theorem wp_SetUp :
     EtcdGrove.authkv.SetUp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.SetUp.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_Principals wp_keyOf client.v3.authClient.wp_UserAdd client.v3.authClient.wp_UserGrantRole client.v3.authClient.wp_RoleAdd client.v3.authClient.wp_RoleGrantPermission client.v3.authClient.wp_AuthEnable
 
-theorem wp_newUserClient :
+theorem wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.authkv.newUserClient.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.newUserClient.wp_proof
-
-theorem wp_Work :
-    EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Work.wp_proof
-
-theorem wp_Main :
-    EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Main.wp_proof wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn
-
-theorem wp_checkTxnReads :
-    EtcdGrove.authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.checkTxnReads.wp_proof wp_checkKVs
+  EtcdGrove.authkv.newUserClient.wp_proof client.v3.clientv3.wp_New
 
 theorem metadata.wp_AppendToOutgoingContext :
     EtcdGrove.metadata.AppendToOutgoingContext.spec (GF := GF) (hG := hG) :=
@@ -123,6 +111,18 @@ theorem metadata.wp_AppendToOutgoingContext :
 theorem wp_reqCtx :
     EtcdGrove.authkv.reqCtx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.reqCtx.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny metadata.wp_AppendToOutgoingContext
+
+theorem wp_checkTxnReads :
+    EtcdGrove.authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.checkTxnReads.wp_proof wp_checkKVs
+
+theorem wp_Work :
+    EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted
+
+theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.Main.wp_proof wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn
 
 end links_hasLC
 

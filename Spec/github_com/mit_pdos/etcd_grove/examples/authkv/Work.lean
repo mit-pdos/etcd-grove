@@ -7,10 +7,12 @@ outside `[a, b)`, and a watch of the prefix `c/` from revision 1, each reply che
 `checkKVs`, `checkTxnReads`, the watch's events).
 
 **The triple:** `Work` does not panic, for a principal of the program (`principals`) on a client
-of authkv's member with auth on (`isNewClient`; its `KV` a `*kv` over `conn`, `clientTokAt`'s
-parts) whose attempts carry the principal's token (`akPrincipal`), the member's KV methods with
-auth on (`akKVOn`) and its watch server's facts (`watchAddrFacts`, S4), after the set-up: the
-history invariant (S1, `akHistInv`) and the auth state fixed (S6, `akAuthFixed`). Not panicking is
+of authkv's member with auth on (`isNewClient`) whose attempts carry the principal's tokens
+(`clientTokAt` at `akTokP`), the member's KV methods with auth on (`akKVOn`), its TLS identity off
+(`srvTLSId`, refuted: the member's configuration has `ClientCertAuthEnabled` false; round 1, F-W2),
+and the watcher's facts as `Main` has them (`watchAddrFacts`; the auth-on watch, S4/G2, replaces
+it), after the set-up: the history invariant (S1, `akHistInv`) and the auth state fixed (S6,
+`akAuthFixed`). Not panicking is
 the workload's part of the auth result: every request the auth state refuses `who` returned an
 error, every reply holds only keys `who` may read, and every write `who`'s client sends keeps the
 history invariant (its update, `akHist_writeAu`, at the write's grant).
@@ -42,18 +44,15 @@ abbrev Work.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (cl api conn : Loc) (who : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
+    (cl : Loc) (who : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (setupRev : Nat)
-    (Lset : List EntryModel),
+    (Lset : List EntryModel) (n : Nat),
   who ∈ principals → E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       isNewClient cl [go!"127.0.0.1:23916"] V ∗ watchAddrFacts V ∗
-      structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
-        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
-          GoInterface) ∗
-      kvObjAtC api conn [go!"127.0.0.1:23916"] ∗ akPrincipal conn γa who ∗
-      akKVOn go!"127.0.0.1:23916" s E ρ ρ.rd cid mid ∗
-      akHistInv ρ.kv setupRev ∗ akAuthFixed ρ Lset }}
+      clientTokAt cl [go!"127.0.0.1:23916"] (akTokP γa who) ∗
+      akKVOn go!"127.0.0.1:23916" s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗
+      akHistInv ρ.kv setupRev ∗ akAuthFixed γa ρ Lset n }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.Work)) (Val #cl))
       (Val #who))
   {{ RET #(); True }}
