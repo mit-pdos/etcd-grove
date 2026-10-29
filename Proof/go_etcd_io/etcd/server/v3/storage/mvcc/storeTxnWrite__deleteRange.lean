@@ -198,7 +198,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ) (mvcc.storeRb γ)
-      (mvcc.kbMW γ.kb) $$ []
+      (mvcc.kbMW γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩

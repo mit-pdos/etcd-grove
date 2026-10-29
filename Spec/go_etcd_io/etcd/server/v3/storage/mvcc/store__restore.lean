@@ -85,7 +85,7 @@ abbrev mvcc.store.restore.spec : Prop :=
             mvcc.idxReader ti γ.idx) ∗
           ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; RT ∗
+  {{ RET #GoInterface.nil; RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗

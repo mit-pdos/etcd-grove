@@ -1809,3 +1809,41 @@ What part (1) still needs:
 - **`store.restore`** handing back the half.
 - **`NewServer` at `{ d with cm := false }`** (M1). Its `d` is quantified in `bootOk`, so this is
   where stage 5's D22 changes become necessary.
+
+**Core stage, part (1b)-(1d): the resources and their wiring (2026-10-29).** Done in building commits
+(`notes/STATUS.md`, "Question 5's core stage, part (1)"). Decided by the agent:
+- **The key's field is `mwk`, not `mk`** (`StoreNames.mwk`, `PhysNames.mwk`): `mk` is the structures'
+  constructor. A restored store keeps the old `mwk` in its new physical names (it never compacts, so
+  its slot is empty and nothing is allocated).
+- **The job's reader through the pool's retired count** (part (1b)'s finding, now the design):
+  `NewStore` mints `nReaders - nJobRd kb` tickets, starts `poolBody`'s retired count at `nJobRd kb`,
+  puts that many of the backend's reader tokens (with `kbSRM`'s slot) into the first compaction
+  token (`compactJobResM_of`), returns `retiredAt γ (nJobRd kb)` and `nReaders - nJobRd kb` readers.
+  `poolBody` and `restore_switch` are unchanged; `WiringDraft`'s `poolSumW` is not used.
+- **`scheduleCompaction.spec`'s post gives the budgets back** (`compactJobResM γ.kb` beside
+  `idxCompactor`), so `store.compact` rebuilds the next job's `compactTok`. The alternative, the job
+  keeping the token whole, would change its post's `idxCompactor`, which `store.compact` reads.
+- **The key lives in `compactRes`**, the compaction's part of `writerRes`, not in a new conjunct of
+  `writerRes`: every writer (`storeTxnWrite.End`, `restore_finish`, D22's moves) carries `compactRes`
+  whole, so only the four proofs that open it (`NewStore`, `store.Restore`, `updateCompactRev`, the
+  job) change. `restore_switch`/`restore_finish` need no `cm = false` fact: `store.Restore` builds the
+  new `compactRes` (empty slot, `mwSlot_off`) and passes it.
+- **The swap's laws, proved in `InvStore`**: `mwSwap_of_inv` (the Draft's), `mwSwap_frame`,
+  `writerRes_key`, `mwSwap_writerRes`, `mwSwap_of_physOk` (the Draft's `.stmt`, at `storeW` through
+  `storeW_get`/`storeW_put`), `mwSwap_cmp` (the two swaps over mvcc's assumed backend that the
+  compaction's proofs use until the flip), `mwSlot_alloc`/`physCmp_alloc` (`NewStore`'s),
+  `mwSlot_off`/`physCmp_off` (a store that does not compact).
+- **`SetFinishedCompact.spec`** takes the same general form as `SetScheduledCompact.spec` (F6): no
+  caller; the job calls `UnsafeSetFinishedCompact` itself, swapping the key from its batch lock's
+  resource (`mwSwap_cmp`'s second swap).
+- **`server_kv_watchable_of` (internal, `BuildLemmas`) has no `hcm`**: it builds the store at
+  `{ d with cm := false }` and says so in its post (`γw.st.kb = some { d with cm := false }`), so that
+  `NewServer` (whose `d` is `bootOk`'s, of unknown mode) calls it at `d` and continues at the record
+  not compacting (M1); the exported `server_kv_watchable` keeps the review's `hcm` (N4) and rewrites
+  the record back to `d`. `NewServer` converts its facts of `d` to the record by three `.rfl` lemmas
+  (`isBackend_cmOff`, `plHookRO_cmOff`, `keySized_cmOff`): a `simp` over `NewServer`'s context made
+  the kernel check of its proof grow past 30 GB.
+- **`snapWalkPost` and `srvSnapApplied` carry `d'.cm = false`**, and the walk builds the received
+  backend's record with `cm := false`; `applySnapshot_walk` takes `hcm` (the old store's), but
+  `srvSnapApplied_of_walk` needs none (it takes the new record's from the walk's post), so it is the
+  only one of the two walk lemmas that does not change.

@@ -87,7 +87,8 @@ theorem mvcc.store.restore.wp_proof
     (try wp_auto)
     -- the compaction keys: neither is there (the reader's clause under `kbNoCmp`)
     ihave #Hmc := mvcc.keyReadLocked_meta _ _ _ _ _ _ _ $$ Hlk
-    icases Hmc $$ Hncmp with ⟨-, #Hmeta⟩
+    icases Hmc $$ Hncmp with ⟨Hncmp, #Hmeta⟩
+    ihave Hncmp := mvcc.kbNoCmp_MW _ _ $$ Hncmp
     ihave #Hcap := mvcc.keyReadLocked_cap _ _ _ _ _ _ _ _ $$ Hlk
     wp_apply (hFin rt true Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
     · iframe #
@@ -599,7 +600,8 @@ theorem mvcc.store.restore.wp_proof
   (try wp_auto)
   -- the compaction keys: neither is there (the reader's clause under `kbNoCmp`)
   ihave #Hmc := mvcc.keyReadLocked_meta _ _ _ _ _ _ _ $$ Hlk
-  icases Hmc $$ Hncmp with ⟨-, #Hmeta⟩
+  icases Hmc $$ Hncmp with ⟨Hncmp, #Hmeta⟩
+  ihave Hncmp := mvcc.kbNoCmp_MW _ _ $$ Hncmp
   ihave #Hcap := mvcc.keyReadLocked_cap _ _ _ _ _ _ _ _ $$ Hlk
   wp_apply (hFin rt true Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
   · iframe #

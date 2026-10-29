@@ -96,7 +96,7 @@ when the store compacts, else nothing. Deposited with the rest of `writerRes` at
 def mwSlotW (γ : StoreNames) (γmk : GName) : IProp GF :=
   if kbCmpM γ.kb then mwKeyW γmk else iprop(True)
 
-abbrev mwN : Namespace := nroot.@"mvcc_mw"
+-- (`mwN`: `InvStore.lean`'s, since the core stage, part (1))
 
 /-- (ii) F1, N1: **the write right's invariant** (persistent; N3: in `physOk`, gated by the mode,
 allocated by `NewStore` after `restore` gives the right back, with `NewStore`'s half at `true`): the
@@ -133,7 +133,7 @@ def mwSwap_of_physOk.stmt : Prop :=
 /-- (ii) N1: **the swap law** (glue, proved before round 16): with the write right's invariant, a
 resource holding the key swaps for the right and back. Acquire: the halves agree on `true`; take the
 right, set both to `false`. Return: they agree on `false`; put it back, set both to `true`. -/
-theorem mwSwap_of_inv (γ : StoreNames) (γmk : GName) (R : IProp GF) :
+theorem mwSwap_of_invW (γ : StoreNames) (γmk : GName) (R : IProp GF) :
     mwInvW (GF := GF) γ γmk ⊢ mwSwapW iprop(mwKeyW γmk ∗ R) (kbMWW γ.kb γ.bucket) := by
   iintro #Hinv
   iunfold mwSwapW

@@ -207,9 +207,9 @@ theorem isKeyBackendG_cmpRT (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P
     isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ)
-      (MW := kbMW γ.kb) ⊢
+      (MW := kbMW γ.kb γ.bucket) ⊢
     isKeyBackendG b (bucketView γ) (storeRT γ) iprop(True) (kbNoCmp γ.kb γ.bucket) noPutCond
-      (delKey γ) (writerRes s γ) iprop(True) Dep True P HF (MW := kbMW none) := by
+      (delKey γ) (writerRes s γ) iprop(True) Dep True P HF (MW := kbMW none γ.bucket) := by
   unfold storeCmp kbCmp at h
   unfold storeW kbWi storeWT storePutOk storeCmp kbCmp kbWT kbPutOk storeReq kbReq
     storeRb kbRb storeBt kbBt

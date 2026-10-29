@@ -29,9 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.SetScheduledCompact.wp_proof
     (h0 : mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG) := by
-  intro bt View Del W Dep Locked P HF f value Pre Q Post Hv
-  wp_start as ⟨#Hbt, Hhf, Hpre, #Hhook, Hupd⟩
-  iunfold mvcc.batchTxSpec at Hbt
+  intro bt View RT WT PutOk Del W Dep Locked P HF Rb MW f value Pre Q Post Hv
+  wp_start as ⟨#Hbt, #Hsw, Hrt, Hwt, Hhf, Hpre, #Hhook, Hupd⟩
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -, -, -, #HMeta, -⟩
   ihave #Hcap := HMeta $$ []
@@ -41,19 +40,24 @@ theorem mvcc.SetScheduledCompact.wp_proof
   -- `tx.LockInsideApply()`: the hook run on the caller's `Pre`
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   ihave #HLock' := HLock $$ %Pre %Q %f
-  iapply HLock' $$ [Hpre Hhf]
-  · iframe Hpre Hhook Hhf
+  iapply HLock' $$ [Hpre Hhf Hrt Hwt]
+  · iframe Hpre Hhook Hhf Hrt Hwt
   inext
-  iintro ⟨Hl, HW, HQ, -⟩
-  (try wp_auto)
+  iintro ⟨Hl, HW, HQ, Hrt⟩
+  wp_auto_lc 1
+  -- (question 5's core stage, part (1)) the compaction keys' write right, for the lock's resource
+  iunfold mvcc.mwSwap at Hsw
+  imod Hsw $$ [HW Hlc1] with ⟨HMW, Hback⟩
+  · iframe HW Hlc1
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact))
     (Val #(GoInterface.ok bt))) (Val #value))
-  iapply (h0 bt iprop(Locked [] ∗ mvcc.kbMW none) _ value Hv) $$ [Hl]
-  · iframe Hpkg Hcap Hl
-    unfold mvcc.kbMW; itrivial
+  iapply (h0 bt iprop(Locked [] ∗ MW) _ value Hv) $$ [Hl HMW]
+  · iframe Hpkg Hcap Hl HMW
   inext
-  -- (the backend-compaction stage, R2-3) the put leaves a token only `Unlock` takes
-  iintro ⟨⟨%U, HU, #Hua⟩, -⟩
+  -- (the backend-compaction stage, R2-3) the put leaves a token only `Unlock` takes; the right
+  -- swapped back for the lock's resource
+  iintro ⟨⟨%U, HU, #Hua⟩, HMW⟩
+  imod Hback $$ HMW with HW
   iunfold mvcc.unlockAt at Hua
   icases Hua with ⟨#HUnlock0, -⟩
   (try wp_auto)
@@ -67,7 +71,7 @@ theorem mvcc.SetScheduledCompact.wp_proof
   iintro -
   (try wp_auto)
   iapply HΦ
-  iexact HPost
+  iframe Hrt HPost
 
 end proof
 

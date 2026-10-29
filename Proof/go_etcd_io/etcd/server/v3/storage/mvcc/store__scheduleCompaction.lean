@@ -230,6 +230,11 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
+  -- (question 5's core stage, part (1)) the swap of the key for the compaction keys' write right
+  icases mvcc.mwSwap_cmp s γ Hcmp $$ HmwP with ⟨-, #Hswk⟩
+  have hcmpM : mvcc.kbCmpM γ.kb := by
+    have hk : γ.kb = none := Hcmp
+    rw [hk]; unfold mvcc.kbCmpM; trivial
   ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, #HBT, #HForce, #HSize, #HSizeU, #HCmp⟩
@@ -317,7 +322,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iframe #
   inext
   iintro ⟨Hlocked, HW, HP, -⟩
-  (try wp_auto)
+  -- (question 5's core stage, part (1)) a later credit for the last batch's swap of the key
+  wp_auto_lc 1
   iunfold mvcc.writerRes at HW
   icases HW with ⟨%ilog, HW⟩
   iNamedSuffix HW "W"
@@ -555,18 +561,25 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   wp_if_destruct
   · -- the last batch: `finishedCompactRev = rev`, the compaction finished
     (try wp_auto)
+    -- (question 5's core stage, part (1)) the key in the batch lock's resource, swapped for the
+    -- compaction keys' write right for the `Meta` put, and back
+    iunfold mvcc.compactRes at HcresW
+    icases HcresW with ⟨%sched, %fin, %nf, Hmeta, Hfin, %Hnf, Hmk⟩
+    ihave Hmk := (mvcc.mwSlot_on γ hcmpM).1 $$ Hmk
+    iunfold mvcc.mwSwap at Hswk
+    imod Hswk $$ [Hmk Hlc1] with ⟨HMW, Hback⟩
+    · iframe Hmk Hlc1
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW none) iprop(U c0 ∗ mvcc.kbMW none) rev Hrev.1) $$ [HU]
-    · iframe HU; iframe #
-      isplitl []
-      · iapply HMetaC
-      unfold mvcc.kbMW; itrivial
+    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW none γ.bucket) iprop(U c0 ∗ mvcc.kbMW none γ.bucket)
+      rev Hrev.1) $$ [HU HMW]
+    · iframe HU HMW; iframe #
+      iapply HMetaC
     inext
-    iintro ⟨HU, -⟩
+    iintro ⟨HU, HMW⟩
+    imod Hback $$ HMW with ⟨Hmk, -⟩
+    ihave Hmk := (mvcc.mwSlot_on γ hcmpM).2 $$ Hmk
     (try wp_auto)
-    iunfold mvcc.compactRes at HcresW
-    icases HcresW with ⟨%sched, %fin, %nf, Hmeta, Hfin, %Hnf⟩
     iunfold mvcc.metaCompact at Hmeta
     imod ghostVar_update (sched, some rev) γ.cmeta _ $$ Hmeta with Hmeta
     imod mono_nat_own_update (max nf (mvcc.crevN (sint.Z rev))) (Nat.le_max_left _ _) $$ Hfin
@@ -575,7 +588,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnlU $$ %c0 [HU HwkW HwvW HbvW Hmeta Hfin HP]
+    iapply HUnlU $$ %c0 [HU HwkW HwvW HbvW Hmeta Hfin Hmk HP]
     · iframe HU HP
       iunfold mvcc.writerRes
       iexists ilog

@@ -253,12 +253,13 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- `sorry`: bind and apply)
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
         (Val #(GoInterface.ok bt))) (Val #rev))
-      iapply (h3 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph (mvcc.hookFn γ) f rev Pre Q
-          Post hrev0) $$ [HPre Hupd]
+      -- (question 5's core stage, part (1)) the store's swap of its lock's resource for the right
+      icases mvcc.mwSwap_cmp s γ hcmp $$ HmwP with ⟨#Hsw, -⟩
+      iapply (h3 bt (mvcc.bucketView γ) iprop(True) iprop(True) mvcc.noPutCond (mvcc.delKey γ)
+          (mvcc.writerRes s γ) Dep Locked Ph (mvcc.hookFn γ) (fun _ => iprop(True))
+          (mvcc.kbMW none γ.bucket) f rev Pre Q Post hrev0) $$ [HPre Hupd]
       · iframe #
         iframe HPre
-        isplitr
-        · iunfold mvcc.batchTxSpec; iexact Hbt
         iintro ⟨HQ, HW⟩
         imod Hupd $$ HQ with ⟨HP, HPost⟩
         ihave HP0 := HPP0 $$ HP
@@ -266,7 +267,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         icases HW with ⟨%ilog, HW⟩
         iNamed HW
         iunfold mvcc.compactRes at Hcres
-        icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn⟩
+        icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn, Hmk⟩
         iunfold mvcc.metaCompact at Hmeta
         imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
         imodintro
@@ -284,7 +285,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe
         ipureintro; exact Hn
       inext
-      iintro HPost
+      iintro ⟨-, HPost⟩
       (try wp_auto)
       -- `s.b.ForceCommit()`
       wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
