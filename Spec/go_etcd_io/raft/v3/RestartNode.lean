@@ -44,7 +44,7 @@ cluster's `RestartNode.spec`, dropped in U8 v2 ahead of U9.) Scope: a newcomer s
 on an empty `ConfState` as etcd's joining member does (the frozen design's F5). -/
 abbrev RestartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (hs : HardStateM) (csm : ConfStateM),
+    (hs : HardStateM) (csm : ConfStateM) (Q : IProp GF),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -61,7 +61,7 @@ abbrev RestartNode.spec : Prop :=
   csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      bootStorage γ cv.ID' (interface.ok si) hs csm ∗
+      bootStorage γ cv.ID' (interface.ok si) hs csm Q ∗
       (nodeFounder γ N vs cv.ID' ∨
         (nodeJoin γ N cv.ID' ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ⌜vs.Nodup⌝)) }}
     (App (Val #(functions RestartNode [])) (Val #c))
@@ -70,7 +70,9 @@ abbrev RestartNode.spec : Prop :=
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
         -- (2026-10-29, stage U9a) the node runs (`node.Stop` takes it whole)
-        nodeRunning n γ N 1 }}
+        nodeRunning n γ N 1 ∗
+        -- (raft-final, 2026-10-29, the design's A3) the frame `InitialState` gave back
+        Q }}
 
 end spec
 

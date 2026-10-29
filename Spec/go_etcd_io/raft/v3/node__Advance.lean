@@ -33,7 +33,8 @@ again; (2026-10-29, stage U9a) or the node stopped first (`nodeStopped`), the lo
 nothing else promised. Premises of the snapshot path, all of what the client has from the `Ready`
 (`readySnap`): the snapshot's certificate and its index the length of its committed log. Every conf
 entry of the committed log delivered is applied (the loop's A1 at `run`'s `RawNode.Advance`; the
-conf-change decision switch: or decided `.skip`, `skippedIn`).
+conf-change decision switch: or decided `.skip`, `skippedIn`; raft-final, 2026-10-29, the design's
+A1: after a `Ready` without a snapshot only).
 
 (U8 v2, 2026-10-29, the frozen design's §3) The storage part: the `Ready`'s batch back
 (`advReceipt`: a frozen prefix within the committed log delivered and an owned rest, with the end;
@@ -49,9 +50,11 @@ abbrev node.Advance.spec : Prop :=
   (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗ isNode n γ N id ∗
       nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
-      skippedIn γ st.delivered v.applied st.delivered.length ∗
+      -- (raft-final, 2026-10-29, the design's A1, review 1's H1) the conf entries skipped only after a
+      -- `Ready` without a snapshot (after one, the configuration is the snapshot's, `confAt`); until
+      -- then after both
       (match L with
-       | none => True
+       | none => skippedIn γ st.delivered v.applied st.delivered.length
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗

@@ -370,9 +370,11 @@ index `0`. `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *befo
 and a `MemoryStorage`'s `InitialState` reads its snapshot without the lock
 (`issues/raft-memorystorage-initialstate-unlocked.md`), so its invariant (`memStorInv`) can only be
 made once `InitialState` returned: the contract comes in `InitialState`'s post. A `MemoryStorage`'s
-bundle is a law (`memStorage_bootStorage`). -/
-def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM) :
-    IProp GF :=
+bundle is a law (`memStorage_bootStorage`). (raft-final, 2026-10-29, the design's A3, review 1's
+H3) `InitialState`'s post also gives back a client-chosen frame `Q`, which `RestartNode`'s post
+returns (a `MemoryStorage`'s client keeps its `memStorMeta` for `SetHardState`). -/
+def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM)
+    (Q : IProp GF) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
     (□ {{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
        {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
@@ -381,8 +383,17 @@ def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm 
     (□ {{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
           hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-          |={⊤}=> isStorage γ id st ∗ ∃ e0 : EntryM, ⌜e0.Term' = W64 0⌝ ∗
-            storLog st 0 DFrac.discard [e0] ∗ storEnd st 1 }}))
+          |={⊤}=> isStorage γ id st ∗ (∃ e0 : EntryM, ⌜e0.Term' = W64 0⌝ ∗
+            storLog st 0 DFrac.discard [e0] ∗ storEnd st 1) ∗ Q }}))
+
+/-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
+a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what
+`MemoryStorage.ApplySnapshot` and the storage contract take (`snapshotValid`). -/
+theorem snapshotCert_valid (γ : Cluster) (N : Namespace) (sv : SnapshotM) :
+    0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 →
+    isCluster (GF := GF) γ N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢
+      snapshotValid γ sv := by
+  sorry
 
 end api
 
