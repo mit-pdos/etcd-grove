@@ -149,3 +149,10 @@ Each: old → new, and why.
 - Automatic leave excluded: `m'.autoLeave = false` (`node__ApplyConfChange`), `DynCCPreOp`, a dynamic
   snapshot's `ConfState` at `RawNode.Advance` (U3c), and
   `c.autoLeave → role ≠ leader` in `raft.appliedTo`, `appliedSnap`, `raft.Step`.
+
+## Track C log (kvreconf)
+
+- 2026-10-29: the leaf layer (pure model, porcupine model, encodings, maps, hashes, random helpers)
+  specified and proved; `validConf.spec` stated over `ConfOk` (the rule's `Rule.lean`). Minor: kv's
+  `foldl_histStep_opsOf` follows `opsOf`'s new filter (an empty `ConfChangeV2` has no client datum).
+  Raft-side needs sent to the coordinator (`notes/decisions.md`, "Track C: kvreconf").

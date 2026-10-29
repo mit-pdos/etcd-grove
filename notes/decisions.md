@@ -25458,3 +25458,40 @@ left `RawNode.Step.spec`, `netP`, `wp_rn_raft_Step_net` and `stepIn_intro`.
 Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients that break (not built, by
 the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
 `stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
+
+## Track C: kvreconf
+
+**2026-10-29 · in progress (track C of the raft-unified effort, branch `raft-unified-kvreconf`)**
+
+`examples/kvreconf`'s proof (`notes/raft-unified-plan.md`, U11) runs beside raft's tracks A and B,
+over the frozen designs (`notes/spec-first-study/raft-node-unified-candidate.md`,
+`raft-decisions-spec.md`) and the coordinator's approved changes (U5: `opsOf` drops empty
+`ConfChangeV2`s; no `autoLeave = false` premises).
+
+- **Go changes, minimal.** Bounds as kv's (`maxIndex`/`fits`, `maxSeq` for operation ids and read
+  sequence numbers: a reused id would be answered with another operation's answer, a reused read
+  sequence number with another read's), and `within` in kv's form (Goose's `range` loop with an early
+  `return` is harder to prove; the answers are the same). No bound on ticks, campaigns or transfers
+  (raft takes its own time receipts, frozen design); no random choice removed.
+- **Names.** The pure model is kv's copied under `EtcdGrove.kvreconf` (not shared with kv: kv's proof
+  is being changed on its own track, and `etc/tcb-report.py` runs every `Link.lean` in one Lean
+  process, so the names must differ). The specs are `EtcdGrove.kvreconf.<fn>.spec`.
+- **The conf-change decision** (`Rule.lean`): `kvrRule pre m e` is the entry's decoded change if
+  `ConfOk o m` (`applyChange o m` some valid `m'`), else a rejection; the store's invariant is to hold
+  `confPolicy γ kvrConfN kvrRule` (`ConfPolicy.lean`, allocated from `cluster_alloc_dec`'s
+  `ownConfDecisions γ ∅`), and each replica carries `confAt γ index m` for its own configuration
+  (`confAt_noConf` past normal entries, `confAt_decided` past decided ones, `snapshotCert_made` after a
+  snapshot), which `confPolicy_decide` takes; rejected entries give the `skippedIn` that
+  `ApplyConfChange`/`Advance` take. `validConf.spec` states the Go answer as `ConfOk (.v2 cc) m` for a
+  well-formed `m` the `ConfState` denotes (`nil`: the empty membership, which a stopped node's
+  `ApplyConfChange` leaves in `r.cs`).
+- **What it needs from raft beyond today's API** (sent to the coordinator; not relied on yet):
+  `committed_confDecodes` (kvreconf panics on an undecodable committed conf entry);
+  `Membership.applyChange_asV2` (it validates `cc.AsV2()` and applies `cc`); every node method's
+  stopped answer and `Stop` with `nodeLive` (its `Main` stops nodes while their loops may be
+  mid-`Ready`); and the bootstrap question: its founders start by `StartNode` with peers (a bootstrap
+  log), for which raft has no decision-cluster allocation or `StartNode.unifiedSpec` -- either the
+  founders start like newcomers (`RestartNode` on the bootstrap `ConfState`, as kv) or raft's
+  bootstrap-log allocation is a hypothesis. Plus the frozen design's specs not yet in the API: the
+  proposal registry, `msgCredits_intro`, `SentMsgShape`, no tick/read credits, `transferAllowed`,
+  `storHoldsLb`, the storage-wrapper law, the `confchange`/`tracker` API specs.

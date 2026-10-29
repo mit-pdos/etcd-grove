@@ -469,6 +469,31 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## `examples/kvreconf`'s proof, track C: the leaf layer (2026-10-29, branch `raft-unified-kvreconf`)
+
+Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; "Track C log" there;
+`notes/decisions.md`, "Track C: kvreconf").
+
+- **Go** (minimal, recorded): `maxIndex`/`fits` (a `Ready` whose entries would take the log past
+  `2^61` stops the loop, as kv's), `maxSeq` (no operation id or read sequence number reused: `do`
+  hangs, `read` answers no-answer, at `2^64 - 1`), `within` without its early `return` (kv's form;
+  the same answers). No change to any random choice. `go vet ./...` and the quick tests pass.
+- **Translation**: Goose project `kvreconf` (`etc/goose.py`, packages `["."]`, kv's roots); the
+  whole package translates (`Code/`, `GeneratedProof/`). Its initializer and package table
+  (`etc/gen-init.py`: `ROOTS`, `PROGRAMS`), which adds raft's `confchange` and `tracker` to
+  `PkgInitExt`'s `ExternalInit` (the generated list of initializers `initLb_of_spec` covers).
+- **Proved** (no `sorry`, no axiom; `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/`): the
+  pure model (`Base`: kv's, under `EtcdGrove.kvreconf`, with kvreconf's 17-byte encoding and no
+  `Append`; `opsOf` now drops empty `ConfChangeV2`s), the porcupine model (`ModelDefs`), the store's
+  conf-change rule (`Rule`: `kvrRule`, `ConfOk`); and the specs and proofs of `encode`, `decode`,
+  `readCtx`, `decodeReadCtx`, `putBytes`, `getBytes`, `putMap`, `getMap`, `encodeState`,
+  `decodeState`, `less`, `sortStrings`, `copyMap`, `within`, `hashString`, `hashMap`, `fits`,
+  `oneIn`, `below`, `pick`, `Model`, `Gen`. `validConf.spec` stated (its proof waits for track B's
+  `confchange`/`tracker` API).
+- **Not started**: the store's invariant, the storage instance, the replica's loop and methods, the
+  cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
+  hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).
+
 ## Raft unified, stage U4: joiners (2026-10-29, branch `raft-unified`)
 
 Done in the decision cluster (`cluster_alloc_dec`, its log empty); raft's tree builds (`Link`,
