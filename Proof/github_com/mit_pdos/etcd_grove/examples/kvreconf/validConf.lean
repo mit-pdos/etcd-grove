@@ -6,7 +6,7 @@ A `nil` configuration becomes a fresh empty `ConfState` (`csPts_of_struct`); `Re
 fresh tracker gives the configuration pair at `m` (`confchange.Restore.apiSpec`), assembled into a
 tracker at `m` (`ownTrackerM_assemble`); the change is `LeaveJoint`, `EnterJoint` or `Simple` as
 `cc` says (its getters), each answering Go's `applyGo` (the `Changer` apiSpecs); the result's size
-(`ownCfgPairM_size`) below `2^62` is `applyChange`'s cut (`applyChange_eq_applyGo`).
+(`ownCfgPairM_size`) below `2^61` is `ConfOk` (`applyChange` cuts at `2^62`, `applyChange_eq_applyGo`).
 -/
 module
 
@@ -53,13 +53,15 @@ local macro "vc_finish" : tactic => `(tactic| (
       rw [Membership.applyChange_of_applyGo Hgo, ← HMs]
       constructor
       · intro h
-        have h' : uint.Z (W64 (GMap.size M)) < uint.Z (W64 4611686018427387904) := by
+        have h' : uint.Z (W64 (GMap.size M)) < uint.Z (W64 2305843009213693952) := by
           simpa using h
-        refine ⟨m', ?_⟩
+        refine ⟨m', ?_, by word⟩
         rw [if_pos (by word)]
-      · rintro ⟨m'', h⟩
+      · rintro ⟨m'', h, hlt⟩
         have hs : GMap.size M < 2 ^ 62 :=
           Classical.byContradiction fun hc => by rw [if_neg hc] at h; cases h
+        rw [if_pos hs] at h
+        cases h
         simp only [decide_eq_true_eq]
         word
     · obtain ⟨Hne, Hgo⟩ := Hgo

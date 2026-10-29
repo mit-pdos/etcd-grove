@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `validConf(cs, cc)` (kv.go): whether `confchange` accepts the change `cc` on the configuration
-restored from `cs` (a `nil` `cs` is the empty configuration), with fewer than `2^62` ids after it:
+restored from `cs` (a `nil` `cs` is the empty configuration), with fewer than `2^61` ids after it (Go change O6):
 `ConfOk` (`Rule.lean`) of the change at the membership `m` that `cs` denotes, for `m` well formed (a
 valid membership or the empty one: what `Restore` accepts). `cs` and `cc` are given back.
 
