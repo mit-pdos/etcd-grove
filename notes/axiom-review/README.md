@@ -1,0 +1,9 @@
+# Axiom soundness reviews
+
+One report per review by the `axiom` skill (`.claude/skills/axiom/`): the axioms attacked, the
+verdict, the counterexample (a Go program that panics and a Lean proof that it does not, from the
+axioms) or every attack tried. The verdicts are also in `notes/audit.md`'s table.
+
+| report | axioms | verdict |
+|---|---|---|
+| [bbolt](bbolt.md) | bbolt's key-value triples (`Spec/go_etcd_io/bbolt/*_kv.lean`), the predicate model (`InvBbolt.lean`), the `Options` rules, the package initializers | **refuted**: `ownWTxG_fill` (counterexample proved, 2026-10-29); `Put_kv` with `Commit_kv`/the cursor specs (by two earlier `issues/` reproductions) |
