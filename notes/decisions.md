@@ -25556,3 +25556,65 @@ its `ev2At` is vacuous (`ev2At_nonfiller`). The guard "no empty `ConfChangeV2` i
 `committed_emptyV2_joint_impl` compares the `ev2At` fold with `confAt`'s (`ModeDec.fold`,
 `decLb_compat`, `fold_agree`). No axiom added (`ccDecodeV2_nil`, approved, now also under
 `stepLeader`'s proof); no `sorry`.
+
+## Stage U7: messages, track A (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · in part: raft's own time receipts for `Tick` and a stepped `MsgTimeoutNow`; the
+proposal registry parked (the user reconsidering it); the protocol part designed, not started.**
+
+**Receipts.** A time receipt (`⧗ 1`) is minted by any Go instruction step
+(`wp_go_step_receipt'`), so a method can take its own instead of the caller's. `node.Tick` takes it at
+a `StructFieldRef` (the field read of `n.tickc`), before the select that hands it to `tickc`'s
+invariant. `node.Step` takes it at the `m == nil` comparison (a `GoOp`). The message is not opened yet
+at that point, so the API's `stepIn` is `⌜ml ≠ null⌝ ∗ ∀ γn, ⌜NodeOk⌝ -∗ ⧗ 1 -∗ stepP`, and the raw
+`node.Step` takes the wand. `stepIn_intro` feeds the receipt to `netP`'s tick credit (a
+`MsgTimeoutNow`'s), or `receipt_zero_of` it. *Rejected:* taking it in `run`'s `recvc` arm (`netP`
+loses its credit, about ten constructors of `netP` change).
+
+**Read credits, not done.** A read request needs `rdCred γ 1`. `rdCredInv` bounds the credits handed
+out below `2^64 - 1`, and allocation hands the client `2^64 - 2`. The plan for raft's own receipts:
+an exchange invariant `∃ k, ⧗ k ∗ rdCred γ.raft (2^64 - 2 - k)` holding the allocated credits in the
+decision cluster. `⧗ 1 ∗ ⧗ k` is `⧗ (k+1)` with `k + 1 < receiptBound ≤ 2^64 - 2`, so a credit is
+always there to split off. It would sit in `clusterInv`, about 15 destructuring sites; a pure
+`Cluster` field says the pool is there. `node.ReadIndex`'s raw spec then takes `⧗ 1 ={⊤}=∗ rdCred 1`,
+built by the wrapper from the invariant, and `stepIn`'s wand becomes a `⊤` update minting a
+forwarded `MsgReadIndex`'s credit. `cluster_alloc_dec` then gives no `readCredits` (the frozen
+text).
+
+**SentMsgShape, the transfer request, the transfer choice: the design for the next agent.** Today
+`isRaftMsg` gives `SentMsgOk` only when `reNoXfer` (with `NGhost.bt`, "term past 0 for good", which a
+cluster without a bootstrap log never sets; `XfOk`, `InvRaftPhys.lean:335`). The decision cluster is
+in neither mode.
+1. *Stamped terms past 0 without `bt`.* The stamped sends with the node's term are
+   `maybeSendAppend`/`maybeSendSnapshot`/`sendHeartbeat`/`sendTimeoutNow`/`sendMsgReadIndexResponse`/
+   `appendEntry` (a leader: term ≠ 0 from `ownRaftGhost_term_nz`, already a premise of `stepLeader`'s
+   `MsgProp`/read-index paths), and `handleHeartbeat`/`handleAppendEntries`/`handleSnapshot` (a
+   follower after the term section, at `m.Term = s.term ≠ 0`). Also `raft.Step`'s `m.Term < r.Term`
+   `MsgAppResp` (`r.Term > 0`) and `stepFollower`'s forwarded `MsgTransferLeader` (`lead ≠ 0`, so term
+   ≠ 0 by 2 below). So: `SendOk`'s stamped clauses (b), (c), (c'), (d) take `s.term ≠ W64 0`, which
+   each caller supplies; `XfOk`'s second clause becomes `∀ m ∈ l, SentMsgShape m.st`; `bt` goes.
+   `SentMsgShape` is `SentMsgOk` with `MsgTimeoutNow` (stamped, no entries, no context) and
+   `MsgTransferLeader` (stamped, `From` the transferee, nonzero after `send`'s default, possibly `=
+   To`) added to `sentTypes`, and a `MsgSnap`'s index below `2^61`.
+2. *A re-forwarded `MsgTransferLeader` never reaches `send`'s `Panicf`.* `raft.Step`'s `RestMsgOk`
+   premise is `m.Term ≠ 0 → m.Term = s.term → s.role = follower → s.lead = 0`. To discharge it, add a
+   ghost invariant `lead ≠ 0 → isLeader γ s.lead s.term` (beside `leaderWit` in `ownRaftGhost`,
+   `Protocol/GhostState.lean:2002`). Every rule that sets `lead` either sets `0`, sets the sender of a
+   `fromLeader` message (whose `isMessage` holds `isLeader src term`: `pbecomeFollower m.term m.src`,
+   `padoptLeader`), or sets `id` with the win. A forwarded request records `isLeader γ m.To m.Term` (the
+   follower's `lead` at its term) in `isRaftMsg`. At the receiver `R = m.To` at term `T = m.Term`, a
+   follower with `lead ≠ 0` has `isLeader lead T`, so `lead = R` by `isLeader_unique`, contradicting
+   `LeadOk` (a non-leader's `lead ≠ id`). Count the sites before the edit: `ownRaftGhost_intro` has 33
+   callers and `leaderWit` 41 mentions in `Refinement.lean`. A separate persistent conjunct touches
+   only the rules that move `lead` or `term`.
+3. *The transfer choice.* `transferChoice γ` is a one-shot; `transferAllowed` and `noTransfer` are its
+   two persistent shots. Per node, the ghost flag `NGhost.xf` (no transferee, no undescribed message)
+   becomes "true until the node steps a transfer request". Turning it off needs `transferAllowed`
+   (`ownRaftPhysC_xf_off` exists). `GMode`'s `s.gh.xf = γ.reNoXfer` (`StepGhostMode.lean:296`) becomes
+   `(reNoXfer → xf) ∧ (xf = false → xfAllowedR γ.raft)`, over a new `RaftNames` ghost name for the
+   one-shot. `isRaftMsg` then gives `transferAllowed` for an undescribed message (from `XfOk.1`'s
+   contrapositive), and `sentMsg_noTransfer` follows. `TransferLeadership` takes `transferAllowed`. A
+   forwarded request's receiver gets it from `sentMsg`, and its own `xf` goes off.
+4. `stepIn_intro` then loses its `NetMsgOk`/`≠ MsgTransferLeader` premises (from `SentMsgShape` and
+   the delivery to `To`). `NetMsgOk` admits a stamped `MsgTransferLeader` (no longer `UnstampedType`
+   when stamped), and `netP` carries 2's `isLeader` fact.

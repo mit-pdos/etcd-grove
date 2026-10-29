@@ -469,6 +469,18 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, track A: U7 (in part) and U9a (2026-10-29, branch `raft-unified`)
+
+- U7: raft takes its own time receipts for `Tick` (`node.Tick.spec` without `tickCredit`) and a
+  stepped `MsgTimeoutNow` (`stepIn_intro` without its tick credit). The proposal registry is parked
+  (the user reconsidering it; work in `refs/wip/trackA-registry`). Not done: read credits from
+  receipts, `SentMsgShape` in the decision cluster, a stamped `MsgTransferLeader` admitted, the
+  transfer choice. Their design is in `notes/decisions.md`, "Stage U7: messages, track A".
+- U9a (stopped nodes): see the spec changes in `notes/raft-unified-plan.md`, "Spec changes during
+  track A, U7 and U9a".
+- Clients broken further: etcd's server (`InvNet.lean`'s `stepIn_intro` arguments), examples/kv
+  (`node.Tick` callers pass a `tickCredit` no longer taken).
+
 ## Raft unified, track A: the committed conf-entry laws (2026-10-29, branch `raft-unified`)
 
 `committed_emptyV2_joint` and `committed_confDecodes` proved (`InvNodeRule.lean`; reasoning:
