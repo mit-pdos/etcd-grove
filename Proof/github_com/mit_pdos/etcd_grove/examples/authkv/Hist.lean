@@ -16,8 +16,8 @@ whatever `G` it is told makes the write's new events ones the invariant admits
 reasoning (S2: the token's principal, the state at `setupSt`, `granted_setupSt_iff`). An
 ungranted principal's update is then never fired with a `G σ` that holds.
 
-**Draft.** `kvAu1G` here is a stand-in for step 5's (same shape: the update's atomic
-postcondition carries `G σ`). The laws are `sorry`: the stage's stubs.
+The update is step 5's `kvAu1G` (`InvRequest.lean`), at whatever `G`; with auth on, the server's
+`writeGrantG … L₀`. The laws are `sorry`: the stage's stubs.
 -/
 module
 
@@ -69,13 +69,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **A client's update by `f`, fired at most once, told `G σ` when it fires** (draft: the
-stand-in for the auth-mode merge's step 5 `kvAu1G`, whose shape this is). -/
-def kvAu1G (γk : KVNames) (f : KVState → KVState) (G : KVState → IProp GF)
-    (Q : KVState → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ) ∗ G σ, COMM Q σ }>)
 
 /-- The history invariant's namespace. -/
 def akHistN : Namespace := nroot .@ "authkv_hist"
