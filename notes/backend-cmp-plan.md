@@ -771,8 +771,10 @@ This section supersedes the earlier statements of the questions (R6-6).
    is applied before `RLock`, so it outlives the read. Probably no `False` in Lean (no backend spec pins
    a `Meta` read), but false of the code. Proposed fix (a′, the reviewer's): the fact stated at the
    backend, tied to its `readTx` through `rtHeld`, consumed by one read and true of that read only.
-   The trust base and the restore (D22) track: the user's. Suggested check: the `axiom` skill
-   (a Go program reading a `finishedCompactRev` the axiom says is absent).
+   The trust base and the restore (D22) track: the user's. **Confirmed by the `axiom` skill
+   (2026-10-29, branch `axiom/kbnocmp-metanone`, `notes/axiom-review/nocmpread.md`):** a Go program
+   that panics on the backend's own `ReadTx` after `Compact` is proved to return from the axiom, no
+   `sorry`.
 2. **R4-2: D22's `viewAt` with the batch quarter on the logical view.** (a) `viewAt γ vd := ∃ L, the
    quarter at L ∗ thinV γ vd L`: sound, costs nothing today (its only user ignores it) — recommended;
    (b) a separate physical-view ghost name updated at every commit: sound only so, heavier. Also a
