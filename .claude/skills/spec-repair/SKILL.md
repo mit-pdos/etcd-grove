@@ -67,6 +67,11 @@ patterns" (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop).
 - **Ask before changing a trusted statement.** For an exported or linked result (CLAUDE.md, "Trust
   base"), a premise of one, or anything that changes the trust base, stop and present the findings
   and the proposed statement. Intermediate specs may change once their callers are proved again.
+- **A new premise or new client-owned ghost state on a spec that has clients is the user's
+  decision**, even inside a candidate under review: present it on its own, the old and new
+  statement side by side, with the alternatives (e.g. letting the client choose the persistence of
+  what it gives, `if dup then □ P else P`, instead of state every client threads); never only as a
+  line in a round's summary.
 - **The trust base does not grow** without that approval: no new axiom, `sorry`, or weaker check.
 - **Nothing verified becomes unverified** (`etc/verified-code.py`).
 - CLAUDE.md's rules hold: layout, modules, "Package APIs" (seal with `@[no_expose]` and add laws;
