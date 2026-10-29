@@ -4,7 +4,7 @@ E2h). Lean-first (no Rocq counterpart).
 
 The puts: two nested loops over `Principals()` and `{"a", "c"}`, each put in a timeout context
 (`client.wp_WithTimeout_bg`), through `New`'s client with the caller's persistent update
-(`client.client_Put_any`), the context cancelled after the call; the admin calls: one timeout
+(`client_Put_on`, S5: at the member's `Put` with auth on), the context cancelled after the call; the admin calls: one timeout
 context, cancelled by the `defer` at every return, each call through the client's `Auth` field
 (`isNewClient`'s `authObjAt`) with its persistent precondition from `setupAuthOk`.
 -/
@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.etcd.client.v3.authClient__RoleAdd
 public import Spec.go_etcd_io.etcd.client.v3.authClient__RoleGrantPermission
 public import Spec.go_etcd_io.etcd.client.v3.authClient__AuthEnable
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.ClientOn
 public import Perennial.Proof.context.Link
 
 @[expose] public section
@@ -53,8 +54,10 @@ theorem SetUp.wp_proof
     (wp_RoleGrantPermission : authClient.RoleGrantPermission.spec (GF := GF) (hG := hG))
     (wp_AuthEnable : authClient.AuthEnable.spec (GF := GF) (hG := hG)) :
     SetUp.spec (GF := GF) (hG := hG) := by
-  intro CS EA FA RA CRE CEC cl ep V E γr cid mid Su Sg Sr Sp Se Q hAs
-  wp_start as ⟨#Hnc, #Hput, #Hkv, #Hauth⟩
+  intro CS EA FA RA CRE CEC cl ep V P s E ρ cid mid Su Sg Sr Sp Se Q hAs
+  wp_start as ⟨#Hnc, #Htok, #Hput, #Hkv, #Hauth⟩
+  iunfold clientTokAt at Htok
+  icases Htok with ⟨%api, %conn, #Hkvf, #Hobj, -⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -129,17 +132,10 @@ theorem SetUp.wp_proof
       (try wp_auto)
       have hk : keyOfK x w go!"d" ∈ setupKeys := by
         unfold setupKeys; exact List.mem_flatMap.2 ⟨w, hwm, List.mem_map.2 ⟨x, hxm, rfl⟩⟩
-      wp_apply (client.client_Put_any cl [⟨ep, E, γr, cid, mid⟩] V cctx cd (keyOfK x w go!"d")
-          go!"setup" slice.nil (fun _ => iprop(True))) $$ [] as %resp %err Hout
+      wp_apply (client_Put_on cl api conn ep s E ρ cid mid cctx cd (keyOfK x w go!"d")
+          go!"setup" slice.nil (fun _ => iprop(True)) []) $$ [] as %resp %err Hout
       · iframe #
-        isplitr
-        · iExactEq Hnc; rfl
-        isplitr
-        · iapply BigSepL.bigSepL_nil.2; itrivial
-        isplitr
-        · iapply BigSepL.bigSepL_nil.2; itrivial
         iintro !>
-        iapply BigAndL.bigAndL_singleton.2
         iapply Hkv
         ipureintro; exact hk
       (try wp_auto)
