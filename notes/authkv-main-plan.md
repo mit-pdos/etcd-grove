@@ -380,3 +380,11 @@ taken for candidate 3: `∃ r` in `SetUp`'s post; `histAu`'s post with `srvReqLo
 Open, a design item of 5b's: the read side needs the store's history indices to follow the log's
 prefix order (an index at or after `SetUp`'s published `n` at a log extending `Lset`); the merge
 session plans an invariant tying the store's recorded states to `admStates` along the applied log.
+
+5b candidate 3 (the merge session's, going to the user after its review round 3) settles the auth
+side of `SetUp.spec`: pre `authHistView ρ.kv [srvAuthSt0]`; post `∃ γz hs Lset r k,
+authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗ ⌜admStates Lset = hs ∧ srvAuthAtLog Lset =
+setupSt r⌝ ∗ authPubLb γa k ∗ authStateAt γa k (setupSt r)` (`k` from `AuthEnable`'s reply,
+published after its commit); the freeze cell is allocated inside `SetUp`, after the puts (which
+use route B's view branch). The read side's law (§5, the store's history along the applied log)
+is stated with 5b and proved later: authkv's dependency. authkv adds `SetUp`'s KV side (F-S1).
