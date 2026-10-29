@@ -475,6 +475,50 @@ Step 3a (the raft level, 2026-10-29):
   Removed until step 4 restates them: `ApiVocab`'s `readyOut`, `snapReceipt`, `advReceipt` (over the
   old `StorState`/`appendRight`/`storCert`).
 
+Step 3 (MemoryStorage, 2026-10-29; the approved shapes, generic until step 4):
+
+- **Generic form**: the storage's invariant is `memStorInvP ms γs J` (`InvMemstorage.lean`) at
+  justification parameters `J : MemJust GF` (`J.SV` snapshot validity, `J.B k` compaction
+  justification, `J.DL i` delivered bound; persistent, `J.B` timeless), and the law is
+  `memStorage_isStorageP : memStorInvP ms γs J -∗ memStorReg ms γs -∗ isStorageP J.SV (memBnd J) J.DL
+  (memStorIface ms)` (`MemstorageInstance.lean`; `memBnd J c := ∃ k, ⌜c ≤ k⌝ ∗ J.B k`). Step 4
+  instantiates `J` (`SV := snapshotValid γ`, `B k := nodeAppliedLb γ id k ∨ snapGiven γ id k`, `DL` the
+  API's) to get the approved `memStorInv ms γs γ id` and `… ⊢ isStorage γ id st`. **Step 4 must make
+  `nodeAppliedLb`/`snapGiven` timeless** (`storCompacted_bound` reads `J.B` out of an invariant under an
+  update with no program step); `SV`/`DL` need not be (read in `Snapshot()`, a step strips the later).
+- The method specs are over the storage's names (`memLog γs`, `memEnd γs`, `memCompacted γs`,
+  `memSnapExact γs`; the instance's `storLog`/`storEnd`/`storCompacted` for `memStorIface ms` are these
+  under `memStorReg ms γs`: `memStorLog_to`/`_of`, `memStorEnd_to`/`_of`, `memStorCompacted_to`/`_of`).
+- `NewMemoryStorage`: `memLog γs 0 □ [e₀]` (old/approved: `own 1`, the client to freeze it): the lock
+  keeps the dummy at the compaction point frozen (otherwise `Append` over an owned key `0` could change
+  the term `Term(0)` reads); a frozen range is what the client would make anyway. Also gives
+  `memStorLock ms γs` (the mutex, persistent) and **`memStorFresh ms γs`, the allocation's fuel**
+  (the authority of the justified compaction points and the snapshot's home, which the lock does not
+  hold; `memStorInvP_alloc` consumes it, with `J.B 0`), as the old design's `memCertAuth` was.
+  `memStorReg ms γs` is not in the post: registering needs the registry's authority and the pointer's
+  absence, the client's (`memStorReg_register`), as before.
+- `Append`: `es = []` gives the pre back unchanged (a no-op); the batch's indices consecutive
+  (`es[j].Index = k + j`) and `k + |es| ≤ 2^61` as premises; `entsPts s dq es` (the old argument form).
+- `ApplySnapshot`: also `⌜s < 2^61⌝` (the dummy's range must satisfy `Hlen`); the justification is
+  three premises `J.B s ∗ J.SV sv ∗ J.DL s` (step 4: `snapGiven γ id s` gives `B` and `DL`); also gives
+  `ownSnapM sp dq sv` back. **Step 4 must supply `s < 2^61`** for a snapshot `Ready`.
+- `CreateSnapshot`: `J.SV (memSnapCreated sv0 i e.Term oc bs) ∗ J.DL i` (the stored conf state `sv0`'s
+  when `cs = nil`); `ErrSnapOutOfDate` also gives `snap = null` and `data ↦* bs` back.
+- `Compact`: also `memStorInvP` (it registers `x`'s justification).
+- `Snapshot`: one spec (the contract's); the application's second spec is gone.
+- **`InitialState` (finding for step 4)**: it reads (and may write the `AutoLeave` of) the stored
+  snapshot without the lock, which the locked `Snapshot()` writes (`ms.snapshot =
+  EnsureSnapshot(ms.snapshot)`): a real race (`issues/raft-memorystorage-initialstate-unlocked.md`). The
+  contract's `Snapshot()` needs no exclusive resource, so `InitialState` can only be specified before the
+  storage is a `Storage`: its pre is `memStorMeta ∗ memStorFresh` (the snapshot is in the fuel until
+  `memStorInvP_alloc`). `newRaft.spec` takes `isStorage` and the `InitialState` triple together, which a
+  `MemoryStorage` cannot meet: step 4 must restructure it (e.g. `InitialState`'s triple's post gives
+  `isStorage`, the client allocating the invariant after `InitialState` returns).
+- Internal: `MemOk` records that the stored entries are numbered by position (`Compact`'s new dummy
+  takes its index from the stored entry).
+- `memSnapLb` (the stored snapshot's lower bound, for etcd's two writers) is **not built**: the server's
+  repair.
+
 ### What builds, what is broken (at the step-2 commit)
 
 Builds: `InvStorage`, `InvStorageRead`, `InvStorageLaws`, `InvRaftlog`, `InvReadylog`,
@@ -505,6 +549,16 @@ raft-level proofs that import node-level modules (`IsEmptySnap`, `IsEmptyHardSta
 `InvRawnodeReady`/`InvBoot`/`NewRawNode`; `ConfRule`, `ConfPolicy`, `DecFold`, `ConfchangeApi*`:
 through `InvNode`/`InvApi`), until step 4.
 
+### What builds (at the step-3 commit, MemoryStorage)
+
+Builds (targeted `lake build`, no `sorry`, no new axiom; `#print axioms` of `memStorage_isStorageP`,
+`memStorInvP_alloc`, `memCompacted_bound` and every `MemoryStorage.*`/`NewMemoryStorage` `wp_proof`:
+Lean's and Perennial's Go-model axioms only): `InvMemstorage`, `MemstorageInstance` (instance + law),
+every `MemoryStorage__*` spec and proof, `NewMemoryStorage`, `LemmasMemstorage` (a re-export of
+`LemmasEnts`). Removed: `MemstorageAU`, `MemCertLink`. `Link.lean` not regenerated (the node level is
+broken); the MemoryStorage proofs keep their callee hypotheses (`MemstorageInstance` takes the five read
+specs as hypotheses).
+
 ### What remains (next steps, in order)
 
 1. **Step 4** (the node level): the API's `DL` (`deliveredLogLb`-based, or `snapGiven`), and its
@@ -521,8 +575,8 @@ through `InvNode`/`InvApi`), until step 4.
    `ownStorage_freeze`/`ownStorage_frozen`); (G) `sg ≤ s` at `absorb_snap`; the no-snapshot mode's
    node-level plumbing (`reNoSnap`, `NGhost.ns`, `RNMode`, `NsLink`'s `ns`, the remaining
    `s.gh.ns = false` premises) removed; `newRaft`'s new premises (`σ.dt = ∅`, `s.gh = { sn := sn }`).
-2. **Step 3**: `MemoryStorage` over the range vocabulary (design §6), with `CreateSnapshot(i)`'s new
-   premise (the delivered prefix reaches `i`).
+2. **Step 3: done** (above). What step 4 takes from it: instantiate `MemJust` (timeless `B`), supply
+   `s < 2^61` at `ApplySnapshot`, restructure `newRaft`'s `InitialState` premise (above).
 3. **Clients**: etcd's server loses the no-snapshot mode (above); the fallback `storCompactCap` is
    to be put to the user.
 
