@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.acceptUnstable.wp_proof
     (wp_unstable_acceptInProgress : unstable.acceptInProgress.spec (GF := GF) (hG := hG)) :
     raftLog.acceptUnstable.spec (GF := GF) (hG := hG) := by
-  intro l ls Hunp0
+  intro l ls hw Hunp0
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -100,7 +100,7 @@ theorem raftLog.acceptUnstable.wp_proof
     | (simp only [logEnd, logLast]; word)
     | exact ⟨Hfl.1, Hfl.2.1, by
         have := Hfl.2.2.1; simp only [logEnd, logLast]; word, Hfl.2.2.2.1, Hfl.2.2.2.2.1,
-        Hfl.2.2.2.2.2⟩
+        Hfl.2.2.2.2.2.1, HdOkW.of_eq Hfl.2.2.2.2.2.2 rfl rfl⟩
     -- (D22 S-d1b) a snapshot now in progress: the storage will hold the whole log
     | exact ⟨fun _ => LogPersistRel_full _ _ _, fun hs hf => by
         cases h : ls.snap with

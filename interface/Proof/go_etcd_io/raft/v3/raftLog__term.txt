@@ -6,13 +6,13 @@ theorem raftLog.term.wp_proof [package_sem : Assumptions] (wp_unstable_maybeTerm
     unstable.maybeTerm.spec) (wp_raftLog_firstIndex : raftLog.firstIndex.spec) (wp_raftLog_lastIndex
     : raftLog.lastIndex.spec) : raftLog.term.spec
   -- `Perennial.EtcdGrove.raftLog.term.spec`, unfolded:
-  ∀ (l : Loc) (ls : LogState) (i : w64),
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState) (i : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw -∗
           (▷
               ∀ t err,
-                ownRaftLog l ls ∗
+                ownRaftLog l ls hw ∗
                     ⌜(err = GoInterface.nil →
                             uint.Z ls.prev.index' ≤ uint.Z i ∧
                               uint.Z i ≤ uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length) ∧

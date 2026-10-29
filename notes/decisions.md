@@ -25511,3 +25511,13 @@ is at most the snapshot (the approved `snapReceipt`). The raise cannot be in `ac
 planned: `run` sends the `Ready` before calling it, and the client's witness must be in `readyP`; so
 the raise goes at the send (`ownRawNodeReady_handout`), and `HdOk` needs a window case until
 `acceptApplying` (approved by the coordinator; not done, `notes/raft-unified-plan.md`, track B).
+
+**The hand-out window, done (2026-10-29).** The window between the send and `acceptApplying` is a
+parameter of `ownRaftLog` (`hw : Option w64 := none`; `FlOk`'s hold conjunct `HdOkW hw`), not the
+`LogState` flag first suggested: the flag would reach every generic log lemma and `raft.Step` (whose
+existential post-state would have to keep it), while the parameter exists only in the state
+`ownRawNodeReady … true` holds after the hand-out, which `RawNode.acceptReady` alone consumes; the
+specs it calls there take `hw` (`acceptUnstable`, `acceptApplying` closing it, and the reads as an
+implicit `{hw}`). The client's witness travels in the sealed `readyP` and `nodeDriverBusy`
+(`appendHold`), `readyData` unchanged; `appendReceipt_holds` as designed, premise `handling = some (es,
+none)`, with an update.

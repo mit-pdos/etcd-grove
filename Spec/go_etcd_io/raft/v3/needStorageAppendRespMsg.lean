@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 until then `nil` only). Stated on what it reads of the raft struct, the `raftLog` field and the log
 (`RawNode.acceptReady` holds the struct open, `ownRaftPhysReady`, so not `ownRaftPhysCV`). -/
 abbrev needStorageAppendRespMsg.spec : Prop :=
-  ∀ (r l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
+  ∀ {hw : Option w64} (r l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
   (∀ sv, o = some sv → sv.Metadata'.Index' ≠ W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o }}
+      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls hw ∗ snapOpt rd.Snapshot' dq o }}
     (App (App (Val #(functions needStorageAppendRespMsg [])) (Val #r)) (Val #rd))
   {{ RET #(decide (ls.uents ≠ []) || o.isSome);
-      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o }}
+      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls hw ∗ snapOpt rd.Snapshot' dq o }}
 
 end spec
 

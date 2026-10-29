@@ -5,11 +5,11 @@
 theorem raftLog.hasNextOrInProgressUnstableEnts.wp_proof [package_sem : Assumptions] :
     raftLog.hasNextOrInProgressUnstableEnts.spec
   -- `Perennial.EtcdGrove.raftLog.hasNextOrInProgressUnstableEnts.spec`, unfolded:
-  ∀ (l : Loc) (ls : LogState),
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls -∗
-          (▷ ∀ b, ownRaftLog l ls ∗ ⌜b = decide (ls.uents ≠ [])⌝ -∗ Φ (intoVal b)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw -∗
+          (▷ ∀ b, ownRaftLog l ls hw ∗ ⌜b = decide (ls.uents ≠ [])⌝ -∗ Φ (intoVal b)) -∗
             WP
               ((intoVal
                   (methods raftLog.ty.PointerType

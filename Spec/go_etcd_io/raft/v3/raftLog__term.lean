@@ -79,11 +79,11 @@ compacted past it (`storPast`). So the iff is now: no error only in the range, a
 at or above the floor always no error. Every caller that relies on success reads at or above
 `applied`, above the floor (`ownRaftLog`'s `Hfl`). -/
 abbrev raftLog.term.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (i : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState) (i : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"term")) (Val #i))
   {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
-      ownRaftLog l ls ∗
+      ownRaftLog l ls hw ∗
       ⌜(err = interface.nil →
           (uint.Z ls.prev.index' ≤ uint.Z i ∧
            uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)

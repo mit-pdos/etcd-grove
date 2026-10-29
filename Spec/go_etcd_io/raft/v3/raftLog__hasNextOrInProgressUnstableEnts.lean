@@ -24,11 +24,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.hasNextOrInProgressUnstableEnts()` (`log.go:209`): `len(l.unstable.entries) > 0`
 -- whether the log has an unstable suffix at all, handed out or not. -/
 abbrev raftLog.hasNextOrInProgressUnstableEnts.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"hasNextOrInProgressUnstableEnts")) (Val #()))
   {{ (b : Bool), RET #b;
-      ownRaftLog l ls ∗ ⌜b = decide (ls.uents ≠ [])⌝ }}
+      ownRaftLog l ls hw ∗ ⌜b = decide (ls.uents ≠ [])⌝ }}
 
 end spec
 

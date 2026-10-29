@@ -717,6 +717,16 @@ theorem nodeDriver_deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (st :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver deliveredLogLb; exact ApiImpl.nodeDriver_deliveredLogLb_impl n γ N st
 
+/-- (2026-10-29, stage U8) **After appending a `Ready`'s entries** (its `appendReceipt`), with no
+snapshot, before `Advance`: the storage holds the committed log delivered, `st'.delivered`, which
+includes the `Ready`'s committed entries (`storHoldsLb`; the hold `run` raised when it sent the
+`Ready`). The design's (`notes/spec-first-study/raft-node-unified-candidate.md` §4), with an update. -/
+theorem appendReceipt_holds (n : Loc) (γ : Cluster) (N : Namespace) (st' : NodeDriverState)
+    (es : List EntryM) (Hh : st'.handling = some (es, none)) :
+    nodeDriver (GF := GF) n γ N st' ∗ appendReceipt st'.storage es ⊢ |==>
+      (nodeDriver n γ N st' ∗ appendReceipt st'.storage es ∗ storHoldsLb st'.storage st'.delivered) := by
+  unfold nodeDriver; exact ApiImpl.appendReceipt_holds_impl n γ N st' es Hh
+
 theorem deliveredLogLb_mono (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
   unfold deliveredLogLb; exact ApiImpl.deliveredLogLb_mono_impl n γ N l1 l2

@@ -42,7 +42,7 @@ theorem raftLog.lastEntryID.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_term : raftLog.term.spec (GF := GF) (hG := hG)) :
     raftLog.lastEntryID.spec (GF := GF) (hG := hG) := by
-  intro l ls
+  intro hw l ls
   wp_start as Hlog
   wp_auto
   wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog]

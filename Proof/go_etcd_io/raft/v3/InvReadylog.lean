@@ -648,12 +648,12 @@ theorem ownRaftLog_snap_next (l : Loc) (ls : LogState) :
     HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
 
 /-- (D22 S-d3a) The log's ghost fields `SnpOk` mirrors, read out. -/
-theorem ownRaftLog_snap_facts (l : Loc) (ls : LogState) :
-    ⊢ ownRaftLog (GF := GF) l ls -∗
+theorem ownRaftLog_snap_facts {hw : Option w64} (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls hw -∗
       ⌜(ls.lent = true → ls.snap ≠ none) ∧ (ls.sat = true → ls.snap = some ls.prev ∧ ls.sip = true ∧
         ls.lent = false ∧ ls.unpersisted = []) ∧ (ls.snap = none → ls.sip = false) ∧
         (∀ sid, ls.snap = some sid → ls.prev = sid ∧ ls.sents = [] ∧ 0 < uint.Z sid.index')⌝ ∗
-      ownRaftLog l ls := by
+      ownRaftLog l ls hw := by
   iintro H
   iNamed H
   isplitr

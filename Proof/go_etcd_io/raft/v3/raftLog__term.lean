@@ -73,7 +73,7 @@ theorem raftLog.term.wp_proof
     (wp_raftLog_firstIndex : raftLog.firstIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.term.spec (GF := GF) (hG := hG) := by
-  intro l ls i
+  intro hw l ls i
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -139,7 +139,7 @@ theorem raftLog.term.wp_proof
     have Hnotsnap : ∀ sid, ls.snap = some sid → i ≠ sid.index' := by
       intro sid Hs Hi; exact absurd (Hok.2 (Or.inr ⟨sid, Hs, Hi⟩)) (by simp)
     wp_auto
-    ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
+    ihave Hlog : ownRaftLog l ls hw $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi, #Hcut⟩
     by_cases Hb1 : uint.Z (i + W64 1) < uint.Z fi

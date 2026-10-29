@@ -476,10 +476,12 @@ section below, from branch `raft-unified-cc`). In progress: U8's storage hold (`
 open hand-out window in `notes/decisions.md`, "Track B"; spec changes in `notes/raft-unified-plan.md`,
 "Spec changes during track B"), on branch `raft-unified-storage-wip`: the storage contract and
 `MemoryStorage` for a hold raised while a batch is pending (the `ep` record), raft's `HdOk`, the loan's
-hold, the initial `σ.hd = 0`, all building (raft's results, `MemstorageInstance`, `MemstorageAU`). Open:
-the raise at the `Ready`'s send (`ownRawNodeReady_handout`) with a window case in `HdOk`, and the node
-chain (`readyP`, `readyData`, `nodeDriver`, `appendReceipt_holds`).
-Not started: the storage-wrapper law.
+hold, the initial `σ.hd = 0`, the raise at the `Ready`'s send (`ownRawNodeReady_handout`, the window a
+parameter of `ownRaftLog`, `HdOkW`), the node chain (`readyP`, `nodeDriverBusy`) and `appendReceipt_holds`
+(`InvNode.lean`), all building (raft's results, `Linked`, `Api`, `ConfPolicy`, `MemstorageInstance`,
+`MemstorageAU`). On hold (2026-10-29, the coordinator): the user may supersede the hold design (a
+client-owned storage state and monotone witnesses); the storage-wrapper law is not started. Clients (kv,
+server) not repaired.
 
 ## Raft unified, stage U11: `confchange`/`tracker` for clients (2026-10-29, branch `raft-unified-cc`)
 

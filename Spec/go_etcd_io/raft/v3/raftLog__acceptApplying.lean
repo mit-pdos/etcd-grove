@@ -35,7 +35,7 @@ computes it); the paused flag is internal. The premise is the `Panicf`'s guard a
 below, what keeps `applied <= applying` (`acceptReady` passes the last committed entry
 handed out, above `applying`). -/
 abbrev raftLog.acceptApplying.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (i size : w64) (au : Bool),
+  ∀ (l : Loc) (ls : LogState) (i size : w64) (au : Bool) (hw : Option w64),
   uint.Z ls.applied ≤ uint.Z i ∧ uint.Z i ≤ uint.Z ls.committed ∧
   -- (D19i part 1) `applying` does not move back (the floor is at most it), and stays below
   -- `offsetInProgress` (`FlOk`: `acceptReady` accepts the unstable entries first)
@@ -44,7 +44,9 @@ abbrev raftLog.acceptApplying.spec : Prop :=
   -- (D22 S-d4 item 3) with a snapshot pending nothing is handed out for applying (`acceptReady`:
   -- `nextCommittedEnts` is empty then), so `applying` stays within what the storage holds
   (ls.snap ≠ none → uint.Z i ≤ uint.Z ls.applying) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+  -- (2026-10-29, stage U8) in the hand-out window `hw` (`HdOkW`) to `i`, which it closes
+  (hw = none ∨ hw = some i) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw }}
     (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"acceptApplying"))
       (Val #i)) (Val #size)) (Val #au))
   {{ RET #(); ownRaftLog l { ls with applying := i, apsize := ls.apsize + size } }}

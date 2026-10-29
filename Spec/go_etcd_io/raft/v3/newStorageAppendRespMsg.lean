@@ -34,19 +34,19 @@ application's until it returns it, `RawNode.Advance`). Stated on what it reads o
 `id`, `Term`, the `raftLog` field and the log (`RawNode.acceptReady` holds the struct open,
 `ownRaftPhysReady`). -/
 abbrev newStorageAppendRespMsg.spec : Prop :=
-  ∀ (r : Loc) (id t : w64) (l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac)
+  ∀ {hw : Option w64} (r : Loc) (id t : w64) (l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac)
     (o : Option SnapshotM),
   (∀ sv, o = some sv → sv.Metadata'.Index' ≠ W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       r.[raft, go!"id"] ↦□ id ∗ r.[raft, go!"Term"] ↦ t ∗
-      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o }}
+      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls hw ∗ snapOpt rd.Snapshot' dq o }}
     (App (App (Val #(functions newStorageAppendRespMsg [])) (Val #r)) (Val #rd))
   {{ (ml : Loc), RET #ml;
       (snapOpt rd.Snapshot' (DFrac.own 1) o -∗ msgIn ml DFrac.discard
         ⟨appendAckM id t (if ls.uents ≠ [] then plogLast ls.prev (ls.sents ++ ls.uents)
                           else entryID.mk (W64 0) (W64 0)), [], o, [], []⟩) ∗
       snapOpt rd.Snapshot' dq o ∗
-      r.[raft, go!"Term"] ↦ t ∗ r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls }}
+      r.[raft, go!"Term"] ↦ t ∗ r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls hw }}
 
 end spec
 

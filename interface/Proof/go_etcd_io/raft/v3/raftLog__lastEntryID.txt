@@ -5,11 +5,11 @@
 theorem raftLog.lastEntryID.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIndex :
     raftLog.lastIndex.spec) (wp_raftLog_term : raftLog.term.spec) : raftLog.lastEntryID.spec
   -- `Perennial.EtcdGrove.raftLog.lastEntryID.spec`, unfolded:
-  ∀ (l : Loc) (ls : LogState),
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls -∗
-          (▷ ∀ e, ownRaftLog l ls ∗ ⌜e = plogLast ls.prev (ls.sents ++ ls.uents)⌝ -∗ Φ (intoVal e)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls hw -∗
+          (▷ ∀ e, ownRaftLog l ls hw ∗ ⌜e = plogLast ls.prev (ls.sents ++ ls.uents)⌝ -∗ Φ (intoVal e)) -∗
             WP
               ((intoVal
                   (methods raftLog.ty.PointerType

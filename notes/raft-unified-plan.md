@@ -212,34 +212,42 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   needs follows: `raftLog.snapshot` (committed, `termAt_app_log` below `offsetInProgress`), `HdAbove` at the
   hand-out, `ApplySnapshot`'s premise at the loan. `raftLog.snapshot.spec`'s disjunct `ksn ∨ index ≤ fl`
   dropped (unused by `maybeSendSnapshot`).
-- (open, reported 2026-10-29) **The raise in `acceptReady` is too late for the client**: `run` sends the `Ready`
-  (`readyc <- rd`, `readyP`) before `acceptReady`, so a witness minted after `acceptApplying` cannot be in
-  `readyP`, and a client may append and ask `appendReceipt_holds` before `run` reaches `acceptReady`. The raise
-  must be at the send (`ownRawNodeReady_handout`, after `Hhandout`, to the committed log handed out), which
-  needs a window case in `HdOk` until `acceptApplying` (approved: internal, route (a)). The node chain
-  (`readyP`, `readyData`, `nodeDriver`, `appendReceipt_holds`) is not started. **What remains, precisely**
-  (commit `902ba16e2d` builds: raft's results, `Linked`, `MemstorageInstance`, `MemstorageAU`, `ConfPolicy`):
-  1. The raise and the mint, in `ownRawNodeReady_handout` (`InvRawnodeReady.lean`), `L = none`, right after
-     `ownRaftLog_rdy_out`'s `Hhandout`: `isStorage_raise` to `h = |rs.delivered ++ ce|` (`ce`'s last index;
-     `≤ committed`, and within `storApp σ σ.pend = stored = sents ++ uents` after `logHanded`), then
-     `storTermsPre_intro` (`TermsOn (storAbsorb σ)`, cf. `termsOn_of_from` over `storApp`; the log's terms
-     are `delivered ++ ce`'s, `ownStepGhost_dlv_terms`) or, with `es = []`, `storTermsAt_intro`: the
-     result `appendHold rs.storage es ((rs.delivered ++ ce).map (·.Term'))` (`InvStorage.lean`).
-  2. `HdOk`'s window case (`InvRaftlog.lean`; a small lemma module for its preservation if it helps):
-     `fl ≤ hd ∧ (hd ≤ applying ∨ hd ≤ prev ∨ HdWin σ ls)` with `HdWin` = no snapshot pending, `hd ≤
-     committed`, and `storApp σ σ.pend` agreeing with the log up to `hd` (what `raftLog.snapshot` needs:
-     `termAt_app_log`'s conclusion). Catch: `ownRaftLog_handout` needs `hd < inprogress` (`HdAbove`),
-     which `HdWin` does not give (in sync mode `ce` may run past `inprogress` until `acceptUnstable`); so
-     either a `LogState` flag for the window (set by the raise, cleared by `acceptApplying`, `false` in
-     `ownRawNode`'s quiet state), or `hd < inprogress` derived at the hand-out from `ownRawNode`. To
-     preserve: `acceptUnstable`, `acceptApplying` (closes it: `applying := h`), `append` (truncates only
-     above `committed`), `setCommitted`, `stableTo`, `ownRaftLog_absorb`, `raise_floor`.
-  3. The chain: `readyData` (`InvNodeChan.lean`) gets the persistent `appendHold γ.stor es ((d ++
-     ce).map (·.Term'))`; `run` (`node__run.lean`) puts the mint into `readyP` at the send; `nodeDriver`'s
-     busy case (`InvApi.lean`, sealed in `InvNode.lean`) keeps it; `appendReceipt_holds` in `InvNode.lean`
-     from `appendHold_receipt` and `storHoldsLb_of_terms` (`NodeApiVocab.lean`). `RawNode.Ready.spec`
-     (internal) may carry it too, but `run` does not use it.
-- (open) The storage-wrapper law (§4): not started.
+- (done, 2026-10-29) **The raise at the send** (was: "the raise in `acceptReady` is too late"; `run`
+  sends the `Ready` before `acceptReady`, so the client's witness must be minted at the send).
+  - `ownRawNodeReady_handout` (`InvRawnodeReady.lean`), with no snapshot, after the hand-out, raises the
+    hold to `h` = the last committed index the `Ready` hands out (`applying` if none) and mints
+    `appendHold rs.storage es ((rs.delivered ++ ce).map (·.Term'))` (`ownRaftLog_hold`, `InvRaftlog.lean`:
+    `storTermsAt_intro` when the batch is empty, `storTermsPre_intro` otherwise; the terms from
+    `ownStepGhost_dlv_log`, the committed log against the log). Its post gains `(⌜L ≠ none⌝ ∨ appendHold
+    …)` (internal).
+  - **The window** (internal, not a `LogState` field): `ownRaftLog l ls (hw : Option w64 := none)`, `FlOk
+    σ ls (hw := none)` whose hold conjunct is `HdOkW hw σ ls` (`none`: `HdOk`, definitionally; `some h`:
+    `fl ≤ hd ≤ h`). Why a parameter and not a `LogState` flag: a flag would be visible to every generic
+    log lemma and `raft.Step`, which then would have to preserve or exclude it (`raftLog.snapshot` needs
+    `HdOk`'s bounds, the next hand-out `HdAbove`), and `Step`'s existential post-state would have to say
+    the flag is unchanged; a parameter confines the window to the one state that has it,
+    `ownRaftPhysReady … h lt (rdyHw h ce)` after the hand-out, consumed by `RawNode.acceptReady`. Specs
+    generalized over `hw` (internal): `raftLog.acceptUnstable` (explicit `hw`, kept),
+    `raftLog.acceptApplying` (explicit `hw`, premise `hw = none ∨ hw = some i`, closes it:
+    `HdOkW.close`), and, as an implicit `{hw}` (kept), the reads `acceptReady` makes in the window:
+    `raftLog.{lastIndex,firstIndex,term,lastEntryID,hasNextOrInProgressUnstableEnts}`,
+    `needStorageAppendRespMsg`, `newStorageAppendRespMsg`; the read-out lemmas `ownRaftLog_{pure,nowrap,
+    wf,committed,ready_wf,snap_facts}`.
+  - The chain: `readyP` gains `(⌜L ≠ none⌝ ∨ appendHold γ.stor es ((dlvAfter d ce L).map (·.Term')))`,
+    `nodeDriverBusy` `(⌜L ≠ none⌝ ∨ appendHold γ.stor es (ds.map (·.Term')))` (both sealed; `readyData`
+    unchanged), law `nodeDriverBusy_hold`. **`appendReceipt_holds`** (`InvNode.lean`, impl
+    `ApiImpl.appendReceipt_holds_impl` in `InvApiDyn.lean`): `st'.handling = some (es, none) →
+    nodeDriver n γ N st' ∗ appendReceipt st'.storage es ⊢ |==> nodeDriver n γ N st' ∗ appendReceipt
+    st'.storage es ∗ storHoldsLb st'.storage st'.delivered` (the design's, the premise `handling = some
+    (es, none)`: no snapshot loan, and an update as approved).
+- (on hold, 2026-10-29: the coordinator, while the user decides whether mid-`Ready` snapshots stay) The
+  storage-wrapper law (§4): not started.
+- **Where U8 stands (2026-10-29, the coordinator's stop: the user may replace the hold design by a
+  client-owned storage state and monotone witnesses).** Proved and committed on `raft-unified-storage-wip`:
+  everything above marked done, through `appendReceipt_holds`; raft's results, `Linked`, `Api`,
+  `ConfPolicy`, `MemstorageInstance`, `MemstorageAU` build, no `sorry`, no new axiom; `interface/`
+  regenerated. Open: nothing in raft for U8 itself; the storage-wrapper law (above); the clients' repair
+  (kv's `StorageModel` instance, the server; U10). Uncommitted: nothing.
 
 ## Machinery (the map of the two modes, 2026-10-28)
 

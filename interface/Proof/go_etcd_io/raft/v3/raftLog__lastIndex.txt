@@ -5,13 +5,13 @@
 theorem raftLog.lastIndex.wp_proof [package_sem : Assumptions] (wp_unstable_maybeLastIndex :
     unstable.maybeLastIndex.spec) : raftLog.lastIndex.spec
   -- `Perennial.EtcdGrove.raftLog.lastIndex.spec`, unfolded:
-  ∀ (l : Loc) (ls : LogState),
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw -∗
           (▷
               ∀ i,
-                ownRaftLog l ls ∗ ⌜uint.Z i = uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length⌝ -∗
+                ownRaftLog l ls hw ∗ ⌜uint.Z i = uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length⌝ -∗
                   Φ (intoVal i)) -∗
             WP
               ((intoVal

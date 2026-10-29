@@ -370,6 +370,11 @@ theorem msgCredits_none (γ : Cluster) (N : Namespace) (st : MsgSt) : st.msg.Typ
 theorem sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : Persistent
     (sentMsg γ N src st)
 
+theorem appendReceipt_holds [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (st'
+    : NodeDriverState) (es : List EntryM) (Hh : st'.handling = some (es, none)) : nodeDriver n γ N
+    st' ∗ appendReceipt st'.storage es ⊢ |==> (nodeDriver n γ N st' ∗ appendReceipt st'.storage es ∗
+    storHoldsLb st'.storage st'.delivered)
+
 theorem nodeDriver_hardStateCommitted [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
     Namespace) (c0 : Membership) (decode : ConfChangeDecoder) (st : NodeDriverState) :
     isDynamicCluster γ N c0 decode ∗ nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ (⌜st.hardState =

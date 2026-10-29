@@ -30,7 +30,7 @@ theorem needStorageAppendRespMsg.wp_proof
       raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG))
     (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG)) :
     needStorageAppendRespMsg.spec (GF := GF) (hG := hG) := by
-  intro r l ls rd dq o Hne
+  intro hw r l ls rd dq o Hne
   wp_start as ⟨Hrl, Hlog, Hsn⟩
   wp_auto
   wp_apply wp_raftLog_hasNextOrInProgressUnstableEnts $$ [$Hlog] as %b ⟨Hlog, %Hb⟩

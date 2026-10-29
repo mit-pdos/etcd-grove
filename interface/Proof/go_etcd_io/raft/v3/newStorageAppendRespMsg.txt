@@ -7,7 +7,7 @@ theorem newStorageAppendRespMsg.wp_proof [package_sem : Assumptions]
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec) (wp_IsEmptySnap : IsEmptySnap.spec)
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : newStorageAppendRespMsg.spec
   -- `Perennial.EtcdGrove.newStorageAppendRespMsg.spec`, unfolded:
-  ∀ (r : Loc) (id t : w64) (l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
+  ∀ {hw : Option w64} (r : Loc) (id t : w64) (l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
     (∀ (sv : SnapshotM), o = some sv → sv.Metadata'.Index' ≠ W64 0) →
       ⊢
         ∀ Φ,
@@ -15,7 +15,7 @@ theorem newStorageAppendRespMsg.wp_proof [package_sem : Assumptions]
               typedPointsto (structFieldRef raft go!"id" r) id DFrac.discard ∗
                 typedPointsto (structFieldRef raft go!"Term" r) t (DFrac.own 1) ∗
                   typedPointsto (structFieldRef raft go!"raftLog" r) l (DFrac.own 1) ∗
-                    ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o -∗
+                    ownRaftLog l ls hw ∗ snapOpt rd.Snapshot' dq o -∗
             (▷
                 ∀ ml,
                   (snapOpt rd.Snapshot' (DFrac.own 1) o -∗
@@ -30,6 +30,6 @@ theorem newStorageAppendRespMsg.wp_proof [package_sem : Assumptions]
                         typedPointsto (structFieldRef raft go!"Term" r) t (DFrac.own 1) ∗
                           typedPointsto (structFieldRef raft go!"raftLog" r) l
                               (DFrac.own 1) ∗
-                            ownRaftLog l ls -∗
+                            ownRaftLog l ls hw -∗
                     Φ (intoVal ml)) -∗
               WP (((intoVal (functions newStorageAppendRespMsg [])) (intoVal r)) (intoVal rd)) {{ Φ }}

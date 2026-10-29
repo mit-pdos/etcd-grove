@@ -713,7 +713,9 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
     -- (2026-10-15, stage N) the committed log handed out, a lower bound
     monoListLbOwn γ.dlm (dlvAfter d ce L) ∗
     -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
-    loanDecO γ.raft L)
+    loanDecO γ.raft L ∗
+    -- (2026-10-29, stage U8) with no snapshot, the hold raised at the send (`appendHold`)
+    (⌜L ≠ none⌝ ∨ appendHold γ.stor es ((dlvAfter d ce L).map (·.Term'))))
 
 /-- (D22 S-d4) `readyP` for a client that cannot be handed a snapshot (`readyDataL_none`): as until
 then, the record at no loan. -/
@@ -726,7 +728,7 @@ theorem readyP_none (γ : NodeNames) (rd : Ready)
         readyData γ rd d ce es ms p p' ∗ monoListLbOwn γ.dlm (d ++ ce) := by
   iintro HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p, %p', %L, Hd, Hrof, Hdata, #Hlb, -⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p, %p', %L, Hd, Hrof, Hdata, #Hlb, -, -⟩
   icases readyDataL_none γ rd d ce es ms p p' L H $$ Hdata with ⟨%HL, Hdata⟩
   subst HL
   iexists d, ce, es, ms, p, p'
@@ -1066,6 +1068,9 @@ snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`ad
 @[no_expose] def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) : IProp GF :=
   iprop(isNodeChan γ id n ∗ dlvLb γ ds ∗ loanDecO γ.raft L ∗
+    -- (2026-10-29, stage U8) with no snapshot, the storage's word for `ds`'s terms once `es` is
+    -- appended (`appendHold`, the hold `run` raised at the send)
+    (⌜L ≠ none⌝ ∨ appendHold γ.stor es (ds.map (·.Term'))) ∗
     ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ ⌜ds = dlvAfter d ce L⌝ ∗
@@ -1101,14 +1106,14 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld, #Hhold⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
   iexists ce, es, ms, p', L
   iframe Hdata
   unfold nodeDriverBusy
-  iframe Hnode Hld
+  iframe Hnode Hld Hhold
   isplitr
   · unfold dlvLb; iexact Hlb
   iexists ds, ce, p
@@ -1142,6 +1147,21 @@ theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List En
   iintro H
   unfold nodeDriverBusy
   icases H with ⟨-, $, -⟩
+
+/-- (2026-10-29, stage U8) A busy token with no snapshot holds the storage's word for the terms of
+the committed log handed out, once the `Ready`'s entries are appended (`appendHold`). -/
+theorem nodeDriverBusy_hold (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p' : HardStateM) :
+    nodeDriverBusy (GF := GF) γ id n ds es p' none ⊢
+      nodeDriverBusy γ id n ds es p' none ∗ appendHold γ.stor es (ds.map (·.Term')) := by
+  unfold nodeDriverBusy
+  iintro ⟨#Hn, #Hlb, #Hld, #Hho, H⟩
+  icases Hho with (%Hc | #Hho)
+  · exact absurd rfl Hc
+  isplitl [H]
+  · iframe Hn Hlb Hld H
+    iright; iexact Hho
+  · iexact Hho
 
 /-- (2026-10-28, the conf-change decision switch) A busy token holds its loan's decisions. -/
 theorem nodeDriverBusy_loanDec (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
@@ -1205,13 +1225,13 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld, #Hhold⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iexists ce, es, ms, p', L
   iframe Hdata
   unfold nodeDriverBusy dlvLb
-  iframe Hnode Hlb Hld
+  iframe Hnode Hlb Hld Hhold
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl

@@ -73,7 +73,7 @@ theorem raftLog.restore.wp_proof
     iframe Hkcert
     rw [Hstor]; iexact Hcert
   simp only [snapId] at Hcmlt Hlt
-  iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
+  iapply ownRaftLog_intro (hw := none) l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
       lv.storage' σ _ _ (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
       rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩

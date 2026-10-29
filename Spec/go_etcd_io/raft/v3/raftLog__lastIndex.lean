@@ -29,11 +29,11 @@ Both branches (the `unstable` one and the `storage` fallback) have to agree, whi
 what the `unstable.offset` conjunct of `ownRaftLog` buys. Like `firstIndex`, the
 `Panicf` path has to be shown unreachable rather than assumed away. -/
 abbrev raftLog.lastIndex.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"lastIndex")) (Val #()))
   {{ (i : w64), RET #i;
-      ownRaftLog l ls ∗
+      ownRaftLog l ls hw ∗
       ⌜uint.Z i = uint.Z ls.prev.index' + (ls.sents.length : Int)
                   + (ls.uents.length : Int)⌝ }}
 

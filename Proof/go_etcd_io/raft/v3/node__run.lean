@@ -891,7 +891,7 @@ theorem node.run.wp_proof
     icases ownRawNodeReady_loanDec γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn
       with ⟨#Hld, Hrn⟩
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
-      with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
+      with ⟨Hrn, Happ, Hcr, Htk, #Hri, #Hhold⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
     -- (D22 S-d4) with a snapshot, to the committed log up to it
     imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce, psnap := false, slent := L }
@@ -908,6 +908,15 @@ theorem node.run.wp_proof
     · unfold readyP
       iexists rs.delivered, ce, es, ms, rs.phs, phsNext rs.phs h, L
       iframe Hdlv Hr1 Hdlb Hld
+      isplitl [Happ Hmsgs Hmt Hcr Htk Hsnz]
+      rotate_left
+      · -- (2026-10-29, stage U8) the hold raised at the send
+        cases L with
+        | none =>
+          icases Hhold with (%Hc | #Hhold)
+          · exact absurd rfl Hc
+          iright; rw [← Hstor]; iExactEq Hhold; rfl
+        | some _ => ileft; ipureintro; simp
       cases L with
       | none =>
         simp only [readyDataL, readyData, readyOut, rdSnapOut]

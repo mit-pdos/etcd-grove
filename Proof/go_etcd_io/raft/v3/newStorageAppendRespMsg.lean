@@ -37,7 +37,7 @@ theorem newStorageAppendRespMsg.wp_proof
     (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     newStorageAppendRespMsg.spec (GF := GF) (hG := hG) := by
-  intro r id t l ls rd dq o Hne
+  intro hw r id t l ls rd dq o Hne
   wp_start as ⟨#Hid, Ht, Hrl, Hlog, Hsn⟩
   wp_auto
   rw [show raftpb.MsgStorageAppendResp = #((W32 20 : raftpb.MessageType)) from rfl]

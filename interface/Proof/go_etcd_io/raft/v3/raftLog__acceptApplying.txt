@@ -5,27 +5,29 @@
 theorem raftLog.acceptApplying.wp_proof [package_sem : Assumptions] (wp_raftLog_maxAppliableIndex :
     raftLog.maxAppliableIndex.spec) : raftLog.acceptApplying.spec
   -- `Perennial.EtcdGrove.raftLog.acceptApplying.spec`, unfolded:
-  ∀ (l : Loc) (ls : LogState) (i size : w64) (au : Bool),
+  ∀ (l : Loc) (ls : LogState) (i size : w64) (au : Bool) (hw : Option w64),
     uint.Z ls.applied ≤ uint.Z i ∧
         uint.Z i ≤ uint.Z ls.committed ∧ uint.Z ls.applying ≤ uint.Z i ∧ uint.Z i < uint.Z ls.inprogress →
       (ls.snap ≠ none → uint.Z i ≤ uint.Z ls.applying) →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls -∗
-              ▷
-                  (ownRaftLog l
-                      { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed,
-                        applied := ls.applied, snap := ls.snap, inprogress := ls.inprogress, applying := i,
-                        unpersisted := ls.unpersisted, stored := ls.stored, apsize := ls.apsize + size, apmax := ls.apmax,
-                        storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent,
-                        sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt } -∗
-                    Φ (intoVal ())) -∗
-                WP
-                  ((((intoVal
-                          (methods raftLog.ty.PointerType
-                            go!"acceptApplying"
-                            (intoVal l)))
-                        (intoVal i))
-                      (intoVal size))
-                    (intoVal au))
-                  {{ Φ }}
+        hw = none ∨ hw = some i →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw -∗
+                ▷
+                    (ownRaftLog l
+                        { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed,
+                          applied := ls.applied, snap := ls.snap, inprogress := ls.inprogress, applying := i,
+                          unpersisted := ls.unpersisted, stored := ls.stored, apsize := ls.apsize + size,
+                          apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip,
+                          lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+                          sdt := ls.sdt } -∗
+                      Φ (intoVal ())) -∗
+                  WP
+                    ((((intoVal
+                            (methods raftLog.ty.PointerType
+                              go!"acceptApplying"
+                              (intoVal l)))
+                          (intoVal i))
+                        (intoVal size))
+                      (intoVal au))
+                    {{ Φ }}

@@ -57,11 +57,11 @@ theorem persist_stable (σ : StorState) (sents uents stored : List EntryM) (ipo 
 theorem SnpOk.stableSnap {g : NGhost} {ls : LogState} (i : w64) (H : SnpOk g ls) : SnpOk g
     (logStableSnap ls i)
 
-theorem ownRaftLog_snap_facts [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLog l
-    ls -∗ ⌜(ls.lent = true → ls.snap ≠ none) ∧ (ls.sat = true → ls.snap = some ls.prev ∧ ls.sip =
-    true ∧ ls.lent = false ∧ ls.unpersisted = []) ∧ (ls.snap = none → ls.sip = false) ∧ ∀ (sid :
-    entryID), ls.snap = some sid → ls.prev = sid ∧ ls.sents = [] ∧ 0 < uint.Z sid.index'⌝ ∗
-    ownRaftLog l ls
+theorem ownRaftLog_snap_facts [package_sem : Assumptions] {hw : Option w64} (l : Loc) (ls :
+    LogState) : ⊢ ownRaftLog l ls hw -∗ ⌜(ls.lent = true → ls.snap ≠ none) ∧ (ls.sat = true →
+    ls.snap = some ls.prev ∧ ls.sip = true ∧ ls.lent = false ∧ ls.unpersisted = []) ∧ (ls.snap =
+    none → ls.sip = false) ∧ ∀ (sid : entryID), ls.snap = some sid → ls.prev = sid ∧ ls.sents = [] ∧
+    0 < uint.Z sid.index'⌝ ∗ ownRaftLog l ls hw
 
 theorem logStableSnap_fields (ls : LogState) (i : w64) : (logStableSnap ls i).prev = ls.prev ∧
     (logStableSnap ls i).sents = ls.sents ∧ (logStableSnap ls i).uents = ls.uents ∧ (logStableSnap

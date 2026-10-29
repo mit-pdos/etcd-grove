@@ -34,11 +34,11 @@ lemma.
 published (`LogState.fl`): the answer is at least one past the log's boundary, at most one past
 the floor, and above the log's only once the storage is compacted (`storCut`). -/
 abbrev raftLog.firstIndex.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls hw }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"firstIndex")) (Val #()))
   {{ (i : w64), RET #i;
-      ownRaftLog l ls ∗
+      ownRaftLog l ls hw ∗
       ⌜uint.Z ls.prev.index' + 1 ≤ uint.Z i ∧
         uint.Z i ≤ max (uint.Z ls.prev.index') (uint.Z ls.fl) + 1⌝ ∗
       (⌜uint.Z i = uint.Z ls.prev.index' + 1⌝ ∨ storCut ls.storage (uint.Z i - 1)) }}

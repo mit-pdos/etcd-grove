@@ -427,6 +427,38 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
   iframe Hnd Htb Hdl
   ipureintro; exact ⟨Hf.1, Hf.2.2⟩
 
+/-- (2026-10-29, stage U8) `appendReceipt_holds` (`InvNode.lean`). -/
+theorem appendReceipt_holds_impl (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState)
+    (es : List EntryM) (Hh : st.handling = some (es, none)) :
+    nodeDriver (GF := GF) n γ N st ∗ appendReceipt st.storage es ⊢ |==>
+      (nodeDriver n γ N st ∗ appendReceipt st.storage es ∗ storHoldsLb st.storage st.delivered) := by
+  unfold nodeDriver
+  iintro ⟨⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩, Hr⟩
+  icases Htok with (⟨%Hn, -⟩ | ⟨%es', %L, %Hh', Htok⟩)
+  · rw [Hh] at Hn; cases Hn
+  rw [Hh] at Hh'
+  cases Hh'
+  icases nodeDriverBusy_hold γn id n ds es st.hardState $$ Htok with ⟨Htok, #Hho⟩
+  ihave #Hho' : appendHold st.storage es (ds.map (·.Term')) $$ []
+  · rw [← Hf.2.1]; iexact Hho
+  imod appendHold_receipt (GF := GF) st.storage es _ $$ Hho' Hr with ⟨Hr, #Ht⟩
+  imodintro
+  isplitl [Hst Htok]
+  · iexists γn, id, ds
+    iframe Hci Hlb0 Hst Hdy
+    isplitr
+    · ipureintro; exact Hf
+    iright
+    iexists es, none
+    iframe Htok
+    ipureintro; exact Hh
+  iframe Hr
+  iapply storHoldsLb_of_terms
+  rw [← Hf.2.2]
+  iExactEq Ht
+  simp only [strip, List.map_map]
+  rfl
+
 theorem deliveredLogLb_mono_impl (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
   intro Hp

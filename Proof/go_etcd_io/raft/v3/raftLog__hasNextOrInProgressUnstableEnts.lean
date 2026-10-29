@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raftLog.hasNextOrInProgressUnstableEnts.wp_proof :
     raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG) := by
-  intro l ls
+  intro hw l ls
   wp_start as H
   iNamed H
   iNamed Hlog

@@ -102,7 +102,7 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
   intro γ id n ds es ca cfg p' L Hal
   wp_start as ⟨Hbusy, Hrcpt, Hcfg, #HA1⟩
   unfold nodeDriverBusy
-  icases Hbusy with ⟨#Hnode, #Hdlb, -, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
+  icases Hbusy with ⟨#Hnode, #Hdlb, -, -, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
   ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
   · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
   -- (2026-10-28, stage U3d) after a snapshot `Ready` the view goes with the payload and comes
@@ -328,9 +328,9 @@ private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List En
     nodeDriverBusy (GF := GF) γn id n ds es p (some l) ⊢
       nodeDriverBusy γn id n ds es p (some l) ∗ ⌜ds = l.dlv⌝ := by
   unfold nodeDriverBusy
-  iintro ⟨#Hn, #Hlb, #Hld, %d, %ce, %p0, H1, H2, H3, %Hds, %q, Hq1, Hq2⟩
+  iintro ⟨#Hn, #Hlb, #Hld, #Hho, %d, %ce, %p0, H1, H2, H3, %Hds, %q, Hq1, Hq2⟩
   isplitl [H1 H2 H3 Hq1 Hq2]
-  · iframe Hn Hlb Hld
+  · iframe Hn Hlb Hld Hho
     iexists d, ce, p0
     iframe H1 H2 H3
     isplitr; · ipureintro; exact Hds

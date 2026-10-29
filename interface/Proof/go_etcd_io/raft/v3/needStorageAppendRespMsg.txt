@@ -6,15 +6,15 @@ theorem needStorageAppendRespMsg.wp_proof [package_sem : Assumptions]
     (wp_raftLog_hasNextOrInProgressUnstableEnts : raftLog.hasNextOrInProgressUnstableEnts.spec)
     (wp_IsEmptySnap : IsEmptySnap.spec) : needStorageAppendRespMsg.spec
   -- `Perennial.EtcdGrove.needStorageAppendRespMsg.spec`, unfolded:
-  ∀ (r l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
+  ∀ {hw : Option w64} (r l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
     (∀ (sv : SnapshotM), o = some sv → sv.Metadata'.Index' ≠ W64 0) →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
               typedPointsto (structFieldRef raft go!"raftLog" r) l (DFrac.own 1) ∗
-                ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o -∗
+                ownRaftLog l ls hw ∗ snapOpt rd.Snapshot' dq o -∗
             ▷
                 (typedPointsto (structFieldRef raft go!"raftLog" r) l (DFrac.own 1) ∗
-                    ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o -∗
+                    ownRaftLog l ls hw ∗ snapOpt rd.Snapshot' dq o -∗
                   Φ (intoVal (decide (ls.uents ≠ []) || o.isSome))) -∗
               WP (((intoVal (functions needStorageAppendRespMsg [])) (intoVal r)) (intoVal rd)) {{ Φ }}

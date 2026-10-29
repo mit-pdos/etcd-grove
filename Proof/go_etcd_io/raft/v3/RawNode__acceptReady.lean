@@ -238,7 +238,7 @@ theorem RawNode.acceptReady.wp_proof
       rw [Hloan.2] at h2
       rw [h1, h2]; rfl
     | some _ => exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  ihave Hlog : ownRaftLog s.log (logHanded ls0) $$ [Hlog]
+  ihave Hlog : ownRaftLog s.log (logHanded ls0) (rdyHw true ce) $$ [Hlog]
   · iExactEq Hlog
     rw [rdyLog_true, Hls0]
   subst Hes
@@ -507,7 +507,7 @@ theorem RawNode.acceptReady.wp_proof
   have Hhp : (logHanded ls0).prev = s.logst.prev := Hf_prev
   have Hhs : (logHanded ls0).sents = s.logst.sents := Hf_sents
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
-      ownRaftLog s.log (logHanded ls0) ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
+      ownRaftLog s.log (logHanded ls0) (rdyHw true ce) ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
       rnv.raft'.[raft, go!"Term"] ↦ s.term ∗
       snapOpt rd.Snapshot' (DFrac.own (1 : Qp).half) (L.map SnapLoan.snap) ∗
       ∃ (stl' : GoSlice) (acks : List Loc),
@@ -602,7 +602,7 @@ theorem RawNode.acceptReady.wp_proof
     rw [ite_pos' Hce0, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
     iapply pendList_nil
-  wp_apply wp_raftLog_acceptUnstable _ ls0 (Hf_unp.trans Hunp) $$ [Hlog] as Hlog
+  wp_apply wp_raftLog_acceptUnstable _ ls0 _ (Hf_unp.trans Hunp) $$ [Hlog] as Hlog
   · iframe Hlog
   -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(ents[len(ents)-1].GetIndex(),
   -- entsSize(ents), applyUnstableEntries()) }`
@@ -650,10 +650,11 @@ theorem RawNode.acceptReady.wp_proof
       have := Hcb2.1.2.2
       simp only [logAcceptUnstable] at this Hnw2
       word
-    wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
+    wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true (rdyHw true ce)
       ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega,
         by show uint.Z s.logst.applying ≤ _; omega, Hend⟩
       (fun h => absurd (show s.logst.snap = none from (Hrdp.1 HL).2) h)
+      (.inr (by rw [show rdyHw true ce = ce.getLast?.map (·.Index') from rfl, He]; rfl))
       $$ [Hlog] as Hlog
     · iframe Hlog
     isplitr
@@ -672,7 +673,7 @@ theorem RawNode.acceptReady.wp_proof
     have Hla : logAcceptApplying (logAcceptUnstable ls0) [] (W64 0) =
         logAcceptUnstable ls0 := rfl
     rw [Hla]
-    iexact Hlog
+    iExactEq Hlog; rfl
   -- the ghost state: `Step.drain` was taken by `ownRawNodeReady_handout` (2026-10-13); now
   -- `Step.takeReads` (2026-10-13): the `ReadState`s were handed out, with their facts, by
   -- `readyWithoutAccept`

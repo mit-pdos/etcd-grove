@@ -33,10 +33,10 @@ answer there could only make the node decline a vote); log replication needs it:
 vote rule now checks the candidate's log is up to date (`plogUpToDate`), and `campaign`
 sends it in `MsgVote`. -/
 abbrev raftLog.lastEntryID.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls }}
+  ∀ {hw : Option w64} (l : Loc) (ls : LogState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls hw }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"lastEntryID")) (Val #()))
-  {{ (e : entryID), RET #e; ownRaftLog l ls ∗
+  {{ (e : entryID), RET #e; ownRaftLog l ls hw ∗
       ⌜e = plogLast ls.prev (ls.sents ++ ls.uents)⌝ }}
 
 end spec

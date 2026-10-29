@@ -37,13 +37,15 @@ application before `run` calls `acceptReady`.
 (D22 S-d1b, 2026-10-21) With a snapshot pending too (until then a premise `ls.snap = none`): the
 snapshot is then in progress (`logAcceptUnstable`'s `sip`), and the storage will hold the whole log
 (`SipOk`); a snapshot `Ready` lends the storage (`ownRaftLog_lend`) in place of the hand-out. -/
+-- (2026-10-29, stage U8) in the hand-out window `hw` too (`HdOkW`: the hold raised at the
+-- `Ready`'s send, `ownRawNodeReady_handout`), which it keeps
 abbrev raftLog.acceptUnstable.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState),
+  ∀ (l : Loc) (ls : LogState) (hw : Option w64),
   ls.unpersisted = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hlog" ∷ ownRaftLog l (logHanded ls) }}
+      "Hlog" ∷ ownRaftLog l (logHanded ls) hw }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"acceptUnstable")) (Val #()))
-  {{ RET #(); ownRaftLog l (logAcceptUnstable ls) }}
+  {{ RET #(); ownRaftLog l (logAcceptUnstable ls) hw }}
 
 end spec
 

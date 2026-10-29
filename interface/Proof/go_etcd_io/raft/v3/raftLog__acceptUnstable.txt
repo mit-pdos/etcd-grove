@@ -5,12 +5,12 @@
 theorem raftLog.acceptUnstable.wp_proof [package_sem : Assumptions] (wp_unstable_acceptInProgress :
     unstable.acceptInProgress.spec) : raftLog.acceptUnstable.spec
   -- `Perennial.EtcdGrove.raftLog.acceptUnstable.spec`, unfolded:
-  ∀ (l : Loc) (ls : LogState),
+  ∀ (l : Loc) (ls : LogState) (hw : Option w64),
     ls.unpersisted = [] →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l (logHanded ls) -∗
-            ▷ (ownRaftLog l (logAcceptUnstable ls) -∗ Φ (intoVal ())) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l (logHanded ls) hw -∗
+            ▷ (ownRaftLog l (logAcceptUnstable ls) hw -∗ Φ (intoVal ())) -∗
               WP
                 ((intoVal
                     (methods raftLog.ty.PointerType

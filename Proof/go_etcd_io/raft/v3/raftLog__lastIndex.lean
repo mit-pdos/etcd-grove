@@ -28,7 +28,7 @@ whose index is `prev`'s (`LogStoreOk`); an empty one without, where
 theorem raftLog.lastIndex.wp_proof
     (wp_unstable_maybeLastIndex : unstable.maybeLastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.lastIndex.spec (GF := GF) (hG := hG) := by
-  intro l ls
+  intro hw l ls
   wp_start as H
   iNamed H
   iNamed Hlog

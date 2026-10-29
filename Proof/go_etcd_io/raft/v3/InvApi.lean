@@ -2311,14 +2311,14 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   inext
   iintro %rd HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld, #Hhold⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
   iexists ce, es, ms, p', L
   iframe Hdata
   unfold nodeDriverBusy
-  iframe Hnode Hld
+  iframe Hnode Hld Hhold
   isplitr
   · unfold dlvLb; iexact Hlb
   iexists ds, ce, p

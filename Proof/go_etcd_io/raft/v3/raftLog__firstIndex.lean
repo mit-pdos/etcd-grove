@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.firstIndex.wp_proof
     (wp_unstable_maybeFirstIndex : unstable.maybeFirstIndex.spec (GF := GF) (hG := hG)) :
     raftLog.firstIndex.spec (GF := GF) (hG := hG) := by
-  intro l ls
+  intro hw l ls
   wp_start as H
   iNamed H
   iNamed Hlog
