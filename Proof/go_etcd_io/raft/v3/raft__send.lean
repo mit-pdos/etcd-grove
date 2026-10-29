@@ -64,22 +64,23 @@ local macro "tyd" : tactic => `(tactic| simp [sentTypes, MsgReadIndex, MsgProp, 
   MsgSnap, MsgTransferLeader, MsgTimeoutNow])
 
 set_option hygiene false in
-/-- (2026-10-19, D21 M2r) The queued message's modes' facts (`XfOk`'s): a type the model describes
-(but in case (c)), and past term `0` for good (`NGhost.bt`; D22 S-a to S-c: the no-snapshot mode)
-with transfer off `SentMsgOk` -- its fields from the case's facts `args`, the node's id nonzero
-(`Hidnz`), its term past `0` (`Hxfs`). -/
+/-- (raft-final, 2026-10-29) The queued message's facts (`XfOk`'s): `SentMsgShape`, `AppFrom` and
+no transfer request -- its fields from the case's facts `args`, the node's id nonzero (`Hidnz`), its
+term past `0` (`SendOk`'s `Hstz`, or the caller's `Hmterm`). (Case (c), the transfer messages, by
+hand.) -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
-  · simp only [Hty1, $args,*]; nofun
-  · simp only [Hty1, $args,*]; tyd
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · simp only [Hty1, $args,*]; simp [sentShapeTypes, sentTypes, MsgReadIndex, MsgProp, MsgVote,
+      MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,
+      MsgReadIndexResp, MsgSnap, MsgTransferLeader, MsgTimeoutNow]
   · simp only [Hfr1]; first | exact Hidnz | exact Hsrc0
   · intro h; simp only [Hty1, Hte1, $args,*] at h ⊢
     all_goals first | rfl | trivial | exact absurd h (by tyd)
   · intro h hz
     simp only [Hty1, Hte1, $args,*] at h hz
-    all_goals first | exact Hxfs.2 hns hz | exact absurd (by tyd) h
-  · intro h1 h2 h3 h4; simp only [Hty1, Hfr1, Hto1, $args,*] at h1 h2 h3 h4 ⊢
+    all_goals first | exact Hstz hz | exact absurd (by tyd) h | exact Hmterm hz | trivial
+  · intro h1 h2 h3 h5 h4; simp only [Hty1, Hfr1, Hto1, $args,*] at h1 h2 h3 h4 h5 ⊢
     all_goals exact $ft
   -- (2026-10-22, D38a) a `MsgApp`'s shape, the caller's (`send` stamps only `From`, `Term`)
   · intro h
@@ -89,14 +90,17 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
        have Hs := Hsh1 h'
        unfold AppShape at Hs ⊢; simp only at Hs ⊢; exact Hs)
     | (simp only at h; exact absurd h (by tyd))
+  -- (raft-final) no transfer message here
+  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)
   -- (2026-10-22, D38a) no responses (the premise)
   · first | exact Hrs | (simp only; exact Hrs)
-  · refine ⟨by first | exact Hrs | (simp only; exact Hrs), fun h => ?_⟩
+  · intro h
     simp only at h ⊢
     try rw [Hfr1]
     try first
       | rfl
-      | exact Hsrc (by rw [← Hty1, h]; tyne) (by rw [← Hty1, h]; tyne)))
+      | exact Hsrc (by rw [← Hty1, h]; tyne) (by rw [← Hty1, h]; tyne)
+  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -212,15 +216,11 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs
   wp_start as H
   iNamed H
   -- (2026-10-19, D21 M2r) the node's id nonzero, and the modes' facts
   icases ownRaftPhysC_id_nz c r id s $$ Hphys with ⟨%Hidnz, Hphys⟩
-  icases ownRaftPhysC_xf c r id s $$ Hphys with ⟨%Hxfs, Hphys⟩
   wp_auto
   wp_apply wp_GetFrom.1 $$ [$Hm] as Hm
   obtain ⟨src, Hsrc_eq⟩ : ∃ src, src = if m.From' = W64 0 then id else m.From' := ⟨_, rfl⟩
@@ -258,7 +258,7 @@ theorem raft.send.wp_proof
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
-    (⟨HSnap, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, HxfF⟩) |
+    (⟨HSnap, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
     ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto
@@ -381,10 +381,26 @@ theorem raft.send.wp_proof
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; intro _ x hx; cases hx
     · ipureintro
-      exact ⟨fun h => absurd (HxfF.symm.trans h) (by decide),
-        fun _ h => absurd (HxfF.symm.trans h) (by decide),
-        Hrs, fun h => by
-          simp only [Hty1] at h; rw [h] at Hty; exact absurd Hty (by decide)⟩
+      have Hsrc0 : src ≠ W64 0 := by
+        rw [Hsrc_eq]; split
+        · exact Hidnz
+        · assumption
+      simp only
+      refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
+        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_⟩
+      · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
+      · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
+      · rcases Htt with h' | h'
+        · exact Htn h' hz
+        · exact h (.inr (.inr h'))
+      · intro _ _ _ hTL _
+        rcases Htt with h' | h'
+        · rw [Hfr1, Hsrc (by rw [h']; tyd) (by rw [h']; tyd)]
+          exact fun e => Hself e.symm
+        · exact absurd h' hTL
+      · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
+      · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
+      · exact Hxw h
     · iapply tsSrc_ne; simp only [Hty1]; exact HnS
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     rfl
@@ -443,7 +459,6 @@ theorem raft.send.wp_proof
     · iapply tsSrc_ne; simp only [Hty1, HRI]; tyne
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1 Hsrc_eq; simp only [sendMsgs, absMsg, Hmterm]; rfl
-  -/
 
 end proof
 

@@ -5,6 +5,7 @@ public import Spec.go_etcd_io.raft.v3.node__Stop
 public import Proof.go_etcd_io.raft.v3.InvNodeChan
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
 import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import Proof.go_etcd_io.raft.v3.InvApi
 
 @[expose] public section
@@ -111,9 +112,6 @@ needed). -/
 private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
   intro n γ N id
   iintro %Φ ⟨#Hinit, -, Hlive⟩ HΦ
@@ -123,13 +121,8 @@ private theorem node.wp_Stop_impl
   · iframe Hinit Hn Hl
   iintro !> #Hst
   iapply HΦ
-  unfold nodeStopped
-  iexists γn, id1
-  iframe Hn Hst
-  isplitr
-  · ipureintro; exact Hok.1
-  iright; iexact Htb
-  -/
+  iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
+  iframe Hn Htb Hst
 
 end wrap
 

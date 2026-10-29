@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiView
 
@@ -91,7 +92,7 @@ private abbrev node.Propose.specRaw : Prop :=
       (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propErr cd err }}
+  {{ (err : GoInterface), RET #err; propErrRaw γ cd err }}
 
 end spec
 
@@ -114,9 +115,6 @@ private theorem node.Propose.wp_raw
     (wp_node_stepWait : node.stepWait.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Propose.specRaw (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ id n data_sl data Q ctx cd
   wp_start as ⟨#Hnode, #Hctx, #Hdata, Harg⟩
   wp_auto
@@ -168,7 +166,6 @@ private theorem node.Propose.wp_raw
   wp_auto
   iapply HΦ
   iexact Herr
-  -/
 
 end proof
 
@@ -187,23 +184,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Propose_impl
     (hP : EtcdGrove.node.Propose.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Propose.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   unfold EtcdGrove.node.Propose.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id data_sl data ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, Hau⟩ HΦ
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, %Hf, #Hrn, #Hci⟩
-  obtain ⟨Hγr, -⟩ := Hf
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, -⟩
+  have Hγr := Hf.1
   by_cases Hne : data = []
   · iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ []
     · iframe Hinit Hrn Hctx Hd
       ileft; ipureintro; exact Hne
     iintro !> %err #Herr
     iapply HΦ
-    iapply propErr_api $$ Herr
+    unfold EtcdGrove.propErrS EtcdGrove.nodeErrS EtcdGrove.nodeStopped
+    iapply propErrRaw_propErrS n γ N id γn cd err Hf
+    iframe Hrn Htab Herr
   have Hnf : ¬ Filler (W32 0) data := fun h => Hne h.1
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
@@ -218,8 +214,9 @@ private theorem node.wp_Propose_impl
     iframe Hpi Hau1
   iintro !> %err #Herr
   iapply HΦ
-  iapply propErr_api $$ Herr
-  -/
+  unfold EtcdGrove.propErrS EtcdGrove.nodeErrS EtcdGrove.nodeStopped
+  iapply propErrRaw_propErrS n γ N id γn cd err Hf
+  iframe Hrn Htab Herr
 
 end wrap
 

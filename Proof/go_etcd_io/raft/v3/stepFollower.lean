@@ -73,9 +73,6 @@ theorem stepFollower.wp_proof
     (wp_GetIndex : raftpb.Message.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors
   wp_start as H
   iNamed H
@@ -418,7 +415,7 @@ theorem stepFollower.wp_proof
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs []
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
-            rfl, rfl, Hterm0', fun h => Hlid h, rfl, Hxo⟩))))
+            rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty))) $$ [$Hphys $Hm] as Hphys
@@ -477,7 +474,6 @@ theorem stepFollower.wp_proof
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
         MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
-  -/
 
 end proof
 

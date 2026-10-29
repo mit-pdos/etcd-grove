@@ -108,9 +108,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ rn id rs Hsteps0 Hunp0
   wp_start as H
   iNamed H
@@ -136,6 +133,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases ghostRest_nsLink γ _ cf id s $$ Hrest with ⟨%Hnl, Hrest⟩
   -- (D22 S-b′3) the storage's certificate link, for the messages handed out
   icases ghostRest_certLink γ _ cf id s $$ Hrest with ⟨#Hlink, Hrest⟩
+  -- (raft-final) the transfer records' witnesses, for the messages handed out
+  icases ghostRest_xfW γ _ cf id s $$ Hrest with ⟨#Hxw, Hrest⟩
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
   icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ id (toPState s)))) $$ Hghost
@@ -157,11 +156,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases ownRaftLog_snap_next _ _ $$ Hlog with ⟨%Hsnx, Hlog⟩
   -- (2026-10-28, the decision switch) the snapshots' certificates, for a loan's decisions
   icases ownRaftLog_kcert _ _ $$ Hlog with ⟨#Hkc, Hlog⟩
+  ihave #Hkc : ksnCerts s.gh.sn s.logst.ksn $$ []
+  · rw [← Hgh_unst.1.2.2]; iexact Hkc
   imod ksnCerts_of_link γ _ _ ⊤ CoPset.subseteq_top $$ Hlink Hkc with #Hkr
   have Hsip0 : s.logst.sip = false := by
     cases h : s.logst.sip
     · rfl
-    · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.2.2.1 (.inl h))
+    · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.1.2.2.1 (.inl h))
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog
@@ -563,8 +564,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hrdhard : iprop(∃ h, hsOpt HP h ∗ phsWit γ h) $$ []
   · iexists hrd; iframe HHP; iapply phsWit_of_hsWit_next γ rs.phs hrd _ $$ Hhsw
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ id q.st) $$ []
-  · iapply outboxRelP_isRaftMsgs γ id (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
-      (fun h => (Hxf.2.1 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) Hxf.2.2 $$ Hout Hqc
+  · iapply outboxRelP_isRaftMsgs γ id s (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout Hxf
+      $$ Hout Hqc Hxw
   -- (D22 S-d3a) the snapshot handed out, if any: half of the clone to the application, half kept
   -- for the acknowledgement; the loan (`SnapLoan`): the clone, the floor, the committed log up to
   -- the snapshot (the full prefix below the log's boundary, `fp0`)
@@ -616,7 +617,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ihave #Hkr' := Hkr
       icases Hkr' with (%Hns | #Hkr')
       · exfalso
-        have := (Hlns (by rw [Hnl.1]; exact Hns)).1
+        have := (Hlns (by rw [Hnl]; exact Hns)).1
         rw [Hss] at this; cases this
       ihave ⟨#Hcr, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkr'
       obtain ⟨xh, Hxh⟩ := _root_.id Hhas
@@ -695,7 +696,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitr
   · iexact HHP
   · iexact Hhsw
-  -/
 
 end proof
 

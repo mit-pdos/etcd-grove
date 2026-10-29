@@ -76,9 +76,6 @@ theorem wp_Step_MsgPreVoteResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hty Hto Hterm Hteq Hnw Hwf
   wp_start as ⟨Hphys, Hm⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -109,7 +106,6 @@ theorem wp_Step_MsgPreVoteResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [Hty]
   try wp_auto
   prevote_resp_dispatch
-  -/
 
 end StepProof
 

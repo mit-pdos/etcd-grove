@@ -181,9 +181,6 @@ theorem wp_Step_MsgProp
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
               recv.length ≤ 1 ∧ StepCD c id B m s recv s'⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf HL Hnors
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -329,7 +326,6 @@ theorem wp_Step_MsgProp
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hne, Hlen, Hlnz Hrole⟩)
         (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -526,7 +522,6 @@ theorem wp_Step_MsgProp
       isplitr
       · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
-  -/
 
 end StepProof
 

@@ -555,7 +555,6 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
       · iframe Hphys Hrc00
         isplitl [Hm]

@@ -71,9 +71,6 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hty Hto Hterm Hteq Hfnz Hfid Hwf
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
     m.Type' = MsgCheckQuorum :=
@@ -164,7 +161,6 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => (Hlrd Hrole Hteq).2)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
@@ -204,7 +200,6 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
-  -/
 
 end StepProof
 

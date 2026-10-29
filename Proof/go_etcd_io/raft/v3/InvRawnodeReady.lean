@@ -705,19 +705,17 @@ theorem ksnCerts_of_link (γ : RaftNames) (sn : StorNames) (ks : List SnapTrip)
 (`isRaftMsg`, 2026-10-16): what `readyWithoutAccept` says of the messages it hands out, and
 `acceptReady` of the self-addressed responses it queues. (D22 S-b′3) With its certificate
 (`qCert`). -/
-theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2 : List QMsg) (q : QMsg)
+theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List Msg)
+    (ms1 ms2 : List QMsg) (q : QMsg)
     (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
     -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in the no-transfer mode (`XfOk`; D22
-    -- S-a to S-c: in it and the no-snapshot mode)
-    (Hsent : γ.reNoXfer = true → SentMsgOk q.st)
-    -- (2026-10-22, D38a) and no responses (`XfOk`)
-    (Hrs : q.st.resps = [] ∧ AppFrom id q.st) :
-    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ isRaftMsg γ id q.st := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
+    -- (raft-final, 2026-10-29: the design's §2.6) `XfOk`'s clauses 1-3 of the message: its shape,
+    -- a `MsgApp` the node's own, a stamped `MsgTransferLeader` recorded in `NGhost.xw`
+    (Hsh : SentMsgShape q.st) (Hfr : AppFrom id q.st)
+    (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
+      (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome) :
+    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
     have hsub : ∀ (l : List QMsg) (as_ : List (Option Msg)),
@@ -750,18 +748,43 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2
     · rw [hty, mtypeOf_MsgSnap] at Hn; cases Hn
     · rw [hty, mtypeOf_MsgSnap] at Hty'; cases Hty'; exact Hne rfl
     · exact Hns hns _ (Hin (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) (by simp)) rfl
-  iintro #Ho #Hqc
+  iintro #Ho #Hqc #Hxf
   unfold isRaftMsg
   isplitr
-  · ipureintro; exact Hnsnap
+  · ipureintro; exact Hsh
   isplitr
-  · ipureintro; exact Hsent
+  · iexists a
+    isplitr
+    · ipureintro; exact Ha
+    cases a with
+    | none => simp only [Option.toList_none]; iapply BigSepL.bigSepL_nil.2; iempintro
+    | some x =>
+      simp only [Option.toList_some]
+      iapply BigSepL.bigSepL_singleton.2
+      ihave #Hx := (BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
+        (Hin x (by simp))) $$ Ho
+      iapply isMessageC_intro $$ Hx
+      -- (D22 S-b′3) the certificate: none but a snapshot's, the queue's
+      unfold qCert
+      iunfold raftSnapCertD at Hqc
+      icases Hqc with (%Hns' | %Hne | ⟨%sv, %Hsv, ⟨#Hc, -⟩⟩)
+      · iapply msgCert_of_ne
+        exact Hns Hns' x (Hin x (by simp))
+      · iapply msgCert_of_ne
+        rcases Ha with ⟨-, h⟩ | ⟨ty', -, Hne', h⟩ | ⟨sv', Hty', -, -⟩
+        · cases h
+        · cases h; simp [absMsg, absMsgFrom, Hne']
+        · exact absurd (mtypeOf_snap_eq _ Hty') Hne
+      · rcases Ha with ⟨-, h⟩ | ⟨ty', -, Hne', h⟩ | ⟨sv', -, Hs', h⟩
+        · cases h
+        · iapply msgCert_of_ne; cases h; simp [absMsg, absMsgFrom, Hne']
+        · cases h
+          rw [Hsv] at Hs'; obtain rfl := Option.some.inj Hs'
+          unfold msgCert; iright
+          rw [show raftSnapCert (GF := GF) γ (msgSnapTrip (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists)) =
+            raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists) from rfl]
+          iexact Hc
   isplitr
-  rotate_left
-  isplitr
-  rotate_left
-  · ipureintro; exact Hrs
-  rotate_left
   · -- (D22 S-r) the data certificate: the queue's, from the storage's registry
     unfold msgDat
     iintro !> %sv0 %Hsv0
@@ -772,50 +795,25 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2
     · exact absurd Hsv0.1 Hne
     · rw [Hsv] at Hsv0; obtain rfl := Option.some.inj Hsv0.2
       simp only [snapTrip, snapId]; iexact Hd
-  iexists a
   isplitr
-  · ipureintro; exact Ha
-  cases a with
-  | none => simp only [Option.toList_none]; iapply BigSepL.bigSepL_nil.2; iempintro
-  | some x =>
-    simp only [Option.toList_some]
-    iapply BigSepL.bigSepL_singleton.2
-    ihave #Hx := (BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
-      (Hin x (by simp))) $$ Ho
-    iapply isMessageC_intro $$ Hx
-    -- (D22 S-b′3) the certificate: none but a snapshot's, the queue's
-    unfold qCert
-    iunfold raftSnapCertD at Hqc
-    icases Hqc with (%Hns' | %Hne | ⟨%sv, %Hsv, ⟨#Hc, -⟩⟩)
-    · iapply msgCert_of_ne
-      exact Hns Hns' x (Hin x (by simp))
-    · iapply msgCert_of_ne
-      rcases Ha with ⟨-, h⟩ | ⟨ty', -, Hne', h⟩ | ⟨sv', Hty', -, -⟩
-      · cases h
-      · cases h; simp [absMsg, absMsgFrom, Hne']
-      · exact absurd (mtypeOf_snap_eq _ Hty') Hne
-    · rcases Ha with ⟨-, h⟩ | ⟨ty', -, Hne', h⟩ | ⟨sv', -, Hs', h⟩
-      · cases h
-      · iapply msgCert_of_ne; cases h; simp [absMsg, absMsgFrom, Hne']
-      · cases h
-        rw [Hsv] at Hs'; obtain rfl := Option.some.inj Hs'
-        unfold msgCert; iright
-        rw [show raftSnapCert (GF := GF) γ (msgSnapTrip (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists)) =
-          raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists) from rfl]
-        iexact Hc
-  -/
+  · ipureintro; exact Hfr
+  -- (raft-final) the stamped transfer request's witness, out of `xfW`
+  imodintro
+  iintro %Ht
+  obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
+  unfold xfW
+  ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ => isLeader (GF := GF) γ p.1 p.2)
+    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxf
+  iexact Hl
 
 /-- The abstraction of a message `isRaftMsg` covers, for a type the model describes but a
 snapshot (2026-10-16): what `raft.Step`'s `Hmsg` asks of it. -/
 theorem isRaftMsg_isMessage (γ : RaftNames) (id : w64) (st : MsgSt) (ty : MsgType)
     (Hty : mtypeOf st.msg.Type' = some ty) (Hns : ty ≠ .snap) :
     isRaftMsg (GF := GF) γ id st ⊢ isMessage γ (absMsg ty st.msg st.ents st.ctx) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro #H
   unfold isRaftMsg
-  icases H with ⟨-, -, ⟨%a, %Ha, #H⟩, -⟩
+  icases H with ⟨-, ⟨%a, %Ha, #H⟩, -⟩
   rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', -, rfl⟩ | ⟨sv, Hs, -, -⟩
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
@@ -823,7 +821,6 @@ theorem isRaftMsg_isMessage (γ : RaftNames) (id : w64) (st : MsgSt) (ty : MsgTy
     ihave #H := BigSepL.bigSepL_singleton.1 $$ H
     iapply isMessageC_isMessage $$ H
   · rw [Hty] at Hs; cases Hs; exact absurd rfl Hns
-  -/
 
 /-- The raft struct at `s`, open as `ownRaftPhysC_view` opens it, with the messages of the
 outbox handed out (to a `Ready`'s `Messages`, the slice `msl` holding the pointers of `ms`), and
@@ -1368,9 +1365,6 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
          (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
            uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
         ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c } := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hmsgs Hmsgs_cap Hown H
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
@@ -1397,7 +1391,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     %(⟨fun h => .inl (of_decide_eq_true h), Hgh_unst.1.2⟩ : GhLogOk g s.logst)
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
-    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl rfl) Hscert Hlog
+    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl) Hscert Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -1423,7 +1417,6 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc
-  -/
 
 -- (2026-10-26, raft's signature, stage 1) `readyIdx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -1483,6 +1476,21 @@ theorem ownRaftLog_applying_lt (l : Loc) (ls : LogState) :
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
       HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
 
+/-- (D22 S-d4; U8 v2: over the pins, `ksnCerts`) The certificates of the snapshots the log knows
+(`Hkcert`), read out without consuming the log: what a snapshot `Ready` reads its loan's decisions
+from (`ksnCerts_of_link`). -/
+theorem ownRaftLog_kcert (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗ ksnCerts ls.sn ls.ksn ∗ ownRaftLog l ls := by
+  iintro H0
+  iNamed H0
+  ihave #Hkc : ksnCerts ls.sn ls.ksn $$ []
+  · iexact Hkcert
+  iframe Hkc
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore
+    Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
+    Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
+    HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+
 /-- (U8 v2, 2026-10-29) **Certifying the terms of the entries `L`** at the indices `n + 1, …` past
 the certified height `n` (`ownRaftLog_certify`, one by one): each at most `committed`, of the log's
 term there once at or past the boundary. -/
@@ -1494,15 +1502,12 @@ theorem ownRaftLog_certify_list (l : Loc) (L : List EntryM) :
         plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 ((n + k + 1 : Nat) : Int)) = some e.Term') →
       ⊢ ownRaftLog (GF := GF) l ls ==∗
         ownRaftLog l { ls with dtk := n + L.length } ∗ dlvKeysAt ls.sn n L := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   induction L with
   | nil =>
     intro ls n Hn _ _
     iintro H
     imodintro
-    have : ({ ls with dtk := n + 0 } : LogState) = ls := by
+    have : ({ ls with dtk := n + ([] : List EntryM).length } : LogState) = ls := by
       cases ls; simp only at Hn ⊢; rw [Hn]; rfl
     rw [this]
     iframe H
@@ -1532,13 +1537,11 @@ theorem ownRaftLog_certify_list (l : Loc) (L : List EntryM) :
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · rw [show n + 0 + 1 = n + 1 by omega]; iexact Hk
-    iunfold dlvKeysAt at Hks
     have hf : (fun j (x : EntryM) => iprop((n + 1 + j + 1) ↪[ls.sn.gd]□ x.Term' : IProp GF)) =
         (fun j (x : EntryM) => iprop((n + (j + 1) + 1) ↪[ls.sn.gd]□ x.Term' : IProp GF)) := by
       funext j x; rw [show n + 1 + j + 1 = n + (j + 1) + 1 by omega]
     rw [← hf]
     iexact Hks
-  -/
 
 /-- (D22 S-d3a; U8 v2) The log's part of a `Ready`'s hand-out (`readyOut`): the right to write the
 batch, with the committed entries below it frozen (`ownRaftLog_handout`), or with a snapshot the
@@ -1551,9 +1554,6 @@ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Opt
     ⊢ ownRaftLog (GF := GF) l ls ==∗ ownRaftLog l (rdyLog true L.isSome ls) ∗
       readyOut st ls.sn es L ∗
       (⌜L ≠ none⌝ ∨ storLog st (uint.nat ls.applying + 1) DFrac.discard (frozenRdy ls)) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hlog
   cases L with
   | none =>
@@ -1577,13 +1577,13 @@ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Opt
     isplitl [HO Hend]
     · simp only [readyOut]
       rw [Hst]
-      rw [Hpv] at Hk Hg
-      iframe Hg
-      iexists k, old
-      iframe HO Hend
-      ipureintro; exact Hk
+      rw [Hpv] at Hk
+      isplitl [HO Hend]
+      · iexists k, old
+        iframe HO Hend
+        ipureintro; exact Hk
+      · iExactEq Hg; rw [Hpv]; rfl
     ileft; ipureintro; simp
-  -/
 
 /-- (D22 S-d3a) The pure facts of a computed `Ready`'s snapshot. -/
 theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM)
@@ -1616,9 +1616,6 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
     ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
       ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗ ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H
   ihave %Hx : ⌜plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
   · iunfold ownRawNodeReady at H
@@ -1631,15 +1628,15 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
     have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1
     iunfold ownRaftPhysReady at Hphys
     iNamed Hphys
-    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst)
+    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length)
       (s.logst.prev = snapId l.snap ∧ uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed)
       (fun lv σ _ _ Hst _ Happ _ _ _ _ => by
-        have e1 : (rdyLog h (some l).isSome s.logst).snap = s.logst.snap := by
-          unfold rdyLog logHanded; split <;> simp
-        have e2 : (rdyLog h (some l).isSome s.logst).prev = s.logst.prev := by
-          unfold rdyLog logHanded; split <;> simp
-        have e3 : (rdyLog h (some l).isSome s.logst).committed = s.logst.committed := by
-          unfold rdyLog logHanded; split <;> simp
+        have e1 : (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length).snap = s.logst.snap := by
+          unfold rdyLog logHanded lendLog; split <;> simp
+        have e2 : (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length).prev = s.logst.prev := by
+          unfold rdyLog logHanded lendLog; split <;> simp
+        have e3 : (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length).committed = s.logst.committed := by
+          unfold rdyLog logHanded lendLog; split <;> simp
         rw [e1, hsn, e2] at Hst
         rw [e2, e3] at Happ
         exact ⟨Hst.1, Happ.1⟩) $$ Hlog with ⟨%Hpv, -⟩
@@ -1671,7 +1668,6 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
     rw [← heq]; exact Hfl2
   iframe H
   ipureintro; exact Hx
-  -/
 
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
 right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
@@ -1693,9 +1689,6 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       ([∗list] q ∈ ms, stTks γ q.st) ∗
       -- (2026-10-18, D19b stage 5) the indices handed out are within the log
       readyIdx γ rs.delivered ce es := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H
   -- (U8 v2) a lent snapshot's committed log ends at it
   ihave %Hllast : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
@@ -1773,7 +1766,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     cases L with
     | none => simp only [dlvAfter, List.length_append]; omega
     | some l =>
-      have := (Hrdp.2 l rfl).2.2.2.2.2.2.1.length_le
+      have := (Hrdp.2 l rfl).2.2.2.2.2.2.2.1.length_le
       simp only [dlvAfter]; omega
   have HKc : ((rs.delivered.length +
       ((dlvAfter rs.delivered ce L).drop rs.delivered.length).length : Nat) : Int) ≤
@@ -1831,6 +1824,9 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (fun h => (Hrdp.1 h).2)
     (fun l h => ⟨(Hrdp.2 l h).2.1, (Hrdp.2 l h).2.2.1⟩) Hlt0 $$ Hlog
     with ⟨Hlog, Hout, #Hfrz⟩
+  ihave Hlog : ownRaftLog s.log (rdyLog true L.isSome s.logst (dlvAfter rs.delivered ce L).length)
+    $$ [Hlog]
+  · iExactEq Hlog; rfl
   -- (U8 v2) the committed entries below the batch, frozen (`ceFrozen_pure`)
   ihave #Hcef : iprop(⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) $$ []
   · cases L with
@@ -1845,7 +1841,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       iexists min ce.length (frozenEnd s.logst - uint.nat s.logst.applying)
       isplitl
       · iapply storLog_sub _ _ 0 (min ce.length (frozenEnd s.logst - uint.nat s.logst.applying))
-          _ _ _ (by rw [Hdl]; rfl) (by rw [List.drop_zero]; exact Hte) $$ Hfrz
+          _ _ _ (by rw [Hdl]) (by rw [List.drop_zero]; exact Hte) $$ Hfrz
       ipureintro
       rcases Hdisj with h | ⟨e0, he0, h⟩
       · left; exact h
@@ -1913,7 +1909,6 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   rw [Hpl] at HL ⊢
   rw [Hes]
   exact ⟨HL, Hri.1, Hri.2⟩
-  -/
 
 /-! ## A node with nothing new to hand out (2026-10-10)
 
@@ -2020,16 +2015,13 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hsl : rs.slent = none) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗
       ⌜rs.outlb = 0 ∧ rs.unst = false⌝ ∗ ownRawNodeIdle γ rn id rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H
   iNamed H
   icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh, Hphys⟩
   have Hsn : s.logst.snap = none := by
     rcases Hidle.2.2.2 with h | h
     · exact h
-    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2.1 (.inl h))
+    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.1.2.2.1 (.inl h))
   isplitr
   · ipureintro
     refine ⟨Hrs_out.trans Hidle.1, ?_⟩
@@ -2042,7 +2034,6 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hidle
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
-  -/
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
 header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted = []`) is
@@ -2069,9 +2060,6 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       entsRO rd.Entries' [] -∗
       isCommitted γ (rs.delivered ++ ce) -∗ readStatesPts rd.ReadStates' sts -∗
       ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] false := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro #Hrdsoft #Hrdh #Hrdw #Hce Hce_cap #Hents #Hcommitted #Hrsts H
   iNamed H
   have Hsl : rs.slent = none := Hloan.none_of_nil Hsteps0
@@ -2084,7 +2072,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have Hsn : s.logst.snap = none := by
     rcases Hidle.2.2.2 with h | h
     · exact h
-    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2.1 (.inl h))
+    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.1.2.2.1 (.inl h))
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
@@ -2153,7 +2141,6 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have : 0 < ce.length := List.length_pos_iff.2 Hne
   have := uint_Z_nonneg s.logst.applying
   refine ⟨by omega, by omega, by omega⟩
-  -/
 
 /-- The `ReadState`s of the protocol state, each `readStateRaw` (2026-10-13): persistent,
 copied out of `rdOwn`. -/

@@ -83,7 +83,8 @@ private abbrev node.ProposeConfChange.specRaw : Prop :=
       ccPropArg γ.raft o }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
-  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErr cd err }}
+  -- (raft-final, K5) `node.Step`'s answer, at the API's cluster
+  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErrS n γc N cd err }}
 
 end spec
 
@@ -105,9 +106,6 @@ private theorem node.ProposeConfChange.wp_raw
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ id n c o dq ctx cd γc N HNo
   wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, Harg⟩
   wp_auto
@@ -142,12 +140,11 @@ private theorem node.ProposeConfChange.wp_raw
       iexact Hent
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
     iexact Htk
-  iintro %err #Herr
+  iintro %err Herr
   wp_auto
   iapply HΦ
   iframe Hc
   iexact Herr
-  -/
 
 end proof
 
@@ -166,16 +163,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ProposeConfChange_impl
     (hP : EtcdGrove.node.ProposeConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id c o dq ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, Hau⟩ HΦ
   ihave #HnodeA := Hnode
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, %Hf, #Hrn, #Hci⟩
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -, #Hci, -⟩
   have Hf0 := Hf
   obtain ⟨Hγr, -⟩ := Hf
   ihave #Hci' := Hci
@@ -197,10 +191,9 @@ private theorem node.wp_ProposeConfChange_impl
     iexists (fun _ => iprop(True))
     rw [Hγr]
     iframe Hpi Hau1
-  iintro !> %err ⟨Hcc, #Herr⟩
+  iintro !> %err ⟨Hcc, Herr⟩
   iapply HΦ
   iframe Hcc Herr
-  -/
 
 end wrap
 

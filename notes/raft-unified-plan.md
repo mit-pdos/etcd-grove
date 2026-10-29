@@ -1167,7 +1167,9 @@ Step 1, the statement fixes after the review `phase1-statements-review.md` (2026
   (internal). **Not done: `NGhost.xw`** -- a field of `NGhost` in `Defs`, which importable
   modules (`InvRaftlog`, `InvReadylog`, `StepLemmas*`, `SpecResults`, `ApiVocab`, `Spec.Api`) state
   things over; hiding one field means moving `NGhost`/`NState` out of the importable vocabulary, the
-  "Debt" group's cleanup (phase 3 or later).
+  "Debt" group's cleanup (phase 3 or later). The coordinator (2026-10-29): defer it to that cleanup
+  (`NGhost` is internal vocabulary already exposed, not new client ghost state). **Debt list:** `NGhost.xw`
+  (with `NGhost`/`NState` out of the importable modules).
 - **F5** `node.Propose.spec`'s post is `propErrS n γ N cd err` (was the same disjunction spelled out:
   `nil ∨ ErrStopped ∗ nodeStopped ∨ ErrProposalDropped ∨ ctx`); one name for clients, with
   `propErrS_propErr` back to the old `propErr`.
@@ -1239,3 +1241,46 @@ The design: the coordinator's `kvreconf-gap-design.md` with the amendments of `r
 `send`, `copyMsg`, `deliver`, `step`, `dropped`), RECONF (`randomID`, `randomChange`, `sleep`,
 `Reconfigure`, `Disrupt`), TOP (`RandomOptions`, `RandomConfig`, `Run`, `Main`, `Link`,
 `Adequacy`, `Results`).
+Phase 2 (internal statement changes):
+- `ownStepGhost_lead`, `ownStepGhost_xw_record` (`StepGhostMode`, internal): a premise
+  `s.role ≠ .preCandidate` added (the coordinator approved it, 2026-10-29). Why: `toPState` zeroes `lead` at a pre-candidate, so `leadW`
+  says nothing there.
+
+- `ghostRest_keep` (internal): premise `(hro : s'.role = s.role := by rfl)` added. Why: `leadW` reads
+  `toPState`'s lead, which a pre-candidate zeroes, so a phys `lead` equation is not enough.
+- `outboxRelP_isRaftMsg`/`_isRaftMsgs`/`self_pending` (internal, P3a): `Hsent` (the `reNoXfer` mode's
+  `SentMsgOk`) is replaced by XfOk's clauses: `SentMsgShape`, `AppFrom`, the stamped transfer's
+  `∈ s.gh.xw`, and `xfW γ s`. `Hns` is kept (`qCert` still has its `reNoSnap` disjunct).
+
+- `rdPool` (internal, `InvApi`): `⌜receiptBound GF ≤ 2^64 - 2⌝ ∗ inv …` (was the invariant alone);
+  `rdPool_mint` without its `receiptBound` premise. Why: `node.ReadIndex.spec` has no such premise
+  and `isNode` bounded nothing; `cluster_alloc` takes the premise, its allocation records it.
+
+- `wp_store_state_leader` (private, `raft__becomeLeader`): premise `s.term ≠ 0` added (its caller
+  passes `becomeLeader.spec`'s own). Why: `raft.wp_store_stateC` at `.leader` needs it now.
+- P5's private raw specs (`node__*.lean`): `nodeErrRaw`/`propErrRaw` posts; `node.Step`'s raw spec takes
+  `(⧗ 1 ={⊤}=∗ stepP γ id ml)`, `node.ReadIndex`'s `(⧗ 1 ={⊤}=∗ rdCred γ.raft 1)`;
+  `ProposeConfChange`'s raw spec posts `nodeErrS` directly; `TransferLeadership`'s raw spec
+  without `reNoXfer = false`. New lemma module `LemmasP5NodeErr.lean` (the raw errors' intros and the
+  bridges `nodeErrRaw_nodeErrS`, `propErrRaw_propErrS`, `nodeStoppedRaw_nodeStopped`).
+
+- New public laws (the coordinator's request, for kvreconf, 2026-10-29): `Membership.Valid.snapListsOk`
+  (`InvNodeRule`): `m.Valid → confStateIs cs m → W64 0 ∉ m.ids → (∀ k ∈ m.learnersNext, k ∉
+  m.voters) → GMap.size m.ids < 2^61 → uint.Z i < 2^61 → SnapListsOk ⟨⟨t, i⟩, cs.lists, m.autoLeave,
+  d⟩`, and `Membership.Valid.snapListsOk'` (`ConfchangeApi`), the same law with `m.Restorable` in place
+  of the two clauses. Deviation from the request: the requested statement lacked the `Restorable`
+  premises, and without them it is false (`Valid` allows the id `0` and a staged learner that is an
+  incoming voter, while `CSWf` excludes both).
+- `raft.Step.spec`'s `%Hframe` (internal): `MsgTransferLeader` is excluded from `NetFrame`, with a
+  clause of its own (`NetFrame s { s' with gh := s.gh }`, and `s'.gh` is `s.gh` but for `xw`). Why: the
+  forward records `(lead, term)` in `s.gh.xw`, so `s'.gh = s.gh` fails.
+
+### Phase 2 progress (the lead's hand-off)
+
+- Step 1 (statement fixes) pushed at `8f14f5df18`.
+- Wave 1 started 2026-10-29 with four helpers in this worktree, under the common brief
+  `/home/ubuntu/.claude-E/jobs/c8379647/tmp/phase2-brief.md`. P1+P2 is split in two:
+  P2a = `InvRaftPhys`, `raft__send`, `raft__sendTimeoutNow`, `raft__become{Candidate,Leader}`,
+  `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
+  P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
+  P5 together with P7. Next is wave 2 (P3b, P4, P6), once wave 1 is in. Then phase 3.

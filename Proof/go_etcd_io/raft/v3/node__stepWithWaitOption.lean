@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 
 @[expose] public section
 
@@ -42,9 +43,6 @@ theorem node.stepWithWaitOption.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ id n m wait ctx cd
   wp_start as ⟨#Hnode, #Hctx, Harg⟩
   -- (2026-10-29, stage U9a) `ErrStopped`, for the `n.done` cases
@@ -89,7 +87,7 @@ theorem node.stepWithWaitOption.wp_proof
       iintro -
       wp_auto
       iapply HΦ
-      iapply waitErr_nil
+      iapply waitErrRaw_nil
     iapply BigAndL.bigAndL_cons.2
     isplit
     · -- `case <-ctx.Done(): return ctx.Err()`
@@ -98,7 +96,7 @@ theorem node.stepWithWaitOption.wp_proof
       wp_auto
       wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
-      iapply waitErr_ctx $$ Hcerr
+      iapply waitErrRaw_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft
@@ -110,10 +108,11 @@ theorem node.stepWithWaitOption.wp_proof
       · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
       -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
       iapply node_done_recv_au γ nv.done' _ $$ Hdone
-      iintro -
+      iintro #Hst
       wp_auto
       iapply HΦ
-      iapply waitErr_stopped $$ HeStop
+      iapply waitErrRaw_stopped
+      iframe HeStop Hst
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- a proposal: `propc <- pm`, then `<-pm.result`
@@ -180,18 +179,18 @@ theorem node.stepWithWaitOption.wp_proof
           subst Hv
           wp_auto
           iapply HΦ
-          iapply propErr_nil
+          iapply propErrRaw_nil
         · simp only [↓reduceIte]
           icases Hgot with ⟨#Hse, -⟩
           cases v with
           | nil =>
             wp_auto
             iapply HΦ
-            iapply propErr_nil
+            iapply propErrRaw_nil
           | ok e =>
             wp_auto
             iapply HΦ
-            iapply propErr_of_stepErr $$ Hse
+            iapply propErrRaw_of_stepErr $$ Hse
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- `case <-ctx.Done(): return ctx.Err()`, the result abandoned
@@ -200,8 +199,8 @@ theorem node.stepWithWaitOption.wp_proof
         wp_auto
         wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
         iapply HΦ
-        iapply propErr_of_nodeErr
-        iapply nodeErr_ctx $$ Hcerr
+        iapply propErrRaw_of_nodeErrRaw
+        iapply nodeErrRaw_ctx $$ Hcerr
       iapply BigAndL.bigAndL_cons.2
       isplit
       · ileft
@@ -213,11 +212,12 @@ theorem node.stepWithWaitOption.wp_proof
         · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
         -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
         iapply node_done_recv_au γ nv.done' _ $$ Hdone
-        iintro -
+        iintro #Hst
         wp_auto
         iapply HΦ
-        iapply propErr_of_nodeErr
-        iapply nodeErr_stopped $$ HeStop
+        iapply propErrRaw_of_nodeErrRaw
+        iapply nodeErrRaw_stopped
+        iframe HeStop Hst
       iapply BigAndL.bigAndL_nil.2
       itrivial
     iapply BigAndL.bigAndL_cons.2
@@ -228,8 +228,8 @@ theorem node.stepWithWaitOption.wp_proof
       wp_auto
       wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
-      iapply propErr_of_nodeErr
-      iapply nodeErr_ctx $$ Hcerr
+      iapply propErrRaw_of_nodeErrRaw
+      iapply nodeErrRaw_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft
@@ -241,11 +241,12 @@ theorem node.stepWithWaitOption.wp_proof
       · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
       -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
       iapply node_done_recv_au γ nv.done' _ $$ Hdone
-      iintro -
+      iintro #Hst
       wp_auto
       iapply HΦ
-      iapply propErr_of_nodeErr
-      iapply nodeErr_stopped $$ HeStop
+      iapply propErrRaw_of_nodeErrRaw
+      iapply nodeErrRaw_stopped
+      iframe HeStop Hst
     iapply BigAndL.bigAndL_nil.2
     itrivial
 
@@ -286,7 +287,7 @@ theorem node.stepWithWaitOption.wp_proof
       iintro -
       wp_auto
       iapply HΦ
-      iapply nodeErr_nil
+      iapply nodeErrRaw_nil
     iapply BigAndL.bigAndL_cons.2
     isplit
     · -- `case <-ctx.Done(): return ctx.Err()`
@@ -295,7 +296,7 @@ theorem node.stepWithWaitOption.wp_proof
       wp_auto
       wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
-      iapply nodeErr_ctx $$ Hcerr
+      iapply nodeErrRaw_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft
@@ -307,13 +308,13 @@ theorem node.stepWithWaitOption.wp_proof
       · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
       -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
       iapply node_done_recv_au γ nv.done' _ $$ Hdone
-      iintro -
+      iintro #Hst
       wp_auto
       iapply HΦ
-      iapply nodeErr_stopped $$ HeStop
+      iapply nodeErrRaw_stopped
+      iframe HeStop Hst
     iapply BigAndL.bigAndL_nil.2
     itrivial
-  -/
 
 end proof
 

@@ -450,21 +450,20 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
       ghostRest γ .static c id s ={⊤}=∗
       ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c id s' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hlc Hg Hrest
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
   imod rdCred_zero (GF := GF) γ with Hcr
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnl, Hrm, #Hcl⟩
+  icases Hrest with ⟨%Hnl, Hrm, #Hcl, #Hw, #Hx⟩
   ihave %HC : ⌜CfgStatic γ c ∧ TrackedOk γ c id⌝ $$ [Hrm]
   · simp only [ghostRestM]; iexact Hrm
-  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hrc []
-    [Hcr] [] Hlc Hg with Hg
+  ihave #Hnil : ([∗list] x ∈ ([] : List Msg), isMessage (GF := GF) γ x) $$ []
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
+  ihave #Hw' := leadW_stepC γ c id _ (toPState s) [] (toPState s') Hstep $$ Hnil Hw
+  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hrc Hnil
+    [Hcr] [] Hlc Hg with Hg
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
   · iapply msgsTks_nil
   imodintro
@@ -477,8 +476,9 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
-  rw [Hng.1]; iexact Hcl
-  -/
+  rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+  iframe Hcl Hw' Hx
 
 /-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
 acknowledgement: `appliedSnap` switches to the snapshot's). -/
@@ -526,9 +526,6 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       ∃ md', ⌜md.StepOut c id m s s' md' ∧
         (∀ dec c0 h0 g, md = .dyn dec c0 h0 g → ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat j, cs', g.fp, g.decs⟩)⌝ ∗
         ownStepGhost γ md' c' id s' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   cases md with
   | static =>
     have HC' : CfgStatic γ c' ∧ TrackedOk γ c' id := by
@@ -610,8 +607,8 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       iframe Hfr' HM
 
       iintro %hcand; iapply Hc'; exact hcand
-    rw [Hng.1]; iexact Hcl
-  -/
+    rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1], Hps, Hng.1]
+    iexact Hcl
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)

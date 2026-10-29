@@ -38,9 +38,6 @@ theorem raft.tickHeartbeat.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickHeartbeat.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro c md γ r id s Hwf Hpc
   wp_start as H
   iNamed H
@@ -144,6 +141,8 @@ theorem raft.tickHeartbeat.wp_proof
         $$ [$Hphys $Hghost $Hlc2 Hcr Hmsg]
       · simp only [hP, ↓reduceIte, named]
         ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+        isplitr
+        · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
         isplitl [Hmsg]
         · iframe Hmsg
           repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -289,6 +288,8 @@ theorem raft.tickHeartbeat.wp_proof
       $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
     · simp only [hP, ↓reduceIte, named]
       ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+      isplitr
+      · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
       isplitl [Hmsg]
       · iframe Hmsg
         repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -328,7 +329,6 @@ theorem raft.tickHeartbeat.wp_proof
     iframe Hphys Hghost
     ipureintro
     exact ⟨Hwf1, Hcm1, Htr _ (TickStep.refl s1)⟩
-  -/
 
 end proof
 

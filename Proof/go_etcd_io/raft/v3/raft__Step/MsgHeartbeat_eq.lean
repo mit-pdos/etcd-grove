@@ -68,9 +68,6 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hteq Hvotes
   wp_start as H
   iNamed H
@@ -164,7 +161,6 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
@@ -208,7 +204,6 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
-  -/
 
 end StepProof
 
