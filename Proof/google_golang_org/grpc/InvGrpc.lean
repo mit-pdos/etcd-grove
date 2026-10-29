@@ -856,6 +856,26 @@ empty name with `"etcdserver: user name is empty"` even with authentication off
 (`authStore.UserAdd`). -/
 opaque noRefusalAt : GoString → Prop
 
+/-- **The non-auth refusals** (F-S2, 2026-10-29): the learner's (`isSafeRetry`) and the old
+balancer's two (`isSafeRetryMutableRPC`), the members of `refusalDescs` that do not depend on
+authentication. -/
+def otherRefusalDescs : List GoString :=
+  [go!"etcdserver: rpc not supported for learner",
+    go!"there is no address available", go!"there is no connection available"]
+
+theorem otherRefusalDescs_sub (d : GoString) (h : d ∈ otherRefusalDescs) :
+    d ∈ go_etcd_io.etcd.cache.v3.refusalDescs := by
+  simp [otherRefusalDescs] at h; rcases h with rfl | rfl | rfl <;>
+    simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+
+/-- **The server at `addr` never answers a unary call of etcd's KV service with a non-auth
+refusal** (opaque; F-S2, 2026-10-29): no status it sends in answer to a `kvMethod` call has a
+description among `otherRefusalDescs`. Established in either auth mode by the trust-boundary axiom
+`etcd_noOtherRefusal`; `noRefusalAt`'s half that does not depend on authentication. Not read yet:
+the attempt contract (`grpcInvokerOk`) is to read it with the auth refusals' identity proved in the
+server's error branches (`notes/auth-mode-merge-plan.md`, F-S2 part 2). -/
+opaque noOtherRefusalAt : GoString → Prop
+
 /-- **Metadata's values at the key `k`** (`none` metadata: none). -/
 def mdGet (md : GrpcMd) (k : GoString) : Option (List GoString) := md.bind fun m => m k
 

@@ -507,8 +507,10 @@ an auth history `kvInvOn` keeps half of (`histAu`; decisions, "The admin request
 view of the auth history"), through the server, the Auth gRPC layer and the client's Auth wrappers;
 authkv's `SetUp` (its auth half) proved over it, returning the history frozen at `setupSt r`,
 published, over the new trust-boundary axiom `context.WithTimeoutBackgroundMd` (the set-up's
-context has no outgoing metadata; the user's choice). Still in 5b: F-S2's `etcd_noOtherRefusal`
-(approved). Then `applyEntryNormal`'s variant families, which block `apply` and the
+context has no outgoing metadata; the user's choice). F-S2 part 1 is in: the axiom
+`etcd_noOtherRefusal` (approved; `api/v3rpc/NoRefusal.lean`, with `noOtherRefusalAt` in `InvGrpc`),
+not yet read by the attempt contract, so no result rests on it; part 2 (the auth refusals' identity
+in the error branches) makes `etcd_noRefusal` a theorem. Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
 
 ## Two compaction-path axioms refuted (2026-10-29)
