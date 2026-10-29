@@ -755,3 +755,38 @@ buffers satisfy `viOk P.VI`), kept by `UnsafePut`/`UnsafeSeqPut` under a new pre
 that a reader's view (`rtHeld … rv`) satisfies it (from `vData`'s two parts). Cost: `BParams`' field
 (every construction), `safeSt`'s establishing lemmas (`BatchLemmas`), the put specs' 13+ callers, the
 readers' law through `rtCore`.
+
+## Paused for the user's answers (2026-10-29): the batch
+
+Review round 6 (`notes/spec-first-study/backend-review-6.md`) confirms the round's proofs (the bridge's
+read, slot and `Meta`-put cases; `metaPutCap`'s read-only-for-good slices, true of Go and within the
+agent's remit). Every remaining `sorry` of the stage now waits on the user; the stage is paused here.
+This section supersedes the earlier statements of the questions (R6-6).
+
+1. **An axiom on `lean` false as stated (R6-1).** `mvcc.kbNoCmp_metaNone` (`NoCmpRead.lean:38`, the
+   restore work's R5c, `etc/tcb-baseline.txt:570`) leaves `rt`, `RT`, `Del`, `m`, `L` free: from one
+   backend's `kbNoCmp` it concludes `metaReadSpec rt true` for any read transaction (with `L := False`
+   the antecedent holds of any `rt`), so a second backend's read over a file holding
+   `finishedCompactRev` is claimed to find nothing, which Go contradicts (`read_tx.go:78-89`); and it
+   is applied before `RLock`, so it outlives the read. Probably no `False` in Lean (no backend spec pins
+   a `Meta` read), but false of the code. Proposed fix (a′, the reviewer's): the fact stated at the
+   backend, tied to its `readTx` through `rtHeld`, consumed by one read and true of that read only.
+   The trust base and the restore (D22) track: the user's. Suggested check: the `axiom` skill
+   (a Go program reading a `finishedCompactRev` the axiom says is absent).
+2. **R4-2: D22's `viewAt` with the batch quarter on the logical view.** (a) `viewAt γ vd := ∃ L, the
+   quarter at L ∗ thinV γ vd L`: sound, costs nothing today (its only user ignores it) — recommended;
+   (b) a separate physical-view ghost name updated at every commit: sound only so, heavier. Also a
+   trust-base point: without changing `viewAt`, the `backend.Snapshot` axiom becomes false after a
+   compaction. Blocks: the limited-range `sorry`, folding `Unlock.specC`/`UnsafeDelete.specC`.
+3. **`metaReadSpec` (the statement of question 1's axiom).** Restate it with the lock token and lent
+   slices (with question 1's fix), or a separate clause (breaks the one-spec rule). Blocks the
+   `metaReadTx` `sorry`. Note (R6-2): the cindex's `metaReadTx` is an unproved premise of the same
+   token-free shape (`CindexBackend.lean:27-30`), not a proved precedent.
+4. **`BParams.VI` and the trust base (R6-3).** Putting `viOk` into `safeSt` would make the `OpenBackend`
+   axiom claim it of any file on disk unless `openPre` gains a premise: the user's.
+5. **The compaction's read token at wiring.** Cheapest: `store.Compact.spec` lends `storeRT` from the
+   apply thread's `writerOwn` (as `restore` takes a token from its caller): a statement mvcc's client
+   sees, so the user's.
+Statement changes made while the user was away, for review (see the sections above): `ConcurrentReadTx`
+'s post thin; `dlInit` a premise of the exported `mvcc_NewStore_backend` and `server_kv_*` results;
+the old bridge's exports over `dlNoDel`; `metaPutCap`'s slices read-only for good.
