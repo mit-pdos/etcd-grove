@@ -40,9 +40,6 @@ theorem raft.tickElection.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickElection.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro c md γ r id s Hterm Htc Hwf Hfla Hpc
   wp_start as H
   iNamed H
@@ -119,6 +116,8 @@ theorem raft.tickElection.wp_proof
     $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
   · simp only [hP, ↓reduceIte, named]
     ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+    isplitr
+    · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
     isplitl [Hmsg]
     · iframe Hmsg
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -146,7 +145,6 @@ theorem raft.tickElection.wp_proof
     exact ⟨Hwf', Hcm, Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
       fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step Htm' hg, Hpc'.2⟩
   · exfalso; revert Hc''; msg_ne
-  -/
 
 end proof
 
