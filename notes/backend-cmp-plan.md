@@ -1290,3 +1290,129 @@ in the Draft round 11 passed (not churn from round 11's repairs). Repairs, decid
 
 **Left:** the wiring (question 5, the user's), then Test, Probe, Freeze (with the `axiom` skill on
 `backend.Snapshot`, running on branch `axiom/snapshot`) and Prove.
+
+## Question 5: the wiring, the user's decisions (2026-10-29)
+
+The user approved the recommendations (2026-10-29):
+- **(i) The read token.** `store.Compact.spec` borrows `storeRT γ` from the apply thread's
+  `writerOwn` (pre and every post branch), for `checkPrevCompactionCompleted`'s `metaReadTx rt RT`.
+- **(ii) The write right stays in the store.** `store.restore` stops consuming `kbNoCmp`: after its
+  two reads it keeps the flag's half (`kbMW`) in the store's own state. It never goes back to a
+  client.
+- **(iii) The assumed backend's flag.** `kbMW none` becomes an opaque `viewFk γb`, mirroring
+  `viewNoCmp`, so results over mvcc's assumed backend can be met by an honest creator.
+- **(iv) Compaction on.** The real backend gets `kbCmp := True` through the sorry-free
+  `isKeyBackendG_of_backendC`, with R2-7's D22-side changes and R9-3 (`SetScheduledCompact`/
+  `SetFinishedCompact` with a general `MW`). The old bridge becomes an instance of the new one, the
+  last variant.
+
+### Question 5's Draft round (2026-10-29)
+
+Draft statements: `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/WiringDraft.lean`. It is imported by
+nothing and builds. Its one law (`kbNoCmpW_MW`) is proved; the switch's two laws are stated as
+`Prop`s (`isKeyBackendG_weaken.stmt`, `isKeyBackendG_congrDel.stmt`), not assumed.
+
+**The design.**
+- **(ii), where the write right lives: the batch lock's resource** (decided by the agent).
+  - `storeWW s γ := storeW s γ ∗ kbMWW γ.kb γ.bucket`. `store.restore`'s post gives the half back
+    (`kbNoCmpW_MW`). `NewStore` deposits it with `W` at its first `Unlock` (the late-bound `lateW`
+    for the real backend, `writerRes` for the assumed one).
+  - Every session that writes a compaction key takes it from the lock's resource and returns it at
+    its `Unlock`: `store.Compact`'s `SetScheduledCompact`, and the job's `UnsafeSetFinishedCompact`.
+  - Why not the compaction right or token: `store.Compact`'s `SetScheduledCompact` runs while the
+    previous job may be running `UnsafeSetFinishedCompact` (Go: the job is asynchronous). An
+    exclusive right in the token, which the queue hands from job to job, could not be in both
+    places. The batch lock already serializes them.
+  - So `store.restore`'s post gains `kbMW…`; its callers (`NewStore`, `store.Restore`) take it.
+    `store.Restore` (D22's, a received backend) drops it: no compaction on a server that installs
+    snapshots.
+- **(iii)** `viewFkW γb f` is opaque, with `viewNoCmpW γb := viewFkW γb 0` and
+  `kbMWW none γb := ∃ f, viewFkW γb f`. `kbMW` takes the bucket's name `γb`. Uses:
+  `storeBackend`/`storeBackendT`/`physOk`, the `#Hbt` facts, `batchTxSpec` (about 10, all in mvcc).
+- **(iv) The job's budgets go in the compaction token** (decided by the agent).
+  - `compactTokW γ c := (∃ c' ≤ c, idxCompactor γ.idx c') ∗ compactJobRes γ.kb`: a reader's token,
+    the safe-range slot, the write-back supply, handed from job to job through the queue.
+    `NewStore` takes `compactJobRes kb` from its caller (all `True` for the assumed backend).
+  - `storeBackend`'s `SR`/`SRh` become `kbSR γ.kb` and a new `kbSRh γ.kb` (`srHeld`).
+- **(iv) The registration.** A compacting store fixes the backend's deletable keys to its index's
+  `delKey` (`storeDlReg γB γi`, over `delKeyI γi`, since `delKey γ = delKeyI γ.idx`). The creator can
+  do this before `NewStore`, because the index's names `γi` are allocated first (`NewStore_backend`,
+  `BuildLemmas`). The store's `Del := delKey γ` then comes from the bridge's `bkDel` through
+  `isKeyBackendG_congrDel` (stated with `◇`, `delKey` being timeless).
+- **(iv) The old bridge** becomes `isKeyBackendG_of_backendC` followed by `isKeyBackendG_weaken`: a
+  contract with `Cmp := True` and no deletable keys (`dlNoDel`) is one with any `Del'`, no
+  compaction, and trivial slots. One proof; `isKeyBackendG_of_backend` becomes a corollary, used by
+  D22's exact readers.
+- **R2-7, D22's side** (approved with (iv); statement for the switch). `NewServer` gives
+  `kbWTSupply (some d)` from `srvWTPool`'s invariant at the boot backend `d`:
+  `srvWTPool E γp ∗ dghostVar E.γbe DFrac.discard d ⊢ □ (⧗ 1 ={⊤}=∗ wbTok d.γB)`. The server in
+  compaction mode discards its fraction of `E.γbe` at boot: no snapshot is ever installed, so `d`
+  is fixed. Each conversion adds the receipt to the pool's `a` and takes one of its `n` tokens, so
+  `receiptBound ≤ a + n + 1` is kept, with `wbInit`'s split shared.
+- **R9-3:** `SetScheduledCompact.spec`/`SetFinishedCompact.spec` take a general `MW`, not
+  `kbMW none`.
+
+**Statement changes, by kind.**
+- **Seen by mvcc's clients:**
+  - `store.Compact.spec`: `storeRT γ` in the pre and every post branch (`store.Compact.specW`).
+  - `NewStore.spec`: `kbNoCmpW kb γb`, `compactJobRes kb` in the pre; same post (`NewStore.specW`).
+    `New.spec` and `newWatchableStore.spec` follow, with the same additions.
+  - `store.restore.spec`: its post gains `kbMW…` (private to mvcc, but a `Spec` file).
+  - `kbMW`/`kbNoCmp`/`kbCmp`/`compactTok`/`storeW`: definitions in their statements.
+- **Exported results:**
+  - `mvcc_NewStore_backend` and `NewStore_backend`: `dlInit` fixed by the store, `fkV d.γB true`
+    (from `newPost`'s `fkCl`), `compactJobRes (some d)`, three more callee specs (`LockFor…`,
+    `UnlockFor…`, `UnsafePut`), and `d.P`'s `hHK`/`hFV`. Same post; the docstring's "the compaction
+    is of no use" goes.
+  - `mvcc_backend_bridge`, `mvcc_storeBackend_of_backend`: over the new bridge.
+  - `mvcc_store_Compact`: same text, (i)'s meaning.
+  - `server_kv_backend`, `server_kv_watchable`, `server_kv_backend_hooks` (`etcdserver/Results.lean`):
+    the same pre additions as `NewStore_backend`.
+  - `NewServer.spec`: through `BuildLemmas`; it supplies `compactJobRes` from `srvWTPool` (R2-7) and
+    `fkV` from `newPost`.
+  - `putgetc`: unaffected until M2 resumes and uses the compaction over the real backend.
+- **Trusted:** none changed, unless Q5-2 below.
+- **D22's (the collaborator's):** `srvWTPool` (R2-7's conversion, the discarded `E.γbe`);
+  `store.Restore` (drops the returned write right); `RestorePre` (`kbNoCmp`); `SnapApplyWalk`/
+  `SnapApplyDefs` (Q5-1).
+
+**Proof sites** (`etc/importers.py`, no build):
+- mvcc:
+  - `InvStore.lean` (the definitions, about 10 uses of `kbMW`), `InvCompact.lean` (`compactJobPre`
+    drops `storeCmp`, takes the token's budgets);
+  - `store__restore.lean` (return the half: small), `NewStore.lean` (deposit the half at the first
+    `Unlock`, the budgets into the token), `store__Compact.lean` (thread `storeRT` to
+    `checkPrevCompactionCompleted`; the half for `SetScheduledCompact` from the lock);
+  - `store__scheduleCompaction.lean` (the job: the half from the lock in its last batch, the budgets
+    from the token), `store__updateCompactRev`/`compactLockfree`/`checkPrevCompactionCompleted`
+    (`storeCmp` only), `store__Restore.lean`, `newWatchableStore.lean`, `New`;
+  - `BackendBridge.lean` (`isKeyBackendG_weaken`, `isKeyBackendG_congrDel`), `StoreBackend.lean`,
+    `Results.lean`, `Link.lean`.
+- etcdserver: `BuildLemmas.lean`, `Results.lean`, `InvApplier.lean` (R2-7), `SnapApplyWalk.lean`,
+  `SnapApplyDefs.lean`, `RestorePre.lean`.
+- Estimate: about 700-900 lines: mvcc about 450, the two laws about 180, etcdserver/D22 about 200.
+  One full build per round, since `InvStore` rebuilds 1723 modules.
+
+**Questions for the user** (beyond the approved (i)-(iv)):
+- **Q5-1: `kbCmp := True` for every real backend, or the mode in the instance.**
+  - The conflict: a store whose backend is fixed at "nothing deletable" (`dlNoDel`) cannot meet
+    `Cmp := True`, because the job's deletes need the backend's registration to give `delKey`. Today
+    every real store is fixed at `dlNoDel`, and D22's exact readers depend on it: `SnapApplyWalk`
+    fixes the received backend at `dlNoDel`, and `store.Restore` over it builds the store's contract.
+  - (a) **The mode in the instance** (recommended): `KBReal` gains `cm : Bool` (the server's
+    `ρ.kv.cmp`, M2's mode), `kbCmp (some d) := d.cm` (`kbCmpM` in the draft).
+    - A compacting store registers `delKeyI`; the others, and D22's received backends (`cm := false`
+      in `SnapApplyDefs`' records), keep `dlNoDel` and the old bridge, an instance of the new.
+    - One spec per function, with the mode in the state.
+    - D22's statements change only by the record field.
+  - (b) **Literally `kbCmp := True`**: every real store registers `delKeyI`. D22's exact readers get
+    exactness from "no compaction ever" (`crevFrozen` makes `delKeyI` false) instead of `dlNoDel`.
+    That is a restatement of D22's readers (F7), the collaborator's statements.
+- **Q5-2: the safe-range slot's supply grows a trusted statement's meaning.**
+  - The job's budget `compactJobRes` includes the slot `srSlot d.be` (ownership of the backend's
+    `safeRangeDeleteMu`). No creation path gives it today.
+  - `New`'s post (`newPost`/`newPostK`) would gain it: proved from the zero `RWMutex` that
+    `newBackend` allocates. `storage.OpenBackend`'s text is `newPostK`, so its meaning grows (still
+    "does what `New` does").
+  - Under the Freeze rule, it then gets the `axiom` skill's check again (cheap: the claim is `New`'s
+    proved post).
