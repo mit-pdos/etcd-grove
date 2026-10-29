@@ -136,6 +136,57 @@ Each: old → new, and why.
   γ.c0` (the cluster has no public `c0`); `vs.Nodup` because `NewRawNode` takes the `ConfState`'s list
   without repeats.
 
+## Spec changes during U11's `confchange`/`tracker` specs (2026-10-29, branch `raft-unified-cc`)
+
+The frozen design is candidate §4b (`notes/spec-first-study/raft-node-unified-candidate.md`). Each item gives
+the design, what was done instead, and why. All sent to the coordinator and approved.
+
+- `Membership.applyChange` is unchanged: other tracks' frozen statements rest on it. It does not become
+  Go's `confchange` (the design's H2). Instead there is a new sealed `Membership.applyGo` (Go's
+  `confchange`, no cut), with `Membership.applyChange_eq_applyGo : applyChange o m = (applyGo o m).filter
+  (size ·.ids < 2^62)`, and the `Changer` apiSpecs are stated over `applyGo`.
+- `confchange.Restore.apiSpec`: the premises `confStateIs c m ∧ m.WellFormed` were not enough. They gain
+  `m.Restorable` (new, transparent: `W64 0 ∉ m.ids ∧ ∀ k ∈ m.learnersNext, k ∉ m.voters`). Without it the
+  statement is false. Take `m = Membership.simple {0}`, which is `Valid`: `Restore` runs `Simple([AddNode
+  0])`, `apply` skips id `0`, and the call fails with "removed all voters". Take also `m = ⟨{1}, {1}, ∅, {1},
+  _⟩`, which is `Valid`: `Restore`'s `AddLearnerNode 1` takes 1 out of the incoming voters, and the call
+  fails the same way. Laws: `Membership.restorable_empty`, `restorable_simple` (`0 ∉ vs`),
+  `applyGo_restorable` and `applyChange_restorable` (from a `WellFormed` membership), and
+  `confAt_restorable : confAt γ k m ⊢ ⌜m.Restorable⌝`. This last one is why internal `ModeDec`
+  (`InvApiDec.lean`) records the initial membership's `Restorable`; `cluster_alloc_dec` proves it from
+  `W64 0 ∉ vs`.
+- The `Changer` apiSpecs take no `m.WellFormed` premise: `ownTrackerM trk (some m)` carries the reachable
+  state (`CCGood`). They give back `ownTrackerM chg.Tracker' (some m)`, since the tracker is only read.
+- `ownTrackerM trk none` holds the fresh progress map owned. `Restore`'s derivation makes it read-only,
+  as the internal spec takes it.
+- New: `Membership.applyGo_asV2`/`applyChange_asV2` (a `ConfChange` is its `asV2`), asked for by track C.
+
+## Spec changes during track B (U8 storage, U11 confchange; 2026-10-29, branch `raft-unified-storage`)
+
+Each: old → new, and why. Items 1-7 and the confchange items were sent to the coordinator and approved.
+
+- `MemoryStorage.SetHardState.spec`: made importable (`etc/api/raft.txt`; `RaftLink.MemoryStorage.wp_SetHardState`),
+  as designed (J5). Done.
+- The `confchange`/`tracker` items: the section above ("Spec changes during U11's ...").
+- (approved, in progress, WIP branch `raft-unified-storage-wip`) 1. `StorState.hd` (the hold, `0` for a fresh
+  storage): the design's `storHoldMark` as a field of the owner's view. 2. `isStorageWith`: `HSnapshot`'s
+  application snapshot `≤ σ.fl`, term over `σ.ents` → `≤ σ.hd`, term over `storApp σ σ.pend` (raft's goroutine
+  may read a snapshot the client took mid-`Ready`); `PendAbove` stays the floor's, a new `HdAbove` (batch above
+  the hold) in `Hhandout`'s premise; `Hfloor` raises the hold with the floor (`x ≤ h`). 3. `StorageModel`:
+  `storTermsAt_intro`'s `≤ σ.fl` → `≤ σ.hd`; new `storTermsPre` (+ persistence, intro) and the receipt law
+  `storTermsAt_receipt`; `storHoldsLb st l := ∃ ts, storTermsAt st ts ∗ ⌜l.map term <+: ts⌝` (a definition, in
+  `NodeApiVocab`, with `storHoldsLb_mono`), `appendHold`/`appendHold_receipt` (`InvStorage`). kv's instance
+  breaks (repaired at U10). 4. `MemoryStorage.ApplySnapshot.spec`: premise `σ.hd ≤ index`, post state
+  `{memStorApplied sv with fl := σ.fl, hd := σ.hd}`. 5. `readyOut`/`snapReceipt`: the hold at most the snapshot's
+  index (and at least the floor). 6. `MemoryStorage.CreateSnapshot.unifiedSpec`: `memFloorTok`/`i ≤ x` dropped,
+  the hold-based `memTermsAt` gives `i ≤ hd` and the entry. 7. The design's `appendReceipt_holds` with an update
+  (`|==>`). `MemoryStorage.Snapshot.spec`'s second disjunct as `HSnapshot`'s (done).
+- (open) Where the hold is raised: `Hhandout` (first attempt) leaves raft a window
+  (`notes/decisions.md`, "Track B"); the plan is a raise with the batch pending, after `acceptApplying`, which
+  changes `Hhandout` back (no `h`, keeping `HdAbove`) and `Hfloor` (or a new law) to allow raising the hold alone
+  while a batch is pending.
+- (open) The storage-wrapper law (§4): not started.
+
 ## Machinery (the map of the two modes, 2026-10-28)
 
 - Mode: `RaftNames.reDyn` (`none` static), `reNoSnap`, `reNoXfer`, `reTracked` (static), `reSnapOkRaw`

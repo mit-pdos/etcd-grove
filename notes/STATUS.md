@@ -506,6 +506,28 @@ Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; 
   cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
   hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).
 
+## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)
+
+Done and pushed: `MemoryStorage.SetHardState` importable; the `confchange`/`tracker` client specs (the U11
+section below, from branch `raft-unified-cc`). In progress: U8's storage hold (`StorState.hd`; design and the
+open hand-out window in `notes/decisions.md`, "Track B"; spec changes in `notes/raft-unified-plan.md`,
+"Spec changes during track B"), WIP on branch `raft-unified-storage-wip` (does not build past `InvRaftlog`).
+Not started: the storage-wrapper law.
+
+## Raft unified, stage U11: `confchange`/`tracker` for clients (2026-10-29, branch `raft-unified-cc`)
+
+The importable specs a client needs to validate a change the way raft does (kvreconf's `validConf`) are
+in `Proof/go_etcd_io/raft/v3/ConfchangeApi.lean`, which is in `etc/api/raft.txt`:
+- `Membership.applyGo` (sealed) and `Membership.Restorable`, with their laws (`applyChange_eq_applyGo`,
+  `applyChange_restorable`, `applyChange_asV2`, `confAt_restorable`);
+- `ownTrackerM`/`ownCfgPairM` (sealed), with `ownTrackerM_assemble` and `ownCfgPairM_size`;
+- the `apiSpec`s of `MakeProgressTracker`, `Restore` and `Changer.{Simple,EnterJoint,LeaveJoint}`.
+
+They are derived from the internal specs (`ConfchangeApiProof.lean`, over `ConfchangeApiImpl.lean`) and
+linked in `Linked.lean` (`RaftLink.*_api`). No `sorry` or axiom is added. The client proof (`validConf`)
+is not written yet. Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U11's
+`confchange`/`tracker` specs".
+
 ## Raft unified, stage U4: joiners (2026-10-29, branch `raft-unified`)
 
 Done in the decision cluster (`cluster_alloc_dec`, its log empty); raft's tree builds (`Link`,

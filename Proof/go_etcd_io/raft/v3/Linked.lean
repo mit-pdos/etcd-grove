@@ -16,13 +16,16 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Proof.go_etcd_io.raft.v3.ConfchangeApi
 import Proof.go_etcd_io.raft.v3.Link
+import Proof.go_etcd_io.raft.v3.ConfchangeApiProof
 
 @[expose] public section
 
@@ -119,6 +122,11 @@ theorem MemoryStorage.wp_Append [StorageModel GF] :
     MemoryStorage.Append.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.MemoryStorage.wp_Append
 
+/-- (2026-10-29, U8, J5) For a client that persists a `Ready`'s hard state (kvreconf). -/
+theorem MemoryStorage.wp_SetHardState [StorageModel GF] :
+    MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_SetHardState
+
 theorem MemoryStorage.wp_Entries [AllG GF] [StorageModel GF] :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.MemoryStorage.wp_Entries
@@ -134,6 +142,34 @@ theorem MemoryStorage.wp_LastIndex [AllG GF] [StorageModel GF] :
 theorem MemoryStorage.wp_Term [AllG GF] [StorageModel GF] :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.MemoryStorage.wp_Term
+
+/-! `confchange` and `tracker` for clients (2026-10-29, stage U11, `ConfchangeApi.lean`): the
+importable specs, from the internal ones (`ConfchangeApiProof.lean`) and `Link.lean`'s results. -/
+
+theorem tracker.wp_MakeProgressTracker_api :
+    tracker.MakeProgressTracker.apiSpec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.tracker.MakeProgressTracker.apiSpec_of
+    _root_.Perennial.EtcdGrove.tracker.wp_MakeProgressTracker
+
+theorem confchange.wp_Restore_api :
+    confchange.Restore.apiSpec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.confchange.Restore.apiSpec_of
+    _root_.Perennial.EtcdGrove.confchange.wp_Restore
+
+theorem confchange.Changer.wp_Simple_api :
+    confchange.Changer.Simple.apiSpec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.confchange.Changer.Simple.apiSpec_of
+    _root_.Perennial.EtcdGrove.confchange.Changer.wp_Simple
+
+theorem confchange.Changer.wp_EnterJoint_api :
+    confchange.Changer.EnterJoint.apiSpec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.confchange.Changer.EnterJoint.apiSpec_of
+    _root_.Perennial.EtcdGrove.confchange.Changer.wp_EnterJoint
+
+theorem confchange.Changer.wp_LeaveJoint_api :
+    confchange.Changer.LeaveJoint.apiSpec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.confchange.Changer.LeaveJoint.apiSpec_of
+    _root_.Perennial.EtcdGrove.confchange.Changer.wp_LeaveJoint
 
 end links
 
