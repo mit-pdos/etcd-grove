@@ -1,4 +1,5 @@
-/- `MemoryStorage.SetHardState` (`storage.go:127`), proved 2026-10-12 (Lean-first). -/
+/- `MemoryStorage.SetHardState` (`storage.go:127`), proved 2026-10-12 (Lean-first); over the U8 v2 lock
+invariant 2026-10-29. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
@@ -15,7 +16,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -33,7 +34,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σp, %c, Hinv⟩
+  icases Hinv with ⟨%p, %ents, %M, %sv, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
@@ -46,18 +47,19 @@ theorem MemoryStorage.SetHardState.wp_proof :
   icases (typedPointsto_half_split _ _ 1).1 $$ HhardState with ⟨HhardState, HhardState_f⟩
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState_f
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState_f
     Hents_f_f Hents_f Hents_cap_f Hcs_firstIndex_f Hcs_lastIndex_f Hcs_entries_f Hcs_term_f
-    Hcs_snapshot_f Hcut_inv]
-  · inext
-    unfold memstorageInv memstorageFields
-    iexists σp, c
-    iframe Hgs_inv Hcut_inv
+    Hcs_snapshot_f Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+  · unfold memstorageInv
+    iexists p, ents, M, sv
+    simp only [named]
+    iframe # ∗
     isplitl
-    · iexists st, es, dummy, nfi, nli, nen, nte, nsn
+    · unfold memstorageFields
+      iexists st, es, dummy, nfi, nli, nen, nte, nsn
       iframe
       ipureintro; exact Hdummy_f
-    ipureintro; exact Hpb_inv
+    ipureintro; exact Hok_inv
   iapply HΦ
   unfold memStorMeta
   iexists n, st
