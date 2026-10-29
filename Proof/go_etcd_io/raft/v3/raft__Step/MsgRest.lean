@@ -280,7 +280,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   · iapply rcvSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
-      (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
+      (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
     (fun _ => Hnors) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iframe Hphys Hsrc0
@@ -437,7 +437,8 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     -- forward (`ownRaftPhysC_xw_record`, before this arm; `stepFollower`'s premise); the stamped
     -- request's refutation from its witness (`ownStepGhost_xferRefute`, in `raft.Step`). (Until then
     -- leader transfer on, `s.gh.xf = false`, D21 M2r.)
-    (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome) →
+    -- (raft-final phase 2) at a follower only: a pre-candidate's leader is hidden (`toPState`)
+    (s.role = .follower → s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome) →
     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) →
     (s.role = .follower → s.lead ≠ id) →
     NStateWf s →
