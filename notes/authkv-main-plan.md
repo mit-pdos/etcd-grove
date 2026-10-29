@@ -297,3 +297,29 @@ plan's key; root's history has a DELETE), `akHist_events` (an event of `σ.revEv
 `modRev = r`, so `stateHistOk` gives `histOk` of the collected events), S4, and S6's
 `akAuthFixed_alloc`. F-S1: `SetUp.spec`'s post says nothing of `rev`; restated with F-S2's answer
 (the last put's revision, and the client's `etcdKV` back at it).
+
+## Main's callees, draft (2026-10-29)
+
+`Main.wp_proof`'s hypotheses once frozen, in `Main`'s order (`examples/authkv/authkv.go:365`):
+
+| Call | Spec | State |
+|---|---|---|
+| `zap.NewNop` | `zap.NewNop.spec` | exists |
+| `startServer` | `startServer.spec` (gives `common.memberUpOn … γa`) | exists, proved |
+| `common.Serve` | `common.Serve.specOn` (from `memberUpOn`'s parts; its `grpcUpOn` step gives `akKVOn` through `etcd_kv_auth_served_onA`, with the Auth registrations and `Authenticate`'s `authTokReg`) | exists; the merge folds it into `Serve.spec` |
+| `common.NewClient` | `common.NewClient.spec` (G1: `clientTokAt … False`) | exists |
+| `SetUp` | S5 | restated after the refusal fact (F-S1, F-S2) |
+| `newUserClient` ×3 | S3 | drafted |
+| `Principals`, `Work` ×4, `sync.WaitGroup` | `Principals.spec`, S2, Perennial's | S2 waits on 5b and G2 |
+| `context.WithTimeout`, `ErrAny` | `context.WithTimeoutBackground.spec` (now with no values), `context.ErrAny.spec` | exist |
+| `root.Put(z/end)` | `client_Put_on` (local wrapper, not frozen: F-C1) at a non-persistent update once the refusal fact lands | exists |
+| `context.WithCancel` | `context.WithCancelBackground.spec` | exists |
+| `root.Watcher.Watch("", WithPrefix, WithRev(1))`, `ucli.Watcher.Watch(lo, WithRange(hi), WithRev(1))` | G2's `watcher.Watch.spec` (the merge session's); `WithPrefix.spec`, `WithRange.spec`, `WithRev.spec` | G2 pending |
+| `common.Collect` ×2 | `draft.Collect_spec` (`Drafts.lean`): general in a per-event fact `F`. Root's: `F i e := ⌜sint.Z setupRev < sint.Z e.Rev' → keyHistOk e.Key'⌝`, from the watch's events at states `akHist_readAu` fires at. u's: `F i e := ⌜permittedK u e.Key'⌝`, from G2's no events refused to u | drafted; restating `common.Collect.spec` changes a spec of `common` (watchkv, linkv3p use it, through the corollary at their plan): the user's call |
+| `CheckHistory` | `CheckHistory.spec`, its premise `histOk` from root's `F` by `draft.histOk_of_keyHistOk` (proved) | exists |
+| `LastIn`, `Permitted` | `LastIn.spec`, `Permitted.spec` | exist |
+
+Laws `Main` needs besides: `akHist_alloc` (S1, once `SetUp` gives back the client's `etcdKV` at
+`setupRev`), S6's `akAuthFixed_alloc` (from `SetUp`'s admin results and 5b's frozen view; drafted
+when 5b is), and the watch's events in `σ.revEvents r` at their `ModRevision` (part of G2's spec:
+the events a watch reports are the state's, `watchStateRespOk`).
