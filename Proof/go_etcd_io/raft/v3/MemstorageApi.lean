@@ -8,8 +8,9 @@ what was delivered, `storDL`): the storage's invariant `memStorInv ms γs γ id`
 `isStorage γ id` of a registered `MemoryStorage`. (A client whose `Storage` wraps a `MemoryStorage`,
 kvreconf's, builds its own `StorageModel` instance over these: the design's A6, no wrapper law here.)
 
-Statements only in raft-final's phase 1 (`notes/raft-unified-plan.md`, "Phase 1 sorries"): proved by
-phase 2's track P7.
+Stated in raft-final's phase 1, proved in its phase 2 (track P7): the allocation from
+`memStorInvP_alloc` (index `0` justified by `nodeAppliedLb_zero`), the contract from
+`memStorage_isStorageP` (`storBnd` is `memBnd` at `memStorJ`).
 -/
 module
 
@@ -58,7 +59,12 @@ instance memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (i
 /-- Its allocation, from `NewMemoryStorage`'s fuel (`memStorFresh`) once `InitialState` returned. -/
 theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) (E : CoPset) :
     ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs ={E}=∗ memStorInv ms γs γ id := by
-  sorry
+  iintro #Hl Hf
+  unfold memStorInv
+  iapply memStorInvP_alloc ms γs (memStorJ γ id) E $$ Hl Hf
+  simp only [memStorJ]
+  ileft
+  iapply nodeAppliedLb_zero
 
 /-- **A registered `MemoryStorage` meets node `id`'s storage contract.** -/
 theorem memStorage_isStorage
@@ -69,7 +75,9 @@ theorem memStorage_isStorage
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
     ⊢ memStorInv (GF := GF) ms γs γ id -∗ memStorReg ms γs -∗ isStorage γ id (memStorIface ms) := by
-  sorry
+  unfold memStorInv isStorage
+  exact memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
+    (memStorJ γ id)
 
 end api
 
