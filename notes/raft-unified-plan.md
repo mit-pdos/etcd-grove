@@ -1133,6 +1133,12 @@ Phase 2 (internal statement changes):
   `s.role ≠ .preCandidate` added (the coordinator approved it, 2026-10-29). Why: `toPState` zeroes `lead` at a pre-candidate, so `leadW`
   says nothing there.
 
+- `ghostRest_keep` (internal): premise `(hro : s'.role = s.role := by rfl)` added. Why: `leadW` reads
+  `toPState`'s lead, which a pre-candidate zeroes, so a phys `lead` equation is not enough.
+- `outboxRelP_isRaftMsg`/`_isRaftMsgs`/`self_pending` (internal, P3a): `Hsent` (the `reNoXfer` mode's
+  `SentMsgOk`) is replaced by XfOk's clauses: `SentMsgShape`, `AppFrom`, the stamped transfer's
+  `∈ s.gh.xw`, and `xfW γ s`. `Hns` is kept (`qCert` still has its `reNoSnap` disjunct).
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
