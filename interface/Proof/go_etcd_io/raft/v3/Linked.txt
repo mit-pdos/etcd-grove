@@ -310,3 +310,18 @@ theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemorySto
                 ((intoVal (methods MemoryStorage.ty.PointerType go!"Append" (intoVal ms)))
                   (intoVal s))
                 {{ Φ }}
+
+theorem RaftLink.MemoryStorage.wp_SetHardState [package_sem : Assumptions] :
+    MemoryStorage.SetHardState.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.SetHardState.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (hs : HardStateM) (st : Loc) (hs' : HardStateM),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hmeta" ∷ memStorMeta ms γs hs ∗ "#Hst" ∷ hsOpt st hs' -∗
+          ▷ (memStorMeta ms γs hs' -∗ Φ (intoVal GoInterface.nil)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType
+                    go!"SetHardState" (intoVal ms)))
+                (intoVal st))
+              {{ Φ }}

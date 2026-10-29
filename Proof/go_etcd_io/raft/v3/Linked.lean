@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Spec.go_etcd_io.raft.v3.RestartNode
@@ -118,6 +119,11 @@ theorem wp_IsEmptySnap  :
 theorem MemoryStorage.wp_Append [StorageModel GF] :
     MemoryStorage.Append.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.MemoryStorage.wp_Append
+
+/-- (2026-10-29, U8, J5) For a client that persists a `Ready`'s hard state (kvreconf). -/
+theorem MemoryStorage.wp_SetHardState [StorageModel GF] :
+    MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_SetHardState
 
 theorem MemoryStorage.wp_Entries [AllG GF] [StorageModel GF] :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=

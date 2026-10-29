@@ -66,6 +66,8 @@ importable Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+# (2026-10-29, U8, J5) kvreconf persists a Ready's hard state
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 importable Proof.go_etcd_io.raft.v3.InvStorage
 importable Proof.go_etcd_io.raft.v3.InvMemstorage
