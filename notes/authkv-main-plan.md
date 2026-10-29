@@ -186,3 +186,13 @@ user, 2026-10-29): (A).** The merge session places it (step 5 or 6) and sends th
 proving it. S6 needs from it: a client-side view of the auth history that the update fires on;
 `SetUp`'s `Q`s from the fired updates, so that `Main` holds the view at the eight steps' result;
 and the view's last state equal to `srvAuthAtLog … L` for every requested log `L ⊇ Lset`.
+
+**D2's shape (the merge session's stage "5b", after step 5; 2026-10-29).** `kvInvOn` keeps half of a
+mono-list of the model's auth states along the log's admin entries. The client's view
+`authHistView γ hs` is the other half, exported at the start (`memberUpOn`). An admin request's
+update is an AU over the view; it fires at the admin entry's commit (`kv_prop_au_on`'s admin
+branch) and appends `adminNext`'s state. `writeGrantAt` gains a fragment of the history up to `L`.
+Asked so S6 can close the ordering: (1) the fragment is a pure function of the log (`admStates L`,
+its last state `srvAuthAtLog … L`), monotone in `L`; (2) the admin update's commit gives
+`srvReqLogLb ρ.raft (L ++ [e])` with `admStates (L ++ [e])` the view's new history. Then `Lset`
+(after `AuthEnable`) has `admStates Lset = hs_set`, and every write's `L ⊇ Lset` reads `setupSt`.
