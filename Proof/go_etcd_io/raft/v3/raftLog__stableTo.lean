@@ -134,9 +134,6 @@ theorem raftLog.stableTo.wp_proof
       word
     · simp only [List.length_append, List.length_take, List.length_drop]
       omega
-    · intro _
-      rw [List.append_assoc, List.take_append_drop]
-      exact Hsn
     · simp only [Huoff, w64Max_spec, List.length_drop]
       word
     · intro _

@@ -52,14 +52,13 @@ theorem raftLog.stableSnapTo.wp_proof
     all_goals first
       | exact (snapV_sapp Hsa) ▸ Hstore
       | (intro _ h; cases h; done)
-      | exact fun _ => (snapV_sapp Hsa)
       | exact fun _ => Hpersist (snapV_sapp Hsa)
       | (intro _; rw [Huoff]; exact Hpersist (snapV_sapp Hsa))
       | (intro _; rfl)
       | exact ⟨Hpend.1, fun _ e0 He0 => by simp [Hunp] at He0⟩
       | exact Hfl
       | exact ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, Hfl.2.2.2.1, fun h => absurd rfl h, fun h => absurd rfl h⟩
-      | exact
+      | exact Hfr
       | (intro h; simp only at h; rw [Hlnt] at h; cases h; done)
       | (intro h; simp at h; done)
       | exact ⟨(fun h => by simp at h), (fun h => by simp at h)⟩

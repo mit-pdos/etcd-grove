@@ -616,6 +616,16 @@ log's record (`LogState.sg`). -/
 def FrOk (σ : StorState) (ls : LogState) : Prop :=
   (ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)) ∧ σ.sg = ls.sg
 
+/-- `FrOk` across a change that keeps the loan and the snapshot handed out, and does not lower
+`applying`. -/
+theorem FrOk.of_le {σ : StorState} {ls ls' : LogState} (H : FrOk σ ls) (hl : ls'.lent = ls.lent)
+    (hs : ls'.sg = ls.sg) (ha : uint.Z ls.applying ≤ uint.Z ls'.applying) : FrOk σ ls' := by
+  refine ⟨fun h => ?_, by rw [hs]; exact H.2⟩
+  have := H.1 (by rw [← hl]; exact h)
+  have h1 := uint_nat_eq ls.applying; have h2 := uint_nat_eq ls'.applying
+  have : uint.nat ls.applying ≤ uint.nat ls'.applying := by omega
+  omega
+
 /-- (D22 S-d1b, 2026-10-21) The storage as the log holds it: `ownStorage`, unless it is lent to
 the application (`LogState.lent`: a `Ready` handed out a snapshot, `ownRaftLog_lend`). While it is
 lent the log's `σ` is the state the storage was lent at, its facts kept as pure facts of a value. -/
@@ -1769,7 +1779,8 @@ macro "reseal_raftLog" : tactic =>
                | ((rewrite [Huoff]); with_reducible assumption)
                -- the storage and its pending batch (2026-10-10), for a state that
                -- keeps the fields they are stated on
-               | exact Hstor | exact Hpend | exact Hfl | exact Hfr))
+               | exact Hstor | exact Hpend | exact Hfl | exact Hfr
+               | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega))))
 
 set_option hygiene false in
 /-- `reseal_raftLog` for `ownRaftLogW` (`ownRaftLogW_intro`). -/
@@ -1778,7 +1789,8 @@ macro "reseal_raftLogW" : tactic =>
     (iapply Perennial.EtcdGrove.ownRaftLogW_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger) <;>
     try (first | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
-               | exact Hstor | exact Hpend | exact Hfl | exact Hfr))
+               | exact Hstor | exact Hpend | exact Hfl | exact Hfr
+               | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega))))
 
 set_option hygiene false in
 /-- (D22 S-d1b) In a `raftLog` method, after `iNamed Hlog`, in a branch where `h : ls.snap = none`:

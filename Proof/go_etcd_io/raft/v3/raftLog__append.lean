@@ -185,18 +185,6 @@ theorem raftLog.append.wp_proof
         exact ⟨Hp, (List.take_prefix _ _).trans Hstored, fun h => by simp at h⟩
       · obtain ⟨Hp, Hs, Hsid⟩ := Hstore
         exact ⟨Hp, by rw [Hs]; simp, Hsid⟩
-    -- the storage's snapshot is at or below `committed`, so below the batch: its term
-    -- survives the truncation
-    have Hss2 : ls.snap = none → StoredSnapOk σ ls.committed ls.prev
-        (ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat ++
-          (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
-              - (ls.sents.length : Int)).toNat ++ e0 :: ents')) := by
-      intro Hs
-      rcases Hs with H | ⟨Hsle, Hst⟩
-      · exact .inl H
-      · refine .inr ⟨Hsle, ?_⟩
-        rw [Hsplit]
-        exact plogTermAt_truncateAppend_below _ _ _ e0 _ _ He0 (by omega) Hst
     have Hls' : ((ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat).length
           : Int)
         = min (uint.Z e0.Index' - uint.Z ls.prev.index' - 1) (ls.sents.length : Int) := by
@@ -233,7 +221,7 @@ theorem raftLog.append.wp_proof
           (uint.Z (logTruncInprogress ls e0.Index') - uint.Z uv'.offset').toNat
             = (uint.Z ls.inprogress - uint.Z lv.unstable'.offset').toNat) := by
       -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
-      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
+      clear Hm Hlens' Hidx' Hst2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       repeat' split
       all_goals omega
@@ -242,7 +230,7 @@ theorem raftLog.append.wp_proof
           + ((ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
               - (ls.sents.length : Int)).toNat ++ e0 :: ents').length : Int) := by
       -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
-      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
+      clear Hm Hlens' Hidx' Hst2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       simp only [List.length_append, List.length_take, List.length_cons]
       repeat' split
@@ -277,7 +265,7 @@ theorem raftLog.append.wp_proof
       simp only [logTruncateAppend, ← Hip2]
       rw [Hip2]
       -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
-      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
+      clear Hm Hlens' Hidx' Hst2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       repeat' split
       all_goals omega
@@ -300,10 +288,10 @@ theorem raftLog.append.wp_proof
         omega
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
-    · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
+    · iapply ownRaftLog_intro (sn := ls.sn) l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
-          Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat ?_ ?_ ?_ ?_
+          Happlied Hpapplied Hcm2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
+          Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat (FrOk.of_le Hfr rfl rfl (Int.le_refl _)) ?_ ?_ ?_ ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
