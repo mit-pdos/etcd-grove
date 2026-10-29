@@ -1416,3 +1416,16 @@ nothing and builds. Its one law (`kbNoCmpW_MW`) is proved; the switch's two laws
     "does what `New` does").
   - Under the Freeze rule, it then gets the `axiom` skill's check again (cheap: the claim is `New`'s
     proved post).
+
+### Question 5's Draft: the user's answers (2026-10-29)
+
+- **Q5-1: the mode is in the instance.** `KBReal` gains `cm : Bool` (M2's `ρ.kv.cmp`), and
+  `kbCmp (some d) := d.cm` (the Draft's `kbCmpM`). A compacting store registers `delKeyI`. Every
+  other store, and D22's received backends (`cm := false`), keeps `dlNoDel` and the old bridge as
+  an instance of the new one. D22's statements don't change. This replaces "(iv): `kbCmp := True`
+  for the real backend".
+- **Q5-2: the slot comes from creation.** `newPost`/`newPostK` gain the safe-range slot `srSlot`,
+  proved in `New` from `newBackend`'s zero `RWMutex`. `storage.OpenBackend`'s text is unchanged,
+  but its post now means more, so the `axiom` skill runs on it again before Freeze.
+
+Next: Review of the Draft with these answers, then the switch.
