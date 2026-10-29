@@ -221,8 +221,13 @@ On the branch (`d9e2f09fbf`), all compiling (`Proof...authkv.Results` builds):
   `attemptTokOk` at `False`) for `anon`/`bad`. `common.NewClient.spec` gives only `isNewClient`,
   although `clientv3.New.spec` gives `clientTokAt` (`clientAuthPre_anon`). Adding it to
   `NewClient`/`NewClients`' post is a change to a frozen, shared spec (15 files use it).
+  **Decided (the user, 2026-10-29): yes.** Both posts gain `clientTokAt cl addrs (fun _ => False)`
+  (`clientv3.New` at `P := False`, `clientAuthPre_anon`). Callers: one more `-` in their
+  `icases` (six `Main`s, `linkv3p/startCluster`).
 - **G2. The watches (S4).** `watcher.Watch.spec` covers prefix watches of a non-empty key, and
   `watchAddrFacts` needs a non-empty prefix. `u`'s watch is a range `[a, b)`, root's a watch of
   every key (`""` with `WithPrefix`), and `Work`'s refused watch needs the auth outcome (no event
   for a refused principal). One generalized `watcher.Watch.spec` (range, whole keyspace, auth on)
   is the client package's spec, owned by the merge session's area, and a change to a frozen spec.
+  **Decided (the user, 2026-10-29): the merge session owns it.** It sends the statement before
+  proving it; S1's read update (`akHist_readAu`) fixes what its events must come from.
