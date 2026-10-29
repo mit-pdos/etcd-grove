@@ -276,6 +276,67 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
 - A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
   public spec is escalated before it is built on; never a minor change.
 
+## Track A hand-off (2026-10-29)
+
+**Done on `raft-unified`.** Each commit builds `Link`, `Linked`, `Results`, `Api`; there is no `sorry`, and the only
+raft-specific axiom is `ccDecodeV2_nil`.
+- U5's committed conf-entry laws (`f4b2a4d84e`).
+- U7, in part: `Tick` and a stepped `MsgTimeoutNow` take raft's own time receipts (`32ba2bdcd8`). The
+  node API's `stepIn` is `⌜ml ≠ null⌝ ∗ ∀ γn, ⌜NodeOk⌝ -∗ ⧗ 1 -∗ stepP` (`InvApi.lean`); `node.Step`
+  takes the receipt at its `nil` comparison.
+- U9a, stopped nodes, `nodeRunning` (`63ad16cafa`; "U9a as built" above).
+- S1, proposals over duplicating networks (`6657289b28`; "S1 as built" above). If the S1 helper sends
+  a final report, it adds nothing beyond that entry.
+
+**Open, in order.** The design is in `notes/decisions.md`, "Stage U7: messages, track A".
+1. **`node.Campaign.spec`.** kvreconf calls it (`reconf.go:106`). The coordinator chose option 1, an
+   internal case in `netP` with no public change.
+   - `MsgHup` is not in `netStepTypes` (`ApiVocab.lean:267`). Add an *internal* local case for it in
+     `netP` (`InvNodeChan.lean`, near `netP_local`); do not change the public `NetMsgOk`.
+   - A hup raises the term one past `netP`'s `termLB` ceiling. So `run`'s `recvc` arm
+     (`node__run.lean`, around `budget_step`) needs a budget step with a time receipt, as a tick's
+     (`budget_spend`). Take the receipt from a Go step of `Campaign`'s own, as `node__Tick.lean` does
+     at a `StructFieldRef`.
+   - Model the spec on `node__ForgetLeader.lean`: an API spec over `isNode`, a raw `specRaw`.
+2. **`node.Status.spec`** (`cluster.go:407`). A reduced spec does not work, since `Status`'s send on
+   `status` must supply its payload up front.
+   - It needs `run`'s status arm, with internal specs of `getStatus`, `getBasicStatus`,
+     `getProgressCopy` (through `Visit`) and `Config.Clone`.
+   - Post: an owned `Status` value. On a stopped node, the `done` arm returns `Status{}`.
+3. **U7's rest**, now without a transfer mode (the user's decision above):
+   - `SentMsgShape` in every cluster. `SendOk`'s stamped clauses take `s.term ≠ W64 0` from each
+     caller: a leader has it from `ownRaftGhost_term_nz`; a follower after the term section has `m.Term
+     = s.term ≠ 0`. `XfOk`'s second clause becomes `∀ m ∈ l, SentMsgShape m.st`, and `NGhost.bt`
+     goes (`InvRaftPhys.lean:335`).
+   - `stepIn_intro` admitting every sent message, a re-forwarded `MsgTransferLeader` included. This
+     needs three pieces:
+     - the ghost invariant `lead ≠ 0 → isLeader γ s.lead s.term`, as its own conjunct of
+       `ownRaftGhost` (`Protocol/GhostState.lean:2002`; touch only the rules that move `lead` or
+       `term`);
+     - the forwarded request carrying `isLeader γ m.To m.Term` in `isRaftMsg`;
+     - at the receiver, `isLeader_unique` and `LeadOk`, which discharge `raft.Step`'s `RestMsgOk`
+       premise.
+   - `node.TransferLeadership.spec` over `isNode` only (drop `leaderTransferOn`); `NGhost.xf` is false
+     in the decision cluster.
+   - The read-credit exchange, so that `ReadIndex` and a forwarded `MsgReadIndex` need no client
+     `readCredit`. Add an invariant `∃ k, ⧗ k ∗ rdCred γ.raft (2^64 - 2 - k)` in the decision cluster;
+     `stepIn`'s wand then becomes a `⊤` update, and `cluster_alloc_dec` loses `readCredits`. Then
+     add `msgCredits_intro : st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits` (S1's text).
+4. **U9**: one spec per function; the old families deleted.
+
+**Things a newcomer trips on:**
+- `etc/lean-check.py` returns once the *edited* declaration checks. Run it again with `-a` before
+  relying on a file.
+- The worktree-isolated shell refuses commands that pass variables to `sed` or to version-control
+  tools. Use plain commands, absolute paths, and Python scripts in a file for edits.
+- `wp_take_receipt` needs a `FuncResolve` or `MethodResolve` in evaluation position, but `wp_auto`
+  often resolves methods statically. Then take the receipt by hand: `wp_bind (App (Val (GoInstruction
+  (StructFieldRef _ _))) (Val _))`, or the same with `GoOp`, then `wp_go_step_receipt'`. Its `hv`
+  for a pair value is `rfl`.
+- Track B works on the storage contract (`raft-unified-storage2`). Ask the coordinator before
+  touching `readySnap`, `readyRest`, `Advance`, `StartNode`, `RestartNode` or the storage specs.
+- Any new ghost state in a public spec is escalated before it is built on.
+
 ## Machinery (the map of the two modes, 2026-10-28)
 
 - Mode: `RaftNames.reDyn` (`none` static), `reNoSnap`, `reNoXfer`, `reTracked` (static), `reSnapOkRaw`
