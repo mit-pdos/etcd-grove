@@ -64,6 +64,7 @@ public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
 public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
 public import Spec.go_etcd_io.raft.v3.node__Campaign
+public import Spec.go_etcd_io.raft.v3.node__Status
 public import Spec.go_etcd_io.raft.v3.node__Stop
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap

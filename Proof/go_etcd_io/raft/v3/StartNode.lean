@@ -240,7 +240,7 @@ private theorem StartNode.wp_raw
   icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
   imod start_handshake nv.stop' (fun (_ : Unit) => nodeLiveRaw γn 1) iprop(True) γs $$ Hcs Hos
     with #Hhs
-  imod start_handshake nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) γst
+  imod start_handshake nv.status' statusChP iprop(True) γst
     $$ Hcst Host with #Hhst
   imod tickCred_zero bud with Hcr0
   imod inv_alloc tickN ⊤ (tickInv γn) $$ [Hot Hcr0] with #Htickinv

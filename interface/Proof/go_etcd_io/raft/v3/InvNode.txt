@@ -4,6 +4,8 @@
 
 def (sealed) isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF
 
+def (sealed) statusOwn (st : Status) : IProp GF
+
 def (sealed) leaderTransferOn (γ : Cluster) (N : Namespace) : IProp GF
 
 def (sealed) nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF

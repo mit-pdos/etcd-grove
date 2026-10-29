@@ -82,6 +82,8 @@ public import Proof.go_etcd_io.raft.v3.entsSize
 public import Proof.go_etcd_io.raft.v3.extend
 public import Proof.fmt.Sprintf
 public import Proof.go_etcd_io.raft.v3.getBasicStatus
+public import Proof.go_etcd_io.raft.v3.getProgressCopy
+public import Proof.go_etcd_io.raft.v3.getStatus
 public import Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.limitSize
@@ -106,6 +108,7 @@ public import Proof.go_etcd_io.raft.v3.node__ReadIndex
 public import Proof.go_etcd_io.raft.v3.node__Ready
 public import Proof.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Proof.go_etcd_io.raft.v3.node__ReportUnreachable
+public import Proof.go_etcd_io.raft.v3.node__Status
 public import Proof.go_etcd_io.raft.v3.node__Step
 public import Proof.go_etcd_io.raft.v3.node__Stop
 public import Proof.go_etcd_io.raft.v3.node__Tick
@@ -1414,6 +1417,18 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
 
+theorem tracker.Inflights.wp_Clone :
+    tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
+  tracker.Inflights.Clone.wp_proof
+
+theorem wp_getProgressCopy [StorageModel GF] :
+    getProgressCopy.spec (GF := GF) (hG := hG) :=
+  getProgressCopy.wp_proof tracker.ProgressTracker.wp_Visit tracker.Inflights.wp_Clone
+
+theorem wp_getStatus [StorageModel GF] :
+    getStatus.spec (GF := GF) (hG := hG) :=
+  getStatus.wp_proof wp_getBasicStatus wp_getProgressCopy tracker.Config.wp_Clone
+
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
@@ -1461,10 +1476,6 @@ theorem raftpb.Message.wp_GetVote :
 theorem raftpb.Snapshot.wp_GetData :
     raftpb.Snapshot.GetData.spec (GF := GF) (hG := hG) :=
   raftpb.Snapshot.GetData.wp_proof
-
-theorem tracker.Inflights.wp_Clone :
-    tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
-  tracker.Inflights.Clone.wp_proof
 
 theorem tracker.Inflights.wp_Count :
     tracker.Inflights.Count.spec (GF := GF) (hG := hG) :=
@@ -1591,7 +1602,7 @@ theorem raft.wp_hasLeader :
 
 theorem node.wp_run [StorageModel GF] :
     node.run.spec (GF := GF) (hG := hG) :=
-  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom wp_getStatus
 
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
@@ -1660,6 +1671,10 @@ theorem node.wp_ReportSnapshot [StorageModel GF] :
 theorem node.wp_ReportUnreachable [StorageModel GF] :
     node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
   node.ReportUnreachable.wp_proof raftpb.MessageType.wp_Enum
+
+theorem node.wp_Status [StorageModel GF] :
+    node.Status.spec (GF := GF) (hG := hG) :=
+  node.Status.wp_proof
 
 theorem node.wp_Stop [StorageModel GF] :
     node.Stop.spec (GF := GF) (hG := hG) :=

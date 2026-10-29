@@ -80,6 +80,7 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.CCApply
 public import Proof.go_etcd_io.raft.v3.InvConfchange
 public import Proof.go_etcd_io.raft.v3.InvStorage
+public import Proof.go_etcd_io.raft.v3.InvStatus
 import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 -- (2026-10-16, stage R5) `netStepTypes`, `NetMsgOk`, `DynCCPreOp`, `propEntryM` are
 -- `InvRawnode.lean`'s (until then `RawNode__Step`'s, `RawNode__Propose`'s,
@@ -482,6 +483,13 @@ term ceiling past the campaign's term (`budget_spend`), as a tick's. Raft-intern
 no network message (`NetMsgOk`, `stepIn`). -/
 def hupP (γ : NodeNames) (ml : Loc) : IProp GF :=
   iprop(msgIn ml DFrac.discard hupSt ∗ tickCred γ.bud 1)
+
+/-- (2026-10-29, stage U7) A request on `status`: `Status()`'s fresh reply channel, on which
+`run` answers with a `Status` whose memory is the caller's (`statusOwnRaw`). Until then `False`
+(`run`'s receive refuted). -/
+def statusChP (c : GoChan) : IProp GF :=
+  iprop(∃ γc : ChanNames, isHandshake γc c (fun st : Status => statusOwnRaw (GF := GF) st)
+    iprop(True))
 
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
 (`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent;
@@ -1152,7 +1160,7 @@ theorem node_done_recv_live_au (γ : NodeNames) (ch : Loc) (q : Qp) (Φ : Unit �
     -- client's half of `live` (`Stop`)
     "#Hdone" ∷ ownBroadcastChan nv.done' γ.done (nodeStoppedRaw γ) .Unknown ∗
     "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => nodeLiveRaw γ 1) iprop(True) ∗
-    "#Hstatus" ∷ isHandshake γ.status nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) ∗
+    "#Hstatus" ∷ isHandshake γ.status nv.status' statusChP iprop(True) ∗
     "#Htickc" ∷ isChan nv.tickc' γ.tick Unit ∗
     "#Htickinv" ∷ inv tickN (tickInv γ) ∗
     "#Hbud" ∷ inv budgetN (budgetInv γ.bud) ∗

@@ -4,6 +4,16 @@
 
 theorem RaftLink.node.wp_Advance_unified [package_sem : Assumptions] : node.Advance.unifiedSpec
 
+theorem RaftLink.node.wp_Status [package_sem : Assumptions] : node.Status.spec
+  -- `Perennial.EtcdGrove.node.Status.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          (▷ ∀ st, statusOwn st -∗ Φ (intoVal st)) -∗
+            WP ((intoVal (methods node.ty.PointerType go!"Status" (intoVal n))) (intoVal ()))
+              {{ Φ }}
+
 theorem RaftLink.node.wp_Stop [package_sem : Assumptions] : node.Stop.spec
   -- `Perennial.EtcdGrove.node.Stop.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),

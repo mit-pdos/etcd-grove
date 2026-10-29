@@ -49,6 +49,7 @@ public import Proof.go_etcd_io.raft.v3.NodeApiVocab
 -- the implementation (`InvApi.lean`, `InvApiDyn.lean`), not exported
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvStatus
 
 @[expose] public section
 
@@ -387,6 +388,15 @@ cluster with reconfiguration it excludes `nodeRunning` (`nodeRunning_stopped`). 
 instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
     Persistent (nodeStopped (GF := GF) n γ N) := by
   unfold nodeStopped; exact ApiImpl.nodeStopped_persistent n γ N
+
+/-- (2026-10-29, stage U7) **A `Status` value's memory is the caller's** (`node.Status`'s post):
+heap ownership only, of its `*pb.HardState` (read-only), its configuration's maps and a leader's
+progress copy (each progress with its own `Inflights`), or the zero `Status{}` of a stopped node.
+No fact ties the values to the cluster. (`AutoLeave` of the copy is always `false`: `Config.Clone`
+drops it, `issues/raft-config-clone-autoleave.md`.) Laws to read it come with a client that needs
+them. -/
+@[no_expose] def statusOwn (st : Status) : IProp GF :=
+  statusOwnRaw st
 
 
 /-! ## Snapshots' certificates -/

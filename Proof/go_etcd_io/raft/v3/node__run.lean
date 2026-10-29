@@ -25,6 +25,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__Advance
 public import Spec.go_etcd_io.raft.v3.RawNode__Tick
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Spec.go_etcd_io.raft.v3.raft__hasLeader
+public import Spec.go_etcd_io.raft.v3.getStatus
 public import Spec.go_etcd_io.raft.v3.IsResponseMsg
 public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
@@ -92,7 +93,8 @@ theorem node.run.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
-    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
+    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
+    (wp_getStatus : getStatus.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as ⟨#Hnode, Hpre⟩
@@ -1108,7 +1110,7 @@ theorem node.run.wp_proof
     · unfold rofFull
       iexact Hrofs
     ileft; ipureintro; simp
-  -- `<-n.status`: never
+  -- `c := <-n.status: c <- getStatus(r)` (2026-10-29, stage U7; until then refuted, `False`)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -1119,7 +1121,38 @@ theorem node.run.wp_proof
     · ipureintro; rfl
     isplitr
     · iapply isHandshake_isChan $$ Hstatus
-    iapply handshake_false_recv_au γ.status nv.status' $$ [$Hlc1 $Hlc2] Hstatus
+    iapply handshake_receive_au γ.status nv.status' statusChP iprop(True) _
+      $$ [$Hlc1 $Hlc2] Hstatus []
+    · itrivial
+    inext
+    iintro %ch Hch
+    iunfold statusChP at Hch
+    icases Hch with ⟨%γc, #Hc⟩
+    wp_auto
+    ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+    iunfold runHead at Hhead
+    icases Hhead with ⟨%rs, Hrn, Hrest⟩
+    icases ownRawNode_borrow γ.raft nv.rn' id rs r $$ Hrn Hrnraft with ⟨%cf, %s, Hphys, Hback⟩
+    wp_apply wp_getStatus cf r id s $$ [$Hphys] as %st ⟨Hst, Hphys⟩
+    ihave Hrn := Hback $$ Hphys
+    try wp_auto
+    wp_bind (App (App (Val (chan.send _)) (Val _)) (Val _))
+    iapply chan.wp_send ch st γc $$ []
+    · iapply isHandshake_isChan $$ Hc
+    iintro ⟨Hl1, Hl2, Hl3, -⟩
+    iapply handshake_send_au γc ch st _ iprop(True) $$ [$Hl1 $Hl2 $Hl3] Hc Hst
+    inext
+    iintro -
+    wp_auto
+    wp_for_post
+    iframe HΦ n r Hpend Hlive
+    iexists pc', rc', ac, rdv', ld'
+    iframe propc readyc advancec rd lead
+    isplitr
+    · ipureintro; exact Hpc'
+    unfold runHead
+    iexists rs
+    iframe Hrn Hrest
   -- `<-n.stop` (2026-10-29, stage U9a): the client's half of `live`; the node stopped,
   -- `close(n.done)` and return
   iapply BigAndL.bigAndL_cons.2

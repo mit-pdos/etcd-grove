@@ -21,7 +21,32 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI OFE CMRA go_etcd_io.raft.v3
+
+/-! ## `Status` is countable (the `status` request's reply channel carries it) -/
+
+section countable
+variable [GooseExts]
+
+instance softState_countable : Pos.Countable SoftState :=
+  countableOfLeftInverse (fun x : SoftState => (x.Lead', x.RaftState'))
+    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
+
+instance basicStatus_countable : Pos.Countable BasicStatus :=
+  countableOfLeftInverse
+    (fun x : BasicStatus => (x.ID', x.HardState', x.SoftState', x.Applied', x.LeadTransferee'))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
+
+instance trackerConfig_countable : Pos.Countable tracker.Config :=
+  countableOfLeftInverse
+    (fun x : tracker.Config => (x.Voters', x.AutoLeave', x.Learners', x.LearnersNext'))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+
+instance status_countable : Pos.Countable Status :=
+  countableOfLeftInverse (fun x : Status => (x.BasicStatus', x.Config', x.Progress'))
+    (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
+
+end countable
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
