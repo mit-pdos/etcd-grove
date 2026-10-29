@@ -921,3 +921,56 @@ the removal of `mvcc.kbNoCmp_metaNone` (baseline and the ten collections that li
 - The other options were an `isKeyBackendG` parameter without a default (more churn, against
   `SR`/`SRh`'s precedent), or leaving `bt_metaPut` unproved (against "never delete a finished
   proof").
+
+### Review round 8's repairs (2026-10-29)
+
+Review round 8 (`notes/spec-first-study/backend-review-8.md`, committed with these repairs).
+`lake build` passes; `etc/tcb-report.py --check` and `etc/gen-init.py --check` pass unchanged.
+
+- **R8-1 (fixed).** The compacting range's step put of `finishedCompactRev` bypassed the flag:
+  `batchTxSpecG`'s clause gave `□ ∀ n, metaPutCap bt (U (n + 1)) (U n)`. That made
+  `isKeyBackendG_of_backendC` false as stated, its `sorry` case unprovable. It now reads
+  `□ ∀ n, metaPutCap bt (U (n + 1) ∗ MW) (U n ∗ MW)`.
+  - The job's caller (`store.scheduleCompaction`, over mvcc's assumed backend) frames
+    `kbMW none = True`.
+  - The case is again provable from `bt_metaPut`'s pattern, once the job holds the right. That is
+    the wiring step, as for `SetScheduledCompact`.
+  - Neither `Meta` clause (the fresh session's put, the job's step put) is used by a proved store over
+    the real backend.
+- **R8-2 (fixed, with one part decided by the agent).** `MW` no longer has a default. It is explicit
+  on `batchTxSpecG`, `isBatchTxG` and `isKeyBackendG`. The store names it `kbMW γ.kb` (in
+  `storeBackend`, `storeBackendT`, `physOk`, the `#Hbt` facts and `batchTxSpec`), and the specs
+  `store.restore` and `rangeEvents` quantify it.
+  - `kbMW (some d) := ∃ f, fkOwn d.γB f`.
+  - *Decided by the agent while the user was away:* `kbMW none := True`, not the reviewer's opaque
+    `viewFk` (with `viewNoCmp γb := viewFk γb 0` and `MW := ∃ f, viewFk γb f`). With `viewFk`, the
+    store's proved compaction over mvcc's assumed backend (`SetScheduledCompact` in
+    `updateCompactRev`, the job's `UnsafeSetFinishedCompact`) would need the store to hold the right.
+    That is the wiring step's change to `store.restore`'s spec (hand the half to the store instead of
+    consuming `kbNoCmp`): the user's decision, with question 5.
+  - Until then the assumed instance pairs `NC = viewNoCmp` with `MW = True`, which no honest creator
+    can meet. But `viewNoCmp` has no supplier in the repository, so results over `kb = none` that take
+    `kbNoCmp` are vacuous, not wrong (`kbMW`'s docstring says so).
+- **R8-3 (recorded).** `fkKey` fixed inside the backend: `notes/decisions.md`, "The compaction keys
+  tracked inside the backend".
+- **R8-4 (docs).**
+  - `UnsafePut`'s and `fkPut`'s docstrings say the half comes back "at some value", without "raised".
+  - `rtCore`'s docstring traces `CommitAndStop`: it goes through `commit` and `unsafeCommit`, and
+    `rtRes_cm_close`'s stop branch sets `fkRd`.
+  - Trust base: the axioms whose meaning moved through `isBackend`/`batchLocked` (which now carry
+    `fkHalf`) stay true:
+    - `backend.backend.Snapshot.wp_proof` only commits, and a commit keeps `fkAbsSt`
+      (`fkAbsSt_commit`).
+    - `schema.membershipBackend.MustSaveMemberToBackend` puts into `members` only, not a `fkKey`.
+    - `MustUnsafePutLease` and `UnsafeDeleteLease` take the caller's own triple of the batch
+      transaction, so the flag is the caller's business. Their puts and deletes are to the `lease`
+      bucket, not `Meta`.
+- **R8-5 (note, under question 4).** `BParams.VI` could ride on the same ghost. `fkHalf` is the one
+  place every write of the compaction keys passes through. A conjunct "every `fkKey` value in `st`
+  satisfies `metaRevVal`" would have these properties:
+  - `fkHalf_put` would keep it, with `UnsafePut` taking `metaRevVal v` at an `fkKey`;
+  - readers would get it through `fkRd`, as `fkAbsRv`;
+  - its cost is a premise on the opened file's values at those keys.
+
+  This would close `metaReadTx`'s value case without a new `BParams` field. Not done: it is
+  question 4's answer.

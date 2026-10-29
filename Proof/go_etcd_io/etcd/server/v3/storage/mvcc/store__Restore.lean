@@ -199,7 +199,7 @@ theorem mvcc.store.Restore.wp_proof
       (mvcc.storeRT (γ.withPhys p')) (mvcc.storeWT (γ.withPhys p')) (mvcc.storeW s (γ.withPhys p'))
       (mvcc.kbWi (γ.withPhys p').kb) iprop(True) (mvcc.storeCmp (γ.withPhys p'))
       (mvcc.storePutOk (γ.withPhys p')) (mvcc.storeRb (γ.withPhys p'))
-      (mvcc.storeBt (γ.withPhys p')) (DFrac.own 1) (DFrac.own 1) R
+      (mvcc.storeBt (γ.withPhys p')) (mvcc.kbMW (γ.withPhys p').kb) (DFrac.own 1) (DFrac.own 1) R
       iprop(dghostVar γ.rst (DFrac.own (1 : Qp).half) true ∗ £ 1 ∗ £ 1)
       iprop(sync.ownRWMutexWLocked (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗
         dghostVar γ.rst (DFrac.own (1 : Qp).half) true ∗ dghostVar γ.rst (DFrac.own (1 : Qp).half) true ∗

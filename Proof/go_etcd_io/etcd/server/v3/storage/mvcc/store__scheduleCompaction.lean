@@ -557,11 +557,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    iapply (h6 bt (U (c0 + 1)) (U c0) rev Hrev.1) $$ [HU]
+    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW none) iprop(U c0 ∗ mvcc.kbMW none) rev Hrev.1) $$ [HU]
     · iframe HU; iframe #
-      iapply HMetaC
+      isplitl []
+      · iapply HMetaC
+      unfold mvcc.kbMW; itrivial
     inext
-    iintro HU
+    iintro ⟨HU, -⟩
     (try wp_auto)
     iunfold mvcc.compactRes at HcresW
     icases HcresW with ⟨%sched, %fin, %nf, Hmeta, Hfin, %Hnf⟩

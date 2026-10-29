@@ -303,8 +303,9 @@ instance fkRd_persistent (γ : BNames) (P : BParams) (rv : RView) :
     Persistent (fkRd (GF := GF) γ P rv) := by
   unfold fkRd; infer_instance
 
-/-- What a put of key `k` in bucket `n` needs and gives back of the flag: the client's half (at
-some value; raised to at least `1` by the put) if `k` is a compaction key, else nothing. -/
+/-- What a put of key `k` in bucket `n` needs and gives back of the flag: the client's half, at
+some value, if `k` is a compaction key, else nothing. (The put raises the flag to at least `1`;
+the post does not say so, no caller needing it.) -/
 def fkPut (γ : BNames) (n k : GoString) : IProp GF :=
   if fkKey n k then iprop(∃ f : Nat, fkOwn γ f) else iprop(True)
 
@@ -574,7 +575,9 @@ read buffer canonical, of the table's buckets and writable; the current state th
 the history; a window only at a version's first state), the cache's validity, the window's
 poison mark, the readers' budget's authority, the interval, and a lower bound of the compaction
 keys' flag taken when `rv` was set (`fkRd`: set wherever `rv` changes, at the constructor, the
-`Unlock`'s write-back and the commit; the backend-compaction stage, 2026-10-29). -/
+`Unlock`'s write-back (`wb_core`) and the commit (`rtRes_cm_close`); `CommitAndStop` commits
+through `batchTxBuffered.commit` and `unsafeCommit`, so its stop branch of `rtRes_cm_close` sets it
+too; the backend-compaction stage, 2026-10-29). -/
 def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
     (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) :
     IProp GF :=

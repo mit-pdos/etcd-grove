@@ -381,6 +381,11 @@ fresh, 53s after the edit (0.4s of it tactics, 18s the kernel), 24s with `--fast
 `--split`. A short proof re-checks in under a second.
 An edit early in a proof re-runs everything after it, so check from the top of what you changed.
 
+To find what a changed statement breaks, do not run a full `lake build` and read the failures:
+`etc/importers.py --uses NAME FILE` lists the modules importing `FILE` (directly or not) that mention
+`NAME`, `--files` as paths for `etc/lean-check.py`, `--leaves` as the short target list for `lake
+build`, `--count` how much a change rebuilds (`notes/spec-first-plan.md`, "The build budget").
+
 When a file an open file imports changes (its content: `touch` does not count), the next check
 reopens the file: the server rebuilds the changed imports with Lake, then elaborates the file in
 full. An edit to a proof in an imported module (its `Inv*` or lemma files) does not make the

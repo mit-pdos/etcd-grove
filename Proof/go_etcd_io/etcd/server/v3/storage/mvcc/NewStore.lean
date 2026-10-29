@@ -380,7 +380,7 @@ theorem mvcc.NewStore.wp_proof
   have hR := hRestore «$r0_ptr» γ (GoInterface.ok bi) (lease.lessorIface lp) ti lg'
       (1 : Qp).half P (mvcc.hookFn γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storeW «$r0_ptr» γ)
       (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ) (mvcc.storeRb γ) (mvcc.storeBt γ)
-      (DFrac.own 1) (DFrac.own 1) []
+      (mvcc.kbMW γ.kb) (DFrac.own 1) (DFrac.own 1) []
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)

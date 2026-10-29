@@ -25307,3 +25307,24 @@ leave it `0`, the default). Placed on every store, not only the real backend's c
 (review round 2 suggested scoping it there): the range's clause is one statement for every
 instance, so its premise is; scoping it would need a parameter of the contract; review round 3 put
 the placement to the user, who accepted it (2026-10-29).
+
+## The compaction keys tracked inside the backend: `fkKey` fixed, not a `BParams` field (2026-10-29)
+
+The backend-compaction stage (`notes/backend-cmp-plan.md`, "The compaction keys' tracked absence")
+makes the backend track the absence of `Meta`'s two compaction keys with a `monoNat` flag
+(`fkOwn`/`fkHalf`/`fkRd`). The keys are fixed in the backend package (`Model2.lean`'s `fkKey`: the
+bucket `meta` and the keys `scheduledCompactRev`, `finishedCompactRev`), unlike the hook's own keys
+(`BParams.HK`, `P.hk`) and the tracked buckets (`BParams.RB`), which are parameters.
+
+**Why.** The no-compaction token `mvcc.bkNoCmp` comes from `storage.OpenBackend`'s axiom over a file
+with no compaction recorded (`mvcc.noCmpData`, a statement about these two keys). With a parameter
+`P.FK`, the axiom quantifies over every `P`, so it would claim the absence of `P.FK`'s keys whenever
+`noCmpData D` holds, which is false for any `P.FK` beyond these two (review round 7, R7-1). With the
+keys fixed, `fkAbsD D ↔ noCmpData D` for every `P`, and the axiom's post is simply `New`'s. The
+parameter would have needed a `bridgeParams` conjunct `P.FK = cmpFK` and a `Wf` clause ("an `FK` key
+is not a hook's own key") instead.
+
+**The cost** (review round 8, R8-3): mvcc's schema is baked into a backend that Go keeps
+schema-agnostic. A second "not yet written" key for another component would be a backend change, not
+a parameter. If that is ever needed, supersede this entry with the parameter and the two conjuncts
+above.

@@ -31,7 +31,8 @@ entry (a key of `1..MaxKeySize` bytes, read-only for good: both keep the slices;
 bucket, a key above the committed keys; a hook's own key (`P.hk`) with the client's half of them, `hkPut`, which it
 gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of the
 tracked buckets, `rbPut`, likewise; a compaction key (`fkKey`, the backend-compaction stage,
-2026-10-29) with the client's half of their flag, `fkPut`, given back raised). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
+2026-10-29) with the client's half of their flag, `fkPut`, given back at some value: the code
+raises it to at least `1`, which the post does not say, no caller needing it). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
 exit: the call does not return (`issues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
 again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
 until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,

@@ -83,6 +83,23 @@ repairs), so every repair is followed by another round with a fresh reviewer, un
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
 looks hardest there.
 
+*When to stop iterating* (2026-10-29, the user's). Count rounds per design increment (the statements
+one round's repair or one Scope decision introduced), not per stage: about 2-3 rounds to converge is
+normal (the compactor pilot's whole scope took 5; `backend-cmp`'s first increment, the delete-only
+token, 3). If the same statements still draw a first-tier finding after their third round, stop
+reviewing them: the round's questions go to the user, or the glue is written against the real caller,
+which finds what reviews miss (`compactableOk`, the freeze below). A round whose first-tier findings
+come from the previous repair is the sign of churn. Rounds on a new increment do not count against a
+stage when the increment is needed for soundness: `backend-cmp`'s rounds 7-8 reviewed the tracked
+absence of the compaction keys, the design left after round 6 found the axiom it was to replace false.
+
+*An axiom check* (2026-10-29, the user's). A stage that adds or changes a trust-boundary axiom, or
+restates an axiom-backed spec, runs the `axiom` skill on it before the freeze: an attempt to refute it
+with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_metaNone` was on
+`lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
+transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
+skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
 they unfold to, the Go code, and above all the callers' proofs: `NewServer.lean` alone is 1800 lines);
@@ -182,6 +199,25 @@ skeleton only from the start (statements; the glue; a marked `sorry` on the fail
 else) and **never deletes a finished proof**: a broken one keeps its text, with the `sorry` on the
 failing step naming the commit that had the proof. (M2's S1 agent re-proved about 45 files before
 S2-S4 had statements, and replaced finished proofs wholesale with `sorry`s, until redirected.)
+
+**The build budget** (2026-10-29, the user's). Reviewers never build; the repairs after their rounds
+do, and builds were about half of a repair's time: `backend-cmp`'s six repairs (rounds 1-6) ran 35
+full `lake build`s (114 minutes in the foreground, three at the 10-minute shell timeout, 30 more in
+the background), 10 `tcb-report`s (37 minutes) and 71 targeted builds (27 minutes), out of about 250
+minutes. The full builds were mostly a search ("the full build, to find the callers that must supply
+the new premise") or the check of record before each commit; after a change to a widely imported
+statement each one rebuilds most of the repository (`mvcc/InvStore.lean` has 1724 importers, about
+300k lines), and the search ran it once per caller fixed. A repair's brief therefore says:
+- **Find the callers without building**: `etc/importers.py --uses NAME FILE` lists the modules that
+  import `FILE` (directly or not) and mention `NAME`; edit them all, check each with
+  `etc/lean-check.py` (`--files`), then build them (`lake build $(etc/importers.py --uses NAME
+  --leaves FILE)`).
+- **One full build per round**, at the end of the repair, in the background while the next round's
+  reviewer starts (a round reviews a named commit, not a build). Commits within a round need not each
+  pass a full build; each commit's message says what was checked (the files `lean-check`ed, the
+  targets built).
+- **`etc/tcb-report.py --check` only when an axiom or a `sorry` changed**, and once before a merge
+  into the main branch, which also takes the full build of record.
 
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.

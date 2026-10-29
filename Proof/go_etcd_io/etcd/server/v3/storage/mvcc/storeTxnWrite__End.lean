@@ -36,7 +36,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
   -- the lock token, the batch transaction's or the one the lessor's delete left: its `Unlock`s
-  icases mvcc.lockedIs_unlock ld bt _ _ _ _ _ _ _ _ _ _ _ _ (mvcc.pendPuts ilog pend)
+  icases mvcc.lockedIs_unlock ld bt _ _ _ _ _ _ _ _ _ _ _ _ _ (mvcc.pendPuts ilog pend)
     $$ [$Hbt $Hlocked] with ⟨%U, Hlocked, #Hul⟩
   iunfold mvcc.unlockAt at Hul
   icases Hul with ⟨#HUnlock0, #HUnlock⟩

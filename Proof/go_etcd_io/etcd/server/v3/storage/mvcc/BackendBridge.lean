@@ -2394,7 +2394,7 @@ theorem isKeyBackendG_of_backend
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk Del W W iprop(True) Cmp Pk
         (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
-        (bkBt b) := by
+        (bkBt b) (MW := iprop(∃ f : Nat, fkOwn γ f)) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -2811,7 +2811,7 @@ theorem storeBackendT_of_backend
     unfold storeBt kbBt; rw [hk]
   iunfold storeBackendT
   rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hk]
-  simp only [kbWi, kbNoCmp]
+  simp only [kbWi, kbNoCmp, kbMW]
   iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
     hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H
 
