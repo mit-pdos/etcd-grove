@@ -489,8 +489,9 @@ instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF
   unfold bootedCluster; infer_instance
 
 /-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
-responses), owned with its entries slice fresh, addressed to `id`, with its credits and, for a
-`MsgTimeoutNow`, a tick credit: a forwarded proposal (of any context: its abstraction ignores it),
+responses), owned with its entries slice fresh, addressed to `id`, with its credits (until
+2026-10-29, stage U7, also a tick credit for a `MsgTimeoutNow`: `node.Step` now takes its own time
+receipt): a forwarded proposal (of any context: its abstraction ignores it),
 or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`).
 (Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes run with `PreVote`: the
 pre-vote premise `bootedCluster` in place of excluding it, and no premise on a forwarded proposal's
@@ -504,10 +505,10 @@ theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src :
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
+      msgCredits γ N st ⊢
     |==> stepIn γ N id ml := by
   intro H1 H2 H3
-  unfold sentMsg msgCredits tickCredit stepIn
+  unfold sentMsg msgCredits stepIn
   exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3
 
 /-! ## The rest of a `Ready` -/

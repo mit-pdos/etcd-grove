@@ -194,6 +194,40 @@ Each: old → new, and why. New laws (no old text): `committed_confDecodes`, `co
 - `UniNames` (`InvApiDec.lean`, behind `isCluster`): adds `∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x` (the
   decision cluster's bootstrap log is empty).
 
+## Spec changes during track A, U7 and U9a (2026-10-29)
+
+Each: old → new, and why. Approved by the coordinator where marked (the cross-track rule).
+
+- `node.Tick.spec`: pre `isNode n γ N id ∗ tickCredit γ 1` → `isNode n γ N id` (the frozen text). Raft
+  takes the tick's time receipt from a Go step of `Tick`'s own (`node__Tick.lean`, at a
+  `StructFieldRef`); the old `tickCredit` stays (still exported) until U9.
+- `stepIn_intro` (`InvNode.lean`): premise `tickCredit γ (if MsgTimeoutNow then 1 else 0)` → none (the
+  frozen text's credit-free form). Internal: the API's `stepIn γ N id ml` is now `⌜ml ≠ null⌝ ∗ ∀ γn,
+  ⌜NodeOk γ γn⌝ -∗ ⧗ 1 -∗ stepP γn id ml`, and `node.Step`'s raw spec takes `⌜ml ≠ null⌝ ∗ (⧗ 1 -∗
+  stepP …)`, its proof taking the receipt at the `nil` check's comparison. The `NetMsgOk` / `≠
+  MsgTransferLeader` premises stay until `SentMsgShape` lands (below).
+- **Parked by the coordinator (the user is reconsidering it):** the proposal registry (`ownProposals`,
+  `proposalReg`, `proposals_register`/`_elem`/`_all`, `Propose` taking `proposalReg`, `sentMsg_prop`,
+  `msgCredits_intro` for `MsgProp`). Approved shapes before the hold: `cluster_alloc_dec` giving
+  `ownProposals γ ∅`; one `node.Propose.spec` with `proposalReg γ data`, the old allocations giving `□ ∀
+  d, proposalReg γ d`; `sentMsg_prop`'s normal disjunct `⌜e.Type' = W32 0⌝ ∗ (⌜e.Data' = []⌝ ∨
+  proposalReg γ e.Data')` (an empty normal entry is a filler, with no registry key); `msgCredits_intro`'s
+  per-entry update committing `ops ++ opsOf [entry]` (a filler's update is then the identity). Work in
+  progress, checked in `InvApi.lean` but not committed: the ref `refs/wip/trackA-registry`
+  (`2b5e6ebaf8`; `Cluster.pr`/`prAll`, the laws, `keyOk` in `freshOk`, `api_key_register` taking
+  `keyOk`, `Protocol/Facts.lean`'s `deposited_fresh`).
+- U9a, decided by the coordinator: (A) `node.ApplyConfChange`'s stopped disjunct is `⌜csp = null⌝ ∗
+  nodeStopped n γ N`, without the frozen `nodeConfig v` (after `confc <- cc` the driver's view is with
+  `run`, and the second select's `done` arm, unreachable, would need a sent/answered accounting to
+  refute); `node.Advance`'s post is the running post ∨ `nodeStopped ∗ nodeDriver {handling := none}` (no
+  storage facts: raft's `Advance` never ran). (B) K9's `P ∨ nodeStopped` preconditions are **not
+  provided**: kvreconf's `Replica.stop()` waits for its loop and ticker before `node.Stop`, so no client
+  calls a method holding only `nodeStopped`. A later client wanting them needs a send arm (`confc`,
+  `advancec`, `propc`, `recvc`) shown never to commit once `run` is dead: `run`'s receive obligation on
+  each channel a fraction of the liveness token, each fraction lent out returned to a "fraction bank"
+  invariant at once (so that `run` reassembles the whole token at `Stop`), and handshake-lemma variants
+  for the five channels.
+
 ## Machinery (the map of the two modes, 2026-10-28)
 
 - Mode: `RaftNames.reDyn` (`none` static), `reNoSnap`, `reNoXfer`, `reTracked` (static), `reSnapOkRaw`

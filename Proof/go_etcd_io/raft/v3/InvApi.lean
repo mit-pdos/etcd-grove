@@ -3002,9 +3002,11 @@ theorem tickCredit_zero_impl (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 
   unfold tickCredit; exact receipt_zero
 
 /-- (open) **A message `node.Step` takes** at the node `id`: raft's (`stepP`), for any node names
-of the cluster's (`NodeOk`). -/
+of the cluster's (`NodeOk`), given a time receipt (2026-10-29, stage U7: `node.Step` takes it from
+a Go step of its own, a `MsgTimeoutNow`'s tick credit; until then the caller's `tickCredit`), and
+the message not `nil` (what `node.Step` checks before taking the receipt). -/
 def stepIn (γ : Cluster) (_N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
-  iprop(∀ γn : NodeNames, ⌜NodeOk γ γn⌝ -∗ stepP γn id ml)
+  iprop(⌜ml ≠ null⌝ ∗ ∀ γn : NodeNames, ⌜NodeOk γ γn⌝ -∗ ⧗ 1 -∗ stepP γn id ml)
 
 /-- A list without repeats is a permutation of the elements of its set. -/
 theorem perm_elements_listToSet' (l : List w64) (h : l.Nodup) :
@@ -3021,10 +3023,11 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
+      msgCredits γ N st ⊢
     |==> stepIn γ N id ml := by
   intro Hnet Hsnap _
-  iintro ⟨#Hsent, Hm, Hcr, Htc⟩
+  iintro ⟨#Hsent, Hm, Hcr⟩
+  icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   iunfold sentMsg at Hsent
   icases Hsent with ⟨-, #Hraft, #Hlb, -⟩
   ihave #Hdat := isRaftMsg_dat γ.raft src st $$ Hraft
@@ -3053,7 +3056,8 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   by_cases Hp : st.msg.Type' = MsgProp
   · imodintro
     unfold stepIn
-    iintro %γn %Hnok
+    isplitr; · ipureintro; exact Hnn
+    iintro %γn %Hnok -
     obtain ⟨Hγr, -, -, -, -⟩ := Hnok
     unfold stepP
     iright
@@ -3076,7 +3080,8 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     obtain ⟨Hnok', Hntl⟩ := Hnet Hp
     imodintro
     unfold stepIn
-    iintro %γn %Hnok
+    isplitr; · ipureintro; exact Hnn
+    iintro %γn %Hnok Htc
     obtain ⟨Hγr, Hγb, Hsl, -, Hsi⟩ := Hnok
     unfold stepP
     ileft
@@ -3116,8 +3121,11 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
         ipureintro; exact ⟨Hty, Hsv⟩
       iapply snapLocal_none (by rw [Hsl])
     iframe Hlb Hrd
-    unfold tickCredit tickCred
-    iexact Htc
+    unfold tickCred
+    split
+    · iexact Htc
+    · icases receipt_zero_of 1 $$ Htc with ⟨H0, -⟩
+      iexact H0
 
 end misc
 
