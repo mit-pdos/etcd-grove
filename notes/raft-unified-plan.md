@@ -228,6 +228,21 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
   invariant at once (so that `run` reassembles the whole token at `Stop`), and handshake-lemma variants
   for the five channels.
 
+- **The user's decisions (2026-10-29), changing the frozen design:** (1) no transfer choice
+  (`transferChoice`/`transferAllowed`/`noTransfer` dropped, no mode): `node.TransferLeadership.spec`
+  takes only `isNode` (and the context), `SentMsgShape` holds in every cluster (the `MsgTransferLeader`
+  and `MsgTimeoutNow` shapes included), and `stepIn_intro` admits every sent message;
+  `leaderTransferOn/Off` go with the old families in U9; the server's repair handles the new shapes.
+  (2) No `nodeLive`: `node.Stop.spec` takes the client's `nodeDriver n γ N st` and gives `nodeStopped
+  n γ N`; the law `nodeDriver_stopped : nodeDriver n γ N st ∗ nodeStopped n γ N ⊢ False` refutes
+  every stopped answer for a holder of the driver token (internally the driver's token holds half of
+  the node's liveness ghost variable, which `run` completes at `Stop`). So `node.Advance` (its caller
+  holds `nodeDriver`) keeps its running post; `node.ApplyConfChange` keeps `running ∨ (⌜csp = null⌝ ∗
+  nodeStopped)` (etcd's apply thread calls it without the driver token). Whether `Stop` also takes
+  `nodeConfig` is pending. (3) The proposal registry (S1, `Propose`) is not frozen yet.
+- A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
+  public spec is escalated before it is built on; never a minor change.
+
 ## Machinery (the map of the two modes, 2026-10-28)
 
 - Mode: `RaftNames.reDyn` (`none` static), `reNoSnap`, `reNoXfer`, `reTracked` (static), `reSnapOkRaw`
