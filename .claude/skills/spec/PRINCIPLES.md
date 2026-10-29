@@ -41,6 +41,17 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **No unneeded premise**: each is one the code needs, one a stronger result needs, or a scope
   restriction marked as such and filed (`issues/` or a decision). A configuration premise is no
   stricter than what the Go code accepts. (`pilot-review-1.md`)
+- **One spec per function; special cases are instances**: one proved spec per function, general
+  enough for every case. No predicate or spec family for a special case beside the general one (a
+  static cluster beside a reconfigurable one), which splits every proof above it in two; no
+  reconfiguration is a run of the general proof. The same holds of modes (auth on and off, compaction
+  on and off): a mode is part of the state (`E.authMode`, `ρ.kv.cmp`), not a second spec. A variant
+  statement a client finds handier is fine only as a corollary of the one proof (`<fn>.spec_R :
+  <fn>.spec → <fn>.specR`, `storage/mvcc/ReaderSpecs.lean`), never a second proof. A step that would
+  start a family goes to the user first (`notes/spec-first-plan.md`, "Who decides"). (Auth's on/off
+  specs, 2026-10-25 to 10-28: about 3.5k lines of copied proofs, every other track's change made
+  twice, `notes/auth-mode-merge-plan.md`; M2's round-1 repair `8950d80bf2`, reversed by the user,
+  `notes/m2-plan.md` on `m2`.)
 
 ## Preferences: strength
 
@@ -97,11 +108,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)
-- **One general spec; special cases are instances**: no predicate or spec family for a special case
-  beside the general one (a static cluster beside a reconfigurable one), which splits every proof
-  above it in two; no reconfiguration is a run of the general proof. The same holds of modes (auth on
-  and off as two specs): a mode is part of the state. Two mode variants are at most a development
-  hack to put off merge conflicts.
+- **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
 ## Preferences: resources

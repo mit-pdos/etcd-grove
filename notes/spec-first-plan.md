@@ -190,6 +190,39 @@ atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before 
 ghost state (a weaker test-only projection where needed); restating existing specs in the
 canonical form (for the pilot slice only, at first).
 
+## Who decides (2026-10-29, the user's)
+
+The user's decisions were the largest share of a stage's wall time: M2 needed eight in about a day,
+one of them overnight, while its three review rounds took under an hour of agent time. Most of them
+an agent can take; a few must stay the user's. The split:
+
+| the agent decides, records, goes on | the agent asks the user |
+|---|---|
+| internal predicates, lemma organization | top-level statements: the closed theorems, what a package's client sees |
+| which of equivalent repairs to make for a review finding | the trust base: a new axiom, a model assumption, a trusted statement a stage changes |
+| narrowing the scope inside a stage | Scope: what a stage verifies; pausing a stage |
+| the process steps this plan prescribes | the Go: a fork change, a pin bump, anything upstream |
+| tactics, file layout | structure: a parallel spec family, a mode split, reversing an earlier design |
+| | the order across tracks (the auth-mode merge against M2) |
+
+**Recording.** Each decision the agent takes goes in the stage's notes, marked "decided by the
+agent" with the options and the reason (as D22's "decided by the orchestrator while the user was
+away", `notes/decisions.md`). The user reads them in batches and reverses what they disagree with;
+before the freeze a reversal costs statements and glue, not proofs.
+
+**Batching.** What must go to the user goes once per round, all of the round's questions together,
+not one at a time; the stage goes on with what does not depend on them.
+
+**The escalation trigger**, however small the change looks: a repair or design step that would add a
+spec or predicate family beside an existing one (a second spec of a function for a mode or special
+case, `…On`/`…C` predicates with an unsuffixed twin), change a frozen spec, or change a top-level
+statement stops and goes to the user. The case that sets it: M2's repair after review round 1
+(`8950d80bf2`, `isServerReqC`, `kvInvC`) began a compaction-mode family through the serving stack;
+the user reversed it (one family, the Go bug fixed instead, `72aa899aa3`), M2's most valuable
+decision. Auth's on/off families (`notes/auth-mode-merge-plan.md`: about 3.5k lines of copied
+proofs) are what happens when nothing stops it. The rule itself is a hard rule of the `spec` skill
+(`.claude/skills/spec/PRINCIPLES.md`, "One spec per function").
+
 ## Testing the plan
 
 1. **Retrospective study** (git history only): classify a random sample of spec revisions by
