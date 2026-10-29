@@ -1170,4 +1170,5 @@ Phase 2 (internal statement changes):
   P2a = `InvRaftPhys`, `raft__send`, `raft__sendTimeoutNow`, `raft__become{Candidate,Leader}`,
   `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
   P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
-  P5 together with P7. Next is wave 2 (P3b, P4, P6), once wave 1 is in. Then phase 3.
+  P5 together with P7. Done: P5+P7, P2a. Wave 2: P6 and P4 started (P2b, P3a still running);
+  P3b is to start once P2b lands raft.Step's `%Hframe` transfer clause. Then phase 3.
