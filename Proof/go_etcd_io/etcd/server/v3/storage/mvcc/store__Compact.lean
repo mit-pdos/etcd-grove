@@ -88,7 +88,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h0 s γ hcmp) $$ [$HRTok] as %pcc HRTok
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW $HRTok] as %ch %prev %err ⟨HRTok, Hres⟩
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc

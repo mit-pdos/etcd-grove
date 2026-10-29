@@ -1569,6 +1569,15 @@ def kbSR (kb : Option KBReal) : IProp GF :=
   | none => iprop(True)
   | some d => backend.srSlot d.be
 
+/-- **The safe-range deletion's slot, read-locked** in the instance `kb` (the contract's `SRh`;
+question 5's core stage, parts (2)-(4)): for the real backend, its `safeRangeDeleteMu` read-locked
+(`backend.srHeld`, between the compaction job's `LockForSafeRangeDelete` and its deferred
+`UnlockForSafeRangeDelete`); nothing for mvcc's assumed backend. -/
+def kbSRh (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => backend.srHeld d.be
+
 /-- **The write-back tokens' supply** in the instance `kb` (3.4, decision O4; revised after review
 round 2, R2-7, the user's: **one stock**): for the real backend, a write session's token for each
 time receipt, so that the compaction job, whose batches are not bounded in advance, pays each
@@ -1773,10 +1782,12 @@ commit take. -/
 theorem isKeyBackendG_wand {b : GoInterface} {View : Qp → Bucket → IProp GF} {RT WT NC : IProp GF}
     {PutOk : Bucket → Puts → GoString → GoString → Prop} {Del : GoString → IProp GF}
     {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ : StoreNames}
-    {Rb : GMap GoString backend.BktData → IProp GF} {Bt : GoInterfaceOk → IProp GF} {MW : IProp GF} :
+    {Rb : GMap GoString backend.BktData → IProp GF} {Bt : GoInterfaceOk → IProp GF}
+    {SR SRh MW : IProp GF} :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF (storeReq γ) Rb Bt
-        (MW := MW) ⊢
-      isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) (MW := MW) := by
+        SR SRh MW ⊢
+      isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR)
+        (SRh := SRh) (MW := MW) := by
   iintro #H
   unfold isKeyBackendG
   icases H with ⟨%bi, %Hbi, #H1, #H2, #H3, #HFc, #H5, #H6, #H7⟩
@@ -2425,6 +2436,11 @@ instance physCmp_persistent (s : Loc) (γ : StoreNames) : Persistent (physCmp (G
 theorem physCmp_off (s : Loc) (γ : StoreNames) (h : ¬ kbCmpM γ.kb) : ⊢ physCmp (GF := GF) s γ := by
   unfold physCmp; rw [if_neg h]; iintro; itrivial
 
+/-- A compacting store's compaction facts. -/
+theorem physCmp_on (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
+    physCmp (GF := GF) s γ ⊣⊢ iprop(mwInv γ ∗ storeRegd s γ ∗ kbWTSupply γ.kb) := by
+  unfold physCmp; rw [if_pos h]; exact .rfl
+
 /-- **The key's other half, by the mode** (what `NewStore` keeps of the key's ghost variable for the
 invariant). -/
 def mwRest (γ : StoreNames) : IProp GF :=
@@ -2585,22 +2601,44 @@ theorem storeW_pending (s : Loc) (γ : StoreNames) :
     · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr' H2
       cases Hc
 
-/-- **The store's backend contract over mvcc's assumed backend** (`storeCmp γ`, `γ.kb = none`;
-2026-10-13, unit 5c): no tokens, no condition on the puts, the lock resource the writer's
-(`writerRes`), the compaction's calls (`Cmp` true). -/
-theorem isKeyBackendG_cmp (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF) (HF : val → IProp GF)
-    (h : storeCmp γ) :
+/-- **The store's backend contract with its compaction on** (question 5's core stage, parts
+(2)-(4), decided by the agent; until then `isKeyBackendG_cmp`, which reduced it to mvcc's assumed
+backend: no tokens, the lock resource the writer's): the store's contract at its tokens, put
+condition, lock resource, slots and write right, its compaction condition `True`. What the
+compaction's proofs (`updateCompactRev`, the job, `checkPrevCompactionCompleted`) use, for either
+backend. -/
+theorem isKeyBackendG_cmpOn (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF)
+    (HF : val → IProp GF) (h : storeCmp γ) :
     isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ)
-      (MW := kbMW γ.kb γ.bucket) ⊢
-    isKeyBackendG b (bucketView γ) iprop(True) iprop(True) (kbNoCmp γ.kb γ.bucket) noPutCond
-      (delKey γ) (writerRes s γ) iprop(True) Dep True P HF (MW := kbMW none γ.bucket) := by
-  unfold storeCmp kbCmp at h
-  unfold storeW kbWi storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk storeReq kbReq
-    storeRb kbRb storeBt kbBt
-  simp only [h]
-  exact .rfl
+      (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) ⊢
+    isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+      (storePutOk γ) (delKey γ)
+      (storeW s γ) (kbWi γ.kb) Dep True P HF (storeReq γ) (storeRb γ) (storeBt γ)
+      (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) := by
+  rw [eq_true h]
+
+/-- A store whose backend supports the compaction compacts (`kbCmpM`: its resources are on). -/
+theorem storeCmp_cmpM (γ : StoreNames) (h : storeCmp γ) : kbCmpM γ.kb := by
+  have hk : γ.kb = none := h
+  rw [hk]; unfold kbCmpM; trivial
+
+/-- **A write-back token from the supply** (F5): a time receipt of the caller's own step buys a
+write session's token (nothing to buy for mvcc's assumed backend). -/
+theorem kbWTSupply_take (kb : Option KBReal) :
+    kbWTSupply (GF := GF) kb ∗ ⧗ 1 ={⊤}=∗ kbWT kb := by
+  cases kb with
+  | none => unfold kbWTSupply kbWT; iintro -; imodintro; itrivial
+  | some d =>
+    unfold kbWTSupply kbWT
+    iintro ⟨#H, Hr⟩
+    iapply H $$ Hr
+
+/-- The job's budgets of a compacting store: its reader's token and the safe-range slot. -/
+theorem compactJobResM_on (kb : Option KBReal) (h : kbCmpM kb) :
+    compactJobResM (GF := GF) kb ⊣⊢ iprop(kbRT kb ∗ kbSR kb) := by
+  unfold compactJobResM; rw [if_pos h]; exact .rfl
 
 /-- **A caller's lent fraction of the committed log's authority** (unit W-K): `some (q, L)`, the
 fraction `q` at `L` (a reader holding it knows the committed log is `L`: `store.Read` finds it so);
@@ -3080,7 +3118,7 @@ def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
     "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
-      (MW := kbMW γ.kb γ.bucket) ∗
+      (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) ∗
     "#Hdep" ∷ □ Dep ∗
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch ∗
@@ -3685,7 +3723,7 @@ def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : 
   iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ)
     (kbNoCmp γ.kb γ.bucket) (storePutOk γ)
     (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
-    (MW := kbMW γ.kb γ.bucket))
+    (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket))
 
 instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackend (GF := GF) b s γ P) := by
@@ -3700,7 +3738,7 @@ def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
   isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket) (storePutOk γ)
     (delKey γ) (storeW s γ)
     (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
-    (MW := kbMW γ.kb γ.bucket)
+    (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket)
 
 instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackendT (GF := GF) b s γ P) := by
@@ -5564,24 +5602,6 @@ theorem mwSwap_of_physOk (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
 /-- A compacting store's slot is the key. -/
 theorem mwSlot_on (γ : StoreNames) (h : kbCmpM γ.kb) : mwSlot (GF := GF) γ ⊣⊢ mwKey γ.mwk := by
   unfold mwSlot; rw [if_pos h]; exact .rfl
-
-/-- **The swaps over mvcc's assumed backend** (`storeCmp`: the compaction's proofs until the core
-stage's flip): of the writer's resource, and of the key alone, for the assumed backend's right. -/
-theorem mwSwap_cmp (s : Loc) (γ : StoreNames) (h : storeCmp γ) :
-    physCmp (GF := GF) s γ ⊢
-      mwSwap (writerRes s γ) (kbMW none γ.bucket) ∗
-        mwSwap iprop(mwKey γ.mwk ∗ True) (kbMW none γ.bucket) := by
-  have hk : γ.kb = none := h
-  have hc : kbCmpM γ.kb := by rw [hk]; unfold kbCmpM; trivial
-  have h1 := mwSwap_writerRes (GF := GF) s γ hc
-  have h2 := mwSwap_of_inv (GF := GF) γ iprop(True)
-  rw [hk] at h1 h2
-  unfold physCmp
-  rw [if_pos hc]
-  iintro ⟨#Hi, -, -⟩
-  isplitr
-  · iapply h1 $$ Hi
-  · iapply h2 $$ Hi
 
 end mwLc
 

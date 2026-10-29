@@ -42,7 +42,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
-  ihave #Hbk' := mvcc.isKeyBackendG_cmpRT b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
+  ihave #Hbk' := mvcc.isKeyBackendG_cmpOn b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, -, -, -, -, #HCmp⟩
   subst Hbi

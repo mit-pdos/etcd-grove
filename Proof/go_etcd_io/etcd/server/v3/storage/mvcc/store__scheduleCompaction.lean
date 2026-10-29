@@ -23,6 +23,7 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Spec.time.Time__Unix
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -230,12 +231,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
-  -- (question 5's core stage, part (1)) the swap of the key for the compaction keys' write right
-  icases mvcc.mwSwap_cmp s γ Hcmp $$ HmwP with ⟨-, #Hswk⟩
-  have hcmpM : mvcc.kbCmpM γ.kb := by
-    have hk : γ.kb = none := Hcmp
-    rw [hk]; unfold mvcc.kbCmpM; trivial
-  ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
+  -- (question 5's core stage) the store's compaction facts: the write right's invariant (the swap
+  -- of the key for the compaction keys' write right), its registration, the write-back supply
+  have hcmpM : mvcc.kbCmpM γ.kb := mvcc.storeCmp_cmpM γ Hcmp
+  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg, #Hsup⟩
+  ihave #Hswk := mvcc.mwSwap_of_inv γ iprop(True) $$ Hmwi
+  -- the store's contract with its compaction on (its tokens, lock resource, slots, write right)
+  ihave #Hbk' := mvcc.isKeyBackendG_cmpOn _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, #HBT, #HForce, #HSize, #HSizeU, #HCmp⟩
   icases HCmp $$ [] with ⟨#HLSR, #HUSR, -⟩
@@ -250,10 +252,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iPkgInit
   iunfold mvcc.compactTok at Htok
   icases Htok with ⟨⟨%c', %hc', Htok⟩, Hjr⟩
+  -- the job's budgets (question 5's core stage): its reader's token, the safe-range slot
+  icases (mvcc.compactJobResM_on γ.kb hcmpM).1 $$ Hjr with ⟨HRT, HSR⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply HLSR
+  wp_apply HLSR $$ [$HSR] as HSRh
   (try wp_auto)
   wp_apply time.wp_Now as %t0 -
   (try wp_auto)
@@ -308,7 +312,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iframe
     ipureintro; simp [Hhv]
   wp_for HI
-  wp_apply time.wp_Now as %tst -
+  wp_apply +noauto time.wp_Now as %tst -
+  -- (question 5's core stage) a receipt for the session's write-back token
+  wp_take_receipt as Hr1
+  imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr1] with Hwt1
   (try wp_auto)
   wp_apply HBT as %bt #Hbt
   (try wp_auto)
@@ -318,10 +325,11 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold mvcc.batchTxSpecG at HbtS0
   icases HbtS0 with ⟨-, -, -, -, -, #HLockOut, #HRng, -⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HLockOut $$ [] 
-  · iframe #
+  iapply HLockOut $$ [HRT Hwt1]
+  · iframe HRT Hwt1; iframe #
   inext
-  iintro ⟨Hlocked, HW, HP, -⟩
+  iintro ⟨Hlocked, HW, HP, HRT⟩
+  ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   -- (question 5's core stage, part (1)) a later credit for the last batch's swap of the key
   wp_auto_lc 1
   iunfold mvcc.writerRes at HW
@@ -571,7 +579,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iframe Hmk Hlc1
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW none γ.bucket) iprop(U c0 ∗ mvcc.kbMW none γ.bucket)
+    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW γ.kb γ.bucket) iprop(U c0 ∗ mvcc.kbMW γ.kb γ.bucket)
       rev Hrev.1) $$ [HU HMW]
     · iframe HU HMW; iframe #
       iapply HMetaC
@@ -590,6 +598,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
     iapply HUnlU $$ %c0 [HU HwkW HwvW HbvW Hmeta Hfin Hmk HP]
     · iframe HU HP
+      iapply mvcc.storeW_put s γ
+      iframe Hreg
       iunfold mvcc.writerRes
       iexists ilog
       simp only [named]
@@ -662,10 +672,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)
-    wp_apply HUSR
+    wp_apply HUSR $$ [$HSRh] as HSR
     (try wp_auto)
     iapply HΦ
-    iframe Htok Hjr
+    iframe Htok
+    isplitl [HRT HSR]
+    · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
     ileft
     iframe Hdone
     ipureintro; rfl
@@ -673,6 +685,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HUnlU $$ %(c0 + 1) [HU HwkW HwvW HbvW HcresW HP]
   · iframe HU HP
+    iapply mvcc.storeW_put s γ
+    iframe Hreg
     iunfold mvcc.writerRes
     iexists ilog
     simp only [named]
@@ -681,14 +695,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ipureintro; exact HneW
   inext
   iintro -
-  (try wp_auto)
+  -- (question 5's core stage) a receipt for `ForceCommit`'s write-back token
+  wp_take_receipt as Hr2
+  imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2
   wp_apply (h15 _ lst bs (Or.inl Hbs)) $$ [$HlastS $HlastC] as %lst2 ⟨HlastS, HlastC⟩
   (try wp_auto)
-  wp_apply HForce $$ %iprop(True) %iprop(True) [] as -
-  · isplitr; · itrivial
+  wp_apply HForce $$ %iprop(True) %iprop(True) [HRT Hwt2] as ⟨HRT, -⟩
+  · iframe HRT Hwt2
     isplitr; · itrivial
-    isplitr; · itrivial
-    iintro !> -; itrivial
+    iapply mvcc.storeReq_true
   (try wp_auto)
   wp_apply time.wp_Since as %d5 -
   (try wp_auto)
@@ -759,10 +774,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)
-    wp_apply HUSR
+    wp_apply HUSR $$ [$HSRh] as HSR
     (try wp_auto)
     iapply HΦ
-    iframe Htok Hjr
+    iframe Htok
+    isplitl [HRT HSR]
+    · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
     iright
     iframe Herr
     iunfold mvcc.storeStopped

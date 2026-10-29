@@ -42,7 +42,7 @@ theorem mvcc.store.compactLockfree.wp_proof
   wp_apply (h0 s γ hcmp) $$ [$HRTok] as %pcc HRTok
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook $HRTok] as %ch %prev %err ⟨HRTok, Hres⟩
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |

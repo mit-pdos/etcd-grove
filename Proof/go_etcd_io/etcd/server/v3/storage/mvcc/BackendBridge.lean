@@ -3339,9 +3339,15 @@ theorem storeBackendT_of_backend
     unfold storeBt kbBt; rw [hk]
   iunfold storeBackendT
   rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hk]
-  simp only [kbWi, kbNoCmp, kbMW]
-  iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
-    hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H
+  simp only [kbWi, kbNoCmp, kbMW, kbSR, kbSRh]
+  -- (question 5's core stage) the slots of a store that does not compact are anything
+  iapply isKeyBackendG_weaken (Del := delKey γ) (Del' := delKey γ) (Cmp := False)
+    (SR := iprop(True)) (SRh := iprop(True)) (MW := iprop(∃ f : Nat, fkOwn d.γB f)) (hC := hc)
+  isplitl
+  · iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
+      hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) False id $$ H
+  iintro !> %k Hk
+  iexact Hk
 
 
 /-- **The clean-view `ReadTx` of the real backend** (the restore plan's R5a; `keyCleanRead`: what
