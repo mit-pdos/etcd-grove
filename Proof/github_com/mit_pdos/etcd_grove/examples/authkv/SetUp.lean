@@ -246,13 +246,13 @@ theorem SetUp.wp_proof
     imod (setup_post s E ρ conn _ γz 2 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq2 with #F2
     (try wp_auto)
     wp_apply (wp_RoleGrantPermission ap conn [ep] cctx cd go!"r" go!"a" go!"b" (W32 2) (v3rpc.etcdRoleGrantPermissionSpec s E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleGrantPermission go!"r" (some permRW)) (fun _ => effLb ρ.kv 3)))) $$ [] as %resp3 %err3 Hout3
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) (fun _ => effLb ρ.kv 3)))) $$ [] as %resp3 %err3 Hout3
     · iframe #
       isplitr
       · ipureintro; decide
       iintro !>
       inext
-      iapply (setup_pre_roleGrantPermission s E ρ conn _ γz 3 go!"r" permRW rfl (by decide) (by decide)) $$ Hc Hn Hx
+      iapply (setup_pre_roleGrantPermission s E ρ conn _ γz 3 go!"r" ⟨W32 2, go!"a", go!"b"⟩ rfl (by decide) (by decide)) $$ Hc Hn Hx
     iunfold authCallOut at Hout3
     icases Hout3 with (⟨%Herr3, Hq3⟩ | ⟨%Herr3, -⟩)
     rotate_left
@@ -266,7 +266,7 @@ theorem SetUp.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr3
-    imod (setup_post s E ρ conn _ γz 3 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq3 with #F3
+    imod (setup_post s E ρ conn _ γz 3 (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq3 with #F3
     (try wp_auto)
     wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"u" go!"u-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"u" (fun _ => effLb ρ.kv 4)))) $$ [] as %resp4 %err4 Hout4

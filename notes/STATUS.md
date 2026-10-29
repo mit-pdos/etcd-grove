@@ -502,8 +502,13 @@ grant when it fires (`kvAu1G`, `writeGrantG`; v3rpc's `kvDepOwnOn`; "The write's
 grant"). Merges A, C and D are in: the request path (`parseProposeCtxErr`, `processInternalRaftRequestOnce`,
 `raftRequest`, `doSerialize`, `Put`, `DeleteRange`, `Range`) has one spec each at `E.authOn`, with the
 former pairs as corollaries in `ModeSpecs.lean` (decisions, "The request path in the environment's
-mode"). 5a carries the write's grant through the client's `On` results (`clientOpAuOn`). Still to do: 5b (the admin specs over a client view of the auth history; F-S2's
-`etcd_noOtherRefusal`, approved, goes in there). Then `applyEntryNormal`'s variant families, which block `apply` and the
+mode"). 5a carries the write's grant through the client's `On` results (`clientOpAuOn`). 5b (branch `auth-5b`, in progress): the admin requests' permission is a client's update of
+an auth history `kvInvOn` keeps half of (`histAu`; decisions, "The admin requests over a client's
+view of the auth history"), through the server, the Auth gRPC layer and the client's Auth wrappers;
+authkv's `SetUp` (its auth half) proved over it, returning the history frozen at `setupSt r`,
+published, over the new trust-boundary axiom `context.WithTimeoutBackgroundMd` (the set-up's
+context has no outgoing metadata; the user's choice). Still in 5b: F-S2's `etcd_noOtherRefusal`
+(approved). Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
 
 ## Two compaction-path axioms refuted (2026-10-29)
