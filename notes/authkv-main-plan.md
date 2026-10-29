@@ -160,3 +160,25 @@ needs `ClientCertAuthEnabled ↦□ false` (`srvTLSId_false`, the merge session'
 hidden after `NewServer` (`isServerReqM`'s `∃ v`, so `memberUpOn`). Proposed: `srvServeCfg s cfg`
 also gives `srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled'`; authkv's
 configuration leaves the field `false`.
+
+**Candidate 3 (after the merge session's review, 2026-10-29).** The lower bound is a fragment of
+the server's requested log (`srvReqLogLb ρ.raft L₀`; `srvReqLogLb_of_rlogLb` converts a committed
+one). `writeGrantAt s E ρ ctx rq₀ L₀ σ := ∃ hm L, hdrBoundM true s E ctx hm ∗ ⌜L₀ <+: L ∧
+grantedAt … (withHeader rq₀ hm) L ∧ kvStOn … L = σ⌝`, with `L` the log before the entry. Laws:
+`srvAuthAtLog`, `grantedAt_iff`, `kvGranted_emptyUser`. Threaded through `Txn` too. S6 gives
+`Lset` in the requested-log view. authkv's `cfgOk` gains `ClientCertAuthEnabled' = false`.
+
+## D2. Nothing stops an admin request after `SetUp` (open; S6)
+
+S6 ("every log extending `Lset` has the auth state `setupSt _`") must rule out an admin entry
+committed after `Lset`. No admin spec takes a caller resource over the auth history: E2h's
+`setupAuthOk` lets the server's side choose the `Q`s, and the history's authority (`authOwn`'s half,
+the lock's half) is the server's. So nothing on the client side tells the proof that no admin call
+happens after `SetUp`. The options:
+- (A, preferred) the admin specs take a caller update over a client-side view of the auth history
+  (as KV writes take `kvOpAu1` over `etcdKV`). `Main` holds the view, and only `SetUp`'s calls
+  give updates.
+- (B) per-request attribution, as for writes: a grant for admin requests, root's token only on
+  root's connection, and that connection sending no admin request.
+
+(A) changes the admin `On` specs, so it is for the user and the merge session.
