@@ -1105,3 +1105,94 @@ Second tier, to go in with the next code change:
 - **R10-5:** delete the unused `viOk` (`DelKeys.lean:97-101`); the `BParams.VI` sketch is superseded.
 
 Next: question 2's own round (Draft, then Review), then question 5 (the wiring).
+
+## Question 2's Draft round (2026-10-29; option (a), the user's)
+
+**The statements**, in `Proof/go_etcd_io/etcd/server/v3/storage/backend/LogicalView.lean`
+(Draft). It is real Lean beside what it replaces, imported by nothing, with every law proved and no
+`sorry`. Nothing is switched yet.
+
+- **`relog P L st`**, the logical view after a put session's `Unlock`:
+  `sData P st.S ∪ filter (fun nk _ => P.SB nk.1 && (vData P (st.C, st.R)).lookup nk = none) L`.
+  - The session's writes go over `L`. `L` is kept only at safe-range keys that the readers'
+    physical view already lacked, i.e. keys compaction deleted earlier. Those stay in mvcc's
+    logical `Key` bucket (R5-1).
+  - A key the session itself deleted leaves the logical view as well.
+  - Refinement of R4-2's sketch (decided by the agent): the sketch fell back at every safe-range key
+    missing from `S`, which would undo the session's own deletes. This version needs no new premise
+    on the put branch.
+  - Laws, all proved: `relog_lookup`, `relog_exact` (an exact `L` gives `sData P st.S`), `thinV_relog`
+    (the old physical view thin of `L` gives `sData P st.S` thin of `relog P L st`), `thinV_trans`.
+- **`batchViewQ γ P st := ∃ L, viewQ γ ¼ (vData P (st.C, st.R)) L`**, the batch lock's quarter over
+  the logical view: `batchGhostAt`'s first conjunct after the switch.
+  - Today's exact quarter is an instance (`batchViewQ_of_exact`).
+  - The clients' share agrees with it (`batchViewQ_bView`: the physical view is thin of what a client
+    holds).
+  - `batchLocked_thin`, the law the bridge reads, is stated and proved today. It is re-proved over
+    `batchViewQ` at the switch.
+- **`viewAtL γ vd := ∃ L, viewQ γ ¼ vd L`**, D22's `viewAt` over the logical view (option (a)). It
+  replaces `viewAt` at the switch.
+  - Today's `viewAt` is an instance (`viewAtL_of_viewAt`), so `backend.Snapshot`'s observation only
+    gets weaker.
+  - With `dlNoDel` it is today's `viewAt` (`viewAtL_noDel`; D22's users never compact).
+- **`backend.batchTxBuffered.Unlock.specF`**, the folded `Unlock` spec, one spec for both kinds of
+  session:
+  - **A deleting session:** `thinV γ (sData P st.S) (vData P (st.C, st.R))`, no puts to the non-hook
+    buckets in the write buffer, `W ∗ Pk ∗ Q`. The logical view stays. This is today's `specC`
+    branch. Today's `viewSame` branch is its instance (`viewSame_thin`).
+  - **A put session:** `∃ vd, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q)`. Today's
+    `spec` had `sData P st.S` in place of `relog P vd st`.
+  - **Today's `spec` is a corollary under `dlNoDel`** (`Unlock.spec_of_specF`, proved). It is the
+    old bridge's and D22's route; they never compact.
+  - At the switch `spec := specF`; `specC` and `specF` go.
+  - Still to add: the no-change branch alone, without `dlNoDel` (`SetTxPostLockInsideApplyHook`), as
+    a one-line corollary through `viewSame_thin`.
+- **`UnsafeDelete.specC`** is already the folded `UnsafeDelete` statement: any bucket, with `dlIs` at
+  a safe-range key, and `own` choosing between a key slice and a key read from the transaction. At
+  the switch `spec := specC`. Its old callers pass `own := true`, and their `P.SB = false` reduces
+  the `dlIs` conjunct to `True`.
+
+**Who decides.**
+- `viewAt` is the only change to a trusted statement's meaning. It goes into `backend.Snapshot`'s
+  axiom spec, D22's (the collaborator's), and only weakens the caller's observation. It is the
+  user's option (a). It gets the `axiom` skill before Freeze, as already recorded.
+- `Unlock.spec` and `UnsafeDelete.spec` are proved backend specs. Their text is visible only as
+  hypotheses passed through by `StoreBackend`, `BuildLemmas`, `SnapApplyWalk`,
+  `EtcdServer.applySnapshot`, `NewServer` and the links, none of them top-level statements. No new
+  family: `specC` and `specF` disappear.
+- No question for the user this round.
+
+**Proof sites at the switch** (measured with `etc/importers.py` and grep, no build):
+- **The batch quarter** (`batchGhostAt := batchViewQ ∗ …`, `InvBackend.lean`; rebuilds 2120
+  modules). Mentions of the quarter or `batchGhostAt` per file:
+  - `InvBatch` 16: the session steps keep `(C, R)`, so they are mechanical;
+  - `ReadSide` 8: `rtRes_wb_close`, and `rtRes_cm_close`'s window, where the readers' quarter and
+    the batch's take the same `L`;
+  - `InvCommit` 6: a commit keeps `L` (`thinV_rebase`);
+  - `InvBackend` 6;
+  - `batchTxBuffered__Unlock` 4;
+  - `NewAlloc` 3: initially `L` is exact;
+  - `batchTx__lock` 2, `InvSnapshot` 2;
+  - `DelKeys`, `InvNew`, `UnsafePut`, `UnsafeSeqPut`, `safePending` 1 each.
+- **`Unlock`'s proof:** the deleting branch is new, from `specC` (about 200 lines). The put branch's
+  write-back sets every quarter to `relog P vd st`, including the readers' quarter inside
+  `readTx.mu`, in the write-back's close.
+- **`UnsafeDelete`'s proof:** a safe-range delete with `dlIs` (`safeSt` no longer needs the committed
+  keys in the writer's contents; round-1 repairs).
+- **Callers**, all in `BackendBridge.lean` plus one backend hook. No server or example proof applies
+  `Unlock`/`UnsafeDelete` directly; they pass the specs through. Earlier "40 files" estimate:
+  `batchLocked`'s users, not `Unlock`'s.
+  - `bt_unlock`, `bt_unlockD`: put branch; the old bridge goes through `spec_of_specF`, the new one
+    uses `relog`.
+  - `bt_unlock0`, `bt_unlockO`, `bt_unlockOAt`, `SetTxPostLockInsideApplyHook`: no-change branch,
+    via `viewSame_thin`.
+  - `bt_leaseDel`: `UnsafeDelete` with `own := true`.
+- **Then the limited-range case of the new bridge** (its last `sorry`).
+  - The job's session must give `Unlock`'s deleting branch `thinV (sData P st.S) (vData P (st.C,
+    st.R))`, so its session token should record that its deletes are registered.
+  - That is a statement inside mvcc's contract (the limited-range clause), the agent's to word.
+- **Estimate:**
+  - about 500 changed lines over the 12 backend files;
+  - about 200 for `Unlock`'s deleting branch, about 100 for `UnsafeDelete`;
+  - about 60 in the bridge, about 300 for the limited range;
+  - one full build per round, rebuilding about 2100 modules.
