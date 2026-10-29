@@ -71,6 +71,16 @@ theorem Membership.restorable_simple (vs : GSet w64) (h : W64 0 ∉ vs) :
     all_goals exact GMap.not_elem_of_empty _ h',
    fun _ h' => absurd h' (GMap.not_elem_of_empty _)⟩
 
+/-- **A change keeps a well-formed membership restorable.** -/
+theorem Membership.applyGo_restorable {o : ConfChangeIM} {m m' : Membership} :
+    m.WellFormed → m.Restorable → Membership.applyGo o m = some m' → m'.Restorable := by
+  intro hw hr h
+  have hg : CCGood (ApiImpl.stOf m) := by
+    rcases hw with rfl | hv
+    · exact ApiImpl.ccGood_stOf_empty
+    · exact hv.2
+  exact ApiImpl.memApplyGo_restorable hg hr h
+
 /-- **The API's `applyChange` is Go's `confchange`, cut at `2^62` tracked ids** (raft's bound:
 `Valid`). -/
 theorem Membership.applyChange_eq_applyGo (o : ConfChangeIM) (m : Membership) :
@@ -89,6 +99,30 @@ theorem Membership.applyChange_of_applyGo {o : ConfChangeIM} {m m' : Membership}
 theorem Membership.applyChange_of_applyGo_none {o : ConfChangeIM} {m : Membership}
     (h : Membership.applyGo o m = none) : Membership.applyChange o m = none := by
   rw [Membership.applyChange_eq_applyGo, h]; rfl
+
+/-- **A legacy change is its `AsV2`** (`ConfChangeM.asV2`, `(*ConfChange).AsV2`'s model): what
+`confchange` makes of it. -/
+theorem Membership.applyGo_asV2 (c : ConfChangeM) (m : Membership) :
+    Membership.applyGo (.v1 c) m = Membership.applyGo (.v2 c.asV2) m := by
+  unfold Membership.applyGo ApiImpl.memApplyGo; rfl
+
+/-- **A legacy change is its `AsV2`** (the API's `applyChange`). -/
+theorem Membership.applyChange_asV2 (c : ConfChangeM) (m : Membership) :
+    Membership.applyChange (.v1 c) m = Membership.applyChange (.v2 c.asV2) m := by
+  rw [Membership.applyChange_eq_applyGo, Membership.applyChange_eq_applyGo,
+    Membership.applyGo_asV2]
+
+/-- **A change keeps a well-formed membership restorable** (the API's `applyChange`). -/
+theorem Membership.applyChange_restorable {o : ConfChangeIM} {m m' : Membership} :
+    m.WellFormed → m.Restorable → Membership.applyChange o m = some m' → m'.Restorable := by
+  intro hw hr h
+  cases hg : Membership.applyGo o m with
+  | none => rw [Membership.applyChange_of_applyGo_none hg] at h; cases h
+  | some m1 =>
+    rw [Membership.applyChange_of_applyGo hg] at h
+    split at h
+    · cases h; exact Membership.applyGo_restorable hw hr hg
+    · cases h
 
 end pure
 
@@ -114,7 +148,7 @@ and the `Changer`'s methods return. -/
     | none => ∃ v0 : Loc, ⌜trk.Config'.Voters'.arr = [v0, map.nil] ∧
           trk.Config'.Learners' = map.nil ∧ trk.Config'.LearnersNext' = map.nil ∧
           trk.Config'.AutoLeave' = false⌝ ∗
-        v0 ↦$ (∅ : GMap w64 Unit) ∗ trk.Progress' ↦$□ (∅ : GMap w64 Loc)
+        v0 ↦$ (∅ : GMap w64 Unit) ∗ trk.Progress' ↦$ (∅ : GMap w64 Loc)
     | some m => ownCfgPairM trk.Config' trk.Progress' m)
 
 end defs
