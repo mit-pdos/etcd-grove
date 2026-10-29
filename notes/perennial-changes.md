@@ -28,9 +28,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   them today): authkv's root watch of every key (`Watch("", WithPrefix())`, G2,
   `notes/authkv-main-plan.md`).
 - **Workaround here.** None; the user chose to wait for the general fix (2026-10-29).
-- **Proposed.** A lemma (or `wp_slice_literal`'s post) that an empty slice literal is non-nil, on a
-  Perennial branch off its `lean`.
-- **Status.** Open.
+- **Proposed.** `wp_slice_literal_nonnull` (`Perennial/Golang/Theory/Slice.lean`): the literal's
+  pointer is non-null, from the backing array's typed points-to (`typedPointsto_not_null`, which
+  holds at length zero too); `wp_slice_literal` unchanged, its corollary. A proof, not a semantics
+  change: no trusted-base delta.
+- **Status.** On Perennial branch `slice-literal-nonnull` (`6da88b280`, off `origin/lean`
+  `8df4f63d3`; worktree `/shared/perennial-slicelit`), built (`Perennial.Golang.Theory.Slice`;
+  `#print axioms`: Lean's three only). Not landed: Perennial's `etc/land.sh` (prepare, review, push)
+  is the user's. The pin then moves to it.
 
 ### Context model: a descriptor's `Values` constrain nothing (2026-10-29, authkv round 1)
 
