@@ -1139,6 +1139,10 @@ Phase 2 (internal statement changes):
   `SentMsgOk`) is replaced by XfOk's clauses: `SentMsgShape`, `AppFrom`, the stamped transfer's
   `∈ s.gh.xw`, and `xfW γ s`. `Hns` is kept (`qCert` still has its `reNoSnap` disjunct).
 
+- `rdPool` (internal, `InvApi`): `⌜receiptBound GF ≤ 2^64 - 2⌝ ∗ inv …` (was the invariant alone);
+  `rdPool_mint` without its `receiptBound` premise. Why: `node.ReadIndex.spec` has no such premise
+  and `isNode` bounded nothing; `cluster_alloc` takes the premise, its allocation records it.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
