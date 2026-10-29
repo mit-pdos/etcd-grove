@@ -1542,3 +1542,8 @@ and a targeted `lake build --packages` of `mvcc.WiringDraft` (2311 jobs), both p
 
 **Estimate:** about 1100–1400 lines. The deferral takes about 150–200 off the reviewer's 1200–1600.
 One full build per round (1724 modules).
+
+**Q5-3, the user's answer (2026-10-29):** (a). `store.Restore.spec` gains the pure premise
+`⌜d'.cm = false⌝` (M2's "no restore in compaction mode"); its callers discharge it from their literal
+records. This is a one-line change to a D22 statement, so the collaborator will find it here and in
+STATUS. The Draft is written for (a).
