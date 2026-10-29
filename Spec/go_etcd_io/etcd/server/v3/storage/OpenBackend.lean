@@ -11,10 +11,13 @@ The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`; since
 `notes/axiom-review/openbackend.md`). The post: what
 `backend.New` gives (`newPostK`: D22 receiver epochs, S8a, 2026-10-24, the creator's batch-lock
 step trades the fresh backend's payment rights `bFresh` for `K`, as `New`'s spec now says; until
-then `newPost`, which is `K := bFresh`), as a `Backend`; `newPostK` holds the client's half of the
-compaction keys' flag (`backend.fkOwn`, at `0` if `D` records no compaction: then it is the
-backend's no-compaction token `mvcc.bkNoCmp`, what the store's `restore` consumes,
-`mvcc.bkNoCmp_of_fkOwn`; the backend-compaction stage, 2026-10-29: until then a separate wand
+then `newPost`, which is `K := bFresh`), as a `Backend`; `newPostK` holds `backend.fkCl γ P D`:
+the client's half of the compaction keys' flag (`backend.fkOwn`, at `0` if `D` records no
+compaction: then it is the backend's no-compaction token `mvcc.bkNoCmp`, what the store's `restore`
+consumes, `mvcc.bkNoCmp_of_fkCl`) and the bit `backend.fkV` (at `true` if `D`'s compaction keys hold
+well-formed values, `mvcc.fkV_of_fkCl`, `mvcc.fkCl_wf`; both computed by `New`'s proof from `D`, so
+this axiom claims nothing more of the file); the backend-compaction stage, 2026-10-29: until then a
+separate wand
 `⌜noCmpData D⌝ -∗ bkNoCmp γ`, an opaque token, D22 S-g). Stated at `HasLC.hasLC` (`newPost` is).
 -/
 module

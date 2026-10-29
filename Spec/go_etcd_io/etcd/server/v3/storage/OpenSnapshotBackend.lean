@@ -9,8 +9,9 @@ The pre: the snapshotter (`isSnapshotter`), the snapshot's `Metadata` field and 
 `md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`fileHolds`, D22 S-i's
 snapshot directory gives it, with `D`'s certificate `dbImage`), the backend's path the program's
 (`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`, with `openMmapOk cfg` since 2026-10-29) for the hooks `hooks` as a
-`backend.Hooks`. The post: on success the backend over `D` (`newPostK`, whose client's half of the
-compaction keys' flag is the no-compaction token if `D` records none, `mvcc.bkNoCmp_of_fkOwn`; until
+`backend.Hooks`. The post: on success the backend over `D` (`newPostK`, whose `backend.fkCl γ P D`
+gives the no-compaction token if `D` records none, `mvcc.bkNoCmp_of_fkCl`, and the bit `backend.fkV`
+at `true` if `D`'s compaction keys are well formed, `mvcc.fkCl_wf`; until
 the backend-compaction stage, 2026-10-29, a separate wand `⌜noCmpData D⌝ -∗ bkNoCmp γ`) and the
 snapshot's entry the program's; on an error (the file not found, the rename failed), with `nil`
 for the backend, the file and the path back.

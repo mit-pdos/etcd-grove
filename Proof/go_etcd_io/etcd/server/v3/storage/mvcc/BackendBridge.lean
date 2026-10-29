@@ -3147,8 +3147,11 @@ registered at the backend's names (`bkDel`, decision O1) and the safe-range slot
 (`srSlot`/`srHeld`, 3.4). Its non-compaction clauses are the old bridge's proofs, over the same
 `bkLocked` (review round 2, R2-3: the compacting range ends its session in a token of its own, so
 no clause returns to the lock after a delete and F5's re-proofs are not needed); the compaction's
-clauses are the stage's new cases. The stores switch to it (`kbCmp := True`, O5)
-when it is proved. -/
+clauses are the stage's new cases: the compacting range (`bt_rangeC`, its token `bkLockedC`), the
+`Meta` put (`bt_metaPut`) and the reads of the compaction keys (`rt_metaWf`), the latter two needing
+`hFV` (the backend's value condition `P.FV` is `metaRevVal`) and the bit `fkV γ true` (the
+backend's compaction keys well formed: `fkCl`'s, `mvcc.fkV_of_fkCl`). Proved (no `sorry`, 2026-10-29);
+the stores switch to it at the wiring step (`kbCmp := True`, O5). -/
 theorem isKeyBackendG_of_backendC
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))

@@ -1250,3 +1250,43 @@ in the Draft round 11 passed (not churn from round 11's repairs). Repairs, decid
 - **Before Freeze, the `axiom` skill on `backend.Snapshot`:** include round 11's four commit cases, and
   the put window's "`W` from the wand at the commit's close".
 
+
+## The limited range proved; round 13's and round 10's items (2026-10-29)
+
+**The new bridge has no `sorry` left.** `isKeyBackendG_of_backendC`'s compacting range is
+`bt_rangeC` (`BackendBridge.lean`).
+
+**Decided by the agent.**
+- **Where the registered deletes are recorded: in the token, R12-1's option (a) kept.** The job's
+  token is `bkLockedC γ P b tx n`:
+  - the batch lock held at the range's write transaction `tx`;
+  - the writer's contents off the hook's buckets thin of the readers' view (`thinV`, which holds
+    the registrations);
+  - nothing buffered off the hook's buckets, out of the hook's window, room for `n` operations and
+    a commit's hook;
+  - a write-back's budget.
+  - Each step keeps it: deletes of registered keys (`thinV_delKey`) and compaction-key puts into
+    `Meta` (`sData_insert_HB`, `wbNoKey_putHB`, the flag's half given back).
+  - `Unlock`'s first branch takes it.
+  - So no backend statement changed, and R12-1's option (b), the session recording its deletes, is
+    not needed.
+- **The range's slices.** They are read under the token through `batchLocked_rdB` and a new backend
+  law, `batchLocked_rdB2`: two at once, half of bbolt's transaction each (`rdB_acc`), for `rdCap2`.
+- **R10-1's laws go in mvcc's `Image.lean`, beside `bkNoCmp_of_fkCl`.**
+  - `bkNoCmp_fkV_of_fkCl`: both from one `fkCl` under `noCmpData D`.
+  - `fkCl_wf`: the half and the bit under `fkWfD P D`.
+  - Not in the backend, which has no lemma file over `fkCl` yet.
+- **R13-2 not done.** It would move `viewAt` into `InvBackend.lean` and define `batchViewQ` through
+  it: cosmetic, and it moves a D22 definition. `viewAt_bView` and `batchViewQ_bView` stay two short
+  laws.
+
+**Done:**
+- **R13-1, R13-3:** the dead `hSB`; the unused import.
+- **R10-2:** docstrings of `OpenBackend` and `OpenSnapshotBackend` (`bkNoCmp_of_fkCl`, the bit), of
+  `isKeyBackendG` (`metaReadTx`'s `RLock` takes `RT`), and of `isKeyBackendG_of_backendC` (its
+  cases, `hFV`, `fkV γ true`).
+- **R10-5:** the unused `viOk` deleted from `DelKeys.lean`. The `BParams.VI` / `viOk` / `metaVI`
+  sketch above (sections 2-3) is superseded by question 4's `BParams.FV` and the bit `fkV`.
+
+**Left:** the wiring (question 5, the user's), then Test, Probe, Freeze (with the `axiom` skill on
+`backend.Snapshot`, running on branch `axiom/snapshot`) and Prove.

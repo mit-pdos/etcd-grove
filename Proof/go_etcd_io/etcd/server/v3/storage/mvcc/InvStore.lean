@@ -1358,7 +1358,8 @@ compaction may have deleted (`Del`, `snapThin`), and the batch transaction's loc
 Where the backend supports mvcc's compaction (`Cmp`): the job's calls, with no effect on the
 model, `LockForSafeRangeDelete()`/`UnlockForSafeRangeDelete()` (the defragmentation's exclusion)
 and `ReadTx()` with no view, for the reads of the `Meta` bucket's compaction keys alone
-(`metaReadTx`: `checkPrevCompactionCompleted`). Under `NC` (the backend records no compaction:
+(`metaReadTx`: `checkPrevCompactionCompleted`; its `RLock` takes the reader's token `RT`, which
+its `RUnlock` gives back). Under `NC` (the backend records no compaction:
 `kbNoCmp`) a `ReadTx` reader's reads of those keys find nothing (`keyReadLocked`); their writes, in
 the batch transaction's `Cmp` clauses, need the right `MW` (`kbMW`: the real backend's half of its
 compaction-key flag). The instance of mvcc's assumed backend

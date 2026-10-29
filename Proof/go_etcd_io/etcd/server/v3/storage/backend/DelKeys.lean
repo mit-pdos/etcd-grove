@@ -94,12 +94,6 @@ theorem dlNoDel_noDel (γ : BNames) (nk : GoString × GoString) :
   ihave %Heq := dghostVar_agree γ.dlb false _ true _ $$ Hb Hr
   exact absurd Heq (by decide)
 
-/-- **Every entry of the data `D` satisfies the value invariant `VI`** (3.3; Draft: `BParams.VI`'s
-use; mvcc's instance, `metaVI`, makes the `Meta` bucket's compaction keys hold revisions, so that
-`metaReadTx` is provable). -/
-def viOk (VI : GoString → GoString → GoString → Prop) (D : Data) : Prop :=
-  ∀ n k v, (bktOf D n).lookup k = some v → VI n k v
-
 /-- **With nothing deletable, a thin view is exact** (the thin-view Draft round; O1's fallback: no
 later): under `dlNoDel` (a backend whose creator registered nothing as deletable: the old bridge's, D22's restore over a new
 backend), a physical view thin of `L` is `L`. -/

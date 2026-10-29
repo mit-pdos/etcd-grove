@@ -79,6 +79,30 @@ theorem fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
   rw [hw]
   iintro ⟨-, H⟩; iexact H
 
+omit package_sem in
+/-- **Both from one creation resource** (review round 10, R10-1: the wiring needs the token and the
+bit from the same `fkCl`): over data with no compaction recorded, the no-compaction token and the
+bit at `true`. -/
+theorem bkNoCmp_fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
+    fkCl (GF := GF) γ P D ⊢ bkNoCmp γ ∗ fkV γ true := by
+  unfold fkCl
+  have hw : fkWInit P D = true := by
+    unfold fkWInit; simpa using fkWfD_of_abs P (fkAbsD_of_noCmp h)
+  rw [fkInit_of_abs (fkAbsD_of_noCmp h), hw]
+  unfold bkNoCmp
+  iintro ⟨H, Hv⟩
+  iframe H Hv
+
+omit package_sem in
+/-- **The bit over data whose compaction keys are well formed** (R10-1; a restart over a file that
+records a compaction): the client's half of the flag at `fkInit D` and the bit at `true`. -/
+theorem fkCl_wf (γ : BNames) (P : BParams) {D : Data} (h : fkWfD P D) :
+    fkCl (GF := GF) γ P D ⊢ fkOwn γ (fkInit D) ∗ fkV γ true := by
+  unfold fkCl
+  have hw : fkWInit P D = true := by
+    unfold fkWInit; simpa using h
+  rw [hw]
+
 /-- A key image records no compaction. -/
 theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2
 
