@@ -5,10 +5,10 @@
 theorem node.ForgetLeader.wp_proof [package_sem : Assumptions] (wp_node_step : node.step.spec)
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : node.ForgetLeader.spec
   -- `Perennial.EtcdGrove.node.ForgetLeader.spec`, unfolded:
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
           (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP
               ((intoVal

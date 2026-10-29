@@ -82,10 +82,11 @@ def StartNode.dynamicSpec : Prop :=
                                                                                     (NodeDriverState.init
                                                                                       (GoInterface.ok si)) ∗
                                                                                   nodeConfig n γ N
-                                                                                    { applied := 0,
-                                                                                      membership :=
-                                                                                        Membership.simple
-                                                                                          (listToSet ps) }) -∗
+                                                                                      { applied := 0,
+                                                                                        membership :=
+                                                                                          Membership.simple
+                                                                                            (listToSet ps) } ∗
+                                                                                    nodeRunning n γ N 1) -∗
                                                                         Φ (intoVal nd)) -∗
                                                                   WP
                                                                     (((intoVal (functions StartNode [])) (intoVal c))

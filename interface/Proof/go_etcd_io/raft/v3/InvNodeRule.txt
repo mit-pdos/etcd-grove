@@ -5,6 +5,9 @@
 def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
   [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
+theorem nodeRunning_stopped [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (q :
+    Qp) : isCluster γ N ∗ nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False
+
 theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Persistent (skippedIn γ
     l a b)
 

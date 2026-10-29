@@ -22,6 +22,8 @@ public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
+public import Spec.go_etcd_io.raft.v3.node__Stop
 import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
@@ -83,6 +85,16 @@ theorem node.wp_ApplyConfChange_unified [StorageModel GF] :
     node.ApplyConfChange.unifiedSpec (GF := GF) (hG := hG) :=
   node.ApplyConfChange.wp_proof_unified _root_.Perennial.EtcdGrove.raftpb.ConfChange.wp_AsV2
     _root_.Perennial.EtcdGrove.raftpb.ConfChangeV2.wp_AsV2
+
+/-! (2026-10-29, stage U9a) Stopping a node, and `ForgetLeader` over the node API. -/
+
+theorem node.wp_Stop [StorageModel GF] :
+    node.Stop.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Stop
+
+theorem node.wp_ForgetLeader [StorageModel GF] :
+    node.ForgetLeader.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_ForgetLeader
 
 end linksLC
 

@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (open) **`node.Advance()`**: the driver, done with a `Ready` (its entries `es` appended, or its
 snapshot installed: the storage contract's receipt, `advReceipt`), hands it back; the loop is idle
-again. After a `Ready` without a snapshot, the storage's floor is at least the committed log
+again; (2026-10-29, stage U9a) or the node stopped first (`nodeStopped`), the loop idle as well,
+nothing else promised. After a `Ready` without a snapshot, the storage's floor is at least the committed log
 delivered (`storFloor`, today `reqWit`). (2026-10-27: the premise that no conf-change entry was
 delivered is gone: the nodes are in raft's static mode, which needs none -- a conf change the client
 applies keeps the voters, `node.ApplyConfChange`. For etcd's server: in a static cluster,
@@ -42,10 +43,12 @@ abbrev node.Advance.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
       nodeDriver n γ N st ∗ advReceipt st.storage es L }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       match L with
       | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
-      | some _ => True }}
+      | some _ => True) ∨
+    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
 
 /-- **`node.Advance()`** in a dynamic cluster: as `node.Advance.spec`, if every conf-change entry
 of the committed log delivered is applied (none past the view's configuration index:
@@ -61,13 +64,15 @@ abbrev node.Advance.dynamicSpec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
       nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       match L with
       | none => nodeConfig n γ N v ∗
           ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
-          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝ }}
+          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
+    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
 
 /-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
 `isCluster`, `InvNodeRule.lean`): as `node.Advance.dynamicSpec`, with the snapshot path reachable.
@@ -93,7 +98,7 @@ abbrev node.Advance.unifiedSpec : Prop :=
        | none => True
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       match L with
       | none => nodeConfig n γ N v ∗
           ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝ ∗
@@ -103,7 +108,9 @@ abbrev node.Advance.unifiedSpec : Prop :=
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
           confAt γ (uint.nat l.snap.Metadata'.Index') m ∗
-          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝ }}
+          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
+    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
 
 end spec
 

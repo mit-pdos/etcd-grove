@@ -352,6 +352,34 @@ instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : L
 @[no_expose] def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   ApiImpl.nodeDriver n γ N st
 
+/-- (2026-10-29, stage U9a) **The node runs** (fractional; the whole, `q = 1`, is what `node.Stop`
+takes): the client's share of the node's liveness, from `StartNode` and `RestartNode` in a cluster
+with reconfiguration (`StartNode.dynamicSpec`, `RestartNode.unifiedSpec`). In a cluster with
+reconfiguration it excludes `nodeStopped` (`nodeRunning_stopped`): its holder refutes the stopped
+answers. -/
+@[no_expose] def nodeRunning (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) : IProp GF :=
+  ApiImpl.nodeRunning n γ N q
+
+instance nodeRunning_fractional (n : Loc) (γ : Cluster) (N : Namespace) :
+    Fractional (nodeRunning (GF := GF) n γ N) where
+  fractional p q := by unfold nodeRunning; exact ApiImpl.nodeRunning_split_impl n γ N p q
+
+instance nodeRunning_as_fractional (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+    AsFractional (nodeRunning (GF := GF) n γ N q) ioΦ (nodeRunning n γ N) ioq q where
+  as_fractional := .rfl
+  as_fractional_fractional := nodeRunning_fractional n γ N
+
+/-- (2026-10-29, stage U9a) **The node stopped** (persistent): its `run` returned, its `done`
+closed (`node.Stop`'s post; the stopped case of `node.Advance` and `node.ApplyConfChange`). In a
+cluster with reconfiguration it excludes `nodeRunning` (`nodeRunning_stopped`). -/
+@[no_expose] def nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF :=
+  ApiImpl.nodeStopped n γ N
+
+instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
+    Persistent (nodeStopped (GF := GF) n γ N) := by
+  unfold nodeStopped; exact ApiImpl.nodeStopped_persistent n γ N
+
+
 /-! ## Snapshots' certificates -/
 
 /-- **The snapshot `k` is certified** for the cluster (persistent; today `raftSnapCertD`): its

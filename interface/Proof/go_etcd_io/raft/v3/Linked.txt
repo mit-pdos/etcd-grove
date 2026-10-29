@@ -4,6 +4,15 @@
 
 theorem RaftLink.node.wp_Advance_unified [package_sem : Assumptions] : node.Advance.unifiedSpec
 
+theorem RaftLink.node.wp_Stop [package_sem : Assumptions] : node.Stop.spec
+  -- `Perennial.EtcdGrove.node.Stop.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeRunning n γ N 1 -∗
+          ▷ (nodeStopped n γ N -∗ Φ (intoVal ())) -∗
+            WP ((intoVal (methods node.ty.PointerType go!"Stop" (intoVal n))) (intoVal ())) {{ Φ }}
+
 theorem RaftLink.MemoryStorage.wp_Term [package_sem : Assumptions] : MemoryStorage.Term.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Term.spec`, unfolded:
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (i0 : w64) (ec : GoInterface),
@@ -288,6 +297,20 @@ theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStor
                           memSnapTok ms γs memStorEmpty ∗ memCertAuth γs -∗
                     Φ (intoVal ms)) -∗
               WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
+
+theorem RaftLink.node.wp_ForgetLeader [package_sem : Assumptions] : node.ForgetLeader.spec
+  -- `Perennial.EtcdGrove.node.ForgetLeader.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+          (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods node.ty.PointerType
+                    go!"ForgetLeader" (intoVal n)))
+                (intoVal (GoInterface.ok ctx)))
+              {{ Φ }}
 
 theorem RaftLink.wp_IsEmptyHardState [package_sem : Assumptions] : IsEmptyHardState.spec
   -- `Perennial.EtcdGrove.IsEmptyHardState.spec`, unfolded:

@@ -39,7 +39,7 @@ From any goroutine: `pb.Message{Type: MsgTransferLeader, From: transferee, To: l
 `recvc` (`netP`: unstamped, no entries, no context; `netP_local`), which `run` steps as
 `RawNode.TransferLeader` does: at a follower forwarded to its leader, at a leader recorded
 with a `MsgTimeoutNow` or an append to the transferee. Until stage R7a specified for
-`context.Background()`; `n.done` never fires. Nothing is promised of the transfer.
+`context.Background()`; (2026-10-29, stage U9a) If `n.done` fires, nothing is done. Nothing is promised of the transfer.
 (2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`); the
 `case <-ctx.Done()` returns nothing.
 -/
@@ -137,8 +137,13 @@ private theorem node.TransferLeadership.wp_raw
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply isHandshake_isChan $$ Hdone
-    iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    -- (2026-10-29, stage U9a) the node stopped: nothing done
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro -
+    wp_auto
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `case <-ctx.Done():` returns

@@ -164,6 +164,16 @@ theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
   unfold isCluster joinAuth nodeJoin
   exact ApiImpl.joinAuth_join_impl γ N U id hU hz
 
+/-! ## Stopped nodes (2026-10-29, stage U9a) -/
+
+/-- **A running node has not stopped**: a holder of a share of `nodeRunning` refutes the stopped
+answers (`node.Advance`'s and `node.ApplyConfChange`'s stopped cases). -/
+theorem nodeRunning_stopped (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+    isCluster (GF := GF) γ N ∗ nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False := by
+  unfold isCluster nodeRunning nodeStopped
+  iintro ⟨-, H⟩
+  iapply ApiImpl.nodeRunning_stopped_impl n γ N q $$ H
+
 /-! ## Decisions -/
 
 theorem ownConfDecisions_excl (γ : Cluster) (D1 D2 : GMap Nat ConfDecision) :

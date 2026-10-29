@@ -17,10 +17,15 @@ theorem node.Advance.wp_proof [package_sem : Assumptions] : node.Advance.spec
               isStaticCluster γ N vs snapOk ∗ nodeDriver n γ N st ∗ advReceipt st.storage es L -∗
             ▷
                 ((nodeDriver n γ N
-                      { storage := st.storage, delivered := st.delivered, hardState := st.hardState, handling := none } ∗
-                    match L with
-                    | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
-                    | some val => True) -∗
+                        { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
+                          handling := none } ∗
+                      match L with
+                      | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
+                      | some val => True) ∨
+                    nodeStopped n γ N ∗
+                      nodeDriver n γ N
+                        { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
+                          handling := none } -∗
                   Φ (intoVal ())) -∗
               WP
                 ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))

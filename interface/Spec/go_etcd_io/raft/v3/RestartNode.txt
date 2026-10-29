@@ -70,9 +70,10 @@ def RestartNode.unifiedSpec : Prop :=
                                                                   nodeDriver n γ N
                                                                       (NodeDriverState.init (GoInterface.ok si)) ∗
                                                                     nodeConfig n γ N
-                                                                      { applied := 0,
-                                                                        membership :=
-                                                                          Membership.simple (listToSet vs) }) -∗
+                                                                        { applied := 0,
+                                                                          membership :=
+                                                                            Membership.simple (listToSet vs) } ∗
+                                                                      nodeRunning n γ N 1) -∗
                                                             Φ (intoVal nd)) -∗
                                                       WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
 

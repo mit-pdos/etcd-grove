@@ -238,6 +238,24 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
   `nodeRunning_stopped : isCluster γ N ∗ nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False` lets a
   holder of a fraction refute every stopped answer. (An intermediate decision, `Stop` taking
   `nodeDriver`, was withdrawn.) (3) The proposal registry (S1, `Propose`) is not frozen yet.
+- U9a as built (2026-10-29): `NodeNames.live` (a `dghostVar` of `Bool`: `false` in halves, the
+  client's `nodeLiveRaw γ 1` and `run`'s; `true`, discarded, `nodeStoppedRaw`); `done` is Perennial's
+  broadcast idiom with `Q := nodeStoppedRaw` (`isNodeChan`'s `ownBroadcastChan … .Unknown`, `run`'s
+  `.Pending` in `runPre`); `stop` carries `nodeLiveRaw γ 1`. The names agree through the table:
+  `CfgNames`/`cfgNamesOf` gained `live`, so `nodeRunning` (sealed, `InvApi.nodeRunning`: `NodeOk`,
+  `isDyn`, `isNodeChan`, `nodeTabOk`, `nodeLiveRaw`) exists only in a dynamic cluster
+  (`StartNode.dynamicSpec`, `RestartNode.unifiedSpec`; the static `StartNode.spec`/`RestartNode.spec`
+  give none, temporary until U9), and `nodeStopped` is `∃ γn id, NodeOk ∗ isNodeChan ∗ (⌜static⌝ ∨
+  nodeTabOk) ∗ nodeStoppedRaw` (the static disjunct the weak form). `nodeRunning_stopped`'s
+  `isCluster` premise is unused by its proof (`nodeRunning` carries `isDyn`). `node.ForgetLeader.spec`
+  is over `isNode` (its old triple the private `specRaw`). Not done: `node.Status.spec` (a False
+  `status` handshake refutes `run`'s receive but not `Status`'s send, which needs the payload up front;
+  `run`'s status arm needs `getStatus`'s spec: `getBasicStatus`, `getProgressCopy`'s `Visit`,
+  `Config.Clone`); `node.Campaign.spec` (`MsgHup` is not in `netStepTypes`, so `netP_local` does not
+  admit it; and `run`'s `r.Step(MsgHup)` raises the term by one, `raft.Step`'s `uint.Z s'.term ≤ uint.Z
+  s.term + 1`, which `netP`'s `termLB` ceiling does not cover: a hup needs a budget step like a
+  tick's, `budget_spend` with a time receipt. Admitting it through `NetMsgOk`/`netStepTypes` would
+  change `stepIn`, a public vocabulary; a separate local case of `netP`, internal, would not).
 - A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
   public spec is escalated before it is built on; never a minor change.
 

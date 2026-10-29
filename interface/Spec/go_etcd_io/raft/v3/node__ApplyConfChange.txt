@@ -13,9 +13,10 @@ def node.ApplyConfChange.spec : Prop :=
             (▷
                 ∀ csp cs,
                   csPts csp (DFrac.own 1) cs true ∗
-                      ⌜cs.Voters'.Perm vs ∧
-                          (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ vs) ∧
-                            cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ -∗
+                        ⌜cs.Voters'.Perm vs ∧
+                            (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ vs) ∧
+                              cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ ∨
+                      ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
                     Φ (intoVal csp)) -∗
               WP
                 ((intoVal
@@ -44,7 +45,8 @@ def node.ApplyConfChange.dynamicSpec : Prop :=
                         (▷
                             ∀ csp cs,
                               csPts csp (DFrac.own 1) cs true ∗
-                                  nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ -∗
+                                    nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
+                                  ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
                                 Φ (intoVal csp)) -∗
                           WP
                             ((intoVal
@@ -73,7 +75,8 @@ def node.ApplyConfChange.unifiedSpec : Prop :=
                     (▷
                         ∀ csp cs,
                           csPts csp (DFrac.own 1) cs true ∗
-                              nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ -∗
+                                nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
+                              ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
                             Φ (intoVal csp)) -∗
                       WP
                         ((intoVal

@@ -125,15 +125,19 @@ private theorem node.Tick.wp_raw : node.Tick.specRaw (GF := GF) (hG := hG) := by
       · itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
-    · -- `<-n.done`: never
+    · -- `<-n.done` (2026-10-29, stage U9a): the node stopped, the tick is dropped
       simp only [chan.nonblockingClausePre]
       iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
       iapply blocking_rcv_implies_nonblocking
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro -
+      wp_auto
+      iapply HΦ
+      itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- `default`: the warning, through the raft struct's logger

@@ -1911,10 +1911,11 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
   γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γ.raft.reSnapLoc = (fun _ => none) ∧
     γn.mode = γ.mode inferInstance ∧ (γn.snapIn = true ∨ γ.raft.reNoSnap = true)
 
-/-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`). -/
-abbrev CfgNames := GName × GName × GName × GName
+/-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
+`live` name, by which `nodeLive` and `nodeStopped` agree. -/
+abbrev CfgNames := GName × GName × GName × GName × GName
 
-def cfgNamesOf (γn : NodeNames) : CfgNames := (γn.dlm, γn.cap, γn.ccq, γn.cam)
+def cfgNamesOf (γn : NodeNames) : CfgNames := (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live)
 
 /-- **Node `id`'s configuration names are `γn`'s** (persistent): the entry of its table. -/
 def nodeTabOk (γ : Cluster) (id : w64) (γn : NodeNames) : IProp GF :=
@@ -1935,7 +1936,7 @@ theorem nodeTabOk_agree (γ : Cluster) (id : w64) (γ1 γ2 : NodeNames) :
 theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ca : Nat)
     (cfg : CCState) : nodeCfg (GF := GF) γ1 ca cfg ⊢ nodeCfg γ2 ca cfg := by
   simp only [cfgNamesOf, Prod.mk.injEq] at H
-  obtain ⟨-, h2, h3, h4⟩ := H
+  obtain ⟨-, h2, h3, h4, -⟩ := H
   unfold nodeCfg; rw [h2, h3, h4]
 
 theorem dlvLb_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ds : List EntryM) :
@@ -1967,6 +1968,73 @@ def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
 instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
   unfold isNode; infer_instance
+
+/-- (2026-10-29, stage U9a) **The node runs**, a share `q` of the client's token (`q = 1`: the
+whole, which `node.Stop` takes): raft's node `n` with the client's half of `live` (`nodeLiveRaw`).
+Only a node of a dynamic cluster, whose table (`nodeTabOk`) names its `live` name, so that this and
+`nodeStopped` agree on the node's names (`nodeRunning_stopped_impl`, `nodeRunning_split_impl`):
+nothing else makes two `isNodeChan`s of one location name the same ghost state. -/
+def nodeRunning (n : Loc) (γ : Cluster) (_N : Namespace) (q : Qp) : IProp GF :=
+  iprop(∃ (γn : NodeNames) (id : w64), ⌜NodeOk γ γn ∧ γn.mode.isDyn = true⌝ ∗
+    EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ id γn ∗ EtcdGrove.nodeLiveRaw γn q)
+
+/-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`
+(`nodeStoppedRaw`). For a dynamic cluster's node, of the names its table names (`nodeTabOk`), so that
+it excludes the node's running (`nodeRunning_stopped_impl`); (temporary, until the static clusters
+go in U9) for a static one's, of some names of the node. -/
+def nodeStopped (n : Loc) (γ : Cluster) (_N : Namespace) : IProp GF :=
+  iprop(∃ (γn : NodeNames) (id : w64), ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗
+    (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ EtcdGrove.nodeStoppedRaw γn)
+
+instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
+    Persistent (nodeStopped (GF := GF) n γ N) := by
+  unfold nodeStopped; infer_instance
+
+/-- Two dynamic nodes' names at one location, of one cluster's table, have one `live` name. -/
+theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
+    ⊢ EtcdGrove.isNodeChan (GF := GF) γ1 id1 n -∗ nodeTabOk γ id1 γ1 -∗
+      EtcdGrove.isNodeChan γ2 id2 n -∗ nodeTabOk γ id2 γ2 -∗ ⌜γ1.live = γ2.live⌝ := by
+  iintro #H1 #T1 #H2 #T2
+  ihave %Hid := isNode_id_agree γ1 γ2 id1 id2 n $$ H1 H2
+  subst Hid
+  ihave %Hn := nodeTabOk_agree γ id1 γ1 γ2 $$ T1 T2
+  simp only [cfgNamesOf, Prod.mk.injEq] at Hn
+  ipureintro; exact Hn.2.2.2.2
+
+theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+    nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
+  unfold nodeRunning nodeStopped
+  iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩, ⟨%γ2, %id2, %Hok2, #H2, Hd, #Hs⟩⟩
+  have Hm : γ2.mode.isDyn = true := by rw [Hok2.2.2.2.1, ← Hok1.1.2.2.2.1]; exact Hok1.2
+  icases Hd with (%Hd | #T2)
+  · rw [Hm] at Hd; cases Hd
+  ihave %Hlv := nodeNames_live_agree γ γ1 γ2 id1 id2 n $$ H1 T1 H2 T2
+  unfold EtcdGrove.nodeLiveRaw EtcdGrove.nodeStoppedRaw
+  rw [Hlv]
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ Hl Hs
+  cases H
+
+theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Qp) :
+    nodeRunning (GF := GF) n γ N (p + q) ⊣⊢ nodeRunning n γ N p ∗ nodeRunning n γ N q := by
+  unfold nodeRunning
+  constructor
+  · iintro ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
+    icases (EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q |>.1 $$ Hl with ⟨Hl1, Hl2⟩
+    isplitl [Hl1]
+    · iexists γ1, id1; iframe Hl1 H1 T1; ipureintro; exact Hok1
+    · iexists γ1, id1; iframe Hl2 H1 T1; ipureintro; exact Hok1
+  · iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl1⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, Hl2⟩⟩
+    ihave %Hlv := nodeNames_live_agree γ γ1 γ2 id1 id2 n $$ H1 T1 H2 T2
+    iexists γ1, id1
+    iframe H1 T1
+    isplitr
+    · ipureintro; exact Hok1
+    iapply ((EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q).2
+    iframe Hl1
+    iunfold EtcdGrove.nodeLiveRaw at Hl2
+    unfold EtcdGrove.nodeLiveRaw
+    rw [Hlv]
+    iexact Hl2
 
 /-- The node's `Ready` channel `ch` (persistent): the node struct's `readyc`. -/
 def isReadyChan (n : Loc) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=

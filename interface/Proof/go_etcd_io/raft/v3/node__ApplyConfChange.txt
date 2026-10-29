@@ -20,9 +20,10 @@ theorem node.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfChange
             (▷
                 ∀ csp cs,
                   csPts csp (DFrac.own 1) cs true ∗
-                      ⌜cs.Voters'.Perm vs ∧
-                          (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ vs) ∧
-                            cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ -∗
+                        ⌜cs.Voters'.Perm vs ∧
+                            (∀ (k : w64), k ∈ cs.Learners' → ¬k ∈ vs) ∧
+                              cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ ∨
+                      ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
                     Φ (intoVal csp)) -∗
               WP
                 ((intoVal

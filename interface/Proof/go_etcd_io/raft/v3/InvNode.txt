@@ -241,8 +241,13 @@ theorem ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) : Timeless
 
 def (sealed) readyFits (γ : Cluster) (_N : Namespace) : IProp GF
 
+theorem nodeRunning_fractional [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) :
+    Fractional (nodeRunning n γ N)
+
 theorem readCredits_split (γ : Cluster) (a b : Nat) : readCredits γ (a + b) ⊣⊢ readCredits γ a ∗
     readCredits γ b
+
+def (sealed) nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF
 
 theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyFits γ N)
 
@@ -271,6 +276,11 @@ theorem leaderTransferOn_persistent (γ : Cluster) (N : Namespace) : Persistent 
     N)
 
 def (sealed) Membership.Valid (m : Membership) : Prop
+
+def (sealed) nodeRunning (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) : IProp GF
+
+theorem nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) : Persistent (nodeStopped n γ
+    N)
 
 theorem nodeDynamicBoot_booted [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (ps : List
     w64) (ctxs : List (List w8)) (id : w64) : ps ≠ [] → nodeDynamicBoot γ N ps ctxs id ⊢
@@ -307,6 +317,10 @@ theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : 
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
 
 def (sealed) isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF
+
+theorem nodeRunning_as_fractional [package_sem : Assumptions] {ioΦ ioq : ProofMode.InOut} (n : Loc)
+    (γ : Cluster) (N : Namespace) (q : Qp) : AsFractional (nodeRunning n γ N q) ioΦ (nodeRunning n γ
+    N) ioq q
 
 theorem readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : Persistent
     (readStateOk γ N c idx)

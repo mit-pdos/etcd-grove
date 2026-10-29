@@ -85,6 +85,8 @@ import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 -- `InvRawnode.lean`'s (until then `RawNode__Step`'s, `RawNode__Propose`'s,
 -- `RawNode__ApplyConfChange`'s)
 public import Perennial.Golang.Theory.Chan.Idioms.Handshake
+public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Perennial.Std.Qextra
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 public import Perennial.Ghost.MonoNat
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
@@ -382,6 +384,10 @@ structure NodeNames [GooseExts] where
   done : ChanNames
   stop : ChanNames
   status : ChanNames
+  /-- (2026-10-29, stage U9a) whether the node is stopped (`nodeLiveRaw`, `nodeStoppedRaw`): `false`
+  while it runs, in halves, the client's (`nodeLiveRaw γ 1`, the API's `nodeRunning`) and `run`'s;
+  `true`, discarded, once `run` received the client's half on `stop` -/
+  live : GName
   /-- the committed log handed out so far: `run`'s half and the driver's -/
   dlv : GName
   /-- `run`'s record of its last `Ready` `(delivered, committed entries, entries)`; (D22l) and the
@@ -1014,6 +1020,69 @@ lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: th
       dghostVar γ.cap (DFrac.own (1 : Qp).half) v ∗ dghostVar γ.ccq (DFrac.own (1 : Qp).half) v ∗
       monoNatLbOwn γ.cam v.1 ∗ ⌜confstateOk c v.2.cfg⌝)))
 
+/-- (2026-10-29, stage U9a) **The node runs** (a share `q` of a half of `live`; `q = 1` the half:
+the client's, which `Stop` sends on `stop` (the API's `nodeRunning`), or `run`'s). -/
+def nodeLiveRaw (γ : NodeNames) (q : Qp) : IProp GF :=
+  dghostVar γ.live (DFrac.own q.half) false
+
+instance nodeLiveRaw_fractional (γ : NodeNames) :
+    Fractional (nodeLiveRaw (GF := GF) γ) where
+  fractional p q := by
+    unfold nodeLiveRaw
+    rw [Qp_half_add]
+    exact (dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half
+
+instance nodeLiveRaw_timeless (γ : NodeNames) (q : Qp) : Timeless (nodeLiveRaw (GF := GF) γ q) := by
+  unfold nodeLiveRaw; infer_instance
+
+/-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`, the
+broadcast's proposition. -/
+def nodeStoppedRaw (γ : NodeNames) : IProp GF :=
+  dghostVar γ.live DFrac.discard true
+
+instance nodeStoppedRaw_persistent (γ : NodeNames) : Persistent (nodeStoppedRaw (GF := GF) γ) := by
+  unfold nodeStoppedRaw; infer_instance
+
+instance nodeStoppedRaw_timeless (γ : NodeNames) : Timeless (nodeStoppedRaw (GF := GF) γ) := by
+  unfold nodeStoppedRaw; infer_instance
+
+theorem nodeLiveRaw_stopped (γ : NodeNames) (q : Qp) :
+    nodeLiveRaw (GF := GF) γ q ∗ nodeStoppedRaw γ ⊢ False := by
+  unfold nodeLiveRaw nodeStoppedRaw
+  iintro ⟨H1, H2⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
+  cases H
+
+/-- (2026-10-29, stage U9a) The closing side of a broadcast also gives its persistent side. -/
+theorem ownBroadcastChan_pending_unknown (ch : Loc) (γc : ChanNames) (Q : IProp GF) :
+    ownBroadcastChan ch γc Q .Pending ⊢
+      ownBroadcastChan ch γc Q .Pending ∗ ownBroadcastChan ch γc Q .Unknown := by
+  iintro H
+  icases ownBroadcastChan_open _ _ _ _ $$ H with ⟨%γch, #Hint, H⟩
+  isplitl [H]
+  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe Hint H
+  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe Hint
+
+/-- (2026-10-29, stage U9a) A receive on `done`: it completes only once the node stopped. -/
+theorem node_done_recv_au (γ : NodeNames) (ch : Loc) (Φ : Unit → Bool → IProp GF) :
+    ⊢ ownBroadcastChan ch γ.done (nodeStoppedRaw γ) .Unknown -∗
+      (nodeStoppedRaw γ -∗ Φ () false) -∗ recvAu γ.done Unit Φ := by
+  iintro #Hd HΦ
+  iapply broadcast_chan_receive ch γ.done (nodeStoppedRaw γ) Φ .Unknown $$ Hd
+  iintro ⟨#HQ, -⟩
+  iapply HΦ $$ HQ
+
+/-- (2026-10-29, stage U9a) A receive on `done` by a holder of a share of `live` (`run`) never
+completes. -/
+theorem node_done_recv_live_au (γ : NodeNames) (ch : Loc) (q : Qp) (Φ : Unit → Bool → IProp GF) :
+    ⊢ nodeLiveRaw γ q -∗ ownBroadcastChan ch γ.done (nodeStoppedRaw γ) .Unknown -∗
+      recvAu γ.done Unit Φ := by
+  iintro Hl #Hd
+  iapply node_done_recv_au γ ch Φ $$ Hd
+  iintro #Hs
+  iexfalso
+  iapply nodeLiveRaw_stopped γ q $$ [$Hl $Hs]
+
 /-- See the file header. -/
 @[no_expose] def isNodeChan (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
   iprop(∃ (nv : node) (r : Loc) (lok : GoInterfaceOk),
@@ -1028,8 +1097,11 @@ lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: th
     "#Hconfstatec" ∷ isHandshake γ.confstatec nv.confstatec' (confstateP γ) iprop(True) ∗
     "#Hreadyc" ∷ isHandshake γ.readyc nv.readyc' (readyP γ) iprop(True) ∗
     "#Hadvancec" ∷ isAdvChan γ nv.rn' id nv.advancec' ∗
-    "#Hdone" ∷ isHandshake γ.done nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) ∗
-    "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) ∗
+    -- (2026-10-29, stage U9a) `done` is closed by `run` when it stops (Perennial's broadcast
+    -- idiom: `run` holds the `.Pending` side, `runPre`), with the node stopped; `stop` carries the
+    -- client's half of `live` (`Stop`)
+    "#Hdone" ∷ ownBroadcastChan nv.done' γ.done (nodeStoppedRaw γ) .Unknown ∗
+    "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => nodeLiveRaw γ 1) iprop(True) ∗
     "#Hstatus" ∷ isHandshake γ.status nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) ∗
     "#Htickc" ∷ isChan nv.tickc' γ.tick Unit ∗
     "#Htickinv" ∷ inv tickN (tickInv γ) ∗
