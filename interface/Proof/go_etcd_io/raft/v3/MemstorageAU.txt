@@ -39,7 +39,7 @@ theorem MemoryStorage.CreateSnapshot.spec_tok_of [package_sem : Assumptions] (wp
                                 { prev := σt.prev, ents := σt.ents, ss := { term' := t, index' := i }, pend := σt.pend,
                                   scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave', sdat := bs,
-                                  fl := σt.fl }) -∗
+                                  fl := σt.fl, hd := σt.hd }) -∗
                     Φ (intoVal snap', intoVal err)) -∗
               WP
                 ((((intoVal
@@ -86,7 +86,7 @@ def MemoryStorage.CreateSnapshot.spec_tok : Prop :=
                                 { prev := σt.prev, ents := σt.ents, ss := { term' := t, index' := i }, pend := σt.pend,
                                   scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave', sdat := bs,
-                                  fl := σt.fl }) -∗
+                                  fl := σt.fl, hd := σt.hd }) -∗
                     Φ (intoVal snap', intoVal err)) -∗
               WP
                 ((((intoVal
@@ -115,7 +115,7 @@ def MemoryStorage.Compact.spec_tok : Prop :=
                         ⌜uint.Z σt.prev.index' < uint.Z ci ∧ err = GoInterface.nil⌝ ∗
                           memSnapTok ms γs
                             { prev := { term' := t, index' := ci }, ents := σt.ents, ss := σt.ss, pend := σt.pend,
-                              scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl }) -∗
+                              scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl, hd := σt.hd }) -∗
                     Φ (intoVal err)) -∗
               WP
                 ((intoVal
@@ -140,7 +140,7 @@ theorem MemoryStorage.Compact.spec_tok_of [package_sem : Assumptions] (wp_Compac
                         ⌜uint.Z σt.prev.index' < uint.Z ci ∧ err = GoInterface.nil⌝ ∗
                           memSnapTok ms γs
                             { prev := { term' := t, index' := ci }, ents := σt.ents, ss := σt.ss, pend := σt.pend,
-                              scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl }) -∗
+                              scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl, hd := σt.hd }) -∗
                     Φ (intoVal err)) -∗
               WP
                 ((intoVal
@@ -154,7 +154,7 @@ theorem MemoryStorage.ApplySnapshot.spec_tok_of [package_sem : Assumptions] (wp_
   ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac) (eood : GoInterface),
     σ.pend = [] →
       uint.Z sv.Metadata'.Index' < 2 ^ 61 →
-        uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
+        uint.Z σ.hd ≤ uint.Z sv.Metadata'.Index' →
           uint.Z sv.Metadata'.Index' ≤ γs.cap →
             ⊢
               ∀ Φ,
@@ -174,7 +174,7 @@ theorem MemoryStorage.ApplySnapshot.spec_tok_of [package_sem : Assumptions] (wp_
                                 ownMemoryStorage ms γs
                                     (have __src := memStorApplied sv;
                                     { prev := __src.prev, ents := __src.ents, ss := __src.ss, pend := __src.pend,
-                                      scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl }) ∗
+                                      scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl, hd := σ.hd }) ∗
                                   memSnapTok ms γs (memStorApplied sv)) -∗
                           Φ (intoVal err)) -∗
                     WP
@@ -189,7 +189,7 @@ def MemoryStorage.ApplySnapshot.spec_tok : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac) (eood : GoInterface),
     σ.pend = [] →
       uint.Z sv.Metadata'.Index' < 2 ^ 61 →
-        uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
+        uint.Z σ.hd ≤ uint.Z sv.Metadata'.Index' →
           uint.Z sv.Metadata'.Index' ≤ γs.cap →
             ⊢
               ∀ Φ,
@@ -209,7 +209,7 @@ def MemoryStorage.ApplySnapshot.spec_tok : Prop :=
                                 ownMemoryStorage ms γs
                                     (have __src := memStorApplied sv;
                                     { prev := __src.prev, ents := __src.ents, ss := __src.ss, pend := __src.pend,
-                                      scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl }) ∗
+                                      scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl, hd := σ.hd }) ∗
                                   memSnapTok ms γs (memStorApplied sv)) -∗
                           Φ (intoVal err)) -∗
                     WP

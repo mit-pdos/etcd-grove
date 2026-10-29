@@ -6,8 +6,11 @@ def isStorage (st : Storage) : IProp GF :=
   isStorageWith (ownStorage st) (appendTok st) (appendedTok st) (storCut st) (storFloor st) (storCert st) st
 
 theorem storApp_pend (σ : StorState) (q pend : List EntryM) : storApp { prev := σ.prev, ents :=
-    σ.ents, ss := σ.ss, pend := q, scs := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl } pend =
-    storApp σ pend
+    σ.ents, ss := σ.ss, pend := q, scs := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl, hd :=
+    σ.hd } pend = storApp σ pend
+
+theorem appendHold_persistent (st : Storage) (es : List EntryM) (ts : List w64) : Persistent
+    (appendHold st es ts)
 
 structure StorageModel.{u_1} (GF : BundledGFunctors) : Type u_1 where
   ownStorage : IProp GF
@@ -25,13 +28,20 @@ structure StorageModel.{u_1} (GF : BundledGFunctors) : Type u_1 where
   storTermsAt : IProp GF
   storTermsAt_persistent : Persistent (storTermsAt st ts)
   storTermsAt_intro : ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
+  storTermsPre : IProp GF
+  storTermsPre_persistent : Persistent (storTermsPre st ts)
+  storTermsPre_intro : ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsPre st ts)
+  storTermsAt_receipt : storTermsPre st ts ∗ appendedTok st σ p ⊢ |==> (appendedTok st σ p ∗ storTermsAt st ts)
 
 theorem isStorage_handout [package_sem : Assumptions] (st : Storage) (σ : StorState) (p : List
-    EntryM) (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p)) : ⊢ isStorage st -∗
-    ownStorage st σ ==∗ ownStorage st { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p, scs
-    := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl } ∗ appendRight st p
+    EntryM) (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p)) : ⊢ isStorage
+    st -∗ ownStorage st σ ==∗ ownStorage st { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p,
+    scs := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl, hd := σ.hd } ∗ appendRight st p
 
 theorem storCap_pers.{u_1} (st : Storage) (k : Int) : Persistent (storCap st k)
+
+def appendHold (st : Storage) (es : List EntryM) (ts : List w64) : IProp GF :=
+  iprop(⌜es = []⌝ ∗ storTermsAt st ts ∨ ⌜es ≠ []⌝ ∗ storTermsPre st ts)
 
 def storApp (σ : StorState) (pend : List EntryM) : List EntryM :=
   match pend with
@@ -43,6 +53,14 @@ def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
 
 def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
   iprop(⌜p = []⌝ ∨ ∃ σ, appendTok st σ p)
+
+theorem appendHold_receipt (st : Storage) (es : List EntryM) (ts : List w64) : ⊢ appendHold st es ts
+    -∗ appendReceipt st es ==∗ appendReceipt st es ∗ storTermsAt st ts
+
+def HdAbove (σ : StorState) (p : List EntryM) : Prop :=
+  ∀ (e0 : EntryM), p.head? = some e0 → uint.Z σ.hd < uint.Z e0.Index'
+
+theorem storTermsPre_pers.{u_1} (st : Storage) (ts : List w64) : Persistent (storTermsPre st ts)
 
 def appendReceipt (st : Storage) (p : List EntryM) : IProp GF :=
   iprop(⌜p = []⌝ ∨ ∃ σ, appendedTok st σ p)
@@ -58,6 +76,7 @@ structure StorState : Type where
   sal : Bool
   sdat : List w8
   fl : w64
+  hd : w64
 
 def PendOk (σ : StorState) (p : List EntryM) : Prop :=
   p ≠ [] ∧
@@ -80,7 +99,7 @@ def TermsOn (σ : StorState) (ts : List w64) : Prop :=
 
 def storAbsorb (σ : StorState) : StorState :=
   { prev := σ.prev, ents := storApp σ σ.pend, ss := σ.ss, pend := [], scs := σ.scs, sal := σ.sal, sdat := σ.sdat,
-    fl := σ.fl }
+    fl := σ.fl, hd := σ.hd }
 
 def termAt (prev : entryID) (ents : List EntryM) (i : w64) : Option w64 :=
   if uint.Z i = uint.Z prev.index' then some prev.term'
@@ -184,8 +203,8 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                                                             sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat ∨
                                                         uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
                                                           uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-                                                            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-                                                              termAt σ.prev σ.ents sv.Metadata'.Index' =
+                                                            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.hd ∧
+                                                              termAt σ.prev (storApp σ σ.pend) sv.Metadata'.Index' =
                                                                 some sv.Metadata'.Term')⌝ ∗
                                                   (⌜sv.Metadata'.Index' = W64 0⌝ ∨
                                                     SC (snapTrip sv sv.Metadata'.ConfState'.lists))) -∗
@@ -198,29 +217,35 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                         □
                           ∀ σ p,
                             P σ -∗
-                              ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ ==∗
+                              ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p⌝ ==∗
                                 P
                                     { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p, scs := σ.scs, sal := σ.sal,
-                                      sdat := σ.sdat, fl := σ.fl } ∗
+                                      sdat := σ.sdat, fl := σ.fl, hd := σ.hd } ∗
                                   AT σ p) ∗
                       ("#Habsorb" ∷
                           □
                             ∀ σ1 σ p,
                               P σ1 -∗
                                 DT σ p ==∗
-                                  ⌜σ1 =
+                                  ⌜{ prev := σ1.prev, ents := σ1.ents, ss := σ1.ss, pend := σ1.pend, scs := σ1.scs,
+                                          sal := σ1.sal, sdat := σ1.sdat, fl := σ1.fl, hd := σ.hd } =
                                         { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := p, scs := σ.scs,
-                                          sal := σ.sal, sdat := σ.sdat, fl := σ.fl }⌝ ∗
+                                          sal := σ.sal, sdat := σ.sdat, fl := σ.fl, hd := σ.hd }⌝ ∗
                                     P (storAbsorb σ1)) ∗
                         "#Hfloor" ∷
                           □
-                            ∀ σ x,
+                            ∀ σ x h,
                               P σ -∗
-                                ⌜σ.pend = [] ∧
-                                      uint.Z σ.fl ≤ uint.Z x ∧ uint.Z x ≤ uint.Z σ.prev.index' + ↑σ.ents.length⌝ ==∗
+                                ⌜(σ.pend = [] ∨ x = σ.fl) ∧
+                                      uint.Z σ.fl ≤ uint.Z x ∧
+                                        uint.Z σ.hd ≤ uint.Z h ∧
+                                          uint.Z x ≤ uint.Z h ∧
+                                            (x = σ.fl ∨ uint.Z x ≤ uint.Z σ.prev.index' + ↑σ.ents.length) ∧
+                                              (h = σ.hd ∨
+                                                uint.Z h ≤ uint.Z σ.prev.index' + ↑(storApp σ σ.pend).length)⌝ ==∗
                                   P
                                       { prev := σ.prev, ents := σ.ents, ss := σ.ss, pend := σ.pend, scs := σ.scs,
-                                        sal := σ.sal, sdat := σ.sdat, fl := x } ∗
+                                        sal := σ.sal, sdat := σ.sdat, fl := x, hd := h } ∗
                                     FW x)
 
 theorem storPast_one (st : Storage) (x : w64) : storPast st (uint.Z x + 1) ⊢ storPast st 1
@@ -242,3 +267,9 @@ def storPast (st : Storage) (m : Int) : IProp GF :=
   iprop(∃ n, ⌜m ≤ n⌝ ∗ storCut st n)
 
 theorem storPast_cap (st : Storage) (m k : Int) : ⊢ storPast st m -∗ storCap st k -∗ ⌜m ≤ k⌝
+
+theorem isStorage_raise [package_sem : Assumptions] (st : Storage) (σ : StorState) (h : w64) (Hh :
+    uint.Z σ.hd ≤ uint.Z h ∧ uint.Z σ.fl ≤ uint.Z h ∧ uint.Z h ≤ uint.Z σ.prev.index' + ↑(storApp σ
+    σ.pend).length) : ⊢ isStorage st -∗ ownStorage st σ ==∗ ownStorage st { prev := σ.prev, ents :=
+    σ.ents, ss := σ.ss, pend := σ.pend, scs := σ.scs, sal := σ.sal, sdat := σ.sdat, fl := σ.fl, hd
+    := h }

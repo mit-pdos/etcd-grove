@@ -216,8 +216,29 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   (`readyc <- rd`, `readyP`) before `acceptReady`, so a witness minted after `acceptApplying` cannot be in
   `readyP`, and a client may append and ask `appendReceipt_holds` before `run` reaches `acceptReady`. The raise
   must be at the send (`ownRawNodeReady_handout`, after `Hhandout`, to the committed log handed out), which
-  needs a window case in `HdOk` until `acceptApplying`. The node chain (`readyP`, `readyData`, `nodeDriver`,
-  `appendReceipt_holds`) is not started.
+  needs a window case in `HdOk` until `acceptApplying` (approved: internal, route (a)). The node chain
+  (`readyP`, `readyData`, `nodeDriver`, `appendReceipt_holds`) is not started. **What remains, precisely**
+  (commit `902ba16e2d` builds: raft's results, `Linked`, `MemstorageInstance`, `MemstorageAU`, `ConfPolicy`):
+  1. The raise and the mint, in `ownRawNodeReady_handout` (`InvRawnodeReady.lean`), `L = none`, right after
+     `ownRaftLog_rdy_out`'s `Hhandout`: `isStorage_raise` to `h = |rs.delivered ++ ce|` (`ce`'s last index;
+     `≤ committed`, and within `storApp σ σ.pend = stored = sents ++ uents` after `logHanded`), then
+     `storTermsPre_intro` (`TermsOn (storAbsorb σ)`, cf. `termsOn_of_from` over `storApp`; the log's terms
+     are `delivered ++ ce`'s, `ownStepGhost_dlv_terms`) or, with `es = []`, `storTermsAt_intro`: the
+     result `appendHold rs.storage es ((rs.delivered ++ ce).map (·.Term'))` (`InvStorage.lean`).
+  2. `HdOk`'s window case (`InvRaftlog.lean`; a small lemma module for its preservation if it helps):
+     `fl ≤ hd ∧ (hd ≤ applying ∨ hd ≤ prev ∨ HdWin σ ls)` with `HdWin` = no snapshot pending, `hd ≤
+     committed`, and `storApp σ σ.pend` agreeing with the log up to `hd` (what `raftLog.snapshot` needs:
+     `termAt_app_log`'s conclusion). Catch: `ownRaftLog_handout` needs `hd < inprogress` (`HdAbove`),
+     which `HdWin` does not give (in sync mode `ce` may run past `inprogress` until `acceptUnstable`); so
+     either a `LogState` flag for the window (set by the raise, cleared by `acceptApplying`, `false` in
+     `ownRawNode`'s quiet state), or `hd < inprogress` derived at the hand-out from `ownRawNode`. To
+     preserve: `acceptUnstable`, `acceptApplying` (closes it: `applying := h`), `append` (truncates only
+     above `committed`), `setCommitted`, `stableTo`, `ownRaftLog_absorb`, `raise_floor`.
+  3. The chain: `readyData` (`InvNodeChan.lean`) gets the persistent `appendHold γ.stor es ((d ++
+     ce).map (·.Term'))`; `run` (`node__run.lean`) puts the mint into `readyP` at the send; `nodeDriver`'s
+     busy case (`InvApi.lean`, sealed in `InvNode.lean`) keeps it; `appendReceipt_holds` in `InvNode.lean`
+     from `appendHold_receipt` and `storHoldsLb_of_terms` (`NodeApiVocab.lean`). `RawNode.Ready.spec`
+     (internal) may carry it too, but `run` does not use it.
 - (open) The storage-wrapper law (§4): not started.
 
 ## Machinery (the map of the two modes, 2026-10-28)

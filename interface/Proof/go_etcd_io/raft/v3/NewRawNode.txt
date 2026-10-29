@@ -29,43 +29,44 @@ theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.sp
                                             csm.LearnersNext' = [] →
                                               csm.AutoLeave' = false →
                                                 σ.fl = W64 0 →
-                                                  ⊢
-                                                    ∀ Φ,
-                                                      (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                          typedPointsto c cv (DFrac.own 1) ∗
-                                                            isLogger lok ∗
-                                                              isStorage (GoInterface.ok si) ∗
-                                                                ownStorage (GoInterface.ok si) σ ∗
-                                                                  ∀ Φ ss',
-                                                                    ownStorage (GoInterface.ok si)
-                                                                        { prev := σ.prev, ents := σ.ents, ss := ss',
-                                                                          pend := σ.pend, scs := σ.scs, sal := σ.sal,
-                                                                          sdat := σ.sdat, fl := σ.fl } -∗
-                                                                      (∀ hp cs al,
-                                                                          ownStorage (GoInterface.ok si)
-                                                                              { prev := σ.prev, ents := σ.ents, ss := ss',
-                                                                                pend := σ.pend, scs := σ.scs,
-                                                                                sal := σ.sal, sdat := σ.sdat,
-                                                                                fl := σ.fl } -∗
-                                                                            R -∗
-                                                                              hsOpt hp hs -∗
-                                                                                csPts cs DFrac.discard csm al -∗
-                                                                                  Φ
-                                                                                    ((intoVal hp, intoVal cs),
-                                                                                      intoVal GoInterface.nil)) -∗
-                                                                        WP
-                                                                          ((intoVal
-                                                                              (methods si.ty
-                                                                                go!"InitialState"
-                                                                                si.v))
-                                                                            (intoVal ()))
-                                                                          {{ Φ }}) -∗
-                                                        (▷
-                                                            ∀ rn err,
-                                                              (R ∗
-                                                                  ∃ s,
-                                                                    rawNodeFresh rn cv.ID' si (listToSet csm.Voters')
-                                                                        cv.StepDownOnRemoval' cv.PreVote' s ∗
-                                                                      ⌜err = GoInterface.nil⌝) -∗
-                                                                Φ (intoVal rn, intoVal err)) -∗
-                                                          WP ((intoVal (functions NewRawNode [])) (intoVal c)) {{ Φ }}
+                                                  σ.hd = W64 0 →
+                                                    ⊢
+                                                      ∀ Φ,
+                                                        (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                            typedPointsto c cv (DFrac.own 1) ∗
+                                                              isLogger lok ∗
+                                                                isStorage (GoInterface.ok si) ∗
+                                                                  ownStorage (GoInterface.ok si) σ ∗
+                                                                    ∀ Φ ss',
+                                                                      ownStorage (GoInterface.ok si)
+                                                                          { prev := σ.prev, ents := σ.ents, ss := ss',
+                                                                            pend := σ.pend, scs := σ.scs, sal := σ.sal,
+                                                                            sdat := σ.sdat, fl := σ.fl, hd := σ.hd } -∗
+                                                                        (∀ hp cs al,
+                                                                            ownStorage (GoInterface.ok si)
+                                                                                { prev := σ.prev, ents := σ.ents,
+                                                                                  ss := ss', pend := σ.pend, scs := σ.scs,
+                                                                                  sal := σ.sal, sdat := σ.sdat,
+                                                                                  fl := σ.fl, hd := σ.hd } -∗
+                                                                              R -∗
+                                                                                hsOpt hp hs -∗
+                                                                                  csPts cs DFrac.discard csm al -∗
+                                                                                    Φ
+                                                                                      ((intoVal hp, intoVal cs),
+                                                                                        intoVal GoInterface.nil)) -∗
+                                                                          WP
+                                                                            ((intoVal
+                                                                                (methods si.ty
+                                                                                  go!"InitialState"
+                                                                                  si.v))
+                                                                              (intoVal ()))
+                                                                            {{ Φ }}) -∗
+                                                          (▷
+                                                              ∀ rn err,
+                                                                (R ∗
+                                                                    ∃ s,
+                                                                      rawNodeFresh rn cv.ID' si (listToSet csm.Voters')
+                                                                          cv.StepDownOnRemoval' cv.PreVote' s ∗
+                                                                        ⌜err = GoInterface.nil⌝) -∗
+                                                                  Φ (intoVal rn, intoVal err)) -∗
+                                                            WP ((intoVal (functions NewRawNode [])) (intoVal c)) {{ Φ }}

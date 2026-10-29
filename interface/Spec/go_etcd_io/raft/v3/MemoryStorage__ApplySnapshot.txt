@@ -6,7 +6,7 @@ def MemoryStorage.ApplySnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac) (eood : GoInterface),
     σ.pend = [] →
       uint.Z sv.Metadata'.Index' < 2 ^ 61 →
-        uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
+        uint.Z σ.hd ≤ uint.Z sv.Metadata'.Index' →
           uint.Z sv.Metadata'.Index' ≤ γs.cap →
             ⊢
               ∀ Φ,
@@ -27,7 +27,8 @@ def MemoryStorage.ApplySnapshot.spec : Prop :=
                                   ownMemoryStorage ms γs
                                       (have __src := memStorApplied sv;
                                       { prev := __src.prev, ents := __src.ents, ss := __src.ss, pend := __src.pend,
-                                        scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl }) -∗
+                                        scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl,
+                                        hd := σ.hd }) -∗
                                     Φ (intoVal GoInterface.nil))) -∗
                     WP
                       ((intoVal

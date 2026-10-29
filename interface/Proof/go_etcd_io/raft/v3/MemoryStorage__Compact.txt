@@ -21,7 +21,8 @@ theorem MemoryStorage.Compact.wp_proof [package_sem : Assumptions] (wp_GetIndex 
                         ⌜uint.Z σt.prev.index' < uint.Z ci⌝ -∗
                           memSnapTokG γs
                               { prev := { term' := t, index' := ci }, ents := σt.ents, ss := σt.ss, pend := σt.pend,
-                                scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl } ={∅,⊤ \ ↑memSnapN}=∗
+                                scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl,
+                                hd := σt.hd } ={∅,⊤ \ ↑memSnapN}=∗
                             Φ (intoVal GoInterface.nil)) -∗
             WP
               ((intoVal

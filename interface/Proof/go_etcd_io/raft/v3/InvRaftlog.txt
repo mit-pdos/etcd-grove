@@ -152,6 +152,12 @@ theorem unstableOf.proj_ksn (lv : raftLog) (ls : LogState) : (unstableOf lv ls).
 
 theorem pendKsn_none [package_sem : Assumptions] (p : Loc) (K : List SnapTrip) : ⊢ pendKsn p none K
 
+theorem termAt_app_log (σ : StorState) (sents uents : List EntryM) (ipo : Int) (pend stored : List
+    EntryM) (idx t : w64) (Hp : LogPersistOk σ sents uents ipo pend stored) (Hipo : 0 ≤ ipo ∧ ipo ≤
+    ↑uents.length) (Hge : uint.Z σ.prev.index' ≤ uint.Z idx) (Hlt : uint.Z idx < uint.Z
+    σ.prev.index' + ↑sents.length + ipo + 1) (Ht : termAt σ.prev (storApp σ pend) idx = some t) :
+    plogTermAt σ.prev (sents ++ uents) idx = some t
+
 syntax tacticOpen_unstable
 
 theorem isLoggerVal_pers (x : GoInterface) : Persistent (isLoggerVal x)
@@ -336,6 +342,9 @@ theorem SnpOk.of_quiet {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent) (h
 theorem ownSnap_of_eq_none [package_sem : Assumptions] {p : Loc} {snap : Option entryID} (Hs : snap
     = none) : ownSnap p snap ⊢ ⌜p = null⌝
 
+def HdOk (σ : StorState) (ls : LogState) : Prop :=
+  uint.Z σ.fl ≤ uint.Z σ.hd ∧ (uint.Z σ.hd ≤ uint.Z ls.applying ∨ uint.Z σ.hd ≤ uint.Z ls.prev.index')
+
 structure UnstableSt : Type where
   ents : List EntryM
   offset : w64
@@ -421,6 +430,9 @@ def logTruncateAppend (ls : LogState) (ents : List EntryM) : LogState :=
       applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax,
       storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps,
       sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt }
+
+theorem HdOk.mono {σ : StorState} {ls ls' : LogState} (H : HdOk σ ls) (h1 : uint.Z ls.applying ≤
+    uint.Z ls'.applying) (h2 : uint.Z ls.prev.index' ≤ uint.Z ls'.prev.index') : HdOk σ ls'
 
 theorem ownRaftLogW_struct [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLogW l
     ls -∗ ∃ lv, typedPointsto l lv (DFrac.own 1) ∗ ⌜lv.applied' = ls.applied ∧ uint.Z ls.applied ≤
@@ -538,7 +550,7 @@ theorem ownRaftLog_raise_floor [package_sem : Assumptions] (l : Loc) (ls : LogSt
 def FlOk (σ : StorState) (ls : LogState) : Prop :=
   σ.fl = ls.fl ∧
     uint.Z ls.fl ≤ uint.Z ls.applying ∧
-      uint.Z ls.applying < uint.Z ls.inprogress ∧ PendAbove σ σ.pend ∧ StorExtOk σ ls ∧ StorTermsOk σ ls
+      uint.Z ls.applying < uint.Z ls.inprogress ∧ PendAbove σ σ.pend ∧ StorExtOk σ ls ∧ StorTermsOk σ ls ∧ HdOk σ ls
 
 def SnpOk (g : NGhost) (ls : LogState) : Prop :=
   ls.lent = g.slent ∧
@@ -660,6 +672,9 @@ theorem SnpOk.of_fields {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hlt :
 
 theorem ownRaftLog_toW [package_sem : Assumptions] (l : Loc) (ls : LogState) : ownRaftLog l ls ⊢
     ownRaftLogW l ls
+
+theorem ownRaftLog_raise_hold [package_sem : Assumptions] (l : Loc) (ls : LogState) (h : w64) (Hh :
+    uint.Z h ≤ uint.Z ls.applying) (Hlnt : ls.lent = false) : ⊢ ownRaftLog l ls ==∗ ownRaftLog l ls
 
 theorem ownRaftLog_pure [package_sem : Assumptions] (l : Loc) (ls : LogState) (φ : Prop) (H : ∀ (lv
     : raftLog) (σ : StorState), LogIndicesOk ls.prev (ls.sents ++ ls.uents) → uint.Z ls.prev.index'

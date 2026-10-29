@@ -11,20 +11,21 @@ theorem newLogWithSize.wp_proof [package_sem : Assumptions] : newLogWithSize.spe
           lg = GoInterface.ok lok →
             0 < uint.Z maxSize →
               σ.fl = W64 0 →
-                ⊢
-                  ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                        isStorage st ∗ ownStorage st σ ∗ isLogger lok ∗ initKsnCert st σ -∗
-                      (▷
-                          ∀ l ip,
-                            ⌜uint.Z ip = uint.Z σ.prev.index' + ↑σ.ents.length + 1⌝ ∗
-                                ownStorage st σ ∗
-                                  (ownStorage st σ -∗
-                                    ownRaftLog l
-                                      { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
-                                        applied := σ.prev.index', snap := none, inprogress := ip,
-                                        applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-                                        apmax := maxSize, storage := st, ksn := initKsn σ }) -∗
-                              Φ (intoVal l)) -∗
-                        WP ((((intoVal (functions newLogWithSize [])) (intoVal st)) (intoVal lg)) (intoVal maxSize))
-                          {{ Φ }}
+                σ.hd = W64 0 →
+                  ⊢
+                    ∀ Φ,
+                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                          isStorage st ∗ ownStorage st σ ∗ isLogger lok ∗ initKsnCert st σ -∗
+                        (▷
+                            ∀ l ip,
+                              ⌜uint.Z ip = uint.Z σ.prev.index' + ↑σ.ents.length + 1⌝ ∗
+                                  ownStorage st σ ∗
+                                    (ownStorage st σ -∗
+                                      ownRaftLog l
+                                        { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
+                                          applied := σ.prev.index', snap := none, inprogress := ip,
+                                          applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
+                                          apmax := maxSize, storage := st, ksn := initKsn σ }) -∗
+                                Φ (intoVal l)) -∗
+                          WP ((((intoVal (functions newLogWithSize [])) (intoVal st)) (intoVal lg)) (intoVal maxSize))
+                            {{ Φ }}

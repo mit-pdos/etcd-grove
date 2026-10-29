@@ -43,7 +43,7 @@ def MemoryStorage.CreateSnapshot.spec : Prop :=
               {{ Φ }}
 
 def MemoryStorage.CreateSnapshot.unifiedSpec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (x i : w64) (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) (data : GoSlice)
+  ∀ (ms : Loc) (γs : MemStorNames) (i : w64) (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) (data : GoSlice)
     (bs : List w8) (eood : GoInterface) (ts : List w64) (t : w64),
     ts[uint.nat i - 1]? = some t →
       ⊢
@@ -51,14 +51,13 @@ def MemoryStorage.CreateSnapshot.unifiedSpec : Prop :=
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
               memSnapRO ms γs ∗
                 memKey γs.ak ∗
-                  memFloorTok ms γs x ∗
-                    memTermsAt γs ts ∗
-                      memCsArg cs dq oc ∗
-                        ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                  memTermsAt γs ts ∗
+                    memCsArg cs dq oc ∗
+                      ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
             (|={⊤ \ ↑memSnapN,∅}=>
                 ∃ σt,
                   memSnapTokG γs σt ∗
-                    ⌜uint.Z σt.ss.index' < uint.Z i → uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x⌝ ∗
+                    ⌜uint.Z σt.ss.index' < uint.Z i → uint.Z σt.prev.index' ≤ uint.Z i⌝ ∗
                       □
                           memStorCert γs
                             (snapTrip (memSnapCreated σt i t oc bs)

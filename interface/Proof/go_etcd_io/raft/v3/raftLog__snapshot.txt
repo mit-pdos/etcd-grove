@@ -22,9 +22,7 @@ theorem raftLog.snapshot.wp_proof [package_sem : Assumptions] (wp_proto_CloneSna
                             ⌜sv.Metadata'.Index' ≠ W64 0 ∧
                                   uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
                                     plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index' =
-                                        some sv.Metadata'.Term' ∧
-                                      (snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∨
-                                        uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝ ∗
+                                      some sv.Metadata'.Term'⌝ ∗
                               storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP

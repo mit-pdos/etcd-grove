@@ -20,7 +20,9 @@ def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF 
   match L with
   | none => appendRight st es
   | some l =>
-    iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
+    iprop((∃ σ,
+          ownStorage st σ ∗
+            ⌜σ.pend = [] ∧ σ.fl = l.fl ∧ uint.Z σ.fl ≤ uint.Z σ.hd ∧ uint.Z σ.hd ≤ uint.Z l.snap.Metadata'.Index'⌝) ∗
         storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
 
 theorem DynCCPreOp.mono_dec {d d' : CCDec} (h : DecLe d d') {D : List EntryM} {ca : Nat} {cfg :
@@ -139,7 +141,9 @@ def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
                   σr.pend = [] ∧
                     σr.fl = l.fl ∧
                       σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-                        σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
+                        σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧
+                          σr.sdat = l.snap.Data' ∧
+                            uint.Z σr.fl ≤ uint.Z σr.hd ∧ uint.Z σr.hd ≤ uint.Z l.snap.Metadata'.Index'⌝)
 
 theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) : st.msg.Type' ≠
     MsgTransferLeader

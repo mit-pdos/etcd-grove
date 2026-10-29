@@ -15,8 +15,9 @@ theorem logAcceptUnstable.proj_inprogress (ls : LogState) : (logAcceptUnstable l
 theorem ownRaftLog_absorb_snap [package_sem : Assumptions] (l : Loc) (ls : LogState) (σr :
     StorState) (Hlt : ls.lent = true) (Hr : σr.prev = σr.ss ∧ σr.ents = ls.stored ∧ σr.pend = [] ∧
     σr.fl = ls.fl) (Hk : σr.ss.index' ≠ W64 0 → { sid := σr.ss, cl := σr.scs, al := σr.sal, dat :=
-    σr.sdat } ∈ ls.ksn) (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index') : ⊢ ownRaftLog l ls -∗
-    ownStorage ls.storage σr -∗ ownRaftLog l (logAbsorbSnap ls σr.ss)
+    σr.sdat } ∈ ls.ksn) (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index') (Hhd : uint.Z σr.fl ≤
+    uint.Z σr.hd ∧ uint.Z σr.hd ≤ uint.Z ls.prev.index') : ⊢ ownRaftLog l ls -∗ ownStorage
+    ls.storage σr -∗ ownRaftLog l (logAbsorbSnap ls σr.ss)
 
 theorem logAcceptUnstable.proj_lent (ls : LogState) : (logAcceptUnstable ls).lent = ls.lent
 
@@ -207,7 +208,8 @@ theorem ownRaftLog_lend [package_sem : Assumptions] (l : Loc) (ls : LogState) (H
     ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := true, sapp
     := ls.sapp, aps := ls.aps, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt }) ∗ ∃ σ, ownStorage
     ls.storage σ ∗ ⌜σ.pend = [] ∧ σ.fl = ls.fl ∧ (σ.ss.index' ≠ W64 0 → { sid := σ.ss, cl := σ.scs,
-    al := σ.sal, dat := σ.sdat } ∈ ls.ksn)⌝
+    al := σ.sal, dat := σ.sdat } ∈ ls.ksn) ∧ HdOk σ ls ∧ ∀ (sid : entryID), ls.snap = some sid →
+    ls.prev = sid⌝
 
 theorem logAppliedTo.proj_uents (ls : LogState) (index size : w64) : (logAppliedTo ls index
     size).uents = ls.uents

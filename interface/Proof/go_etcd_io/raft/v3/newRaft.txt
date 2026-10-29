@@ -39,83 +39,87 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                         csm.LearnersNext' = [] →
                                           csm.AutoLeave' = false →
                                             σ.fl = W64 0 →
-                                              ⊢
-                                                ∀ Φ,
-                                                  (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                      typedPointsto c cv (DFrac.own 1) ∗
-                                                        isLogger lok ∗
-                                                          isStorage (GoInterface.ok si) ∗
-                                                            ownStorage (GoInterface.ok si) σ ∗
-                                                              initKsnCert (GoInterface.ok si) σ ∗
-                                                                ∀ Φ ss',
-                                                                  ownStorage (GoInterface.ok si)
-                                                                      { prev := σ.prev, ents := σ.ents, ss := ss',
-                                                                        pend := σ.pend, scs := σ.scs, sal := σ.sal,
-                                                                        sdat := σ.sdat, fl := σ.fl } -∗
-                                                                    (∀ hp cs al,
-                                                                        ownStorage (GoInterface.ok si)
-                                                                            { prev := σ.prev, ents := σ.ents, ss := ss',
-                                                                              pend := σ.pend, scs := σ.scs, sal := σ.sal,
-                                                                              sdat := σ.sdat, fl := σ.fl } -∗
-                                                                          R -∗
-                                                                            hsOpt hp hs -∗
-                                                                              csPts cs DFrac.discard csm al -∗
-                                                                                Φ
-                                                                                  ((intoVal hp, intoVal cs),
-                                                                                    intoVal GoInterface.nil)) -∗
-                                                                      WP
-                                                                        ((intoVal
-                                                                            (methods si.ty
-                                                                              go!"InitialState"
-                                                                              si.v))
-                                                                          (intoVal ()))
-                                                                        {{ Φ }}) -∗
-                                                    (▷
-                                                        ∀ r s cv',
-                                                          R ∗
-                                                              ownRaftPhys (listToSet csm.Voters') r cv.ID' s ∗
-                                                                typedPointsto c cv' (DFrac.own 1) ∗
-                                                                  ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
-                                                                    ⌜NStateWf s ∧
-                                                                        s.term = hs.Term' ∧
-                                                                          s.vote = hs.Vote' ∧
-                                                                            s.lead = W64 0 ∧
-                                                                              s.role = PRole.follower ∧
-                                                                                s.votes = ∅ ∧
-                                                                                  s.outbox = [] ∧
-                                                                                    s.prevote = cv.PreVote' ∧
-                                                                                      s.logst.prev = σ.prev ∧
-                                                                                        s.logst.sents = σ.ents ∧
-                                                                                          s.logst.uents = [] ∧
-                                                                                            s.logst.stored = σ.ents ∧
-                                                                                              s.logst.committed =
-                                                                                                  committedAfter σ.prev
-                                                                                                    hs ∧
-                                                                                                s.logst.applying =
-                                                                                                    w64Max σ.prev.index'
-                                                                                                      (if
-                                                                                                          cv.Applied' =
-                                                                                                            W64 0 then
-                                                                                                        σ.prev.index'
-                                                                                                      else cv.Applied') ∧
-                                                                                                  s.logst.unpersisted =
-                                                                                                      [] ∧
-                                                                                                    s.logst.snap = none ∧
-                                                                                                      s.logst.storage =
-                                                                                                          GoInterface.ok
-                                                                                                            si ∧
-                                                                                                        s.gh = { } ∧
-                                                                                                          s.rd.states =
-                                                                                                              [] ∧
-                                                                                                            s.rd.pend =
+                                              σ.hd = W64 0 →
+                                                ⊢
+                                                  ∀ Φ,
+                                                    (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                        typedPointsto c cv (DFrac.own 1) ∗
+                                                          isLogger lok ∗
+                                                            isStorage (GoInterface.ok si) ∗
+                                                              ownStorage (GoInterface.ok si) σ ∗
+                                                                initKsnCert (GoInterface.ok si) σ ∗
+                                                                  ∀ Φ ss',
+                                                                    ownStorage (GoInterface.ok si)
+                                                                        { prev := σ.prev, ents := σ.ents, ss := ss',
+                                                                          pend := σ.pend, scs := σ.scs, sal := σ.sal,
+                                                                          sdat := σ.sdat, fl := σ.fl, hd := σ.hd } -∗
+                                                                      (∀ hp cs al,
+                                                                          ownStorage (GoInterface.ok si)
+                                                                              { prev := σ.prev, ents := σ.ents, ss := ss',
+                                                                                pend := σ.pend, scs := σ.scs,
+                                                                                sal := σ.sal, sdat := σ.sdat, fl := σ.fl,
+                                                                                hd := σ.hd } -∗
+                                                                            R -∗
+                                                                              hsOpt hp hs -∗
+                                                                                csPts cs DFrac.discard csm al -∗
+                                                                                  Φ
+                                                                                    ((intoVal hp, intoVal cs),
+                                                                                      intoVal GoInterface.nil)) -∗
+                                                                        WP
+                                                                          ((intoVal
+                                                                              (methods si.ty
+                                                                                go!"InitialState"
+                                                                                si.v))
+                                                                            (intoVal ()))
+                                                                          {{ Φ }}) -∗
+                                                      (▷
+                                                          ∀ r s cv',
+                                                            R ∗
+                                                                ownRaftPhys (listToSet csm.Voters') r cv.ID' s ∗
+                                                                  typedPointsto c cv' (DFrac.own 1) ∗
+                                                                    ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
+                                                                      ⌜NStateWf s ∧
+                                                                          s.term = hs.Term' ∧
+                                                                            s.vote = hs.Vote' ∧
+                                                                              s.lead = W64 0 ∧
+                                                                                s.role = PRole.follower ∧
+                                                                                  s.votes = ∅ ∧
+                                                                                    s.outbox = [] ∧
+                                                                                      s.prevote = cv.PreVote' ∧
+                                                                                        s.logst.prev = σ.prev ∧
+                                                                                          s.logst.sents = σ.ents ∧
+                                                                                            s.logst.uents = [] ∧
+                                                                                              s.logst.stored = σ.ents ∧
+                                                                                                s.logst.committed =
+                                                                                                    committedAfter σ.prev
+                                                                                                      hs ∧
+                                                                                                  s.logst.applying =
+                                                                                                      w64Max σ.prev.index'
+                                                                                                        (if
+                                                                                                            cv.Applied' =
+                                                                                                              W64 0 then
+                                                                                                          σ.prev.index'
+                                                                                                        else
+                                                                                                          cv.Applied') ∧
+                                                                                                    s.logst.unpersisted =
+                                                                                                        [] ∧
+                                                                                                      s.logst.snap =
+                                                                                                          none ∧
+                                                                                                        s.logst.storage =
+                                                                                                            GoInterface.ok
+                                                                                                              si ∧
+                                                                                                          s.gh = { } ∧
+                                                                                                            s.rd.states =
                                                                                                                 [] ∧
-                                                                                                              s.sdr =
-                                                                                                                  cv.StepDownOnRemoval' ∧
-                                                                                                                s.progress.domSet =
-                                                                                                                  listToSet
-                                                                                                                    csm.Voters'⌝ -∗
-                                                            Φ (intoVal r)) -∗
-                                                      WP ((intoVal (functions newRaft [])) (intoVal c)) {{ Φ }}
+                                                                                                              s.rd.pend =
+                                                                                                                  [] ∧
+                                                                                                                s.sdr =
+                                                                                                                    cv.StepDownOnRemoval' ∧
+                                                                                                                  s.progress.domSet =
+                                                                                                                    listToSet
+                                                                                                                      csm.Voters'⌝ -∗
+                                                              Φ (intoVal r)) -∗
+                                                        WP ((intoVal (functions newRaft [])) (intoVal c)) {{ Φ }}
 
 theorem wp_Restore_voters [package_sem : Assumptions] (H : confchange.Restore.spec) (chg :
     confchange.Changer) (cs : Loc) (c : ConfStateM) (dq : DFrac) (v0 : Loc) (Hvnd : c.Voters'.Nodup)

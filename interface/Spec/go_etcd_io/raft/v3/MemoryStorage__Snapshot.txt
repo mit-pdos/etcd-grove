@@ -23,8 +23,9 @@ def MemoryStorage.Snapshot.spec : Prop :=
                                           sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat ∨
                                       uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
                                         uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-                                          uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-                                            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term')⌝ ∗
+                                          uint.Z sv.Metadata'.Index' ≤ uint.Z σ.hd ∧
+                                            termAt σ.prev (storApp σ σ.pend) sv.Metadata'.Index' =
+                                              some sv.Metadata'.Term')⌝ ∗
                                 (⌜sv.Metadata'.Index' = W64 0⌝ ∨
                                   memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists))) -∗
                     Φ (intoVal snap, intoVal err)) -∗
