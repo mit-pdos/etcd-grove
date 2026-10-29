@@ -84,10 +84,7 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
   -- then `ownRaftPhys`'s `Hvoter` said it was, and the proposal, heartbeat-response and
@@ -154,7 +151,7 @@ theorem stepLeader.wp_proof
     iexact Hinit
   · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) (Hxft Hty) $$ [Hphys Hm] HΦ'
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · -- (2026-10-17) `MsgCheckQuorum`
@@ -208,7 +205,6 @@ theorem stepLeader.wp_proof
       (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
-  -/
 
 end proof
 
