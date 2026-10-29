@@ -237,3 +237,22 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   `CreateSnapshot.unifiedSpec`), `maybeCompact` (storage specs: the hold mark is still a `RaftAssume`
   item, approved shapes); (5) `Replica.run`.
 
+- 2026-10-29 (second track C agent): the invariant gap closed: `kvCore` records that every committed
+  requested conf entry is `ConfShaped` (decodes, transition defined: `Rule.lean`), and
+  `confShaped_of_ops` extends it to every committed conf entry (raft's automatic leaves outside `opsOf`,
+  `ccDecodeV2_nil`; no bootstrap log), so `committed_confDecodes` left `RaftAssume` (the coordinator
+  agreed; `committed_emptyV2_joint` not needed either). **Go change** (coordinator-approved, from track
+  A's U9a analysis): `Replica.stop` closes `stopc`, waits for `run` and `ticker` to return
+  (`runDone`/`tickDone`, buffered, one value each), and only then stops the node; so the applier never
+  meets a stopped node: it holds a fraction of `nodeLive` and refutes every stopped answer
+  (`nodeLive_stopped`); `RaftAssume` has no stopped-node triples (`ApplyConfChange_spec`: K9 + U5 form,
+  stopped disjunct `⌜csp = null⌝ ∗ nodeStopped`); `repOwn`/`appNode` lost their stopped cases. Go tests
+  and `-race` pass. Proved: `Stats.add` (`isCounter`/`isStats`, `Stats.lean`), `Replica.applyConf`
+  (`conf_reject`/`wp_conf_apply`, `ApplyConfLemmas.lean`), `Replica.applyEntry` (`EntryLemmas.lean`;
+  the `panic` refuted by `rkv_confShaped`), `ReadLemmas.lean` (`kvr_read_minted`; `MintOk` now bounds
+  a read key's length). Stated: `Replica.answer.spec`. RaftAssume still stands in for: `nodeLive`/
+  `nodeStopped`/`Stop` (U9a), `ApplyConfChange_spec` (U5 + K9; U5 is on raft-unified, merge allowed),
+  and, to come: `Advance_spec` (running post only, U5 premises: the loop holds `nodeLive`), RestartNode
+  on the wrapper storage with `σ.hd = W64 0` (U8), the storage-wrapper law, the storage hold-mark
+  specs, U7's message shapes (Propose/msgCredits being redesigned: do not build on them yet). Next:
+  `answer` (kv's proof, with `kvr_read_minted`), `install`, then the storage ones and `run`.
