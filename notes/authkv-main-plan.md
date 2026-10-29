@@ -435,3 +435,12 @@ invariant exported from the auth-on start, no axiom; the merge session drafts it
 its export, `authStateAt_setup` proved over it) for the user before any proof, on a branch off
 `lean` after `etcd_noOtherRefusal`. `setupHist` reads `setupFrozenOk`. `Main`'s read side waits
 for the tie's statement.
+H5 candidate 3 approved by the user (the merge session implements it on `h5-tie`). Its read law:
+`authStateAt_setup (hγa) (hE : ↑kvN ∪ ↑authHistN ∪ ↑authTieN ∪ ↑(nroot.@"authRev") ⊆ E')`:
+`srvRaftLogInv ρ.raft ∗ kvInvOn ρ.raft ρ.kv srvAuthSt0 ∗ authHistTie E ρ ∗ authHistFrozen ρ.kv γz hs
+∗ authStateAt γa k (hs.getLastD srvAuthSt0) ∗ ⌜k ≤ m⌝ ∗ authStateAt γa m st ={E'}=∗ ⌜st =
+hs.getLastD srvAuthSt0⌝`. No `setupFrozenOk` (the server's `admStates_nodup` puts `last hs` at one
+index), so `SetUp.spec` does not change. `Main` has the first two from `memberBootOn` (persistent),
+the tie from `Start.specOn`'s post, the rest from `SetUp`'s (`admStates_getLastD` turns
+`srvAuthAtLog Lset = setupSt r` into `hs.getLastD _ = setupSt r`). `akAuthFixed`'s read half then
+becomes a fancy update at such an `E'`.

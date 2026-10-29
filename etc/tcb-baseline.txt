@@ -400,7 +400,7 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
+axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
