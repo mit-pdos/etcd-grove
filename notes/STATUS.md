@@ -469,6 +469,16 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, U8 v2: the storage contract as range ownership (2026-10-29, branch `raft-unified-storage2`)
+
+Candidate 17 rev 3 (`notes/spec-first-study/raft-storage-spec.md`) replaces the hold (`raft-unified-storage-wip`,
+superseded). Steps 1-2 built: the range vocabulary (`StorageModel`: `storLog`/`storEnd`/`storCompacted`), the
+parametric contract `isStorageP SV Bnd`, `snapshotValid`, raft's view `ownStorage sn st σ` with its read
+triples derived from the contract (`InvStorageRead`) and its moves as lemmas (`InvStorageLaws`), `ownRaftLog`
+over it, and every `raftLog.*`/`unstable.*`/`newLogWithSize` proof. Broken as expected: the raft level up
+(`StepGhostMode`'s `certLink`, `InvRaftPhys`), RawNode/node (step 4), `MemoryStorage` (step 3), clients.
+Architecture, spec changes and the next steps: `notes/raft-unified-plan.md`, "U8 v2".
+
 ## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)
 
 Done and pushed: `MemoryStorage.SetHardState` importable; the `confchange`/`tracker` client specs (the U11
