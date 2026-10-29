@@ -78,7 +78,7 @@ theorem mvcc.NewStore_backend
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
-    (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗

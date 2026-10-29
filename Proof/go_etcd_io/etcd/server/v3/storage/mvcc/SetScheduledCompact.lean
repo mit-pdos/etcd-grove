@@ -31,10 +31,11 @@ theorem mvcc.SetScheduledCompact.wp_proof
     mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG) := by
   intro bt View Del W Dep Locked P HF f value Pre Q Post Hv
   wp_start as ⟨#Hbt, Hhf, Hpre, #Hhook, Hupd⟩
-  ihave #Hbt0 := Hbt
   iunfold mvcc.batchTxSpec at Hbt
   iunfold mvcc.batchTxSpecG at Hbt
-  icases Hbt with ⟨#HLock, -, #HUnlock0, -⟩
+  icases Hbt with ⟨#HLock, -, -, -, -, -, -, #HMeta, -⟩
+  ihave #Hcap := HMeta $$ []
+  · ipureintro; trivial
   wp_apply wp_with_defer as %defer Hdefer
   (try wp_auto)
   -- `tx.LockInsideApply()`: the hook run on the caller's `Pre`
@@ -47,16 +48,20 @@ theorem mvcc.SetScheduledCompact.wp_proof
   (try wp_auto)
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact))
     (Val #(GoInterface.ok bt))) (Val #value))
-  iapply (h0 bt View Del W Dep Locked P HF [] value Hv) $$ [Hl]
-  · iframe Hpkg Hbt0 Hl
+  iapply (h0 bt (Locked []) _ value Hv) $$ [Hl]
+  · iframe Hpkg Hcap Hl
   inext
-  iintro Hl
+  -- (the backend-compaction stage, R2-3) the put leaves a token only `Unlock` takes
+  iintro ⟨%U, HU, #Hua⟩
+  iunfold mvcc.unlockAt at Hua
+  icases Hua with ⟨#HUnlock0, -⟩
   (try wp_auto)
   -- the caller's update, then the deferred `tx.Unlock()`
   imod Hupd $$ [$HQ $HW] with ⟨HP, HW, HPost⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnlock0 $$ [Hl HW HP]
-  · iframe Hl HW HP
+  iapply HUnlock0 $$ [HU HW HP]
+  · iframe HU HW HP
+    ipureintro; rfl
   inext
   iintro -
   (try wp_auto)

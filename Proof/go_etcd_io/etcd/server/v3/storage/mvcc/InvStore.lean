@@ -1007,14 +1007,38 @@ instance unlockAt_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IPro
     (W P U : IProp GF) (l : Puts) : Persistent (unlockAt bt View W P U l) := by
   unfold unlockAt; infer_instance
 
-/-- **A compaction session's operation budget** (the backend-compaction stage, decision O3; review
-round 1, F4): `LockOutsideApply` hands a session `DP dpStock`, its stock of operations the backend
-counts (`pending`), and each of the job's `UnsafeDelete(Key)` and `UnsafePut(Meta)` spends one
-(`DP (n + 1)` to `DP n`); a session issues at most `CompactionBatchLimit + 1` of them (the store's
-scope premise `CompactionBatchLimit ≤ 2^56`, the wiring step's), so the backend's bound
-(`pend < 2^58`) holds. `DP` is a parameter of the contract (`fun _ => True` for mvcc's assumed
-backend, which counts nothing). -/
-abbrev dpStock : Nat := 2 ^ 56
+/-- **A capability to put a compaction key into the `Meta` bucket** (the backend-compaction stage,
+review round 2, R2-3): from the token `X`, `UnsafePut(schema.Meta, k, v)` at a compaction key
+(`metaCompactKey`) of a value the store writes there (`metaRevVal`) leaves the token `Y`. The batch
+transaction gives one from a fresh session's lock to a token only `Unlock` takes (`batchTxSpecG`'s
+`Meta` clause: `SetScheduledCompact`'s session), and one per step of a compacting range's token
+(the job's last batch: `UnsafeSetFinishedCompact`). -/
+def metaPutCap (bt : GoInterfaceOk) (X Y : IProp GF) : IProp GF :=
+  iprop(□ ∀ (b : GoInterface) (key val : GoSlice) (k v : GoString) (dq dq' : DFrac),
+    ⌜metaCompactKey k ∧ metaRevVal v⌝ →
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ X ∗ key ↦*{dq} k ∗
+        val ↦*{dq'} v }}
+      (App (App (App (Val #(methods bt.ty go!"UnsafePut" bt.v)) (Val #b)) (Val #key)) (Val #val))
+    {{ RET #(); Y ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }})
+
+instance metaPutCap_persistent (bt : GoInterfaceOk) (X Y : IProp GF) :
+    Persistent (metaPutCap (GF := GF) bt X Y) := by
+  unfold metaPutCap; infer_instance
+
+/-- **The limited range's batch bound** (the backend-compaction stage, decision O3; review round 2,
+R2-3): a compacting range reads at most `2^56` entries, so the session it ends (`limit` deletes and
+one `Meta` put after a start below the backend's `P.limit ≤ 2^57`) stays within the backend's count
+(`pend + hookMax < 2^58`). The job reads `CompactionBatchLimit` entries: the store's scope premise
+(`isStore`'s `Hcfgl`; Go has no such bound). -/
+abbrev rangeLimitMax : Int := 2 ^ 56
+
+/-- **The store's batch limit** (the configuration's `CompactionBatchLimit`; `NewStore`'s premise): not
+negative (`issues/etcd-compaction-negative-batch-limit.md`: `NewStore` replaces `0` by the default,
+and a negative one would make the job's loop read nothing), and at most `rangeLimitMax` (the
+backend-compaction stage's scope premise, decision O3 and review round 2: the job's range then
+stays within the backend's count; Go has no such bound, so it is a restriction of the configuration
+the results cover, `notes/decisions.md`). -/
+def batchLimitOk (x : w64) : Prop := 0 ≤ sint.Z x ∧ sint.Z x ≤ rangeLimitMax
 
 /-- The batch transaction `bt` (`backend.BatchTx`, names-only: the trust boundary of the
 backend's write path), as the write transaction uses it, with `Locked l` its lock's token
@@ -1063,8 +1087,7 @@ one with the backend's, `Cmp` false (2026-10-13, unit 4; the merge with the comp
 def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF)
-    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
-    (DP : Nat → IProp GF := fun _ => iprop(True)) :
+    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) :
     IProp GF :=
   iprop(□ (∀ (Pre Q : IProp GF) (f : val),
       {{ Pre ∗ RT ∗ WT ∗ HF f ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
@@ -1094,38 +1117,38 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
           (keyVals Rd ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k ∨
             (Del k ∗ ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))) }}) ∗
     □ ({{ Dep ∗ RT ∗ WT }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ W ∗ P ∗ RT ∗ DP dpStock }}) ∗
-    -- (the backend-compaction stage, review round 1, F1/F2) the limited range lends its slices
-    -- against a token `T` of this call (as the point read does: bbolt's slices die at the
-    -- session's commit), from which the lock comes back, and hands out the delete over its own
-    -- reader `Rd` and token: a key it returned is deleted under `T`
-    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
+      {{ RET #(); Locked [] ∗ W ∗ P ∗ RT }}) ∗
+    -- (the backend-compaction stage, review round 2, R2-3; the lessor's `unlockAt` precedent) the
+    -- limited range, from a fresh session's lock, ends the session in a token `U` that counts what
+    -- is left of the call's budget: its slices are readable under any `U n` (lent: bbolt's slices
+    -- die at the session's commit), a key it returned is deleted and a compaction key put into
+    -- `Meta` from `U (n + 1)` to `U n`, and `Unlock` takes any `U n`; no put or second range after
+    -- it (the job makes neither), so the backend's count stays local to the call
+    □ (⌜Cmp⌝ -∗ ∀ (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
         (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),
-      ⌜0 < sint.Z limit ∧ khi ≠ []⌝ →
-      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ View q m ∗
+      ⌜0 < sint.Z limit ∧ sint.Z limit ≤ rangeLimitMax ∧ khi ≠ []⌝ →
+      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked [] ∗ View q m ∗
           lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi }}
         (App (App (App (App (Val #(methods bt.ty go!"UnsafeRange" bt.v)) (Val #b)) (Val #lo))
           (Val #hi)) (Val #limit))
       {{ (ks vs : GoSlice), RET (PairV #ks #vs); View q m ∗ lo ↦*{dqlo} klo ∗
           hi ↦*{dqhi} khi ∗
-          ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (T : IProp GF),
-            T ∗ (T -∗ Locked l) ∗
-            snapThin (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) m' Del ∗
-            rdCap Rd T ∗ rdCap2 Rd T ∗
+          ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (U : Nat → IProp GF),
+            U ((sint.Z limit).toNat + 1) ∗
+            snapThin m m' Del ∗
+            (□ ∀ n : Nat, rdCap Rd (U n)) ∗ (□ ∀ n : Nat, rdCap2 Rd (U n)) ∗
             pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
             □ (∀ (key : GoSlice) (k : GoString) (n : Nat),
-              {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ T ∗ Del k ∗
-                  DP (n + 1) ∗ □ Rd key k }}
+              {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ U (n + 1) ∗
+                  Del k ∗ □ Rd key k }}
                 (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
-              {{ RET #(); T ∗ DP n }}) }}) ∗
-    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString)
-        (dq dq' : DFrac) (n : Nat),
-      ⌜metaCompactKey k ∧ metaRevVal v⌝ →
-      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ Locked l ∗
-          key ↦*{dq} k ∗ val ↦*{dq'} v ∗ DP (n + 1) }}
-        (App (App (App (Val #(methods bt.ty go!"UnsafePut" bt.v)) (Val #b)) (Val #key))
-          (Val #val))
-      {{ RET #(); Locked l ∗ key ↦*{dq} k ∗ val ↦*{dq'} v ∗ DP n }}) ∗
+              {{ RET #(); U n }}) ∗
+            (□ ∀ n : Nat, metaPutCap bt (U (n + 1)) (U n)) ∗
+            □ (∀ n : Nat, {{ U n ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+                {{ RET #(); True }}) }}) ∗
+    -- (R2-3) a compaction key put into `Meta` in a fresh session (`SetScheduledCompact`'s) ends
+    -- it in a token only `Unlock` takes, as the lessor's delete does
+    □ (⌜Cmp⌝ -∗ metaPutCap bt (Locked []) iprop(∃ U : IProp GF, U ∗ unlockAt bt View W P U [])) ∗
     □ (∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
         (r : GMap GoString backend.BktData),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b ∗ Locked l ∗
@@ -1137,9 +1160,8 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
 instance batchTxSpecG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
-    (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (DP : Nat → IProp GF) :
-    Persistent (batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb DP) := by
+    (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    Persistent (batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb) := by
   unfold batchTxSpecG; infer_instance
 
 /-- `NewStore`'s calls on a fresh backend's batch transaction `bt`, with `LockedO n` the lock's
@@ -1177,18 +1199,16 @@ def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT :
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
-    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True))
-    (DP : Nat → IProp GF := fun _ => iprop(True)) : IProp GF :=
+    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ (Locked : Puts → IProp GF) (LockedO : Nat → IProp GF),
-    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb DP ∗
+    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb ∗
       batchTxInitSpec bt RT WT W Wi Dep LockedO P ∗ □ Bt bt)
 
 instance isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (DP : Nat → IProp GF) :
-    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt DP) := by
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) :
+    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt) := by
   unfold isBatchTxG; infer_instance
 
 /-- No condition on the puts (mvcc's assumed backend). -/
@@ -1274,7 +1294,7 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
     (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
     (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True))
-    (DP : Nat → IProp GF := fun _ => iprop(True)) (SR SRh : IProp GF := iprop(True)) :
+    (SR SRh : IProp GF := iprop(True)) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
@@ -1287,7 +1307,7 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
           ∃ L : IProp GF, L ∗ keyReadSnap View RT Del true rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
-          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt DP }}) ∗
+          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt }}) ∗
     □ (∀ (X Y : IProp GF),
       {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
       {{ RET #(); RT ∗ Y }}) ∗
@@ -1307,8 +1327,8 @@ instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IP
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (DP : Nat → IProp GF) (SR SRh : IProp GF) :
-    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req Rb Bt DP SR SRh) := by
+    (Bt : GoInterfaceOk → IProp GF) (SR SRh : IProp GF) :
+    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh) := by
   unfold isKeyBackendG; infer_instance
 
 /-! ## The lessor
@@ -3239,7 +3259,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hmu" ∷ sync.isRWMutexGuard (muAddr s) (muInv s γ) ∗
     "#HrevMu" ∷ sync.isRWMutexGuard (revMuAddr s) (revMuInv s γ) ∗
     "#Hcfg" ∷ s.[store, go!"cfg"] ↦□ scfg ∗
-    "%Hcfgl" ∷ ⌜0 < sint.Z scfg.CompactionBatchLimit'⌝ ∗
+    "%Hcfgl" ∷ ⌜0 < sint.Z scfg.CompactionBatchLimit' ∧ sint.Z scfg.CompactionBatchLimit' ≤ rangeLimitMax⌝ ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
     "#HhsOk" ∷ mvcc.hashStorageOk shs ∗

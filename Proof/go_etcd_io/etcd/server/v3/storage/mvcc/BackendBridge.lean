@@ -1940,7 +1940,7 @@ theorem bt_lockOutJ (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := 
           (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"LockOutsideApply" #t))
             (Val #()))
-        {{ RET #(); bkLocked γ P b [] ∗ W ∗ Pk ∗ bkRTx γ P b ∗ iprop(True) }}) := by
+        {{ RET #(); bkLocked γ P b [] ∗ W ∗ Pk ∗ bkRTx γ P b }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %Φ !> ⟨-, Hrt, Hwb⟩ HΦ
   iunfold bkRTx at Hrt
   icases Hrt with ⟨Hrd, Ho⟩
@@ -2111,11 +2111,6 @@ variable [sem : go.Semantics]
 `γ.dlg`, Draft round 2). -/
 def bkDel (γ : backend.BNames) (k : GoString) : IProp GF := backend.dlIs γ (go!"key", k)
 
-/-- **A compaction session's operation budget** (3.4, decision O3; review round 1, F4): `n`
-operations of the session's stock left (`dpStock` from `LockOutsideApply`), at the session's
-ghost name `gp`. The bridge's session token is to carry the matching authority (the new `Locked`,
-F5), so that `pend` stays below the backend's bound. -/
-def bkDP (gp : GName) (n : Nat) : IProp GF := ownToks gp n
 
 end cmpvocab
 
@@ -2240,9 +2235,11 @@ theorem isKeyBackendG_of_backend
 
 /-- **The bridge with the compaction** (the backend-compaction stage, `notes/backend-cmp-plan.md`
 section 2; Draft, 2026-10-28): `isKeyBackendG_of_backend` with `Cmp` true, the deletable keys those
-registered at the backend's names (`bkDel`, decision O1), the one-shot delete permits at `gp` (`bkDP`, O3) and the
-safe-range slot (`srSlot`/`srHeld`, 3.4). Its non-compaction clauses are the old bridge's proofs;
-the compaction's clauses are the stage's new cases. The stores switch to it (`kbCmp := True`, O5)
+registered at the backend's names (`bkDel`, decision O1) and the safe-range slot
+(`srSlot`/`srHeld`, 3.4). Its non-compaction clauses are the old bridge's proofs, over the same
+`bkLocked` (review round 2, R2-3: the compacting range ends its session in a token of its own, so
+no clause returns to the lock after a delete and F5's re-proofs are not needed); the compaction's
+clauses are the stage's new cases. The stores switch to it (`kbCmp := True`, O5)
 when it is proved. -/
 theorem isKeyBackendG_of_backendC
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -2267,8 +2264,7 @@ theorem isKeyBackendG_of_backendC
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc)
-    (gp : GName) :
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ keySized γ P b ⊢
@@ -2276,7 +2272,7 @@ theorem isKeyBackendG_of_backendC
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk (bkDel γ) W W iprop(True) True Pk (bkHookIs γ)
         (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (bkDP gp) (backend.srSlot b) (backend.srHeld b) := by
+        (bkBt b) (backend.srSlot b) (backend.srHeld b) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -2307,16 +2303,16 @@ theorem isKeyBackendG_of_backendC
       isplitr
       · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t (bkDel γ) $$ [$Hpkg $Hsch $Hb $Ht]
       isplitr
-      · -- (review round 1, F4) the session's operation stock `bkDP gp dpStock`, minted with the
-        -- new `Locked`'s authority (F5, the next Draft round)
-        sorry -- backend-cmp Draft: new case (LockOutsideApply's operation stock, F4/F5)
+      · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
-      · -- the job's limited range: thin of the logical bucket, its slices lent against a token of
-        -- the call, and the delete of a registered key it returned under that token (3.1-3.2,
-        -- 3.5; review round 1, F1/F2)
-        iintro !> -; sorry -- backend-cmp Draft: new case (the limited range and its delete, 3.1-3.5)
+      · -- the job's limited range from a fresh session's lock: thin of the bucket, its slices lent
+        -- against the range's token `U`, the delete of a registered key it returned, the `Meta`
+        -- put and `Unlock` from `U`, the budget local to the call (3.1-3.5; review rounds 1-2, F1/F2,
+        -- R2-3; a new `bkLockedC` with the pending deletes and the count)
+        iintro !> -; sorry -- backend-cmp Draft: new case (the limited range's token, 3.1-3.5, R2-3)
       isplitr
-      · -- the job's `UnsafePut(Meta, compaction key, revision)` (3.3)
+      · -- `UnsafePut(Meta, compaction key, revision)` in a fresh session, ending it in a token only
+        -- `Unlock` takes (3.3; R2-3)
         iintro !> -; sorry -- backend-cmp Draft: new case (the Meta keys' value invariant, 3.3)
       iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
     isplitr

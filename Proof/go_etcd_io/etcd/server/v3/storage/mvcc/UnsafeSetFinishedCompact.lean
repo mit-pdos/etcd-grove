@@ -31,8 +31,9 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
     (h0 : mvcc.NewRevBytes.spec (GF := GF) (hG := hG))
     (h1 : mvcc.RevToBytes.spec (GF := GF) (hG := hG)) :
     mvcc.UnsafeSetFinishedCompact.spec (GF := GF) (hG := hG) := by
-  intro bt View Del W Dep Locked P f l value Hv
-  wp_start as ⟨#Hbt, Hl⟩
+  intro bt X Y value Hv
+  wp_start as ⟨#Hcap, Hx⟩
+  iunfold mvcc.metaPutCap at Hcap
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -42,11 +43,6 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
   icases Hsi with ⟨⟨%bM, #HMetaG, -⟩, -⟩
-  iunfold mvcc.batchTxSpec at Hbt
-  iunfold mvcc.batchTxSpecG at Hbt
-  icases Hbt with ⟨-, -, -, -, -, -, -, #HPut, -⟩
-  ihave #HPut' := HPut $$ []
-  · ipureintro; trivial
   (try wp_auto)
   wp_apply h0 as %rb ⟨Hrb, Hrbcap, -⟩
   (try wp_auto)
@@ -55,19 +51,19 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   (try wp_auto)
   rw [List.drop_of_length_le (by simp), List.append_nil]
   wp_bind (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bM)) (Val #skn)) (Val #rb'))
-  ihave #HP2 := HPut' $$ %l %bM %skn %rb' %mvcc.finKeyBytes
-    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) %DFrac.discard %(DFrac.own 1) %0 []
+  ihave #HP2 := Hcap $$ %bM %skn %rb' %mvcc.finKeyBytes
+    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) %DFrac.discard %(DFrac.own 1) []
   · ipureintro
     exact ⟨Or.inr rfl, value, Hv, rfl⟩
-  iapply HP2 $$ [Hl Hrb]
-  · iframe HMetaG Hl Hrb
+  iapply HP2 $$ [Hx Hrb]
+  · iframe HMetaG Hx Hrb
     unfold mvcc.finKeyBytes
     iexact Hsknv
   inext
-  iintro ⟨Hl, -, -, -⟩
+  iintro ⟨Hy, -, -⟩
   (try wp_auto)
   iapply HΦ
-  iexact Hl
+  iexact Hy
 
 
 end proof

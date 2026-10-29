@@ -116,14 +116,18 @@ theorem mvcc.NewStore.wp_proof
     wp_join_done
     iexists l; iframe lg; ipureintro; exact Hl
   · iexists lg; iframe lg; ipureintro; exact Hif
-  -- the configuration's defaults: a zero batch limit is the default's (`1000`), so positive
-  wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c ∗ ⌜0 < sint.Z c.CompactionBatchLimit'⌝) with [cfg]
+  -- the configuration's defaults: a zero batch limit is the default's (`1000`), so positive, and
+  -- at most `rangeLimitMax` (the premise `batchLimitOk`)
+  wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c ∗
+      ⌜0 < sint.Z c.CompactionBatchLimit' ∧ sint.Z c.CompactionBatchLimit' ≤ rangeLimitMax⌝) with [cfg]
     as ⟨%cfg1, cfg, %Hcfg1⟩
   · iexists _; iframe cfg; ipureintro; simp only; decide
   · iexists _; iframe cfg; ipureintro
     have h0 : sint.Z cfg.CompactionBatchLimit' ≠ 0 := by intro h; apply Hif; word
+    unfold batchLimitOk at Hcfg0
     omega
-  wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c ∗ ⌜0 < sint.Z c.CompactionBatchLimit'⌝) with [cfg]
+  wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c ∗
+      ⌜0 < sint.Z c.CompactionBatchLimit' ∧ sint.Z c.CompactionBatchLimit' ≤ rangeLimitMax⌝) with [cfg]
     as ⟨%cfg2, cfg, %Hcfg2⟩
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
