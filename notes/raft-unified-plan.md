@@ -276,6 +276,21 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
 - A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
   public spec is escalated before it is built on; never a minor change.
 
+## Spec changes during track A (fresh) (2026-10-29)
+
+Each: old → new, and why. (The second track A agent, from the hand-off below.)
+
+- New: `node.Campaign.spec` (`Spec/go_etcd_io/raft/v3/node__Campaign.lean`), modeled on
+  `node.ForgetLeader.spec`: pre `isPkgInit ∗ isNode n γ N id ∗ nodeCtx ctx cd`, post `nodeErr cd err`.
+  No existing public statement changed, no new public vocabulary (the coordinator's option 1).
+  Internal (raft-only): `netP γ id ml` (`InvNodeChan.lean`) is now `(old body) ∨ hupP γ ml`, with
+  `hupSt` (the literal `pb.Message{Type: MsgHup}`) and `hupP γ ml := msgIn ml □ hupSt ∗ tickCred γ.bud
+  1`; new `netP_hup`, `netP_split` (`stepWithWaitOption` reads the type through it). `run`'s `recvc`
+  arm steps a hup with `wp_rn_raft_Step_hup` (`InvNodeRunHup.lean`, `RawNode.Campaign`'s proof with the
+  message given), after `budget_spend` of the credit raises the term ceiling (as the tick arm).
+  `Campaign` takes the credit from its own `MsgHup.Enum()` resolution (`wp_take_receipt`).
+  `NetMsgOk`/`netStepTypes`/`stepIn` unchanged.
+
 ## Track A hand-off (2026-10-29)
 
 **Done on `raft-unified`.** Each commit builds `Link`, `Linked`, `Results`, `Api`; there is no `sorry`, and the only
@@ -289,7 +304,7 @@ raft-specific axiom is `ccDecodeV2_nil`.
   a final report, it adds nothing beyond that entry.
 
 **Open, in order.** The design is in `notes/decisions.md`, "Stage U7: messages, track A".
-1. **`node.Campaign.spec`.** kvreconf calls it (`reconf.go:106`). The coordinator chose option 1, an
+1. **`node.Campaign.spec`.** (Done, `b97c601195`; "Spec changes during track A (fresh)".) kvreconf calls it (`reconf.go:106`). The coordinator chose option 1, an
    internal case in `netP` with no public change.
    - `MsgHup` is not in `netStepTypes` (`ApiVocab.lean:267`). Add an *internal* local case for it in
      `netP` (`InvNodeChan.lean`, near `netP_local`); do not change the public `NetMsgOk`.
