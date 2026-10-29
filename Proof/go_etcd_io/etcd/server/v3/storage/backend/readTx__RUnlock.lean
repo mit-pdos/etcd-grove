@@ -28,12 +28,12 @@ theorem backend.readTx.RUnlock.wp_proof : backend.readTx.RUnlock.spec (GF := GF)
   intro γ P W Pk b rt rtx rv
   wp_start as ⟨#Hb, #Hrt, Hh⟩
   unfold rtHeld
-  icases Hh with ⟨%rt', %rd, %H, #Hrt', Hrl, HP, %Hrtx, Hcr⟩
+  icases Hh with ⟨%rt', %rd, %H, %L, #Hrt', Hrl, HP, %Hrtx, Hcr⟩
   icombine Hrt Hrt' gives %Heq
   subst Heq
   wp_auto
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmu
-  · inext; unfold rtRes; iexists rd, rv, H; iexact HP
+  · inext; unfold rtRes; iexists rd, rv, H, L; iexact HP
   iapply HΦ
   unfold rdTok
   iexists rt

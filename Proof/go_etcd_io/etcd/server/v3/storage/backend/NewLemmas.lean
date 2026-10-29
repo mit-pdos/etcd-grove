@@ -249,14 +249,14 @@ theorem clnPart_frac (γ : BNames) (P : BParams) (rd : RdSt) (rv : RView) (q1 q2
 
 /-- `rtResAt`'s body at fixed witnesses. -/
 def rtW (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (H : GMap (w64 × Nat) RView) (m : GoMap) (Pb : BksPhys) (cm : GoMap) : IProp GF :=
+    (H : GMap (w64 × Nat) RView) (m : GoMap) (Pb : BksPhys) (cm : GoMap) (L : VData) : IProp GF :=
   iprop(rbAt (rbufOf (baseOf rt)) (DFrac.own q) m Pb rv.2 ∗ ⌜bksOk Pb rv.2.bks⌝ ∗
-    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H)
+    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H (L := L))
 
 theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
-    (H : GMap (w64 × Nat) RView) (m : GoMap) (Pb : BksPhys) (cm : GoMap) (q1 q2 : Qp) :
-    rtW (GF := GF) γ P rt (q1 + q2) rd rv H m Pb cm ⊣⊢
-      rtW γ P rt q1 rd rv H m Pb cm ∗ rtW γ P rt q2 rd rv H m Pb cm := by
+    (H : GMap (w64 × Nat) RView) (m : GoMap) (Pb : BksPhys) (cm : GoMap) (L : VData) (q1 q2 : Qp) :
+    rtW (GF := GF) γ P rt (q1 + q2) rd rv H m Pb cm L ⊣⊢
+      rtW γ P rt q1 rd rv H m Pb cm L ∗ rtW γ P rt q2 rd rv H m Pb cm L := by
   unfold rtW rtRest rtCore
   rw [Qp_half_add, Qp_half_add]
   constructor
@@ -264,7 +264,7 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
       Hin⟩
     icases (rbAt_frac _ m Pb rv.2 q1 q2).1 $$ Hrb with ⟨Hrb1, Hrb2⟩
     icases (typedPointsto_frac_add _ cm q1 q2).1 $$ Hcm with ⟨Hcm1, Hcm2⟩
-    icases ghostVar_split γ.view _ q1.half.half q2.half.half $$ Hv with ⟨Hv1, Hv2⟩
+    icases (viewQ_split γ q1.half.half q2.half.half _ L).1 $$ Hv with ⟨Hv1, Hv2⟩
     icases ghostVar_split γ.rd rd q1 q2 $$ Hrd with ⟨Hrd1, Hrd2⟩
     icases ghostVar_split γ.rvs _ q1.half q2.half $$ Hrvs with ⟨Hrvs1, Hrvs2⟩
     icases ghostVar_split γ.cur _ q1.half q2.half $$ Hcur with ⟨Hcur1, Hcur2⟩
@@ -287,7 +287,8 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
     · iframe
     ihave Hcm := (typedPointsto_frac_add _ cm q1 q2).2 $$ [Hcm1 Hcm2]
     · iframe
-    icombine Hv1 Hv2 as Hv
+    ihave Hv := (viewQ_split γ q1.half.half q2.half.half _ L).2 $$ [Hv1 Hv2]
+    · iframe
     icombine Hrd1 Hrd2 as Hrd
     icombine Hrvs1 Hrvs2 as Hrvs
     icombine Hcur1 Hcur2 as Hcur
@@ -308,12 +309,13 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
 /-- Two fractions of `rtResAt`'s body agree on the witnesses. -/
 theorem rtW_agree (γ : BNames) (P : BParams) (rt : Loc) (q1 q2 : Qp) (rd rd' : RdSt)
     (rv rv' : RView) (H H' : GMap (w64 × Nat) RView) (m m' : GoMap) (Pb Pb' : BksPhys)
-    (cm cm' : GoMap) :
-    rtW (GF := GF) γ P rt q1 rd rv H m Pb cm ∗ rtW γ P rt q2 rd' rv' H' m' Pb' cm' ⊢
-      ⌜rd = rd' ∧ rv = rv' ∧ H = H' ∧ m = m' ∧ Pb = Pb' ∧ cm = cm'⌝ := by
-  unfold rtW rtRest rtCore
-  iintro ⟨⟨Hrb1, -, Hcm1, -, Hrd1, Hrvs1, -, -, Hh1, -⟩, ⟨Hrb2, -, Hcm2, -, Hrd2, Hrvs2, -, -, Hh2,
-    -⟩⟩
+    (cm cm' : GoMap) (L L' : VData) :
+    rtW (GF := GF) γ P rt q1 rd rv H m Pb cm L ∗ rtW γ P rt q2 rd' rv' H' m' Pb' cm' L' ⊢
+      ⌜rd = rd' ∧ rv = rv' ∧ H = H' ∧ m = m' ∧ Pb = Pb' ∧ cm = cm' ∧ L = L'⌝ := by
+  unfold rtW rtRest rtCore viewQ
+  iintro ⟨⟨Hrb1, -, Hcm1, ⟨Hv1, -⟩, Hrd1, Hrvs1, -, -, Hh1, -⟩, ⟨Hrb2, -, Hcm2, ⟨Hv2, -⟩, Hrd2,
+    Hrvs2, -, -, Hh2, -⟩⟩
+  icombine Hv1 Hv2 gives %hL
   icombine Hrd1 Hrd2 gives %hrd
   icombine Hrvs1 Hrvs2 gives %hrv
   ihave %hH := ghostMapAuth_agree γ.hist q1 q2 H H' $$ Hh1 Hh2
@@ -323,12 +325,12 @@ theorem rtW_agree (γ : BNames) (P : BParams) (rt : Loc) (q1 q2 : Qp) (rd rd' : 
   ihave %hb := rbAt_agree _ _ _ m m' Pb Pb' rv.2 $$ [Hrb1 Hrb2]
   · iframe
   ipureintro
-  exact ⟨hrd.2, rfl, hH, hb.1, hb.2, hcm⟩
+  exact ⟨hrd.2, rfl, hH, hb.1, hb.2, hcm, hL.2⟩
 
 theorem rtRes_eq (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) :
     rtRes (GF := GF) γ P rt q =
-      iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView) (m : GoMap) (Pb : BksPhys)
-        (cm : GoMap), rtW γ P rt q rd rv H m Pb cm) := rfl
+      iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView) (L : VData) (m : GoMap)
+        (Pb : BksPhys) (cm : GoMap), rtW γ P rt q rd rv H m Pb cm L) := rfl
 
 /-- **`rtRes` is fractional** (what `readTx.mu`'s guard needs). -/
 theorem rtRes_frac (γ : BNames) (P : BParams) (rt : Loc) :
@@ -336,19 +338,19 @@ theorem rtRes_frac (γ : BNames) (P : BParams) (rt : Loc) :
   iintro !> %q1 %q2
   rw [rtRes_eq, rtRes_eq, rtRes_eq]
   isplit
-  · iintro ⟨%rd, %rv, %H, %m, %Pb, %cm, Hw⟩
-    icases (rtW_frac γ P rt rd rv H m Pb cm q1 q2).1 $$ Hw with ⟨Hw1, Hw2⟩
+  · iintro ⟨%rd, %rv, %H, %L, %m, %Pb, %cm, Hw⟩
+    icases (rtW_frac γ P rt rd rv H m Pb cm L q1 q2).1 $$ Hw with ⟨Hw1, Hw2⟩
     isplitl [Hw1]
-    · iexists rd, rv, H, m, Pb, cm
+    · iexists rd, rv, H, L, m, Pb, cm
       iexact Hw1
-    · iexists rd, rv, H, m, Pb, cm
+    · iexists rd, rv, H, L, m, Pb, cm
       iexact Hw2
-  · iintro ⟨⟨%rd, %rv, %H, %m, %Pb, %cm, Hw1⟩, ⟨%rd', %rv', %H', %m', %Pb', %cm', Hw2⟩⟩
-    ihave %he := rtW_agree γ P rt q1 q2 rd rd' rv rv' H H' m m' Pb Pb' cm cm' $$ [Hw1 Hw2]
+  · iintro ⟨⟨%rd, %rv, %H, %L, %m, %Pb, %cm, Hw1⟩, ⟨%rd', %rv', %H', %L', %m', %Pb', %cm', Hw2⟩⟩
+    ihave %he := rtW_agree γ P rt q1 q2 rd rd' rv rv' H H' m m' Pb Pb' cm cm' L L' $$ [Hw1 Hw2]
     · iframe
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := he
-    iexists rd, rv, H, m, Pb, cm
-    iapply (rtW_frac γ P rt rd rv H m Pb cm q1 q2).2
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := he
+    iexists rd, rv, H, L, m, Pb, cm
+    iapply (rtW_frac γ P rt rd rv H m Pb cm L q1 q2).2
     iframe
 
 end frac

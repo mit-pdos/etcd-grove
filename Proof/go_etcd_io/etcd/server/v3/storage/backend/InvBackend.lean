@@ -411,15 +411,80 @@ instance wgInv_persistent (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) :
 
 /-! ## `readTx.mu` -/
 
-/-- The cached copies of the states up to `idx` at the current version read as the current
-state, off the hook's buckets, over the current committed data. -/
-def cacheValid (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (rv' : RView), ⌜i ≤ idx⌝ -∗ histAt γ rv.2.ver i rv' -∗
-    cachedAt γ rv.2.ver i -∗ ⌜vData P (rv.1, rv'.2) = vData P rv⌝)
+/-- **The deletable keys' registration** (persistent): the saved predicate `Φ` of
+(bucket, key) pairs at the backend's name `γ.dlg`, fixed by the backend's creator. -/
+def dlReg (γ : BNames) (Φ : GoString × GoString → IProp GF) : IProp GF :=
+  savedPredOwn γ.dlg DFrac.discard Φ
 
-instance cacheValid_persistent (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) :
-    Persistent (cacheValid (GF := GF) γ P rv idx) := by
+instance dlReg_persistent (γ : BNames) (Φ : GoString × GoString → IProp GF) :
+    Persistent (dlReg (GF := GF) γ Φ) := by
+  unfold dlReg; infer_instance
+
+/-- **The key `nk` (bucket, key) is deletable** (persistent): the registered predicate holds of it. -/
+def dlIs (γ : BNames) (nk : GoString × GoString) : IProp GF :=
+  iprop(∃ Φ : GoString × GoString → IProp GF, dlReg γ Φ ∗ □ Φ nk)
+
+instance dlIs_persistent (γ : BNames) (nk : GoString × GoString) :
+    Persistent (dlIs (GF := GF) γ nk) := by
+  unfold dlIs; infer_instance
+
+/-- **A physical view thin of the logical view `L`** (persistent): every entry of the physical
+view `vd` is `L`'s, and an entry of `L` missing from `vd` is a deletable key. -/
+def thinV (γ : BNames) (vd L : VData) : IProp GF :=
+  iprop(⌜∀ nk v, vd.lookup nk = some v → L.lookup nk = some v⌝ ∗
+    □ ∀ nk, ⌜L.lookup nk ≠ none ∧ vd.lookup nk = none⌝ -∗ dlIs γ nk)
+
+instance thinV_persistent (γ : BNames) (vd L : VData) : Persistent (thinV (GF := GF) γ vd L) := by
+  unfold thinV; infer_instance
+
+/-- An exact view is thin. -/
+theorem thinV_refl (γ : BNames) (vd : VData) : ⊢ thinV (GF := GF) γ vd vd := by
+  iunfold thinV
+  isplitr
+  · ipureintro; intro nk v h; exact h
+  · iintro !> %nk %h
+    exact absurd h.2 h.1
+
+/-- **A cached read buffer reads thin of the logical view** (3.2; Draft): the cached copies of the states up to `idx` at the current version read thin of the
+logical view `L` (until the stage: "exactly as the current state"; now (a tombstone put and compacted within one commit interval: a
+reader of the cached buffer may still see the deleted key, which it never looks up). -/
+def cacheValid (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) (L : VData) :
+    IProp GF :=
+  iprop(□ ∀ (i : Nat) (rv' : RView), ⌜i ≤ idx⌝ -∗ histAt γ rv.2.ver i rv' -∗
+    cachedAt γ rv.2.ver i -∗ thinV γ (vData P (rv.1, rv'.2)) L)
+
+instance cacheValid_persistent (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) (L : VData) :
+    Persistent (cacheValid (GF := GF) γ P rv idx L) := by
   unfold cacheValid; infer_instance
+
+/-- **A quarter of the readers' view, over the logical view** (the thin-view Draft round): the
+ghost share at the logical view `L` the clients hold, and the physical view `phys` thin of it
+(`thinV`). Until the stage the share held the physical view itself; an exact holder is the instance
+`L = phys` (`viewQ_exact`). -/
+def viewQ (γ : BNames) (q : Qp) (phys L : VData) : IProp GF :=
+  iprop(ghostVar γ.view q L ∗ thinV γ phys L)
+
+/-- The view's quarters split and combine (`thinV` persistent). -/
+theorem viewQ_split (γ : BNames) (a b : Qp) (phys L : VData) :
+    viewQ (GF := GF) γ (a + b) phys L ⊣⊢ viewQ γ a phys L ∗ viewQ γ b phys L := by
+  unfold viewQ
+  constructor
+  · iintro ⟨Hv, #Ht⟩
+    icases ghostVar_split γ.view L a b $$ Hv with ⟨H1, H2⟩
+    iframe H1 H2
+    iframe #
+  · iintro ⟨⟨H1, #Ht⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 as Hv
+    iframe Hv
+    iframe #
+
+/-- A quarter at an exact view. -/
+theorem viewQ_exact (γ : BNames) (q : Qp) (vd : VData) :
+    ghostVar (GF := GF) γ.view q vd ⊢ viewQ γ q vd vd := by
+  iintro H
+  iunfold viewQ
+  iframe H
+  iapply thinV_refl
 
 /-- The read buffer's buffers are writable (a free slot each). -/
 def bksOk (Pb : BksPhys) (B : GMap w64 (List Ent)) : Prop :=
@@ -453,7 +518,8 @@ read buffer canonical, of the table's buckets and writable; the current state th
 the history; a window only at a version's first state), the cache's validity, the window's
 poison mark, the readers' budget's authority, and the interval. -/
 def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) :
+    IProp GF :=
   iprop(ghostVar γ.rd q rd ∗
     ghostVar γ.rvs q.half (rv, rd.win) ∗ ghostVar γ.cur q.half ((rv.2.ver, rd.idx), rd.win) ∗
     clnPart γ P q rd rv ∗
@@ -462,26 +528,29 @@ def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RVi
     ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ H.lookup (rv.2.ver, rd.idx) = some rv ∧
       (∀ k rv', H.lookup k = some rv' → keyLe k (rv.2.ver, rd.idx)) ∧
       (rd.win = true → rd.idx = 0) ∧ safeRv P rv⌝ ∗
-    histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx ∗
+    histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx L ∗
     (if rd.win then poisonAt γ rv.2.ver rd.idx else iprop(True)) ∗
     ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1 p)
 
-/-- `rtCore` with the view's quarter (at `q`). -/
+/-- `rtCore` with the view's quarter (at `q`), over the logical view `L` (the physical state's
+view `vData P rv` thin of it: `viewQ`; exact by default). -/
 def rtRest (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
-  iprop(ghostVar γ.view q.half.half (vData P rv) ∗ rtCore γ P rt q rd rv cm H p)
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) :
+    IProp GF :=
+  iprop(viewQ γ q.half.half (vData P rv) L ∗ rtCore γ P rt q rd rv cm H p L)
 
 /-- `readTx.mu`'s resource at `q`, in the layout `rd`, the readers' state `rv` and the history
 `H`: the read buffer at `q` (writable buffers), the buckets map's field, and the rest. -/
 def rtResAt (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
+    (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) : IProp GF :=
   iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap),
     rbAt (rbufOf (baseOf rt)) (DFrac.own q) m Pb rv.2 ∗ ⌜bksOk Pb rv.2.bks⌝ ∗
-    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H p)
+    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H p L)
 
 /-- `readTx.mu`'s resource at `q`. -/
 def rtRes (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView), rtResAt γ P rt q rd rv H)
+  iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView) (L : VData),
+    rtResAt γ P rt q rd rv H q.half L)
 
 
 /-! ## The cache -/
@@ -731,17 +800,17 @@ def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) :
 /-- The shared read transaction held (`ReadTx().RLock()`), over the readers' state `rv` and
 bbolt's transaction `rtx`. -/
 def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
-  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
+  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
 
 /-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
 `sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
 plan's R5b). -/
 def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
-  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
+  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
 
 theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl

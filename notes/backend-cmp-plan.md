@@ -510,3 +510,49 @@ premise's placement the agent's, accepted by the user).
 30 uses in 13 files, `rtRest` 26 in 9, `cacheValid` replaced by `cacheValidC` 18 in 5), then
 `Unlock.specC` and `UnsafeDelete.specC` folded into their specs over it, `cacheValidC` folded; the
 bridge's three new cases and `isKeyBackendG_congrDel`.
+
+**The thin view proper, the readers' side (2026-10-29, the second fork of the round).**
+- `InvBackend`: the deletable keys' vocabulary (`dlReg`, `dlIs`, `thinV`, `thinV_refl`) moved here
+  from `DelKeys` (the invariants are written in it); `cacheValid` *is* the thin one (`cacheValidC`'s
+  body, with the logical view `L`; the `…C` name gone); new `viewQ γ q phys L` (a quarter of `γ.view`
+  at the logical view `L`, the physical view thin of it), `viewQ_split`, `viewQ_exact`.
+- The readers' side over the logical view: `rtCore`/`rtRest`/`rtResAt` take `L` (exact by default),
+  `rtRes` and `rtHeld`/`rtHeldF` quantify it; `rtW` (NewLemmas) and `rtRes`'s fraction lemmas carry it
+  (`rtW_agree` gives `L = L'`).
+- `rtHeld_view`/`rtHeld_clean` conclude `thinV γ (vData P rv) vd` (not `vData P rv = vd`) and give the
+  resources back; `backend.backend.ConcurrentReadTx.spec`'s post is `thinV γ (vData P rv) vd`
+  (statement change); `crtBuf` holds the copy thin of `L`.
+- New laws: `vData_rebase_or`, `thinV_rebase` (ReadLemmas: a cached copy stays thin after a commit
+  that kept the view, the current state thin too), `thinV_exact` (DelKeys: with the registration fixed
+  at `False`, a thin view is exact, under `◇`), `thinV_exact_fupd`.
+- The commit path (`ReadSide`): `rtWb`/`rtCm` carry `L`; `wb_core` takes the view's quarter as `viewQ`
+  at any `L'`; `rtRes_wb_close` takes the batch's quarter at any value; `rtRes_cm_close`'s no-window
+  case keeps `L` and the cached states thin (`thinV_rebase`); proved, no `sorry`.
+- **Decided by the agent while the user was away**: (1) the batch lock's quarter stays exact this
+  round (`batchGhostAt`, `batchFree`, `batchLocked`, `batchGhostW` unchanged): its logical view is the
+  physical one until a delete-only commit, which is group 2's `Unlock.specC` fold; threading `L`
+  through `Unlock`/`unsafeCommit`/`commit` is that fold's design, not this round's (options: thread it
+  now with `sorry`s on every view step of those proofs, or keep the batch exact; reason: no
+  `sorry` there, and the readers' commit lemmas get exactness from the quarters' agreement);
+  (2) `rtHeld_view` returns its resources (as `rtHeld_clean`), since the bridge keeps using them.
+- **Marked `sorry`s** (11 in all with the bridge's earlier three; this round's, each `backend-cmp
+  Draft`): the old bridge's three exactness steps (`bridge_crt`, `bridge_rt`, `bridge_rt_clean`: see the
+  question below); the registration fixed at `False` not yet threaded from the opener's `dlInit` to its
+  three users (`StoreBackend`, `BuildLemmas`, D22's `SnapApplyWalk`: a proof edit there only, its
+  statements unchanged); the new bridge's two read clauses over the thin view. The old bridge's and the
+  supply points' reach every server result (on this branch).
+- **Statement changes for the user's batch**: `ConcurrentReadTx.spec`'s post (thin); the old bridge
+  `isKeyBackendG_of_backend`, `storeBackendT_of_backend`, `keyCleanRead_of_backend`,
+  `storeBackend_of_backend` and mvcc's exported `mvcc_backend_bridge`/`mvcc_storeBackend_of_backend`
+  take `backend.dlReg γ (fun _ => False)` (a backend that never compacts).
+- **A question for the user (O1, the review's uncertainty confirmed)**: with the deletable keys a
+  saved predicate (O1), "nothing deletable" holds only under a later (`dlReg_false_noDel`:
+  `▷ False`), so `thinV_exact` concludes `◇ ⌜vd = L⌝`, which a postcondition's continuation (the old
+  bridge's reads) cannot strip: the old bridge's exact reads are unprovable this way. Options: (a) O1's
+  fallback, a pure key set the registration agrees on (an agreement of a discrete value: no later),
+  mvcc vouching for its keys in an invariant; (b) the readers' specs give exactness to a holder of the
+  unfixed `dlInit` (exclusive: `dlInit_noDel`, no later), threaded to the old bridge's readers; (c) the
+  bridge's clauses restated thin with `Del := False`-like exactness moved into mvcc's `snapThin`. The
+  agent's recommendation: (a), since it removes the later everywhere the thin view meets exactness.
+- **Left**: group 2 (`Unlock.specC`, `UnsafeDelete.specC` folded; the batch's quarter over `L`; the
+  delete-only commit); the supply points' threading; the new bridge's cases; `isKeyBackendG_congrDel`.

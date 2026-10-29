@@ -96,8 +96,12 @@ theorem server_kv_watchable_of
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif, Hok⟩ HΦ
   -- the auth mode's tag (the auth plan's A4): the store's owner tag names the mode `M`
   imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
+  -- the backend never compacts here: its deletable keys' registration fixed at `False` (from the
+  -- opener's `dlInit`, `dlReg_fix`), threaded from the boot backend in a later Draft step
+  ihave #Hnd : backend.dlReg d.γB (fun _ => iprop(False)) $$ []
+  · sorry -- backend-cmp Draft: new case (the registration fixed at False, from the opener's dlInit through the boot chain)
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
+    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz $Hnd]
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩

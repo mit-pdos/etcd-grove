@@ -39,40 +39,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
-/-- **The deletable keys' registration** (persistent): the saved predicate `Φ` of
-(bucket, key) pairs at the backend's name `γ.dlg`, fixed by the backend's creator. -/
-def dlReg (γ : BNames) (Φ : GoString × GoString → IProp GF) : IProp GF :=
-  savedPredOwn γ.dlg DFrac.discard Φ
-
-instance dlReg_persistent (γ : BNames) (Φ : GoString × GoString → IProp GF) :
-    Persistent (dlReg (GF := GF) γ Φ) := by
-  unfold dlReg; infer_instance
-
-/-- **The key `nk` (bucket, key) is deletable** (persistent): the registered predicate holds of it. -/
-def dlIs (γ : BNames) (nk : GoString × GoString) : IProp GF :=
-  iprop(∃ Φ : GoString × GoString → IProp GF, dlReg γ Φ ∗ □ Φ nk)
-
-instance dlIs_persistent (γ : BNames) (nk : GoString × GoString) :
-    Persistent (dlIs (GF := GF) γ nk) := by
-  unfold dlIs; infer_instance
-
-/-- **A physical view thin of the logical view `L`** (persistent): every entry of the physical
-view `vd` is `L`'s, and an entry of `L` missing from `vd` is a deletable key. -/
-def thinV (γ : BNames) (vd L : VData) : IProp GF :=
-  iprop(⌜∀ nk v, vd.lookup nk = some v → L.lookup nk = some v⌝ ∗
-    □ ∀ nk, ⌜L.lookup nk ≠ none ∧ vd.lookup nk = none⌝ -∗ dlIs γ nk)
-
-instance thinV_persistent (γ : BNames) (vd L : VData) : Persistent (thinV (GF := GF) γ vd L) := by
-  unfold thinV; infer_instance
-
-/-- An exact view is thin. -/
-theorem thinV_refl (γ : BNames) (vd : VData) : ⊢ thinV (GF := GF) γ vd vd := by
-  iunfold thinV
-  isplitr
-  · ipureintro; intro nk v h; exact h
-  · iintro !> %nk %h
-    exact absurd h.2 h.1
-
 /-- **The creator's part of a new backend's deletable keys** (Draft round 2): the registration's
 whole fraction, at `False` (nothing deletable); in the constructor's post (`newPost`). -/
 def dlInit (γ : BNames) : IProp GF :=
@@ -116,19 +82,44 @@ theorem dlReg_false_noDel (γ : BNames) (nk : GoString × GoString) :
   iapply H1
   iexact HΦ
 
-/-- **A cached read buffer reads thin of the logical view** (3.2; Draft): `cacheValid` with
-"exactly" weakened to "thin of `L`" (a tombstone put and compacted within one commit interval: a
-reader of the cached buffer may still see the deleted key, which it never looks up). -/
-def cacheValidC (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) (L : VData) :
-    IProp GF :=
-  iprop(□ ∀ (i : Nat) (rv' : RView), ⌜i ≤ idx⌝ -∗ histAt γ rv.2.ver i rv' -∗
-    cachedAt γ rv.2.ver i -∗ thinV γ (vData P (rv.1, rv'.2)) L)
-
 /-- **Every entry of the data `D` satisfies the value invariant `VI`** (3.3; Draft: `BParams.VI`'s
 use; mvcc's instance, `metaVI`, makes the `Meta` bucket's compaction keys hold revisions, so that
 `metaReadTx` is provable). -/
 def viOk (VI : GoString → GoString → GoString → Prop) (D : Data) : Prop :=
   ∀ n k v, (bktOf D n).lookup k = some v → VI n k v
+
+/-- **With nothing deletable, a thin view is exact** (the thin-view Draft round): under the
+registration fixed at `False` (a backend that never compacts: the old bridge's, D22's restore over
+a new backend), a physical view thin of `L` is `L` (`◇`: a missing key would give `▷ False`). -/
+theorem thinV_exact (γ : BNames) (vd L : VData) :
+    dlReg (GF := GF) γ (fun _ => iprop(False)) ∗ thinV γ vd L ⊢ ◇ ⌜vd = L⌝ := by
+  iintro ⟨#Hf, Hth⟩
+  iunfold thinV at Hth
+  icases Hth with ⟨%Hsub, #Hdel⟩
+  unfold BIBase.except0
+  rcases Classical.em (∃ nk, L.lookup nk ≠ none ∧ vd.lookup nk = none) with ⟨nk, hnk⟩ | hno
+  · ihave Hd := Hdel $$ %nk %hnk
+    ihave Hfalse := dlReg_false_noDel γ nk $$ [$Hf $Hd]
+    ileft
+    iexact Hfalse
+  · iright
+    ipureintro
+    apply GMap.ext
+    intro nk
+    cases hv : vd.lookup nk with
+    | some v => exact (Hsub nk v hv).symm
+    | none =>
+      cases hL : L.lookup nk with
+      | none => rfl
+      | some w => exact absurd ⟨nk, by simp [hL], hv⟩ hno
+
+/-- `thinV_exact` under a fancy update (which absorbs the `◇`): for a proof whose goal is a WP. -/
+theorem thinV_exact_fupd (γ : BNames) (vd L : VData) (E : CoPset) :
+    dlReg (GF := GF) γ (fun _ => iprop(False)) ∗ thinV γ vd L ⊢ |={E}=> ⌜vd = L⌝ := by
+  iintro H
+  iapply fupd_except0
+  imodintro
+  iapply thinV_exact γ vd L $$ H
 
 end defs
 

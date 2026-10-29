@@ -273,8 +273,10 @@ theorem rtRes_init (γ : BNames) (P : BParams) (rt rtx wg : Loc) (m cm : GoMap) 
     rtRes (GF := GF) γ P rt 1 := by
   iintro ⟨Hrb1, Hrb2, Hm, Hcm, Hv, Hrd, Hrvs, Hcln, Hcur, Hh, #Hh0, Hrtx, Hwg, #Hrdt, Hl, #Hs, #Hi,
     #Hw, Hgw, Hgt⟩
+  -- a new backend's view is exact
+  ihave Hv := viewQ_exact γ _ _ $$ Hv
   unfold rtRes rtResAt rtRest rtCore rtIntv rbAt bksAt wgOpen clnPart
-  iexists ⟨rtx, wg, γw, γo, γt, 0, false, true, true⟩, rv0 D, H0 D, m, ∅, cm
+  iexists ⟨rtx, wg, γw, γo, γt, 0, false, true, true⟩, rv0 D, H0 D, vData P (rv0 D), m, ∅, cm
   simp only [↓reduceIte, Bool.false_eq_true, rv0, rb0]
   rw [GMap.fmap_empty]
   iframe
@@ -295,7 +297,7 @@ theorem rtRes_init (γ : BNames) (P : BParams) (rt rtx wg : Loc) (m cm : GoMap) 
   subst hi0
   ihave %he := ghostMapElem_agree _ _ _ _ _ _ $$ Hh0 Hh'
   subst he
-  ipureintro; rfl
+  iapply thinV_refl
 
 /-- The batch lock's resource in a new backend: free, in its first state. -/
 theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx : Loc) (D : Data)
