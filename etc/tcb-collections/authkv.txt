@@ -144,7 +144,6 @@ axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom mvcc.kbNoCmp_metaNone
 axiom netAddrFree
 axiom newCorruptionChecker.wp_proof
 axiom pbEnc_ok

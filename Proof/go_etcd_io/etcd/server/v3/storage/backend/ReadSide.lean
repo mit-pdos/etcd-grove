@@ -182,7 +182,7 @@ theorem rtCore_clear_cln (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv 
         ghostVar γ.cln (1 : Qp).half false) := by
   iintro ⟨Hc, Hcl⟩
   unfold rtCore clnPart
-  icases Hc with ⟨Hrd, Hrvs, Hcur, ⟨Hcln, -⟩, Hhist, Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+  icases Hc with ⟨Hrd, Hrvs, Hcur, ⟨Hcln, -⟩, Hhist, Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
   imod ghostVar_update_halves false γ.cln _ _ $$ Hcln Hcl with ⟨Hcln, Hcl⟩
   imod ghostVar_update { rd with cln := false } γ.rd rd $$ Hrd with Hrd
   imodintro
@@ -206,14 +206,14 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
       viewQ γ (1 : Qp).half.half (vData P (C, writebackR W R)) L' ∗
       ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗
-      (if win then iprop(∃ vd, bView γ 1 vd) else iprop(True)) ⊢
+      (if win then iprop(∃ vd, bView γ 1 vd) else iprop(True)) ∗ fkRd γ P (C, writebackR W R) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), win)) := by
-  iintro ⟨#Hci, ⟨%rd, %cm, %H, %L0, %Hw, %Hkeep, Hcm, Hc⟩, Hview, Hrb, Hb, Hdep⟩
+  iintro ⟨#Hci, ⟨%rd, %cm, %H, %L0, %Hw, %Hkeep, Hcm, Hc⟩, Hview, Hrb, Hb, Hdep, #Hfk'⟩
   ihave #Hth : thinV γ (vData P (C, writebackR W R)) L' $$ [Hview]
   · iunfold viewQ at Hview; icases Hview with ⟨-, #Ht⟩; iexact Ht
   unfold rtCore clnPart
   icases Hc with ⟨Hrd, Hrvs, Hcur, ⟨Hcln, %Hcl⟩, Hhist, Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth,
-    Hiv⟩
+    Hiv, -⟩
   have Hcl' : rd.cln = true → rbClean P (writebackR W R) := fun h => Hkeep h (Hcl h)
   obtain ⟨hRwf, hids, hHl, hHall, -⟩ := Hf
   -- `γ.rvs`
@@ -348,11 +348,11 @@ theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Da
     (hsafe : safeRv P (C, writebackR W R)) (L0 : VData := vData P (C, R)) :
     cacheInv (GF := GF) γ ∗ rtWb γ P rt C R ∗ ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗
-      ghostVar γ.view (1 : Qp).half.half L0 ∗ bView γ 1 vd ⊢
+      ghostVar γ.view (1 : Qp).half.half L0 ∗ bView γ 1 vd ∗ fkRd γ P (C, writebackR W R) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), win) ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C, writebackR W R)) ∗
       (if win then iprop(True) else bView γ 1 (vData P (C, writebackR W R)))) := by
-  iintro ⟨#Hci, Hwb, Hrb, Hb, Hvq, Hbv⟩
+  iintro ⟨#Hci, Hwb, Hrb, Hb, Hvq, Hbv, #Hfk'⟩
   unfold rtWb rtRest
   icases Hwb with ⟨%rd, %cm, %H, %L, %Hw, Hcm, Hvr, Hcore⟩
   iunfold viewQ at Hvr
@@ -396,9 +396,9 @@ theorem rtRes_wb_close_same (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C
     (hsame : vData P (C, writebackR W R) = vData P (C, R))
     (hsafe : safeRv P (C, writebackR W R)) (hkeep : rbClean P R → rbClean P (writebackR W R)) :
     cacheInv (GF := GF) γ ∗ rtWb γ P rt C R ∗ ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
-      ghostVar γ.rvs (1 : Qp).half ((C, R), false) ⊢
+      ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗ fkRd γ P (C, writebackR W R) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), false)) := by
-  iintro ⟨#Hci, Hwb, Hrb, Hb⟩
+  iintro ⟨#Hci, Hwb, Hrb, Hb, #Hfk'⟩
   unfold rtWb rtRest
   icases Hwb with ⟨%rd, %cm, %H, %L, %Hw, Hcm, Hvr, Hcore⟩
   rw [← hsame] at *
@@ -423,7 +423,7 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
       rtCm γ P C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) := by
   unfold rtRes rtResAt rtRest rtCore clnPart
   iintro ⟨⟨%rd, %rv, %H, %L, %m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, ⟨Hcln, -⟩, Hhist,
-    Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, Hb⟩
+    Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, Hb⟩
   icombine Hrvs Hb gives %Heq0
   have Heq := Heq0.2
   simp only [Prod.mk.injEq] at Heq
@@ -562,11 +562,11 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
       rwgOf (baseOf rt) ↦ wg ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownRB (rbufOf (baseOf rt)) R.reset ∗
       (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
-       else iprop(txLive tx 1 ∗ rtxSnap tx C' ∗ rtxStats tx)) ⊢
+       else iprop(txLive tx 1 ∗ rtxSnap tx C' ∗ rtxStats tx)) ∗ fkRd γ P (C', R.reset) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C', R.reset), false) ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C', R.reset)) ∗
       (if win then bView γ 1 (vData P (C', R.reset)) else iprop(True))) := by
-  iintro ⟨#Hci, Hcm, Hb, Hvq, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn⟩
+  iintro ⟨#Hci, Hcm, Hb, Hvq, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn, #Hfk'⟩
   unfold rtCm
   icases Hcm with ⟨%rd, %H, %L, Hrd, Hvr, Hrvs, Hcur, Hcln, Hhist, %Hf, #Hha, #Hcv, Hpo, #Hauth⟩
   iunfold viewQ at Hvr

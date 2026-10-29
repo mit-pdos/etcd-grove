@@ -123,7 +123,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.storeBackendT b' s (γ.withPhys p) P') ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
-        mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.withPhys p)) (mvcc.storeRT (γ.withPhys p))) ∗
+        mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.withPhys p)) (mvcc.storeRT (γ.withPhys p))
+          (mvcc.kbNoCmp (γ.withPhys p).kb (γ.withPhys p).bucket)) ∗
       mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}

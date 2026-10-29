@@ -572,7 +572,7 @@ theorem rtHeld_wf (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ ⌜rv.2.Wf⌝ := by
   unfold rtHeld rtResAt rtRest rtCore
   iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
   isplitl
   · iexists rt, rd, H, L
     iframe; iframe #
@@ -666,6 +666,68 @@ theorem rt_keyRange (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   iframe Hkey Hkv
   iunfold rtTok
   iframe
+
+/-- No key of the `Key` bucket is a compaction key. -/
+theorem key_not_fk (k : GoString) : ¬ fkKey keyBI.name k := by
+  intro h
+  unfold fkKey keyBI go_etcd_io.etcd.server.v3.storage.schema.keyName at h
+  exact absurd h.1 (by decide)
+
+/-- A compaction key of the `Meta` bucket is one the backend tracks. -/
+theorem fkKey_meta {kn : GoString} (h : metaCompactKey kn) : fkKey metaBI.name kn := by
+  unfold metaCompactKey schedKeyBytes finKeyBytes at h
+  unfold fkKey metaBI go_etcd_io.etcd.server.v3.storage.schema.metaName
+  exact ⟨rfl, h⟩
+
+/-- **The held shared read transaction's reads of the `Meta` bucket's compaction keys**, with
+the client's half of the backend's compaction-key flag at `0` (`bkNoCmp`) and the reader's
+witness of it (`fkRd`): nothing (the backend-compaction stage, 2026-10-29: in place of the axiom
+`kbNoCmp_metaNone`). -/
+theorem rt_metaNone (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b rt rtx : Loc)
+    (rv : RView) (qo : Qp) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ fkRd γ P rv ∗ bkNoCmp γ ⊢
+      bkNoCmp γ ∗
+        metaReadSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
+          true (rdB rtx) (rtTok γ P b rtx rv qo) := by
+  unfold bkNoCmp
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hfk, Hnc⟩
+  icases fkRd_abs γ P rv $$ [$Hnc $Hfk] with ⟨Hnc, %Habs⟩
+  iframe Hnc
+  iunfold metaReadSpec
+  iintro %bk %key %kn %dq %Hkn !> %Φ ⟨#HM, Ht, Hkey⟩ HΦ
+  iunfold rtTok at Ht
+  icases Ht with ⟨Hh, Ho⟩
+  ihave #Hbk := meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
+  ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  iapply wp_fupd
+  wp_apply (rtUR_held hUR γ P W Pk b rt rtx rv qo bk metaBI key slice.nil kn [] dq DFrac.discard (W64 0)
+      (by simp) (Or.inl (by simp [rangeLimit])) hP.2.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hkey $Hnil]
+      as %ks %vs ⟨Hh, Ho, Hkey, -, Hout⟩
+  irevert Hout
+  rw [rtRange_fkAbs (W64 0) Habs hP.2.1 (fkKey_meta Hkn)]
+  iintro Hout
+  iunfold kvsOutRd at Hout
+  icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
+  ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
+  ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
+  simp only [List.map_nil, List.length_nil, List.length_eq_zero_iff] at Hlk Hlv
+  subst Hlk Hlv
+  imod ownSlice_persist $$ Hk with #Hk
+  imod ownSlice_persist $$ Hv with #Hv
+  imodintro
+  iapply HΦ
+  iframe Hkey
+  isplitl [Hh Ho]
+  · iunfold rtTok; iframe
+  ileft
+  iframe Hk Hv
 
 end readers
 
@@ -1238,10 +1300,10 @@ theorem crt_locked (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG :
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b crt rtx : Loc)
-    (rv : RView) (m : Bucket) (hv : keyView (vData P rv) m) :
+    (rv : RView) (m : Bucket) (hv : keyView (vData P rv) m) (NC : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢
-      keyReadLocked (bkRTx γ P b) false
+      keyReadLocked (bkRTx γ P b) NC false
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty, #crt⟩
         m (rdB rtx) (crtTok γ P b crt rtx rv rdOpen) := by
   iintro ⟨#Hpkg, #Hsch⟩
@@ -1274,7 +1336,9 @@ theorem crt_locked (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG :
   iunfold crtTok
   iframe
 
-/-- The held shared read transaction, over the `Key` bucket `m`. -/
+/-- The held shared read transaction, over the `Key` bucket `m`, its state `rv` with the reader's
+witness of the compaction keys' flag (`fkRd`): with `bkNoCmp`, its `Meta` reads find no compaction
+key (`rt_metaNone`). -/
 theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
@@ -1285,11 +1349,20 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (hcl : cl = true → rbClean P rv.2 := by simp) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ⊢
-      keyReadLocked (bkRTx γ P b) true
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ∗ fkRd γ P rv ⊢
+      keyReadLocked (bkRTx γ P b) (bkNoCmp γ) true
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
         m (rdB rtx) (rtTok γ P b rtx rv rdOpen) cl := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe⟩
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe, #Hfk⟩
+  ihave #HNC : □ (bkNoCmp γ -∗ bkNoCmp γ ∗ □ metaReadSpec
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩ true (rdB rtx)
+      (rtTok γ P b rtx rv rdOpen)) $$ []
+  · iintro !> Hnc
+    icases rt_metaNone hUR hID hName hSafe hP γ W Pk b rt rtx rv rdOpen
+      $$ [$Hpkg $Hsch $Hb $Hrt $Hfk $Hnc] with ⟨Hnc, #Hm⟩
+    iframe Hnc
+    iintro !>
+    iexact Hm
   iunfold keyReadLocked
   simp only [↓reduceIte]
   isplitr
@@ -1313,6 +1386,7 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     · iintro !>
       iapply rt_rangeLim hUR hID hName hSafe hP γ W Pk b rt rtx rv rdOpen m hv cl hcl
         $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
+    iframe HNC
     iintro !>
     iunfold rdSplit
     iintro Ht
@@ -1386,7 +1460,7 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ConcurrentReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) Del false rt m L }}) := by
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkNoCmp γ) Del false rt m L }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hnd⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
@@ -1415,7 +1489,7 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
   iexists m, (rdB rtx), (crtTok γ P b crt rtx rv rdOpen)
   iframe HL
   isplitr
-  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv m Hvd $$ [$Hpkg $Hsch]
+  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv m Hvd _ $$ [$Hpkg $Hsch]
   iapply snapThin_refl
 
 /-- **`ReadTx()`** as mvcc's contract states it: the shared read transaction, whose `RLock`
@@ -1437,7 +1511,7 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) Del true rt m L }}) := by
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkNoCmp γ) Del true rt m L }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   wp_apply (hRT γ P W Pk b) $$ [$Hb] as %rt #Hrtf
   iapply HΦ
@@ -1452,6 +1526,7 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   iunfold bkView at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_view γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', #Hth⟩
+  icases rtHeld_fkRd γ P b rtx rv $$ Hh with ⟨Hh, #Hfk⟩
   -- a backend whose creator registered nothing as deletable (`dlNoDel`): the thin view is exact, with no
   -- later (O1's fallback, a discrete flag)
   ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
@@ -1467,7 +1542,7 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   · iunfold rtTok; iframe
   isplitr
   · iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m Hvd
-      $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe]
+      $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe $Hfk]
   iapply snapThin_refl
 
 /-- **`ReadTx()` over a clean view** (the restore plan's R5a): from a share of the clients' view
@@ -1489,7 +1564,7 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkViewC γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnapC (bkViewC γ) (bkRTx γ P b) rt m L }}) := by
+            ∃ L : IProp GF, L ∗ keyReadSnapC (bkViewC γ) (bkRTx γ P b) (bkNoCmp γ) rt m L }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   wp_apply (hRT γ P W Pk b) $$ [$Hb] as %rt #Hrtf
   iapply HΦ
@@ -1504,6 +1579,7 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
   iunfold bkViewC at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_clean γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', %Hcl, #Hth⟩
+  icases rtHeld_fkRd γ P b rtx rv $$ Hh with ⟨Hh, #Hfk⟩
   -- a backend whose creator registered nothing as deletable (`dlNoDel`): the thin view is exact, with no
   -- later (O1's fallback, a discrete flag)
   ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
@@ -1518,7 +1594,7 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
   isplitl [Hh Ho]
   · iunfold rtTok; iframe
   iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m Hvd true (fun _ => Hcl)
-    $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe]
+    $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe $Hfk]
 
 end readTxs
 
@@ -1667,7 +1743,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
       rw [hlv, Option.none_or] at hc
       exact hbm kc vc hc
   wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k)
-    hP.2.2.2.2.1 hSB)
+    hP.2.2.2.2.1 (key_not_fk k) hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
   iapply HΦ
   isplitr [Hvw]
@@ -2154,12 +2230,13 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
       metaPutCap ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty,
-        #t⟩ (bkLocked γ P b [])
-        iprop(∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ (bkView γ) W Pk U []) := by
+        #t⟩ iprop(bkLocked γ P b [] ∗ ∃ f : Nat, fkOwn γ f)
+        iprop((∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ (bkView γ) W Pk U []) ∗
+          ∃ f : Nat, fkOwn γ f) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩
   iunfold metaPutCap
-  iintro !> %bk %key %val %k %v %Hkv %Φ !> ⟨#HM, Hl, #Hk, #Hv⟩ HΦ
+  iintro !> %bk %key %val %k %v %Hkv %Φ !> ⟨#HM, ⟨Hl, Hfk⟩, #Hk, #Hv⟩ HΦ
   obtain ⟨hk, -⟩ := Hkv
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
     %HPw⟩
@@ -2186,9 +2263,18 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
     rw [show metaBI.name = go_etcd_io.etcd.server.v3.storage.schema.metaName from rfl, hHK k hk]
     simp only [Bool.and_false, Bool.false_eq_true, ↓reduceIte]
     itrivial
+  ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
+  · unfold fkPut; rw [if_pos (fkKey_meta hk)]; iexact Hfk
   wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb] as ⟨Hl, -, -⟩
+    $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl, -, -, Hfp⟩
+  have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
+      iprop(∃ f : Nat, fkOwn γ f) := by
+    unfold fkPut; exact if_pos (fkKey_meta hk)
+  rw [hfk]
   iapply HΦ
+  isplitr [Hfp]
+  rotate_left
+  · iexact Hfp
   iexists (bkLockedO γ P b 1)
   isplitl [Hl Hwb]
   · iunfold bkLockedO
@@ -2306,8 +2392,8 @@ theorem isKeyBackendG_of_backend
       isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlNoDel γ ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk Del W W iprop(True) Cmp Pk (bkHookIs γ)
-        (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
+        (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk Del W W iprop(True) Cmp Pk
+        (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
         (bkBt b) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩
   iunfold isKeyBackendG
@@ -2454,7 +2540,7 @@ theorem bridge_crtC (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ConcurrentReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkDel γ) false rt m L }}) := by
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkNoCmp γ) (bkDel γ) false rt m L }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
@@ -2480,7 +2566,7 @@ theorem bridge_crtC (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG
   iexists m', (rdB rtx), (crtTok γ P b crt rtx rv rdOpen)
   iframe HL
   isplitr
-  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv m' Hv' $$ [$Hpkg $Hsch]
+  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv m' Hv' _ $$ [$Hpkg $Hsch]
   iexact Hthin
 
 /-- **`ReadTx()` as mvcc's contract states it, over the thin view** (the bridge with the
@@ -2502,7 +2588,7 @@ theorem bridge_rtC (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkDel γ) true rt m L }}) := by
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkNoCmp γ) (bkDel γ) true rt m L }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   wp_apply (hRT γ P W Pk b) $$ [$Hb] as %rt #Hrtf
   iapply HΦ
@@ -2517,6 +2603,7 @@ theorem bridge_rtC (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   iunfold bkView at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_view γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', #Hth⟩
+  icases rtHeld_fkRd γ P b rtx rv $$ Hh with ⟨Hh, #Hfk⟩
   icases keyView_thin γ P rv vd m Hvd $$ Hth with ⟨%m', %Hvm', #Hthin⟩
   iapply HΦ'
   isplitl [Hv']
@@ -2529,7 +2616,7 @@ theorem bridge_rtC (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   · iunfold rtTok; iframe
   isplitr
   · iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m' Hvm'
-      $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe]
+      $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe $Hfk]
   iexact Hthin
 
 /-- **The bridge with the compaction** (the backend-compaction stage, `notes/backend-cmp-plan.md`
@@ -2574,9 +2661,9 @@ theorem isKeyBackendG_of_backendC
       isBackend γ P W Pk b ∗ keySized γ P b ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk (bkDel γ) W W iprop(True) True Pk (bkHookIs γ)
-        (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (backend.srSlot b) (backend.srHeld b) := by
+        (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk (bkDel γ) W W iprop(True) True Pk
+        (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
+        (bkBt b) (backend.srSlot b) (backend.srHeld b) iprop(∃ f : Nat, fkOwn γ f) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -2724,7 +2811,7 @@ theorem storeBackendT_of_backend
     unfold storeBt kbBt; rw [hk]
   iunfold storeBackendT
   rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hk]
-  simp only [kbWi]
+  simp only [kbWi, kbNoCmp]
   iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
     hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H
 
@@ -2748,14 +2835,16 @@ theorem keyCleanRead_of_backend
       ∀ (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         keyCleanRead
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-            #d.be) (bucketViewC γ) (storeRT γ) := by
+            #d.be) (bucketViewC γ) (storeRT γ) (kbNoCmp γ.kb γ.bucket) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩ %γ %hγ
   obtain ⟨-, hk⟩ := hγ
   have hv : bucketViewC (GF := GF) γ = bkViewC d.γB := by
     funext q m; unfold bucketViewC kbViewC; rw [hk]
   have hrt : storeRT (GF := GF) γ = bkRTx d.γB d.P d.be := by
     unfold storeRT kbRT bkRTx; rw [hk]
-  rw [hv, hrt]
+  have hnc : kbNoCmp (GF := GF) γ.kb γ.bucket = bkNoCmp d.γB := by
+    unfold kbNoCmp; rw [hk]
+  rw [hv, hrt, hnc]
   iunfold keyCleanRead
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #d.be⟩
   isplitr

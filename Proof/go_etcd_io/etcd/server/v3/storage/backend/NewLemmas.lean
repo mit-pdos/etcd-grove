@@ -261,7 +261,7 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
   rw [Qp_half_add, Qp_half_add]
   constructor
   · iintro ⟨Hrb, %Hok, Hcm, Hv, Hrd, Hrvs, Hcur, Hcln, Hh, Hrtx, Hwg, %Hp, #Hha, #Hcv, #Hpo, #Hrdt,
-      Hin⟩
+      Hin, #Hfk⟩
     icases (rbAt_frac _ m Pb rv.2 q1 q2).1 $$ Hrb with ⟨Hrb1, Hrb2⟩
     icases (typedPointsto_frac_add _ cm q1 q2).1 $$ Hcm with ⟨Hcm1, Hcm2⟩
     icases (viewQ_split γ q1.half.half q2.half.half _ L).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -281,8 +281,8 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
       iframe #
       ipureintro; exact ⟨Hok, Hp⟩
   · iintro ⟨⟨Hrb1, %Hok, Hcm1, Hv1, Hrd1, Hrvs1, Hcur1, Hcln1, Hh1, Hrtx1, Hwg1, %Hp, #Hha, #Hcv,
-      #Hpo, #Hrdt, Hin1⟩, ⟨Hrb2, -, Hcm2, Hv2, Hrd2, Hrvs2, Hcur2, Hcln2, Hh2, Hrtx2, Hwg2, -, -, -,
-      -, -, Hin2⟩⟩
+      #Hpo, #Hrdt, Hin1, #Hfk⟩, ⟨Hrb2, -, Hcm2, Hv2, Hrd2, Hrvs2, Hcur2, Hcln2, Hh2, Hrtx2, Hwg2, -, -,
+      -, -, -, Hin2, -⟩⟩
     ihave Hrb := (rbAt_frac _ m Pb rv.2 q1 q2).2 $$ [Hrb1 Hrb2]
     · iframe
     ihave Hcm := (typedPointsto_frac_add _ cm q1 q2).2 $$ [Hcm1 Hcm2]

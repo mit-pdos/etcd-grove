@@ -907,7 +907,7 @@ theorem rtHeld_clean (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (q :
       rtHeld γ P b rtx rv ∗ bViewC γ q vd true ∗ ⌜rbClean P rv.2⌝ ∗ thinV γ (vData P rv) vd := by
   unfold rtHeld rtResAt rtRest rtCore clnPart bViewC viewQ
   iintro ⟨⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, ⟨Hview, #Hth⟩, Hrd, Hrvs,
-    Hcur, ⟨Hcln, %Hcl⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩,
+    Hcur, ⟨Hcln, %Hcl⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩,
     Hv, Hcw, Hc⟩
   icombine Hcln Hc gives %Hag
   have hc : rd.cln = true := Hag.2
@@ -935,7 +935,7 @@ theorem rtHeld_safe (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ ⌜safeRv P rv⌝ := by
   unfold rtHeld rtResAt rtRest rtCore
   iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
   isplitl
   · iexists rt, rd, H, L
     iframe Hrt Hrl Hcr
@@ -945,6 +945,51 @@ theorem rtHeld_safe (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
       ipureintro; exact ⟨Hok, Hf⟩
     ipureintro; exact Hrtx
   ipureintro; exact Hf.2.2.2.2.2
+
+/-- **A held shared read transaction's witness of the compaction keys' flag** (the
+backend-compaction stage, 2026-10-29): the reader's lower bound for its state (persistent). -/
+theorem rtHeldF_fkRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp) :
+    rtHeldF (GF := GF) γ P b rtx rv p ⊢ rtHeldF γ P b rtx rv p ∗ fkRd γ P rv := by
+  unfold rtHeldF rtResAt rtRest rtCore
+  iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
+  iframe Hfk
+  iexists rt, rd, H, L
+  iframe Hrt Hrl Hcr
+  isplitl
+  · iexists m, Pb, cm
+    iframe; iframe #
+    isplitr
+    · ipureintro; exact Hok
+    ipureintro; exact Hf
+  ipureintro; exact Hrtx
+
+/-- The same of `rtHeld`. -/
+theorem rtHeld_fkRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
+    rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ fkRd γ P rv :=
+  rtHeldF_fkRd γ P b rtx rv _
+
+/-- **The read law of the compaction keys' flag**: with the client's half at `0`, a reader's
+state with a lower bound has no compaction key. -/
+theorem fkRd_abs (γ : BNames) (P : BParams) (rv : RView) :
+    fkOwn (GF := GF) γ 0 ∗ fkRd γ P rv ⊢ fkOwn γ 0 ∗ ⌜fkAbsRv P rv⌝ := by
+  unfold fkRd fkOwn
+  iintro ⟨Ho, %f, #Hlb, %Hf0⟩
+  ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
+  have hf : f = 0 := by have := Hv.2; omega
+  iframe Ho
+  ipureintro; exact Hf0 hf
+
+/-- The two together: with the client's half at `0`, a held shared read transaction's state has
+no compaction key. -/
+theorem rtHeldF_fk (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp) :
+    fkOwn (GF := GF) γ 0 ∗ rtHeldF γ P b rtx rv p ⊢
+      fkOwn γ 0 ∗ rtHeldF γ P b rtx rv p ∗ ⌜fkAbsRv P rv⌝ := by
+  iintro ⟨Ho, Hh⟩
+  icases rtHeldF_fkRd γ P b rtx rv p $$ Hh with ⟨Hh, #Hr⟩
+  icases fkRd_abs γ P rv $$ [$Ho $Hr] with ⟨Ho, %Ha⟩
+  iframe Ho Hh
+  ipureintro; exact Ha
 
 /-- A slice a held shared read transaction returned, read (the backend open: its bbolt
 transaction is). -/
@@ -961,7 +1006,7 @@ theorem rtHeld_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo :
     iframe
   unfold rtHeld rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩
@@ -993,7 +1038,7 @@ theorem rtHeldF_lend (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo 
   iintro ⟨Hh, Ho⟩
   unfold rtHeldF rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩
@@ -1018,7 +1063,7 @@ theorem rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p
   iintro ⟨Hh, Hl2⟩
   unfold rtHeldF rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
   subst Hrtx
   iexists rt, rd, H, L
   iframe Hrt Hrl Hcr

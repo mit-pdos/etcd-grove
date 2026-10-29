@@ -273,7 +273,7 @@ theorem applySnapshot_walk
     isplitr
     · ipureintro; exact ⟨hdbo, hcfgl, hP.1, hP.2.1⟩
     iexact Hcreate
-  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, Hncmp, Hdbp⟩ | ⟨%Herr, -, -⟩)
+  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, Hdbp⟩ | ⟨%Herr, -, -⟩)
   rotate_left
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
@@ -282,7 +282,7 @@ theorem applySnapshot_walk
   simp only
   -- (the backend-compaction stage) the new backend never compacts (no compaction with a restore):
   -- its creator fixes nothing deletable
-  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl⟩
+  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl, Hncmp⟩
   imod backend.dlNoDel_fix _ $$ Hdl with #Hnd
   obtain ⟨d', hγ', hbe', hgx', hP'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧ d'.gx = gx' ∧
       d'.P = d.P := ⟨{ d with γB := γB, be := nb, gx := gx' }, rfl, rfl, rfl, rfl⟩
@@ -390,7 +390,8 @@ theorem applySnapshot_walk
     ipureintro; exact mvcc.keyView_of_keyImage hbr hkI
   ihave HnNC : mvcc.kbNoCmp (GF := GF) (some d') E.γ.bucket
       $$ [Hncmp]
-  · simp only [mvcc.kbNoCmp, hγ']; iapply Hncmp; ipureintro; exact mvcc.keyImage_noCmp hkI
+  · simp only [mvcc.kbNoCmp, hγ']
+    iapply mvcc.bkNoCmp_of_fkOwn γB (mvcc.keyImage_noCmp hkI) $$ Hncmp
   wp_apply hRst ws E.s γw _ d' E.γ.bucket
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) x.log R hpre hRok
     $$ [Hscl Hfrag HwOwn HwW HnView HnNC HlateR HnRTx]

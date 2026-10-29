@@ -43,11 +43,30 @@ def keyImage (log : Log) (D : Data) : Prop :=
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
 
-/-- **`D` records no compaction**: its `Meta` bucket holds neither compaction key (what a backend
-opened over `D` gives as `bkNoCmp`, `storage.OpenBackend`'s axiom; D22 S-g). -/
+/-- **`D` records no compaction**: its `Meta` bucket holds neither compaction key (a backend
+opened over `D` gives its no-compaction token `bkNoCmp`: `bkNoCmp_of_fkOwn`; D22 S-g). -/
 def noCmpData (D : Data) : Prop :=
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
+
+/-- Data with no compaction recorded has none of the keys the backend tracks (`fkKey`: the same
+two keys of `Meta`). -/
+theorem fkAbsD_of_noCmp {D : Data} (h : noCmpData D) : fkAbsD D := by
+  intro n k hk
+  obtain ⟨rfl, hk⟩ := hk
+  rcases hk with rfl | rfl
+  · exact h.1
+  · exact h.2
+
+omit package_sem in
+/-- **The no-compaction token of a backend opened over data with no compaction recorded**
+(the backend-compaction stage, 2026-10-29): the creator's half of the backend's compaction-key flag
+(`newPostK`'s `fkOwn γ (fkInit D)`) is at `0`. -/
+theorem bkNoCmp_of_fkOwn (γ : BNames) {D : Data} (h : noCmpData D) :
+    fkOwn (GF := GF) γ (fkInit D) ⊢ bkNoCmp γ := by
+  rw [fkInit_of_abs (fkAbsD_of_noCmp h)]
+  unfold bkNoCmp
+  iintro H; iexact H
 
 /-- A key image records no compaction. -/
 theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2

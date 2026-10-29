@@ -30,11 +30,12 @@ bucket's buffered keys (its `verify` check), and in a safe-range bucket above th
 (until the backend-compaction stage's thin-view round, 2026-10-29: above the writer's contents,
 which held the committed keys while no safe-range key was deleted; one statement since, the
 compacting variant `specC` folded in); not a hook's own key (`P.hk`), nor in a tracked bucket
-(`P.RB`, D22, 2026-10-23). -/
+(`P.RB`, D22, 2026-10-23), nor a compaction key (`fkKey`, the backend-compaction stage,
+2026-10-29). -/
 abbrev backend.batchTxBuffered.UnsafeSeqPut.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
   P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
-  (∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb) → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → P.RB bi.name = false →
+  (∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb) → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → P.RB bi.name = false → ¬ fkKey bi.name kb →
   (P.SB bi.name = true → ∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb }}
     (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeSeqPut")) (Val #bk)) (Val #key)) (Val #value))

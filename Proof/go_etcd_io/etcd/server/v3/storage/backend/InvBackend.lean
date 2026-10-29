@@ -46,6 +46,7 @@ bbolt as a key-value contract, the locks and the views".
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Model2
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.FkLemmas
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.DGhostVar
@@ -105,6 +106,10 @@ structure BNames where
   (`dlInit`), who fixes it once, at `true` with the predicate (`dlReg`) or at `false` (`dlNoDel`):
   a discrete value, so "nothing deletable" needs no later -/
   dlb : GName
+  /-- `monoNat`: the compaction keys' flag (`fkKey`; the backend-compaction stage, 2026-10-29):
+  `0` while no state of the backend has one, `1` once one may. Half its authority the batch
+  lock's (`fkHalf`), half the client's (`fkOwn`); the readers keep a lower bound (`fkRd`). -/
+  fk : GName
 
 section phys
 variable [GooseExts]
@@ -276,6 +281,41 @@ def rbPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
 theorem rbPut_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.RB n = false) :
     ⊢ rbPut (GF := GF) γ P n S := by
   unfold rbPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+/-- **The client's half of the compaction keys' flag** (`γ.fk`, the backend-compaction stage,
+2026-10-29): at `0`, no state of the backend has a compaction key (`fkKey`), not the batch
+lock's (`fkHalf`) and not any reader's (`fkRd`, `rtHeldF_fk`); a put of a compaction key needs it
+and gives it back raised (`fkPut`). The constructor gives it (`fkInit`). -/
+def fkOwn (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).half n
+
+instance fkOwn_timeless (γ : BNames) (n : Nat) : Timeless (fkOwn (GF := GF) γ n) := by
+  unfold fkOwn; infer_instance
+
+/-- The batch lock's half of the flag, with what `0` means of its state. -/
+def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(∃ f : Nat, monoNatAuthOwn γ.fk (1 : Qp).half f ∗ ⌜f = 0 → fkAbsSt P st⌝)
+
+/-- A reader's lower bound of the flag, taken when its state `rv` was set (persistent). -/
+def fkRd (γ : BNames) (P : BParams) (rv : RView) : IProp GF :=
+  iprop(∃ f : Nat, monoNatLbOwn γ.fk f ∗ ⌜f = 0 → fkAbsRv P rv⌝)
+
+instance fkRd_persistent (γ : BNames) (P : BParams) (rv : RView) :
+    Persistent (fkRd (GF := GF) γ P rv) := by
+  unfold fkRd; infer_instance
+
+/-- What a put of key `k` in bucket `n` needs and gives back of the flag: the client's half (at
+some value; raised to at least `1` by the put) if `k` is a compaction key, else nothing. -/
+def fkPut (γ : BNames) (n k : GoString) : IProp GF :=
+  if fkKey n k then iprop(∃ f : Nat, fkOwn γ f) else iprop(True)
+
+/-- A put of a key that is not a compaction key needs nothing of the flag. -/
+theorem fkPut_other (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) : ⊢ fkPut (GF := GF) γ n k := by
+  unfold fkPut; rw [if_neg h]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
+    fkPut (GF := GF) γ n k = iprop(True) := by
+  unfold fkPut; exact if_neg h
 
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
 (`γ.hkd`) and the tracked buckets (`γ.rbk`). -/
@@ -532,7 +572,9 @@ and window agreed with the batch lock (`γ.rvs`), the current state's key and wi
 `cacheInv` (`γ.cur`)), the history's authority, the shared transaction's fields, the facts (the
 read buffer canonical, of the table's buckets and writable; the current state the latest of
 the history; a window only at a version's first state), the cache's validity, the window's
-poison mark, the readers' budget's authority, and the interval. -/
+poison mark, the readers' budget's authority, the interval, and a lower bound of the compaction
+keys' flag taken when `rv` was set (`fkRd`: set wherever `rv` changes, at the constructor, the
+`Unlock`'s write-back and the commit; the backend-compaction stage, 2026-10-29). -/
 def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
     (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) :
     IProp GF :=
@@ -546,7 +588,7 @@ def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RVi
       (rd.win = true → rd.idx = 0) ∧ safeRv P rv⌝ ∗
     histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx L ∗
     (if rd.win then poisonAt γ rv.2.ver rd.idx else iprop(True)) ∗
-    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1 p)
+    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1 p ∗ fkRd γ P rv)
 
 /-- `rtCore` with the view's quarter (at `q`), over the logical view `L` (the physical state's
 view `vData P rv` thin of it: `viewQ`; exact by default). -/
@@ -613,15 +655,16 @@ with no `Unlock` window open (an `Unlock`'s commit closes it for its hook's run)
 `w` (monotone) and half of `γ.used` (the `run` goroutine has the other half), a quarter of the
 open token (the `run` goroutine has another quarter, the clients' `bOpen` the half: so the
 batch lock is never held in a stopped backend), half of the hook's own keys `γ.hkd` and of the
-tracked buckets `γ.rbk` at the writer's contents (`trkHalf`), with the bounds of `bgOk` over the
-state's counters (`free`: the lock is free). -/
+tracked buckets `γ.rbk` at the writer's contents (`trkHalf`), half the compaction keys' flag, at
+`0` only while the state has none (`fkHalf`, the backend-compaction stage, 2026-10-29), with the
+bounds of `bgOk` over the state's counters (`free`: the lock is free). -/
 def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) : IProp GF :=
   iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
       ownTokAuth γ.wb n ∗
       monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-      trkHalf γ P st.S ∗ ⌜bgOk P st free n w u⌝)
+      trkHalf γ P st.S ∗ fkHalf γ P st ∗ ⌜bgOk P st free n w u⌝)
 
 /-- The batch lock's ghost share, held. -/
 abbrev batchGhost (γ : BNames) (P : BParams) (st : BSess) : IProp GF := batchGhostAt γ P st false

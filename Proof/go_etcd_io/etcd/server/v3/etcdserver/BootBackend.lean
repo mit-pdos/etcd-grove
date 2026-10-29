@@ -15,6 +15,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
 
@@ -71,10 +72,13 @@ theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : 
 
 /-- **The backend `NewServer` uses, from `backend.New`'s postcondition** (see the file header):
 bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
-`wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s. -/
+`wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s;
+(the backend-compaction stage, 2026-10-29) over data with no compaction recorded, the backend's
+no-compaction token (`mvcc.bkNoCmp_of_fkOwn`: until then a separate premise of `bootOk`). -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
-    (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit) :
+    (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit)
+    (hnc : mvcc.noCmpData D) :
     backend.newPost γ P W Pk b D ⊢
       backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.isStopChans γ b ∗ backend.plHook γ func.nil ∗
       backend.bOpen γ (1 : Qp).half ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
@@ -82,10 +86,12 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx γ P b) ∗
       -- (the backend-compaction stage) the creator's deletable-keys registration, unfixed
-      backend.dlInit γ := by
+      backend.dlInit γ ∗ mvcc.bkNoCmp γ := by
   unfold backend.newPost
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl⟩
+  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk⟩
   iframe Hb Hsc Hh Hrb Hdl
+  ihave Hnc := mvcc.bkNoCmp_of_fkOwn γ hnc $$ Hfk
+  iframe Hnc
   icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
   ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]
   iframe Hrts Ho

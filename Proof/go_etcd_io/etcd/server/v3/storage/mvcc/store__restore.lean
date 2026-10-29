@@ -15,7 +15,6 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
 public import Spec.go_uber_org.zap.Int64
 public import Spec.go_uber_org.zap.Logger__Info
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NoCmpRead
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 
 @[expose] public section
@@ -82,14 +81,15 @@ theorem mvcc.store.restore.wp_proof
     subst Hbi
     (try wp_auto)
     wp_apply HCR $$ %q %(mvcc.bucketMap ([[], []] ++ R)) [$Hbv $Hrt] as %rt ⟨Hbv, %L, HL, #Hsnap⟩
-    ihave #Hmeta := mvcc.kbNoCmp_metaNone γ RT (mvcc.delKey γ) rt _ L $$ Hncmp [Hsnap]
-    · iright; iexact Hsnap
     iunfold mvcc.keyReadSnapC at Hsnap
     (try wp_auto)
     wp_apply Hsnap $$ %q [$HL $Hbv] as ⟨Hbv, %Rd, %Tok, Htok, #Hlk⟩
     (try wp_auto)
-    -- the compaction keys: neither is there
-    wp_apply (hFin rt true) $$ [] as %xf %found %Hf
+    -- the compaction keys: neither is there (the reader's clause under `kbNoCmp`)
+    ihave #Hmc := mvcc.keyReadLocked_meta _ _ _ _ _ _ _ $$ Hlk
+    icases Hmc $$ Hncmp with ⟨-, #Hmeta⟩
+    ihave #Hcap := mvcc.keyReadLocked_cap _ _ _ _ _ _ _ _ $$ Hlk
+    wp_apply (hFin rt true Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
     · iframe #
     obtain ⟨-, Hf0, Hfnf⟩ := Hf
     have Hfound : found = false := Hfnf rfl
@@ -97,7 +97,7 @@ theorem mvcc.store.restore.wp_proof
     have Hxf := Hf0 rfl
     subst Hxf
     (try wp_auto)
-    wp_apply (hSch rt true) $$ [] as %xs %sfound %Hs
+    wp_apply (hSch rt true Rd Tok) $$ [$Htok] as %xs %sfound ⟨Htok, %Hs⟩
     · iframe #
     obtain ⟨-, Hs0, Hsnf⟩ := Hs
     have Hsfound : sfound = false := Hsnf rfl
@@ -114,7 +114,7 @@ theorem mvcc.store.restore.wp_proof
     wp_apply Hgset $$ %(W64 0)
     (try wp_auto)
     -- the read token split: the goroutine reads the keys sent while `restore` goes on ranging
-    ihave #Hsp := mvcc.keyReadLocked_split _ _ _ _ _ _ $$ Hlk
+    ihave #Hsp := mvcc.keyReadLocked_split _ _ _ _ _ _ _ $$ Hlk
     iunfold mvcc.rdSplit at Hsp
     icases Hsp $$ Htok with ⟨%TokA, %TokB, HtA, HtB, #HcapA, #HcapB, #HlimA, Hjoin⟩
     -- `rkvc, revc := restoreIntoIndex(s.lg, s.kvindex)` over every entry of the log
@@ -593,14 +593,15 @@ theorem mvcc.store.restore.wp_proof
   subst Hbi
   (try wp_auto)
   wp_apply HRTx $$ %q %(∅ : mvcc.Bucket) [$Hbv $Hrt] as %rt ⟨Hbv, %L, HL, #Hsnap⟩
-  ihave #Hmeta := mvcc.kbNoCmp_metaNone γ RT (mvcc.delKey γ) rt ∅ L $$ Hncmp [Hsnap]
-  · ileft; iexact Hsnap
   iunfold mvcc.keyReadSnap at Hsnap
   (try wp_auto)
   wp_apply Hsnap $$ %q [$HL $Hbv] as ⟨Hbv, %m', %Rd, %Tok, Htok, #Hlk, #Hthin⟩
   (try wp_auto)
-  -- the compaction keys: neither is there
-  wp_apply (hFin rt true) $$ [] as %xf %found %Hf
+  -- the compaction keys: neither is there (the reader's clause under `kbNoCmp`)
+  ihave #Hmc := mvcc.keyReadLocked_meta _ _ _ _ _ _ _ $$ Hlk
+  icases Hmc $$ Hncmp with ⟨-, #Hmeta⟩
+  ihave #Hcap := mvcc.keyReadLocked_cap _ _ _ _ _ _ _ _ $$ Hlk
+  wp_apply (hFin rt true Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
   · iframe #
   obtain ⟨-, Hf0, Hfnf⟩ := Hf
   have Hfound : found = false := Hfnf rfl
@@ -608,7 +609,7 @@ theorem mvcc.store.restore.wp_proof
   have Hxf := Hf0 rfl
   subst Hxf
   (try wp_auto)
-  wp_apply (hSch rt true) $$ [] as %xs %sfound %Hs
+  wp_apply (hSch rt true Rd Tok) $$ [$Htok] as %xs %sfound ⟨Htok, %Hs⟩
   · iframe #
   obtain ⟨-, Hs0, Hsnf⟩ := Hs
   have Hsfound : sfound = false := Hsnf rfl
@@ -644,7 +645,7 @@ theorem mvcc.store.restore.wp_proof
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
   icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
-  ihave #Hlim := mvcc.keyReadLocked_rangeLim _ _ _ _ _ $$ Hlk
+  ihave #Hlim := mvcc.keyReadLocked_rangeLim _ _ _ _ _ _ $$ Hlk
   iunfold mvcc.keyRangeLimSpec at Hlim
   -- the snapshot read is the empty bucket's (a thinning of it)
   iunfold mvcc.snapThin at Hthin

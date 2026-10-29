@@ -398,6 +398,37 @@ theorem hkData_eq {P : BParams} {S S' : Data}
   · simp only [↓reduceIte]
     exact h _ _ hh
 
+/-! ## The compaction keys' tracked absence -/
+
+/-- **The `Meta` bucket's compaction keys** (`schema.ScheduledCompactKeyName`,
+`FinishedCompactKeyName`), whose absence the backend tracks (the backend-compaction stage,
+2026-10-29: the ghost `γ.fk`, `fkOwn`): only mvcc's compaction writes them, and a put of one needs
+the client's half (`fkPut`). Fixed here rather than a parameter: the backend serves one schema. -/
+def fkKey (n k : GoString) : Prop :=
+  n = go!"meta" ∧ (k = go!"scheduledCompactRev" ∨ k = go!"finishedCompactRev")
+
+instance fkKey_dec (n k : GoString) : Decidable (fkKey n k) := by
+  unfold fkKey; infer_instance
+
+/-- bbolt's data has no compaction key. -/
+def fkAbsD (D : Data) : Prop := ∀ n k, fkKey n k → dget D n k = none
+
+/-- A buffer's buckets have no entry at a compaction key (through the table). -/
+def fkAbsB (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ n k i, fkKey n k → P.BT.lookup n = some i → ∀ e ∈ bkOf B i, e.1 ≠ k
+
+/-- A readers' state has no compaction key: neither its committed data nor its read buffer. -/
+def fkAbsRv (P : BParams) (rv : RView) : Prop := fkAbsD rv.1 ∧ fkAbsB P rv.2.bks
+
+/-- The batch state has no compaction key: the readers' state, the writer's contents, the write
+buffer. -/
+def fkAbsSt (P : BParams) (st : BSess) : Prop :=
+  fkAbsRv P (st.C, st.R) ∧ fkAbsD st.S ∧ fkAbsB P st.W.bks
+
+/-- The flag's initial value over bbolt's data `D`: `0` if it has no compaction key. -/
+def fkInit (D : Data) : Nat := by
+  classical exact if fkAbsD D then 0 else 1
+
 /-! ## Ranges -/
 
 /-- The limit `UnsafeRange` uses: 1 for a single key (no end key), else `limit` (all of them if

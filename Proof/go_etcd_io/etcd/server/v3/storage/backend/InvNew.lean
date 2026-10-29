@@ -61,7 +61,9 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
     rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
     -- (the backend-compaction stage, Draft round 2) the creator's part of the deletable keys
-    dlInit γ)
+    dlInit γ ∗
+    -- (the compaction keys' tracked absence, 2026-10-29) the client's half of their flag
+    fkOwn γ (fkInit D))
 
 end preds
 
@@ -90,7 +92,7 @@ theorem hook_fresh_false (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (sto
       dghostVar γ.opn (DFrac.own (1 : Qp).half) false ⊢ False := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨Hl, Hpay, Htoks, Hop⟩
-  icases Hl with ⟨%t, %db, -, -, -, ⟨-, %n, %w, %u0, -, Ha, Hmo, -, -, -, %Hbg⟩, -⟩
+  icases Hl with ⟨%t, %db, -, -, -, ⟨-, %n, %w, %u0, -, Ha, Hmo, -, -, -, -, %Hbg⟩, -⟩
   icombine Ha Htoks gives %Hle
   have h1 := Hbg.1
   have hwv := Hbg.2.2.2.2.2.2.2.2.2
@@ -158,15 +160,15 @@ def newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
-    dlInit γ)
+    dlInit γ ∗ fkOwn γ (fkInit D))
 
 /-- The constructor's post with the payment rights kept is `newPost`. -/
 theorem newPost_of_K (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     newPostK (GF := GF) γ P W Pk bFresh b D ⊢ newPost γ P W Pk b D := by
   unfold newPostK bFresh
-  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl⟩
+  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl, Hfk⟩
   unfold newPost
-  iframe Hb Hs Ho Hv Hh Ht Hr Hrd Hdl
+  iframe Hb Hs Ho Hv Hh Ht Hr Hrd Hdl Hfk
 
 end preds2
 

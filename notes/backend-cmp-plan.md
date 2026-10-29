@@ -840,3 +840,84 @@ token and lent slices).
   (`metaPutCap`, the new bridge's `bt_metaPut`), which now needs `fkOwn`. `restore` would then hand
   the token to the store instead of consuming it: a change to `store.restore`'s spec, the user's
   (with question 5).
+
+### Done (2026-10-29): the tracked absence, with review round 7's repairs
+
+Review round 7 (`notes/spec-first-study/backend-review-7.md`) ran on the Scope above; its findings
+are applied as follows. Everything builds (`lake build`); `etc/tcb-report.py --check` differs only by
+the removal of `mvcc.kbNoCmp_metaNone` (baseline and the ten collections that listed it updated).
+
+**Backend.**
+- `fkKey` (`Model2.lean`) fixes the tracked keys: `Meta`'s `scheduledCompactRev` and
+  `finishedCompactRev`. *Decided by the agent:* no `BParams.FK` field. The backend serves one schema,
+  and a fixed set makes `fkAbsD D ↔ noCmpData D` for every `P`. That removes R7-1's arbitrary-`P` half,
+  and with it the `Wf` clauses (R7-5's safe-range question is moot).
+- The ghost `γ.fk` (`monoNat`):
+  - the batch lock's half, `fkHalf` (in `batchGhostAt`/`batchGhostW`);
+  - the client's half, `fkOwn`;
+  - the readers' lower bound, `fkRd` (last conjunct of `rtCore`). It is set where `rv` changes:
+    the constructor, the `Unlock`'s write-back (`wb_core`) and the commit (`rtRes_cm_close`).
+- Each state transition keeps `fkAbsSt` (`FkLemmas.lean`). The put case raises the flag
+  (`fkHalf_put`, `fkHalf_raise`).
+- `batchTxBuffered.UnsafePut.spec` takes and returns `fkPut γ bi.name kb` (R7-4).
+  `UnsafeSeqPut.spec` takes the pure premise `¬ fkKey bi.name kb`. The inner `batchTx` specs are
+  unchanged.
+- The read law, as R7-2 asks: `rtHeldF_fkRd`/`rtHeld_fkRd` (the persistent witness) and `fkRd_abs`
+  (with `fkOwn γ 0`).
+- `newPost`/`newPostK` carry `fkOwn γ (fkInit D)`. `New`/`newBackend`'s spec text is unchanged; the
+  definition changed.
+
+**Trusted statements** (R7-1, R7-3):
+- `storage.OpenBackend.spec` (T): the wand `(⌜noCmpData D⌝ -∗ bkNoCmp γ)` is dropped. The post is
+  `newPostK γ P W Pk K b D`, which holds the half.
+- `storage.OpenSnapshotBackend.spec` (E): the same wand is dropped.
+- `bootOk` (premise of `NewServer.spec`). **The user's decision, 2026-10-29:** `"Hncmp" ∷ mvcc.bkNoCmp
+  d.γB` becomes `"%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝`. `bootBackend_of_newPost` derives `bkNoCmp` from
+  `newPost`'s half (`mvcc.bkNoCmp_of_fkOwn`).
+- `mvcc.bkNoCmp γB := backend.fkOwn γB 0`. It is a definition now, no longer opaque. The exported
+  results' premise `bkNoCmp d.γB` keeps its text and changes meaning. None of them also takes
+  `newPost`.
+
+**mvcc.**
+- `metaReadSpec rt nc Rd Tok` reads under the token, its value slices through `Rd` (question 3).
+  It is persistent (`metaReadSpec_persistent`).
+- `metaReadTx rt`: `RLock` gives `Tok`, `rdCap`, the reads, and `RUnlock` from `Tok`.
+- `NC` is explicit at every use, with no default (R7-6), on:
+  - `keyReadLocked RT NC …`;
+  - `keyReadSnap View RT NC Del …`;
+  - `keyReadSnapC View RT NC …`;
+  - `isKeyBackendG b View RT WT NC …`;
+  - `keyCleanRead b View RT NC`.
+
+  The clause `□ (NC -∗ NC ∗ □ metaReadSpec rt true Rd Tok)` is in `keyReadLocked`'s `rng` branch
+  (`keyReadLocked_meta`). `keyReadLocked_weaken` drops to `rng = false` at any `NC'`.
+- The store passes `kbNoCmp γ.kb γ.bucket` (in `storeBackend`, `storeBackendT`, `physOk`, `txReader`,
+  `restoreView`). That gives these statement changes:
+  - `store.restore.spec`: `isKeyBackendG … (kbNoCmp γ.kb γ.bucket) …`;
+  - `store.Restore.spec`, `watchableStore.Restore.spec`: `keyCleanRead … (kbNoCmp …)`;
+  - `rangeEvents.spec`: quantifies `NC`;
+  - `UnsafeRead{Finished,Scheduled}Compact.spec`: `□ metaReadSpec rt nc Rd Tok ∗ rdCap Rd Tok ∗ Tok`,
+    with `Tok` returned.
+- The bridges prove the clause through `rt_metaNone`:
+  - `rt_locked` takes `fkRd γ P rv`;
+  - `bridge_rt`, `bridge_rt_clean` and `bridge_rtC` take it from `rtHeld_fkRd`;
+  - their `NC` is `bkNoCmp γ`;
+  - `crt_locked` is at any `NC` (`rng = false`).
+- `store.restore` takes its two reads from `keyReadLocked_meta`, consuming `kbNoCmp`. The axiom
+  `mvcc.kbNoCmp_metaNone` and `NoCmpRead.lean` are deleted.
+- `metaReadTx`'s value case for the real backend stays blocked on `BParams.VI` (question 4): its
+  `sorry` is unchanged.
+
+**Decided by the agent while the user was away (for review):**
+- **The right to write the compaction keys in the contract.** The new bridge's `Meta` put
+  (`bt_metaPut`) now needs the client's half (`fkPut`). The contract's `Cmp` clause therefore reads
+  `metaPutCap bt (Locked [] ∗ MW) ((∃ U, …) ∗ MW)`. `MW` is a new trailing parameter, defaulting to
+  `True`, of `batchTxSpecG`/`isBatchTxG`/`isKeyBackendG` (as `SR`/`SRh` are).
+  - The new bridge exports it at `MW := ∃ f, fkOwn γ f`.
+  - No proved store uses that clause over the real backend. `SetScheduledCompact`/
+    `SetFinishedCompact` (mvcc's assumed backend) pass `True`.
+  - At wiring, the store must hold the half: `restore` hands it on instead of consuming
+    `kbNoCmp` (question 5's companion; the user's).
+- The other options were an `isKeyBackendG` parameter without a default (more churn, against
+  `SR`/`SRh`'s precedent), or leaving `bt_metaPut` unproved (against "never delete a finished
+  proof").

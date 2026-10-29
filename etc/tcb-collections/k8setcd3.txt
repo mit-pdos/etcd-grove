@@ -484,7 +484,6 @@ axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom mvcc.kbNoCmp_metaNone
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt

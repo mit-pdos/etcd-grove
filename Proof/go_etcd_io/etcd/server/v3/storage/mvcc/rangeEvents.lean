@@ -33,7 +33,7 @@ theorem mvcc.rangeEvents.wp_proof
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
-  intro lg b γ Wr P f q log minRev maxRev g W RT WT Wi Dep Cmp PutOk Rb Bt
+  intro lg b γ Wr P f q log minRev maxRev g W RT WT NC Wi Dep Cmp PutOk Rb Bt
   wp_start as ⟨#Hbk, Hrt, #Hfrz, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
@@ -68,7 +68,7 @@ theorem mvcc.rangeEvents.wp_proof
   -- the snapshot misses no key: the store is not compacted
   imod mvcc.snapThin_frozen γ _ _ $$ Hfrz Hthin with %Hm'
   subst Hm'
-  ihave #Hrange := mvcc.keyReadLocked_range _ _ _ _ _ $$ Hlk
+  ihave #Hrange := mvcc.keyReadLocked_range _ _ _ _ _ _ $$ Hlk
   iunfold mvcc.keyReadLocked at Hlk
   icases Hlk with ⟨#HRU, -, -, #Hrc⟩
   (try wp_auto)

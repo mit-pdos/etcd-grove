@@ -567,7 +567,6 @@ axiom metrics.RecordEtcdRequest.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kbNoCmp_metaNone
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof

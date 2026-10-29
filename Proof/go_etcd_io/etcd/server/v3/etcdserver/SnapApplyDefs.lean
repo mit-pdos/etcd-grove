@@ -113,7 +113,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
         (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))) ∗
     (∀ γ1, ⌜γ1.bucket = E.γ.bucket ∧ γ1.kb = some d'⌝ →
       mvcc.keyCleanRead (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
-        (mvcc.bucketViewC γ1) (mvcc.storeRT γ1)) ∗
+        (mvcc.bucketViewC γ1) (mvcc.storeRT γ1) (mvcc.kbNoCmp γ1.kb γ1.bucket)) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
       (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 γB))) ∗
     isServerCI s (γ.withPh (futPhys π0 γB)) ci ∗

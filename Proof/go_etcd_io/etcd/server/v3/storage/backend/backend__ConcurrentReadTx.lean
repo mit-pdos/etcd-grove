@@ -113,7 +113,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   wp_pure
   unfold rtRes rtResAt rtRest rtCore rtIntv
   icases HP with ⟨%rd, %rv, %H, %L, %m, %Pb, %cm, Hrb, %Hok, Hcmf, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist,
-    Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+    Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
   iunfold viewQ at Hview
   icases Hview with ⟨Hview, #Hth⟩
   cases hl : rd.live

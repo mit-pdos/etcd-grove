@@ -49,7 +49,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
   subst Heq
   unfold rtResAt rtRest rtCore rtIntv
   icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist, Hrtxf, Hwg, %Hfacts,
-    #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+    #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩
