@@ -66,6 +66,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__U
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
@@ -303,6 +304,38 @@ theorem viewSame_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString}
   show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).delete k))
   rw [sData_del_HB hb]
   exact h.1
+
+/-- A change of a hook's bucket leaves the writer's contents off the hook's buckets. -/
+theorem sData_insert_HB {P : BParams} {S : Data} {n : GoString} (x : BktData) (h : P.HB n = true) :
+    sData P (S.insert n x) = sData P S := by
+  unfold sData
+  apply vData_eq_of_agree
+  rw [vOf_emptyR, vOf_emptyR]
+  intro n' hn' k'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  unfold dget
+  rw [GMap.lookup_insert_ne _ _ this]
+
+/-- A put into a hook's bucket (of the table) changes nothing the readers see: the writer's contents
+off the hook's buckets are the same, and the write buffer's entry is at the hook bucket's id, which
+no other bucket of the table has (`BParams.Wf`). -/
+theorem viewSame_putHB {P : BParams} (hWf : P.Wf) {st : BSess} {bi : BucketInfo} {k v : GoString}
+    (hb : P.HB bi.name = true) (hhas : P.has bi) (h : viewSame P st) :
+    viewSame P (st.put bi k v false) := by
+  refine ⟨?_, ?_⟩
+  · show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).insert k v))
+    rw [sData_insert_HB _ hb]
+    exact h.1
+  · intro n i hn hnb
+    show bkOf (wbAdd st.W.bks bi.id (k, v)) i = []
+    rw [bkOf_wbAdd]
+    split
+    · rename_i hid
+      subst hid
+      have := hWf.1 n bi.name bi.id hn hhas
+      subst this
+      rw [hb] at hnb; cases hnb
+    · exact h.2 n i hn hnb
 
 /-- A change of a tracked bucket is the tracked buckets' (`rbData`). -/
 theorem rbData_insert_tracked {P : BParams} {S : Data} {n : GoString} (b : BktData)
@@ -2077,6 +2110,97 @@ theorem bt_unlockO (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
   iframe HW HPk
   ipureintro; exact ⟨Hs.2.2.1, trivial⟩
 
+/-- **`Unlock` after a `Meta` put in a fresh session** (the backend-compaction stage, review round 2's
+R2-3: the token `bkLockedO … 1`): `unlockAt` with no puts, both of its branches through `bt_unlockO`
+(the view unchanged, so the second branch's wand gets it back as it was). -/
+theorem bt_unlockOAt (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      unlockAt ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty,
+        #t⟩ (bkView γ) W Pk (bkLockedO γ P b 1) [] := by
+  iintro ⟨#Hpkg, #Hb, #Ht⟩
+  ihave #HU := bt_unlockO hUL γ P W Pk b t $$ [$Hpkg $Hb $Ht]
+  ihave #HU1 := HU $$ %1
+  iunfold unlockAt
+  isplitr
+  · iintro !> %Φ !> ⟨Hl, -, HW, HPk⟩ HΦ
+    wp_apply HU1 $$ [$Hl $HW $HPk]
+    iintro -
+    iapply HΦ; itrivial
+  · iintro !> %m %Q %Φ !> ⟨Hl, Hv, Hwand, HPk⟩ HΦ
+    ihave HWQ := Hwand $$ [Hv]
+    · simp only [List.foldl_nil]; iexact Hv
+    icases HWQ with ⟨HW, HQ⟩
+    wp_apply HU1 $$ [$Hl $HW $HPk]
+    iintro -
+    iapply HΦ; iexact HQ
+
+/-- **A compaction key put into `Meta` in a fresh session** (the backend-compaction stage, R2-3;
+`batchTxSpecG`'s `Meta` clause): the backend's `UnsafePut` into the hook bucket `Meta` (not
+safe-range, untracked, the key not a hook's own: `hHK`), from the lock with no puts to the token
+`bkLockedO … 1` (one operation over the free lock's, nothing the readers see changed), which only
+`Unlock` takes (`bt_unlockOAt`). The value's form (`metaRevVal`) is not needed here: it is what a
+reader of `Meta` needs (`metaReadTx`, the `Meta` keys' value invariant). -/
+theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P)
+    (hHK : ∀ k, metaCompactKey k → P.HK go_etcd_io.etcd.server.v3.storage.schema.metaName k = false)
+    (γ : BNames) (W Pk : IProp GF) (b t : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      metaPutCap ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty,
+        #t⟩ (bkLocked γ P b [])
+        iprop(∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ (bkView γ) W Pk U []) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩
+  iunfold metaPutCap
+  iintro !> %bk %key %val %k %v %Hkv %Φ !> ⟨#HM, Hl, #Hk, #Hv⟩ HΦ
+  obtain ⟨hk, -⟩ := Hkv
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
+    %HPw⟩
+  iunfold bkLocked at Hl
+  icases Hl with ⟨%st, Hl⟩
+  iunfold bkLockedAt at Hl
+  icases Hl with ⟨Hl, Hwb, %Hs⟩
+  icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
+  ihave #Hbk := meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
+  have hvs := viewSame_noPuts hP Hwf Hs
+  obtain ⟨hd, hp, -, -, hhw⟩ := Hs
+  have hlim := HPw.2.2.1
+  have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by simp at hp; omega
+  have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
+  have hHB : P.HB metaBI.name = true := by rw [hP.2.2.1]; decide
+  have hSB : P.SB metaBI.name = true → ∀ kc vc,
+      (bktOf st.C metaBI.name).lookup kc = some vc → strLt kc k := by
+    intro h; rw [hP.2.2.2.1] at h; exact absurd h (by decide)
+  have hlen : 0 < k.length ∧ k.length ≤ backend.maxKeySize := by
+    rcases hk with rfl | rfl <;> decide
+  ihave Hrb := rbPut_other (GF := GF) γ P metaBI.name st.S hP.2.2.2.2.2
+  ihave Hhk : hkPut γ P metaBI.name k st.S $$ []
+  · unfold hkPut BParams.hk
+    rw [show metaBI.name = go_etcd_io.etcd.server.v3.storage.schema.metaName from rfl, hHK k hk]
+    simp only [Bool.and_false, Bool.false_eq_true, ↓reduceIte]
+    itrivial
+  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB)
+    $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb] as ⟨Hl, -, -⟩
+  iapply HΦ
+  iexists (bkLockedO γ P b 1)
+  isplitl [Hl Hwb]
+  · iunfold bkLockedO
+    iexists (st.put metaBI k v false)
+    iframe
+    ipureintro
+    refine ⟨hd, ?_, viewSame_putHB HPw hHB hP.2.1 hvs, by omega, hhw⟩
+    show sint.Z (st.pend + W64 1) < _
+    simp at hp
+    push_cast; omega
+  iapply bt_unlockOAt hUL γ P W Pk b t $$ [$Hpkg $Hb $Ht]
+
 /-- The backend's `ForceCommit()`, as mvcc's contract states it. -/
 theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
     (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
@@ -2441,7 +2565,10 @@ theorem isKeyBackendG_of_backendC
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P)
+    (hHK : ∀ k, metaCompactKey k → P.HK go_etcd_io.etcd.server.v3.storage.schema.metaName k = false)
+    (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ keySized γ P b ⊢
@@ -2488,7 +2615,8 @@ theorem isKeyBackendG_of_backendC
       isplitr
       · -- `UnsafePut(Meta, compaction key, revision)` in a fresh session, ending it in a token only
         -- `Unlock` takes (3.3; R2-3)
-        iintro !> -; sorry -- backend-cmp Draft: new case (the Meta keys' value invariant, 3.3)
+        iintro !> -
+        iapply bt_metaPut hUP hUL hID hName hSafe hP hHK γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
       iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
     isplitr
     · iunfold batchTxInitSpec

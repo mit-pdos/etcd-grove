@@ -696,3 +696,29 @@ item of its own, not R4-2-dependent. The new bridge's sorries: the limited range
 put and `metaReadTx` (`BParams.VI`). R5-4 done (the unused `vData_rebase`/`vData_rebase_or` removed).
 **R5-6 (fold list)**: M2 changes both fix sites of the deletable-keys flag (`NewStore_backend`,
 `server_kv_watchable_of`: the latter calls `storeBackend_of_backend` itself).
+
+## The `Meta` cases (2026-10-29, the user away)
+
+- **The new bridge's `Meta` put case proved** (`bt_metaPut`, `BackendBridge.lean`): the backend's
+  `UnsafePut` into the hook bucket `Meta` from the lock with no puts, to the token `bkLockedO … 1`
+  (one operation over the free lock, nothing the readers see changed: `viewSame_putHB`, with
+  `sData_insert_HB`), which only `Unlock` takes (`bt_unlockOAt`). It needs no value invariant: the
+  value's form matters to a reader of `Meta`, not to the put. The new bridge gains two hypotheses
+  (it is linked nowhere): `UnsafePut.spec`, and `hHK` (a compaction key is not a hook's own key,
+  true of `KBReal.P`: its `HK` is the consistent index's two keys).
+- **`metaPutCap` repaired** (decided by the agent while the user was away; a finding for review round
+  6): it lent the key and value slices fractionally (`↦*{dq}`) and gave them back, which no buffering
+  backend can meet (the write buffer keeps the slices: `txWriteBuffer.put`); it now takes them
+  read-only for good (`↦*□`) and gives nothing back. Its two callers, `UnsafeSet{Scheduled,Finished}
+  Compact`, persist their fresh `rbytes` (never written again, as in Go). Options were this or a copy
+  in the contract's statement (no such copy in Go).
+- **`metaReadTx` needs more than the value invariant** (a finding for review round 6; not done): the
+  contract's `ReadTx` clause gives `metaReadTx rt` with `RLock`/`RUnlock`/`UnsafeRange` at
+  precondition `True`, while the real backend's `readTx.RLock` needs a reader token and an open share
+  (`rdTok`, `bOpen`) and its `UnsafeRange` the held lock (`rtHeldF`), lending its slices against it
+  (`kvsOutRd`): "a contract with no resource over a callee that needs one". The repair is a restated
+  `metaReadTx` threading the read token (as `keyReadLocked`/`rdCap` do) — mvcc's contract, used by
+  `checkPrevCompactionCompleted` (proved over mvcc's assumed backend) — and then `BParams.VI` for
+  `metaRevVal` (3.3). The cindex's `metaReadTx` (`etcdserver/InvCindex.lean:207`, the consistent
+  index's keys, proved over the real backend through the hook's keys) is the precedent to follow.
+  The value invariant was not started: alone it closes nothing.

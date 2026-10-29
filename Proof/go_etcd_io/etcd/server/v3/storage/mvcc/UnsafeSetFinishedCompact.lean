@@ -51,16 +51,17 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   (try wp_auto)
   rw [List.drop_of_length_le (by simp), List.append_nil]
   wp_bind (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bM)) (Val #skn)) (Val #rb'))
+  imod ownSlice_persist _ _ _ $$ Hrb with #Hrb
   ihave #HP2 := Hcap $$ %bM %skn %rb' %mvcc.finKeyBytes
-    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) %DFrac.discard %(DFrac.own 1) []
+    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) []
   · ipureintro
     exact ⟨Or.inr rfl, value, Hv, rfl⟩
-  iapply HP2 $$ [Hx Hrb]
+  iapply HP2 $$ [Hx]
   · iframe HMetaG Hx Hrb
     unfold mvcc.finKeyBytes
     iexact Hsknv
   inext
-  iintro ⟨Hy, -, -⟩
+  iintro Hy
   (try wp_auto)
   iapply HΦ
   iexact Hy

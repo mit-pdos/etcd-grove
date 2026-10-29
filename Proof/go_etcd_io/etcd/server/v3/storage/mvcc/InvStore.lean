@@ -1012,14 +1012,18 @@ review round 2, R2-3): from the token `X`, `UnsafePut(schema.Meta, k, v)` at a c
 (`metaCompactKey`) of a value the store writes there (`metaRevVal`) leaves the token `Y`. The batch
 transaction gives one from a fresh session's lock to a token only `Unlock` takes (`batchTxSpecG`'s
 `Meta` clause: `SetScheduledCompact`'s session), and one per step of a compacting range's token
-(the job's last batch: `UnsafeSetFinishedCompact`). -/
+(the job's last batch: `UnsafeSetFinishedCompact`). The key and value slices are read-only for
+good (`↦*□`): the backend's write buffer keeps them (`txWriteBuffer.put` stores the slices, not
+copies; review round 6's finding: until then they were lent fractionally and given back, which no
+buffering backend can meet); mvcc's callers never write them again (`UnsafeSet*Compact`'s
+`rbytes`). -/
 def metaPutCap (bt : GoInterfaceOk) (X Y : IProp GF) : IProp GF :=
-  iprop(□ ∀ (b : GoInterface) (key val : GoSlice) (k v : GoString) (dq dq' : DFrac),
+  iprop(□ ∀ (b : GoInterface) (key val : GoSlice) (k v : GoString),
     ⌜metaCompactKey k ∧ metaRevVal v⌝ →
-    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ X ∗ key ↦*{dq} k ∗
-        val ↦*{dq'} v }}
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ X ∗ key ↦*□ k ∗
+        val ↦*□ v }}
       (App (App (App (Val #(methods bt.ty go!"UnsafePut" bt.v)) (Val #b)) (Val #key)) (Val #val))
-    {{ RET #(); Y ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }})
+    {{ RET #(); Y }})
 
 instance metaPutCap_persistent (bt : GoInterfaceOk) (X Y : IProp GF) :
     Persistent (metaPutCap (GF := GF) bt X Y) := by
