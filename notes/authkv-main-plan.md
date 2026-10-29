@@ -196,3 +196,33 @@ Asked so S6 can close the ordering: (1) the fragment is a pure function of the l
 its last state `srvAuthAtLog … L`), monotone in `L`; (2) the admin update's commit gives
 `srvReqLogLb ρ.raft (L ++ [e])` with `admStates (L ++ [e])` the view's new history. Then `Lset`
 (after `AuthEnable`) has `admStates Lset = hs_set`, and every write's `L ⊇ Lset` reads `setupSt`.
+
+## Draft, round 1 (2026-10-29)
+
+On the branch (`d9e2f09fbf`), all compiling (`Proof...authkv.Results` builds):
+- **S1** `Hist.lean`: `stateHistOk`/`opHistOk`, the invariant `akHistInv`, the stand-in `kvAu1G`, and
+  four stubs (`stateHistOk_step`, `akHist_alloc`, `akHist_writeAu`, `akHist_readAu`).
+- **S2** `Spec/.../authkv/Work.lean` (`Work.spec`), with its vocabulary `WorkEnv.lean`
+  (`akPrincipal`, `akKVOn`, `akAuthFixed`, S6's predicate over today's names). Proof: a stub.
+- **S3** `newUserClient.spec`. Proof: a stub.
+- **S5 done (no stub).** `SetUp.spec` takes the member's `Put` registered with auth on and the
+  client's `*kv` over its connection (`clientTokAt`) in place of `kvRegsAt`, which an auth-on member
+  does not give (its `Delete`/`Txn` specs add shape premises). It is still proved, through
+  `client_Put_on` (`ClientOn.lean`, the `*Client` wrapper of `client_put_on`, kept in authkv until
+  the client package has the auth-on wrappers). Decided by the agent: `SetUp`'s only caller is
+  `Main`, and the spec was restated, not duplicated.
+- `Main.wp_proof` takes its callees (`SetUp`, `newUserClient`, `Work`, `Principals`, `CheckHistory`,
+  `LastIn`), linked (`etc/link-lean-first-authkv.txt`, `Link.lean` regenerated). Its body is still
+  `sorry`. The glue (watchkv's `Main` is 537 lines) is written against the real callers after the
+  freeze, when step 5/5b's statements exist.
+
+**Gaps found while drafting (for the user, batched with the review):**
+- **G1. The no-user client's token.** `Work` needs `clientTokAt` (the `*kv`'s connection and
+  `attemptTokOk` at `False`) for `anon`/`bad`. `common.NewClient.spec` gives only `isNewClient`,
+  although `clientv3.New.spec` gives `clientTokAt` (`clientAuthPre_anon`). Adding it to
+  `NewClient`/`NewClients`' post is a change to a frozen, shared spec (15 files use it).
+- **G2. The watches (S4).** `watcher.Watch.spec` covers prefix watches of a non-empty key, and
+  `watchAddrFacts` needs a non-empty prefix. `u`'s watch is a range `[a, b)`, root's a watch of
+  every key (`""` with `WithPrefix`), and `Work`'s refused watch needs the auth outcome (no event
+  for a refused principal). One generalized `watcher.Watch.spec` (range, whole keyspace, auth on)
+  is the client package's spec, owned by the merge session's area, and a change to a frozen spec.
