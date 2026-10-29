@@ -384,14 +384,10 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
 /-- (D22 S-b′3) The certificate link, read out. -/
 theorem ghostRest_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ghostRest (GF := GF) γ md c id s ⊢ certLink γ s.gh.sn ∗ ghostRest γ md c id s := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   unfold ghostRest
-  iintro ⟨%Hn, H, #Hl⟩
-  iframe Hl H
+  iintro ⟨%Hn, H, #Hl, #Hw, #Hx⟩
+  iframe Hl H Hw Hx
   ipureintro; exact Hn
-  -/
 
 /-- The ghost state `raft.Step` keeps (see the file header). -/
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
@@ -409,13 +405,59 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   iunfold ownStepGhost
   iframe Hg Hr
 
+/-- `LeadOk` and the leader's own witness, read out of `ownRaftGhost`. -/
+private theorem ownRaftGhost_leadInfo (γ : RaftNames) (id : w64) (ps : PState) (md : Bool) :
+    ownRaftGhost (GF := GF) γ id ps md ⊢
+      ⌜LeadOk id ps⌝ ∗ leaderWit γ id ps ∗ ownRaftGhost γ id ps md := by
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  isplitr
+  · ipureintro; exact Hlead_ok
+  isplitr
+  · iexact Hlead
+  iapply ownRaftGhost_intro γ id ps γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally Hlead Hlg [] [] Hvrecs [] Hlcm Hrd
+  · ipureintro; exact Hhist
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+
+private theorem leaderWit_isLeader' (γ : RaftNames) (id : w64) (ps : PState)
+    (h : ps.role = .leader) : leaderWit (GF := GF) γ id ps ⊢ isLeader γ id ps.term := by
+  unfold leaderWit; simp only [h]; exact .rfl
+
 /-- (raft-final, 2026-10-29, U7: the design's §2.1) **The node's leader leads its term**: from
 `leadW` for another node, from `LeadOk` and `leaderWit` for itself (a node records itself only as
-leader). -/
-theorem ownStepGhost_lead (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+leader). Not at a pre-candidate (raft-final phase 2): `toPState` hides its leader (`lead := 0`),
+so nothing witnesses a physical `lead` left there. -/
+theorem ownStepGhost_lead (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (Hr : s.role ≠ .preCandidate) :
     ownStepGhost (GF := GF) γ md c id s ⊢
       (□ (⌜s.lead ≠ W64 0⌝ -∗ isLeader γ s.lead s.term)) ∗ ownStepGhost γ md c id s := by
-  sorry
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hrest⟩
+  icases ownRaftGhost_leadInfo γ id (toPState s) md.isDyn $$ Hg with ⟨%Hlo, #Hlw, Hg⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hn, Hm, #Hcl, #Hw, #Hx⟩
+  have hl : (toPState s).lead = s.lead := toPState_lead_nonpre s Hr
+  isplitr
+  · iintro !> %Hnz
+    by_cases hid : s.lead = id
+    · have hrole : (toPState s).role = .leader :=
+        Classical.byContradiction fun h => Hlo h (by rw [hl]; exact hid)
+      rw [hid, show s.term = (toPState s).term from rfl]
+      iapply leaderWit_isLeader' γ id (toPState s) hrole $$ Hlw
+    · rw [← hl, show s.term = (toPState s).term from rfl]
+      iunfold leadW at Hw
+      iapply Hw
+      ipureintro; exact ⟨by rw [hl]; exact Hnz, by rw [hl]; exact hid⟩
+  iunfold ownStepGhost
+  iframe Hg
+  iunfold ghostRest
+  iframe Hm Hcl Hw Hx
+  ipureintro; exact Hn
 
 /-- (raft-final, 2026-10-29, U7: the design's §2.1) **A stamped transfer request to the node at its
 term finds it with no leader, if it is a follower**: the request's witness (`isLeader γ id T`, from
@@ -426,16 +468,76 @@ theorem ownStepGhost_xferRefute (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
     (T : w64) :
     ownStepGhost (GF := GF) γ md c id s ∗ isLeader γ id T ⊢
       ⌜T = s.term → s.role = .follower → s.lead = W64 0⌝ ∗ ownStepGhost γ md c id s := by
-  sorry
+  iintro ⟨H, #Hi⟩
+  by_cases hc : s.role = .follower ∧ T = s.term
+  · obtain ⟨hf, hT⟩ := hc
+    subst hT
+    icases ownStepGhost_lead γ md c id s (by rw [hf]; decide) $$ H with ⟨#Hl, H⟩
+    iunfold ownStepGhost at H
+    icases H with ⟨Hg, Hrest⟩
+    icases ownRaftGhost_leadInfo γ id (toPState s) md.isDyn $$ Hg with ⟨%Hlo, -, Hg⟩
+    by_cases hz : s.lead = W64 0
+    · isplitr
+      · ipureintro; intro _ _; exact hz
+      iunfold ownStepGhost; iframe Hg Hrest
+    · ihave #Hl2 : isLeader (GF := GF) γ s.lead s.term $$ []
+      · iapply Hl; ipureintro; exact hz
+      icases isLeader_unique γ s.lead id s.term $$ Hl2 Hi with %Heq
+      exact (Hlo (by rw [toPState_role, hf]; decide)
+        (by rw [toPState_lead_nonpre s (by rw [hf]; decide)]; exact Heq)).elim
+  · isplitr
+    · ipureintro; intro h1 h2; exact absurd ⟨h2, h1⟩ hc
+    iexact H
+
+/-- Recording a witnessed pair in `NGhost.xw`. -/
+private theorem xfW_insert (γ : RaftNames) (s : NState) (p : w64 × w64) :
+    isLeader (GF := GF) γ p.1 p.2 ∗ xfW γ s ⊢
+      xfW γ { s with gh := { s.gh with xw := insert p s.gh.xw } } := by
+  unfold xfW
+  have e : ({ s with gh := { s.gh with xw := insert p s.gh.xw } } : NState).gh.xw =
+      (insert p s.gh.xw : GSet (w64 × w64)) := rfl
+  rw [e]
+  by_cases hin : p ∈ s.gh.xw
+  · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 hin
+    have hid : (insert p s.gh.xw : GSet (w64 × w64)) = s.gh.xw :=
+      GMap.insert_id _ _ () (by cases u; exact hu)
+    rw [hid]
+    exact sep_elim_right
+  · exact (BigSepM.bigSepM_insert (PROP := IProp GF)
+      (Φ := fun (q : w64 × w64) (_ : Unit) => isLeader (GF := GF) γ q.1 q.2) (m := s.gh.xw)
+      (i := p) (x := ()) (Option.not_isSome_iff_eq_none.1 hin)).2
 
 /-- (raft-final, 2026-10-29, U7: the design's §2.2) **Recording a stamped transfer request**: the
 node's leader and term, with the leader's witness (`ownStepGhost_lead`), into `NGhost.xw`. What
-`raft.Step`'s transfer arm does before `stepFollower` forwards the request (`send`'s clause (c)). -/
+`raft.Step`'s transfer arm does before `stepFollower` forwards the request (`send`'s clause (c)). Not at a pre-candidate, as
+`ownStepGhost_lead`. -/
 theorem ownStepGhost_xw_record (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
-    (Hl : s.lead ≠ W64 0) :
+    (Hl : s.lead ≠ W64 0) (Hr : s.role ≠ .preCandidate) :
     ownStepGhost (GF := GF) γ md c id s ⊢
       ownStepGhost γ md c id { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } := by
-  sorry
+  iintro H
+  icases ownStepGhost_lead γ md c id s Hr $$ H with ⟨#Hld, H⟩
+  ihave #Hl2 : isLeader (GF := GF) γ s.lead s.term $$ []
+  · iapply Hld; ipureintro; exact Hl
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hn, Hm, #Hcl, #Hw, #Hx⟩
+  have hp : toPState { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } =
+      toPState s := rfl
+  have hm : ghostRestM (GF := GF) γ md c id
+      { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } =
+      ghostRestM γ md c id s := by cases md <;> rfl
+  iunfold ownStepGhost
+  rw [hp]
+  iframe Hg
+  iunfold ghostRest
+  rw [hm, hp]
+  isplitr
+  · ipureintro; exact Hn
+  iframe Hm Hcl Hw
+  iapply xfW_insert γ s (s.lead, s.term)
+  iframe Hl2 Hx
 
 /-- (D22 S-b′4) The mode is `γ`'s (`ownRaftGhost_mode`), read out. -/
 theorem ownStepGhost_mode (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
@@ -609,12 +711,10 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  iintro #Hrc Hrecv Hcr Htk Hlc Hg Hrest
+  iintro #Hrc #Hrecv Hcr Htk Hlc Hg Hrest
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnl, Hrest, #Hcl⟩
+  icases Hrest with ⟨%Hnl, Hrest, #Hcl, #Hw, #Hx⟩
+  ihave #Hw' := leadW_stepC γ c id B (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hw
   imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Htk Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
@@ -623,12 +723,13 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   isplitr
   · ipureintro; exact Hout
   iunfold ghostRest
-  iframe Hrest
+  iframe Hrest Hw'
   isplitr
   · ipureintro
     unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
-  rw [Hng.1]; iexact Hcl
-  -/
+  rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+  iframe Hcl Hx
 
 /-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
 same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/
@@ -644,18 +745,15 @@ theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {
     (hld : s'.lead = s.lead := by rfl)
     (hst : s'.gh.sn = s.gh.sn := by rfl) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
+  have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW; rw [hxw]
   cases md with
   | static =>
-    simp only [ownStepGhost, ghostRest, ghostRestM]; rw [hp, hn, hst]
+    simp only [ownStepGhost, ghostRest, ghostRestM]; rw [hp, hn, hst, hx]
   | dyn dec c0 h0 g =>
     simp only [ownStepGhost, ghostRest, ghostRestM]
     have hr := rOf_congr g hp ha hs hpci
-    rw [hp, hr, hn, hst]
-  -/
+    rw [hp, hr, hn, hst, hx]
 
 /-- What the mode keeps beyond `ownRaftGhost` survives a change of the code state that keeps
 what it reads (2026-10-14, stage B7 part 2): the log, its boundary, the commit index, the term,
@@ -888,12 +986,10 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
       md.SnapOkIf γ id sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg Hrest
+  iintro #Hrc #Hm #Hrecv Hcr Htk Hlc #Hso Hg Hrest
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnl, Hrest, #Hcl⟩
+  icases Hrest with ⟨%Hnl, Hrest, #Hcl, #Hw, #Hx⟩
+  ihave #Hw' := leadW_stepC γ c id B (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hw
   imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hc' $$ Hrc Hm Hrecv
     Hcr Htk Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
@@ -902,12 +998,13 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   isplitr
   · ipureintro; exact Hout
   iunfold ghostRest
-  iframe Hrest
+  iframe Hrest Hw'
   isplitr
   · ipureintro
     unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
-  rw [Hng.1]; iexact Hcl
-  -/
+  rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+  iframe Hcl Hx
 
 end ghost
 
