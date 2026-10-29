@@ -608,9 +608,9 @@ abbrev raft.Step.spec : Prop :=
   -- immediate answer: in scope since the pinned raft has the fix of
   -- `issues/raft-readindex-singleton-stale.md`.)
   (m.Type' = MsgReadIndex → m.Term' = W64 0) →
-  -- (2026-10-14, stage B7) `appliedTo`'s auto-leave proposal is out of scope: no `AutoLeave`
-  -- at a leader (`raft.appliedTo.spec`)
-  (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
+  -- (2026-10-14, stage B7, to 2026-10-29, stage U5: `appliedTo`'s automatic leave, proved since,
+  -- was excluded here by a premise `m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠
+  -- .leader`)
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)

@@ -64,7 +64,7 @@ theorem RawNode.TransferLeader.wp_proof
     (by simp [StepMsg, stepMsgTypes, MsgTransferLeader]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+    (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne), fun _ => ⟨rfl, rfl, fun h => absurd rfl h, Hnl.2.1.trans Hns⟩⟩ : RestMsgOk s _ [] []) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
     $$ [$Hphys $Hghost $Hlc1 Hcr Hm]

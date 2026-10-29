@@ -109,7 +109,7 @@ theorem raft.tickElection.wp_proof
       (fun _ => ⟨rfl, Hterm, Htc, Hfla⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+      (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_other (by msg_ne) Hpc (by msg_ne) (by msg_ne))
       (fun h => absurd h (by msg_ne))

@@ -120,7 +120,14 @@ type switch's default arm runs `r.step(r, m)`:
 `recv` is the proposal itself when it is forwarded, and nothing otherwise. `LeadOk`
 (`Protocol/Model.lean`, from `ownRaftGhost`) is what makes the follower's forwarding
 `send` not self-addressed. -/
-theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgProp
+    -- (2026-10-29, stage U5) the four callee specs this branch uses, not `raft.Step.Postulates`:
+    -- `raft.appliedTo` steps its automatic leave through this branch, so its proof cannot take
+    -- the specs of `Step`'s other callees (`appliedTo` among them)
+    (wp_traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG))
+    (wp_stepFollower : stepFollower.spec (GF := GF) (hG := hG))
+    (wp_stepCandidate : stepCandidate.spec (GF := GF) (hG := hG))
+    (wp_stepLeader : stepLeader.spec (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -159,6 +166,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- what `RawNode` keeps track of is untouched (2026-10-09)
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
+        -- (2026-10-29, stage U5) and `applied` (what `appliedTo`'s leave keeps)
+        "%Happl" ∷ ⌜s'.logst.applied = s.logst.applied⌝ ∗
         -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         -- Either one step from `s` consuming at most the proposal (forwarded or
@@ -178,7 +187,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply _P.traceReceiveMessage
+  wp_apply wp_traceReceiveMessage
   try wp_auto
   wp_get _Q
   rw [decide_eq_true Hterm]
@@ -192,7 +201,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
     · iapply tsSrc_ne; notsnap_tac
-    wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
+    wp_apply wp_stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hfrom, Hterm, Hlok Hrole⟩)
@@ -226,6 +235,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
         isplitr
+        · ipureintro; rfl
+        isplitr
         · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
         isplitr
         · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
@@ -248,6 +259,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
       isplitr
+      · ipureintro; rfl
+      isplitr
       · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
       · ipureintro
@@ -264,7 +277,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
     · iapply tsSrc_ne; notsnap_tac
-    wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
+    wp_apply wp_stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -297,6 +310,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
       isplitr
+      · ipureintro; rfl
+      isplitr
       · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
       · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
@@ -304,7 +319,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
     icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
-    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs k0 (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole
+    wp_apply wp_stepLeader c r id s ml m ents sn ctx rs k0 (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -355,6 +370,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      isplitr
+      · ipureintro; rfl
       isplitr
       · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
@@ -453,6 +470,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
         isplitr
+        · ipureintro; rfl
+        isplitr
         · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
         isplitr
         · ipureintro
@@ -465,7 +484,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
     · iapply tsSrc_ne; notsnap_tac
-    wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
+    wp_apply wp_stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -497,6 +516,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact Hwf
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      isplitr
+      · ipureintro; rfl
       isplitr
       · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr

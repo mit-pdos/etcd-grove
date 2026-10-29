@@ -16,7 +16,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -45,14 +45,14 @@ holds the snapshot, the application's receipt absorbed), not in `appliedSnap`'s 
 snapshot at or below the log's boundary (it is the pending one, or older: a second restore since
 the `Ready`) -- which gives `appliedTo`'s guard (`index ≤ committed`) and keeps `applying` below
 `offsetInProgress` -- and the two ghost flags of `LogGhOk`. (U0) And the rebuild's, which were
-`restore`'s: a follower (so `appliedTo`'s auto-leave premise, until then one of these, and
+`restore`'s: a follower (so `appliedTo` proposes no automatic leave -- until stage U5 its premise -- and
 `switchToConfig`'s, which at a leader would need its peers' `Match` values kept, and at a candidate
 its tally kept: a node with a snapshot pending is a follower, `promotable`), with an empty tally
 (`FollowerVotesOk`: the fresh tracker's `Votes` is empty), the `ConfState` well formed
 (`SnapScope`: `Restore` answers the configuration it denotes, `restoreM_wf`, and
 `assertConfStatesEquivalent` compares it with `switchToConfig`'s sets), and the snapshot owned
 (`EnsureConfState` may write its `AutoLeave`; `raft.Step` holds its message's snapshot whole,
-`msgIn`). -/
+`msgIn`). (2026-10-29, stage U5: stated at `HasLC.hasLC`, as `raft.appliedTo.spec` it calls.) -/
 abbrev raft.appliedSnap.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
   (snapHit s.logst.snap sv.Metadata'.Index' = true ↔ s.logst.sapp = true) →

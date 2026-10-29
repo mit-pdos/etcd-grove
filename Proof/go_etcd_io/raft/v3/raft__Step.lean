@@ -668,7 +668,7 @@ theorem raft.Step.wp_proof
     ⟨wp_Message_GetType, wp_Message_GetTerm, wp_Message_GetFrom, wp_Message_GetLogTerm,
      wp_Message_GetIndex, wp_Message_GetReject, wp_Message_GetContext, wp_MessageType_Enum⟩
   intro c md γ r id s ml m ents ctx sn rs Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
-    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hsal Hrir Hrest Hwf Hpre Hnsx
+    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, Hcred, Hlc, #Hsnap⟩ HΦ
   -- (2026-10-14, stage B7) the ghost state in its mode: `ownRaftGhost` (what the protocol facts
   -- below read) and the rest
@@ -708,9 +708,10 @@ theorem raft.Step.wp_proof
     -- (2026-10-18, D19b stage 5) the receipt of the log's last index (`lastRec`)
     ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
-    wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs _ Hty Hterm Hfrom Hne Hlen Hlok
+    wp_apply (wp_Step_MsgProp P.traceReceiveMessage P.stepFollower P.stepCandidate P.stepLeader
+      Q c r id s ml m sn ctx rs ents cs _ Hty Hterm Hfrom Hne Hlen Hlok
       Hlnz Hwf HL (Hnors (.inl Hty)))
-      $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Hpk, %Hst, Herr⟩
+      $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, -, %Hpk, %Hst, Herr⟩
     obtain ⟨recv, Hrecv, Hrl, Hstep⟩ := Hst
     -- the receipt of the bound: the last index's, or the appended batch's
     ihave #HrcB : ⧖ (B.toNat - γ.reBoot.length) $$ [Hrcb]
@@ -891,15 +892,47 @@ theorem raft.Step.wp_proof
       · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
       ileft; ipureintro; exact Herr
   by_cases HtyB : m.Type' = MsgStorageApplyResp
-  · -- MsgStorageApplyResp: `appliedTo`, invisible to the protocol.
+  · -- MsgStorageApplyResp: `appliedTo`, and (2026-10-29, stage U5) a leader's automatic leave,
+    -- whose proposal is received (`recv`) when appended: `isMessage_leave`, no ticket.
     -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
-    wp_apply (wp_Step_MsgStorageApplyResp P Q c r id s ml m sn ctx rs ents HtyB (Hsapr HtyB) (Happly HtyB)
-        Hwf (Hsal HtyB)) $$ [$Hphys $Hmi]
-      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hst, %Happ', %Happ2, %Herr⟩
-    imod ghost_step_md0 γ md c id m s s' Hst
+    ihave %HlnzB : ⌜s.role = .leader → s.term ≠ W64 0⌝ $$ [Hghost]
+    · by_cases hl : s.role = .leader
+      · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+          (by rw [toPState_role, hl]; decide) $$ Hghost
+        ipureintro; exact fun _ => H
+      · ipureintro; exact fun h => absurd h hl
+    ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+    imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+    wp_apply (wp_Step_MsgStorageApplyResp P Q c r id s ml m sn ctx rs ents _ HtyB (Hsapr HtyB)
+        (Happly HtyB) Hwf HlnzB HL) $$ [$Hphys $Hmi $Hrc0]
+      as %err %s' %B %recv ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hrecv, %HBb, Hrcb, %Hst, %Happ', %Happ2,
+        %Herr⟩
+    -- the receipt of the bound: the last index's, or the leave's entry's
+    ihave #HrcB : ⧖ (B.toNat - γ.reBoot.length) $$ [Hrcb]
+    · by_cases hlt : plogLastIndexZ (toPState s).base (toPState s).log < B
+      · ihave #H := Hrcb $$ %hlt
+        have Hpl : plogLastIndexZ (toPState s).base (toPState s).log =
+            plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := rfl
+        iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+          ((plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)).toNat
+            - γ.reBoot.length) + 1 by
+            have := HBb.2.1
+            omega))
+        iexact H
+      · iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+          (plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length by omega))
+        iexact Hrc0
+    have Hcnt : rdCount recv = 0 := by
+      unfold rdCount; rw [List.countP_eq_zero]
+      intro x hx; rw [Hrecv.1 x hx]; simp [leaveAbs, absMsg, absMsgFrom]
+    imod rdCred_zero (GF := GF) γ with Hz
+    ihave #Hml := isMessage_leave (GF := GF) γ
+    imod ghost_step_md γ md c id m s s' leaveAbs recv 0 B HBb.2.2 Hrecv.1 Hst
       (fun _ _ _ _ hmd _ HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
-        (fun _ => Happ') hmd HI) Hfr.1.nsst
-      $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+        (fun _ => Happ') hmd HI)
+      (by omega) Hfr.1.nsst $$ HrcB Hml Hz [] Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+    · iapply msgsTks_recv γ _ recv Hrecv.1 Hrecv.2
+      iapply msgTks_leave
     imodintro
     iapply HΦ $$ %err %s' %c %md'
     iframe Hphys Hghost

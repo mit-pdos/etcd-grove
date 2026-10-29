@@ -31,7 +31,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -61,7 +61,6 @@ theorem raft.appliedSnap.wp_proof
   intro c r id s sp sv cl Hiff Haps Hle Hrole Hvotes Hcl Hscope Hun Hns Hsx Hkx
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, -⟩ := Hscope
-  have Hal : c.autoLeave = true → s.role ≠ .leader := fun _ h => absurd (Hrole.symm.trans h) (by decide)
   wp_start as H
   iNamed H
   wp_auto
@@ -134,9 +133,17 @@ theorem raft.appliedSnap.wp_proof
       rw [← Hpe] at Hle ⊢
       omega
     · exfalso; apply h1; unfold logStableSnap; simp [Hh]
+  -- (2026-10-29, stage U5) at a follower `appliedTo` proposes no leave: its leader-only premises
+  -- are vacuous, its receipt any (`⧖ 0`), and it ends at the new `applied`
+  have Hnl : ∀ {P : Prop}, ({ s with logst := logStableSnap s.logst sv.Metadata'.Index' } : NState).role
+      = .leader → P := fun h => absurd (Hrole.symm.trans h) (by decide)
+  imod preceipt_zero (GF := GF) with #Hrc0
   wp_apply wp_raft_appliedTo c r id { s with logst := logStableSnap s.logst sv.Metadata'.Index' }
-      sv.Metadata'.Index' (W64 0) (by simp only; omega) (fun _ => by simp only; omega) Hal Hsa1 Haps1
-      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) $$ [$Hphys] as Hphys
+      sv.Metadata'.Index' (W64 0) 0 (by simp only; omega) (fun _ => by simp only; omega)
+      Hnl Hnl Hnl Hsa1 Haps1
+      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) $$ [$Hphys $Hrc0] as %s2' %B %recv ⟨Hphys, %Hls, -⟩
+  rcases Hls with ⟨rfl, -⟩ | ⟨-, Hl, -⟩
+  case inr => exact absurd (Hrole.symm.trans Hl) (by decide)
   -- (U0) `cs := pb.EnsureConfState(snap.GetMetadata().GetConfState())`: the set snapshot's conf
   -- state, its `AutoLeave` already set
   generalize HS2 : ({ s with logst := logAppliedTo (logStableSnap s.logst sv.Metadata'.Index') sv.Metadata'.Index' (W64 0) } : NState) = s2

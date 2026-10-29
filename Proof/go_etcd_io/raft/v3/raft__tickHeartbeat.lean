@@ -134,7 +134,7 @@ theorem raft.tickHeartbeat.wp_proof
           (by simp [StepMsg, stepMsgTypes, MsgCheckQuorum])
           (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
           (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-          (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+          (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
           (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
           (GMode.Pre.of_other (by msg_ne) Hpc (by msg_ne) (by msg_ne))
           (fun h => absurd h (by msg_ne))
@@ -278,7 +278,7 @@ theorem raft.tickHeartbeat.wp_proof
         (by simp [StepMsg, stepMsgTypes, MsgBeat])
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
         (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf1
         (GMode.Pre.of_other (by msg_ne) (GMode.Guard.of_nonpre (fun _ => by rw [Hrole]; decide))
           (by msg_ne) (by msg_ne))

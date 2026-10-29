@@ -783,7 +783,7 @@ transfer's campaign, a pre-vote request only past term `0`): every premise up to
 vacuous at a type the network does not deliver. `k` is `raft.Step`'s spec at the message (what it
 takes after `RestMsgOk` is left in `X`). Shared by `RawNode.Step` (`RawNode__Step.lean`) and
 `run`'s step (`InvNodeRun.lean`, `wp_rn_raft_Step_net`). -/
-theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md : GMode} {m : MessageM}
+theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {md : GMode} {m : MessageM}
     {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8} {rsp : List Loc} {X : Prop}
     (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) {fp : List EntryM} (Hpv : RNPv rs fp s) (Htrm : rs.term = s.term)
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
@@ -829,7 +829,6 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
           StableOk (ackLog s.logst sn) (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
       (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
       (m.Type' = MsgReadIndex → m.Term' = W64 0) →
-      (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
       (m.Type' = MsgReadIndexResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
         m.From' ≠ id) →
       RestMsgOk s m ents ctx → X) : X := by
@@ -858,7 +857,6 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr (.inr h))))⟩)
     (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h))
-    (by not_net)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr (.inl h))))⟩)
     (Hok.restMsgOk (st := ⟨m, ents, sn, ctx, rsp⟩) (fun h => by
@@ -2194,8 +2192,9 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   -- scope (static mode): the node is a voter (`Step`'s premise for a snapshot; a shrinking
-  -- `ApplyConfChange`'s); (2026-10-14) no auto-leave joint configuration
-  -- (`appliedTo`'s auto-leave proposal is out of `raft.Step`'s scope)
+  -- `ApplyConfChange`'s). (From 2026-10-14 to 2026-10-29, stage U5, also no auto-leave joint
+  -- configuration, `cf.autoLeave = false`: `appliedTo`'s automatic leave was out of `raft.Step`'s
+  -- scope.)
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
   "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
   -- scope: synchronous storage writes (`Config.AsyncStorageWrites` unset); `NewRawNode`
