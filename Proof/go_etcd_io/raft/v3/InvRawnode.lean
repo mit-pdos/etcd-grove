@@ -927,31 +927,50 @@ def LoanOk (rs : RNState) (s : NState) : Prop :=
 to `delivered`) **Raft certified the terms of the committed log handed out, and no more**: the
 log's certified height (`LogState.dtk`, every key of `sn.gd` at most it) is `delivered`'s length.
 So a `Ready` certifies its committed entries' terms afresh (`ownRaftLog_certify`), which the driver
-keeps with the committed log delivered (the API's `deliveredLogLb`, the storage contract's `DL`). -/
-def SdtTie (rs : RNState) (s : NState) : Prop :=
-  s.logst.dtk = rs.delivered.length
+keeps with the committed log delivered (the API's `deliveredLogLb`, the storage contract's `DL`).
+(Phase 2, 2026-10-29) While a snapshot's loan is out, the snapshot's committed log (`l.dlv`, which
+its `Ready` certified and its `Advance` delivers): `sdtLen`; until then `delivered`'s length always,
+which a snapshot `Ready` breaks. -/
+def sdtLen (rs : RNState) : Nat :=
+  match rs.slent with
+  | some l => l.dlv.length
+  | none => rs.delivered.length
 
-/-- `SdtTie` across a step that keeps the certified height and `delivered`'s length. -/
+def SdtTie (rs : RNState) (s : NState) : Prop :=
+  s.logst.dtk = sdtLen rs
+
+/-- `SdtTie` without a loan. -/
+theorem SdtTie.of_none {rs : RNState} {s : NState}
+    (h : s.logst.dtk = rs.delivered.length) (hsl : rs.slent = none := by rfl) : SdtTie rs s := by
+  unfold SdtTie sdtLen; rw [hsl]; exact h
+
+/-- `SdtTie` across a step that keeps the certified height, `delivered`'s length and the loan. -/
 theorem SdtTie.keep {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
     (hk : s'.logst.dtk = s.logst.dtk)
-    (hdl : rs'.delivered.length = rs.delivered.length) : SdtTie rs' s' := by
-  unfold SdtTie at H ⊢; rw [hk, hdl]; exact H
+    (hdl : rs'.delivered.length = rs.delivered.length)
+    (hsl : rs'.slent = rs.slent := by rfl) : SdtTie rs' s' := by
+  unfold SdtTie sdtLen at H ⊢; rw [hk, hsl]
+  cases h : rs.slent with
+  | none => rw [h] at H; rw [hdl]; exact H
+  | some l => rw [h] at H; exact H
 
 /-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the record kept, `delivered`
 unchanged). -/
 theorem SdtTie.ofRec {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
     (_hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
-    (hdl : rs'.delivered = rs.delivered := by rfl) : SdtTie rs' s' :=
-  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl])
+    (hdl : rs'.delivered = rs.delivered := by rfl) (hsl : rs'.slent = rs.slent := by rfl) :
+    SdtTie rs' s' :=
+  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl]) hsl
 
 /-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`: the certified height kept). -/
 theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : MessageM}
     (H : SdtTie rs s)
     (_Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
       (rs.delivered.map (·.Term'))[uint.nat s.logst.prev.index' + k]? = some t)
-    (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl) :
+    (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl)
+    (hsl : rs'.slent = rs.slent := by rfl) :
     SdtTie rs' s' := by
-  apply SdtTie.keep H _ (by rw [hdl])
+  apply SdtTie.keep H _ (by rw [hdl]) hsl
   rcases Hsl with h | h
   · exact h.2.2.2.2.2.2
   · exact h.2.2.2.2.2.2.2.2
