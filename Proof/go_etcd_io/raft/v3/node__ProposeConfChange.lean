@@ -163,6 +163,7 @@ private theorem node.wp_ProposeConfChange_impl
     (hP : EtcdGrove.node.ProposeConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
+    EtcdGrove.Cluster.dup
   intro n γ N id c o dq ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, Hau⟩ HΦ
   ihave #HnodeA := Hnode
@@ -181,8 +182,9 @@ private theorem node.wp_ProposeConfChange_impl
     · imodintro; ileft; ipureintro; exact Hf
     imod api_key_register γ N ⊤ CoPset.subseteq_top
       (entKey (confChangeEntryType (some o)) bs) $$ Hci with #Hpi
-    ihave Hau1 := au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm Hf $$ Hau
-    ihave Hau1 := api_propAu1 γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
+    ihave Hau1 := intuitionisticallyIf_mono (p := γ.raft.dup)
+      (au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm Hf) $$ Hau
+    ihave Hau1 := api_propAu1_if γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
     imodintro
     iright
     iexists (fun _ => iprop(True))

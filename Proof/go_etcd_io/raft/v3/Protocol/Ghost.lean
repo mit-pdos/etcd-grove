@@ -402,6 +402,13 @@ structure RaftNames where
   reads through lower bounds (`decLb`, `DynCfg.fold`); `none` (the default) for a cluster whose
   decisions are its pure decoder's, every lower bound then empty. Pure data, fixed at allocation. -/
   reDec : Option GName := none
+  /-- **The network may duplicate a `MsgProp`** (2026-10-29, S1,
+  `notes/spec-first-study/raft-propose-dup-spec.md`): chosen by the client at allocation (the node
+  API's `Cluster.dup`). In such a cluster a proposal's update is persistent (`□?dup` on `Propose`'s),
+  and so is its ticket (`propTk`): every copy of a proposal may be appended, each firing the update.
+  `false` (the default): a proposal's update and ticket are one-shot. Pure data, fixed at
+  allocation. -/
+  dup : Bool := false
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -1184,15 +1191,20 @@ def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
 /-- **A proposal's ticket** (2026-10-19, D21 M6, D20 (b); exclusive; since 2026-10-21 one per
 deposit): a deposit of `d` (one `Propose`, `prop_deposit`) hands it out, it travels with the
 proposal (`msgTks`), and the leader that appends the proposal consumes it, fixing its index
-(`propIdx`). So each deposit is appended once, at one index. -/
+(`propIdx`). So each deposit is appended once, at one index. (2026-10-29, S1) In a cluster whose
+network may duplicate a `MsgProp` (`RaftNames.dup`) the ticket is persistent, its ghost variable
+discarded at `none`: every copy may be appended, at any number of indices, never consumed. -/
 def propTk (γ : RaftNames) (d : List w8) : IProp GF :=
   iprop(∃ (p : PropRec) (k : Nat) (γt : GName), d ↪[γ.reProps]□ p ∗ k ↪[p.2]□ γt ∗
-    dghostVar γt (DFrac.own 1) (none : Option w64))
+    dghostVar γt (if γ.dup then DFrac.discard else DFrac.own 1) (none : Option w64))
 
-/-- **A deposit of `d` was appended at index `i`** (persistent; D21 M6): its ticket, consumed. -/
+/-- **A deposit of `d` was appended at index `i`** (persistent; D21 M6): its ticket, consumed.
+(2026-10-29, S1) In a `dup` cluster, also its ticket unconsumed (`propTk`, persistent there): the
+record of a deposit appended at `i` and possibly elsewhere. -/
 def propIdx (γ : RaftNames) (d : List w8) (i : w64) : IProp GF :=
   iprop(∃ (p : PropRec) (k : Nat) (γt : GName), d ↪[γ.reProps]□ p ∗ k ↪[p.2]□ γt ∗
-    dghostVar γt DFrac.discard (some i))
+    (dghostVar γt DFrac.discard (some i) ∨
+      ⌜γ.dup = true⌝ ∗ dghostVar γt DFrac.discard (none : Option w64)))
 
 instance propIdx_persistent (γ : RaftNames) (d : List w8) (i : w64) :
     Persistent (propIdx (GF := GF) γ d i) := by
@@ -1200,16 +1212,34 @@ instance propIdx_persistent (γ : RaftNames) (d : List w8) (i : w64) :
 instance propIdx_timeless (γ : RaftNames) (d : List w8) (i : w64) :
     Timeless (propIdx (GF := GF) γ d i) := by
   unfold propIdx; infer_instance
-/-- Consuming a ticket of `d` at index `i`. -/
-theorem propTk_set (γ : RaftNames) (d : List w8) (i : w64) :
-    ⊢ propTk (GF := GF) γ d ==∗ propIdx γ d i := by
-  unfold propTk propIdx
-  iintro ⟨%p, %k, %γt, #Hp, #Hk, Hv⟩
-  imod dghostVar_update (some i : Option w64) γt (none : Option w64) $$ Hv with Hv
-  imod dghostVar_persist γt 1 (some i : Option w64) $$ Hv with #Hv
+/-- (2026-10-29, S1) In a `dup` cluster a ticket is persistent. -/
+theorem propTk_persist (γ : RaftNames) (d : List w8) (h : γ.dup = true) :
+    propTk (GF := GF) γ d ⊢ □ propTk γ d := by
+  unfold propTk
+  simp only [h, ↓reduceIte]
+  iintro ⟨%p, %k, %γt, #Hp, #Hk, #Hv⟩
   imodintro
   iexists p, k, γt
   iframe Hp Hk Hv
+/-- Consuming a ticket of `d` at index `i`; (2026-10-29, S1) in a `dup` cluster, keeping it. -/
+theorem propTk_set (γ : RaftNames) (d : List w8) (i : w64) :
+    ⊢ propTk (GF := GF) γ d ==∗ propIdx γ d i := by
+  unfold propTk propIdx
+  cases hd : γ.dup <;> simp only [Bool.false_eq_true, ↓reduceIte]
+  · iintro ⟨%p, %k, %γt, #Hp, #Hk, Hv⟩
+    imod dghostVar_update (some i : Option w64) γt (none : Option w64) $$ Hv with Hv
+    imod dghostVar_persist γt 1 (some i : Option w64) $$ Hv with #Hv
+    imodintro
+    iexists p, k, γt
+    iframe Hp Hk
+    ileft
+    iexact Hv
+  · iintro ⟨%p, %k, %γt, #Hp, #Hk, #Hv⟩
+    imodintro
+    iexists p, k, γt
+    iframe Hp Hk
+    iright
+    iframe Hv
 
 /-- The data of entry `e` (2026-10-27): `none` for a filler (`Filler`: raft's own entry, or a
 client's empty proposal), `some k` for every other entry, a tracked proposal registered under its

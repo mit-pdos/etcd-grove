@@ -938,6 +938,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       ihave #Hi := entDataIs_idx γ e d $$ Ho
       iunfold propIdx at Hi
       icases Hi with ⟨%p, %k, %γt, #Hdq, #Hkf, #Hv0⟩
+      -- (2026-10-29, S1) `Hv0`: the ticket spent at the entry's index, or (in a `dup` cluster) kept
       icases ghost_map_lookup $$ Hra Hdq with %HRd
       icases (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
         iprop(propSlot (GF := GF) γ d p (G.take m) ∗ propFresh γ d)) HRd).1 $$ Hs
@@ -951,31 +952,52 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       -- not fired before: a fired deposit's index is within the log, the entry's is past it
       icases Hdk with (⟨%Qk, #Hspk, Hau⟩ | ⟨%i, #Hvi, %Hi⟩)
       rotate_left
-      · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (some e.Index')
-          DFrac.discard $$ Hvi Hv0
-        cases Hii
-        exfalso; omega
+      · icases Hv0 with (#Hv0 | ⟨-, #Hv0⟩)
+        · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (some e.Index')
+            DFrac.discard $$ Hvi Hv0
+          cases Hii
+          exfalso; omega
+        · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (none : Option w64)
+            DFrac.discard $$ Hvi Hv0
+          cases Hii
+      -- (2026-10-29, S1) the update to fire, and the deposit after: fired at the entry's index, or
+      -- (in a `dup` cluster) left in place
+      ihave ⟨Hau, Hdk'⟩ : propAu1 γ d Qk ∗ depSlot γ d p.1 γt (G.take m ++ [e]) $$ [Hau]
+      · unfold depSlot
+        cases hd : γ.dup
+        · simp only [intuitionisticallyIf_false', Bool.false_eq_true]
+          iframe Hau
+          iright
+          iexists e.Index'
+          icases Hv0 with (#Hv0 | ⟨%Hf, -⟩)
+          · iframe Hv0
+            ipureintro
+            simp only [List.length_append, List.length_singleton]
+            push_cast; omega
+          · exact absurd Hf (by decide)
+        · simp only [intuitionisticallyIf_true]
+          icases Hau with #Hau
+          isplitr
+          · iexact Hau
+          ileft
+          iexists Qk
+          iframe Hspk
+          imodintro
+          iexact Hau
       imod propAu1_fire γ d Qk (G.take m) e Hidx Hrb $$ Hau Ho Hv with ⟨Hv, #HQ⟩
       imodintro
       iframe Hv Hra
       iapply (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
         iprop(propSlot (GF := GF) γ d p (G.take m ++ [e]) ∗ propFresh γ d)) HRd).2
-      isplitl [Hfr HKa Hdeps]
+      isplitl [Hfr HKa Hdeps Hdk']
       · iframe Hfr
-        iapply propSlot_fire γ d p (G.take m) e $$ [] Hres [HKa Hdeps]
+        iapply propSlot_fire γ d p (G.take m) e $$ [] Hres [HKa Hdeps Hdk']
         · unfold qRes; iexists Qk; iframe Hspk HQ
         iexists K
         iframe HKa
         iapply (BigSepM.bigSepM_delete (Φ := fun (_k : Nat) (γt : GName) =>
           depSlot (GF := GF) γ d p.1 γt (G.take m ++ [e])) HKk).2
-        isplitr
-        · unfold depSlot
-          iright
-          iexists e.Index'
-          iframe Hv0
-          ipureintro
-          simp only [List.length_append, List.length_singleton]
-          push_cast; omega
+        iframe Hdk'
         iapply BigSepM.bigSepM_impl $$ Hdeps
         imodintro
         iintro %k' %γt' %_ Hd

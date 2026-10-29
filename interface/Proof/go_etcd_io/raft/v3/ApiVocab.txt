@@ -47,7 +47,7 @@ def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
         ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
           ∃ Q,
             propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
-              propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
+              □?γ.dup propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 def RespType (t : w32) : Prop :=
   t = MsgAppResp ∨ t = MsgVoteResp ∨ t = MsgPreVoteResp

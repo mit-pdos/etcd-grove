@@ -1069,9 +1069,10 @@ instance qRes_persistent (γq : GName) (L : List EntryM) : Persistent (qRes (GF 
 
 /-- A deposit of `d` (2026-10-21), its ticket named `γt`, for the committed log `l`: not fired --
 the update a `Propose` handed in, with the predicate it was registered under -- or fired, its
-ticket spent at an index within `l`. -/
+ticket spent at an index within `l`. (2026-10-29, S1) In a `dup` cluster the update is persistent
+(`□?γ.dup`): firing leaves it in place (`fire_one`). -/
 def depSlot (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List EntryM) : IProp GF :=
-  iprop((∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu1 γ d Q) ∨
+  iprop((∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ □?γ.dup propAu1 γ d Q) ∨
     (∃ i : w64, dghostVar γt DFrac.discard (some i) ∗ ⌜uint.Z i ≤ (l.length : Int)⌝))
 
 /-- The results of `d`'s slot: at every committed occurrence of `d`, the result at the log

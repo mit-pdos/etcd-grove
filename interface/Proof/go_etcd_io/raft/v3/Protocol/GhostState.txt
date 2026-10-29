@@ -448,7 +448,7 @@ theorem raftLogN_of {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : �
 
 def depSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List
     EntryM) : IProp GF :=
-  iprop((∃ Q, savedPredOwn γq DFrac.discard Q ∗ propAu1 γ d Q) ∨
+  iprop((∃ Q, savedPredOwn γq DFrac.discard Q ∗ □?γ.dup propAu1 γ d Q) ∨
       ∃ i, dghostVar γt DFrac.discard (some i) ∗ ⌜uint.Z i ≤ ↑l.length⌝)
 
 theorem raftRegInv_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : Persistent (raftRegInv γ)

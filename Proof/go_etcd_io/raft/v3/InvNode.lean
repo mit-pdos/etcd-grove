@@ -71,6 +71,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A cluster's ghost names (opaque to clients). -/
 @[no_expose] def Cluster : Type 1 := ApiImpl.Cluster
 
+/-- **The cluster's network may duplicate a `MsgProp`** (2026-10-29, S1): chosen by the client at
+allocation (`cluster_alloc_dec`; `false` for the other allocations). In such a cluster a proposal's
+update is persistent (`node.Propose`'s `□?γ.dup`), and so are a `MsgProp`'s credits
+(`msgCredits_copy`). -/
+@[no_expose] def Cluster.dup (γ : Cluster) : Bool := γ.raft.dup
+
 /-- **The committed requested entries, the client's** (exclusive): `opsOf` of the committed log.
 Raft changes it only by firing an update the client gave it, when the requested entry commits;
 fillers commit without changing it. -/
@@ -294,8 +300,8 @@ theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (b
     receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N ps snapOk ∗
+      |={E}=> ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗
+        readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N ps snapOk ∗
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
   intro Hrb Hrb2 HB Hnd Hne Hnz
@@ -305,9 +311,11 @@ theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (b
   imodintro
   iexists γ
   unfold ownCommittedOps ownReadCtxs readCredits nodeBoot isStaticCluster leaderTransferOn
-    leaderTransferOff readyFits Cluster.bootLen
+    leaderTransferOff readyFits Cluster.bootLen Cluster.dup
   iframe Ho Hc Hr Hs Hx Hb
-  ipureintro; rw [Hbl]; exact Hrb2
+  isplitr
+  · ipureintro; exact Hbl.2
+  ipureintro; rw [Hbl.1]; exact Hrb2
 
 /-- **A static cluster's boot token** for node `id` (exclusive): what its `RestartNode` takes. -/
 @[no_expose] def nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
@@ -321,11 +329,12 @@ receipts (`receiptBound`), is the cluster's. Replaces `ownRaftGhost_alloc_snap` 
 theorem cluster_alloc_static (N : Namespace) (vs : List w64)
     (snapOk : List LogEntry → List w8 → Prop) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) ≤ 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
+        readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗
         [∗list] id ∈ vs, nodeRestartBoot γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
   unfold ownCommittedOps ownReadCtxs readCredits isStaticCluster leaderTransferOn nodeRestartBoot
+    Cluster.dup
   exact ApiImpl.cluster_alloc_static_impl N vs snapOk E Hrb Hne Hnd Hnz Hlen
 
 /- The node's predicates take the node `n` first (there is one per node, many per cluster), then
@@ -701,7 +710,8 @@ theorem dynamicCluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List 
     receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+      |={E}=> ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗
+        readCredits γ (2 ^ 64 - 2) ∗
         isDynamicCluster γ N (Membership.simple (GMap.listToSet ps)) decode ∗
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
         [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := by
@@ -712,9 +722,11 @@ theorem dynamicCluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List 
   imodintro
   iexists γ
   unfold ownCommittedOps ownReadCtxs readCredits nodeDynamicBoot isDynamicCluster leaderTransferOn
-    leaderTransferOff readyFits Cluster.bootLen
+    leaderTransferOff readyFits Cluster.bootLen Cluster.dup
   iframe Ho Hc Hr Hs Hx Hb
-  ipureintro; rw [Hbl]; exact Hrb2
+  isplitr
+  · ipureintro; exact Hbl.2
+  ipureintro; rw [Hbl.1]; exact Hrb2
 
 /- (2026-10-27) No empty dynamic cluster (the draft's `dynamicCluster_alloc_empty`,
 `nodeDynamicRestartBoot`, `RestartNode.dynamicSpec`): a dynamic cluster is in raft's no-snapshot
@@ -809,6 +821,13 @@ theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (src : w64) (st :
       sentMsg γ N src { st with snap := some sv' } := by
   unfold sentMsg committedAtTerm isCommittedLogLb snapshotCert
   exact ApiImpl.sentMsg_replaceSnapshot_impl γ N src st sv sv' c l E
+
+/-- **In a cluster allocated with `dup`, a `MsgProp`'s credits are persistent** (2026-10-29, S1):
+what `Ready` returns with it, and what `stepIn_intro` takes; a network may step any number of copies
+of it. Every other message's credits come from `msgCredits_none` and `msgCredits_snapshot`. -/
+theorem msgCredits_copy (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    γ.dup = true → st.msg.Type' = MsgProp → msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
+  unfold Cluster.dup msgCredits; exact ApiImpl.msgCredits_copy_impl γ N st
 
 /-- (open) A `MsgSnap` carries no read credit and no forwarded proposal's tickets. -/
 theorem msgCredits_snapshot (γ : Cluster) (N : Namespace) (st : MsgSt) :

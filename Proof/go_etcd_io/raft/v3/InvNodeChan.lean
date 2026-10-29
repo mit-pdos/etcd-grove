@@ -1375,9 +1375,11 @@ variable [sem : go.Semantics]
 (`propIs`, from `node_prop_register`) and the client's atomic update for `d` and `Q` (2026-10-14,
 stage R), which raft fires at most once (D21 M6: each proposal is appended once, its ticket going
 with it). `d` may be proposed any number of times, each with its own update. (Until 2026-10-21 the
-fresh token went with the first proposal, and a retry of the same bytes needed `propMulti`.) -/
+fresh token went with the first proposal, and a retry of the same bytes needed `propMulti`.)
+(2026-10-29, S1) In a `dup` cluster (`RaftNames.dup`) the update is persistent (`□?γ.dup`), fired at
+every committed copy. -/
 def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(propIs γ d Q ∗ propAu1 γ d Q)
+  iprop(propIs γ d Q ∗ □?γ.dup propAu1 γ d Q)
 
 -- (2026-10-16, stage R5, D6) `propDataInv_alloc`, `propData_register` and `propData_heap` are
 -- gone with the proposed slices: an entry's data, a read context, is its bytes.

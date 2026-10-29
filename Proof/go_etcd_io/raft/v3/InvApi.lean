@@ -940,7 +940,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length ∧ γ.raft.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isStaticCluster γ N ps snapOk ∗
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
@@ -965,7 +965,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, Hboot, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, Hboot, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg, Hdup⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, -⟩ := Hγr
@@ -978,7 +978,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   imodintro
   iexists γ
   isplitr
-  · ipureintro; rw [Hboot, toEntries_length]
+  · ipureintro; rw [Hboot, toEntries_length]; exact ⟨rfl, Hdup⟩
   iframe Hops Hctx Hst
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr
@@ -1002,8 +1002,8 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
 theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
     (snapOk : List LogEntry → List w8 → Prop) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) ≤ 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = false⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
+        readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗
         [∗list] id ∈ vs, nodeRestartBoot γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
   imod budget_alloc (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
@@ -1019,7 +1019,7 @@ theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
     false (fun h => by cases h) (sokOf snapOk) (fun _ => none) (N .@ "raft") N Hcne
     Hnz' BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, -, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, -, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg, Hdup⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, -⟩ := Hγr
@@ -1032,6 +1032,8 @@ theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
   imodintro
   iexists γ
   iframe Hops Hctx Hst
+  isplitr
+  · ipureintro; exact Hdup
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr
   isplitr
@@ -2714,6 +2716,22 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
     imodintro
     imodintro
     itrivial
+
+
+/-- (2026-10-29, S1) `api_propAu1` under `□?γ.raft.dup`: a persistent update for a persistent one in
+a `dup` cluster, the update itself otherwise. -/
+theorem api_propAu1_if (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
+    (Hnf : ¬ Filler ty data) (HNs : γ.raft.reNs = N .@ "raft") :
+    ⊢ apiInv (GF := GF) γ N -∗
+      □?γ.raft.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, ty, data⟩]), COMM True }>) -∗
+      □?γ.raft.dup propAu1 γ.raft (entKey ty data) (fun _ => iprop(True)) := by
+  cases γ.raft.dup
+  · exact api_propAu1 γ N ty data Hnf HNs
+  · simp only [intuitionisticallyIf_true]
+    iintro #Hinv #Hau
+    imodintro
+    iapply api_propAu1 γ N ty data Hnf HNs $$ Hinv Hau
 
 /-- The errors of a proposal. -/
 theorem propErr_api (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :

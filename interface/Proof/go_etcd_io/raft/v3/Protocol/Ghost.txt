@@ -50,6 +50,7 @@ structure RaftNames : Type 1 where
   reCertNs : Namespace
   reSnapReg : Option GName
   reDec : Option GName
+  dup : Bool
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
     List.take lim F' = List.take lim F → ⊢ witsB γ F lim B -∗ witsB γ F' lim B
@@ -163,7 +164,8 @@ theorem logRecs_agree [ReceiptGS GF] (γ : RaftNames) (b1 : entryID) (es1 : List
     es2⌝
 
 def propTk (γ : RaftNames) (d : List w8) : IProp GF :=
-  iprop(∃ p k γt, d ↪[γ.reProps]□ p ∗ k ↪[p.snd]□ γt ∗ dghostVar γt (DFrac.own 1) none)
+  iprop(∃ p k γt,
+      d ↪[γ.reProps]□ p ∗ k ↪[p.snd]□ γt ∗ dghostVar γt (if γ.dup = true then DFrac.discard else DFrac.own 1) none)
 
 def logRecs [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) : IProp GF :=
   [∗list] k ↦ e ∈ es,
@@ -890,7 +892,9 @@ theorem logRecsC_timeless [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : Li
     (logRecsC γ b es)
 
 def propIdx (γ : RaftNames) (d : List w8) (i : w64) : IProp GF :=
-  iprop(∃ p k γt, d ↪[γ.reProps]□ p ∗ k ↪[p.snd]□ γt ∗ dghostVar γt DFrac.discard (some i))
+  iprop(∃ p k γt,
+      d ↪[γ.reProps]□ p ∗
+        k ↪[p.snd]□ γt ∗ (dghostVar γt DFrac.discard (some i) ∨ ⌜γ.dup = true⌝ ∗ dghostVar γt DFrac.discard none))
 
 theorem isCampK_persistent (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) : Persistent
     (isCampK γ c T F k)
@@ -1142,6 +1146,9 @@ def ev2Rec [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
             ⌜PlogWf base0 P ∧
                 ↑P.length + 1 = uint.Z e.Index' ∧
                   plogTermAt base0 P (W64 ↑P.length) = some pt ∧ CfgAt γ M P c ∧ c.joint = true⌝)
+
+theorem propTk_persist [ReceiptGS GF] (γ : RaftNames) (d : List w8) (h : γ.dup = true) : propTk γ d
+    ⊢ □ propTk γ d
 
 theorem snapAtOk_timeless (γ : RaftNames) (k : SnapTrip) : Timeless (snapAtOk γ k)
 

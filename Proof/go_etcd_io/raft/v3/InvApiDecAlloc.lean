@@ -39,9 +39,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A new cluster of client decisions**, of the voters `vs`, with snapshots (`InvNodeRule`'s
 `cluster_alloc`). -/
-theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (E : CoPset) :
+theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         leaderTransferOn γ N ∗ joinAuthU γ (GMap.listToSet vs) ∗
@@ -69,9 +69,9 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (E : CoPset) :
   imod ownRaftGhost_alloc_core_reg E (GMap.listToSet vs) allNodeIds (some (DynCfg.all dc))
     (fun _ _ => True) [] (W64 0) (allocOut N [] bud md tab) none (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
-    (N .@ "raft") N (some g) (some gd) Hcne Hnz0 BootWf_nil (fun h => absurd rfl h)
+    (N .@ "raft") N (some g) (some gd) dup Hcne Hnz0 BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
@@ -112,6 +112,8 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (E : CoPset) :
   imodintro
   iexists γ
   iframe Hops Hctx Hdc Hja
+  isplitr
+  · ipureintro; exact Hdup
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr
   isplitl [Hdm]

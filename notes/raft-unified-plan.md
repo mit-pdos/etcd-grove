@@ -256,6 +256,23 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
   s.term + 1`, which `netP`'s `termLB` ceiling does not cover: a hup needs a budget step like a
   tick's, `budget_spend` with a time receipt. Admitting it through `NetMsgOk`/`netStepTypes` would
   change `stepIn`, a public vocabulary; a separate local case of `netP`, internal, would not).
+- S1 as built (2026-10-29; candidate 15 rev 2, `spec-first-study/raft-propose-dup-spec.md`, as
+  frozen): `RaftNames.dup : Bool := false` (`Protocol/Ghost.lean`), `Cluster.dup γ := γ.raft.dup`
+  (`InvNode.lean`, sealed); `cluster_alloc_dec` takes `dup` and gives `⌜γ.dup = dup⌝`
+  (`ownRaftGhost_alloc_core_reg` takes it; `ownRaftGhost_alloc_core` passes `false`);
+  `node.Propose.spec`/`node.ProposeConfChange.spec` wrap the update in `□?γ.dup`; `msgCredits_copy`.
+  `msgCredits_none`/`_snapshot` kept. Departures and details: (a) `cluster_alloc_static` also gives
+  `⌜γ.dup = false⌝` (the frozen text names two old allocations; F2's every-allocation rule covers this
+  third one, still exported). (b) The ticket's split is on its ghost variable's fraction: `propTk`'s
+  `dghostVar γt (if γ.dup then □ else 1) none`, and `propIdx` gains the disjunct `⌜γ.dup = true⌝ ∗
+  dghostVar γt □ none` (the ticket kept), instead of a bare persistent witness: the bootstrap
+  entries' deposits are fired (`some i`, `boot_register`), and `fire_one`'s dup case still refutes a
+  fired deposit by `none`/`some i` agreement. `entDataIs` is textually unchanged (its ticket part is
+  `propIdx`). (c) `depSlot`'s unfired disjunct holds `□?γ.dup propAu1` (the deposited update), so
+  `prop_deposit`, `propArg` (`InvNodeChan.lean`) and `ccPropArg` (`ApiVocab.lean`) take `□?γ.dup
+  propAu1`; `api_propAu1_if` (`InvApi.lean`) lifts `api_propAu1`. (d) `nodeRunning_stopped`: isCluster
+  premise dropped (unused). Not repaired (raft first): etcd's server (`NewServerAlloc*`, the
+  allocation's post; `NodeBridge`, `Propose`'s `□?γ.dup`) and `examples/kv`.
 - A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
   public spec is escalated before it is built on; never a minor change.
 

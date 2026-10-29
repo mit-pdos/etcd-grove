@@ -617,12 +617,13 @@ most once, when the entry commits (never if a leader refuses the change: its rep
 normal entry, is a filler). The bytes are known only once `o` is marshaled (`MarshalsConfChange`
 is a relation), so this is a ghost step the proposal takes then, at mask `⊤` (the caller may
 register the key there, `prop_register`); for bytes that make the entry a filler (`Filler`: an
-empty `ConfChangeV2`) the caller may give nothing. -/
+empty `ConfChangeV2`) the caller may give nothing. (2026-10-29, S1) In a `dup` cluster
+(`RaftNames.dup`) the update is persistent (`□?γ.dup`), fired at every committed copy. -/
 def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
   iprop(∀ bs, ⌜MarshalsConfChange (some o) bs⌝ ={⊤}=∗
     ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
     ∃ Q : List EntryM → IProp GF, propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
-      propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
+      □?γ.dup propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 end
 

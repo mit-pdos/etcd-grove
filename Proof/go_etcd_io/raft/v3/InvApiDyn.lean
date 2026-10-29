@@ -279,7 +279,7 @@ theorem dynamicCluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (
     receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length ∧ γ.raft.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isDynamicCluster γ N (Membership.simple (GMap.listToSet ps)) decode ∗
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := by
@@ -312,7 +312,7 @@ theorem dynamicCluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (
     (sokOf (fun _ _ => False)) (fun _ => none) (N .@ "raft") N Hcne Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, Hsl, HNs, -⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, Hsl, HNs, -, -, Hdup⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
@@ -325,7 +325,7 @@ theorem dynamicCluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (
   imodintro
   iexists γ
   isplitr
-  · ipureintro; rw [Hboot, toEntries_length]
+  · ipureintro; rw [Hboot, toEntries_length]; exact ⟨rfl, Hdup⟩
   iframe Hops Hctx Hdc
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr
@@ -478,6 +478,49 @@ theorem nodeDriver_hardStateCommitted_impl (n : Loc) (γ : Cluster) (N : Namespa
   · ileft; ipureintro; exact H
   · iright; iexact H
   · exfalso; rw [Hdn.noSnap] at H; cases H
+
+/-- (2026-10-29, S1) In a `dup` cluster a proposal's tickets are persistent. -/
+theorem entTks_persist_impl (γ : RaftNames) (h : γ.dup = true) :
+    ∀ es : List EntryM, ([∗list] e ∈ es, entTk (GF := GF) γ e) ⊢ □ [∗list] e ∈ es, entTk γ e
+  | [] => by
+    iintro -
+    imodintro
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ e => entTk (GF := GF) γ e)).2
+    iempintro
+  | e :: es => by
+    iintro H
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e => entTk (GF := GF) γ e)).1 $$ H with ⟨He, Hs⟩
+    ihave #Hs := entTks_persist_impl γ h es $$ Hs
+    ihave He : □ entTk (GF := GF) γ e $$ [He]
+    · unfold entTk
+      split
+      · iclear He; imodintro; iempintro
+      · iapply propTk_persist γ _ h $$ He
+    icases He with #He
+    imodintro
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ e => entTk (GF := GF) γ e)).2
+    iframe He Hs
+
+/-- (2026-10-29, S1) In a `dup` cluster a `MsgProp`'s credits are persistent: no read credit, its
+tickets persistent. -/
+theorem msgCredits_copy_impl (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    γ.raft.dup = true → st.msg.Type' = MsgProp →
+    msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
+  intro Hd Hty
+  unfold msgCredits stTks
+  have h1 : st.msg.Type' ≠ MsgReadIndex := by rw [Hty]; simp [MsgReadIndex, MsgProp]
+  rw [if_neg h1, if_pos Hty]
+  iintro ⟨Hr, Hts⟩
+  ihave Hr : □ rdCred (GF := GF) γ.raft 0 $$ [Hr]
+  · unfold rdCred
+    haveI : Iris.CMRA.CoreId (0 : Nat) := CommMonoidLike.instCoreIdZero
+    icases Hr with #Hr
+    imodintro
+    iexact Hr
+  icases Hr with #Hr
+  ihave #Hts := entTks_persist_impl γ.raft Hd st.ents $$ Hts
+  imodintro
+  iframe Hr Hts
 
 /-- A `MsgSnap` carries no credit. -/
 theorem msgCredits_snapshot_impl (γ : Cluster) (N : Namespace) (st : MsgSt) :

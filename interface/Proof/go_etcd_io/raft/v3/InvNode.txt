@@ -32,9 +32,9 @@ theorem isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) : Timeless 
 
 theorem cluster_alloc_static [package_sem : Assumptions] (N : Namespace) (vs : List w64) (snapOk :
     List LogEntry → List w8 → Prop) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup
-    → ¬W64 0 ∈ vs → ↑vs.length ≤ 2 ^ 62 → ⊢ |={E}=> ∃ γ, ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗
-    readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗ [∗list] id ∈
-    vs, nodeRestartBoot γ N vs id
+    → ¬W64 0 ∈ vs → ↑vs.length ≤ 2 ^ 62 → ⊢ |={E}=> ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ [] ∗
+    ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn
+    γ N ∗ [∗list] id ∈ vs, nodeRestartBoot γ N vs id
 
 def (sealed) isReadCtx (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp GF) :
     IProp GF
@@ -118,8 +118,8 @@ theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64
     w8)) (boot : List LogEntry) (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool) (E :
     CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 → BootLog ps
     ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0)
-    ={E}=∗ ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-    isStaticCluster γ N ps snapOk ∗ (if transfer = true then leaderTransferOn γ N else
+    ={E}=∗ ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 -
+    2) ∗ isStaticCluster γ N ps snapOk ∗ (if transfer = true then leaderTransferOn γ N else
     leaderTransferOff γ N) ∗ readyFits γ N ∗ [∗list] id ∈ ps, nodeBoot γ N ps ctxs id
 
 def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
@@ -251,9 +251,14 @@ def (sealed) nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF
 
 theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyFits γ N)
 
+theorem msgCredits_copy [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    γ.dup = true → st.msg.Type' = MsgProp → msgCredits γ N st ⊢ □ msgCredits γ N st
+
 theorem readCredit_eq (γ : Cluster) : readCredit γ ⊣⊢ readCredits γ 1
 
 def (sealed) nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF
+
+def (sealed) Cluster.dup (γ : Cluster) : Bool
 
 theorem sentMsg_replaceSnapshot [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src :
     w64) (st : MsgSt) (sv sv' : SnapshotM) (c : w64) (l : List LogEntry) (E : CoPset) : ↑N ⊆ E →
@@ -300,10 +305,10 @@ theorem dynamicCluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : L
     List (List w8)) (boot : List LogEntry) (decode : ConfChangeDecoder) (transfer : Bool) (E :
     CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 → BootLog ps
     ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ↑ps.length ≤ 2 ^ 62 → ⊢ bootMarshal ps ctxs
-    (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ
-    (2 ^ 64 - 2) ∗ isDynamicCluster γ N (Membership.simple (listToSet ps)) decode ∗ (if transfer =
-    true then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗ [∗list] id ∈ ps,
-    nodeDynamicBoot γ N ps ctxs id
+    (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, ⌜γ.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ
+    ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗ isDynamicCluster γ N (Membership.simple (listToSet ps)) decode
+    ∗ (if transfer = true then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
+    [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id
 
 theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
     (src : w64) (st : MsgSt) : (st.msg.Type' ≠ MsgProp → NetMsgOk id { msg := st.msg, ents :=

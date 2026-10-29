@@ -143,16 +143,16 @@ namespace `N`: nothing committed, the read contexts with none used, the read cre
 none recorded, the membership of no entry the voters', the registry of the snapshots made (empty),
 leader transfer on, the join authority at the voters (2026-10-29, stage U4), and one founder's token
 per voter. The term budget, backed by time receipts (`receiptBound`), is the cluster's. -/
-theorem cluster_alloc_dec (N : Namespace) (vs : List w64) (E : CoPset) :
+theorem cluster_alloc_dec (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
         ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗ joinAuth γ (GMap.listToSet vs) ∗
         [∗list] id ∈ vs, nodeFounder γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
   unfold ownCommittedOps ownReadCtxs readCredits isCluster ownConfDecisions confAt ownSnapsMade
-    leaderTransferOn joinAuth nodeFounder
-  exact ApiImpl.cluster_alloc_dec_impl N vs E Hrb Hne Hnd Hnz Hlen
+    leaderTransferOn joinAuth nodeFounder Cluster.dup
+  exact ApiImpl.cluster_alloc_dec_impl N vs dup E Hrb Hne Hnd Hnz Hlen
 
 /-! ## Joining -/
 
@@ -169,9 +169,9 @@ theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
 /-- **A running node has not stopped**: a holder of a share of `nodeRunning` refutes the stopped
 answers (`node.Advance`'s and `node.ApplyConfChange`'s stopped cases). -/
 theorem nodeRunning_stopped (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
-    isCluster (GF := GF) γ N ∗ nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False := by
-  unfold isCluster nodeRunning nodeStopped
-  iintro ⟨-, H⟩
+    nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
+  unfold nodeRunning nodeStopped
+  iintro H
   iapply ApiImpl.nodeRunning_stopped_impl n γ N q $$ H
 
 /-! ## Decisions -/
