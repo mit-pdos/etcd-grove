@@ -30,17 +30,17 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF] [AllG GF]
 
 /-- See the file header. -/
 abbrev Replica.applyEntry.spec : Prop :=
-  ∀ (RA : RaftAssume (GF := GF)) (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (q : Qp)
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (q : Qp)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (l : List LogEntry) (e : LogEntry) (ep : Loc),
   ap ++ [e] <+: l → ((ap.length : Int) + 1 < 2 ^ 61) →
   {{ isReplica γr vs id r n st sts ∗ repOwn γr r ap idx csp m mA A ∗
       appNode γr n l ap.length m ∗ entRO ep (e.toEntryM (W64 (ap.length + 1))) ∗
-      isCommittedLogLb γr.cluster l ∗ RA.nodeLive n γr.cluster kvrRaftN q }}
+      isCommittedLogLb γr.cluster l ∗ nodeRunning n γr.cluster kvrRaftN q }}
     (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"applyEntry")) (Val #ep))
   {{ RET #(); ∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
       repOwn γr r (ap ++ [e]) (W64 (ap.length + 1)) csp' m' mA A' ∗
-      appNode γr n l (ap.length + 1) m' ∗ RA.nodeLive n γr.cluster kvrRaftN q }}
+      appNode γr n l (ap.length + 1) m' ∗ nodeRunning n γr.cluster kvrRaftN q }}
 
 end spec
 

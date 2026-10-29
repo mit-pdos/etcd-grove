@@ -102,7 +102,7 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       have Hok : ConfOk $oc m := Hb.1 rfl
       ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
       · iPkgInit
-      wp_apply wp_conf_apply RA γr vs id n q l e $oc _ c m ap.length Hk Hd Hok
+      wp_apply wp_conf_apply wp_ACC γr vs id n q l e $oc _ c m ap.length Hk Hd Hok
         $$ [$(frameH `Hraft) $(frameH `HisNode) $(frameH `Hcl) $(frameH `Hl) $(frameH `Hcc0) $(frameH `HcfgA) $(frameH `Hn) $(frameH `Hlive)] as %csp' ⟨%m', %c', #HcsO', #Hcfg', Hn', Hlive⟩
       try wp_auto
       wp_apply sync.Mutex.wp_Lock _ _ $$ [$(frameH `Hmu)] as ⟨Hlocked, HR⟩
@@ -140,7 +140,7 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       ihave #Hctr2 := isStats_field sts go!"JointEntered" (by decide) $$ Hstats
       ihave Hfin : iprop(∃ (csp'' : Loc) (m'' : Membership),
           repOwn γr r (ap ++ [e]) idx csp'' m'' mA A ∗
-          appNode γr n l (ap.length + 1) m'' ∗ RA.nodeLive n γr.cluster kvrRaftN q)
+          appNode γr n l (ap.length + 1) m'' ∗ nodeRunning n γr.cluster kvrRaftN q)
           $$ [HmK HK HmA HA Hcs Hidx Hn' Hlive]
       · iexists csp', m'
         iframe Hn' Hlive
@@ -174,13 +174,14 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
   ))
 
 theorem Replica.applyConf.wp_proof
+    (wp_ACC : node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (wp_validConf : validConf.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
     (wp_EnterJoint : raftpb.ConfChangeV2.EnterJoint.spec (GF := GF) (hG := hG)) :
     Replica.applyConf.spec (GF := GF) (hG := hG) := by
-  intro RA γr vs id r n st sts q ap idx csp m mA A l e ci o Hpre Hd Htr Hlen'
+  intro γr vs id r n st sts q ap idx csp m mA A l e ci o Hpre Hd Htr Hlen'
   wp_start as ⟨#Hrep, Hown, Hn, #Hcc, #Hl, Hlive⟩
   iunfold isReplica at Hrep
   iNamed Hrep

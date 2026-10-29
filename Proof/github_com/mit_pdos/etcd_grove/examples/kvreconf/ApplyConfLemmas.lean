@@ -8,8 +8,8 @@ view of the node (`appNode`), at the entry's position `k`:
 
 - rejected (`validConf` says no: `¬ ConfOk o m`): the rule decides `skip` (`kvr_confAt_conf`), the
   configuration stays, the node's skipped range grows (`conf_reject`);
-- accepted: the rule decides `apply o`, and `node.ApplyConfChange` (`RaftAssume`'s) answers the
-  configuration after it; its stopped answer is refuted by the applier's `nodeLive` (`wp_conf_apply`).
+- accepted: the rule decides `apply o`, and `node.ApplyConfChange` (raft's `node.ApplyConfChange.spec`) answers the
+  configuration after it; its stopped answer is refuted by the applier's `nodeRunning` (`wp_conf_apply`).
 -/
 module
 
@@ -93,18 +93,18 @@ theorem conf_reject (γr : RNames) (vs : List w64) (n : Loc)
   · ipureintro; exact ⟨Hvm.1, by omega⟩
 
 /-- **An accepted conf entry applied to the node** (see the file header): the applier's fraction
-of `nodeLive` refutes the stopped answer. -/
-theorem wp_conf_apply (RA : RaftAssume (GF := GF)) (γr : RNames) (vs : List w64) (id : w64)
+of `nodeRunning` refutes the stopped answer. -/
+theorem wp_conf_apply (wp_ACC : node.ApplyConfChange.spec (GF := GF) (hG := hG)) (γr : RNames) (vs : List w64) (id : w64)
     (n : Loc) (q : Qp) (l : List LogEntry) (e : LogEntry) (o : ConfChangeIM) (c : GoInterface)
     (cs0 : ConfStateM) (m : Membership) (k : Nat) (hk : l[k]? = some e)
     (hd : ccDecode e = some o) (hok : ConfOk o m) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γr.cluster kvrRaftN id ∗
         kvrCluster γr vs ∗ isCommittedLogLb γr.cluster l ∗ ownConfChangeI c DFrac.discard (some o) ∗
-        cfgAt γr cs0 m k ∗ appNode γr n l k m ∗ RA.nodeLive n γr.cluster kvrRaftN q }}
+        cfgAt γr cs0 m k ∗ appNode γr n l k m ∗ nodeRunning n γr.cluster kvrRaftN q }}
       (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n)) (Val #c))
     {{ (csp' : Loc), RET #csp'; ∃ (m' : Membership) (c' : ConfStateM),
         csOpt csp' DFrac.discard c' ∗ cfgAt γr c' m' (k + 1) ∗
-        appNode γr n l (k + 1) m' ∗ RA.nodeLive n γr.cluster kvrRaftN q }} := by
+        appNode γr n l (k + 1) m' ∗ nodeRunning n γr.cluster kvrRaftN q }} := by
   iintro %Φ ⟨#Hraft, #Hnode, #Hcl, #Hl, #Hcc, #Hc, Hn, Hlive⟩ HΦ
   unfold cfgAt
   icases Hc with ⟨%Hcs, #Hca⟩
@@ -122,10 +122,10 @@ theorem wp_conf_apply (RA : RaftAssume (GF := GF)) (γr : RNames) (vs : List w64
   rw [show ConfDecision.ofRule (some o) = .apply o from rfl]
   obtain ⟨Hvm, Hva⟩ := Hvm
   iapply wp_fupd
-  wp_apply RA.ApplyConfChange_spec n γr.cluster kvrRaftN id c o o l k e v m' Hva hk
+  wp_apply wp_ACC n γr.cluster kvrRaftN id c o o l k e v m' Hva hk
     (ccDecode_isConfChange hd) (by rw [Hvm]; exact Hstep) (by rw [Hvm]; exact Hstep)
-    $$ [$Hraft $Hnode $Hic $Hd $Hcc $Hv $Hdl $Hsk] as %csp' Hr
-  icases Hr with (⟨%cs, Hcs', Hv', %Hcsm⟩ | ⟨%Hnull, #Hst⟩)
+    $$ [$Hraft $Hnode $Hic $Hd $Hcc $Hv $Hdl $Hsk] as %csp' %cs Hr
+  icases Hr with (⟨Hcs', Hv', %Hcsm⟩ | ⟨%Hnull, #Hst⟩)
   · imod csPts_persist csp' (DFrac.own 1) cs true $$ Hcs' with #Hcs'
     imodintro
     iapply HΦ
@@ -142,7 +142,7 @@ theorem wp_conf_apply (RA : RaftAssume (GF := GF)) (γr : RNames) (vs : List w64
       intro j e' h1 h2; simp only at h1 h2; omega
     · ipureintro; exact ⟨rfl, Nat.le_refl _⟩
   · iexfalso
-    iapply RA.nodeLive_stopped n γr.cluster kvrRaftN q
+    iapply nodeRunning_stopped n γr.cluster kvrRaftN q
     iframe Hlive Hst
 
 end laws

@@ -38,7 +38,7 @@ under the lock: `propose` the applied table, `conf` the configuration and the ap
 applier owns the store's map and half of each shared field (`repOwn`, with the precise facts: the
 fields are the replicated state of a committed prefix `ap`, `r.index = len ap`, the configuration a
 read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m`; the node never
-stops under the applier, which holds a fraction of `nodeLive`, since `stop` waits for the loop), and the lock the other halves (`repShared`, with what readers need: the applied
+stops under the applier, which holds a fraction of `nodeRunning`, since `stop` waits for the loop), and the lock the other halves (`repShared`, with what readers need: the applied
 table is some committed prefix's). Writing takes the lock. The waiters (keyed by the operation's
 datum: `r.waiters` is a `map[string]chan string`) and the waiting reads (by sequence number) are
 kv's.
@@ -46,7 +46,9 @@ kv's.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ConfStep
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RaftAssume
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
+public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Stats
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 

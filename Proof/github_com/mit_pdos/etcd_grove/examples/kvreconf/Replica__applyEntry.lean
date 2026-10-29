@@ -107,7 +107,7 @@ theorem Replica.applyEntry.wp_proof
     (wp_Unmarshal1 : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
     (wp_Unmarshal2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG)) :
     Replica.applyEntry.spec (GF := GF) (hG := hG) := by
-  intro RA γr vs id r n st sts q ap idx csp m mA A l e ep Hpre Hlen'
+  intro γr vs id r n st sts q ap idx csp m mA A l e ep Hpre Hlen'
   wp_start as ⟨#Hrep, Hown, Hn, #Hent, #Hl, Hlive⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
@@ -172,7 +172,7 @@ theorem Replica.applyEntry.wp_proof
           DFrac.discard (some (.v1 cm)) $$ []
       · simp only [ownConfChangeI]; iexists cc_ptr; iframe Hcc; ipureintro; rfl
       try wp_auto
-      wp_apply wp_applyConf RA γr vs id r n st sts q ap idx csp m mA A l e _ (.v1 cm) Hpre Ho Htr Hlen'
+      wp_apply wp_applyConf γr vs id r n st sts q ap idx csp m mA A l e _ (.v1 cm) Hpre Ho Htr Hlen'
         $$ [$Hrep $Hown $Hn $Hci $Hl $Hlive] as Hc0
       icases Hc0 with ⟨%csp1, %m1, Hro, Han, Hlive⟩
       ihave Hnext : iprop(∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
@@ -204,7 +204,7 @@ theorem Replica.applyEntry.wp_proof
             #cc_ptr) DFrac.discard (some (.v2 cc)) $$ []
         · simp only [ownConfChangeI]; iexists cc_ptr; iframe Hcc; ipureintro; rfl
         try wp_auto
-        wp_apply wp_applyConf RA γr vs id r n st sts q ap idx csp m mA A l e _ (.v2 cc) Hpre Ho Htr
+        wp_apply wp_applyConf γr vs id r n st sts q ap idx csp m mA A l e _ (.v2 cc) Hpre Ho Htr
           Hlen' $$ [$Hrep $Hown $Hn $Hci $Hl $Hlive] as Hc0
         icases Hc0 with ⟨%csp1, %m1, Hro, Han, Hlive⟩
         ihave Hnext : iprop(∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
