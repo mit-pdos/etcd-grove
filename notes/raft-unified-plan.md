@@ -136,6 +136,31 @@ Each: old → new, and why.
   γ.c0` (the cluster has no public `c0`); `vs.Nodup` because `NewRawNode` takes the `ConfState`'s list
   without repeats.
 
+## Spec changes during U11's `confchange`/`tracker` specs (2026-10-29, branch `raft-unified-cc`)
+
+The frozen design is candidate §4b (`notes/spec-first-study/raft-node-unified-candidate.md`). Each item gives
+the design, what was done instead, and why. All sent to the coordinator and approved.
+
+- `Membership.applyChange` is unchanged: other tracks' frozen statements rest on it. It does not become
+  Go's `confchange` (the design's H2). Instead there is a new sealed `Membership.applyGo` (Go's
+  `confchange`, no cut), with `Membership.applyChange_eq_applyGo : applyChange o m = (applyGo o m).filter
+  (size ·.ids < 2^62)`, and the `Changer` apiSpecs are stated over `applyGo`.
+- `confchange.Restore.apiSpec`: the premises `confStateIs c m ∧ m.WellFormed` were not enough. They gain
+  `m.Restorable` (new, transparent: `W64 0 ∉ m.ids ∧ ∀ k ∈ m.learnersNext, k ∉ m.voters`). Without it the
+  statement is false. Take `m = Membership.simple {0}`, which is `Valid`: `Restore` runs `Simple([AddNode
+  0])`, `apply` skips id `0`, and the call fails with "removed all voters". Take also `m = ⟨{1}, {1}, ∅, {1},
+  _⟩`, which is `Valid`: `Restore`'s `AddLearnerNode 1` takes 1 out of the incoming voters, and the call
+  fails the same way. Laws: `Membership.restorable_empty`, `restorable_simple` (`0 ∉ vs`),
+  `applyGo_restorable` and `applyChange_restorable` (from a `WellFormed` membership), and
+  `confAt_restorable : confAt γ k m ⊢ ⌜m.Restorable⌝`. This last one is why internal `ModeDec`
+  (`InvApiDec.lean`) records the initial membership's `Restorable`; `cluster_alloc_dec` proves it from
+  `W64 0 ∉ vs`.
+- The `Changer` apiSpecs take no `m.WellFormed` premise: `ownTrackerM trk (some m)` carries the reachable
+  state (`CCGood`). They give back `ownTrackerM chg.Tracker' (some m)`, since the tracker is only read.
+- `ownTrackerM trk none` holds the fresh progress map owned. `Restore`'s derivation makes it read-only,
+  as the internal spec takes it.
+- New: `Membership.applyGo_asV2`/`applyChange_asV2` (a `ConfChange` is its `asV2`), asked for by track C.
+
 ## Machinery (the map of the two modes, 2026-10-28)
 
 - Mode: `RaftNames.reDyn` (`none` static), `reNoSnap`, `reNoXfer`, `reTracked` (static), `reSnapOkRaw`

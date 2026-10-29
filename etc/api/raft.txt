@@ -31,6 +31,11 @@ importable Proof.go_etcd_io.raft.v3.InvNodeRule
 # (2026-10-28, the conf-change decision switch) a client library deciding conf entries by a rule over
 # the cluster's decisions: `confPolicy` (persistent), `confPolicy_alloc`, `confPolicy_decide`
 importable Proof.go_etcd_io.raft.v3.ConfPolicy
+# (2026-10-29, stage U11) `confchange`/`tracker` for clients validating a change as raft does:
+# `Membership.applyGo` (sealed; `applyChange` is it cut at `2^62` ids), `Membership.Restorable`
+# (`confAt_restorable`), `ownTrackerM`/`ownCfgPairM` (sealed) with their laws, the `apiSpec`s of
+# `MakeProgressTracker`, `Restore`, `Changer.{Simple,EnterJoint,LeaveJoint}` (linked in `Linked`)
+importable Proof.go_etcd_io.raft.v3.ConfchangeApi
 importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance

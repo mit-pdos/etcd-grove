@@ -23,10 +23,12 @@ fields and `confchange`'s model (`InvConfchange.lean`); these are over a `Member
 module
 
 public import Proof.go_etcd_io.raft.v3.ConfRule
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Proof.go_etcd_io.raft.v3.CCApply
 import Proof.go_etcd_io.raft.v3.ConfchangeApiImpl
 import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -260,6 +262,21 @@ abbrev confchange.Changer.LeaveJoint.apiSpec : Prop :=
         ⌜err ≠ interface.nil ∧ Membership.applyGo o m = none⌝) }}
 
 end specs
+
+section confat
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **Every configuration of a cluster is restorable**: it comes from the initial membership (no
+id `0`) through changes, which keep it restorable (`Membership.applyChange_restorable`). -/
+theorem confAt_restorable (γ : Cluster) (k : Nat) (m : Membership) :
+    confAt (GF := GF) γ k m ⊢ ⌜m.Restorable⌝ := by
+  unfold confAt; exact ApiImpl.confAtU_restorable γ k m
+
+end confat
 
 end EtcdGrove
 end Perennial

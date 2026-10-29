@@ -10,6 +10,8 @@ public import Proof.go_etcd_io.raft.v3.InvApiDyn
 public import Proof.go_etcd_io.raft.v3.ConfRule
 public import Proof.go_etcd_io.raft.v3.InvConfchange
 public import Proof.go_etcd_io.raft.v3.InvRestore
+public import Proof.go_etcd_io.raft.v3.InvApiDec
+import all Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -110,20 +112,20 @@ theorem ccApplyM_leaveJoint {o : ConfChangeIM} (s : CCState) (ho : ccV2Of o = (W
 
 /-! ### `Restore` of a `ConfState` reporting a membership -/
 
-theorem mem_of_perm {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S) (k : w64) :
+theorem cc_mem_of_perm {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S) (k : w64) :
     k ∈ l ↔ k ∈ S := by
   rw [h.mem_iff, GMap.elem_of_elements]
 
-theorem listToSet_of_perm {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S) :
+theorem cc_listToSet_of_perm {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S) :
     GMap.listToSet l = S :=
-  GMap.set_eq fun k => by rw [GMap.elem_of_list_to_set, mem_of_perm h]
+  GMap.set_eq fun k => by rw [GMap.elem_of_list_to_set, cc_mem_of_perm h]
 
-theorem nil_of_perm_empty {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S)
+theorem cc_nil_of_perm_empty {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S)
     (hS : S = ∅) : l = [] := by
   subst hS
-  exact List.eq_nil_iff_forall_not_mem.2 fun k hk => GMap.not_elem_of_empty k ((mem_of_perm h k).1 hk)
+  exact List.eq_nil_iff_forall_not_mem.2 fun k hk => GMap.not_elem_of_empty k ((cc_mem_of_perm h k).1 hk)
 
-theorem mem_ids_iff (m : Membership) (k : w64) :
+theorem cc_mem_ids_iff (m : Membership) (k : w64) :
     k ∈ m.ids ↔ k ∈ m.voters ∨ k ∈ m.votersOutgoing ∨ k ∈ m.learners ∨ k ∈ m.learnersNext := by
   simp only [Membership.ids, GMap.elem_of_union, or_assoc]
 
@@ -143,35 +145,35 @@ theorem restore_of_confStateIs (c : ConfStateM) (m : Membership) (hc : confState
   have Hwf : CSWf c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' := by
     refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro h; apply hin'
-      rw [← listToSet_of_perm hV, h]; try rfl
+      rw [← cc_listToSet_of_perm hV, h]; try rfl
     · intro x hx e; subst e; apply hr.1
-      rw [mem_ids_iff]
+      rw [cc_mem_ids_iff]
       rcases hx with hx | hx | hx | hx
-      · exact .inr (.inl ((mem_of_perm hVO _).1 hx))
-      · exact .inl ((mem_of_perm hV _).1 hx)
-      · exact .inr (.inr (.inl ((mem_of_perm hL _).1 hx)))
-      · exact .inr (.inr (.inr ((mem_of_perm hLN _).1 hx)))
+      · exact .inr (.inl ((cc_mem_of_perm hVO _).1 hx))
+      · exact .inl ((cc_mem_of_perm hV _).1 hx)
+      · exact .inr (.inr (.inl ((cc_mem_of_perm hL _).1 hx)))
+      · exact .inr (.inr (.inr ((cc_mem_of_perm hLN _).1 hx)))
     · intro x hx
-      have := hgL x ((mem_of_perm hL _).1 hx)
-      exact ⟨fun h => this.1 ((mem_of_perm hV _).1 h), fun h => this.2 ((mem_of_perm hVO _).1 h)⟩
+      have := hgL x ((cc_mem_of_perm hL _).1 hx)
+      exact ⟨fun h => this.1 ((cc_mem_of_perm hV _).1 h), fun h => this.2 ((cc_mem_of_perm hVO _).1 h)⟩
     · intro x hx
-      have hx' := (mem_of_perm hLN _).1 hx
+      have hx' := (cc_mem_of_perm hLN _).1 hx
       have ho := hinvLN x hx'
-      refine ⟨(mem_of_perm hVO _).2 ho, fun h => hr.2 x hx' ((mem_of_perm hV _).1 h), fun h => ?_⟩
-      exact (hgL x ((mem_of_perm hL _).1 h)).2 ho
+      refine ⟨(cc_mem_of_perm hVO _).2 ho, fun h => hr.2 x hx' ((cc_mem_of_perm hV _).1 h), fun h => ?_⟩
+      exact (hgL x ((cc_mem_of_perm hL _).1 h)).2 ho
     · intro h
-      have hO : m.votersOutgoing = ∅ := by rw [← listToSet_of_perm hVO, h]; try rfl
-      exact nil_of_perm_empty hLN (hinvO hO).1
+      have hO : m.votersOutgoing = ∅ := by rw [← cc_listToSet_of_perm hVO, h]; try rfl
+      exact cc_nil_of_perm_empty hLN (hinvO hO).1
   refine ⟨Hwf, ?_⟩
   rw [restoreM_wf _ _ _ _ _ Hwf]
   congr 1
   unfold stOf
   congr 1
   unfold csCfgM cfgOf
-  rw [listToSet_of_perm hV, listToSet_of_perm hVO, listToSet_of_perm hL, listToSet_of_perm hLN]
+  rw [cc_listToSet_of_perm hV, cc_listToSet_of_perm hVO, cc_listToSet_of_perm hL, cc_listToSet_of_perm hLN]
   congr 1
   by_cases h : c.VotersOutgoing' = []
-  · have hO : m.votersOutgoing = ∅ := by rw [← listToSet_of_perm hVO, h]; try rfl
+  · have hO : m.votersOutgoing = ∅ := by rw [← cc_listToSet_of_perm hVO, h]; try rfl
     rw [ite_eq_left h, (hinvO hO).2]
   · rw [ite_eq_right h, hAL]
 
@@ -180,8 +182,8 @@ theorem confStateIs_empty {c : ConfStateM} (hc : confStateIs c Membership.empty)
     c.Voters' = [] ∧ c.VotersOutgoing' = [] ∧ c.Learners' = [] ∧ c.LearnersNext' = [] ∧
       c.AutoLeave' = false := by
   obtain ⟨hV, hVO, hL, hLN, hAL⟩ := hc
-  exact ⟨nil_of_perm_empty hV rfl, nil_of_perm_empty hVO rfl, nil_of_perm_empty hL rfl,
-    nil_of_perm_empty hLN rfl, hAL⟩
+  exact ⟨cc_nil_of_perm_empty hV rfl, cc_nil_of_perm_empty hVO rfl, cc_nil_of_perm_empty hL rfl,
+    cc_nil_of_perm_empty hLN rfl, hAL⟩
 
 theorem stOf_empty : stOf Membership.empty = cfgState ∅ ∅ := stOf_simple ∅
 
@@ -380,7 +382,7 @@ theorem rstate_of_restorable {m : Membership} (hg : CCGood (stOf m))
   have hmem : ∀ k, k ∈ (stOf m).prs → k ∈ m.ids := by
     intro k hk
     rw [hg.1 k, mem_ids] at hk
-    rw [mem_ids_iff]
+    rw [cc_mem_ids_iff]
     rcases hk with h | h | h
     · exact .inl h
     · exact .inr (.inl h)
@@ -599,6 +601,65 @@ theorem cfgPairBody_of_restore (m : Membership) (cfg : tracker.Config) (prsm : L
   ipureintro; exact ⟨hg, Htf⟩
 
 end defs
+
+/-! ### Every configuration of a cluster of client decisions is restorable -/
+
+section confat
+
+theorem decFoldFrom_restorable [GooseExts] (M : DecMap) (k : Nat) (m m' : Membership)
+    (l : List LogEntry) (hm : m.Valid)
+    (hr : W64 0 ∉ m.ids ∧ ∀ k, k ∈ m.learnersNext → k ∉ m.voters)
+    (h : decFoldFrom M k m l = some m') :
+    W64 0 ∉ m'.ids ∧ ∀ k, k ∈ m'.learnersNext → k ∉ m'.voters := by
+  induction l generalizing k m with
+  | nil => simp only [decFoldFrom, Option.some.injEq] at h; subst h; exact hr
+  | cons e l ih =>
+    simp only [decFoldFrom] at h
+    cases hs : decStep M k m e with
+    | none => rw [hs] at h; cases h
+    | some m1 =>
+      rw [hs, Option.bind_some] at h
+      have hv1 : m1.Valid := by
+        unfold decStep at hs
+        split at hs
+        · split at hs
+          · cases hs
+          · cases hs; exact hm
+          · exact memApply_valid _ m m1 hm hs
+        · cases hs; exact hm
+      apply ih (k + 1) m1 hv1 _ h
+      unfold decStep at hs
+      split at hs
+      · split at hs
+        · cases hs
+        · cases hs; exact hr
+        · rename_i o _
+          have hs' : memApply o m = some m1 := hs
+          rw [memApply_eq_go] at hs'
+          cases hg : memApplyGo o m with
+          | none => rw [hg] at hs'; cases hs'
+          | some m2 =>
+            rw [hg, Option.filter_some] at hs'
+            split at hs'
+            · cases hs'; exact memApplyGo_restorable hm.2 hr hg
+            · cases hs'
+      · cases hs; exact hr
+
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem confAtU_restorable (γ : Cluster) (k : Nat) (m : Membership) :
+    confAtU (GF := GF) γ k m ⊢ ⌜W64 0 ∉ m.ids ∧ ∀ k, k ∈ m.learnersNext → k ∉ m.voters⌝ := by
+  unfold confAtU
+  iintro ⟨%l, %M, -, -, %P⟩
+  ipureintro
+  obtain ⟨-, c0, g, hm, hf⟩ := P
+  exact decFoldFrom_restorable M 0 c0 m _ hm.valid hm.2.2 hf
+
+end confat
 
 end ApiImpl
 end EtcdGrove

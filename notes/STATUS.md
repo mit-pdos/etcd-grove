@@ -469,6 +469,20 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, stage U11: `confchange`/`tracker` for clients (2026-10-29, branch `raft-unified-cc`)
+
+The importable specs a client needs to validate a change the way raft does (kvreconf's `validConf`) are
+in `Proof/go_etcd_io/raft/v3/ConfchangeApi.lean`, which is in `etc/api/raft.txt`:
+- `Membership.applyGo` (sealed) and `Membership.Restorable`, with their laws (`applyChange_eq_applyGo`,
+  `applyChange_restorable`, `applyChange_asV2`, `confAt_restorable`);
+- `ownTrackerM`/`ownCfgPairM` (sealed), with `ownTrackerM_assemble` and `ownCfgPairM_size`;
+- the `apiSpec`s of `MakeProgressTracker`, `Restore` and `Changer.{Simple,EnterJoint,LeaveJoint}`.
+
+They are derived from the internal specs (`ConfchangeApiProof.lean`, over `ConfchangeApiImpl.lean`) and
+linked in `Linked.lean` (`RaftLink.*_api`). No `sorry` or axiom is added. The client proof (`validConf`)
+is not written yet. Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U11's
+`confchange`/`tracker` specs".
+
 ## Raft unified, stage U4: joiners (2026-10-29, branch `raft-unified`)
 
 Done in the decision cluster (`cluster_alloc_dec`, its log empty); raft's tree builds (`Link`,
