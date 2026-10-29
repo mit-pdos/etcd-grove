@@ -287,9 +287,9 @@ theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   iintro !> %A %B %Hab #HA
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
     (by simp only [kvStOn, kvModelOn,
       kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
@@ -316,7 +316,7 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   unfold atomic_acc
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
   imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -326,14 +326,14 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ Hh] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ] with -
-    · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ Hh] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
     imodintro
     iintro !>
     iexact HQs

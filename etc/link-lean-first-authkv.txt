@@ -22,8 +22,8 @@ context_ErrAny: @
 metadata_AppendToOutgoingContext:
 authkv_reqCtx: context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
 # (the auth plan's E2h) `SetUp`: the puts with a persistent update (`client_Put_any`), the
-# admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) over the
-# Auth service's premise `setupAuthOk`
+# admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) at etcd's
+# Auth specs (`setupAuthServed`), in a context with no outgoing metadata (5b)
 v3_authClient__UserAdd: @
 v3_authClient__UserGrantRole: @
 v3_authClient__RoleAdd: @

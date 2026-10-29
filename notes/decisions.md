@@ -25362,3 +25362,66 @@ Decided by the agent:
   finding C2).
 - Laws for clients: `grantedAt_iff` with `srvAuthAtLog` (`ProposeOn.lean`), `kvGranted_emptyUser`
   (`KVAuthModel.lean`) and `srvTLSId_false` (`AuthReqDerive.lean`).
+
+## The write grant through the client's `On` results (2026-10-29, the auth-mode merge's 5a)
+
+Step 5 told a write's update its grant (`v3rpc.kvDepOwnOn`), but only up to v3rpc. The client's
+registrations (`etcdPutSpecOn`, `etcdDeleteSpecOn`, `etcdTxnSpecOn`) and results (`client_put_on`,
+`client_delete_on`, `client_txn_on`) still took a plain `kvOpAu1`, and `ServedOn` dropped the grant
+(`kvDepOwnOn_of_dep` at `L₀ = []`). authkv needs it at the client: its write update refutes a
+foreign principal at the commit. Statements reviewed by authkv's session before the proof.
+- v3rpc: `kvOpAuOn s E ρ tok op Q`, which is `kvDepOwnOn`'s `.op1` case: `∃ L₀, srvReqLogLb ρ.raft
+  L₀ ∗ kvAu1G … (opGrantT s E ρ tok op L₀) Q`. The registrations take it at the attempt's token
+  (`auth.mdTokenOf md`).
+- Client: the caller doesn't know which attempt's metadata the server saw, so its update is told
+  the grant at some attempt's token: `clientGrant` (`∃ md, ⌜clientAttemptMd conn ctx md⌝ ∗
+  opGrantT …`), `clientOpAuOn` (the same shape as `kvOpAuOn`), and for a transaction `txnUpdAtOn`.
+  Laws: `clientOpAuOn_attempt` (to `kvOpAuOn` at an attempt, by `kvAu1G_mono`) and
+  `clientOpAuOn_of_au1` (an update that ignores the grant, at `L₀ = []`).
+- The posts are unchanged.
+
+
+## The admin requests over a client's view of the auth history; authkv's `SetUp` (2026-10-29, the auth-mode merge's 5b)
+
+D2 of the 5b design (user-approved): the admin requests' permission is a client's update of an
+auth history, not an abstract `Q` the client chooses.
+- **The history.** `kvInvOn` holds half of a mono-list of auth states along the requested log
+  (`admStates γk st₀ L`: the boot state, then the state after each recorded admin entry,
+  `admEntry`); the other half, `authHistView`, is exported at the on boot (`server_cluster_alloc_on`).
+  Its holder alone can give the update a recorded admin entry needs (`histAu`, an atomic update
+  over the view, fired at the entry's commit with the header, the logs `L`, `L ++ [e]`, the
+  admission and the history after it), so no admin request changes the auth state without it.
+  A client freezes it (`authHistCell`, `authHistFrozen`): a frozen history is an upper bound of
+  every later lower bound (`authHistFrozen_prefix`), so the auth state stays where it was frozen.
+- **The reply** (`adminReplied`) carries `adminRecRes`: a lower bound of the history at the reply's
+  `L`, and `□ Q` if the entry was recorded (`admRec`), else that it was not. The lower bound was
+  added while proving `SetUp` (2026-10-29): a reply that recorded nothing (a `UserGrantRole` of a
+  role the user has) still tells its effect, but only at a state of the history, which needs the
+  bound. A strengthening of a proved post; no trust change.
+- **`pubAfterM`** gains `e.data ≠ []` (2026-10-29): the published state after an admin reply's
+  entry is computed by `srvAuthAtLog_snoc_adm`, which needs it; the proof had it.
+- **The client** names the connection in its Auth wrappers (`authObjAtC`, as `kvObjAtC`) and in
+  `clientTokAt` (the `Auth` field over the `KV`'s connection), so an attempt's token is known;
+  its update is `clientHistAu` (the header bound to some attempt's token, as `clientGrant`).
+- **authkv's `SetUp`** (the auth half; 2c adds the KV half): its pre is the approved one
+  (`clientTokAt cl [ep] (fun _ => False)`, `setupAuthServed`, `□ (srvTLSId s -∗ False)`,
+  `authHistView ρ.kv [srvAuthSt0]`, `E.authMode = .on γa`) plus the pure premise
+  `uint.Z ρ.kv.c0 ≤ uint.Z ρ.raft.ai0` (found in the proof: the published state after
+  `AuthEnable`'s entry needs the entry above the start's consistent index; the boot gives
+  `c0 = 0`). The post on success: the history frozen at a log `Lset` with
+  `srvAuthAtLog Lset = setupSt r`, and `setupSt r` published (`authPubLb`, `authStateAt`).
+  The proof (`SetupHist.lean`, pure; `SetupInv.lean`, ghost): the cell's open half in `SetUp`'s
+  invariant with what holds of an open history (every state `setupLike`, every effect kept);
+  an update while open appends (and `AuthEnable`'s, after the seven effects, appends `setupSt`
+  and freezes); while frozen none commits: the last state is enabled, so admission needs a user,
+  and the header has none (no credential token, no outgoing metadata in the context, no TLS
+  identity).
+- **The context's metadata** (user's choice, 2026-10-29: an axiom over a premise): the
+  trust-boundary spec `context.WithTimeoutBackgroundMd.spec` says `WithTimeout(Background(), d)`
+  has no outgoing metadata (`metadata.outgoingOf = none`; in Go only grpc stores under its
+  unexported key). Reviewed by the `axiom` skill before it is frozen. Superseded (the user's,
+  2026-10-29): one spec per function, the conjunct in `context.WithTimeoutBackground.spec` itself
+  (authkv F-W4's), `...Md` removed.
+- **Not here:** `ClientCertAuthEnabled ↦□ false` tied to the started member's config (the premise
+  `□ (srvTLSId s -∗ False)`'s source) is `Main`'s, with the rest of its proof: `memberUpOn`
+  exposes the config `cfg` but not that the server's field is `cfg.ClientCertAuthEnabled'`.

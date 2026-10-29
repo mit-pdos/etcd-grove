@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- The generated handler of `Auth.UserGrantRole`: decode a `*AuthUserGrantRoleRequest`, call `srv.UserGrantRole` (directly or
 through the interceptor chain, with `info.FullMethod = "/etcdserverpb.Auth/UserGrantRole"`), as every
-generated unary handler (`wp_unaryHandlerOwn`; the build checks that this handler's body is
+generated unary handler (`wp_unaryHandlerOwnMd`; the build checks that this handler's body is
 `unaryHandlerImpl` at these arguments). -/
 theorem etcdserverpb._Auth_UserGrantRole_Handler.wp_proof :
     etcdserverpb._Auth_UserGrantRole_Handler.spec (GF := GF) (hG := hG) :=
-  wp_unaryHandlerOwn etcdserverpb._Auth_UserGrantRole_Handler etcdserverpb.AuthServer.ty
+  wp_unaryHandlerOwnMd etcdserverpb._Auth_UserGrantRole_Handler etcdserverpb.AuthServer.ty
     etcdserverpb.AuthUserGrantRoleRequest.ty etcdserverpb.AuthUserGrantRoleResponse.ty go!"UserGrantRole" go!"/etcdserverpb.Auth/UserGrantRole"
 
 end proof

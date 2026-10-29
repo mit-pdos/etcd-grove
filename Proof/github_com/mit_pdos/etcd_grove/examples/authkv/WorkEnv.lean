@@ -18,9 +18,8 @@ key, at the state's events, with nothing of auth. `Work`'s refused watch, `u`'s 
 root's watch of every key need it generalized (the plan's S4). Until then `Work.spec` takes the
 watcher's facts as `Main` has them (`watchAddrFacts`).
 
-**Draft.** `akAuthFixed`'s write half is over `srvRLogLb`; 5b's frozen client history view
-(`authHistFrozen`, `admStates`) replaces it before the freeze, and its read half gets its source
-from 5b's law from the store's history to that view. `akAuthFixed_alloc` is S6's stub.
+**Draft.** `akAuthFixed`'s write half is over 5b's frozen history (`SetUp`'s post); its read half
+waits for its source, 5b's deferred read tie. `akAuthFixed_alloc` is S6's stub.
 -/
 module
 
@@ -29,6 +28,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.ClientAuth
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthModel
 
 @[expose] public section
 
@@ -71,19 +71,40 @@ instance akKVOn_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ :
 /-- **The auth state fixed after the set-up** (S6; persistent): for reads (round 1, F-W1), the
 set-up's published index `n` and every state of the auth history from it on `setupSt` at some
 revision (`client_range_on`/`client_txn_on`'s verdicts are from states at indices at least the
-published bound they are given); for writes (draft, F-E1: to be stated over 5b's client history
-view, which `G` carries), the set-up's log `Lset` committed and every committed log extending it at
-`setupSt`. -/
+published bound they are given; its source, 5b's deferred read tie, `notes/authkv-main-plan.md`);
+for writes (5b), the set-up's requested log `Lset` and the auth history frozen at its history
+(`SetUp`'s post), whose last state is `setupSt`: a write's grant at a log extending `Lset`
+(`writeGrantG`'s `authHistLb`) is then at `setupSt` (`akAuthFixed_write`). -/
 def akAuthFixed (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) :
     IProp GF :=
   iprop(auth.authPubLb γa n ∗
     □ (∀ m st, ⌜n ≤ m⌝ -∗ auth.authStateAt γa m st -∗ ⌜∃ r, st = setupSt r⌝) ∗
-    srvRLogLb ρ.raft Lset ∗
-    □ ∀ L, ⌜Lset <+: L⌝ -∗ srvRLogLb ρ.raft L -∗ ⌜∃ r, srvAuthAtLog ρ.kv srvAuthSt0 L = setupSt r⌝)
+    srvReqLogLb ρ.raft Lset ∗
+    ∃ (γz : GName) (hs : List auth.AuthState) (r : Nat), authHistFrozen ρ.kv γz hs ∗
+      ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝)
 
 instance akAuthFixed_persistent (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel)
     (n : Nat) : Persistent (akAuthFixed (GF := GF) γa ρ Lset n) := by
   unfold akAuthFixed; infer_instance
+
+/-- **A write granted after the set-up is granted at `setupSt`**: the grant's log `L` extends
+`Lset` and its history is a lower bound (`writeGrantG`), so the frozen history is `L`'s
+(`authHistFrozen_prefix`, `admStates_prefix`) and `L`'s auth state is `Lset`'s. -/
+theorem akAuthFixed_write (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat)
+    (L : List EntryModel) (E : CoPset) (hE : ↑authHistN ⊆ E) (hL : Lset <+: L) :
+    ⊢ akAuthFixed (GF := GF) γa ρ Lset n -∗ authHistLb ρ.kv (admStates ρ.kv srvAuthSt0 L) ={E}=∗
+      ⌜∃ r, srvAuthAtLog ρ.kv srvAuthSt0 L = setupSt r⌝ := by
+  iintro #Hf #Hlb
+  iunfold akAuthFixed at Hf
+  icases Hf with ⟨-, -, -, %γz, %hs, %r, #Hz, %Hh⟩
+  imod (authHistFrozen_prefix ρ.kv γz hs _ E hE) $$ Hz Hlb with %Hp
+  imodintro
+  ipureintro
+  have h1 := admStates_prefix ρ.kv srvAuthSt0 _ _ hL
+  rw [Hh.1] at h1
+  have heq : hs = admStates ρ.kv srvAuthSt0 L :=
+    h1.eq_of_length (Nat.le_antisymm h1.length_le Hp.length_le)
+  exact ⟨r, (srvAuthAtLog_of_admStates ρ.kv srvAuthSt0 Lset L (Hh.1.trans heq)).symm.trans Hh.2⟩
 
 end defs
 

@@ -27,11 +27,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 (`authCallOut`). -/
 abbrev retryAuthClient.UserGrantRole.spec : Prop :=
   ∀ (rac conn : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthUserGrantRoleRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗ □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (rac @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!!
         go!"UserGrantRole")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

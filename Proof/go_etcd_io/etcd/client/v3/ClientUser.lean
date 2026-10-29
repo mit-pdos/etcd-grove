@@ -54,7 +54,7 @@ theorem clientTokAt_user (cl : Loc) (eps : List GoString) (γa : auth.AuthNames)
             GoInterface) ∗
         kvObjAtC api conn eps ∗ userClientAt conn γa u := by
   unfold clientTokAt userClientAt
-  iintro ⟨%api, %conn, #Hkv, #Hobj, #Htok⟩
+  iintro ⟨%api, %conn, #Hkv, #Hobj, #Htok, -⟩
   iexists api, conn
   iframe Hkv Hobj Htok
 

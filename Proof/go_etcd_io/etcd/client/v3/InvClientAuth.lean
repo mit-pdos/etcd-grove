@@ -160,6 +160,13 @@ theorem authObjAt_split (api : Loc) (addr : List GoString) :
     iexists rac, conn, sl
     iframe #
 
+theorem authObjAtC_of (api conn : Loc) (addr : List GoString) :
+    authObjS (GF := GF) api conn ∗ isEtcdConn conn addr ⊢ authObjAtC api conn addr := by
+  unfold authObjS authObjAtC
+  iintro ⟨⟨%rac, %sl, #Hr, #Hra, #Hco, #Hok⟩, #Hc⟩
+  iexists rac, sl
+  iframe #
+
 theorem authObjAt_of (api conn : Loc) (addr : List GoString) :
     authObjS (GF := GF) api conn ∗ isEtcdConn conn addr ⊢ authObjAt api addr := by
   iintro ⟨#Ha, #Hc⟩
@@ -508,12 +515,18 @@ theorem clientAuthPre_anon (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List 
 /-- **The client `cl`'s KV calls carry its credentials' tokens meeting `P`** (persistent; what
 `New` gives at `clientAuthPre`'s `P`): its `KV` a `*kv` over a connection (`kvObjAtC`, the one
 `isNewClient`'s `kvObjAt` names) whose attempts carry a token meeting `P` or the context's own
-(`attemptTokOk`). -/
+(`attemptTokOk`), and (5b) its `Auth` an `*authClient` over the same connection (`authObjAtC`), so
+that an admin call's attempts are the connection's too. -/
 def clientTokAt (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) : IProp GF :=
   iprop(∃ api conn : Loc,
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
-    kvObjAtC api conn eps ∗ attemptTokOk conn P)
+    kvObjAtC api conn eps ∗ attemptTokOk conn P ∗
+    -- (5b) its `Auth`, an `*authClient` over the same connection
+    ∃ ap : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" cl ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
+          GoInterface) ∗
+      authObjAtC ap conn eps)
 
 instance clientTokAt_persistent (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) :
     Persistent (clientTokAt cl eps P) := by

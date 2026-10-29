@@ -91,12 +91,12 @@ theorem etcd_kv_auth_served_onA (addr : GoString) (p q pa s : Loc)
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/RoleGrantPermission"
-          (v3rpc.etcdRoleGrantPermissionSpec E ρ) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleGrantPermission"
+          (v3rpc.etcdRoleGrantPermissionSpec s E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec s E ρ) ∗
         isGrpcRpc addr authnMethod (etcdAuthenticateSpec γa) := by
   sorry
 

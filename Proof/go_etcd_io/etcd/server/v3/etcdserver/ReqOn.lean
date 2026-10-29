@@ -264,7 +264,7 @@ def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRMo
   match on with
   | false => iprop(True)
   | true => iprop(∃ e : EntryModel, srvRLogLb ρ.raft (L ++ [e]) ∗
-      ⌜e.typ = W32 0 ∧ apply.irrDecode e.data = some rq'⌝ ∗
+      ⌜e.typ = W32 0 ∧ e.data ≠ [] ∧ apply.irrDecode e.data = some rq'⌝ ∗
       authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1)
 
 instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
@@ -642,7 +642,7 @@ theorem reqPropOkOn_noZero (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     reqPropOkOn (GF := GF) γ γk st₀ Gb rq hm Qr ⊢
       ⌜irrNoZeroEnd (apply.withHeader rq hm)⌝ ∗ reqPropOkOn γ γk st₀ Gb rq hm Qr := by
   iunfold reqPropOkOn
-  iintro (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, #HL₀, Hau⟩ | %Had)
+  iintro (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, #HL₀, Hau⟩ | (%Had | ⟨%Qa, %Had, #Hha⟩))
   · isplitr
     · ipureintro; exact Hno.2.2.1
     · ileft; ipureintro; exact Hno
@@ -651,7 +651,10 @@ theorem reqPropOkOn_noZero (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     · iright; ileft; iexists op, Q, γc, L₀; iframe HL₀ Hau; ipureintro; exact Hop
   · isplitr
     · ipureintro; exact Had.2.1
-    · iright; iright; ipureintro; exact Had
+    · iright; iright; ileft; ipureintro; exact Had
+  · isplitr
+    · ipureintro; exact Had.2.1
+    · iright; iright; iright; iexists Qa; iframe Hha; ipureintro; exact Had
 
 /-- **A proposal's update in the auth mode `on`, at the request the wire decodes** (`kv_prop_au`
 off, `kv_prop_au_on` on; see the file header): for data `d` decoding to `rq'`, the encoding of `rq`

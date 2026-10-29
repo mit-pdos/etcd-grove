@@ -417,7 +417,7 @@ local macro "piro_tail" : tactic => `(tactic| (
               isplitr
               · rw [htk]; iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
               isplitr
-              · ipureintro; exact ⟨het, hdecw⟩
+              · ipureintro; exact ⟨het, by rw [Hdd]; exact Hbsne (by simp [apply.withHeader]), hdecw⟩
               rw [htk]; iexact HpA
             iunfold resultIsWOn at Hri
             icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7⟩

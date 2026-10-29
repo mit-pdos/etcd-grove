@@ -409,3 +409,26 @@ The user approved 5b's `SetUp.spec` draft (the merge session's, on `auth-5b`): i
 `clientTokAt` naming the client's `Auth` field over the KV connection. The Watcher's connection
 stays out of 5b: tying it to the same connection (F-W3) is its own statement change, proposed as
 part of G2 after the merge. `clientTokAt_user`'s conclusion is unchanged.
+
+## After 5b merged (2026-10-29)
+
+`lean` merged into `authkv-main-skel` (SetUp, ClientOn: lean's, the merge session's). The user
+chose one spec for `WithTimeout(Background(), d)`: `context.WithTimeoutBackgroundMd` folded into
+`context.WithTimeoutBackground.spec`'s own conjunct (F-W4's); `SetUp` over `client.wp_WithTimeout_bg`.
+`akAuthFixed`'s write half restated over `SetUp`'s post (`srvReqLogLb ρ.raft Lset`, `authHistFrozen`
+at `admStates Lset`, last state `setupSt r`), with the law `akAuthFixed_write` (proved: a grant's
+`authHistLb (admStates L)` at `Lset <+: L` is at `setupSt`).
+
+The read half is blocked on the read tie (the merge session, etcd-grove-72): the plan's
+`setupHist` is `setupFrozenOk` (`SetupInv.lean`), which `SetUp`'s post does not export (it could
+gain `⌜setupFrozenOk hs⌝`, a `SetUp.spec` change for the user). `authHistTie` is not defined, and no
+stub: one nothing gives is useless to `Main`, one the boot gives is a new axiom (the user's call),
+and a law over today's server views may be unprovable (`authkv_Main` vacuous). The fix is H5, the
+tie as a server invariant (a third share of `γa.hist` through the auth store's admin and lock
+specs and the apply thread's admin step), exported from the on start: design work, which the
+merge session is raising with the user. Until then `Main.wp_proof` gets no read hypothesis.
+The user chose to build H5 (the merge session's report, 2026-10-29): `authHistTie` a proved server
+invariant exported from the auth-on start, no axiom; the merge session drafts it (the invariant,
+its export, `authStateAt_setup` proved over it) for the user before any proof, on a branch off
+`lean` after `etcd_noOtherRefusal`. `setupHist` reads `setupFrozenOk`. `Main`'s read side waits
+for the tie's statement.

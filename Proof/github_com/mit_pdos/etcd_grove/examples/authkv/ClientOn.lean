@@ -59,8 +59,16 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
+  imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
   wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F) $$ [] as %resp %err Hout
   · iframe #
+    ileft
+    imodintro
+    unfold clientOpAuOn
+    iexists []
+    iframe H0
+    unfold kvOpAu1
+    iapply kvAu1_G $$ Hau
   iapply HΦ
   icases Hout with (⟨%Herr, Hr⟩ | ⟨%Herr, #Hke⟩)
   · ileft

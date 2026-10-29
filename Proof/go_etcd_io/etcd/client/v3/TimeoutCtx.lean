@@ -51,9 +51,8 @@ theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (
         (cancel : GoFunc), RET (PairV #(interface.ok ctx') #cancel);
         □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
           WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-        ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗
-        (_root_.Perennial.context.isContext ctx' cd ∗
-          ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝) }} := by
+        ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗ _root_.Perennial.context.isContext ctx' cd ∗
+        ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init

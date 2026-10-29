@@ -139,6 +139,9 @@ structure KVNames where
   cok : GName
   hi : GName
   ids : IdNames
+  /-- The auth history's mono-list (the auth-mode merge's 5b: `kvInvOn`'s half and a client's
+  view, `authHistView`; unused with auth off). -/
+  hist : GName := 0
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"

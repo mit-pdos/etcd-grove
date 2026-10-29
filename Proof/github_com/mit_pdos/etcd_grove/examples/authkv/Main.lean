@@ -6,6 +6,29 @@ What the proof needs, and the state of each callee's statement: `notes/authkv-ma
 (the skeleton of frozen statements; "Main's callees, draft"). Its hypotheses are the callees
 drafted so far; the rest (the watches, G2; `Serve.specOn`, `startServer`, `NewClient`, the
 contexts) join at the freeze.
+
+What the proof needs, as the auth plan put it (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth plan"):
+- **the server in the mode `on γa`** (E2e's next step, E2g): `NewServer.spec` generic in the auth
+  mode, the store from `auth.newAuthStore_boot` (D22's part the named premise
+  `auth.authSchemaBoot`, the provider's `auth.tokenProviderBoot`), `srvAuthBound` from
+  `srvAuthBound_of_authInv`, the apply thread admitting auth requests with the authority
+  `authOwn`;
+- **`SetUp`'s premises** (the auth-mode merge's 5b): `clientTokAt cl [ep] (fun _ => False)` (G1's
+  `NewClient`), `setupAuthServed` (`etcd_kv_auth_served_on`), `□ (srvTLSId s -∗ False)` (the
+  started member's `ClientCertAuthEnabled` is the config's `false`: `memberUpOn` does not yet
+  export it), the client's view `authHistView ρ.kv [srvAuthSt0]` and `c0 ≤ ai0` (the boot,
+  `server_cluster_alloc_on`); its post, the history frozen at `setupSt r`, then gives `setupSt` at
+  every later position (`authHistFrozen_prefix`);
+- **the client's auth contract** over the contexts' metadata (`ClientAuth.lean`): C1
+  (`userAttemptOk`) and C2/C4 (`deliversOutgoing`) in the client's attempt contract
+  (`grpcInvokerOk` says nothing of metadata today), C3 the spec
+  `metadata.AppendToOutgoingContext.spec` (a trust-boundary axiom; `reqCtx` proved over it), and
+  that `reqCtx`'s timeout context has no outgoing token (Perennial's context model does not
+  describe values at other keys); the bad principal is then unbound (`badCtx_unbound`);
+- **the workload** (`Work`): each call's reply at the server's verdict -- an error for a refused
+  principal (A1, A4), the persistent-update case of the client's write results for the bad
+  principal's resent writes (E2d) -- and the checks, proved (`refused`, `checkKVs`,
+  `checkTxnReads`, `CheckHistory`, `Writer`, `LastIn`, `keyOf`: E2f).
 -/
 module
 

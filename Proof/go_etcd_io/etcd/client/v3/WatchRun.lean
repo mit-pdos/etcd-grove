@@ -1938,7 +1938,7 @@ def dummyWsPrm (G : WgsPrm GF) (γr : SpscNames) : WsPrm GF :=
     false false) (W64 0) G.ctx G.cd [] [] false false false slice.nil null G.γreq null
     (EtcdWatchNames.mk γr G.γws G.γws false) null null γr G.γws G.γws G.γws false G.γws
     ⟨G.γws, W64 0, apply.alarmChain false false false, [], G.γws, G.γws,
-      ⟨G.γws, G.γws, G.γws, W64 0, G.γws⟩⟩ (fun _ => iprop(True))
+      ⟨G.γws, G.γws, G.γws, W64 0, G.γws⟩, G.γws⟩ (fun _ => iprop(True))
 
 /-- Some `donec` (for a dispatch with no target). -/
 def dummyDn (G : WgsPrm GF) : DnInfo GF := ⟨null, G.γreq, iprop(True)⟩

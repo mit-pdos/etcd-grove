@@ -23,17 +23,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `auth.UserAdd(ctx, ...)` on the client's `*authClient` over a connection to `addr`
-(`authObjAt`): `auth.remote.UserAdd(ctx, &pb.AuthUserAddRequest{Name: name, Password: password, Options:
+(`authObjAtC`): `auth.remote.UserAdd(ctx, &pb.AuthUserAddRequest{Name: name, Password: password, Options:
 &authpb.UserAddOptions{NoPassword: false}}, auth.callOpts...)`, the error through `ContextError`: the call's answer (`authCallOut`), for
 a spec `Spec` the server registered for the method and the caller's persistent
-`□ ▷ Spec m Q` at the request's model `m`. -/
+`□ ▷ attemptPre conn (GoInterface.ok ci) Spec m Q` at the request's model `m`. -/
 abbrev authClient.UserAdd.spec : Prop :=
-  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (name pw : GoString)
-    (Spec : GrpcSpec (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse) (Q : Unit → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAt api addr ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcs addr go!"/etcdserverpb.Auth/UserAdd" Spec ∗
-      □ ▷ Spec (⟨name, pw⟩ : UserAddW) Q }}
+    (Spec : GrpcSpecMd (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse) (Q : Unit → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserAdd" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ci) Spec (⟨name, pw⟩ : UserAddW) Q }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"UserAdd")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #pw))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCallOut Q resp err }}
 

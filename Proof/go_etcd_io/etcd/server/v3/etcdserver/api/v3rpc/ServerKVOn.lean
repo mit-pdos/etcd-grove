@@ -180,13 +180,20 @@ def opGrantT (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoStrin
       writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrTxn tw) L₀ σ)
   | _, _ => fun _ => iprop(True)
 
+/-- **A write's update with auth on, at the token `tok`** (the auth-mode merge's 5a, 2026-10-29):
+fired at most once, at a lower bound `L₀` of the requested log the caller holds (`srvReqLogLb`),
+told the write's grant (`opGrantT`) when it fires. -/
+def kvOpAuOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) (op : KVOp)
+    (Q : KVState → IProp GF) : IProp GF :=
+  iprop(∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
+    kvAu1G ρ.kv (kvOpStep op) (opGrantT s E ρ tok op L₀) Q)
+
 /-- **The deposit with auth on** (step 5): `kvDepOwn`'s, a write's update told its grant when it
 fires (`opGrantT`), at a lower bound `L₀` of the requested log the caller holds
 (`srvReqLogLb`). One that ignores the grant is one (`kvDepOwnOn_of_dep`). -/
 def kvDepOwnOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (tok : Option GoString) : KVDep GF → IProp GF
-  | .op1 o Q => iprop(∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
-      kvAu1G ρ.kv (kvOpStep o) (opGrantT s E ρ tok o L₀) Q)
+  | .op1 o Q => kvOpAuOn s E ρ tok o Q
   | d => kvDepOwn ρ γr d
 
 /-- A deposit not told its grant is one (at the empty lower bound). -/
@@ -195,7 +202,7 @@ theorem kvDepOwnOn_of_dep (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
     kvDepOwn (GF := GF) ρ γr d ⊢ |==> kvDepOwnOn s E ρ γr tok d := by
   cases d with
   | op1 o Q =>
-    simp only [kvDepOwn, kvDepOwnOn]
+    simp only [kvDepOwn, kvDepOwnOn, kvOpAuOn]
     iintro H
     imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
     imodintro
@@ -265,7 +272,7 @@ theorem putPermitOn_of_dep (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     (hdrBoundM true s E ctx) o (opDepQ d) (hdrBoundM_tok s E ctx)
   simp only [kvDepPre] at hd
   obtain ⟨⟨Q, rfl⟩, hl⟩ := hd
-  simp only [kvDepOwnOn, opDepQ, opGrantT]
+  simp only [kvDepOwnOn, kvOpAuOn, opDepQ, opGrantT]
   iunfold putPermitOn
   isplitr
   · ipureintro
@@ -284,7 +291,7 @@ theorem deletePermitOn_of_dep (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   obtain ⟨hd1, hd2⟩ := hd
   simp only [kvDepPre] at hd1
   obtain ⟨⟨Q, rfl⟩, hz⟩ := hd1
-  simp only [kvDepOwnOn, opDepQ, opGrantT]
+  simp only [kvDepOwnOn, kvOpAuOn, opDepQ, opGrantT]
   iunfold deletePermitOn
   isplitr
   · ipureintro; exact ⟨hz, hd2⟩
@@ -301,7 +308,7 @@ theorem txnPermitOn_of_dep (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iapply txnPermitOn_mono ρ.raft ρ.kv (hdrBoundT s E.authMode (auth.ctxTokenOf ctx))
     (hdrBoundM true s E ctx) t (opDepQ d) (hdrBoundM_tok s E ctx)
   obtain ⟨⟨Q, rfl⟩, hp, hz⟩ := hd
-  simp only [kvDepOwnOn, opDepQ, opGrantT]
+  simp only [kvDepOwnOn, kvOpAuOn, opDepQ, opGrantT]
   iunfold txnPermitOn
   isplitr
   · ipureintro; exact ⟨hp, hz, hs⟩
