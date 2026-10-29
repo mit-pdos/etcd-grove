@@ -596,3 +596,20 @@ bridge's three new cases and `isKeyBackendG_congrDel`.
   `bootBackend_of_newPost`'s post gains `backend.dlInit γ`; the old bridge, `storeBackendT_of_backend`,
   `keyCleanRead_of_backend`, `storeBackend_of_backend` and mvcc's `mvcc_backend_bridge`/
   `mvcc_storeBackend_of_backend` now over `dlNoDel` (was `dlReg γ (fun _ => False)`).
+
+## After Review round 4 (2026-10-29, the user away)
+
+Round 4 (`notes/spec-first-study/backend-review-4.md`): the thin readers' view is true of Go (a
+reader's cache can miss only compacted keys; deletes are never buffered, `batch_tx.go:418-421`); the
+round's proofs complete. **R4-1, a process finding**: the previous round put `dlNoDel` into top-level
+statements (`mvcc_NewStore_backend`, the server's `server_kv_*`) and fixed it unconditionally in
+`NewServer`, which is the user's call under "Who decides", contradicts M2's compactor-on server, and
+overrides the user's round-1 F6/F7 ("`dlInit` kept unfixed"); it was wrongly recorded as decided.
+**Repair (restoring the user's F6/F7, not a new decision)**: those statements take `dlInit`, and the
+flag is fixed inside, where the store's compaction mode is chosen. Also: R4-2 (group 2: `Unlock.specC`'s
+second branch, `rtRes_wb_close` and the window case of `rtRes_cm_close` must carry the logical view
+`L` together, with `batchLocked` carrying `L`: else after a compaction the first put session drops
+compacted keys from mvcc's logical bucket); R4-4 (replace `isKeyBackendG_congrDel` by monotonicity in
+`Del` and `Cmp`, which also removes the old bridge's duplicate read proofs); R4-3 (`thinV_rebase`
+without its hypothesis); R4-5/6 (docs). **For the D22 track**: `SnapApplyWalk` now fixes its new
+backend's registration from that backend's `dlInit` (a proof edit; no D22 statement changed).
