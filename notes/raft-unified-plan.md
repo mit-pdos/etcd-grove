@@ -86,7 +86,8 @@ commit per lemma.
   committed empty `EntryConfChangeV2` is raft's leave where the configuration is joint (`RaftLeave`, for
   `opsOf`); the trust-base fact `ccDecodeV2 [] = some` the empty change (the user's approval).
   (2026-10-29: done but for `committed_emptyV2_joint`: `notes/decisions.md`, "Stage U5: automatic
-  leaves"; spec changes below.)
+  leaves"; spec changes below. Later that day, track A: `committed_emptyV2_joint` and
+  `committed_confDecodes` proved, `notes/decisions.md`, "Stage U5: the committed conf-entry laws".)
 - **U6m. Rejection in the model.** The protocol's decoder a decision (`apply op | reject`); `entStep` of
   a rejection keeps the state (joint configurations included); `applyConf` and `advance` require "no
   undecided conf entry between".
@@ -166,6 +167,32 @@ Each: old → new, and why. (a)-(e) sent to the coordinator and approved (the cr
 - Not changed, though now unneeded upstream of `ownRawNode`: `csm.AutoLeave' = false` premises of
   `NewRawNode`, `StartNode`, `RestartNode`, `setupNode`, `newRaft` (starting at an auto-leave joint
   `ConfState`); left for U9 (`newRaft`'s tracker invariant still uses it).
+
+## Spec changes during track A (2026-10-29)
+
+Each: old → new, and why. New laws (no old text): `committed_confDecodes`, `committed_emptyV2_joint`
+(`InvNodeRule.lean`), as the frozen design states them (`raft-node-unified-candidate.md`:170,
+`raft-decisions-spec.md`:87; `committed_emptyV2_joint` takes the cluster's `N` explicitly, as
+`confPolicy_decide` does). Raft-internal (no other track uses them):
+
+- `isCommittedLogLb` (`InvApi.lean`, sealed): adds `cmtFactsS γ l` (raft's per-entry facts:
+  `CCDecodes`, `ev2At`) beside the receipts' bound; `apiInvBody` adds `cmtFacts γ L`. Why: the two
+  laws are pure entailments, so the facts must ride on the client's lower bound.
+- `noopAu` (`GhostState.lean`): its commit also gives `ev2At γ L e` (in the dynamic mode, with no empty
+  `ConfChangeV2` in the bootstrap log, an empty `ConfChangeV2` filler folds after `L` to a joint
+  configuration over some recorded decisions); `noopAu_fire` takes it. **Breaks etcd's server**
+  (`NewServerAlloc.lean`, `Spec/.../NewServer.lean` build a `noopAu`), already broken.
+- `isEntryR` (`Ghost.lean`): its leader arm adds `ev2Rec γ e pt` (the entry's prefix, with the cores
+  of its records `logRecsC`, folds to a joint configuration); the old body is `isEntryC`.
+- `ownRaftGhost_step_propose` (`Refinement.lean`): one premise more (the batch's empty
+  `ConfChangeV2`s at a joint configuration of the full log before them).
+- `StepR.propose` (`StepR.lean`): premise `CCLeaveOk m.entries cs` added (the loop's decoded change
+  of an empty `ConfChangeV2` wants to leave: `ccDecodeV2_nil`).
+- `stepLeader`'s `LeaderProposeResult` (`Spec/go_etcd_io/raft/v3/stepLeader.lean`): `∃ cs, CCTypesOk
+  ents cs ∧ …` → `∃ cs, CCTypesOk ents cs ∧ CCLeaveOk ents cs ∧ …` (proved from `ccEntsOk`,
+  `ccEntsOk_leaveOk`; `stepLeader`'s proof now rests on `ccDecodeV2_nil` too).
+- `UniNames` (`InvApiDec.lean`, behind `isCluster`): adds `∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x` (the
+  decision cluster's bootstrap log is empty).
 
 ## Machinery (the map of the two modes, 2026-10-28)
 

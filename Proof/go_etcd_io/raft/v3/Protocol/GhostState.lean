@@ -948,12 +948,35 @@ def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
                      uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length⌝,
                  COMM □ Q L }>)
 
+/-- (2026-10-29, stage U5) What raft tells the client of a filler `e` committed after `L`: in the
+dynamic mode, with no empty `ConfChangeV2` in the bootstrap log, an empty `ConfChangeV2` sits at a
+joint configuration of `L`, over some recorded decisions (`ev2Rec`, `logRecs_ev2`). -/
+def ev2At (γ : RaftNames) (L : List EntryM) (e : EntryM) : IProp GF :=
+  iprop(∀ (_ : γ.reDyn ≠ none ∧ (∀ x ∈ γ.reBoot, ¬ IsEmptyV2 x) ∧ IsEmptyV2 e),
+    ∃ (M : DecMap) (c : CfgM), decLb γ M ∗ ⌜CfgAt γ M L c ∧ c.joint = true⌝)
+
+instance ev2At_persistent (γ : RaftNames) (L : List EntryM) (e : EntryM) :
+    Persistent (ev2At (GF := GF) γ L e) := by
+  unfold ev2At; infer_instance
+
+instance ev2At_timeless (γ : RaftNames) (L : List EntryM) (e : EntryM) :
+    Timeless (ev2At (GF := GF) γ L e) := by
+  unfold ev2At; infer_instance
+
+/-- Nothing to tell of an entry that is no filler. -/
+theorem ev2At_nonfiller (γ : RaftNames) (L : List EntryM) (e : EntryM)
+    (h : ¬ Filler e.Type' e.Data') : ⊢ ev2At (GF := GF) γ L e := by
+  unfold ev2At
+  iintro %Hc
+  exfalso
+  exact h ⟨Hc.2.2.1, Or.inr Hc.2.2.2⟩
+
 /-- The standing update for the fillers (see the section header; `entDataIs γ e none` is
 `Filler`, since 2026-10-27): the client gives it at allocation (`ownRaftGhost_alloc_gen`); it lives
-in `raftCommitInv`. -/
+in `raftCommitInv`. (2026-10-29, stage U5: it is told `ev2At`.) -/
 def noopAu (γ : RaftNames) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
-              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗ ev2At γ L e ∗
                    ⌜uint.Z e.Index' = (L.length : Int) + 1 ∧
                      uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length⌝, COMM True }>)
 
@@ -1012,9 +1035,10 @@ theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp G
 theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
     (Hidx : uint.Z e.Index' = (l.length : Int) + 1)
     (Hrb : uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length) :
-    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
+    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ev2At γ l e -∗
+      ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
-  iintro #Hau #He Hv
+  iintro #Hau #He #Hev Hv
   unfold noopAu
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -1028,7 +1052,7 @@ theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
   icases Hclose with ⟨-, Hcomm⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with -
-  · iframe HcL He
+  · iframe HcL He Hev
     ipureintro; exact ⟨Hidx, Hrb⟩
   imodintro
   iexact Hv

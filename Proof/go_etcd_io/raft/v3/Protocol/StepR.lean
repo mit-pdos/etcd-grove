@@ -283,6 +283,8 @@ inductive StepR : RState → List Msg → RState → Prop where
       r.p.role = .leader →
       CCTypesOk m.entries cs →
       plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) ≤ B →
+      -- (2026-10-29, stage U5) the batch's empty `ConfChangeV2`s decode to leaves
+      CCLeaveOk m.entries cs →
       StepR r [m] { r with
         p := psendMsgs
           (pappend r.p ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))

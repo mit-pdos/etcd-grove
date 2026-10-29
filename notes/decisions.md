@@ -25518,3 +25518,41 @@ calls pass one premise fewer), etcd's server where it calls `RawNode.Advance`/`r
 removed premises or destructures `DynCCPreOp`/`ownRawNode` (`InvRaftNode.lean`, `SrvRaftLog.lean`),
 and every client using `LogEntry.isFiller`-based `opsOf` lemmas (`opsOf_snoc_filler`/`_op`,
 `opsOf_eq_self` now take the empty-V2 case too).
+
+## Stage U5: the committed conf-entry laws (2026-10-29 · track A · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken: `committed_emptyV2_joint` and `committed_confDecodes` proved.**
+
+**Where the joint fact lives: in the entry's record, with its prefix.** At the append, the leader's
+invariant knows enough: `stepLeader`'s loop keeps an empty `ConfChangeV2` only at a joint
+configuration (the decoded change wants to leave, `CCLeaveOk` from `ccDecodeV2_nil`) with `pci ≤
+applied` and no other conf entry before it in the batch (`PCInv`); every conf entry of the log is below
+`pci` (`RInv.i3`), so below `cidx`, and `RInv.cfg` folds the log up to `cidx` to `r.cfg`: the full log
+before the entry folds to the joint `r.cfg` (`RInv_propose_ev2`). The record carrying it to every
+committed copy: `ev2Rec γ e pt` in `isEntryR`'s leader arm -- the prefix `P` itself, with the *cores*
+of its records (`logRecsC`, over `isEntryC`, the old `isEntryR` body: a record cannot hold its own
+kind), its last term `pt`, its fold over some recorded decisions (`decLb`) joint. Log matching over
+the cores (`logRecsC_agree`, `full_take_eq_pure`, moved to `Ghost.lean`) makes `P` the prefix of any
+full log with records holding the entry (`logRecs_ev2`). Touched: the two sites that create a
+leader's record (`win`'s empty normal entry, vacuous; `ownRaftGhost_step_propose`, taking the fact as
+a premise from the dynamic refinement, vacuous in the static one).
+
+*Rejected:* a per-entry committed prefix plus term-log fragments for the entries after it (needs `pci`
+≥ the campaign log at the leader, an invariant linking `RState` to the ghost term log at every rule);
+an invariant over every node's log (needs log matching at every append); the previous agent's "fact
+in the term-log record" (the term log's value type, read at every `isTermLog_agree`).
+
+**To the client: the commit fires it.** `fire_one` (the commit of each entry) has the committing
+leader's full log with records, so it derives `ev2At` of a committed filler (`logRecs_ev2`) and
+`noopAu`'s commit hands it to the client's update, beside `entDataIs` (whose `CCDecodes` is the
+decoding fact); the adapter keeps both for its log (`cmtFacts`, in `apiInvBody`) and gives them with
+each lower bound (`cmtFactsS` in `isCommittedLogLb`), because the laws are pure entailments and cannot
+open an invariant. A proposal's update (`propAu1`) needs no change: a deposited entry is no filler, so
+its `ev2At` is vacuous (`ev2At_nonfiller`). The guard "no empty `ConfChangeV2` in the bootstrap log"
+(`ev2At`, `logRecs_ev2`) excludes boot records, which no leader made; the decision cluster's is empty
+(`UniNames`).
+
+**The laws** (`InvApiDec.lean`): `committed_confDecodes_impl` reads `CCDecodes`;
+`committed_emptyV2_joint_impl` compares the `ev2At` fold with `confAt`'s (`ModeDec.fold`,
+`decLb_compat`, `fold_agree`). No axiom added (`ccDecodeV2_nil`, approved, now also under
+`stepLeader`'s proof); no `sorry`.

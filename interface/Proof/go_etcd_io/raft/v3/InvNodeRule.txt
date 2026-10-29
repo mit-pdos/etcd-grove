@@ -10,6 +10,10 @@ theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Pe
 
 def (sealed) confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF
 
+theorem committed_confDecodes [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
+    LogEntry) : isCluster γ N ∗ isCommittedLogLb γ l ⊢ ⌜∀ (e : LogEntry), e ∈ l → e.isConfChange →
+    ConfEntryDecodes e⌝
+
 theorem confDecided_agree [package_sem : Assumptions] (γ : Cluster) (k : Nat) (d1 d2 : ConfDecision)
     : confDecided γ k d1 ∗ confDecided γ k d2 ⊢ ⌜d1 = d2⌝
 
@@ -48,6 +52,10 @@ theorem confAt_decided [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m :
     m'
 
 def (sealed) confAt (γ : Cluster) (k : Nat) (m : Membership) : IProp GF
+
+theorem committed_emptyV2_joint [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
+    LogEntry) (k : Nat) (e : LogEntry) (m : Membership) : l[k]? = some e → e.isEmptyV2 → isCluster γ
+    N ∗ isCommittedLogLb γ l ∗ confAt γ k m ⊢ ⌜m.isJoint⌝
 
 def (sealed) ownConfDecisions (γ : Cluster) (D : GMap Nat ConfDecision) : IProp GF
 

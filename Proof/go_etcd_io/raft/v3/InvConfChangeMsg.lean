@@ -13,6 +13,7 @@ the model's entries (`EntryM`), whose `Data'` is the entry's bytes (D6).
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChangeV2Empty
 
 @[expose] public section
 
@@ -83,6 +84,49 @@ theorem ccEntsOk_types (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
       ihave %H2 := ih cs $$ Hr
       ipureintro
       exact List.Forall₂.cons H1 H2
+
+/-- (2026-10-29, stage U5) An empty `EntryConfChangeV2` of a batch decodes to the empty change
+(`ccDecodeV2_nil`), which wants to leave a joint configuration. -/
+theorem ccEntsOk_leaveOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
+    ccEntsOk (GF := GF) ents cs ⊢ ⌜CCLeaveOk ents cs⌝ := by
+  unfold ccEntsOk CCLeaveOk
+  induction ents generalizing cs with
+  | nil => iintro _; ipureintro; intro x hx; simp at hx
+  | cons e ents ih =>
+    cases cs with
+    | nil => iintro _; ipureintro; intro x hx; simp at hx
+    | cons o cs =>
+      iintro H
+      icases (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).1 $$ H with ⟨He, Hr⟩
+      ihave %H2 := ih cs $$ Hr
+      rcases o with _ | (m | m)
+      · ipureintro
+        intro x hx hd ht c hc
+        simp only [List.zip_cons_cons, List.mem_cons] at hx
+        rcases hx with rfl | hx
+        · cases hc
+        · exact H2 x hx hd ht c hc
+      · unfold ccEntOk
+        icases He with %He
+        ipureintro
+        intro x hx hd ht c hc
+        simp only [List.zip_cons_cons, List.mem_cons] at hx
+        rcases hx with rfl | hx
+        · exfalso; simp only at ht; rw [He.1] at ht; revert ht; word
+        · exact H2 x hx hd ht c hc
+      · unfold ccEntOk
+        icases He with %He
+        ipureintro
+        intro x hx hd ht c hc
+        simp only [List.zip_cons_cons, List.mem_cons] at hx
+        rcases hx with rfl | hx
+        · simp only at hd hc
+          cases hc
+          have H := He.2
+          rw [hd, ccDecodeV2_nil] at H
+          cases H
+          rfl
+        · exact H2 x hx hd ht c hc
 
 /-- A batch of normal entries needs nothing. -/
 theorem ccEntsOk_normal (ents : List EntryM) (H : ∀ e ∈ ents, e.Type' = W32 0) :

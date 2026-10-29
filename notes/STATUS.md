@@ -469,6 +469,14 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, track A: the committed conf-entry laws (2026-10-29, branch `raft-unified`)
+
+`committed_emptyV2_joint` and `committed_confDecodes` proved (`InvNodeRule.lean`; reasoning:
+`notes/decisions.md`, "Stage U5: the committed conf-entry laws"; spec changes: `notes/raft-unified-plan.md`,
+"Spec changes during track A"). U5 is done but for the start specs' `csm.AutoLeave' = false` (U9).
+Not started in this run: U7 (messages), U9a (stopped nodes). Clients broken further: etcd's server
+(`noopAu`'s commit gives `ev2At`; `isCommittedLogLb`/`apiInvBody` grew), examples/kv (as before).
+
 ## Raft unified, stage U5: automatic leaves (2026-10-29, branch `raft-unified`)
 
 Raft's tree builds (`Link`, `Linked`, `Results`, `Api`, `ConfPolicy`, `MemstorageAU`); the only axiom

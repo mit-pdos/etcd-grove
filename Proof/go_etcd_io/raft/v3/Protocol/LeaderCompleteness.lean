@@ -921,7 +921,11 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       [∗map] d ↦ p ∈ R, propSlot γ d p (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
   · cases o with
     | none =>
-      imod noopAu_fire γ (G.take m) e Hidx Hrb $$ Hnoop Ho Hv with Hv
+      ihave #Hev : ev2At γ (G.take m) e $$ []
+      · unfold ev2At
+        iintro %Hc
+        iapply logRecs_ev2 γ G m e Hwf He Hc.1 Hc.2.1 Hc.2.2 $$ Hr
+      imod noopAu_fire γ (G.take m) e Hidx Hrb $$ Hnoop Ho Hev Hv with Hv
       imodintro
       iframe Hv Hra
       iapply BigSepM.bigSepM_impl $$ Hs

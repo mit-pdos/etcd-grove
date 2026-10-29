@@ -536,6 +536,70 @@ private theorem logRecs_elem (γ : RaftNames) (b : entryID) (es : List EntryM)
     else iprop(True)) Hk).trans ?_
   simp only [Hr, ↓reduceIte]
   exact .rfl
+private theorem logRecsC_intro' (γ : RaftNames) (b : entryID) (es : List EntryM) :
+    ⊢ □ (∀ (k : Nat) (x : EntryM),
+          ⌜es[k]? = some x ∧ uint.Z b.index' + (k : Int) + 1 < 2 ^ 64⌝ →
+          ∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC (GF := GF) γ x pt) -∗
+      logRecsC γ b es := by
+  iintro #H
+  unfold logRecsC
+  iapply BigSepL.bigSepL_forall_elim
+  iintro %k %x Hk
+  ipure Hk
+  split
+  · rename_i Hr
+    iapply H $$ %k %x
+    ipureintro; exact ⟨Hk, Hr⟩
+  · itrivial
+
+private theorem logRecsC_elem (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (k : Nat) (x : EntryM) :
+    es[k]? = some x → uint.Z b.index' + (k : Int) + 1 < 2 ^ 64 →
+    logRecsC (GF := GF) γ b es ⊢ ∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC γ x pt := by
+  intro Hk Hr
+  unfold logRecsC
+  refine (BigSepL.bigSepL_lookup (Φ := fun k e =>
+    if uint.Z b.index' + (k : Int) + 1 < 2 ^ 64
+    then iprop(∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC (GF := GF) γ e pt)
+    else iprop(True)) Hk).trans ?_
+  simp only [Hr, ↓reduceIte]
+  exact .rfl
+
+/-- (2026-10-29, stage U5) An entry's `ev2Rec` from the configuration of its prefix in a full log
+`fp ++ es` with the records' cores. -/
+private theorem ev2Rec_of_prefix (γ : RaftNames) (b : entryID) (fp es : List EntryM) (k : Nat)
+    (x : EntryM) (pt : w64) (M : DecMap) (c : CfgM)
+    (Hfull : FullOk b fp) (Hwf : PlogWf b es) (Hk : es[k]? = some x)
+    (Hpt : plogTermAt b es (pidx b k) = some pt)
+    (Hc : CfgAt γ M ((fp ++ es).take (fp.length + k)) c) (Hj : c.joint = true) :
+    ⊢ logRecsC (GF := GF) γ base0 fp -∗ logRecsC γ b es -∗ decLb γ M -∗ ev2Rec γ x pt := by
+  iintro #Hf #He #HM
+  unfold ev2Rec
+  iintro %_
+  iexists (fp ++ es).take (fp.length + k), M, c
+  isplitr
+  · iapply logRecsC_take γ (fp ++ es) (fp.length + k) $$ []
+    iapply logRecsC_full γ b fp es Hfull $$ Hf He
+  iframe HM
+  ipureintro
+  have Hlt := (List.getElem?_eq_some_iff.mp Hk).1
+  have Hxi := Hwf k x Hk
+  have Hlen := Hfull.1
+  have Hrng := uint_Z_lt x.Index'
+  have HbZ := uint_Z_nonneg b.index'
+  have HPl : ((fp ++ es).take (fp.length + k)).length = fp.length + k := by
+    rw [List.length_take, List.length_append]; omega
+  refine ⟨PlogWf_take _ _ _ (full_wf b fp es Hfull Hwf), by rw [HPl]; push_cast at Hxi ⊢; omega,
+    ?_, Hc, Hj⟩
+  rw [HPl]
+  have HW : uint.Z (W64 ((fp.length + k : Nat) : Int)) = ((fp.length + k : Nat) : Int) :=
+    uint_Z_W64 _ (by omega) (by push_cast at Hxi ⊢; omega)
+  rw [plogTermAt_take_full _ _ _ (by rw [HW]; push_cast; omega),
+    full_term_at b fp es _ Hfull (by rw [HW]; push_cast; omega)]
+  have Hp : pidx b k = W64 ((fp.length + k : Nat) : Int) := by
+    unfold pidx; congr 1; push_cast; omega
+  rw [← Hp]; exact Hpt
+
 private theorem leadLogOwn_leader (γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) :
     s.role = .leader →
     leadLogOwn (GF := GF) γ s terms =
@@ -710,9 +774,18 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       ipureintro
       rw [← He]; exact ⟨⟨rfl, Or.inl rfl⟩, CCDecodes_normal _⟩
     -- (2026-10-18, D19b stage 5) its index is covered by the receipt
-    iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
-      omega))
-    iexact Hrcpt
+    isplitr
+    · iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
+        omega))
+      iexact Hrcpt
+    -- (2026-10-29, stage U5) a normal entry
+    unfold ev2Rec
+    iintro %Hc
+    exfalso
+    have h2 := Hc.2.2
+    have h0 : e.Type' = W32 0 := by rw [← He]; rfl
+    rw [h0] at h2
+    revert h2; word
   have Hwl2 : PlogWf s.base s2.log := by
     rw [Hs2log]
     refine (PlogWf_app _ _ _).mpr ⟨Hwl, fun k x Hk => ?_⟩
@@ -2470,6 +2543,14 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     -- (2026-10-18, D19b stage 5) the new entries' indices are covered by the receipt `⧖ n`
     plogLastIndexZ s.base s.log + (ents.length : Int) ≤ (n : Int) + γ.reBoot.length →
     ⊢ ⧖ n -∗ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗
+      -- (2026-10-29, stage U5) an empty `ConfChangeV2` of the batch at a joint configuration
+      (□ ∀ (fp' : List EntryM) (k : Nat) (x : EntryM),
+        ⌜FullOk s.base fp' ∧ (ents.mapIdx (stamp s.term (plastIndex s)))[k]? = some x ∧
+          γ.reDyn ≠ none ∧ IsEmptyV2 x⌝ -∗
+        logRecs γ base0 fp' -∗
+        ∃ (M : DecMap) (c : CfgM), decLb γ M ∗
+          ⌜CfgAt γ M ((fp' ++ s.log) ++ (ents.mapIdx (stamp s.term (plastIndex s))).take k) c ∧
+            c.joint = true⌝) -∗
       ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
@@ -2477,7 +2558,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   intro Hrole Hnw Hrb
   rw [show plastIndex s = W64 (plogLastIndexZ s.base s.log) from rfl]
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hrb ⊢
-  iintro #Hrcpt #Hed Htk Hown
+  iintro #Hrcpt #Hed Htk #Hev Hown
   imod entData_mapIdx_stamp γ s.term (W64 L) ents $$ Hed Htk with #Hnwd
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -2519,15 +2600,19 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   generalize Hnwdef : ents.mapIdx (stamp s.term (W64 L)) = nw at Hnwk Hlen ⊢
   have HlenL : uint.Z s.base.index' + (s.log.length : Int) = L := by rw [← HL]; rfl
   have HbZ := uint_Z_nonneg s.base.index'
-  ihave #Hrecs' : logRecs γ s.base (s.log ++ nw) $$ []
-  · iapply logRecs_intro
+  have Hwl' : PlogWf s.base (s.log ++ nw) :=
+    (PlogWf_app _ _ _).mpr ⟨Hwl, fun k e Hk => by have := (Hnwk k e Hk).1; push_cast; omega⟩
+  ihave #HrecsOC := logRecs_core γ s.base s.log $$ Hrecs
+  ihave #HfrecsC := logRecs_core γ base0 fp $$ Hfrecs
+  ihave #HrecsC : logRecsC γ s.base (s.log ++ nw) $$ []
+  · iapply logRecsC_intro'
     imodintro
     iintro %k %x Hk
     ipure Hk
     obtain ⟨Hk, Hr⟩ := Hk
     by_cases Hkl : k < s.log.length
     · rw [List.getElem?_append_left Hkl] at Hk
-      icases logRecs_elem γ s.base s.log k x Hk Hr $$ Hrecs with ⟨%pt, %Hpt, #Hx⟩
+      icases logRecsC_elem γ s.base s.log k x Hk Hr $$ HrecsOC with ⟨%pt, %Hpt, #Hx⟩
       iexists pt
       iframe Hx
       ipureintro
@@ -2559,7 +2644,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
           rw [this, Hy']
           simp only [Option.map_eq_map, Option.map_some]
           rw [(Hnwk _ y Hy').2]
-      · unfold isEntryR
+      · unfold isEntryC
         ileft
         iexists id, γt, s.base, l0, F0
         rw [Hxt]
@@ -2577,6 +2662,43 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
         iapply (preceipt_mono (GF := GF)
           (show (uint.Z x.Index').toNat - γ.reBoot.length ≤ n by omega))
         iexact Hrcpt
+  ihave #Hrecs' : logRecs γ s.base (s.log ++ nw) $$ []
+  · iapply logRecs_intro
+    imodintro
+    iintro %k %x Hk
+    ipure Hk
+    obtain ⟨Hk, Hr⟩ := Hk
+    by_cases Hkl : k < s.log.length
+    · have Hk' := Hk
+      rw [List.getElem?_append_left Hkl] at Hk'
+      icases logRecs_elem γ s.base s.log k x Hk' Hr $$ Hrecs with ⟨%pt, %Hpt, #Hx⟩
+      iexists pt
+      iframe Hx
+      ipureintro
+      rw [plogTermAt_app_l]
+      · exact Hpt
+      · unfold pidx plogLastIndexZ; rw [uint_Z_W64 _ (by omega) (by omega)]; omega
+    · icases logRecsC_elem γ s.base (s.log ++ nw) k x Hk Hr $$ HrecsC with ⟨%pt, %Hpt, #Hx⟩
+      iexists pt
+      isplitr; · ipureintro; exact Hpt
+      iapply isEntryR_of_core_ev2 γ x pt $$ Hx
+      unfold ev2Rec
+      iintro %Hc
+      have Hk' := Hk
+      rw [List.getElem?_append_right (by omega)] at Hk'
+      icases Hev $$ %fp %(k - s.log.length) %x
+        %(⟨Hfp, Hk', Hc.1, Hc.2⟩ : FullOk s.base fp ∧ nw[k - s.log.length]? = some x ∧
+          γ.reDyn ≠ none ∧ IsEmptyV2 x) Hfrecs with ⟨%M0, %c, #HM0, %Hcf⟩
+      have Htk : (fp ++ s.log) ++ nw.take (k - s.log.length) =
+          (fp ++ (s.log ++ nw)).take (fp.length + k) := by
+        have Hkk : fp.length + k = (fp ++ s.log).length + (k - s.log.length) := by
+          simp only [List.length_append]; omega
+        rw [Hkk, ← List.append_assoc, List.take_length_add_append]
+      rw [Htk] at Hcf
+      ihave #He2 := ev2Rec_of_prefix γ s.base fp (s.log ++ nw) k x pt M0 c Hfp Hwl' Hk Hpt
+        Hcf.1 Hcf.2 $$ HfrecsC HrecsC HM0
+      iunfold ev2Rec at He2
+      iapply He2 $$ %Hc
   ihave #Hlf' : leadFrags γt l0 (s.log ++ nw) $$ []
   · unfold leadFrags
     iapply (BigSepL.bigSepL_append (Φ := fun k (e : EntryM) =>
@@ -4710,7 +4832,11 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     rw [if_pos Hty]
     ihave Htk' := entTk_propRepl γ _ _ Hents $$ Htk
     imod ownRaftGhost_step_propose γ id s ents (B.toNat - γ.reBoot.length) Hrole (by omega)
-      (by omega) $$ Hrc Hed' Htk' Hown with Hown
+      (by omega) $$ Hrc Hed' Htk' [] Hown with Hown
+    · -- (2026-10-29, stage U5) the static mode: nothing
+      imodintro
+      iintro %fp' %k %x %Hc
+      exact absurd HC.2.2 Hc.2.2.1
     imodintro; iframe Hregs Hown
   | propForward m s Hty _ _ =>
     iintro #Hrc Hregs Hrecv - Htk Hown

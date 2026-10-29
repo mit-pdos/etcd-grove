@@ -509,7 +509,7 @@ private theorem wp_RestartNode_unified_impl
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
   icases Hcl' with ⟨%Hu, #Hci⟩
-  obtain ⟨-, Hsl, Hcert⟩ := Hu
+  obtain ⟨-, Hsl, Hcert, -⟩ := Hu
   have Hdyn := Hmr.1.2.2.1
   have Hns := Hmr.1.2.2.2.1
   obtain ⟨h0, h1, Hmd⟩ := Hmr.mode

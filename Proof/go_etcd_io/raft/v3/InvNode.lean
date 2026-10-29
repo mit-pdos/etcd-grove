@@ -802,7 +802,7 @@ draft: `readyFits` taken; the receipts' bound alone, `≤ 2 ^ 64 - 2` past a boo
 theorem isCommittedLogLb_length (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     readyFits (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ ⌜(l.length : Int) + 1 < 2 ^ 64⌝ := by
   unfold readyFits Cluster.bootLen isCommittedLogLb ApiImpl.isCommittedLogLb
-  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb⟩)⟩
+  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb, -⟩)⟩
   · ipureintro; subst Hnil; simp
   · ipureintro; omega
 

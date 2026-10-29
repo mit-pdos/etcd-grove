@@ -138,13 +138,122 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The client's views of the committed log, and their laws -/
 
+/-- (2026-10-29, stage U5) **What raft told the client of the committed entries `L`**
+(persistent): each entry's bytes decode as its type says (`CCDecodes`, from its `entDataIs`), and
+each empty `ConfChangeV2` sits at a joint configuration of its prefix (`ev2At`, `noopAu`'s). -/
+def cmtFacts (γ : Cluster) (L : List EntryM) : IProp GF :=
+  iprop(⌜∀ e ∈ L, CCDecodes e.Type' e.Data'⌝ ∗
+    □ ∀ (k : Nat) (e : EntryM), ⌜L[k]? = some e⌝ -∗ ev2At γ.raft (L.take k) e)
+
+instance cmtFacts_persistent (γ : Cluster) (L : List EntryM) :
+    Persistent (cmtFacts (GF := GF) γ L) := by
+  unfold cmtFacts; infer_instance
+
+instance cmtFacts_timeless (γ : Cluster) (L : List EntryM) :
+    Timeless (cmtFacts (GF := GF) γ L) := by
+  unfold cmtFacts; infer_instance
+
+/-- ... of a client's view `l` of them. -/
+def cmtFactsS (γ : Cluster) (l : List LogEntry) : IProp GF :=
+  iprop(∃ L, ⌜strip L = l⌝ ∗ cmtFacts γ L)
+
+instance cmtFactsS_persistent (γ : Cluster) (l : List LogEntry) :
+    Persistent (cmtFactsS (GF := GF) γ l) := by
+  unfold cmtFactsS; infer_instance
+
+instance cmtFactsS_timeless (γ : Cluster) (l : List LogEntry) :
+    Timeless (cmtFactsS (GF := GF) γ l) := by
+  unfold cmtFactsS; infer_instance
+
+omit [StorageModel GF] sem package_sem in
+theorem cmtFacts_nil (γ : Cluster) : ⊢ cmtFacts (GF := GF) γ [] := by
+  unfold cmtFacts
+  isplitr; · ipureintro; intro e he; simp at he
+  imodintro; iintro %k %e %h; simp at h
+
+omit [StorageModel GF] sem package_sem in
+theorem cmtFacts_take (γ : Cluster) (L : List EntryM) (n : Nat) :
+    cmtFacts (GF := GF) γ L ⊢ cmtFacts γ (L.take n) := by
+  unfold cmtFacts
+  iintro ⟨%H1, #H2⟩
+  isplitr; · ipureintro; intro e he; exact H1 e (List.mem_of_mem_take he)
+  imodintro
+  iintro %k %e %h
+  rw [List.getElem?_take] at h
+  split at h
+  · rename_i hk
+    rw [List.take_take, Nat.min_eq_left (Nat.le_of_lt hk)]
+    iapply H2 $$ %k %e %h
+  · cases h
+
+omit [StorageModel GF] sem package_sem in
+theorem cmtFacts_snoc (γ : Cluster) (L : List EntryM) (e : EntryM) :
+    CCDecodes e.Type' e.Data' →
+    ⊢ cmtFacts (GF := GF) γ L -∗ ev2At γ.raft L e -∗ cmtFacts γ (L ++ [e]) := by
+  intro Hd
+  unfold cmtFacts
+  iintro ⟨%H1, #H2⟩ #He
+  isplitr
+  · ipureintro; intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact H1 x hx
+    · simp at hx; subst hx; exact Hd
+  imodintro
+  iintro %k %x %h
+  by_cases hk : k < L.length
+  · rw [List.getElem?_append_left hk] at h
+    rw [List.take_append_of_le_length (Nat.le_of_lt hk)]
+    iapply H2 $$ %k %x %h
+  · rw [List.getElem?_append_right (by omega)] at h
+    have hk' : k = L.length := by
+      have := (List.getElem?_eq_some_iff.mp h).1; simp at this; omega
+    subst hk'
+    simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    rw [List.take_left]
+    iexact He
+
+omit [StorageModel GF] sem package_sem in
+theorem cmtFactsS_prefix (γ : Cluster) (L : List EntryM) (l : List LogEntry) (H : l <+: strip L) :
+    cmtFacts (GF := GF) γ L ⊢ cmtFactsS γ l := by
+  iintro #H
+  unfold cmtFactsS
+  iexists L.take l.length
+  isplitr
+  · ipureintro
+    obtain ⟨t, ht⟩ := H
+    show (L.take l.length).map LogEntry.ofEntryM = l
+    rw [List.map_take]
+    show (strip L).take l.length = l
+    rw [← ht, List.take_left]
+  iapply cmtFacts_take γ L l.length $$ H
+
+omit [StorageModel GF] sem package_sem in
+/-- (2026-10-29, stage U5) A bootstrap log's facts: `ConfChange`s that decode. -/
+theorem cmtFacts_bootOk (γ : Cluster) {ps : List w64} {L : List EntryM} (H : BootLogOk ps L) :
+    ⊢ cmtFacts (GF := GF) γ L := by
+  unfold cmtFacts
+  isplitr
+  · ipureintro; intro e he
+    obtain ⟨k, hk⟩ := List.getElem?_of_mem he
+    obtain ⟨-, -, ht, m, hm, -⟩ := H.2.2 k e hk
+    exact ⟨fun _ => ⟨_, hm⟩, fun h2 => by rw [ht] at h2; revert h2; word⟩
+  imodintro
+  iintro %k %e %hk
+  unfold ev2At
+  iintro %Hc
+  exfalso
+  obtain ⟨-, -, ht, -⟩ := H.2.2 k e hk
+  have := Hc.2.2.2; rw [ht] at this; revert this; word
+
 /-- **A lower bound of the committed log**, fillers included (persistent): `l` is empty, or a
 prefix of the full log (`full`) whose requested entries are a prefix of the requested entries
 (`ops`), shorter than the receipts' bound past the bootstrap log (2026-10-27: every committed
-entry's index is covered by a time receipt, `isEntryR_receipt`). -/
+entry's index is covered by a time receipt, `isEntryR_receipt`), with what raft told of its
+entries (2026-10-29, stage U5: `cmtFactsS`). -/
 def isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF :=
   iprop(⌜l = []⌝ ∨ (monoListLbOwn γ.full l ∗ monoListLbOwn γ.ops (opsOf l) ∗
-    ⌜(l.length : Int) < (receiptBound GF : Int) + γ.raft.reBoot.length⌝))
+    ⌜(l.length : Int) < (receiptBound GF : Int) + γ.raft.reBoot.length⌝ ∗ cmtFactsS γ l))
 
 /-- **The committed requested entries, the client's** (exclusive): half of `ops`' authority, and
 a committed log whose requested entries they are. -/
@@ -193,14 +302,18 @@ theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
   intro Hp
   unfold isCommittedLogLb
-  iintro (%Hnil | ⟨#H1, #H2, %Hb⟩)
+  iintro (%Hnil | ⟨#H1, #H2, %Hb, #Hcf⟩)
   · ileft; ipureintro; subst Hnil; exact List.prefix_nil.mp Hp
   iright
   isplitl []
   · iapply monoListLbOwn_le _ Hp $$ H1
   isplitl []
   · iapply monoListLbOwn_le _ (opsOf_prefix Hp) $$ H2
-  ipureintro; have := Hp.length_le; omega
+  isplitl []
+  · ipureintro; have := Hp.length_le; omega
+  iunfold cmtFactsS at Hcf
+  icases Hcf with ⟨%L, %HL, #Hc⟩
+  iapply cmtFactsS_prefix γ L l1 (by rw [HL]; exact Hp) $$ Hc
 
 omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_agree_impl (γ : Cluster) (l1 l2 : List LogEntry) :
@@ -319,7 +432,7 @@ def apiInvBody (γ : Cluster) : IProp GF :=
   iprop(∃ (L : List EntryM) (F RF : GMap (List w8) Unit),
     rLog γ.raft L ∗ ⌜IdxOk L ∧ (L.length : Int) < (receiptBound GF : Int) + γ.raft.reBoot.length⌝ ∗
     monoListAuthOwn γ.full 1 (strip L) ∗ monoListAuthOwn γ.ops (1 : Qp).half (opsOf (strip L)) ∗
-    ghostMapAuth γ.raft.reFresh 1 F ∗ freshOk γ F ∗
+    ghostMapAuth γ.raft.reFresh 1 F ∗ freshOk γ F ∗ cmtFacts γ L ∗
     ghostMapAuth γ.raft.reRdFresh 1 RF ∗ rdKeys γ RF ∗ rdFreshOk γ RF)
 
 def apiInv (γ : Cluster) (N : Namespace) : IProp GF := inv (apiN N) (apiInvBody γ)
@@ -349,7 +462,7 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
   unfold atomic_acc apiInv apiInvBody
   have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
     unfold raftN; rw [HN]; exact apiN_sub_raft N
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -362,15 +475,16 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     iempintro
-  · iintro %e ⟨HrL, #He, %HeIdx⟩
+  · iintro %e ⟨HrL, #He, #Hev, %HeIdx⟩
     imod Hclose2 with -
     iunfold entDataIs at He
     iunfold propDataIs at He
     icases He with %Hfill
+    ihave #Hcf' := cmtFacts_snoc γ L e Hfill.2 $$ Hcf Hev
     have Hf : (LogEntry.ofEntryM e).isFiller ∨ (LogEntry.ofEntryM e).isEmptyV2 :=
       (isFiller_ofEntryM e).2 Hfill.1
     imod monoListAuthOwn_update_app [LogEntry.ofEntryM e] $$ Hfull with ⟨Hfull, -⟩
@@ -380,7 +494,7 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
     · inext
       iexists L ++ [e], F, RF
       rw [Hstrip, opsOf_snoc_filler _ _ Hf]
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf' HRF HRk HRFok
       ipureintro
       refine ⟨IdxOk_snoc Hidx.1 HeIdx.1, ?_⟩
       have := HeIdx.2; simp only [List.length_append, List.length_singleton]; push_cast; omega
@@ -772,6 +886,8 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
         iapply (BigSepL.bigSepL_lookup (Φ := fun _ (e : EntryM) =>
           propIsAt (GF := GF) γr (entKey e.Type' e.Data') γT) hj) $$ Hpis
     isplitr
+    · iapply cmtFacts_bootOk γ (BootLog_ok HB)
+    isplitr
     · unfold rdKeys
       imodintro
       iintro %c %Hc
@@ -796,7 +912,12 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
     unfold isCommittedLogLb
     rw [(BootLog_opsOf HB)]
     isplitl []
-    · iright; iframe Hflb Holb; ipureintro; exact Hblen
+    · iright; iframe Hflb Holb
+      isplitr; · ipureintro; exact Hblen
+      unfold cmtFactsS
+      iexists LogEntry.toEntries boot 0
+      isplitr; · ipureintro; exact strip_toEntries boot 0
+      iapply cmtFacts_bootOk γ (BootLog_ok HB)
     ipureintro; rfl
   · unfold ownReadCtxs
     iexists ∅
@@ -955,7 +1076,7 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
   ihave #Hli := raftCommitInv_log γ.raft $$ Hcinv
   have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
@@ -975,7 +1096,7 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   · inext
     iexists P, F, RF
     unfold rLog
-    iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+    iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
     ipureintro; exact Hidx
   imodintro
   isplitl []
@@ -985,8 +1106,10 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
     · iapply monoListLbOwn_le _ (strip_prefix HDP) $$ Hflb
     isplitl []
     · iapply monoListLbOwn_le _ (opsOf_prefix (strip_prefix HDP)) $$ Holb
-    ipureintro
-    have := HDP.length_le; have := Hidx.2; rw [strip_length]; omega
+    isplitl []
+    · ipureintro
+      have := HDP.length_le; have := Hidx.2; rw [strip_length]; omega
+    iapply cmtFactsS_prefix γ P (strip D) (strip_prefix HDP) $$ Hcf
   ipureintro
   intro k e Hk
   obtain ⟨r, rfl⟩ := HDP
@@ -1114,7 +1237,7 @@ theorem api_readReq_dep (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
   icases Hrq with ⟨%γq, #Hel, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
   ihave #Hri := raftCommitInv_reg γ.raft $$ Hcinv
   have Hr : (↑(raftRegN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftRegN raftN; rw [HNs]; exact raftN_api N HE "reg"
@@ -1144,7 +1267,7 @@ theorem api_readReq_dep (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
   imod Hclose $$ [HrL Hfull Hops HF HRF] with -
   · inext
     iexists L, F, RF
-    iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+    iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
     ipureintro; exact Hidx
   imodintro
   iunfold rdKeys at HRk
@@ -1229,7 +1352,7 @@ theorem api_lb_committed (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
   have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
   imod rLog_committed γ.raft L (E \ ↑(apiN N)) Hl $$ Hcinv HrL with ⟨HrL, #HLc⟩
@@ -1238,7 +1361,7 @@ theorem api_lb_committed (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   · imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     iexists []
@@ -1249,7 +1372,7 @@ theorem api_lb_committed (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   imod Hclose $$ [HrL Hfull Hops HF HRF] with -
   · inext
     iexists L, F, RF
-    iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+    iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
     ipureintro; exact Hidx
   imodintro
   iexists L.take l.length
@@ -2381,14 +2504,14 @@ theorem api_key_register (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   ihave Hat : |={E}=> propIsAt γ.raft k γ.trueQ $$ []
   · unfold apiInv apiInvBody
     have Ha := apiN_sub N HE
-    iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩
+    iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩
       Hclose
     cases HFk : F !! k with
     | some u =>
       imod Hclose $$ [HrL Hfull Hops HF HRF] with -
       · inext
         iexists L, F, RF
-        iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+        iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
         ipureintro; exact Hidx
       imodintro
       iunfold freshOk at HFok
@@ -2406,7 +2529,7 @@ theorem api_key_register (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
       imod Hclose $$ [HrL Hfull Hops HF HRF] with -
       · inext
         iexists L, GMap.insert k () F, RF
-        iframe HrL Hfull Hops HF HRF HRk HRFok
+        iframe HrL Hfull Hops HF HRF HRk HRFok Hcf
         isplitr
         · ipureintro; exact Hidx
         unfold freshOk
@@ -2437,7 +2560,7 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
   unfold atomic_acc apiInv apiInvBody
   have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
     unfold raftN; rw [HNs]; exact apiN_sub_raft N
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
   have Hm : (⊤ \ ↑N : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) := by
     unfold raftN; rw [HNs]; exact mask_api_raft N
   imod (fupd_mask_subseteq (PROP := IProp GF) Hm) with Hback
@@ -2459,7 +2582,7 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     iexact Hau
@@ -2469,7 +2592,9 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
     iunfold entDataIs at He
     iunfold propDataIs at He
     icases He with ⟨⟨%Hek, -⟩, -⟩
-    obtain ⟨Hkey, Hnf', -⟩ := Hek
+    obtain ⟨Hkey, Hnf', Hdec⟩ := Hek
+    ihave #Hen := ev2At_nonfiller γ.raft L e Hnf'
+    ihave #Hcf' := cmtFacts_snoc γ L e Hdec $$ Hcf Hen
     obtain ⟨Hty, Hd⟩ := entKey_inj Hkey
     have Hx : LogEntry.ofEntryM e = ⟨e.Term', ty, data⟩ := by
       unfold LogEntry.ofEntryM; rw [Hty, Hd]
@@ -2501,15 +2626,20 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
       rw [Hopsn, Hstrip]
       isplitl []
       · iright; iframe Hflb Holb
-        ipureintro; have := HeIdx.2; have := HeIdx.1
-        simp only [List.length_append, List.length_singleton, strip_length] at *; push_cast; omega
+        isplitl []
+        · ipureintro; have := HeIdx.2; have := HeIdx.1
+          simp only [List.length_append, List.length_singleton, strip_length] at *; push_cast; omega
+        unfold cmtFactsS
+        iexists L ++ [e]
+        iframe Hcf'
+        ipureintro; exact Hstrip
       ipureintro; rfl
     imod Hback with -
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L ++ [e], F, RF
       rw [Hopsn, Hstrip]
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf' HRF HRk HRFok
       ipureintro
       refine ⟨IdxOk_snoc Hidx.1 HeIdx.1, ?_⟩
       have := HeIdx.2; simp only [List.length_append, List.length_singleton]; push_cast; omega
@@ -2659,7 +2789,7 @@ theorem api_readAu (γ : Cluster) (N : Namespace) (Q : List LogEntry → IProp G
   unfold atomic_acc apiInv apiInvBody
   have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
     unfold raftN; rw [HNs]; exact apiN_sub_raft N
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -2672,7 +2802,7 @@ theorem api_readAu (γ : Cluster) (N : Namespace) (Q : List LogEntry → IProp G
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     iempintro
@@ -2684,7 +2814,7 @@ theorem api_readAu (γ : Cluster) (N : Namespace) (Q : List LogEntry → IProp G
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     unfold qrOf
@@ -2719,7 +2849,7 @@ theorem api_read_ensure (γ : Cluster) (N : Namespace) (c : List w8)
   ihave #HrAu := api_readAu γ N Q HNs $$ Hinv Hau
   iunfold apiInv at Hinv
   unfold apiInvBody
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩
     Hclose
   cases HRc : RF !! c with
   | some u =>
@@ -2731,7 +2861,7 @@ theorem api_read_ensure (γ : Cluster) (N : Namespace) (c : List w8)
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     iexists Lc
@@ -2776,7 +2906,7 @@ theorem api_read_ensure (γ : Cluster) (N : Namespace) (c : List w8)
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, GMap.insert c () RF
-      iframe HrL Hfull Hops HF HFok HRF
+      iframe HrL Hfull Hops HF HFok Hcf HRF
       isplitr
       · ipureintro; exact Hidx
       isplitr

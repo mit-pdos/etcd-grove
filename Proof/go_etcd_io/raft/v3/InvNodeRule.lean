@@ -209,6 +209,26 @@ theorem confAt_valid (γ : Cluster) (k : Nat) (m : Membership) :
     confAt (GF := GF) γ k m ⊢ ⌜m.Valid⌝ := by
   unfold confAt; exact ApiImpl.confAt_valid_impl γ k m
 
+/-- **Every committed conf entry decodes** (2026-10-29, stage U5): the leader decodes every conf
+entry it appends (`raft.go:1320`, raft's own automatic leave by `ccDecodeV2_nil`), so an application
+that decodes a committed one never fails. -/
+theorem committed_confDecodes (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    isCluster (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢
+      ⌜∀ e ∈ l, e.isConfChange → ConfEntryDecodes e⌝ := by
+  unfold isCluster isCommittedLogLb; exact ApiImpl.committed_confDecodes_impl γ N l
+
+/-- **A committed empty `ConfChangeV2` is at a joint configuration** (2026-10-29, stage U5): raft's
+automatic leave, or a client's explicit empty change, is appended only at a joint configuration with
+every conf entry before it applied (`stepLeader`'s `alreadyJoint && !wantsLeaveJoint` refusal), so
+applying it (leaving the joint configuration) is defined. -/
+theorem committed_emptyV2_joint (γ : Cluster) (N : Namespace) (l : List LogEntry) (k : Nat)
+    (e : LogEntry) (m : Membership) :
+    l[k]? = some e → e.isEmptyV2 →
+    isCluster (GF := GF) γ N ∗ isCommittedLogLb γ l ∗ confAt γ k m ⊢ ⌜m.isJoint⌝ := by
+  intro hk he
+  unfold isCluster isCommittedLogLb confAt
+  exact ApiImpl.committed_emptyV2_joint_impl γ N l k e m hk he
+
 /-- **Past entries that are no conf change** (candidate 13's `confAt_normal`, over a range). -/
 theorem confAt_noConf (γ : Cluster) (l : List LogEntry) (a b : Nat) (m : Membership) :
     NoConfChangeIn l a b → a ≤ b → b ≤ l.length →

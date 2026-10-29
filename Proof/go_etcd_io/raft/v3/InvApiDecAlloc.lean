@@ -71,7 +71,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (E : CoPset) :
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
     (N .@ "raft") N (some g) (some gd) Hcne Hnz0 BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, -, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
@@ -86,7 +86,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (E : CoPset) :
   · unfold isClusterU clusterInv
     iframe Hcinv Hinv HspT
     ipureintro
-    exact ⟨⟨⟨c0, gd, Hmr⟩, Hsl, Hcert⟩, HNs⟩
+    exact ⟨⟨⟨c0, gd, Hmr⟩, Hsl, Hcert, by rw [HbootL]; simp⟩, HNs⟩
   -- every id's part (raft's ghost state at the initial state, the node table's), into the join
   -- authority; the founders' out of it
   isimp only [Option.isSome_some] at Hnodes
