@@ -62,6 +62,17 @@ end github_com.mit_pdos.etcd_grove.examples.kvreconf
 
 namespace EtcdGrove.kvreconf
 
+/-- The store's `quietLogger` type. -/
+abbrev qLoggerTy [GooseExts] [GoGlobalContext] : go.GoType :=
+  github_com.mit_pdos.etcd_grove.examples.kvreconf.quietLogger.ty
+
+/-- `quietLogger{}`. -/
+abbrev qLoggerV [GooseExts] : github_com.mit_pdos.etcd_grove.examples.kvreconf.quietLogger :=
+  github_com.mit_pdos.etcd_grove.examples.kvreconf.quietLogger.mk
+
+/-- `quietLogger{}` as a `raft.Logger`. -/
+def qLogger [GooseExts] [GoGlobalContext] : GoInterfaceOk := interface.mk qLoggerTy #qLoggerV
+
 /-! ## The pure model -/
 
 /-- `opPut`. -/
