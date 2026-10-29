@@ -1,26 +1,28 @@
 /-
 **Question 5's Draft: the wiring** (the backend-compaction stage, `notes/backend-cmp-plan.md`,
-"Question 5's Draft round"; the user's decisions (i)-(iv), 2026-10-29). Draft statements only,
-imported by nothing: each definition or statement here is what an existing one becomes at the switch
-(the name with `W` in place of its suffix), written in full so the review reads real Lean. No proof
-is switched; the one law here is proved, and nothing here is assumed.
+"Question 5's Draft round" and "Question 5's Draft, repaired after review round 14"; the user's
+decisions (i)-(iv), their answers Q5-1/Q5-2, and, after round 14, F2 and the deferral of the server's
+side to M2). Draft statements only, imported by nothing: each definition or statement here is what an
+existing one becomes at the switch (the name with `W` in place of its suffix), written in full so the
+review reads real Lean. No proof is switched; the one law here is proved, the switch laws are stated
+as `Prop`s, and nothing here is assumed.
 
 - (i) `store.Compact` borrows the read token from the apply thread's `writerOwn` (`storeRT γ` in its
-  pre and in every branch of its post), for `checkPrevCompactionCompleted`'s `ReadTx` (`metaReadTx rt
-  RT`: its `RLock` takes the token, its `RUnlock` gives it back).
-- (ii) `store.restore` keeps the compaction keys' write right: its post gives back the flag's half
-  (`kbMWW`, from the clause `NC -∗ NC ∗ …` its reads used), and `NewStore` deposits it in the batch
-  lock's resource (`storeWW`), where every session that writes a compaction key (`SetScheduledCompact`
-  in `store.Compact`, the job's `UnsafeSetFinishedCompact`) takes and returns it under the lock. It is
-  never handed to a client. (The batch lock, not the compaction right: `store.Compact`'s
-  `SetScheduledCompact` runs while the previous job may run `UnsafeSetFinishedCompact`, so the right
-  cannot be in the compaction token, which the queue hands from job to job.)
-- (iii) mvcc's assumed backend gets the same flag, opaque: `viewFkW γb f`, with `viewNoCmpW γb :=
-  viewFkW γb 0` and `kbMWW none γb := ∃ f, viewFkW γb f`; an honest creator of that backend holds both
-  (`kbNoCmpW_MW`). `kbMW` takes the bucket's name for it.
-- (iv) the real backend supports the compaction (`kbCmpW := True`); the job's budgets (`compactJobRes`)
-  travel with the compaction token (`compactTokW`), `NewStore` taking them from its caller; the old
-  bridge becomes an instance of the new one (`isKeyBackendG_weaken`'s statement below).
+  pre and every branch of its post). Its write-back tokens (F5) come from a persistent supply in the
+  store's physical facts (`physOk`, `kbWTSupplyM`), not from its caller.
+- (ii) The compaction keys' write right stays in the store (F1, decided by the agent): `store.restore`
+  gives the flag's half back, and `NewStore` then allocates an invariant holding the right or a lock
+  key (`mwInvW`); the key (`mwKeyW`) sits in the batch lock's resource (`writerRes`) from before
+  `NewStore`'s first `Unlock`. A session writing a compaction key holds the lock, so the key: it swaps
+  the key for the right (`mwSwapW`), writes, and swaps back before `Unlock`. Both are gated by the
+  mode: a store that never compacts has neither.
+- (iii) mvcc's assumed backend gets the same flag, opaque: `viewFkW γb f`.
+- (iv) The compaction mode is in the instance (Q5-1): `kbCmpM kb cm` (`KBReal.cm` at the switch). The
+  job's budgets (`compactJobResM`: a reader's token taken from the store's own pool (F2), the
+  safe-range slot from the backend's creation (Q5-2)) travel with the compaction token (`compactTokW`)
+  and are `True` when the store does not compact (F3). The old bridge is the new one weakened under
+  `dlNoDel`, at any slots and right (F7). The server stays `cm := false`: its side (R2-7,
+  `NewServer.spec`) is M2's.
 -/
 module
 
@@ -82,31 +84,78 @@ theorem kbNoCmpW_MW (kb : Option KBReal) (γb : GName) :
     iexists 0
     iexact H
 
-/-- (iv) **The real backend supports the compaction** (draft of `kbCmp`; decision O5 keeps the
-parameter, removed in a cleanup). See the plan's question Q5-1: with the old bridge kept for D22's
-exact readers, a store over a backend fixed at "nothing deletable" cannot meet `Cmp`; the
-alternative is the mode in the instance (`kbCmpM`). -/
-def kbCmpW (_kb : Option KBReal) : Prop := True
-
-/-- (Q5-1's alternative, not the approved one) **The compaction mode in the instance**: the real
-backend supports the compaction when its creator registered the store's deletable keys (`cm`, a
-field of `KBReal` at the switch: the server's `ρ.kv.cmp`). -/
+/-- (iv) **The compaction mode in the instance** (Q5-1, the user's): the real backend supports the
+compaction when its creator chose it (`cm`, a field of `KBReal` at the switch: M2's `ρ.kv.cmp`; `false`
+for D22's received backends, "no restore in compaction mode"); mvcc's assumed backend always.
+Draft of `kbCmp`. -/
 def kbCmpM (kb : Option KBReal) (cm : KBReal → Bool) : Prop :=
   match kb with
   | none => True
   | some d => cm d = true
 
-/-- (ii) **The batch lock's resource with the write right** (draft of `storeW`): the store's lock
-resource and the compaction keys' write right, which a session writing a compaction key takes and
-gives back under the lock. -/
-def storeWW (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop(storeW s γ ∗ kbMWW γ.kb γ.bucket)
+/-- (iv) The mode is decidable (it gates resources below). -/
+instance kbCmpM_dec (kb : Option KBReal) (cm : KBReal → Bool) : Decidable (kbCmpM kb cm) := by
+  unfold kbCmpM; cases kb <;> infer_instance
+
+/-- (ii) F1: **the write right's lock key** (exclusive; a new physical name at the switch, `mk`,
+allocated by `NewStore`, or by `store.Restore` for its new names): in the batch lock's resource. -/
+def mwKeyW (γmk : GName) : IProp GF := ghostVar γmk 1 ()
+
+/-- (ii) F1: **the batch lock's resource with the key** (draft of `writerRes`'s new conjunct): the key
+when the store compacts, else nothing. Deposited with the rest of `writerRes` at `NewStore`'s first
+`Unlock`, before `restore`. -/
+def mwSlotW (γ : StoreNames) (cm : KBReal → Bool) (γmk : GName) : IProp GF :=
+  if kbCmpM γ.kb cm then mwKeyW γmk else iprop(True)
+
+abbrev mwN : Namespace := nroot.@"mvcc_mw"
+
+/-- (ii) F1: **the write right's invariant** (persistent, in `isStore` at the switch, allocated by
+`NewStore` after `restore` gives the right back): the right, or the key (a session holding the batch
+lock has swapped them). -/
+def mwInvW (γ : StoreNames) (γmk : GName) : IProp GF :=
+  inv mwN iprop(kbMWW γ.kb γ.bucket ∨ mwKeyW γmk)
+
+/-- (ii) F1: **a lock holder's swap** (what `SetScheduledCompact`'s and the job's sessions use): the
+batch lock's resource `W` gives the right, and the right gives `W` back. -/
+def mwSwapW (W MW : IProp GF) : IProp GF :=
+  iprop(□ (W ={⊤}=∗ MW ∗ (MW ={⊤}=∗ W)))
+
+/-- (ii) F1: the law the switch proves (stated here): with the invariant, a resource holding the key
+swaps (the key is exclusive, so the invariant holds the right while a holder has the key). -/
+def mwSwap_of_inv.stmt : Prop :=
+  ∀ (γ : StoreNames) (γmk : GName) (R : IProp GF),
+    mwInvW γ γmk ⊢ mwSwapW iprop(mwKeyW γmk ∗ R) (kbMWW γ.kb γ.bucket)
+
+/-- (iv) F2/F3/F5: **the compaction job's budgets, by the mode** (draft of `compactJobRes`): for a
+compacting real backend, a reader's token (taken out of the store's own pool: F2, the user's) and the
+safe-range slot (from the backend's creation: Q5-2); nothing otherwise. The write-back supply is no
+longer here (F5: persistent, `kbWTSupplyM` in the store's physical facts). -/
+def compactJobResM (kb : Option KBReal) (cm : KBReal → Bool) : IProp GF :=
+  if kbCmpM kb cm then iprop(kbRT kb ∗ kbSR kb) else iprop(True)
+
+/-- (iv) F5: **the write-back supply, by the mode** (persistent; in `physOk` at the switch, where both
+`store.Compact` and the job pay their `LockInsideApply`/`LockOutsideApply` and `ForceCommit` from the
+receipts of their own steps). -/
+def kbWTSupplyM (kb : Option KBReal) (cm : KBReal → Bool) : IProp GF :=
+  if kbCmpM kb cm then kbWTSupply kb else iprop(True)
+
+/-- (iv) F3: the slot `NewStore` takes from its caller, by the mode (the reader token comes from the
+pool it already takes: F2). -/
+def kbSRM (kb : Option KBReal) (cm : KBReal → Bool) : IProp GF :=
+  if kbCmpM kb cm then kbSR kb else iprop(True)
+
+/-- (iv) F2: the readers `NewStore` keeps back for the job: one when the store compacts over the real
+backend, none otherwise (mvcc's assumed backend's `kbRT` is `True`, so none is needed there). -/
+def nJobRd (kb : Option KBReal) (cm : KBReal → Bool) : Nat :=
+  match kb with
+  | none => 0
+  | some d => if cm d then 1 else 0
 
 /-- (iv) **The compaction token with the job's budgets** (draft of `compactTok`): the index
-compactor's token at or below `c` and the job's budgets (`compactJobRes`: a reader's token, the
-safe-range slot, the write-back supply), handed from job to job through the queue. -/
-def compactTokW (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop((∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c') ∗ compactJobRes γ.kb)
+compactor's token at or below `c` and the job's budgets by the mode, handed from job to job through
+the queue. -/
+def compactTokW (γ : StoreNames) (cm : KBReal → Bool) (c : Int) : IProp GF :=
+  iprop((∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c') ∗ compactJobResM γ.kb cm)
 
 /-- (iv) **The store's deletable keys, by the index's names** (draft): `delKey` depends on the
 store's names only through the index's (`γ.idx`), which `NewStore`'s caller allocates before the
@@ -125,19 +174,20 @@ def storeDlReg (γB : backend.BNames) (γi : IdxNames) : IProp GF :=
     delKeyI γi nk.2))
 
 /-- (iv) **The old bridge, an instance of the new** (the statement of the law it needs; proved at
-the switch): a contract with compaction (`Cmp := True`, the safe-range slot `SR`/`SRh`) whose
-deletable keys are none (`□ ∀ k, Del k -∗ False`: the backend's `dlNoDel` with `bkDel`) is one with
-any `Del'`, no compaction, and trivial slots. -/
+the switch): a contract with compaction (`Cmp := True`, the safe-range slot `SR`/`SRh`, the right
+`MW`) whose deletable keys are none (`□ ∀ k, Del k -∗ False`: the backend's `dlNoDel` with `bkDel`) is
+one with any `Del'`, no compaction, and any slots and right (F7: they occur only under `⌜Cmp⌝`, so a
+non-compacting real store's `kbSR`, `srSlot`, fits). -/
 def isKeyBackendG_weaken.stmt : Prop :=
   ∀ (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT NC : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del Del' : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp' : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (SR SRh MW : IProp GF),
+    (Bt : GoInterfaceOk → IProp GF) (SR SRh MW SR' SRh' MW' : IProp GF),
     ¬ Cmp' →
     isKeyBackendG b View RT WT NC PutOk Del W Wi Dep True P HF Req Rb Bt SR SRh MW ∗
       □ (∀ k, Del k -∗ False) ⊢
-    isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req Rb Bt iprop(True) iprop(True) MW
+    isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req Rb Bt SR' SRh' MW'
 
 /-- (iv) **The store's deletable keys through the backend's registration** (the statement of the
 law the switch needs; review round 1's F7: under `▷` of the saved predicate's agreement, as `◇`
@@ -162,7 +212,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- (i) **Draft of `store.Compact.spec`**: as today, and the read token `storeRT γ` (borrowed from
-the apply thread's `writerOwn`) in the pre and given back in every branch of the post. -/
+the apply thread's `writerOwn`) in the pre and given back in every branch of the post. Its write-back
+tokens (F5) come from `kbWTSupplyM` in `isStore`'s physical facts, so the pre has no `storeWT`. -/
 abbrev store.Compact.specW : Prop :=
   ∀ (s : Loc) (γ : StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : Log) (te : Bool),
@@ -184,19 +235,21 @@ abbrev store.Compact.specW : Prop :=
         (∃ log : Log, idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
         compactRight γ c ∗ Pre)) }}
 
-/-- (ii)/(iv) **Draft of `NewStore.spec`**: as today, with the no-compaction token of either backend
-(`kbNoCmpW`, the assumed backend's now its flag at `0`), the contract's write right named per
-backend (`storeBackend`'s `MW := kbMWW γ.kb γ.bucket`, at the switch), and the compaction job's
-budgets (`compactJobRes kb`: all `True` for the assumed backend), which the store keeps with its
-compaction token (`compactTokW`, in `storeCloser`'s queue). The post is today's. -/
-abbrev NewStore.specW : Prop :=
+/-- (ii)/(iv) **Draft of `NewStore.spec`** (repaired after round 14): as today, with the
+no-compaction token of either backend (`kbNoCmpW`), the backend contract only at the index's names it
+was registered for (F4: `γ.idx = γi`), and, by the mode (F3; `cm` is `KBReal.cm` at the switch), the
+safe-range slot (`kbSRM`, from the backend's creation: Q5-2) and the write-back supply (`kbWTSupplyM`,
+persistent: F5). The job's reader token comes from the pool `NewStore` already takes (F2, the user's):
+the post gives back `nJobRd kb cm` fewer readers (one for a compacting real store, else none). -/
+abbrev NewStore.specW (cm : KBReal → Bool) : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : IdxNames) (γok : GName),
   batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      (∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → storeBackend b s γ P) ∗
+      (∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
+        storeBackend b s γ P) ∗
       kbView kb γb 1 (∅ : Bucket) ∗ kbNoCmpW kb γb ∗ kbRegRight kb ∗ kbWT kb ∗ kbWT kb ∗
-      compactJobRes kb ∗
+      kbSRM kb cm ∗ □ kbWTSupplyM kb cm ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), kbRT kb) ∗
       lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 Log) }}
@@ -213,12 +266,32 @@ abbrev NewStore.specW : Prop :=
         s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         isWriteView wv s γ) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - nJobRd kb cm) (),
         storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ idxCert γ.idx [[], []] ∗
       (if wq then logQ γ [[], []] else iprop(True)) ∗ storeCloser s γ ∗
       fieldShare s γ (1 : Qp).half.half ∗ wsDep γ ∗ writerFrag γ ∗
       crevUB γ.idx (1 : Qp).half (-1) ∗ retiredAt γ 0 }}
+
+/-- R9-3/F6: **Draft of `SetScheduledCompact.spec`**, over the fully general batch transaction
+(`batchTxSpecG`: the read and write tokens, the put condition and the right all the caller's; the
+compaction's clauses on, `Cmp := True`), with the swap of the lock's resource for the right
+(`mwSwapW`, F1). `SetFinishedCompact.specW` is the same with its own function (no caller in the
+server; for uniformity). -/
+abbrev SetScheduledCompact.specW : Prop :=
+  ∀ (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (MW : IProp GF) (f : val) (value : w64)
+    (Pre Q Post : IProp GF),
+  0 ≤ sint.Z value →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗ mwSwapW W MW ∗
+      RT ∗ WT ∗ HF f ∗ Pre ∗
+      □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ (Q ∗ W ={⊤}=∗ P ∗ W ∗ Post) }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
+      (Val #(GoInterface.ok bt))) (Val #value))
+  {{ RET #(); RT ∗ Post }}
 
 end specs
 

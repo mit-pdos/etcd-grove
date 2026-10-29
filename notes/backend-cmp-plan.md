@@ -1305,6 +1305,10 @@ The user approved the recommendations (2026-10-29):
   `isKeyBackendG_of_backendC`, with R2-7's D22-side changes and R9-3 (`SetScheduledCompact`/
   `SetFinishedCompact` with a general `MW`). The old bridge becomes an instance of the new one, the
   last variant.
+- **Narrowed after review round 14 (the user's, 2026-10-29):** (iv) is now Q5-1's mode in the instance
+  (`kbCmp (some d) := d.cm`), with the server's side (R2-7's D22 change, `NewServer.spec`) deferred to
+  M2. See "Question 5's Draft, repaired after review round 14", which supersedes the Draft round's
+  design and lists below where they differ.
 
 ### Question 5's Draft round (2026-10-29)
 
@@ -1429,3 +1433,112 @@ nothing and builds. Its one law (`kbNoCmpW_MW`) is proved; the switch's two laws
   but its post now means more, so the `axiom` skill runs on it again before Freeze.
 
 Next: Review of the Draft with these answers, then the switch.
+
+### Question 5's Draft, repaired after review round 14 (2026-10-29)
+
+Review round 14 (`notes/spec-first-study/backend-review-14.md`) had seven first-tier findings (F1-F7).
+The Draft (`WiringDraft.lean`) is repaired; still no proof switched. Checked: `etc/lean-check.py -a`
+and a targeted `lake build --packages` of `mvcc.WiringDraft` (2311 jobs), both pass.
+
+**The user's answers (2026-10-29).**
+- **F2: the job's reader token comes from the store's own pool, only in compaction mode.**
+  `NewStore` keeps back `nJobRd kb cm` readers: one for a compacting real store, else none. So
+  non-compacting stores, D22's backends and the server keep their exact reader counts.
+- **Defer the server's side to M2.** R2-7's D22-side change and `NewServer.spec`'s change leave this
+  stage. The server stays `cm := false`, and M2 turns compaction on in the server.
+
+**Repairs** (decided by the agent unless marked):
+- **F1, the write right's home** (decided by the agent; option (a) of the review, within the user's
+  (ii)).
+  - `writerRes` gains `mwSlotW γ cm γmk`: the lock key `mwKeyW` when the store compacts, else nothing.
+    It is deposited with `writerRes` at `NewStore`'s first `Unlock`, before `restore`.
+  - After `restore` gives the half back (`kbNoCmpW_MW`), `NewStore` allocates
+    `mwInvW γ γmk := inv mwN (kbMWW γ.kb γ.bucket ∨ mwKeyW γmk)`. It goes in `isStore` at the switch.
+  - A session that writes a compaction key holds the batch lock, so it holds the key. It swaps the
+    key for the right, writes, and swaps back (`mwSwapW W MW := □ (W ={⊤}=∗ MW ∗ (MW ={⊤}=∗ W))`;
+    the law `mwSwap_of_inv.stmt`).
+  - The lock's resource `W` stays `storeW` (for the real backend, `lateW d.gx` from creation). The key
+    is inside `writerRes`, which `lateW` registers.
+  - The key's name is a new physical name (`PhysNames.mk`), allocated by `NewStore`, or by
+    `store.Restore` for its new names. D22's statements keep their text.
+  - The plan's earlier "`store.Restore` drops it" is superseded. A restored store's `writerRes` holds
+    the key only if it compacts, which it does not (see the question below).
+  - Option (b), D22's pending-deposit pattern, was rejected: it touches D22's `writerReg`.
+- **F2/F3, the budgets by the mode.**
+  - `compactJobResM kb cm` is `kbRT ∗ kbSR` for a compacting real store, else `True`. Its reader
+    token comes from `NewStore`'s pool.
+  - `NewStore` takes the slot from its caller only in compaction mode (`kbSRM`).
+  - `compactTokW γ cm c := (∃ c' ≤ c, idxCompactor γ.idx c') ∗ compactJobResM γ.kb cm`.
+- **F4.** `NewStore.specW`'s contract premise is now at `γ.idx = γi`.
+- **F5, the write-back supply** (the reviewer's preference): `kbWTSupplyM kb cm`, persistent.
+  `NewStore` takes it (`□ kbWTSupplyM kb cm`) and keeps it in `physOk`. `store.Compact` and the job
+  pay from the receipts of their own steps. `store.Compact.specW`'s pre gets no `storeWT`.
+- **F6.** `SetScheduledCompact.specW` and `SetFinishedCompact.specW` are over `batchTxSpecG` in full
+  generality: `RT`, `WT`, `PutOk`, `Rb` and `MW` are the caller's, `Cmp := True`, and they take
+  `mwSwapW W MW`. Their pre has `RT ∗ WT`, their post `RT`.
+- **F7.** `isKeyBackendG_weaken.stmt` concludes at any `SR' SRh' MW'`.
+
+**One question for the user (Q5-3).** Gating the budgets by `d.cm` leaves one gap:
+- `store.Restore.spec` (D22's) builds the new store for an arbitrary received record `d'`.
+- If `d'.cm` were `true`, its new store's closer (`compactQueue`, `compactTokW`) would need the job's
+  budgets: the slot and the write-back supply. `Restore`'s pre has neither.
+- The server's own records (`SnapApplyWalk`, `SnapApplyDefs`) will be built with `cm := false`, but
+  the spec quantifies over every `d'`.
+- Options:
+  - **(a) Recommended.** `store.Restore.spec` gains the pure premise `⌜d'.cm = false⌝` ("no restore in
+    compaction mode", M2's scope restriction). Its callers discharge it from their literal records.
+    This is a one-line change to a D22 statement (the collaborator's).
+  - **(b)** No D22 change. A persistent mode witness `cmpOn γ` from `NewStore`'s post becomes a premise
+    of `store.Compact.spec`. The token's budgets become `compactJobResM ∨ cmpOff γ`, which `Restore`
+    allocates. It is heavier, and it adds a client-visible premise to `store.Compact`.
+- The Draft is written for (a); (b) changes only `compactTokW` and `store.Compact.specW`.
+
+**Statements that change** (new text; Lean in `WiringDraft.lean` where marked):
+- **Client-visible (mvcc):**
+  - `store.Compact.spec`: `storeRT γ` in the pre and in every post branch (`store.Compact.specW`).
+  - `NewStore.spec` (`NewStore.specW cm`):
+    - the pre takes `kbNoCmpW kb γb`, the contract at `γ.idx = γi`, `kbSRM kb cm` and
+      `□ kbWTSupplyM kb cm`;
+    - the post gives back `replicate (actualMaxReaders - nJobRd kb cm) (storeReaderC s γ)`.
+  - `New.spec` and `newWatchableStore.spec`: the same pre additions. Their posts' reader counts drop
+    by `nJobRd kb cm` (`watchReader … - 2 - nJobRd kb cm`).
+  - `store.restore.spec`: its post gives the half back, `kbMWW γ.kb γ.bucket` (from `kbNoCmpW_MW`).
+  - `SetScheduledCompact.spec` and `SetFinishedCompact.spec`: `SetScheduledCompact.specW` (F6).
+  - `store.updateCompactRev.spec`: its `batchTxSpec` facts become the store's `batchTxSpecG` ones, and
+    it takes `mwSwapW (storeW s γ) (kbMWW γ.kb γ.bucket)` from `isStore`. Its text changes only in
+    what it unfolds; no new premise for the caller.
+- **Exported results:**
+  - `mvcc_NewStore_backend` and `NewStore_backend`:
+    - the pre gains `kbSRM (some d) cm`, `□ kbWTSupplyM (some d) cm`, `fkV d.γB true`, and `dlInit`
+      fixed by the store: `storeDlReg d.γB γi` when `d.cm`, `dlNoDel` otherwise;
+    - three more callee specs: `LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`, `UnsafePut`;
+    - `hHK`/`hFV` for `d.P`;
+    - the post's reader count drops by `nJobRd`.
+  - `mvcc_backend_bridge` (generic `P`), `mvcc_storeBackend_of_backend` and `storeBackendT_of_backend`:
+    over the new bridge, they gain `hHK : ∀ k, metaCompactKey k → P.HK metaName k = false`,
+    `hFV : ∀ v, P.FV v ↔ metaRevVal v` and `fkV γ true`, plus the three callee specs.
+  - `mvcc_store_Compact`: `storeRT γ` in the pre and post.
+  - `server_kv_backend`, `server_kv_watchable` and `server_kv_backend_hooks`: they gain `fkV d.γB true`
+    (from `bkNoCmp_fkV_of_fkCl`) and the inherited bridge premises. Their reader counts are unchanged
+    (`cm := false`).
+  - Not in this stage: `NewServer.spec` (deferred to M2).
+- **Trusted:** `storage.OpenBackend`, by Q5-2 only (`srSlot` in `newPost`/`newPostK`; the `axiom` skill
+  again before Freeze).
+- **D22's (the collaborator's):** only `KBReal`'s new field (`cm := false` in `SnapApplyWalk` and
+  `SnapApplyDefs`); `store.Restore.spec` only if Q5-3 (a).
+
+**Proof sites** (`etc/importers.py`; minus the deferral):
+- `InvStore`: `KBReal.cm`, `kbCmp`, `kbMW`, `compactJobRes`, `compactTok`, `writerRes`, `physOk`,
+  `isStore`, `storeBackend` and `storeBackendT`.
+- `InvCompact`; the `store__restore`, `NewStore`, `store__Compact`, `store__updateCompactRev`,
+  `store__scheduleCompaction` and `store__compactLockfree` proofs.
+- `SetScheduledCompact`, `SetFinishedCompact`, `UnsafeSetScheduledCompact` and
+  `UnsafeSetFinishedCompact` (specs and proofs).
+- `store__Restore` and `RestoreMoves`; `newWatchableStore`, `New`, `BackendBridge` (the two laws),
+  `StoreBackend`, `Results`, `Link`.
+- etcdserver: `BuildLemmas`, `Results`, `SnapApplyWalk`, `SnapApplyDefs` and `SnapApplyOpen` (only
+  the literal `cm := false` and `fkV`).
+- Gone with the deferral: `InvApplier` (R2-7) and `NewServer`.
+
+**Estimate:** about 1100–1400 lines. The deferral takes about 150–200 off the reviewer's 1200–1600.
+One full build per round (1724 modules).
