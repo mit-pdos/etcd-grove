@@ -1015,3 +1015,17 @@ quota's mmap size (a quota above about 2.5·10^14 makes `newBackend` panic in an
 `storage.openMmapOk cfg`, and it reaches `NewServer.spec`/`specCompact`/`specM` (`"%Hmmap"`, kept in
 `srvSnapRO`) and `applySnapshot.specSnap`/`applySnapshot_walk` (`hmmap`). `OpenSnapshotBackend`'s
 statement takes it through `openPre`.
+
+## The user's answers to questions 2 and 4 (2026-10-29)
+
+- **Question 2 (R4-2, D22's `viewAt`): option (a), the user's.** The batch lock's quarter of
+  `γ.view` moves to the logical view, and `viewAt γ vd := ∃ L, (the batch quarter at L) ∗ thinV γ
+  vd L`: a snapshot's view `vd` is the physical one, thin of the logical view by registered
+  deletable keys. **For the D22 track (the collaborator's):** `backend.Snapshot`'s spec mentions
+  `viewAt`; its text is unchanged, its meaning weaker (exact when nothing is deletable,
+  `dlNoDel`). `backend.Snapshot`'s axiom is an axiom-backed spec whose meaning changes: it gets the
+  `axiom` skill before Freeze. Unblocks: the limited range's case of the new bridge, and folding
+  `Unlock.specC`/`UnsafeDelete.specC` into their specs.
+- **Question 4 (the compaction keys' values): on the tracked-absence flag, the user's** (the
+  recommendation: three levels, not `BParams.VI`). How it is stated is below ("Question 4's
+  statements"), decided by the agent within that choice.
