@@ -18,9 +18,9 @@ key, at the state's events, with nothing of auth. `Work`'s refused watch, `u`'s 
 root's watch of every key need it generalized (the plan's S4). Until then `Work.spec` takes the
 watcher's facts as `Main` has them (`watchAddrFacts`).
 
-**Draft.** `akAuthFixed` is stated over today's names (`srvRLogLb`, the model's `kvRaftOfOn`).
-The auth-mode merge's step 5 and 5b (`srvReqLogLb`, `srvAuthAtLog`, `admStates`, the client's
-history view) replace them before the freeze. `akAuthFixed_alloc` is S6's stub.
+**Draft.** `akAuthFixed`'s write half is over `srvRLogLb`; 5b's frozen client history view
+(`authHistFrozen`, `admStates`) replaces it before the freeze, and its read half gets its source
+from 5b's law from the store's history to that view. `akAuthFixed_alloc` is S6's stub.
 -/
 module
 
@@ -68,10 +68,6 @@ instance akKVOn_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ :
     (cid mid : w64) : Persistent (akKVOn (GF := GF) addr s E ρ cid mid) := by
   unfold akKVOn; infer_instance
 
-/-- The model's auth state after the requested log `L` (draft: step 5's `srvAuthAtLog`). -/
-def akAuthAt (ρ : ReqNames) (L : List EntryModel) : auth.AuthState :=
-  (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) L).1
-
 /-- **The auth state fixed after the set-up** (S6; persistent): for reads (round 1, F-W1), the
 set-up's published index `n` and every state of the auth history from it on `setupSt` at some
 revision (`client_range_on`/`client_txn_on`'s verdicts are from states at indices at least the
@@ -83,7 +79,7 @@ def akAuthFixed (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) 
   iprop(auth.authPubLb γa n ∗
     □ (∀ m st, ⌜n ≤ m⌝ -∗ auth.authStateAt γa m st -∗ ⌜∃ r, st = setupSt r⌝) ∗
     srvRLogLb ρ.raft Lset ∗
-    □ ∀ L, ⌜Lset <+: L⌝ -∗ srvRLogLb ρ.raft L -∗ ⌜∃ r, akAuthAt ρ L = setupSt r⌝)
+    □ ∀ L, ⌜Lset <+: L⌝ -∗ srvRLogLb ρ.raft L -∗ ⌜∃ r, srvAuthAtLog ρ.kv srvAuthSt0 L = setupSt r⌝)
 
 instance akAuthFixed_persistent (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel)
     (n : Nat) : Persistent (akAuthFixed (GF := GF) γa ρ Lset n) := by

@@ -336,3 +336,35 @@ auth-on write permits (`putPermitOn`, `deletePermitM`), one spec per server func
 is in `lean` and this branch is rebased: `Hist.lean`'s stand-in `kvAu1G` goes (the real one, same
 shape and mask, `InvRequest.lean`), and `akHist_writeAu` is at its `G`. 5b brings the rest
 (`authHistView` in the boot results, `srvAuthSt0_disabled`, `etcd_noOtherRefusal`, 2a).
+
+## Review, round 2 (2026-10-29)
+
+On `lean` with step 5. Round 1's F-W1, F-W2, F-W4, F-W5, F-H1, F-H2, F-E2, F-E3, F-N1 addressed;
+F-W3 (G2), F-E1 (5b), F-H4/F-S1/F-S2 (5b's route B), F-C1 (temporary) open as briefed. New:
+
+1. **Step 5's grant stopped at v3rpc**: the auth-on client registrations and write results
+   (`etcdPutSpecOn`, `client_put_on`, ...) were still over plain `kvOpAu1` (`ServedOn.lean`
+   dropped the grant at `L₀ := []`), so nothing took `akHist_writeAu`'s update. The merge session
+   fixes it as "5a" (branch `auth-5b`): the results take `srvReqLogLb ρ.raft L₀ ∗ □ kvAu1G …
+   (fun σ => ∃ md, ⌜clientAttemptMd conn ci md⌝ ∗ opGrantT … (mdTokenOf md) op L₀ σ) Q`.
+2. **`Collect.spec` kept watchkv's cursor `Cur`** ("event n at revision 1+n"), unmeetable for u's
+   range watch. **Done:** the relation is the caller's (`I`, from `I 0 0`); `wp_Collect_plan` at
+   `Cur`, authkv at `True`.
+3. What 5b must give `akAuthFixed`: a monotone `admStates` (last `srvAuthAtLog`), a persistent
+   frozen view (`authHistFreeze`), and a law from the store's history (`authStateAt`) to it: all in
+   5b's design (the merge session, 2026-10-29). The view comes from the cluster allocation.
+4. The TLS-off export (`ClientCertAuthEnabled ↦□ false`): 5b, in the boot results.
+5. **Done:** `Work.wp_proof` also takes `WithTimeoutBackground`, `ErrAny`,
+   `AppendToOutgoingContext` (its watch's context).
+6. **Done:** `akAuthAt` gone, `srvAuthAtLog ρ.kv srvAuthSt0` in its place.
+7. **Done:** `draft.revEvents_modRev` (proved, from mvcc's `evsOfRevM_modRev_sm`). `setupRev`'s
+   sign comes from F-S1's `SetUp` post.
+8. Open, small: `ctxErrClientAll` is reached only by unfolding `ctxErrClientAllW` (a law of
+   `client/v3` to add); the closed theorem's thread bound must cover `Main`'s four goroutines;
+   `authkv_Main`'s callees join at the freeze (`Main.lean`'s header).
+9. Not taken: `reqCtx.spec`'s `c0` could go (its post is `outgoingOf c = if bad then mdAdd none
+   "token" badToken else none`); sound as is.
+10. **Done:** stale docstrings (`WorkEnv`, `Main`).
+
+5b's client admin specs retry each attempt (`□ ▷`), so SetUp's admin updates get through only by
+F-S2's no-refusal route (the view all disabled): F-S2's part 2 comes before 5b's client side.

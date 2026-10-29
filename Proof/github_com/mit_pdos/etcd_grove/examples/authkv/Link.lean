@@ -118,7 +118,7 @@ theorem wp_checkTxnReads :
 
 theorem wp_Work :
     EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted
+  EtcdGrove.authkv.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted context.wp_WithTimeoutBackground context.wp_ErrAny metadata.wp_AppendToOutgoingContext
 
 theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=

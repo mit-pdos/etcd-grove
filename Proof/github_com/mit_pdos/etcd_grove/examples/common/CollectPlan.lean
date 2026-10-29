@@ -86,7 +86,7 @@ theorem wp_Collect_plan (wp_Collect : Collect.spec (GF := GF) (hG := hG))
       · rw [Hval.1]; exact Hval.2
     rw [show 2 + (n + j) = 2 + n + j by omega, Hval.1]
     iexact Hr
-  wp_apply (wp_Collect Ok (planEvF R P) A wch γ upTo hP Hce Hresp') $$ [$Hpre]
+  wp_apply (wp_Collect Ok Cur (planEvF R P) A wch γ upTo Cur_zero hP Hce Hresp') $$ [$Hpre]
     as %sl %ok Hpost
   iapply HΦ
   iintro %hok

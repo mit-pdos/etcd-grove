@@ -31,7 +31,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 
 theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     Collect.spec (GF := GF) (hG := hG) := by
-  intro CS Ok F A wch γ upTo hP Hce Hresp
+  intro CS Ok I F A wch γ upTo hI0 hP Hce Hresp
   haveI : ∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
     Persistent (Ok c c' v r) := hP
   wp_start as ⟨#Hw, Hcons, #HA⟩
@@ -52,7 +52,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
   ihave IH : (∃ (evs0 : List wev) (sl : GoSlice) (lv : w64) (m : Nat) (c : w64),
       "evs" ∷ evs_ptr ↦ sl ∗ "last" ∷ last_ptr ↦ lv ∗ "Hs" ∷ sl ↦* evs0 ∗
       "Hcap" ∷ ownSliceCap wev sl (DFrac.own 1) ∗ "Hcons" ∷ etcdWatchConsumer γ m c ∗
-      "%Hc" ∷ ⌜Cur evs0.length c ∧ ∀ e, evs0.getLast? = some e → lv = e.Rev'⌝ ∗
+      "%Hc" ∷ ⌜I evs0.length c ∧ ∀ e, evs0.getLast? = some e → lv = e.Rev'⌝ ∗
       "#Hrevs" ∷ □ ∀ (i : Nat) (e : wev), ⌜evs0[i]? = some e⌝ -∗ F i e :
       IProp GF) $$ [evs last Hcons]
   · iexists [], slice.nil, _, 0, W64 0
@@ -62,7 +62,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     isplitr
     · iapply ownSliceCap_nil
     isplitr
-    · ipureintro; refine ⟨Cur_zero, fun e h => by simp at h⟩
+    · ipureintro; refine ⟨hI0, fun e h => by simp at h⟩
     iintro !> %i %e %h
     simp at h
   wp_for IH

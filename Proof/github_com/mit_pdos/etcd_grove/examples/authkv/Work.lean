@@ -12,6 +12,9 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.refused
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.checkKVs
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.checkTxnReads
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Permitted
+public import Spec.context.WithTimeoutBackground
+public import Spec.context.ErrAny
+public import Spec.google_golang_org.grpc.metadata.AppendToOutgoingContext
 
 @[expose] public section
 
@@ -36,7 +39,10 @@ theorem Work.wp_proof
     (wp_refused : refused.spec (GF := GF) (hG := hG))
     (wp_checkKVs : checkKVs.spec (GF := GF) (hG := hG))
     (wp_checkTxnReads : checkTxnReads.spec (GF := GF) (hG := hG))
-    (wp_Permitted : Permitted.spec (GF := GF) (hG := hG)) :
+    (wp_Permitted : Permitted.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_Append : metadata.AppendToOutgoingContext.spec (GF := GF) (hG := hG)) :
     Work.spec (GF := GF) (hG := hG) := by
   sorry
 
