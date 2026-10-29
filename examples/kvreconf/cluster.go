@@ -313,6 +313,12 @@ const opTimeout = 100 * time.Millisecond
 // member until one answers (the same encoding each time: it takes effect once).
 func (c *Cluster) do(kind byte, key, val string) string {
 	c.mu.Lock()
+	if c.nextOp == maxSeq {
+		// every operation id used (2^64 - 1 operations): it does not happen
+		c.mu.Unlock()
+		for {
+		}
+	}
 	c.nextOp++
 	op := encode(c.nextOp, kind, key, val)
 	c.mu.Unlock()

@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, putget, putget3, linkvtxn, porcupine, bridge,
+  --project    only this project (raft, etcd, kv, kvreconf, putget, putget3, linkvtxn, porcupine, bridge,
                lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -450,6 +450,20 @@ PROJECTS = [
         # the store; not its command (cmd/kvcheck), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kv")],
+    ),
+    Project(
+        name="kvreconf",
+        # The key-value store on raft that reconfigures and snapshots (`examples/kvreconf`: every
+        # choice the application may make is random; notes/raft-unified-plan.md, U11), with its
+        # randomized linearizability test (check.go). A package of the examples' Go module, as kv.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "kvreconf"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine="],
+        # the store; not its command (cmd/kvreconfcheck), which only runs it
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvreconf")],
     ),
     Project(
         name="common",

@@ -242,6 +242,21 @@ func validConf(cs *pb.ConfState, cc *pb.ConfChangeV2) bool {
 	return err == nil && uint64(len(after)) < 1<<62
 }
 
+// maxIndex bounds the indices of the entries a Storage holds (the bound raft's Storage contract
+// assumes of the stable log, 2^61): a replica stops before its log outgrows it (run).
+const maxIndex = 1 << 61
+
+// fits says whether appending es keeps the stored log within maxIndex.
+func fits(es []*pb.Entry) bool {
+	return len(es) == 0 || (uint64(len(es)) <= maxIndex && es[0].GetIndex() <= maxIndex-uint64(len(es)))
+}
+
+// maxSeq is the last operation id and read sequence number: a cluster that has used up its
+// operation ids (Cluster.do), or a replica its read sequence numbers (read), stops issuing them,
+// so that an id is never reused (a reused one would be answered with another operation's
+// answer). 2^64 - 1 of them: it does not happen.
+const maxSeq = ^uint64(0)
+
 // Storage is a replica's raft storage: a MemoryStorage that, when raft asks for its snapshot
 // (to send to a follower), may answer at random that none is available for now, as the Storage
 // interface allows (raft then asks again later); and that answers a newcomer's InitialState with
@@ -329,7 +344,8 @@ func (r *Replica) stop() {
 // (in the storage, then as the replicated state: install); save the hard state and append the
 // entries; send the messages; note the read states; apply the committed entries in order (a
 // configuration change to the node, Node.ApplyConfChange, before the Advance that acknowledges
-// it); answer the reads whose index is applied; Advance.
+// it); answer the reads whose index is applied; Advance. A Ready whose entries would take the
+// log past maxIndex stops the loop (it does not happen).
 //
 // Snapshots and compaction are the application's to choose: after any entry it applies and
 // after any Advance, the replica may take a snapshot (maybeSnapshot), and after any Advance it
@@ -345,6 +361,10 @@ func (r *Replica) run(send func([]*pb.Message)) {
 		select {
 		case rd = <-r.node.Ready():
 		case <-r.stopc:
+			return
+		}
+		if !fits(rd.Entries) {
+			// a log of 2^61 entries: it does not happen
 			return
 		}
 		if !raft.IsEmptySnap(rd.Snapshot) {
@@ -585,10 +605,15 @@ func (r *Replica) propose(op []byte, timeout time.Duration) (string, bool) {
 	}
 }
 
-// read reads key by a read index here, waiting up to timeout; ok is false if no answer came.
+// read reads key by a read index here, waiting up to timeout; ok is false if no answer came (or
+// the replica's read sequence numbers are used up: maxSeq).
 func (r *Replica) read(key string, timeout time.Duration) (string, bool) {
 	ch := make(chan string, 1)
 	r.mu.Lock()
+	if r.nextRead == maxSeq {
+		r.mu.Unlock()
+		return "", false
+	}
 	r.nextRead++
 	seq := r.nextRead
 	r.reads[seq] = ch
