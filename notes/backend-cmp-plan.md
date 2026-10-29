@@ -556,3 +556,20 @@ bridge's three new cases and `isKeyBackendG_congrDel`.
   agent's recommendation: (a), since it removes the later everywhere the thin view meets exactness.
 - **Left**: group 2 (`Unlock.specC`, `UnsafeDelete.specC` folded; the batch's quarter over `L`; the
   delete-only commit); the supply points' threading; the new bridge's cases; `isKeyBackendG_congrDel`.
+
+## Decided by the agent while the user was away (2026-10-29)
+
+- **O1's fallback taken: the deletable keys a pure key set, not a saved predicate.** The thin-view
+  round (`e7441beb7c`) found that with the saved predicate, "nothing deletable" holds only under
+  `▷`/`◇`, which a postcondition's continuation cannot strip, so the old bridge's exact reads are
+  unprovable that way (its 3 `sorry`s, and the 3 supply points). O1 recorded this fallback for exactly
+  that case ("a pure key set mvcc vouches for in an invariant"), so this follows the user's decision
+  rather than reversing it. Options were (a) the fallback, (b) exactness from the unfixed `dlInit` as
+  an exclusive resource threaded to every reader (heavier, D22's restore flows), (c) the bridge's
+  clauses restated thin (weakens the old bridge's clients). Reason: (a) has no later and no exclusive
+  resource, and keeps the readers' exactness for free when the set is empty.
+- **For the user to review on return** (statement changes this stage made, under "Who decides"):
+  `backend.ConcurrentReadTx.spec`'s post thin (`thinV γ (vData P rv) vd`) instead of exact; the
+  deletable-keys registration (after the fallback, its pure form) added to the old bridge,
+  `storeBackendT_of_backend`, `keyCleanRead_of_backend`, `storeBackend_of_backend` and mvcc's exported
+  `mvcc_backend_bridge`/`mvcc_storeBackend_of_backend`.
