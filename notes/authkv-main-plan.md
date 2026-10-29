@@ -129,3 +129,20 @@ and the merge session owns where it lands.
    the callers given. Repair; review again.
 3. Freeze. Then the stubs are independent, one worktree each. S2 and S1 depend only on D's
    answer. S3 waits on C1's A4-A5, S4 on the watch's auth facts.
+
+## D's candidate, checked against S1 (2026-10-29)
+
+The merge session's candidate (step 5, part B): `kvAu1G γk f G Q`, the update's atomic
+postcondition `etcdKV γk (f σ) ∗ G σ`, with `G = writeGrantAt s E ρ ctx rq hm σ :=
+hdrBoundM true s E ctx hm ∗ ∃ L, srvRLogLb ρ.raft L ∗ ⌜grantedAt … (withHeader rq hm) L ∧
+kvStOn … L = σ⌝` (at the token level, `hdrBoundT`). Checked against S1:
+- **The principal: enough.** `hdrBoundT`, C1 (`userClientAt`), `auth.tokIssued_agree` and
+  `badCtx_unbound` give the header's user `who` or `""`. Asked: a way to refute `hdrBoundT`'s
+  `srvTLSId s` disjunct for a member started without TLS.
+- **The position of `L`: a gap.** S6 gives `srvRLogLb ρ.raft Lset`, with `Lset` ending in
+  `AuthEnable`'s entry. S1 needs `Lset <+: L`. Two lower bounds are only comparable
+  (`srvRLogLb_prefix`), and `L ⊊ Lset` (auth still disabled, so everything granted) cannot be
+  refuted. Asked (preferred): `G` also says that `L ++ [e]` is the committed log at the commit, with
+  `e` the request's entry (`∀ L₀, srvRLogLb ρ.raft L₀ -∗ ⌜L₀ <+: L ++ [e]⌝`). Then `Lset <+: L`,
+  since `e` is a KV write. The alternative is a caller-given lower bound in the precondition, as
+  reads have.
