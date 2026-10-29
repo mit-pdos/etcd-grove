@@ -205,14 +205,17 @@ theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoStrin
           simp [hk]
         · rfl
 
+/-- A delete keeps the state's facts, in any bucket (`safeSt` does not mention the writer's
+contents since the thin-view Draft round; a safe-range delete is the compaction's: question 2,
+2026-10-29, `UnsafeDelete`'s one spec). -/
 theorem sessWf_del {P : BParams} {st : BSess} {bi : BucketInfo} {kb : GoString}
-    (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) (hSB : P.SB bi.name = false) :
+    (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) :
     sessWf P (st.del bi kb) := by
   obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hnz : sint.Z (st.ndel + W64 1) = sint.Z st.ndel + 1 := by word
   refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_,
-    safeSt_S_nonSB hsf hSB rfl rfl rfl (fun n hn => bktOf_insert_ne _ _ _ _ (Ne.symm hn))⟩
+    ⟨hsf.1, fun n i hn hsbn => hsf.2 n i hn hsbn⟩⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show 0 ≤ sint.Z (st.ndel + W64 1); omega

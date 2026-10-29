@@ -225,6 +225,66 @@ theorem sData_puts {P : BParams} (hP : bridgeParams P) {st : BSess} {l : Puts} {
   · simp only [hn, ↓reduceIte, hP.2.2.1]
     simp [hn]
 
+/-- **The physical `Key` bucket under a logical one** (question 2, 2026-10-29): over a physical
+view included in the logical view `vd` whose `Key` bucket is `m`, the physical view's `Key` bucket
+is `m`'s entries the physical view has. -/
+theorem keyView_sub {P : BParams} {rv : RView} {vd : backend.VData} {m : Bucket} (hv : keyView vd m)
+    (hsub : ∀ nk v, (vData P rv).lookup nk = some v → vd.lookup nk = some v) :
+    keyView (vData P rv) (GMap.filter (fun k _ => ((vData P rv).lookup (keyName, k)).isSome) m) := by
+  intro n k
+  by_cases hn : n = keyName
+  · subst hn
+    simp only [if_true]
+    show _ = (m.lookup k).filter _
+    cases hl : (vData P rv).lookup (keyName, k) with
+    | none =>
+      cases hm : m.lookup k with
+      | none => rfl
+      | some v => simp [Option.filter, hl]
+    | some v =>
+      have h1 := hsub _ _ hl
+      rw [hv] at h1
+      simp only [if_true] at h1
+      rw [h1]; simp [Option.filter, hl]
+  · simp only [hn, if_false]
+    cases hl : (vData P rv).lookup (n, k) with
+    | none => rfl
+    | some v =>
+      have h1 := hsub _ _ hl
+      rw [hv] at h1
+      simp [hn] at h1
+
+/-- **A put session's view after `Unlock`** (the glue `relog` exists for: review round 11, R11-4):
+over a logical view `vd` whose `Key` bucket is `m`, the physical view included in it, the session's
+puts `l` give `relog P vd st` the `Key` bucket `m` with the puts applied. -/
+theorem keyView_relog {P : BParams} (hP : bridgeParams P) {st : BSess} {l : Puts}
+    {vd : backend.VData} {m : Bucket} (hst : sessWf P st) (hs : sessPuts P st l) (hv : keyView vd m)
+    (hsub : ∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → vd.lookup nk = some v) :
+    keyView (relog P vd st) (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) := by
+  have hph := keyView_sub (P := P) (rv := (st.C, st.R)) hv hsub
+  have hS := sData_puts hP hst hs hph
+  intro n k
+  rw [relog_lookup, hS n k, hph n k, hv n k]
+  by_cases hn : n = keyName
+  · subst hn
+    simp only [if_true]
+    rw [foldl_insert_lookup, foldl_insert_lookup]
+    have hpk := hph keyName k
+    simp only [if_true] at hpk
+    cases hl : (vData P (st.C, st.R)).lookup (keyName, k) with
+    | none =>
+      rw [hl] at hpk
+      rw [← hpk]
+      cases lastVal l k <;> simp
+    | some v =>
+      rw [hl] at hpk
+      have h1 := hsub _ _ hl
+      rw [hv] at h1
+      simp only [if_true] at h1
+      rw [← hpk, h1]
+      cases lastVal l k <;> simp
+  · simp [hn]
+
 /-- A session with no puts in the `Key` bucket changed nothing the readers see. -/
 theorem viewSame_noPuts {P : BParams} (hP : bridgeParams P) {st : BSess} (hst : sessWf P st)
     (hs : sessPuts P st []) : viewSame P st := by
@@ -1711,22 +1771,6 @@ theorem viewSame_create {P : BParams} {st : BSess} (bi : BucketInfo) (h : viewSa
   rw [vOf_emptyR, vOf_emptyR, dget_create]
   intro _ _ _; rfl
 
-/-- The clients' view agrees with the batch lock's. -/
-theorem batchLocked_view (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (q : Qp)
-    (vd : VData) :
-    batchLocked (GF := GF) γ P b st ∗ bView γ q vd ⊢
-      batchLocked γ P b st ∗ bView γ q vd ∗ ⌜vd = vData P (st.C, st.R)⌝ := by
-  unfold batchLocked batchLockedAt batchGhost batchGhostAt bView bViewC
-  iintro ⟨⟨%t, %db, #Ht, Hmu, Hph, ⟨Hv, Hrest⟩, %Hwf⟩, ⟨%c, Hbv, Hc, Hl⟩⟩
-  icombine Hv Hbv gives %Hag
-  isplitl [Hmu Hph Hv Hrest]
-  · iexists t, db
-    iframe; iframe #
-    ipureintro; exact Hwf
-  isplitl [Hbv Hc Hl]
-  · iexists c; iframe
-  ipureintro; exact Hag.2.symm
-
 /-- The batch lock's state is well formed. -/
 theorem batchLocked_wf (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
     batchLocked (GF := GF) γ P b st ⊢ batchLocked γ P b st ∗ ⌜sessWf P st⌝ := by
@@ -1801,16 +1845,18 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
   iunfold bkView at Hvw
   icases Hvw with ⟨%vd, Hvw, %Hvd⟩
-  icases batchLocked_view γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, %Hag⟩
-  subst Hag
+  icases batchLocked_thin γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, #Hth⟩
+  iunfold thinV at Hth
+  icases Hth with ⟨%Hsub, -⟩
   obtain ⟨hl, hk0, hk1, hbm, hord⟩ := Hok
   obtain ⟨hs', hpend⟩ := sessPuts_put HPw Hs hl
   have hW : ∀ e ∈ bkOf st.W.bks keyBI.id, strLt e.1 k := by
     rw [show keyBI.id = W64 1 from rfl, Hs.2.2.1]; exact hord
-  have hS := sData_puts hP Hwf Hs Hvd
+  have hS := sData_puts hP Hwf Hs (keyView_sub (rv := (st.C, st.R)) Hvd Hsub)
   -- (the backend-compaction stage's thin-view round) the premise names the committed keys: with no
   -- pending delete (`sessPuts`), a committed key of `Key` (off the hook's buckets) is in the
-  -- writer's contents (`sessWf_C_in_S`), above which the puts are
+  -- writer's contents (`sessWf_C_in_S`), above which the puts are (the physical `Key` bucket is
+  -- the logical one's entries the readers see: `keyView_sub`; question 2, 2026-10-29)
   have hSB : P.SB keyBI.name = true → ∀ kc vc,
       (bktOf st.C keyBI.name).lookup kc = some vc → strLt kc k := by
     intro _ kc vc0 hc0
@@ -1822,7 +1868,10 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
       rw [← hek]; exact hord e he
     | none =>
       rw [hlv, Option.none_or] at hc
-      exact hbm kc vc hc
+      have hc' : (m.lookup kc).filter _ = some vc := hc
+      cases hm : m.lookup kc with
+      | none => rw [hm] at hc'; simp [Option.filter] at hc'
+      | some w => exact hbm kc w hm
   wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k)
     hP.2.2.2.2.1 (key_not_fk k) hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
@@ -1834,7 +1883,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
     iframe
     ipureintro; exact hs'
   iunfold bkView
-  iexists (vData P (st.C, st.R))
+  iexists vd
   iframe Hvw
   ipureintro; exact Hvd
 
@@ -1858,7 +1907,7 @@ theorem bt_unlock0 (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
   wp_apply (hUL γ P W Pk b t st iprop(True) Hs.2.2.2.2 (sessPuts_room HPw Hs)) $$ [$Hb $Ht $Hl $Hwb HW HPk]
   · ileft
     iframe HW HPk
-    ipureintro; exact viewSame_noPuts hP Hwf Hs
+    iapply viewSame_thin γ P st (viewSame_noPuts hP Hwf Hs)
   iapply HΦ; itrivial
 
 /-- The batch transaction's `Unlock()` after a session with the puts `l`: written back into the
@@ -1883,20 +1932,21 @@ theorem bt_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := h
   icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
-  icases batchLocked_view γ P b st 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, %Hag⟩
-  subst Hag
+  icases batchLocked_thin γ P b st 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, #Hth⟩
+  iunfold thinV at Hth
+  icases Hth with ⟨%Hsub, -⟩
   -- (`wp_apply` aborts here without a message: the triple applied by hand)
   iapply (hUL γ P W Pk b t st Q Hs.2.2.2.2 (sessPuts_room HPw Hs)) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
   iframe Hpkg Hb Ht Hl Hwb
   iright
-  iexists (vData P (st.C, st.R))
+  iexists vd
   iframe Hv HPk
   iintro Hbv
   iapply Hwand
   iunfold bkView
-  iexists (sData P st.S)
+  iexists (relog P vd st)
   iframe Hbv
-  ipureintro; exact sData_puts hP Hwf Hs Hvd
+  ipureintro; exact keyView_relog hP Hwf Hs Hvd Hsub
 
 /-- **The batch transaction's `Unlock()` after the lessor's delete** (`bkLockedD`; leases T3,
 2026-10-25), as `bt_unlock0` and `bt_unlock`: the delete is in a hook's bucket, so the session
@@ -1922,7 +1972,7 @@ theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
       $$ [$Hb $Ht $Hl $Hwb HW HPk]
     · ileft
       iframe HW HPk
-      ipureintro; exact viewSame_del hb (viewSame_noPuts hP hwf hs)
+      iapply viewSame_thin γ P _ (viewSame_del hb (viewSame_noPuts hP hwf hs))
     iapply HΦ; itrivial
   · iintro !> %m %Q %Φ !> ⟨Hl, Hv, Hwand, HPk⟩ HΦ
     iunfold bkLockedD at Hl
@@ -1931,22 +1981,26 @@ theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
     obtain ⟨-, hroom⟩ := sessPuts_del_room HPw hs hwf
     iunfold bkView at Hv
     icases Hv with ⟨%vd, Hv, %Hvd⟩
-    icases batchLocked_view γ P b (st0.del bi k) 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, %Hag⟩
-    subst Hag
+    icases batchLocked_thin γ P b (st0.del bi k) 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, #Hth⟩
+    iunfold thinV at Hth
+    icases Hth with ⟨%Hsub, -⟩
     iapply (hUL γ P W Pk b t (st0.del bi k) Q hs.2.2.2.2 hroom) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
     iframe Hpkg Hb Ht Hl Hwb
     iright
-    iexists (vData P ((st0.del bi k).C, (st0.del bi k).R))
+    iexists vd
     iframe Hv HPk
     iintro Hbv
     iapply Hwand
     iunfold bkView
-    iexists (sData P (st0.del bi k).S)
+    iexists (relog P vd (st0.del bi k))
     iframe Hbv
     ipureintro
-    show keyView (sData P (st0.S.insert bi.name ((bktOf st0.S bi.name).delete k))) _
-    rw [sData_del_HB hb]
-    exact sData_puts hP hwf hs Hvd
+    have hrel : relog P vd (st0.del bi k) = relog P vd st0 := by
+      unfold relog
+      show sData P (st0.S.insert bi.name ((bktOf st0.S bi.name).delete k)) ∪ _ = _
+      rw [sData_del_HB hb]; rfl
+    rw [hrel]
+    exact keyView_relog hP hwf hs Hvd Hsub
 
 /-- **The lessor's delete from `Lease` under the batch lock** (leases T3, 2026-10-25), as mvcc's
 contract states it (`batchTxSpecG`'s last clause), with the client half of the tracked buckets
@@ -1996,8 +2050,9 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
     simp only [↓reduceIte]
     rw [rbData_del hrb]
   rw [← hrp]
-  wp_apply (hDel γ P W Pk b t st bk leaseBI key k dq hhas hroom hSB (hhk k))
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
+  have hDel' := hDel γ P W Pk b t st bk leaseBI key k dq true hhas hroom (hhk k)
+  simp only [↓reduceIte, hSB, Bool.false_eq_true] at hDel'
+  wp_apply hDel' $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
   ihave Hrb : rbOwn γ (rbDel (rbData P st.S) leaseName k) $$ [Hrb]
   · rw [← hrp']; iexact Hrb
   iapply HΦ
@@ -2034,7 +2089,8 @@ theorem bt_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
     (Del : GoString → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗
+      □ (∀ k : GoString, backend.dlIs γ (go!"key", k) -∗ Del k) ⊢
       □ (∀ (l : Puts) (q : Qp) (m : Bucket) (bk : GoInterface) (key : GoSlice) (k : GoString)
           (dq : DFrac),
         {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bk ∗ bkLocked γ P b l ∗
@@ -2046,7 +2102,7 @@ theorem bt_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
             (T : IProp GF), T ∗ (T -∗ bkLocked γ P b l) ∗ rdCap Rd T ∗ bkView γ q m ∗
             key ↦*{dq} k ∗ (keyVals Rd ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k ∨
               (Del k ∗ ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))) }}) := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %l %q %m %bk %key %k %dq %Φ !> ⟨#HK, Hl, Hv, Hkey⟩ HΦ
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht, #HD⟩ !> %l %q %m %bk %key %k %dq %Φ !> ⟨#HK, Hl, Hv, Hkey⟩ HΦ
   iunfold bkLocked at Hl
   icases Hl with ⟨%st, Hl⟩
   iunfold bkLockedAt at Hl
@@ -2054,15 +2110,17 @@ theorem bt_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
   icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
-  icases batchLocked_view γ P b st q vd $$ [$Hl $Hv] with ⟨Hl, Hv, %Hag⟩
-  subst Hag
+  icases batchLocked_thin γ P b st q vd $$ [$Hl $Hv] with ⟨Hl, Hv, #Hth⟩
+  iunfold thinV at Hth
+  icases Hth with ⟨%Hsub, #Hdl⟩
+  have hph := keyView_sub (rv := (st.C, st.R)) Hvd Hsub
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
   ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   iapply wp_fupd
   wp_apply (hUR γ P W Pk b t st bk keyBI key slice.nil k [] dq DFrac.discard (W64 0) (by simp))
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hnil] as %ks %vs ⟨Hl, Hkey, -, Hout, #Hcap⟩
-  have hS := sData_puts hP Hwf Hs Hvd
+  have hS := sData_puts hP Hwf Hs hph
   irevert Hout
   rw [cursorRange_single _ _ _ (bktEnts_sorted _), lastVal_bktEnts]
   erw [bktOf_of_sData hP hS]
@@ -2099,10 +2157,46 @@ theorem bt_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
     ipureintro; exact Hs'
   isplitl [Hv]
   · iunfold bkView
-    iexists (vData P (st.C, st.R))
+    iexists vd
     iframe Hv
     ipureintro; exact Hvd
-  ileft; iexact Hkv
+  -- the session's puts over the physical `Key` bucket (`keyView_sub`): the logical bucket's at `k`,
+  -- or nothing at a key the readers no longer see, registered as deletable (question 2, R11-3)
+  have hmpf : (GMap.filter (fun k _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome) m).lookup k =
+      (m.lookup k).filter (fun _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome) := rfl
+  by_cases heq : (lastVal l k).or ((m.lookup k).filter
+      (fun _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome)) = (lastVal l k).or (m.lookup k)
+  · ileft
+    unfold keyVals
+    simp only [foldl_insert_lookup, hmpf]
+    rw [heq]
+    iexact Hkv
+  · iright
+    cases hlv : lastVal l k with
+    | some v => rw [hlv] at heq; exact absurd rfl heq
+    | none =>
+      rw [hlv] at heq
+      simp only [Option.none_or] at heq
+      cases hm : m.lookup k with
+      | none => rw [hm] at heq; exact absurd rfl heq
+      | some v =>
+        rw [hm] at heq
+        cases hq : (vData P (st.C, st.R)).lookup (keyName, k) with
+        | some w => rw [hq] at heq; simp [Option.filter] at heq
+        | none =>
+          have hkn : (go!"key" : GoString) = keyName := by rfl
+          ihave #Hdk : backend.dlIs γ (go!"key", k) $$ []
+          · rw [hkn]
+            iapply Hdl
+            ipureintro
+            refine ⟨?_, hq⟩
+            rw [Hvd]; simp [hm]
+          isplitr
+          · iapply HD $$ Hdk
+          unfold keyVals
+          simp only [foldl_insert_lookup, hmpf, hlv, hm, hq, Option.none_or, Option.filter,
+            Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
+          iexact Hkv
 
 /-- The batch transaction's `LockOutsideApply()` (`NewStore`'s): the lock, its resource `W`
 dropped (`NewStore`'s first `Unlock` deposits its own). -/
@@ -2265,7 +2359,12 @@ theorem bt_unlockO (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
   iframe Hpkg Hb Ht Hl Hwb
   ileft
   iframe HW HPk
-  ipureintro; exact ⟨Hs.2.2.1, trivial⟩
+  ihave ⟨#Hth, %Hnw⟩ := viewSame_thin γ P st Hs.2.2.1
+  iframe Hth
+  isplitr
+  · ipureintro; exact Hnw
+  iintro !>
+  itrivial
 
 /-- **`Unlock` after a `Meta` put in a fresh session** (the backend-compaction stage, review round 2's
 R2-3: the token `bkLockedO … 1`): `unlockAt` with no puts, both of its branches through `bt_unlockO`
@@ -2507,6 +2606,9 @@ theorem isKeyBackendG_of_backend
       · iapply bt_unlock hUL hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
       · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t Del $$ [$Hpkg $Hsch $Hb $Ht]
+        iintro !> %k Hk
+        iexfalso
+        iapply dlNoDel_noDel γ (go!"key", k) $$ [$Hnd $Hk]
       isplitr
       · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
@@ -2775,6 +2877,9 @@ theorem isKeyBackendG_of_backendC
       · iapply bt_unlock hUL hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
       · iapply bt_range hbUR hID hName hSafe hP γ W Pk b t (bkDel γ) $$ [$Hpkg $Hsch $Hb $Ht]
+        iintro !> %k Hk
+        iunfold bkDel
+        iexact Hk
       isplitr
       · iapply bt_lockOutJ hLO hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr

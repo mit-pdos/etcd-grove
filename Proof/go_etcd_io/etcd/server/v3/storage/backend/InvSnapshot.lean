@@ -33,9 +33,10 @@ axioms of etcd's backend (`backend.Snapshot`, `snapshot.WriteTo`) and of the fil
   returns an error (`io.Writer`'s documentation).
 * `readerStreams r Φ` (D22 S-i): the right to read the `io.Reader` `r`, whose complete streams
   satisfy `Φ`: the reader's half of a byte stream, as `writerOk` is the writer's.
-* `viewAt γ vd`: the batch lock's quarter of the readers' view (`batchGhostAt`'s), the witness the
-  snapshot's axiom hands its caller's observation (`backend.Snapshot.spec`): it agrees with the
-  clients' shares (`bView`, of which the server's batch-lock resource holds one).
+* `viewAt γ vd`: the batch lock's quarter of the readers' view (`batchGhostAt`'s), at a logical view
+  the physical view `vd` is thin of (question 2, option (a), 2026-10-29), the witness the snapshot's
+  axiom hands its caller's observation (`backend.Snapshot.spec`): it agrees with the clients' shares
+  (`bView`, of which the server's batch-lock resource holds one), the physical view thin of theirs.
 -/
 module
 
@@ -125,8 +126,12 @@ opaque readerStreams (r : GoInterface) (Φ : List w8 → Prop) : IProp GF
 
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **The batch lock's quarter of the readers' view** at `vd` (see the file header). -/
-def viewAt (γ : BNames) (vd : VData) : IProp GF := ghostVar γ.view (1 : Qp).half.half vd
+/-- **The batch lock's quarter of the readers' view, its physical view at `vd`** (see the file
+header): the quarter at some logical view `L` that `vd` is thin of (question 2, option (a), the
+user's, 2026-10-29: the batch lock's quarter is over the logical view, `batchViewQ`; until then the
+quarter at `vd` itself, an instance: `viewQ_exact`). -/
+def viewAt (γ : BNames) (vd : VData) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L)
 
 end preds
 

@@ -341,30 +341,45 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
           $$ Hiv
 
 /-- After the write-back of `W`: the new version's state, the view updated (the clients' whole
-share and the batch lock's quarter); with `win`, the window opens (the clients' share stays in
-`cacheInv`). -/
+share, the batch lock's quarter and the readers' quarter). Out of a window, to the logical view
+`L'` the new physical view is thin of (a put session's `relog`: question 2, 2026-10-29); with `win`,
+the window opens at the exact new physical view (the clients' share stays in `cacheInv`; the
+commit's close moves it to the logical view: review round 11, R11-2). -/
 theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R : RBuf)
-    (vd : VData) (win : Bool) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64)
-    (hsafe : safeRv P (C, writebackR W R)) (L0 : VData := vData P (C, R)) :
+    (vd L0 L' : VData) (win : Bool) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64)
+    (hsafe : safeRv P (C, writebackR W R)) :
     cacheInv (GF := GF) γ ∗ rtWb γ P rt C R ∗ ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗
-      ghostVar γ.view (1 : Qp).half.half L0 ∗ bView γ 1 vd ∗ fkRd γ P (C, writebackR W R) ⊢
+      viewQ γ (1 : Qp).half.half (vData P (C, R)) L0 ∗ bView γ 1 vd ∗ fkRd γ P (C, writebackR W R) ∗
+      (if win then iprop(True) else thinV γ (vData P (C, writebackR W R)) L') ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), win) ∗
-      ghostVar γ.view (1 : Qp).half.half (vData P (C, writebackR W R)) ∗
-      (if win then iprop(True) else bView γ 1 (vData P (C, writebackR W R)))) := by
-  iintro ⟨#Hci, Hwb, Hrb, Hb, Hvq, Hbv, #Hfk'⟩
+      viewQ γ (1 : Qp).half.half (vData P (C, writebackR W R))
+        (if win then vData P (C, writebackR W R) else L') ∗
+      (if win then iprop(True) else bView γ 1 L')) := by
+  iintro ⟨#Hci, Hwb, Hrb, Hb, Hvq, Hbv, #Hfk', #HthL⟩
   unfold rtWb rtRest
   icases Hwb with ⟨%rd, %cm, %H, %L, %Hw, Hcm, Hvr, Hcore⟩
-  iunfold viewQ at Hvr
+  iunfold viewQ at Hvr Hvq
   icases Hvr with ⟨Hvr, -⟩
+  icases Hvq with ⟨Hvq, -⟩
   unfold bView bViewC
   icases Hbv with ⟨%c, Hvc, Hcw, Hcl⟩
   imod rtCore_clear_cln γ P rt rd (C, R) cm H c L $$ [Hcore Hcl] with ⟨Hcore, Hcl⟩
   · iframe
-  imod view_upd3 γ _ _ _ (vData P (C, writebackR W R)) $$ [Hvr Hvq Hvc] with ⟨Hvr, Hvq, Hvc⟩
+  imod view_upd3 γ _ _ _ (if win then vData P (C, writebackR W R) else L') $$ [Hvr Hvq Hvc]
+    with ⟨Hvr, Hvq, Hvc⟩
   · iframe
-  -- the write-back moved the view with the clients' whole share: exact again
-  ihave Hvr := viewQ_exact γ _ _ $$ Hvr
+  ihave #Hth : thinV γ (vData P (C, writebackR W R)) (if win then vData P (C, writebackR W R) else L')
+    $$ []
+  · cases win
+    · simp only [Bool.false_eq_true, ↓reduceIte]; iexact HthL
+    · simp only [↓reduceIte]; iapply thinV_refl
+  ihave Hvr : viewQ γ (1 : Qp).half.half (vData P (C, writebackR W R))
+      (if win then vData P (C, writebackR W R) else L') $$ [Hvr]
+  · iunfold viewQ; iframe Hvr; iexact Hth
+  ihave Hvq : viewQ γ (1 : Qp).half.half (vData P (C, writebackR W R))
+      (if win then vData P (C, writebackR W R) else L') $$ [Hvq]
+  · iunfold viewQ; iframe Hvq; iexact Hth
   cases win
   · imod wb_core γ P rt W C R false _ hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb] with ⟨Hres, Hb⟩
     · iframe #; iframe
@@ -373,6 +388,8 @@ theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Da
       simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     imodintro
     simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe Hres Hb Hvq
+    iexists false
     iframe
   · imod wb_core γ P rt W C R true _ hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb Hvc Hcw Hcl]
       with ⟨Hres, Hb⟩
@@ -554,27 +571,29 @@ invariants), or, at a stop, none and `bStopped`; the state `(ver, i + 1)` record
 updated (the batch lock's quarter; out of a window, the clients' whole share, back from
 `cacheInv`). Not in a window, the view must be unchanged. -/
 theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R : RBuf)
-    (win stop : Bool) (tx : Loc) (cm : GoMap) (wg : Loc)
-    (hview : win = false → vData P (C', R.reset) = vData P (C, R)) :
+    (win stop : Bool) (tx : Loc) (cm : GoMap) (wg : Loc) (Lb L' : VData) :
     cacheInv (GF := GF) γ ∗ rtCm γ P C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
-      ghostVar γ.view (1 : Qp).half.half (vData P (C, R)) ∗
+      viewQ γ (1 : Qp).half.half (vData P (C, R)) Lb ∗
       rtxOf (baseOf rt) ↦ tx ∗ rbktOf (baseOf rt) ↦ cm ∗ cm ↦$ (∅ : GMap w64 Loc) ∗
       rwgOf (baseOf rt) ↦ wg ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownRB (rbufOf (baseOf rt)) R.reset ∗
       (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
-       else iprop(txLive tx 1 ∗ rtxSnap tx C' ∗ rtxStats tx)) ∗ fkRd γ P (C', R.reset) ⊢
+       else iprop(txLive tx 1 ∗ rtxSnap tx C' ∗ rtxStats tx)) ∗ fkRd γ P (C', R.reset) ∗
+      (if win then thinV γ (vData P (C', R.reset)) L'
+       else thinV γ (vData P (C', R.reset)) (vData P (C, R))) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C', R.reset), false) ∗
-      ghostVar γ.view (1 : Qp).half.half (vData P (C', R.reset)) ∗
-      (if win then bView γ 1 (vData P (C', R.reset)) else iprop(True))) := by
-  iintro ⟨#Hci, Hcm, Hb, Hvq, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn, #Hfk'⟩
+      viewQ γ (1 : Qp).half.half (vData P (C', R.reset)) (if win then L' else Lb) ∗
+      (if win then bView γ 1 L' else iprop(True))) := by
+  iintro ⟨#Hci, Hcm, Hb, Hvq, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn, #Hfk', #Hpre⟩
   unfold rtCm
   icases Hcm with ⟨%rd, %H, %L, Hrd, Hvr, Hrvs, Hcur, Hcln, Hhist, %Hf, #Hha, #Hcv, Hpo, #Hauth⟩
   iunfold viewQ at Hvr
   icases Hvr with ⟨Hvr, #Hth⟩
+  iunfold viewQ at Hvq
+  icases Hvq with ⟨Hvq, -⟩
   icombine Hvr Hvq gives %HL
-  -- the batch lock's quarter is exact (until the thin-view round's group 2), so the readers' logical
-  -- view is the physical one
-  have hL : L = vData P (C, R) := HL.2
+  -- the batch lock's quarter and the readers' are at the same logical view
+  have hL : Lb = L := HL.2.symm
   subst hL
   obtain ⟨Hw, hRwf, hids, hHl, hHall, hwin0⟩ := Hf
   -- the new interval
@@ -610,8 +629,12 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     · rw [GMap.lookup_insert_ne _ _ hkk] at hk; exact keyLe_next_idx (hHall k rv' hk)
   icases ownRB_rbAt _ _ $$ Hrb with ⟨%m, %Pb, Hrb, %Hok⟩
   cases win
-  · -- not in a window: the view unchanged; the marks at this version still read right
-    ihave #Hcv' : cacheValid γ P (C', R.reset) (rd.idx + 1) (vData P (C, R)) $$ []
+  · -- not in a window: the logical view kept, the new physical view thin of the old (so of it);
+    -- the marks at this version still read right
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ihave #HthN : thinV (GF := GF) γ (vData P (C', R.reset)) Lb $$ []
+    · iapply thinV_trans γ (vData P (C', R.reset)) (vData P (C, R)) Lb $$ [$Hpre $Hth]
+    ihave #Hcv' : cacheValid γ P (C', R.reset) (rd.idx + 1) Lb $$ []
     · unfold cacheValid
       rw [show (C', R.reset).2.ver = R.ver from rfl]
       iintro !> %i %rv' %hi #Hh #Hc
@@ -620,13 +643,9 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
         unfold histAt
         ihave %Hag := ghostMapElem_agree (R.ver, rd.idx + 1) γ.hist _ _ _ _ $$ Hnew Hh
         subst Hag
-        rw [hview rfl]
-        iexact Hth
+        iexact HthN
       · ihave #Hold := Hcv $$ %i %rv' %(by omega) Hh Hc
-        ihave #Hth' : thinV (GF := GF) γ (vData P (C', R.reset)) (vData P (C, R)) $$ []
-        · rw [hview rfl]; iexact Hth
-        iapply thinV_rebase γ P C C' rv'.2 R (vData P (C, R)) $$ [Hold Hth']
-        iframe #
+        iapply thinV_rebase γ P C C' rv'.2 R Lb $$ [$Hold $HthN]
     imod Hclose $$ [Hca Hcurinv Hcvw] with -
     · inext
       iexists Cs, (R.ver, rd.idx + 1), false
@@ -635,12 +654,12 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
       · ipureintro; first | exact ⟨h1, fun _ => h2⟩ | exact ⟨⟨h1, fun _ => h2⟩, trivial⟩
       ileft; ipureintro; trivial
     imodintro
-    rw [hview rfl]
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe Hb Hvq
+    ihave HvqQ : viewQ γ (1 : Qp).half.half (vData P (C', R.reset)) Lb $$ [Hvq]
+    · iunfold viewQ; iframe Hvq; iexact HthN
+    iframe Hb HvqQ
     unfold rtRes rtResAt rtRest rtCore clnPart
-    iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), vData P (C, R), m, Pb, cm
-    rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl, hview rfl]
+    iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), Lb, m, Pb, cm
+    rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl]
     unfold viewQ
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe; iframe #
@@ -659,7 +678,8 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     icases Hbv with ⟨%c, Hvc, Hcw, Hcl⟩
     ihave #Hpo' : poisonAt γ R.ver rd.idx $$ [Hpo]
     · simp only [↓reduceIte]; iexact Hpo
-    ihave #Hcv' : cacheValid γ P (C', R.reset) (rd.idx + 1) (vData P (C', R.reset)) $$ []
+    simp only [↓reduceIte]
+    ihave #Hcv' : cacheValid γ P (C', R.reset) (rd.idx + 1) L' $$ []
     · unfold cacheValid
       rw [show (C', R.reset).2.ver = R.ver from rfl]
       iintro !> %i %rv' %hi #Hh #Hc
@@ -668,15 +688,18 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
         unfold histAt
         ihave %Hag := ghostMapElem_agree (R.ver, rd.idx + 1) γ.hist _ _ _ _ $$ Hnew Hh
         subst Hag
-        iapply thinV_refl
+        iexact Hpre
       · have hi0 : i = rd.idx := by have := hwin0 rfl; omega
         subst hi0
         unfold poisonAt cachedAt
         ihave %Hbad := ghostMapElem_agree (R.ver, rd.idx) γ.cached _ _ _ _ $$ Hpo' Hc
         cases Hbad
-    imod view_upd3 γ _ _ _ (vData P (C', R.reset)) $$ [Hvr Hvq Hvc] with ⟨Hvr, Hvq, Hvc⟩
+    imod view_upd3 γ _ _ _ L' $$ [Hvr Hvq Hvc] with ⟨Hvr, Hvq, Hvc⟩
     · iframe
-    ihave Hvr := viewQ_exact γ _ _ $$ Hvr
+    ihave Hvr : viewQ γ (1 : Qp).half.half (vData P (C', R.reset)) L' $$ [Hvr]
+    · iunfold viewQ; iframe Hvr; iexact Hpre
+    ihave Hvq : viewQ γ (1 : Qp).half.half (vData P (C', R.reset)) L' $$ [Hvq]
+    · iunfold viewQ; iframe Hvq; iexact Hpre
     imod Hclose $$ [Hca Hcurinv Hcvw] with -
     · inext
       iexists Cs, (R.ver, rd.idx + 1), false
@@ -685,11 +708,10 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
       · ipureintro; first | exact ⟨h1, fun _ => h2⟩ | exact ⟨⟨h1, fun _ => h2⟩, trivial⟩
       ileft; ipureintro; trivial
     imodintro
-    simp only [↓reduceIte]
     iframe Hb Hvq
     isplitr [Hvc Hcw Hcl]
     · unfold rtRes rtResAt rtRest rtCore clnPart
-      iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), vData P (C', R.reset), m,
+      iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), L', m,
         Pb, cm
       rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl]
       simp only [Bool.false_eq_true, ↓reduceIte]

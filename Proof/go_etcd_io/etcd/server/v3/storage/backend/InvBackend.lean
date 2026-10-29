@@ -184,6 +184,52 @@ abbrev cverOf (b : Loc) : Loc := structFieldRef txReadBufferCache go!"bufVersion
 
 end addrs
 
+/-! ## The logical view after a put session (question 2, option (a), 2026-10-29) -/
+
+/-- **The logical view after a put session's `Unlock`**: the writer's contents over `L`, `L`'s
+entries kept only where the readers' physical view before the session already lacked them (keys
+compaction deleted earlier, still in mvcc's logical bucket: R5-1). A key the session itself deleted
+leaves the logical view if the readers could see it; a key already compacted stays in it (R11-6).
+(Question 2's Draft had the extra condition "in a safe-range bucket" (`P.SB`), redundant: review
+round 11, R11-5.) -/
+def relog (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess) : GMap (GoString × GoString) GoString :=
+  sData P st.S ∪ GMap.filter (fun nk _ => decide ((vData P (st.C, st.R)).lookup nk = none)) L
+
+theorem relog_lookup (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess) (nk : GoString × GoString) :
+    (relog P L st).lookup nk =
+      ((sData P st.S).lookup nk).or
+        (if (vData P (st.C, st.R)).lookup nk = none then L.lookup nk else none) := by
+  unfold relog
+  show ((sData P st.S).lookup nk).or ((L.lookup nk).filter _) = _
+  congr 1
+  cases hL : L.lookup nk <;>
+    by_cases h : (vData P (st.C, st.R)).lookup nk = none <;>
+    simp_all [Option.filter]
+
+/-- **With an exact logical view, `relog` is the writer's contents.** -/
+theorem relog_exact (P : BParams) (st : BSess) :
+    relog P (vData P (st.C, st.R)) st = sData P st.S := by
+  apply GMap.ext
+  intro nk
+  rw [relog_lookup]
+  by_cases h : (vData P (st.C, st.R)).lookup nk = none
+  · simp only [h, ↓reduceIte]; cases (sData P st.S).lookup nk <;> rfl
+  · simp only [h, ↓reduceIte]; cases (sData P st.S).lookup nk <;> rfl
+
+/-- **A session that changed nothing the readers see keeps the logical view**: if the writer's
+contents are the physical view and the physical view is included in `L`, `relog` is `L`. -/
+theorem relog_same (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess)
+    (hs : sData P st.S = vData P (st.C, st.R))
+    (hsub : ∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) :
+    relog P L st = L := by
+  apply GMap.ext
+  intro nk
+  rw [relog_lookup, hs]
+  cases h : (vData P (st.C, st.R)).lookup nk with
+  | none => simp
+  | some v => simp [hsub nk v h]
+
+
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -673,7 +719,15 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
     ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx db ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
 
-/-- The batch lock's share of the ghost state for `st`: the view's quarter at `(C, R)`, half of
+/-- **The batch lock's quarter of the readers' view, over the logical view** (question 2, option (a),
+2026-10-29; until then the quarter at the physical view `vData P (st.C, st.R)` itself): some logical
+view `L`, the physical view thin of it (`viewQ`). Exact is the instance `L = vData P (st.C, st.R)`
+(`batchViewQ_of_exact`). -/
+def batchViewQ (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) L)
+
+/-- The batch lock's share of the ghost state for `st`: the view's quarter over the logical view,
+the physical view `(C, R)` thin of it (`batchViewQ`), half of
 the readers' state `γ.rvs` at `(C, R)` (so the batch side's `C` and `R` are the read side's),
 with no `Unlock` window open (an `Unlock`'s commit closes it for its hook's run), the write-back budget's authority (`n` tokens out), the count of write-backs
 `w` (monotone) and half of `γ.used` (the `run` goroutine has the other half), a quarter of the
@@ -683,7 +737,7 @@ tracked buckets `γ.rbk` at the writer's contents (`trkHalf`), half the compacti
 `0` only while the state has none (`fkHalf`, the backend-compaction stage, 2026-10-29), with the
 bounds of `bgOk` over the state's counters (`free`: the lock is free). -/
 def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) : IProp GF :=
-  iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
+  iprop(batchViewQ γ P st ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
       ownTokAuth γ.wb n ∗
       monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
@@ -709,6 +763,82 @@ def batchLockedAt (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) : IPro
 /-- The batch lock held by the client, in state `st`. -/
 def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
+
+/-- **Thinness composes**: a view thin of one thin of `L` is thin of `L` (a deleting session's
+commit: the new physical view thin of the old, the old thin of the logical). -/
+theorem thinV_trans (γ : BNames) (a b c : VData) :
+    thinV (GF := GF) γ a b ∗ thinV γ b c ⊢ thinV γ a c := by
+  iunfold thinV
+  iintro ⟨⟨%H1, #D1⟩, ⟨%H2, #D2⟩⟩
+  isplitr
+  · ipureintro; intro nk v h; exact H2 nk v (H1 nk v h)
+  · iintro !> %nk %h
+    cases hb : b.lookup nk with
+    | none => iapply D2; ipureintro; exact ⟨h.1, hb⟩
+    | some v => iapply D1; ipureintro; exact ⟨by simp [hb], h.2⟩
+
+/-- **A put session keeps the physical view thin of the logical one**: the new physical view
+`sData P st.S` is thin of `relog P L st` whenever the old physical view was thin of `L`. -/
+theorem thinV_relog (γ : BNames) (P : BParams) (L : VData) (st : BSess) :
+    thinV (GF := GF) γ (vData P (st.C, st.R)) L ⊢ thinV γ (sData P st.S) (relog P L st) := by
+  iunfold thinV
+  iintro ⟨-, #D⟩
+  isplitr
+  · ipureintro; intro nk v h; rw [relog_lookup, h]; rfl
+  · iintro !> %nk %h
+    obtain ⟨h1, h2⟩ := h
+    rw [relog_lookup, h2] at h1
+    by_cases hc : (vData P (st.C, st.R)).lookup nk = none
+    · simp only [hc, ↓reduceIte] at h1
+      iapply D
+      ipureintro
+      exact ⟨by simpa using h1, hc⟩
+    · simp only [hc, ↓reduceIte] at h1; exact absurd rfl h1
+
+/-- Today's exact quarter is an instance of the batch lock's logical quarter. -/
+theorem batchViewQ_of_exact (γ : BNames) (P : BParams) (st : BSess) :
+    ghostVar (GF := GF) γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ⊢ batchViewQ γ P st := by
+  unfold batchViewQ
+  iintro H
+  iexists vData P (st.C, st.R)
+  iapply viewQ_exact $$ H
+
+/-- **The clients' view is the logical one** (agreement of the shares of `γ.view`): the batch
+lock's physical view is thin of what a client holds. -/
+theorem batchViewQ_bView (γ : BNames) (P : BParams) (st : BSess) (q : Qp) (vd : VData) :
+    batchViewQ (GF := GF) γ P st ∗ bView γ q vd ⊢
+      batchViewQ γ P st ∗ bView γ q vd ∗ thinV γ (vData P (st.C, st.R)) vd := by
+  unfold batchViewQ bView bViewC viewQ
+  iintro ⟨⟨%L, Hq, #Ht⟩, ⟨%c, Hv, Hc, Hl⟩⟩
+  icombine Hq Hv gives %Heq
+  obtain ⟨-, rfl⟩ := Heq
+  iframe Hc Hl Hq Hv
+  iframe #
+
+/-- **What a client reads of the batch lock: the physical view is thin of the clients' view.** -/
+theorem batchLocked_thin (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (q : Qp) (vd : VData) :
+    batchLocked (GF := GF) γ P b st ∗ bView γ q vd ⊢
+      batchLocked γ P b st ∗ bView γ q vd ∗ thinV γ (vData P (st.C, st.R)) vd := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, Hrest⟩, %Hwf⟩, Hc⟩
+  ihave ⟨Hv, Hc, #Hth⟩ := batchViewQ_bView γ P st q vd $$ [$Hv $Hc]
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact Hwf
+  iexact Hth
+
+/-- **A no-change session is a deleting session with nothing deleted** (`viewSame`: the writer's
+contents are the physical view, no puts to the non-hook buckets). -/
+theorem viewSame_thin (γ : BNames) (P : BParams) (st : BSess) (h : viewSame P st) :
+    ⊢ thinV (GF := GF) γ (sData P st.S) (vData P (st.C, st.R)) ∗
+      ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ := by
+  rw [← h.1]
+  isplitl
+  · iapply thinV_refl
+  · ipureintro; exact h.2
 
 /-- What a commit (`unsafeCommit`) needs besides the batch lock: at a stop, the rest of the open
 token (the clients' half, which `run` got from `Close`, and the `run` goroutine's quarter); otherwise a payment for the hook's

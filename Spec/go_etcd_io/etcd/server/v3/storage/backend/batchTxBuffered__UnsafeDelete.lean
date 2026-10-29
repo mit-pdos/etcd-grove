@@ -26,22 +26,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.UnsafeDelete(bucket, key)` under the lock: bbolt's writer deletes the entry; a pending
-delete (the `Unlock` commits). Not in a safe-range bucket (`P.SB`), not a hook's own key (`P.hk`);
-in a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of the tracked buckets
-(`rbPut`), given back updated. -/
+delete (the `Unlock` commits). In any bucket but not at a hook's own key (`P.hk`): in a safe-range
+bucket (`P.SB`) a key registered as deletable (`dlIs`, decision O1), which the readers then may miss
+(the compaction's; 3.1-3.2); in a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of
+the tracked buckets (`rbPut`), given back updated. The key is the caller's slice (`own`) or one read
+from the transaction itself (`txBytes`: the compaction deletes the keys its range returned). (Until
+question 2, 2026-10-29: not in a safe-range bucket, an owned key only; a Draft `specC` had this
+statement beside it.) -/
 abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString)
-    (dk : DFrac),
-  P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false → P.hk bi.name kb = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ rbPut γ P bi.name st.S }}
-    (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
-  {{ RET #(); batchLocked γ P b (st.del bi kb) ∗ key ↦*{dk} kb ∗ rbPut γ P bi.name (st.del bi kb).S }}
-
-/-- **`UnsafeDelete` of any bucket** (the backend-compaction stage, 3.1; Draft, 2026-10-28): of a
-safe-range bucket too, for a key registered as deletable at `g` (`dlIs`, decision O1), which the
-readers then may miss (3.2). Replaces `spec` once proved (its proof: the batch lemmas over
-`safeSt`, which no longer requires the committed keys in the writer's contents). -/
-abbrev backend.batchTxBuffered.UnsafeDelete.specC : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
     (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
   P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false →

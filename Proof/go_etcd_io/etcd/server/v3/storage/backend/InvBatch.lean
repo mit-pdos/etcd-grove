@@ -232,7 +232,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
     (hS : hkData P st'.S = hkData P st.S) (hB : rbData P st'.S = rbData P st.S)
     (hF : ∀ f w, fkOk P f w st → fkOk P f w st') :
     batchGhost (GF := GF) γ P st ⊢ batchGhost γ P st' := by
-  unfold batchGhost batchGhostAt
+  unfold batchGhost batchGhostAt batchViewQ
   rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB]
   iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩
   iframe Hv
@@ -262,7 +262,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     imodintro
     iframe Hg
   · simp only [↓reduceIte]
-    unfold batchGhost batchGhostAt rbOwn trkHalf
+    unfold batchGhost batchGhostAt batchViewQ rbOwn trkHalf
     rw [hC, hR, hS]
     iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩ Hc
     imod ghostVar_update_halves (rbData P st'.S) γ.rbk _ _ $$ Hb Hc with ⟨Hb, Hc⟩
@@ -288,7 +288,7 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
     (hFk : fkKey n k → ∀ f w, fkOk P f w st → fkOk P (max f 1) w st') :
     ⊢ batchGhost (GF := GF) γ P st -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S -∗ fkPut γ n k ==∗
       batchGhost γ P st' ∗ hkPut γ P n k st'.S ∗ rbPut γ P n st'.S ∗ fkPut γ n k := by
-  unfold batchGhost batchGhostAt trkHalf
+  unfold batchGhost batchGhostAt batchViewQ trkHalf
   rw [hC, hR]
   iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩ Hhp Hrp Hfp
   imod fkHalf_put γ P (st := st) (st' := st') n k hF hFk $$ Hfk Hfp with ⟨Hfk, Hfp⟩
@@ -379,7 +379,7 @@ theorem batchGhostAt_p0 (γ : BNames) (P : BParams) (st : BSess) :
 /-- The free lock's ghost share, taken by a session. -/
 theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
     batchGhostAt (GF := GF) γ P st true ⊢ batchGhost γ P st := by
-  unfold batchGhost batchGhostAt
+  unfold batchGhost batchGhostAt batchViewQ
   iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩
   iframe Hv
   iexists n, w, u
@@ -425,7 +425,7 @@ theorem batchLocked_rdB (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess) (
 
 /-- The batch lock's ghost share, held, with the `Unlock` window flag `win`. -/
 def batchGhostW (γ : BNames) (P : BParams) (st : BSess) (win : Bool) : IProp GF :=
-  iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
+  iprop(batchViewQ γ P st ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), win) ∗
       ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗

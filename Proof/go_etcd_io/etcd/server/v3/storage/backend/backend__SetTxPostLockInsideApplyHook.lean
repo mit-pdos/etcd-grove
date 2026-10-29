@@ -68,8 +68,7 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
         exact Hwf
     · ileft
       iframe HWv HWR
-      ipureintro
-      exact viewSame_of_freeOk Hfo.1
+      iapply viewSame_thin γ P st (viewSame_of_freeOk Hfo.1)
   iapply HΦ
   iframe
 

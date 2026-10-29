@@ -1196,3 +1196,37 @@ Next: question 2's own round (Draft, then Review), then question 5 (the wiring).
   - about 200 for `Unlock`'s deleting branch, about 100 for `UnsafeDelete`;
   - about 60 in the bridge, about 300 for the limited range;
   - one full build per round, rebuilding about 2100 modules.
+
+### Question 2's switch (Prove, 2026-10-29)
+
+The reviewed Draft (round 11, no first-tier finding) switched in, with round 11's findings applied:
+- **The batch lock's quarter is over the logical view**: `batchGhostAt`'s and `batchGhostW`'s first
+  conjunct is `batchViewQ γ P st` (`∃ L, viewQ γ ¼ (vData P (st.C, st.R)) L`, `InvBackend.lean`).
+  `viewAt` (D22's, `InvSnapshot.lean`) is the same quarter at a physical view `vd`
+  (`∃ L, viewQ γ ¼ vd L`), the user's option (a); `backend.Snapshot`'s axiom's docstring says so, and
+  it gets the `axiom` skill before Freeze.
+- **R11-1** (decided by the agent; internal specs): `batchTxBuffered.commit.spec` and `unsafeCommit.spec`
+  take a target `L'` and, out of a window, `thinV γ (sData P st.S) (vData P (st.C, st.R))` (was: the
+  view unchanged), in a window `thinV γ (sData P st.S) L'` (was: none), and give the clients' view back
+  at `L'` (was: the new physical view). `rtRes_cm_close` and `rtRes_wb_close` (`ReadSide.lean`) the same
+  way; `Commit`, `CommitAndStop`, `run` pass the exact instance (`thinV_refl`).
+- **R11-2**: a put session that commits opens its window at the exact new physical view and the
+  commit's close moves it to `relog`; one that does not commit moves the view to `relog` at the
+  write-back's close.
+- **`Unlock.spec` is the folded statement** (Draft's `specF`; `spec`, `specC`, `specF` and
+  `spec_of_specF` gone). Its proof covers the deleting branch (the write-back leaves the readers' view,
+  the commit's new physical view thin of the old) and the put branch through `relog`.
+- **`UnsafeDelete.spec` is the Draft's `specC`** (any bucket, `dlIs` at a safe-range key, `own`); its
+  proof needs no "not safe-range" premise any more (`sessWf_del`).
+- **R11-3**: the bridge's `bt_seqPut`, `bt_unlock`, `bt_unlockD`, `bt_range` are proved once over the thin
+  view (`batchLocked_thin`, the new `keyView_sub`), shared by both bridges; `batchLocked_view` is gone.
+  `bt_range` takes `□ (∀ k, dlIs γ (key, k) -∗ Del k)` (the old bridge's from `dlNoDel`, the new one's
+  `bkDel`). **R11-4**: `keyView_relog`, the put session's view after `Unlock`. **R11-5**: `relog` without
+  the `P.SB` filter (`relog_same`: a session that changed nothing keeps its logical view). **R11-6**:
+  `relog`'s docstring. **R11-7**: `backend__Snapshot.lean`'s docstring.
+- `LogicalView.lean` (the Draft module) is gone: its statements are in `InvBackend.lean`,
+  `InvSnapshot.lean` and the specs.
+
+Left: the new bridge's limited-range `sorry` (the job's session token must record that its deletes are
+registered, so that `Unlock`'s deleting branch gets its `thinV`), and round 10's doc items R10-2/R10-5.
+

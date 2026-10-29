@@ -325,8 +325,10 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
     iframe
     iframe #
   isplitl [Hv Hrvs Hwba Hwbc Hused Hopn Hhkd Hfkh]
-  · simp only [st0, rv0]
+  · ihave Hv := batchViewQ_of_exact γ P (st0 D wtx) $$ [Hv]
+    · simp only [st0, rv0, rb0] at *; iexact Hv
     iframe Hv
+    simp only [st0, rv0]
     iexists wbInit, 0, 0
     iframe
     ipureintro
