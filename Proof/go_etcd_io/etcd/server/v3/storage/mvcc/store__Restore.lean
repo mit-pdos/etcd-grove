@@ -148,7 +148,7 @@ theorem mvcc.store.Restore.wp_proof
   obtain ⟨p', hnv, hcm, hb, hh, hk, hm, hfin, hs, hwk, hwv⟩ : ∃ p' : mvcc.PhysNames,
       p'.nev = nv ∧ p'.cmp = cm ∧ p'.bucket = γb' ∧ p'.hook = γh' ∧ p'.kb = some d' ∧
       p'.cmeta = γm' ∧ p'.fin = γfin' ∧ p'.sch = γs ∧ p'.wk = γwk' ∧ p'.wv = γwv' :=
-    ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv'⟩,
+    ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γ.mwk⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   have hpb : p'.bucket = γb' ∧ p'.kb = some d' := ⟨hb, hk⟩
   rw [← hnv, ← hcm, ← hh, ← hm, ← hfin, ← hs, ← hwk, ← hwv]

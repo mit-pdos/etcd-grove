@@ -189,7 +189,7 @@ theorem mvcc.NewStore.wp_proof
   -- the store's objects, pinned (D22 receiver epochs, S3: until S5)
   -- (S5b) the store's current objects and physical names, set once the names are made
   imod (dghostVar_alloc (GF := GF) (((⟨b, ti, sc, stopc⟩ : mvcc.StoreObjs),
-      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv⟩ : mvcc.PhysNames)) :
+      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, 0⟩ : mvcc.PhysNames)) :
       mvcc.StoreObjs × mvcc.PhysNames)) with ⟨%γcur, Hcur1⟩
   -- `s.revMu`'s restoring flag, down: half the lock's, half the fields' shares' (S3)
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γrst, Hrst⟩
@@ -216,7 +216,7 @@ theorem mvcc.NewStore.wp_proof
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr⟩,
+        γwsd, γtkw, γtkr, 0⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
       rfl, rfl, rfl, rfl⟩
   rw [← hγrst] at *
