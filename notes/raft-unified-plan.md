@@ -290,6 +290,20 @@ Each: old → new, and why. (The second track A agent, from the hand-off below.)
   message given), after `budget_spend` of the credit raises the term ceiling (as the tick arm).
   `Campaign` takes the credit from its own `MsgHup.Enum()` resolution (`wp_take_receipt`).
   `NetMsgOk`/`netStepTypes`/`stepIn` unchanged.
+- New: `node.Status.spec` (`Spec/go_etcd_io/raft/v3/node__Status.lean`): pre `isPkgInit ∗ isNode n γ N id`,
+  post `(st : Status), RET #st; statusOwn st`. **New public predicate** (escalated, approved as (A) by
+  the coordinator): `statusOwn st` (`InvNode.lean`, sealed; `InvStatus.statusOwnRaw`), heap ownership
+  only: `⌜st = zero_val Status⌝` (a stopped node's `Status{}`) ∨ `(∃ hs, hsRO HardState hs) ∗ (∃ c,
+  ownCfgCC Config 1 c) ∗ (⌜Progress = nil⌝ ∨ progCopyOwn Progress)` (the nil disjunct, approved: a
+  non-leader's map is `nil`, which `↦$` cannot own). No laws yet (track C asks when kvreconf's `Dump`
+  needs them). The copy's `AutoLeave` is always `false` (`Config.Clone` drops it,
+  `issues/raft-config-clone-autoleave.md`). Internal: `status`'s handshake predicate `fun _ => False` →
+  `statusChP c := ∃ γc, isHandshake γc c statusOwnRaw True` (`InvNodeChan.lean`; one line each in
+  `StartNode.lean`/`RestartNode.lean`, approved); `run`'s status arm answers with `getStatus`, so
+  `node.run.wp_proof` takes `getStatus.spec` (last hypothesis). New internal specs and proofs:
+  `getProgressCopy.spec` (`Visit` with the copy as invariant, `Inflights.Clone`), `getStatus.spec`
+  (`getBasicStatus`, `getProgressCopy` at a leader, `Config.Clone` through the tracker's `Config`
+  field); `Pos.Countable` instances for `SoftState`, `BasicStatus`, `tracker.Config`, `Status`.
 
 ## Track A hand-off (2026-10-29)
 
@@ -313,7 +327,7 @@ raft-specific axiom is `ccDecodeV2_nil`.
      (`budget_spend`). Take the receipt from a Go step of `Campaign`'s own, as `node__Tick.lean` does
      at a `StructFieldRef`.
    - Model the spec on `node__ForgetLeader.lean`: an API spec over `isNode`, a raw `specRaw`.
-2. **`node.Status.spec`** (`cluster.go:407`). A reduced spec does not work, since `Status`'s send on
+2. **`node.Status.spec`** (Done, `8ed7fe817a`; "Spec changes during track A (fresh)".) (`cluster.go:407`). A reduced spec does not work, since `Status`'s send on
    `status` must supply its payload up front.
    - It needs `run`'s status arm, with internal specs of `getStatus`, `getBasicStatus`,
      `getProgressCopy` (through `Visit`) and `Config.Clone`.
