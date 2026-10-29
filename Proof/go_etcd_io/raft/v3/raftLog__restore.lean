@@ -70,7 +70,7 @@ theorem raftLog.restore.wp_proof
   ihave #Hkcert' : ([∗list] k ∈ ls.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
       storCert (GF := GF) lv.storage' k) $$ []
   · iapply (BigSepL.bigSepL_snoc (Φ := fun _ k => storCert (GF := GF) lv.storage' k)).2
-    iframe Hkcert
+    iframe
     rw [Hstor]; iexact Hcert
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
@@ -119,7 +119,7 @@ theorem raftLog.restore.wp_proof
         have := Happlying.2; have : uint.Z (snapId sv).index' = uint.Z sv.Metadata'.Index' := rfl
         omega⟩)⟩
       (fun h => by simp [logRestore] at h) ?_ ?_ ?_ ?_
-    $$ Hl HisStorage HStorage Hsn Hpk Hkcert' Hents Hents_cap Hl_logger Hu_logger
+    $$ Hl HisStorage HStorage Hsn Hpk Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
     Int.natCast_zero, Int.add_zero]
   · intro k e h; simp at h

@@ -66,6 +66,12 @@ def storFloor (sn : StorNames) (x : w64) : IProp GF := monoNatLbOwn sn.ga (uint.
 /-- (U8 v2) A snapshot at index `k` was handed out to install: the API's `snapGiven`. -/
 def storGiven (sn : StorNames) (k : Nat) : IProp GF := monoNatLbOwn sn.gg k
 
+instance storFloor_pers (sn : StorNames) (x : w64) : Persistent (storFloor (GF := GF) sn x) := by
+  unfold storFloor; infer_instance
+
+instance storGiven_pers (sn : StorNames) (k : Nat) : Persistent (storGiven (GF := GF) sn k) := by
+  unfold storGiven; infer_instance
+
 /-- The authorities read only `fl` and `sg`. -/
 theorem storAuths_eq (sn : StorNames) (σ σ' : StorState) (h1 : σ'.fl = σ.fl) (h2 : σ'.sg = σ.sg) :
     ⊢ storAuths (GF := GF) sn σ -∗ storAuths sn σ' := by
@@ -438,6 +444,21 @@ theorem ownStorage_freeze (sn : StorNames) (st : Storage) (σ : StorState) (j : 
   · iapply (storAuths_eq sn σ { σ with fr := j } rfl rfl); iexact Hau
   ipureintro
   exact ⟨Ht0, show uint.nat σ.prev.index' ≤ j by omega, show j + 1 ≤ σ.kOut by omega, H3, H4⟩
+
+/-- The hand-out at a batch that may be empty (nothing out for `[]`, N2). -/
+theorem ownStorage_handout_opt (sn : StorNames) (st : Storage) (σ : StorState) (p : List EntryM)
+    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧
+      ∀ e0, p.head? = some e0 → σ.fr < uint.nat e0.Index')) :
+    ⊢ ownStorage (GF := GF) sn st σ ==∗ ownStorage sn st { σ with pend := p } ∗ appendRight st p := by
+  iintro H
+  by_cases Hne : p = []
+  · have Hσ : ({ σ with pend := p } : StorState) = σ := by rw [Hne, ← Hpo.1]
+    rw [Hσ]
+    imodintro
+    iframe H
+    unfold appendRight
+    ileft; ipureintro; exact Hne
+  iapply ownStorage_handout sn st σ p Hpo.1 (Hpo.2 Hne).1 (Hpo.2 Hne).2 $$ H
 
 end laws
 

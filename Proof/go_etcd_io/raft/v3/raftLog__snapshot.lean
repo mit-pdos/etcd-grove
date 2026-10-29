@@ -32,8 +32,7 @@ theorem raftLog.snapshot.wp_proof
   wp_start as H
   iNamed H
   iNamed Hlog
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
+  ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -62,7 +61,7 @@ theorem raftLog.snapshot.wp_proof
     iframe Hc
     isplitr
     rotate_left
-    · ihave ⟨#Hkc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkcert
+    · ihave ⟨#Hkc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$
       rw [← Hstor]; iexact Hkc
     ipureintro
     obtain ⟨Hp, -, Hsid0⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
@@ -125,9 +124,9 @@ theorem raftLog.snapshot.wp_proof
     rcases Hwhich with ⟨Hid, Hal, Hcs, Hdt⟩ | ⟨Hgt, Hge, Hle, Ht⟩
     · have Hss : σ.ss.index' ≠ W64 0 := by
         rw [← Hid]; simp only [snapId]; exact Hnz
-      have Hk := Hsksn Hss
+      have Hk := Hss
       rw [← Hid, ← Hal, ← Hcs, ← Hdt] at Hk
-      rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
+      rcases Hsn with Hz | ⟨Hle, Ht⟩
       · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
       · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
         exact ⟨Hnz, Hle, Ht, .inl Hk⟩

@@ -192,7 +192,7 @@ theorem raftLog.append.wp_proof
           (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
               - (ls.sents.length : Int)).toNat ++ e0 :: ents')) := by
       intro Hs
-      rcases Hssnap Hs with H | ⟨Hsle, Hst⟩
+      rcases Hs with H | ⟨Hsle, Hst⟩
       · exact .inl H
       · refine .inr ⟨Hsle, ?_⟩
         rw [Hsplit]
@@ -303,8 +303,8 @@ theorem raftLog.append.wp_proof
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 Hfl2 Hsksn Hsipm Hsipn Hlent Hq Hprel2 Hsat ?_ ?_ ?_ ?_
-        $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Hents Hents_cap Hl_logger Hu_logger
+          Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat ?_ ?_ ?_ ?_
+        $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li

@@ -34,8 +34,7 @@ theorem raftLog.lastIndex.wp_proof
   iNamed Hlog
   wp_auto
   have Hnw : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2^64 := by omega
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
+  ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩

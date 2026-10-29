@@ -610,6 +610,12 @@ def FlOk (σ : StorState) (ls : LogState) : Prop :=
   -- (2026-10-28, stage U4a)
   StorTermsOk σ ls
 
+/-- (U8 v2) The view's frozen end and snapshot handed out: the frozen prefix ends at the
+compaction point or at most at `applying` (unless lent), and the snapshot last handed out is the
+log's record (`LogState.sg`). -/
+def FrOk (σ : StorState) (ls : LogState) : Prop :=
+  (ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)) ∧ σ.sg = ls.sg
+
 /-- (D22 S-d1b, 2026-10-21) The storage as the log holds it: `ownStorage`, unless it is lent to
 the application (`LogState.lent`: a `Ready` handed out a snapshot, `ownRaftLog_lend`). While it is
 lent the log's `σ` is the state the storage was lent at, its facts kept as pure facts of a value. -/
@@ -834,8 +840,9 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
   "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
   "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
-  -- (U8 v2) the frozen prefix ends at the compaction point or at most at `applying`
-  "%Hfr" ∷ ⌜ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)⌝ ∗
+  -- (U8 v2) the frozen prefix ends at the compaction point or at most at `applying`; the
+  -- snapshot handed out is the log's record
+  "%Hfr" ∷ ⌜FrOk σ ls⌝ ∗
   -- (D22 S-d1b, 2026-10-21) the storage lent only with a snapshot pending; neither of
   -- `ownRaftLogW`'s windows (`sapp`, `aps`); and a snapshot in progress (`SipOk`)
   "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
@@ -890,7 +897,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     ls.sapp = false ∧ ls.aps = false →
     SipOk ls lv.unstable'.offset' →
     (ls.sat = true → SatOk σ ls) →
-    (ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)) →
+    FrOk σ ls →
     ls.snap = snap →
     ls.uents = uents →
     ls.ksn = K →
@@ -1018,8 +1025,9 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
   "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
   "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
-  -- (U8 v2) the frozen prefix ends at the compaction point or at most at `applying`
-  "%Hfr" ∷ ⌜ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)⌝ ∗
+  -- (U8 v2) the frozen prefix ends at the compaction point or at most at `applying`; the
+  -- snapshot handed out is the log's record
+  "%Hfr" ∷ ⌜FrOk σ ls⌝ ∗
   "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
   "%Hsappi" ∷ ⌜ls.sapp = true → SappOk σ ls⌝ ∗
   "%Hprel" ∷ ⌜SipOk ls lv.unstable'.offset'⌝ ∗
@@ -1061,7 +1069,7 @@ theorem ownRaftLogW_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorStat
     (ls.sapp = true → SappOk σ ls) →
     SipOk ls lv.unstable'.offset' →
     (ls.sat = true → SatOk σ ls) →
-    (ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)) →
+    FrOk σ ls →
     ls.snap = snap →
     ls.uents = uents →
     ls.ksn = K →
@@ -1095,7 +1103,7 @@ theorem ownRaftLog_toW (l : Loc) (ls : LogState) :
   iintro H
   iNamed H
   have Hv : snapV ls = ls.snap := snapV_of Hq.1
-  iapply ownRaftLogW_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap (Hv ▸ Hstore) Hoffset
+  iapply ownRaftLogW_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap (Hv ▸ Hstore) Hoffset
     Happlied (fun h _ => Hpapplied h) Hcommitted Hapg Hip Hipb (Hv ▸ Hpersist)
     Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent
     (fun h => absurd h (by rw [Hq.1]; decide)) Hprel Hsat Hfr rfl rfl rfl rfl rfl
@@ -1107,7 +1115,7 @@ theorem ownRaftLogW_quiet (l : Loc) (ls : LogState) (Hq : ls.sapp = false ∧ ls
   iintro H
   iNamed H
   have Hv : snapV ls = ls.snap := snapV_of Hq.1
-  iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap (Hv ▸ Hstore) Hoffset
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap (Hv ▸ Hstore) Hoffset
     Happlied (fun h => Hpapplied h Hq.2) Hcommitted Hapg Hip Hipb (Hv ▸ Hpersist)
     Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl
     $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1147,7 +1155,7 @@ theorem ownRaftLog_sapp (l : Loc) (ls : LogState) (Hs : ls.sat = true) :
     refine ⟨?_, ?_, fun _ => rfl, Hσe⟩
     · show _ <+: σ.ents; rw [Hσe]; exact Hrel.1
     · intro h; show _ = σ.ents; rw [Hσe]; exact Hrel.2 h
-  iapply ownRaftLogW_intro l lv lv.storage' σ _ _ { ls with sapp := true } rfl Hcm Hap Hidx
+  iapply ownRaftLogW_intro (sn := ls.sn) l lv lv.storage' σ _ _ { ls with sapp := true } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset Happlied (fun h _ => Hpapplied h) Hcommitted Hapg Hip Hipb
     Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent
     (fun _ => ⟨Hsp, Hsipt, Hlnt, Hunp, Hσp⟩) Hprel Hsat Hfr rfl rfl rfl rfl rfl
@@ -1171,7 +1179,7 @@ theorem ownRaftLogW_struct (l : Loc) (ls : LogState) :
   isplitr
   · ipureintro; exact ⟨Hap, Happlying.1, Happlied.2, Happlied.1, by omega⟩
   · iintro Hl
-    iapply ownRaftLogW_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+    iapply ownRaftLogW_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hsappi Hprel Hsat Hfr rfl rfl rfl rfl rfl
       $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1192,7 +1200,7 @@ theorem ownRaftLogW_snap_prev (l : Loc) (ls : LogState) :
     · have := (Hsappi Hsa).1
       rw [Hs] at this
       exact Option.some.inj this
-  · iapply ownRaftLogW_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+  · iapply ownRaftLogW_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hsappi Hprel Hsat Hfr rfl rfl rfl rfl rfl
       $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1211,7 +1219,7 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   isplitr
   · ipureintro; exact ⟨Hcm, Hap⟩
   · iintro Hl
-    iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+    iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
@@ -1240,7 +1248,7 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
   · ipureintro
     exact H lv σ Hidx Hnowrap Hstore Hoffset Happlied Hpapplied Hcommitted
       Hipb Happlying
-  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+  · iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
@@ -1296,12 +1304,9 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (a : List EntryM)
     have Hfl' : FlOk { σ with pend := [] } { ls with unpersisted := [] } :=
       ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => by simp at He0,
         fun _ h => absurd (show ls.lent = false from h) (by rw [Hlt]; decide), StorTermsOk.lent Hlt⟩
-    have Hfr' : ({ ls with unpersisted := [] } : LogState).lent = false →
-        ({ σ with pend := [] } : StorState).fr ≤
-          max (uint.nat ({ σ with pend := [] } : StorState).prev.index')
-            (uint.nat ({ ls with unpersisted := [] } : LogState).applying) :=
-      fun h => absurd h (by simp only [Hlt]; decide)
-    iapply ownRaftLog_intro l lv lv.storage' { σ with pend := [] } _ _ { ls with unpersisted := [] }
+    have Hfr' : FrOk { σ with pend := [] } { ls with unpersisted := [] } :=
+      ⟨fun h => absurd h (by simp only [Hlt]; decide), Hfr.2⟩
+    iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' { σ with pend := [] } _ _ { ls with unpersisted := [] }
       rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb
       Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsip Hsipn Hlent Hq Hprel
       (fun h => absurd (Hsat h).2.2.1 (by rw [Hlt]; decide)) Hfr' rfl rfl rfl rfl rfl $$ Hl HisStorage
@@ -1319,7 +1324,7 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (a : List EntryM)
     have Hσ0 : σ.pend = [] := Hpσ.trans Hnil
     have HEq : ({ ls with unpersisted := [] } : LogState) = ls := by rw [← Hnil]
     rw [HEq]
-    iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+    iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor ⟨Hpσ, (by
         intro hs e0 he; exact absurd he (by rw [Hnil]; simp))⟩ Hfl Hsip Hsipn Hlent Hq Hprel Hsat
@@ -1367,18 +1372,17 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (a : List EntryM)
     intro h
     obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8⟩ := Hsat h
     rw [H4] at Hhd; cases Hhd
-  have Hfr' : ls.lent = false → (absorbView σ a).fr ≤
-      max (uint.nat (absorbView σ a).prev.index') (uint.nat ls.applying) := by
-    intro _
+  have Hfr' : FrOk (absorbView σ a) { ls with unpersisted := [] } := by
+    refine ⟨fun _ => ?_, Hfr.2⟩
     have Hk : σ.kOut = uint.nat e0.Index' := by
       unfold StorState.kOut; rw [Hpσ, Hhd]
     by_cases Hae : a = []
-    · simp only [absorbView, Hae, if_true]; exact Hfr Hlt
+    · simp only [absorbView, Hae, if_true]; exact Hfr.1 Hlt
     · simp only [absorbView, Hae, if_false, Hk]
       have := Ha Hae e0 Hhd
       show _ ≤ max (uint.nat σ.prev.index') _
       omega
-  iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb
     Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsip Hsipn Hlent Hq Hprel Hsat' Hfr'
     rfl rfl rfl rfl rfl $$ Hl HisStorage [HStorage] Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1411,7 +1415,7 @@ theorem ownRaftLog_raise_floor (l : Loc) (ls : LogState) (x : w64)
         LogPersistOk { σ with fl := x } ls.sents ls.uents
           (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted ls.stored := Hpersist
     have Hstore' : LogStoreOk ls.snap { σ with fl := x } ls.prev ls.sents ls.uents := Hstore
-    iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with fl := x } rfl Hcm Hap Hidx
+    iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' _ _ _ { ls with fl := x } rfl Hcm Hap Hidx
       Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb
       Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage [HStorage]
       Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1432,7 +1436,7 @@ theorem ownRaftLog_fl (l : Loc) (ls : LogState) :
   isplitr
   · ipureintro
     exact ⟨Hfl.2.1, Happlying.2, Hcommitted, fun _ => Int.lt_of_le_of_lt Hfl.2.1 Hfl.2.2.1⟩
-  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+  · iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
       Huents_cap Hl_logger Hu_logger
@@ -1468,14 +1472,14 @@ theorem ownRaftLog_stable_bound (l : Loc) (ls : LogState) :
     isplitr [Hl HStorage Huents Huents_cap]
     · ipureintro; exact Hb
     ihave HStorage := lentStor_close Hlnt _ _ _ $$ HStorage
-    iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+    iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
       HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
   · obtain ⟨Hp, Hs0, Hsid⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     isplitr [Hl HStorage Huents Huents_cap]
     · ipureintro; rw [Hs0, List.length_nil, Hp]; omega
-    iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+    iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
       HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1487,7 +1491,7 @@ theorem ownRaftLog_quiet (l : Loc) (ls : LogState) :
   iNamed H0
   isplitr
   · ipureintro; exact Hq
-  iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
     Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
     Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
     HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
@@ -1765,7 +1769,7 @@ macro "reseal_raftLog" : tactic =>
                | ((rewrite [Huoff]); with_reducible assumption)
                -- the storage and its pending batch (2026-10-10), for a state that
                -- keeps the fields they are stated on
-               | exact Hstor | exact Hpend | exact Hfl))
+               | exact Hstor | exact Hpend | exact Hfl | exact Hfr))
 
 set_option hygiene false in
 /-- `reseal_raftLog` for `ownRaftLogW` (`ownRaftLogW_intro`). -/
@@ -1774,7 +1778,7 @@ macro "reseal_raftLogW" : tactic =>
     (iapply Perennial.EtcdGrove.ownRaftLogW_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger) <;>
     try (first | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
-               | exact Hstor | exact Hpend | exact Hfl))
+               | exact Hstor | exact Hpend | exact Hfl | exact Hfr))
 
 set_option hygiene false in
 /-- (D22 S-d1b) In a `raftLog` method, after `iNamed Hlog`, in a branch where `h : ls.snap = none`:
