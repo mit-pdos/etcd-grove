@@ -35,7 +35,7 @@ package-level variable -- or a `nil` error and a fresh, owned snapshot, non-empt
 (`IsEmptySnap`'s test, so `maybeSendSnapshot`'s `panic` is dead), from one of two sources:
 
 - a pending snapshot (`LogState.snap`), cloned: one the node may send (`ksn`), the log's base,
-  at or below `committed`;
+  at or below `committed`, certified (`ksnCert`, U8 v2);
 - (U8 v2, candidate 17 rev 3) the storage's (`Storage.Snapshot()`): at or past the log's
   boundary, valid (`svCert`, the contract's `snapshotValid` as raft carries it), and -- from the
   contract's `DL`, read as a term raft certified at a committed index (`raftDL`, `DtOk`) -- at or
@@ -59,7 +59,8 @@ abbrev raftLog.snapshot.spec : Prop :=
         (⌜ls.snap ≠ none ∧ snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧
             uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
             plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
-              = some sv.Metadata'.Term'⌝ ∨
+              = some sv.Metadata'.Term'⌝ ∗
+           ksnCert ls.sn (snapTrip sv sv.Metadata'.ConfState'.lists) ∨
          (⌜ls.snap = none ∧ uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
             uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
             plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'

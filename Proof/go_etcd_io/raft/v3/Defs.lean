@@ -269,6 +269,8 @@ structure StorNames where
   gsv : Nat := 0
   /-- (U8 v2, the snapshot's bound) the terms raft certified at committed indices (`raftDL`) -/
   gd : Nat := 0
+  /-- (U8 v2) the pin of a received snapshot's certificate (`ksnCert`) -/
+  gk : Nat := 0
 
 structure LogState [GooseExts] where
   prev : entryID

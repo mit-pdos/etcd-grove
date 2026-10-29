@@ -432,7 +432,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
         have := Hsipn Hs0; simp only [logHanded] at h; rw [this] at h; cases h),
         (fun h => absurd Hs0 h)⟩
       (fun h => absurd (Hsat h).1 (by rw [Hs0]; simp)) Hfr rfl rfl rfl rfl rfl
-      $$ Hl HisStorage [HStorage] Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+      $$ Hl HisStorage [HStorage] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
     iapply lentStor_close (b := (logHanded ls).lent) Hlnt; iexact HStorage
   rw [← Hstor]; iexact Happ
 
@@ -625,7 +625,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
       Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist' Happlying Hpaused Hasz
       Hamx Hstor Hpend' Hfl' Hsip Hsipn (fun _ => Hs0) Hq Hprel' (fun h => by cases h)
       Hfr' rfl rfl rfl rfl rfl
-      $$ Hl HisStorage [Hau] Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+      $$ Hl HisStorage [Hau] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
     iapply (lentStor_lent (b := (logHanded (lendLog ls)).lent) rfl _ _ _).2
     iapply (storAuths_eq ls.sn { σ with sg := max σ.sg (uint.nat ls.prev.index') } (lendView σ ls) rfl rfl)
     iexact Hau
@@ -665,7 +665,7 @@ theorem ownRaftLog_snap_next (l : Loc) (ls : LogState) :
   iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
     Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
     Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
-    HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+    HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
 
 /-- (D22 S-d3a) The log's ghost fields `SnpOk` mirrors, read out. -/
 theorem ownRaftLog_snap_facts (l : Loc) (ls : LogState) :
@@ -685,7 +685,7 @@ theorem ownRaftLog_snap_facts (l : Loc) (ls : LogState) :
   iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
     Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
     Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
-    HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+    HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
 
 /-- (D22 S-d1b; S-d2, 2026-10-21; U8 v2) **The snapshot's ranges back**: the application returns
 the compaction point at the snapshot `sid`, the dummy there (of its term) and the entries the
@@ -745,7 +745,7 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (sid : entryID) (e : En
     Hpapplied Hcommitted Hapg Hip Hipb
     (fun h => absurd h Hsn) Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsip Hsipn
     (fun h => absurd h (by simp [logAbsorbSnap])) Hq Hprel Hsat' Hfr' rfl rfl rfl rfl rfl
-    $$ Hl HisStorage [HSt] Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+    $$ Hl HisStorage [HSt] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
   iapply lentStor_close (b := (logAbsorbSnap ls sid).lent) rfl; iexact HSt
 
 end snapstor

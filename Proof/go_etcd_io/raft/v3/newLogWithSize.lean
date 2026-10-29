@@ -81,6 +81,8 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · iapply pendKsn_none
     isplitr
+    · iapply ksnCerts_nil
+    isplitr
     · ipureintro; word
     isplitr
     · iapply entsPts_nil

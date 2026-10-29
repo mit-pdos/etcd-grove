@@ -66,6 +66,7 @@ theorem raftLog.restore.wp_proof
     with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip', %Hsip'⟩
   iapply HΦ
   iframe Hsnap
+  ihave #Hkc' := ksnCerts_snoc ls.sn ls.ksn _ $$ Hkcert Hkc
   rw [← Hlg]
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro (sn := ls.sn) l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
@@ -121,7 +122,7 @@ theorem raftLog.restore.wp_proof
             have : uint.Z (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)).prev.index' =
               uint.Z sv.Metadata'.Index' := rfl
             omega))) ?_ ?_ ?_ ?_ ?_
-    $$ Hl HisStorage HStorage Hsn Hpk Hents Hents_cap Hl_logger Hu_logger
+    $$ Hl HisStorage HStorage Hsn Hpk Hkc' Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
     Int.natCast_zero, Int.add_zero]
   · intro k e h; simp at h

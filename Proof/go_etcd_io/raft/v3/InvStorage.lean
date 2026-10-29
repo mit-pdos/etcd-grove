@@ -177,6 +177,15 @@ instance snapshotM_countable : Pos.Countable SnapshotM :=
     (fun p => ⟨p.1, ⟨⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1⟩, p.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2⟩⟩) (fun _ => rfl)
 
+/-- A snapshot as raft records it is countable (for the pin of a received snapshot's certificate,
+`ksnCert`). -/
+instance snapTrip_countable : Pos.Countable SnapTrip :=
+  countableOfLeftInverse
+    (fun k : SnapTrip => (k.sid.term', k.sid.index', k.cl.voters, k.cl.learners, k.cl.outgoing,
+      k.cl.learnersNext, k.al, k.dat))
+    (fun p => ⟨⟨p.1, p.2.1⟩, ⟨p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1⟩, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩) (fun _ => rfl)
+
 end termAt
 
 /-! ## The contract over range ownership (U8 v2, candidate 17 rev 3 §2)
@@ -294,6 +303,45 @@ def svCert (sn : StorNames) (sv : SnapshotM) : IProp GF :=
 
 instance svCert_pers (sn : StorNames) (sv : SnapshotM) : Persistent (svCert (GF := GF) sn sv) := by
   unfold svCert; infer_instance
+
+/-- (U8 v2) **A snapshot raft received is certified**, as raft carries it (persistent, γ-free): `P k`
+for the predicate pinned at `sn.gk` (the cluster's certificate `raftSnapCertD γ`, which the node
+level pins; `certLink`, `StepGhostMode.lean`). What the log keeps of the snapshots it may send
+(`LogState.ksn`, `ownRaftLog`'s `Hkcert`): until U8 v2 they were registered in the storage's
+certificate registry (`storCert`). -/
+def ksnCert (sn : StorNames) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (P : SnapTrip → IProp GF), savedPredOwn sn.gk DFrac.discard P ∗ □ P k)
+
+instance ksnCert_pers (sn : StorNames) (k : SnapTrip) : Persistent (ksnCert (GF := GF) sn k) := by
+  unfold ksnCert; infer_instance
+
+/-- Every snapshot of `K` certified (`ksnCert`). -/
+def ksnCerts (sn : StorNames) (K : List SnapTrip) : IProp GF :=
+  iprop([∗list] k ∈ K, ksnCert sn k)
+
+instance ksnCerts_pers (sn : StorNames) (K : List SnapTrip) :
+    Persistent (ksnCerts (GF := GF) sn K) := by
+  unfold ksnCerts; infer_instance
+
+theorem ksnCerts_nil (sn : StorNames) : ⊢ ksnCerts (GF := GF) sn [] := by
+  unfold ksnCerts; iapply (BigSepL.bigSepL_nil (Φ := fun _ k => ksnCert (GF := GF) sn k)).2
+  iempintro
+
+theorem ksnCerts_snoc (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) :
+    ⊢ ksnCerts (GF := GF) sn K -∗ ksnCert sn k -∗ ksnCerts sn (K ++ [k]) := by
+  unfold ksnCerts
+  iintro #HK #Hk
+  iapply BigSepL.bigSepL_append.2
+  iframe HK
+  iapply (BigSepL.bigSepL_singleton (Φ := fun _ k => ksnCert (GF := GF) sn k)).2
+  iexact Hk
+
+theorem ksnCerts_mem (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) (h : k ∈ K) :
+    ⊢ ksnCerts (GF := GF) sn K -∗ ksnCert sn k := by
+  unfold ksnCerts
+  iintro #HK
+  obtain ⟨i, hi⟩ := List.getElem?_of_mem h
+  iapply (BigSepL.bigSepL_lookup (Φ := fun _ k => ksnCert (GF := GF) sn k) hi) $$ HK
 
 /-- (U8 v2) Raft's reading of the contract's `DL i` for a valid snapshot of term `t`: raft certified
 the term `t` at `i` (`sn.gd`, whose authority keeps every key at most `committed` and of the log's
