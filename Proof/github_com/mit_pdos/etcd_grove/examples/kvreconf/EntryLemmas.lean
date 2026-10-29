@@ -37,14 +37,13 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [StorageModel GF] [AllG GF]
 
 /-- Past an entry that is no conf change, the view of the node moves. -/
-theorem appNode_noConf (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (l : List LogEntry)
+theorem appNode_noConf (γr : RNames) (n : Loc) (l : List LogEntry)
     (k : Nat) (e : LogEntry) (m : Membership) (hk : l[k]? = some e) (hc : ¬ e.isConfChange) :
-    appNode RA γr n l k m ⊢ appNode RA γr n l (k + 1) m := by
+    appNode (GF := GF) γr n l k m ⊢ appNode γr n l (k + 1) m := by
   iintro Hn
   unfold appNode
-  icases Hn with (⟨%v, Hv, #Hdl, #Hsk, %Hvm⟩ | #Hst)
-  · ileft
-    iexists v
+  icases Hn with ⟨%v, Hv, #Hdl, #Hsk, %Hvm⟩
+  · iexists v
     iframe Hv Hdl
     isplitl
     · unfold skippedIn
@@ -60,15 +59,14 @@ theorem appNode_noConf (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (l 
       rw [hk] at h1; cases h1
       exact absurd h2 hc
     · ipureintro; exact ⟨Hvm.1, by omega⟩
-  · iright; iexact Hst
 
 /-- An entry of no type the store knows leaves the replicated state. -/
-theorem repOwn_other (RA : RaftAssume (GF := GF)) (γr : RNames) (n r : Loc) (ap : List LogEntry)
+theorem repOwn_other (γr : RNames) (r : Loc) (ap : List LogEntry)
     (idx : w64) (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8))
     (e : LogEntry) (ht : e.type ≠ W32 0) (hc : ¬ e.isConfChange)
     (hlen : (ap.length : Int) + 1 < 2 ^ 61) :
-    isCommittedLogLb γr.cluster (ap ++ [e]) ∗ repOwn RA γr n r ap idx csp m mA A ⊢
-      repOwn RA γr n r (ap ++ [e]) idx csp m mA A := by
+    isCommittedLogLb (GF := GF) γr.cluster (ap ++ [e]) ∗ repOwn γr r ap idx csp m mA A ⊢
+      repOwn γr r (ap ++ [e]) idx csp m mA A := by
   iintro ⟨#Hce, Hown⟩
   iunfold repOwn at Hown
   iNamed Hown
@@ -84,14 +82,11 @@ theorem repOwn_other (RA : RaftAssume (GF := GF)) (γr : RNames) (n r : Loc) (ap
   · ipureintro; rw [Hlh]; exact Hval
   isplitr
   · ipureintro; rw [Hlh]; exact HA
-  icases Hcfg with (⟨%Hcs, #Hca⟩ | Hs)
-  · ileft
-    isplitr
-    · ipureintro; exact Hcs
-    rw [List.length_append, List.length_singleton]
-    iapply kvr_confAt_normal γr.cluster (ap ++ [e]) ap.length e m (by simp) hc
-    iframe Hce Hca
-  · iright; iexact Hs
+  isplitr
+  · ipureintro; exact Hcsm
+  rw [List.length_append, List.length_singleton]
+  iapply kvr_confAt_normal γr.cluster (ap ++ [e]) ap.length e m (by simp) hc
+  iframe Hce Hcfg
 
 /-- A conf change frozen read-only (see the file header). -/
 theorem kvr_ownConfChangeV2_persist (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :

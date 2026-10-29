@@ -37,24 +37,16 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF] [AllG GF]
 
-/-- The configuration's facts carry past a normal entry. -/
-theorem cfg_normal (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (ap : List LogEntry)
-    (e : LogEntry) (csp : Loc) (c : ConfStateM) (m : Membership) (ht : e.type = W32 0) :
-    isCommittedLogLb γr.cluster (ap ++ [e]) ∗
-      ((⌜confStateIs c m⌝ ∗ confAt γr.cluster ap.length m) ∨
-        (⌜csp = null ∧ m = Membership.empty⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)) ⊢
-      ((⌜confStateIs c m⌝ ∗ confAt γr.cluster (ap ++ [e]).length m) ∨
-        (⌜csp = null ∧ m = Membership.empty⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)) := by
-  iintro ⟨#Hce, Hc⟩
-  icases Hc with (⟨%Hcs, #Hca⟩ | Hs)
-  · ileft
-    isplitr
-    · ipureintro; exact Hcs
-    rw [List.length_append, List.length_singleton]
-    iapply kvr_confAt_normal γr.cluster (ap ++ [e]) ap.length e m (by simp)
-      (by unfold LogEntry.isConfChange; rw [ht]; intro h; rcases h with h | h <;> word)
-    iframe Hce Hca
-  · iright; iexact Hs
+/-- The configuration carries past a normal entry. -/
+theorem cfg_normal (γr : RNames) (ap : List LogEntry) (e : LogEntry) (m : Membership)
+    (ht : e.type = W32 0) :
+    isCommittedLogLb (GF := GF) γr.cluster (ap ++ [e]) ∗ confAt γr.cluster ap.length m ⊢
+      confAt γr.cluster (ap ++ [e]).length m := by
+  iintro ⟨#Hce, #Hca⟩
+  rw [List.length_append, List.length_singleton]
+  iapply kvr_confAt_normal γr.cluster (ap ++ [e]) ap.length e m (by simp)
+    (by unfold LogEntry.isConfChange; rw [ht]; intro h; rcases h with h | h <;> word)
+  iframe Hce Hca
 
 set_option hygiene false in
 /-- `applyOp` from the waiters' lookup on: the waiter of the operation, if any, removed; the
@@ -113,11 +105,11 @@ local macro "applyop_tail" : tactic => `(tactic| (
 
 theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG)) :
     Replica.applyOp.spec (GF := GF) (hG := hG) := by
-  intro RA γr id n r ap idx csp m mA A e dsl Hty Hlen'
+  intro γr id r ap idx csp m mA A e dsl Hty Hlen'
   wp_start as ⟨#Hmu, Hown, #Hd, #Hce⟩
   iunfold repOwn at Hown
   iNamed Hown
-  ihave #Hcfg' := cfg_normal RA γr n ap e csp c m Hty $$ [$Hce $Hcfg]
+  ihave #Hcfg' := cfg_normal γr ap e m Hty $$ [$Hce $Hcfg]
   -- the end state, from new map and table facts
   ihave Hfin : iprop(∀ (K' A' : GMap (List w8) (List w8)),
       ⌜(∀ k, (K' !! k).getD [] = kvFold (logHist (ap ++ [e])) k) ∧
@@ -127,7 +119,7 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
       mA ↦${DFrac.own (1 : Qp).half} A' -∗
       r.[RReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp -∗
       r.[RReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx -∗
-      ∃ A'', repOwn RA γr n r (ap ++ [e]) idx csp m mA A'') $$ [Hcfg']
+      ∃ A'', repOwn γr r (ap ++ [e]) idx csp m mA A'') $$ [Hcfg']
   · iintro %K' %A' %HKA HmK HK HmA HA Hcs Hidx
     obtain ⟨HK', HA'⟩ := HKA
     iexists A'
@@ -135,7 +127,7 @@ theorem Replica.applyOp.wp_proof (wp_decode : decode.spec (GF := GF) (hG := hG))
     iexists mK, K', c
     iframe HmK HK HmA HA Hcs Hidx Hce HcsO Hcfg'
     ipureintro
-    refine ⟨by simp; omega, HK', HA'⟩
+    refine ⟨by simp; omega, HK', HA', Hcsm⟩
   wp_auto
   wp_apply wp_decode dsl e.data DFrac.discard $$ [$Hd] as -
   cases Hdec : decodeOp e.data with

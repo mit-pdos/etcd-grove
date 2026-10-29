@@ -905,6 +905,8 @@ noncomputable instance Replica_typed_pointsto :
     "stats" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"stats" l) v.stats' dq ∗
     "tick" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"tick" l) v.tick' dq ∗
     "stopc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"stopc" l) v.stopc' dq ∗
+    "runDone" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"runDone" l) v.runDone' dq ∗
+    "tickDone" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"tickDone" l) v.tickDone' dq ∗
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"mu" l) v.mu' dq ∗
     "kv" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"kv" l) v.kv' dq ∗
     "applied" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"applied" l) v.applied' dq ∗
@@ -1015,6 +1017,38 @@ noncomputable instance Replica_access_store_stopc (l : Loc) (v : github_com.mit_
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"stopc" l) v.stopc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"stopc" l) stopc' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopc' := stopc' } : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Replica_access_load_runDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"runDone" l) v.runDone' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"runDone" l) v.runDone' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Replica_access_store_runDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (runDone' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"runDone" l) v.runDone' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"runDone" l) runDone' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with runDone' := runDone' } : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Replica_access_load_tickDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"tickDone" l) v.tickDone' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"tickDone" l) v.tickDone' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Replica_access_store_tickDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (tickDone' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"tickDone" l) v.tickDone' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica go!"tickDone" l) tickDone' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tickDone' := tickDone' } : github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

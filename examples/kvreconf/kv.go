@@ -292,6 +292,9 @@ type Replica struct {
 	stats   *Stats
 	tick    time.Duration
 	stopc   chan struct{}
+	// runDone and tickDone each get one value, when run and ticker return (stop waits for them)
+	runDone  chan struct{}
+	tickDone chan struct{}
 
 	mu       sync.Mutex
 	kv       map[string]string
@@ -307,6 +310,7 @@ type Replica struct {
 // every tick; send delivers the node's messages. It starts the replica's loop and its node's clock.
 func newReplica(id uint64, node raft.Node, storage *Storage, cs0 *pb.ConfState, tick time.Duration, stats *Stats, send func([]*pb.Message)) *Replica {
 	r := &Replica{id: id, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
+		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1),
 		cs: proto.Clone(cs0).(*pb.ConfState),
 		kv: make(map[string]string), applied: make(map[string]string),
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
@@ -324,14 +328,20 @@ func (r *Replica) ticker() {
 			r.node.Tick()
 		case <-r.stopc:
 			tk.Stop()
+			r.tickDone <- struct{}{}
 			return
 		}
 	}
 }
 
-// stop stops the replica for good: its loop, its clock and its node.
+// stop stops the replica for good: its loop, its clock and its node. It stops the node only once
+// the loop and the clock have returned, so that the loop never meets a stopped node: every call it
+// makes (the Ready, ApplyConfChange, Advance) is on a running one. (Other goroutines -- proposers,
+// readers, the network's Step -- may still call a stopped node; they handle its answers.)
 func (r *Replica) stop() {
 	close(r.stopc)
+	<-r.runDone
+	<-r.tickDone
 	r.node.Stop()
 }
 
@@ -356,10 +366,12 @@ func (r *Replica) run(send func([]*pb.Message)) {
 		select {
 		case rd = <-r.node.Ready():
 		case <-r.stopc:
+			r.runDone <- struct{}{}
 			return
 		}
 		if !fits(rd.Entries) {
 			// a log of 2^61 entries: it does not happen
+			r.runDone <- struct{}{}
 			return
 		}
 		if !raft.IsEmptySnap(rd.Snapshot) {

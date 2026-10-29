@@ -24,8 +24,10 @@ result over it carries the record as a premise until then.
   one-triple form (K9: a stopped node given the running precondition owes only the stopped answer, so
   the post is the running post or the stopped answer with `nodeStopped`) and with U5's exclusions
   lifted (no `autoLeave = false` premise: U5 landed on `raft-unified` after this branch's base):
-  `ApplyConfChange_spec` (today's `node.ApplyConfChange.unifiedSpec`, its stopped disjunct `nil` with
-  the view unchanged).
+  `ApplyConfChange_spec` (today's `node.ApplyConfChange.unifiedSpec`, its stopped disjunct `nil`).
+  kvreconf's loop holds a fraction of `nodeLive` throughout (its replica's `stop` stops the node only
+  after the loop returned), so it refutes every stopped disjunct (`nodeLive_stopped`); it needs no
+  triple of a stopped node.
 -/
 module
 
@@ -71,7 +73,7 @@ structure RaftAssume where
       (App (Val #(methods node.ty.PointerType go!"Stop" #n)) (Val #()))
     {{ RET #(); nodeStopped n γ N }}
   /-- (track A, U9a with K9; U5) `node.ApplyConfChange.unifiedSpec` on a node that may stop: the
-  running answer, or `nil` with the node stopped and the view unchanged; no auto-leave premise. -/
+  running answer, or `nil` with the node stopped; no auto-leave premise. -/
   ApplyConfChange_spec : ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface)
       (o o' : ConfChangeIM) (l : List LogEntry) (k : Nat) (e : LogEntry) (v : ConfigView)
       (m' : Membership),
@@ -84,20 +86,7 @@ structure RaftAssume where
       (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n)) (Val #c))
     {{ (csp : Loc), RET #csp; (∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true ∗
           nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝) ∨
-        (⌜csp = null⌝ ∗ nodeStopped n γ N ∗ nodeConfig n γ N v) }}
-  /-- (track A, U9a) `node.ApplyConfChange` of a stopped node: `nil`, the change given back. -/
-  ApplyConfChange_stoppedSpec : ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
-      (c : GoInterface) (dq : DFrac) (o : ConfChangeIM),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
-        ownConfChangeI c dq (some o) ∗ nodeStopped n γ N }}
-      (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n)) (Val #c))
-    {{ RET #null; ownConfChangeI c dq (some o) }}
-  /-- (track A, U9a) `node.Advance` of a stopped node returns. -/
-  Advance_stoppedSpec : ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
-        nodeStopped n γ N }}
-      (App (Val #(methods node.ty.PointerType go!"Advance" #n)) (Val #()))
-    {{ RET #(); True }}
+        (⌜csp = null⌝ ∗ nodeStopped n γ N) }}
 
 instance RaftAssume.nodeStopped_pers (RA : RaftAssume (GF := GF)) (n : Loc) (γ : Cluster)
     (N : Namespace) : Persistent (RA.nodeStopped n γ N) :=

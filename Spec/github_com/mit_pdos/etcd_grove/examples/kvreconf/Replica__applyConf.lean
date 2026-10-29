@@ -5,8 +5,8 @@ read-only, its transition defined, `ccTransOk`) applied after the committed pref
 membership `m` of the applier's configuration: the store's decision on it (`kvrRule`: the change if
 `validConf` accepts it at `m`, else a rejection) moves the applier's replicated state to `ap ++ [e]`
 at the membership after it (its index field unchanged: `applyEntry` moves it), and its view of the
-node past it (`appNode`: the node applied the change, or the entry was skipped). The node may have
-stopped: its `nil` answer leaves the configuration `nil` (the empty membership).
+node past it (`appNode`: the node applied the change, or the entry was skipped). The applier holds a
+fraction of `nodeLive` (the node does not stop under it), which refutes the node's `nil` answer.
 -/
 module
 
@@ -32,17 +32,17 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF] [AllG GF]
 
 /-- See the file header. -/
 abbrev Replica.applyConf.spec : Prop :=
-  ∀ (RA : RaftAssume (GF := GF)) (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc)
+  ∀ (RA : RaftAssume (GF := GF)) (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (q : Qp)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (l : List LogEntry) (e : LogEntry) (c : GoInterface)
     (o : ConfChangeIM),
   ap ++ [e] <+: l → ccDecode e = some o → ccTransOk o → ((ap.length : Int) + 1 < 2 ^ 61) →
-  {{ isReplica γr vs id r n st sts ∗ repOwn RA γr n r ap idx csp m mA A ∗
-      appNode RA γr n l ap.length m ∗ ownConfChangeI c DFrac.discard (some o) ∗
-      isCommittedLogLb γr.cluster l }}
+  {{ isReplica γr vs id r n st sts ∗ repOwn γr r ap idx csp m mA A ∗
+      appNode γr n l ap.length m ∗ ownConfChangeI c DFrac.discard (some o) ∗
+      isCommittedLogLb γr.cluster l ∗ RA.nodeLive n γr.cluster kvrRaftN q }}
     (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"applyConf")) (Val #c))
-  {{ RET #(); ∃ (csp' : Loc) (m' : Membership), repOwn RA γr n r (ap ++ [e]) idx csp' m' mA A ∗
-      appNode RA γr n l (ap.length + 1) m' }}
+  {{ RET #(); ∃ (csp' : Loc) (m' : Membership), repOwn γr r (ap ++ [e]) idx csp' m' mA A ∗
+      appNode γr n l (ap.length + 1) m' ∗ RA.nodeLive n γr.cluster kvrRaftN q }}
 
 end spec
 

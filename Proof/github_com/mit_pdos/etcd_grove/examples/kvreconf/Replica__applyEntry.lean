@@ -90,12 +90,12 @@ local macro "applyentry_tail" : tactic => `(tactic| (
     try wp_auto
     iapply HΦ
     iexists csp', m', A'
-    iframe Hn
+    iframe Hn Hlive
     unfold repOwn
     iexists mK, K, c
     iframe
     iframe Hap HcsO Hcfg
-    ipureintro; exact ⟨Hlen, Hval, HA⟩
+    ipureintro; exact ⟨Hlen, Hval, HA, Hcsm⟩
   ))
 
 theorem Replica.applyEntry.wp_proof
@@ -107,8 +107,8 @@ theorem Replica.applyEntry.wp_proof
     (wp_Unmarshal1 : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
     (wp_Unmarshal2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG)) :
     Replica.applyEntry.spec (GF := GF) (hG := hG) := by
-  intro RA γr vs id r n st sts ap idx csp m mA A l e ep Hpre Hlen'
-  wp_start as ⟨#Hrep, Hown, Hn, #Hent, #Hl⟩
+  intro RA γr vs id r n st sts q ap idx csp m mA A l e ep Hpre Hlen'
+  wp_start as ⟨#Hrep, Hown, Hn, #Hent, #Hl, Hlive⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -136,14 +136,14 @@ theorem Replica.applyEntry.wp_proof
     have Ht := Hif
     wp_apply wp_GetData.1 ep DFrac.discard _ $$ [$Hpb $Hent] as %ds ⟨#Hds, -⟩
     simp only [LogEntry.toEntryM]
-    wp_apply wp_applyOp RA γr id n r ap idx csp m mA A e ds Ht Hlen' $$ [$Hpkg $Hmu $Hown $Hds $Hce]
+    wp_apply wp_applyOp γr id r ap idx csp m mA A e ds Ht Hlen' $$ [$Hpkg $Hmu $Hown $Hds $Hce]
       as ⟨%A', Hown⟩
     ihave Hnext : iprop(∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
-        repOwn RA γr n r (ap ++ [e]) idx csp' m' mA A' ∗ appNode RA γr n l (ap.length + 1) m')
+        repOwn γr r (ap ++ [e]) idx csp' m' mA A' ∗ appNode γr n l (ap.length + 1) m')
         $$ [Hown Hn]
     · iexists csp, m, A'
       iframe Hown
-      iapply appNode_noConf RA γr n l ap.length e m Hk
+      iapply appNode_noConf γr n l ap.length e m Hk
         (by unfold LogEntry.isConfChange; rw [Ht]; intro h; rcases h with h | h <;> word)
       iexact Hn
     applyentry_tail
@@ -172,13 +172,13 @@ theorem Replica.applyEntry.wp_proof
           DFrac.discard (some (.v1 cm)) $$ []
       · simp only [ownConfChangeI]; iexists cc_ptr; iframe Hcc; ipureintro; rfl
       try wp_auto
-      wp_apply wp_applyConf RA γr vs id r n st sts ap idx csp m mA A l e _ (.v1 cm) Hpre Ho Htr Hlen'
-        $$ [$Hrep $Hown $Hn $Hci $Hl] as Hc0
-      icases Hc0 with ⟨%csp1, %m1, Hc0⟩
+      wp_apply wp_applyConf RA γr vs id r n st sts q ap idx csp m mA A l e _ (.v1 cm) Hpre Ho Htr Hlen'
+        $$ [$Hrep $Hown $Hn $Hci $Hl $Hlive] as Hc0
+      icases Hc0 with ⟨%csp1, %m1, Hro, Han, Hlive⟩
       ihave Hnext : iprop(∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
-          repOwn RA γr n r (ap ++ [e]) idx csp' m' mA A' ∗ appNode RA γr n l (ap.length + 1) m')
-          $$ [Hc0]
-      · iexists csp1, m1, A; iexact Hc0
+          repOwn γr r (ap ++ [e]) idx csp' m' mA A' ∗ appNode γr n l (ap.length + 1) m')
+          $$ [Hro Han]
+      · iexists csp1, m1, A; iframe Hro Han
       applyentry_tail
     · have Ht1 := Hif
       wp_if_destruct
@@ -204,25 +204,25 @@ theorem Replica.applyEntry.wp_proof
             #cc_ptr) DFrac.discard (some (.v2 cc)) $$ []
         · simp only [ownConfChangeI]; iexists cc_ptr; iframe Hcc; ipureintro; rfl
         try wp_auto
-        wp_apply wp_applyConf RA γr vs id r n st sts ap idx csp m mA A l e _ (.v2 cc) Hpre Ho Htr
-          Hlen' $$ [$Hrep $Hown $Hn $Hci $Hl] as Hc0
-        icases Hc0 with ⟨%csp1, %m1, Hc0⟩
+        wp_apply wp_applyConf RA γr vs id r n st sts q ap idx csp m mA A l e _ (.v2 cc) Hpre Ho Htr
+          Hlen' $$ [$Hrep $Hown $Hn $Hci $Hl $Hlive] as Hc0
+        icases Hc0 with ⟨%csp1, %m1, Hro, Han, Hlive⟩
         ihave Hnext : iprop(∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
-            repOwn RA γr n r (ap ++ [e]) idx csp' m' mA A' ∗ appNode RA γr n l (ap.length + 1) m')
-            $$ [Hc0]
-        · iexists csp1, m1, A; iexact Hc0
+            repOwn γr r (ap ++ [e]) idx csp' m' mA A' ∗ appNode γr n l (ap.length + 1) m')
+            $$ [Hro Han]
+        · iexists csp1, m1, A; iframe Hro Han
         applyentry_tail
       · -- another type: nothing
         have Ht2 := Hif
         have Hc : ¬ e.isConfChange := fun h => h.elim Ht1 Ht2
         ihave Hnext : iprop(∃ (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
-            repOwn RA γr n r (ap ++ [e]) idx csp' m' mA A' ∗
-            appNode RA γr n l (ap.length + 1) m') $$ [Hown Hn]
+            repOwn γr r (ap ++ [e]) idx csp' m' mA A' ∗
+            appNode γr n l (ap.length + 1) m') $$ [Hown Hn]
         · iexists csp, m, A
           isplitl [Hown]
-          · iapply repOwn_other RA γr n r ap idx csp m mA A e Ht0 Hc Hlen'
+          · iapply repOwn_other γr r ap idx csp m mA A e Ht0 Hc Hlen'
             iframe Hce Hown
-          · iapply appNode_noConf RA γr n l ap.length e m Hk Hc
+          · iapply appNode_noConf γr n l ap.length e m Hk Hc
             iexact Hn
         applyentry_tail
 

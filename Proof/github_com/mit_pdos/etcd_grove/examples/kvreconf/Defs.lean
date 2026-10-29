@@ -37,9 +37,8 @@ The applier (the `run` goroutine) writes the replicated state; the other gorouti
 under the lock: `propose` the applied table, `conf` the configuration and the applied index. So the
 applier owns the store's map and half of each shared field (`repOwn`, with the precise facts: the
 fields are the replicated state of a committed prefix `ap`, `r.index = len ap`, the configuration a
-read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m` -- or, after its
-node answered a stopped `ApplyConfChange`, `nil` (the empty membership, as `validConf` reads it) with
-the node stopped, `nodeStopped` of `RaftAssume`), and the lock the other halves (`repShared`, with what readers need: the applied
+read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m`; the node never
+stops under the applier, which holds a fraction of `nodeLive`, since `stop` waits for the loop), and the lock the other halves (`repShared`, with what readers need: the applied
 table is some committed prefix's). Writing takes the lock. The waiters (keyed by the operation's
 datum: `r.waiters` is a `map[string]chan string`) and the waiting reads (by sequence number) are
 kv's.
@@ -127,7 +126,7 @@ def MintOk (n : w64) (Mi : GMap w64 (List w8)) (RS : GMap w64 w64)
     (U : GSet (List w8)) : Prop :=
   (∀ i d, Mi !! i = some d → uint.Z i ≤ uint.Z n ∧ opId d = some i) ∧
   (∀ r s c, RMi !! (r, s) = some c → ∃ ns, RS !! r = some ns ∧ uint.Z s ≤ uint.Z ns ∧
-    ∃ key, c = readCtxB r s key) ∧
+    ∃ key, (key.length : Int) < 2 ^ 64 ∧ c = readCtxB r s key) ∧
   (∀ d γp, O !! d = some γp → MintedOp Mi d) ∧
   (∀ c, c ∈ U → MintedRead RMi c)
 
@@ -208,6 +207,14 @@ def readAns (γr : RNames) (c : List w8) (v : List w8) : IProp GF :=
     ⌜uint.Z i ≤ (ap.length : Int) ∧ (∃ rp s, decodeReadCtxB c = some (rp, s, key)) ∧
       v = kvFold (logHist ap) key⌝)
 
+/-- A `ReadState` Go value as `Ready` hands it out: its `RequestCtx` slice holds the bytes `c`
+read-only, and the read state of `c` at its index (`readStateOk`). Persistent. -/
+def rsOk (γ : Cluster) (v : ReadState) : IProp GF :=
+  iprop(∃ c : List w8, v.RequestCtx' ↦*□ c ∗ readStateOk γ kvrRaftN c v.Index')
+
+instance rsOk_persistent (γ : Cluster) (v : ReadState) : Persistent (rsOk (GF := GF) γ v) := by
+  unfold rsOk; infer_instance
+
 /-- A read's entry in the replica's lock: the context `c` minted at `(id, s)`, and the producer of
 its handoff channel. -/
 def readWaiterOk (γr : RNames) (id s : w64) (ch : Loc) : IProp GF :=
@@ -226,7 +233,7 @@ prefix `ap`, the configuration `csp` denoting `m` at `ap`'s end (or `nil`, the n
 index field at `idx` (`len ap` but inside `applyEntry`, which moves it after the entry): the
 store's map (the applier's alone), half of each field the other goroutines read under the lock
 (`applied`, `cs`, `index`) and half of the applied table, with the precise facts. -/
-def repOwn (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap : List LogEntry)
+def repOwn (γr : RNames) (r : Loc) (ap : List LogEntry)
     (idx : w64) (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8)) :
     IProp GF :=
   iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (c : ConfStateM),
@@ -241,8 +248,8 @@ def repOwn (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap :
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (logHist ap) k⌝ ∗
     "%HA" ∷ ⌜AppliedOk A (logHist ap)⌝ ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
-    "#Hcfg" ∷ ((⌜confStateIs c m⌝ ∗ confAt γr.cluster ap.length m) ∨
-               (⌜csp = null ∧ m = Membership.empty⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)))
+    "%Hcsm" ∷ ⌜confStateIs c m⌝ ∗
+    "#Hcfg" ∷ confAt γr.cluster ap.length m)
 
 /-- The lock's half of a replica's replicated state: the other halves of `applied`, `cs`, `index`
 and of the applied table, which is the table of some committed prefix (what `propose` answers an
@@ -274,12 +281,11 @@ def lockInv (γr : RNames) (id : w64) (r : Loc) : IProp GF :=
 
 /-- **The applier's view of its node** (see the file header), the committed log delivered `l`
 applied up to `k` at the membership `m`: the node's configuration view at `m`, every conf entry from
-the view's index to `k` rejected (`skippedIn`), or the node stopped. -/
-def appNode (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (l : List LogEntry) (k : Nat)
-    (m : Membership) : IProp GF :=
-  iprop((∃ v : ConfigView, nodeConfig n γr.cluster kvrRaftN v ∗
+the view's index to `k` rejected (`skippedIn`). -/
+def appNode (γr : RNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
+  iprop(∃ v : ConfigView, nodeConfig n γr.cluster kvrRaftN v ∗
       deliveredLogLb n γr.cluster kvrRaftN l ∗ skippedIn γr.cluster l v.applied k ∗
-      ⌜v.membership = m ∧ v.applied ≤ k⌝) ∨ RA.nodeStopped n γr.cluster kvrRaftN)
+      ⌜v.membership = m ∧ v.applied ≤ k⌝)
 
 /-- What a snapshot the store made promises: a committed prefix `L` of its index, the membership
 there, its data the store's encoded state of `L`. -/

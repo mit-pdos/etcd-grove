@@ -63,7 +63,7 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) $(frameH `HR)]
     try wp_auto
-    ihave %Hwf := cfgAt_wf RA γr n csp DFrac.discard c m ap.length $$ [$(frameH `HcfgA) $(frameH `HcsO)]
+    ihave %Hwf := cfgAt_wf γr c m ap.length $$ [$(frameH `HcfgA)]
     obtain ⟨Hcsm, Hwf', Hres⟩ := Hwf
     wp_apply wp_validConf csp DFrac.discard c m v2 _ (ccToV2 $oc) Hcsm Hwf' Hres Htr
       $$ [$(frameH `HcsO) $(frameH `HvV)] as %b ⟨-, Hv2, %Hb⟩
@@ -72,14 +72,14 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
     · -- rejected
       try wp_auto
       have Hno : ¬ ConfOk $oc m := fun h => absurd (Hb.2 h) (by decide)
-      imod conf_reject RA γr vs n l e $oc csp c m ap.length ⊤ Hk Hd Hno (fun _ _ => CoPset.mem_full)
+      imod conf_reject γr vs n l e $oc c m ap.length ⊤ Hk Hd Hno (fun _ _ => CoPset.mem_full)
         $$ Hcl Hl HcfgA Hn with ⟨#Hcfg', Hn'⟩
       ihave #Hctr := isStats_field sts go!"ConfChangesRejected" (by decide) $$ Hstats
       wp_apply wp_add sts _ $$ [$(frameH `Hpkg) $(frameH `Hctr)]
       try wp_auto
       iapply HΦ
       iexists csp, m
-      iframe Hn'
+      iframe Hn' Hlive
       unfold repOwn
       iexists mK, K, c
       iframe HmK HK HmA HA Hcs Hidx HcsO
@@ -92,6 +92,9 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       isplitr
       · ipureintro; rw [Hlh]; exact HA
       iunfold cfgAt at Hcfg'
+      icases Hcfg' with ⟨%Hcsm', #Hcfg'⟩
+      isplitr
+      · ipureintro; exact Hcsm'
       rw [List.length_append, List.length_singleton]
       iexact Hcfg'
     · -- accepted
@@ -99,8 +102,8 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       have Hok : ConfOk $oc m := Hb.1 rfl
       ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
       · iPkgInit
-      wp_apply wp_conf_apply RA γr vs id n l e $oc _ csp c m ap.length Hk Hd Hok
-        $$ [$(frameH `Hraft) $(frameH `HisNode) $(frameH `Hcl) $(frameH `Hl) $(frameH `Hcc0) $(frameH `HcfgA) $(frameH `Hn)] as %csp' ⟨%m', %c', #HcsO', #Hcfg', Hn'⟩
+      wp_apply wp_conf_apply RA γr vs id n q l e $oc _ c m ap.length Hk Hd Hok
+        $$ [$(frameH `Hraft) $(frameH `HisNode) $(frameH `Hcl) $(frameH `Hl) $(frameH `Hcc0) $(frameH `HcfgA) $(frameH `Hn) $(frameH `Hlive)] as %csp' ⟨%m', %c', #HcsO', #Hcfg', Hn', Hlive⟩
       try wp_auto
       wp_apply sync.Mutex.wp_Lock _ _ $$ [$(frameH `Hmu)] as ⟨Hlocked, HR⟩
       iNamed HR
@@ -136,10 +139,11 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       try wp_auto
       ihave #Hctr2 := isStats_field sts go!"JointEntered" (by decide) $$ Hstats
       ihave Hfin : iprop(∃ (csp'' : Loc) (m'' : Membership),
-          repOwn RA γr n r (ap ++ [e]) idx csp'' m'' mA A ∗
-          appNode RA γr n l (ap.length + 1) m'') $$ [HmK HK HmA HA Hcs Hidx Hn']
+          repOwn γr r (ap ++ [e]) idx csp'' m'' mA A ∗
+          appNode γr n l (ap.length + 1) m'' ∗ RA.nodeLive n γr.cluster kvrRaftN q)
+          $$ [HmK HK HmA HA Hcs Hidx Hn' Hlive]
       · iexists csp', m'
-        iframe Hn'
+        iframe Hn' Hlive
         unfold repOwn
         iexists mK, K, c'
         iframe HmK HK HmA HA Hcs Hidx HcsO'
@@ -152,6 +156,9 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
         isplitr
         · ipureintro; rw [Hlh]; exact HA
         iunfold cfgAt at Hcfg'
+        icases Hcfg' with ⟨%Hcsm', #Hcfg'⟩
+        isplitr
+        · ipureintro; exact Hcsm'
         rw [List.length_append, List.length_singleton]
         iexact Hcfg'
       try wp_auto
@@ -173,8 +180,8 @@ theorem Replica.applyConf.wp_proof
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
     (wp_EnterJoint : raftpb.ConfChangeV2.EnterJoint.spec (GF := GF) (hG := hG)) :
     Replica.applyConf.spec (GF := GF) (hG := hG) := by
-  intro RA γr vs id r n st sts ap idx csp m mA A l e ci o Hpre Hd Htr Hlen'
-  wp_start as ⟨#Hrep, Hown, Hn, #Hcc, #Hl⟩
+  intro RA γr vs id r n st sts q ap idx csp m mA A l e ci o Hpre Hd Htr Hlen'
+  wp_start as ⟨#Hrep, Hown, Hn, #Hcc, #Hl, Hlive⟩
   iunfold isReplica at Hrep
   iNamed Hrep
   iunfold repOwn at Hown
@@ -184,8 +191,8 @@ theorem Replica.applyConf.wp_proof
     rw [List.append_assoc, List.getElem?_append_right (Nat.le_refl _)]; simp
   ihave #Hce : isCommittedLogLb γr.cluster (ap ++ [e]) $$ []
   · iapply isCommittedLogLb_mono γr.cluster (ap ++ [e]) l Hpre $$ Hl
-  ihave #HcfgA : cfgAt RA γr n csp c m ap.length $$ []
-  · unfold cfgAt; iexact Hcfg
+  ihave #HcfgA : cfgAt γr c m ap.length $$ []
+  · unfold cfgAt; iframe Hcfg; ipureintro; exact Hcsm
   have Hcc' := ccDecode_isConfChange Hd
   -- a conf entry carries no client datum
   have Hlh : logHist (ap ++ [e]) = logHist ap := by
