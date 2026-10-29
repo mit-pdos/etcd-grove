@@ -559,7 +559,7 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   rw [srvKVInvsM_true]
   iintro #Hainv #Hkvi #Hw #Hc Hlc
   iunfold srvKVInvsOn at Hkvi
-  icases Hkvi with ⟨-, #HcI, -, %Hcok⟩
+  icases Hkvi with ⟨-, #HcI, -, -, %Hcok⟩
   iunfold readWitAt at Hw
   icases Hw with ⟨%ci, %ci₀, %L₀, %gs, %k, %Hp, #HL, #HW, #HQ⟩
   imod appliedLogAt_kvLogAtM true s E γr ci₀ L₀ $$ Hainv HL with #HkL

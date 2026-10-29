@@ -7,13 +7,18 @@ auth history's cap"): the pure facts the server's tie (`authHistTie`, `KVApplyOn
   sets the flag from `false`.
 - `srvHist_pairwise`: so the history the log records, the boot state then `admStates`
   (`srvHist`), is strictly ordered, with no state twice (`srvHist_nodup`).
-- `srvHist_eq_of_prefix`: a prefix of a history of the log that ends where another history of
-  the log does is that history (what pins the store's history, below the cap, to the applied log's).
+- `prefix_eq_of_last`: a prefix of a history of the log that ends where another history of the
+  log does is that history (what pins the store's history, below the cap, to the applied log's).
+- `authHistTie_raise`: at an admin entry `m` after the applied log `A`, the apply thread raises
+  the cap to the history of `A ++ [m]` and gives the admin step's cap permission
+  (`apply.adminExtraG`): the store's history is the applied log's (`srvHist A`), and a step the
+  check admits appends the model's next state, which is the history of `A ++ [m]`'s last.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
-public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyAdminL
 
 @[expose] public section
 
@@ -24,7 +29,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
 variable [GooseExts]
@@ -215,7 +220,256 @@ theorem prefix_eq_of_last {α : Type} (l h1 h2 : List α) (hn : l.Nodup) (p1 : h
       intro he; rw [he] at hl; simp at hl; exact h1n hl
     exact (key h2 h1 h p1 h2n hl.symm).symm
 
+theorem srvHist_prefix (γk : KVNames) (A B : List EntryModel) (h : A <+: B) :
+    srvHist γk A <+: srvHist γk B := by
+  obtain ⟨t, ht⟩ := admStates_prefix γk (auth.bump auth.bootState) A B h
+  exact ⟨t, by simp [srvHist, ← ht]⟩
+
+/-- **The step an appending admin request's cap permission is for** (H5): its step relation
+(`AuthEnable`'s at the state's own flag, `auth.authEnableOwnR`); an `Authenticate` appends nothing. -/
+def apply.AdminReq.capRel : apply.AdminReq → auth.StepRel
+  | .userAdd n => auth.stepOf (auth.userAddF n)
+  | .roleAdd n => auth.stepOf (auth.roleAddF n)
+  | .userGrantRole u ro => auth.userGrantRoleR u ro
+  | .roleGrantPermission n w => auth.roleGrantPermissionR n w
+  | .authEnable => auth.authEnableOwnR
+  | .authenticate _ _ => fun _ _ => False
+
+/-- **A next state of a request's step is above it in order.** -/
+theorem capRel_ord (ad : apply.AdminReq) (sa st' : auth.AuthState)
+    (hR : ad.capRel sa (.next st')) : authOrd sa < authOrd st' := by
+  cases ad with
+  | userAdd n =>
+    simp only [apply.AdminReq.capRel, auth.stepOf, auth.userAddF] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putUser])
+  | roleAdd n =>
+    simp only [apply.AdminReq.capRel, auth.stepOf, auth.roleAddF] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putRole])
+  | userGrantRole u ro =>
+    simp only [apply.AdminReq.capRel, auth.userGrantRoleR] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · split at hR
+        · cases hR
+        · obtain ⟨u', -, -, hR⟩ := hR
+          injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putUser])
+  | roleGrantPermission n w =>
+    simp only [apply.AdminReq.capRel, auth.roleGrantPermissionR] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · split at hR
+        · cases hR
+        · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putRole])
+  | authEnable =>
+    simp only [apply.AdminReq.capRel, auth.authEnableOwnR, auth.authEnableF] at hR
+    split at hR
+    · cases hR
+    · rename_i hen
+      split at hR
+      · cases hR
+      · split at hR
+        · injection hR with hR; subst hR
+          unfold authOrd
+          simp only [Bool.not_eq_true] at hen
+          simp [hen]
+        · cases hR
+  | authenticate n p => exact hR.elim
+
+/-- **An admitted step of the request is the model's** (`adminStateR`). -/
+theorem capRel_adminStateR (rq : apply.IRRModel) (ad : apply.AdminReq) (sa st' : auth.AuthState)
+    (had : apply.adminReqOf rq = some ad)
+    (hok : auth.adminOk sa (some (auth.authInfoM (apply.principalOf rq))))
+    (hR : ad.capRel sa (.next st')) : adminStateR rq sa st' := by
+  unfold adminStateR
+  rw [if_pos hok]
+  unfold apply.adminReqOf at had
+  split at had
+  all_goals rename_i hk
+  all_goals simp only [hk]
+  · cases hm : rq.authUserAdd with
+    | none => simp [hm] at had
+    | some mm =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact Or.inr ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authRoleAdd with
+    | none => simp [hm] at had
+    | some n =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authUserGrantRole with
+    | none => simp [hm] at had
+    | some ur =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authRoleGrantPermission with
+    | none => simp [hm] at had
+    | some nw =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
+  · simp only [Option.some.injEq] at had
+    subst had
+    exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authenticate with
+    | none => simp [hm] at had
+    | some am =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact hR.elim
+  · cases had
+
+/-- An `Authenticate` request model's admin request is of its kind. -/
+theorem adminReqOf_authn (rq : apply.IRRModel) (n p : GoString)
+    (h : apply.adminReqOf rq = some (.authenticate n p)) : apply.dispatchKind rq = .authenticate := by
+  unfold apply.adminReqOf at h
+  split at h <;> first | assumption | (simp at h) | (cases h) |
+    (rename_i hk; revert h; cases rq.authUserAdd <;> cases rq.authRoleAdd <;>
+      cases rq.authUserGrantRole <;> cases rq.authRoleGrantPermission <;> simp)
+
 end pure
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+/-- `extraPre` of an appending request is its cap permission. -/
+theorem extraPre_cap (E : apply.AEnv GF) (γa : auth.AuthNames) (hs : List auth.AuthState)
+    (Pre : IProp GF) (ad : apply.AdminReq) (h : ∀ n p, ad ≠ .authenticate n p) :
+    ad.extraPre E γa hs Pre = auth.capNextM (.on γa) hs ad.capRel := by
+  cases ad with
+  | authenticate n p => exact absurd rfl (h n p)
+  | _ => rfl
+
+theorem capAuth_lb_prefixW (γa : auth.AuthNames) (C C' : List auth.AuthState) :
+    ⊢ auth.capAuth (GF := GF) γa C -∗ auth.capLb γa C' -∗ ⌜C' <+: C⌝ := by
+  iintro H Hl
+  iapply auth.capAuth_lb_prefix γa C C'
+  isplitl [H]
+  · iexact H
+  · iexact Hl
+
+/-- The admin step's cap permission, from the cap's lower bound at the history of `A ++ [m]` when
+the store's history is `A`'s (`authHistTie_raise`'s last step). -/
+theorem adminExtraG_of_capLb (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.AuthNames)
+    (A : List EntryModel) (m : EntryModel) (rq : apply.IRRModel) (hs : List auth.AuthState)
+    (sa : auth.AuthState) (Pre : IProp GF) (hM : E.authMode = .on γa)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hv : uint.Z γr.kv.c0 < uint.Z m.index) (hna : apply.needAdminPermission rq = true)
+    (hk : apply.dispatchKind rq ≠ .authenticate)
+    (hsa : srvAuthAtLog γr.kv (auth.bump auth.bootState) A = sa) (hdet : authDet rq sa)
+    (hl : hs.getLast? = some sa) (hseq : hs = srvHist γr.kv A) :
+    auth.capLb γa (srvHist γr.kv (A ++ [m])) ⊢ apply.adminExtraG E γa rq hs Pre := by
+  unfold apply.adminExtraG
+  iintro #Hcl %Hpass
+  iunfold apply.adminExtra
+  cases had : apply.adminReqOf rq with
+  | none => itrivial
+  | some ad =>
+    have hna' : ∀ n p, ad ≠ .authenticate n p := by
+      intro n p he; subst he; exact hk (adminReqOf_authn rq n p had)
+    simp only []
+    rw [extraPre_cap E γa hs Pre ad hna']
+    unfold auth.capNextM
+    iintro !> %st %st' %hh
+    obtain ⟨hlast, hR⟩ := hh
+    have hst : st = sa := by
+      have : hs.getLast? = some st := hlast
+      rw [hl] at this; exact (Option.some.inj this).symm
+    subst hst
+    have hok : auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) := by
+      rw [hM] at Hpass; exact Hpass hna st hl
+    have hR' := capRel_adminStateR rq ad st st' had hok hR
+    have hord := capRel_ord ad st st' hR
+    have hnext : adminNext rq st = st' := adminNext_of_det rq st st' hdet hR'
+    have hne : adminNext rq st ≠ st := by
+      rw [hnext]; intro h; rw [h] at hord; exact Nat.lt_irrefl _ hord
+    have hadm : admEntry γr.kv.c0 (srvAuthAtLog γr.kv (auth.bump auth.bootState) A) m := by
+      rw [hsa]; exact ⟨ht, hd, rq, hdec, hv, hna, hok, hne⟩
+    have hH : srvHist γr.kv (A ++ [m]) = hs ++ [st'] := by
+      unfold srvHist
+      rw [admStates_snoc_adm _ _ _ _ hadm, srvAuthAtLog_snoc_adm _ _ _ _ rq ht hd hdec hv hna, hsa,
+        hnext, hseq]
+      rfl
+    unfold auth.capNext
+    rw [← hH]
+    iexact Hcl
+
+/-- **The apply thread raises the cap at an admin entry** (H5; see the file header): at the entry
+`m` after the applied log `A`, whose auth state is `sa`, the latest of the store's history `hs`,
+the cap's permission for the request's step (guarded by its check, `apply.adminExtraG`), the cap
+raised to the history of `A ++ [m]` (the log `m` is committed in). -/
+theorem authHistTie_raise (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.AuthNames)
+    (A : List EntryModel) (m : EntryModel) (rq : apply.IRRModel) (hs : List auth.AuthState)
+    (sa : auth.AuthState) (Pre : IProp GF) (E' : CoPset) (hM : E.authMode = .on γa)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hv : uint.Z γr.kv.c0 < uint.Z m.index) (hna : apply.needAdminPermission rq = true)
+    (hk : apply.dispatchKind rq ≠ .authenticate)
+    (hsa : srvAuthAtLog γr.kv (auth.bump auth.bootState) A = sa) (hdet : authDet rq sa)
+    (hl : hs.getLast? = some sa) (hE1 : ↑authTieN ⊆ E') (hE2 : ↑(nroot.@"authRev") ⊆ E') :
+    authHistTie E γr (auth.bump auth.bootState) ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+        auth.authOwn (.on γa) hs ={E'}=∗
+      auth.authOwn (.on γa) hs ∗ apply.adminExtraG E γa rq hs Pre := by
+  have hfin := adminExtraG_of_capLb (Pre := Pre) E γr γa A m rq hs sa hM ht hd hdec hv hna hk hsa
+    hdet hl
+  have hHA : srvHist γr.kv A <+: srvHist γr.kv (A ++ [m]) :=
+    srvHist_prefix γr.kv A (A ++ [m]) (List.prefix_append A [m])
+  have hne : hs ≠ [] := by intro he; rw [he] at hl; cases hl
+  have hlast : hs.getLast? = (srvHist γr.kv A).getLast? := by rw [hl, srvHist_last, hsa]
+  unfold authHistTie
+  rw [hM]
+  iintro ⟨⟨⟨%stl, %R, #Hinv⟩, #Htinv⟩, #Hlb, Ho⟩
+  imod auth.authOwn_capped stl R γa hs E' hE2 $$ [Hinv Ho] with ⟨Ho, #Hhc⟩
+  · iframe Hinv Ho
+  iinv Htinv with Hi Hclose
+  icases Hi with ⟨%A₀, >#HA₀, >Hcap⟩
+  ihave Hcap : auth.capAuth γa (srvHist γr.kv A₀) $$ [Hcap]
+  · simp only [srvHist]; iexact Hcap
+  ihave %Hcmp := srvRLogLb_prefix γr.raft A₀ (A ++ [m]) $$ [HA₀ Hlb]
+  · iframe HA₀ Hlb
+  ihave %Hhs0 := capAuth_lb_prefixW γa _ hs $$ Hcap Hhc
+  rcases Hcmp with h0 | h0
+  · imod auth.capAuth_update γa (srvHist γr.kv (A ++ [m])) (srvHist_prefix γr.kv A₀ _ h0) $$ Hcap
+      with Hcap
+    ihave ⟨Hcap, #Hcl⟩ := auth.capAuth_lb γa _ $$ Hcap
+    imod Hclose $$ [Hcap] with -
+    · inext; iexists (A ++ [m]); iframe Hlb; unfold srvHist; iexact Hcap
+    imodintro
+    iframe Ho
+    have hseq : hs = srvHist γr.kv A :=
+      prefix_eq_of_last _ hs _ (srvHist_nodup γr.kv (A ++ [m]))
+        ((by exact Hhs0 : hs <+: srvHist γr.kv A₀).trans (srvHist_prefix γr.kv A₀ _ h0)) hHA
+        hlast hne
+    iapply (hfin hseq) $$ Hcl
+  · ihave ⟨Hcap, #Hcl0⟩ := auth.capAuth_lb γa _ $$ Hcap
+    imod Hclose $$ [Hcap] with -
+    · inext; iexists A₀; iframe HA₀; simp only [srvHist]; iexact Hcap
+    imodintro
+    iframe Ho
+    have hseq : hs = srvHist γr.kv A :=
+      prefix_eq_of_last _ hs _ (srvHist_nodup γr.kv A₀) Hhs0
+        (hHA.trans (srvHist_prefix γr.kv _ A₀ h0)) hlast hne
+    iapply (hfin hseq)
+    iapply (auth.capLb_le γa (srvHist γr.kv (A ++ [m])) (srvHist_prefix γr.kv _ A₀ h0)) $$ Hcl0
+
+end ghost
 
 end EtcdGrove
 end Perennial

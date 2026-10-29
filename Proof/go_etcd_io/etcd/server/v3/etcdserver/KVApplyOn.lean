@@ -272,10 +272,31 @@ def kvAppliedOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) 
     (x : apply.ApplyKV) (st : auth.AuthState) : IProp GF :=
   iprop(kvAppliedLOn γ γk st₀ A (st, x.log) ∗ ⌜x.chain = γk.ch0⌝)
 
-/-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s). -/
+/-- The namespace of the server's tie of the auth store's history to the log (H5). -/
+def authTieN : Namespace := nroot .@ "auth_tie"
+
+/-- **The auth store's history tied to the log** (H5, 2026-10-29; persistent): in the mode
+`on γa`, the store's invariant (`auth.authInv`, which keeps its history below the cap,
+`auth.authOwn_capped`), and an invariant holding the cap's authority (`auth.capAuth`) at the
+history some committed log `A` records (the boot state, then `admStates` from `st₀`): the store's
+history is always a prefix of a history of the committed log, and the apply thread raises the cap
+by the entry it applies (`authHistTie_raise`). `True` in the other modes. -/
+def authHistTie (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
+  match E.authMode with
+  | .on γa => iprop((∃ (stl : Loc) (R : IProp GF), auth.authInv stl R (.on γa)) ∗
+      inv authTieN iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
+        auth.capAuth γa (auth.bootState :: admStates γr.kv st₀ A)))
+  | _ => iprop(True)
+
+instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
+    Persistent (authHistTie (GF := GF) E γr st₀) := by
+  unfold authHistTie; split <;> infer_instance
+
+/-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
+store's history's tie to the log (`authHistTie`). -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    ⌜E.γ.cok = γr.kv.cok⌝)
+    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by
@@ -375,7 +396,7 @@ theorem kv_applied_step_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.A
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok⟩
   iunfold kvAppliedOn at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_log_plain_on γr.raft γr.kv st₀ (A ++ [m]) $$ HkI HrI Hlb with %Hpc

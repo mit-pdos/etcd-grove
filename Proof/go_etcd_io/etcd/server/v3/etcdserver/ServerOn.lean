@@ -300,15 +300,17 @@ instance srvReqBuiltM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ :
 theorem srvReqBuiltM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     srvReqBuiltM (GF := GF) false s E ρ v = srvReqBuilt s E ρ v := rfl
 
-/-- **The apply thread's KV invariants in the auth mode `on`** (`srvKVInvs` with the mode's KV
-and certificates' invariants, from `srvAuthSt0`; at `on = true` `srvKVInvsOn`'s rows). -/
+/-- **The apply thread's KV invariants in the auth mode `on`**: `srvKVInvs`, or at `on = true`
+`srvKVInvsOn` from `srvAuthSt0` (the mode's KV and certificates' invariants, and the auth history's
+tie to the log, `authHistTie`). -/
 def srvKVInvsM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(kvInvM on γr.raft γr.kv srvAuthSt0 ∗ kvCertInvM on γr.raft γr.kv srvAuthSt0 ∗
-    srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝)
+  match on with
+  | false => srvKVInvs E γr
+  | true => srvKVInvsOn E γr srvAuthSt0
 
 instance srvKVInvsM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvsM (GF := GF) on E γr) := by
-  unfold srvKVInvsM; infer_instance
+  cases on <;> unfold srvKVInvsM <;> infer_instance
 
 theorem srvKVInvsM_false (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) false E γr = srvKVInvs E γr := rfl

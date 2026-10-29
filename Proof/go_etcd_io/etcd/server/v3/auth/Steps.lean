@@ -100,6 +100,9 @@ abbrev StepRel := AuthState → Outcome → Prop
 /-- `commitRevision`: the revision bumped. -/
 def bump (st : AuthState) : AuthState := { st with revision := st.revision + 1 }
 
+/-- **The auth state of freshly created buckets**: disabled, revision `0`, no user, no role. -/
+def bootState : AuthState := ⟨false, 0, ∅, ∅⟩
+
 /-- `UnsafePutUser` of a record of the name with the roles (the user's other fields are not
 in the model). -/
 def putUser (st : AuthState) (name : GoString) (roles : User) : AuthState :=

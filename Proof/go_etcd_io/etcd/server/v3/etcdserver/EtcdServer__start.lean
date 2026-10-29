@@ -1065,7 +1065,8 @@ theorem EtcdServer.start.wp_proofOn
   ihave #Hmint : readCtxMinted (GF := GF) γr $$ []
   · ihave #Hkvi3 := Hkvi
     iunfold srvKVInvsM at Hkvi3
-    icases Hkvi3 with ⟨-, -, #Hli, -⟩
+    iunfold srvKVInvsOn at Hkvi3
+    icases Hkvi3 with ⟨-, -, #Hli, -, -⟩
     ihave #Hq17 := Q17
     iunfold srvMintInv at Hq17
     icases Hq17 with ⟨-, #Hrf⟩

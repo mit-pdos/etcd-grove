@@ -35,9 +35,6 @@ namespace auth
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth
 
-/-- **The auth state of freshly created buckets**: disabled, revision `0`, no user, no role. -/
-def bootState : AuthState := ⟨false, 0, ∅, ∅⟩
-
 theorem bootState_permKeysOk : permKeysOk bootState := by
   intro r ps h
   simp [bootState] at h
