@@ -103,49 +103,6 @@ theorem vOf_reset (P : BParams) (D : Data) (R : RBuf) (n k : GoString) :
 theorem vData_lookup (P : BParams) (rv : RView) (nk : GoString × GoString) :
     (vData P rv).lookup nk = if P.HB nk.1 then none else vOf P rv nk.1 nk.2 := rfl
 
-/-- A cached copy `X` that read as the state `(C, R)` before a commit that kept the view reads
-as the new state `(C', R.reset)` over the new data. -/
-theorem vData_rebase (P : BParams) (C C' : Data) (X R : RBuf)
-    (h1 : vData P (C, X) = vData P (C, R)) (h2 : vData P (C', R.reset) = vData P (C, R)) :
-    vData P (C', X) = vData P (C', R.reset) := by
-  apply GMap.ext_iff'.2
-  intro nk
-  have e1 := congrArg (fun M => GMap.lookup M nk) h1
-  have e2 := congrArg (fun M => GMap.lookup M nk) h2
-  simp only [vData_lookup] at e1 e2 ⊢
-  split
-  · rfl
-  · rename_i hb
-    simp only [hb, Bool.false_eq_true, ↓reduceIte] at e1 e2
-    rw [vOf_reset] at e2 ⊢
-    unfold vOf ovB at e1 ⊢
-    cases hA : (P.BT.lookup nk.1).bind (fun i => lastVal (bkOf X.bks i) nk.2) with
-    | none => rfl
-    | some x =>
-      rw [hA] at e1
-      simp only [Option.some_or] at e1 ⊢
-      unfold vOf ovB at e2
-      rw [e2, ← e1]
-
-/-- Over the new data of a commit that kept the view, a cached copy `X` reads at each key either
-as it did over the old data or as the old state `(C, R)` (the thin view's rebase, below). -/
-theorem vData_rebase_or (P : BParams) (C C' : Data) (X R : RBuf)
-    (h2 : vData P (C', R.reset) = vData P (C, R)) (nk : GoString × GoString) :
-    (vData P (C', X)).lookup nk = (vData P (C, X)).lookup nk ∨
-      (vData P (C', X)).lookup nk = (vData P (C, R)).lookup nk := by
-  have e2 := congrArg (fun M => GMap.lookup M nk) h2
-  simp only [vData_lookup] at e2 ⊢
-  split
-  · left; rfl
-  · rename_i hb
-    simp only [hb, Bool.false_eq_true, ↓reduceIte] at e2
-    rw [vOf_reset] at e2
-    rw [← e2]
-    unfold vOf ovB
-    cases hA : (P.BT.lookup nk.1).bind (fun i => lastVal (bkOf X.bks i) nk.2) with
-    | none => right; first | rfl | simp
-    | some x => left; first | rfl | simp
-
 /-- Over the new data of a commit, a cached copy `X` reads at each key either as it did over the
 old data, or as the new state `(C', R.reset)` (the thin view's rebase, below: no hypothesis on the
 commit). -/
@@ -162,7 +119,7 @@ theorem vData_rebase_or' (P : BParams) (C C' : Data) (X R : RBuf) (nk : GoString
     | some x => left; simp
 
 /-- **A cached copy thin of the view stays thin after a commit** (the thin-view Draft round:
-`vData_rebase` over `thinV`; review round 4, R4-3: no hypothesis that the commit kept the view, so
+the rebase over `thinV`; review round 4, R4-3: no hypothesis that the commit kept the view, so
 the deleting commit uses it too), the new state `(C', R.reset)` itself thin of the view. -/
 theorem thinV_rebase {hlc : HasLC} {GF : BundledGFunctors} [HeapGS hlc GF] (γ : BNames)
     (P : BParams) (C C' : Data) (X R : RBuf) (L : VData) :

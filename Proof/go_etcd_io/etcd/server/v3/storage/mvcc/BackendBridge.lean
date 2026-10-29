@@ -2244,6 +2244,168 @@ theorem isKeyBackendG_of_backend
   · iapply bk_sizeInUse hSzU γ P W Pk b $$ [$Hpkg $Hb]
   iintro !> %hc; exact (hC hc).elim
 
+/-- **A thin readers' state gives a thinned snapshot of the `Key` bucket** (the backend-compaction
+stage's read cases): over a physical view thin of the logical view `vd` whose `Key` bucket is `m`,
+the physical `Key` bucket `m'` (`m`'s entries the physical view has) is a key view of it, and every
+key of `m` missing from `m'` is a registered deletable key (`bkDel`). -/
+theorem keyView_thin (γ : backend.BNames) (P : BParams) (rv : RView) (vd : backend.VData)
+    (m : Bucket) (hv : keyView vd m) :
+    backend.thinV (GF := GF) γ (vData P rv) vd ⊢
+      ∃ m' : Bucket, ⌜keyView (vData P rv) m'⌝ ∗ snapThin m m' (bkDel γ) := by
+  iintro #Hth
+  iunfold backend.thinV at Hth
+  icases Hth with ⟨%Hsub, #Hdl⟩
+  iexists GMap.filter (fun k _ => ((vData P rv).lookup (keyName, k)).isSome) m
+  isplitr
+  · ipureintro
+    intro n k
+    by_cases hn : n = keyName
+    · subst hn
+      simp only [if_true]
+      show _ = (m.lookup k).filter _
+      cases hl : (vData P rv).lookup (keyName, k) with
+      | none =>
+        cases hm : m.lookup k with
+        | none => rfl
+        | some v => simp [Option.filter, hl]
+      | some v =>
+        have h1 := Hsub _ _ hl
+        rw [hv] at h1
+        simp only [if_true] at h1
+        rw [h1]; simp [Option.filter, hl]
+    · simp only [hn, if_false]
+      cases hl : (vData P rv).lookup (n, k) with
+      | none => rfl
+      | some v =>
+        have h1 := Hsub _ _ hl
+        rw [hv] at h1
+        simp [hn] at h1
+  iunfold snapThin
+  isplitr
+  · ipureintro
+    intro k v h
+    show m.lookup k = some v
+    have h' : (m.lookup k).filter _ = some v := h
+    cases hm : m.lookup k with
+    | none => rw [hm] at h'; simp [Option.filter] at h'
+    | some w =>
+      rw [hm] at h'
+      simp only [Option.filter] at h'
+      split at h' <;> simp_all
+  iintro !> %k %v %h
+  obtain ⟨hm, hm'⟩ := h
+  iunfold bkDel
+  have hkn : (go!"key" : GoString) = keyName := by rfl
+  rw [hkn]
+  iapply Hdl
+  ipureintro
+  constructor
+  · rw [hv]; simp [hm]
+  · have h' : (m.lookup k).filter (fun _ => ((vData P rv).lookup (keyName, k)).isSome) = none := hm'
+    rw [hm] at h'
+    simp only [Option.filter] at h'
+    split at h'
+    · simp at h'
+    · rename_i hc
+      simpa using hc
+
+/-- **`ConcurrentReadTx()` as mvcc's contract states it, over the thin view** (the bridge with the
+compaction's first read case): the snapshot is the physical `Key` bucket, thinned from the logical
+one by registered deletable keys (`keyView_thin`). -/
+theorem bridge_crtC (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ⊢
+      □ (∀ (q : Qp) (m : Bucket),
+        {{ bkView γ q m ∗ bkRTx γ P b }}
+          (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            go!"ConcurrentReadTx" #b)) (Val #()))
+        {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkDel γ) false rt m L }}) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
+  iunfold bkView at Hv
+  icases Hv with ⟨%vd, Hv, %Hvd⟩
+  iunfold bkRTx at Hrt
+  icases Hrt with ⟨Hrd, Ho⟩
+  wp_apply (hCRT γ P W Pk b q rdOpen vd) $$ [$Hb $Hrd $Hv $Ho]
+    as %crt %rtx %rv ⟨Hsnap, #Hth, Hback, Hv, Ho⟩
+  icases keyView_thin γ P rv vd m Hvd $$ Hth with ⟨%m', %Hv', #Hthin⟩
+  iapply HΦ
+  isplitl [Hv]
+  · iunfold bkView
+    iexists vd
+    iframe Hv
+    ipureintro; exact Hvd
+  iexists (crtTok γ P b crt rtx rv rdOpen)
+  isplitl [Hsnap Hback Ho]
+  · iunfold crtTok; iframe
+  iunfold keyReadSnap
+  iintro !> %q' %Φ' !> ⟨HL, Hv''⟩ HΦ'
+  wp_apply (hRL crt)
+  iapply HΦ'
+  iframe Hv''
+  iexists m', (rdB rtx), (crtTok γ P b crt rtx rv rdOpen)
+  iframe HL
+  isplitr
+  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv m' Hv' $$ [$Hpkg $Hsch]
+  iexact Hthin
+
+/-- **`ReadTx()` as mvcc's contract states it, over the thin view** (the bridge with the
+compaction's second read case): `RLock` finds the readers' state thin of the caller's view
+(`rtHeld_view`), its `Key` bucket thinned by registered deletable keys (`keyView_thin`). -/
+theorem bridge_rtC (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ keySized γ P b ⊢
+      □ (∀ (q : Qp) (m : Bucket),
+        {{ bkView γ q m ∗ bkRTx γ P b }}
+          (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            go!"ReadTx" #b)) (Val #()))
+        {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) (bkDel γ) true rt m L }}) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
+  wp_apply (hRT γ P W Pk b) $$ [$Hb] as %rt #Hrtf
+  iapply HΦ
+  iframe Hv
+  iexists (bkRTx γ P b)
+  iframe Hrt
+  iunfold keyReadSnap
+  iintro !> %q' %Φ' !> ⟨HL, Hv'⟩ HΦ'
+  iunfold bkRTx at HL
+  icases HL with ⟨Hrd, Ho⟩
+  wp_apply (hRL γ P W Pk b rt rdOpen) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
+  iunfold bkView at Hv'
+  icases Hv' with ⟨%vd, Hv', %Hvd⟩
+  icases rtHeld_view γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', #Hth⟩
+  icases keyView_thin γ P rv vd m Hvd $$ Hth with ⟨%m', %Hvm', #Hthin⟩
+  iapply HΦ'
+  isplitl [Hv']
+  · iunfold bkView
+    iexists vd
+    iframe Hv'
+    ipureintro; exact Hvd
+  iexists m', (rdB rtx), (rtTok γ P b rtx rv rdOpen)
+  isplitl [Hh Ho]
+  · iunfold rtTok; iframe
+  isplitr
+  · iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m' Hvm'
+      $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe]
+  iexact Hthin
+
 /-- **The bridge with the compaction** (the backend-compaction stage, `notes/backend-cmp-plan.md`
 section 2; Draft, 2026-10-28): `isKeyBackendG_of_backend` with `Cmp` true, the deletable keys those
 registered at the backend's names (`bkDel`, decision O1) and the safe-range slot
@@ -2290,9 +2452,9 @@ theorem isKeyBackendG_of_backendC
   isplitr
   · ipureintro; rfl
   isplitr
-  · sorry -- backend-cmp Draft: new case (ConcurrentReadTx over the thin view: the compacting backend's)
+  · iapply bridge_crtC hCRT hcRL hcRU hcUR hID hName hSafe hP γ W Pk b $$ [$Hpkg $Hsch $Hb]
   isplitr
-  · sorry -- backend-cmp Draft: new case (ReadTx over the thin view: the compacting backend's)
+  · iapply bridge_rtC hRT hrRL hrRU hrUR hID hName hSafe hP γ W Pk b $$ [$Hpkg $Hsch $Hb $Hsafe]
   isplitr
   · iintro !> %Φ !> - HΦ
     wp_apply (hBT γ P W Pk b) $$ [$Hb] as %t #Ht
