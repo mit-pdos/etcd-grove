@@ -125,15 +125,22 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
      mtypeOf m.Type' = some ty ∧
      m.Term' = W64 0 ∧
      m.To' ≠ id ∧
+     -- (2026-10-29, stage U7) a term past `0` to stamp (`SentMsgShape`)
+     s.term ≠ W64 0 ∧
      out = [absMsgFrom ty m id s.term ents ctx])
   ∨
   ((m.Type' = MsgSnap ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     -- (2026-10-19, D21 M3) not in the no-snapshot mode
-    s.gh.ns = false)
+    s.gh.ns = false ∧
+    -- (2026-10-29, stage U7) a term past `0` to stamp (`SentMsgShape`)
+    s.term ≠ W64 0)
    ∨
-   (mtypeOf m.Type' = none ∧
+   -- (2026-10-29, stage U7: until then any type with `mtypeOf = none`) the two transfer messages,
+   -- with no entries and no context, a `MsgTimeoutNow` at a term past `0` (`SentMsgShape`)
+   ((m.Type' = MsgTimeoutNow ∨ m.Type' = MsgTransferLeader) ∧
+    (m.Type' = MsgTimeoutNow → s.term ≠ W64 0) ∧ ents = [] ∧ ctx = [] ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     out = [] ∧
@@ -143,8 +150,10 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧
+   -- (2026-10-29, stage U7: until then only self-addressed) a term past `0` to stamp
+   s.term ≠ W64 0 ∧
    (m.To' = id →
-      ents = [] ∧ ctx = [] ∧ s.term ≠ W64 0 ∧
+      ents = [] ∧ ctx = [] ∧
       m.Reject' = false) ∧
    out = [absMsgFrom .appResp m id s.term ents ctx])
   ∨

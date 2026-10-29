@@ -337,6 +337,10 @@ abbrev stepLeader.spec : Prop :=
     m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader ∨
     m.Type' = MsgCheckQuorum)) →
   s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`): a heartbeat's
+  -- (`bcastHeartbeat`) and a transfer's (`sendTimeoutNow`, `sendAppend`); the other sending paths
+  -- have it from the premises below
+  (m.Type' = MsgBeat ∨ m.Type' = MsgTransferLeader → s.term ≠ W64 0) →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
   (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
    m.From' ≠ id) →

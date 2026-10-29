@@ -380,7 +380,7 @@ theorem RawNode.Bootstrap.wp_proof
       omega
     wp_apply wp_raft_applyConfChange (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅) rnv.raft' id
         sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅)
-        (bootCC_apply _ _ Hp0) Hsz
+        (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h)
       $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩

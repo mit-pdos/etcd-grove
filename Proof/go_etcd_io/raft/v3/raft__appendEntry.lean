@@ -343,7 +343,7 @@ theorem raft.appendEntry.wp_proof
     wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
-    · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))
+    · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Hnz, fun _ => ⟨rfl, rfl, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl

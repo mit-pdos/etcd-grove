@@ -170,6 +170,8 @@ abbrev stepFollower.spec : Prop :=
     m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
   -- (2026-10-12) a read-index request is unstamped, and the leader is another node
   (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
+  -- (2026-10-29, stage U7) a replication message at a term past `0`, the handlers' replies' (`SentMsgShape`)
+  (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap → s.term ≠ W64 0) →
   (m.Type' = MsgProp →
      (m.From' = W64 0 ∨ m.From' = id) ∧
      m.Term' = W64 0 ∧

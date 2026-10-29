@@ -181,7 +181,7 @@ theorem wp_switchToConfig_follower (H : raft.switchToConfig.spec (GF := GF) (hG 
   ihave Hcfg := ownConfigV_toC _ _ _ _ _ $$ Hcfg
   have Hnl : ¬ s.role = .leader := by rw [Hrole]; decide
   iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv cfgv prsm prs pvs
-      (fun h => absurd h Hnl)
+      (fun h => absurd h Hnl) (fun h => absurd h Hnl)
       (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
       (fun h => absurd h Hnl)
     $$ [$Hpkg $Htrkf Hback $Hvotes $Hcfg]

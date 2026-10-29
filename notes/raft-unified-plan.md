@@ -305,6 +305,67 @@ Each: old → new, and why. (The second track A agent, from the hand-off below.)
   (`getBasicStatus`, `getProgressCopy` at a leader, `Config.Clone` through the tracker's `Config`
   field); `Pos.Countable` instances for `SoftState`, `BasicStatus`, `tracker.Config`, `Status`.
 
+## Spec changes during track A (third) (2026-10-29)
+
+Each: old → new, and why. (The third track A agent. Stopped after U7 step (ii) on the coordinator's
+change of plan: the remaining proof is to be designed as one set of invariants first.)
+
+- (i) New, `ApiVocab.lean` (public vocabulary, not yet used by any spec): `sentShapeTypes`
+  (`sentTypes` ++ `MsgTimeoutNow`, `MsgTransferLeader`), `SentMsgShape st`, `SentMsgShape.ok`
+  (with a described type it is `SentMsgOk`), `SentMsgShape.of_msg`. Departures from the frozen text
+  (candidate 12, "`SentMsgShape`"): **no `MsgSnap` index bound** (below `2^61`): at `send` the bound
+  is not known (`maybeSendSnapshot` reads the storage's snapshot, whose index bound is the storage
+  contract's, track B's; J6 of review 10 already called this uncertain for a generic `StorageModel`),
+  so `stepIn_intro` keeps its `MsgSnap` premise for now. A forwarded `MsgTransferLeader` may be
+  unstamped (`Term = 0`): `send` stamps the follower's term, which may be `0` (the frozen text's "no
+  term or the sender's"); a stamped one is the case that needs the `lead` ghost invariant at the
+  receiver. Transfer messages carry no entries and no context.
+- (ii) `raft.send.spec`'s `SendOk` (`Spec/.../raft__send.lean`): clauses (b) (`MsgApp`,
+  `MsgHeartbeat`, `MsgReadIndexResp`, `MsgHeartbeatResp`) and (c') (`MsgSnap`) take `s.term ≠ W64 0`;
+  (c) is now exactly `MsgTimeoutNow ∨ MsgTransferLeader` (until then any `mtypeOf = none` type),
+  with `ents = [] ∧ ctx = []` and `MsgTimeoutNow → s.term ≠ 0`; (d) (`MsgAppResp`) takes
+  `s.term ≠ 0` always (until then only self-addressed). `send`'s proof does not use them yet (that
+  is step (iii): `XfOk`'s second clause `∀ m ∈ l, SentMsgShape m.st`, `bt` removed). Internal
+  premises added to carry the term (all raft-internal specs, no API change):
+  `s.term ≠ W64 0` on `maybeSendAppend`, `maybeSendSnapshot`, `sendHeartbeat`, `sendTimeoutNow`,
+  `sendMsgReadIndexResponse`, `sendAppend`, `bcastAppend`, `bcastHeartbeat`,
+  `bcastHeartbeatWithCtx`, `handleHeartbeat`, `handleSnapshot`, `handleAppendEntries`; `stepLeader`
+  takes `(MsgBeat ∨ MsgTransferLeader → s.term ≠ 0)` (its other sending paths have the term from
+  the read-index premise `Hrdnz` or `MsgProp`'s), which `raft.Step`'s `MsgBeat`/`MsgTransferLeader`
+  dispatch derives from the ghost (`ownRaftGhost_term_nz`) and hands `wp_Step_MsgBeat`/
+  `wp_Step_MsgTransferLeader` as a new premise `s.role = .leader → s.term ≠ 0`; `(s.role = .leader → s.term ≠ 0)` on
+  `switchToConfig`, `applyConfChange` and its `specS`; `stepFollower` takes `(MsgApp ∨ MsgHeartbeat
+  ∨ MsgSnap → s.term ≠ 0)`. `stepCandidate`'s spec is unchanged (its `m.Term' = s.term ∧ m.Term' ≠ 0`
+  covers its handlers and the won election's `bcastAppend`). New lemmas
+  `ownRaftGhost_leader_tnz`/`ownStepGhost_leader_tnz` (`InvNodeRun.lean`; from
+  `ownRaftGhost_term_nz`) give `RawNode.ApplyConfChange`'s and `node.run`'s `applyConfChange` calls
+  the leader premise. `stepLeader/Rest.lean`'s `wp_stepLeader_hbresp`: its `word` calls clear `Htz`
+  first (with the term hypothesis in context, a `word` aux proof failed the kernel check:
+  "application type mismatch" on `_proof_10`, a Lean/`word` abstraction problem worth a minimal
+  repro).
+
+**What the send path taught (for the design).**
+- A leader's `term ≠ 0` lives only in the ghost (`ownRaftGhost_term_nz`, via `isCamp_ok`), not in
+  `ownRaftPhys`; every leader-side sender needs it threaded as a premise, and so does every
+  function that may run at a leader and send (`switchToConfig`'s `maybeSendAppend`/`bcastAppend`,
+  hence `applyConfChange` and its `RawNode`/`node.run` callers). A pure `ownRaftPhys` fact `role ∈
+  {leader, candidate} → term ≠ 0` would remove most of these premises, at the cost of the role and
+  term stores (`becomeLeader`, `reset` inside `becomeFollower` at a leader) taking it; the threading
+  was chosen here as the local change, but the design should weigh the phys fact.
+- A follower's reply term (`handleAppendEntries`/`handleHeartbeat`/`handleSnapshot`, and
+  `raft.Step`'s stale-term `MsgAppResp`) is past `0` from the message: `raft.Step`'s `m.Term' ≠ 0`
+  for the stamped types, the term section making `s.term = m.Term'`; the stale case from
+  `m.Term' < s.term`.
+- The forwarded `MsgTransferLeader` (`stepFollower`, `lead ≠ 0`, `m.Term = 0`) needs no term: it
+  may go out unstamped. The stamped one needs, at the receiver, `raft.Step`'s `RestMsgOk` (`m.Term ≠
+  0 → m.Term = s.term → follower → lead = 0`), which needs the ghost invariant `lead ≠ 0 →
+  isLeader γ lead term` and the forwarder's `isLeader γ m.To m.Term` in `isRaftMsg` (decisions.md,
+  "Stage U7", item 2). `NetMsgOk` today rejects a stamped `MsgTransferLeader` (`UnstampedType`).
+- `XfOk` (`InvRaftPhys.lean:335`) is where every queued message's facts live (43 mentions there,
+  25 `ownRaftPhysCV_intro` sites); `NGhost.bt` is used only for `term ≠ 0` in `send`'s proof
+  (`Hxfs.2`) and to gate `SentMsgOk`; step (iii) replaces both by `SendOk`'s new premises.
+
+
 ## Track A hand-off (2026-10-29)
 
 **Done on `raft-unified`.** Each commit builds `Link`, `Linked`, `Results`, `Api`; there is no `sorry`, and the only
@@ -333,6 +394,9 @@ raft-specific axiom is `ccDecodeV2_nil`.
      `getProgressCopy` (through `Visit`) and `Config.Clone`.
    - Post: an owned `Status` value. On a stopped node, the `done` arm returns `Status{}`.
 3. **U7's rest**, now without a transfer mode (the user's decision above):
+   - *Status (third track A agent, 2026-10-29): steps (i) and (ii) done ("Spec changes during track
+     A (third)", with what the send path taught); stopped there on the coordinator's change of plan
+     (the remaining invariants to be designed as one reviewed design). Next: (iii).*
    - `SentMsgShape` in every cluster. `SendOk`'s stamped clauses take `s.term ≠ W64 0` from each
      caller: a leader has it from `ownRaftGhost_term_nz`; a follower after the term section has `m.Term
      = s.term ≠ 0`. `XfOk`'s second clause becomes `∀ m ∈ l, SentMsgShape m.st`, and `NGhost.bt`

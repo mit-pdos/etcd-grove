@@ -98,7 +98,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s to pr Hto Hprto Hns
+  intro c r id s to pr Hto Hprto Hns Htz
   wp_start as H
   iNamed H
   -- `isInitialized_access` hands the globals out; the `raftLog.snapshot` call below
@@ -230,7 +230,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       iapply BigSepL2.bigSepL2_nil.2; itrivial
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
-      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns⟩)))
+      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns, Htz⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl $$ [$Hphys $Hm] as Hphys

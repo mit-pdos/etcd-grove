@@ -184,7 +184,7 @@ local macro "local_follower" : tactic => `(tactic| (
   ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
   · iapply tsSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by ty_cases simp [Hty])
-      (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
+      (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
     (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iframe Hphys Hsrc0
@@ -251,7 +251,7 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_gets
   imod (preceipt_zero (GF := GF)) with #Hrc00
   icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
-  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by ty_cases simp [Hty]) Hrole
+  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
       (fun Hc => by first | exact Hxo |
@@ -281,7 +281,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
   · iapply tsSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by simp [Hty])
-      (by ty_other) (by ty_other) (by ty_other) (by ty_other)
+      (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
     (fun _ => Hnors) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -308,7 +308,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
   ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
   · iapply tsSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by simp [Hty])
-      (by ty_other) (by ty_other) (by ty_other) (by ty_other)
+      (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnw, Hwf, Hfla⟩⟩)
       (by ty_other)
     (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -442,6 +442,8 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     NStateWf s →
     -- (2026-10-22, D38a) a forwarded message has no responses (`stepFollower`'s premise)
     rs = [] →
+    -- (2026-10-29, stage U7) a leader's term past `0` (`stepLeader`'s, for `send`'s stamp)
+    (s.role = .leader → s.term ≠ W64 0) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -455,7 +457,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors
+  intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
@@ -519,7 +521,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx (by simp [Hty])
-        (by ty_other) (by ty_other) (by ty_other) (by ty_other)
+        (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, Hxo⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
       (fun _ => Hnors) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -680,7 +682,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx (by simp [Hty])
-        (by ty_other) (by ty_other) (by ty_other) (by ty_other)
+        (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩, Hfla⟩⟩)
         (by ty_other)
       (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩

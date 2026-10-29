@@ -165,7 +165,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   · iapply tsSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id _ ml m ents sn rs (zero_val _) ctx
       (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
-      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

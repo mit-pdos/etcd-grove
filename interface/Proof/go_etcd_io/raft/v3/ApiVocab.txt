@@ -77,6 +77,9 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
 def msgDat (γ : RaftNames) (st : MsgSt) : IProp GF :=
   iprop(□ ∀ sv, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗ snapDataOk γ sv.Metadata'.Index' sv.Data')
 
+theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.Type' ≠ none) :
+    SentMsgOk st
+
 theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg) (hr : st'.resps
     = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st'
 
@@ -84,6 +87,10 @@ def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
   iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
       ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
         (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗ msgDat γ st ∗ ⌜st.resps = [] ∧ AppFrom id st⌝)
+
+theorem SentMsgShape.of_msg {st st' : MsgSt} (H : SentMsgShape st) (hm : st'.msg = st.msg) (he :
+    st'.ents = st.ents) (hc : st'.ctx = st.ctx) (hr : st'.resps = []) (hna : st.msg.Type' ≠ MsgApp)
+    : SentMsgShape st'
 
 def RNMode.isDyn : RNMode → Bool :=
   match x✝ with
@@ -105,6 +112,21 @@ inductive Pending : Type
   | Pending.appendAck (term : w64) (base : entryID) (last : Option entryID) (sn : Option SnapshotM)
       : Pending
   | Pending.applyAck (ents : List EntryM) : Pending
+
+def SentMsgShape (st : MsgSt) : Prop :=
+  st.msg.Type' ∈ sentShapeTypes ∧
+    st.msg.From' ≠ W64 0 ∧
+      (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+        (¬(st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgTransferLeader) →
+            st.msg.Term' ≠ W64 0) ∧
+          (st.msg.Type' ≠ MsgReadIndex →
+              st.msg.Type' ≠ MsgVoteResp →
+                st.msg.Type' ≠ MsgPreVoteResp →
+                  st.msg.Type' ≠ MsgTransferLeader →
+                    (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
+            (st.msg.Type' = MsgApp → AppShape st) ∧
+              (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+                st.resps = []
 
 def propEntryM (d : List w8) : EntryM :=
   { Term' := W64 0, Index' := W64 0, Type' := W32 0, Data' := d }
@@ -225,6 +247,9 @@ def readyDq (st : MsgSt) : DFrac :=
   if RespType st.msg.Type' then DFrac.own (Qp.half 1) else DFrac.own 1
 
 theorem msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat γ st)
+
+def sentShapeTypes : List w32 :=
+  sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
 
 def readyIdx (γr : RaftNames) (d ce es : List EntryM) : IProp GF :=
   iprop(∃ L,

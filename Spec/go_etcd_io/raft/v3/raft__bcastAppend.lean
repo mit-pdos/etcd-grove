@@ -38,6 +38,8 @@ abbrev raft.bcastAppend.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
   s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();

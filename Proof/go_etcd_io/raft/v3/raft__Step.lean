@@ -374,7 +374,17 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HΦ
-  wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf)
+  -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
+  have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+      ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+    iintro Hg
+    by_cases hl : s.role = .leader
+    · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+        (by rw [toPState_role, hl]; decide) $$ Hg
+      ipureintro; exact fun _ => H
+    · ipureintro; exact fun h => absurd h hl
+  ihave %HLT := HLT_lem $$ Hghost
+  wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf HLT)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hghost Hrest Hphys [] HΦ
@@ -1154,8 +1164,18 @@ theorem raft.Step.wp_proof
       rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
       apply Hlok0
       rw [toPState_role, Hf]; decide
+    -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
+    have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+        ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+      iintro Hg
+      by_cases hl : s.role = .leader
+      · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+          (by rw [toPState_role, hl]; decide) $$ Hg
+        ipureintro; exact fun _ => H
+      · ipureintro; exact fun h => absurd h hl
+    ihave %HLT := HLT_lem $$ Hghost
     wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Hxo Htr Hlok Hwf
-      (Hnors (.inr (.inr Hty)))) $$ [$Hphys $Hmi]
+      (Hnors (.inr (.inr Hty))) HLT) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

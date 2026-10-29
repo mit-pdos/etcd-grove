@@ -159,6 +159,8 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   -- (2026-10-16, stage R8a, D11) not at a leader: `maybeAppend` may truncate the log, and a
   -- leader's log only grows (`PrvalsOk`); a leader never handles a `MsgApp` of its term
   s.role ≠ .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}

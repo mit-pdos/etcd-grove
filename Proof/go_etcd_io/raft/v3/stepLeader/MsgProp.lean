@@ -647,7 +647,7 @@ theorem wp_stepLeader_prop
       simp only [↓reduceIte]
       iexact ErrPropDropped
     · wp_auto
-      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
+      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys

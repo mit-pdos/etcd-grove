@@ -469,6 +469,16 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, track A: U7 steps (i)-(ii), stopped (2026-10-29, branch `raft-unified`)
+
+- `SentMsgShape` defined (`ApiVocab.lean`, no spec uses it yet); `raft.send`'s `SendOk` takes a
+  term past `0` for every stamped type, threaded as premises through the leader-side senders and
+  the follower handlers (raft-internal specs only). Stopped there on the coordinator's change of
+  plan: the remaining invariants (U7's rest, U9) are to be designed as one reviewed design first.
+  Changes and what the send path taught: `notes/raft-unified-plan.md`, "Spec changes during track A
+  (third)".
+
+
 ## Raft unified, track A: `Campaign` and `Status` (2026-10-29, branch `raft-unified`)
 
 - `node.Campaign.spec` and `node.Status.spec` over `isNode`, proved and linked (`node.wp_Campaign`,

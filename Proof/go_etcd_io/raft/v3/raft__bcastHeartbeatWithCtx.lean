@@ -50,7 +50,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) := by
-  intro c r id s ctx cl Hlead
+  intro c r id s ctx cl Hlead Htz
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -121,7 +121,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
+      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) (by exact Htz) $$ [$Hphys]
         as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
       · iexact Hctx
       try wp_auto

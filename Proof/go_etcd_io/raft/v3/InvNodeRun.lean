@@ -1004,6 +1004,25 @@ theorem ccStepB_some {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
     · cases h
 
 
+/-- (2026-10-29, stage U7) A leader's term is past `0` (`ownRaftGhost_term_nz`), at the node's
+struct state: what `applyConfChange`'s `switchToConfig` needs for `send`'s stamp. -/
+theorem ownRaftGhost_leader_tnz (γ : RaftNames) (id : w64) (s : NState) {md : Bool} :
+    ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md -∗ ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+  iintro Hg
+  by_cases hl : s.role = .leader
+  · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+      (by rw [toPState_role, hl]; decide) $$ Hg
+    ipureintro; exact fun _ => H
+  · ipureintro; exact fun h => absurd h hl
+
+/-- (2026-10-29, stage U7) `ownRaftGhost_leader_tnz` through `ownStepGhost`. -/
+theorem ownStepGhost_leader_tnz (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ⊢ ownStepGhost (GF := GF) γ md c id s -∗ ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+  unfold ownStepGhost
+  iintro ⟨Hg, -⟩
+  iapply ownRaftGhost_leader_tnz $$ Hg
+
+
 /-- `r.applyConfChange(cc)` at a dynamic node (2026-10-14, stage B7 part 2): the configuration
 takes the next conf entry's change (`StepR.applyConf`), then `switchToConfig`'s effect
 (`applyCCOkC_stepR`, a removed leader's step-down included); the node's ghost state follows
@@ -1060,6 +1079,7 @@ theorem wp_applyConf_dyn
   icases ownStepGhost_deliv γ dec c0 h0 g cf id s D HDc $$ HDd Hghost
     with ⟨%Hdp, Hghost⟩
   icases ownStepGhost_ns_last γ _ cf id s $$ Hghost with ⟨%Hli2, Hghost⟩
+  ihave %Hltz := ownStepGhost_leader_tnz γ _ cf id s $$ Hghost
   icases (ownStepGhost_dyn γ dec c0 h0 g cf id s).1 $$ Hghost with ⟨%HDc, #HM, Hgr, #Hcl⟩
   obtain ⟨HD, Hgc, Hnl⟩ := HDc
   iunfold ownRaftGhostR at Hgr
@@ -1100,7 +1120,7 @@ theorem wp_applyConf_dyn
   imod rdCred_zero_upd (GF := GF) γ with Hcr0
   iapply wp_fupd
   wp_apply +noauto wp_raft_applyConfChange cf rnv.raft' id s cc ccm dq cs'
-      (by rw [Hcfg]; exact Happ) (by have := Hsz; omega)
+      (by rw [Hcfg]; exact Happ) (by have := Hsz; omega) Hltz
       (fun h => by
         rcases h with h | h
         · exact absurd h Hnc
@@ -1294,8 +1314,9 @@ theorem wp_rn_raft_applyConfChange
   icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
   obtain ⟨lrn', Hd', Hsz', Hn', Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
   icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
+  ihave %Hltz := ownRaftGhost_leader_tnz γ id s $$ Hghost
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
-      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2 Hin
+      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hltz Hli2 Hin
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt (Hdom' ▸ Hok)

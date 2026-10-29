@@ -111,7 +111,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply tsSrc_snap; iexact Hcert
     wp_apply _P.stepFollower c scfg r id s ml m ents sn rs sv ctx
         (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (fun _ => Hteq ▸ Hterm)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

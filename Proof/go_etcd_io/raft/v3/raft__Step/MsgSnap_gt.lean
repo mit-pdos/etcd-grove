@@ -111,7 +111,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply _P.stepFollower c scfg r id
       ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs sv ctx
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
-      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro _; simp only [becomeFollower, resetTo, resetTo0]; exact Hterm)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

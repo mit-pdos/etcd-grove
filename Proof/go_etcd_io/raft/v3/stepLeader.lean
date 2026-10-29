@@ -84,7 +84,7 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
   -- then `ownRaftPhys`'s `Hvoter` said it was, and the proposal, heartbeat-response and
@@ -151,7 +151,7 @@ theorem stepLeader.wp_proof
     iexact Hinit
   · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Hxft Hty) $$ [Hphys Hm] HΦ'
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) (Hxft Hty) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · -- (2026-10-17) `MsgCheckQuorum`
@@ -164,13 +164,14 @@ theorem stepLeader.wp_proof
     iframe
     iexact Hinit
   · iapply wp_stepLeader_beat c wp_raft_bcastHeartbeat wp_GetType r id s ml m ents ctx sn rs
-      _ _ _ Hty Hlead $$ [Hphys Hm] HΦ'
+      _ _ _ Hty Hlead (Htz (Or.inl Hty)) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · obtain ⟨Hclen, Hcb, Hvne⟩ := Hhr Hty
     iapply wp_stepLeader_hbresp c wp_raft_sendAppend wp_raftLog_lastIndex wp_readOnly_recvAck
       wp_readOnly_maybeAdvance wp_raft_responseToReadIndexReq wp_raft_send wp_GetType wp_GetFrom
       wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty Hlead
+      (Hrdnz (Or.inl Hty)).2
       (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit

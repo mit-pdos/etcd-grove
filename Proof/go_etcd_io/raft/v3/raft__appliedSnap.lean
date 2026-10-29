@@ -217,6 +217,7 @@ theorem raft.appliedSnap.wp_proof
   icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
   wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
+      (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
     $$ [$Htrkf $Hback2 $Hvotes $Hnew]

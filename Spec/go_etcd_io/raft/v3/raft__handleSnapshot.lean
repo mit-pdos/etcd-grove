@@ -107,6 +107,8 @@ abbrev raft.handleSnapshot.spec : Prop :=
   m.From' ≠ id →
   -- (2026-10-19, D21 M3) outside the no-snapshot mode (`raft.restore`'s premise)
   s.gh.ns = false →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗

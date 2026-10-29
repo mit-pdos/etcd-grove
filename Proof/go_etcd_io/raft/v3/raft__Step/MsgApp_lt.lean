@@ -127,7 +127,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       repeat (isplitr; · iapply cellRO_null)
       iapply cellRO_null
     have Hok : SendOk id s ack [] [] [absMsgFrom .appResp ack id s.term []] :=
-      Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hfid, rfl⟩)))
+      Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, (by intro h; rw [h] at Hlt; word), fun h => absurd h Hfid, rfl⟩)))
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
       rfl $$ [$Hphys $Hack] as Hphys

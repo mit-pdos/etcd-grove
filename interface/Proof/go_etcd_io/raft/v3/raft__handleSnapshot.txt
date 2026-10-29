@@ -19,20 +19,22 @@ theorem raft.handleSnapshot.wp_proof [package_sem : Assumptions] (wp_raft_restor
             SnapScopeIf id sv cl →
               m.From' ≠ id →
                 s.gh.ns = false →
-                  ⊢
-                    ∀ Φ,
-                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                          "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                            "Hm" ∷
-                                msgIn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
-                              "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
-                        (▷
-                            ∀ s',
-                              ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ -∗ Φ (intoVal ())) -∗
-                          WP
-                            ((intoVal
-                                (methods raft.ty.PointerType
-                                  go!"handleSnapshot"
-                                  (intoVal r)))
-                              (intoVal ml))
-                            {{ Φ }}
+                  s.term ≠ W64 0 →
+                    ⊢
+                      ∀ Φ,
+                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                            "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                              "Hm" ∷
+                                  msgIn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
+                                "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
+                          (▷
+                              ∀ s',
+                                ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ -∗
+                                  Φ (intoVal ())) -∗
+                            WP
+                              ((intoVal
+                                  (methods raft.ty.PointerType
+                                    go!"handleSnapshot"
+                                    (intoVal r)))
+                                (intoVal ml))
+                              {{ Φ }}

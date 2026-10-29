@@ -28,6 +28,8 @@ abbrev raft.sendTimeoutNow.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
   s.gh.xf = false →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendTimeoutNow")) (Val #to))
   {{ RET #(); ownRaftPhysCV c c.voters r id s }}

@@ -98,7 +98,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · iapply tsSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id
       ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
-      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro _; simp only [becomeFollower, resetTo, resetTo0]; exact Hterm)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hcommit, Hfid⟩)

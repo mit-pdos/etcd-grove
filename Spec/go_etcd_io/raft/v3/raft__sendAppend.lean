@@ -36,6 +36,8 @@ abbrev raft.sendAppend.spec : Prop :=
   to ∈ domSet s.progress →
   -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
   s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))

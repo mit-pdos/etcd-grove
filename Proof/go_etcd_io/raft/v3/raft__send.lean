@@ -254,8 +254,9 @@ theorem raft.send.wp_proof
     · exact absurd Hf Hne2
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
-    ⟨ty, Hlty, Hty, Hmterm, Hself, rfl⟩ |
-    (⟨HSnap, Hmterm, Hself, HnsF⟩ | ⟨Hty, Hmterm, Hself, rfl, HxfF⟩) | ⟨HAR, Hmterm, Hself2, rfl⟩ |
+    ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
+    (⟨HSnap, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, HxfF⟩) |
+    ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto
     -- `r.msgsAfterAppend`.
@@ -362,6 +363,7 @@ theorem raft.send.wp_proof
     subst Hm1; rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of
     -- the abstract outbox.
+    have Hty : mtypeOf m.Type' = none := by rcases Htt with h | h <;> rw [h] <;> rfl
     obtain ⟨HnProp, HnA, HnAR, HnV, HnVR, HnS, HnH, HnHR, HnRI, HnRIR, HnPV, HnPVR⟩ :=
       mtypeOf_None_ne _ Hty
     simp only [MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at HnProp HnAR HnV HnVR HnRI HnPV HnPVR
@@ -393,14 +395,14 @@ theorem raft.send.wp_proof
     · ipureintro
       subst Hm1
       refine ⟨by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp], rfl, fun Hto => ?_⟩
-      obtain ⟨He, Hc, Hnz, Hrj⟩ := Hself2 (by simpa using Hto)
-      exact ⟨Hnz, He, Hc, fun _ => Hrj, by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
+      obtain ⟨He, Hc, Hrj⟩ := Hself2 (by simpa using Hto)
+      exact ⟨Hstz, He, Hc, fun _ => Hrj, by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
     · ipureintro
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap (by decide) _ _ _
     · have Hrj1 : m1.Reject' = m.Reject' := by rw [← Hm1]
       sent_tac [HAR, Hmterm] (fun h => by
-        have := (Hself2 h.symm).2.2.2; rw [Hrj1, this] at h4; exact absurd (h4 (by tyd)) (by simp))
+        have := (Hself2 h.symm).2.2; rw [Hrj1, this] at h4; exact absurd (h4 (by tyd)) (by simp))
     · iapply tsSrc_ne; simp only [Hty1, HAR]; tyne
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl

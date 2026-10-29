@@ -106,7 +106,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
     · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (fun _ => Hteq ▸ Hterm)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, by rw [Hrole]; decide⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -162,7 +162,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     imod (preceipt_zero (GF := GF)) with #Hrc00
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
-        Hrole
+        Hrole (by intro Hc; exfalso; first | (rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (rcases Hc with Hc | Hc <;> simp_all [MsgBeat, MsgTransferLeader]))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
