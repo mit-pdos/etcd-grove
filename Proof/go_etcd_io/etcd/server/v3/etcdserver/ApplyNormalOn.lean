@@ -48,6 +48,19 @@ def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
     (apply.rqOk x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
+/-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
+off, `entryOkOn` on. -/
+def entryOkM (on : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+  match on with
+  | false => entryOk x m
+  | true => entryOkOn x m
+
+theorem entryOkM_false (x : apply.ApplyKV) (m : EntryModel) : entryOkM false x m = entryOk x m :=
+  rfl
+
+theorem entryOkM_true (x : apply.ApplyKV) (m : EntryModel) : entryOkM true x m = entryOkOn x m :=
+  rfl
+
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
     (h : ∀ stl, P stl) : apply.latestOk M hs P := by
   cases M with
@@ -566,7 +579,7 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
 
 /-- **The apply thread publishes the auth state at its applied log** (E3u): from its KV row at the
 latest auth state `sa` and the model's tie of `sa` to the committed raft log `A`, the auth state at
-the log through `i` published (`appliedPubM true`, what `setAppliedIndex.specM true` takes). -/
+the log through `i` published (`appliedPubM true`, what `setAppliedIndex.spec` takes with auth on). -/
 theorem srvApplyKVOn_appliedPub (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (sa : auth.AuthState) (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γr : ReadNames)
     (A : List EntryModel) (i : w64) (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length) :
@@ -832,6 +845,16 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   isplitl [Har]
   · iexact Har
   iexact Hw
+
+/-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
+theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvApplyKVM (GF := GF) on s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗
+        (srvApplyKVCore s E γw x ua -∗ srvApplyKVM on s E γw x st) := by
+  cases on
+  · exact srvApplyKV_core s E γw x
+  · exact srvApplyKVOn_core s E γw x st
 
 end row
 

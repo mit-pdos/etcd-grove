@@ -8,6 +8,7 @@ principles match your target.
 |---|---|---|
 | [put.md](put.md) | a write through a replicated server (atomic update, fired at most once) | API not implementation; vocabulary in scope; no vacuous disjunct; a thread token for reader slots; the update in the triple; no slack constants |
 | [range.md](range.md) | a read, linearizable or stale (persistent atomic update) | the result predicate carries the facts; a stale read fires at the current state; compare whole specs; no disjunction of alternative specs |
+| [authinfo.md](authinfo.md) | two specs of one function (plain and bound) merged into one | a mode gate as a named margin, not two specs; know the margin |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

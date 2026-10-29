@@ -20,7 +20,8 @@ kept it, 2026-10-20: `eofVar_of_init`.)
 store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread's store names
 `E.γ`), `Term()`/`Leader()` return (`raftStatusOk`), and its auth store (`isReqAuth`, A2's, and the
 apply package's `isAuthStore`, both at the reader resource `E.RD`, the latter in the store's mode
-`E.authOn`).
+`E.authOn`), with auth on the store's bound request side too (`isReqAuthBound`, the
+auth-mode merge, 2026-10-29).
 
 **The watch server** (`isWatchServer p R`, persistent): `NewWatchServer`'s `*watchServer`, its
 fields fixed (`WSrv`: the server, its environment, the watchable store and its names, the cluster
@@ -147,6 +148,7 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
   iprop(mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝ ∗ raftStatusOk s ∗
     (∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
+      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
       srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authMode E.RW) ∗
     watchVars ∗ mvcc.watchTokPool γ ∗ auth.modeTag γ.tag E.authMode)
 

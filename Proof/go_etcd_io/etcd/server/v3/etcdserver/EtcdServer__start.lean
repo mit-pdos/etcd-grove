@@ -400,6 +400,8 @@ theorem EtcdServer.start.wp_proof
   iunfold applyBuilt at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hao,
     #Hlog, Hkr, Hfs⟩
+  -- (the auth-mode merge) auth off: the reader view's gated row holds trivially
+  imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hAuthOff, Hkv, Hkr⟩
   ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr]
   · iunfold applyStart
     iexists st₀, a, t, f
@@ -501,9 +503,13 @@ theorem EtcdServer.start.wp_proof
     iframe R15 R14 R13 R12 R11 R9 R8 R7 R6 R5 R4 R3 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' Hkvi Hai
     isplitr
     · ipureintro; exact R10
-    iunfold stopChan
-    iexists γsg
-    iexact HsgU
+    isplitl
+    · iunfold stopChan
+      iexists γsg
+      iexact HsgU
+    iintro !> %h
+    have h' : E.authOn = true := h
+    rw [hAuthOff] at h'; cases h'
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_server hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
@@ -999,7 +1005,9 @@ theorem EtcdServer.start.wp_proofOn
     -- (E3zb) the store's bound request side, from the built part's store fact
     isplitr
     rotate_left
-    · iapply srvAuthBound_of_uberBase s ua E (by rw [hM]; rfl) $$ HuB
+    · isplitl
+      · iapply srvAuthBound_of_uberBase s ua E (by rw [hM]; rfl) $$ HuB
+      ipureintro; rw [apply.AEnv.authOn_eq, hM]; rfl
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAtM
     iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
@@ -1035,9 +1043,19 @@ theorem EtcdServer.start.wp_proofOn
     iframe R15 R14 R13 R12 R11 R9 R8 R7 R6 R5 R4 R3 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' Hkvi Hai
     isplitr
     · ipureintro; exact R10
-    iunfold stopChan
-    iexists γsg
-    iexact HsgU
+    isplitl
+    · iunfold stopChan
+      iexists γsg
+      iexact HsgU
+    -- (the auth-mode merge) with auth on, the store's bound request side (`srvUberBase`'s)
+    iintro !> %h
+    ihave #HuB2 := HuB
+    iunfold srvUberBase at HuB2
+    icases HuB2 with ⟨%au, %le, #Hau, -, -, -, %stl, -, -, -, #HbB⟩
+    icombine R7 Hau gives %Heqa
+    ihave #Hx : isReqAuthBound vd.auth E.RD E.authMode $$ []
+    · rw [Heqa]; iapply HbB; ipureintro; exact h
+    iexact Hx
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_serverM true hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]

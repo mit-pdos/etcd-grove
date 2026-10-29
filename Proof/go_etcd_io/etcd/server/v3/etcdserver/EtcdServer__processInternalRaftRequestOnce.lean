@@ -495,7 +495,6 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     (hEx : exceedsRequestLimit.spec (GF := GF) (hG := hG))
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
     (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
     (hRT : getRequestType.spec (GF := GF) (hG := hG))
     (hM : proto.MarshalIRR.spec (GF := GF) (hG := hG))
     (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
@@ -591,7 +590,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
         have hla : la = null := Hlan.2 hau
         (try wp_auto)
         wp_if_destruct
-        · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth hAuthB s E v.auth v.cca ctx cd $$ [Hard]
+        · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth s E v.auth v.cca ctx cd $$ [Hard]
             as %au %aerr ⟨Hard, Hau, #HaE, #Hab⟩
           · iframe Hard; iframe #
             iunfold mvcc.txnCtx; iright; iexact Hctx
@@ -680,7 +679,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0
   iintro %Φ Hpre HΦ
-  iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth (fun h => by cases h)
+  iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth
     hRT hM hTO hSp hPE hED hFB hSec hWL s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
   · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
     ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok

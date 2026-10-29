@@ -81,7 +81,8 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     srvAppliedInvM on s E γr ∗ srvKVInvsM on E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
-    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping)
+    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode))
 
 instance srvReadFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAtM on s E γr v) := by

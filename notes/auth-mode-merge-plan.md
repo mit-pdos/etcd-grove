@@ -147,3 +147,87 @@ mechanical and request groups).
 - **`backend-cmp`** (`/shared/etcd-grove-be`): in `storage/mvcc` and `storage/backend`; its
   server-side touches (`hookStep`, the put/`UnsafeDelete` premises, `srvWTPool`) are invariant and
   hook files, not these specs. Little overlap.
+
+## Progress (branch `auth-mm`, worktree `/shared/etcd-grove-amm`, started 2026-10-29)
+
+**Step 0.** `auth-e3zc` (C1's A1-A3) merged into `lean` (`0bb0334b84`); M2 paused behind
+`backend-cmp` (the user's order, relayed 2026-10-29).
+
+**Step 1 done** (internal predicates; decided by the agent): `srvApplyKVM`, `kvAppliedM`
+(`AppliedOn.lean`), `srvLessorNilM` (`UberOn.lean`), `entryOkM` (`ApplyNormalOn.lean`),
+`isServerRunM` (`RunOn.lean`), each a `match on` with `_false`/`_true` lemmas by `rfl`.
+
+**Step 2, the spec review** (`spec-reviewer`, 2026-10-29) of two candidates on `applyAll`: (A) a
+`Bool` parameter, today's `specM on`; (B) no parameter, the mode the environment's. It
+recommends B, amended:
+- B as drafted claimed the mode-`on` spec at `.any` (`AuthMode.any.isOn = true`), which no proof
+  covers: exclude it (`E.authMode ≠ .any`);
+- the flag is `E.authOn`, and a postcondition row about `E'` uses `E'.authOn`;
+- the premises only `on` needs (`srvLessorNil`, `receiptBound ≤ 2^48`, `Put`'s non-empty key)
+  stay gated by the mode.
+
+Its findings:
+- B's premise `E.authOn = false` on today's off spec costs nothing: the off precondition is
+  contradictory at `E.authOn = true` (`kvInv_ch0_off`, `applyKV_authOn`), and every off client
+  builds `.off`.
+- A's corollary `spec := specM false` fails at an `.on` environment (`srvTokRights` is a real
+  resource there).
+- A keeps the exported results split (`server_*`/`server_*_on`).
+
+Decided by the agent:
+- the gating of the `on`-only premises (the reviewer's "no unneeded premise"; it leaves the
+  off statements' premises as they are);
+- `sa` bound and unconstrained off.
+
+For the user (a top-level and structural choice, "Who decides"): A or B; under B, the nine
+existing `specM (on : Bool)` converted in this stage, and the exported results' pairs merged.
+
+**Step 2 decided by the user (2026-10-29):** B, as amended by the reviewer: one spec per function
+with no mode parameter, the mode `E.authOn` (`.any` excluded); the nine `specM (on : Bool)`
+converted in this stage; each pair of exported results (`server_*`/`server_*_on`, v3rpc's
+`*_of_server`/`*_of_serverOn`) merged into one.
+
+**Step 3, as far as it goes (2026-10-29).** Merged, one spec at `E.authOn` each:
+`snapshotIfNeededAndCompactRaftLog` (its two proofs one), `setAppliedIndex` and `setTerm` (their
+`specM` gone; `apply`'s two proofs take `spec`, the off one obtaining `E.authOn = false` by
+`authOn_false_of_off`). Transitional corollaries for callers not yet merged: `ModeSpecs.lean`
+(`snapshotIfNeededAndCompactRaftLog.spec_off`/`spec_on`, used by `applyAll`'s two proofs).
+
+**Blocked: the rest of steps 3-5, by linking** (found 2026-10-29; the plan missed it). A merged
+spec's one proof needs its auth-on proof's callees, and those are variant families, not `.spec`:
+- `apply` needs `applyEntryNormal.specOn`, whose proof takes `apply.Apply.kvSpecL`,
+  `authApplierV3.*.specL`, `applierV3backend.*.fuelSpecX`/`specX`, `adminEntryOn.spec`, ...
+  (linked in `Results.lean`: `server_apply_entry_normal_on`, over `apply_apply_kv_latest`, ...);
+- the request path (`processInternalRaftRequestOnce`, `raftRequest`, `doSerialize`, so `Put`,
+  `DeleteRange`, `Range`) needs `AuthInfoFromCtx.boundSpec` (`AuthBound.lean`), a stronger
+  precondition (`isReqAuthBound`), not a mode of `spec`;
+- every function above them (`applyEntries`, `applyAll`, `run`, `start`, `Start`) through these.
+`etc/gen-link.py` passes each callee as `wp_<callee> : <callee>.spec`, so the merged
+`apply.spec`, ..., `Start.spec` cannot be linked in `Link.lean` until those families are merged into
+their functions' `.spec`. Linking them in `Results.lean` instead (as the `_on` chain is today) would
+take them out of `Link.lean`, which the examples' Links (`EtcdServer.wp_Start`) and
+`etc/verified-code.py` read: verified code would become unverified. Nor can a leaf (`getAppliedIndex`,
+`AppliedIndex`, `parseProposeCtxErr`) go first: its callers' `specM on` take a free `on`, not
+`E.authOn`. `NewServer.specM on` is a different case: `on` is the configuration's choice, made
+before there is an `E`; it may stay a parameter.
+
+**Recommendation (for the user):** do step 6's family decisions first, bottom-up from the leaves
+the chains need: `AuthInfoFromCtx.boundSpec` into `spec` (then the request path, step 5, and the
+`specM` leaves), then `applyEntryNormal`'s families (then `apply` and the rest of step 3, and
+step 4). Merging a family into a `.spec` changes that function's spec, an escalation trigger.
+Ready for when it resumes: the merged `apply.spec` (drafted) and the
+`M` lemmas of its proof (`srvApplyKVM_small`/`_idxCert`/`_ua_rt`, `srvWTPool_take_nM`,
+`entryOkM_of_shape`, `srvApplyKVM_appliedPub`, `kv_cc_stepM`; compiled) and `applyEntryNormal.specE`, the bridge, parked on branch `auth-mm-apply-wip` (`notes/auth-mm-drafts/`):
+unused until then).
+
+**`AuthInfoFromCtx`'s family merged** (branch `auth-bound`, 2026-10-29; `notes/decisions.md`,
+"`AuthInfoFromCtx`: one spec, the binding gated by the mode"). The user chose G (the binding gated
+by `⌜M.isOn = true⌝`, `M` a binder) and, for the guards, the same gate: one spec each for the
+server's `checkMembershipOperationPermission` and `requireAuthInfo` and v3rpc's
+`AuthAdmin.isPermitted`, `AuthAdmin.requireAuthInfo`, `authMaintenanceServer.requireAuthInfo`,
+`serverWatchStream.isWatchPermitted`, whose posts carry the gated binding (`adminOutB`,
+`authedOutB`, `principalBoundI`). `boundSpec`, `AuthInfoFromCtx_bound`, `GuardBound.lean`,
+`WatchBound.lean` and the seven `*_bound` exported results are gone: the guards' linked results
+now state the binding. `AuthInfoFromCtx.wpM`'s `hAuthB` premise is gone, so the request path's
+proofs link over `.spec` alone. Next: the request path's mode merge (step 5), then
+`applyEntryNormal`'s families.

@@ -180,6 +180,7 @@ instance adminNilOk_persistent (st : GoInterface) (RD : IProp GF) (M : auth.Auth
 def srvAuthAt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
     structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗
     apply.isAuthStore st E.γ P f E.RD E.authMode E.RW)
 
@@ -215,7 +216,7 @@ theorem srvAdminNilOk_of_srvAuthAt (s : Loc) (E : apply.AEnv GF) :
     srvAuthAt s E ⊢ srvAdminNilOk s E := by
   iintro H
   iunfold srvAuthAt at H
-  icases H with ⟨%st, %cca, %P, %f, #Has, -, -, #Hast⟩
+  icases H with ⟨%st, %cca, %P, %f, #Has, -, -, -, #Hast⟩
   iunfold srvAdminNilOk
   iexists st
   iframe Has
@@ -233,7 +234,7 @@ theorem srvAuthAt_of_views (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iunfold isServerRead at Hr
   icases Hr with ⟨%vr, Hr⟩
   iunfold srvReadFieldsAt at Hr
-  icases Hr with ⟨-, -, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -⟩
+  icases Hr with ⟨-, -, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
   icombine Has Has2 gives %Heq
   ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
   · rw [← Heq]; iexact Hreq

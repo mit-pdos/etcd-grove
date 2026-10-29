@@ -42,6 +42,8 @@ theorem v3rpc.authInfoIs_ptsto' (a : Loc) (user : GoString) (rev : w64) :
     iframe Hu Hr
   · ipureintro; exact Hn
 
+/-- One proof for both modes (the auth-mode merge, 2026-10-29: the former `wp_proof` and
+(`isWatchPermitted_bound`): the binding under the mode's gate). -/
 theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -51,7 +53,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   iunfold v3rpc.swsIs at Hs
   icases Hs with ⟨%Hnn, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
   iunfold v3rpc.watchSrvOk at Hok
-  icases Hok with ⟨-, -, -, ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hcca, #Has2⟩, -⟩
+  icases Hok with ⟨-, -, -, ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr
   icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, -⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -61,7 +63,8 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   (try wp_auto)
   wp_apply Hctx
   (try wp_auto)
-  wp_apply (hAI r.srv.s st r.srv.E.RD cca r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr⟩
+  wp_apply (hAI r.srv.s st r.srv.E.RD r.srv.E.authMode cca
+      r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
   · iframe #
     iunfold mvcc.txnCtx
     iright; iexact Hic
@@ -78,7 +81,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   iunfold apply.permCheck3 at HIRP
   ihave %Hksl := ownSlice_len _ _ _ $$ Hks
   iunfold authInfoOpt at Ha
-  icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
+  icases Ha with (%Han | ⟨%user, %rev, #Hau⟩)
   · subst Han
     (try wp_auto)
     wp_apply (hAS r.srv.s st)
@@ -96,8 +99,13 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iintro %h
     subst h
     iexists _
-    iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
-  · ihave #Hap := v3rpc.authInfoIs_ptsto' a user rev $$ Hau
+    isplitl
+    · iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
+    iintro !> -
+    iunfold principalBoundI
+    ileft; ipureintro; rfl
+  · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
+    ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) a user rev $$ [$Hb $Hau]
     iunfold authInfoIs at Hau
     icases Hau with ⟨%Hann, -, -⟩
     (try wp_auto)
@@ -118,7 +126,11 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iintro %h
     subst h
     iexists _
-    iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
+    isplitl
+    · iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
+    iintro !> %h
+    iunfold principalBoundI
+    iright; iapply Hpb; ipureintro; exact h
 
 end proof
 

@@ -27,6 +27,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+/-- One proof for both modes (the auth-mode merge, 2026-10-29: the former `wp_proof` and
+(`requireAuthInfo_bound`)). -/
 theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof
     (hP : v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG) := by

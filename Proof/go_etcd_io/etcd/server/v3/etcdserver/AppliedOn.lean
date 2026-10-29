@@ -268,7 +268,108 @@ def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 
+/-- **The apply thread's applier state in the mode `on`** (the auth-mode merge's step 1,
+2026-10-29): `srvApplyKV` off (the auth state `st` unused), `srvApplyKVOn` on. -/
+def srvApplyKVM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) : IProp GF :=
+  match on with
+  | false => srvApplyKV s E γw x
+  | true => srvApplyKVOn s E γw x st
+
+theorem srvApplyKVM_false (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) : srvApplyKVM (GF := GF) false s E γw x st = srvApplyKV s E γw x := rfl
+
+theorem srvApplyKVM_true (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) : srvApplyKVM (GF := GF) true s E γw x st = srvApplyKVOn s E γw x st :=
+  rfl
+
+/-- **The KV model's applied state in the mode `on`** (step 1): `kvApplied` off (the start's auth
+state `st₀` and the latest `st` unused), `kvAppliedOn` on. -/
+def kvAppliedM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) : IProp GF :=
+  match on with
+  | false => kvApplied γ γk A x
+  | true => kvAppliedOn γ γk st₀ A x st
+
+theorem kvAppliedM_false (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) :
+    kvAppliedM (GF := GF) false γ γk st₀ A x st = kvApplied γ γk A x := rfl
+
+theorem kvAppliedM_true (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) :
+    kvAppliedM (GF := GF) true γ γk st₀ A x st = kvAppliedOn γ γk st₀ A x st := rfl
+
 end server
+
+section offlemma
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open Iris.ProofMode in
+/-- **The mode-off apply thread is in an environment with auth off** (the auth-mode merge,
+2026-10-29: what a mode-off caller passes to a merged spec's `E.authOn = false`): the KV
+invariant's start chain has the auth layer off (`kvInv_ch0_off`), the applier state's chain is it
+(`kvApplied`), and the applier's chain's auth layer is the environment's (`applyKV_authOn`). -/
+theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γw : GName) (x : apply.ApplyKV)
+    (A : List EntryModel) :
+    isServer (GF := GF) s γ ci TM E ρ γr ∗ srvApplyKV s E γw x ∗ kvApplied γr.raft γr.kv A x ={⊤}=∗
+      ⌜E.authOn = false⌝ ∗ srvApplyKV s E γw x ∗ kvApplied γr.raft γr.kv A x := by
+  iintro ⟨#Hsrv, Hkv, Hka⟩
+  iunfold isServer at Hsrv
+  icases Hsrv with ⟨-, -, -, Hat, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hki⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨#Hki, -⟩
+  imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %Hch
+  iunfold srvApplyKV at Hkv
+  icases Hkv with ⟨%ua, Hua, Hap, Hakv, Hrest⟩
+  icases applyKV_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
+  iunfold kvApplied at Hka
+  icases Hka with ⟨Hka, %Hx⟩
+  imodintro
+  isplitr
+  · ipureintro
+    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+  isplitl [Hua Hap Hakv Hrest]
+  · iunfold srvApplyKV
+    iexists ua
+    iframe Hua Hap Hakv; iexact Hrest
+  iunfold kvApplied
+  iframe Hka
+  ipureintro; exact Hx
+
+/-- **With the mode-`off` start state, auth is off** (`authOn_false_of_off`'s reasoning at the apply
+thread's start, `kvRun`; the auth-mode merge, 2026-10-29: `start`'s reader view's gated row). -/
+theorem authOn_false_of_run (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterface)
+    (x : apply.ApplyKV) (ai₀ c₀ : w64) (A : List EntryModel) :
+    srvKVInvs (GF := GF) E γr ∗ apply.applyKV E ua x ∗ kvRun γr ai₀ c₀ A x ={⊤}=∗
+      ⌜E.authOn = false⌝ ∗ apply.applyKV E ua x ∗ kvRun γr ai₀ c₀ A x := by
+  iintro ⟨#Hki, Hakv, Hkr⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨#Hki, -⟩
+  imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %Hch
+  icases applyKV_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
+  iunfold kvRun at Hkr
+  icases Hkr with ⟨Hka, %Hr⟩
+  iunfold kvApplied at Hka
+  icases Hka with ⟨Hka, %Hx⟩
+  imodintro
+  isplitr
+  · ipureintro
+    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+  iframe Hakv
+  iunfold kvRun
+  iunfold kvApplied
+  iframe Hka
+  ipureintro; exact ⟨Hx, Hr⟩
+
+end offlemma
+
 
 end EtcdGrove
 end Perennial

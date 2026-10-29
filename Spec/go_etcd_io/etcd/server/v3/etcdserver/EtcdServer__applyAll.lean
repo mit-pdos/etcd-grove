@@ -106,7 +106,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
 
 
 /-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27): over `applyEntries.specOn`
-and `snapshotIfNeededAndCompactRaftLog.specOn` (the server with auth on, `logShapeOn`, the applier
+and `snapshotIfNeededAndCompactRaftLog.spec` at auth on (the server with auth on, `logShapeOn`, the applier
 row at the model's auth state `sa`, the apply thread at the mode-`on` model; the lessor finding no
 lease, the receipts' bound); after the batch at the model's state after `A ++ unapplied ai ms` (its
 auth state `sa'`). No snapshot is applied (`taSnapshotAddr ap ↦□ null`), so the backend stays. -/

@@ -56,7 +56,7 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
 views in the mode (`isServerReqM on`, `isServerReadM on`; `spec` at `on = false`, by definition).
 `doSerialize` reads only fields both modes share. With auth on (E3zb, 2026-10-28) the auth info
 `chk` passed on is the caller's (`infoBoundM`: the empty one, or bound to the context's token),
-given `AuthInfoFromCtx`'s binding (`AuthInfoFromCtx.boundSpec`, a premise of the proof). -/
+given `AuthInfoFromCtx`'s binding with auth on (`AuthInfoFromCtx.spec`). -/
 abbrev EtcdServer.doSerialize.specM (on : Bool) : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)

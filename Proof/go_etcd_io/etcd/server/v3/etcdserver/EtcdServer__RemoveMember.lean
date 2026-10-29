@@ -38,6 +38,7 @@ theorem EtcdServer.RemoveMember.wp_proof
   (try wp_auto)
   wp_apply (hChk s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
   · iframe #
+  ihave #Hout := adminOut_of_adminOutB _ _ _ _ $$ Hout
   iunfold adminOut at Hout
   icases Hout with ⟨#Herr, #Htok⟩
   (try wp_auto)
