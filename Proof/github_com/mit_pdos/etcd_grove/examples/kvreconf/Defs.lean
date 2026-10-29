@@ -25,7 +25,11 @@ minted, so a fresh id or sequence number mints a datum nobody had.
 **Conf entries' shape.** Every committed requested conf entry decodes to a change of a defined
 transition (`ConfShaped`, `Rule.lean`): what `Reconfigure` proposes. With raft's automatic leaves
 (outside `opsOf`), every committed conf entry is shaped (`confShaped_of_ops`): `applyEntry` decodes
-it, `validConf` takes its transition.
+it, `validConf` takes its transition. These are all the conf entries a committed log holds: the
+client's requests (`ProposeConfChange`'s update, `confShaped_proposed`) and raft's automatic leaves
+(empty `ConfChangeV2`s, dropped by `opsOf`, decoded by `ccDecodeV2_nil`); there is no bootstrap log,
+every replica starting by `RestartNode` on the bootstrap `ConfState`. (So kvreconf needs neither
+raft's `committed_confDecodes` nor `committed_emptyV2_joint`.)
 
 ## A replica (`lockInv`, `repOwn`)
 
