@@ -765,24 +765,26 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hxw : s'.gh.xw = s.gh.xw := by rfl)
-    (hld : s'.lead = s.lead := by rfl)
+    (hld : s'.lead = s.lead := by rfl) (hro : s'.role = s.role := by rfl)
     (hst : s'.gh.sn = s.gh.sn := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
+  have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW; rw [hxw]
+  have hlw : leadW (GF := GF) γ id (toPState s') = leadW γ id (toPState s) := by
+    have hl' : (toPState s').lead = (toPState s).lead := by
+      show (if s'.role = .preCandidate then W64 0 else s'.lead) =
+        (if s.role = .preCandidate then W64 0 else s.lead)
+      rw [hro, hld]
+    unfold leadW; rw [hl', ht]
   cases md with
-  | static => simp only [ghostRest, ghostRestM]; rw [hn, hst]
+  | static => simp only [ghostRest, ghostRestM]; rw [hn, hst, hx, hlw]
   | dyn dec c0 h0 g =>
     simp only [ghostRest, ghostRestM]
-    rw [hn, hst]
-    iintro ⟨%Hnl, ⟨%H, #HM, #Hfr, #Hc⟩, #Hcl⟩
+    rw [hn, hst, hx, hlw]
+    iintro ⟨%Hnl, ⟨%H, #HM, #Hfr, #Hc⟩, #Hcl, #Hw, #Hx⟩
     isplitr
     · ipureintro; exact Hnl
-    isplit
-    rotate_left
-    · iexact Hcl
+    iframe Hcl Hw Hx
     obtain ⟨HD, hc', HI⟩ := H
     iframe HM
     have hfull : (rOf s' g).full = (rOf s g).full := by
@@ -797,7 +799,6 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     rw [hfull, ht, hc]
     iapply Hc
     rw [← hr]; exact hcand
-  -/
 
 /-- (D22 S-b′4, 2026-10-20) What the step needs of the mode: statically, once the `ConfState` names
 the node (the restore exit: `restore` refuses it otherwise), a non-joint `ConfState` with the ghost
