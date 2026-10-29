@@ -25292,7 +25292,8 @@ the same transaction returned).
 
 ### The store's batch limit at most 2^56 (the backend-compaction stage, 2026-10-29)
 
-**2026-10-29 · taken (the user's: decision O3, its premise placed after review round 2)**
+**2026-10-29 · taken (decision O3 the user's; the premise placed on every store by the agent after
+review round 2, accepted by the user after review round 3)**
 
 A **scope premise**: `mvcc.batchLimitOk cfg.CompactionBatchLimit'` (`0 ≤ x ∧ x ≤ 2^56`) replaces the
 premise `0 ≤ CompactionBatchLimit` of `NewStore`, `mvcc.New`, `newWatchableStore` and `NewServer`
@@ -25304,5 +25305,5 @@ start below the backend's `P.limit ≤ 2^57`) must stay within the backend's cou
 restricts the configuration the results cover (etcd's default is 1000; the examples' configs
 leave it `0`, the default). Placed on every store, not only the real backend's compacting instance
 (review round 2 suggested scoping it there): the range's clause is one statement for every
-instance, so its premise is; scoping it would need a parameter of the contract (a finding for
-review round 3).
+instance, so its premise is; scoping it would need a parameter of the contract; review round 3 put
+the placement to the user, who accepted it (2026-10-29).

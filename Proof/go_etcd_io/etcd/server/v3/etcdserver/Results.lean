@@ -789,7 +789,8 @@ proved): the backend made for the real instance, its post-lock hook set for good
 genuine assumption, nothing in etcd bounds a bucket's size), the clients' view of the empty
 `Key` bucket, the lock resource's registration right, `N + 2` write-back tokens (`NewStore`
 spends two) and a reader token per reader slot; and, since the merge with the store's compaction
-(unit 5a, 2026-10-13), `NewStore`'s premise on its configuration (`0 ≤ CompactionBatchLimit`).
+(unit 5a, 2026-10-13), `NewStore`'s premise on its configuration (`mvcc.batchLimitOk`:
+`0 ≤ CompactionBatchLimit ≤ 2^56`, the backend-compaction stage's scope premise).
 The store is never compacted here: `NewStore`'s half of the compaction revision's authority is
 given up (`crevFrozen_alloc`), so its readers are those of a never-compacted store
 (`storeReader`); the backend records no compaction (`bkNoCmp`, `NewStore`'s: D19l (v) (A), D22 S-g),

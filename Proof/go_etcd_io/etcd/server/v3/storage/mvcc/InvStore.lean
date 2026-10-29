@@ -1034,7 +1034,8 @@ abbrev rangeLimitMax : Int := 2 ^ 56
 
 /-- **The store's batch limit** (the configuration's `CompactionBatchLimit`; `NewStore`'s premise): not
 negative (`issues/etcd-compaction-negative-batch-limit.md`: `NewStore` replaces `0` by the default,
-and a negative one would make the job's loop read nothing), and at most `rangeLimitMax` (the
+and a negative one makes the job's loop run forever: its range then reads nothing and the
+loop never reaches its end condition), and at most `rangeLimitMax` (the
 backend-compaction stage's scope premise, decision O3 and review round 2: the job's range then
 stays within the backend's count; Go has no such bound, so it is a restriction of the configuration
 the results cover, `notes/decisions.md`). -/
@@ -1061,17 +1062,20 @@ readable through some `Rd` under a token `T` the lock token is lent as until the
 backend's `batchLocked` at the session's state, whose bbolt transaction the slices are of), but
 for a key compaction may have deleted (`Del k`: no key and no value).
 
-**Compaction** (2026-10-13, unit 5a; `notes/decisions.md`, "mvcc: compaction"):
+**Compaction** (2026-10-13, unit 5a; `notes/decisions.md`, "mvcc: compaction"; restated by the
+backend-compaction stage, review rounds 1-2):
 `LockOutsideApply()` with the deposit witness `Dep` (`batchTxInitSpec`'s first `Unlock` returns
 it) gives `W` (the compaction job's lock, after `NewStore`). Where the backend supports mvcc's
-compaction (`Cmp`): `UnsafeDelete(schema.Key, k)` of a key compaction may delete (`Del k`, the
-store's choice: `delKey`) leaves the token as it is (the logical bucket the view holds is not
-changed: the deletion shows only in what later reads may miss, `snapThin`);
-`UnsafeRange(schema.Key, lo, hi, limit)` with a positive limit reads the first `limit` entries in
-`[klo, khi)`, in key order, of the bucket with the puts so far, some keys compaction may delete
-missing (read-only slices); `UnsafePut(schema.Meta, k, v)` at a compaction key
-(`metaCompactKey`) of a value the store writes there (`metaRevVal`) leaves the token as it is
-(the store's record of the meta keys is its own, `metaCompact`).
+compaction (`Cmp`): `UnsafeRange(schema.Key, lo, hi, limit)`, from a fresh session's lock
+(`Locked []`) with `0 < limit ≤ rangeLimitMax`, reads the first `limit` entries in `[klo, khi)`, in
+key order, of the bucket, some keys compaction may delete missing (`snapThin`), and ends the session
+in a delete-only token `U (limit + 1)` (the lessor's `unlockAt` precedent): its slices are lent,
+readable under any `U n` (`rdCap`/`rdCap2`: bbolt's slices die at the session's commit); a key it
+returned that compaction may delete (`Del k`, the store's `delKey`) is deleted, and a compaction key
+(`metaCompactKey`) put into `Meta` with a value the store writes there (`metaRevVal`), each from
+`U (n + 1)` to `U n`, the view unchanged (the deletion shows only in what later reads may miss);
+`Unlock` takes any `U n`. A `Meta` put on its own (`metaPutCap`) goes from `Locked []` to such a
+token. The store's record of the meta keys is its own (`metaCompact`).
 
 **The lessor's delete** (leases T3, 2026-10-25; `notes/leases-plan.md`): `lessor.Revoke` deletes
 the lease's record from the `Lease` bucket under the lock of the KV write transaction its range
