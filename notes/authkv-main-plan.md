@@ -325,3 +325,14 @@ Laws `Main` needs besides: `akHist_alloc` (S1, once `SetUp` gives back the clien
 `setupRev`), S6's `akAuthFixed_alloc` (from `SetUp`'s admin results and 5b's frozen view; drafted
 when 5b is), and the watch's events in `σ.revEvents r` at their `ModRevision` (part of G2's spec:
 the events a watch reports are the state's, `watchStateRespOk`).
+
+## Step 5 landed on `auth-req` (2026-10-29; not yet in `lean`)
+
+The merge session's step 5 (`auth-req`, `8054714322`) gives what S1/S2 were drafted against:
+`kvAu1G … (writeGrantG ρ.kv srvAuthSt0 Gb (irrPut op) L₀) Q` with `srvReqLogLb ρ.raft L₀` in the
+auth-on write permits (`putPermitOn`, `deletePermitM`), one spec per server function at
+`E.authOn`, and the laws `grantedAt_iff`, `kvGranted_emptyUser`, `srvTLSId_false` (from
+`ClientCertAuthEnabled ↦□ false`: the source of `Work.spec`'s `□ (srvTLSId s -∗ False)`). Once it
+is in `lean` and this branch is rebased: `Hist.lean`'s stand-in `kvAu1G` goes (the real one, same
+shape and mask, `InvRequest.lean`), and `akHist_writeAu` is at its `G`. 5b brings the rest
+(`authHistView` in the boot results, `srvAuthSt0_disabled`, `etcd_noOtherRefusal`, 2a).
