@@ -311,6 +311,113 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (l : List 
   unfold isCluster isCommittedLogLb confAt ownSnapsMade snapshotCert
   exact ApiImpl.snapshotCert_make_impl γ N E HE l i t d m cs S Hlen Hlast Hok Hcs
 
+end api
+
+section validLists
+variable [GooseExts]
+
+/-- (raft-final, 2026-10-29, for kvreconf) **A valid membership's `ConfState` has well-formed lists**
+(`SnapListsOk`, `snapshotCert_make`'s premise), given what `Restore` needs beyond validity (no id `0`,
+no staged learner that is an incoming voter: `Membership.Restorable`'s two clauses, here spelled out:
+`ConfchangeApi.lean`'s `Membership.Valid.snapListsOk'` takes `Restorable`), fewer than `2^61` ids and
+the index below `2^61`. -/
+theorem Membership.Valid.snapListsOk {m : Membership} {cs : ConfStateM} {t i : w64} {d : List w8} :
+    m.Valid → confStateIs cs m → W64 0 ∉ m.ids → (∀ k, k ∈ m.learnersNext → k ∉ m.voters) →
+    GMap.size m.ids < 2 ^ 61 → uint.Z i < 2 ^ 61 →
+    SnapListsOk ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩ := by
+  intro hv hcs h0 hln hsz hi
+  obtain ⟨⟨⟨_, hInv2, hInv3, hInv4⟩, hne, _⟩, _⟩ := hv
+  obtain ⟨pv, po, pl, pln, _⟩ := hcs
+  simp only [ApiImpl.stOf, cfgStateC, ApiImpl.cfgOf] at hInv2 hInv3 hInv4 hne
+  have mem : ∀ {L : List w64} {X : GSet w64} (x : w64), L.Perm (elements X) → (x ∈ L ↔ x ∈ X) :=
+    fun x hp => by rw [hp.mem_iff, GMap.elem_of_elements]
+  have hids : ∀ x, x ∈ m.ids ↔ x ∈ m.voters ∨ x ∈ m.votersOutgoing ∨ x ∈ m.learners ∨
+      x ∈ m.learnersNext := by
+    intro x; simp only [Membership.ids, GMap.elem_of_union, or_assoc]
+  -- the sizes: voters, learners, staged learners are disjoint, all inside the ids
+  have hdisj : (elements m.voters ++ elements m.learners ++ elements m.learnersNext).Nodup := by
+    simp only [List.nodup_append, GMap.NoDup_elements, true_and, List.mem_append,
+      GMap.elem_of_elements]
+    refine ⟨fun a ha b hb e => ?_, fun a ha b hb e => ?_⟩
+    · subst e; exact (hInv3 a hb).2.1 ha
+    · subst e
+      rcases ha with ha | ha
+      · exact hln a hb ha
+      · have h1 := (hInv2 a hb).2; have h2 := (hInv3 a ha).2.2; rw [h1] at h2; cases h2
+  have hsub : GMap.listToSet (elements m.voters ++ elements m.learners ++ elements m.learnersNext) ⊆
+      m.ids := by
+    rw [GMap.elem_of_subseteq]; intro x hx
+    rw [GMap.elem_of_list_to_set] at hx
+    simp only [List.mem_append, GMap.elem_of_elements] at hx
+    rw [hids]
+    rcases hx with (h | h) | h
+    · exact .inl h
+    · exact .inr (.inr (.inl h))
+    · exact .inr (.inr (.inr h))
+  have h3 := GMap.subseteq_size hsub
+  rw [GMap.size_list_to_set _ hdisj] at h3
+  simp only [List.length_append, GMap.length_elements] at h3
+  have hosub : m.votersOutgoing ⊆ m.ids := by
+    rw [GMap.elem_of_subseteq]; intro x hx; rw [hids]; exact .inr (.inl hx)
+  have ho := GMap.subseteq_size hosub
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hi⟩
+  · intro he
+    apply hne
+    apply GMap.set_eq; intro x
+    refine ⟨fun hx => ?_, fun hx => absurd hx (GMap.not_elem_of_empty x)⟩
+    have := (mem x pv).2 hx; change cs.Voters' = [] at he; rw [he] at this; simp at this
+  · intro x hx he; subst he
+    simp only [ConfStateM.lists] at hx
+    apply h0; rw [hids]
+    rcases hx with h | h | h | h
+    · exact .inr (.inl ((mem _ po).1 h))
+    · exact .inl ((mem _ pv).1 h)
+    · exact .inr (.inr (.inl ((mem _ pl).1 h)))
+    · exact .inr (.inr (.inr ((mem _ pln).1 h)))
+  · intro x hx
+    simp only [ConfStateM.lists] at hx ⊢
+    rw [mem x pl] at hx; rw [mem x pv, mem x po]
+    exact ⟨(hInv3 x hx).2.1, (hInv3 x hx).1⟩
+  · intro x hx
+    simp only [ConfStateM.lists] at hx ⊢
+    rw [mem x pln] at hx; rw [mem x po, mem x pv, mem x pl]
+    refine ⟨(hInv2 x hx).1, hln x hx, fun hl => ?_⟩
+    have h1 := (hInv2 x hx).2; have h2 := (hInv3 x hl).2.2; rw [h1] at h2; cases h2
+  · intro hvo
+    simp only [ConfStateM.lists] at hvo ⊢
+    have : m.votersOutgoing = ∅ := by
+      apply GMap.set_eq; intro x
+      refine ⟨fun hx => ?_, fun hx => absurd hx (GMap.not_elem_of_empty x)⟩
+      have := (mem x po).2 hx; simp [hvo] at this
+    have := (hInv4 this).1
+    rw [this] at pln
+    have he : elements (∅ : GSet w64) = [] :=
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+    rw [he] at pln; exact pln.eq_nil
+  · exact pv.nodup_iff.2 (GMap.NoDup_elements _)
+  · exact pl.nodup_iff.2 (GMap.NoDup_elements _)
+  · exact po.nodup_iff.2 (GMap.NoDup_elements _)
+  · exact pln.nodup_iff.2 (GMap.NoDup_elements _)
+  · simp only [ConfStateM.lists, pv.length_eq, pl.length_eq, po.length_eq, pln.length_eq,
+      GMap.length_elements]
+    omega
+  · intro hvo
+    simp only [ConfStateM.lists] at hvo
+    have : m.votersOutgoing = ∅ := by
+      apply GMap.set_eq; intro x
+      refine ⟨fun hx => ?_, fun hx => absurd hx (GMap.not_elem_of_empty x)⟩
+      have := (mem x po).2 hx; simp [hvo] at this
+    exact (hInv4 this).2
+
+end validLists
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **What a certificate says**: the snapshot is of a committed prefix of its length and last term,
 at the membership after it (which its lists and auto-leave flag report), and was made. -/
 theorem snapshotCert_made (γ : Cluster) (N : Namespace) (k : SnapTrip) :

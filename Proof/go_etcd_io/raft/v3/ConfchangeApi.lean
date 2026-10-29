@@ -126,6 +126,14 @@ theorem Membership.applyChange_restorable {o : ConfChangeIM} {m m' : Membership}
     · cases h; exact Membership.applyGo_restorable hw hr hg
     · cases h
 
+/-- (raft-final, 2026-10-29, for kvreconf) `Membership.Valid.snapListsOk` (`InvNodeRule`) with
+`Restorable`: a valid, restorable membership's `ConfState`, at fewer than `2^61` ids and an index
+below `2^61`, has the lists `snapshotCert_make` takes (`SnapListsOk`). -/
+theorem Membership.Valid.snapListsOk' {m : Membership} {cs : ConfStateM} {t i : w64} {d : List w8} :
+    m.Valid → m.Restorable → confStateIs cs m → GMap.size m.ids < 2 ^ 61 → uint.Z i < 2 ^ 61 →
+    SnapListsOk ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩ :=
+  fun hv hr hcs hsz hi => Membership.Valid.snapListsOk hv hcs hr.1 hr.2 hsz hi
+
 end pure
 
 section defs

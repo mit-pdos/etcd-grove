@@ -1151,6 +1151,17 @@ Phase 2 (internal statement changes):
   without `reNoXfer = false`. New lemma module `LemmasP5NodeErr.lean` (the raw errors' intros and the
   bridges `nodeErrRaw_nodeErrS`, `propErrRaw_propErrS`, `nodeStoppedRaw_nodeStopped`).
 
+- New public laws (the coordinator's request, for kvreconf, 2026-10-29): `Membership.Valid.snapListsOk`
+  (`InvNodeRule`): `m.Valid → confStateIs cs m → W64 0 ∉ m.ids → (∀ k ∈ m.learnersNext, k ∉
+  m.voters) → GMap.size m.ids < 2^61 → uint.Z i < 2^61 → SnapListsOk ⟨⟨t, i⟩, cs.lists, m.autoLeave,
+  d⟩`, and `Membership.Valid.snapListsOk'` (`ConfchangeApi`), the same law with `m.Restorable` in place
+  of the two clauses. Deviation from the request: the requested statement lacked the `Restorable`
+  premises, and without them it is false (`Valid` allows the id `0` and a staged learner that is an
+  incoming voter, while `CSWf` excludes both).
+- `raft.Step.spec`'s `%Hframe` (internal): `MsgTransferLeader` is excluded from `NetFrame`, with a
+  clause of its own (`NetFrame s { s' with gh := s.gh }`, and `s'.gh` is `s.gh` but for `xw`). Why: the
+  forward records `(lead, term)` in `s.gh.xw`, so `s'.gh = s.gh` fails.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
