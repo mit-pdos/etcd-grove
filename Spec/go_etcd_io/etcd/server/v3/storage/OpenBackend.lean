@@ -6,7 +6,9 @@ takes over 10 s). The trust boundary (D22 S-f, 2026-10-19; an axiom in
 `Proof/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`: the goroutine can panic, see
 `InvOpen.lean`'s `dbOpensOk`). Lean-first (no Rocq counterpart).
 
-The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`). The post: what
+The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`; since 2026-10-29 with
+`openMmapOk cfg`, a quota whose mmap size bbolt can map: `newBackend` panics otherwise,
+`notes/axiom-review/openbackend.md`). The post: what
 `backend.New` gives (`newPostK`: D22 receiver epochs, S8a, 2026-10-24, the creator's batch-lock
 step trades the fresh backend's payment rights `bFresh` for `K`, as `New`'s spec now says; until
 then `newPost`, which is `K := bFresh`), as a `Backend`, and, if `D` records no compaction

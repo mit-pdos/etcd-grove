@@ -105,6 +105,7 @@ theorem newServer.wp_proof
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
+    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
@@ -206,6 +207,7 @@ theorem newServer.wp_proofCompact
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
+    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
