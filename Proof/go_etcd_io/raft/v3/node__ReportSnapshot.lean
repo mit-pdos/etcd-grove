@@ -72,9 +72,6 @@ built into `msgIn` by `msgIn_of_scalar_struct`; `MsgSnapStatus.Enum()` is a new 
 private theorem node.ReportSnapshot.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReportSnapshot.specRaw (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ id n to st
   wp_start as #Hnode
   ihave #Hnode' := Hnode
@@ -111,7 +108,7 @@ private theorem node.ReportSnapshot.wp_raw
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
     · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl rfl
-        (by intro h; exfalso; revert h; first | decide | simp [MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]) $$ Hmsg Hlb Hcr Htc
+        $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
     wp_auto
@@ -134,7 +131,6 @@ private theorem node.ReportSnapshot.wp_raw
     itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
-  -/
 
 end proof
 

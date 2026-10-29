@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import Proof.go_etcd_io.raft.v3.InvApi
 
 @[expose] public section
@@ -52,7 +53,7 @@ private abbrev node.ForgetLeader.specRaw : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
       (Val #(interface.ok ctx)))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrRaw γ cd err }}
 
 end spec
 
@@ -71,9 +72,6 @@ private theorem node.ForgetLeader.wp_raw
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ForgetLeader.specRaw (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ id n ctx cd
   wp_start as ⟨#Hnode, #Hctx⟩
   wp_auto
@@ -96,12 +94,11 @@ private theorem node.ForgetLeader.wp_raw
     unfold stepP
     ileft
     iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl rfl
-        (by intro h; exfalso; revert h; first | decide | simp [MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]) $$ Hmsg Hlb Hcr Htc
+        $$ Hmsg Hlb Hcr Htc
   iintro %err #Herr
   wp_auto
   iapply HΦ
   iexact Herr
-  -/
 
 end proof
 
@@ -120,18 +117,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ForgetLeader_impl
     (hS : EtcdGrove.node.ForgetLeader.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ForgetLeader.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   unfold EtcdGrove.node.ForgetLeader.spec EtcdGrove.Cluster EtcdGrove.isNode
   intro n γ N id ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, -, #Hrn, -⟩
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, -⟩
   iapply (hS γn id n ctx cd) $$ []
   · iframe Hinit Hrn Hctx
-  iexact HΦ
-  -/
+  iintro !> %err #Herr
+  iapply HΦ
+  unfold EtcdGrove.nodeErrS EtcdGrove.nodeStopped
+  iapply nodeErrRaw_nodeErrS n γ N id γn cd err Hf
+  iframe Hrn Htab Herr
 
 end wrap
 
