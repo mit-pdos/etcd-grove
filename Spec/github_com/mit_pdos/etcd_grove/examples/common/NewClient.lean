@@ -37,7 +37,8 @@ abbrev NewClient.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.common.NewClient))
       (Val #addr)) (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
+        clientTokAt cl [addr] (fun _ => iprop(False))) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec

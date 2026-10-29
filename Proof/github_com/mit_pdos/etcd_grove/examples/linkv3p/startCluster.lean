@@ -280,7 +280,7 @@ theorem startCluster.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ileft; ipureintro; rfl
-  icases Hok₁ with ⟨%Hcerr, #Hnc₁⟩
+  icases Hok₁ with ⟨%Hcerr, #Hnc₁, -⟩
   subst Hcerr
   wp_auto
   wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
@@ -294,7 +294,7 @@ theorem startCluster.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ileft; ipureintro; rfl
-  icases Hok₂ with ⟨%Hcerr, #Hnc₂⟩
+  icases Hok₂ with ⟨%Hcerr, #Hnc₂, -⟩
   subst Hcerr
   wp_auto
   wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
@@ -308,7 +308,7 @@ theorem startCluster.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ileft; ipureintro; rfl
-  icases Hok₃ with ⟨%Hcerr, #Hnc₃⟩
+  icases Hok₃ with ⟨%Hcerr, #Hnc₃, -⟩
   subst Hcerr
   wp_auto
   -- `clis := []*clientv3.Client{cli1, cli2, cli3}`
