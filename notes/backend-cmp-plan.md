@@ -722,3 +722,36 @@ put and `metaReadTx` (`BParams.VI`). R5-4 done (the unused `vData_rebase`/`vData
   `metaRevVal` (3.3). The cindex's `metaReadTx` (`etcdserver/InvCindex.lean:207`, the consistent
   index's keys, proved over the real backend through the hook's keys) is the precedent to follow.
   The value invariant was not started: alone it closes nothing.
+
+## `metaReadTx` and `BParams.VI`: blocked on the trust base (2026-10-29, the user away)
+
+**Finding.** Restating mvcc's `metaReadTx` so the real backend can meet it (thread the backend's read
+token `RT` into `RLock`, give it back at `RUnlock`, lend the read slices against the held lock via
+`rdCap`, as the real backend's `readTx.RLock`/`UnsafeRange`/`RUnlock` specs require: `rdTok ∗ bOpen`,
+`rtHeld`, `kvsOutRd`) means restating `metaReadSpec` (`InvStore.lean:599`). That definition is also
+the statement of the **axiom `mvcc.kbNoCmp_metaNone`** (`NoCmpRead.lean`, the restore plan's R4c,
+D22's restore path), which gives `□ metaReadSpec rt true` with no token. So the restatement changes
+an axiom's statement (the trust base: the user's), and a token-threaded twin beside `metaReadSpec`
+would be a second spec family (the one-spec rule: the user's). Not done; no code changed.
+`checkPrevCompactionCompleted` itself would be fine: it is proved over mvcc's assumed backend
+(`storeCmp`, `kb = none`), where `kbRT none = True`.
+
+**Question for the user** (options):
+(a) generalize `metaReadSpec` with a lock token `Tok` and lent slices (`rdCap Rd Tok`), and restate the
+axiom `kbNoCmp_metaNone` over it (`Tok` and `Rd` from the `keyReadSnap`/`keyReadSnapC` it already
+takes) — the axiom stays a statement about a backend recording no compaction; the restore's proof and
+`UnsafeRead{Scheduled,Finished}Compact` (98/99 lines) adapt to read under the token. Recommended.
+(b) keep `metaReadSpec` and the axiom; give the compaction's `Cmp` clause its own token-threaded
+reads with a new name — a second family beside `metaReadSpec` (against the one-spec rule).
+Where the real backend's `RT` comes from at the compaction (the apply thread's `writerOwn` holds a
+`storeRT`; `store.Compact.spec` would take it) is a wiring-step question, also the user's (it changes
+`store.Compact.spec`, what mvcc's client sees).
+
+**`BParams.VI`, designed, not written** (it is useful only once (a) or (b) is decided): `VI n k v :=
+n = Meta ∧ metaCompactKey k → metaRevVal v` (true for every other bucket and for the hook's own keys,
+which are not compaction keys: the bridge's `hHK`); a clause of `safeSt` (committed contents and the
+buffers satisfy `viOk P.VI`), kept by `UnsafePut`/`UnsafeSeqPut` under a new premise `P.VI n k v`
+(trivial for `VI := fun _ _ _ => True`, the default for every `BParams` but the bridge's), and a law
+that a reader's view (`rtHeld … rv`) satisfies it (from `vData`'s two parts). Cost: `BParams`' field
+(every construction), `safeSt`'s establishing lemmas (`BatchLemmas`), the put specs' 13+ callers, the
+readers' law through `rtCore`.
