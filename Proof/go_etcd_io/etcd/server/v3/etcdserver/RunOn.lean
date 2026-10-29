@@ -97,6 +97,30 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hlr" ∷ srvLgReader s ∗
     "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀))
 
+
+/-- **What `run` needs in the mode `on`** (the auth-mode merge's step 1, 2026-10-29):
+`isServerRun` off, `isServerRunOn` on. -/
+def isServerRunM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
+  match on with
+  | false => isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+  | true => isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+
+theorem isServerRunM_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
+    isServerRunM (GF := GF) false s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ =
+      isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ := rfl
+
+theorem isServerRunM_true (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
+    isServerRunM (GF := GF) true s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ =
+      isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ := rfl
 end defs
 
 section lemmas

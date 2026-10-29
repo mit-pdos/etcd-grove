@@ -147,3 +147,37 @@ mechanical and request groups).
 - **`backend-cmp`** (`/shared/etcd-grove-be`): in `storage/mvcc` and `storage/backend`; its
   server-side touches (`hookStep`, the put/`UnsafeDelete` premises, `srvWTPool`) are invariant and
   hook files, not these specs. Little overlap.
+
+## Progress (branch `auth-mm`, worktree `/shared/etcd-grove-amm`, started 2026-10-29)
+
+**Step 0.** `auth-e3zc` (C1's A1-A3) merged into `lean` (`0bb0334b84`); M2 paused behind
+`backend-cmp` (the user's order, relayed 2026-10-29).
+
+**Step 1 done** (internal predicates; decided by the agent): `srvApplyKVM`, `kvAppliedM`
+(`AppliedOn.lean`), `srvLessorNilM` (`UberOn.lean`), `entryOkM` (`ApplyNormalOn.lean`),
+`isServerRunM` (`RunOn.lean`), each a `match on` with `_false`/`_true` lemmas by `rfl`.
+
+**Step 2, the spec review** (`spec-reviewer`, 2026-10-29) of two candidates on `applyAll`: (A) a
+`Bool` parameter, today's `specM on`; (B) no parameter, the mode the environment's. It
+recommends B, amended:
+- B as drafted claimed the mode-`on` spec at `.any` (`AuthMode.any.isOn = true`), which no proof
+  covers: exclude it (`E.authMode ≠ .any`);
+- the flag is `E.authOn`, and a postcondition row about `E'` uses `E'.authOn`;
+- the premises only `on` needs (`srvLessorNil`, `receiptBound ≤ 2^48`, `Put`'s non-empty key)
+  stay gated by the mode.
+
+Its findings:
+- B's premise `E.authOn = false` on today's off spec costs nothing: the off precondition is
+  contradictory at `E.authOn = true` (`kvInv_ch0_off`, `applyKV_authOn`), and every off client
+  builds `.off`.
+- A's corollary `spec := specM false` fails at an `.on` environment (`srvTokRights` is a real
+  resource there).
+- A keeps the exported results split (`server_*`/`server_*_on`).
+
+Decided by the agent:
+- the gating of the `on`-only premises (the reviewer's "no unneeded premise"; it leaves the
+  off statements' premises as they are);
+- `sa` bound and unconstrained off.
+
+For the user (a top-level and structural choice, "Who decides"): A or B; under B, the nine
+existing `specM (on : Bool)` converted in this stage, and the exported results' pairs merged.

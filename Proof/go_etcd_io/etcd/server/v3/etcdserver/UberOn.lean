@@ -61,6 +61,20 @@ def srvLessorNil (s : Loc) : IProp GF :=
 instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
   unfold srvLessorNil; infer_instance
 
+/-- **The lessor finds no lease, in the mode `on` only** (the auth-mode merge's step 1,
+2026-10-29): `True` off. -/
+def srvLessorNilM (on : Bool) (s : Loc) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => srvLessorNil s
+
+instance srvLessorNilM_persistent (on : Bool) (s : Loc) : Persistent (srvLessorNilM (GF := GF) on s) := by
+  cases on <;> unfold srvLessorNilM <;> infer_instance
+
+theorem srvLessorNilM_false (s : Loc) : srvLessorNilM (GF := GF) false s = iprop(True) := rfl
+
+theorem srvLessorNilM_true (s : Loc) : srvLessorNilM (GF := GF) true s = srvLessorNil s := rfl
+
 /-- **The lessor finds no lease when its grant guard is `False`** (the auth plan's E3zb,
 2026-10-28): `NewLessor`'s `Lookup` clause at the guard `srvGrantGuard` (D45) is `lookupNil`'s. -/
 theorem lookupNil_of_guard (lp : Loc) :

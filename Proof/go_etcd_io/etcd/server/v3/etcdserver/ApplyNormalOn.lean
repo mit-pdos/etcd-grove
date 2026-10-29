@@ -48,6 +48,19 @@ def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
     (apply.rqOk x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
+/-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
+off, `entryOkOn` on. -/
+def entryOkM (on : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+  match on with
+  | false => entryOk x m
+  | true => entryOkOn x m
+
+theorem entryOkM_false (x : apply.ApplyKV) (m : EntryModel) : entryOkM false x m = entryOk x m :=
+  rfl
+
+theorem entryOkM_true (x : apply.ApplyKV) (m : EntryModel) : entryOkM true x m = entryOkOn x m :=
+  rfl
+
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
     (h : ∀ stl, P stl) : apply.latestOk M hs P := by
   cases M with

@@ -268,6 +268,37 @@ def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 
+/-- **The apply thread's applier state in the mode `on`** (the auth-mode merge's step 1,
+2026-10-29): `srvApplyKV` off (the auth state `st` unused), `srvApplyKVOn` on. -/
+def srvApplyKVM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) : IProp GF :=
+  match on with
+  | false => srvApplyKV s E γw x
+  | true => srvApplyKVOn s E γw x st
+
+theorem srvApplyKVM_false (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) : srvApplyKVM (GF := GF) false s E γw x st = srvApplyKV s E γw x := rfl
+
+theorem srvApplyKVM_true (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) : srvApplyKVM (GF := GF) true s E γw x st = srvApplyKVOn s E γw x st :=
+  rfl
+
+/-- **The KV model's applied state in the mode `on`** (step 1): `kvApplied` off (the start's auth
+state `st₀` and the latest `st` unused), `kvAppliedOn` on. -/
+def kvAppliedM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) : IProp GF :=
+  match on with
+  | false => kvApplied γ γk A x
+  | true => kvAppliedOn γ γk st₀ A x st
+
+theorem kvAppliedM_false (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) :
+    kvAppliedM (GF := GF) false γ γk st₀ A x st = kvApplied γ γk A x := rfl
+
+theorem kvAppliedM_true (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) :
+    kvAppliedM (GF := GF) true γ γk st₀ A x st = kvAppliedOn γ γk st₀ A x st := rfl
+
 end server
 
 end EtcdGrove
