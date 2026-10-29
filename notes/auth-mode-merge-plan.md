@@ -36,6 +36,44 @@ Similarity: of the two proofs' tactic lines, whitespace-normalized (`difflib` ra
 The callers outside the server (`api/v3rpc/ServerKVOn.lean`'s `*_of_serverOn`, `run_job_bodyOn`,
 `Results.lean`'s `server_*_on`, `examples/authkv/startServer.lean`) follow their callee.
 
+## How much duplication there is, by track (measured 2026-10-29)
+
+Over the server's and raft's proofs (`Proof/go_etcd_io/etcd/server`, `Proof/go_etcd_io/raft`: about
+10,000 theorems, 240k non-blank lines), on `lean` at `d56ff440c6` and on `m2` at `4710a15628`. A
+theorem of at least 25 lines counts as a copy when at least half of its 4-line blocks
+(whitespace-normalized, comments dropped) reappear in another theorem; the lines counted are the
+shared part. Copies that were rewritten are missed, so these are lower bounds. Definitions are
+counted by name suffix.
+
+Copied proofs, about 10.5k lines (4.4%):
+
+| source | copied lines | what |
+|---|---|---|
+| auth, on/off copies | ~3.5k (33 pairs) | `apply` 595, `run` 414, `start` 350, `Txn`, `Range`, `applyEntries`, `applyAll`, `DeleteRange`, `Put`, `Start`, `NewServer`, `srvClusterBoot_alloc`/`…On_alloc`, `ServerKV`/`ServerKVOn` |
+| auth, other variant families | ~1.6k (14 pairs) | `auth.authStore.UserAdd` proved three times (`wp_tie`, `wp_sure`, `wp_tieSureB`, ~270 lines each); `uberApplier.dispatch.wp_kvL`, `apply.Apply.wp_kvL`/`wp_adminL`, `wp_latest`, `wp_lb` |
+| raft | ~1.3k sibling, ~0.2k variant | `raft__Step/Msg*` handlers over similar Go; `RawNode.Step` against `wp_rn_raft_Step_net`, `ownRaftPhysCV`/`CVW` |
+| similar Go functions elsewhere | ~3.5k | the `EtcdServer` admin wrappers (~63 lines each), `requireAuthInfo` in `etcdserver` and `v3rpc`, lessor `Attach`/`Detach`, the `kvServer` handlers |
+| snapshots (D22) | ~40 | folded into the main specs (one `specSnap`) |
+| compaction (M2, mvcc) | ~100 | mvcc's `Scheduled`/`Finished` setters (similar Go); `m2` adds no copied proof |
+
+Parallel definitions and statements:
+
+| family | definitions | lines |
+|---|---|---|
+| auth on/off (`…On`, `specOn`) | 82 (56 with an off twin) | ~790 |
+| auth latest/tie/fuel/lb/sure (`specL`, `specT*`, `fuelSpec*`, `specLb`, `specSure`) | 63 | ~785 |
+| compaction (`specR`, `…Cmp`) | 20 | ~310 |
+| snapshots (`…Snap`) | 15 (1 with a twin) | ~150 |
+
+Compaction's `specR` (`storage/mvcc/ReaderSpecs.lean`) are instances, each with a corollary
+`spec_R : spec → specR` and no second proof: the pattern this plan wants.
+
+So about 7k lines (proofs and definitions) are duplication a track introduced, almost all of it
+auth's; snapshots and compaction kept one spec per function. Steps 1-5 below remove the ~3.5k of
+on/off copies; the ~1.6k of other variants is step 6. The raft and sibling-function duplication
+follows the Go code: lemmas shared between siblings could shrink it, but no track has to port a
+change into two copies of it.
+
 ## What the mechanical diffs are
 
 Every `spec`/`specOn` diff in the apply loop and start is the same substitutions:
@@ -85,7 +123,10 @@ unconstrained (or fixed to `srvAuthSt0`) off.
    `CheckTxnAuth.specLb`, `adminEntryOn.spec`), and `Txn` splits into `specOn`/`specOnR`. First
    decide which of those families are modes (merge) and which are different specs (keep):
    reference counts on `lean` are `specL` 99, `specT` 65, `specLb` 57, `fuelSpecX` 55, `specTB` 27,
-   `kvSpecL` 20, `specSure` 8. A separate, larger stage; plan it after steps 1-5.
+   `kvSpecL` 20, `specSure` 8. A separate, larger stage; plan it after steps 1-5. Its cheapest
+   item, which need not wait: `auth.authStore.UserAdd`'s three proofs (`wp_tie`, `wp_sure`,
+   `wp_tieSureB`, ~800 lines, `auth/authStore__UserAdd*.lean`), probably one proof of the
+   strongest (`tieSureB`) and two short corollaries.
 7. After each step: `lake build`, `etc/tcb-report.py --check` (the trust base must not move),
    `etc/gen-link.py --server --check`, the interfaces (`etc/gen-interface.py`), and the spec
    reviewer on the merged specs (`spec` skill: a merged spec is a changed spec).
