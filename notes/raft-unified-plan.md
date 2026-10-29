@@ -1201,3 +1201,41 @@ Waves: {P1+P2, P3a, P5, P7}, then {P3b, P4, P6}; each track checks against the f
 `Link.lean` is generated (`etc/gen-link.py --raft`; phase 1 taught it to add `[StorageModel GF]`
 when a callee's result takes it).
 
+
+## kvreconf-final (2026-10-29, branch `kvreconf-final`, from `raft-unified-kvreconf` + `raft-final` 8f14f5df18)
+
+The design: the coordinator's `kvreconf-gap-design.md` with the amendments of `raft-gap-design.md`
+("Amendments after review 1") and `invariant-design-review-1.md` (scratch, job c8379647).
+
+**Go changes** (tests and `-race` pass; `notes/decisions.md`, "kvreconf-final"):
+- O6: `validConf` caps the configuration at `< 2^61` ids (`ConfOk` carries it), so a snapshot's
+  conf-state lists sum below `2^62` (`snapshotValid`).
+- F6/O8: `send`/`deliver` copy messages by hand (`copyMsg`: the field pointers shared, a fresh
+  `Entries` slice of the same read-only entries, the snapshot by `proto.CloneSnapshot`, no
+  `Responses`), not `proto.Clone` of `*raftpb.Message` (whose only `PbType` is the server's trusted
+  wire model): no trust-base change (coordinator-approved). The duplicate is `copyMsg` of the owned
+  copy (`copyMsg` reads at any fraction), so `deliver` keeps its shape.
+
+**Structure.**
+- `RaftAssume` retired: `applyConf` takes raft's `node.ApplyConfChange.spec`.
+- `KvrStorage`/`KvrStorageApi` (the wrapper's registry `KvrStor`, `kvrStorageModel` as a `def`
+  activated by `attribute [local instance]` in every file that needs it, never global; transport
+  lemmas; `kvrJ`; `kvrStorage_isStorage`; `kvr_bootStorage` with frame
+  `memStorMeta ∗ memStorInvP`; the promoted-method lemmas `Storage.wp_X`). Done, no `sorry`.
+- `DefsCluster` (new predicates beside `Defs`' so the proved methods stay): `isReplicaR`/`isRep`,
+  `repStop` (stop tokens), `runStart`, `frozenTo` (indexed by the delivered log, H4), `sendSpec`,
+  `repKnown` (a `monoNat` bound on the next id instead of a replica map), `stopper`,
+  `clusterLockInv`, `isClusterC`.
+- Frozen interface statements (21 spec files): `run`, `newReplica`, `stop`, `conf`, `propose`,
+  `read`, `do`/`Put`/`Get`/`Read`, `StartCluster` (allocates raft's cluster and the store's state),
+  `Cluster.Stop`, `all` (with `own`: takes the stop tokens), `random`, `replica`, `randomMember`,
+  `startNew`, `sender`, `tick`, `Reconfigure`, `Disrupt`. Each proof group writes its internal
+  specs itself (spec-first).
+
+**Proof groups** (helpers in this worktree): T1 storage (done); RUN (`run`, `maybeSnapshot`,
+`maybeCompact`); CLIENT (`propose`, `read`, `conf`, `do`/`Put`/`Get`/`Read`, `ClientLemmas` with
+`kvr_propAu`, `kvr_ccAu`); LIFE (`newReplica`, `ticker`, `stop`, `StartCluster`, `config`,
+`startNew`, `all`, `random`, `replica`, `randomMember`, `tick`, `Stop`); to come: NET (`sender`,
+`send`, `copyMsg`, `deliver`, `step`, `dropped`), RECONF (`randomID`, `randomChange`, `sleep`,
+`Reconfigure`, `Disrupt`), TOP (`RandomOptions`, `RandomConfig`, `Run`, `Main`, `Link`,
+`Adequacy`, `Results`).
