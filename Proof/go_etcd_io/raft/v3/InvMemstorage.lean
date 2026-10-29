@@ -86,14 +86,16 @@ def memSnapCreated (sv0 : SnapshotM) (i t : w64) (oc : Option ConfStateM) (bs : 
 `ents` after it, the ghost map `M` and the stored snapshot `sv`. The end `c + 1 + |ents|` is at
 most `2^61`; the map has the physical entries strictly between the compaction point and the end,
 and nothing at or past the end; the stored snapshot's index is at or past the compaction point and
-below the end. -/
+below the end; stored entries are numbered by position (`Compact`'s new dummy takes its index from
+the entry at the new compaction point). -/
 def MemOk (p : entryID) (ents : List EntryM) (M : GMap Nat EntryM) (sv : SnapshotM) : Prop :=
   uint.nat p.index' + 1 + ents.length ≤ 2^61 ∧
   (∀ i, uint.nat p.index' + 1 + ents.length ≤ i → M.lookup i = none) ∧
   (∀ i, uint.nat p.index' < i → i < uint.nat p.index' + 1 + ents.length →
     M.lookup i = ents[i - uint.nat p.index' - 1]?) ∧
   uint.nat p.index' ≤ uint.nat sv.Metadata'.Index' ∧
-  uint.nat sv.Metadata'.Index' < uint.nat p.index' + 1 + ents.length
+  uint.nat sv.Metadata'.Index' < uint.nat p.index' + 1 + ents.length ∧
+  (∀ (j : Nat) (e : EntryM), ents[j]? = some e → uint.nat e.Index' = uint.nat p.index' + 1 + j)
 
 end pure
 
