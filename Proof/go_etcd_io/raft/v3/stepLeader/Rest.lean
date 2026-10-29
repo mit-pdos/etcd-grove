@@ -526,9 +526,6 @@ theorem wp_stepLeader_transfer
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   wp_start as ⟨Hphys, Hm⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -660,7 +657,7 @@ theorem wp_stepLeader_transfer
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
-  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself (by exact Hxo) $$ Hphys as Hphys
+  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself $$ Hphys as Hphys
   -- `if pr.Match == r.raftLog.lastIndex()`
   icases ownRaftPhysC_pr c r id _ m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
@@ -673,7 +670,7 @@ theorem wp_stepLeader_transfer
   ihave Hphys := Hlogback $$ Hlog
   wp_if_destruct
   · -- caught up: `MsgTimeoutNow` now
-    wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself (by exact Hxo) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys] as Hphys
+    wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys] as Hphys
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     iapply HΦ $$ %interface.nil %_
@@ -693,7 +690,6 @@ theorem wp_stepLeader_transfer
     iframe Hphys
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm⟩
-  -/
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgBeat`**: `bcastHeartbeat`, return. -/
@@ -1137,9 +1133,6 @@ theorem wp_stepLeader_appresp
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1631,10 +1624,6 @@ theorem wp_stepLeader_appresp
         wp_auto
         icases ownRaftPhysC_lt_ne c r id _ $$ Hphys with ⟨%Hltid, Hphys⟩
         have Hfid : m.From' ≠ id := by rw [Hft]; exact Hltid
-        -- (2026-10-19, D21 M2r) with leader transfer off no transferee is recorded, and the
-        -- sender is not `0`: transfer is on here
-        icases ownRaftPhysC_xf c r id _ $$ Hphys with ⟨%Hxfs, Hphys⟩
-        have Hxo := Bool.eq_false_iff.2 (fun hx => Hfrom0 (Hft.trans (Hxfs.1 hx)))
         icases ownRaftPhysC_pr c r id _ m.From' pr p5 $$ Hphys
           %(by show (sendMsgs s2 hb).progress !! m.From' = some pr
                simp only [sendMsgs]; rw [Hs2p]; exact Hlk) %Hp5 with ⟨Hpa, Hpback⟩
@@ -1651,7 +1640,7 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_raft_logC
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-          wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hfid (by exact Hxo) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys] as Hphys
+          wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hfid (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys] as Hphys
           wp_join_done
         · wp_join_done
       · rw [decide_eq_false Hft]
@@ -1795,7 +1784,6 @@ theorem wp_stepLeader_appresp
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩
       rw [Hmm, ← Hmm2, ← Hpvs3]
       exact prvalsMatch_insert_same _ _ p2 _ Hpvs2' HM3
-  -/
 
 
 end proof
