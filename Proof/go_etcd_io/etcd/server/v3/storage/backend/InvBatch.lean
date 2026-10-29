@@ -421,6 +421,53 @@ theorem batchLocked_rdB (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess) (
     ipureintro
     exact Hwf
 
+/-- A slice a transaction's read returned, read while a share `q` of the transaction is held. -/
+theorem rdB_acc (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) :
+    rdB tx s v ∗ txLive tx q ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ txLive (GF := GF) tx q) := by
+  iintro ⟨Hr, Hl⟩
+  unfold rdB
+  icases Hr with (#Hs | #Hs)
+  · iexists DFrac.discard
+    iframe Hs
+    iintro -
+    iexact Hl
+  · iapply txBytes_acc tx s v q
+    iframe Hl
+    iexact Hs
+
+/-- **Two slices a range of the writer returned, read at once** under the batch lock in a state
+with the same write transaction (the backend-compaction stage: the compaction job hashes a key and
+its value together, mvcc's `rdCap2`): each read with half of bbolt's transaction. -/
+theorem batchLocked_rdB2 (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess)
+    (s1 s2 : GoSlice) (v1 v2 : GoString) :
+    rdB st.tx s1 v1 ∗ rdB st.tx s2 v2 ∗ batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢
+      ∃ dq1 dq2 : DFrac, s1 ↦*{dq1} v1 ∗ s2 ↦*{dq2} v2 ∗
+        (s1 ↦*{dq1} v1 -∗ s2 ↦*{dq2} v2 -∗ batchLocked (GF := GF) γ P b st') := by
+  iintro ⟨Hr1, Hr2, Hl, %Htx⟩
+  unfold batchLocked batchLockedAt batchPhys
+  icases Hl with ⟨%t, %db, #Ht, Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩,
+    Hg, %Hwf⟩
+  rw [Htx]
+  icases ownWTx_live st.tx γ.db st'.C st'.S $$ Hwtx with ⟨Hlive, Hback⟩
+  have hf := (txLive_fractional (GF := GF) st.tx).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hf
+  icases hf.1 $$ Hlive with ⟨Hl1, Hl2⟩
+  icases rdB_acc st.tx s1 v1 _ $$ [$Hr1 $Hl1] with ⟨%dq1, Hs1, Hc1⟩
+  icases rdB_acc st.tx s2 v2 _ $$ [$Hr2 $Hl2] with ⟨%dq2, Hs2, Hc2⟩
+  iexists dq1, dq2
+  iframe Hs1 Hs2
+  iintro Hs1 Hs2
+  ispecialize Hc1 $$ Hs1
+  ispecialize Hc2 $$ Hs2
+  ihave Hlive := hf.2 $$ [$Hc1 $Hc2]
+  ispecialize Hback $$ Hlive
+  iexists t, db
+  iframe
+  iframe #
+  ipureintro
+  exact Hwf
+
 /-! ## The batch lock held, with its window flag -/
 
 /-- The batch lock's ghost share, held, with the `Unlock` window flag `win`. -/

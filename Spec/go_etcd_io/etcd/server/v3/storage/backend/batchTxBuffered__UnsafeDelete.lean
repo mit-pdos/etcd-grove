@@ -7,7 +7,6 @@ the buffers, bbolt as a key-value contract, the locks and the views".
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 
 @[expose] public section
 
