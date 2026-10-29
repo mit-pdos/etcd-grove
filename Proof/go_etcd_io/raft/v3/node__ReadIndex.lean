@@ -148,7 +148,7 @@ private theorem node.ReadIndex.wp_raw
       · exfalso; simp [MsgPreVote] at h
     isplitr
     · ipureintro
-      exact ⟨fun h => by exfalso; simp [MsgPreVote] at h, fun h => by exfalso; simp [MsgTransferLeader] at h,
+      exact ⟨fun h => by exfalso; simp [MsgTransferLeader] at h,
         fun h => by exfalso; simp [MsgSnap] at h⟩
     isplitr
     · imodintro

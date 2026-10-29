@@ -491,26 +491,24 @@ instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF
 /-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
 responses), owned with its entries slice fresh, addressed to `id`, with its credits and, for a
 `MsgTimeoutNow`, a tick credit: a forwarded proposal (of any context: its abstraction ignores it),
-or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`); a
-pre-vote request only in a cluster started from a bootstrap log (`bootedCluster`: raft's `netP`
-takes one only there). (Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes
-run with `PreVote`: the pre-vote premise `bootedCluster` in place of excluding it, and no premise on a
-forwarded proposal's context; until then `stepIn_intro_booted` beside it.) -/
+or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`).
+(Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes run with `PreVote`: the
+pre-vote premise `bootedCluster` in place of excluding it, and no premise on a forwarded proposal's
+context; until then `stepIn_intro_booted` beside it. 2026-10-29, stage U4: no pre-vote premise, in
+any cluster: a node at term `0` has an empty log and grants a pre-vote request, so no rejection is
+sent at term `0`; until then `⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ`.) -/
 theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
     (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
       st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ) ∗ sentMsg (GF := GF) γ N src st ∗
+    sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
     |==> stepIn γ N id ml := by
   intro H1 H2 H3
-  unfold bootedCluster sentMsg msgCredits tickCredit stepIn
-  iintro ⟨Hpv, Hrest⟩
-  icases Hpv with (%Hpv | %Hpv)
-  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inl Hpv) $$ Hrest
-  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inr Hpv) $$ Hrest
+  unfold sentMsg msgCredits tickCredit stepIn
+  exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3
 
 /-! ## The rest of a `Ready` -/
 

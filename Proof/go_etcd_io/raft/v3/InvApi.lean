@@ -2868,12 +2868,11 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    (st.msg.Type' ≠ MsgPreVote ∨ γ.raft.reBoot ≠ []) →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
     |==> stepIn γ N id ml := by
-  intro Hnet Hsnap _ Hpv
+  intro Hnet Hsnap _
   iintro ⟨#Hsent, Hm, Hcr, Htc⟩
   iunfold sentMsg at Hsent
   icases Hsent with ⟨-, #Hraft, #Hlb, -⟩
@@ -2938,7 +2937,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     · ipureintro; exact Hnok'
     isplitr
     · ipureintro
-      exact ⟨fun h => Hγr ▸ Hpv.resolve_left (fun h' => h' h), fun h => absurd h Hntl,
+      exact ⟨fun h => absurd h Hntl,
         fun hty => Hsi.resolve_right (fun h => Hns0 h hty)⟩
     rw [Hγr, Hγb]
     isplitr

@@ -480,13 +480,13 @@ transfer campaign's vote request). (2026-10-16, stage R5: the message at `ml`, o
 `raft.Step` takes it, `msgIn ml □ st`; the facts over its state `st`.) -/
 def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
-      -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log, whose
-      -- nodes are past term `0` (`RawNode.Step`'s premise); (2026-10-19, D21 M2r) a leader-transfer
-      -- request only outside the cluster's no-transfer mode, where leader transfer is off (D22 S-a:
-      -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag); (D22 S-d4, 2026-10-21) a
-      -- snapshot only at a node that takes one (`NodeNames.snapIn`; from D22 S-c to S-d4 none)
-      ⌜(st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []) ∧
-        (st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false) ∧
+      -- (2026-10-19, D21 M2r) a leader-transfer request only outside the cluster's no-transfer
+      -- mode, where leader transfer is off (D22 S-a: `RaftNames.reNoXfer`, until then the
+      -- no-snapshot mode's flag); (D22 S-d4, 2026-10-21) a snapshot only at a node that takes one
+      -- (`NodeNames.snapIn`; from D22 S-c to S-d4 none). (2026-10-17 to 2026-10-29, stage U4: also a
+      -- pre-vote request only in a cluster started from a bootstrap log; a node at term `0` has an
+      -- empty log and grants it, `ownStepGhost_term0`.)
+      ⌜(st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false) ∧
         (st.msg.Type' = MsgSnap → γ.snapIn = true)⌝ ∗
       -- (D22 S-d4) but a snapshot's, whose abstraction is `absSnap` (`RawNode.Step`'s `#Hmsg`)
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
@@ -554,10 +554,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     rcases Hty with h' | h' | h' | h' <;> rw [h'] <;>
       simp [MsgSnap, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
   isplitr
-  · ipureintro; refine ⟨fun h => ?_, Hxt, fun h => absurd h Hns⟩
-    exfalso
-    rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
-      simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+  · ipureintro; exact ⟨Hxt, fun h => absurd h Hns⟩
   rw [Ht, ite_eq_right Hnr, ite_eq_right Hnt]
   isplitr
   · imodintro

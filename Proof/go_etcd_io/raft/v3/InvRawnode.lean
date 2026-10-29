@@ -93,6 +93,7 @@ public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.CCApply
 -- (D22l) `phsWit`, `phsNext`
 public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
+public import Proof.go_etcd_io.raft.v3.Protocol.Term0
 
 @[expose] public section
 
@@ -787,7 +788,9 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
     (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) {fp : List EntryM} (Hpv : RNPv rs fp s) (Htrm : rs.term = s.term)
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
     (Htn : m.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z m.Term') + 1 ≤ uint.Z rs.tc)
-    (Hb1 : m.Type' = MsgPreVote → 1 ≤ uint.Z s.term)
+    -- (2026-10-29, stage U4) at term `0` the log is empty (`ownStepGhost_term0`): a pre-vote request
+    -- is granted there; until then `m.Type' = MsgPreVote → 1 ≤ uint.Z s.term`, from a bootstrap log
+    (Hb1 : s.term = W64 0 → plogLast s.logst.prev (s.logst.sents ++ s.logst.uents) = base0)
     -- (D19i part 1) the floor at most `applied` (a `MsgTimeoutNow` campaigns)
     (Hfla : uint.Z s.logst.fl ≤ uint.Z s.logst.applied)
     -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on
@@ -840,7 +843,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
   refine k (netStepTypes_stepMsg Hty) (by not_net) (fun h => Hnr h (by ty_ne))
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2, Hpvf h,
-      fun hz => by exfalso; have := Hb1 h; rw [hz] at this; word,
+      fun hz => plogUpToDate_base0 _ _ _ (Hb1 hz),
       .inr (by rw [← Hpv.2.1]; exact Hmtc)⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       fun hp => by have := Hpv.2.2.2.1 hp; omega⟩)
@@ -2400,6 +2403,24 @@ theorem ownStepGhost_boot_term (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
     ipureintro
     exact fun _ => Hx.2 (Hb hP)
   · ipureintro; exact fun h => absurd h hP
+
+/-- (2026-10-29, stage U4) **At term `0` a node's log is empty** (`ownLogGhost_term0`), in every
+cluster: what `NetMsgOk.raftStep` needs of a pre-vote request at term `0`, which is granted
+(`plogUpToDate_base0`; a rejection would be sent at term `0`, which `send` refuses). Replaces
+`ownStepGhost_boot_term`'s use there, which needed a bootstrap log. -/
+theorem ownStepGhost_term0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ⌜s.term = W64 0 → plogLast s.logst.prev (s.logst.sents ++ s.logst.uents) = base0⌝ ∗
+      ownStepGhost γ md c id s := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, -⟩
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_term0 γ id (toPState s) kl $$ Hlg with %H
+  ipureintro; exact H
 
 /-- (2026-10-19, D21 M3) In the cluster's no-snapshot mode the outbox holds no `MsgSnap`: the
 node's mode is the cluster's (`NsLink`) and its outbox has none in the mode (`LogNsOk`). -/

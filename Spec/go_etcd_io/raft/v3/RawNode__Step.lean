@@ -94,10 +94,9 @@ abbrev RawNode.Step.spec : Prop :=
   -- the client raises the ceiling first (`ownRawNode_raise_tc`)
   uint.Z st.msg.Term' ≤ uint.Z rs.tc →
   (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
-  -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log (`StartNode`):
-  -- its nodes are past term `0`, at which a rejection could not be sent (`send` refuses a vote
-  -- response of term `0`)
-  (st.msg.Type' = MsgPreVote → γ.reBoot ≠ []) →
+  -- (2026-10-17 to 2026-10-29, stage U4: a pre-vote request only in a cluster started from a
+  -- bootstrap log, whose nodes are past term `0`, at which a rejection could not be sent; now none:
+  -- a node at term `0` has an empty log and grants it, `ownStepGhost_term0`)
   -- (D19i part 1) the floor not raised past `applied` (a `MsgTimeoutNow` campaigns: `Campaign`'s)
   rs.flw = false →
   -- (2026-10-19, D21 M2r) a leader-transfer request only outside the cluster's no-transfer mode,

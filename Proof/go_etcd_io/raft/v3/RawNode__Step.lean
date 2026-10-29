@@ -76,9 +76,9 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok Hmtc Htn Hpvb Hflw Hxt Hsnp
+  intro γ rn id rs ml st Hok Hmtc Htn Hflw Hxt Hsnp
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hok Hmtc Htn Hpvb Hxt Hsnp ⊢
+  simp only at Hok Hmtc Htn Hxt Hsnp ⊢
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
@@ -115,7 +115,7 @@ theorem RawNode.Step.wp_proof
   -- `rn.raft.Step(m)`
   all_goals (
       try wp_auto
-      icases ownStepGhost_boot_term γ _ cf id s (m.Type' = MsgPreVote) Hpvb $$ Hghost
+      icases ownStepGhost_term0 γ _ cf id s $$ Hghost
         with ⟨%Hb1, Hghost⟩
       icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net

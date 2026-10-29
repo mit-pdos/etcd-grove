@@ -407,11 +407,10 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
     (Hok : NetMsgOk id st)
     -- (2026-10-17) as `RawNode.Step`'s: the ceiling covers the message's term and a transfer's
-    -- campaign; a pre-vote request only after a bootstrap
+    -- campaign (until 2026-10-29, stage U4, a pre-vote request only after a bootstrap)
     (Hmtc : uint.Z st.msg.Term' ≤ uint.Z rs.tc)
     (Htn : st.msg.Type' = MsgTimeoutNow →
       max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc)
-    (Hpvb : st.msg.Type' = MsgPreVote → γ.reBoot ≠ [])
     -- (D19i part 1) the floor not raised (a `MsgTimeoutNow` campaigns)
     (Hflw : rs.flw = false)
     -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-transfer mode
@@ -444,7 +443,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
               (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }} := by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   have Hok0 := Hok
-  simp only [NetMsgOk] at Hok0 Htn Hmtc Hpvb Hxt Hsnp ⊢
+  simp only [NetMsgOk] at Hok0 Htn Hmtc Hxt Hsnp ⊢
   obtain ⟨Hty, -⟩ := Hok0
   have Hps' : (rs.psnap || decide (m.Type' = MsgSnap)) = false → rs.psnap = false :=
     fun h => (Bool.or_eq_false_iff.1 h).1
@@ -453,7 +452,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
-  icases ownStepGhost_boot_term γ _ cf id s (m.Type' = MsgPreVote) Hpvb $$ Hghost
+  icases ownStepGhost_term0 γ _ cf id s $$ Hghost
     with ⟨%Hb1, Hghost⟩
   icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
   have HnP : m.Type' ≠ MsgProp := by not_net

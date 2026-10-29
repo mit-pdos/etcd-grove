@@ -299,10 +299,9 @@ theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) 
     (src : w64) (st : MsgSt) : (st.msg.Type' ≠ MsgProp → NetMsgOk id { msg := st.msg, ents :=
     st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∧ st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
-    st.msg.To' = id → (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ) ∗ sentMsg γ N src st ∗ msgPtsC
-    ml (DFrac.own 1) (DFrac.own 1) true { msg := st.msg, ents := st.ents, snap := st.snap, ctx :=
-    st.ctx, resps := [] } ∗ msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1
-    else 0) ⊢ |==> stepIn γ N id ml
+    st.msg.To' = id → sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true { msg :=
+    st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∗ msgCredits γ N st ∗
+    tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢ |==> stepIn γ N id ml
 
 theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝

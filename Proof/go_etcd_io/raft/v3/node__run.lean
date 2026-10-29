@@ -403,7 +403,7 @@ theorem node.run.wp_proof
       -- (D22 S-d4) a `MsgSnap` only at a node that takes snapshots: outside the no-snapshot mode
       icases headRest_snapIn γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hsi, %Hrm, Hrest⟩
       have Hsnp : st.msg.Type' = MsgSnap → γ.raft.reNoSnap = false :=
-        fun h => Hsi (Hpvb.2.2 h)
+        fun h => Hsi (Hpvb.2 h)
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
       -- term ceiling raised to the bound, past the message's term (a granted pre-vote answers at
       -- it) and a transfer's campaign
@@ -417,11 +417,11 @@ theorem node.run.wp_proof
       icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
         (by simp only; omega)
-        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb.1 Hflw Hpvb.2.1 Hsnp
+        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hflw Hpvb.1 Hsnp
         $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hmsg Hsnap Hcred Hlc1
       ihave Hrest := headRest_step γ nv rs ac rc' rdv' t tb (decide (st.msg.Type' = MsgSnap))
-        (fun h => Hpvb.2.2 (of_decide_eq_true h)) $$ Hrest Hlbtb
+        (fun h => Hpvb.2 (of_decide_eq_true h)) $$ Hrest Hlbtb
       try wp_auto
       wp_for_post
       iframe HΦ n r
