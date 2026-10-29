@@ -310,6 +310,17 @@ variable [GooseExts]
 def logHanded (ls : LogState) : LogState :=
   { ls with unpersisted := nextUnstable ls, stored := ls.sents ++ ls.uents }
 
+/-- (U8 v2 step 4) The end of what a `Ready` hands out frozen (`ownRaftLog_handout`): its committed
+entries below the batch it hands out (`offsetInProgress`). -/
+def frozenEnd (ls : LogState) : Nat :=
+  min (uint.nat ls.committed) (uint.nat ls.inprogress - 1)
+
+/-- (U8 v2 step 4) Raft's log entries at the indices `applying + 1 .. frozenEnd ls`: the committed
+entries a `Ready` hands out frozen, before `acceptReady` moves `applying` (`ownRaftLog_handout`). -/
+def frozenRdy (ls : LogState) : List EntryM :=
+  ((ls.sents ++ ls.uents).drop (uint.nat ls.applying - uint.nat ls.prev.index')).take
+    (frozenEnd ls - uint.nat ls.applying)
+
 /-- The persistence invariant after the hand-out: the batch handed out continues the
 in-progress prefix the storage holds (`persist_accept`, which this follows). -/
 theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List EntryM)
@@ -327,6 +338,16 @@ theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List Ent
 
 end handed
 
+/-- (U8 v2 step 4) A range of a frozen prefix `d0 :: ents[..F]` inside a prefix `P` the storage's
+log `ents` shares with the log `L`: the log's entries there. -/
+theorem frozen_sub_eq [GooseExts] (L ents P : List EntryM) (d0 : EntryM) (a n F : Nat)
+    (hP1 : P <+: ents) (hP2 : P <+: L) (hn : a + n ≤ F) (hF : a + n ≤ P.length) :
+    ((d0 :: ents.take F).drop (a + 1)).take n = (L.drop a).take n := by
+  rw [List.drop_succ_cons]
+  have hl := hP1.length_le
+  rw [← take_drop_prefix (List.take_prefix F ents) a n (by rw [List.length_take]; omega),
+    take_drop_prefix hP1 a n hF, take_drop_prefix hP2 a n hF]
+
 section handout
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -335,11 +356,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The storage's hand-out law for the entries a `Ready` hands out (the first half of what
-`acceptUnstable` did until 2026-10-10). -/
+`acceptUnstable` did until 2026-10-10). (U8 v2 step 4) The storage's log is also frozen up to
+`frozenEnd ls` (the committed entries below the batch), and the committed entries from
+`applying + 1` to there are given, frozen (`frozenRdy`: persistent). -/
 theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
     (Hs0 : ls.snap = none) :
     ⊢ ownRaftLog (GF := GF) l ls ==∗
-      ownRaftLog l (logHanded ls) ∗ appendRight ls.storage (nextUnstable ls) := by
+      ownRaftLog l (logHanded ls) ∗ appendRight ls.storage (nextUnstable ls) ∗
+      storLog ls.storage (uint.nat ls.applying + 1) DFrac.discard (frozenRdy ls) := by
   iintro Hlog
   iNamed Hlog
   have Hcontig : ∀ (k : Nat) (e : EntryM), ls.uents[k]? = some e →
@@ -385,29 +409,60 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
       have := Hfl.2.2.1
       have := Hfl.2.1
       rw [Hfl.1]; omega
+  -- (U8 v2 step 4) freeze the storage's log up to `frozenEnd ls`, below the batch
+  obtain ⟨Hfr1, Hfr2, -⟩ := Hfr.1 Hlnt
+  have e1 := uint_nat_eq ls.committed; have e2 := uint_nat_eq ls.inprogress
+  have e3 := uint_nat_eq ls.applying; have e4 := uint_nat_eq ls.prev.index'
+  have e5 := uint_nat_eq σ.prev.index'
+  have Hoff := Hoffset; have Hipb' := Hipb
+  have Hpa := Hpapplied Hs0; have Hapl := Happlying; have Hlt := Hfl.2.2.1
+  have HkOut : σ.kOut = uint.nat σ.prev.index' + 1 + σ.ents.length := by
+    unfold StorState.kOut; rw [Hpend.1.trans Hunp0]; rfl
+  have HP := Hp0.1
+  simp only [storApp] at HP
+  have HPlen : (ls.sents ++ ls.uents.take (uint.Z ls.inprogress - uint.Z lv.unstable'.offset').toNat).length
+      = uint.nat ls.inprogress - uint.nat ls.prev.index' - 1 := by
+    simp only [List.length_append, List.length_take]; omega
+  have HPl := HP.length_le
+  rw [HPlen] at HPl
+  have HfE : frozenEnd ls ≤ uint.nat ls.inprogress - 1 := Nat.min_le_right _ _
+  have HfC : frozenEnd ls ≤ uint.nat ls.committed := Nat.min_le_left _ _
+  have HaE : uint.nat ls.applying ≤ frozenEnd ls := Nat.le_min.2 ⟨by omega, by omega⟩
+  imod ownStorage_freeze ls.sn lv.storage' σ (max σ.fr (frozenEnd ls)) (Nat.le_max_left _ _)
+    (by rw [HkOut, Hsp]; exact Nat.max_lt.2 ⟨by omega, by omega⟩) $$ HStorage with HStorage
+  ihave ⟨⟨%d0, %-, #HF⟩, HStorage⟩ := ownStorage_frozen_keep _ _ _ $$ HStorage
   have Hpo' : σ.pend = [] ∧ (nextUnstable ls ≠ [] → PendOk σ (nextUnstable ls) ∧
-      ∀ e0, (nextUnstable ls).head? = some e0 → σ.fr < uint.nat e0.Index') := by
+      ∀ e0, (nextUnstable ls).head? = some e0 →
+        max σ.fr (frozenEnd ls) < uint.nat e0.Index') := by
     refine ⟨Hpo.1, fun Hne => ⟨(Hpo.2 Hne).1, fun e0 He0 => ?_⟩⟩
     obtain ⟨Hi, -⟩ := Hhead e0 He0
-    have h1 := Hfr.1 Hlnt
-    have := Hfl.2.2.1
-    have := uint_nat_eq e0.Index'; have := uint_nat_eq ls.applying
-    have := uint_nat_eq σ.prev.index'; have := uint_nat_eq ls.prev.index'
-    have := Hipb.1
-    rw [Hsp] at h1
-    have hm : max (uint.nat ls.prev.index') (uint.nat ls.applying) < uint.nat e0.Index' :=
-      Nat.max_lt.2 ⟨by omega, by omega⟩
-    omega
-  imod ownStorage_handout_opt ls.sn lv.storage' σ (nextUnstable ls) Hpo' $$ HStorage
-    with ⟨HStorage, Happ⟩
-  have Hstore' : LogStoreOk (logHanded ls).snap { σ with pend := nextUnstable ls }
+    have := uint_nat_eq e0.Index'
+    exact Nat.max_lt.2 ⟨by omega, by omega⟩
+  imod ownStorage_handout_opt ls.sn lv.storage' { σ with fr := max σ.fr (frozenEnd ls) }
+    (nextUnstable ls) Hpo' $$ HStorage with ⟨HStorage, Happ⟩
+  -- the committed entries from `applying + 1` on, out of the frozen prefix
+  ihave #HR : storLog ls.storage (uint.nat ls.applying + 1) DFrac.discard (frozenRdy ls) $$ []
+  · rw [← Hstor]
+    iapply (storLog_sub lv.storage' (uint.nat σ.prev.index')
+      (uint.nat ls.applying - uint.nat ls.prev.index' + 1) (frozenEnd ls - uint.nat ls.applying)
+      _ _ _ (by rw [Hsp]; omega) ?_) $$ HF
+    show ((d0 :: σ.ents.take (max σ.fr (frozenEnd ls) - uint.nat σ.prev.index')).drop
+      (uint.nat ls.applying - uint.nat ls.prev.index' + 1)).take
+        (frozenEnd ls - uint.nat ls.applying) = frozenRdy ls
+    unfold frozenRdy
+    rw [Hsp]
+    exact frozen_sub_eq _ _ _ d0 _ _ _ HP
+      ((List.prefix_append_right_inj ls.sents).mpr (List.take_prefix _ _)) (by omega) (by omega)
+  have Hstore' : LogStoreOk (logHanded ls).snap
+      { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls }
       (logHanded ls).prev (logHanded ls).sents (logHanded ls).uents := Hstore
-  have HpendN : PendLogOk { σ with pend := nextUnstable ls } (logHanded ls) := by
+  have HpendN : PendLogOk { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls }
+      (logHanded ls) := by
     refine ⟨rfl, fun _ e0 He0 => ?_⟩
     obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
     simp only [logHanded] at He0 ⊢
     word
-  have HpersistN : (logHanded ls).snap = none →
+  have HpersistN0 : (logHanded ls).snap = none →
       LogPersistOk { σ with pend := nextUnstable ls } (logHanded ls).sents (logHanded ls).uents
         (uint.Z (logHanded ls).inprogress - uint.Z lv.unstable'.offset')
         (logHanded ls).unpersisted (logHanded ls).stored := by
@@ -415,7 +470,20 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
     simp only [LogPersistOk, storApp_pend, logHanded]
     simp only [nextUnstable, logOffset, ← Hoffset]
     exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
-  have HflN : FlOk { σ with pend := nextUnstable ls } (logHanded ls) := by
+  have HpersistN : (logHanded ls).snap = none →
+      LogPersistOk { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls }
+        (logHanded ls).sents (logHanded ls).uents
+        (uint.Z (logHanded ls).inprogress - uint.Z lv.unstable'.offset')
+        (logHanded ls).unpersisted (logHanded ls).stored := HpersistN0
+  have HfrN : FrOk { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls }
+      (logHanded ls) := by
+    refine ⟨fun _ => ⟨?_, ?_, fun sid h => absurd h (by simp [logHanded, Hs0])⟩, Hfr.2.1, Hfr.2.2⟩
+    · show max σ.fr (frozenEnd ls) ≤ uint.nat ls.committed
+      exact Nat.max_le.2 ⟨Hfr1, HfC⟩
+    · show max σ.fr (frozenEnd ls) < uint.nat ls.inprogress
+      exact Nat.max_lt.2 ⟨Hfr2, by omega⟩
+  have HflN : FlOk { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls }
+      (logHanded ls) := by
     refine ⟨Hfl.1, Hfl.2.1, ?_, fun e0 He0 => ?_, fun h _ => (h Hs0).elim,
       StorTermsOk.of_none Hs0⟩
     · have := Hfl.2.2.1
@@ -428,14 +496,16 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
       show uint.Z σ.fl < _
       rw [Hfl.1]; omega
   imodintro
+  iframe HR
   isplitr [Happ]
-  · iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage' { σ with pend := nextUnstable ls } ls.snap ls.uents
+  · iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage'
+      { σ with fr := max σ.fr (frozenEnd ls), pend := nextUnstable ls } ls.snap ls.uents
       (logHanded ls) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied Hpapplied
       Hcommitted Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN HflN Hsip Hsipn
       Hlent Hq ⟨(fun h => by
         have := Hsipn Hs0; simp only [logHanded] at h; rw [this] at h; cases h),
         (fun h => absurd Hs0 h)⟩
-      (fun h => absurd (Hsat h).1 (by rw [Hs0]; simp)) Hfr rfl rfl rfl rfl rfl
+      (fun h => absurd (Hsat h).1 (by rw [Hs0]; simp)) HfrN rfl rfl rfl rfl rfl
       $$ Hl HisStorage [HStorage] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
     iapply lentStor_close (b := (logHanded ls).lent) Hlnt; iexact HStorage
   rw [← Hstor]; iexact Happ
@@ -569,14 +639,22 @@ prefix, with the end, and the right to install the snapshot (`storGiven`, the AP
 the log records the batch the `Ready` hands out as the application's (`logHanded`), the ranges as
 lent, and the snapshot as handed out (`sg`). Raft keeps its authorities (`lentStor`). -/
 theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
-    (Hs0 : ls.snap ≠ none) (Hlt0 : ls.lent = false) :
+    (Hs0 : ls.snap ≠ none) (Hlt0 : ls.lent = false)
+    -- (U8 v2 step 4) the snapshot not yet handed out
+    (Hsip0 : ls.sip = false) :
     ⊢ ownRaftLog (GF := GF) l ls ==∗
       ownRaftLog l (logHanded (lendLog ls)) ∗
       (∃ (k : Nat) (old : List EntryM), storLog ls.storage k (DFrac.own 1) old ∗
-        storEnd ls.storage (k + old.length)) ∗
+        storEnd ls.storage (k + old.length) ∗ ⌜k ≤ uint.nat ls.prev.index'⌝) ∗
       storGiven ls.sn (uint.nat ls.prev.index') := by
   iintro Hlog
   iNamed Hlog
+  -- (U8 v2 step 4) the lend starts at or below the snapshot (`FrOk`)
+  have Hk : σ.fr + 1 ≤ uint.nat ls.prev.index' := by
+    obtain ⟨sid, Hs⟩ := Option.ne_none_iff_exists'.1 Hs0
+    have Hpv : ls.prev = sid := (Hs ▸ Hstore : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents).1
+    have := (Hfr.1 Hlt0).2.2 sid Hs Hsip0
+    rw [Hpv]; omega
   ihave HStorage := lentStor_open Hlt0 _ _ _ $$ HStorage
   have Hcontig : ∀ (k : Nat) (e : EntryM), ls.uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
@@ -641,6 +719,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
   · iexists σ.fr + 1, σ.ents.drop (σ.fr - uint.nat σ.prev.index')
     rw [← Hstor]
     iframe HO Hend
+    ipureintro; exact Hk
   unfold storGiven
   iapply (monoNatLbOwn_le (uint.nat ls.prev.index') (Nat.le_max_right _ _))
   iexact Hgiv
@@ -705,7 +784,12 @@ since the `Ready`) it is shadowed again. -/
 theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (sid : entryID) (e : EntryM)
     (Hlt : ls.lent = true) (He : e.Term' = sid.term') (Hsg : ls.sg ≤ uint.nat sid.index')
     -- (D22 S-d4 item 3) `applying` at most the snapshot the storage is at (the loan's, `LoanOk`)
-    (Happ : uint.Z ls.applying ≤ uint.Z sid.index') :
+    (Happ : uint.Z ls.applying ≤ uint.Z sid.index')
+    -- (U8 v2 step 4) the snapshot the storage is at is at most the pending one, strictly unless
+    -- the pending one is in progress (otherwise restored after the loan: past the commit index,
+    -- which was at least the lent snapshot's), so that the view's frozen end keeps `FrOk`
+    (Hsid : uint.nat sid.index' ≤ uint.nat ls.prev.index' ∧
+      (ls.sip = false → uint.nat sid.index' < uint.nat ls.prev.index')) :
     ⊢ ownRaftLog (GF := GF) l ls -∗ storCompacted ls.storage (uint.nat sid.index') -∗
       storLog ls.storage (uint.nat sid.index') DFrac.discard [e] -∗
       storLog ls.storage (uint.nat sid.index' + 1) (DFrac.own 1) ls.stored -∗
@@ -746,8 +830,16 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (sid : entryID) (e : En
     refine ⟨show ls.snap = some ls.prev by rw [Hpv]; exact Hsid, Hsipt, rfl, rfl,
       show sid = ls.prev from Hpv.symm, show uint.nat sid.index' = uint.nat ls.prev.index' by
         rw [Hpv], rfl, rfl⟩
-  have Hfr' : FrOk (snapView σ sid ls.stored) (logAbsorbSnap ls sid) :=
-    ⟨fun _ => Nat.le_max_left _ _, Hfr.2.1, DtOk.of_eq Hfr.2.2 rfl rfl rfl⟩
+  have Hfr' : FrOk (snapView σ sid ls.stored) (logAbsorbSnap ls sid) := by
+    refine ⟨fun _ => ?_, Hfr.2.1, DtOk.of_eq Hfr.2.2 rfl rfl rfl⟩
+    have e1 := uint_nat_eq ls.committed; have e2 := uint_nat_eq ls.inprogress
+    have e4 := uint_nat_eq ls.prev.index'
+    have := Happlied.1; have := Hipb.1; have Hoff := Hoffset
+    show uint.nat sid.index' ≤ uint.nat ls.committed ∧ uint.nat sid.index' < uint.nat ls.inprogress ∧
+      ∀ s, ls.snap = some s → ls.sip = false → uint.nat sid.index' < uint.nat s.index'
+    refine ⟨by omega, by omega, fun s Hs Hsp => ?_⟩
+    have Hpv : ls.prev = s := (Hs ▸ Hstore : LogStoreOk (some s) σ ls.prev ls.sents ls.uents).1
+    rw [← Hpv]; exact Hsid.2 Hsp
   iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage' (snapView σ sid ls.stored) ls.snap ls.uents
     (logAbsorbSnap ls sid) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied
     Hpapplied Hcommitted Hapg Hip Hipb

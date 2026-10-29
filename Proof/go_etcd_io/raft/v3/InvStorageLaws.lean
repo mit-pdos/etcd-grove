@@ -37,6 +37,13 @@ theorem drop_split {α : Type _} (L : List α) (m k : Nat) (h : m ≤ k) (hk : k
     _ = (L.take k).drop m ++ L.drop k :=
       List.drop_append_of_le_length (by rw [List.length_take]; omega)
 
+/-- (U8 v2 step 4) Two lists with a common prefix agree on a range inside it. -/
+theorem take_drop_prefix {α : Type _} {P A : List α} (h : P <+: A) (a n : Nat)
+    (hn : a + n ≤ P.length) : (A.drop a).take n = (P.drop a).take n := by
+  obtain ⟨t, rfl⟩ := h
+  rw [List.drop_append_of_le_length (by omega),
+    List.take_append_of_le_length (by rw [List.length_drop]; omega)]
+
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -88,6 +95,38 @@ theorem ownStorage_frozen (sn : StorNames) (st : Storage) (σ : StorState) :
   iexists e0
   iframe HFr
   ipureintro; exact Hw.1
+
+/-- (U8 v2 step 4) The view's frozen prefix, kept with the view. -/
+theorem ownStorage_frozen_keep (sn : StorNames) (st : Storage) (σ : StorState) :
+    ownStorage (GF := GF) sn st σ ⊢ (∃ e0, ⌜e0.Term' = σ.prev.term'⌝ ∗
+      storLog st (uint.nat σ.prev.index') DFrac.discard
+        (e0 :: σ.ents.take (σ.fr - uint.nat σ.prev.index'))) ∗ ownStorage sn st σ := by
+  unfold ownStorage
+  iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, Hau, %Hw⟩
+  isplitr
+  · iexists e0
+    iframe HFr
+    ipureintro; exact Hw.1
+  iexists e0
+  iframe Hcomp HFr HO Hend Hau
+  ipureintro; exact Hw
+
+/-- (U8 v2 step 4) A sub-range of a frozen range: from `m` on, `n` entries (fewer at its end). -/
+theorem storLog_sub (st : Storage) (k m n k' : Nat) (L L' : List EntryM)
+    (hk : k + m = k') (hL : (L.drop m).take n = L') :
+    storLog (GF := GF) st k DFrac.discard L ⊢ storLog st k' DFrac.discard L' := by
+  subst hk hL
+  iintro #H
+  by_cases hm : m ≤ L.length
+  · ihave ⟨-, H2⟩ := (StorageModel.storLog_app st k DFrac.discard (L.take m) (L.drop m)).1 $$ [H]
+    · rw [List.take_append_drop]; iexact H
+    rw [List.length_take, Nat.min_eq_left hm]
+    ihave ⟨H3, -⟩ := (StorageModel.storLog_app st (k + m) DFrac.discard ((L.drop m).take n)
+      ((L.drop m).drop n)).1 $$ [H2]
+    · rw [List.take_append_drop]; iexact H2
+    iexact H3
+  · rw [List.drop_eq_nil_of_le (by omega), List.take_nil]
+    iapply StorageModel.storLog_nil
 
 /-- **Hand-out**: with nothing out, a batch `p` starting at `k` above the frozen prefix and at most
 one past the log hands out the log from `k` on, with the end. -/

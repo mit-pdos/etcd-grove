@@ -59,6 +59,8 @@ theorem raftLog.stableSnapTo.wp_proof
       | exact Hfl
       | exact ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, Hfl.2.2.2.1, fun h => absurd rfl h, fun h => absurd rfl h⟩
       | exact Hfr
+      -- (U8 v2 step 4) no snapshot pending any more
+      | exact FrOk.of_le Hfr rfl rfl (Int.le_refl _) (Int.le_refl _) Hfr.2.2 (fun _ h => by cases h)
       | (intro h; simp only at h; rw [Hlnt] at h; cases h; done)
       | (intro h; simp at h; done)
       | exact ⟨(fun h => by simp at h), (fun h => by simp at h)⟩

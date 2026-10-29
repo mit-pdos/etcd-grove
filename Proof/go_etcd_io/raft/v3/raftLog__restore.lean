@@ -115,13 +115,25 @@ theorem raftLog.restore.wp_proof
         have := Happlying.2; have : uint.Z (snapId sv).index' = uint.Z sv.Metadata'.Index' := rfl
         omega⟩)⟩
       (fun h => by simp [logRestore] at h)
-      (FrOk.of_le Hfr rfl rfl (Int.le_refl _)
-        (DtOk.mono Hfr.2.2 (by show uint.Z ls.committed ≤ uint.Z sv.Metadata'.Index'; omega)
+      (⟨fun hl => by
+          -- (U8 v2 step 4) the frozen end is at most the old commit index, below the snapshot
+          obtain ⟨h1, -, -⟩ := Hfr.1 hl
+          have e1 := uint_nat_eq ls.committed; have e2 := uint_nat_eq sv.Metadata'.Index'
+          have e3 := uint_nat_eq (sv.Metadata'.Index' + W64 1)
+          have e4 : uint.Z (sv.Metadata'.Index' + W64 1) = uint.Z sv.Metadata'.Index' + 1 := by
+            word
+          show σ.fr ≤ uint.nat sv.Metadata'.Index' ∧ σ.fr < uint.nat (sv.Metadata'.Index' + W64 1) ∧
+            ∀ sid, some (snapId sv) = some sid → false = false → σ.fr < uint.nat sid.index'
+          refine ⟨by omega, by omega, fun sid hs _ => ?_⟩
+          cases hs
+          show σ.fr < uint.nat sv.Metadata'.Index'
+          omega, Hfr.2.1,
+        DtOk.mono Hfr.2.2 (by show uint.Z ls.committed ≤ uint.Z sv.Metadata'.Index'; omega)
           (fun i hi hp => by
             exfalso
             have : uint.Z (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)).prev.index' =
               uint.Z sv.Metadata'.Index' := rfl
-            omega))) ?_ ?_ ?_ ?_ ?_
+            omega)⟩) ?_ ?_ ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hkc' Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
     Int.natCast_zero, Int.add_zero]

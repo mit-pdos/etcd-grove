@@ -164,6 +164,7 @@ theorem raftLog.stableTo.wp_proof
         · rw [(Hsappi h).2.1] at Hsp; cases Hsp
     · -- the log's terms: the same entries, split elsewhere
       exact FrOk.of_le Hfr rfl rfl (Int.le_refl _)
+        (by have := w64Max_spec ls.inprogress (id.index' + W64 1); simp only; omega)
         (DtOk.of_eq Hfr.2.2 rfl (by simp only; rw [List.append_assoc, List.take_append_drop]) rfl)
     · simp only [Hk]
   · -- a miss: nothing changes

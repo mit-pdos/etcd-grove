@@ -612,58 +612,75 @@ def FlOk (σ : StorState) (ls : LogState) : Prop :=
 
 /-- (U8 v2, the snapshot's bound) The terms raft certified (`σ.dt`, the authority of `raftDL`):
 each at an index at most `committed`, the log's term there once the index is at or past the
-boundary. What makes a valid stored snapshot one `maybeSendSnapshot` may send (`SnapOk`: at or
-below the commit index, an entry id of the log). Kept by every step: entries at or below
-`committed` are never rewritten, `committed` never decreases, and a `restore` moves the boundary
-past it. -/
+boundary, and (U8 v2 step 4) at most the certification bound `dtk` (so a certificate above it is
+fresh: `ownRaftLog_certify`). What makes a valid stored snapshot one `maybeSendSnapshot` may send
+(`SnapOk`: at or below the commit index, an entry id of the log). Kept by every step: entries at or
+below `committed` are never rewritten, `committed` never decreases, and a `restore` moves the
+boundary past it. -/
 def DtOk (M : GMap Nat w64) (ls : LogState) : Prop :=
   ∀ (i : Nat) (t : w64), M.lookup i = some t → (i : Int) ≤ uint.Z ls.committed ∧
     (uint.Z ls.prev.index' ≤ (i : Int) →
-      plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 (i : Int)) = some t)
+      plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 (i : Int)) = some t) ∧
+    i ≤ ls.dtk
 
 /-- `DtOk` with nothing certified. -/
 theorem DtOk.empty (ls : LogState) : DtOk ∅ ls := by
   intro i t h; simp [GMap.lookup_empty] at h
 
-/-- `DtOk` across a step that does not lower `committed` and keeps the log's terms at the
-certified indices at or past the new boundary. -/
+/-- `DtOk` across a step that does not lower `committed` or the certification bound and keeps the
+log's terms at the certified indices at or past the new boundary. -/
 theorem DtOk.mono {M : GMap Nat w64} {ls ls' : LogState} (H : DtOk M ls)
     (hc : uint.Z ls.committed ≤ uint.Z ls'.committed)
     (ht : ∀ (i : Nat), (i : Int) ≤ uint.Z ls.committed → uint.Z ls'.prev.index' ≤ (i : Int) →
       uint.Z ls.prev.index' ≤ (i : Int) ∧
       plogTermAt ls'.prev (ls'.sents ++ ls'.uents) (W64 (i : Int)) =
-        plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 (i : Int))) :
+        plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 (i : Int)))
+    (hk : ls.dtk ≤ ls'.dtk := by exact Nat.le_refl _) :
     DtOk M ls' := by
   intro i t h
-  obtain ⟨h1, h2⟩ := H i t h
-  refine ⟨by omega, fun hp => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := H i t h
+  refine ⟨by omega, fun hp => ?_, by omega⟩
   obtain ⟨hp', he⟩ := ht i h1 hp
   rw [he]; exact h2 hp'
 
-/-- `DtOk` across a step that keeps the boundary, the log and `committed`. -/
+/-- `DtOk` across a step that keeps the boundary, the log, `committed` and the certification
+bound. -/
 theorem DtOk.of_eq {M : GMap Nat w64} {ls ls' : LogState} (H : DtOk M ls)
     (hp : ls'.prev = ls.prev) (hl : ls'.sents ++ ls'.uents = ls.sents ++ ls.uents)
-    (hc : ls'.committed = ls.committed) : DtOk M ls' := by
+    (hc : ls'.committed = ls.committed) (hk : ls'.dtk = ls.dtk := by rfl) : DtOk M ls' := by
   intro i t h
-  rw [hp, hl, hc]; exact H i t h
+  rw [hp, hl, hc, hk]; exact H i t h
 
-/-- (U8 v2) The view's frozen end and snapshot handed out: the frozen prefix ends at the
-compaction point or at most at `applying` (unless lent), and the snapshot last handed out is the
-log's record (`LogState.sg`). -/
+/-- (U8 v2; step 4, 2026-10-29: the frozen end may run ahead of `applying`) The view's frozen end
+and snapshot handed out: unless lent, the frozen prefix ends at most at `committed`, below
+`offsetInProgress` (so below every batch a `Ready` hands out: `ownStorage_handout`'s premise; a
+truncation is above `committed`, so it keeps it) and, with a snapshot pending that is not in
+progress, below the snapshot (so a snapshot `Ready`'s lend starts at or below it:
+`ownRaftLog_lend`); the snapshot last handed out is the log's record (`LogState.sg`); the terms
+certified (`DtOk`). (Until step 4 the first conjunct was `σ.fr ≤ max c applying`: a `Ready` now
+freezes its committed entries below its batch before `acceptReady` moves `applying`,
+`ownRaftLog_handout`.) -/
 def FrOk (σ : StorState) (ls : LogState) : Prop :=
-  (ls.lent = false → σ.fr ≤ max (uint.nat σ.prev.index') (uint.nat ls.applying)) ∧ σ.sg = ls.sg ∧
-  DtOk σ.dt ls
+  (ls.lent = false → σ.fr ≤ uint.nat ls.committed ∧ σ.fr < uint.nat ls.inprogress ∧
+    (∀ sid, ls.snap = some sid → ls.sip = false → σ.fr < uint.nat sid.index')) ∧
+  σ.sg = ls.sg ∧ DtOk σ.dt ls
 
-/-- `FrOk` across a change that keeps the loan and the snapshot handed out, and does not lower
-`applying`. -/
+/-- `FrOk` across a change that keeps the loan and the snapshot handed out, does not lower
+`committed` or `offsetInProgress`, and makes no snapshot pending and not in progress that was not
+so before (by default: keeps both). -/
 theorem FrOk.of_le {σ : StorState} {ls ls' : LogState} (H : FrOk σ ls) (hl : ls'.lent = ls.lent)
-    (hs : ls'.sg = ls.sg) (ha : uint.Z ls.applying ≤ uint.Z ls'.applying)
-    (hd : DtOk σ.dt ls') : FrOk σ ls' := by
+    (hs : ls'.sg = ls.sg) (hc : uint.Z ls.committed ≤ uint.Z ls'.committed)
+    (hi : uint.Z ls.inprogress ≤ uint.Z ls'.inprogress)
+    (hd : DtOk σ.dt ls')
+    (hsn : ∀ sid, ls'.snap = some sid → ls'.sip = false → ls.snap = some sid ∧ ls.sip = false :=
+      by exact fun _ h1 h2 => ⟨h1, h2⟩) : FrOk σ ls' := by
   refine ⟨fun h => ?_, by rw [hs]; exact H.2.1, hd⟩
-  have := H.1 (by rw [← hl]; exact h)
-  have h1 := uint_nat_eq ls.applying; have h2 := uint_nat_eq ls'.applying
-  have : uint.nat ls.applying ≤ uint.nat ls'.applying := by omega
-  omega
+  obtain ⟨h1, h2, h3⟩ := H.1 (by rw [← hl]; exact h)
+  have e1 := uint_nat_eq ls.committed; have e2 := uint_nat_eq ls'.committed
+  have e3 := uint_nat_eq ls.inprogress; have e4 := uint_nat_eq ls'.inprogress
+  refine ⟨by omega, by omega, fun sid hs1 hs2 => ?_⟩
+  obtain ⟨hs1', hs2'⟩ := hsn sid hs1 hs2
+  exact h3 sid hs1' hs2'
 
 /-- (D22 S-d1b, 2026-10-21) The storage as the log holds it: `ownStorage`, unless it is lent to
 the application (`LogState.lent`: a `Ready` handed out a snapshot, `ownRaftLog_lend`). While it is
@@ -891,8 +908,9 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
   "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
   "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
-  -- (U8 v2) the frozen prefix ends at the compaction point or at most at `applying`; the
-  -- snapshot handed out is the log's record
+  -- (U8 v2; step 4) the frozen prefix ends at most at `committed`, below `offsetInProgress` and a
+  -- pending snapshot not in progress; the snapshot handed out is the log's record; the terms
+  -- certified
   "%Hfr" ∷ ⌜FrOk σ ls⌝ ∗
   -- (D22 S-d1b, 2026-10-21) the storage lent only with a snapshot pending; neither of
   -- `ownRaftLogW`'s windows (`sapp`, `aps`); and a snapshot in progress (`SipOk`)
@@ -1079,8 +1097,9 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
   "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
   "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
-  -- (U8 v2) the frozen prefix ends at the compaction point or at most at `applying`; the
-  -- snapshot handed out is the log's record
+  -- (U8 v2; step 4) the frozen prefix ends at most at `committed`, below `offsetInProgress` and a
+  -- pending snapshot not in progress; the snapshot handed out is the log's record; the terms
+  -- certified
   "%Hfr" ∷ ⌜FrOk σ ls⌝ ∗
   "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
   "%Hsappi" ∷ ⌜ls.sapp = true → SappOk σ ls⌝ ∗
@@ -1435,8 +1454,13 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (a : List EntryM)
     · simp only [absorbView, Hae, if_true]; exact Hfr.1 Hlt
     · simp only [absorbView, Hae, if_false, Hk]
       have := Ha Hae e0 Hhd
-      show _ ≤ max (uint.nat σ.prev.index') _
-      omega
+      have e1 := uint_nat_eq ls.applying; have e2 := uint_nat_eq ls.committed
+      have e3 := uint_nat_eq ls.inprogress
+      have := Happlying.2; have := Hfl.2.2.1
+      refine ⟨by omega, by omega, fun sid Hs Hsp => ?_⟩
+      obtain ⟨-, Hapl⟩ := Hprel.2 (by rw [Hs]; simp) Hsp
+      have Hpv : ls.prev = sid := (Hs ▸ Hstore : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents).1
+      rw [← Hpv]; have := uint_nat_eq ls.prev.index'; omega
   iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb
     Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsip Hsipn Hlent Hq Hprel Hsat' Hfr'
@@ -1476,6 +1500,65 @@ theorem ownRaftLog_raise_floor (l : Loc) (ls : LogState) (x : w64)
       Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
     iapply lentStor_close Hlnt; iexact HStorage
   iexact Hfw
+
+/-- (U8 v2 step 4) The certified terms' authority out of the storage as the log holds it (lent or
+not), and back at any map. -/
+theorem lentStor_dt (b : Bool) (sn : StorNames) (st : Storage) (σ : StorState) :
+    lentStor (GF := GF) b sn st σ ⊢ ghostMapAuth sn.gd 1 σ.dt ∗
+      (∀ (M : GMap Nat w64), ghostMapAuth sn.gd 1 M -∗ lentStor b sn st { σ with dt := M }) := by
+  cases b
+  · simp only [lentStor, Bool.false_eq_true, ↓reduceIte]
+    unfold ownStorage storAuths
+    iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, ⟨Ha, Hg, Hd⟩, %Hw⟩
+    iframe Hd
+    iintro %M HM
+    rw [show ({ σ with dt := M } : StorState).kOut = σ.kOut from rfl]
+    iexists e0
+    iframe Hcomp HFr HO Hend Ha Hg HM
+    ipureintro; exact Hw
+  · simp only [lentStor, ↓reduceIte]
+    unfold storAuths
+    iintro ⟨Ha, Hg, Hd⟩
+    iframe Hd
+    iintro %M HM
+    iframe Ha Hg HM
+
+/-- (U8 v2 step 4) **Certifying a term**: at a committed index `i` above every index certified so
+far (`dtk`), of the log's term there once at or past the boundary, raft certifies the term `t`
+(`raftDL`'s first disjunct, persistent) and raises the certification bound to `i`. Also while the
+storage is lent (the authority is kept, `lentStor`). -/
+theorem ownRaftLog_certify (l : Loc) (ls : LogState) (i : Nat) (t : w64) (Hi : ls.dtk < i)
+    (Hc : (i : Int) ≤ uint.Z ls.committed)
+    (Ht : uint.Z ls.prev.index' ≤ (i : Int) →
+      plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 (i : Int)) = some t) :
+    ⊢ ownRaftLog (GF := GF) l ls ==∗ ownRaftLog l { ls with dtk := i } ∗ i ↪[ls.sn.gd]□ t := by
+  iintro H
+  iNamed H
+  ihave ⟨Hd, Hback⟩ := lentStor_dt _ _ _ _ $$ HStorage
+  have Hfresh : σ.dt.lookup i = none := by
+    cases h : σ.dt.lookup i with
+    | none => rfl
+    | some t' => have := (Hfr.2.2 i t' h).2.2; omega
+  imod ghost_map_insert_persist i t Hfresh $$ Hd with ⟨Hd, #Hel⟩
+  ihave HStorage := Hback $$ Hd
+  imodintro
+  iframe Hel
+  have Hdt : DtOk (σ.dt.insert i t) { ls with dtk := i } := by
+    intro j t' hj
+    by_cases hji : j = i
+    · subst hji
+      rw [GMap.lookup_insert_eq] at hj
+      cases hj
+      exact ⟨Hc, Ht, Nat.le_refl _⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hji)] at hj
+      obtain ⟨h1, h2, h3⟩ := Hfr.2.2 j t' hj
+      exact ⟨h1, h2, by show j ≤ i; omega⟩
+  have Hfr' : FrOk { σ with dt := σ.dt.insert i t } { ls with dtk := i } := ⟨Hfr.1, Hfr.2.1, Hdt⟩
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' { σ with dt := σ.dt.insert i t } _ _
+    { ls with dtk := i } rfl Hcm Hap Hidx Hnowrap Hstore Hoffset Happlied Hpapplied Hcommitted Hapg
+    Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr'
+    rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger
+    Hu_logger
 
 /-- (D19i part 1) The floor, read out without consuming the log: at most `applying`, so at most
 `committed` and the last index; below `offsetInProgress` with no snapshot pending. -/
@@ -1825,7 +1908,7 @@ macro "reseal_raftLog" : tactic =>
                -- the storage and its pending batch (2026-10-10), for a state that
                -- keeps the fields they are stated on
                | exact Hstor | exact Hpend | exact Hfl | exact Hfr
-               | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) Hfr.2.2)))
+               | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) Hfr.2.2)))
 
 set_option hygiene false in
 /-- `reseal_raftLog` for `ownRaftLogW` (`ownRaftLogW_intro`). -/
@@ -1835,7 +1918,7 @@ macro "reseal_raftLogW" : tactic =>
     try (first | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
                | exact Hstor | exact Hpend | exact Hfl | exact Hfr
-               | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) Hfr.2.2)))
+               | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) Hfr.2.2)))
 
 set_option hygiene false in
 /-- (D22 S-d1b) In a `raftLog` method, after `iNamed Hlog`, in a branch where `h : ls.snap = none`:
@@ -1867,7 +1950,7 @@ theorem ownRaftLog_setCommitted (l : Loc) (ls : LogState) (n : w64)
       WP (App (Val (GoInstruction (GoStore go.uint64)))
             (Val (PairV #(l.[raftLog, go!"committed"]) #n))) {{ Φ }} := by
   have HdtK : ∀ σ : StorState, FrOk σ ls → FrOk σ { ls with committed := n } :=
-    fun σ H => ⟨H.1, H.2.1, DtOk.mono H.2.2 Hcm (fun _ _ h => ⟨h, rfl⟩)⟩
+    fun σ H => H.of_le rfl rfl Hcm (Int.le_refl _) (DtOk.mono H.2.2 Hcm (fun _ _ h => ⟨h, rfl⟩))
   iintro Hlog HΦ
   iNamed Hlog
   wp_auto

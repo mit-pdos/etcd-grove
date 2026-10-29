@@ -430,17 +430,20 @@ def SnapLogStep [GooseExts] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Pr
    s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents ∧
    s'.logst.inprogress = s.logst.inprogress ∧
    -- (2026-10-28, stage U4a) the record of the storage's terms kept
-   s'.logst.stb = s.logst.stb ∧ s'.logst.sdt = s.logst.sdt) ∨
+   s'.logst.stb = s.logst.stb ∧ s'.logst.sdt = s.logst.sdt ∧
+   -- (U8 v2 step 4) a `MsgSnap`'s step certifies no term
+   s'.logst.dtk = s.logst.dtk) ∨
   (s'.term = m.Term' ∧ s'.logst.prev = snapId sv ∧ s'.logst.snap = some (snapId sv) ∧
    s'.logst.sents ++ s'.logst.uents = [] ∧
    uint.Z s.logst.committed < uint.Z sv.Metadata'.Index' ∧
    ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv) ∧
    -- (2026-10-28, stage U4a) the record of the storage's terms the restore made (`restoreSdt`)
-   s'.logst.stb = (restoreSdt s.logst).1 ∧ s'.logst.sdt = (restoreSdt s.logst).2)
+   s'.logst.stb = (restoreSdt s.logst).1 ∧ s'.logst.sdt = (restoreSdt s.logst).2 ∧
+   s'.logst.dtk = s.logst.dtk)
 
 theorem SnapLogStep.refl [GooseExts] (sv : SnapshotM) (m : MessageM) (s : NState) :
     SnapLogStep sv m s s :=
-  .inl ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  .inl ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
