@@ -156,7 +156,7 @@ theorem raft.tickHeartbeat.wp_proof
         iintro %Hc
         simp [MsgSnap] at Hc
       simp only [hP]
-      iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
+      iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
       have Hcm0 := Href.commit_mono
       have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
       have e2 := Hcc (by msg_ne); subst c'
@@ -169,7 +169,7 @@ theorem raft.tickHeartbeat.wp_proof
         have h0 : 0 ≤ uint.Z s.term := by word
         rw [Int.max_eq_left h0] at Ht3
         have Hi := Hi (by msg_ne)
-        have Hf := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+        have Hf := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
         have Heq : s0.term = s.term := by word
         intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg', Hs'⟩
         exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
@@ -303,7 +303,7 @@ theorem raft.tickHeartbeat.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
     simp only [hP]
-    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
+    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
     have Hcm := Href.commit_mono
     have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
     have e2 := Hcc (by msg_ne); subst c'
@@ -317,7 +317,7 @@ theorem raft.tickHeartbeat.wp_proof
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
       simp only [H0] at Ht3
-      exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
+      exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
         Hi (by msg_ne), fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg,
