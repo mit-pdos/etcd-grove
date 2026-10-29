@@ -519,6 +519,57 @@ Step 3 (MemoryStorage, 2026-10-29; the approved shapes, generic until step 4):
 - `memSnapLb` (the stored snapshot's lower bound, for etcd's two writers) is **not built**: the server's
   repair.
 
+Step 4 (the node level, 2026-10-29; in progress):
+
+- **U9 ahead of schedule** (the coordinator's decision): the static cluster's variants that touch
+  the storage (`StartNode.spec`, `RestartNode.spec`, `node.Advance.spec`, with their `Linked`
+  results) are dropped, not restated; the unified cluster (`isCluster`, `RestartNode.unifiedSpec`)
+  is the one that matters; the dynamic variants are kept only where they come for free.
+- `isStorage sn st` (raft's derived view, `InvStorage.lean`) renamed `isStorageD sn st`, to free
+  the name for the API's `isStorage γ id st`.
+- **The API's pieces** (`InvNodeRule.lean`, sealed over `InvApi.lean`'s `ApiImpl`):
+  `nodeAppliedLb γ id k := ⌜k = 0⌝ ∨ ∃ sn, nodeStorNames γ id sn ∗ (monoNatLbOwn sn.ga k ∨
+  monoNatLbOwn sn.gg k)` (an applied lower bound: the floor raft published, or a snapshot it
+  handed out, which `Advance` applies), `snapGiven γ id k := ∃ sn, nodeStorNames γ id sn ∗
+  monoNatLbOwn sn.gg k`, both persistent and timeless; `nodeStorNames γ id sn`: the node's table
+  entry (`Cluster.nodeTab`, `nodeTabOk`) names its storage names (`CfgNames` extended by the five
+  names of `StorNames`, `NodeNames.sn`). `isStorage γ id st := isStorageP (snapshotValid γ)
+  (storBnd γ id) (storDL γ id) st`, with `storBnd γ id c := ∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k
+  ∨ snapGiven γ id k)` and the delivered bound in existing client names only, `storDL γ id i :=
+  ∃ n N l, isNode n γ N id ∗ deliveredLogLb n γ N l ∗ ⌜i ≤ |l|⌝` (kvreconf snapshots between
+  applying a `Ready`'s entries and `Advance`, so an applied bound would not do). Internally the
+  driver's `dlvLb γn ds` carries raft's certified terms of `ds` (`dlvKeys sn ds`, the keys
+  `j + 1 ↪[sn.gd]□ ds[j].Term'`), which a `Ready` issues for its committed entries
+  (`ownRaftLog_certify`, `LogState.dtk` the certified height, `SdtTie` now `dtk = |delivered|`):
+  the conversion `isStorage γ id st ⊢ isStorageV sn st` needs no invariant.
+- `snapshotValid γ sv` (2026-10-29, approved): also `uint.nat Index < 2^61` and the `ConfState`'s
+  four lists of total length at most `2^62` (raft's certificate, `SnapListsOk`, needs both, and
+  nothing in the definitions gives them: a joint configuration may list `2^62 + 2` ids; the
+  client proves them where it makes the snapshot, as the old `snapshotCert_make`'s `SnapListsOk`).
+  `SnapValidCert.lean`: the protocol-level lemma from the pieces to `raftSnapCertD`.
+- **The boot storage (decision (a) refined, approved as (B))**: `newRaft` reads `FirstIndex` and
+  `LastIndex` (`newLogWithSize`) *before* `InitialState`, so raft cannot be given `isStorage`
+  only after `InitialState`. `RestartNode.unifiedSpec` takes one premise, a boot bundle with a
+  client frame `R`: persistent triples of `FirstIndex` (`1`), `LastIndex` (`0`) and
+  `InitialState`, whose post includes the update to `isStorage γ id st ∗ storLog st 0 □ [e₀] ∗
+  storEnd st 1` (`e₀.Term' = 0`); `MemoryStorage`'s instance of it is a law (`memStorFresh`,
+  the lock: `FirstIndex`/`LastIndex` need only the lock, the snapshot being in the fuel).
+- `FrOk`'s first conjunct: the frozen end at most `committed` and below `inprogress` (and below a
+  pending snapshot not yet handed out), not `max c applying`: a `Ready` freezes its committed
+  entries below its batch at the hand-out, before `acceptReady` moves `applying`
+  (`ownRaftLog_handout`'s new frozen range, `frozenRdy`); `ownRaftLog_lend` also gives the lend's
+  start at most the snapshot's index (`ApplySnapshot` needs `j ≤ s`).
+- The `Ready`'s storage hand-out and its receipt over the ranges (`ApiVocab.lean`): `readyOut st
+  sn es L` (no snapshot: `appendRight st es`; a snapshot: the ranges from `k ≤ s` with the end, and
+  `storGiven sn s`), `ceFrozen st n ce es` (the committed entries below the batch, frozen),
+  `snapReceipt st l es` (§3's `Advance` pre after a snapshot: the half snapshot, `storCompacted st
+  s`, the dummy of its term frozen, `es` owned after it, the end), `advReceipt st n es L` (no
+  snapshot: `∃ a, appendReceipt st es a` with the frozen prefix within the `n` delivered).
+- `RNState.sn` (raft's storage names, constant; `ownRawNode`'s `Hstor` now also `rs.sn =
+  s.logst.sn`); `ownRawNode_raise_floor` gives `storFloor rs.sn x` (no `storTermsAt`, no `D`);
+  `ownRawNode_appended` takes the frozen prefix `a` within `delivered`; `ownRaftPhys_set_ns` only
+  at `b = false` (no `NsCap`).
+
 ### What builds, what is broken (at the step-2 commit)
 
 Builds: `InvStorage`, `InvStorageRead`, `InvStorageLaws`, `InvRaftlog`, `InvReadylog`,
