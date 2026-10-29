@@ -42,7 +42,8 @@ abbrev newReplica.spec : Prop :=
       nodeRunning n γr.cluster kvrRaftN 1 ∗
       nodeConfig n γr.cluster kvrRaftN ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
       kvrStorRec st ms γs ∗ memStorInvP ms γs (kvrJ γr.cluster id) ∗ memStorMeta ms γs hs ∗
-      memSnapExact γs memSnapEmpty ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f }}
+      memSnapExact γs memSnapEmpty ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
+      id ↪[γr.rseq] W64 0 }}
     (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvreconf.newReplica))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #cs0))
       (Val #tick)) (Val #sts)) (Val #f))

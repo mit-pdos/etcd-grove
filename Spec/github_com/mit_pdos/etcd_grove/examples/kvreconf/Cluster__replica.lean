@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`c.replica(id)` (cluster.go): replica `id`, or `nil` if there is none (then `id` was not started:
-`repKnown` refutes it).
+`c.replica(id)` (cluster.go): replica `id`, or `nil` if there is none; for a started `id`
+(`known`, with `repKnown`) never `nil`.
 -/
 module
 
@@ -29,10 +29,10 @@ attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.replica.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (c : Loc) (id : w64),
-  {{ isClusterC γr vs c }}
+  ∀ (γr : RNames) (vs : List w64) (c : Loc) (id : w64) (known : Bool),
+  {{ isClusterC γr vs c ∗ (if known then repKnown γr id else iprop(True)) }}
     (App (Val (c @!! go.GoType.PointerType rClusterTy @!! go!"replica")) (Val #id))
-  {{ (r : Loc), RET #r; (⌜r = null⌝ ∗ (repKnown γr id -∗ False)) ∨ isRep γr vs id r }}
+  {{ (r : Loc), RET #r; ⌜r = null ∧ known = false⌝ ∨ isRep γr vs id r }}
 
 end spec
 

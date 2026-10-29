@@ -50,7 +50,8 @@ storage registry, the read-only fields (`opts`, `boot`, the `Stats`), and the lo
 invariant holds the replica map (keys exactly `1 … nextID-1`, so `random` never meets an empty
 map, `vs` being non-empty), the next id with its lower-bound authority (`γr.nid`: a sender's id is
 below it, so `send`'s `c.replica(from)` is not `nil`), the next operation id with the other half of
-the store invariant's `γr.opn`, `joinAuth` of the started ids (`startNew` joins a fresh one), each
+the store invariant's `γr.opn`, the read-sequence elements of the ids not started yet (`freshIds`:
+a new replica's `lockInv` takes its own), `joinAuth` of the started ids (`startNew` joins a fresh one), each
 replica's `isRep`, and, until the stopper takes them (`γr.stp`), every replica's stop tokens.
 -/
 module
@@ -87,6 +88,10 @@ def OptsOk [GooseExts] (o : ROptions) : Prop :=
 
 /-- The bootstrap voters of `k` voters: `1, …, k`. -/
 def bootVoters (k : Nat) : List w64 := (List.range k).map (fun i : Nat => W64 ((i : Int) + 1))
+
+/-- The ids from `k` to `9` (`maxReplicas`): those not started yet, whose read-sequence elements the
+cluster's lock holds. -/
+def freshIds (k : Nat) : List w64 := ((List.range 10).filter (fun i => k ≤ i)).map (fun i : Nat => W64 (i : Int))
 
 /-- The bootstrap configuration's conf state: the voters `vs`. -/
 def bootCS [GooseExts] (vs : List w64) : ConfStateM := ConfStateM.mk vs [] [] [] false
@@ -214,6 +219,7 @@ def clusterLockInv (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
       (∀ i, i ∈ U ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       vs.length < uint.nat nid ∧ uint.nat nid ≤ 10⌝ ∗
     "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γr vs id r) ∗
+    "Hrseq" ∷ ([∗list] i ∈ freshIds (uint.nat nid), i ↪[γr.rseq] W64 0) ∗
     "Hstp" ∷ ghostVar γr.stp (1 : Qp).half b ∗
     "Htoks" ∷ (if b then iprop(True) else [∗map] _id ↦ r ∈ R, repStop γr vs r))
 
