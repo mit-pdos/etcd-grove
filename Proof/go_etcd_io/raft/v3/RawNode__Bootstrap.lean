@@ -64,7 +64,7 @@ theorem RawNode.Bootstrap.wp_proof
   wp_auto
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
       (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
-  · unfold isStorage; iexact HisStorage
+  · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto

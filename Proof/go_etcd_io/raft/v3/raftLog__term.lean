@@ -88,9 +88,8 @@ theorem raftLog.term.wp_proof
     obtain ⟨rfl, Hse, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
-  · unfold isStorage; iexact HisStorage
+  ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
+  · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
@@ -206,18 +205,17 @@ theorem raftLog.term.wp_proof
       omega
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
-      Hidx Hnowrap Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hsip Hsipn Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
-      Hlent Hq Hprel Hsat
-    iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
+      Hidx Hnowrap Hb1 Hb2 Hfi Hli Hcm Hap Hstore
+      Hapg Hip Hsip Hsipn Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl
+      Hlent Hq Hprel Hsat Hfr
+    iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot
       Hl_logger
-      Hu_logger Husnap Hpksn Hkcert Hcut Hfloor
+      Hu_logger Husnap Hpksn Hcut
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto
-    ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
-    · unfold isStorage; iexact HisStorage
+    ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
+    · unfold isStorageD; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
     iNamed Hsto

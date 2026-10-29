@@ -112,8 +112,8 @@ abbrev raft.handleSnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry (`restore`'s)
-      "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `ksnCert`) the snapshot certified (`restore`'s)
+      "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ }}

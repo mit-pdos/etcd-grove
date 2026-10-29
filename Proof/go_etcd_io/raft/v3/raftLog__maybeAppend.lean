@@ -128,7 +128,7 @@ theorem raftLog.maybeAppend.wp_proof
     isplitr
     · ipureintro
       simp [plogMaybeAppend, Hnm]
-    ipureintro; exact ⟨rfl, id, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun h => absurd h (Int.lt_irrefl _)⟩
+    ipureintro; exact ⟨rfl, id, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun h => absurd h (Int.lt_irrefl _)⟩
   | true =>
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' := of_decide_eq_true Hb.symm
     simp only [plogMaybeAppend, ite_eq_left Hm]
@@ -183,8 +183,8 @@ theorem raftLog.maybeAppend.wp_proof
       iframe
       isplitr
       · ipureintro
-        simp only [w64Min, and_self, ite_true, logStoreRec]
-      ipureintro; exact ⟨rfl, id, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun h => absurd h (Int.lt_irrefl _)⟩
+        simp only [w64Min, _root_.and_self, ite_true, logStoreRec]
+      ipureintro; exact ⟨rfl, id, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun h => absurd h (Int.lt_irrefl _)⟩
     · -- a conflict at `ci = ents[k].Index = a.prev.index + 1 + k`
       have Hke := Hwf k e Hk
       have Hcine : e.Index' ≠ W64 0 := by intro Hc; rw [Hc] at Hke; word

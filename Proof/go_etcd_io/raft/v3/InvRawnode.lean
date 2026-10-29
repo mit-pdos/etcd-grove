@@ -555,15 +555,8 @@ def DynCCPre (dec : CCDec) (rs : RNState) (o : ConfChangeIM) (k : Nat) (e : Entr
 
 -- (2026-10-26, raft's signature, stage 1) `propEntryM` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- The scalars of the message `Propose`, `confChangeToMsg` and `node.Propose` build,
-`pb.Message{Type: MsgProp, ...}` (2026-10-16, stage R5; until then `propMsg esl`, the Goose
-value with its entries' slice). `Propose`/`node.run` set `From` to the node's id. -/
-def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
-
-/-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
-`pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
-`ccEntry`). -/
-def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM := ⟨W64 0, W64 0, confChangeEntryType o, bs⟩
+-- (U8 v2, 2026-10-29) `propMsgM` and `ccEntryM` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`
+-- (`confChangeToMsg`'s spec, raft's level, names them).
 
 end defs
 
@@ -578,28 +571,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 -- is gone: a pending step's message is owned (`msgIn`, `ownRawNode`'s `Hpend`), capacity
 -- included.
 
-/-- The log's last index leaves room for a batch of `2^61` entries (2026-10-14, stage B7 part
-2), as `raft__appendEntry.lean`'s `ownRaftLog_facts`: the stable part is below `isStorage`'s
-bound `2^61`, the unstable part a Go slice. -/
-theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
-    ⊢ ownRaftLog (GF := GF) l ls -∗
-      ⌜uint.Z ls.prev.index' + ((ls.sents ++ ls.uents).length : Int) < 2^61 + 2^63⌝ ∗
-      ownRaftLog l ls := by
-  iintro H0
-  -- (D22 S-d1b) the stable part's bound (the storage may be lent)
-  icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
-  iNamed H0
-  ihave %Hul := entsPts_len _ _ _ $$ Huents
-  isplitr
-  · ipureintro
-    have : (ls.uents.length : Int) < 2^63 := by
-      rw [Hul.1]; have := word.signed_range lv.unstable'.entries'.len; word
-    rw [List.length_append]; push_cast
-    omega
-  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
-      Huents_cap Hl_logger Hu_logger
+-- (U8 v2, 2026-10-29) `ownRaftLog_last_bound` moved to `InvRaftPhys.lean` (`raft.appliedTo`'s).
 
 /-- The in-progress part of the log is a prefix of what the storage will hold
 (`LogPersistRel`): the log and `stored` agree below `offsetInProgress`. -/
@@ -652,9 +624,9 @@ theorem ownRaftLog_persistRel (l : Loc) (ls : LogState) :
       · exact Hprel.1 Hc
     rw [Hoffset] at Hrel Hipb
     exact persistRel_agree Hrel Hipb.1 Hipb.2 j h1 h2
-  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
+  · iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
 /-- ... read through the struct. -/
@@ -685,19 +657,7 @@ theorem ownRaftPhysC_applying (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   iframe H
   ipureintro; exact Hb.2.1
 
-/-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
-theorem ownRaftPhysC_last_bound (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64⌝ ∗
-      ownRaftPhysCV c V r id s := by
-  iintro H
-  icases ownRaftPhysC_log_same c r id s $$ H with ⟨Hlog, Hback⟩
-  icases ownRaftLog_last_bound _ _ $$ Hlog with ⟨%Hb, Hlog⟩
-  ihave H := Hback $$ Hlog
-  iframe H
-  ipureintro
-  simp only [plogLastIndexZ, toPState]
-  omega
+-- (U8 v2, 2026-10-29) `ownRaftPhysC_last_bound` moved to `InvRaftPhys.lean` (`raft.appliedTo`'s).
 
 /-- The log's `applied ≤ applying ≤ committed`, read through the struct. -/
 theorem ownRaftPhysC_logwf (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
@@ -955,61 +915,38 @@ def LoanOk (rs : RNState) (s : NState) : Prop :=
     ∃ pre t e, rs.steps = pre ++ [Pending.appendAck t (snapId l.snap) e (some l.snap)] ∧
       ∀ p ∈ pre, ∃ pv t', p = .self pv t')
 
-/-- (2026-10-28, stage U4a) **The record of the storage's terms is of the committed log handed
-out** (`LogState.stb`/`sdt`, `StorTermsOk`): with a snapshot pending and the storage not lent, the
-term `sdt[k]` is that of `delivered`'s entry at index `stb + k + 1`. Made by a restore when none
-was pending, of the log's terms after its boundary up to `applying` (`restoreSdt`), which are
-`delivered`'s: both are prefixes of the global committed log (`RawNode.Step`). So the floor raised
-with a snapshot pending comes with `delivered`'s terms (`ownRawNode_raise_floor`). -/
+/-- (U8 v2, 2026-10-29; until then, stage U4a, the record of the storage's terms `stb`/`sdt` tied
+to `delivered`) **Raft certified the terms of the committed log handed out, and no more**: the
+log's certified height (`LogState.dtk`, every key of `sn.gd` at most it) is `delivered`'s length.
+So a `Ready` certifies its committed entries' terms afresh (`ownRaftLog_certify`), which the driver
+keeps with the committed log delivered (the API's `deliveredLogLb`, the storage contract's `DL`). -/
 def SdtTie (rs : RNState) (s : NState) : Prop :=
-  s.logst.snap ≠ none →
-    ∀ k t, s.logst.sdt[k]? = some t →
-      (rs.delivered.map (·.Term'))[uint.nat s.logst.stb + k]? = some t
+  s.logst.dtk = rs.delivered.length
 
-/-- `SdtTie` across a step that keeps the record, with no snapshot pending that was not, and only
-extends `delivered`. -/
+/-- `SdtTie` across a step that keeps the certified height and `delivered`'s length. -/
 theorem SdtTie.keep {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
-    (hsn : s'.logst.snap ≠ none → s.logst.snap ≠ none)
-    (hb : s'.logst.stb = s.logst.stb) (hd : s'.logst.sdt = s.logst.sdt)
-    (hdl : rs.delivered <+: rs'.delivered) : SdtTie rs' s' := by
-  intro h1 k t ht
-  rw [hd] at ht; rw [hb]
-  have := H (hsn h1) k t ht
-  obtain ⟨u, hu⟩ := hdl
-  rw [← hu, List.map_append, List.getElem?_append_left (List.getElem?_eq_some_iff.1 this).1]
-  exact this
+    (hk : s'.logst.dtk = s.logst.dtk)
+    (hdl : rs'.delivered.length = rs.delivered.length) : SdtTie rs' s' := by
+  unfold SdtTie at H ⊢; rw [hk, hdl]; exact H
 
-/-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the pending snapshot and the record
-kept, `delivered` unchanged). -/
+/-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the record kept, `delivered`
+unchanged). -/
 theorem SdtTie.ofRec {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
-    (hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
+    (_hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
     (hdl : rs'.delivered = rs.delivered := by rfl) : SdtTie rs' s' :=
-  SdtTie.keep H (by rw [hsn]; exact fun h => h) (congrArg (·.2.1) hr) (congrArg (·.2.2) hr)
-    (by rw [hdl]; exact List.prefix_refl _)
+  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl])
 
-/-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`): the record kept, or the restore's of the
-log's terms (`restoreSdt`), which are `delivered`'s (`Hdag`, `ownStepGhost_dlv_terms`). -/
+/-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`: the certified height kept). -/
 theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : MessageM}
     (H : SdtTie rs s)
-    (Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
+    (_Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
       (rs.delivered.map (·.Term'))[uint.nat s.logst.prev.index' + k]? = some t)
     (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl) :
     SdtTie rs' s' := by
-  intro h1 k t ht
-  rw [hdl]
-  rcases Hsl with ⟨-, h2, -, -, hb, hd⟩ | ⟨-, -, -, -, -, -, hb, hd⟩
-  · rw [hd] at ht; rw [hb]; rw [h2] at h1; exact H h1 k t ht
-  · rw [hd] at ht; rw [hb]
-    unfold restoreSdt at ht ⊢
-    cases hs : s.logst.snap with
-    | none => simp only [hs, Option.isSome_none] at ht ⊢; exact Hdag k t ht
-    | some _ =>
-      simp only [hs, Option.isSome_some, ↓reduceIte] at ht ⊢
-      exact H (by rw [hs]; simp) k t ht
-
-/-- No snapshot pending: nothing to tie. -/
-theorem SdtTie.of_none {rs : RNState} {s : NState} (h : s.logst.snap = none) : SdtTie rs s :=
-  fun h' => absurd h h'
+  apply SdtTie.keep H _ (by rw [hdl])
+  rcases Hsl with h | h
+  · exact h.2.2.2.2.2.2
+  · exact h.2.2.2.2.2.2.2.2
 
 /-- No loan, no snapshot acknowledgement queued. -/
 theorem LoanOk.none_noack {rs : RNState} {s : NState} (H : LoanOk rs s) (h : rs.slent = none) :
@@ -2229,7 +2166,8 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- `advanceable` one)
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
-  "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
+  -- (U8 v2) and the storage's ghost names
+  "%Hstor" ∷ ⌜rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn⌝ ∗
   -- (2026-10-17; until then pre-vote off, `s.prevote = false`, its scope) in the dynamic mode a
   -- pre-candidate's campaign guard (2026-10-25, T-M M2b; until then pre-vote off there), and the
   -- term ceiling (`RNPv`)
@@ -2259,7 +2197,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
-    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s) :
@@ -2301,7 +2239,7 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       -- (2026-10-19, D21 M3)
       ⌜NsLink γ s⌝ ∗
       -- (D22 S-b′3) the storage's certificate link
-      certLink γ s.logst.storage := by
+      certLink γ s.gh.sn := by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
@@ -2325,7 +2263,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hunp : rs.unpersisted = s.logst.unpersisted)
     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
-    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
     {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
@@ -2342,7 +2280,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       ackInv γ rs s -∗
       loanCom γ rs.slent -∗
       -- (D22 S-b′3) the storage's certificate link
-      certLink γ s.logst.storage -∗
+      certLink γ s.gh.sn -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗
       ownRawNode γ rn id rs := by
@@ -2515,48 +2453,37 @@ term `0` with nothing in the outbox (`ownRaftPhysC_set_bt`; until then the no-sn
 these). -/
 theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b bx : Bool)
     (H0 : s.gh.ns = false) (H0x : s.gh.xf = true) (H0b : s.gh.bt = false)
-    (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
-      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap)
+    -- (U8 v2, 2026-10-29) the no-snapshot mode is dropped: only `b = false`
+    (Hb : b = false)
     (Hbt : bx = true → s.term ≠ W64 0 ∧ s.outbox = []) :
-    ⊢ NsCap (GF := GF) b s.logst.storage -∗ ownRaftPhys cfg r id s -∗
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
       ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := bx, bt := bx } } := by
-  iintro #Hcap H
-  -- the mode first (transfer still off), then transfer
-  ihave H : ownRaftPhys cfg r id { s with gh := { s.gh with ns := b } } $$ [H]
-  · cases b with
-    | false =>
-      have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
-        rw [← H0]
-      rw [He]
-      iexact H
-    | true =>
-      obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
-      ihave H := ownRaftPhys_toC' $$ H
-      iunfold NsCap at Hcap
-      ihave #Hc1 := Hcap $$ %rfl
-      ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn
-        Hp Hc Ho $$ Hc1 H
-      iapply ownRaftPhysC_toS
-      iexact H
+  iintro H
+  subst Hb
+  ihave H : ownRaftPhys cfg r id { s with gh := { s.gh with ns := false } } $$ [H]
+  · have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
+      rw [← H0]
+    rw [He]
+    iexact H
   cases bx with
   | true =>
     obtain ⟨Ht, Hob⟩ := Hbt rfl
     ihave H := ownRaftPhys_toC' $$ H
     ihave H := ownRaftPhysC_set_bt
-      (c := CfgM.simple cfg (domSet ({ s with gh := { s.gh with ns := b } } : NState).progress \ cfg))
-      r id { s with gh := { s.gh with ns := b } } Ht Hob $$ H
+      (c := CfgM.simple cfg (domSet ({ s with gh := { s.gh with ns := false } } : NState).progress \ cfg))
+      r id { s with gh := { s.gh with ns := false } } Ht Hob $$ H
     ihave H := ownRaftPhysC_toS $$ H
-    have He : ({ s with gh := { s.gh with ns := b, xf := true, bt := true } } : NState) =
-        { ({ s with gh := { s.gh with ns := b } } : NState) with
-          gh := { ({ s with gh := { s.gh with ns := b } } : NState).gh with bt := true } } := by
+    have He : ({ s with gh := { s.gh with ns := false, xf := true, bt := true } } : NState) =
+        { ({ s with gh := { s.gh with ns := false } } : NState) with
+          gh := { ({ s with gh := { s.gh with ns := false } } : NState).gh with bt := true } } := by
       rw [← H0x]
     rw [He]
     iexact H
   | false =>
-    ihave H := ownRaftPhys_xf_off cfg r id { s with gh := { s.gh with ns := b } } $$ H
-    have He : ({ s with gh := { s.gh with ns := b, xf := false, bt := false } } : NState) =
-        { ({ s with gh := { s.gh with ns := b } } : NState) with
-          gh := { ({ s with gh := { s.gh with ns := b } } : NState).gh with xf := false } } := by
+    ihave H := ownRaftPhys_xf_off cfg r id { s with gh := { s.gh with ns := false } } $$ H
+    have He : ({ s with gh := { s.gh with ns := false, xf := false, bt := false } } : NState) =
+        { ({ s with gh := { s.gh with ns := false } } : NState) with
+          gh := { ({ s with gh := { s.gh with ns := false } } : NState).gh with xf := false } } := by
       rw [← H0b]
     rw [He]
     iexact H
@@ -2602,22 +2529,22 @@ node may be stepped, ticked, or asked to propose or campaign, while the applicat
 appends on its own. -/
 theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     -- (D22 S-d3a) no snapshot lent: a lent storage comes back with `Advance` (`snapReceipt`)
-    (Hsl : rs.slent = none) :
-    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ appendReceipt rs.storage rs.unpersisted ==∗
+    (Hsl : rs.slent = none) (a : List EntryM)
+    -- (U8 v2) the batch's frozen prefix `a` within the committed log handed out
+    (Ha : a ≠ [] → ∀ e0, rs.unpersisted.head? = some e0 →
+      uint.nat e0.Index' - 1 + a.length ≤ rs.delivered.length) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ appendReceipt rs.storage rs.unpersisted a ==∗
       ownRawNode γ rn id { rs with unpersisted := [] } := by
-  iintro H Hr
-  iunfold appendReceipt at Hr
-  icases Hr with (%Hnil | ⟨%σa, Htok⟩)
-  · have Hrs : { rs with unpersisted := [] } = rs := by
-      cases rs; simp only at Hnil ⊢; rw [Hnil]
-    rw [Hrs]
-    imodintro
-    iexact H
+  iintro H Htok
   iNamed H
-  ihave Htok : appendedTok s.logst.storage σa s.logst.unpersisted $$ [Htok]
-  · rw [← Hstor, ← Hunp]; iexact Htok
+  ihave Htok : appendReceipt s.logst.storage s.logst.unpersisted a $$ [Htok]
+  · rw [← Hstor.1, ← Hunp]; iexact Htok
   icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
-  imod ownRaftLog_absorb s.log s.logst σa $$ Hlog Htok with Hlog
+  imod ownRaftLog_absorb s.log s.logst a (fun hne e0 he => by
+      have := Ha hne e0 (by rw [Hunp]; exact he); rw [Hdlen] at this
+      have := uint_Z_nonneg s.logst.applying
+      have : uint.nat s.logst.applying = (uint.Z s.logst.applying).toNat := rfl
+      omega) $$ Hlog Htok with Hlog
   ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
@@ -2680,45 +2607,76 @@ theorem ownStepGhost_dlv_terms (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
   · iexact Hg
   · iexact Hr
 
+/-- (U8 v2, 2026-10-29) **A committed prefix `D` and the log agree** after the log's boundary, up to
+`D`'s length (at most `committed`): both are prefixes of the global committed log
+(`isCommitted_agree`), the log's committed prefix after its full prefix of the boundary's length.
+(`ownStepGhost_dlv_terms`, for whole entries and any committed length.) What the `Ready`'s frozen
+committed entries and the terms it certifies are read from. -/
+theorem ownStepGhost_cmt_ents (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (D : List EntryM) (HD : (D.length : Int) ≤ uint.Z s.logst.committed) :
+    ⊢ isCommitted (GF := GF) γ D -∗ ownStepGhost γ md c id s -∗
+      ⌜∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
+        uint.nat s.logst.prev.index' + k < D.length →
+        D[uint.nat s.logst.prev.index' + k]? = some e⌝ ∗
+      ownStepGhost γ md c id s := by
+  iintro #HD' H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  icases ownRaftGhost_committed γ id (toPState s) $$ Hg with ⟨%fp, %Hf, #Hc⟩
+  icases isCommitted_agree γ _ _ $$ HD' Hc with %Hag
+  isplitr
+  · ipureintro
+    intro k e He hlt
+    have Hfl : (fp.length : Int) = uint.Z s.logst.prev.index' := Hf.1
+    have HL : (toPState s).log = s.logst.sents ++ s.logst.uents := rfl
+    have HC : (toPState s).commit = s.logst.committed := rfl
+    rw [HL, HC] at Hag
+    have Hn : uint.nat s.logst.prev.index' = fp.length := by
+      have := uint_nat_eq s.logst.prev.index'; omega
+    rw [Hn] at hlt ⊢
+    have He2 : (fp ++ (s.logst.sents ++ s.logst.uents))[fp.length + k]? = some e := by
+      rw [List.getElem?_append_right (by omega)]; simpa using He
+    have HX : ((fp ++ (s.logst.sents ++ s.logst.uents)).take
+        (uint.Z s.logst.committed).toNat)[fp.length + k]? = some e := by
+      rw [List.getElem?_take_of_lt (by omega)]; exact He2
+    rcases Hag with h | h
+    · obtain ⟨u, hu⟩ := h
+      rw [← hu, List.getElem?_append_left hlt] at HX; exact HX
+    · obtain ⟨u, hu⟩ := h
+      rw [← hu, List.getElem?_append_left (List.getElem?_eq_some_iff.1 HX).1]; exact HX
+  iunfold ownStepGhost
+  isplitl [Hg]
+  · iexact Hg
+  · iexact Hr
+
 /-- (D19i part 1) **Raising the floor** to `applying` -- the committed log handed out,
 `delivered` -- with nothing unpersisted: the client (`node.go`, when the application's `Advance`
-is handed over) gets the storage's floor witness, the application's right to compact and snapshot
-up to it, and the node is marked raised (`RNState.flw`) until `Advance` moves `applied` there.
-(2026-10-28, stage U4a) And the storage's terms of a prefix `D` of `delivered` (`storTermsAt`):
-with no snapshot pending the storage holds the log, whose terms after its boundary are
-`delivered`'s (`ownStepGhost_dlv_terms`); with one restored since, the record of the storage's terms
-(`StorTermsOk`) is of `delivered` (`SdtTie`). -/
+is handed over) gets the storage's floor witness (`storFloor`, the API's `nodeAppliedLb`), the
+application's right to compact up to it, and the node is marked raised (`RNState.flw`) until
+`Advance` moves `applied` there. (U8 v2, 2026-10-29: the storage's terms, `storTermsAt`, are gone.) -/
 theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hunp0 : rs.unpersisted = [])
     -- (D22 S-d3a) no snapshot lent (the storage is the application's then); since D22 S-d4 item 3
     -- a snapshot restored since the last `Ready` may be pending (`StorExtOk`)
-    (Hsl : rs.slent = none) (D : List EntryM) (HD : D <+: rs.delivered) :
+    (Hsl : rs.slent = none) :
     ⊢ ownRawNode (GF := GF) γ rn id rs ==∗
       ownRawNode γ rn id { rs with flw := true } ∗
-      ∃ x : w64, ⌜uint.Z x = (rs.delivered.length : Int)⌝ ∗ storFloor rs.storage x ∗
-        storTermsAt rs.storage (D.map (·.Term')) := by
+      ∃ x : w64, ⌜uint.Z x = (rs.delivered.length : Int)⌝ ∗ storFloor rs.sn x := by
   iintro H
   iNamed H
   icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
   icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
-  have Hlnt : s.logst.lent = false := by rw [Hgh0.1.2.1, Hloan.1, Hsl]; rfl
+  have Hlnt : s.logst.lent = false := by rw [Hgh0.1.2.1.1, Hloan.1, Hsl]; rfl
   imod ownRaftLog_raise_floor s.log s.logst s.logst.applying ⟨Hflb.1, Int.le_refl _⟩
     (Hunp ▸ Hunp0) Hlnt $$ Hlog with ⟨Hlog, Hfw⟩
   have HDl : (rs.delivered.length : Int) = uint.Z s.logst.applying := by
     have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega
-  icases ownStepGhost_dlv_terms γ _ cf id s rs.delivered HDl Hflb.2.1 $$ Hdeliv Hghost
-    with ⟨%Hag, Hghost⟩
-  imod ownRaftLog_terms s.log { s.logst with fl := s.logst.applying } (D.map (·.Term'))
-    (rs.delivered.map (·.Term')) (Hunp ▸ Hunp0) Hlnt
-    (by simp only [List.length_map]; have := HD.length_le; omega)
-    (List.IsPrefix.map _ HD) (by simp only [List.length_map]; exact HDl)
-    (fun _ => Hag) (fun h => Hsdt h) $$ Hlog with ⟨Hlog, Ht⟩
   ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
     (s' := { s with logst := { s.logst with fl := s.logst.applying } }) rfl rfl rfl rfl $$ Hghost
   imodintro
-  isplitr [Hfw Ht]
+  isplitr [Hfw]
   · iapply ownRawNode_intro γ rn id { rs with flw := true }
       { s with logst := { s.logst with fl := s.logst.applying } } cf fp rnv sv hprev steps Hwf Hin
       Hasync Hdlen Hunp Hsnap
@@ -2730,10 +2688,8 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iexists s.logst.applying
   isplitr
   · ipureintro; exact HDl.symm
-  rw [Hstor]
-  isplitl [Hfw]
-  · iexact Hfw
-  · iexact Ht
+  rw [Hstor.2]
+  iexact Hfw
 
 /-- (2026-10-26, D22 J2, R-loc) **A lent snapshot is local to the node**: after the `Ready` that
 lent it (`psnap` cleared), the pending snapshot is the loan's (`LoanOk`), whose receiver-local fact

@@ -358,7 +358,9 @@ theorem raft.send.wp_proof
     · iunfold tsSrc at Hsrc
       icases Hsrc with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
-      · obtain rfl := Option.some.inj Hsv'; iapply tsSrc_snap; iexact Hc
+      · obtain rfl := Option.some.inj Hsv'; unfold tsSrc; iright; iexists sv; isplitr
+        · ipureintro; rfl
+        iexact Hc
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of

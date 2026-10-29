@@ -199,8 +199,8 @@ theorem wp_Step_MsgProp
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop. `send` wants the entries read-only.
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply wp_stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
@@ -275,8 +275,8 @@ theorem wp_Step_MsgProp
       ileft; ipureintro; rfl
   · -- Candidate: drop
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply wp_stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
@@ -482,8 +482,8 @@ theorem wp_Step_MsgProp
         iright; iexact Herrn
   · -- PreCandidate (2026-10-04), as a candidate: drop
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply wp_stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by

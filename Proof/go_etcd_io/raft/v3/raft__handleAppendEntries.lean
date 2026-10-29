@@ -160,7 +160,8 @@ theorem raft.handleAppendEntries.wp_proof
         exact ⟨hp, hsn, hst, by rw [hcm]; exact plogCommitTo_ge _ _⟩
     ihave Hphys := Hlogback $$ %ls' Hlog
       %(⟨⟨fun h => (Hgh0.1.1 h).elim (fun h1 => .inl (Hmagh.2.1 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)),
-          Hgh0.1.2.keep Hmagh.2.2.1 Hmagh.1 Hkeep.2.2.2⟩,
+          Hgh0.1.2.1.keep Hmagh.2.2.1 Hmagh.1 Hkeep.2.2.2,
+          Hmagh.2.2.1.2.2.2.2.2.2.2.trans Hgh0.1.2.2⟩,
          fun _ => Hkeep, Hkeep.2.2.1⟩)
       %(fun h => absurd h Hnl)
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)

@@ -1,5 +1,7 @@
 /-
-Port of election_proof/proof_MemoryStorage__FirstIndex.v.
+Port of election_proof/proof_MemoryStorage__FirstIndex.v. U8 v2 step 3 (2026-10-29): over the lock's
+invariant; the caller's compaction bound is below the compaction point (`Hcp`), which is
+justified (`Hcj`).
 -/
 module
 
@@ -18,72 +20,73 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.FirstIndex.wp_proof
     (wp_MemoryStorage_firstIndex : MemoryStorage.firstIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) := by
-  intro ms γs σ
-  wp_start as Hpre
-  iNamed Hpre
-  iunfold ownMemoryStorage at Hms
-  iNamed Hms
+  intro ms γs c
+  wp_start as ⟨#Hlock, #Hc⟩
+  iunfold memStorLock at Hlock
+  icases Hlock with ⟨#Hinit, #Hmu⟩
   wp_apply wp_with_defer as %defer defer
-  -- `ms.Lock()`: the method of the embedded `sync.Mutex`
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σ0, %c, Hinv⟩
+  icases Hinv with ⟨%p, %ents, %M, %sv, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- the contents agree with the view on the boundary (2026-10-10); (D19i part 1) the fields are
-  -- cut at `c`, the view's boundary or within the floor
-  icases memCut_view γs σ σ0 c $$ Hview Hgs_inv Hcut_inv
-    with ⟨%Hvc, #Hcutlb, Hview, Hgs_inv, Hcut_inv⟩
-  obtain ⟨Hvw, Hcok, Hcfl⟩ := Hvc
-  have Hpb' : uint.Z (memCut σ0 c).prev.index' + ((memCut σ0 c).ents.length : Int) < 2^61 := by
-    have := memCut_stLast Hcok
-    unfold EtcdGrove.stLast at this
-    omega
+  -- the caller's bound is at most the compaction point
+  ihave %Hcle : ⌜c ≤ uint.nat p.index'⌝ $$ [Hcp_inv]
+  · iunfold memCompacted at Hc
+    icases Hc with (%H | ⟨#Hlb, -⟩)
+    · ipureintro; omega
+    icases monoNatLbOwn_valid _ _ _ _ $$ Hcp_inv Hlb with ⟨-, %H⟩
+    ipureintro; exact H
+  -- the compaction point itself is compacted
+  ihave #Hcomp : memCompacted γs (uint.nat p.index') $$ [Hcp_inv]
+  · ihave #Hlb := monoNatLbOwn_get _ _ _ $$ Hcp_inv
+    iunfold memCompJust at Hcj_inv
+    icases Hcj_inv with ⟨%L, #HL, %HcL⟩
+    iunfold memCompacted
+    iright
+    iframe Hlb
+    iexists L
+    iframe HL
+    ipureintro; exact ⟨_, HcL, Nat.le_refl _⟩
+  have Hb := Hok_inv.1
+  have Hpb : uint.Z (memPhys p ents).prev.index' + ((memPhys p ents).ents.length : Int) < 2^61 := by
+    simp only [memPhys]; word
+  iunfold memstorageFields at Hfields_inv
+  icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
-  ihave Hf : memstorageFields ms (memCut σ0 c) $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms (memPhys p ents) $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hp, es, dummy, _, nli, nen, nte, nsn
+    iexists hp, es, dummy, _, _, _, _, _
+    simp only [named]
     iframe
     ipureintro; exact Hdummy
-  wp_apply wp_MemoryStorage_firstIndex ms (memCut σ0 c) Hpb' $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
-  -- the deferred `ms.Unlock()`
+  wp_apply wp_MemoryStorage_firstIndex _ _ Hpb $$ [$Hf] as %fi ⟨%Hfi, Hfields_inv⟩
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf Hcut_inv]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfields_inv Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
   · unfold memstorageInv
-    iexists σ0, c
-    iframe
-    ipureintro; exact Hpb_inv
+    iexists p, ents, M, sv
+    simp only [named]
+    iframe # ∗
+    ipureintro; exact Hok_inv
   iapply HΦ
-  simp only [memCut] at Hfi
-  obtain ⟨Hc1, -, -⟩ := Hcok
-  rw [Hvw.1] at Hc1 Hcfl
-  isplitr
-  · ipureintro
-    constructor
-    · omega
-    · rcases Hcfl with Hcfl | Hcfl
-      · rw [Hcfl] at Hfi; omega
-      · omega
-  isplitr
-  · by_cases Hce : uint.Z c.index' = uint.Z σ.prev.index'
-    · ileft; ipureintro; omega
-    · iright
-      rw [show uint.Z fi - 1 = uint.Z c.index' by omega]
-      iexact Hcutlb
-  unfold ownMemoryStorage
-  iframe # ∗
-  ipureintro
-  exact Hbounded
+  simp only [memPhys] at Hfi
+  have Hfi' : uint.nat fi = uint.nat p.index' + 1 := by word
+  isplitl []
+  · ipureintro; omega
+  rw [Hfi', Nat.add_sub_cancel]
+  iexact Hcomp
 
 end proof
 

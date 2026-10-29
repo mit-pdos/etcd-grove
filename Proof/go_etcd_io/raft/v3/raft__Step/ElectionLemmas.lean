@@ -490,8 +490,8 @@ macro "prevote_resp_dispatch" : tactic =>
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]
-      ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-      · iapply tsSrc_ne; notsnap_tac
+      ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+      · iapply rcvSrc_ne; notsnap_tac
       wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
@@ -515,8 +515,8 @@ macro "prevote_resp_dispatch" : tactic =>
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
       simp only [stepFuncOf]
-      ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-      · iapply tsSrc_ne; notsnap_tac
+      ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+      · iapply rcvSrc_ne; notsnap_tac
       wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
@@ -573,8 +573,8 @@ macro "prevote_resp_dispatch" : tactic =>
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
-      ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-      · iapply tsSrc_ne; notsnap_tac
+      ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+      · iapply rcvSrc_ne; notsnap_tac
       wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by

@@ -237,31 +237,34 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
 
 end mode
 
-/-! ### The storage's certificates and raft's (D22 S-b′2, 2026-10-20)
+/-! ### The snapshots' certificates as raft carries them, and the cluster's (U8 v2, 2026-10-29)
 
-A storage's registry of certified snapshots (`storCert`, `InvStorage.lean`) is γ-free, as the rest
-of the storage model; `storCertOk γ st` ties it to raft's certificates (`raftSnapCert γ`, both
-ways; D22 S-r, 2026-10-21: with the data certificate, `raftSnapCertD`), from an invariant the
-application allocates knowing raft's names (for a `MemoryStorage`,
-`memCertInv`, `MemstorageInstance.lean`). Raft reads a certificate out of the registry for a
-snapshot it sends (the storage's, `HSnapshot`), and registers the one a received message carries
-(S-d's lent storage). -/
+Raft's log and struct are γ-free: they carry a snapshot's certificate as the γ-free pins of its
+storage names `sn` -- a stored snapshot's validity (`svCert sn`, the contract's `snapshotValid`)
+and a received snapshot's certificate (`ksnCert sn`). `storCertOk γ sn` ties them to the cluster's
+certificates (`raftSnapCertD γ`): a stored snapshot's validity gives its certificate (what a
+`Ready` hands out with a `MsgSnap` from the storage), a received one's pin is the certificate
+(both ways: `raft.Step` pins the one a `MsgSnap` carries). The node level proves it (step 4 of
+U8 v2) from the pins. Until U8 v2 the storage kept a registry of certified snapshots (`storCert`),
+tied to raft's both ways (D22 S-b′2/S-r). -/
 
 section certLink
 variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
 
-/-- The namespace of the registry's invariant (2026-10-27: the cluster's, `RaftNames.reCertNs`). -/
+/-- The namespace of the certificates' invariant (2026-10-27: the cluster's, `RaftNames.reCertNs`). -/
 def raftCertN (γ : RaftNames) : Namespace := γ.reCertNs
 
 /-- See above. -/
-def storCertOk (γ : RaftNames) (st : Storage) : IProp GF :=
-  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ storCert st k ={E}=∗
+def storCertOk (γ : RaftNames) (sn : StorNames) : IProp GF :=
+  iprop(□ (∀ (sv : SnapshotM) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ svCert sn sv ={E}=∗
+      raftSnapCertD γ (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
+    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ ksnCert sn k ={E}=∗
       raftSnapCertD γ k) ∗
     □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗
-      storCert st k))
+      ksnCert sn k))
 
-instance storCertOk_persistent (γ : RaftNames) (st : Storage) :
-    Persistent (storCertOk (GF := GF) γ st) := by
+instance storCertOk_persistent (γ : RaftNames) (sn : StorNames) :
+    Persistent (storCertOk (GF := GF) γ sn) := by
   unfold storCertOk; infer_instance
 
 end certLink
@@ -299,25 +302,21 @@ theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns
     γ.reBoot ≠ [] :=
   RaftNames.noSnap_boot (by rw [← H.1]; exact h)
 
-/-- (D22 S-b′3, 2026-10-20) Outside the no-snapshot mode, the node's storage's certificate
-registry is tied to raft's certificates (`storCertOk`): a `Ready` certifies the `MsgSnap`s it hands
-out from it, a `MsgSnap`'s `raft.Step` registers its snapshot in it. In the mode no snapshot is
-sent or received, and no link is needed (the servers' storage, from the boot contract, has none). -/
-def certLink (γ : RaftNames) (st : Storage) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true⌝ ∨ storCertOk γ st)
+/-- (D22 S-b′3, 2026-10-20; U8 v2, 2026-10-29: over the storage names, in every mode) The node's
+snapshot certificates are tied to the cluster's (`storCertOk`): a `Ready` certifies the `MsgSnap`s
+it hands out from them, a `MsgSnap`'s `raft.Step` pins its snapshot's. Until U8 v2 the no-snapshot
+mode needed no link (`⌜γ.reNoSnap = true⌝ ∨ …`); the mode is dropped at raft's level (a node's
+`NGhost.ns` is off, `ownRaftPhys`'s `Hnsoff`). -/
+def certLink (γ : RaftNames) (sn : StorNames) : IProp GF := storCertOk γ sn
 
-instance certLink_persistent (γ : RaftNames) (st : Storage) :
-    Persistent (certLink (GF := GF) γ st) := by
+instance certLink_persistent (γ : RaftNames) (sn : StorNames) :
+    Persistent (certLink (GF := GF) γ sn) := by
   unfold certLink; infer_instance
-
-theorem certLink_noSnap (γ : RaftNames) (st : Storage) (h : γ.reNoSnap = true) :
-    ⊢ certLink (GF := GF) γ st := by
-  unfold certLink; ileft; ipureintro; exact h
 
 /-- What the mode keeps beyond `ownRaftGhost` (`ghostRestM`), (D21 M3) `NsLink`, and (D22 S-b′3)
 the storage's certificate link (`certLink`). -/
 def ghostRest (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
-  iprop(⌜NsLink γ s⌝ ∗ ghostRestM γ md c id s ∗ certLink γ s.logst.storage)
+  iprop(⌜NsLink γ s⌝ ∗ ghostRestM γ md c id s ∗ certLink γ s.gh.sn)
 
 theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ghostRest (GF := GF) γ md c id s ⊢ ⌜NsLink γ s⌝ ∗ ghostRest γ md c id s := by
@@ -367,7 +366,7 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
 
 /-- (D22 S-b′3) The certificate link, read out. -/
 theorem ghostRest_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
-    ghostRest (GF := GF) γ md c id s ⊢ certLink γ s.logst.storage ∗ ghostRest γ md c id s := by
+    ghostRest (GF := GF) γ md c id s ⊢ certLink γ s.gh.sn ∗ ghostRest γ md c id s := by
   unfold ghostRest
   iintro ⟨%Hn, H, #Hl⟩
   iframe Hl H
@@ -449,7 +448,7 @@ theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cfg
     ownStepGhost (GF := GF) γ (.dyn dec c0 h0 g) c id s ⊣⊢
       ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ NsLink γ s⌝ ∗
         decLb γ g.decs ∗ ownRaftGhostR γ (effDec dec g.decs) c0 id (rOf s g) ∗
-        certLink γ s.logst.storage := by
+        certLink γ s.gh.sn := by
   simp only [ownStepGhost, ghostRest, ghostRestM, GMode.isDyn, ownRaftGhostR, rOf.proj_p,
     rOf.proj_fp]
   constructor
@@ -575,7 +574,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   isplitr
   · ipureintro
     unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
-  rw [Hng.2]; iexact Hcl
+  rw [Hng.1]; iexact Hcl
 
 /-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
 same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/
@@ -589,7 +588,7 @@ theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl)
     (hbt : s'.gh.bt = s.gh.bt := by rfl)
-    (hst : s'.logst.storage = s.logst.storage := by rfl) :
+    (hst : s'.gh.sn = s.gh.sn := by rfl) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx, hbt]
   cases md with
@@ -611,7 +610,7 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl)
     (hbt : s'.gh.bt = s.gh.bt := by rfl)
-    (hst : s'.logst.storage = s.logst.storage := by rfl) :
+    (hst : s'.gh.sn = s.gh.sn := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx, hbt]
   cases md with
@@ -842,7 +841,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   isplitr
   · ipureintro
     unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
-  rw [Hng.2]; iexact Hcl
+  rw [Hng.1]; iexact Hcl
 
 end ghost
 

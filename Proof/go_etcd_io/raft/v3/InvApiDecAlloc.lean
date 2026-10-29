@@ -81,7 +81,13 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
     · unfold RaftNames.dyn; rw [Hdyn]; simp [DynCfg.all_self, dc]
     · intro L d; rw [Hsok]; trivial
     · rw [Hrg]; simp
-  have Hmr : ModeDec γ c0 gd := ⟨Hrn, Hv.1, Hv.2, Hγm⟩
+  have Hr0 : W64 0 ∉ c0.ids ∧ ∀ k, k ∈ c0.learnersNext → k ∉ c0.voters := by
+    refine ⟨fun h' => ?_, fun _ h' => absurd h' (GMap.not_elem_of_empty _)⟩
+    simp only [c0, Membership.ids, Membership.simple, GMap.elem_of_union] at h'
+    rcases h' with ((h' | h') | h') | h'
+    · exact Hnz' h'
+    all_goals exact GMap.not_elem_of_empty _ h'
+  have Hmr : ModeDec γ c0 gd := ⟨Hrn, ⟨Hv.1, Hv.2, Hγm⟩, Hr0⟩
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
   · unfold isClusterU clusterInv
     iframe Hcinv Hinv HspT

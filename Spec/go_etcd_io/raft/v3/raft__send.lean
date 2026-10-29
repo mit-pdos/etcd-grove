@@ -242,9 +242,9 @@ abbrev raft.send.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
-      -- (`tsSrc_ne` for any other type)
-      "#Hsrc" ∷ tsSrc s.logst.storage m.Type' sn }}
+      -- (D22 S-b′3; U8 v2: valid or received, as the node's storage names pin it, `tsSrc`) a
+      -- `MsgSnap`'s snapshot certified (`tsSrc_ne` for any other type)
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 

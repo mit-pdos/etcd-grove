@@ -852,3 +852,21 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   trivial⟩`.
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
+
+### `wp_apply` of a hypothesis triple with no binders in its post drops the continuation
+
+- **Found** (2026-10-29, U8 v2 step 4, `newLogWithSize` over the boot bundle,
+  `notes/u8v2/step4-boot-newLogWithSize.patch`): `wp_apply H $$ [$HR]`, with `H` a hypothesis
+  triple whose postcondition binds nothing (`{{ P }} e {{ RET v; Q }}`), silently loses the
+  continuation: the goal after it is not the rest of the program.
+- **Workaround here.** `wp_apply_raw H $$ [$HR]; inext; iintro HR`.
+- **Proposed change.** `wp_apply` handles a post with no binders like one with binders
+  (investigate where the continuation is dropped; a regression test with such a hypothesis).
+
+### `word` on fully concrete goals fails the kernel's check
+
+- **Found** (2026-10-29, same proof): `word` closes a goal with no variables (concrete `w64`
+  arithmetic) at elaboration, but the proof term fails the kernel's check.
+- **Workaround here.** `rfl` or `simp` on those goals.
+- **Proposed change.** Find which `word` step produces the ill-typed term on closed goals (or
+  have `word` try `decide`/`rfl` first on them); add a test.

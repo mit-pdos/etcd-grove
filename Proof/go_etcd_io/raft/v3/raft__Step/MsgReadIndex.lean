@@ -114,8 +114,8 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun _ => ⟨Hterm, Hlok Hrole⟩) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
@@ -165,8 +165,8 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact this
   · -- a candidate (a pre-candidate is one too) ignores it
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun Hc => by
@@ -297,8 +297,8 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact .trans _ _ _ _ _ H1 H2
   · -- a candidate (a pre-candidate is one too) ignores it
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun Hc => by

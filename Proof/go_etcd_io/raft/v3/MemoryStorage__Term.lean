@@ -1,12 +1,14 @@
 /-
-Port of election_proof/proof_MemoryStorage__Term.v.
+Port of election_proof/proof_MemoryStorage__Term.v. U8 v2 step 3 (2026-10-29): over the lock's
+invariant; the caller's range is in the lock's map, so `i0` is below the end (no `ErrUnavailable`),
+and the map's entry at `i0` is the physical one (the frozen dummy at the compaction point).
 -/
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import Proof.go_etcd_io.raft.v3.LemmasEnts
 
 @[expose] public section
 
@@ -20,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -28,10 +30,10 @@ theorem MemoryStorage.Term.wp_proof
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
-  intro ms γs σ i0 ec
-  wp_start as ⟨Hms, %Hrange, %Hpf, #Hec⟩
-  iunfold ownMemoryStorage at Hms
-  icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
+  intro ms γs k dq es i0 ec
+  wp_start as ⟨#Hlock, Hlogr, %Hrange, #Hec⟩
+  iunfold memStorLock at Hlock
+  icases Hlock with ⟨#Hinit, #Hmu⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -39,117 +41,147 @@ theorem MemoryStorage.Term.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σ0, %c, Hinv⟩
+  icases Hinv with ⟨%p, %ents, %M, %sv, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- below the pending batch the contents answer as the view (2026-10-10); (D19i part 1) the
-  -- fields are the contents cut at `c`
-  icases memCut_view γs σ σ0 c $$ Hview Hgs_inv Hcut_inv
-    with ⟨%Hvc, #Hcutlb, Hview, Hgs_inv, Hcut_inv⟩
-  obtain ⟨Hvw, Hcok, Hcfl⟩ := Hvc
-  obtain ⟨Hrange0, Hteq⟩ := memView_term σ σ0 Hvw i0 Hrange Hpf
+  -- the caller's range is in the map: `i0` holds its entry `e`, so it is below the end
+  iunfold memLog at Hlogr
+  icases Hlogr with ⟨Hlogr, %Hlb⟩
+  icases memLogL_auth _ _ _ _ _ _ $$ Hlog_inv Hlogr with %HM
+  obtain ⟨Hk, Hi0⟩ := Hrange
+  obtain ⟨e, He⟩ : ∃ e, es[uint.nat i0 - k]? = some e :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  have HMi : M.lookup (uint.nat i0) = some e := by
+    have := HM _ e He
+    rwa [show k + (uint.nat i0 - k) = uint.nat i0 by omega] at this
+  have Hi0e : uint.nat i0 < uint.nat p.index' + 1 + ents.length := by
+    refine Nat.lt_of_not_le fun h => ?_
+    have := Hok_inv.2.1 _ h
+    rw [this] at HMi
+    cases HMi
+  -- the frozen dummy: the map's entry at the compaction point has the dummy's term
+  icases Hd0_inv with ⟨%e0, #He0g, %He0t⟩
+  icases ghost_map_lookup $$ Hlog_inv He0g with %HMc
+  ihave #Hd0_inv : (∃ (e0 : EntryM), (uint.nat p.index') ↪[γs.log]□ e0 ∗ ⌜e0.Term' = p.term'⌝) $$ []
+  · iexists e0
+    iframe He0g
+    ipureintro; exact He0t
+  -- the compaction point is compacted
+  ihave #Hcomp : memCompacted γs (uint.nat p.index') $$ [Hcp_inv]
+  · ihave #Hlb := monoNatLbOwn_get _ _ _ $$ Hcp_inv
+    iunfold memCompJust at Hcj_inv
+    icases Hcj_inv with ⟨%L, #HL, %HcL⟩
+    iunfold memCompacted
+    iright
+    iframe Hlb
+    iexists L
+    iframe HL
+    ipureintro; exact ⟨_, HcL, Nat.le_refl _⟩
+  have Hb := Hok_inv.1
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
+  icases Hfields_inv with ⟨%hp, %es', %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   icases Hents with #Hents
   ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: (memCut σ0 c).ents) 0 dummy rfl $$ Hents
+  icases entsRO_lookup es' (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
   rw [ite_eq_left ⟨by word, by word⟩]
-  wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
+  wp_apply wp_load_slice_index es' (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
   · iframe Hls; ipureintro; exact Hl0.1
   wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
   · iframe He0
   obtain ⟨Hd0, Hd1⟩ := Hdummy
-  simp only [memCut] at Hd0 Hd1 Hcl
-  have Hclast := memCut_stLast Hcok
-  simp only [EtcdGrove.stLast, memCut] at Hclast
+  simp only [memPhys] at Hd0 Hd1 Hcl
   wp_if_destruct
-  · -- (D19i part 1) below the boundary: the application compacted past `i0`, `ErrCompacted`
-    have Hlt : uint.Z i0 < uint.Z c.index' := by rw [Hd0] at Hif; word
-    have Hne : c ≠ σ0.prev := by
-      intro Hc; rw [Hc, Hvw.1] at Hlt; omega
-    have Hfl : uint.Z c.index' ≤ uint.Z σ.fl := Hcfl.resolve_left Hne
+  · -- below the compaction point: `ErrCompacted`
+    have Hlt : uint.Z i0 < uint.Z p.index' := by rw [Hd0] at Hif; word
     try wp_auto
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcut_inv]
-    · inext
-      unfold memstorageInv memstorageFields
-      iexists σ0, c
-      iframe Hgs_inv Hcut_inv
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+    · unfold memstorageInv
+      iexists p, ents, M, sv
+      simp only [named]
+      iframe # ∗
       isplitl
-      · iexists hp, es, dummy, _, _, _, _, _
+      · unfold memstorageFields
+        iexists hp, es', dummy, _, _, _, _, _
+        simp only [memPhys]
         iframe # ∗
         ipureintro; exact ⟨Hd0, Hd1⟩
-      ipureintro; exact Hpb_inv
+      ipureintro; exact Hok_inv
     iapply HΦ
-    isplitr
-    · iright
-      isplitr
-      · ipureintro; exact ⟨rfl, by omega⟩
-      iapply memStorCut_mono γs _ _ (by omega) (by have := uint_Z_nonneg i0; omega) $$ Hcutlb
-    unfold ownMemoryStorage memSnapShare
-    iframe # ∗
-    ipureintro; exact Hbounded
-  have Hge : uint.Z c.index' ≤ uint.Z i0 := by rw [Hd0] at Hif; word
+    isplitl [Hlogr]
+    · iunfold memLog
+      iframe Hlogr
+      ipureintro; exact Hlb
+    iright
+    isplitl []
+    · ipureintro; rfl
+    iapply memCompacted_mono γs _ _ (by word) $$ Hcomp
+  have Hge : uint.Z p.index' ≤ uint.Z i0 := by rw [Hd0] at Hif; word
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; word
-  have Hn : sint.Z (i0 - dummy.Index') = uint.Z i0 - uint.Z c.index' := by
+  have Hn : sint.Z (i0 - dummy.Index') = uint.Z i0 - uint.Z p.index' := by
     rw [Hd0]; word
   rw [Hn]
-  have Hlt : (uint.Z i0 - uint.Z c.index').toNat < (dummy :: (memCut σ0 c).ents).length := by
-    simp only [List.length_cons, memCut]; omega
-  obtain ⟨e, He⟩ : ∃ e, (dummy :: (memCut σ0 c).ents)[(uint.Z i0 - uint.Z c.index').toNat]? = some e :=
+  have Hlt : (uint.Z i0 - uint.Z p.index').toNat < (dummy :: (memPhys p ents).ents).length := by
+    simp only [List.length_cons, memPhys]; word
+  obtain ⟨e', He'⟩ : ∃ e', (dummy :: (memPhys p ents).ents)[(uint.Z i0 - uint.Z p.index').toNat]? = some e' :=
     ⟨_, List.getElem?_eq_getElem Hlt⟩
-  icases entsRO_lookup es (dummy :: (memCut σ0 c).ents) _ e He $$ Hents
+  icases entsRO_lookup es' (dummy :: (memPhys p ents).ents) _ e' He' $$ Hents
     with ⟨%ls1, %l1, #Hls1, #He1, %Hl1⟩
-  have H1 : 0 ≤ uint.Z i0 - uint.Z c.index' ∧
-      uint.Z i0 - uint.Z c.index' < sint.Z es.len := by
+  have H1 : 0 ≤ uint.Z i0 - uint.Z p.index' ∧
+      uint.Z i0 - uint.Z p.index' < sint.Z es'.len := by
     constructor <;> word
   simp only [H1, _root_.and_self, ↓reduceIte]
-  wp_apply wp_load_slice_index es (uint.Z i0 - uint.Z c.index') ls1 DFrac.discard l1 (by word) $$ [Hls1] with -
+  wp_apply wp_load_slice_index es' (uint.Z i0 - uint.Z p.index') ls1 DFrac.discard l1 (by word) $$ [Hls1] with -
   · iframe Hls1; ipureintro; exact Hl1.1
-  wp_apply wp_GetTerm.1 l1 DFrac.discard e $$ [He1] with -
+  wp_apply wp_GetTerm.1 l1 DFrac.discard e' $$ [He1] with -
   · iframe He1
-  have Hterm : termAt (memCut σ0 c).prev (memCut σ0 c).ents i0 = some e.Term' := by
-    simp only [memCut]
-    unfold termAt
-    by_cases Hi : uint.Z i0 = uint.Z c.index'
-    · simp only [Hi, ↓reduceIte]
-      have H0 : (uint.Z i0 - uint.Z c.index').toNat = 0 := by omega
-      rw [H0] at He
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at He
-      subst He
-      rw [Hd1]
-    · simp only [Hi, ↓reduceIte]
-      have HS : (uint.Z i0 - uint.Z c.index').toNat =
-          (uint.Z i0 - uint.Z c.index' - 1).toNat + 1 := by omega
-      rw [HS] at He
-      simp only [List.getElem?_cons_succ, memCut] at He
-      rw [He]
+  -- the physical entry's term is the range's
+  have Hterm : e.Term' = e'.Term' := by
+    by_cases Hi : uint.Z i0 = uint.Z p.index'
+    · have H0 : (uint.Z i0 - uint.Z p.index').toNat = 0 := by omega
+      rw [H0] at He'
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at He'
+      subst He'
+      have Hin : uint.nat i0 = uint.nat p.index' := by word
+      rw [Hin, HMc] at HMi
+      cases HMi
+      rw [He0t, Hd1]
+    · have HS : (uint.Z i0 - uint.Z p.index').toNat =
+          (uint.nat i0 - uint.nat p.index' - 1) + 1 := by word
+      rw [HS] at He'
+      simp only [List.getElem?_cons_succ, memPhys] at He'
+      have := Hok_inv.2.2.1 (uint.nat i0) (by word) Hi0e
+      rw [HMi, He'] at this
+      cases this
       rfl
-  have Hterm' : termAt σ0.prev σ0.ents i0 = some e.Term' := by
-    rw [← termAt_memCut Hcok i0 Hge]
-    simpa only [memCut] using Hterm
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcut_inv]
-  · inext
-    unfold memstorageInv memstorageFields
-    iexists σ0, c
-    iframe Hgs_inv Hcut_inv
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+  · unfold memstorageInv
+    iexists p, ents, M, sv
+    simp only [named]
+    iframe # ∗
     isplitl
-    · iexists hp, es, dummy, _, _, _, _, _
+    · unfold memstorageFields
+      iexists hp, es', dummy, _, _, _, _, _
+      simp only [memPhys]
       iframe # ∗
       ipureintro; exact ⟨Hd0, Hd1⟩
-    ipureintro; exact Hpb_inv
+    ipureintro; exact Hok_inv
   iapply HΦ
-  isplitr
-  · ileft; ipureintro; exact ⟨rfl, by rw [← Hteq]; exact Hterm'⟩
-  unfold ownMemoryStorage
-  iframe # ∗
-  ipureintro; exact Hbounded
+  isplitl [Hlogr]
+  · iunfold memLog
+    iframe Hlogr
+    ipureintro; exact Hlb
+  ileft
+  ipureintro
+  refine ⟨rfl, ?_⟩
+  rw [He]
+  simp only [Option.map_eq_map, Option.map_some, Hterm]
 
 end proof
 

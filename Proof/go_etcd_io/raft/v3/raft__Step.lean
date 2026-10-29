@@ -444,8 +444,8 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #HmC #Hdat HΦ
   ihave #Hm := isMessageC_isMessage γ _ $$ HmC
-  -- (D22 S-b′3) the snapshot's certificate, registered in the storage's registry (`certLink`:
-  -- outside the no-snapshot mode, `storCertOk`); (D22 S-r) with its data certificate
+  -- (D22 S-b′3; U8 v2) the snapshot's certificate, pinned at the node's storage names (`certLink`,
+  -- `ksnCert`); (D22 S-r) with its data certificate
   ihave #Hcr : raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
   · rw [← Hcl, show raftSnapCert (GF := GF) γ (snapTrip sv scfg) =
       raftSnapCert γ (msgSnapTrip (absSnap m sv scfg)) from rfl]
@@ -458,10 +458,8 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnlk, Hrest⟩
   icases ghostRest_certLink γ md c id s $$ Hrest with ⟨#Hlink, Hrest⟩
   iunfold certLink at Hlink
-  icases Hlink with (%Hns | #Hok)
-  · exfalso; rw [← Hnlk.1, Hnsf] at Hns; cases Hns
-  iunfold storCertOk at Hok
-  icases Hok with ⟨-, #Hreg⟩
+  iunfold storCertOk at Hlink
+  icases Hlink with ⟨-, -, #Hreg⟩
   imod Hreg $$ %_ %⊤ %CoPset.subseteq_top HcrD with #Hcert
   -- (D22 S-b′4) the lists' scope and the mode's need, from the certificate
   ihave %Hlo : ⌜∀ x, scfg.Has x → SnapScope sv scfg⌝ $$ []

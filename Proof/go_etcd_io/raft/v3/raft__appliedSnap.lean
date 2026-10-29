@@ -83,7 +83,7 @@ theorem raft.appliedSnap.wp_proof
     intro h
     rw [logStableSnap_none _ _ (Hns h)]
     exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
-  ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_off Hun Hkeep (SnpOk.stableSnap _ Hgh0.1.2) Hst1)
+  ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_off Hun Hkeep (SnpOk.stableSnap _ Hgh0.1.2.1) ((logStableSnap_sn _ _).trans Hgh0.1.2.2) Hst1)
     %(fun _ => logLast_le_of_fields (by rw [Hpv1]) (by rw [Hse1]) (by rw [Hue1]))
   -- `r.appliedTo(index, 0)`
   have Hsa1 : (logStableSnap s.logst sv.Metadata'.Index').sapp = false := by

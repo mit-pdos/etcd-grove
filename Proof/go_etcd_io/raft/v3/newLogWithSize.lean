@@ -22,14 +22,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize σ lok Hidx Hss Hpe Hlg Hmax Hfl0
+  intro st lg maxSize sn σ lok Hidx Hpe Hlg Hmax Hfl0 Hfr0 Hsg0 Hdt0
   subst Hlg
-  wp_start as ⟨#Hsto, HStorage, #Hlg, #Hic⟩
-  ihave #Hsto2 : isStorage st $$ [Hsto]
+  wp_start as ⟨#Hsto, HStorage, #Hlg⟩
+  ihave #Hsto2 : isStorageD sn st $$ [Hsto]
   · iexact Hsto
   iNamed Hsto
   subst Hstok
   icases Hbounded $$ HStorage with ⟨%Hbnd, HStorage⟩
+  have Hbnd := Hbnd.1 Hpe
   wp_auto
   wp_apply HFirstIndex $$ HStorage as %fi ⟨%Hfi0, -, HStorage⟩
   -- (D19i part 1) the floor is not raised: the storage's boundary is the view's
@@ -78,11 +79,9 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · iapply (ownSnap_None _).2; ipureintro; rfl
     isplitr
-    · ipureintro; exact initKsn_mem σ
-    isplitr
     · iapply pendKsn_none
     isplitr
-    · iunfold initKsnCert at Hic; iexact Hic
+    · iapply ksnCerts_nil
     isplitr
     · ipureintro; word
     isplitr
@@ -95,11 +94,6 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; intro _; word
     isplitr
     · ipureintro; word
-    isplitr
-    · ipureintro; intro _
-      rcases Hss with Hss | Hss
-      · exact .inl Hss
-      · exact .inr ⟨by rw [Hss]; word, by rw [Hss]; exact plogTermAt_base _ _⟩
     isplitr
     · unfold isLoggerVal; iexists lok; iframe Hlg; ipureintro; rfl
     isplitr
@@ -123,6 +117,10 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro
       refine ⟨Hfl0, by simp, by word, fun e0 He0 => by simp [Hpe] at He0, fun h => absurd rfl h,
         fun h => absurd rfl h⟩
+    isplitr
+    · ipureintro
+      exact ⟨fun _ => ⟨by rw [Hfr0]; word, by rw [Hfr0]; word, fun _ h => by cases h⟩, Hsg0,
+        by rw [Hdt0]; exact DtOk.empty _⟩
     -- (D22 S-d1b) not lent, no window, no snapshot in progress
     isplitr
     · ipureintro; first | exact trivial | (intro h; cases h)

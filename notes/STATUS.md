@@ -488,6 +488,50 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
   U7: `SentMsgShape` in every cluster, the re-forwarded transfer request, `TransferLeadership` over
   `isNode`, and the read-credit exchange (the hand-off there, item 3).
 
+## Raft unified, U8 v2: the storage contract as range ownership (2026-10-29, branch `raft-unified-storage2`)
+
+Candidate 17 rev 3 (`notes/spec-first-study/raft-storage-spec.md`) replaces the hold (`raft-unified-storage-wip`,
+superseded). Steps 1-2 built: the range vocabulary (`StorageModel`: `storLog`/`storEnd`/`storCompacted`), the
+parametric contract `isStorageP SV Bnd`, `snapshotValid`, raft's view `ownStorage sn st σ` with its read
+triples derived from the contract (`InvStorageRead`) and its moves as lemmas (`InvStorageLaws`), `ownRaftLog`
+over it, and every `raftLog.*`/`unstable.*`/`newLogWithSize` proof. Step 3a (the raft level) built: the contract's
+third parameter `DL` (a stored snapshot's index at most what raft committed, `raftDL`/`DtOk`: `maybeSendSnapshot`'s
+`SnapOk`), the snapshots' certificates as pins of raft's storage names (`svCert`, `ksnCert`; `certLink`, `tsSrc`,
+`rcvSrc`, keyed by the mirror `NGhost.sn`), the no-snapshot mode off at raft's level (`NsCap := ns = false`), and
+every `raft.*`/`raft.Step`/`step*`/`newRaft` proof. Broken as expected: RawNode/node (step 4), `MemoryStorage`
+(step 3), clients.
+Step 3 (MemoryStorage, generic in its justifications) built. Step 4 (the node level) stopped part way
+(2026-10-29, the user's wrap-up): built and committed are the log level's hand-out lemmas (a `Ready`'s
+frozen committed entries, the lend's start at most the snapshot, raft's certified terms `ownRaftLog_certify`
+with the height `LogState.dtk`, `FrOk`'s frozen end at most `committed`), `ApiVocab`'s storage vocabulary
+(`readyOut`, `ceFrozen`, `snapReceipt`, `advReceipt`, `dlvKeys`), `InvRawnode`, `SnapValidCert`,
+`LemmasCeFrozen`; the node level (from `InvRawnodeReady` on), `MemstorageInstance`, `Link`/`Linked`/`Results`
+and the API do not build. The unbuilt work is kept as patches (`notes/u8v2/`). Decisions: the static
+cluster's variants dropped (U9 ahead of schedule); the boot bundle (`bootStorage`, decision (B)); the API's
+`nodeAppliedLb`/`snapGiven` over the per-id table, the delivered bound over `isNode`/`deliveredLogLb`.
+Architecture, spec changes and the next steps: `notes/raft-unified-plan.md`, "U8 v2" ("Where step 4 stopped").
+
+## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)
+
+Done and pushed: `MemoryStorage.SetHardState` importable; the `confchange`/`tracker` client specs (the U11
+section below, from branch `raft-unified-cc`). In progress: U8's storage hold (`StorState.hd`; design and the
+open hand-out window in `notes/decisions.md`, "Track B"; spec changes in `notes/raft-unified-plan.md`,
+"Spec changes during track B"), WIP on branch `raft-unified-storage-wip` (does not build past `InvRaftlog`).
+Not started: the storage-wrapper law.
+
+## Raft unified, stage U11: `confchange`/`tracker` for clients (2026-10-29, branch `raft-unified-cc`)
+
+The importable specs a client needs to validate a change the way raft does (kvreconf's `validConf`) are
+in `Proof/go_etcd_io/raft/v3/ConfchangeApi.lean`, which is in `etc/api/raft.txt`:
+- `Membership.applyGo` (sealed) and `Membership.Restorable`, with their laws (`applyChange_eq_applyGo`,
+  `applyChange_restorable`, `applyChange_asV2`, `confAt_restorable`);
+- `ownTrackerM`/`ownCfgPairM` (sealed), with `ownTrackerM_assemble` and `ownCfgPairM_size`;
+- the `apiSpec`s of `MakeProgressTracker`, `Restore` and `Changer.{Simple,EnterJoint,LeaveJoint}`.
+
+They are derived from the internal specs (`ConfchangeApiProof.lean`, over `ConfchangeApiImpl.lean`) and
+linked in `Linked.lean` (`RaftLink.*_api`). No `sorry` or axiom is added. The client proof (`validConf`)
+is not written yet. Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U11's
+`confchange`/`tracker` specs".
 ## Raft unified, track A: U7 (in part) and U9a (2026-10-29, branch `raft-unified`)
 
 - U7: raft takes its own time receipts for `Tick` (`node.Tick.spec` without `tickCredit`) and a

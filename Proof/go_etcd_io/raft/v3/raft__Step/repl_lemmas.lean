@@ -548,14 +548,14 @@ theorem SnapLogStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : 
   rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨Hgt, -, Hnm, rfl⟩
   · refine .inl ?_
     simp only [sendMsgs]
-    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · refine .inl ?_
     simp only [sendMsgs]
-    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+    rw [Hl]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · refine .inr ?_
     simp only [sendMsgs, logRestore, snapTrip]
     rw [Hl] at Hgt Hnm
-    refine ⟨Ht, ?_, ?_, ?_, Hgt, Hnm, ?_, ?_⟩ <;> first | rfl | trivial | rw [Hl]
+    refine ⟨Ht, ?_, ?_, ?_, Hgt, Hnm, ?_, ?_, ?_⟩ <;> first | rfl | trivial | rw [Hl]
 
 theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :

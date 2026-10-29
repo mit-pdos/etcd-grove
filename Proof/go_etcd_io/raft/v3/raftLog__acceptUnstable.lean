@@ -1,6 +1,6 @@
 /- Port of election_proof/proof_raftLog__acceptUnstable.v (857d09190).
 
-Since 2026-10-10 the proof also runs the storage's hand-out law (`isStorage`'s
+Since 2026-10-10 the proof also runs the storage's hand-out law (`isStorageD`'s
 `Hhandout`, `InvStorage.lean`) for the entries handed out, before the call (a ghost
 update, so while the goal is still a `WP`): the storage's pending batch becomes
 `nextUnstable ls`, and the right to append it is the postcondition's `appendRight`. -/
@@ -107,6 +107,10 @@ theorem raftLog.acceptUnstable.wp_proof
         | none => exact absurd h hs
         | some _ => simp [h] at hf⟩
     | (intro h; cases h; done)
+    -- (U8 v2 step 4) `offsetInProgress` moves up; a snapshot not in progress was not before
+    | exact FrOk.of_le Hfr rfl rfl (Int.le_refl _)
+        (by have := Hipb; have := Hoffset; simp only [logEnd, logLast]; word) Hfr.2.2
+        (fun _ h1 h2 => ⟨h1, by simp only [Bool.or_eq_false_iff] at h2; exact h2.1⟩)
 
 end proof
 

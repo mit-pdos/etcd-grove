@@ -259,6 +259,19 @@ existential `own_raftLog l`, and the "page out" shape that `slice`/`entries` ret
 as `l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at …)`.
 notes/decisions.md, "One predicate per object".) -/
 
+/-- (U8 v2, 2026-10-29) Raft's internal ghost names for its storage (`InvStorage.lean`): the
+authority over the applied lower bounds it publishes (`ga`, the API's `nodeAppliedLb`), over the
+snapshot index it last handed out to install (`gg`, `snapGiven`), and the pin of the storage's
+snapshot validity (`gsv`, `svCert`). Fixed when the log is made. -/
+structure StorNames where
+  ga : Nat := 0
+  gg : Nat := 0
+  gsv : Nat := 0
+  /-- (U8 v2, the snapshot's bound) the terms raft certified at committed indices (`raftDL`) -/
+  gd : Nat := 0
+  /-- (U8 v2) the pin of a received snapshot's certificate (`ksnCert`) -/
+  gk : Nat := 0
+
 structure LogState [GooseExts] where
   prev : entryID
   sents : List EntryM
@@ -365,6 +378,16 @@ structure LogState [GooseExts] where
   handed out (`SdtTie`). -/
   stb : w64 := 0
   sdt : List w64 := []
+  /-- (U8 v2, 2026-10-29) Raft's ghost names for its storage (`StorNames`): constant. -/
+  sn : StorNames := {}
+  /-- (U8 v2) The snapshot index last handed out to install (ghost; `snapGiven`'s authority,
+  `InvStorage.lean`): raised by a snapshot `Ready`'s hand-out, at most `prev.index`. -/
+  sg : Nat := 0
+  /-- (U8 v2 step 4, 2026-10-29) The certification bound (ghost): every index raft certified a term
+  at (`sn.gd`, `raftDL`; `DtOk`, `InvRaftlog.lean`) is at most it, so a certificate at a larger
+  index is fresh. Only `ownRaftLog_certify` raises it (to the index it certifies, at most
+  `committed`); every step keeps it. -/
+  dtk : Nat := 0
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -935,11 +958,18 @@ def restoreSdt (ls : LogState) : w64 × List w64 :=
   if ls.snap.isSome then (ls.stb, ls.sdt) else (ls.prev.index', logTermsTo ls)
 
 /-- (2026-10-28, stage U4a) The fields `NetFrame`/`LocalFrame` keep of what the storage holds:
-`stored`, and the record of the storage's terms (`stb`, `sdt`). -/
-def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 := (ls.stored, ls.stb, ls.sdt)
+`stored`, the record of the storage's terms (`stb`, `sdt`), and (U8 v2 step 4) the certification
+bound (`dtk`). -/
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat :=
+  (ls.stored, ls.stb, ls.sdt, ls.dtk)
 
 theorem logStoreRec_stored {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
     ls'.stored = ls.stored := congrArg Prod.fst h
+
+/-- (U8 v2 step 4) ... and the certification bound (`LogState.dtk`): only `ownRaftLog_certify`
+moves it. -/
+theorem logStoreRec_dtk {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
+    ls'.dtk = ls.dtk := congrArg (fun p => p.2.2.2) h
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the
@@ -954,7 +984,7 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
    -- (D22 S-d4 item 3) what the storage holds: as before if a snapshot was pending, else `applying`
    if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying,
    -- (2026-10-28, stage U4a) the storage's terms (`restoreSdt`)
-   (restoreSdt ls).1, (restoreSdt ls).2⟩
+   (restoreSdt ls).1, (restoreSdt ls).2, ls.sn, ls.sg, ls.dtk⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`; (D22 S-r, 2026-10-21) and its data. -/
@@ -1069,6 +1099,11 @@ structure NGhost [GooseExts] where
   (`SnpOk`), and a snapshot in progress or absorbed has one recorded; it is a snapshot the node may
   send (`ksn`) at most the commit index. Set by `acceptReady`, cleared by `Advance`. -/
   snp : Option SnapTrip := none
+  /-- (U8 v2, 2026-10-29) **The log's storage names** (`LogState.sn`), mirrored (`GhLogOk`), so that
+  every step keeps them (`NetFrame`, `LocalFrame`, `SnapStep`: `s'.gh = s.gh`): the snapshots'
+  certificates the node holds are of them (`qSrcs`, `ghostRest`'s `certLink`). Set when the node
+  is built (`newRaft`), never changed. -/
+  sn : StorNames := {}
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)

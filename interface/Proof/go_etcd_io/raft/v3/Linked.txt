@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem RaftLink.confchange.Changer.wp_LeaveJoint_api [package_sem : Assumptions] :
+    confchange.Changer.LeaveJoint.apiSpec
+
 theorem RaftLink.node.wp_Advance_unified [package_sem : Assumptions] : node.Advance.unifiedSpec
 
 theorem RaftLink.node.wp_Status [package_sem : Assumptions] : node.Status.spec
@@ -40,6 +43,9 @@ theorem RaftLink.MemoryStorage.wp_Term [package_sem : Assumptions] : MemoryStora
                   Φ (intoVal t, intoVal err)) -∗
             WP ((intoVal (methods MemoryStorage.ty.PointerType go!"Term" (intoVal ms))) (intoVal i0))
               {{ Φ }}
+
+theorem RaftLink.confchange.Changer.wp_EnterJoint_api [package_sem : Assumptions] :
+    confchange.Changer.EnterJoint.apiSpec
 
 theorem RaftLink.wp_RestartNode_unified [package_sem : Assumptions] : RestartNode.unifiedSpec
 
@@ -241,6 +247,8 @@ theorem RaftLink.MemoryStorage.wp_LastIndex [package_sem : Assumptions] :
                 (intoVal ()))
               {{ Φ }}
 
+theorem RaftLink.confchange.wp_Restore_api [package_sem : Assumptions] : confchange.Restore.apiSpec
+
 theorem RaftLink.MemoryStorage.wp_Entries [package_sem : Assumptions] : MemoryStorage.Entries.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Entries.spec`, unfolded:
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (lo hi maxSize : w64) (ec : GoInterface),
@@ -292,6 +300,9 @@ theorem RaftLink.node.wp_Advance_dynamic [package_sem : Assumptions] : node.Adva
 theorem RaftLink.node.wp_ApplyConfChange_unified [package_sem : Assumptions] :
     node.ApplyConfChange.unifiedSpec
 
+theorem RaftLink.confchange.Changer.wp_Simple_api [package_sem : Assumptions] :
+    confchange.Changer.Simple.apiSpec
+
 theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:
   ∀ (cap : Int),
@@ -342,6 +353,8 @@ theorem RaftLink.node.wp_Campaign [package_sem : Assumptions] : node.Campaign.sp
               ((intoVal (methods node.ty.PointerType go!"Campaign" (intoVal n)))
                 (intoVal (GoInterface.ok ctx)))
               {{ Φ }}
+theorem RaftLink.tracker.wp_MakeProgressTracker_api [package_sem : Assumptions] :
+    tracker.MakeProgressTracker.apiSpec
 
 theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemoryStorage.Append.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Append.spec`, unfolded:
@@ -355,3 +368,18 @@ theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemorySto
                 ((intoVal (methods MemoryStorage.ty.PointerType go!"Append" (intoVal ms)))
                   (intoVal s))
                 {{ Φ }}
+
+theorem RaftLink.MemoryStorage.wp_SetHardState [package_sem : Assumptions] :
+    MemoryStorage.SetHardState.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.SetHardState.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (hs : HardStateM) (st : Loc) (hs' : HardStateM),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hmeta" ∷ memStorMeta ms γs hs ∗ "#Hst" ∷ hsOpt st hs' -∗
+          ▷ (memStorMeta ms γs hs' -∗ Φ (intoVal GoInterface.nil)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType
+                    go!"SetHardState" (intoVal ms)))
+                (intoVal st))
+              {{ Φ }}

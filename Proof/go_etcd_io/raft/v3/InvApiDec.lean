@@ -57,13 +57,16 @@ def DecNames (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
     γ.raft.reNoSnap = false ∧ (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none ∧
     γ.raft.reDec = some g
 
-/-- The cluster's names, and its nodes' mode the names' (`RNMode.all`). -/
+/-- The cluster's names, and its nodes' mode the names' (`RNMode.all`); (2026-10-29, stage U11)
+the initial membership `confchange.Restore` rebuilds (no id `0`, no staged learner that is an
+incoming voter: `Membership.Restorable`, `ConfchangeApi.lean`). -/
 def ModeDec (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
-  DecNames γ c0 g ∧ ∃ h0 h1, γ.mode = (RNMode.dyn noDec (stOf c0) h0 h1).all
+  DecNames γ c0 g ∧ (∃ h0 h1, γ.mode = (RNMode.dyn noDec (stOf c0) h0 h1).all) ∧
+    (W64 0 ∉ c0.ids ∧ ∀ k, k ∈ c0.learnersNext → k ∉ c0.voters)
 
 theorem ModeDec.mode {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g) :
     ∃ h0 h1, γ.mode inferInstance = RNMode.dyn noDec (stOf c0) h0 h1 := by
-  obtain ⟨-, h0, h1, hm⟩ := h
+  obtain ⟨-, ⟨h0, h1, hm⟩, -⟩ := h
   exact ⟨h0, h1, by rw [hm, RNMode.all_self]⟩
 
 theorem ModeDec.valid {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec γ c0 g) :

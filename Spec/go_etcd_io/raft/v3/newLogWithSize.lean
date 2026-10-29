@@ -24,21 +24,19 @@ unstable suffix is empty and starts at `LastIndex()+1` (where `offsetInProgress`
 too: `ip` below), and `committed = applied = applying = FirstIndex()-1`, the compaction
 boundary.
 
-One premise is about the storage's *contents* and is not in `isStorage`: that the
+One premise is about the storage's *contents* and is not in `isStorageD`: that the
 stored entries carry contiguous indices after `prev` (`LogIndicesOk`), true of any
 correct `Storage` (and of `MemoryStorage`) but `ownStorage` is abstract, so a client has
 to supply it. (Until 2026-10-13 a second: that none is a configuration change, the
 no-reconfiguration scope `HnoConfChange`, false of a freshly bootstrapped etcd node,
 whose storage holds the `EntryConfChange`s `Bootstrap` wrote.)
 
-Another (2026-10-03) is about the storage's snapshot `ss`: it is empty
-(`ss.index' = 0`) or it *is* the compaction boundary (`ss = prev`). That is
-`ownRaftLog`'s `StoredSnapOk` at `committed = prev.index'`, the commit index the log
-starts at. It holds of a fresh `MemoryStorage` (no snapshot, dummy entry `0`) and of the
-restart path `ApplySnapshot`-then-`Append` (which sets `ents[0]` to the snapshot's id);
-it excludes restarting on a storage whose snapshot lies above its first index, whose
-index raft would only learn is committed from the `HardState` `loadState` reads after
-this call.
+(U8 v2, 2026-10-29) The storage is raft's view `σ` of it (`ownStorage sn st σ`, its ranges
+from the compaction point, the end and the authorities of raft's ghost names `sn`), frozen only at
+the compaction point, no floor raised and no snapshot handed out yet; and the read triples of the
+view (`isStorageD sn st`, derived from the contract, `isStorage_of_V`). Until U8 v2 the storage's
+snapshot was premised to be empty or at the boundary (`StoredSnapOk`) and certified
+(`initKsnCert`); the stored snapshot is now the client's.
 
 **The postcondition lends the storage back.** `newRaft` calls
 `c.Storage.InitialState()` *after* building the log -- through the `Config`'s copy of
@@ -56,9 +54,8 @@ it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`, and the
 literal installs it as both `l.logger` and `l.unstable.logger`. -/
 abbrev newLogWithSize.spec : Prop :=
   ∀ (st : Storage) (lg : Logger) (maxSize : w64)
-    (σ : StorState) (lok : GoInterfaceOk),
+    (sn : StorNames) (σ : StorState) (lok : GoInterfaceOk),
   LogIndicesOk σ.prev σ.ents →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   -- nothing pending (2026-10-10)
   σ.pend = [] →
   lg = interface.ok lok →
@@ -68,21 +65,21 @@ abbrev newLogWithSize.spec : Prop :=
   0 < uint.Z maxSize →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage st ∗
-      ownStorage st σ ∗ isLogger lok ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's snapshot, if any, certified in its registry
-      initKsnCert st σ }}
+  -- (U8 v2) frozen only at the compaction point, no snapshot handed out, no term certified
+  σ.fr = uint.nat σ.prev.index' → σ.sg = 0 → σ.dt = ∅ →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorageD sn st ∗
+      ownStorage sn st σ ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
       (Val #maxSize))
   {{ (l : Loc) (ip : w64), RET #l;
       ⌜uint.Z ip = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
-      ownStorage st σ ∗
-      (ownStorage st σ -∗
+      ownStorage sn st σ ∗
+      (ownStorage sn st σ -∗
        ownRaftLog l
          { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
            applied := σ.prev.index', snap := none, inprogress := ip,
            applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-           apmax := maxSize, storage := st, ksn := initKsn σ }) }}
+           apmax := maxSize, storage := st, ksn := [], sn := sn }) }}
 
 end spec
 

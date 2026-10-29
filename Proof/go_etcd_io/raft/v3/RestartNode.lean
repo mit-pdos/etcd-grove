@@ -111,7 +111,7 @@ private abbrev RestartNode.specRaw : Prop :=
   -- outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the static mode)
   (sn = true → γ.reNoSnap = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      isStorageD (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗

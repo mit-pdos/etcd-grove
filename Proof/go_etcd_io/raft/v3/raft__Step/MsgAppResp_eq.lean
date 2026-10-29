@@ -104,8 +104,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hrole : s.role
   · -- Follower: no `MsgAppResp` arm
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro Hc; first | (exfalso; rcases Hc with Hc | Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc with Hc | Hc | Hc <;> simp_all [MsgApp, MsgHeartbeat, MsgSnap]) | simp_all [becomeFollower, resetTo, resetTo0])
@@ -129,8 +129,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgAppResp` arm either
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun _ => ⟨Hteq, Hterm⟩)
@@ -184,8 +184,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf', ⟨recv, Hrecv, Hstep⟩, rfl, Hft⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgAppResp` arm either
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun _ => ⟨Hteq, Hterm⟩)
