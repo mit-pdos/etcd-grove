@@ -17,7 +17,8 @@ reasoning (S2: the token's principal, the state at `setupSt`, `granted_setupSt_i
 ungranted principal's update is then never fired with a `G σ` that holds.
 
 The update is step 5's `kvAu1G` (`InvRequest.lean`), at whatever `G`; with auth on, the server's
-`writeGrantG … L₀`. The laws are `sorry`: the stage's stubs.
+`writeGrantG … L₀`. `stateHistOk_step` is proved; the invariant's laws are `sorry`: the
+stage's stubs.
 -/
 module
 
@@ -56,11 +57,25 @@ are on keys the history admits. -/
 def opHistOk (op : KVOp) : Prop :=
   ∀ (σ : KVState) (r : Nat), σ.rev < r → ∀ ev ∈ (kvOpStep op σ).revEvents r, keyHistOk ev.kv.key
 
-/-- **An operation keeps the predicate** (stub): it changes no revision at or below the state's
-(`kvOpStep` appends), and the ones it adds are admitted. -/
+/-- An operation keeps the events of the revisions up to the state's: it commits at most one
+revision after them (`KVState.commit_at`, `commit_changesAt`), or changes only the lease table. -/
+theorem revEvents_kvOpStep (op : KVOp) (σ : KVState) (r : Nat) (hr : r ≤ σ.rev) :
+    (kvOpStep op σ).revEvents r = σ.revEvents r := by
+  have hc : ∀ cs, (σ.commit cs).revEvents r = σ.revEvents r := by
+    intro cs
+    unfold KVState.revEvents
+    rw [KVState.commit_at _ _ _ (by omega), KVState.commit_changesAt _ _ _ hr]
+  cases op <;> simp only [kvOpStep] <;> (repeat' split) <;> first | rfl | exact hc _
+
+/-- **An operation keeps the predicate**: it changes no revision at or below the state's
+(`revEvents_kvOpStep`), and the ones it adds are admitted (`opHistOk`). -/
 theorem stateHistOk_step (setupRev : Nat) (op : KVOp) (σ : KVState)
     (h : stateHistOk setupRev σ) (hop : opHistOk op) : stateHistOk setupRev (kvOpStep op σ) := by
-  sorry
+  intro r hr ev hev
+  by_cases hle : r ≤ σ.rev
+  · rw [revEvents_kvOpStep op σ r hle] at hev
+    exact h r hr ev hev
+  · exact hop σ r (by omega) ev hev
 
 end pure
 
