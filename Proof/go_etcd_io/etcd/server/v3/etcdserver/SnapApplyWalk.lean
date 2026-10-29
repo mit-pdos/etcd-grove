@@ -282,7 +282,7 @@ theorem applySnapshot_walk
   simp only
   -- (the backend-compaction stage) the new backend never compacts (no compaction with a restore):
   -- its creator fixes nothing deletable
-  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl, Hncmp⟩
+  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl, Hncmp, -⟩
   imod backend.dlNoDel_fix _ $$ Hdl with #Hnd
   obtain ⟨d', hγ', hbe', hgx', hP'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧ d'.gx = gx' ∧
       d'.P = d.P := ⟨{ d with γB := γB, be := nb, gx := gx' }, rfl, rfl, rfl, rfl⟩
