@@ -422,3 +422,39 @@ readers via a persistent `dlReg γ (fun _ => False)` with its no-deletable-keys 
 shareable), `Del` instantiated as `◇ delKey` (not `▷`; needs `crevLb` timeless: check), F3's widened
 bbolt axiom recorded in notes/decisions.md (the tcb baseline lists axioms by name, so its check does
 not see a widened statement).
+
+### Draft, round-2 repairs (2026-10-29)
+
+Done: R2-3 (the compacting range's token `U`: `ed40251049`), R2-5 (dissolved: with no `DP` the job is
+generic in `U`; it gets `limit ≤ 2^56` from `isStore`'s `Hcfgl`), the scope premise
+(`mvcc.batchLimitOk`; `notes/decisions.md`), R2-6 (`batchTx.UnsafeDelete.spec` with `own`), D22's
+persistent law `dlReg_false_noDel`, `delKey_timeless` (so `Del := ◇ delKey` needs no step; `crevLb`
+is timeless: `monoNatLbOwn`), R2-7 (`kbWTSupply` stated over one stock; D22's statements not touched
+yet: what they need is in its docstring), F3 recorded (`notes/decisions.md`).
+
+**Decided by the agent** (equivalent repairs, internal predicates):
+- *The range's token as `U : Nat → IProp` counting the budget left* (vs `∃ n, U n` with the count in
+  a separate pure fact): the clauses read `U (n + 1)` to `U n`, so the bridge's count and the job's
+  loop invariant (`∃ c, U c ∗ ⌜L.length + 1 ≤ c + i⌝`) need no extra conjunct.
+- *The `Meta` put as a capability `metaPutCap bt X Y`* (vs two `Meta` clauses, one per token): one
+  definition serves the fresh session (`Locked [] → ∃ U, U ∗ unlockAt … []`) and the range's token
+  (`U (n + 1) → U n`), and `UnsafeSet{Scheduled,Finished}Compact` are one spec each over it
+  (statement change: they take the capability, not `batchTxSpec`).
+- *The standalone `Meta` clause from `Locked []` only* (was any `Locked l`): its one caller
+  (`SetScheduledCompact`) opens a fresh session; a put after other puts would need the session's
+  count (R2-2).
+- *The scope premise as one predicate `batchLimitOk`* replacing `0 ≤ CompactionBatchLimit` (vs a
+  second premise): every result carrying the old hypothesis passes it unchanged.
+
+**The existing variants (the one-spec rule, 2026-10-29)** — none added; folding each into its one
+spec is not cheap now, so here is what each needs:
+- `batchTxBuffered.UnsafeDelete.specC` (beside `.spec`): its safe-range case over the thin view (the
+  batch lemmas over `safeStC`); then `.spec` is its instance (`own = true`, a non-safe-range bucket).
+- `UnsafeSeqPut.specC`: `safeSt` changed in place (its third clause gone, 3 `BatchLemmas` lemmas) and
+  the premise "above the committed keys" supplied by its 13 caller files.
+- `Unlock.specC`: the backend's invariants over the logical view (`batchGhostAt` 30 uses in 13
+  files, `rtRest` 26 in 9).
+- `safeStC`, `cacheValidC`: folded with the two items above (`cacheValid` 18 uses in 5 files).
+- `isKeyBackendG_of_backendC` (beside `isKeyBackendG_of_backend`): its three new cases proved (the
+  range's token, the `Meta` put, the slot and `metaReadTx`); then the old bridge is its instance with
+  `Cmp` false and goes. Until then folding would put the cases' `sorry`s under every server result.

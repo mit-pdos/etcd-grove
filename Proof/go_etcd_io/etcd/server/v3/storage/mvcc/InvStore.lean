@@ -1452,15 +1452,20 @@ def kbSR (kb : Option KBReal) : IProp GF :=
   | none => iprop(True)
   | some d => backend.srSlot d.be
 
-/-- **The write-back tokens' supply** in the instance `kb` (3.4, decision O4 as revised after
-review round 1, F10): for the real backend, a write session's token for each time receipt, so
-that the compaction job, whose batches are not bounded in advance, pays each batch's `Unlock` and
-`ForceCommit` from the steps it takes. **The job's own pool**: not the server's `srvWTPool`
-(D22's), whose takers agree on the current backend through a share of `E.γbe`, which the job does
-not hold. `NewServer` funds it when it builds the store (the wiring step): an invariant of its own
-holding the backend's write-back authority for the job, converting a receipt to a token of `d`;
-valid only while the backend does not change, i.e. in the configuration with the compactor on,
-which installs no snapshot (`notes/m2-plan.md`, "no restore in compaction mode"). -/
+/-- **The write-back tokens' supply** in the instance `kb` (3.4, decision O4; revised after review
+round 2, R2-7, the user's: **one stock**): for the real backend, a write session's token for each
+time receipt, so that the compaction job, whose batches are not bounded in advance, pays each
+batch's `Unlock` and `ForceCommit` from the steps it takes. The tokens come from the same
+receipt-funded stock as the server's `srvWTPool` (D22's: `InvApplier.lean`, an invariant holding
+`⧗ a ∗ ownToks γB.wb n` with `receiptBound ≤ a + n + 1`), not from a pool of the job's own: both
+pools would each need about `receiptBound` of the backend's `wbInit = 2^40 - 1`, and D22 already
+takes nearly all of it (`receiptBound ≤ wbInit - 6`); one stock suffices since every step yields one
+receipt, whoever takes it. `NewServer` (the wiring step) gives this persistent conversion from
+`srvWTPool`'s invariant at the boot backend `d`: valid because the configuration with the compactor
+on installs no snapshot (`notes/m2-plan.md`, "no restore in compaction mode"), so `s.be` stays `d`.
+What it needs of D22's statements (listed, not changed yet): `srvWTPool`'s invariant exposing the
+receipt-to-token conversion at the boot backend when the compactor is on, and `wbInit`'s split
+(`receiptBound ≤ wbInit - 6` covers both, since they share it) made explicit there. -/
 def kbWTSupply (kb : Option KBReal) : IProp GF :=
   match kb with
   | none => iprop(True)
@@ -1841,6 +1846,12 @@ so a read at or above the compaction revision never names one (`rangeAnswers_not
 def delKey (γ : StoreNames) (k : GoString) : IProp GF :=
   iprop(∃ (c : Int) (log : Log), crevLb γ.idx c ∗ idxCert γ.idx log ∗
     ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+
+/-- `delKey` is timeless (ghost lower bounds and pure facts; the backend-compaction stage, review
+round 2, Target 4): so the store's deletable keys can be instantiated as `◇ delKey`, which the
+backend's saved-predicate registration gives without a step (`▷ delKey ⊢ ◇ delKey`). -/
+instance delKey_timeless (γ : StoreNames) (k : GoString) : Timeless (delKey (GF := GF) γ k) := by
+  unfold delKey idxCert crevLb; infer_instance
 
 instance delKey_persistent (γ : StoreNames) (k : GoString) : Persistent (delKey (GF := GF) γ k) := by
   unfold delKey; infer_instance

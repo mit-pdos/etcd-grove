@@ -25163,3 +25163,37 @@ with the transaction). The backend's view becomes exact up to keys registered as
 predicate fixed at creation, `dlReg`), with `dlNone` for D22's exact readers. The new statements stand
 beside the old (`…specC`, `isKeyBackendG_of_backendC`) until proved, so that their `sorry`s reach no
 existing result but the job's one marked step.
+
+### bbolt's `Bucket.Delete_kv` takes a key of its own transaction (the backend-compaction stage, 2026-10-29)
+
+**2026-10-29 · taken (the user's: review round 1's F3, `notes/backend-cmp-plan.md`)**
+
+A **trust-base change**: the axiom `Spec/go_etcd_io/bbolt/Bucket__Delete_kv.lean` gains a flag `own`:
+the key is the caller's own slice (`key ↦*{dk} kb`, as before) or a slice of the transaction itself
+(`txBytes tx key kb`, which a cursor of the same transaction returned), and is given back as it came.
+Why: etcd's compaction job deletes `keys[i]`, a slice its `UnsafeRange` returned uncopied
+(`kvstore_compaction.go`), so the old statement (an owned slice only) could not be met. True of bbolt
+v1.5.0 (reviewed in round 2: `bucket.go:498-533`, `node.go:145-159`: `Delete` reads the key through
+`seek` and `bytes.Equal`, and `node.del` moves inode headers only; no page is remapped or written
+before `Commit`'s spill, so the slice's bytes stay valid). A flag rather than a disjunction (a
+caller would get a disjunction back). **Not seen by the trust-base check**: `etc/tcb-baseline.txt`
+lists axioms by name, so a widened statement does not change it; this entry and the axiom's
+docstring record it. To be covered by the Test step's bbolt tester (a `Delete` of a key a range of
+the same transaction returned).
+
+### The store's batch limit at most 2^56 (the backend-compaction stage, 2026-10-29)
+
+**2026-10-29 · taken (the user's: decision O3, its premise placed after review round 2)**
+
+A **scope premise**: `mvcc.batchLimitOk cfg.CompactionBatchLimit'` (`0 ≤ x ∧ x ≤ 2^56`) replaces the
+premise `0 ≤ CompactionBatchLimit` of `NewStore`, `mvcc.New`, `newWatchableStore` and `NewServer`
+(and the results carrying it: `StoreBackend`, mvcc's and the server's `Results`, `BuildLemmas`);
+`isStore`'s `Hcfgl` gives the job `0 < limit ≤ 2^56`, and the compacting range takes `limit ≤ 2^56`
+(`rangeLimitMax`). Why: the range's session (at most `limit` deletes and one `Meta` put after a
+start below the backend's `P.limit ≤ 2^57`) must stay within the backend's count
+(`pend + hookMax < 2^58`). Go has no such bound (`pending` is an `int` that only wraps), so it
+restricts the configuration the results cover (etcd's default is 1000; the examples' configs
+leave it `0`, the default). Placed on every store, not only the real backend's compacting instance
+(review round 2 suggested scoping it there): the range's clause is one statement for every
+instance, so its premise is; scoping it would need a parameter of the contract (a finding for
+review round 3).

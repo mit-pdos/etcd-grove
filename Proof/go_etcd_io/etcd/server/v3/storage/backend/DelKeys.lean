@@ -100,6 +100,22 @@ theorem dlInit_noDel (γ : BNames) (nk : GoString × GoString) :
   ihave ⟨%Hv, -⟩ := saved_pred_valid_2 γ.dlg _ _ _ _ nk $$ Hs Hr
   exact absurd (DFrac.valid_own_op_discard.1 Hv) (by decide)
 
+/-- **A registration fixed at `False` rules out every deletable key** (review round 2, Target 4; the
+user's F6 decision): persistent, so D22's exact readers (the restore's new backend, a boot backend
+with the compactor off: whoever fixed the registration at `False` with `dlReg_fix`) share it, and
+concurrent readers too; the later is stripped by any step (`▷ False` inside a WP or an update). The
+holder of the still unfixed `dlInit` has `dlInit_noDel`. -/
+theorem dlReg_false_noDel (γ : BNames) (nk : GoString × GoString) :
+    dlReg (GF := GF) γ (fun _ => iprop(False)) ∗ dlIs γ nk ⊢ ▷ False := by
+  unfold dlIs dlReg
+  iintro ⟨#Hf, %Φ, #Hr, #HΦ⟩
+  ihave Heq := saved_pred_agree γ.dlg _ _ Φ (fun _ => iprop(False)) nk $$ Hr Hf
+  inext
+  ihave Hiff := internalEq_iff _ _ $$ Heq
+  icases Hiff with ⟨H1, -⟩
+  iapply H1
+  iexact HΦ
+
 /-- **The safe-range discipline without the "no deletes" clause** (3.1; Draft): `safeSt`'s first two
 parts. A committed key of a safe-range bucket need not be in the writer's contents any more
 (compaction deletes it); the put condition carries "above the committed keys" itself

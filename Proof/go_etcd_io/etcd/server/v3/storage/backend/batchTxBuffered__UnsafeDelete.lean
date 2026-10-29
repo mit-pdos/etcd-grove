@@ -44,7 +44,9 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_del st bi kb Hhk)
     (rbData_del_other st bi kb) $$ Hg Hrbp with ⟨Hg, Hrbp⟩
-  wp_apply (hBT γ P W Pk b t st bk bi key kb dk) $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩
+  have hBT' := hBT γ P W Pk b t st bk bi key kb dk true
+  simp only [↓reduceIte] at hBT'
+  wp_apply hBT' $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩
   · iframe #
     unfold btW
     iframe
