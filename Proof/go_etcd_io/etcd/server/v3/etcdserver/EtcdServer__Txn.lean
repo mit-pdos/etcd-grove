@@ -1358,8 +1358,7 @@ theorem EtcdServer.Txn.wp_proofOn
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
   iunfold txnPermitOn at Hnp
-  iunfold txnPermit at Hnp
-  icases Hnp with ⟨⟨%Ht, Hau⟩, %Ha⟩
+  icases Hnp with ⟨%Ht, %Ha, Hau⟩
   ihave #Hrt' := Hrt
   iunfold txn.txnRequestIs at Hrt'
   icases Hrt' with ⟨%Hrn, #Hf⟩
@@ -1524,11 +1523,14 @@ theorem EtcdServer.Txn.wp_proofOn
         $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hau]
-      · iapply txnPermitOn_reqPropOk ρ.kv tw Q γc
+      · iapply txnPermitOn_reqPropOk ρ.raft ρ.kv _ _ tw Q γc
+          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc)
         iunfold txnPermitOn
-        iunfold txnPermit
-        iframe Hau
-        ipureintro; exact ⟨Ht, Ha⟩
+        isplitr
+        · ipureintro; exact Ht
+        isplitr
+        · ipureintro; exact Ha
+        iexact Hau
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)

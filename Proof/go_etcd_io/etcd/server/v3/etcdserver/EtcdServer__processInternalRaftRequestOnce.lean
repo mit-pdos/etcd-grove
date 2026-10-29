@@ -217,9 +217,14 @@ local macro "piro_tail" : tactic => `(tactic| (
       iexists ρ.wait, γh.takenName
       rw [Hpfx]
       iframe Hwn Hregd
-    imod kv_prop_au_M on ρ.raft ρ.kv bs rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
+    -- (step 5) with auth on, the stamped header's binding, which the write's grant carries
+    ihave #Hgb : □ (⌜on = true⌝ → hdrBoundM true s E (GoInterface.ok ctx)
+        ⟨id, hv.Username', hv.AuthRevision'⟩) $$ []
+    · iintro !> %hon; subst hon; iexact Hhb
+    imod kv_prop_au_M on ρ.raft ρ.kv bs (hdrBoundM true s E (GoInterface.ok ctx)) rq rq'
+      ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
       (Hbsne (by simp [apply.withHeader])) Hdec Hwire id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hok with ⟨Hau, #Hqi⟩
+      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hgb Hok with ⟨Hau, #Hqi⟩
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     -- (2026-10-27) a later credit for the node API's `Propose` (its registry's invariant)
     wp_auto_lc 1
@@ -682,7 +687,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth
     hRT hM hTO hSp hPE hED hFB hSec hWL s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
   · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-    ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok
+    ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
     rw [isServerReqM_false]
     iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩

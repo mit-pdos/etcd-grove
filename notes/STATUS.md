@@ -496,8 +496,11 @@ The plan is `notes/auth-mode-merge-plan.md` (its "Progress" is the log). Decided
 function, the mode the environment's (`E.authOn`, `.any` excluded), the exported pairs merged.
 Merged: `snapshotIfNeededAndCompactRaftLog`, `setAppliedIndex`, `setTerm` (on `lean`);
 `AuthInfoFromCtx` and the six guards above it, the binding gated by the mode (branch `auth-bound`;
-`notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). Next: the
-request path (step 5), then `applyEntryNormal`'s variant families, which block `apply` and the
+`notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). Step 5
+(the request path, branch `auth-req`): design D is in. A write's update with auth on is told its
+grant when it fires (`kvAu1G`, `writeGrantG`; v3rpc's `kvDepOwnOn`; "The write's update told its
+grant"). Still to do: step 5's merges (A, C-E), then 5b (the admin specs over a client view of the
+auth history). Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
 
 ## Two bbolt axioms refuted (2026-10-29, on `lean`)

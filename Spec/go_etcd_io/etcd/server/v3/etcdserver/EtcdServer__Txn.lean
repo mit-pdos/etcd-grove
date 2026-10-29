@@ -83,7 +83,7 @@ abbrev EtcdServer.Txn.specOn : Prop :=
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       txn.txnRequestIs r t ∗ ⌜txn.txnReadonly t = false⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      txnPermitOn ρ.kv t Q }}
+      txnPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) t Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

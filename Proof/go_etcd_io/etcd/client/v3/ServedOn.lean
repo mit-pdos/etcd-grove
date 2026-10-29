@@ -42,7 +42,11 @@ theorem kvServerAt_srvKVAnsOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
     (c c' cid mid n : w64) (F F' : mvcc.Log) (d d' : v3rpc.KVDep GF) (na na' : Nat)
     (tok tok' : Option GoString) :
     v3rpc.kvServerAt (GF := GF) p s (v3rpc.srvKVAnsOn s E ρ γr c F d na tok) cid mid n =
-      v3rpc.kvServerAt p s (v3rpc.srvKVAnsOn s E ρ γr c' F' d' na' tok') cid mid n := rfl
+      v3rpc.kvServerAt p s (v3rpc.srvKVAnsOn s E ρ γr c' F' d' na' tok') cid mid n := by
+  have h : (v3rpc.srvKVAnsOn (GF := GF) s E ρ γr c F d na tok).revR =
+      (v3rpc.srvKVAnsOn s E ρ γr c' F' d' na' tok').revR := rfl
+  unfold v3rpc.kvServerAt v3rpc.hdrIs
+  rw [h]
 
 /-- `readQ_of_ans` at the mode-`on` model (`rangeDepQOn`: the state of the log read is
 `kvStM true`'s). -/
@@ -108,6 +112,7 @@ theorem etcd_putHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
+  imod (v3rpc.kvDepOwnOn_of_dep s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d) $$ Hdep with Hdep
   iapply wp_fupd
   iapply (v3rpc.put_end_to_end_on p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F d 0 γa hγa) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
@@ -233,6 +238,7 @@ theorem etcd_rangeHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave Hu := HNR
   imod Hu with Hid
+  imod (v3rpc.kvDepOwnOn_of_dep s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d) $$ Hdep with Hdep
   iapply wp_fupd
   iapply (v3rpc.range_end_to_end_on p s E ρ γr c cid mid n (GoInterface.ok ci) r o F d na γa hγa) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
@@ -349,11 +355,13 @@ theorem etcd_deleteHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
+  imod (v3rpc.kvDepOwnOn_of_dep s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) (.op1 (.deleteRange o) Q))
+    $$ [Hau] with Hau
+  · simp only [v3rpc.kvDepOwn]; iexact Hau
   iapply wp_fupd
   iapply (v3rpc.deleteRange_end_to_end_on p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F
       (.op1 (.deleteRange o) Q) 0 γa hγa) $$ [Hlt Hsr Hlg Hrd Hard Hid Hau]
-  · rw [show v3rpc.kvDepOwn (GF := GF) ρ γr (.op1 (.deleteRange o) Q) = kvOpAu1 ρ.kv (.deleteRange o) Q from rfl]
-    iframe # Hau
+  · iframe # Hau
     unfold v3rpc.srvCall srvRdCall committedAtLeast
     isplitl [Hlt Hid]
     · iexists ci, cd
@@ -509,6 +517,7 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
   ihave Hu := HNR
   imod Hu with Hid
+  imod (v3rpc.kvDepOwnOn_of_dep s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d) $$ Hdep with Hdep
   iapply wp_fupd
   iapply (v3rpc.txn_end_to_end_on p s E ρ γr c cid mid n (GoInterface.ok ci) r t.cmps ts es F d na
     γa hγa) $$ [Hlt Hsr Hlg Hrd Hid Hdep]

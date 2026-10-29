@@ -281,7 +281,7 @@ theorem EtcdServer.raftRequest.wp_proof
   intro s E ρ ctx cd p rq Qr F Hid0
   iintro %Φ Hpre HΦ
   icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-  ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok
+  ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
   rw [← isServerReqM_false]
   iapply (EtcdServer.raftRequest.wp_proofM false
     (EtcdServer.processInternalRaftRequestOnce.specM_false_of_spec hP) hSp hV hGS hSS hIS hLL

@@ -316,7 +316,8 @@ theorem EtcdServer.Put.wp_proofOn
       $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hperm]
-    · iapply putPermitOn_reqPropOk ρ.kv op Q γc $$ Hperm
+    · iapply putPermitOn_reqPropOk ρ.raft ρ.kv _ _ op Q γc
+        (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc) $$ Hperm
     iexists _; iexact Header
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)

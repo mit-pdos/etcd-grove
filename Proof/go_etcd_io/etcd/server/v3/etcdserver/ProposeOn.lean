@@ -161,20 +161,51 @@ def adminPropRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) 
   iprop(⌜rolesSorted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 ∧
     authDet rq (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1⌝)
 
-/-- **What a proposal of `rq` needs in the mode `on`** (`reqPropOk`'s, see the header): a plain
-request with no KV write (`Qr` trivial); or a plain request of the KV operation `op` with its
-client's update fired at most once, `Qr` its result if granted (`grantedRes`). Either with every
-permission of the cache's shape (`kvShapeAll`). Or (E3m) an admin request meeting `adminPropOk`,
-`Qr` its step's determinacy at the commit (`adminPropRes`). -/
-def reqPropOkOn (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
+/-- **A write's grant, as the server tells its client's update at the commit** (persistent; the
+auth-mode merge's step 5, 2026-10-29): for some header `hm` the server stamped on the request
+`rq₀`, one the caller's binding admits (`Gb hm`: with the server's, `hdrBoundM true`), the
+committed prefix `L` of the server's requested log before the write's entry extends the caller's
+lower bound `L₀` (`srvReqLogLb`), the model grants the stamped request there (`grantedAt`), and
+`L`'s KV state is the one the update linearizes at. The margin: stated in the server's model of
+the log (`grantedAt`), not in a client's vocabulary (`grantedAt_iff`). -/
+def writeGrantG (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply.HeaderModel → IProp GF)
+    (rq₀ : apply.IRRModel) (L₀ : List EntryModel) (σ : KVState) : IProp GF :=
+  iprop(∃ (hm : apply.HeaderModel) (L : List EntryModel), Gb hm ∗
+    ⌜L₀ <+: L ∧ grantedAt γk st₀ (apply.withHeader rq₀ hm) L ∧
+      kvStateOf (kvModelOn γk st₀ L) = σ⌝)
+
+/-- A grant at a binding `Gb'` that gives `Gb` is one at `Gb` (the contexts a server derives from
+a request's bind the same headers, `hdrBoundM_ctx`). -/
+theorem writeGrantG_mono (γk : KVNames) (st₀ : auth.AuthState) (Gb Gb' : apply.HeaderModel → IProp GF)
+    (rq₀ : apply.IRRModel) (L₀ : List EntryModel) (σ : KVState) (h : ∀ hm, Gb' hm ⊢ Gb hm) :
+    writeGrantG γk st₀ Gb' rq₀ L₀ σ ⊢ writeGrantG γk st₀ Gb rq₀ L₀ σ := by
+  unfold writeGrantG
+  iintro ⟨%hm, %L, Hb, %Hp⟩
+  iexists hm, L
+  isplitl
+  · iapply h $$ Hb
+  ipureintro; exact Hp
+
+/-- **What a proposal of `rq₀` stamped with the header `hm` needs in the mode `on`**
+(`reqPropOk`'s, see the header): a plain request with no KV write (`Qr` trivial); or a plain
+request of the KV operation `op` with its client's update fired at most once, `Qr` its result if
+granted (`grantedRes`), the update told its grant when it fires (`writeGrantG`, at the client's
+lower bound `L₀` of the requested log; the auth-mode merge's step 5). Either with every permission
+of the cache's shape (`kvShapeAll`). Or (E3m) an admin request meeting `adminPropOk`, `Qr` its
+step's determinacy at the commit (`adminPropRes`). -/
+def reqPropOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (Gb : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel) (hm : apply.HeaderModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
-      kvShapeAll rq ∧ Qr = fun _ => iprop(True)⌝) ∨
-    (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
-        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧ kvShapeAll rq ∧
-        Qr = grantedRes γk st₀ rq γc Q⌝ ∗
-      kvOpAu1 γk op Q) ∨
-    ⌜adminPropOk st₀ rq ∧ irrNoZeroEnd rq ∧ Qr = adminPropRes γk st₀ rq⌝)
+  iprop((⌜plainReq (apply.withHeader rq₀ hm) ∧ ¬ writeKind (apply.dispatchKind (apply.withHeader rq₀ hm)) ∧
+      irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape (apply.withHeader rq₀ hm) ∧
+      kvShapeAll (apply.withHeader rq₀ hm) ∧ Qr = fun _ => iprop(True)⌝) ∨
+    (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel),
+      ⌜plainReq (apply.withHeader rq₀ hm) ∧ reqKVOp (apply.withHeader rq₀ hm) = some op ∧
+        irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape (apply.withHeader rq₀ hm) ∧
+        kvShapeAll (apply.withHeader rq₀ hm) ∧ Qr = grantedRes γk st₀ (apply.withHeader rq₀ hm) γc Q⌝ ∗
+      srvReqLogLb γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk st₀ Gb rq₀ L₀) Q) ∨
+    ⌜adminPropOk st₀ (apply.withHeader rq₀ hm) ∧ irrNoZeroEnd (apply.withHeader rq₀ hm) ∧
+      Qr = adminPropRes γk st₀ (apply.withHeader rq₀ hm)⌝)
 
 end defs
 
@@ -217,27 +248,28 @@ theorem kvWorkOn_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e :
 /-- **A proposal's update in the mode `on`, from the mode-`on` KV invariant** (`kv_prop_au`'s; see
 the header): for data claimed under the request's id. -/
 theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (d : List w8)
-    (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) (hd : d ≠ [])
-    (hdec : apply.irrDecode d = some rq) (id : w64) (γf : GName)
-    (hid : apply.irrId rq = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
-    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
-      reqPropOkOn γk st₀ rq Qr ={E}=∗ srvPropAu1 γ d Qr := by
+    (Gb : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel) (hm : apply.HeaderModel)
+    (Qr : List EntryModel → IProp GF) (hd : d ≠ [])
+    (hdec : apply.irrDecode d = some (apply.withHeader rq₀ hm)) (id : w64) (γf : GName)
+    (hid : apply.irrId (apply.withHeader rq₀ hm) = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ □ Gb hm -∗
+      reqPropOkOn γ γk st₀ Gb rq₀ hm Qr ={E}=∗ srvPropAu1 γ d Qr := by
   have Hdisj := kvN_raftN
-  iintro #Hinv #Hcl #Hreg Hok
-  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape rq → entryShapeOn e := by
+  iintro #Hinv #Hcl #Hreg #Hgb Hok
+  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape (apply.withHeader rq₀ hm) → entryShapeOn e := by
     intro e het hed hs
-    refine ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inl hs⟩,
+    refine ⟨fun _ => Or.inr ⟨(apply.withHeader rq₀ hm), by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inl hs⟩,
       fun h => absurd het h⟩
   ihave #Hecl : iprop(∀ e : EntryModel, ⌜e.data = d⌝ -∗ entryClaim γk.ids e) $$ []
   · iintro %e %hed
     iunfold entryClaim
     iright
-    iexists rq, id, γf
+    iexists (apply.withHeader rq₀ hm), id, γf
     rw [hed]
     iframe Hcl Hreg
     ipureintro; exact ⟨hdec, hid⟩
   iunfold reqPropOkOn at Hok
-  icases Hok with (%Hno | ⟨%op, %Q, %γc, %Hop, Hau⟩ | %Had)
+  icases Hok with (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, #HL₀, Hau⟩ | %Had)
   · -- no KV write: the state kept, granted or refused
     obtain ⟨hplain, hnw, hz, hshape, hsa, hQr⟩ := Hno
     subst hQr
@@ -265,8 +297,8 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       obtain ⟨het, hed, hidx⟩ := He
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
-        kvModelOn_snoc_nonwrite γk st₀ L e rq (by rw [hed]; exact hdec)
-          (plainReq_noAdminP rq hplain) hnw
+        kvModelOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec)
+          (plainReq_noAdminP (apply.withHeader rq₀ hm) hplain) hnw
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
@@ -276,17 +308,16 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         iframe HL Hσ Hw'
         ipureintro
         exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-          (commitOkOn_plain _ _ _ L e d rq hed hdec hplain hz hsa)
+          (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa)
       imodintro
       iintro !>
       itrivial
   · -- a plain write, with its client's update fired at most once, when granted
     obtain ⟨hplain, hop, hz, hshape, hsa, hQr⟩ := Hop
     subst hQr
-    have hna := plainReq_noAdminP rq hplain
-    have hkv := reqKVOp_isKV rq op hop hplain.1
-    iunfold kvOpAu1 at Hau
-    iunfold kvAu1 at Hau
+    have hna := plainReq_noAdminP (apply.withHeader rq₀ hm) hplain
+    have hkv := reqKVOp_isKV (apply.withHeader rq₀ hm) op hop hplain.1
+    iunfold kvAu1G at Hau
     imodintro
     unfold srvPropAu1
     iauintro
@@ -294,6 +325,9 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
     iunfold kvInvOn at Hinv
     iinv Hinv with >Hi Hclose
     icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+    -- (step 5) the client's lower bound is a prefix of the log before the entry
+    ihave ⟨HL, %HL₀p⟩ := srvReqLogLb_prefix γ L L₀ $$ [HL HL₀]
+    · iframe HL HL₀
     ihave Hacc := aupd_aacc $$ Hau
     unfold atomic_acc
     imod Hacc with Hacc
@@ -321,20 +355,27 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-        (commitOkOn_plain _ _ _ L e d rq hed hdec hplain hz hsa)
-      by_cases hg : grantedAt γk st₀ rq L
+        (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa)
+      by_cases hg : grantedAt γk st₀ (apply.withHeader rq₀ hm) L
       · -- granted: the client's update fires at the commit
         icases Hucl with ⟨-, Hcommit⟩
         isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
         imod ghostVar_update_halves (kvOpStep op σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
         imod Hcommit $$ [Hc] with HQ
-        · iunfold etcdKV; iexact Hc
+        · iunfold etcdKV
+          iframe Hc
+          -- (step 5) the update told its grant
+          iunfold writeGrantG
+          iexists hm, L
+          iframe Hgb
+          ipureintro
+          exact ⟨HL₀p, hg, Hag⟩
         imod kvRes_alloc γc Q σ _ $$ HQ with #HQ
         have hidxe : uint.Z γk.c0 < uint.Z e.index := by
           have := Hok.2.2.2.1
           omega
         have hst : kvStateOf (kvModelOn γk st₀ (L ++ [e])) = kvOpStep op σ := by
-          rw [kvModelOn_snoc_granted γk st₀ L e rq Hok.2.2.2.2.1 Hok.2.2.2.2.2 het hdata
+          rw [kvModelOn_snoc_granted γk st₀ L e (apply.withHeader rq₀ hm) Hok.2.2.2.2.1 Hok.2.2.2.2.2 het hdata
             (by rw [hed]; exact hdec) hidxe hna hg
             hplain.1, Hag]
           unfold kvReqStep; rw [hop]
@@ -357,7 +398,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         imod Habort $$ [Hc] with -
         · iunfold etcdKV; iexact Hc
         have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
-          kvModelOn_snoc_refused γk st₀ L e rq het hdata (by rw [hed]; exact hdec) hna hkv hg
+          kvModelOn_snoc_refused γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hna hkv hg
         imod Hclose $$ [HL Hσ] with -
         · inext
           iexists L ++ [e]
@@ -401,20 +442,20 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         have := Hok.2.2.2.1
         omega
       have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L := by
-        cases hna : apply.needAdminPermission rq
+        cases hna : apply.needAdminPermission (apply.withHeader rq₀ hm)
         · -- (C1's A3) an `Authenticate`: no admin step, no write
-          have hw : ¬ writeKind (apply.dispatchKind rq) := by
+          have hw : ¬ writeKind (apply.dispatchKind (apply.withHeader rq₀ hm)) := by
             have hk := hadm.1
             unfold apply.adminKindOk at hk
             split at hk <;> simp_all [writeKind]
-          exact kvModelOn_snoc_nonwrite γk st₀ L e rq (by rw [hed]; exact hdec) hna hw
-        · exact kvModelOn_snoc_admin γk st₀ L e rq het hdata (by rw [hed]; exact hdec) hidxe hna
+          exact kvModelOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec) hna hw
+        · exact kvModelOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe hna
       have hshe : entryShapeOn e :=
-        ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
+        ⟨fun _ => Or.inr ⟨(apply.withHeader rq₀ hm), by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
           fun h => absurd het h⟩
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e hshe (fun h => absurd het h)
         $$ Hw (Hecl $$ %e %hed)
-      have hc := commitOkOn_admin γk.c0 γk.ch0 st₀ γk.log0 L e d rq hed hdec hadm
+      have hc := commitOkOn_admin γk.c0 γk.ch0 st₀ γk.log0 L e d (apply.withHeader rq₀ hm) hed hdec hadm
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -427,7 +468,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       iunfold adminPropRes
       ipureintro
       have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2
-      exact ⟨hs, authDet_of_sorted rq _ hs hadm.2.2.1⟩
+      exact ⟨hs, authDet_of_sorted (apply.withHeader rq₀ hm) _ hs hadm.2.2.1⟩
 
 /-- **A result predicate of the mode-`on` model of the log is one the server's two logs agree on**
 (2026-10-27; `kv_qinv`'s): the mode-`on` KV invariant keeps the start's consistent index at most
@@ -451,22 +492,23 @@ theorem kvOn_qinv (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState
 
 /-- The result predicates `reqPropOkOn` admits are of the mode-`on` model of the log, so the two
 logs agree on them (2026-10-27). -/
-theorem reqPropOkOn_qinv (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
-    (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
-    reqPropOkOn (GF := GF) γk st₀ rq Qr ⊢
-      reqPropOkOn γk st₀ rq Qr ∗ (kvInvOn γ γk st₀ -∗ srvQInv γ Qr) := by
+theorem reqPropOkOn_qinv (γ γl : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (Gb : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel) (hm : apply.HeaderModel)
+    (Qr : List EntryModel → IProp GF) :
+    reqPropOkOn (GF := GF) γl γk st₀ Gb rq₀ hm Qr ⊢
+      reqPropOkOn γl γk st₀ Gb rq₀ hm Qr ∗ (kvInvOn γ γk st₀ -∗ srvQInv γ Qr) := by
   iintro Hok
   ihave %Hsh : ⌜∃ Q : auth.AuthState × mvcc.Log → IProp GF,
       Qr = fun L => Q (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L)⌝ $$ [Hok]
   · iunfold reqPropOkOn at Hok
-    icases Hok with (%Hno | ⟨%op, %Q, %γc, %Hop, -⟩ | %Had)
+    icases Hok with (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, -⟩ | %Had)
     · ipureintro; exact ⟨fun _ => iprop(True), Hno.2.2.2.2.2⟩
     · ipureintro
-      refine ⟨fun x => iprop((⌜kvGranted x.1 rq⌝ ∗ kvRes γc Q (kvStateOf x.2)) ∨
-        ⌜¬ kvGranted x.1 rq⌝), ?_⟩
+      refine ⟨fun x => iprop((⌜kvGranted x.1 (apply.withHeader rq₀ hm)⌝ ∗ kvRes γc Q (kvStateOf x.2)) ∨
+        ⌜¬ kvGranted x.1 (apply.withHeader rq₀ hm)⌝), ?_⟩
       rw [Hop.2.2.2.2.2]; rfl
     · ipureintro
-      refine ⟨fun x => iprop(⌜rolesSorted x.1 ∧ authDet rq x.1⌝), ?_⟩
+      refine ⟨fun x => iprop(⌜rolesSorted x.1 ∧ authDet (apply.withHeader rq₀ hm) x.1⌝), ?_⟩
       rw [Had.2.2]; rfl
   obtain ⟨Q, rfl⟩ := Hsh
   iframe Hok

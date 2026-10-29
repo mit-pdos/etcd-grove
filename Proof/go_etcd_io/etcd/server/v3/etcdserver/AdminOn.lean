@@ -161,9 +161,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **An admin request's proposal in the mode `on`**: meeting `adminPropOk`, at any header, its
 result the step's determinacy at the commit (`adminPropRes`). -/
-theorem reqPropOkM_true_admin (γk : KVNames) (rq : apply.IRRModel)
+theorem reqPropOkM_true_admin (γ : ServerRaftNames) (γk : KVNames)
+    (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel)
     (ha : adminPropOk srvAuthSt0 rq) (hz : irrNoZeroEnd rq) :
-    ⊢ reqPropOkM (GF := GF) true γk rq (adminQh γk rq) := by
+    ⊢ reqPropOkM (GF := GF) true γ γk Gb rq (adminQh γk rq) := by
   iunfold reqPropOkM
   iintro %hm
   iunfold reqPropOkOn
@@ -201,8 +202,9 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
   iintro %p !> %Φ ⟨HP, Hirr, Hh⟩ HΦ
   iunfold adminPreOn at HP
   icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #HF⟩
-  ihave Hperm : reqPropOkM true ρ.kv rq (adminQh ρ.kv rq) $$ []
-  · iapply reqPropOkM_true_admin (GF := GF) ρ.kv rq ha hz
+  ihave Hperm : reqPropOkM true ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq
+      (adminQh ρ.kv rq) $$ []
+  · iapply reqPropOkM_true_admin (GF := GF) ρ.raft ρ.kv _ rq ha hz
   wp_apply hRR s E ρ ctx cd p rq (adminQh ρ.kv rq) F hid $$ [Hrd Hard Hcred Hirr Hh Hperm]
       as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hirr Hperm Hh

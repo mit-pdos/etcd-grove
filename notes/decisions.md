@@ -25296,3 +25296,30 @@ callers' specs; instead the row went into the server views the guards already ta
 `□ (⌜E.authMode.isOn⌝ → isReqAuthBound st E.RD E.authMode)`. The guards' preconditions are
 unchanged. `start` builds the row: with auth on from `srvUberBase`'s store fact, with auth off
 vacuously (`authOn_false_of_run`, `AppliedOn.lean`: the off start state has the off chain).
+
+## The write's update told its grant (2026-10-29, step 5 of the auth-mode merge, design D)
+
+A client's write update with auth on (`putPermitOn`, `deletePermitOn`, `txnPermitOn`) was
+`kvOpAu1`: the server fired it at the commit and the grant reached the client only after the
+answer (`writeGrantOn`). authkv's history invariant needs the grant **at** the linearization
+point, so the update is now `kvAu1G γk f G Q` (`InvRequest.lean`): `kvAu1`, whose atomic
+postcondition also carries `G σ`, supplied by the committer. With auth on, `G` is `writeGrantG`
+(`ProposeOn.lean`). It says: for some header `hm` the server stamped and the caller's binding admits
+(`Gb hm`), the committed prefix `L` of the server's requested log extends the client's lower bound
+`L₀` (`srvReqLogLb`, a mono-list lower bound of `kvInvOn`'s log), the stamped request is granted at
+`L`, and `L`'s KV state is the one linearized at. **The user folded D into step 5** (2026-10-29).
+
+Decided by the agent:
+- **`L₀` is a lower bound of the requested log, not raft's.** Raft's committed log has fillers;
+  the requested log is what the model and `grantedAt` read (spec review round 1). Raft's lower
+  bound gives one with the same requested entries (`srvReqLogLb_of_rlogLb`).
+- **The binding `Gb` is a parameter of the permission.** Put, DeleteRange and Txn propose under a
+  derived context. The server's binding is `hdrBoundM true s E ctx`, and v3rpc's client binds a
+  token (`hdrBoundT`). The permits are antitone in `Gb` (`*PermitOn_mono`), which bridges both
+  (`hdrBoundM_ctx`, `hdrBoundM_tok`).
+- **v3rpc's deposit with auth on** is `kvDepOwnOn` (`ServerKVOn.lean`): a write's update told
+  `opGrantT` (`writeGrantG` at the token's binding). A plain deposit converts at `L₀ = []`
+  (`kvDepOwnOn_of_dep`, using `kvAu1_G`, which drops the grant). The exported
+  `{put,deleteRange,range,txn}_end_to_end_on` take and return `kvDepOwnOn` (D's statement change).
+- **`aupd_post_mono`** (an atomic update whose committer supplies more) is a fact of Iris's atomic
+  updates, proved here and proposed for Perennial (`notes/perennial-changes.md`).

@@ -307,7 +307,7 @@ theorem EtcdServer.DeleteRange.wp_proofOn
   (try wp_auto)
   -- (2026-10-20, linkv-txn stage A) the token of the delete's result
   imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-  ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.kv op Q $$ Hnp
+  ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.raft ρ.kv _ op Q $$ Hnp
   have HnzW : irrNoZeroEnd (irrDeleteRange op) := by
     refine ⟨?_, ?_, ?_⟩
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
@@ -318,7 +318,8 @@ theorem EtcdServer.DeleteRange.wp_proofOn
       $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hnp]
-    · iapply deletePermitOn_reqPropOk ρ.kv op Q γc $$ Hnp
+    · iapply deletePermitOn_reqPropOk ρ.raft ρ.kv _ _ op Q γc
+        (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) $$ Hnp
     iexists _; iexact Header
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)

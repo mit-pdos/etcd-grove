@@ -1219,3 +1219,11 @@ key other than `cancelCtxKey`, the child's `Value(k)` is the parent's (Go's `can
 `value(c.Context, key)`). General (every derived context: `WithCancel`, `WithTimeout`,
 `WithDeadline`). Meanwhile: a local lemma over Perennial's context, justified in
 `notes/m2-plan.md` (the compactor's freeze repair).
+
+## `aupd_post_mono`: an atomic update is antitone in its atomic postcondition (2026-10-29)
+
+`atomic_update Eo Ei α β Φ ⊢ atomic_update Eo Ei α β' Φ` when `β' x y ⊢ β x y`: the committer
+supplies more. It is a fact of Iris's atomic updates (the Rocq `atomic_update_mono` family), proved
+here by `greatest_fixpoint_coiter` and `aupd_aacc` (`Proof/.../etcdserver/InvRequest.lean`, step 5
+of the auth-mode merge). Proposed change: the lemma in Perennial's/Iris's atomic-update library,
+next to `aupd_aacc`.
