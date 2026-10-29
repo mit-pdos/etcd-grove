@@ -63,15 +63,16 @@ theorem opsOf_prefix {a b : List LogEntry} (h : a <+: b) : opsOf a <+: opsOf b :
   rw [opsOf_append]
   exact List.prefix_append _ _
 
-theorem opsOf_snoc_filler (l : List LogEntry) (e : LogEntry) (h : e.isFiller) :
+theorem opsOf_snoc_filler (l : List LogEntry) (e : LogEntry) (h : e.isFiller ∨ e.isEmptyV2) :
     opsOf (l ++ [e]) = opsOf l := by
   rw [opsOf_append]
-  simp [opsOf, h]
+  rcases h with h | h <;> simp [opsOf, h]
 
-theorem opsOf_snoc_op (l : List LogEntry) (e : LogEntry) (h : ¬ e.isFiller) :
+theorem opsOf_snoc_op (l : List LogEntry) (e : LogEntry) (h : ¬ (e.isFiller ∨ e.isEmptyV2)) :
     opsOf (l ++ [e]) = opsOf l ++ [e] := by
   rw [opsOf_append]
-  simp [opsOf, h]
+  simp only [not_or] at h
+  simp [opsOf, h.1, h.2]
 
 theorem strip_append (a b : List EntryM) : strip (a ++ b) = strip a ++ strip b := by
   unfold strip; exact List.map_append
@@ -84,9 +85,18 @@ theorem strip_prefix {a b : List EntryM} (h : a <+: b) : strip a <+: strip b := 
 theorem strip_length (a : List EntryM) : (strip a).length = a.length := by
   unfold strip; exact List.length_map _
 
-/-- A filler as raft sees it is one as the client does. -/
+/-- A filler as raft sees it (`Filler`) is one or an empty `ConfChangeV2` as the client does. -/
 theorem isFiller_ofEntryM (e : EntryM) :
-    (LogEntry.ofEntryM e).isFiller ↔ Filler e.Type' e.Data' := Iff.rfl
+    ((LogEntry.ofEntryM e).isFiller ∨ (LogEntry.ofEntryM e).isEmptyV2) ↔ Filler e.Type' e.Data' := by
+  unfold LogEntry.isFiller LogEntry.isEmptyV2 Filler LogEntry.ofEntryM
+  simp only
+  constructor
+  · rintro (⟨h1, h2⟩ | ⟨h1, h2⟩)
+    · exact ⟨h1, .inl h2⟩
+    · exact ⟨h1, .inr h2⟩
+  · rintro ⟨h1, h2 | h2⟩
+    · exact .inl ⟨h1, h2⟩
+    · exact .inr ⟨h1, h2⟩
 
 end pure
 
@@ -361,7 +371,8 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
     iunfold entDataIs at He
     iunfold propDataIs at He
     icases He with %Hfill
-    have Hf : (LogEntry.ofEntryM e).isFiller := (isFiller_ofEntryM e).2 Hfill.1
+    have Hf : (LogEntry.ofEntryM e).isFiller ∨ (LogEntry.ofEntryM e).isEmptyV2 :=
+      (isFiller_ofEntryM e).2 Hfill.1
     imod monoListAuthOwn_update_app [LogEntry.ofEntryM e] $$ Hfull with ⟨Hfull, -⟩
     have Hstrip : strip (L ++ [e]) = strip L ++ [LogEntry.ofEntryM e] := by
       rw [strip_append]; rfl
@@ -534,11 +545,12 @@ theorem toEntries_strip (L : List EntryM) (base : Nat)
       have := word.unsigned_range i
       word
 
-theorem opsOf_eq_self (l : List LogEntry) (H : ∀ e ∈ l, ¬ e.isFiller) : opsOf l = l := by
+theorem opsOf_eq_self (l : List LogEntry) (H : ∀ e ∈ l, ¬ e.isFiller ∧ ¬ e.isEmptyV2) :
+    opsOf l = l := by
   unfold opsOf
   rw [List.filter_eq_self]
   intro e he
-  simp [H e he]
+  simp [(H e he).1, (H e he).2]
 
 theorem BootLog_ok {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
     (H : BootLog ps ctxs boot) : BootLogOk ps (LogEntry.toEntries boot 0) := by
@@ -565,10 +577,8 @@ theorem BootLog_opsOf {ps : List w64} {ctxs : List (List w8)} {boot : List LogEn
   intro e he
   obtain ⟨k, hk⟩ := List.getElem?_of_mem he
   obtain ⟨-, -, -, -, -, Hty, -⟩ := H.2.2 k e hk
-  rintro ⟨-, h⟩
-  rw [Hty] at h
-  have := congrArg (fun x : w32 => uint.Z x) h
-  revert this; decide
+  refine ⟨?_, ?_⟩ <;> rintro ⟨-, h⟩ <;> rw [Hty] at h <;>
+    have := congrArg (fun x : w32 => uint.Z x) h <;> revert this <;> decide
 
 theorem BootLog_idx {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
     (H : BootLog ps ctxs boot) : IdxOk (LogEntry.toEntries boot 0) := by
@@ -2463,7 +2473,8 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
     obtain ⟨Hty, Hd⟩ := entKey_inj Hkey
     have Hx : LogEntry.ofEntryM e = ⟨e.Term', ty, data⟩ := by
       unfold LogEntry.ofEntryM; rw [Hty, Hd]
-    have Hxf : ¬ (LogEntry.ofEntryM e).isFiller := fun h => Hnf' ((isFiller_ofEntryM e).1 h)
+    have Hxf : ¬ ((LogEntry.ofEntryM e).isFiller ∨ (LogEntry.ofEntryM e).isEmptyV2) :=
+      fun h => Hnf' ((isFiller_ofEntryM e).1 h)
     iunfold ownCommittedOps at Hown
     icases Hown with ⟨Hown, -⟩
     ihave %Hag := monoListAuthOwn_agree $$ Hops Hown
@@ -2801,12 +2812,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The client's conf-change update, at the bytes raft marshaled. -/
+omit [GooseInterp] [GooseSemantics] go_gctx hG [StorageModel GF] sem package_sem in
+/-- An entry that is no filler to raft is a requested entry (2026-10-29, stage U5). -/
+theorem opsOf_single_nonFiller (t : w64) (ty : w32) (bs : List w8) (Hnf : ¬ Filler ty bs) :
+    opsOf [(⟨t, ty, bs⟩ : LogEntry)] = [⟨t, ty, bs⟩] :=
+  opsOf_eq_self _ fun e he => by
+    simp only [List.mem_singleton] at he; subst he
+    exact ⟨fun h => Hnf ⟨h.1, .inl h.2⟩, fun h => Hnf ⟨h.1, .inr h.2⟩⟩
+
+/-- The client's conf-change update, at the bytes raft marshaled, when they are no filler's
+(2026-10-29, stage U5: the update's `opsOf` of the entry is then the entry). -/
 theorem au_cc_fix (γ : Cluster) (N : Namespace) (ty : w32) (o : ConfChangeIM) (bs : List w8)
-    (Hm : MarshalsConfChange (some o) bs) :
+    (Hm : MarshalsConfChange (some o) bs) (Hnf : ¬ Filler ty bs) :
     AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps (GF := GF) γ ops }> @ ⊤ \ ↑N, ∅
        <{ ∀∀ (t : w64) (bs' : List w8), ⌜MarshalsConfChange (some o) bs'⌝ ∗
-            ownCommittedOps γ (ops ++ [⟨t, ty, bs'⟩]), COMM True }> ⊢
+            ownCommittedOps γ (ops ++ opsOf [⟨t, ty, bs'⟩]), COMM True }> ⊢
     AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps (GF := GF) γ ops }> @ ⊤ \ ↑N, ∅
        <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, ty, bs⟩]), COMM True }> := by
   iintro Hau
@@ -2827,6 +2847,7 @@ theorem au_cc_fix (γ : Cluster) (N : Namespace) (ty : w32) (o : ConfChangeIM) (
   · iintro %t Hown
     icases Hucl with ⟨-, Hc⟩
     iapply Hc $$ %t %bs [Hown]
+    rw [opsOf_single_nonFiller t ty bs Hnf]
     iframe Hown
     ipureintro; exact Hm
 

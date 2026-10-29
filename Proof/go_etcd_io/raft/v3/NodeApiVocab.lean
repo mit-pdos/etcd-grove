@@ -42,12 +42,10 @@ def LogEntry.ofEntryM (e : EntryM) : LogEntry := ⟨e.Term', e.Type', e.Data'⟩
 /-- A raft log as a client sees it (the committed log up to a snapshot, `SnapLoan.dlv`). -/
 def strip (L : List EntryM) : List LogEntry := L.map LogEntry.ofEntryM
 
-/-- **A filler**: an entry that carries nothing, an empty normal entry. Raft appends these itself:
-a new leader's entry (`raft.go:961`), the entry in place of a conf change it refuses
-(`raft.go:1341`). A client's empty proposal looks the same, so it is a filler too: an operation must
-be encoded as non-empty bytes to take effect as one. (2026-10-27: until then also an empty
-`ConfChangeV2`, raft's auto-leave entry, `raft.go:742`, which raft's proof shows is never appended,
-and a client's empty `ConfChangeV2`, which is now a requested entry like any conf change.) -/
+/-- **A filler**: an empty normal entry. Raft appends these itself: a new leader's entry
+(`raft.go:961`), the entry in place of a conf change it refuses (`raft.go:1341`). A client's empty
+proposal looks the same, so it is a filler too: an operation must be encoded as non-empty bytes to
+take effect as one. (2026-10-27: until then also an empty `ConfChangeV2`, now `isEmptyV2`.) -/
 def LogEntry.isFiller (e : LogEntry) : Prop :=
   e.data = [] ∧ e.type = W32 0
 
@@ -57,8 +55,29 @@ instance (e : LogEntry) : Decidable e.isFiller := by unfold LogEntry.isFiller; i
 entry of type `EntryConfChangeV2`. (2026-10-27, in place of the server port's `noConfChangeV2`.) -/
 theorem LogEntry.isFiller_normal (e : LogEntry) (h : e.isFiller) : e.type = W32 0 := h.2
 
-/-- **The requested entries** of a log: everything but its fillers. -/
-def opsOf (l : List LogEntry) : List LogEntry := l.filter fun e => !decide e.isFiller
+/-- **An empty `ConfChangeV2`** (2026-10-29, stage U5): raft's automatic leave of a joint
+configuration (`raft.go:742-763`, `confChangeToMsg(nil)`), which no client proposed, has these bytes;
+so has a client's explicit `ConfChangeV2{}`, its leave. Either is a leave, committed only where the
+configuration in force is joint (`committed_emptyV2_joint`), and neither is a client operation:
+`opsOf` leaves it out. -/
+def LogEntry.isEmptyV2 (e : LogEntry) : Prop :=
+  e.data = [] ∧ e.type = W32 2
+
+instance (e : LogEntry) : Decidable e.isEmptyV2 := by unfold LogEntry.isEmptyV2; infer_instance
+
+/-- **The requested entries** of a log: everything but its fillers and its empty `ConfChangeV2`s
+(2026-10-29, stage U5: until then only the fillers were left out). -/
+def opsOf (l : List LogEntry) : List LogEntry :=
+  l.filter fun e => !decide e.isFiller && !decide e.isEmptyV2
+
+/-- With no entry of type `EntryConfChangeV2` (`2`), the requested entries are the non-fillers. -/
+theorem opsOf_noType2 (l : List LogEntry) (h : ∀ e ∈ l, e.type ≠ W32 2) :
+    opsOf l = l.filter fun e => !decide e.isFiller := by
+  unfold opsOf
+  apply List.filter_congr
+  intro e he
+  have : ¬ e.isEmptyV2 := fun h' => h e he h'.2
+  simp [this]
 
 /-- The bootstrap log: a `ConfChangeAddNode` of each peer, its context `ctx`, at term 1, as
 `MarshalConfChange` encodes it (`bs`). -/

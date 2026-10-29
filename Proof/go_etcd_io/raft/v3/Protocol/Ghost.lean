@@ -1138,21 +1138,22 @@ entry was proposed, with data whose atomic update was deposited (`deposited`). S
 proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held.
 
 Since 2026-10-27 the line is drawn by `Filler`: an entry that carries nothing (an empty normal
-entry; until later that day also an empty `ConfChangeV2`) is raft's own and fires the standing
+entry or an empty `ConfChangeV2`; from later that day to 2026-10-29 only the former) is raft's own and fires the standing
 `noopAu`; every other entry -- a normal entry with bytes, any conf-change entry, the bootstrap
 entries included -- is a tracked proposal, keyed in the registry by its type and data (`entKey`), whose own
 update fires (`propAu1`). Until then a conf-change entry was raft's own too, admitted by the
 cluster's policy `reCCOk`. -/
 
-/-- **A filler** (2026-10-27): an entry of type `ty` with data `d` that carries nothing -- an empty
-normal entry (type `EntryNormal`, `0`, no bytes). Raft appends these itself: a new leader's empty
-entry (raft.go:961), the empty normal entry in place of a refused conf change (raft.go:1341); a
-client's empty proposal is one too. Every other entry is a tracked proposal (`propDataIs`), an
-empty `ConfChangeV2` included (2026-10-27: until then a filler too, whose decoding, `ccDecodeV2`,
-is opaque, so that no law could tell a committed filler normal). Raft's own auto-leave entry
-(raft.go:742, an empty `ConfChangeV2`) is never appended: `raft.appliedTo`'s premise keeps
-`AutoLeave` off at a leader. -/
-def Filler (ty : w32) (d : List w8) : Prop := d = [] ∧ ty = W32 0
+/-- **A filler** (2026-10-27; 2026-10-29, stage U5: an empty `ConfChangeV2` again): an entry of type
+`ty` with data `d` that carries nothing -- no bytes, of type `EntryNormal` (`0`) or
+`EntryConfChangeV2` (`2`). Raft appends these itself: a new leader's empty entry (raft.go:961), the
+empty normal entry in place of a refused conf change (raft.go:1341), and the automatic leave of a
+joint configuration (raft.go:742-763, `confChangeToMsg(nil)`), an empty `ConfChangeV2` that no
+client proposed and so carries no ticket; a client's empty proposal, normal or `ConfChangeV2`, is
+one too. Every other entry is a tracked proposal (`propDataIs`). (From 2026-10-27 to stage U5 an
+empty `ConfChangeV2` was a tracked proposal, while `raft.appliedTo`'s premise kept the automatic
+leave from being appended; its decoding is now the trust-base fact `ccDecodeV2_nil`.) -/
+def Filler (ty : w32) (d : List w8) : Prop := d = [] ∧ (ty = W32 0 ∨ ty = W32 2)
 
 instance (ty : w32) (d : List w8) : Decidable (Filler ty d) := by unfold Filler; infer_instance
 
@@ -1427,7 +1428,7 @@ theorem propData_zero (γ : RaftNames) : ⊢ propData (GF := GF) γ (zero_val En
   iexists none
   unfold propDataIs
   ipureintro
-  exact ⟨⟨rfl, rfl⟩, CCDecodes_normal _⟩
+  exact ⟨⟨rfl, Or.inl rfl⟩, CCDecodes_normal _⟩
 
 /-- `stepLeader`'s conf-change loop keeps the entries' data: a kept entry's is its own, a
 replaced one's is the empty normal entry's (2026-10-13). -/
@@ -1465,7 +1466,7 @@ theorem entTk_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es 
       · iclear Hx'
         rw [Hz]
         unfold entTk
-        rw [if_pos ⟨rfl, rfl⟩]
+        rw [if_pos ⟨rfl, Or.inl rfl⟩]
         iempintro
     · iapply ih $$ Hl
 

@@ -15,7 +15,8 @@ theorem node.ProposeConfChange.wp_proof [package_sem : Assumptions] (wp_confChan
                 ownConfChangeI c dq (some o) ∗
                   AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
                       ⌜MarshalsConfChange (some o) bs⌝ ∗
-                        ownCommittedOps γ (ops ++ [{ term := t, type := confChangeEntryType (some o), data := bs }]),
+                        ownCommittedOps γ
+                          (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
                       COMM True }> -∗
           (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP

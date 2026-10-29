@@ -179,7 +179,7 @@ private theorem node.wp_ProposeConfChange_impl
     · imodintro; ileft; ipureintro; exact Hf
     imod api_key_register γ N ⊤ CoPset.subseteq_top
       (entKey (confChangeEntryType (some o)) bs) $$ Hci with #Hpi
-    ihave Hau1 := au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm $$ Hau
+    ihave Hau1 := au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm Hf $$ Hau
     ihave Hau1 := api_propAu1 γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
     imodintro
     iright

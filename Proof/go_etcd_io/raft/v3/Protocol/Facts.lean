@@ -1532,9 +1532,9 @@ theorem BootLogOk.wf {ps : List w64} {bootLog : List EntryM}
   · obtain ⟨Ht, Hi, Hty, ⟨m, Hm, -, -⟩⟩ := H.2.2 k e Hk
     refine ⟨Ht, Hi, ?_, ⟨fun _ => ⟨m, Hm⟩, fun h => absurd (Hty.symm.trans h)
       (W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega))⟩⟩
-    rintro ⟨-, h⟩
-    rw [Hty] at h
-    exact W32_ne 1 0 (by omega) (by omega) (by omega) (by omega) (by omega) h
+    rintro ⟨-, h | h⟩ <;> rw [Hty] at h
+    · exact W32_ne 1 0 (by omega) (by omega) (by omega) (by omega) (by omega) h
+    · exact W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega) h
   · rw [List.nodup_iff_eq_of_getElem_eq]
     intro i j Hi Hj Heq
     rw [List.length_map] at Hi Hj

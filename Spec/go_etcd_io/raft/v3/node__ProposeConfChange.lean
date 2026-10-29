@@ -27,10 +27,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `o` that `cc` holds (given
-back): its entry has the type and bytes `MarshalConfChange` gives it, raft choosing the term. The
-update never fires if the leader refuses the change (an empty normal entry commits in its place,
-`raft.go:1341`). (2026-10-27: an empty `ConfChangeV2` is no filler any more, `LogEntry.isFiller`:
-its update fires like any conf change's.) -/
+back): its entry has the type and bytes `MarshalConfChange` gives it, raft choosing the term, and the
+committed requested entries grow by its `opsOf`: by the entry, but for an empty `ConfChangeV2` (a
+leave, `LogEntry.isEmptyV2`), which is no requested entry. The update never fires if the leader
+refuses the change (an empty normal entry commits in its place, `raft.go:1341`), and may not fire
+for an empty `ConfChangeV2`. (2026-10-29, stage U5: until then the post was `ops ++ [entry]`, an
+empty `ConfChangeV2` a requested entry.) -/
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -38,7 +40,7 @@ abbrev node.ProposeConfChange.spec : Prop :=
       ownConfChangeI c dq (some o) ∗
       AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
          <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
-              ownCommittedOps γ (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]),
+              ownCommittedOps γ (ops ++ opsOf [⟨t, confChangeEntryType (some o), bs⟩]),
             COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))

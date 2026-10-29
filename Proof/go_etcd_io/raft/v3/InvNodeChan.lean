@@ -1338,7 +1338,7 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
   · iclear Harg
     subst Hne
     have Hf : Filler (propEntryM ([] : List w8)).Type' (propEntryM ([] : List w8)).Data' :=
-      ⟨rfl, rfl⟩
+      ⟨rfl, Or.inl rfl⟩
     imodintro
     isplitr
     · unfold propData
