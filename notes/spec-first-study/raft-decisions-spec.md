@@ -124,3 +124,16 @@ dynamic mode), a separating premise of `RawNode.Advance.spec` (was the pure `NoC
 rs.capplied rs.delivered.length`) and of the private `node.Advance.specRaw`, and in `runCfg`,
 `runCfgLoan`, `advanceP`, `advRet`; `DynHyp` takes the decoder (its storage-apply clause
 `NoUndecConfIn dec`, was `NoConfIn`), `GMode.Pre`'s at `effDec dec g.decs`.
+
+Item 3 (the API, 2026-10-28). Minor departures from §1-§5, the statements otherwise as written:
+- §3 `cluster_alloc N vs` → **`cluster_alloc_dec N vs`**: `cluster_alloc` is already the static
+  cluster's allocation (`InvNode`); the statement is §3's.
+- `insert k d D` (§1's `confDecide` post) is written `D.insert k d` (`GMap.insert`; `insert` is the set
+  instance's).
+- New instances: `confAt_timeless`, `confDecided_timeless` (`ConfPolicy`'s invariant holds the records'
+  `confAt`s), `skippedIn_persistent` (§4 says persistent).
+- §2's `confPolicy_decide` takes the cluster's `N` as an explicit argument (it is the `isCluster γ N`
+  premise's) and is stated `⊢ … ={E}=∗ …`; `confPolicy_alloc` likewise.
+- §5: `ccDecode`/`ConfEntryDecodes` stay in `ConfRule.lean` (not listed as leaving).
+- `MemoryStorage.CreateSnapshot.unifiedSpec` names no cluster predicate: unchanged, its proof too.
+

@@ -67,7 +67,7 @@ abbrev RestartNode.spec : Prop :=
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
 
 /-- **`RestartNode(c)` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
-`cluster_alloc_rule`, `InvNodeRule.lean`): as `RestartNode.spec`, from a founder's token of the
+`cluster_alloc_dec`, `InvNodeRule.lean`; until the conf-change decision switch `cluster_alloc_rule`): as `RestartNode.spec`, from a founder's token of the
 cluster of the voters `vs` (`nodeFounder`) in place of `nodeRestartBoot`; and the node's view of
 its configuration at the voters' membership, with nothing applied (`nodeConfig`, as
 `StartNode.dynamicSpec`'s post). (A known exception to one spec per function, as the dynamic

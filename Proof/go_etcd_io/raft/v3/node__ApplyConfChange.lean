@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
-import Proof.go_etcd_io.raft.v3.InvApiRule
+import Proof.go_etcd_io.raft.v3.InvApiDec
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
@@ -380,20 +380,33 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
   rw [stOf_cfg, memOf_cfgOf] at this
   exact this
 
-/-- `node.ApplyConfChange.unifiedSpec` from the raw triple (2026-10-28, stage U4a): the recorded
-decision is the rule's at the committed prefix (`confDecidedU`), so the node's decoder (the rule's,
-`ConfRule.toDec`) gives the decided change there (`DynCCPreOp`). -/
+/-- `node.ApplyConfChange.unifiedSpec` from the raw triple (2026-10-28, stage U4a; the conf-change
+decision switch): the cluster's decoder decides nothing, so the node's decisions are the recorded
+ones: the decision at `k` to apply `o'` (`confDecidedU`'s element) and the skips of the conf entries
+between the view and `k` (`skippedIn`), joined into one lower bound of the map (`decLb`) at which the
+node's decoder gives the change at `k` and rejects the entries before it (`DynCCPreOp`). -/
 private theorem node.wp_ApplyConfChange_unified_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.unifiedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ApplyConfChange.unifiedSpec EtcdGrove.Cluster EtcdGrove.Membership.applyChange
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig
-  intro n γ N id c o o' l k e v m' Hk He Hcc Hno Hap' Hap Hal
-  iintro %Φ ⟨#Hinit, -, -, #Hdec, Hcc0, Hcfg, #Hdl⟩ HΦ
+  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Hal
+  iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, Hcfg, #Hdl, Hsk⟩ HΦ
+  iunfold isClusterU at Hcl
+  icases Hcl with ⟨%Hu, -⟩
+  obtain ⟨⟨c0, gd, Hmd0⟩, -, -⟩ := Hu
+  -- the decisions: the one at `k`, the skips before it
   iunfold confDecidedU at Hdec
-  icases Hdec with ⟨%ld, #Hld, %Pd⟩
-  obtain ⟨ed, Hed, -, r, c0, Hmr, md, -, Hfd, -, Hdm⟩ := Pd
+  icases Hdec with ⟨%ld, %ed, %md, %md', -, #Hel, -⟩
+  ihave #HS := decElem_decLb γ k _ $$ Hel
+  iunfold EtcdGrove.skippedIn at Hsk
+  simp only [EtcdGrove.confDecided]
+  icases skipped_range_decLb γ l v.applied k $$ Hsk with ⟨%Mk, #HMk, %PMk⟩
+  icases decLb_compat γ.raft Mk (GMap.singleton k (ConfDecision.apply o').toOpt) $$ [HMk HS] with %Hcp
+  · iframe HMk HS
+  ihave #HU := decLb_union γ.raft Mk (GMap.singleton k (ConfDecision.apply o').toOpt) $$ [HMk HS]
+  · iframe HMk HS
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn, %id1, %Hf, #Hn1, #Htab1, Hcf⟩
   obtain ⟨Hnok, Hdy, Hgood⟩ := Hf
@@ -402,22 +415,13 @@ private theorem node.wp_ApplyConfChange_unified_impl
   obtain ⟨Hnok2, Hds⟩ := Hf2
   icases isNode_id_agree γn γn2 id1 id2 n $$ Hn1 Hn2 with %Hid
   subst Hid
-  obtain ⟨h0, h1, Hmd0⟩ := Hmr.mode
-  have Hmd : γn.mode = .dyn (r.toDec c0) (stOf c0) h0 h1 := by rw [Hnok.2.2.2.1, Hmd0]
-  have Hdy2 : γn2.mode.isDyn = true := by rw [Hnok2.2.2.2.1, Hmd0]; rfl
+  obtain ⟨h0, h1, Hmd1⟩ := Hmd0.mode
+  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2.2.1, Hmd1]
+  have Hdy2 : γn2.mode.isDyn = true := by rw [Hnok2.2.2.2.1, Hmd1]; rfl
   icases Htab2 with (%Hc | #Htab2)
   · rw [Hdy2] at Hc; cases Hc
   icases nodeTabOk_agree γ id1 γn γn2 $$ Htab1 Htab2 with %Hnm
   ihave #Hlb' := dlvLb_names γn2 γn Hnm.symm ds $$ Hlb
-  icases isCommittedLogLb_agree_impl γ l ld $$ [Hlc Hld] with %Hcmp
-  · iframe Hlc Hld
-  have hkl : k < l.length := (List.getElem?_eq_some_iff.mp He).1
-  have hkd : k < ld.length := (List.getElem?_eq_some_iff.mp Hed).1
-  have Htk : l.take k = ld.take k := take_eq_of_cmp l ld k Hcmp (by omega) (by omega)
-  have Hee : e = ed := by
-    have := getElem?_eq_of_cmp l ld k Hcmp hkl hkd
-    rw [He, Hed] at this; exact Option.some.inj this
-  subst Hee
   -- the entry, as raft has it
   have He' : (strip ds)[k]? = some e := by rw [Hds]; exact He
   unfold strip at He'
@@ -428,32 +432,36 @@ private theorem node.wp_ApplyConfChange_unified_impl
     | some eM => rw [h] at He'; exact ⟨eM, rfl, Option.some.inj He'⟩
   obtain ⟨Hs', Hg'⟩ := memApply_some Hgood Hap'
   obtain ⟨Hs, -⟩ := memApply_some Hgood Hap
-  -- the decision: the rule's at the committed prefix
-  have Hst : strip (ds.take k) = ld.take k := by
-    rw [← Htk, ← Hds]; unfold strip; rw [List.map_take]
-  have Hdecd : (r.toDec c0) (ds.take k) eM = some (.apply (ccV2Of o')) := by
-    rw [ConfRule.toDec_at r c0 md (ds.take k) eM (by rw [Hst]; exact Hfd), Hst, HeMe]
-    cases hr : r (ld.take k) md e with
-    | none => rw [hr] at Hdm; exact (Hdm : False).elim
-    | some o1 =>
-      rw [hr] at Hdm
-      show some (CCDecision.apply (ccV2Of o1)) = _
-      rw [show ccV2Of o1 = ccV2Of o' from Hdm]
-  have Hpre : DynCCPreOp (r.toDec c0) ds v.applied (stOf v.membership) (ccV2Of o) k eM
+  let U : DecMap := Mk ∪ GMap.singleton k (ConfDecision.apply o').toOpt
+  have HUk : U.lookup k = some (some o') := by
+    apply DecCompat.sub_right Hcp
+    show (GMap.singleton k (ConfDecision.apply o').toOpt : DecMap) !! k = some (some o')
+    simp [GMap.singleton, GMap.lookup_insert_eq_iff, ConfDecision.toOpt]
+  have Hpre : DynCCPreOp (effDec noDec U) ds v.applied (stOf v.membership) (ccV2Of o) k eM
       (stOf m') := by
-    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', Hdecd, Hs'⟩, Hs, Hal⟩
+    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
     · rw [← HeMe] at Hcc; exact Hcc
-    · refine NoConfIn.noUndec ?_
-      intro k' e' h1 h2 he hc
-      apply Hno k' (LogEntry.ofEntryM e') h1 h2
-      · rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
-      · exact hc
-  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m') ∅
+    · intro k' e' h1 h2 he hc
+      have hl' : l[k']? = some (LogEntry.ofEntryM e') := by
+        rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
+      have hk' : U.lookup k' = some none :=
+        DecCompat.sub_left Mk _ k' none (PMk k' (LogEntry.ofEntryM e') h1 h2 hl' hc)
+      have hlen : (ds.take k').length = k' := by
+        have := (List.getElem?_eq_some_iff.mp he).1
+        rw [List.length_take]; omega
+      show (U.lookup (ds.take k').length).map ccDecOf = some .reject
+      rw [hlen, hk']; rfl
+    · have hlen : (ds.take k).length = k := by
+        have := (List.getElem?_eq_some_iff.mp HeM).1
+        rw [List.length_take]; omega
+      show (U.lookup (ds.take k).length).map ccDecOf = some (.apply (ccV2Of o'))
+      rw [hlen, HUk]; rfl
+  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m') U
     (fun h => by rw [Hmd] at h; cases h)
-    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; rw [effDec_empty]; exact Hpre)) $$ [Hcc0 Hcf]
+    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)) $$ [Hcc0 Hcf]
   · iframe Hinit Hn1 Hcc0
     iright; iframe Hcf Hlb'
-    iapply decLb_empty
+    rw [Hnok.1]; iexact HU
   iintro !> %csp %cs ⟨Hcs, Hor⟩
   icases Hor with (⟨%Hst', -⟩ | ⟨-, Hcf', %Hok⟩)
   · exfalso; rw [Hmd] at Hst'; cases Hst'

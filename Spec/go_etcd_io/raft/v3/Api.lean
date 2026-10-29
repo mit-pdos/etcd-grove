@@ -20,8 +20,11 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
   snapshots' certificates and the dynamic cluster's configuration, all **sealed** (`@[no_expose]`:
   a client sees their names, never their bodies), with their laws and the allocations
   (`cluster_alloc`, `dynamicCluster_alloc`); (2026-10-28, stage U4a) a cluster with snapshots and
-  reconfiguration in `InvNodeRule.lean` (`isCluster`, `confAt`, `confDecided`, `ownSnapsMade`,
-  `cluster_alloc_rule`; the specs' `unifiedSpec` variants); its pure vocabulary in `NodeApiVocab.lean` (`LogEntry`,
+  reconfiguration in `InvNodeRule.lean` (`isCluster`, `confAt`, `confDecided`, `ownConfDecisions`,
+  `confDecide`, `skippedIn`, `ownSnapsMade`, `cluster_alloc_dec`; the specs' `unifiedSpec` variants;
+  2026-10-28, the conf-change decision switch: its conf entries decided by the client, until then by
+  a rule fixed at allocation, `cluster_alloc_rule`), and a client library deciding by a rule over it
+  (`ConfPolicy.lean`); its pure vocabulary in `NodeApiVocab.lean` (`LogEntry`,
   `opsOf`, `Membership`, ...); the errors and contexts in `InvNodeCtx.lean`;
 - `Proof/go_etcd_io/raft/v3/ApiVocab.lean`: the records and predicates of those statements that
   raft's internals also use (`QMsg`, `SnapLoan`, `RNMode`, `RNState`, `NetMsgOk`, `SentMsgOk`,

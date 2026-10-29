@@ -16,7 +16,7 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
-import Proof.go_etcd_io.raft.v3.InvApiRule
+import Proof.go_etcd_io.raft.v3.InvApiDec
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
@@ -477,7 +477,7 @@ private theorem wp_RestartNode_impl
   iexact Hdrv
 
 /-- `RestartNode.unifiedSpec` from the raw triple (2026-10-28, stage U4a): the node in the cluster's
-dynamic mode (the rule's), taking `MsgSnap`s (`snapIn`), its ghost state the dynamic one at the
+dynamic mode (of the client's decisions, since the decision switch; until then the rule's), taking `MsgSnap`s (`snapIn`), its ghost state the dynamic one at the
 initial state (`ownRaftGhostR_rinit`), its table entry inserted (`nodeTabOk`), its view at the
 voters' membership. -/
 private theorem wp_RestartNode_unified_impl
@@ -490,7 +490,7 @@ private theorem wp_RestartNode_unified_impl
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
   iunfold nodeFounderU at Hboot
   icases Hboot with ⟨#Hcl, %Hpf, Hg, #Hc0, #Hbinv, #Htlb, ⟨%g, %Hg0, Ha⟩⟩
-  obtain ⟨Hcfg, ⟨r, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩ := Hpf
+  obtain ⟨Hcfg, ⟨gd, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩ := Hpf
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
   icases Hcl' with ⟨%Hu, #Hci⟩

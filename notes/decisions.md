@@ -25353,4 +25353,65 @@ attempt carried the map in the certificate; it stopped at `RawNode.Advance`'s po
 configuration is a pure function of client-visible data (`foldCfg l.dlv`), so the map has to be in
 the loan.
 
-**What remains** (STATUS, "The conf-change decision switch").
+**2026-10-28 (later) · items 1-3 done: the switch is complete on raft's side.** (Commits
+`d04d84666b`, `9af12cd773` and the API's.)
+
+*Item 1, snapshots that carry decisions.* `raftSnapCert`'s dynamic clause and `snapAtOk` fold over
+`∃ M, decLb γ M` (`raftSnapCert_decs` reads them at a prefix; `raftSnapCert_make_dyn` takes `M`;
+`SnapAtPure`/`snapshotCert` carry `M` beside the prefix). The configuration a snapshot's
+acknowledgement installs must be fixed before `RawNode.Advance` runs (the node loop shares it with the
+driver at the `advancec` rendezvous, `runCfgLoan`), and as a pure function of client-visible data
+(`advRS`, `loanCfg`). So the **loan records the decisions**: `SnapLoan.decs`, chosen at
+`readyWithoutAccept` from the pending snapshot's certificate (`ksnCerts_of_link` opens the log's
+certificates before the `Ready`'s last `wp` step, `raftSnapCert_decs` at the full prefix below the
+boundary, whose records `ownRaftGhost_cmt` gives), with `loanDec` (`decLb γ l.decs`, the loan's
+committed log folding over them to the snapshot's configuration) in `rdSnapRel` and `loanCom`.
+`RNMode.foldCfg md M L c` folds over `M`. At `RawNode.Advance`, `ownStepGhost_absorbM` joins
+`l.decs` to the ghost part before the acknowledgement, so `wp_step_snapack` needs no certificate in
+the dynamic case (its fold at the ghost's decisions from the loan's, `Hdf`/`Hsub`), and its post is
+the fold at `l.decs`. The driver needs the loan's decisions too (to relate the view to the client's
+certificate, `node.Advance.unifiedSpec`): `readyP` and `nodeDriverBusy` carry `loanDecO γ.raft L`
+(`nodeDriverBusy_loanDec`). A loan field rather than an existential in `RawNode.Advance`'s post: the
+latter would leave the rendezvous's shared value undetermined (two witnessed maps agree only where
+both folds are defined).
+
+*Item 2, the node loop taking decisions in.* A1 is `undecFree γ md D lo hi` (persistent: some
+decisions recorded at which every conf entry in `[lo, hi)` is rejected, `NoUndecConfIn (effDec dec
+M)`, in the dynamic mode), with `_noConf`, `_empty`, `_static`, `_mono`, `_prefix`, `_of_prefix`,
+`_join`, `_trans` (`InvRawnode.lean`); it replaces `NoConfIn` in `RawNode.Advance.spec` (now a
+separating premise), `runCfg`, `runCfgLoan`, `advanceP`, `advRet`, `node.Advance.specRaw`.
+`DynHyp dec`'s storage-apply clause and `GMode.Pre`'s are `NoUndecConfIn` (at `effDec dec g.decs`):
+the protocol's `StepR.advance` already took that. `DynCCPreOp`'s entries between the view and `k` are
+`NoUndecConfIn dec` (`dynCCPreOp_transfer` still finds `k` past `run`'s index: the decoder applies at
+`k`, so `k` is no rejected entry). `confcP` and `node.ApplyConfChange.specRaw` carry `decLb γ.raft M`
+with `DynCCPreOp (effDec dec M)`; `runCfg_confc` joins `M` with `run`'s skipped entries
+(`undecFree_join`), `wp_rn_raft_applyConfChange_dyn` and `RawNode.Advance` absorb into the ghost part
+(`ownStepGhost_absorbM`, now in `InvRawnode`).
+
+*Item 3, the API.* `InvApiDec.lean` (replacing `InvApiRule.lean`; `InvApiDecAlloc.lean` replacing
+`InvApiRuleAlloc.lean`; `DecFold.lean` replacing `ConfRuleDec.lean`; `SnapsMade.lean` reduced to its
+pure lemmas): a cluster of the base decoder that decides nothing (`noDec`) over the decision map
+`reDec = some g` (`ModeDec γ c0 g`, unique: `ModeDec.uniq`). `decFold M c0 l` folds a log over
+recorded decisions (`none` past an undecided conf entry), `cfgFold_decs` is the protocol's fold of it.
+`confAtU`: the fold of some witnessed decisions over a committed prefix (two agree, `fold_agree`:
+compatible witnesses, comparable logs). `confDecidedU γ k d`: the map's element at `k` at a committed
+conf entry, with its step defined at a `confAtU` (what `confAt_decided` needs, so the element alone
+would not do). `ownConfDecisionsU γ D`: the authority at `D.fmap toOpt` and `□ ∀` binding,
+`confDecidedU` (timeless, so a client's invariant can hold it). The snapshot registry's records are
+`confAtU`s. The unified specs: `ApplyConfChange` joins the decision at `k` and `skippedIn`'s skips
+(`skipped_range_decLb`) into one witness, at which the node's decoder applies `o'` at `k` and rejects
+the entries before; `Advance` gives `undecFree` from `skippedIn`, and after a snapshot `Ready` relates
+the loan's fold to the certificate's `confAtU` (`fold_agree`). `ConfPolicy.lean` (importable): the
+library, an invariant over the authority recording each decision as the rule's at its prefix and
+membership; it unseals nothing. §5's items left `ConfRule.lean`.
+
+Spec changes during the stage (the spec file's section): `cluster_alloc` is `cluster_alloc_dec` (the
+name is the static cluster's); `D.insert k d` for `insert k d D`; new instances `confAt_timeless`,
+`confDecided_timeless` (`ConfPolicy`'s invariant), `skippedIn_persistent`; `confPolicy_decide` takes
+the cluster's `N` explicitly.
+
+**Clients that break** (not built, by the user's scope): examples/kv (`cluster_alloc_rule`, raft's
+`confPolicy`, `Membership.fold`, `opsOfRule`, the `unifiedSpec`s' `NoConfChangeIn` premises);
+etcd's server where it states or proves over `DynCCPreOp` (`EtcdServer.applyConfChange`'s spec and
+proof: its fifth clause is `NoUndecConfIn dec`), destructures `readyP`/`nodeDriverBusy`
+(`InvRaftNode.lean`) or builds a `SnapLoan` (`SrvRaftLog.lean`).

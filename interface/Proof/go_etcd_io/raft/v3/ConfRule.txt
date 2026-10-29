@@ -2,59 +2,23 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem Membership.fold_nil (r : ConfRule) (c0 : Membership) : Membership.fold r c0 [] = some c0
-
-theorem opsOfRuleFrom.eq_def (r : ConfRule) (c0 : Membership) (pre x✝ : List LogEntry) :
-    opsOfRuleFrom r c0 pre x✝ = match x✝ with | [] => [] | e :: es => (if e.isFiller ∨ RaftLeave r
-    c0 pre e then [] else [e]) ++ opsOfRuleFrom r c0 (pre ++ [e]) es
-
 def ConfRule : Type :=
   List LogEntry → Membership → LogEntry → Option ConfChangeIM
 
-theorem ConfRule.clamp_eq (r : ConfRule) (pre : List LogEntry) (m : Membership) (e : LogEntry) (hr :
-    r.Ok) (hm : m.Valid) : r.clamp pre m e = r pre m e
-
 theorem Membership.wellFormed_empty : Membership.empty.WellFormed
-
-theorem Membership.fold_total (r : ConfRule) (c0 : Membership) (l : List LogEntry) (hr : r.Ok) (h0 :
-    c0.Valid) : ∃ m, Membership.fold r c0 l = some m ∧ m.Valid
-
-theorem Membership.foldFrom_append (r : ConfRule) (pre : List LogEntry) (m : Membership) (l1 l2 :
-    List LogEntry) : Membership.foldFrom r pre m (l1 ++ l2) = (Membership.foldFrom r pre m l1).bind
-    fun m' => Membership.foldFrom r (pre ++ l1) m' l2
-
-def Membership.foldStep (r : ConfRule) (pre : List LogEntry) (m : Membership) (e : LogEntry) :
-    Option Membership :=
-  if e.isConfChange then
-    match r pre m e with
-    | none => some m
-    | some o => Membership.applyChange o m
-  else some m
 
 structure SnapRec : Type where
   index : Nat
   conf : Membership
   data : List w8
 
-def RaftLeave (r : ConfRule) (c0 : Membership) (pre : List LogEntry) (e : LogEntry) : Prop :=
-  e.type = W32 2 ∧ e.data = [] ∧ ∃ m, Membership.fold r c0 pre = some m ∧ m.isJoint ∧ m.autoLeave = true
-
 def ConfEntryDecodes (e : LogEntry) : Prop :=
   ∃ o, ccDecode e = some o
-
-theorem Membership.fold_snoc_normal (r : ConfRule) (c0 : Membership) (l : List LogEntry) (e :
-    LogEntry) (h : ¬e.isConfChange) : Membership.fold r c0 (l ++ [e]) = Membership.fold r c0 l
-
-theorem ConfRule.clamp_ok (r : ConfRule) : r.clamp.Ok
 
 def ConfDecision.ofRule : Option ConfChangeIM → ConfDecision :=
   match x✝ with
   | some o => ConfDecision.apply o
   | none => ConfDecision.skip
-
-def ConfRule.Ok (r : ConfRule) : Prop :=
-  ∀ (pre : List LogEntry) (m : Membership) (e : LogEntry) (o : ConfChangeIM),
-    m.Valid → r pre m e = some o → ∃ m', Membership.applyChange o m = some m' ∧ m'.Valid
 
 def ccDecode (e : LogEntry) : Option ConfChangeIM :=
   if e.type = W32 1 then Option.map ConfChangeIM.v1 (ccDecodeV1 e.data)
@@ -72,12 +36,6 @@ theorem Membership.WellFormed.of_valid {m : Membership} (h : m.Valid) : m.WellFo
 def Membership.WellFormed (m : Membership) : Prop :=
   m = Membership.empty ∨ m.Valid
 
-def Membership.fold (r : ConfRule) (c0 : Membership) (l : List LogEntry) : Option Membership :=
-  Membership.foldFrom r [] c0 l
-
-def ConfRule.validated : ConfRule :=
-  ConfRule.clamp fun x x_1 e => ccDecode e
-
 def CSLists.Is (cl : CSLists) (m : Membership) : Prop :=
   cl.voters.Perm (elements m.voters) ∧
     cl.outgoing.Perm (elements m.votersOutgoing) ∧
@@ -86,22 +44,8 @@ def CSLists.Is (cl : CSLists) (m : Membership) : Prop :=
 theorem ccDecode_isConfChange {e : LogEntry} {o : ConfChangeIM} (h : ccDecode e = some o) :
     e.isConfChange
 
-theorem Membership.fold_snoc (r : ConfRule) (c0 : Membership) (l : List LogEntry) (e : LogEntry) :
-    Membership.fold r c0 (l ++ [e]) = (Membership.fold r c0 l).bind fun m => Membership.foldStep r l
-    m e
-
-def ConfRule.clamp (r : ConfRule) : ConfRule :=
-  Option.filter (fun o => decide (∃ m', Membership.applyChange o m = some m' ∧ m'.Valid)) (r pre m e)
-
 def instDecidableIsConfChange (e : LogEntry) : Decidable e.isConfChange :=
   id inferInstance
-
-def opsOfRule (r : ConfRule) (c0 : Membership) (l : List LogEntry) : List LogEntry :=
-  opsOfRuleFrom r c0 [] l
-
-def Membership.foldFrom (r : ConfRule) (pre : List LogEntry) (m : Membership) : List LogEntry →
-    Option Membership :=
-  List.brecOn (motive := fun x => List LogEntry → Membership → Option Membership) x✝ (Membership.foldFrom._f r) pre m
 
 def Membership.ids (m : Membership) : GSet w64 :=
   m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
@@ -109,21 +53,7 @@ def Membership.ids (m : Membership) : GSet w64 :=
 def Membership.isJoint (m : Membership) : Prop :=
   m.votersOutgoing ≠ ∅
 
-theorem ConfRule.validated_ok : ConfRule.validated.Ok
-
-theorem opsOfRule_noType2 (r : ConfRule) (c0 : Membership) (l : List LogEntry) (h : ∀ (e :
-    LogEntry), e ∈ l → e.type ≠ W32 2) : opsOfRule r c0 l = List.filter (fun e => !decide
-    e.isFiller) l
-
 def ConfDecision.step : ConfDecision → Membership → Option Membership :=
   match x✝¹, x✝ with
   | ConfDecision.apply o, m => Membership.applyChange o m
   | ConfDecision.skip, m => some m
-
-def opsOfRuleFrom (r : ConfRule) (c0 : Membership) (pre : List LogEntry) : List LogEntry → List
-    LogEntry :=
-  List.brecOn (motive := fun x => List LogEntry → List LogEntry) x✝ (opsOfRuleFrom._f r c0) pre
-
-theorem Membership.fold_snoc_conf (r : ConfRule) (c0 m : Membership) (l : List LogEntry) (e :
-    LogEntry) (h : e.isConfChange) (hm : Membership.fold r c0 l = some m) : Membership.fold r c0 (l
-    ++ [e]) = match r l m e with | none => some m | some o => Membership.applyChange o m

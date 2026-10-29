@@ -2,13 +2,22 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem cluster_alloc_rule [package_sem : Assumptions] (N : Namespace) (vs : List w64) (r :
-    ConfRule) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs →
-    ↑vs.length < 2 ^ 62 → ⊢ |={E}=> ∃ γ, ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^
-    64 - 2) ∗ isCluster γ N ∗ confPolicy γ r ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗
-    ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗ [∗list] id ∈ vs, nodeFounder γ N vs id
+def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
+  [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
+
+theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Persistent (skippedIn γ
+    l a b)
 
 def (sealed) confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF
+
+theorem confDecided_agree [package_sem : Assumptions] (γ : Cluster) (k : Nat) (d1 d2 : ConfDecision)
+    : confDecided γ k d1 ∗ confDecided γ k d2 ⊢ ⌜d1 = d2⌝
+
+theorem confAt_timeless (γ : Cluster) (k : Nat) (m : Membership) : Timeless (confAt γ k m)
+
+theorem ownConfDecisions_lookup [package_sem : Assumptions] (γ : Cluster) (D : GMap Nat
+    ConfDecision) (k : Nat) (d : ConfDecision) : ownConfDecisions γ D ∗ confDecided γ k d ⊢ ⌜D !! k
+    = some d⌝
 
 theorem snapshotCert_made [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (k : SnapTrip) :
     isCluster γ N ∗ snapshotCert γ N k ⊢ ∃ l m, isCommittedLogLb γ l ∗ confAt γ l.length m ∗
@@ -20,6 +29,12 @@ theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapR
 
 theorem snapMade_persistent (γ : Cluster) (s : SnapRec) : Persistent (snapMade γ s)
 
+theorem cluster_alloc_dec [package_sem : Assumptions] (N : Namespace) (vs : List w64) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → ⊢
+    |={E}=> ∃ γ, ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗ isCluster γ N
+    ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗
+    leaderTransferOn γ N ∗ [∗list] id ∈ vs, nodeFounder γ N vs id
+
 theorem confAt_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) (m :
     Membership) : NoConfChangeIn l a b → a ≤ b → b ≤ l.length → isCommittedLogLb γ l ∗ confAt γ a m
     ⊢ confAt γ b m
@@ -30,18 +45,19 @@ theorem confAt_decided [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m :
 
 def (sealed) confAt (γ : Cluster) (k : Nat) (m : Membership) : IProp GF
 
-theorem confPolicy_decide [package_sem : Assumptions] (γ : Cluster) (r : ConfRule) (l : List
-    LogEntry) (k : Nat) (e : LogEntry) (m m' : Membership) : l[k]? = some e → e.isConfChange →
-    (ConfDecision.ofRule (r (List.take k l) m e)).step m = some m' → confPolicy γ r ∗
-    isCommittedLogLb γ l ∗ confAt γ k m ⊢ confDecided γ k (ConfDecision.ofRule (r (List.take k l) m
-    e))
+def (sealed) ownConfDecisions (γ : Cluster) (D : GMap Nat ConfDecision) : IProp GF
 
-theorem confPolicy_persistent (γ : Cluster) (r : ConfRule) : Persistent (confPolicy γ r)
+theorem ownConfDecisions_excl [package_sem : Assumptions] (γ : Cluster) (D1 D2 : GMap Nat
+    ConfDecision) : ownConfDecisions γ D1 ∗ ownConfDecisions γ D2 ⊢ False
 
-def (sealed) confPolicy (γ : Cluster) (r : ConfRule) : IProp GF
+theorem skippedIn_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) :
+    NoConfChangeIn l a b → ⊢ skippedIn γ l a b
 
 theorem confAt_agree [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m1 m2 : Membership) :
     confAt γ k m1 ∗ confAt γ k m2 ⊢ ⌜m1 = m2⌝
+
+theorem confDecided_timeless (γ : Cluster) (k : Nat) (d : ConfDecision) : Timeless (confDecided γ k
+    d)
 
 def (sealed) nodeFounder (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF
 
@@ -51,7 +67,20 @@ theorem confAt_persistent (γ : Cluster) (k : Nat) (m : Membership) : Persistent
 
 def (sealed) snapMade (γ : Cluster) (s : SnapRec) : IProp GF
 
+theorem confDecide [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (D : GMap Nat
+    ConfDecision) (l : List LogEntry) (k : Nat) (e : LogEntry) (m m' : Membership) (d :
+    ConfDecision) : D !! k = none → l[k]? = some e → e.isConfChange → d.step m = some m' → ⊢
+    isCluster γ N ∗ isCommittedLogLb γ l ∗ confAt γ k m ∗ ownConfDecisions γ D ==∗ ownConfDecisions
+    γ <[k := d]>D ∗ confDecided γ k d ∗ confAt γ (k + 1) m'
+
+theorem ownConfDecisions_timeless (γ : Cluster) (D : GMap Nat ConfDecision) : Timeless
+    (ownConfDecisions γ D)
+
 theorem ownSnapsMade_timeless (γ : Cluster) (S : List SnapRec) : Timeless (ownSnapsMade γ S)
+
+theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D : GMap Nat
+    ConfDecision) (k : Nat) (d : ConfDecision) : D !! k = some d → ownConfDecisions γ D ⊢
+    ownConfDecisions γ D ∗ confDecided γ k d
 
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)

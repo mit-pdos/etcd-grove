@@ -79,16 +79,17 @@ snapshot path, all of what the client has from the `Ready` (`readySnap`): the sn
 certificate and its index the length of its committed log; and (as `RawNode.Advance`'s, until stage
 U5) its `ConfState` no auto-leave one. (As `node.Advance.dynamicSpec`, every conf entry of the
 committed log delivered is applied, after a snapshot `Ready` too: the loop's A1 at `run`'s
-`RawNode.Advance`, over the snapshot's committed log.) -/
+`RawNode.Advance`, over the snapshot's committed log; 2026-10-28, the conf-change decision switch,
+§4: or decided `.skip`, `skippedIn`, until then `NoConfChangeIn`.) -/
 abbrev node.Advance.unifiedSpec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan) (v : ConfigView),
   st.handling = some (es, L) →
-  NoConfChangeIn st.delivered v.applied st.delivered.length →
   (∀ l, L = some l → l.snap.Metadata'.ConfState'.AutoLeave' = false ∧
     l.dlv.length = uint.nat l.snap.Metadata'.Index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗
       nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v ∗
+      skippedIn γ st.delivered v.applied st.delivered.length ∗
       (match L with
        | none => True
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}

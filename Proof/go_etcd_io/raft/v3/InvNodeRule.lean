@@ -1,28 +1,31 @@
 /-
-# Raft's node API: a cluster with snapshots and reconfiguration (2026-10-28, stage U4a)
+# Raft's node API: a cluster with snapshots and reconfiguration, its conf entries decided by the client
 
-The interim of the unified node API (`notes/raft-unified-plan.md`, stage U4a): a cluster in raft's
-dynamic mode **and** outside its no-snapshot mode, its conf entries decided by a rule fixed at
-allocation (`ConfRule`, `cluster_alloc_rule`). Candidate 13's decisions
-(`notes/spec-first-study/raft-node-unified-candidate-13.md`, section 13) will replace the rule under
-these statements: the rule appears only in the allocation and in `confPolicy` (the stand-in for
-candidate 13's `confPolicyInv`, a client library over the one-shot decision tokens); the specs and the
-other laws are in candidate 13's shapes (`confAt`, `confDecided`, `ConfDecision`).
+(2026-10-28, stage U4a; the conf-change decision switch, `notes/spec-first-study/raft-decisions-spec.md`,
+§1, §3, §4.) A cluster in raft's dynamic mode **and** outside its no-snapshot mode, whose committed conf
+entries the client decides: a client-owned authority over the decisions (`ownConfDecisions`, from the
+allocation, empty), one decision per position (`confDecide`), every node's configuration the fold of the
+decisions over the committed log. Raft's API mentions no rule: a client deciding by a rule uses the
+library `ConfPolicy.lean` over the authority. (Until the switch, stage U4a's interim: a rule fixed at
+allocation, `cluster_alloc_rule`, with raft's persistent `confPolicy`.)
 
-Every predicate is **sealed** over its definition in `InvApiRule.lean` (laws and allocation proved
-there, `InvApiRuleAlloc.lean`); nothing here is `sorry`. The node's other predicates are
-`InvNode`'s (`isNode`, `nodeDriver`, `nodeConfig`, `deliveredLogLb`, `snapshotCert`, ...), the specs
-over this cluster `RestartNode.unifiedSpec`, `node.ApplyConfChange.unifiedSpec`,
-`node.Advance.unifiedSpec`.
+Every predicate is **sealed** over its definition in `InvApiDec.lean` (laws and allocation proved
+there, `InvApiDecAlloc.lean`); nothing here is `sorry`. The node's other predicates are `InvNode`'s
+(`isNode`, `nodeDriver`, `nodeConfig`, `deliveredLogLb`, `snapshotCert`, ...), the specs over this cluster
+`RestartNode.unifiedSpec`, `node.ApplyConfChange.unifiedSpec`, `node.Advance.unifiedSpec`.
 
 - **The cluster** (`isCluster`, persistent): its nodes' configuration the membership after their
   applied conf entries, from the voters' membership, each decided once for all nodes; snapshots taken
   and installed.
+- **Decisions**: `ownConfDecisions γ D` (exclusive, timeless), the decisions recorded so far by
+  position; `confDecided γ k d` (persistent), that the conf entry at position `k` was decided `d`
+  (`_lookup`, `_witness`, `confDecided_agree`); `confDecide` records a decision on an undecided
+  committed conf entry, at the configuration before it, with a result.
 - **The configuration** (`confAt γ k m`, persistent): the membership after the first `k` committed
-  entries is `m`; `confDecided γ k d`: the conf entry at position `k` was decided `d` (apply a change,
-  or skip it). A client tracks `confAt` beside its node's view (`nodeConfig`): past entries that are no
-  conf change (`confAt_noConf`), past a decided one (`confAt_decided`); a decision from the cluster's
-  rule (`confPolicy_decide`).
+  entries is `m`. A client tracks `confAt` beside its node's view (`nodeConfig`): past entries that are
+  no conf change (`confAt_noConf`), past a decided one (`confAt_decided`). `skippedIn γ l a b`: every
+  conf entry of `l` in `[a, b)` decided `.skip`, what `ApplyConfChange`/`Advance` take for the entries
+  their view passes.
 - **Snapshots** (TaDa style): the client's registry of the snapshots it made (`ownSnapsMade`, from the
   allocation, empty), `snapshotCert_make` (a committed prefix at its configuration), `snapshotCert_made`
   (a certificate's prefix, configuration and record), `snapMade_elem`.
@@ -30,8 +33,8 @@ over this cluster `RestartNode.unifiedSpec`, `node.ApplyConfChange.unifiedSpec`,
 module
 
 public import Proof.go_etcd_io.raft.v3.ConfRule
-import Proof.go_etcd_io.raft.v3.InvApiRule
-import Proof.go_etcd_io.raft.v3.InvApiRuleAlloc
+import Proof.go_etcd_io.raft.v3.InvApiDec
+import Proof.go_etcd_io.raft.v3.InvApiDecAlloc
 import all Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
@@ -55,9 +58,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The cluster -/
 
-/-- **A cluster with snapshots and reconfiguration** (persistent; stage U4a: raft's dynamic mode of
-the rule the cluster was allocated with, outside the no-snapshot mode, with the registry of the
-snapshots made). -/
+/-- **A cluster with snapshots and reconfiguration** (persistent): raft's dynamic mode of the client's
+decisions, outside the no-snapshot mode, with the registry of the snapshots made. -/
 @[no_expose] def isCluster (γ : Cluster) (N : Namespace) : IProp GF := ApiImpl.isClusterU γ N
 
 instance isCluster_persistent (γ : Cluster) (N : Namespace) :
@@ -73,6 +75,12 @@ instance confAt_persistent (γ : Cluster) (k : Nat) (m : Membership) :
     Persistent (confAt (GF := GF) γ k m) := by
   unfold confAt; exact ApiImpl.confAtU_persistent γ k m
 
+/-- (2026-10-28, the decision switch) No later credit to open an invariant holding it
+(`ConfPolicy.lean`). -/
+instance confAt_timeless (γ : Cluster) (k : Nat) (m : Membership) :
+    Timeless (confAt (GF := GF) γ k m) := by
+  unfold confAt; exact ApiImpl.confAtU_timeless γ k m
+
 /-- **The conf entry at position `k` (index `k + 1`) of the committed log was decided `d`**
 (persistent). -/
 @[no_expose] def confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF :=
@@ -82,14 +90,18 @@ instance confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) :
     Persistent (confDecided (GF := GF) γ k d) := by
   unfold confDecided; exact ApiImpl.confDecidedU_persistent γ k d
 
-/-- (interim, stage U4a) **The cluster decides its conf entries by the rule `r`** (persistent): the
-rule fixed at allocation (`cluster_alloc_rule`), in place of candidate 13's client-owned decision
-tokens with a `confPolicyInv` over them. -/
-@[no_expose] def confPolicy (γ : Cluster) (r : ConfRule) : IProp GF := ApiImpl.confPolicyU γ r
+instance confDecided_timeless (γ : Cluster) (k : Nat) (d : ConfDecision) :
+    Timeless (confDecided (GF := GF) γ k d) := by
+  unfold confDecided; exact ApiImpl.confDecidedU_timeless γ k d
 
-instance confPolicy_persistent (γ : Cluster) (r : ConfRule) :
-    Persistent (confPolicy (GF := GF) γ r) := by
-  unfold confPolicy; exact ApiImpl.confPolicyU_persistent γ r
+/-- **The decisions recorded so far, by log position** (exclusive; the client's, typically in an
+invariant). -/
+@[no_expose] def ownConfDecisions (γ : Cluster) (D : GMap Nat ConfDecision) : IProp GF :=
+  ApiImpl.ownConfDecisionsU γ D
+
+instance ownConfDecisions_timeless (γ : Cluster) (D : GMap Nat ConfDecision) :
+    Timeless (ownConfDecisions (GF := GF) γ D) := by
+  unfold ownConfDecisions; exact ApiImpl.ownConfDecisionsU_timeless γ D
 
 /-- **The snapshots the client made** (exclusive): the records `S`, in the cluster's registry. -/
 @[no_expose] def ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF := ApiImpl.ownSnapsMadeU γ S
@@ -112,22 +124,57 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
 @[no_expose] def nodeFounder (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
   ApiImpl.nodeFounderU γ N vs id
 
-/-- **A new cluster of the voters `vs`, its conf entries decided by the rule `r`** (stage U4a), in the
-caller's namespace `N`: nothing committed, the read contexts with none used, the read credits, the
-cluster (with snapshots), its rule, the membership of no entry the voters', the registry of the
-snapshots made (empty), leader transfer on, and one founder's token per voter. The term budget,
-backed by time receipts (`receiptBound`), is the cluster's. No premise on the rule: a decision is
-taken only where its result is a membership (`confPolicy_decide`). -/
-theorem cluster_alloc_rule (N : Namespace) (vs : List w64) (r : ConfRule) (E : CoPset) :
+/-- **A new cluster of the voters `vs`** (§3 of the decision switch, `cluster_alloc` there: the name is
+the static cluster's, `InvNode`; until the switch `cluster_alloc_rule`, of a rule), in the caller's
+namespace `N`: nothing committed, the read contexts with none used, the read credits, the cluster (with snapshots), the authority over its decisions,
+none recorded, the membership of no entry the voters', the registry of the snapshots made (empty),
+leader transfer on, and one founder's token per voter. The term budget, backed by time receipts
+(`receiptBound`), is the cluster's. -/
+theorem cluster_alloc_dec (N : Namespace) (vs : List w64) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isCluster γ N ∗ confPolicy γ r ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
+        isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
         ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗
         [∗list] id ∈ vs, nodeFounder γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
-  unfold ownCommittedOps ownReadCtxs readCredits isCluster confPolicy confAt ownSnapsMade
+  unfold ownCommittedOps ownReadCtxs readCredits isCluster ownConfDecisions confAt ownSnapsMade
     leaderTransferOn nodeFounder
-  exact ApiImpl.cluster_alloc_rule_impl N vs r E Hrb Hne Hnd Hnz Hlen
+  exact ApiImpl.cluster_alloc_dec_impl N vs E Hrb Hne Hnd Hnz Hlen
+
+/-! ## Decisions -/
+
+theorem ownConfDecisions_excl (γ : Cluster) (D1 D2 : GMap Nat ConfDecision) :
+    ownConfDecisions (GF := GF) γ D1 ∗ ownConfDecisions γ D2 ⊢ False := by
+  unfold ownConfDecisions; exact ApiImpl.ownConfDecisions_excl_impl γ D1 D2
+
+theorem ownConfDecisions_lookup (γ : Cluster) (D : GMap Nat ConfDecision) (k : Nat)
+    (d : ConfDecision) :
+    ownConfDecisions (GF := GF) γ D ∗ confDecided γ k d ⊢ ⌜D !! k = some d⌝ := by
+  unfold ownConfDecisions confDecided; exact ApiImpl.ownConfDecisions_lookup_impl γ D k d
+
+/-- A recorded decision's witness (the authority given back). -/
+theorem ownConfDecisions_witness (γ : Cluster) (D : GMap Nat ConfDecision) (k : Nat)
+    (d : ConfDecision) :
+    D !! k = some d →
+    ownConfDecisions (GF := GF) γ D ⊢ ownConfDecisions γ D ∗ confDecided γ k d := by
+  intro h
+  unfold ownConfDecisions confDecided; exact ApiImpl.ownConfDecisions_witness_impl γ D k d h
+
+/-- Two decisions of one position agree (without the authority). -/
+theorem confDecided_agree (γ : Cluster) (k : Nat) (d1 d2 : ConfDecision) :
+    confDecided (GF := GF) γ k d1 ∗ confDecided γ k d2 ⊢ ⌜d1 = d2⌝ := by
+  unfold confDecided; exact ApiImpl.confDecided_agree_impl γ k d1 d2
+
+/-- **Deciding an undecided committed conf entry**, at the configuration before it, with an allowed
+decision: one shot per position (the map grows only where it is undefined). -/
+theorem confDecide (γ : Cluster) (N : Namespace) (D : GMap Nat ConfDecision) (l : List LogEntry)
+    (k : Nat) (e : LogEntry) (m m' : Membership) (d : ConfDecision) :
+    D !! k = none → l[k]? = some e → e.isConfChange → d.step m = some m' →
+    isCluster (GF := GF) γ N ∗ isCommittedLogLb γ l ∗ confAt γ k m ∗ ownConfDecisions γ D ==∗
+      ownConfDecisions γ (D.insert k d) ∗ confDecided γ k d ∗ confAt γ (k + 1) m' := by
+  intro hD he hc hs
+  unfold isCluster isCommittedLogLb confAt ownConfDecisions confDecided
+  exact ApiImpl.confDecide_impl γ N D l k e m m' d hD he hc hs
 
 /-! ## The configuration -/
 
@@ -152,18 +199,37 @@ theorem confAt_decided (γ : Cluster) (k : Nat) (m : Membership) (d : ConfDecisi
       ∃ m', ⌜d.step m = some m'⌝ ∗ confAt γ (k + 1) m' := by
   unfold confAt confDecided; exact ApiImpl.confAt_decided_impl γ k m d
 
-/-- (interim, stage U4a) **The cluster's decision** on the committed conf entry `e` at position `k`,
-where the membership is `m`: the rule's answer there (its change applied, its `none` a skip), given
-that it has a result (candidate 13's `confPolicy_decide`). -/
-theorem confPolicy_decide (γ : Cluster) (r : ConfRule) (l : List LogEntry) (k : Nat) (e : LogEntry)
-    (m m' : Membership) :
-    l[k]? = some e → e.isConfChange →
-    (ConfDecision.ofRule (r (l.take k) m e)).step m = some m' →
-    confPolicy (GF := GF) γ r ∗ isCommittedLogLb γ l ∗ confAt γ k m ⊢
-      confDecided γ k (ConfDecision.ofRule (r (l.take k) m e)) := by
-  intro he hc hs
-  unfold confPolicy isCommittedLogLb confAt confDecided
-  exact ApiImpl.confPolicy_decide_impl γ r l k e m m' he hc hs
+/-- **Every conf entry of `l` in `[a, b)` is decided `.skip`** (persistent; §4 of the decision
+switch): what `node.ApplyConfChange` and `node.Advance` take for the conf entries their view passes
+(until then none at all, `NoConfChangeIn`). -/
+def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
+  [∗list] j ∈ List.range' a (b - a),
+    iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j .skip)
+
+instance skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) :
+    Persistent (skippedIn (GF := GF) γ l a b) := by
+  unfold skippedIn; infer_instance
+
+/-- With no conf entry in the range, nothing to decide. -/
+theorem skippedIn_noConf (γ : Cluster) (l : List LogEntry) (a b : Nat) :
+    NoConfChangeIn l a b → ⊢ skippedIn (GF := GF) γ l a b := by
+  intro hn
+  unfold skippedIn
+  have H : ∀ xs : List Nat, (∀ j ∈ xs, a ≤ j ∧ j < b) →
+      ⊢ [∗list] j ∈ xs, iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ →
+        confDecided (GF := GF) γ j .skip) := by
+    intro xs
+    induction xs with
+    | nil => intro _; iapply BigSepL.bigSepL_nil.2; iempintro
+    | cons j xs ih =>
+      intro hx
+      iapply BigSepL.bigSepL_cons.2
+      isplitr
+      · iintro %e %he
+        exfalso
+        exact absurd he.2 (hn j e (hx j (List.mem_cons_self ..)).1 (hx j (List.mem_cons_self ..)).2 he.1)
+      iapply ih (fun x h => hx x (List.mem_cons_of_mem _ h))
+  exact H _ (fun j hj => by have := List.mem_range'_1.1 hj; omega)
 
 /-! ## Snapshots -/
 

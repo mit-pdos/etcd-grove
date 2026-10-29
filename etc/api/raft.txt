@@ -19,13 +19,18 @@ importable Spec.go_etcd_io.raft.v3.Api
 # their laws; its pure vocabulary `NodeApiVocab`; the specs in the per-function spec files below
 importable Proof.go_etcd_io.raft.v3.InvNode
 importable Proof.go_etcd_io.raft.v3.NodeApiVocab
-# (2026-10-28, stage U1) the unified API's configuration vocabulary: `ConfRule`, `Membership.fold`,
-# `RaftLeave`, `opsOfRule`, with their laws (over `InvNode`'s sealed `Valid`/`applyChange`)
+# (2026-10-28, stage U1) the unified API's configuration vocabulary: `ConfDecision`, `ConfRule`,
+# `SnapRec`, with their laws (over `InvNode`'s sealed `Valid`/`applyChange`); (the decision switch)
+# `Membership.fold`, `RaftLeave`, `opsOfRule` gone
 importable Proof.go_etcd_io.raft.v3.ConfRule
-# (2026-10-28, stage U4a) a cluster with snapshots and reconfiguration, of a conf-change rule fixed at
-# allocation (the interim of candidate 13's decisions): `isCluster`, `confAt`, `confDecided`,
-# `confPolicy`, `ownSnapsMade`, `snapMade`, `nodeFounder`, `cluster_alloc_rule`, sealed, with laws
+# (2026-10-28, stage U4a; the conf-change decision switch) a cluster with snapshots and
+# reconfiguration, its conf entries decided by the client: `isCluster`, `confAt`, `confDecided`,
+# `ownConfDecisions`, `confDecide`, `skippedIn`, `ownSnapsMade`, `snapMade`, `nodeFounder`,
+# `cluster_alloc_dec`, sealed, with laws (until the switch, of a rule fixed at allocation)
 importable Proof.go_etcd_io.raft.v3.InvNodeRule
+# (2026-10-28, the conf-change decision switch) a client library deciding conf entries by a rule over
+# the cluster's decisions: `confPolicy` (persistent), `confPolicy_alloc`, `confPolicy_decide`
+importable Proof.go_etcd_io.raft.v3.ConfPolicy
 importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance

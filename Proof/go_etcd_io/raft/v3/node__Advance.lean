@@ -12,7 +12,7 @@ public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
-import Proof.go_etcd_io.raft.v3.InvApiRule
+import Proof.go_etcd_io.raft.v3.InvApiDec
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
@@ -337,27 +337,36 @@ private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List En
     iexists q; iframe Hq1 Hq2
   · ipureintro; exact Hds
 
-/-- `node.Advance.unifiedSpec` from the raw triple (2026-10-28, stage U4a). After a snapshot
-`Ready`, the view the raw triple returns is at the loan's committed log and its fold
-(`loanCfg`, `RNMode.foldCfg`); the snapshot's certificate (`snapshotCert_made`) names a committed
-prefix of the snapshot's index, at the rule's fold `m`, which is the loan's committed log (both
-committed, one length), so the view is at `m`, and its lists report `m`. -/
+/-- `node.Advance.unifiedSpec` from the raw triple (2026-10-28, stage U4a; the conf-change decision
+switch). A1 from the skips the client recorded (`skippedIn`: a lower bound of the decision map at
+which the node's decoder, which decides nothing else, rejects every conf entry past the view,
+`undecFree`). After a snapshot `Ready`, the view the raw triple returns is at the loan's committed log
+and its fold over the loan's decisions (`loanCfg`, `RNMode.foldCfg`, `loanDec`); the snapshot's
+certificate (`snapshotCert_made_impl`) names a committed prefix of the snapshot's index at the
+membership `m` after it (`confAtU`, over decisions agreeing with the loan's: `fold_agree`), so the
+view is at `m`, and its lists report `m`. -/
 private theorem node.wp_Advance_unified_impl
     (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Advance.unifiedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.Advance.unifiedSpec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
     EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt
-  intro n γ N st es L v Hh Hno Hloan
-  iintro %Φ ⟨#Hinit, #Hdc, Hdrv, Hrc, Hcfg, Hcert⟩ HΦ
+  intro n γ N st es L v Hh Hloan
+  iintro %Φ ⟨#Hinit, #Hdc, Hdrv, Hrc, Hcfg, Hsk, Hcert⟩ HΦ
+  ihave #Hdc0 := Hdc
   iunfold isClusterU at Hdc
   icases Hdc with ⟨%Hu, -⟩
-  obtain ⟨⟨r, c0, Hmr⟩, -, -⟩ := Hu
+  obtain ⟨⟨c0, gd, Hmr⟩, -, -⟩ := Hu
   obtain ⟨h0, h1, Hmd0⟩ := Hmr.mode
   have Hns : γ.raft.reNoSnap = false := Hmr.1.2.2.2.1
+  -- the skips recorded past the view
+  iunfold EtcdGrove.skippedIn at Hsk
+  simp only [EtcdGrove.confDecided]
+  icases skipped_range_decLb γ st.delivered v.applied st.delivered.length $$ Hsk
+    with ⟨%Mk, #HMk, %PMk⟩
   iunfold nodeDriver at Hdrv
   icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hstc, #Hdy, Htok⟩
   obtain ⟨Hnok, Hγs, Hds⟩ := Hf
-  have Hmd : γn.mode = .dyn (r.toDec c0) (stOf c0) h0 h1 := by rw [Hnok.2.2.2.1, Hmd0]
+  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2.2.1, Hmd0]
   have Hd : γn.mode.isDyn = true := by rw [Hmd]; rfl
   icases Hdy with (%Hc | ⟨#Htb, #Hhc⟩)
   · rw [Hd] at Hc; cases Hc
@@ -372,34 +381,46 @@ private theorem node.wp_Advance_unified_impl
     | some l =>
       icases busy_dlv γn id n ds es st.hardState l $$ Htok with ⟨-, %H⟩
       ipureintro; intro l' h; cases h; exact H
-  -- (2026-10-28, the decision switch) the loan's decisions: none in a cluster of a rule
-  ihave %Hld0 : ⌜∀ l, L = some l → l.decs = ∅⌝ $$ [Htok]
+  -- (2026-10-28, the decision switch) the loan's decisions
+  ihave #Hld : iprop(∀ l, ⌜L = some l⌝ → decLb γ.raft l.decs ∗ ⌜∀ D, γ.raft.dyn = some D →
+      D.fold l.decs l.dlv = some (snapTrip l.snap l.snap.Metadata'.ConfState'.lists).cfgM⌝) $$ [Htok]
   · cases L with
-    | none => ipureintro; intro l h; cases h
+    | none => iintro %l %h; cases h
     | some l =>
-      icases nodeDriverBusy_loanDec γn id n ds es st.hardState l $$ Htok with ⟨-, #HlD, -⟩
-      iunfold decLb at HlD
-      icases HlD with ⟨%HlD0, -⟩
-      ipureintro; intro l' h; cases h
-      exact HlD0 (by rw [Hnok.1]; exact Hmr.1.2.2.2.2.2.2)
+      icases nodeDriverBusy_loanDec γn id n ds es st.hardState l $$ Htok with ⟨-, #HlD, %HlDf⟩
+      iintro %l' %h
+      cases h
+      rw [← Hnok.1]
+      iframe HlD
+      ipureintro; exact HlDf
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
   icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
   subst Hid
   icases nodeTabOk_agree γ id γn γn2 $$ Htb Htab2 with %Hnm
   ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
-  have HA1 : NoConfIn ds v.applied ds.length := by
-    have := noConfIn_of_strip ds v.applied ds.length
-    rw [Hds] at this
-    apply this
-    have Hl : ds.length = st.delivered.length := by rw [← Hds, strip_length]
-    rw [Hl]; exact Hno
   iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L
     (fun l hl _ _ => (Hloan l hl).1)) $$ [Htok Hrc Hcf]
   · iframe Hinit Htok Hcf
     isplitl
     · rw [Hγs]; iexact Hrc
-    iapply undecFree_noConf _ _ HA1
+    unfold undecFree
+    iexists Mk
+    rw [Hnok.1]
+    iframe HMk
+    ipureintro
+    intro dec c0' h0' h1' hm
+    rw [Hmd] at hm
+    cases hm
+    intro k' e' hk1 hk2 he hc
+    have hl' : st.delivered[k']? = some (LogEntry.ofEntryM e') := by
+      rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
+    have hlen : (ds.take k').length = k' := by
+      have := (List.getElem?_eq_some_iff.mp he).1
+      rw [List.length_take]; omega
+    have hk2' : k' < st.delivered.length := by rw [← Hds, strip_length]; exact hk2
+    show (Mk.lookup (ds.take k').length).map ccDecOf = some .reject
+    rw [hlen, PMk k' _ hk1 hk2' hl' hc]; rfl
   iintro !> ⟨Hdrv, Hcf, -, #Hw⟩
   iapply HΦ
   isplitl [Hdrv Hstc]
@@ -438,45 +459,50 @@ private theorem node.wp_Advance_unified_impl
     obtain ⟨-, Hli⟩ := Hloan l rfl
     have Hdsl := Hdl l rfl
     subst Hdsl
-    have Hld0 : l.decs = ∅ := Hld0 l rfl
-    icases ApiImpl.snapshotCert_made γ N r c0 _ Hmr.1 $$ Hcert with ⟨%L', %m, #HL', -, %P⟩
-    obtain ⟨HL'len, -, HL'f, Hcl, Hal⟩ := P
-    icases isCommittedLogLb_agree_impl γ st.delivered L' $$ [Hlb0 HL'] with %Hcmp
-    · iframe Hlb0 HL'
+    icases Hld $$ %l %rfl with ⟨#HlD, %HlDf⟩
+    icases ApiImpl.snapshotCert_made_impl γ N _ $$ [Hdc0 Hcert] with ⟨%L', %m, #HL', #Ha, -, %P⟩
+    · iframe Hdc0 Hcert
+    obtain ⟨HL'len, -, Hcl, Hal⟩ := P
+    ihave #Ha' := Ha
+    iunfold confAtU at Ha'
+    icases Ha' with ⟨%l1, %M1, #H1, #HM1, %P1⟩
+    obtain ⟨hk1, c1, g1, hm1, hf1⟩ := P1
+    icases isCommittedLogLb_agree_impl γ st.delivered l1 $$ [Hlb0 H1] with %Hcmp
+    · iframe Hlb0 H1
+    icases decLb_compat γ.raft l.decs M1 $$ [HlD HM1] with %Hcp
+    · iframe HlD HM1
+    have HD : γ.raft.dyn = some (DynCfg.ofFold noDec (stOf c0) h0) := Hmr.1.2.2.1
+    have Hf0 := HlDf _ HD
+    rw [Hmr.fold _ HD l.decs l.dlv] at Hf0
+    obtain ⟨x, Hx, -⟩ := Option.map_eq_some_iff.1 Hf0
     have Hlen : st.delivered.length = L'.length := by
       rw [← Hds, strip_length, Hli, HL'len]; rfl
-    have HeqL : st.delivered = L' := by
-      rcases Hcmp with h | h
-      · exact h.eq_of_length Hlen
-      · exact (h.eq_of_length Hlen.symm).symm
-    have Hv0 := Hmr.valid
-    have Hfold : cfgFold (r.toDec c0) (stOf c0) l.dlv = some (stOf m) := by
-      rw [cfgFold_toDec r c0 Hv0 l.dlv, Hds, HeqL, HL'f]; rfl
+    have Hx' : decFold l.decs c0 (st.delivered.take L'.length) = some x := by
+      rw [← Hlen, List.take_length, ← Hds]; exact Hx
+    have Hxm : x = m := fold_agree Hmr hm1 Hcp Hcmp (by omega) hk1 Hx' hf1
+    subst Hxm
+    have Hfold : cfgFold (effDec noDec l.decs) (stOf c0) l.dlv = some (stOf x) := by
+      rw [cfgFold_decs l.decs c0 Hmr.valid l.dlv, Hx]; rfl
     have Hlc : loanCfg γn.mode (some l) (v.applied, stOf v.membership) =
-        (uint.nat l.snap.Metadata'.Index', stOf m) := by
+        (uint.nat l.snap.Metadata'.Index', stOf x) := by
       unfold loanCfg
       simp only
       rw [ite_eq_left Hd, Hmd]
-      simp only [RNMode.foldCfg, Hld0, effDec_empty, Hfold, Option.getD_some, Hli]
+      simp only [RNMode.foldCfg, Hfold, Option.getD_some, Hli]
     rw [Hlc]
-    have Hmv : m.Valid := Membership.fold_valid r c0 m L' Hv0 HL'f
-    iexists m
+    have Hmv : x.Valid := decFold_valid M1 c1 x _ hm1.valid hf1
+    iexists x
     isplitl [Hcf]
     · unfold nodeConfig
       iexists γn, id
       iframe Hn1 Htb Hcf
       ipureintro; exact ⟨Hnok, Hd, Hmv.2⟩
     isplitr
-    · unfold confAtU
-      iexists L'
-      iframe HL'
-      ipureintro
-      have HL'i : uint.nat l.snap.Metadata'.Index' = L'.length := HL'len.symm
-      refine ⟨by rw [HL'i]; exact Nat.le_refl _, r, c0, Hmr, ?_⟩
-      rw [HL'i, List.take_length]; exact HL'f
+    · rw [show uint.nat l.snap.Metadata'.Index' = L'.length from HL'len.symm]
+      iexact Ha
     ipureintro
-    obtain ⟨c1, c2, c3, c4⟩ := Hcl
-    exact ⟨c1, c2, c3, c4, Hal⟩
+    obtain ⟨c1', c2, c3, c4⟩ := Hcl
+    exact ⟨c1', c2, c3, c4, Hal⟩
 
 end wrap
 
