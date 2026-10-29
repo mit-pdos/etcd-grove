@@ -499,8 +499,11 @@ Merged: `snapshotIfNeededAndCompactRaftLog`, `setAppliedIndex`, `setTerm` (on `l
 `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). Step 5
 (the request path, branch `auth-req`): design D is in. A write's update with auth on is told its
 grant when it fires (`kvAu1G`, `writeGrantG`; v3rpc's `kvDepOwnOn`; "The write's update told its
-grant"). Still to do: step 5's merges (A, C-E), then 5b (the admin specs over a client view of the
-auth history). Then `applyEntryNormal`'s variant families, which block `apply` and the
+grant"). Merges A, C and D are in: the request path (`parseProposeCtxErr`, `processInternalRaftRequestOnce`,
+`raftRequest`, `doSerialize`, `Put`, `DeleteRange`, `Range`) has one spec each at `E.authOn`, with the
+former pairs as corollaries in `ModeSpecs.lean` (decisions, "The request path in the environment's
+mode"). Still to do: 5b (the admin specs over a client view of the auth history; F-S2's
+`etcd_noOtherRefusal`, approved, goes in there). Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
 
 ## Two bbolt axioms refuted (2026-10-29, on `lean`)

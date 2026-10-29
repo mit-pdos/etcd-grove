@@ -112,6 +112,21 @@ instance srvAuthLb_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvAuthLb (GF := GF) s E) := by
   unfold srvAuthLb; infer_instance
 
+/-- **The off proposer's view has the store's range check** (`True` with auth off; the auth-mode
+merge's step 5, the mode-off instance of `Range.spec`). -/
+theorem srvAuthLb_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ srvAuthLb s E := by
+  unfold isServerReq srvReqFieldsAt srvAuthLb
+  iintro ⟨⟨%v, -, -, -, -, -, -, -, -, -, -, -, #Ha, -⟩, %h⟩
+  have hoff : E.authMode = .off := by
+    unfold apply.AEnv.authOn at h
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  iexists v.auth
+  iframe Ha
+  rw [hoff]
+  unfold authStoreLbM
+  ipureintro; trivial
+
 /-- **A successful `Range` in the auth mode `on`** (`rangeReadOk` with the deposit's committed log
 `L` at the mode's model, `kvModelM on`; `rangeReadOk` at `on = false`, by definition). -/
 def rangeReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
@@ -184,6 +199,9 @@ def authFloorAt (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) : IPro
 instance authFloorAt_persistent (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) :
     Persistent (authFloorAt (GF := GF) M γr c m) := by
   cases M <;> unfold authFloorAt <;> infer_instance
+
+theorem authFloorAt_off (γr : ReadNames) (c : w64) (m : Nat) :
+    authFloorAt (GF := GF) .off γr c m = iprop(True) := rfl
 
 end defs
 

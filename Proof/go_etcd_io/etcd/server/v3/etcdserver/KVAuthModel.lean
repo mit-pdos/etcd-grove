@@ -229,6 +229,19 @@ theorem kvGranted_of_disabled (st : auth.AuthState) (rq : apply.IRRModel)
     (hen : st.enabled = false) : kvGranted st rq :=
   fun _ _ => Or.inl hen
 
+/-- **An enabled auth state lets no request with a permission through for a user it does not
+have** (the empty user, which `UserAdd` refuses, among them; the auth-mode merge's step 5). -/
+theorem kvGranted_emptyUser (st : auth.AuthState) (rq : apply.IRRModel)
+    (hen : st.enabled = true) (hne : reqPerms rq ≠ [])
+    (hu : st.users !! (auth.authInfoM (apply.principalOf rq)).user = none) : ¬ kvGranted st rq := by
+  intro h
+  cases hp : reqPerms rq with
+  | nil => exact hne hp
+  | cons x xs =>
+    rcases h x (by rw [hp]; exact List.mem_cons_self) with h1 | ⟨-, -, u, hu', -⟩
+    · rw [hen] at h1; cases h1
+    · rw [hu] at hu'; cases hu'
+
 /-- A request needing no permission is let through. -/
 theorem kvGranted_of_nil (st : auth.AuthState) (rq : apply.IRRModel) (h : reqPerms rq = []) :
     kvGranted st rq := by

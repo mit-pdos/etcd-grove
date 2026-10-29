@@ -22,6 +22,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 
 @[expose] public section
 
@@ -448,6 +449,71 @@ abbrev EtcdServer.DeleteRange.specOn : Prop :=
             hdrBoundM true s E (GoInterface.ok ctx) hm) ∨
           srvMaybeDeposited ρ (irrDeleteRange op)))) }}
 
+
+/-! ## `Range` -/
+
+/-- **`spec` with auth off, as it was before the merge** (a corollary, `spec_off`). **`s.Range(ctx, r)`**, any goroutine, at a context, for a range request `r` holding `o` with
+a valid sort target, with a read call's resources (`srvRdCall`: the store's reader slots, the
+logger's, the committed index `c` the caller knew of): success, the txn package's answer at a
+certified log of at least two revisions, after the read index unless serializable, the header's
+id fields owned (`rangeReadOk`); failure, no response and an error the gRPC layer can take (the
+read loop's, the auth store's, mvcc's `ErrFutureRev`, or the context's: `fmt.Errorf`'s in
+Perennial's model, `applyErrIs` by the server's package facts). 2026-10-14 (unit T1): with a read
+deposit `kvDep γr.kv Q` (a client's `Get` update, or nothing), a linearizable success read the KV
+model of a committed raft log `L` at which the deposit gave `□ Q L` (`rangeReadOk`). 2026-10-23
+(auth plan A1): a success passed the auth store's `IsRangePermitted` for some auth info (the
+context's token's, or the empty one): with auth on, that info's read permission class of the
+request's range (`apply.rangeClass`). -/
+abbrev EtcdServer.Range.specOff : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
+    (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+      kvDep γr.kv Q ∗ mvcc.idxCert E.γ.idx F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ (∃ info, apply.rangeClass E.authMode info o) ∗
+          rangeReadOk E γr c F o resp Q) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+
+/-- **`spec` with auth on, as it was before the merge** (a corollary, `spec_on`) (the auth plan's E3s, 2026-10-27; `notes/decisions.md`, "E3s of the
+auth plan"): in the mode `on γa`, over the request and read views with auth on (`isServerReqM
+true`, `isServerReadM true`), the read deposit at the mode-`on` model's state (`kvDep γr.kv Q
+(kvStM true γr.kv)`), and a lower bound `n` of the auth store's published index the reader holds
+(`auth.authPubLbM`), with the server's range check at it (`srvAuthLb`). Success: the auth store's
+`IsRangePermitted` passed for some auth info at states no older than some `m ≥ n`
+(`apply.rangeClassFrom`: a state recorded at an index at least `m` permits the read of the
+request's range) and, for a linearizable read, no older than the auth state the committed log
+through the read index left (`authFloorAt`, E3u: the applied index's invariant has that state
+published, and `Range` checks after waiting for the read index, so the reader needs no bound of its
+own beyond `n`, which `auth.authPubLb γa 0` always gives), and the read
+as `spec`'s, a linearizable one at the mode-`on` model of a committed raft log `L` at which the
+deposit gave `□ Q L` (`rangeReadOkM true`); the auth info checked is the caller's
+(`infoBoundM`, E3zb, 2026-10-28). -/
+abbrev EtcdServer.Range.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
+    (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF) (F : mvcc.Log) (n : Nat)
+    (γa : auth.AuthNames),
+  E.authMode = .on γa →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+      kvDep γr.kv Q (kvStM true γr.kv) ∗ mvcc.idxCert E.γ.idx F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
+          (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m info o ∗
+            infoBoundM true s E (GoInterface.ok ctx) info ∗
+            (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
+          rangeReadOkM true E γr c F o resp Q) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+
 end specs
 
 /-! ## The instances from the spec -/
@@ -716,6 +782,52 @@ theorem EtcdServer.DeleteRange.spec_on
     · ipureintro; exact Hst
     iapply Hg; ipureintro; simp
   · iright; iexact Herr
+
+
+/-- The mode-off `Range` from the spec (at the lower bound `0`; the class a pass). -/
+theorem EtcdServer.Range.spec_off
+    (h : EtcdServer.Range.spec (GF := GF) (hG := hG)) :
+    EtcdServer.Range.specOff (GF := GF) (hG := hG) := by
+  intro s E ρ γr c ctx cd r o ot te Q F
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hrd, Hrest⟩ HΦ
+  ihave %hon := isServerReq_authOff s E ρ $$ Hsrv
+  ihave #HaLb := srvAuthLb_off s E ρ $$ Hsrv
+  have hoff : E.authMode = .off := by
+    unfold apply.AEnv.authOn at hon
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  have h' := h s E ρ γr c ctx cd r o ot te Q F 0 (by rw [hoff]; intro h; cases h)
+  rw [hon] at h'
+  rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
+  simp only [rangeReadOkM_false] at h'
+  iapply h' $$ [Hrest] [HΦ]
+  · iframe Hpkg Hsrv Hrd HaLb
+    isplitr
+    · rw [hoff]; unfold auth.authPubLbM; ipureintro; trivial
+    iexact Hrest
+  iintro !> %resp %err ⟨Hcall, Hres⟩
+  iapply HΦ
+  iframe Hcall
+  icases Hres with (⟨%He, ⟨%info, %m, -, #Hcl, -, -⟩, Hok⟩ | Herr)
+  · ileft
+    iframe Hok
+    isplitr
+    · ipureintro; exact He
+    iexists info
+    rw [hoff] at *
+    iapply apply.rangeClass_of_from_off m info o $$ Hcl
+  · iright; iexact Herr
+
+/-- The mode-on `Range` from the spec. -/
+theorem EtcdServer.Range.spec_on
+    (h : EtcdServer.Range.spec (GF := GF) (hG := hG)) :
+    EtcdServer.Range.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ γr c ctx cd r o ot te Q F n γa hM
+  iintro %Φ ⟨#Hpkg, #Hsrv, Hrest⟩ HΦ
+  ihave %hon := isServerReqM_authOn true s E ρ $$ Hsrv
+  have h' := h s E ρ γr c ctx cd r o ot te Q F n (by rw [hM]; intro h; cases h)
+  rw [hon] at h'
+  iapply h' $$ [Hrest] HΦ
+  iframe Hpkg Hsrv Hrest
 
 end corollaries
 

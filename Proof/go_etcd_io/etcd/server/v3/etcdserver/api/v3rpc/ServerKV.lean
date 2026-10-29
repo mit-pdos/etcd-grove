@@ -648,7 +648,7 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.specOff (GF := GF) (
     iexact Hfail
 
 /-- **`raftKV`'s `Range` conjunct, from `EtcdServer.Range`**. -/
-theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG))
+theorem kvRangeOk_of_server (hRange : EtcdServer.Range.specOff (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (d : KVDep GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -943,7 +943,7 @@ server's facts: the request path's fields and invariants, `isServerReq`; the rea
 `isServerRead`), at the parameters `srvKVAns s E ρ γr c`. -/
 theorem raftKV_of_server (hPut : EtcdServer.Put.specOff (GF := GF) (hG := hG))
     (hDel : EtcdServer.DeleteRange.specOff (GF := GF) (hG := hG))
-    (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG))
+    (hRange : EtcdServer.Range.specOff (GF := GF) (hG := hG))
     (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))

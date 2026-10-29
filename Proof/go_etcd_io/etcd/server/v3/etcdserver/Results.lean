@@ -627,7 +627,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
-  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
+  iapply (EtcdServer.Range.spec_off EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
   · iframe #; iframe Hrc Hct Hot
     isplitr
     · ipureintro; exact Hv
@@ -672,7 +672,7 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
-  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
+  iapply (EtcdServer.Range.spec_off EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
   · iframe #; iframe Hrc Hct Hot
     isplitr
     · ipureintro; exact Hv
@@ -1829,15 +1829,7 @@ at which the deposit fired (`rangeReadOkM true`). Every callee linked (`doSerial
 proof in either mode, `doSerialize.spec_M`). -/
 theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.Range.wp_proofOn traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String
-    «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd
-    RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly
-    RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace
-    txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong
-    strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
-    traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
-    (EtcdServer.doSerialize.spec_M EtcdServer.wp_doSerialize true)
-    RangeRequest.wp_String proto.wp_Size
+  EtcdServer.Range.spec_on EtcdServer.wp_Range
 
 /-- **A read-only `Txn` with auth on** (the auth plan's E3v, 2026-10-27; `EtcdServer.Txn.specOnR`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Txn.lean`): as `server_range_on`, for a

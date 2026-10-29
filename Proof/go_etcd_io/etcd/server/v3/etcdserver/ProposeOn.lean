@@ -133,6 +133,17 @@ def grantedAt (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (L 
     Prop :=
   kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq
 
+/-- **The auth state after the committed log `L`** in the server's mode-`on` model (from the
+start's state `st₀`). -/
+def srvAuthAtLog (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : auth.AuthState :=
+  (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1
+
+/-- `grantedAt` is the auth layer's verdict at the auth state after `L` (a law, so a client of
+`writeGrantG` need not unfold the model; the auth-mode merge's step 5). -/
+theorem grantedAt_iff (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
+    (L : List EntryModel) : grantedAt γk st₀ rq L ↔ kvGranted (srvAuthAtLog γk st₀ L) rq :=
+  Iff.rfl
+
 end pure
 
 section defs

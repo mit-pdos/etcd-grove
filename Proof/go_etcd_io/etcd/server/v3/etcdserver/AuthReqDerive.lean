@@ -57,6 +57,15 @@ def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthE
 instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
   unfold srvTLSId; infer_instance
 
+open Iris.ProofMode in
+/-- The TLS fallback is off at a server whose config says so (a law for clients of `hdrBoundM`). -/
+theorem srvTLSId_false (s : Loc) :
+    srvTLSId (GF := GF) s ∗ srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ false ⊢ False := by
+  unfold srvTLSId
+  iintro ⟨#H1, #H2⟩
+  icombine H1 H2 gives %h
+  cases h
+
 /-- **The server's auth info `a` for the request context `ctx` is bound** in the mode `M`
 (persistent): bound to the context's own token (`auth.ctxBound`, which includes `nil`; the auth
 plan's E2c), or the server's TLS fallback is on. -/

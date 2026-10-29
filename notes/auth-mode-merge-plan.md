@@ -253,6 +253,11 @@ repository) and authkv's session checked it against its history invariant S1. Th
   laws `isServerReq_authOff`, `isServerReq_fields`.
 - D: `Range`: one spec, `E.authMode ≠ .any` (the user's B); `srvAuthLb_off`, `rangeClassFrom_off`.
 - E: bridges `specOff`/`specOn` for `Start`'s two specs until step 4.
+- **Done (2026-10-29):** A (`ModeSpecs.lean` holds `specM`/`spec_M` and the off forms), C, D
+  (one proof each, the prefix shared, split on `E.authOn`; the tails unify later), the laws
+  (`grantedAt_iff`, `kvGranted_emptyUser`, `srvTLSId_false`, `srvAuthLb_off`, `rangeClassFrom_off`).
+  E holds as the `ModeSpecs` corollaries (`spec_off`/`spec_on`), which `ServerKV`/`ServerKVOn` and the
+  `_on` results use.
 - Off-only still (no regression; merges to do): `MemberList.spec`, `read_server`,
   `srvAuthAt_of_views`, `parseProposeCtxErr.spec`.
 - **5b (D2), after step 5:** a mono-list auth history in `kvInvOn`, its client half exported at the

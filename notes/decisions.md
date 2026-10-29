@@ -25323,3 +25323,42 @@ Decided by the agent:
   `{put,deleteRange,range,txn}_end_to_end_on` take and return `kvDepOwnOn` (D's statement change).
 - **`aupd_post_mono`** (an atomic update whose committer supplies more) is a fact of Iris's atomic
   updates, proved here and proposed for Perennial (`notes/perennial-changes.md`).
+
+## The request path in the environment's mode (2026-10-29, step 5 of the auth-mode merge, merges A, C, D)
+
+The request path's specs are now one each, at `E.authOn` (the user's B). The functions are
+`parseProposeCtxErr`, `processInternalRaftRequestOnce`, `raftRequest` and `doSerialize` (A),
+`Put` and `DeleteRange` (C), and `Range` (D), with the design reviewed in three rounds
+(`auth-mode-merge-plan.md`, step 5).
+- **A** has one proof over a free mode (`wp_proofM on`), and `spec` is its instance at `E.authOn`.
+- **C and D** each have one proof whose prefix is shared. It splits on `E.authOn` where the modes
+  first differ: at the proposal (Put, DeleteRange) or at the auth check (Range). The tails stay
+  the two former proofs' (about 100 lines each), so the duplicated prefix is gone but not the tails.
+  Unifying the tails would take the off lemmas generalized to the mode (`readServed_logRM`, the
+  `permCheck3` forms); that is left for later.
+
+Spec decisions:
+- **C's grant row is gated as a whole**, `□ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt …⌝ ∗ pubAfterM true …)`.
+  With auth off it says nothing, rather than holding an unconstrained `∃ L` (review finding C1).
+- **C's permission** is `putPermitM`/`deletePermitM` (`ReqOn.lean`), which is the former off
+  permission when off and `putPermitOn`/`deletePermitOn` when on. The non-empty key stays on-only.
+- **D keeps the premise `E.authMode ≠ .any`**, because the on proof needs `.on γa`. This is a
+  scope restriction, by the user's B.
+- **D's off instance reads its lower bound `n` and range check as trivial.** `authPubLbM .off = True`,
+  and `srvAuthLb` comes from the off proposer's view (`srvAuthLb_off`). The class is
+  `rangeClassFrom .off m`, a pass; `rangeClassFrom_off` and `rangeClass_of_from_off` convert it.
+
+Decided by the agent:
+- **The former pairs are corollaries in `ModeSpecs.lean`**: `<F>.specOff`/`spec_off` and
+  `<F>.specOn`/`spec_on`, and `specM`/`spec_M` for A. They have no second proof. They exist for the
+  callers not merged yet (v3rpc's `ServerKV`/`ServerKVOn`, `Start`'s two specs, `Txn`), which is
+  E's bridge, and they go at step 4.
+- **The `_on` exported results are instances.** `server_put_on`, `server_delete_range_on`,
+  `server_range_on`, `server_raft_request_on` and `server_process_irr_on` are now `spec_on`/`spec_M`
+  of the one linked result, not proofs of their own. They stay as statements until v3rpc's
+  `*_of_serverOn` merge at step 4 ("merge each pair").
+- **`isServerReq` carries `⌜E.authOn = false⌝`** (`isServerReq_authOff`), and its one constructor
+  is the off `start`. So an off caller converts with `spec_off` and needs no new premise (review
+  finding C2).
+- Laws for clients: `grantedAt_iff` with `srvAuthAtLog` (`ProposeOn.lean`), `kvGranted_emptyUser`
+  (`KVAuthModel.lean`) and `srvTLSId_false` (`AuthReqDerive.lean`).
