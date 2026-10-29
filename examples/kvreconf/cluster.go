@@ -223,12 +223,29 @@ func (c *Cluster) sender(from uint64) func([]*pb.Message) {
 }
 
 // send hands each message of replica from to the network (deliver), each as a fresh copy (the
-// wire's).
+// wire's: copyMsg).
 func (c *Cluster) send(from uint64, ms []*pb.Message) {
 	src := c.replica(from)
 	for _, m := range ms {
-		c.deliver(src, proto.Clone(m).(*pb.Message))
+		c.deliver(src, copyMsg(m))
 	}
+}
+
+// copyMsg is a fresh copy of m, as the wire delivers it: a new message with m's fields, a new
+// Entries slice of m's entries, and a deep copy of its snapshot. It shares with m what neither
+// raft nor the network ever writes: the fields' values (each field is a pointer to its value),
+// the entries and the Context bytes. It leaves out m's Responses, which only a message a node
+// sends itself has (never one in a Ready's Messages, with synchronous storage writes). Unlike
+// proto.Clone, it does not copy the entries, so its proof needs no model of the message's wire
+// encoding.
+func copyMsg(m *pb.Message) *pb.Message {
+	c := &pb.Message{Type: m.Type, To: m.To, From: m.From, Term: m.Term, LogTerm: m.LogTerm,
+		Index: m.Index, Commit: m.Commit, Vote: m.Vote, Reject: m.Reject, RejectHint: m.RejectHint,
+		Context: m.Context, Entries: append([]*pb.Entry(nil), m.Entries...)}
+	if m.Snapshot != nil {
+		c.Snapshot = proto.Clone(m.Snapshot).(*pb.Snapshot)
+	}
+	return c
 }
 
 // stepTimeout bounds how long the network waits for a target to take a message: Step of a
@@ -261,7 +278,7 @@ func (c *Cluster) deliver(src *Replica, m *pb.Message) {
 	}
 	var dup *pb.Message
 	if oneIn(32) {
-		dup = proto.Clone(m).(*pb.Message)
+		dup = copyMsg(m)
 	}
 	c.step(src, dst, m)
 	if dup != nil {
