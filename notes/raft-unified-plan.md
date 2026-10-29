@@ -326,6 +326,123 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
 - A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
   public spec is escalated before it is built on; never a minor change.
 
+## U8 v2: the storage contract as range ownership (2026-10-29, branch `raft-unified-storage2`)
+
+The design is candidate 17 rev 3 (`notes/spec-first-study/raft-storage-spec.md`, reviews 1-4).
+Steps 1-2 of it are built (vocabulary and contract; raft's log over it); steps 3 (MemoryStorage),
+4 (RawNode/node level, the API's `isStorage γ id st`) and the clients are not.
+
+### Architecture (decided at step 1)
+
+- **The class** `StorageModel` (`InvStorage.lean`) is the γ-free range vocabulary only: `storLog`,
+  `storEnd`, `storCompacted` and the §1 laws. The old fields (`ownStorage`, `appendTok`,
+  `appendedTok`, `storCut`, `storFloor`, `storCap`, `storCert`, `storTermsAt`) are gone.
+- **The contract** is parameterized by its two cluster-level pieces, which `InvStorage` (below the
+  log, far below the node API) cannot name: `isStorageP (SV : SnapshotM → IProp GF)
+  (Bnd : Nat → IProp GF) st` (`InvStorage.lean`). The API module fixes them (step 4):
+  `isStorage γ id st := isStorageP (snapshotValid γ) (fun c => ∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k
+  ∨ snapGiven γ id k)) st`, sealed; no client supplies the parameters. `snapshotValid` is defined
+  (`InvNodeRule.lean`, exposed, as the design states it).
+- **Raft's internal view.** Raft's log is not parameterized: it holds the contract as
+  `isStorageV sn st` (`InvStorage.lean`) for internal ghost names `sn : StorNames` (a new
+  `LogState.sn`): `∃ SV Bnd, isStorageP SV Bnd st ∗ savedPredOwn sn.gsv □ SV ∗ □(SV persistent) ∗
+  □ (∀ c, Bnd c -∗ raftBnd sn c)`, where `raftBnd sn c := ∃ k, ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨
+  monoNatLbOwn sn.gg k)`. So `nodeAppliedLb γ id k` will be `monoNatLbOwn sn.ga k` (here
+  `storFloor sn x`) and `snapGiven γ id k` `monoNatLbOwn sn.gg k` (here `storGiven sn k`), for the
+  node's `sn` (step 4 ties `sn` to `(γ, id)` and proves the conversion), and the storage's
+  snapshot validity travels γ-free as `svCert sn sv` (the `SV` pinned at `sn.gsv`; the node level
+  recovers `snapshotValid γ sv` from the pin). This replaces the γ-free certificate registry
+  (`storCert`) with a pinned predicate; the raft level (InvRaftPhys's `tsSrc`, StepGhostMode's
+  `certLink`) is to carry `svCert` where it carried `storCert`.
+- **Review 1's derived contract.** `StorState` is now raft's *view* of its storage (§4's `π` and
+  its anchors): `prev` (the compaction point `c` and the dummy's term), `ents` (the physical log
+  above it), `pend` (the batch out), `fl` (the applied lower bounds' authority), `fr` (the frozen
+  end `f`), `sg` (the snapshots handed out). `ownStorage sn st σ` (a definition now) is what raft
+  holds for it: `storCompacted st c`, the frozen prefix `storLog st c □ (e0 :: ents[..fr-c])`
+  (the dummy `e0` of `prev`'s term: (T)), the owned part `(fr, kOut)` at `own 1`, the end unless a
+  batch is out (P3/N2), and the two authorities. The read triples over the view
+  (`isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st`, `isStorage sn st`) are
+  **derived** from the contract (`InvStorageRead.isStorage_of_V`), with the statements the log's
+  read proofs were written against (only `HSnapshot` and `Hbounded` changed), so `raftLog.term`,
+  `slice`, `firstIndex`, `lastIndex` went through unchanged. The old laws (hand-out, absorb,
+  floor, the snapshot loan) are lemmas over the ranges (`InvStorageLaws.lean`):
+  `ownStorage_handout(_opt)`, `ownStorage_absorb` (the batch back as a frozen prefix `a` and an
+  owned rest; raft freezes its own part below `k` when `a ≠ []`), `ownStorage_floor`,
+  `ownStorage_lend`/`ownStorage_absorb_snap` (`snapView`), `ownStorage_freeze`.
+- **§4's invariant** is today's `ownRaftLog` over the view: P0-P3 are `LogPersistOk`/`PendLogOk` over
+  `π = storApp σ σ.pend`, (F) `FrOk` (new conjunct `Hfr`: `fr ≤ max c applying` unless lent, and
+  `σ.sg = ls.sg`), (C)/(G) through `FlOk` and the authorities (`sg ≤ c` inside `ownStorage`, so a
+  compaction raft did not cause is at most `fl ≤ applying`), (T) inside `ownStorage`. `StoredSnapOk`,
+  `Hsksn`, `Hkcert`, `initKsn(Cert)`, `ownRaftLog_terms` are gone. `lentStor` keeps the
+  authorities while lent.
+
+### Spec changes during U8 v2 (old → new, why)
+
+- `storLog_valid : storLog st k dq es ⊢ ⌜✓ dq⌝` → only for `es ≠ []`: with `storLog_nil`
+  (`⊢ storLog st k dq []`) the design's form is inconsistent (`storLog st k (own 2) []`).
+- `isStorage`'s `storCompacted_bound` `={↑N}=∗` → `={⊤}=∗` (in `isStorageP`): raft uses it only at
+  `⊤`; the weaker obligation for an implementation. Step 4 may restate the API form with `↑N`
+  (it implies the `⊤` form).
+- **New law `Hlen`** in the contract: `storLog st k dq es -∗ ⌜es = [] ∨ k + |es| ≤ 2^61⌝ ∗ storLog
+  st k dq es` -- the old contract's `Hbounded` (the stable log's last index below `2^61`, which
+  `appendEntry`'s no-wrap needs and no invariant of the log can carry), restated over ranges. The
+  design has no bound at all; without one `raft.appendEntry` is unprovable (`InvRaftlog.lean`'s
+  header). Client-visible once `isStorage γ id st` is defined: **to confirm with the user**.
+- `HEntries`' post: the design's "cut by max" is the old prefix statement
+  (`es <+: ((a ++ b).drop (lo - k)).take (hi - lo)`), as before.
+- `raftLog.snapshot.spec`: the storage's snapshot is at or past the log's boundary and valid
+  (`svCert ls.sn sv`); the pending one as before (in `ksn`, at or below `committed`, the log's
+  base). Gone: the storage's snapshot's commit bound and term (`StoredSnapOk`), the
+  "or at most the floor" disjunct and the `storCert` certificate.
+- `raftLog.restore.spec`: no `storCert` premise (the restored snapshot's certificate is no longer
+  registered in the storage).
+- `newLogWithSize.spec`: takes `isStorage sn st ∗ ownStorage sn st σ` with `σ.fr = prev.index`,
+  `σ.sg = 0`; no `StoredSnapOk` premise, no `initKsnCert`; `ksn := []`, `sn := sn`.
+- `ownRaftLog_absorb` takes `appendReceipt ls.storage ls.unpersisted a` (the batch back, `a` its
+  frozen prefix) and `⌜a ≠ [] → k - 1 + |a| ≤ applying⌝`; `ownRaftLog_raise_floor` gives
+  `storFloor ls.sn x`; `ownRaftLog_lend` gives the ranges above the frozen prefix with the end and
+  `storGiven ls.sn s` (`lendLog`: `sg := max sg s`); `ownRaftLog_absorb_snap` takes the
+  compaction point at the snapshot, the dummy, `ls.stored` after it and the end, with
+  `⌜ls.sg ≤ s⌝`.
+
+### What builds, what is broken (at the step-2 commit)
+
+Builds: `InvStorage`, `InvStorageRead`, `InvStorageLaws`, `InvRaftlog`, `InvReadylog`,
+`LemmasRaftlogW`, `InvNodeRule`'s `snapshotValid`, and every `raftLog.*`, `unstable.*` and
+`newLogWithSize` spec and proof (no `sorry`, no new axiom; `#print axioms` of `isStorage_of_V`,
+`raftLog.{term,slice,snapshot,stableTo}.wp_proof`, `newLogWithSize.wp_proof`, `ownRaftLog_{absorb,
+lend,absorb_snap}`: Perennial's standard ones only).
+
+Broken (expected): everything that uses the removed names, i.e.
+- the raft level: `StepGhostMode` (`storCertOk`, `certLink` in `ghostRest`), hence `InvRaftPhys`
+  (`tsSrc`/`qSrc` carry `storCert`; `NsCap` uses `storCap`) and everything above it: `raft.*`
+  (`appendEntry`'s `Hsksn`, `loadState`, `maybeSendSnapshot`/`raft.Step`'s `MsgSnap` arms,
+  `stepFollower`/`stepCandidate`), `newRaft`;
+- the RawNode/node level (step 4): `InvRawnode*`, `RawNode__*`, `ApiVocab`, `InvApi*`, `InvNode*`,
+  `StartNode`, `RestartNode`, `setupNode`, `node__Advance`, ...;
+- `MemoryStorage` (step 3): `MemstorageInstance`, `InvMemstorage`, `MemCertLink`, `MemoryStorage__*`;
+- the clients (kv, server, examples).
+
+### What remains (next steps, in order)
+
+1. **Raft level** (`StepGhostMode`, `InvRaftPhys`): `certLink γ st` → over `svCert`:
+   `⌜reNoSnap⌝ ∨ □ (∀ sv E, ⌜↑(raftCertN γ) ⊆ E⌝ -∗ svCert sn sv ={E}=∗ raftSnapCertD γ (snapTrip sv
+   …))`, keyed by `s.logst.sn`; `tsSrc st` → `tsSrc sn` with `svCert sn sv`. The pending
+   snapshot's certificate (what `Hkcert` held for `ksn`) must be kept at the raft level now
+   (`[∗list] k ∈ s.logst.ksn, raftSnapCertD γ k` in `ghostRest`), since `raftLog.restore` no longer
+   registers it. `maybeSendSnapshot`'s `SnapOk` (commit bound and term of the storage's snapshot)
+   must come from `snapshotValid` (cluster-level) instead of `StoredSnapOk`. `NsCap`/`storCap`
+   (the no-snapshot mode's "never compacted past `k`") has **no counterpart in the design**: with
+   compaction bounded only by `applied`, a leader in that mode could fall back to a snapshot;
+   it needs a decision (a `storCompacted`-bound variant for the mode, or the mode dropped for
+   storages raft does not own). `appendEntry`'s `Hsksn` uses and `loadState`'s are mechanical.
+2. **Step 4**: `nodeAppliedLb`/`snapGiven` (sealed) over `storFloor`/`storGiven` of the node's `sn`;
+   `isStorage γ id st` and the proof `isStorage γ id st ⊢ isStorageV sn st` (allocate `gsv` with
+   `snapshotValid γ`, the `Bnd` conversion), the `Ready`/`Advance` hand-outs (`appendRight`,
+   `appendReceipt`, the frozen `ceBelow` via `ownStorage_freeze`/`ownStorage_frozen`), and
+   (G) `sg ≤ s` at `absorb_snap` (from `snapGiven`'s use).
+3. **Step 3**: `MemoryStorage` over the range vocabulary (design §6).
+
 ## Machinery (the map of the two modes, 2026-10-28)
 
 - Mode: `RaftNames.reDyn` (`none` static), `reNoSnap`, `reNoXfer`, `reTracked` (static), `reSnapOkRaw`
