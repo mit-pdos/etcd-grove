@@ -453,14 +453,15 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     rbktOf (baseOf rt) ↦ cm ∗ ownMap cm (DFrac.own 1) (∅ : GMap w64 Loc) ∗
     tm ↦ (zero_val sync.RWMutex) ∗
     cmuOf b ↦ (false : Bool) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
-    isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ⊢
+    isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
+    srSlot b ⊢
     |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ newPostK γ P W Pk K b D ∗ isStopChansAt γ b sc dc γsc γdc ∗
       ownBroadcastChan dc γdc iprop(True) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half 0 := by
   iintro ⟨#Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus,
     #Hdb, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
     #Hsnap, Hstats, Hrwg, Hwg, Hrb1, Hrb2, Hm, Hcm, Hcmm, Htmz, Hcmu, Hcbuf, Hcver, #Hscc, Hsco,
-    #Hdcc, Hdco⟩
+    #Hdcc, Hdco, Hsr⟩
   -- the ghost names
   imod ghostVar_alloc () with ⟨%gw, Hgw⟩
   imod ghost_map_alloc_empty (K := Nat) (V := Qp) with ⟨%go, Hgo⟩
@@ -620,7 +621,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc]
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hsr]
   · unfold newPostK
     isplitr
     · iexact Hb
@@ -644,8 +645,10 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     isplitl [Hdlg Hdlb]
     · unfold dlInit
       iframe Hdlg Hdlb
-    unfold fkCl fkOwn fkV
-    iframe Hfkc Hfkv
+    isplitl [Hfkc]
+    · unfold fkCl fkOwn fkV
+      iframe Hfkc Hfkv
+    iexact Hsr
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr
 

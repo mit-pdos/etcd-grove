@@ -64,7 +64,11 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     dlInit γ ∗
     -- (the compaction keys' tracked absence, 2026-10-29; question 4) the client's half of their
     -- flag and the bit of their values
-    fkCl γ P D)
+    fkCl γ P D ∗
+    -- (question 5's wiring, Q5-2, 2026-10-29) the safe-range slot (one reader's slot of
+    -- `safeRangeDeleteMu`, from its zero value): what the compaction job's
+    -- `LockForSafeRangeDelete` takes
+    srSlot b)
 
 end preds
 
@@ -161,15 +165,15 @@ def newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
-    dlInit γ ∗ fkCl γ P D)
+    dlInit γ ∗ fkCl γ P D ∗ srSlot b)
 
 /-- The constructor's post with the payment rights kept is `newPost`. -/
 theorem newPost_of_K (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     newPostK (GF := GF) γ P W Pk bFresh b D ⊢ newPost γ P W Pk b D := by
   unfold newPostK bFresh
-  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl, Hfk⟩
+  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl, Hfk, Hsr⟩
   unfold newPost
-  iframe Hb Hs Ho Hv Hh Ht Hr Hrd Hdl Hfk
+  iframe Hb Hs Ho Hv Hh Ht Hr Hrd Hdl Hfk Hsr
 
 end preds2
 

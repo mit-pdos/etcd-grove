@@ -193,6 +193,12 @@ theorem backend.newBackend.wp_proof
   · inext; iexact db
   icases rep_guard _ actualMaxReaders_pos' _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   ihave Hmu1 := rep_one _ actualMaxReaders_pos' _ $$ Hmus
+  -- `b.safeRangeDeleteMu`: a reader's slot of it (`srSlot`, Q5-2)
+  imod sync.init_RWMutex (fun _ => iprop(True)) (E := ⊤)
+    (bF go!"safeRangeDeleteMu" «$r0_ptr») $$ [] safeRangeDeleteMu with Hsrs
+  · inext; itrivial
+  ihave Hsr1 : srSlot «$r0_ptr» $$ [Hsrs]
+  · unfold srSlot; iapply rep_one _ actualMaxReaders_pos' _ $$ Hsrs
   -- `readTx.mu`, at the protocol level
   imod sync.rwmutex.init_RWMutex (E := ⊤) (nroot.@"rw") (rmuOf (baseOf «$v5_ptr»)) $$ rmu
     with ⟨%γrw, #Hrw, Hst, Hrtoks⟩
@@ -216,7 +222,7 @@ theorem backend.newBackend.wp_proof
   imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
     γrw D sc dc γsc γdc HP.1 Hlg $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hwtx Hst Hrtoks rtx Hlive Hstats rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
-      cbuf cbufVersion Hsco Hdco]
+      cbuf cbufVersion Hsco Hdco Hsr1]
     with ⟨%γ, %Hγd, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
   · rw [HP.2]
     iframe

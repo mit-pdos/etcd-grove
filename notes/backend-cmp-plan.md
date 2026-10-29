@@ -1679,3 +1679,9 @@ registration. That is the bulk of the 1300-1650 lines. The two switch laws
 6. **Close:** `mvcc_NewStore_backend` at `cm := true` (the exported compaction results over a
    compacting real backend), delete `WiringDraft.lean`, and run the axiom skill on `OpenBackend`
    (Q5-2).
+
+**Stage Q5-2, done (2026-10-29).** `newPost`/`newPostK` end with `srSlot b`, one reader's slot of
+`safeRangeDeleteMu`. `newBackend`'s proof makes it from the field's zero value
+(`sync.init_RWMutex` at the predicate `True`, one of the slots), and `backend_init` passes it into
+`newPostK`. `bootBackend_of_newPost` drops it: the server stays `cm := false`. `storage.OpenBackend`'s
+text is unchanged and its post means more, so the axiom check before Freeze stays listed.

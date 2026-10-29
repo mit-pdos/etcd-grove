@@ -88,7 +88,7 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       -- (the backend-compaction stage) the creator's deletable-keys registration, unfixed
       backend.dlInit γ ∗ mvcc.bkNoCmp γ := by
   unfold backend.newPost
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk⟩
+  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk, -⟩
   iframe Hb Hsc Hh Hrb Hdl
   ihave Hnc := mvcc.bkNoCmp_of_fkCl γ _ hnc $$ Hfk
   iframe Hnc
