@@ -1345,7 +1345,7 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
     (Del : GoString → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ backend.dlReg γ (fun _ => iprop(False)) ⊢
+      isBackend γ P W Pk b ∗ backend.dlNoDel γ ⊢
       □ (∀ (q : Qp) (m : Bucket),
         {{ bkView γ q m ∗ bkRTx γ P b }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -1359,11 +1359,9 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
   icases Hrt with ⟨Hrd, Ho⟩
   wp_apply (hCRT γ P W Pk b q rdOpen vd) $$ [$Hb $Hrd $Hv $Ho]
     as %crt %rtx %rv ⟨Hsnap, #Hth, Hback, Hv, Ho⟩
-  -- a backend that never compacts (nothing deletable): the thin view is exact. `thinV_exact` gives
-  -- it only under `◇` (O1's saved predicate: agreement under a later), which this postcondition's
-  -- goal cannot strip: a user question (O1's fallback, a pure key set, needs no later)
-  have Hrv : vData P rv = vd :=
-    sorry -- backend-cmp Draft: re-prove from 0bd34c698f:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/BackendBridge.lean (exactness without a later: O1)
+  -- a backend that never compacts (nothing deletable, `dlNoDel`): the thin view is exact, with no
+  -- later (O1's fallback, a discrete flag)
+  ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
   subst Hrv
   iapply HΦ
   isplitl [Hv]
@@ -1398,7 +1396,7 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (Del : GoString → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlReg γ (fun _ => iprop(False)) ⊢
+      isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlNoDel γ ⊢
       □ (∀ (q : Qp) (m : Bucket),
         {{ bkView γ q m ∗ bkRTx γ P b }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -1419,11 +1417,9 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   iunfold bkView at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_view γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', #Hth⟩
-  -- a backend that never compacts (nothing deletable): the thin view is exact. `thinV_exact` gives
-  -- it only under `◇` (O1's saved predicate: agreement under a later), which this postcondition's
-  -- goal cannot strip: a user question (O1's fallback, a pure key set, needs no later)
-  have Hrv : vData P rv = vd :=
-    sorry -- backend-cmp Draft: re-prove from 0bd34c698f:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/BackendBridge.lean (exactness without a later: O1)
+  -- a backend that never compacts (nothing deletable, `dlNoDel`): the thin view is exact, with no
+  -- later (O1's fallback, a discrete flag)
+  ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
   subst Hrv
   iapply HΦ'
   isplitl [Hv']
@@ -1452,7 +1448,7 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlReg γ (fun _ => iprop(False)) ⊢
+      isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlNoDel γ ⊢
       □ (∀ (q : Qp) (m : Bucket),
         {{ bkViewC γ q m ∗ bkRTx γ P b }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -1473,11 +1469,9 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
   iunfold bkViewC at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_clean γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', %Hcl, #Hth⟩
-  -- a backend that never compacts (nothing deletable): the thin view is exact. `thinV_exact` gives
-  -- it only under `◇` (O1's saved predicate: agreement under a later), which this postcondition's
-  -- goal cannot strip: a user question (O1's fallback, a pure key set, needs no later)
-  have Hrv : vData P rv = vd :=
-    sorry -- backend-cmp Draft: re-prove from 0bd34c698f:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/BackendBridge.lean (exactness without a later: O1)
+  -- a backend that never compacts (nothing deletable, `dlNoDel`): the thin view is exact, with no
+  -- later (O1's fallback, a discrete flag)
+  ihave %Hrv := backend.thinV_exact γ (vData P rv) vd $$ [$Hnd $Hth]
   subst Hrv
   iapply HΦ'
   isplitl [Hv']
@@ -2183,7 +2177,7 @@ theorem isKeyBackendG_of_backend
     (Del : GoString → IProp GF) (Cmp : Prop) (hC : ¬ Cmp) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlReg γ (fun _ => iprop(False)) ⊢
+      isBackend γ P W Pk b ∗ keySized γ P b ∗ backend.dlNoDel γ ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk Del W W iprop(True) Cmp Pk (bkHookIs γ)
@@ -2391,7 +2385,7 @@ theorem storeBackendT_of_backend
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
-        backend.dlReg d.γB (fun _ => iprop(False)) ⊢
+        backend.dlNoDel d.γB ⊢
       ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         storeBackendT
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -2440,7 +2434,7 @@ theorem keyCleanRead_of_backend
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
-        backend.dlReg d.γB (fun _ => iprop(False)) ⊢
+        backend.dlNoDel d.γB ⊢
       ∀ (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         keyCleanRead
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -2491,7 +2485,7 @@ theorem storeBackend_of_backend
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
-        backend.dlReg d.γB (fun _ => iprop(False)) ⊢
+        backend.dlNoDel d.γB ⊢
       ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         storeBackend
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)

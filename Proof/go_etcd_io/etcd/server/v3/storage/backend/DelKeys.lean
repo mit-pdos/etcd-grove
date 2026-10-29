@@ -11,7 +11,8 @@ late-bound `delKey`), so the backend's specs need no new parameter.
 
 D22's clean read, restore over a new backend and snapshot sender rely on an exact view: they hold
 the registration unfixed (`dlInit`, the opener's), which rules out every deletable key
-(`dlInit_noDel`), so that a thin view is exact for them (after review round 1, F6: the exclusive
+(`dlInit_noDel`), or fixed at nothing deletable (`dlNoDel`, `dlNoDel_fix`; O1's fallback, a
+discrete flag: no later), so that a thin view is exact for them (`thinV_exact`) (after review round 1, F6: the exclusive
 token `dlNone` of decision O2, linked to nothing, was dropped).
 
 Draft: the definitions the changed statements are written in. The registration's name is the
@@ -39,48 +40,55 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
-/-- **The creator's part of a new backend's deletable keys** (Draft round 2): the registration's
-whole fraction, at `False` (nothing deletable); in the constructor's post (`newPost`). -/
+/-- **The creator's part of a new backend's deletable keys** (Draft round 2; with O1's fallback, the
+flag `γ.dlb`): the registration's whole fraction, at `False`, and the flag's, at `false` (nothing
+deletable); in the constructor's post (`newPost`). -/
 def dlInit (γ : BNames) : IProp GF :=
-  savedPredOwn γ.dlg (DFrac.own 1) (fun _ : GoString × GoString => iprop(False))
+  iprop(savedPredOwn γ.dlg (DFrac.own 1) (fun _ : GoString × GoString => iprop(False)) ∗
+    dghostVar γ.dlb (DFrac.own 1) false)
 
-/-- **The creator fixes the deletable keys once** (decision O1): the registration at `Φ`, read-only
-from then on. -/
+/-- **The creator fixes the deletable keys once** (decision O1): the registration at `Φ`, the flag at
+`true`, read-only from then on. -/
 theorem dlReg_fix (γ : BNames) (Φ : GoString × GoString → IProp GF) :
     dlInit (GF := GF) γ ⊢ |==> dlReg γ Φ := by
   unfold dlInit
-  iintro Hs
+  iintro ⟨Hs, Hb⟩
   imod saved_pred_update Φ γ.dlg _ $$ Hs with Hs
   imod saved_pred_persist γ.dlg _ Φ $$ Hs with Hs
+  imod dghostVar_update true γ.dlb false $$ Hb with Hb
+  imod dghostVar_persist γ.dlb 1 true $$ Hb with Hb
   imodintro
   iunfold dlReg
-  iexact Hs
+  iframe Hs Hb
 
-/-- **An unfixed registration rules out every deletable key** (review round 1, F6(b)): its whole
-fraction and a fixed registration's discarded one are not valid together. So a holder of `dlInit`
-(D22's exact readers) knows every `thinV` exact. -/
+/-- **The creator fixes nothing deletable** (O1's fallback, decided by the agent while the user was
+away, 2026-10-29): the flag at `false`, persistent (`dlNoDel`), for a backend that never compacts. -/
+theorem dlNoDel_fix (γ : BNames) : dlInit (GF := GF) γ ⊢ |==> dlNoDel γ := by
+  unfold dlInit
+  iintro ⟨-, Hb⟩
+  imod dghostVar_persist γ.dlb 1 false $$ Hb with Hb
+  imodintro
+  iunfold dlNoDel
+  iexact Hb
+
+/-- **An unfixed registration rules out every deletable key** (review round 1, F6(b)): its flag's
+whole fraction at `false` disagrees with a registration's `true`. -/
 theorem dlInit_noDel (γ : BNames) (nk : GoString × GoString) :
     dlInit (GF := GF) γ ∗ dlIs γ nk ⊢ False := by
   unfold dlInit dlIs dlReg
-  iintro ⟨Hs, %Φ, Hr, -⟩
-  ihave ⟨%Hv, -⟩ := saved_pred_valid_2 γ.dlg _ _ _ _ nk $$ Hs Hr
-  exact absurd (DFrac.valid_own_op_discard.1 Hv) (by decide)
+  iintro ⟨⟨-, Hb⟩, %Φ, ⟨-, Hr⟩, -⟩
+  ihave %Heq := dghostVar_agree γ.dlb false _ true _ $$ Hb Hr
+  exact absurd Heq (by decide)
 
-/-- **A registration fixed at `False` rules out every deletable key** (review round 2, Target 4; the
-user's F6 decision): persistent, so D22's exact readers (the restore's new backend, a boot backend
-with the compactor off: whoever fixed the registration at `False` with `dlReg_fix`) share it, and
-concurrent readers too; the later is stripped by any step (`▷ False` inside a WP or an update). The
-holder of the still unfixed `dlInit` has `dlInit_noDel`. -/
-theorem dlReg_false_noDel (γ : BNames) (nk : GoString × GoString) :
-    dlReg (GF := GF) γ (fun _ => iprop(False)) ∗ dlIs γ nk ⊢ ▷ False := by
-  unfold dlIs dlReg
-  iintro ⟨#Hf, %Φ, #Hr, #HΦ⟩
-  ihave Heq := saved_pred_agree γ.dlg _ _ Φ (fun _ => iprop(False)) nk $$ Hr Hf
-  inext
-  ihave Hiff := internalEq_iff _ _ $$ Heq
-  icases Hiff with ⟨H1, -⟩
-  iapply H1
-  iexact HΦ
+/-- **Nothing deletable rules out every deletable key, with no later** (O1's fallback): the flag at
+`false` disagrees with a registration's `true`. Persistent, so D22's exact readers and concurrent
+readers share it. -/
+theorem dlNoDel_noDel (γ : BNames) (nk : GoString × GoString) :
+    dlNoDel (GF := GF) γ ∗ dlIs γ nk ⊢ False := by
+  unfold dlNoDel dlIs dlReg
+  iintro ⟨Hb, %Φ, ⟨-, Hr⟩, -⟩
+  ihave %Heq := dghostVar_agree γ.dlb false _ true _ $$ Hb Hr
+  exact absurd Heq (by decide)
 
 /-- **Every entry of the data `D` satisfies the value invariant `VI`** (3.3; Draft: `BParams.VI`'s
 use; mvcc's instance, `metaVI`, makes the `Meta` bucket's compaction keys hold revisions, so that
@@ -88,22 +96,19 @@ use; mvcc's instance, `metaVI`, makes the `Meta` bucket's compaction keys hold r
 def viOk (VI : GoString → GoString → GoString → Prop) (D : Data) : Prop :=
   ∀ n k v, (bktOf D n).lookup k = some v → VI n k v
 
-/-- **With nothing deletable, a thin view is exact** (the thin-view Draft round): under the
-registration fixed at `False` (a backend that never compacts: the old bridge's, D22's restore over
-a new backend), a physical view thin of `L` is `L` (`◇`: a missing key would give `▷ False`). -/
+/-- **With nothing deletable, a thin view is exact** (the thin-view Draft round; O1's fallback: no
+later): under `dlNoDel` (a backend that never compacts: the old bridge's, D22's restore over a new
+backend), a physical view thin of `L` is `L`. -/
 theorem thinV_exact (γ : BNames) (vd L : VData) :
-    dlReg (GF := GF) γ (fun _ => iprop(False)) ∗ thinV γ vd L ⊢ ◇ ⌜vd = L⌝ := by
+    dlNoDel (GF := GF) γ ∗ thinV γ vd L ⊢ ⌜vd = L⌝ := by
   iintro ⟨#Hf, Hth⟩
   iunfold thinV at Hth
   icases Hth with ⟨%Hsub, #Hdel⟩
-  unfold BIBase.except0
   rcases Classical.em (∃ nk, L.lookup nk ≠ none ∧ vd.lookup nk = none) with ⟨nk, hnk⟩ | hno
   · ihave Hd := Hdel $$ %nk %hnk
-    ihave Hfalse := dlReg_false_noDel γ nk $$ [$Hf $Hd]
-    ileft
-    iexact Hfalse
-  · iright
-    ipureintro
+    iexfalso
+    iapply dlNoDel_noDel γ nk $$ [$Hf $Hd]
+  · ipureintro
     apply GMap.ext
     intro nk
     cases hv : vd.lookup nk with
@@ -112,14 +117,6 @@ theorem thinV_exact (γ : BNames) (vd L : VData) :
       cases hL : L.lookup nk with
       | none => rfl
       | some w => exact absurd ⟨nk, by simp [hL], hv⟩ hno
-
-/-- `thinV_exact` under a fancy update (which absorbs the `◇`): for a proof whose goal is a WP. -/
-theorem thinV_exact_fupd (γ : BNames) (vd L : VData) (E : CoPset) :
-    dlReg (GF := GF) γ (fun _ => iprop(False)) ∗ thinV γ vd L ⊢ |={E}=> ⌜vd = L⌝ := by
-  iintro H
-  iapply fupd_except0
-  imodintro
-  iapply thinV_exact γ vd L $$ H
 
 end defs
 

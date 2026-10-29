@@ -573,3 +573,26 @@ bridge's three new cases and `isKeyBackendG_congrDel`.
   deletable-keys registration (after the fallback, its pure form) added to the old bridge,
   `storeBackendT_of_backend`, `keyCleanRead_of_backend`, `storeBackend_of_backend` and mvcc's exported
   `mvcc_backend_bridge`/`mvcc_storeBackend_of_backend`.
+
+### O1's fallback, made (2026-10-29, decided by the agent while the user was away)
+
+- **The fallback as a discrete flag beside the saved predicate**: `BNames.dlb` (a `dghostVar Bool`,
+  allocated `false`, its whole fraction in `dlInit`); `dlReg γ Φ` now also fixes it at `true`;
+  `dlNoDel γ` fixes it at `false` (persistent, `dlNoDel_fix`); `dlNoDel_noDel` and `thinV_exact`
+  (`dlNoDel ∗ thinV γ vd L ⊢ ⌜vd = L⌝`) need no later. Options: a pure key set agreed by the
+  registration (O1's wording), or this flag. Reason: every exact reader needs only "nothing is
+  deletable", and mvcc's compacting case keeps its late-bound `delKey` (where `◇` is fine), so the
+  flag is the smallest change with no later. `dlReg_false_noDel` and `thinV_exact_fupd` were removed:
+  superseded, no users.
+- **The six `sorry`s that reached server results are closed**: the old bridge's exactness
+  (`bridge_crt`, `bridge_rt`, `bridge_rt_clean`) from `dlNoDel`; the supply points: `newPost`'s
+  `dlInit` returned by `bootBackend_of_newPost`, fixed by `NewServer` (`dlNoDel_fix`) and passed to
+  `server_kv_watchable_of`; `NewStore_backend` takes it; D22's `SnapApplyWalk` fixes its new
+  backend's (a proof edit only, no D22 statement changed). The trust check matches `lean`'s baseline
+  and every collection: no `sorry` of this stage under any result.
+- **For the user to review on return** (statement changes): `backend.dlNoDel d.γB` added to the
+  preconditions of `mvcc.NewStore_backend`, `server_kv_watchable_of` and their linked results
+  `mvcc_NewStore_backend`, `server_kv_backend`, `server_kv_watchable`, `server_kv_backend_hooks`;
+  `bootBackend_of_newPost`'s post gains `backend.dlInit γ`; the old bridge, `storeBackendT_of_backend`,
+  `keyCleanRead_of_backend`, `storeBackend_of_backend` and mvcc's `mvcc_backend_bridge`/
+  `mvcc_storeBackend_of_backend` now over `dlNoDel` (was `dlReg γ (fun _ => False)`).

@@ -280,8 +280,10 @@ theorem applySnapshot_walk
   subst Herr Hbe
   iunfold backend.newPostK at Hnew
   simp only
-  -- (the new backend's `dlInit`, the backend-compaction stage's: unused here, no compaction)
-  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, -⟩
+  -- (the backend-compaction stage) the new backend never compacts (no compaction with a restore):
+  -- its creator fixes nothing deletable
+  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl⟩
+  imod backend.dlNoDel_fix _ $$ Hdl with #Hnd
   obtain ⟨d', hγ', hbe', hgx', hP'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧ d'.gx = gx' ∧
       d'.P = d.P := ⟨{ d with γB := γB, be := nb, gx := gx' }, rfl, rfl, rfl, rfl⟩
   rw [← hbe']
@@ -372,16 +374,15 @@ theorem applySnapshot_walk
       d'.be $$ []
   · rw [hP']; iapply HkSz $$ %d'.γB %d'.be
   have hbr' : mvcc.bridgeParams d'.P := by rw [hP']; exact hbr
-  -- the restore's new backend never compacts (compaction excluded from a restoring server): its
-  -- deletable keys' registration fixed at `False` (the opener's `dlInit`, `dlReg_fix`)
-  ihave #Hnd : backend.dlReg d'.γB (fun _ => iprop(False)) $$ []
-  · sorry -- backend-cmp Draft: new case (the registration fixed at False, from the restore's opener's dlInit)
+  -- the restore's new backend never compacts (`Hnd`, fixed above)
+  ihave #Hnd' : backend.dlNoDel d'.γB $$ []
+  · rw [hγ']; iexact Hnd
   ihave #HsbT := mvcc.storeBackendT_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hBUR hCB hDel hID hName hSafe d' hbr'
-    (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket $$ [$Hbpkg $Hschpkg $HnB' $HnSz $Hnd]
+    (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket $$ [$Hbpkg $Hschpkg $HnB' $HnSz $Hnd']
   ihave #HkcR := mvcc.keyCleanRead_of_backend hRT hrRL hrRU hrUR hID hName hSafe
     d' hbr'
-    (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket $$ [$Hbpkg $Hschpkg $HnB' $HnSz $Hnd]
+    (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket $$ [$Hbpkg $Hschpkg $HnB' $HnSz $Hnd']
   ihave HnView : mvcc.kbViewC (GF := GF) (some d') E.γ.bucket 1
       (mvcc.bucketMap ([[], []] ++ R)) $$ [HnV]
   · simp only [mvcc.kbViewC, mvcc.bkViewC, hγ']

@@ -100,6 +100,11 @@ structure BNames where
   backend-compaction stage, decision O1): allocated by the constructor at `False` (nothing
   deletable), its whole fraction to the creator (`dlInit`), who fixes the predicate once -/
   dlg : GName
+  /-- `dghostVar Bool`: whether keys may be deletable at all (O1's fallback, decided by the agent
+  while the user was away, 2026-10-29): allocated at `false`, its whole fraction to the creator
+  (`dlInit`), who fixes it once, at `true` with the predicate (`dlReg`) or at `false` (`dlNoDel`):
+  a discrete value, so "nothing deletable" needs no later -/
+  dlb : GName
 
 section phys
 variable [GooseExts]
@@ -412,9 +417,18 @@ instance wgInv_persistent (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) :
 /-! ## `readTx.mu` -/
 
 /-- **The deletable keys' registration** (persistent): the saved predicate `Φ` of
-(bucket, key) pairs at the backend's name `γ.dlg`, fixed by the backend's creator. -/
+(bucket, key) pairs at the backend's name `γ.dlg`, fixed by the backend's creator, with the flag
+`γ.dlb` at `true` (keys may be deletable). -/
 def dlReg (γ : BNames) (Φ : GoString × GoString → IProp GF) : IProp GF :=
-  savedPredOwn γ.dlg DFrac.discard Φ
+  iprop(savedPredOwn γ.dlg DFrac.discard Φ ∗ dghostVar γ.dlb DFrac.discard true)
+
+/-- **Nothing is deletable** (persistent; O1's fallback): the creator fixed the backend's
+deletable-keys flag at `false` (a backend that never compacts: the old bridge's, D22's restore over a
+new backend). Rules out every deletable key with no later (`dlNoDel_noDel`). -/
+def dlNoDel (γ : BNames) : IProp GF := dghostVar γ.dlb DFrac.discard false
+
+instance dlNoDel_persistent (γ : BNames) : Persistent (dlNoDel (GF := GF) γ) := by
+  unfold dlNoDel; infer_instance
 
 instance dlReg_persistent (γ : BNames) (Φ : GoString × GoString → IProp GF) :
     Persistent (dlReg (GF := GF) γ Φ) := by

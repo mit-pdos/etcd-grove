@@ -80,12 +80,12 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       backend.bOpen γ (1 : Qp).half ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
       ownToks γ.wb (N + 7) ∗ backend.rbOwn γ (backend.rbData P D) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        mvcc.bkRTx γ P b) := by
+        mvcc.bkRTx γ P b) ∗
+      -- (the backend-compaction stage) the creator's deletable-keys registration, unfixed
+      backend.dlInit γ := by
   unfold backend.newPost
-  -- (the backend-compaction stage's `dlInit`: unused while the server's store keeps the old
-  -- bridge, `notes/backend-cmp-plan.md`)
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, -⟩
-  iframe Hb Hsc Hh Hrb
+  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl⟩
+  iframe Hb Hsc Hh Hrb Hdl
   icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
   ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]
   iframe Hrts Ho

@@ -488,8 +488,10 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (the backend-compaction stage, O1) the deletable keys' registration, nothing yet
   imod saved_pred_alloc (A := GoString × GoString) (fun _ => iprop(False)) (DFrac.own 1)
     DFrac.valid_own_one with ⟨%gdlg, Hdlg⟩
+  -- (O1's fallback) the flag: no key deletable yet
+  imod dghostVar_alloc false with ⟨%gdlb, Hdlb⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
-    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg⟩
+    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb⟩
   let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true, true⟩
   -- the shares
   icases gv_halves gview _ $$ Hview with ⟨Hviewc, Hview⟩
@@ -596,7 +598,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg]
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb]
   · unfold newPostK
     isplitr
     · iexact Hb
@@ -618,7 +620,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     isplitl [Hrds]
     · iexact Hrds
     unfold dlInit
-    iexact Hdlg
+    iframe Hdlg Hdlb
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr
 
