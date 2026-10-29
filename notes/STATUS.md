@@ -469,13 +469,22 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, track A: `Campaign` and `Status` (2026-10-29, branch `raft-unified`)
+
+- `node.Campaign.spec` and `node.Status.spec` over `isNode`, proved and linked (`node.wp_Campaign`,
+  `node.wp_Status`). `Campaign`'s `MsgHup` goes through an internal disjunct of `netP` (`hupP`, a
+  time receipt of `Campaign`'s own). `Status` gives the new sealed `statusOwn` (heap ownership only).
+  Spec changes: `notes/raft-unified-plan.md`, "Spec changes during track A (fresh)". Still open in
+  U7: `SentMsgShape` in every cluster, the re-forwarded transfer request, `TransferLeadership` over
+  `isNode`, and the read-credit exchange (the hand-off there, item 3).
+
 ## Raft unified, track A: U7 (in part) and U9a (2026-10-29, branch `raft-unified`)
 
 - U7: raft takes its own time receipts for `Tick` (`node.Tick.spec` without `tickCredit`) and a
   stepped `MsgTimeoutNow` (`stepIn_intro` without its tick credit). The proposal registry is parked
   (the user reconsidering it; work in `refs/wip/trackA-registry`). Not done: read credits from
-  receipts, `SentMsgShape` in the decision cluster, a stamped `MsgTransferLeader` admitted, the
-  transfer choice. Their design is in `notes/decisions.md`, "Stage U7: messages, track A".
+  receipts, `SentMsgShape` in the decision cluster, a stamped `MsgTransferLeader` admitted (the
+  transfer choice since dropped by the user). Their design is in `notes/decisions.md`, "Stage U7: messages, track A".
 - U9a (stopped nodes): see the spec changes in `notes/raft-unified-plan.md`, "Spec changes during
   track A, U7 and U9a".
 - Clients broken further: etcd's server (`InvNet.lean`'s `stepIn_intro` arguments), examples/kv

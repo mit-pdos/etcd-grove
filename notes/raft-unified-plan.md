@@ -351,7 +351,28 @@ raft-specific axiom is `ccDecodeV2_nil`.
      `readCredit`. Add an invariant `∃ k, ⧗ k ∗ rdCred γ.raft (2^64 - 2 - k)` in the decision cluster;
      `stepIn`'s wand then becomes a `⊤` update, and `cluster_alloc_dec` loses `readCredits`. Then
      add `msgCredits_intro : st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits` (S1's text).
-4. **U9**: one spec per function; the old families deleted.
+   - *Scoping by the second track A agent (2026-10-29, not started).* `raft.send.spec`'s `SendOk`
+     (`Spec/go_etcd_io/raft/v3/raft__send.lean:106`): clause (b) (`MsgApp`/`MsgHeartbeat`/
+     `MsgReadIndexResp`/`MsgHeartbeatResp`, stamped), (c) `MsgSnap` (stamped), (c') the undescribed
+     types (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`; today `s.gh.xf = false`), (d) `MsgAppResp`
+     (`s.term ≠ 0` only when `To = id`). `raft.send`'s callers (16 proof files): `maybeSendAppend`,
+     `maybeSendSnapshot`, `sendHeartbeat`, `sendTimeoutNow`, `sendMsgReadIndexResponse`, `appendEntry`,
+     `campaign`, `handleAppendEntries`, `handleHeartbeat`, `handleSnapshot`, `stepFollower`,
+     `stepLeader` (+ `stepLeader/Rest`), `raft.Step` (+ `raft__Step/Base`). A leader's `term ≠ 0` is
+     derived in `raft.Step` from the ghost (`ownRaftGhost_term_nz`, `raft__Step.lean:699`, `:898`) and
+     passed down as a premise (`stepLeader.spec:348`, `appendEntry.spec:175`,
+     `releasePendingReadIndexMessages`); the leader-side send helpers (`maybeSendAppend`,
+     `maybeSendSnapshot`, `sendHeartbeat`, `sendTimeoutNow`, `sendMsgReadIndexResponse`, and
+     `bcastAppend`/`bcastHeartbeat*` above them) would take the same premise. `XfOk`'s users:
+     `InvRaftPhys.lean` (42 mentions), `raft__send.lean`'s `XfOk` step lemma (line 67),
+     `InvRawnodeReady`, `LemmasReadyR`, `StepGhostMode` (`GMode`'s `xf`/`bt`), `RawNode__Bootstrap`,
+     `newRaft`. Suggested order: (i) `SentMsgShape` (ApiVocab, beside `SentMsgOk`); (ii) `SendOk`'s
+     stamped clauses take `s.term ≠ 0`, the callers' specs the leader premise; (iii) `XfOk`'s second
+     clause unconditional, `bt` removed; (iv) `isRaftMsg`/`NetMsgOk.of_sent` from `SentMsgShape`.
+     Commit after each, building `Link`.
+4. **U9**: one spec per function; the old families deleted. (Coordinator, 2026-10-29: track B drops
+   the static `StartNode.spec`, `RestartNode.spec`, `node.Advance.spec` and their Linked results; merge
+   `raft-unified-storage2` first once it lands, and don't redo them.)
 
 **Things a newcomer trips on:**
 - `etc/lean-check.py` returns once the *edited* declaration checks. Run it again with `-a` before
