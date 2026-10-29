@@ -399,3 +399,8 @@ over the metadata-indexed admin specs; the cell's token a `dghostVar` half held 
 invariant; `setupPrefixR` says only the last set-up state is enabled (`k = |hs_set|`); per-kind
 laws (`AuthEnable`'s successor `{st with enabled := true}`, no bump; `UserAdd`/`RoleAdd` need
 `n ≠ []`); `AuthEnable`'s reply selects the recorded disjunct (`admRec_of_done_authEnable`).
+Where the read premise sits (the user's words: "authkv keeps the read fact as a premise until the
+invariant is built; no sorry or axiom"): a law-shaped hypothesis of `Main.wp_proof` (the tie's
+law), `Main.spec` unchanged. Undischarged, `Link.lean`'s `wp_Main` passes it on, so the exported
+`authkv_Main` takes it too: a change to the top-level statement the user sees. At the restatement,
+show the user `authkv_Main`'s exported form with it before committing.
