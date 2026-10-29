@@ -70,12 +70,13 @@ theorem MemoryStorage.Snapshot.wp_proof
         · right; omega
     ihave %Hrel : ⌜(S.ss = σ0.ss ∧ S.scs = σ0.scs ∧ S.sal = σ0.sal ∧ S.sdat = σ0.sdat) ∨
         (uint.Z σ0.ss.index' < uint.Z S.ss.index' ∧ uint.Z σ0.prev.index' ≤ uint.Z S.ss.index' ∧
-          termAt σ0.prev σ0.ents S.ss.index' = some S.ss.term' ∧
-          uint.Z S.ss.index' ≤ uint.Z σ.fl)⌝ $$ [Hview]
+          termAt σ.prev (storApp σ σ.pend) S.ss.index' = some S.ss.term' ∧
+          uint.Z S.ss.index' ≤ uint.Z σ.hd)⌝ $$ [Hview Hgs_inv]
     · icases Hsrel with (%Hs | ⟨%Hs, #Hfl⟩)
       · ipureintro; left; exact Hs
-      · icases memFlLb_view γs σ S.ss.index' $$ Hview Hfl with ⟨%H, -⟩
-        ipureintro; right; exact ⟨Hs.1, Hs.2.1, Hs.2.2, H⟩
+      · icases memHdLb_view γs σ σ0 S.ss.index' S.ss.term' Hs.2.2 Hs.2.1 $$ Hview Hgs_inv Hfl
+          with ⟨%H, -, -⟩
+        ipureintro; right; exact ⟨Hs.1, Hs.2.1, H.2, H.1⟩
     icases memInvGhost_key $$ Hgs_inv with ⟨Hlk, Hgs_back⟩
     imod memSnap_take ms γs 1 ⊤ HN $$ Hsinv [Hlk Hok] with ⟨Hhome, Hrcpt⟩
     · iunfold memSnapKeys; ileft; iframe; ipureintro; rfl
@@ -161,10 +162,7 @@ theorem MemoryStorage.Snapshot.wp_proof
       · rw [Hsnap_id.2.2.2, ← Hs4, Hr4, Hvs4]
     · right
       rw [Hidx, Htm, ← Hvs1, ← Hvp]
-      refine ⟨Hr1, Hr2, Hr4, ?_⟩
-      rw [Hvp]
-      exact memView_termAt_below σ σ0 ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3, Hvs4⟩, Hve, Hvi⟩
-        Hpend.1 Hpend.2 _ _ Hr3 Hr4 (by rw [← Hvp]; exact Hr2)
+      exact ⟨Hr1, Hr2, Hr4, by rw [Hvp]; exact Hr3⟩
   · -- the application's: the lock's key and the application's
     intro ms γs σ
     wp_start as Htok

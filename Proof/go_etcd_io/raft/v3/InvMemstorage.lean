@@ -261,13 +261,13 @@ snapshot applied (`ApplySnapshot`) puts the boundary at or above the floor. What
 owner vouches for at its floor (`memTermsAt`) the storage's for good. -/
 def FloorKept (a b : StorState) : Prop :=
   uint.Z a.prev.index' ≤ uint.Z b.prev.index' ∧
-  ∀ j : w64, uint.Z j ≤ uint.Z a.fl → uint.Z b.prev.index' < uint.Z j →
+  ∀ j : w64, uint.Z j ≤ uint.Z a.hd → uint.Z b.prev.index' < uint.Z j →
     termAt b.prev b.ents j = termAt a.prev a.ents j
 
 theorem FloorKept.refl (a : StorState) : FloorKept a a := ⟨Int.le_refl _, fun _ _ _ => rfl⟩
 
 theorem FloorKept.trans {a w x : StorState} (h1 : FloorKept a w) (h2 : FloorKept w x)
-    (hfl : uint.Z a.fl ≤ uint.Z w.fl) : FloorKept a x :=
+    (hfl : uint.Z a.hd ≤ uint.Z w.hd) : FloorKept a x :=
   ⟨Int.le_trans h1.1 h2.1, fun j hj hx => by
     rw [h2.2 j (Int.le_trans hj hfl) hx, h1.2 j hj (Int.lt_of_le_of_lt h2.1 hx)]⟩
 
@@ -277,8 +277,9 @@ their positions (`PlogWf`; the application's `Compact` reads its new boundary fr
 (2026-10-28, stage U4a) and each state keeps what the earlier ones had within their floors
 (`FloorKept`). -/
 def HistOk (L : List StorState) : Prop :=
-  L.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl ∧ FloorKept a b) ∧
-  ∀ b ∈ L, uint.Z b.fl ≤ stLast b ∧ b.pend = [] ∧ PlogWf b.prev b.ents
+  L.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl ∧ uint.Z a.hd ≤ uint.Z b.hd ∧ FloorKept a b) ∧
+  ∀ b ∈ L, (uint.Z b.fl ≤ uint.Z b.hd ∧ uint.Z b.hd ≤ stLast b) ∧ b.pend = [] ∧
+    PlogWf b.prev b.ents
 
 /-- An append numbered consecutively, starting within the entries, keeps them numbered by their
 positions. -/
@@ -309,13 +310,15 @@ theorem HistOk.prefix {L1 L2 : List StorState} (h : L1 <+: L2) (H : HistOk L2) :
 
 /-- Every state of a history is at or below its last's floor, and its last keeps it. -/
 theorem HistOk.le_last' {L : List StorState} {w : StorState} (H : HistOk L)
-    (hw : L.getLast? = some w) : ∀ a ∈ L, uint.Z a.fl ≤ uint.Z w.fl ∧ FloorKept a w := by
+    (hw : L.getLast? = some w) :
+    ∀ a ∈ L, uint.Z a.fl ≤ uint.Z w.fl ∧ uint.Z a.hd ≤ uint.Z w.hd ∧ FloorKept a w := by
   intro a ha
   obtain ⟨L', rfl⟩ : ∃ L', L = L' ++ [w] := by
     rw [List.getLast?_eq_some_iff] at hw; exact hw
   rcases List.mem_append.1 ha with ha | ha
   · exact (List.pairwise_append.1 H.1).2.2 a ha w (List.mem_singleton_self w)
-  · rw [List.mem_singleton] at ha; subst ha; exact ⟨Int.le_refl _, FloorKept.refl _⟩
+  · rw [List.mem_singleton] at ha; subst ha
+    exact ⟨Int.le_refl _, Int.le_refl _, FloorKept.refl _⟩
 
 /-- Every state of a history is at or below its last's floor. -/
 theorem HistOk.le_last {L : List StorState} {w : StorState} (H : HistOk L)
@@ -333,20 +336,28 @@ theorem HistOk.last_mono {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: 
 theorem HistOk.last_kept {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: L2)
     (H : HistOk L2) (ha : L1.getLast? = some a) (hb : L2.getLast? = some b) :
     FloorKept a b :=
-  (H.le_last' hb a (h.subset (List.mem_of_getLast? ha))).2
+  (H.le_last' hb a (h.subset (List.mem_of_getLast? ha))).2.2
+
+/-- (2026-10-29, stage U8) ... and the shorter's last hold is at most the longer's. -/
+theorem HistOk.last_mono_hd {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: L2)
+    (H : HistOk L2) (ha : L1.getLast? = some a) (hb : L2.getLast? = some b) :
+    uint.Z a.hd ≤ uint.Z b.hd :=
+  (H.le_last' hb a (h.subset (List.mem_of_getLast? ha))).2.1
 
 theorem HistOk.snoc {L : List StorState} {x : StorState} (H : HistOk L)
     (hle : ∀ w, L.getLast? = some w → uint.Z w.fl ≤ uint.Z x.fl)
+    (hhd : ∀ w, L.getLast? = some w → uint.Z w.hd ≤ uint.Z x.hd)
     (hk : ∀ w, L.getLast? = some w → FloorKept w x)
-    (hx : uint.Z x.fl ≤ stLast x) (hp : x.pend = []) (hi : PlogWf x.prev x.ents) :
+    (hx : uint.Z x.fl ≤ uint.Z x.hd ∧ uint.Z x.hd ≤ stLast x) (hp : x.pend = [])
+    (hi : PlogWf x.prev x.ents) :
     HistOk (L ++ [x]) := by
   refine ⟨List.pairwise_append.2 ⟨H.1, List.pairwise_singleton _ _, fun a ha b hb => ?_⟩, ?_⟩
   · rw [List.mem_singleton] at hb; subst hb
     cases hL : L.getLast? with
     | none => rw [List.getLast?_eq_none_iff] at hL; subst hL; simp at ha
     | some w =>
-      obtain ⟨h1, h2⟩ := H.le_last' hL a ha
-      exact ⟨Int.le_trans h1 (hle w hL), h2.trans (hk w hL) h1⟩
+      obtain ⟨h1, h1', h2⟩ := H.le_last' hL a ha
+      exact ⟨Int.le_trans h1 (hle w hL), Int.le_trans h1' (hhd w hL), h2.trans (hk w hL) h1'⟩
   · intro b hb
     rcases List.mem_append.1 hb with hb | hb
     · exact H.2 b hb
@@ -359,7 +370,7 @@ theorem FloorKept.of_data {a b : StorState} (h1 : b.prev = a.prev) (h2 : b.ents 
 
 /-- (2026-10-28, stage U4a) A snapshot applied at or above the floor keeps everything, vacuously. -/
 theorem FloorKept.of_above {a b : StorState} (h1 : uint.Z a.prev.index' ≤ uint.Z b.prev.index')
-    (h2 : uint.Z a.fl ≤ uint.Z b.prev.index') : FloorKept a b :=
+    (h2 : uint.Z a.hd ≤ uint.Z b.prev.index') : FloorKept a b :=
   ⟨h1, fun j hj hb => absurd (Int.lt_of_lt_of_le hb hj) (Int.not_lt.2 h2)⟩
 
 /-- The states after `D` only raise the floor: each has the data of `D`'s last. -/
@@ -512,13 +523,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 instance storState_countable : Pos.Countable StorState :=
   .ofInjective (fun σ => Pos.Countable.encode
-      (((((((σ.prev, σ.ents), σ.ss), σ.pend),
+      ((((((((σ.prev, σ.ents), σ.ss), σ.pend),
         (((σ.scs.voters, σ.scs.learners), σ.scs.outgoing), σ.scs.learnersNext)), σ.sal), σ.sdat),
-        σ.fl))
-    (fun ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _, _⟩ ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _, _⟩ h => by
+        σ.fl), σ.hd))
+    (fun ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _, _, _⟩ ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _, _, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩, rfl⟩, rfl⟩ := h
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩ := h
       rfl)
 
 /-- (D22 S-b′2, 2026-10-20) For the certificate registry (`MemStorNames.cert`). -/
@@ -891,6 +902,32 @@ instance memFlLb_persistent (γs : MemStorNames) (x : w64) :
     Persistent (memFlLb (GF := GF) γs x) := by
   unfold memFlLb; infer_instance
 
+/-- (2026-10-29, stage U8) **The hold is at least `x`**, recorded with the storage there
+(persistent): a history `L` of the owner's whose last state's hold is at least `x`, with `done`
+at a prefix `D` of it that lacks only floor raises (so the storage has been in a state with the
+data of `L`'s last). What the lock keeps of an application's snapshot (`memCutInv`), and what
+`memFloorTok` and `memTermsAt` give. -/
+def memHdLb (γs : MemStorNames) (x : w64) : IProp GF :=
+  iprop(∃ (D L : List StorState), monoListLbOwn γs.done D ∗ monoListLbOwn γs.hist L ∗
+    ⌜D <+: L ∧ D ≠ [] ∧ RaiseOnly D (L.drop D.length) ∧ HistOk L ∧
+      ∃ w, L.getLast? = some w ∧ uint.Z x ≤ uint.Z w.hd⌝)
+
+instance memHdLb_persistent (γs : MemStorNames) (x : w64) :
+    Persistent (memHdLb (GF := GF) γs x) := by
+  unfold memHdLb; infer_instance
+
+theorem memHdLb_le (γs : MemStorNames) (x y : w64) (h : uint.Z y ≤ uint.Z x) :
+    memHdLb (GF := GF) γs x ⊢ memHdLb γs y := by
+  iintro H
+  iunfold memHdLb at H
+  iunfold memHdLb
+  icases H with ⟨%D, %L, #Hd, #Hl, %HL⟩
+  iexists D, L
+  iframe Hd Hl
+  ipureintro
+  obtain ⟨h1, h2, h3, h4, w, hw, hx⟩ := HL
+  exact ⟨h1, h2, h3, h4, w, hw, Int.le_trans h hx⟩
+
 /-- The ghost part of the lock's invariant: the contents `σp` are the last state
 `done` records, at half of its authority, and every state it records is sanctioned (a prefix of
 `hist`, a history: `HistOk`); and (D17d) the lock's key to the snapshot (`memSnapInv`). -/
@@ -914,7 +951,7 @@ def memCutInv (γs : MemStorNames) (σp : StorState) (c : entryID) : IProp GF :=
     "%Hccap" ∷ ⌜uint.Z c.index' ≤ γs.cap⌝ ∗
     "#Hsrel" ∷ (⌜S.ss = σp.ss ∧ S.scs = σp.scs ∧ S.sal = σp.sal ∧ S.sdat = σp.sdat⌝ ∨
       (⌜uint.Z σp.ss.index' < uint.Z S.ss.index' ∧ uint.Z σp.prev.index' ≤ uint.Z S.ss.index' ∧
-          termAt σp.prev σp.ents S.ss.index' = some S.ss.term'⌝ ∗ memFlLb γs S.ss.index')))
+          termAt σp.prev σp.ents S.ss.index' = some S.ss.term'⌝ ∗ memHdLb γs S.ss.index')))
 
 /-- The lock's invariant: the contents, their ghost record, the fields at them cut at the
 application's boundary (D19i part 1), and their bound (2026-10-10: the contents may be ahead of
@@ -1035,7 +1072,9 @@ def memView (γs : MemStorNames) (σ : StorState) : IProp GF :=
      (monoListAuthOwn γs.hist (1 : Qp).half hist ∗
       ∃ (H D : List StorState),
         ⌜σ.pend ≠ [] ∧ hist = H ++ [storAbsorb σ] ∧
-          H.getLast? = some { σ with pend := [] } ∧ PendAbove σ σ.pend ∧
+          -- (2026-10-29, stage U8) the hand-out raised the hold from `h0`
+          (∃ h0 : w64, H.getLast? = some { σ with pend := [], hd := h0 } ∧
+            uint.Z h0 ≤ uint.Z σ.hd ∧ HdAbove { σ with hd := h0 } σ.pend) ∧ PendAbove σ σ.pend ∧
           D <+: H ∧ D ≠ [] ∧ RaiseOnly D (H.drop D.length) ∧ PendOk σ σ.pend⌝ ∗
         monoListLbOwn γs.done D ∗ ghostVar γs.ep (1 : Qp).half (σ, H, D))))
 
@@ -1083,7 +1122,9 @@ def memAppendTok (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List Entr
   "Hdone" ∷ monoListAuthOwn γs.done (1 : Qp).half D ∗
   "Hhist" ∷ monoListAuthOwn γs.hist (1 : Qp).half (H ++ [storAbsorb { σ with pend := p }]) ∗
   "Hep" ∷ ghostVar γs.ep (1 : Qp).half ({ σ with pend := p }, H, D) ∗
-  "%Htok" ∷ ⌜H.getLast? = some σ ∧ σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧
+  -- (2026-10-29, stage U8) `σ` at the hold the hand-out raised, from `h0`, below the batch
+  "%Htok" ∷ ⌜(∃ h0 : w64, H.getLast? = some { σ with hd := h0 } ∧ uint.Z h0 ≤ uint.Z σ.hd ∧
+      HdAbove { σ with hd := h0 } p) ∧ σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧
     D <+: H ∧ D ≠ [] ∧ RaiseOnly D (H.drop D.length) ∧
     HistOk (H ++ [storAbsorb { σ with pend := p }])⌝)
 
@@ -1095,7 +1136,9 @@ def memAppendedTok (_ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List E
   "Hdone" ∷ monoListAuthOwn γs.done (1 : Qp).half (H ++ [storAbsorb { σ with pend := p }]) ∗
   "Hhist" ∷ monoListAuthOwn γs.hist (1 : Qp).half (H ++ [storAbsorb { σ with pend := p }]) ∗
   "Hep" ∷ ghostVar γs.ep (1 : Qp).half ({ σ with pend := p }, H, D) ∗
-  "%Hbnd" ∷ ⌜uint.Z σ.prev.index' + ((storApp σ p).length : Int) < 2^61⌝)
+  "%Hbnd" ∷ ⌜uint.Z σ.prev.index' + ((storApp σ p).length : Int) < 2^61⌝ ∗
+  -- (2026-10-29, stage U8) the history it is at (the token's), for `memTermsAt_receipt`
+  "%Hhok" ∷ ⌜HistOk (H ++ [storAbsorb { σ with pend := p }])⌝)
 
 /-- (D19i part 1) **The floor's witness** for the application (`isStorageWith`'s `FW`): the floor
 the owner published is at least `x` (`memFlLb`), and the storage then held entries up to `x`,
@@ -1125,6 +1168,21 @@ theorem memFloorTok_flLb (ms : Loc) (γs : MemStorNames) (x : w64) :
   iframe Hhlb
   ipureintro
   exact ⟨Hfw.2.2.2.1, Hfw.2.2.2.2⟩
+
+/-- (2026-10-29, stage U8) A floor witness is a hold witness: every state's hold is at least
+its floor. -/
+theorem memFloorTok_hdLb (ms : Loc) (γs : MemStorNames) (x : w64) :
+    memFloorTok (GF := GF) ms γs x ⊢ memHdLb γs x := by
+  iintro H
+  iunfold memFloorTok at H
+  icases H with ⟨-, -, %D, %L, #Hdlb, #Hhlb, %Hfw⟩
+  iunfold memHdLb
+  iexists D, L
+  iframe Hdlb Hhlb
+  ipureintro
+  obtain ⟨h1, h2, h3, h4, w, hw, hx⟩ := Hfw
+  exact ⟨h1, h2, h3, h4, w, hw,
+    Int.le_trans hx (h4.2 w (List.mem_of_getLast? hw)).1.1⟩
 
 theorem memFlLb_le (γs : MemStorNames) (x y : w64) (h : uint.Z y ≤ uint.Z x) :
     memFlLb (GF := GF) γs x ⊢ memFlLb γs y := by
@@ -1188,15 +1246,55 @@ theorem raiseOnly_between {D Dc L : List StorState} {a b : StorState} (h1 : D <+
     exact List.mem_append_left _ hw
   exact RaiseOnly.last h1 hR' ha hb
 
+/-- (2026-10-29, stage U8) A hold witness (`memHdLb`'s `D`, `L`) while a batch is pending (the
+history `H ++ [abs]`, `done` within `H`): its index is within `H`'s last hold, or the witness is
+at the appended state with `done` lagging only by raises, which then has `H`'s last's data. -/
+theorem hdLb_pending {D L Dc H : List StorState} {abs a0 w : StorState} {x : w64}
+    (hDL : D <+: L) (hDne : D ≠ []) (hR : RaiseOnly D (L.drop D.length))
+    (hok : HistOk (H ++ [abs])) (hw : L.getLast? = some w) (hx : uint.Z x ≤ uint.Z w.hd)
+    (hL : L <+: H ++ [abs]) (hD : D <+: Dc) (hDc : Dc <+: H) (hH : H.getLast? = some a0) :
+    uint.Z x ≤ uint.Z a0.hd ∨ DataEq a0 abs := by
+  by_cases hlen : L.length ≤ H.length
+  · left
+    have hLH : L <+: H := by
+      rw [List.prefix_iff_eq_take] at hL
+      rw [hL, List.take_append_of_le_length hlen]
+      exact List.take_prefix _ _
+    have := (hok.prefix (List.prefix_append H [abs])).last_mono_hd hLH hw hH
+    omega
+  · right
+    have hLeq : L = H ++ [abs] := by
+      obtain ⟨T, hT⟩ := hL
+      have hl := congrArg List.length hT
+      simp only [List.length_append, List.length_singleton] at hl
+      have hT0 : T = [] := by apply List.eq_nil_of_length_eq_zero; omega
+      subst hT0; simpa using hT
+    subst hLeq
+    have hDH : D <+: H := hD.trans hDc
+    obtain ⟨a, ha⟩ : ∃ a, D.getLast? = some a := by
+      cases hD' : D.getLast? with
+      | none => rw [List.getLast?_eq_none_iff] at hD'; exact absurd hD' hDne
+      | some a => exact ⟨a, rfl⟩
+    have hdrop : (H ++ [abs]).drop D.length = H.drop D.length ++ [abs] :=
+      List.drop_append_of_le_length hDH.length_le
+    obtain ⟨a', ha', hab⟩ := hR abs (by rw [hdrop]; simp)
+    rw [ha] at ha'; cases ha'
+    have ha0 : DataEq a0 a := by
+      have hR' : RaiseOnly D (H.drop D.length) := fun v hv =>
+        hR v (by rw [hdrop]; exact List.mem_append_left [abs] hv)
+      exact RaiseOnly.last hDH hR' ha hH
+    exact ha0.trans hab.symm
+
 /-- The owner, with nothing pending, moves the storage to a new state `σ'` (nothing pending, its
 floor at least the owner's, which it holds) under the lock (2026-10-12; since D19i part 1 only
 `ApplySnapshot`): the contents are the owner's state's data, and `hist` and `done` (both halves:
 the owner's writer half and the invariant's) record `σ'`. -/
 theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pend = [])
-    (H' : σ'.pend = []) (Hfl : uint.Z σ.fl ≤ uint.Z σ'.fl) (Hfl' : uint.Z σ'.fl ≤ stLast σ')
+    (H' : σ'.pend = []) (Hfl : uint.Z σ.fl ≤ uint.Z σ'.fl) (Hhd : uint.Z σ.hd ≤ uint.Z σ'.hd)
+    (Hfl' : uint.Z σ'.fl ≤ uint.Z σ'.hd ∧ uint.Z σ'.hd ≤ stLast σ')
     (Hidx' : PlogWf σ'.prev σ'.ents)
-    -- (2026-10-28, stage U4a) the new boundary at or above the contents' and the floor
-    (Hpv : uint.Z σp.prev.index' ≤ uint.Z σ'.prev.index') (Hfv : uint.Z σ.fl ≤ uint.Z σ'.prev.index') :
+    -- (2026-10-28, stage U4a) the new boundary at or above the contents' and (stage U8) the hold
+    (Hpv : uint.Z σp.prev.index' ≤ uint.Z σ'.prev.index') (Hfv : uint.Z σ.hd ≤ uint.Z σ'.prev.index') :
     ⊢ memView (GF := GF) γs σ -∗ memInvGhost γs σp ==∗
       ⌜DataEq σp σ⌝ ∗ memView γs σ' ∗ memInvGhost γs σ' := by
   iintro Hv Hg
@@ -1222,6 +1320,7 @@ theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pe
   imod monoListAuthOwn_update_app [σ'] $$ Hh with ⟨Hh, #Hlbh⟩
   have Hok' : HistOk (hist ++ [σ']) :=
     Hok.snoc (fun w hw => by rw [Hid.2] at hw; cases hw; exact Hfl)
+      (fun w hw => by rw [Hid.2] at hw; cases hw; exact Hhd)
       (fun w hw => by
         rw [Hid.2] at hw; cases hw
         exact FloorKept.of_above (by rw [← Hσp.1]; exact Hpv) Hfv) Hfl' H' Hidx'
@@ -1282,11 +1381,12 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
     ipureintro; exact HD
   · icases monoAuthLb_keep γs.done _ Dc D $$ [$Hd $HlbD] with ⟨⟨Hd, -⟩, %H1⟩
     icases monoAuthLb_keep γs.hist _ hist Dc $$ [$Hh $Hlb] with ⟨⟨Hh, -⟩, %H2⟩
-    obtain ⟨Hne, rfl, Hlast, Hab, HDH, HDne, HR, Hpo⟩ := Hpd
+    obtain ⟨Hne, rfl, Hlast0, Hab, HDH, HDne, HR, Hpo⟩ := Hpd
+    obtain ⟨h0, Hlast, Hh0, Hha⟩ := Hlast0
     isplitr
     · ipureintro
       -- `Dc` is between `D` and `H ++ [_]`: within `H` (raises only), or all of it
-      have HHd : DataEq { σ with pend := [] } σp ∨ σp = storAbsorb σ := by
+      have HHd : DataEq { σ with pend := [], hd := h0 } σp ∨ σp = storAbsorb σ := by
         by_cases hlen : Dc.length ≤ H.length
         · left
           have H2' : Dc <+: H := by
@@ -1325,7 +1425,7 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
       iframe Hh
       iexists H, D
       iframe HlbD Hep
-      ipureintro; exact ⟨Hne, rfl, Hlast, Hab, HDH, HDne, HR, Hpo⟩
+      ipureintro; exact ⟨Hne, rfl, ⟨h0, Hlast, Hh0, Hha⟩, Hab, HDH, HDne, HR, Hpo⟩
     iexists Dc
     iframe Hd Hlb Hlk
     ipureintro; exact HD
@@ -1430,6 +1530,98 @@ theorem memFlLb_view (γs : MemStorNames) (σ : StorState) (x : w64) :
     iframe HlbD Hep
     ipureintro; exact Hpd
 
+/-- (2026-10-29, stage U8) **The owner reads a hold witness** against its view and the lock's
+contents `σ0`: the index is within the view's hold, and an entry the contents have there is the
+view's once its batch is appended (below a pending batch, or the contents already past it). -/
+theorem memHdLb_view (γs : MemStorNames) (σ σ0 : StorState) (x t : w64)
+    (Ht : termAt σ0.prev σ0.ents x = some t) (Hge : uint.Z σ0.prev.index' ≤ uint.Z x) :
+    ⊢ memView (GF := GF) γs σ -∗ memInvGhost γs σ0 -∗ memHdLb γs x -∗
+      ⌜uint.Z x ≤ uint.Z σ.hd ∧ termAt σ.prev (storApp σ σ.pend) x = some t⌝ ∗
+      memView γs σ ∗ memInvGhost γs σ0 := by
+  iintro Hv Hg #Hx
+  icases memView_agree γs σ σ0 $$ Hv Hg with ⟨%Hmv, Hv, Hg⟩
+  obtain ⟨Hvp, -, Hve, Hvi⟩ := Hmv
+  rw [Hvp] at Ht Hge
+  iunfold memHdLb at Hx
+  icases Hx with ⟨%D, %L, #Hdlb, #Hhlb, %HL⟩
+  obtain ⟨HDL, HDne, HR, -, w, hw, hx⟩ := HL
+  unfold memView
+  icases Hv with ⟨%hist, %Hok, Hv⟩
+  unfold memInvGhost
+  icases Hg with ⟨%Dc, Hd, #Hlbc, %HD, Hlk⟩
+  icases monoAuthLb_keep γs.done _ Dc D $$ [$Hd $Hdlb] with ⟨⟨Hd, -⟩, %H1⟩
+  icases Hv with (⟨Hh, %Hidle, HDw, Hep⟩ | ⟨Hh, %H, %D', %Hpd, #HlbD, Hep⟩)
+  · icases monoAuthLb_keep γs.hist _ hist L $$ [$Hh $Hhlb] with ⟨⟨Hh, -⟩, %Hpre⟩
+    isplitr
+    · ipureintro
+      refine ⟨Int.le_trans hx (Hok.last_mono_hd Hpre hw Hidle.2), ?_⟩
+      rw [Hidle.1]
+      show termAt σ.prev σ.ents x = some t
+      rw [← Hvi Hidle.1]; exact Ht
+    isplitl [Hh HDw Hep]
+    · iexists hist
+      isplitr
+      · ipureintro; exact Hok
+      ileft
+      iframe Hh HDw Hep
+      ipureintro; exact Hidle
+    iexists Dc
+    iframe Hd Hlbc Hlk
+    ipureintro; exact HD
+  · icases monoAuthLb_keep γs.hist _ hist L $$ [$Hh $Hhlb] with ⟨⟨Hh, -⟩, %Hpre⟩
+    icases monoAuthLb_keep γs.hist _ hist Dc $$ [$Hh $Hlbc] with ⟨⟨Hh, -⟩, %HDch⟩
+    have Hpd' := Hpd
+    obtain ⟨Hne, Hhist, ⟨h0, Hlast, Hh0, Hha⟩, -, -, -, -, Hpo⟩ := Hpd'
+    subst Hhist
+    isplitr
+    · ipureintro
+      refine ⟨Int.le_trans hx (Hok.last_mono_hd (b := storAbsorb σ) Hpre hw (by simp)), ?_⟩
+      by_cases hlen : Dc.length ≤ H.length
+      · -- the contents lack the batch: `done` within `H`
+        have HDcH : Dc <+: H := by
+          rw [List.prefix_iff_eq_take] at HDch
+          rw [HDch, List.take_append_of_le_length hlen]
+          exact List.take_prefix _ _
+        rcases hdLb_pending HDL HDne HR Hok hw hx Hpre H1 HDcH Hlast with Hb | Hb
+        · -- below the batch
+          have Hb' : ∀ e0, σ.pend.head? = some e0 → uint.Z x < uint.Z e0.Index' ∧
+              uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 :=
+            fun e0 he => ⟨Int.lt_of_le_of_lt Hb (Hha e0 he), (Hpo.2 e0 he).2.1⟩
+          rw [termAt_storApp_below σ σ.pend x Hb' Hge]
+          rcases Hve with He | ⟨-, He⟩
+          · rw [He] at Ht; exact Ht
+          · rw [He, termAt_storApp_below σ σ.pend x Hb' Hge] at Ht
+            exact Ht
+        · -- the witness at the appended state: `H`'s last has its data
+          have Heq : storApp σ σ.pend = σ.ents := Hb.2.1.symm
+          rcases Hve with He | ⟨-, He⟩
+          · rw [Heq, ← He]; exact Ht
+          · rw [← He]; exact Ht
+      · -- the contents are the appended state
+        have : Dc = H ++ [storAbsorb σ] := by
+          obtain ⟨T, hT⟩ := HDch
+          have hl := congrArg List.length hT
+          simp only [List.length_append, List.length_singleton] at hl
+          have hT0 : T = [] := by apply List.eq_nil_of_length_eq_zero; omega
+          subst hT0; simpa using hT
+        subst this
+        simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or] at HD
+        have Hσ0 := Option.some.inj HD.1
+        have He' : σ0.ents = storApp σ σ.pend := by rw [← Hσ0]; rfl
+        rw [← He']; exact Ht
+    isplitl [Hh Hep]
+    · iexists H ++ [storAbsorb σ]
+      isplitr
+      · ipureintro; exact Hok
+      iright
+      iframe Hh
+      iexists H, D'
+      iframe HlbD Hep
+      ipureintro; exact Hpd
+    iexists Dc
+    iframe Hd Hlbc Hlk
+    ipureintro; exact HD
+
 /-- (D19i part 1) The lock holds the entries up to a floor witness's `x`: the history only raised
 the floor since the witness's `D`, or the contents are past the witness, at a floor at least
 `x`, which every state holds. -/
@@ -1475,7 +1667,7 @@ def memTermsAt (γs : MemStorNames) (ts : List w64) : IProp GF :=
   iprop(∃ (D L : List StorState),
     monoListLbOwn γs.done D ∗ monoListLbOwn γs.hist L ∗
     ⌜D <+: L ∧ D ≠ [] ∧ RaiseOnly D (L.drop D.length) ∧ HistOk L ∧
-      ∃ w, L.getLast? = some w ∧ (ts.length : Int) ≤ uint.Z w.fl ∧ TermsOn w ts⌝)
+      ∃ w, L.getLast? = some w ∧ (ts.length : Int) ≤ uint.Z w.hd ∧ TermsOn w ts⌝)
 
 instance memTermsAt_persistent (γs : MemStorNames) (ts : List w64) :
     Persistent (memTermsAt (GF := GF) γs ts) := by
@@ -1484,7 +1676,7 @@ instance memTermsAt_persistent (γs : MemStorNames) (ts : List w64) :
 omit package_sem in
 /-- (stage U4a) **The owner vouches for the terms within its floor**, with nothing pending. -/
 theorem memStorage_terms (ms : Loc) (γs : MemStorNames) (σ : StorState) (ts : List w64)
-    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) :
+    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.hd) (Ht : TermsOn σ ts) :
     ⊢ ownMemoryStorage (GF := GF) ms γs σ -∗ ownMemoryStorage ms γs σ ∗ memTermsAt γs ts := by
   iintro Hown
   iunfold ownMemoryStorage at Hown
@@ -1563,6 +1755,126 @@ theorem memTermsAt_lock (γs : MemStorNames) (σp : StorState) (ts : List w64) :
   iexists Dc
   iframe Hd Hlb Hlk
   ipureintro; exact HD
+
+/-- (2026-10-29, stage U8) **The terms vouched for before the append** (`storTermsPre` of the
+instance; persistent): a history of the owner's whose last state (the view with its batch
+appended) has the terms `ts` within its hold. Once the batch is appended (any receipt,
+`memTermsAt_receipt`), they are the storage's. -/
+def memTermsPre (γs : MemStorNames) (ts : List w64) : IProp GF :=
+  iprop(∃ L : List StorState, monoListLbOwn γs.hist L ∗
+    ⌜HistOk L ∧ ∃ w, L.getLast? = some w ∧ (ts.length : Int) ≤ uint.Z w.hd ∧ TermsOn w ts⌝)
+
+instance memTermsPre_persistent (γs : MemStorNames) (ts : List w64) :
+    Persistent (memTermsPre (GF := GF) γs ts) := by
+  unfold memTermsPre; infer_instance
+
+omit package_sem in
+/-- (stage U8) **The owner vouches for the terms its view will have**, with its batch appended,
+within its hold. -/
+theorem memStorage_termsPre (ms : Loc) (γs : MemStorNames) (σ : StorState) (ts : List w64)
+    (Hl : (ts.length : Int) ≤ uint.Z σ.hd) (Ht : TermsOn (storAbsorb σ) ts) :
+    ⊢ ownMemoryStorage (GF := GF) ms γs σ -∗ ownMemoryStorage ms γs σ ∗ memTermsPre γs ts := by
+  iintro Hown
+  iunfold ownMemoryStorage at Hown
+  iNamed Hown
+  unfold memView
+  icases Hview with ⟨%hist, %Hok, Hv⟩
+  icases Hv with (⟨Hh, %Hidle, HD, Hep⟩ | ⟨Hh, %H, %D, %Hpd, #HlbD, Hep⟩)
+  · ihave #Hlbh := monoListLbOwn_get γs.hist _ hist $$ Hh
+    isplitl [Hh HD Hep Hsn]
+    · unfold ownMemoryStorage memView
+      simp only [named]
+      iframe Hinit Hmu Hsn
+      isplitl [Hh HD Hep]
+      · iexists hist
+        isplitr
+        · ipureintro; exact Hok
+        ileft
+        iframe Hh HD Hep
+        ipureintro; exact Hidle
+      ipureintro; exact Hbounded
+    iunfold memTermsPre
+    iexists hist
+    iframe Hlbh
+    ipureintro
+    have Hab : storAbsorb σ = σ := by
+      cases σ; simp only at Hidle; obtain ⟨h1, -⟩ := Hidle; subst h1; rfl
+    rw [Hab] at Ht
+    exact ⟨Hok, σ, Hidle.2, Hl, Ht⟩
+  · ihave #Hlbh := monoListLbOwn_get γs.hist _ hist $$ Hh
+    isplitl [Hh Hep Hsn]
+    · unfold ownMemoryStorage memView
+      simp only [named]
+      iframe Hinit Hmu Hsn
+      isplitl [Hh Hep]
+      · iexists hist
+        isplitr
+        · ipureintro; exact Hok
+        iright
+        iframe Hh
+        iexists H, D
+        iframe HlbD Hep
+        ipureintro; exact Hpd
+      ipureintro; exact Hbounded
+    iunfold memTermsPre
+    iexists hist
+    iframe Hlbh
+    ipureintro
+    obtain ⟨-, rfl, -⟩ := Hpd
+    exact ⟨Hok, storAbsorb σ, by simp, Hl, Ht⟩
+
+/-- (stage U8) **The receipt of an append makes the terms vouched for the storage's**: the
+receipt's halves of `done` and `hist` are at the whole history, so `done` is past the record,
+which the history's last keeps. -/
+theorem memTermsAt_receipt (ms : Loc) (γs : MemStorNames) (ts : List w64) (σ : StorState)
+    (p : List EntryM) :
+    ⊢ memTermsPre (GF := GF) γs ts -∗ memAppendedTok ms γs σ p -∗
+      memAppendedTok ms γs σ p ∗ memTermsAt γs ts := by
+  iintro #Hpre Ht
+  iunfold memTermsPre at Hpre
+  icases Hpre with ⟨%L, #HL, %HLok⟩
+  obtain ⟨-, w, hw, hlen, Hton⟩ := HLok
+  iunfold memAppendedTok at Ht
+  icases Ht with ⟨%H, %D, Hdone, Hhist, Hep, %Hbnd, %Hhok⟩
+  icases monoAuthLb_keep γs.hist _ _ L $$ [$Hhist $HL] with ⟨⟨Hhist, -⟩, %Hpre⟩
+  ihave #Hdlb := monoListLbOwn_get γs.done _ _ $$ Hdone
+  ihave #Hhlb := monoListLbOwn_get γs.hist _ _ $$ Hhist
+  isplitl [Hdone Hhist Hep]
+  · unfold memAppendedTok
+    iexists H, D
+    iframe Hdone Hhist Hep
+    ipureintro; exact ⟨Hbnd, Hhok⟩
+  iunfold memTermsAt
+  iexists H ++ [storAbsorb { σ with pend := p }], H ++ [storAbsorb { σ with pend := p }]
+  iframe Hdlb Hhlb
+  ipureintro
+  have hw' : (H ++ [storAbsorb { σ with pend := p }]).getLast? =
+      some (storAbsorb { σ with pend := p }) := by simp
+  have Hk := Hhok.last_kept Hpre hw hw'
+  have Hhd := Hhok.last_mono_hd Hpre hw hw'
+  refine ⟨List.prefix_refl _, by simp, by rw [List.drop_length]; exact RaiseOnly.nil _, Hhok,
+    _, hw', Int.le_trans hlen Hhd, fun j t hj hts => ?_⟩
+  have hjl : uint.Z j ≤ (ts.length : Int) := by
+    have := (List.getElem?_eq_some_iff.1 hts).1
+    have := word.unsigned_range j
+    have : uint.nat j = (uint.Z j).toNat := rfl
+    omega
+  rw [Hk.2 j (Int.le_trans hjl hlen) hj]
+  exact Hton j t (Int.lt_of_le_of_lt Hk.1 hj) hts
+
+/-- (stage U8) The terms vouched for give the hold's witness at their length. -/
+theorem memTermsAt_hdLb (γs : MemStorNames) (ts : List w64) (x : w64)
+    (hx : uint.Z x ≤ (ts.length : Int)) :
+    memTermsAt (GF := GF) γs ts ⊢ memHdLb γs x := by
+  iintro H
+  iunfold memTermsAt at H
+  icases H with ⟨%D, %L, #Hd, #Hl, %HL⟩
+  iunfold memHdLb
+  iexists D, L
+  iframe Hd Hl
+  ipureintro
+  obtain ⟨h1, h2, h3, h4, w, hw, hl, -⟩ := HL
+  exact ⟨h1, h2, h3, h4, w, hw, Int.le_trans hx hl⟩
 
 /-- (D19i part 1) The storage's boundary has reached `n` (`storCut` of the instance): a lower
 bound of the lock's counter `bd`. -/
@@ -1656,9 +1968,13 @@ appended state and its authority splits with the token (D19i part 1), the writer
 and half of `ep` (at the new hand-out) go to the token. No lock: the invariant only holds a lower
 bound of `hist`. -/
 theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
-    (p : List EntryM) (Hpo : σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p) :
+    (p : List EntryM) (h : w64)
+    (Hpo : σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p ∧ uint.Z σ.hd ≤ uint.Z h ∧
+      uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int)) :
     ⊢ ownMemoryStorage (GF := GF) ms γs σ ==∗
-      ownMemoryStorage ms γs { σ with pend := p } ∗ memAppendTok ms γs σ p := by
+      ownMemoryStorage ms γs { σ with pend := p, hd := h } ∗
+      memAppendTok ms γs { σ with hd := h } p := by
+  obtain ⟨Hp0, Hpok, Hpab, Hhab, Hhle, Hhlast⟩ := Hpo
   iintro Hown
   iunfold ownMemoryStorage at Hown
   iNamed Hown
@@ -1666,33 +1982,30 @@ theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
   icases Hview with ⟨%hist, %Hok, Hv⟩
   icases Hv with (⟨Hh, %Hidle, ⟨%D, Hw, %HDh⟩, %v, Hep⟩ | ⟨-, %H, %D, %Hpd, -, -⟩)
   rotate_left
-  · exact absurd Hpo.1 Hpd.1
+  · exact absurd Hp0 Hpd.1
   ihave #HlbD := monoListLbOwn_get γs.done _ D $$ Hw
-  have Hσ : ({ { σ with pend := p } with pend := [] } : StorState) = σ := by
-    rw [← Hpo.1]
-  have Hok' : HistOk (hist ++ [storAbsorb { σ with pend := p }]) := by
-    refine Hok.snoc (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Int.le_refl _) ?_ ?_ rfl ?_
-    · -- (stage U4a) the batch starts above the floor: the entries within it are kept
+  have Hσ0 : ({ ({ σ with pend := p, hd := h } : StorState) with pend := [], hd := σ.hd } :
+      StorState) = σ := by
+    cases σ; simp only at Hp0; subst Hp0; rfl
+  have Hσ1 : ({ ({ σ with hd := h } : StorState) with hd := σ.hd } : StorState) = σ := rfl
+  have Hsfl := (Hok.2 σ (List.mem_of_getLast? Hidle.2)).1
+  have Hok' : HistOk (hist ++ [storAbsorb { σ with pend := p, hd := h }]) := by
+    refine Hok.snoc (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Int.le_refl _)
+      (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Hhle) ?_ ?_ rfl ?_
+    · -- the batch starts above the hold: the entries within it are kept
       intro w hw
       rw [Hidle.2] at hw; cases hw
       refine ⟨Int.le_refl _, fun j hj hb => ?_⟩
       simp only [storAbsorb]
-      exact termAt_storApp_below { σ with pend := p } p j (fun e0 he =>
-        ⟨Int.lt_of_le_of_lt hj (Hpo.2.2 e0 he), ((Hpo.2.1.2 e0 he).2.1)⟩) (Int.le_of_lt hb)
-    rotate_left
-    · exact PlogWf_storApp σ p (Hok.2 σ (List.mem_of_getLast? Hidle.2)).2.2 Hpo.2.1.2
-    obtain ⟨Hne, Hh0⟩ := Hpo.2.1
-    cases hp : p with
-    | nil => exact absurd hp Hne
-    | cons e0 rest =>
-      have H1 := Hpo.2.2 e0 (by rw [hp]; rfl)
-      have H2 := Hh0 e0 (by rw [hp]; rfl)
-      simp only [EtcdGrove.stLast, storAbsorb, storApp, List.length_append, List.length_take,
-        List.length_cons]
-      omega
-  imod monoListAuthOwn_update_app [storAbsorb { σ with pend := p }] $$ Hh with ⟨Hh, -⟩
+      exact termAt_storApp_below { σ with pend := p, hd := h } p j (fun e0 he =>
+        ⟨Int.lt_of_le_of_lt hj (Hhab e0 he), ((Hpok.2 e0 he).2.1)⟩) (Int.le_of_lt hb)
+    · refine ⟨Int.le_trans Hsfl.1 Hhle, ?_⟩
+      simp only [EtcdGrove.stLast, storAbsorb, storApp_pend]
+      exact Hhlast
+    · exact PlogWf_storApp σ p (Hok.2 σ (List.mem_of_getLast? Hidle.2)).2.2 Hpok.2
+  imod monoListAuthOwn_update_app [storAbsorb { σ with pend := p, hd := h }] $$ Hh with ⟨Hh, -⟩
   icases (monoAuth_halves γs.hist _).1 $$ Hh with ⟨Hh1, Hh2⟩
-  imod ghostVar_update ({ σ with pend := p }, hist, D) γs.ep v $$ Hep with Hep
+  imod ghostVar_update ({ σ with pend := p, hd := h }, hist, D) γs.ep v $$ Hep with Hep
   icases ghostVar_split γs.ep _ (1 : Qp).half (1 : Qp).half $$ [Hep] with ⟨Hep1, Hep2⟩
   · rw [Qp.half_add_half]; iexact Hep
   imodintro
@@ -1701,7 +2014,7 @@ theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
     simp only [named]
     iframe Hinit Hmu Hsn
     isplitl [Hh1 Hep1]
-    · iexists hist ++ [storAbsorb { σ with pend := p }]
+    · iexists hist ++ [storAbsorb { σ with pend := p, hd := h }]
       isplitr
       · ipureintro; exact Hok'
       iright
@@ -1709,9 +2022,9 @@ theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
       iexists hist, D
       iframe HlbD Hep1
       ipureintro
-      refine ⟨Hpo.2.1.1, rfl, by rw [Hσ]; exact Hidle.2, Hpo.2.2, HDh.1, HDh.2.1, HDh.2.2, ?_⟩
-      obtain ⟨Hne, Hh0⟩ := Hpo.2.1
-      exact ⟨Hne, fun e0 he => by simpa using Hh0 e0 he⟩
+      refine ⟨Hpok.1, rfl, ⟨σ.hd, by rw [Hσ0]; exact Hidle.2, Hhle, Hhab⟩, Hpab, HDh.1, HDh.2.1,
+        HDh.2.2, ?_⟩
+      exact ⟨Hpok.1, fun e0 he => by simpa using Hpok.2 e0 he⟩
     ipureintro; exact Hbounded
   unfold memAppendTok
   simp only [named]
@@ -1719,7 +2032,8 @@ theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
   iexists hist, D
   iframe Hw Hh2 Hep2
   ipureintro
-  exact ⟨Hidle.2, Hpo.1, Hpo.2.1, Hpo.2.2, HDh.1, HDh.2.1, HDh.2.2, Hok'⟩
+  exact ⟨⟨σ.hd, by rw [Hσ1]; exact Hidle.2, Hhle, Hhab⟩, Hp0, ⟨Hpok.1, fun e0 he => by
+    simpa using Hpok.2 e0 he⟩, Hpab, HDh.1, HDh.2.1, HDh.2.2, Hok'⟩
 
 /-- The absorb law for a `MemoryStorage` (`isStorageWith`'s `Habsorb`): the receipt's
 half of `ep` agrees with the owner's (so it is of this hand-out), and its halves of `done` and
@@ -1732,7 +2046,7 @@ theorem memStorage_absorb (ms : Loc) (γs : MemStorNames) (σ1 σ : StorState)
   iunfold ownMemoryStorage at Hown
   iNamed Hown
   iunfold memAppendedTok at Ht
-  icases Ht with ⟨%Ht, %Dt, Hdone, Hhist, Hept, %Hbnd⟩
+  icases Ht with ⟨%Ht, %Dt, Hdone, Hhist, Hept, %Hbnd, -⟩
   unfold memView
   icases Hview with ⟨%hist, %Hok, Hv⟩
   icases Hv with (⟨-, -, -, %v, Hep⟩ | ⟨Hh, %H, %D, %Hpd, -, Hep⟩)
@@ -1778,11 +2092,12 @@ theorem memStorage_absorb (ms : Loc) (γs : MemStorNames) (σ1 σ : StorState)
 /-- (D19i part 1) **The floor law** for a `MemoryStorage` (`isStorageWith`'s `Hfloor`): with
 nothing pending, the owner records the state at the new floor in `hist` (no lock: `done` lags by
 floor raises), and hands out the witness. -/
-theorem memStorage_floor (ms : Loc) (γs : MemStorNames) (σ : StorState) (x : w64)
-    (Hx : σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧
-      uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) :
+theorem memStorage_floor (ms : Loc) (γs : MemStorNames) (σ : StorState) (x h : w64)
+    (Hx : σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧ uint.Z σ.hd ≤ uint.Z h ∧ uint.Z x ≤ uint.Z h ∧
+      uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) ∧
+      (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int))) :
     ⊢ ownMemoryStorage (GF := GF) ms γs σ ==∗
-      ownMemoryStorage ms γs { σ with fl := x } ∗ memFloorTok ms γs x := by
+      ownMemoryStorage ms γs { σ with fl := x, hd := h } ∗ memFloorTok ms γs x := by
   iintro Hown
   iunfold ownMemoryStorage at Hown
   iNamed Hown
@@ -1793,12 +2108,17 @@ theorem memStorage_floor (ms : Loc) (γs : MemStorNames) (σ : StorState) (x : w
   · exact absurd Hx.1 Hpd.1
   obtain ⟨HDpre, HDne, HR⟩ := HDh
   ihave #HlbD := monoListLbOwn_get γs.done _ D $$ Hw
-  have Hok' : HistOk (hist ++ [{ σ with fl := x }]) :=
+  have Hok' : HistOk (hist ++ [{ σ with fl := x, hd := h }]) :=
     Hok.snoc (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Hx.2.1)
+      (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Hx.2.2.1)
       (fun w hw => by rw [Hidle.2] at hw; cases hw; exact FloorKept.of_data rfl rfl)
-      (by simp only [EtcdGrove.stLast]; exact Hx.2.2) Hidle.1
+      ⟨Hx.2.2.2.1, by
+        rcases Hx.2.2.2.2.2 with hh | hh
+        · have := (Hok.2 σ (List.mem_of_getLast? Hidle.2)).1.2
+          simp only [EtcdGrove.stLast] at this ⊢; rw [hh]; exact this
+        · simp only [EtcdGrove.stLast]; exact hh⟩ Hidle.1
       (Hok.2 σ (List.mem_of_getLast? Hidle.2)).2.2
-  have HR' : RaiseOnly D ((hist ++ [{ σ with fl := x }]).drop D.length) := by
+  have HR' : RaiseOnly D ((hist ++ [{ σ with fl := x, hd := h }]).drop D.length) := by
     rw [List.drop_append_of_le_length HDpre.length_le]
     intro w hw
     rcases List.mem_append.1 hw with hw | hw
@@ -1809,15 +2129,16 @@ theorem memStorage_floor (ms : Loc) (γs : MemStorNames) (σ : StorState) (x : w
         cases hD : D.getLast? with
         | none => rw [List.getLast?_eq_none_iff] at hD; exact absurd hD HDne
         | some a => exact ⟨a, rfl⟩
-      exact ⟨a, ha, (DataEq.fl σ x).trans (RaiseOnly.last HDpre HR ha Hidle.2)⟩
-  imod monoListAuthOwn_update_app [{ σ with fl := x }] $$ Hh with ⟨Hh, #Hlbh⟩
+      exact ⟨a, ha, (show DataEq { σ with fl := x, hd := h } σ from
+        ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩).trans (RaiseOnly.last HDpre HR ha Hidle.2)⟩
+  imod monoListAuthOwn_update_app [{ σ with fl := x, hd := h }] $$ Hh with ⟨Hh, #Hlbh⟩
   imodintro
   isplitl [Hh Hw Hep Hsn]
   · unfold ownMemoryStorage memView
     simp only [named]
     iframe Hinit Hmu Hsn
     isplitl [Hh Hw Hep]
-    · iexists hist ++ [{ σ with fl := x }]
+    · iexists hist ++ [{ σ with fl := x, hd := h }]
       isplitr
       · ipureintro; exact Hok'
       ileft
@@ -1835,10 +2156,10 @@ theorem memStorage_floor (ms : Loc) (γs : MemStorNames) (σ : StorState) (x : w
   unfold memFloorTok
   simp only [named]
   iframe Hinit Hmu
-  iexists D, hist ++ [{ σ with fl := x }]
+  iexists D, hist ++ [{ σ with fl := x, hd := h }]
   iframe HlbD Hlbh
   ipureintro
-  exact ⟨HDpre.trans (List.prefix_append _ _), HDne, HR', Hok', { σ with fl := x },
+  exact ⟨HDpre.trans (List.prefix_append _ _), HDne, HR', Hok', { σ with fl := x, hd := h },
     by simp, Int.le_refl _⟩
 
 end proof

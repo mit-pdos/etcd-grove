@@ -82,8 +82,9 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
             sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
            (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
             uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
+            -- (2026-10-29, stage U8) at most the hold, an entry of the view with its batch
+            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.hd ∧
+            termAt σ.prev (storApp σ σ.pend) sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
         -- (D22 S-b′2, 2026-10-20) a non-empty one certified in the registry
         (⌜sv.Metadata'.Index' = W64 0⌝ ∨
           memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists)))) }}) ∧

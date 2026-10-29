@@ -171,6 +171,35 @@ instance committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List Lo
     Persistent (committedEntriesAt (GF := GF) sl base ce) := by
   unfold committedEntriesAt; infer_instance
 
+
+/-- **The storage holds a committed log `l`** (2026-10-29, stage U8; the design's `storHoldsLb`,
+`notes/spec-first-study/raft-node-unified-candidate.md` §4): its entries above its boundary have
+`l`'s terms, for good (`storTermsAt` of a list of terms `l`'s are a prefix of). What
+`MemoryStorage.CreateSnapshot.unifiedSpec` takes (at the instance, `memTermsAt`); a `Ready`'s
+append receipt gives it (`appendHold_receipt`), as `Advance` does. Persistent. -/
+def storHoldsLb (st : Storage) (l : List LogEntry) : IProp GF :=
+  iprop(∃ ts : List w64, storTermsAt st ts ∗ ⌜l.map LogEntry.term <+: ts⌝)
+
+instance storHoldsLb_persistent (st : Storage) (l : List LogEntry) :
+    Persistent (storHoldsLb (GF := GF) st l) := by
+  unfold storHoldsLb; infer_instance
+
+theorem storHoldsLb_mono (st : Storage) (l1 l2 : List LogEntry) (h : l1 <+: l2) :
+    storHoldsLb (GF := GF) st l2 ⊢ storHoldsLb st l1 := by
+  unfold storHoldsLb
+  iintro ⟨%ts, #H, %Hp⟩
+  iexists ts
+  iframe H
+  ipureintro; exact (List.IsPrefix.map _ h).trans Hp
+
+theorem storHoldsLb_of_terms (st : Storage) (l : List LogEntry) :
+    storTermsAt (GF := GF) st (l.map LogEntry.term) ⊢ storHoldsLb st l := by
+  unfold storHoldsLb
+  iintro #H
+  iexists _
+  iframe H
+  ipureintro; exact List.prefix_refl _
+
 end iprop
 
 end EtcdGrove

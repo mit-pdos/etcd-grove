@@ -194,6 +194,17 @@ structure StorState [GooseExts] where
   and the method triples answer accordingly (`ErrCompacted` possible below `fl`). `0` for a
   fresh storage. -/
   fl : w64 := 0
+  /-- (2026-10-29, stage U8) The **hold** raft has promised: the storage keeps its entries up to
+  this index (no later append rewrites one, no snapshot applied falls below it:
+  `MemoryStorage.ApplySnapshot`'s premise), and the application may take a snapshot up to it
+  (`CreateSnapshot`), but not compact above the floor. Raft raises it to its commit index when a
+  `Ready` hands out its entries (`Hhandout`, with the batch: the entries the application appends
+  are held once appended), and with the floor (`Hfloor`). So a snapshot the application takes
+  mid-`Ready`, after appending its entries and before `Advance`, is at most the hold, which raft
+  keeps at most its commit index (`FlOk`). The design's `storHoldMark`
+  (`notes/spec-first-study/raft-node-unified-candidate.md` §4, K1), as a field of the owner's
+  view. `0` for a fresh storage. -/
+  hd : w64 := 0
 
 /-- The term of index `i` in the log `prev :: ents`. `none` outside the range the
 storage can answer for. -/
@@ -207,86 +218,6 @@ the terms `ts`: index `j` the term `ts[j-1]`. -/
 def TermsOn [GooseExts] (σ : StorState) (ts : List w64) : Prop :=
   ∀ (j t : w64), uint.Z σ.prev.index' < uint.Z j → ts[uint.nat j - 1]? = some t →
     termAt σ.prev σ.ents j = some t
-
-/-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
-of the development, not an assumption: abstract because the implementation is not
-raft's and is not in scope, so every result holds for whichever predicate the client
-proves `isStorageWith` for (`MemstorageInstance.lean` does it for `MemoryStorage`).
-Exclusive (not persistent) by intent, because a `Storage` is mutable -- `Append` and
-`Compact` change it; nothing assumes otherwise. There is deliberately no global
-instance: one would specialise every result to it. Until 2026-10-08 `ownStorage` was an
-`axiom`, which fixed one unknown predicate that no client could ever establish. -/
-class StorageModel (GF : BundledGFunctors) [GooseExts] where
-  ownStorage : Storage → StorState → IProp GF
-  /-- `appendTok st σ p` (2026-10-10): the application's right to append the batch `p`
-  to the storage `st`, handed out at the state `σ` (with nothing pending) by the
-  hand-out law (`isStorageWith`'s `Hhandout`). An implementation's own `Append` consumes
-  it (`MemoryStorage.Append`, `Spec/.../MemoryStorage__Append.lean`). -/
-  appendTok : Storage → StorState → List EntryM → IProp GF
-  /-- `appendedTok st σ p`: the application did append `p` (what `Append` returns); the
-  absorb law (`Habsorb`) gives it back to the storage's owner, whose state then holds
-  the batch. -/
-  appendedTok : Storage → StorState → List EntryM → IProp GF
-  /-- `storCut st n` (D19i part 1, 2026-10-18): the storage's true compaction boundary has
-  reached `n` (persistent; the boundary only rises). What an `ErrCompacted` answer, or a first
-  index above raft's view, tells raft: the storage is compacted, so its snapshot is not the
-  empty one (`HSnapshot`). -/
-  storCut : Storage → Int → IProp GF
-  storCut_persistent : ∀ st n, Persistent (storCut st n)
-  /-- `storFloor st x`: the floor raft published (`StorState.fl`) is at least `x`
-  (persistent): the application's right to compact, and to take a snapshot, up to `x`. The
-  floor law (`Hfloor`) hands it out. -/
-  storFloor : Storage → w64 → IProp GF
-  storFloor_persistent : ∀ st x, Persistent (storFloor st x)
-  /-- `storCap st k` (2026-10-19, D21 M3): the storage's true compaction boundary never passes `k`
-  (persistent), so no `storCut st n` fact is above it (`storCut_cap`). An application that never
-  compacts past `k` gives it (a `MemoryStorage` made with that cap, `MemStorNames.cap`); with it
-  and `k ≤ 1` a leader in the no-snapshot mode never falls back to a snapshot (`NGhost.ns`). -/
-  storCap : Storage → Int → IProp GF
-  storCap_persistent : ∀ st k, Persistent (storCap st k)
-  storCut_cap : ∀ st n k, storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
-  /-- `storCert st k` (D22 S-b′2, 2026-10-20): the snapshot `k` (id, lists, `AutoLeave`) is
-  **certified** in the storage's own registry (persistent): every non-empty snapshot the storage
-  holds is, and `HSnapshot` hands it out with the snapshot. γ-free, as the rest of the model: what
-  a certificate *says* (`raftSnapCert γ k`) is tied to it by an invariant the application
-  allocates knowing raft's names (`storCertOk`, `SnapConf.lean`). -/
-  storCert : Storage → SnapTrip → IProp GF
-  storCert_persistent : ∀ st k, Persistent (storCert st k)
-  /-- `storTermsAt st ts` (2026-10-28, stage U4a): the storage's entries at the indices `1..|ts|`
-  above its boundary have the terms `ts` (index `j` the term `ts[j-1]`), for good (persistent): the
-  owner vouched for them within its floor (`storTermsAt_intro`), and the storage never rewrites an
-  entry within the floor (an append starts above it, a snapshot applied puts the boundary at or
-  above it). What `MemoryStorage.CreateSnapshot.unifiedSpec` reads the term of its index from. -/
-  storTermsAt : Storage → List w64 → IProp GF
-  storTermsAt_persistent : ∀ st ts, Persistent (storTermsAt st ts)
-  /-- Its introduction (stage U4a): the owner, with nothing pending, vouches for the terms of its
-  view's entries within its floor (`TermsOn`). -/
-  storTermsAt_intro : ∀ (st : Storage) (σ : StorState) (ts : List w64),
-    σ.pend = [] → (ts.length : Int) ≤ uint.Z σ.fl → TermsOn σ ts →
-    ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
-
-export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert
-  storTermsAt)
-
-instance storCut_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (n : Int) : Persistent (storCut (GF := GF) st n) :=
-  StorageModel.storCut_persistent st n
-
-instance storFloor_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (x : w64) : Persistent (storFloor (GF := GF) st x) :=
-  StorageModel.storFloor_persistent st x
-
-instance storCap_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (k : Int) : Persistent (storCap (GF := GF) st k) :=
-  StorageModel.storCap_persistent st k
-
-instance storCert_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (k : SnapTrip) : Persistent (storCert (GF := GF) st k) :=
-  StorageModel.storCert_persistent st k
-
-instance storTermsAt_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
-    (ts : List w64) : Persistent (storTermsAt (GF := GF) st ts) :=
-  StorageModel.storTermsAt_persistent st ts
 
 section termAt
 variable [GooseExts]
@@ -336,7 +267,115 @@ what the application may have compacted or snapshotted. Raft hands out entries f
 def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
   ∀ e0, p.head? = some e0 → uint.Z σ.fl < uint.Z e0.Index'
 
+/-- (2026-10-29, stage U8) The batch starts above the hold (`StorState.hd`) at its hand-out: an
+append never rewrites a held entry. Raft hands out entries from `offsetInProgress`, above its
+hold (`FlOk`). -/
+def HdAbove (σ : StorState) (p : List EntryM) : Prop :=
+  ∀ e0, p.head? = some e0 → uint.Z σ.hd < uint.Z e0.Index'
+
 end termAt
+
+/-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
+of the development, not an assumption: abstract because the implementation is not
+raft's and is not in scope, so every result holds for whichever predicate the client
+proves `isStorageWith` for (`MemstorageInstance.lean` does it for `MemoryStorage`).
+Exclusive (not persistent) by intent, because a `Storage` is mutable -- `Append` and
+`Compact` change it; nothing assumes otherwise. There is deliberately no global
+instance: one would specialise every result to it. Until 2026-10-08 `ownStorage` was an
+`axiom`, which fixed one unknown predicate that no client could ever establish. -/
+class StorageModel (GF : BundledGFunctors) [GooseExts] where
+  ownStorage : Storage → StorState → IProp GF
+  /-- `appendTok st σ p` (2026-10-10): the application's right to append the batch `p`
+  to the storage `st`, handed out at the state `σ` (with nothing pending) by the
+  hand-out law (`isStorageWith`'s `Hhandout`). An implementation's own `Append` consumes
+  it (`MemoryStorage.Append`, `Spec/.../MemoryStorage__Append.lean`). -/
+  appendTok : Storage → StorState → List EntryM → IProp GF
+  /-- `appendedTok st σ p`: the application did append `p` (what `Append` returns); the
+  absorb law (`Habsorb`) gives it back to the storage's owner, whose state then holds
+  the batch. -/
+  appendedTok : Storage → StorState → List EntryM → IProp GF
+  /-- `storCut st n` (D19i part 1, 2026-10-18): the storage's true compaction boundary has
+  reached `n` (persistent; the boundary only rises). What an `ErrCompacted` answer, or a first
+  index above raft's view, tells raft: the storage is compacted, so its snapshot is not the
+  empty one (`HSnapshot`). -/
+  storCut : Storage → Int → IProp GF
+  storCut_persistent : ∀ st n, Persistent (storCut st n)
+  /-- `storFloor st x`: the floor raft published (`StorState.fl`) is at least `x`
+  (persistent): the application's right to compact, and to take a snapshot, up to `x`. The
+  floor law (`Hfloor`) hands it out. -/
+  storFloor : Storage → w64 → IProp GF
+  storFloor_persistent : ∀ st x, Persistent (storFloor st x)
+  /-- `storCap st k` (2026-10-19, D21 M3): the storage's true compaction boundary never passes `k`
+  (persistent), so no `storCut st n` fact is above it (`storCut_cap`). An application that never
+  compacts past `k` gives it (a `MemoryStorage` made with that cap, `MemStorNames.cap`); with it
+  and `k ≤ 1` a leader in the no-snapshot mode never falls back to a snapshot (`NGhost.ns`). -/
+  storCap : Storage → Int → IProp GF
+  storCap_persistent : ∀ st k, Persistent (storCap st k)
+  storCut_cap : ∀ st n k, storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
+  /-- `storCert st k` (D22 S-b′2, 2026-10-20): the snapshot `k` (id, lists, `AutoLeave`) is
+  **certified** in the storage's own registry (persistent): every non-empty snapshot the storage
+  holds is, and `HSnapshot` hands it out with the snapshot. γ-free, as the rest of the model: what
+  a certificate *says* (`raftSnapCert γ k`) is tied to it by an invariant the application
+  allocates knowing raft's names (`storCertOk`, `SnapConf.lean`). -/
+  storCert : Storage → SnapTrip → IProp GF
+  storCert_persistent : ∀ st k, Persistent (storCert st k)
+  /-- `storTermsAt st ts` (2026-10-28, stage U4a): the storage's entries at the indices `1..|ts|`
+  above its boundary have the terms `ts` (index `j` the term `ts[j-1]`), for good (persistent): the
+  owner vouched for them within its hold (`storTermsAt_intro`; 2026-10-29, stage U8: the hold, at
+  least the floor, until then the floor), and the storage never rewrites an entry within the hold
+  (an append starts above it, a snapshot applied puts the boundary at or above it). What
+  `MemoryStorage.CreateSnapshot.unifiedSpec` reads the term of its index from. -/
+  storTermsAt : Storage → List w64 → IProp GF
+  storTermsAt_persistent : ∀ st ts, Persistent (storTermsAt st ts)
+  /-- Its introduction (stage U4a): the owner, with nothing pending, vouches for the terms of its
+  view's entries within its hold (`TermsOn`). -/
+  storTermsAt_intro : ∀ (st : Storage) (σ : StorState) (ts : List w64),
+    σ.pend = [] → (ts.length : Int) ≤ uint.Z σ.hd → TermsOn σ ts →
+    ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
+  /-- `storTermsPre st ts` (2026-10-29, stage U8): the owner vouched for the terms `ts` within
+  its hold, at a state whose batch may still be pending (persistent): once the batch is
+  appended (its receipt, `storTermsAt_receipt`), they are the storage's (`storTermsAt`). What a
+  `Ready` that hands out entries gives the application for its committed log, so that it may
+  take a snapshot of it before `Advance`. -/
+  storTermsPre : Storage → List w64 → IProp GF
+  storTermsPre_persistent : ∀ st ts, Persistent (storTermsPre st ts)
+  /-- Its introduction: the owner vouches for the terms its view will have once the batch is
+  appended (`storAbsorb σ`), within its hold. -/
+  storTermsPre_intro : ∀ (st : Storage) (σ : StorState) (ts : List w64),
+    (ts.length : Int) ≤ uint.Z σ.hd → TermsOn (storAbsorb σ) ts →
+    ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsPre st ts)
+  /-- With the receipt of the append (of whichever batch), the terms vouched for are the
+  storage's. -/
+  storTermsAt_receipt : ∀ (st : Storage) (ts : List w64) (σ : StorState) (p : List EntryM),
+    storTermsPre st ts ∗ appendedTok st σ p ⊢ |==> (appendedTok st σ p ∗ storTermsAt st ts)
+
+export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert
+  storTermsAt storTermsPre)
+
+instance storCut_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (n : Int) : Persistent (storCut (GF := GF) st n) :=
+  StorageModel.storCut_persistent st n
+
+instance storFloor_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (x : w64) : Persistent (storFloor (GF := GF) st x) :=
+  StorageModel.storFloor_persistent st x
+
+instance storCap_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (k : Int) : Persistent (storCap (GF := GF) st k) :=
+  StorageModel.storCap_persistent st k
+
+instance storCert_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (k : SnapTrip) : Persistent (storCert (GF := GF) st k) :=
+  StorageModel.storCert_persistent st k
+
+instance storTermsAt_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (ts : List w64) : Persistent (storTermsAt (GF := GF) st ts) :=
+  StorageModel.storTermsAt_persistent st ts
+
+instance storTermsPre_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (ts : List w64) : Persistent (storTermsPre (GF := GF) st ts) :=
+  StorageModel.storTermsPre_persistent st ts
+
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -507,14 +546,16 @@ def isStorageWith (P : StorState → IProp GF)
           (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
            ⌜((σ.prev.index' ≠ W64 0 ∨ 1 ≤ n) → sv.Metadata'.Index' ≠ W64 0) ∧
              -- the view's snapshot, or (D19i part 1) a newer one the application made, at
-             -- most the floor, at an entry of the view
+             -- most the floor, at an entry of the view; (2026-10-29, stage U8) at most the hold,
+             -- at an entry of the view with its batch appended (the application may take it
+             -- after appending a `Ready`'s entries, before raft absorbs them)
              ((snapId sv = σ.ss ∧
                sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
                sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
               (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
                uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-               uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-               termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
+               uint.Z sv.Metadata'.Index' ≤ uint.Z σ.hd ∧
+               termAt σ.prev (storApp σ σ.pend) sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
            -- (D22 S-b′2, 2026-10-20) a non-empty one is certified in the storage's registry
            (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SC (snapTrip sv sv.Metadata'.ConfState'.lists)))) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
@@ -531,17 +572,23 @@ def isStorageWith (P : StorState → IProp GF)
        `storAbsorb`; the receipt fixes which state the batch was handed out at.
 
      `PendOk` is what the hand-out asks of the batch. -/
-  "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List EntryM),
-     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ ==∗ P { σ with pend := p } ∗ AT σ p) ∗
+  -- (2026-10-29, stage U8) the hold raised to `h`, within the log once the batch is appended
+  "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List EntryM) (h : w64),
+     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p ∧ uint.Z σ.hd ≤ uint.Z h ∧
+       uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int)⌝ ==∗
+     P { σ with pend := p, hd := h } ∗ AT { σ with hd := h } p) ∗
   "#Habsorb" ∷ □ (∀ (σ1 σ : StorState) (p : List EntryM),
      P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)) ∗
   /- **The floor** (D19i part 1, 2026-10-18): with nothing pending, the owner raises the floor
      to `x`, at most the view's last index, and hands out the witness `FW x`, the application's
      right to compact and snapshot up to `x` (`StorState.fl`). -/
-  "#Hfloor" ∷ □ (∀ (σ : StorState) (x : w64),
-     P σ -∗ ⌜σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧
-       uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ==∗
-     P { σ with fl := x } ∗ FW x))
+  -- (2026-10-29, stage U8) and the hold to `h`, at least the floor (`x = σ.fl` raises the hold
+  -- alone: a `Ready` that hands out no entries)
+  "#Hfloor" ∷ □ (∀ (σ : StorState) (x h : w64),
+     P σ -∗ ⌜σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧ uint.Z σ.hd ≤ uint.Z h ∧ uint.Z x ≤ uint.Z h ∧
+       uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) ∧
+       (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int))⌝ ==∗
+     P { σ with fl := x, hd := h } ∗ FW x))
 
 /-- The contract against the abstract `ownStorage`: what every client of the interface
 assumes. -/
@@ -604,34 +651,76 @@ def appendRight (st : Storage) (p : List EntryM) : IProp GF :=
 def appendReceipt (st : Storage) (p : List EntryM) : IProp GF :=
   iprop(⌜p = []⌝ ∨ ∃ σ, appendedTok st σ p)
 
-/-- The hand-out law at a batch that may be empty: for `[]` nothing happens (the state
-already has nothing pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs
-for the entries a `Ready` hands out. -/
-theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM)
-    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p)) :
+/-- The hand-out law at a batch that may be empty: for `[]` the floor law raises the hold alone
+(the state has nothing pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs for the
+entries a `Ready` hands out. (2026-10-29, stage U8) The hold raised to `h`, within the log once the
+batch is appended. -/
+theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM) (h : w64)
+    (Hpo : σ.pend = [] ∧ uint.Z σ.hd ≤ uint.Z h ∧ uint.Z σ.fl ≤ uint.Z h ∧
+      uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int) ∧
+      (p ≠ [] → PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p)) :
     ⊢ isStorage (GF := GF) st -∗ ownStorage st σ ==∗
-      ownStorage st { σ with pend := p } ∗ appendRight st p := by
+      ownStorage st { σ with pend := p, hd := h } ∗ appendRight st p := by
   iintro #Hst HS
   unfold appendRight
+  unfold isStorage isStorageWith
+  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab, #Hfl⟩
   by_cases Hne : p = []
-  · have Hσ : ({ σ with pend := p } : StorState) = σ := by
-      rw [Hne, ← Hpo.1]
-    rw [Hσ]
+  · subst Hne
+    have Hh : uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) := by
+      simpa [storApp] using Hpo.2.2.2.1
+    have Hpre : σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z σ.fl ∧ uint.Z σ.hd ≤ uint.Z h ∧
+        uint.Z σ.fl ≤ uint.Z h ∧ uint.Z σ.fl ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) ∧
+        (h = σ.hd ∨ uint.Z h ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) :=
+      ⟨Hpo.1, Int.le_refl _, Hpo.2.1, Hpo.2.2.1, Int.le_trans Hpo.2.2.1 Hh, .inr Hh⟩
+    imod Hfl $$ %σ %σ.fl %h HS %Hpre with ⟨HS, -⟩
+    have Hσ : ({ σ with fl := σ.fl, hd := h } : StorState) = { σ with pend := [], hd := h } := by
+      rw [← Hpo.1]
+    rw [Hσ] at *
     imodintro
     iframe HS
     ileft
-    ipureintro
-    exact Hne
-  unfold isStorage isStorageWith
-  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab, #Hfl⟩
-  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ $$ []
-  · ipureintro; exact ⟨Hpo.1, (Hpo.2 Hne).1, (Hpo.2 Hne).2⟩
-  imod Hho $$ HS Hpo' with ⟨HS, Htok⟩
+    ipureintro; rfl
+  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p ∧ HdAbove σ p ∧ uint.Z σ.hd ≤ uint.Z h ∧
+      uint.Z h ≤ uint.Z σ.prev.index' + ((storApp σ p).length : Int)⌝ $$ []
+  · ipureintro
+    exact ⟨Hpo.1, (Hpo.2.2.2.2 Hne).1, (Hpo.2.2.2.2 Hne).2.1, (Hpo.2.2.2.2 Hne).2.2, Hpo.2.1,
+      Hpo.2.2.2.1⟩
+  imod Hho $$ %σ %p %h HS Hpo' with ⟨HS, Htok⟩
   imodintro
   iframe HS
   iright
-  iexists σ
+  iexists { σ with hd := h }
   iexact Htok
+
+/-- (2026-10-29, stage U8) What a `Ready` that hands out the entries `es` gives the application of
+the storage's terms `ts` (its committed log's): with no entries, the storage's (`storTermsAt`);
+with entries, the owner's word for them once appended (`storTermsPre`). Persistent. -/
+def appendHold (st : Storage) (es : List EntryM) (ts : List w64) : IProp GF :=
+  iprop((⌜es = []⌝ ∗ storTermsAt st ts) ∨ (⌜es ≠ []⌝ ∗ storTermsPre st ts))
+
+instance appendHold_persistent (st : Storage) (es : List EntryM) (ts : List w64) :
+    Persistent (appendHold (GF := GF) st es ts) := by
+  unfold appendHold; infer_instance
+
+/-- **The append receipt gives the terms** (2026-10-29, stage U8): after appending a `Ready`'s
+entries, the storage's terms are what the `Ready` vouched for. -/
+theorem appendHold_receipt (st : Storage) (es : List EntryM) (ts : List w64) :
+    ⊢ appendHold (GF := GF) st es ts -∗ appendReceipt st es ==∗
+      appendReceipt st es ∗ storTermsAt st ts := by
+  iintro #Hh Hr
+  unfold appendHold appendReceipt
+  icases Hh with (⟨%He, #Ht⟩ | ⟨%He, #Hp⟩)
+  · imodintro
+    iframe Ht Hr
+  · icases Hr with (%Hr | ⟨%σ, Hr⟩)
+    · exact absurd Hr He
+    imod StorageModel.storTermsAt_receipt st ts σ es $$ [$Hp $Hr] with ⟨Hr, Ht⟩
+    imodintro
+    iframe Ht
+    iright
+    iexists σ
+    iexact Hr
 
 end proof
 
