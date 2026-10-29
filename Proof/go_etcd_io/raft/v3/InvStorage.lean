@@ -38,6 +38,7 @@ module
 public import Proof.go_etcd_io.raft.v3.InvPbLog
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.SavedProp
+public import Perennial.Ghost.GhostMap
 public import Perennial.GooseLang.Countable
 
 @[expose] public section
@@ -66,6 +67,10 @@ structure StorState [GooseExts] where
   fl : w64 := 0
   fr : Nat := 0
   sg : Nat := 0
+  /-- (U8 v2, the snapshot's bound) the terms raft certified at committed indices (the authority of
+  `raftDL`, raft's reading of the contract's `DL`): every key at most `committed`, of the log's term
+  there (`DtOk`, `InvRaftlog.lean`) -/
+  dt : GMap Nat w64 := ∅
 
 /-- The term of index `i` in the log `prev :: ents`. `none` outside the range the
 storage can answer for. -/
@@ -182,7 +187,11 @@ cannot name:
 
 - `SV sv`, what a non-empty stored snapshot is (the API's `snapshotValid γ`);
 - `Bnd c`, why the storage is compacted at most to `c` (the API's `∃ k, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ
-  id k ∨ snapGiven γ id k)`).
+  id k ∨ snapGiven γ id k)`);
+- `DL i`, why a stored snapshot at index `i` is at most what raft has committed (the API's: the
+  node's delivered committed prefix reaches `i`, `deliveredLogLb`, or a snapshot raft handed out
+  does, `snapGiven`). (U8 v2, 2026-10-29: `maybeSendSnapshot`'s commit bound, `SnapOk`, does not
+  follow from the snapshot's validity alone: a leader's commit index may lag the cluster's.)
 
 Raft's API module fixes both (`isStorage γ id st`); no client supplies them. Persistent.
 
@@ -200,7 +209,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See above. -/
-def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (st : Storage) : IProp GF :=
+def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF)
+    (st : Storage) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
   "#HLastIndex" ∷ (∀ (e : Nat),
@@ -243,13 +253,13 @@ def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (st : Stor
          ⌜err = esu⌝ ∨
          (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
            ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
-           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SV sv)) }}) ∗
+           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SV sv ∗ DL (uint.nat sv.Metadata'.Index'))) }}) ∗
   "#Hbound" ∷ □ (∀ (c : Nat), storCompacted st c ={⊤}=∗ Bnd c) ∗
   "#Hlen" ∷ □ (∀ (k : Nat) (dq : DFrac) (es : List EntryM),
      storLog st k dq es -∗ ⌜es = [] ∨ k + es.length ≤ 2^61⌝ ∗ storLog st k dq es))
 
-instance isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (st : Storage) :
-    Persistent (isStorageP SV Bnd st) := by
+instance isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF)
+    (st : Storage) : Persistent (isStorageP SV Bnd DL st) := by
   unfold isStorageP; infer_instance
 
 end rangeContract
@@ -285,12 +295,26 @@ def svCert (sn : StorNames) (sv : SnapshotM) : IProp GF :=
 instance svCert_pers (sn : StorNames) (sv : SnapshotM) : Persistent (svCert (GF := GF) sn sv) := by
   unfold svCert; infer_instance
 
-/-- The contract as raft's log holds it: for some `SV` (pinned at `sn.gsv`) and `Bnd` (read as
-`raftBnd sn`), `SV` persistent. What `newLogWithSize` takes. -/
+/-- (U8 v2) Raft's reading of the contract's `DL i` for a valid snapshot of term `t`: raft certified
+the term `t` at `i` (`sn.gd`, whose authority keeps every key at most `committed` and of the log's
+term there: `DtOk`), or `i` is strictly below a snapshot raft handed out (`sn.gg`, so below the
+compaction point raft holds). -/
+def raftDL (sn : StorNames) (i : Nat) (t : w64) : IProp GF :=
+  iprop(i ↪[sn.gd]□ t ∨ ∃ (k : Nat), ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k)
+
+instance raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL (GF := GF) sn i t) := by
+  unfold raftDL; infer_instance
+
+/-- The contract as raft's log holds it: for some `SV` (pinned at `sn.gsv`), `Bnd` (read as
+`raftBnd sn`) and `DL` (read, with a valid snapshot's term, as `raftDL sn`), `SV` persistent. What
+`newLogWithSize` takes. -/
 def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
-  iprop(∃ (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF), isStorageP SV Bnd st ∗
+  iprop(∃ (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF),
+    isStorageP SV Bnd DL st ∗
     savedPredOwn sn.gsv DFrac.discard SV ∗ □ (∀ (sv : SnapshotM), SV sv -∗ □ SV sv) ∗
-    □ (∀ (c : Nat), Bnd c -∗ raftBnd sn c))
+    □ (∀ (c : Nat), Bnd c -∗ raftBnd sn c) ∗
+    □ (∀ (sv : SnapshotM), SV sv -∗ DL (uint.nat sv.Metadata'.Index') ={⊤}=∗
+      raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term'))
 
 instance isStorageV_pers (sn : StorNames) (st : Storage) : Persistent (isStorageV (GF := GF) sn st) := by
   unfold isStorageV; infer_instance
@@ -298,7 +322,8 @@ instance isStorageV_pers (sn : StorNames) (st : Storage) : Persistent (isStorage
 /-- The authorities raft keeps for its view: of the applied lower bounds (at `fl`) and of the
 snapshot handed out (at `sg`). Kept also while the ranges are lent (`lentStor`). -/
 def storAuths (sn : StorNames) (σ : StorState) : IProp GF :=
-  iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg)
+  iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗
+    ghostMapAuth sn.gd 1 σ.dt)
 
 /-- **What raft holds of its storage for its view `σ`**: the compaction point `c = prev.index`
 (`storCompacted`), the frozen prefix `[c, fr]` (the dummy `e0` at `c`, of `prev`'s term: (T)), its
@@ -421,7 +446,8 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
            ⌜((σ.prev.index' ≠ W64 0 ∨ 1 ≤ n) → sv.Metadata'.Index' ≠ W64 0) ∧
              uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
              n ≤ uint.Z sv.Metadata'.Index'⌝ ∗
-           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SC sv))) }}))
+           (⌜sv.Metadata'.Index' = W64 0⌝ ∨
+            SC sv ∗ ⌜σ.dt.lookup (uint.nat sv.Metadata'.Index') = some sv.Metadata'.Term'⌝))) }}))
 
 /-- The read triples of the view raft holds. -/
 def isStorage (sn : StorNames) (st : Storage) : IProp GF :=

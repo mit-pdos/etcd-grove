@@ -138,24 +138,40 @@ theorem view_bound (sn : StorNames) (st : Storage) (σ : StorState) (Bnd : Nat �
       storAuths sn σ -∗ storCompacted st c ={⊤}=∗
       storAuths sn σ ∗ ⌜c ≤ uint.nat σ.fl ∨ c ≤ σ.sg⌝ := by
   unfold storAuths raftBnd
-  iintro #Hb #Hc ⟨Ha, Hg⟩ #Hcomp
+  iintro #Hb #Hc ⟨Ha, Hg, Hd⟩ #Hcomp
   imod Hb $$ %c Hcomp with HB
   icases Hc $$ %c HB with ⟨%k, %Hk, (#Hl | #Hl)⟩
   · icases monoNatLbOwn_valid sn.ga 1 _ _ $$ Ha Hl with ⟨%_, %Hle⟩
     imodintro
-    iframe Ha Hg
+    iframe Ha Hg Hd
     ipureintro; left; omega
   · icases monoNatLbOwn_valid sn.gg 1 _ _ $$ Hg Hl with ⟨%_, %Hle⟩
     imodintro
-    iframe Ha Hg
+    iframe Ha Hg Hd
     ipureintro; right; omega
+
+/-- (U8 v2) The contract's `DL`, read by raft at its view: a valid snapshot at or past the
+compaction point raft holds, of index `i` and term `t`, is one whose term raft certified at `i`
+(`σ.dt`): the other reading, `i` below a snapshot handed out, is below the compaction point
+(`sg ≤ prev.index`). -/
+theorem view_dl (sn : StorNames) (σ : StorState) (i : Nat) (t : w64)
+    (Hsg : σ.sg ≤ uint.nat σ.prev.index') (Hi : uint.nat σ.prev.index' ≤ i) :
+    ⊢ storAuths (GF := GF) sn σ -∗ raftDL sn i t -∗
+      storAuths sn σ ∗ ⌜σ.dt.lookup i = some t⌝ := by
+  unfold storAuths raftDL
+  iintro ⟨Ha, Hg, Hd⟩ (#Hl | ⟨%k, %Hk, #Hl⟩)
+  · icases ghost_map_lookup $$ Hd Hl with %Hlk
+    iframe Ha Hg Hd
+    ipureintro; exact Hlk
+  · icases monoNatLbOwn_valid sn.gg 1 _ _ $$ Hg Hl with ⟨%_, %Hle⟩
+    exfalso; omega
 
 /-- **The read triples of raft's view, from the contract.** -/
 theorem isStorage_of_V (sn : StorNames) (st : Storage) :
     isStorageV (GF := GF) sn st ⊢ isStorage sn st := by
   iintro #HV
   unfold isStorageV
-  icases HV with ⟨%SV, %Bnd, #HP, #Hpin, #HSVp, #Hconv⟩
+  icases HV with ⟨%SV, %Bnd, %DL, #HP, #Hpin, #HSVp, #Hconv, #Hdl⟩
   unfold isStorageP
   icases HP with ⟨%i, %Hi, #HL, #HT, #HE, #HF, #HS, #Hb, #Hlen⟩
   unfold isStorage isStorageWith
@@ -387,14 +403,51 @@ theorem isStorage_of_V (sn : StorNames) (st : Storage) :
         by_cases Hle : n.toNat ≤ uint.nat σ.prev.index'
         · rw [Nat.max_eq_left Hle]; iexact Hcomp
         · rw [Nat.max_eq_right (by omega)]; iexact Hn
+    iapply wp_fupd
     wp_apply HS $$ %(max (uint.nat σ.prev.index') n.toNat) %esu [$Hc $Hesu] as %snap %err Hres
+    icases Hres with (%Hres | ⟨%Herr, %sv, Hsv, %Hix, Hval⟩)
+    · imodintro
+      iapply HΦ
+      isplitl [HO Hend Hau]
+      · iexists e0
+        iframe Hcomp HFr HO Hau Hend
+        ipureintro; exact Hw
+      ileft; ipureintro; exact Hres
+    icases Hval with (%H0 | ⟨Hv0, HD⟩)
+    · imodintro
+      iapply HΦ
+      isplitl [HO Hend Hau]
+      · iexists e0
+        iframe Hcomp HFr HO Hau Hend
+        ipureintro; exact Hw
+      iright
+      isplitr
+      · ipureintro; exact Herr
+      iexists sv
+      iframe Hsv
+      have h5 := uint_nat_eq sv.Metadata'.Index'
+      isplitr
+      · ipureintro
+        refine ⟨?_, by omega, ?_⟩
+        · intro Hc0 H0
+          have hz : uint.nat sv.Metadata'.Index' = 0 := by rw [H0]; rfl
+          rcases Hc0 with Hc0 | Hc0
+          · apply Hc0
+            apply uint_Z_inj.1
+            have : uint.Z (W64 0) = 0 := rfl
+            omega
+          · omega
+        · by_cases h : n ≤ 0 <;> omega
+      ileft; ipureintro; exact H0
+    ihave #Hv := HSVp $$ Hv0
+    imod Hdl $$ %sv Hv HD with #Hrd
+    icases view_dl sn σ _ _ Hw.2.2.2.2 (by omega) $$ Hau Hrd with ⟨Hau, %Hlk⟩
+    imodintro
     iapply HΦ
     isplitl [HO Hend Hau]
     · iexists e0
       iframe Hcomp HFr HO Hau Hend
       ipureintro; exact Hw
-    icases Hres with (%Hres | ⟨%Herr, %sv, Hsv, %Hix, Hval⟩)
-    · ileft; ipureintro; exact Hres
     iright
     isplitr
     · ipureintro; exact Herr
@@ -413,13 +466,13 @@ theorem isStorage_of_V (sn : StorNames) (st : Storage) :
           omega
         · omega
       · by_cases h : n ≤ 0 <;> omega
-    icases Hval with (%H0 | Hv)
-    · ileft; ipureintro; exact H0
     iright
-    unfold svCert
-    iexists SV
-    iframe Hpin
-    iapply HSVp $$ Hv
+    isplitr
+    · unfold svCert
+      iexists SV
+      iframe Hpin
+      imodintro; iexact Hv
+    ipureintro; exact Hlk
 
 end derive
 

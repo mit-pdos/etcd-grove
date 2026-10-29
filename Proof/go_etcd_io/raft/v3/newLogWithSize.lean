@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize sn σ lok Hidx Hpe Hlg Hmax Hfl0 Hfr0 Hsg0
+  intro st lg maxSize sn σ lok Hidx Hpe Hlg Hmax Hfl0 Hfr0 Hsg0 Hdt0
   subst Hlg
   wp_start as ⟨#Hsto, HStorage, #Hlg⟩
   ihave #Hsto2 : isStorage sn st $$ [Hsto]
@@ -116,7 +116,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
       refine ⟨Hfl0, by simp, by word, fun e0 He0 => by simp [Hpe] at He0, fun h => absurd rfl h,
         fun h => absurd rfl h⟩
     isplitr
-    · ipureintro; exact ⟨fun _ => by rw [Hfr0]; exact Nat.le_max_left _ _, Hsg0⟩
+    · ipureintro; exact ⟨fun _ => by rw [Hfr0]; exact Nat.le_max_left _ _, Hsg0, by rw [Hdt0]; exact DtOk.empty _⟩
     -- (D22 S-d1b) not lent, no window, no snapshot in progress
     isplitr
     · ipureintro; first | exact trivial | (intro h; cases h)

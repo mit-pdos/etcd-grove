@@ -267,6 +267,8 @@ structure StorNames where
   ga : Nat := 0
   gg : Nat := 0
   gsv : Nat := 0
+  /-- (U8 v2, the snapshot's bound) the terms raft certified at committed indices (`raftDL`) -/
+  gd : Nat := 0
 
 structure LogState [GooseExts] where
   prev : entryID

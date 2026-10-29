@@ -37,10 +37,11 @@ package-level variable -- or a `nil` error and a fresh, owned snapshot, non-empt
 - a pending snapshot (`LogState.snap`), cloned: one the node may send (`ksn`), the log's base,
   at or below `committed`;
 - (U8 v2, candidate 17 rev 3) the storage's (`Storage.Snapshot()`): at or past the log's
-  boundary, and valid (`svCert`, the contract's `snapshotValid` as raft carries it). Until U8 v2
-  this branch also related the snapshot to raft's log (commit bound and term, through the
-  storage's state raft owned, `StoredSnapOk`) and to the certificate registry (`storCert`); the
-  storage's snapshot is now the client's, and what it is comes from its validity.
+  boundary, valid (`svCert`, the contract's `snapshotValid` as raft carries it), and -- from the
+  contract's `DL`, read as a term raft certified at a committed index (`raftDL`, `DtOk`) -- at or
+  below `committed`, with the log's term at its index. Until U8 v2 the commit bound and term came
+  from the storage's state raft owned (`StoredSnapOk`), the certificate from the registry
+  (`storCert`); the storage's snapshot is now the client's.
 
 The premise: the log is compacted (its boundary non-zero), or the storage is (`storPast`), so a
 storage snapshot is non-empty. The log comes back at the same state. -/
@@ -59,7 +60,10 @@ abbrev raftLog.snapshot.spec : Prop :=
             uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
             plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
               = some sv.Metadata'.Term'⌝ ∨
-         (⌜ls.snap = none ∧ uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+         (⌜ls.snap = none ∧ uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+            plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
+              = some sv.Metadata'.Term'⌝ ∗
            svCert ls.sn sv)))) }}
 
 end spec

@@ -65,8 +65,8 @@ abbrev newLogWithSize.spec : Prop :=
   0 < uint.Z maxSize →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  -- (U8 v2) frozen only at the compaction point, no snapshot handed out
-  σ.fr = uint.nat σ.prev.index' → σ.sg = 0 →
+  -- (U8 v2) frozen only at the compaction point, no snapshot handed out, no term certified
+  σ.fr = uint.nat σ.prev.index' → σ.sg = 0 → σ.dt = ∅ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage sn st ∗
       ownStorage sn st σ ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))

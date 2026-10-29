@@ -286,12 +286,23 @@ theorem raftLog.append.wp_proof
         show logTruncInprogress ls e0.Index' = uv'.offset'
         apply uint_Z_inj.1
         omega
+    -- (U8 v2) the terms raft certified, at or below `committed`, so below the batch
+    have Hdt2 : DtOk σ.dt (logTruncateAppend ls (e0 :: ents')) := fun i t h => by
+      obtain ⟨h1, h2⟩ := Hfr.2.2 i t h
+      refine ⟨h1, fun hp => ?_⟩
+      show plogTermAt ls.prev (ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat ++
+          (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
+            - (ls.sents.length : Int)).toNat ++ e0 :: ents')) (W64 (i : Int)) = some t
+      rw [Hsplit]
+      have Hi : uint.Z (W64 (i : Int)) = (i : Int) := by
+        have := word.unsigned_range ls.committed; word
+      exact plogTermAt_truncateAppend_below _ _ _ e0 _ t rfl (by rw [Hi]; omega) (h2 hp)
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro (sn := ls.sn) l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat (FrOk.of_le Hfr rfl rfl (Int.le_refl _)) ?_ ?_ ?_ ?_ ?_
+          Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat (FrOk.of_le Hfr rfl rfl (Int.le_refl _) Hdt2) ?_ ?_ ?_ ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩

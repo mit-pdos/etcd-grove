@@ -611,7 +611,8 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
   have Hfr' : FrOk (lendView σ ls)
       (logHanded (lendLog ls)) :=
     ⟨fun h => by simp [logHanded, lendLog] at h,
-      show max σ.sg (uint.nat ls.prev.index') = max ls.sg (uint.nat ls.prev.index') by rw [Hfr.2]⟩
+      show max σ.sg (uint.nat ls.prev.index') = max ls.sg (uint.nat ls.prev.index') by rw [Hfr.2.1],
+      DtOk.of_eq Hfr.2.2 rfl rfl rfl⟩
   have Hprel' : SipOk (logHanded (lendLog ls)) lv.unstable'.offset' :=
     ⟨fun _ => LogPersistRel_full _ _ _, Hprel.2⟩
   imod ownStorage_lend ls.sn lv.storage' σ (max σ.sg (uint.nat ls.prev.index'))
@@ -707,7 +708,7 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (sid : entryID) (e : En
   rw [← Hstor]
   ihave Hau := (lentStor_lent Hlt _ _ _).1 $$ HStorage
   ihave HSt := ownStorage_absorb_snap ls.sn lv.storage' σ sid e ls.stored He
-    (by rw [Hfr.2]; exact Hsg) $$ Hau Hcomp HF HO Hend
+    (by rw [Hfr.2.1]; exact Hsg) $$ Hau Hcomp HF HO Hend
   have Hsn : ls.snap ≠ none := Hlent Hlt
   have Hpend' : PendLogOk (snapView σ sid ls.stored) (logAbsorbSnap ls sid) :=
     ⟨rfl, fun h => absurd h Hsn⟩
@@ -738,7 +739,7 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (sid : entryID) (e : En
       show sid = ls.prev from Hpv.symm, show uint.nat sid.index' = uint.nat ls.prev.index' by
         rw [Hpv], rfl, rfl⟩
   have Hfr' : FrOk (snapView σ sid ls.stored) (logAbsorbSnap ls sid) :=
-    ⟨fun _ => Nat.le_max_left _ _, Hfr.2⟩
+    ⟨fun _ => Nat.le_max_left _ _, Hfr.2.1, DtOk.of_eq Hfr.2.2 rfl rfl rfl⟩
   iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage' (snapView σ sid ls.stored) ls.snap ls.uents
     (logAbsorbSnap ls sid) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied
     Hpapplied Hcommitted Hapg Hip Hipb

@@ -96,7 +96,7 @@ theorem raftLog.restore.wp_proof
         unfold restoreSdt
         cases hsn : ls.snap with
         | none =>
-          simp only [Option.isSome_none, Bool.false_eq_true, false_and, ↓reduceIte]
+          simp only [Option.isSome_none, Bool.false_eq_true, _root_.false_and, ↓reduceIte]
           obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := hsn ▸ Hstore
           obtain ⟨H1, H2⟩ := storTerms_of_inv hsn Hstore Hoffset Hipb Hpersist Hpend Hfl
             (Int.le_trans (Hpapplied hsn) Happlying.1) (Int.le_trans Happlying.2 Hcommitted)
@@ -104,7 +104,7 @@ theorem raftLog.restore.wp_proof
         | some _ =>
           have hs : ls.snap ≠ none := by rw [hsn]; simp
           have He := Hfl.2.2.2.2.1 hs hl
-          simp only [Option.isSome_some, true_and, He.2, ↓reduceIte]
+          simp only [Option.isSome_some, _root_.true_and, He.2, ↓reduceIte]
           exact Hfl.2.2.2.2.2 hs hl⟩
       Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
@@ -114,7 +114,13 @@ theorem raftLog.restore.wp_proof
         have := Happlying.2; have : uint.Z (snapId sv).index' = uint.Z sv.Metadata'.Index' := rfl
         omega⟩)⟩
       (fun h => by simp [logRestore] at h)
-      (FrOk.of_le Hfr rfl rfl (Int.le_refl _)) ?_ ?_ ?_ ?_ ?_
+      (FrOk.of_le Hfr rfl rfl (Int.le_refl _)
+        (DtOk.mono Hfr.2.2 (by show uint.Z ls.committed ≤ uint.Z sv.Metadata'.Index'; omega)
+          (fun i hi hp => by
+            exfalso
+            have : uint.Z (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)).prev.index' =
+              uint.Z sv.Metadata'.Index' := rfl
+            omega))) ?_ ?_ ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
     Int.natCast_zero, Int.add_zero]

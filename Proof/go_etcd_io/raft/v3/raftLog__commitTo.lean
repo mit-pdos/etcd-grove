@@ -45,7 +45,8 @@ theorem raftLog.commitTo.wp_proof
     reseal_raftLog
     all_goals first
       | word
-      | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ (by word) (Hssnap Hs))
+      | exact ⟨Hfr.1, Hfr.2.1, DtOk.mono Hfr.2.2 (by show uint.Z ls.committed ≤ uint.Z tocommit; omega)
+          (fun _ _ h => ⟨h, rfl⟩)⟩
   · iapply HΦ
     rw [plogCommitTo, ite_eq_right (by rw [← Hcm]; exact Hif)]
     iapply Hback $$ Hl

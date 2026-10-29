@@ -162,6 +162,9 @@ theorem raftLog.stableTo.wp_proof
         rcases Hsn0 with h | h
         · exact Hs h
         · rw [(Hsappi h).2.1] at Hsp; cases Hsp
+    · -- the log's terms: the same entries, split elsewhere
+      exact FrOk.of_le Hfr rfl rfl (Int.le_refl _)
+        (DtOk.of_eq Hfr.2.2 rfl (by simp only; rw [List.append_assoc, List.take_append_drop]) rfl)
     · simp only [Hk]
   · -- a miss: nothing changes
     rw [ite_eq_right Hh]

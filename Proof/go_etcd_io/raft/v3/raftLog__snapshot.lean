@@ -115,12 +115,19 @@ theorem raftLog.snapshot.wp_proof
     iframe Hv
     isplitr
     · ipureintro; exact Hnz
-    iright
-    isplitr
-    · ipureintro; rw [← Hp]; exact ⟨rfl, Hsv.2.1⟩
-    icases Hvc with (%Hz | #Hvc)
+    icases Hvc with (%Hz | ⟨#Hvc, %Hdt⟩)
     · exact absurd Hz Hnz
-    · iexact Hvc
+    iright
+    iframe Hvc
+    ipureintro
+    -- (U8 v2) the term raft certified there: at or below `committed`, the log's
+    obtain ⟨Hdc, Hdt'⟩ := Hfr.2.2 _ _ Hdt
+    have Hiv : W64 ((uint.nat sv.Metadata'.Index' : Nat) : Int) = sv.Metadata'.Index' := by
+      apply uint_Z_inj.1; word
+    have Hpi : uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index' := by rw [← Hp]; exact Hsv.2.1
+    have Hc := uint_nat_eq sv.Metadata'.Index'
+    refine ⟨rfl, Hpi, by omega, ?_⟩
+    rw [← Hiv]; exact Hdt' (by omega)
 
 end proof
 

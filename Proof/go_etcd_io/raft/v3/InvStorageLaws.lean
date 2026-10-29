@@ -73,9 +73,10 @@ instance storGiven_pers (sn : StorNames) (k : Nat) : Persistent (storGiven (GF :
   unfold storGiven; infer_instance
 
 /-- The authorities read only `fl` and `sg`. -/
-theorem storAuths_eq (sn : StorNames) (σ σ' : StorState) (h1 : σ'.fl = σ.fl) (h2 : σ'.sg = σ.sg) :
+theorem storAuths_eq (sn : StorNames) (σ σ' : StorState) (h1 : σ'.fl = σ.fl) (h2 : σ'.sg = σ.sg)
+    (h3 : σ'.dt = σ.dt := by rfl) :
     ⊢ storAuths (GF := GF) sn σ -∗ storAuths sn σ' := by
-  unfold storAuths; rw [h1, h2]; iintro H; iexact H
+  unfold storAuths; rw [h1, h2, h3]; iintro H; iexact H
 
 /-- The view's frozen prefix, for good. -/
 theorem ownStorage_frozen (sn : StorNames) (st : Storage) (σ : StorState) :
@@ -174,10 +175,10 @@ theorem ownStorage_floor (sn : StorNames) (st : Storage) (σ : StorState) (x : w
   ihave Hu : (storAuths (GF := GF) sn σ ==∗ storAuths sn { σ with fl := x } ∗
       monoNatLbOwn sn.ga (uint.nat x)) $$ []
   · unfold storAuths
-    iintro ⟨Ha, Hg⟩
+    iintro ⟨Ha, Hg, Hd⟩
     imod mono_nat_own_update (uint.nat x) Hx $$ Ha with ⟨Ha, #Hlb⟩
     imodintro
-    iframe Ha Hg Hlb
+    iframe Ha Hg Hd Hlb
   unfold ownStorage
   icases H with ⟨%e0, #Hcomp, #HFr, HO, Hend, Hau, %Hw⟩
   imod Hu $$ Hau with ⟨Hau, #Hlb⟩
@@ -212,15 +213,16 @@ theorem ownStorage_lend (sn : StorNames) (st : Storage) (σ : StorState) (s : Na
     rw [List.length_drop]; omega
   rw [He]
   unfold storAuths
-  icases Hau with ⟨Ha, Hg⟩
+  icases Hau with ⟨Ha, Hg, Hd⟩
   imod mono_nat_own_update s Hsg $$ Hg with ⟨Hg, #Hlb⟩
   imodintro
-  iframe Ha Hg HO Hend Hlb
+  iframe Ha Hg Hd HO Hend Hlb
 
 /-- Raft's view after a snapshot's `Advance`: at the snapshot `sid`, frozen at it, the log `es`
 after it. -/
 def snapView (σ : StorState) (sid : entryID) (es : List EntryM) : StorState :=
-  { prev := sid, ents := es, pend := [], fl := σ.fl, fr := uint.nat sid.index', sg := σ.sg }
+  { prev := sid, ents := es, pend := [], fl := σ.fl, fr := uint.nat sid.index', sg := σ.sg,
+    dt := σ.dt }
 
 /-- **A snapshot's `Advance`**: the compaction point at the snapshot `sid`, the dummy there (of its
 term) and the log after it, owned, with the end: raft's view becomes the snapshot's, frozen at it. -/
