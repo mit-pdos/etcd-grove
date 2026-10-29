@@ -131,9 +131,6 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hty Hto Hterm Hwf HL
   have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; w32_ne
   have Hnprop : m.Type' ≠ MsgProp := by rw [Hty]; w32_ne
@@ -456,7 +453,6 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-            (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           $$ [$Hphys $Hrc00 Hm] as %err %s1 %dropped ⟨Hphys, -, %Hres, Herrn⟩
         · rw [ite_neg Hnprop]; iframe Hm; iintro %Hc; exact absurd Hc Hnprop
         unfold LeaderStepResultC at Hres
@@ -518,7 +514,6 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
           StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
-  -/
 
 end StepProof
 
