@@ -26,6 +26,12 @@ What the proof needs (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth pl
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Main
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.SetUp
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.newUserClient
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Work
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Principals
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.CheckHistory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.LastIn
 
 @[expose] public section
 
@@ -44,7 +50,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-theorem Main.wp_proof : Main.spec (GF := GF) (hG := hG) := by
+theorem Main.wp_proof
+    (wp_SetUp : SetUp.spec (GF := GF) (hG := hG))
+    (wp_newUserClient : newUserClient.spec (GF := GF) (hG := hG))
+    (wp_Work : Work.spec (GF := GF) (hG := hG))
+    (wp_Principals : Principals.spec (GF := GF) (hG := hG))
+    (wp_CheckHistory : CheckHistory.spec (GF := GF) (hG := hG))
+    (wp_LastIn : LastIn.spec (GF := GF) (hG := hG)) :
+    Main.spec (GF := GF) (hG := hG) := by
   sorry
 
 end proof

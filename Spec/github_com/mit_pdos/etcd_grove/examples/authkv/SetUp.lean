@@ -23,6 +23,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Checks
 public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -73,16 +75,19 @@ instance setupAuthOk_persistent (ep : GoString) Su Sg Sr Sp Se (Q : Fin 8 → IP
     Persistent (setupAuthOk ep Su Sg Sr Sp Se Q) := by
   unfold setupAuthOk; infer_instance
 
-/-- See the file header. `New`'s client `cl` of the server at `ep` (`isNewClient`), whose KV
-methods the server's KV service meets (`kvRegsAt`, D44: what the client's KV calls take), with the caller's update for each set-up put
+/-- See the file header. `New`'s client `cl` of the member at `ep` (`isNewClient`), its `KV` a
+`*kv` over its connection (`clientTokAt`, at any `P`: the set-up's client has no user name), the
+member's `Put` registered with etcd's spec with auth on (`etcdPutSpecOn`, what an auth-on member's
+`etcd_kv_auth_served_on` gives; S5 of `notes/authkv-main-plan.md`: until 2026-10-29 the plain
+`kvRegsAt`, which an auth-on member does not give), with the caller's update for each set-up put
 (`kvOpAu1`, persistent: the put may be delivered several times) and the Auth service's premise
 `setupAuthOk`: `SetUp` returns some revision and `ok`, and if `ok` every admin call's `Q`. -/
 abbrev SetUp.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (cl : Loc) (ep : GoString) (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
-    (cid mid : w64)
+    (cl : Loc) (ep : GoString) (V : client.WEnv GF) (P : GoString → IProp GF) (s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (Su : GrpcSpec (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse)
     (Sg : GrpcSpec (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse)
     (Sr : GrpcSpec (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse)
@@ -90,10 +95,10 @@ abbrev SetUp.spec : Prop :=
     (Se : GrpcSpec (GF := GF) pbAuthEnableRequest pbAuthEnableResponse) (Q : Fin 8 → IProp GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
-      isNewClient cl [ep] V ∗
-      client.kvRegsAt (⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF) ∗
+      isNewClient cl [ep] V ∗ clientTokAt cl [ep] P ∗
+      isGrpcRpcMd ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpecOn s E ρ cid mid) ∗
       iprop(□ ∀ k : GoString, ⌜k ∈ setupKeys⌝ -∗
-        kvOpAu1 γr.kv (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True))) ∗
+        kvOpAu1 ρ.rd.kv (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True))) ∗
       setupAuthOk ep Su Sg Sr Sp Se Q }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.SetUp)) (Val #cl))
   {{ (rev : w64) (ok : Bool), RET (PairV #rev #ok);
