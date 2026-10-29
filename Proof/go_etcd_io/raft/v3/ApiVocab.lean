@@ -247,6 +247,17 @@ def RNMode.isDyn : RNMode → Bool
 stage R5; D6: the data is its bytes; until then `propEntry data_sl`, the Goose value). -/
 def propEntryM (d : List w8) : EntryM := ⟨W64 0, W64 0, W32 0, d⟩
 
+/-- The scalars of the message `Propose`, `confChangeToMsg` and `node.Propose` build,
+`pb.Message{Type: MsgProp, ...}` (2026-10-16, stage R5; until then `propMsg esl`, the Goose
+value with its entries' slice). `Propose`/`node.run` set `From` to the node's id. (Here since
+2026-10-29, from `InvRawnode.lean`.) -/
+def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
+
+/-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
+`pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
+`ccEntry`). -/
+def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM := ⟨W64 0, W64 0, confChangeEntryType o, bs⟩
+
 /-- No conf entry in a range of a prefix is none in the longer log. -/
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
     (hhi : hi ≤ D.length) (h : NoConfIn D lo hi) : NoConfIn F lo hi := by

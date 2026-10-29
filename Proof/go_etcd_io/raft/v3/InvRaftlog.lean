@@ -2037,19 +2037,21 @@ theorem SnpOk.restore {g : NGhost} {ls : LogState} (k : SnapTrip) (H : SnpOk g l
 def SnpKeep (ls ls' : LogState) : Prop :=
   ls'.lent = ls.lent ∧ ls'.sip = ls.sip ∧ ls'.sat = ls.sat ∧ ls'.ksn = ls.ksn ∧
   -- (D22 S-d4 item 3) and what `SnpExt` reads
-  ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying
+  ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying ∧
+  -- (U8 v2) and the storage names (`GhLogOk`'s mirror)
+  ls'.sn = ls.sn
 
-theorem SnpKeep.refl (ls : LogState) : SnpKeep ls ls := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+theorem SnpKeep.refl (ls : LogState) : SnpKeep ls ls := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem SnpOk.keep {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hk : SnpKeep ls ls')
     (hsn : ls'.snap = ls.snap) (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed) : SnpOk g ls' :=
   H.of_fields hk.1 hsn hk.2.1 hk.2.2.1 hk.2.2.2.1 hcm (fun h k hk' hl => by
-    obtain ⟨h1, -, -, -, h5, h6, h7⟩ := hk
+    obtain ⟨h1, -, -, -, h5, h6, h7, -⟩ := hk
     rw [h5, h6, h7, hsn]; rw [h1] at hl; exact h k hk' hl)
 
 theorem logTruncateAppend_snpKeep (ls : LogState) (ents : List EntryM) :
     SnpKeep ls (logTruncateAppend ls ents) := by
-  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- (D22 S-d3b, 2026-10-21) **A truncation's mark**: `offsetInProgress` moved back to `i` by an append
 of `ents` (`raftLog.maybeAppend`'s conflict arm, `unstable.truncateAndAppend`): above the commit

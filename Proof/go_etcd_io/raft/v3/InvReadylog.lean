@@ -156,6 +156,10 @@ theorem logStableTo_storage (ls : LogState) (id : entryID) :
     (logStableTo ls id).storage = ls.storage := by
   unfold logStableTo; split <;> rfl
 
+/-- (U8 v2) ... and the storage names. -/
+theorem logStableTo_sn (ls : LogState) (id : entryID) : (logStableTo ls id).sn = ls.sn := by
+  unfold logStableTo; split <;> rfl
+
 theorem logAcceptApplying_applying (ls : LogState) (ce : List EntryM) (sz : w64)
     (e : EntryM) (He : ce.getLast? = some e) :
     (logAcceptApplying ls ce sz).applying = e.Index' := by
@@ -458,6 +462,10 @@ def logStableSnap (ls : LogState) (i : w64) : LogState :=
   if snapHit ls.snap i then
     { ls with snap := none, sip := false, sapp := false, aps := true, sat := false }
   else ls
+
+/-- (U8 v2) `stableSnapTo` keeps the storage names. -/
+theorem logStableSnap_sn (ls : LogState) (i : w64) : (logStableSnap ls i).sn = ls.sn := by
+  unfold logStableSnap; split <;> rfl
 
 theorem logStableSnap_fields (ls : LogState) (i : w64) :
     (logStableSnap ls i).prev = ls.prev ∧ (logStableSnap ls i).sents = ls.sents ∧

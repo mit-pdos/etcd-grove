@@ -160,9 +160,9 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
     functions stepFollower [] from rfl]
   wp_gets
   have Hnp : ¬ m.Type' = MsgProp := by rw [Hty]; w32_ne
-  ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).logst.storage
+  ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).gh.sn
       m.Type' sn $$ []
-  · iapply tsSrc_ne; notsnap_tac
+  · iapply rcvSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id _ ml m ents sn rs (zero_val _) ctx
       (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

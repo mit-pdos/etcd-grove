@@ -474,7 +474,7 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
-  rw [Hng.2]; iexact Hcl
+  rw [Hng.1]; iexact Hcl
 
 /-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
 acknowledgement: `appliedSnap` switches to the snapshot's). -/
@@ -603,7 +603,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       iframe Hfr' HM
 
       iintro %hcand; iapply Hc'; exact hcand
-    rw [Hng.2]; iexact Hcl
+    rw [Hng.1]; iexact Hcl
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)

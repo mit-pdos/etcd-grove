@@ -190,8 +190,8 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
-    ihave #Hcs : storCert (GF := GF) s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
-    · iunfold tsSrc at Hcert
+    ihave #Hcs : ksnCert (GF := GF) s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+    · iunfold rcvSrc at Hcert
       icases Hcert with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
       · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'; iexact Hc

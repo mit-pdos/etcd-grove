@@ -858,6 +858,25 @@ theorem tsSrc_ksn (sn : StorNames) (ty : w32) (sv : SnapshotM) :
   unfold tsSrc; iintro #H; iright; iexists sv; isplitr; · ipureintro; rfl
   iright; iexact H
 
+/-- (U8 v2, 2026-10-29) What a received message's certificate is, as the node holds it: none is needed
+but a `MsgSnap`'s, whose snapshot's certificate `raft.Step` pinned (`ksnCert`, from the message's
+`raftSnapCertD`, `storCertOk`): what `handleSnapshot` restores with. -/
+def rcvSrc (sn : StorNames) (ty : w32) (snap : Option SnapshotM) : IProp GF :=
+  iprop(⌜ty ≠ MsgSnap⌝ ∨ ∃ sv : SnapshotM, ⌜snap = some sv⌝ ∗
+    ksnCert sn (snapTrip sv sv.Metadata'.ConfState'.lists))
+
+instance rcvSrc_pers (sn : StorNames) (ty : w32) (snap : Option SnapshotM) :
+    Persistent (rcvSrc (GF := GF) sn ty snap) := by
+  unfold rcvSrc; infer_instance
+
+theorem rcvSrc_ne (sn : StorNames) (ty : w32) (snap : Option SnapshotM) (h : ty ≠ MsgSnap) :
+    ⊢ rcvSrc (GF := GF) sn ty snap := by
+  unfold rcvSrc; ileft; ipureintro; exact h
+
+theorem rcvSrc_snap (sn : StorNames) (ty : w32) (sv : SnapshotM) :
+    ⊢ ksnCert (GF := GF) sn (snapTrip sv sv.Metadata'.ConfState'.lists) -∗ rcvSrc sn ty (some sv) := by
+  unfold rcvSrc; iintro #H; iright; iexists sv; iframe H; ipureintro; rfl
+
 /-- A queued message's. -/
 def qSrc (st : StorNames) (q : QMsg) : IProp GF := tsSrc st q.st.msg.Type' q.st.snap
 
@@ -3259,6 +3278,52 @@ macro "wp_raft_logC" : tactic => `(tactic| (
   wp_apply Perennial.EtcdGrove.Logger.wp_logf lok _ _ _ (by decide) $$ Hlg
   iclear Hlg
   try wp_auto))
+
+section lastBound
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The log's last index leaves room for a batch of `2^61` entries (2026-10-14, stage B7 part
+2), as `raft__appendEntry.lean`'s `ownRaftLog_facts`: the stable part is below the storage's
+bound `2^61`, the unstable part a Go slice. (Here since 2026-10-29, from `InvRawnode.lean`.) -/
+theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ⌜uint.Z ls.prev.index' + ((ls.sents ++ ls.uents).length : Int) < 2^61 + 2^63⌝ ∗
+      ownRaftLog l ls := by
+  iintro H0
+  -- (D22 S-d1b) the stable part's bound (the storage may be lent)
+  icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
+  iNamed H0
+  ihave %Hul := entsPts_len _ _ _ $$ Huents
+  isplitr
+  · ipureintro
+    have : (ls.uents.length : Int) < 2^63 := by
+      rw [Hul.1]; have := word.signed_range lv.unstable'.entries'.len; word
+    rw [List.length_append]; push_cast
+    omega
+  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl
+      $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+
+/-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
+theorem ownRaftPhysC_last_bound (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64⌝ ∗
+      ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_log_same c r id s $$ H with ⟨Hlog, Hback⟩
+  icases ownRaftLog_last_bound _ _ $$ Hlog with ⟨%Hb, Hlog⟩
+  ihave H := Hback $$ Hlog
+  iframe H
+  ipureintro
+  simp only [plogLastIndexZ, toPState]
+  omega
+
+end lastBound
 
 end EtcdGrove
 end Perennial

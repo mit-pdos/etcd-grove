@@ -69,7 +69,7 @@ theorem raft.loadState.wp_proof
       [Hl HStorage Huents Huents_cap]
   · reseal_raftLog
     all_goals first
-      | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ Hc.1 (Hssnap Hs))
+      | exact ⟨Hfr.1, Hfr.2.1, DtOk.mono Hfr.2.2 Hc.1 (fun _ _ h => ⟨h, rfl⟩)⟩
       | word
   ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl (hcm := Hc.1))
     %(fun _ => logLast_le_of_fields rfl rfl rfl)

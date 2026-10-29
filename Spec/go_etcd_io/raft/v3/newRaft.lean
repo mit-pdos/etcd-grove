@@ -119,7 +119,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `newRaft(c)`: see the file header. -/
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState)
+    (sn : StorNames) (σ : StorState)
     (hs : HardStateM) (csm : ConfStateM) (R : IProp GF),
   -- the Config
   ConfigValid cv →
@@ -141,7 +141,10 @@ abbrev newRaft.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- the stored log
   LogIndicesOk σ.prev σ.ents →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  -- (U8 v2) raft's view of it fresh: frozen only at the compaction point, no snapshot handed out,
+  -- no term certified (`newLogWithSize`'s); until U8 v2 the storage's own snapshot at most the
+  -- boundary (`σ.ss`)
+  σ.fr = uint.nat σ.prev.index' → σ.sg = 0 → σ.dt = ∅ →
   -- nothing pending (2026-10-10)
   σ.pend = [] →
   -- the persisted HardState
@@ -162,11 +165,11 @@ abbrev newRaft.spec : Prop :=
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- (D22 S-b′3, 2026-10-20) its snapshot, if any, certified in its registry
-      initKsnCert (interface.ok si) σ ∗
-      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+      -- (U8 v2) raft's view of its storage (`newLogWithSize`'s); until U8 v2 also the storage's
+      -- snapshot certified in its registry (`initKsnCert`)
+      isStorage sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
+      (∀ (Φ : val → IProp GF), ownStorage sn (interface.ok si) σ -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage sn (interface.ok si) σ -∗
             R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
@@ -192,8 +195,10 @@ abbrev newRaft.spec : Prop :=
         s.logst.unpersisted = [] ∧ s.logst.snap = none ∧
         -- the storage it reads (2026-10-10, for `RNState.storage`)
         s.logst.storage = interface.ok si ∧
-        -- no ghost lower bound yet (2026-10-10, `NGhost`)
-        s.gh = {} ∧
+        -- (U8 v2) and its names
+        s.logst.sn = sn ∧
+        -- no ghost lower bound yet (2026-10-10, `NGhost`); (U8 v2) the storage names mirrored
+        s.gh = { sn := sn } ∧
         -- no read state (2026-10-13)
         s.rd.states = [] ∧ s.rd.pend = [] ∧
         -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the

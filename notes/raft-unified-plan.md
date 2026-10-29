@@ -405,6 +405,76 @@ Steps 1-2 of it are built (vocabulary and contract; raft's log over it); steps 3
   compaction point at the snapshot, the dummy, `ls.stored` after it and the end, with
   `⌜ls.sg ≤ s⌝`.
 
+Step 3a (the raft level, 2026-10-29):
+
+- **The snapshot's commit bound (2026-10-29, decided by the coordinator: option (A))**. `maybeSendSnapshot`'s
+  `SnapOk` needs the storage's snapshot at or below the *leader's own* commit index and an entry id of
+  its log; the snapshot's validity (`snapshotValid`, a committed prefix of the cluster) does not give
+  the first (a new leader's commit index may lag the cluster's: its client may have frozen and
+  snapshotted entries the cluster committed before it learned so). New: a third cluster-level
+  parameter of the contract, `isStorageP SV Bnd DL st`, and `HSnapshot`'s post
+  `(⌜Index = 0⌝ ∨ SV sv ∗ DL (uint.nat Index))` (old: `SV sv` alone). The API (step 4) fixes `DL i :=
+  (∃ l, deliveredLogLb … l ∗ ⌜i ≤ |l|⌝) ∨ snapGiven … i'` (the node's delivered committed prefix
+  reaches `i`, or a snapshot raft handed out does); the client's `CreateSnapshot(i)` then needs the
+  delivered prefix of length `≥ i` (step 3, MemoryStorage: only noted here). Raft reads it, with the
+  snapshot's validity, as `raftDL sn i t := i ↪[sn.gd]□ t ∨ ∃ k, ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k`
+  (`isStorageV`'s new conversion `□ ∀ sv, SV sv -∗ DL (Index) ={⊤}=∗ raftDL sn Index Term`, at `⊤`
+  so that step 4 may open an invariant): a term raft certified at a committed index, or an index
+  below a snapshot handed out (so below the compaction point raft holds). Internal ghost state:
+  `StorNames.gd` (a ghost map `Nat → w64`, authority `σ.dt` in `storAuths`) and the invariant
+  `DtOk σ.dt ls` (in `FrOk`): every key at most `committed`, of the log's term there once at or past
+  the boundary. Step 4 issues the keys (from the authority, at the delivered indices; `DtOk` gives
+  what it may issue). Raft's derived `HSnapshot` gives `σ.dt.lookup Index = some Term`;
+  `raftLog.snapshot`'s storage branch now also gives `Index ≤ committed` and `plogTermAt … Index =
+  some Term` (as its pending branch did).
+- `newLogWithSize.spec`: also `σ.dt = ∅`.
+- `raftLog.restore.spec`: takes `ksnCert ls.sn (snapTrip sv lists)` (U8 v2 step 2e had dropped the
+  certificate premise; the received snapshot's certificate is kept in the log again, now as a pin:
+  below). `raftLog.snapshot.spec`'s pending branch gives `ksnCert ls.sn (snapTrip sv lists)`.
+- **The snapshots' certificates at raft's level** (old: the storage's registry `storCert st k`, both
+  ways to `raftSnapCertD γ k`, `storCertOk γ st`): two γ-free pins of raft's storage names,
+  `svCert sn sv` (a stored snapshot's validity, the contract's `SV`, pinned at `sn.gsv`) and the new
+  `ksnCert sn k` (a received snapshot's certificate, pinned at the new `StorNames.gk`; `ownRaftLog`'s
+  `#Hkcert ∷ ksnCerts ls.sn ls.ksn`, every snapshot the node may send). `storCertOk γ sn` (now over the
+  names): `svCert sn sv ={E}=∗ raftSnapCertD γ (snapTrip sv lists)`, `ksnCert sn k ={E}=∗
+  raftSnapCertD γ k` and back (`raft.Step`'s `MsgSnap` arm pins the message's). `certLink γ sn :=
+  storCertOk γ sn` (old: `⌜γ.reNoSnap⌝ ∨ storCertOk γ st`); `ghostRest` keys it by `s.gh.sn`.
+- **`NGhost.sn`** (new field, a mirror of `LogState.sn`; `GhLogOk`'s third conjunct `ls.sn = g.sn`):
+  every step keeps the ghost record (`NetFrame`, `LocalFrame`, `SnapStep`), so the certificates the
+  struct and the ghost state hold are keyed by it without new frame conjuncts. `SnpKeep` also keeps
+  `sn`. `LogGhOk.of_snap`/`of_off` take `ls'.sn = s.gh.sn`; `of_fields` has `hsm := by rfl`.
+  `ghost_stepCD(S)`'s and `ownStepGhost_congr`/`ghostRest_keep`'s storage hypotheses are now unused
+  (the latter two's `hst` is `s'.gh.sn = s.gh.sn := by rfl`).
+- `tsSrc st ty snap` → `tsSrc sn ty snap := ⌜ty ≠ MsgSnap⌝ ∨ ∃ sv, ⌜snap = some sv⌝ ∗ (svCert sn sv ∨
+  ksnCert sn (snapTrip sv lists))`; `qSrc(s)` over the names; `ownRaftPhys`'s `Hscert` is `qSrcs s.gh.sn
+  …` (old: of `s.logst.storage`). New `rcvSrc sn ty snap` (only `ksnCert`): `stepFollower`'s and
+  `stepCandidate`'s premise (old: `tsSrc`), which `handleSnapshot`/`raft.restore` (`ksnCert s.gh.sn`,
+  old `storCert s.logst.storage`) consume.
+- **The no-snapshot mode dropped at raft's level** (decision approved by the user via the coordinator):
+  `NsCap ns st := ⌜ns = false⌝` (old: `□ (⌜ns⌝ -∗ storCap st 1)`; name kept for its call sites),
+  so every node has `NGhost.ns = false` and, by `NsLink`, its cluster `reNoSnap = false`; the mode's
+  facts (`LogNsOk`, `PrOkN`'s `PrLo`, the `ns = true` branches) hold vacuously. `ownRaftPhysC_set_ns`
+  (the mode set with the storage's cap) is removed; new `ownRaftPhysC_sn` reads `ns = false` and the
+  names' mirror. `raft.maybeSendSnapshot.spec` no longer takes `s.gh.ns = false` (reachable in every
+  cluster). The other `s.gh.ns = false` premises (`raft.restore`, `handleSnapshot`, `stepFollower`,
+  `raft.Step`'s `MsgSnap → ns = false`, `ReplSends`' last conjunct) are kept: derivable from
+  `ownRaftPhys` now; step 4 removes them with the mode. **What etcd's server loses**: its transport
+  excludes `MsgSnap` (the boot contract's no-snapshot mode); with the mode gone at raft's level a
+  server node is a node of a cluster with `reNoSnap = false`, which may send and receive snapshots,
+  so the server's proof must handle `MsgSnap` or get the exclusion back. **The fallback to put to the
+  user in the client-repair phase**: a client-chosen cap witness `storCompactCap st k` with
+  `storCompacted st c ∗ storCompactCap st k ⊢ ⌜c ≤ k⌝` (a storage that promises never to compact past
+  `k`), which would restore the mode for such clients (not built).
+- `newRaft.spec`: takes `sn`, `isStorage sn st ∗ ownStorage sn st σ` with `σ.fr = prev.index`,
+  `σ.sg = 0`, `σ.dt = ∅` (old: `(σ.ss.index = 0 ∨ σ.ss = σ.prev)` and `initKsnCert`); the
+  `InitialState` triple over `ownStorage sn st σ` at the same `σ` (old: any `ss'`); post
+  `s.logst.sn = sn` and `s.gh = { sn := sn }` (old `s.gh = {}`).
+- Moved, so that raft's level builds without the node level: `propMsgM`, `ccEntryM`
+  (`InvRawnode` → `ApiVocab`), `ownRaftLog_last_bound`, `ownRaftPhysC_last_bound` (`InvRawnode` →
+  `InvRaftPhys`), the generic slice lemmas of `LemmasMemstorage` (→ new `LemmasEnts`).
+  Removed until step 4 restates them: `ApiVocab`'s `readyOut`, `snapReceipt`, `advReceipt` (over the
+  old `StorState`/`appendRight`/`storCert`).
+
 ### What builds, what is broken (at the step-2 commit)
 
 Builds: `InvStorage`, `InvStorageRead`, `InvStorageLaws`, `InvRaftlog`, `InvReadylog`,
@@ -423,25 +493,38 @@ Broken (expected): everything that uses the removed names, i.e.
 - `MemoryStorage` (step 3): `MemstorageInstance`, `InvMemstorage`, `MemCertLink`, `MemoryStorage__*`;
 - the clients (kv, server, examples).
 
+### What builds, what is broken (at the step-3a commit, raft's level)
+
+Builds: everything up to raft's level -- the log level as at step 2, and `StepGhostMode`,
+`InvRaftPhys`, `ApiVocab`, every `raft.*` spec and proof, `raft.Step` with every arm, `stepLeader`,
+`stepFollower`, `stepCandidate`, `newRaft` (no `sorry`, no new axiom; `#print axioms` of
+`raft.Step`, `newRaft`, `raft.{maybeSendSnapshot,restore,appliedTo}`, `raftLog.{snapshot,restore,
+append}` and `isStorage_of_V`: no `sorryAx`, no axiom of this repository's beyond the existing ones).
+Broken (expected): the RawNode/node level (step 4), `MemoryStorage` (step 3), the clients, and the
+raft-level proofs that import node-level modules (`IsEmptySnap`, `IsEmptyHardState`: through
+`InvRawnodeReady`/`InvBoot`/`NewRawNode`; `ConfRule`, `ConfPolicy`, `DecFold`, `ConfchangeApi*`:
+through `InvNode`/`InvApi`), until step 4.
+
 ### What remains (next steps, in order)
 
-1. **Raft level** (`StepGhostMode`, `InvRaftPhys`): `certLink γ st` → over `svCert`:
-   `⌜reNoSnap⌝ ∨ □ (∀ sv E, ⌜↑(raftCertN γ) ⊆ E⌝ -∗ svCert sn sv ={E}=∗ raftSnapCertD γ (snapTrip sv
-   …))`, keyed by `s.logst.sn`; `tsSrc st` → `tsSrc sn` with `svCert sn sv`. The pending
-   snapshot's certificate (what `Hkcert` held for `ksn`) must be kept at the raft level now
-   (`[∗list] k ∈ s.logst.ksn, raftSnapCertD γ k` in `ghostRest`), since `raftLog.restore` no longer
-   registers it. `maybeSendSnapshot`'s `SnapOk` (commit bound and term of the storage's snapshot)
-   must come from `snapshotValid` (cluster-level) instead of `StoredSnapOk`. `NsCap`/`storCap`
-   (the no-snapshot mode's "never compacted past `k`") has **no counterpart in the design**: with
-   compaction bounded only by `applied`, a leader in that mode could fall back to a snapshot;
-   it needs a decision (a `storCompacted`-bound variant for the mode, or the mode dropped for
-   storages raft does not own). `appendEntry`'s `Hsksn` uses and `loadState`'s are mechanical.
-2. **Step 4**: `nodeAppliedLb`/`snapGiven` (sealed) over `storFloor`/`storGiven` of the node's `sn`;
-   `isStorage γ id st` and the proof `isStorage γ id st ⊢ isStorageV sn st` (allocate `gsv` with
-   `snapshotValid γ`, the `Bnd` conversion), the `Ready`/`Advance` hand-outs (`appendRight`,
-   `appendReceipt`, the frozen `ceBelow` via `ownStorage_freeze`/`ownStorage_frozen`), and
-   (G) `sg ≤ s` at `absorb_snap` (from `snapGiven`'s use).
-3. **Step 3**: `MemoryStorage` over the range vocabulary (design §6).
+1. **Step 4** (the node level): the API's `DL` (`deliveredLogLb`-based, or `snapGiven`), and its
+   conversion to `raftDL` (issue `i ↪[sn.gd]□ t` from `σ.dt`'s authority at the delivered indices:
+   `DtOk` says which; a lemma `ownRaftLog_certify` is to be written in `InvRaftlog`; the authority
+   cannot hand out an existing key's fragment again, so either `storAuths` keeps `[∗ map] k ↦ v ∈
+   σ.dt, k ↪□ v` beside it or the issuer keeps what it issued); pin `sn.gk` at
+   `raftSnapCertD γ` and prove `storCertOk γ sn` (`certLink`) from the pins (`svCert` →
+   `raftSnapCertD` needs `snapshotValid γ sv ⊢ raftSnapCertD γ (snapTrip …)`); `nodeAppliedLb`/
+   `snapGiven` (sealed) over `storFloor`/`storGiven` of the node's `sn`; `isStorage γ id st` and
+   `isStorage γ id st ⊢ isStorageV sn st` (allocate `gsv`, `gd`, `gk`; the `Bnd` and `DL`
+   conversions); the `Ready`/`Advance` hand-outs (`readyOut`/`snapReceipt`/`advReceipt`, removed
+   from `ApiVocab`, over the ranges: `appendRight`, `appendReceipt`, the frozen `ceBelow` via
+   `ownStorage_freeze`/`ownStorage_frozen`); (G) `sg ≤ s` at `absorb_snap`; the no-snapshot mode's
+   node-level plumbing (`reNoSnap`, `NGhost.ns`, `RNMode`, `NsLink`'s `ns`, the remaining
+   `s.gh.ns = false` premises) removed; `newRaft`'s new premises (`σ.dt = ∅`, `s.gh = { sn := sn }`).
+2. **Step 3**: `MemoryStorage` over the range vocabulary (design §6), with `CreateSnapshot(i)`'s new
+   premise (the delivered prefix reaches `i`).
+3. **Clients**: etcd's server loses the no-snapshot mode (above); the fallback `storCompactCap` is
+   to be put to the user.
 
 ## Machinery (the map of the two modes, 2026-10-28)
 

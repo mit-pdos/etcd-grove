@@ -475,8 +475,12 @@ Candidate 17 rev 3 (`notes/spec-first-study/raft-storage-spec.md`) replaces the 
 superseded). Steps 1-2 built: the range vocabulary (`StorageModel`: `storLog`/`storEnd`/`storCompacted`), the
 parametric contract `isStorageP SV Bnd`, `snapshotValid`, raft's view `ownStorage sn st σ` with its read
 triples derived from the contract (`InvStorageRead`) and its moves as lemmas (`InvStorageLaws`), `ownRaftLog`
-over it, and every `raftLog.*`/`unstable.*`/`newLogWithSize` proof. Broken as expected: the raft level up
-(`StepGhostMode`'s `certLink`, `InvRaftPhys`), RawNode/node (step 4), `MemoryStorage` (step 3), clients.
+over it, and every `raftLog.*`/`unstable.*`/`newLogWithSize` proof. Step 3a (the raft level) built: the contract's
+third parameter `DL` (a stored snapshot's index at most what raft committed, `raftDL`/`DtOk`: `maybeSendSnapshot`'s
+`SnapOk`), the snapshots' certificates as pins of raft's storage names (`svCert`, `ksnCert`; `certLink`, `tsSrc`,
+`rcvSrc`, keyed by the mirror `NGhost.sn`), the no-snapshot mode off at raft's level (`NsCap := ns = false`), and
+every `raft.*`/`raft.Step`/`step*`/`newRaft` proof. Broken as expected: RawNode/node (step 4), `MemoryStorage`
+(step 3), clients.
 Architecture, spec changes and the next steps: `notes/raft-unified-plan.md`, "U8 v2".
 
 ## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)

@@ -66,8 +66,8 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
   to ≠ id →
   s.progress !! to = some pr →
-  -- (2026-10-19, D21 M3) outside the no-snapshot mode: `maybeSendAppend` never reaches it there
-  s.gh.ns = false →
+  -- (U8 v2, 2026-10-29) in every mode: until then outside the no-snapshot mode
+  -- (`s.gh.ns = false`), which is now off at raft's level (`NsCap`)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-10-16, stage R8a, D11) the log is compacted, so the storage's snapshot is

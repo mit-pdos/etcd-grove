@@ -555,15 +555,8 @@ def DynCCPre (dec : CCDec) (rs : RNState) (o : ConfChangeIM) (k : Nat) (e : Entr
 
 -- (2026-10-26, raft's signature, stage 1) `propEntryM` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- The scalars of the message `Propose`, `confChangeToMsg` and `node.Propose` build,
-`pb.Message{Type: MsgProp, ...}` (2026-10-16, stage R5; until then `propMsg esl`, the Goose
-value with its entries' slice). `Propose`/`node.run` set `From` to the node's id. -/
-def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
-
-/-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
-`pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
-`ccEntry`). -/
-def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM := ⟨W64 0, W64 0, confChangeEntryType o, bs⟩
+-- (U8 v2, 2026-10-29) `propMsgM` and `ccEntryM` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`
+-- (`confChangeToMsg`'s spec, raft's level, names them).
 
 end defs
 
@@ -578,28 +571,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 -- is gone: a pending step's message is owned (`msgIn`, `ownRawNode`'s `Hpend`), capacity
 -- included.
 
-/-- The log's last index leaves room for a batch of `2^61` entries (2026-10-14, stage B7 part
-2), as `raft__appendEntry.lean`'s `ownRaftLog_facts`: the stable part is below `isStorage`'s
-bound `2^61`, the unstable part a Go slice. -/
-theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
-    ⊢ ownRaftLog (GF := GF) l ls -∗
-      ⌜uint.Z ls.prev.index' + ((ls.sents ++ ls.uents).length : Int) < 2^61 + 2^63⌝ ∗
-      ownRaftLog l ls := by
-  iintro H0
-  -- (D22 S-d1b) the stable part's bound (the storage may be lent)
-  icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
-  iNamed H0
-  ihave %Hul := entsPts_len _ _ _ $$ Huents
-  isplitr
-  · ipureintro
-    have : (ls.uents.length : Int) < 2^63 := by
-      rw [Hul.1]; have := word.signed_range lv.unstable'.entries'.len; word
-    rw [List.length_append]; push_cast
-    omega
-  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
-      Huents_cap Hl_logger Hu_logger
+-- (U8 v2, 2026-10-29) `ownRaftLog_last_bound` moved to `InvRaftPhys.lean` (`raft.appliedTo`'s).
 
 /-- The in-progress part of the log is a prefix of what the storage will hold
 (`LogPersistRel`): the log and `stored` agree below `offsetInProgress`. -/
@@ -685,19 +657,7 @@ theorem ownRaftPhysC_applying (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   iframe H
   ipureintro; exact Hb.2.1
 
-/-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
-theorem ownRaftPhysC_last_bound (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64⌝ ∗
-      ownRaftPhysCV c V r id s := by
-  iintro H
-  icases ownRaftPhysC_log_same c r id s $$ H with ⟨Hlog, Hback⟩
-  icases ownRaftLog_last_bound _ _ $$ Hlog with ⟨%Hb, Hlog⟩
-  ihave H := Hback $$ Hlog
-  iframe H
-  ipureintro
-  simp only [plogLastIndexZ, toPState]
-  omega
+-- (U8 v2, 2026-10-29) `ownRaftPhysC_last_bound` moved to `InvRaftPhys.lean` (`raft.appliedTo`'s).
 
 /-- The log's `applied ≤ applying ≤ committed`, read through the struct. -/
 theorem ownRaftPhysC_logwf (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
