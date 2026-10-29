@@ -792,3 +792,51 @@ This section supersedes the earlier statements of the questions (R6-6).
 Statement changes made while the user was away, for review (see the sections above): `ConcurrentReadTx`
 's post thin; `dlInit` a premise of the exported `mvcc_NewStore_backend` and `server_kv_*` results;
 the old bridge's exports over `dlNoDel`; `metaPutCap`'s slices read-only for good.
+
+## The compaction keys' tracked absence (the user's choice, 2026-10-29)
+
+**Why.** The `axiom` skill refuted `mvcc.kbNoCmp_metaNone` (branch `axiom/kbnocmp-metanone`,
+`notes/axiom-review/nocmpread.md`). The restatement first proposed for it (anchor the reader,
+hold the fact under its lock) is false too: the backend's proved `UnsafePut` lets any holder of
+the batch lock write a compaction key into `Meta`, and a later read finds it. The user chose the
+design below (question 1 of the batch), together with question 3 (`metaReadSpec` with the lock
+token and lent slices).
+
+**Design (Scope; statements to Draft).**
+- **The parameter.** `BParams.FK : GoString → GoString → Bool` names the tracked-absent keys.
+  - `KBReal.P` sets `FK n k := n = Meta ∧ metaCompactKey k`; every other `BParams` sets
+    `fun _ _ => false`.
+  - `BParams.Wf` gains: an `FK` key is not a hook's own key (`P.hk`), and not in a safe-range
+    bucket.
+- **The ghost.** `γ.fk` is a `monoNat`. `0` means no `FK` key anywhere; `1` means some may be.
+  - The batch lock's ghost (`batchGhostAt`) holds half of its authority, with
+    `n = 0 → fkAbsSt P st`: no `FK` key in the committed data, the writer's contents, the read
+    buffer's view, or the write buffer's.
+  - The client holds the other half: `fkOwn γ n`.
+  - The readers' state (`rtCore`) holds a lower bound `n0` taken when its `rv` was set, with
+    `n0 = 0 → fkAbsRv P rv`. It is updated where `safeRv P rv` is.
+- **The put specs.** The `UnsafePut`/`UnsafeSeqPut` specs of `batchTxBuffered` and `batchTx` take
+  `fkPut γ P n k`: `∃ v, fkOwn γ v` if `P.FK n k`, else `True`. Their posts give `fkOwn γ 1` in the
+  first case.
+- **The read law.** `fkOwn γ 0 ∗ rtHeldF γ P b rtx rv p ⊢ ⌜fkAbsRv P rv⌝`, so `rtRange` at an `FK`
+  key is empty.
+- **Creation.**
+  - `New`/`newBackend` give the creator `fkOwn γ (if fkAbsD P D then 0 else 1)`.
+  - `storage.OpenBackend`'s axiom gives `⌜noCmpData D⌝ -∗ bkNoCmp γ` as today, but `bkNoCmp`
+    is no longer opaque: it is defined as `fkOwn γB 0` (for `KBReal.P`, `fkAbsD ↔ noCmpData`).
+    The statement's text is the same and its meaning is new: a trusted-statement change, the
+    user's choice.
+- **mvcc's contract.**
+  - `metaReadSpec rt nc Rd Tok` reads under the reader's token `Tok`, with the value's slices
+    readable through `Rd` (question 3).
+  - `keyReadLocked`'s `rng = true` branch, the `ReadTx` reader, gains
+    `□ (NC -∗ NC ∗ □ metaReadSpec rt true Rd Tok)`. `NC` is a new parameter of
+    `keyReadLocked`/`keyReadSnap`/`keyReadSnapC`/`isKeyBackendG`/`keyCleanRead`, defaulting
+    to `False`.
+  - The store passes `NC := kbNoCmp γ.kb γ.bucket`. The bridges prove the clause from the read law.
+- **The axiom.** `mvcc.kbNoCmp_metaNone` is deleted. `store.restore` takes the meta reads from its
+  reader's clause, with its spec unchanged (it still consumes `kbNoCmp`).
+- **Left for the wiring step.** The real store's compaction must put the compaction keys
+  (`metaPutCap`, the new bridge's `bt_metaPut`), which now needs `fkOwn`. `restore` would then hand
+  the token to the store instead of consuming it: a change to `store.restore`'s spec, the user's
+  (with question 5).
