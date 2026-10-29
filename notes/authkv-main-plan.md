@@ -388,3 +388,14 @@ setupSt r⌝ ∗ authPubLb γa k ∗ authStateAt γa k (setupSt r)` (`k` from `A
 published after its commit); the freeze cell is allocated inside `SetUp`, after the puts (which
 use route B's view branch). The read side's law (§5, the store's history along the applied log)
 is stated with 5b and proved later: authkv's dependency. authkv adds `SetUp`'s KV side (F-S1).
+
+5b approved by the user (candidate 4, 2026-10-29; the merge session implements it on `auth-5b`).
+The read side's server fact (`authHistTie E ρ`, the store's history along the applied log) is
+deferred; its law's statement is fixed (`authStateAt_setup`: tie ∗ frozen `hs` ∗ `setupHist hs` ∗
+`authStateAt γa m st` ∗ `hs.length ≤ m` ={E'}=∗ `st = last hs`), and authkv keeps the read fact as
+a premise (no `sorry`, no axiom; where exactly: asked). Round 3 of 5b's review (H7) for authkv:
+`akAuthFixed`'s write half over requested logs (`srvReqLogLb`); `SetUp`'s proof chooses the `Q`s
+over the metadata-indexed admin specs; the cell's token a `dghostVar` half held by `SetUp`'s
+invariant; `setupPrefixR` says only the last set-up state is enabled (`k = |hs_set|`); per-kind
+laws (`AuthEnable`'s successor `{st with enabled := true}`, no bump; `UserAdd`/`RoleAdd` need
+`n ≠ []`); `AuthEnable`'s reply selects the recorded disjunct (`admRec_of_done_authEnable`).
