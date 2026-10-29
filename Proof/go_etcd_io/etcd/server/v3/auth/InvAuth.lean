@@ -834,6 +834,39 @@ theorem authStateAt_capped (st : Loc) (R : IProp GF) (γa : AuthNames) (i : Nat)
   imodintro
   iexists hh; iframe Hcl; ipureintro; exact Hlk
 
+/-- **The admin side's history is below the cap** (H5): the authority's history `hs` is the revision
+invariant's quarter's (`authHistRev`), which it keeps with the cap's lower bound at it (`revCur`). -/
+theorem authOwn_capped (st : Loc) (R : IProp GF) (γa : AuthNames) (hs : List AuthState)
+    (E : CoPset) (hE : ↑(nroot.@"authRev") ⊆ E) :
+    authInv (GF := GF) st R (.on γa) ∗ authOwn (.on γa) hs ={E}=∗
+      authOwn (.on γa) hs ∗ capLb γa hs := by
+  iintro ⟨#Hinv, Ho⟩
+  iunfold authOwn at Ho
+  icases Ho with ⟨Hh, Hcur⟩
+  iunfold authHistHalf at Hh
+  icases Hh with ⟨Hh, %Hpk⟩
+  iunfold authInv at Hinv
+  icases Hinv with ⟨-, #Hrev, -⟩
+  iinv Hrev with Hi Hclose
+  iunfold revInv at Hi
+  icases Hi with ⟨%r, >Hr, Hv, >Hc, Hf⟩
+  iunfold revCur at Hc
+  icases Hc with ⟨%stc, Hc, %Hrc, %hh, Hq, #Hcl⟩
+  iunfold authHistRev at Hq
+  ihave %Hag := monoListAuthOwn_agree γa.hist _ _ hs hh $$ Hh Hq
+  obtain ⟨-, rfl⟩ := Hag
+  imod Hclose $$ [Hr Hv Hc Hq Hf] with -
+  · inext; iunfold revInv; iexists r; iframe Hr Hv Hf
+    iunfold revCur; iexists stc; iframe Hc; isplitr
+    · ipureintro; exact Hrc
+    · iexists hs; iunfold authHistRev; iframe Hq Hcl
+  imodintro
+  iframe Hcl
+  iunfold authOwn
+  isplitl [Hh]
+  · iunfold authHistHalf; iframe Hh; ipureintro; exact Hpk
+  iexact Hcur
+
 /-! ## The write side (the auth plan's S4, 2026-10-24) -/
 
 /-- **The batch transaction's lock token** `Lk st X`: the backend's auth buckets hold the state
