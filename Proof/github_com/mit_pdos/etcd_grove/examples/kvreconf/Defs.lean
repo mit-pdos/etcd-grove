@@ -22,18 +22,18 @@ context is minted at `(replica, seq)` (`γr.rmint`), each replica's last read se
 `γr.rseq` (its element in the replica's lock). Every committed datum, slot and used read context was
 minted, so a fresh id or sequence number mints a datum nobody had.
 
-## A replica (`lockInv`)
+## A replica (`lockInv`, `repOwn`)
 
-Under its lock, unlike kv's (where the applier owned them): the store's map, the applied table, the
-configuration `r.cs` and the applied index `r.index` -- `propose`, `maybeSnapshot`, `conf` and
-`contents` read them --, at a committed prefix `ap` (`r.index = len ap`), the map and the table
-`ap`'s replicated state (`kvFold`, `AppliedOk` of `logHist ap`); the configuration a read-only
-`ConfState` denoting the membership `m` at `ap`'s end (`confAt γ (len ap) m`) -- or, after its
-node answered a stopped `ApplyConfChange`, `nil` with the node stopped (`nodeStopped`, `RaftAssume`).
-The applier keeps half of a ghost variable at `(len ap, cs)` (`γp.app`), so it knows what it wrote
-(a committed prefix is its length's, `isCommittedLogLb_agree`; the membership its, `confAt_agree`).
-The waiters (keyed by the operation's datum: `r.waiters` is a `map[string]chan string`) and the
-waiting reads (by sequence number) are kv's.
+The applier (the `run` goroutine) writes the replicated state; the other goroutines read some of it
+under the lock: `propose` the applied table, `conf` the configuration and the applied index. So the
+applier owns the store's map and half of each shared field (`repOwn`, with the precise facts: the
+fields are the replicated state of a committed prefix `ap`, `r.index = len ap`, the configuration a
+read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m` -- or, after its
+node answered a stopped `ApplyConfChange`, `nil` with the node stopped, `nodeStopped` of
+`RaftAssume`), and the lock the other halves (`repShared`, with what readers need: the applied
+table is some committed prefix's). Writing takes the lock. The waiters (keyed by the operation's
+datum: `r.waiters` is a `map[string]chan string`) and the waiting reads (by sequence number) are
+kv's.
 -/
 module
 
@@ -89,9 +89,6 @@ structure RNames where
   /-- the operations' slots, `data ↦ (γq, γk)` -/
   ops : GName
 
-/-- A replica's ghost names: the applier's record of the replicated state it wrote. -/
-structure RepNames where
-  app : GName
 
 section mint
 variable [GooseExts]
@@ -203,18 +200,19 @@ def waiterOk (γr : RNames) (d : List w8) (ch : Loc) : IProp GF :=
   iprop(∃ (γh : HandoffNames),
     isHandoff γh ch (waitP γr d) iprop(True) iprop(False) ∗ handoffProducer γh false)
 
-/-- The replicated state a replica's lock holds at the committed prefix `ap` (see the file
-header), its configuration `csp` denoting `m` at `ap`'s end, or `nil` with the node stopped. -/
-def repState (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap : List LogEntry)
-    (csp : Loc) (m : Membership) : IProp GF :=
-  iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (mA : Loc) (A : GMap (List w8) (List w8))
-      (c : ConfStateM),
+/-- The applier's half of a replica's replicated state (see the file header), at the committed
+prefix `ap`, the configuration `csp` denoting `m` at `ap`'s end (or `nil`, the node stopped): the
+store's map (the applier's alone), half of each field the other goroutines read under the lock
+(`applied`, `cs`, `index`) and half of the applied table, with the precise facts. -/
+def repOwn (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap : List LogEntry)
+    (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8)) : IProp GF :=
+  iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (c : ConfStateM),
     "HmK" ∷ r.[RReplica, go!"kv"] ↦ mK ∗
     "HK" ∷ mK ↦$ K ∗
-    "HmA" ∷ r.[RReplica, go!"applied"] ↦ mA ∗
-    "HA" ∷ mA ↦$ A ∗
-    "Hcs" ∷ r.[RReplica, go!"cs"] ↦ csp ∗
-    "Hidx" ∷ r.[RReplica, go!"index"] ↦ W64 ap.length ∗
+    "HmA" ∷ r.[RReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
+    "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
+    "Hcs" ∷ r.[RReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
+    "Hidx" ∷ r.[RReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} W64 ap.length ∗
     "#Hap" ∷ isCommittedLogLb γr.cluster ap ∗
     "%Hlen" ∷ ⌜(ap.length : Int) < 2 ^ 61⌝ ∗
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (logHist ap) k⌝ ∗
@@ -223,13 +221,24 @@ def repState (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap
     "#Hcfg" ∷ ((⌜confStateIs c m⌝ ∗ confAt γr.cluster ap.length m) ∨
                (⌜csp = null⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)))
 
+/-- The lock's half of a replica's replicated state: the other halves of `applied`, `cs`, `index`
+and of the applied table, which is the table of some committed prefix (what `propose` answers an
+applied operation with); the configuration read-only. -/
+def repShared (γr : RNames) (r : Loc) : IProp GF :=
+  iprop(∃ (mA : Loc) (A : GMap (List w8) (List w8)) (csp : Loc) (c : ConfStateM) (idx : w64)
+      (ap : List LogEntry),
+    "HmA" ∷ r.[RReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
+    "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
+    "Hcs" ∷ r.[RReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
+    "Hidx" ∷ r.[RReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
+    "#HcsO" ∷ csOpt csp DFrac.discard c ∗
+    "#Hap" ∷ isCommittedLogLb γr.cluster ap ∗
+    "%HA" ∷ ⌜AppliedOk A (logHist ap)⌝)
+
 /-- A replica's lock invariant (see the file header). -/
-def lockInv (RA : RaftAssume (GF := GF)) (γr : RNames) (γp : RepNames) (id : w64) (n r : Loc) :
-    IProp GF :=
-  iprop(∃ (ap : List LogEntry) (csp : Loc) (m : Membership) (ns : w64) (mW : Loc)
-      (W : GMap (List w8) Loc) (mR : Loc) (Rd : GMap w64 Loc),
-    "Hrep" ∷ repState RA γr n r ap csp m ∗
-    "Happ" ∷ ghostVar γp.app (1 : Qp).half (ap.length, csp) ∗
+def lockInv (γr : RNames) (id : w64) (r : Loc) : IProp GF :=
+  iprop(∃ (ns : w64) (mW : Loc) (W : GMap (List w8) Loc) (mR : Loc) (Rd : GMap w64 Loc),
+    "Hrep" ∷ repShared γr r ∗
     "HmW" ∷ r.[RReplica, go!"waiters"] ↦ mW ∗
     "HW" ∷ mW ↦$ W ∗
     "Hwaiters" ∷ ([∗map] d ↦ ch ∈ W, waiterOk γr d ch) ∗
