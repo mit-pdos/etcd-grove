@@ -502,6 +502,9 @@ Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; 
   waiters and reads; the snapshot registry (`kvrSnapRecOk`: committed prefix, `confAt`, `StateEnc`
   data); `kvrCluster`. Not yet: the cluster's lock invariant (replicas, `nextOp`, `nextID`,
   `joinAuth`), the run loop's own state, the storage's (waits for track B's hold mark).
+- **Since** (2026-10-29, after merging track B's client confchange API): `validConf` and
+  `Replica.applyOp` proved; `Defs` splits the replicated state between the applier (`repOwn`) and the
+  lock (`repShared`). Next steps: the plan's Track C log, last entry.
 - **Not started**: the store's the storage instance, the replica's loop and methods, the
   cluster's functions, `Link.lean`, `kvreconf_porcupine_safe`. Blocked on, or to be stated as
   hypotheses of, the raft specs the frozen design has and the API does not yet (decisions entry).

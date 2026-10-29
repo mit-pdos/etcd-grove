@@ -218,4 +218,22 @@ Each: old → new, and why. Items 1-7 and the confchange items were sent to the 
   A/B land the real ones) and `ConfStep` (proved). Next: the store's invariant (`Defs`: the client
   history over `ownCommittedOps`, the snapshot registry `ownSnapsMade` with `StateEnc` data, the
   `confPolicy`, the storage registry), then the run loop over today's `unifiedSpec`s.
+- 2026-10-29 (checkpoint for a fresh agent): merged `origin/raft-unified-storage` (track B's client
+  confchange API). Proved: `validConf` (over `ConfchangeApi`'s apiSpecs, `RaftLink.*_api` at link
+  time; premises `m.Restorable`, `enterJointOf cc.transition |cc.changes| ≠ none`), `Replica.applyOp`
+  (spec: the applier's `repOwn` at `ap` to `ap ++ [e]`, index field unchanged; the waiter answered with
+  `waitP`). `Defs`: the replicated state split between the applier (`repOwn`, the store's map whole,
+  halves of `applied`/`cs`/`index` and of the applied table, with the precise facts) and the lock
+  (`repShared`: the other halves; the table some committed prefix's, for `propose`); `Halves.lean`
+  combines/splits a map's halves; `PureLemmas.lean` (kv's applied-table lemmas, `hist_skip`,
+  `hist_insert`, `logHist_snoc`). Next, in order: (1) `kvCore` needs the committed conf entries'
+  shape (each decodes, through `MarshalsConfChange`, to a change with a defined transition: what
+  `Reconfigure`'s `randomChange` proposes; raft's automatic leave is dropped by `opsOf` and decodes by
+  `ccDecodeV2_nil`) -- `validConf`'s second premise, `applyEntry`'s decode (`committed_confDecodes`,
+  `RaftAssume`); (2) `applyConf` (`validConf`, then `kvr_confAt_conf` for the decision, then
+  `node.ApplyConfChange.unifiedSpec` or `RaftAssume.ApplyConfChange_stoppedSpec`; `r.cs` written with
+  both halves); (3) `applyEntry` (dispatch, `proto.Unmarshal` specs, `r.index` moved with both
+  halves); (4) `install`, `answer`, `maybeSnapshot` (`snapshotCert_make` over `kvrSnapInv`,
+  `CreateSnapshot.unifiedSpec`), `maybeCompact` (storage specs: the hold mark is still a `RaftAssume`
+  item, approved shapes); (5) `Replica.run`.
 
