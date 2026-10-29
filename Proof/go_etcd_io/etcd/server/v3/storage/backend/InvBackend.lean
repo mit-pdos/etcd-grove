@@ -216,6 +216,12 @@ theorem relog_exact (P : BParams) (st : BSess) :
   · simp only [h, ↓reduceIte]; cases (sData P st.S).lookup nk <;> rfl
   · simp only [h, ↓reduceIte]; cases (sData P st.S).lookup nk <;> rfl
 
+/-- `relog` reads only the writer's contents (through `sData`) and the readers' state (R12-2). -/
+theorem relog_congr (P : BParams) (L : GMap (GoString × GoString) GoString) {st st' : BSess}
+    (hS : sData P st.S = sData P st'.S) (hC : st.C = st'.C) (hR : st.R = st'.R) :
+    relog P L st = relog P L st' := by
+  unfold relog; rw [hS, hC, hR]
+
 /-- **A session that changed nothing the readers see keeps the logical view**: if the writer's
 contents are the physical view and the physical view is included in `L`, `relog` is `L`. -/
 theorem relog_same (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess)
@@ -763,6 +769,21 @@ def batchLockedAt (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) : IPro
 /-- The batch lock held by the client, in state `st`. -/
 def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
+
+/-- A thin view's entries are the logical view's (review round 12, R12-2: a law, so a client need
+not unfold `thinV`). -/
+theorem thinV_sub (γ : BNames) (vd L : VData) :
+    thinV (GF := GF) γ vd L ⊢ ⌜∀ nk v, vd.lookup nk = some v → L.lookup nk = some v⌝ := by
+  iunfold thinV
+  iintro ⟨%H, -⟩
+  ipureintro; exact H
+
+/-- A logical view's entry the thin view lacks is registered as deletable (R12-2). -/
+theorem thinV_dl (γ : BNames) (vd L : VData) :
+    thinV (GF := GF) γ vd L ⊢ □ ∀ nk, ⌜L.lookup nk ≠ none ∧ vd.lookup nk = none⌝ -∗ dlIs γ nk := by
+  iunfold thinV
+  iintro ⟨-, #H⟩
+  iexact H
 
 /-- **Thinness composes**: a view thin of one thin of `L` is thin of `L` (a deleting session's
 commit: the new physical view thin of the old, the old thin of the logical). -/

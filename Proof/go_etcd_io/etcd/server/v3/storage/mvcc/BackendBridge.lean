@@ -1846,8 +1846,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   iunfold bkView at Hvw
   icases Hvw with ⟨%vd, Hvw, %Hvd⟩
   icases batchLocked_thin γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, #Hth⟩
-  iunfold thinV at Hth
-  icases Hth with ⟨%Hsub, -⟩
+  ihave %Hsub := thinV_sub γ _ _ $$ Hth
   obtain ⟨hl, hk0, hk1, hbm, hord⟩ := Hok
   obtain ⟨hs', hpend⟩ := sessPuts_put HPw Hs hl
   have hW : ∀ e ∈ bkOf st.W.bks keyBI.id, strLt e.1 k := by
@@ -1933,8 +1932,7 @@ theorem bt_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := h
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
   icases batchLocked_thin γ P b st 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, #Hth⟩
-  iunfold thinV at Hth
-  icases Hth with ⟨%Hsub, -⟩
+  ihave %Hsub := thinV_sub γ _ _ $$ Hth
   -- (`wp_apply` aborts here without a message: the triple applied by hand)
   iapply (hUL γ P W Pk b t st Q Hs.2.2.2.2 (sessPuts_room HPw Hs)) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
   iframe Hpkg Hb Ht Hl Hwb
@@ -1982,8 +1980,7 @@ theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
     iunfold bkView at Hv
     icases Hv with ⟨%vd, Hv, %Hvd⟩
     icases batchLocked_thin γ P b (st0.del bi k) 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, #Hth⟩
-    iunfold thinV at Hth
-    icases Hth with ⟨%Hsub, -⟩
+    ihave %Hsub := thinV_sub γ _ _ $$ Hth
     iapply (hUL γ P W Pk b t (st0.del bi k) Q hs.2.2.2.2 hroom) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
     iframe Hpkg Hb Ht Hl Hwb
     iright
@@ -1995,10 +1992,8 @@ theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
     iexists (relog P vd (st0.del bi k))
     iframe Hbv
     ipureintro
-    have hrel : relog P vd (st0.del bi k) = relog P vd st0 := by
-      unfold relog
-      show sData P (st0.S.insert bi.name ((bktOf st0.S bi.name).delete k)) ∪ _ = _
-      rw [sData_del_HB hb]; rfl
+    have hrel : relog P vd (st0.del bi k) = relog P vd st0 :=
+      relog_congr P vd (sData_del_HB hb) rfl rfl
     rw [hrel]
     exact keyView_relog hP hwf hs Hvd Hsub
 
@@ -2051,7 +2046,7 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
     rw [rbData_del hrb]
   rw [← hrp]
   have hDel' := hDel γ P W Pk b t st bk leaseBI key k dq true hhas hroom (hhk k)
-  simp only [↓reduceIte, hSB, Bool.false_eq_true] at hDel'
+  simp only [↓reduceIte] at hDel'
   wp_apply hDel' $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
   ihave Hrb : rbOwn γ (rbDel (rbData P st.S) leaseName k) $$ [Hrb]
   · rw [← hrp']; iexact Hrb
@@ -2111,8 +2106,8 @@ theorem bt_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
   icases batchLocked_thin γ P b st q vd $$ [$Hl $Hv] with ⟨Hl, Hv, #Hth⟩
-  iunfold thinV at Hth
-  icases Hth with ⟨%Hsub, #Hdl⟩
+  ihave %Hsub := thinV_sub γ _ _ $$ Hth
+  ihave #Hdl := thinV_dl γ _ _ $$ Hth
   have hph := keyView_sub (rv := (st.C, st.R)) Hvd Hsub
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
   ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
@@ -2650,33 +2645,11 @@ theorem keyView_thin (γ : backend.BNames) (P : BParams) (rv : RView) (vd : back
     backend.thinV (GF := GF) γ (vData P rv) vd ⊢
       ∃ m' : Bucket, ⌜keyView (vData P rv) m'⌝ ∗ snapThin m m' (bkDel γ) := by
   iintro #Hth
-  iunfold backend.thinV at Hth
-  icases Hth with ⟨%Hsub, #Hdl⟩
+  ihave %Hsub := backend.thinV_sub γ _ _ $$ Hth
+  ihave #Hdl := backend.thinV_dl γ _ _ $$ Hth
   iexists GMap.filter (fun k _ => ((vData P rv).lookup (keyName, k)).isSome) m
   isplitr
-  · ipureintro
-    intro n k
-    by_cases hn : n = keyName
-    · subst hn
-      simp only [if_true]
-      show _ = (m.lookup k).filter _
-      cases hl : (vData P rv).lookup (keyName, k) with
-      | none =>
-        cases hm : m.lookup k with
-        | none => rfl
-        | some v => simp [Option.filter, hl]
-      | some v =>
-        have h1 := Hsub _ _ hl
-        rw [hv] at h1
-        simp only [if_true] at h1
-        rw [h1]; simp [Option.filter, hl]
-    · simp only [hn, if_false]
-      cases hl : (vData P rv).lookup (n, k) with
-      | none => rfl
-      | some v =>
-        have h1 := Hsub _ _ hl
-        rw [hv] at h1
-        simp [hn] at h1
+  · ipureintro; exact keyView_sub hv Hsub
   iunfold snapThin
   isplitr
   · ipureintro

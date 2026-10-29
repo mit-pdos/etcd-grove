@@ -30,7 +30,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
     (hBT : backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st bk bi key kb dk own Hhas Hp Hhk
-  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, Hrbp, -⟩
+  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, Hrbp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #

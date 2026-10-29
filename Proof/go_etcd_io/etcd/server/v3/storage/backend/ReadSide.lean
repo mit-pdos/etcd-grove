@@ -19,9 +19,10 @@ protocol) and hands the rollback goroutine `rollbackRes` (with which `wp_rollbac
 for the readers and gets the whole bbolt read transaction back, for `Rollback`), keeping the rest
 (`rtCm`); `rtRes_cm_close` takes the reset fields and buffer and the new bbolt read
 transaction (or, at `CommitAndStop`, `bStopped`), allocates the new interval's invariants, and
-records the state `(ver, i + 1)` (the version unchanged) with the new committed data. Out of a
-window it gives back the clients' share; otherwise the readers' view must be unchanged
-(`vData P (C', R.reset) = vData P (C, R)`: the hook changes only its own buckets).
+records the state `(ver, i + 1)` (the version unchanged) with the new committed data. In an
+`Unlock`'s window it gives back the clients' share, the view moved to a logical view `L'` the new
+physical view is thin of; out of one the logical view is kept, the new physical view thin of the old
+(question 2, 2026-10-29; until then the readers' view unchanged out of a window).
 -/
 module
 
@@ -568,8 +569,10 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
 /-- The commit ends: the reset fields and read buffer back, the new bbolt read transaction
 `tx` over the new committed data `C'` (a new interval: its `WaitGroup`, buckets map and
 invariants), or, at a stop, none and `bStopped`; the state `(ver, i + 1)` recorded, the view
-updated (the batch lock's quarter; out of a window, the clients' whole share, back from
-`cacheInv`). Not in a window, the view must be unchanged. -/
+updated (the batch lock's quarter; in a window, the clients' whole share, back from
+`cacheInv`). Out of a window, the logical view `Lb` is kept, the new physical view thin of the old
+(so of it); in a window, the view moves to `L'`, the new physical view thin of it (question 2,
+2026-10-29, R11-1). -/
 theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R : RBuf)
     (win stop : Bool) (tx : Loc) (cm : GoMap) (wg : Loc) (Lb L' : VData) :
     cacheInv (GF := GF) γ ∗ rtCm γ P C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗

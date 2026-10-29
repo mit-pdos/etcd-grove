@@ -1230,3 +1230,23 @@ The reviewed Draft (round 11, no first-tier finding) switched in, with round 11'
 Left: the new bridge's limited-range `sorry` (the job's session token must record that its deletes are
 registered, so that `Unlock`'s deleting branch gets its `thinV`), and round 10's doc items R10-2/R10-5.
 
+### Review round 12 and its repairs (2026-10-29)
+
+Round 12 (`notes/spec-first-study/backend-review-12.md`, on `f175d283b5`): one first-tier finding,
+in the Draft round 11 passed (not churn from round 11's repairs). Repairs, decided by the agent:
+- **R12-1:** `UnsafeDelete.spec`'s premise `dlIs` at a safe-range key, which nothing used (`Unlock`'s
+  deleting branch asks for the whole `thinV` again), dropped with its docstring sentence (option
+  (a)); the spec only gets stronger. Whether the job's session should carry the registration
+  instead (option (b)) is for the limited-range glue to decide.
+- **R12-2:** laws `thinV_sub`, `thinV_dl`, `relog_congr` (`InvBackend.lean`); the bridge's five unfolds
+  of `thinV`/`relog` (and `keyView_thin`'s) are uses of them.
+- **R12-3:** `viewAt_bView` (the snapshot's physical view thin of the clients' view) and
+  `viewAt_noDel` (with nothing deletable, the quarter at `vd` itself), both true and proved
+  (`InvSnapshot.lean`, now importing `DelKeys`).
+- **R12-4:** `keyView_thin`'s first half is `keyView_sub`.
+- **R12-5:** `rtRes_cm_close`'s docstring and `ReadSide.lean`'s header; the `Snapshot` spec's header
+  (D22's file, docstring only: `D` reads thin of the readers' logical view; STATUS says so).
+- **R12-6:** a note (out of a window `L'` is unused).
+- **Before Freeze, the `axiom` skill on `backend.Snapshot`:** include round 11's four commit cases, and
+  the put window's "`W` from the wand at the commit's close".
+

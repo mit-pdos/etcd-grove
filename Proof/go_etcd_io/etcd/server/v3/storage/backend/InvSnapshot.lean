@@ -41,6 +41,7 @@ axioms of etcd's backend (`backend.Snapshot`, `snapshot.WriteTo`) and of the fil
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 
 @[expose] public section
 
@@ -132,6 +133,29 @@ user's, 2026-10-29: the batch lock's quarter is over the logical view, `batchVie
 quarter at `vd` itself, an instance: `viewQ_exact`). -/
 def viewAt (γ : BNames) (vd : VData) : IProp GF :=
   iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L)
+
+/-- **`viewAt` agrees with the clients' shares** (review round 12, R12-3): the snapshot's physical
+view is thin of the clients' view. -/
+theorem viewAt_bView (γ : BNames) (vd vd' : VData) (q : Qp) :
+    viewAt (GF := GF) γ vd ∗ bView γ q vd' ⊢ viewAt γ vd ∗ bView γ q vd' ∗ thinV γ vd vd' := by
+  unfold viewAt bView bViewC viewQ
+  iintro ⟨⟨%L, Hq, #Ht⟩, ⟨%c, Hv, Hc, Hl⟩⟩
+  icombine Hq Hv gives %Heq
+  obtain ⟨-, rfl⟩ := Heq
+  iframe Hc Hl Hv
+  isplitl [Hq]
+  · iexists _; iframe Hq; iframe #
+  iframe #
+
+/-- **With nothing deletable, `viewAt` is the quarter at `vd` itself** (R12-3; D22's users never
+compact). -/
+theorem viewAt_noDel (γ : BNames) (vd : VData) :
+    dlNoDel (GF := GF) γ ∗ viewAt γ vd ⊢ ghostVar γ.view (1 : Qp).half.half vd := by
+  unfold viewAt viewQ
+  iintro ⟨#Hf, %L, Hv, #Ht⟩
+  ihave %Heq := thinV_exact γ vd L $$ [$Hf $Ht]
+  subst Heq
+  iexact Hv
 
 end preds
 
