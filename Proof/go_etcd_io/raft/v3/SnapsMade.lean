@@ -10,7 +10,7 @@ lemmas, and a `ConfState`'s lists against a membership (`cfgM_of_confStateIs`, `
 module
 
 public import Proof.go_etcd_io.raft.v3.ConfRule
-public import Proof.go_etcd_io.raft.v3.InvApiDyn
+public import Proof.go_etcd_io.raft.v3.InvApiView
 public import Proof.go_etcd_io.raft.v3.Protocol.SnapCertDyn
 import all Proof.go_etcd_io.raft.v3.InvNode
 

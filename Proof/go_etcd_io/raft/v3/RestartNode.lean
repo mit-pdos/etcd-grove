@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 import Proof.go_etcd_io.raft.v3.InvApiDec
 import Proof.go_etcd_io.raft.v3.InvApiJoin
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
@@ -441,64 +441,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `RestartNode.spec` from the raw triple (`node`'s names hidden behind the API's). -/
-private theorem wp_RestartNode_impl
-    (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
-    EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.RestartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver EtcdGrove.nodeRestartBoot EtcdGrove.storageCertLink
-  intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
-    Hal Hid Hfl
-  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
-  iunfold nodeRestartBoot at Hboot
-  icases Hboot with ⟨⟨%so, #Hst⟩, Hg, #Hc0, #Hbinv, #Htlb⟩
-  iunfold isStaticCluster at Hst
-  icases Hst with ⟨%Hsn, #Hci⟩
-  obtain ⟨Hcfg, Hdyn, Hns, -, Hγm, Hsl, Hcert, -, -, Hne, Hnd, Hnz, Hlen⟩ := Hsn
-  subst Hv
-  ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
-  iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm true
-    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz Hlen Hvo Hl Hln Hal (fun _ => Hcfg)
-    (fun _ => Hid) Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
-  · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
-    isplitl [Hg]
-    · unfold rnInit; iexact Hg
-    · unfold certLink; iright; iexact Hok'
-  iintro !> %nd ⟨%γn, %n, %Hf, #Hnode, Hdrv, Hlive, Hcfg⟩
-  obtain ⟨Hγr, Hγb, Hγs, Hmd, Hsn, Hnd'⟩ := Hf
-  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, by rw [Hmd, Hγm, RNMode.all_self], .inl Hsn⟩
-  iapply HΦ
-  iexists n
-  isplitr
-  · ipureintro; exact Hnd'
-  isplitr
-  · unfold isNode
-    iexists γn
-    iframe Hnode Hci
-    ipureintro; exact Hnok
-  unfold nodeDriver NodeDriverState.init
-  iexists γn, cv.ID', []
-  isplitr
-  · ipureintro; exact ⟨Hnok, Hγs, rfl⟩
-  iframe Hci
-  isplitr
-  · iapply isCommittedLogLb_nil_impl
-  isplitl [Hcfg]
-  · iright; iframe Hlink; iexists 0, cfgState (GMap.listToSet csm.Voters') ∅; iexact Hcfg
-  isplitr
-  · ileft; ipureintro; rw [Hmd]; rfl
-  ileft
-  isplitr
-  · ipureintro; rfl
-  iexact Hdrv
-
-/-- `RestartNode.unifiedSpec` from the raw triple (2026-10-28, stage U4a): the node in the cluster's
+/-- `RestartNode.spec` from the raw triple (2026-10-28, stage U4a): the node in the cluster's
 dynamic mode (of the client's decisions, since the decision switch; until then the rule's), taking `MsgSnap`s (`snapIn`), its ghost state the dynamic one at the
 initial state (`ownRaftGhostR_rinit`), its table entry inserted (`nodeTabOk`), its view at the
 voters' membership. -/
-private theorem wp_RestartNode_unified_impl
+private theorem wp_RestartNode_impl
     (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
-    EtcdGrove.RestartNode.unifiedSpec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.RestartNode.unifiedSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver
+    EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.RestartNode.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver
     EtcdGrove.nodeFounder EtcdGrove.nodeJoin EtcdGrove.confAt EtcdGrove.storageCertLink
     EtcdGrove.nodeConfig EtcdGrove.nodeRunning
   intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
@@ -606,13 +556,6 @@ theorem RestartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) :=
   ApiImpl.wp_RestartNode_impl (RestartNode.wp_raw wp_NewRawNode wp_newNode wp_node_run)
-
-theorem RestartNode.wp_proof_unified
-    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
-    (wp_newNode : newNode.spec (GF := GF) (hG := hG))
-    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
-    RestartNode.unifiedSpec (GF := GF) (hG := hG) :=
-  ApiImpl.wp_RestartNode_unified_impl (RestartNode.wp_raw wp_NewRawNode wp_newNode wp_node_run)
 
 end proof
 

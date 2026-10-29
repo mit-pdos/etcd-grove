@@ -140,12 +140,6 @@ def LogEntry.isConfChange (e : LogEntry) : Prop := e.type = W32 1 ∨ e.type = W
 def NoConfChangeIn (l : List LogEntry) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬ e.isConfChange
 
-/-- **A conf-change decoder**: the change a conf-change entry makes, given the committed log before
-it (fillers included). Fixed when a dynamic cluster is allocated: every node must apply the same
-change for the same committed entry (raft's `CCDec`; etcd's server validates a change against the
-membership the log before it leaves, and hands raft a refused one with `NodeID = 0`). -/
-abbrev ConfChangeDecoder := List LogEntry → LogEntry → Option ConfChangeIM
-
 /-- **A node's view of its configuration**: the conf-change entries of the committed log below
 position `applied` are applied (`node.ApplyConfChange`), and the membership they give. (Today
 `nodeCfg`'s `(ca, cfg)`.) -/

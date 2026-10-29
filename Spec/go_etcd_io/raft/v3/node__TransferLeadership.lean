@@ -26,13 +26,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`node.TransferLeadership(ctx, lead, transferee)`**, in a cluster with leader transfer on;
-nothing is promised of the transfer. -/
+/-- **`node.TransferLeadership(ctx, lead, transferee)`**: nothing is promised of the transfer.
+(U9, 2026-10-29: in every cluster, a re-forwarded transfer request being refuted by its receiver,
+`leadW`; until then in a cluster with leader transfer on, `leaderTransferOn γ N`.) -/
 abbrev node.TransferLeadership.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (lead transferee : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      leaderTransferOn γ N }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
       (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
   {{ RET #(); True }}

@@ -15,7 +15,7 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 

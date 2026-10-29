@@ -752,17 +752,6 @@ theorem bigSepM_listToSet (Φ : w64 → IProp GF) (ps : List w64) (Hnd : ps.Nodu
     iframe Hp
     iapply ih Hnd.2 $$ H
 
-/-- **Read credits** (open: raft's `rdCred`). -/
-def readCredits (γ : Cluster) (n : Nat) : IProp GF := rdCred γ.raft n
-
-/-- (open) **A read request's credit.** -/
-def readCredit (γ : Cluster) : IProp GF := readCredits γ 1
-
-omit [StorageModel GF] sem package_sem in
-theorem readCredits_split (γ : Cluster) (a b : Nat) :
-    readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
-  unfold readCredits; exact rdCred_split γ.raft a b
-
 /-- The snapshots' data the cluster admits, as raft's names keep it (`RaftNames.reSnapOkRaw`, of
 bootstrap entries): the client's predicate of the entries as it sees them. -/
 def sokOf (snapOk : List LogEntry → List w8 → Prop) : List BootEntry → List w8 → Prop :=
@@ -783,60 +772,6 @@ def StaticNames (γ : Cluster) (N : Namespace) (vs : List w64)
   γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧ γ.raft.reSnapReg = none ∧
   (γ.raft.reTracked = none ∨ γ.raft.reTracked = some (GMap.listToSet vs)) ∧
   vs ≠ [] ∧ vs.Nodup ∧ W64 0 ∉ vs ∧ (vs.length : Int) ≤ 2 ^ 62
-
-/-- **The cluster is static** (the draft's `isStaticCluster`): raft's names say so, and the
-cluster's invariants. -/
-def isStaticCluster (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) : IProp GF :=
-  iprop(⌜StaticNames γ N vs snapOk⌝ ∗ clusterInv γ N)
-
-instance isStaticCluster_persistent (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) :
-    Persistent (isStaticCluster (GF := GF) γ N vs snapOk) := by
-  unfold isStaticCluster; infer_instance
-
-/-- **Leader transfer is on** in the cluster (persistent). -/
-def leaderTransferOn (γ : Cluster) (_N : Namespace) : IProp GF :=
-  iprop(⌜γ.raft.reNoXfer = false⌝)
-
-instance leaderTransferOn_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (leaderTransferOn (GF := GF) γ N) := by
-  unfold leaderTransferOn; infer_instance
-
-/-- **Leader transfer is off** in the cluster (persistent): raft's no-transfer mode. -/
-def leaderTransferOff (γ : Cluster) (_N : Namespace) : IProp GF :=
-  iprop(⌜γ.raft.reNoXfer = true⌝)
-
-instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (leaderTransferOff (GF := GF) γ N) := by
-  unfold leaderTransferOff; infer_instance
-
-/-- Leader transfer on or off, by `transfer`. -/
-theorem leaderTransfer_of (γ : Cluster) (N : Namespace) (transfer : Bool)
-    (h : γ.raft.reNoXfer = !transfer) :
-    ⊢ if transfer then leaderTransferOn (GF := GF) γ N else leaderTransferOff γ N := by
-  cases transfer
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    unfold leaderTransferOff; ipureintro; exact h
-  · simp only [↓reduceIte]
-    unfold leaderTransferOn; ipureintro; exact h
-
-/-- **A node's boot token** of a new cluster of the peers `ps` with the contexts `ctxs`: the cluster
-static (of the peers), its raft ghost state at the bootstrap state, the committed bootstrap log, the
-bytes of its entries (`bootMarshal`), and the term budget at the bootstrap term. -/
-def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id : w64) :
-    IProp GF :=
-  iprop((∃ so, isStaticCluster γ N ps so) ∗ ⌜BootLogOk ps γ.raft.reBoot⌝ ∗
-    ownRaftGhost γ.raft id (bootPState γ.raft.reBoot) ∗
-    isCommitted γ.raft γ.raft.reBoot ∗ bootMarshal ps ctxs γ.raft.reBoot ∗
-    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1))
-
-/-- **A static cluster's boot token** for node `id` (the draft's `nodeRestartBoot`): the cluster
-static (of the voters `vs`), its raft ghost state at the initial state, the empty log committed, the
-term budget. -/
-def nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
-  iprop((∃ so, isStaticCluster γ N vs so) ∗ ownRaftGhost γ.raft id initPState ∗
-    isCommitted γ.raft [] ∗ inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 0))
 
 /-- The client's part of a new cluster, built in raft's allocation (`allocClientGen`). -/
 def allocOut (N : Namespace) (boot : List LogEntry) (bud : BudgetNames) (md : RNMode)
@@ -932,121 +867,6 @@ theorem listToSet_ne_empty (ps : List w64) (Hne : ps ≠ []) : GMap.listToSet ps
   have : p ∈ GMap.listToSet (p :: ps') := (GMap.elem_of_list_to_set p _).2 (List.mem_cons_self ..)
   rw [h] at this
   exact (GMap.not_elem_of_empty p) this
-
-/-- **A new cluster** (the draft's `cluster_alloc`). -/
-theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool)
-    (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 →
-    BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
-    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length ∧ γ.raft.dup = false⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N ps snapOk ∗
-        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
-        [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
-  intro Hrb HB Hnd Hne Hnz
-  iintro #Hm
-  imod budget_alloc_boot (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
-  have Hok := (BootLog_ok HB)
-  have Hwf := Hok.wf Hnd
-  have Hbne : LogEntry.toEntries boot 0 ≠ [] := by
-    intro h
-    have := congrArg List.length h
-    rw [toEntries_length, HB.1] at this
-    exact Hne (List.eq_nil_of_length_eq_zero this)
-  have Hcne := listToSet_ne_empty ps Hne
-  have Hnz' : W64 0 ∉ GMap.listToSet ps := fun h => Hnz ((GMap.elem_of_list_to_set _ _).1 h)
-  have Hlen : (ps.length : Int) ≤ 2 ^ 62 := by have := HB.2.1; rw [HB.1] at this; omega
-  ihave Hcl := api_alloc_client (GF := GF) N E (GMap.listToSet ps) ps ctxs boot bud .static ∅ none HB
-  imod ownRaftGhost_alloc_core E (GMap.listToSet ps) (GMap.listToSet ps) none (fun _ _ => True)
-    (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud .static ∅) (some (GMap.listToSet ps))
-    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) false (fun h => by cases h)
-    (!transfer) (fun _ => Hbne) (sokOf snapOk) (fun _ => none) (N .@ "raft") N Hcne
-    Hnz' Hwf
-    (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
-    $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, Hboot, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg, Hdup⟩ := Hγ
-  iunfold allocOut at Hout
-  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
-  obtain ⟨Hγr, Hγb, Hγm, -⟩ := Hγr
-  subst Hγr
-  ihave #Hst : isStaticCluster (GF := GF) γ N ps snapOk $$ []
-  · unfold isStaticCluster clusterInv
-    iframe Hcinv Hinv HspT
-    ipureintro
-    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, Hreg, .inr Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
-  imodintro
-  iexists γ
-  isplitr
-  · ipureintro; rw [Hboot, toEntries_length]; exact ⟨rfl, Hdup⟩
-  iframe Hops Hctx Hst
-  isplitl [Hcr]
-  · unfold readCredits; iexact Hcr
-  isplitr
-  · iapply leaderTransfer_of γ N transfer Hnx
-  simp only [Option.isSome_none]
-  rw [← bootPState_eq]
-  iapply bigSepM_listToSet _ ps Hnd
-  iapply BigSepM.bigSepM_impl $$ Hnodes
-  imodintro
-  iintro %id %u %_ Hg
-  unfold nodeBoot
-  rw [Hboot]
-  rw [Hγb]
-  iframe Hg Hc0 Hm Hbinv Htlb
-  isplitr
-  · iexists snapOk; iexact Hst
-  ipureintro; exact Hok
-
-/-- **A new static cluster** (the draft's `cluster_alloc_static`). -/
-theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) ≤ 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = false⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
-        readCredits γ (2 ^ 64 - 2) ∗ isStaticCluster γ N vs snapOk ∗ leaderTransferOn γ N ∗
-        [∗list] id ∈ vs, nodeRestartBoot γ N vs id := by
-  intro Hrb Hne Hnd Hnz Hlen
-  imod budget_alloc (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
-  have HB : BootLog ([] : List w64) [] [] := ⟨rfl, by simp, fun k e h => by simp at h⟩
-  have Hcne := listToSet_ne_empty vs Hne
-  have Hnz' : W64 0 ∉ GMap.listToSet vs := fun h => Hnz ((GMap.elem_of_list_to_set _ _).1 h)
-  have H0 : LogEntry.toEntries ([] : List LogEntry) 0 = [] := rfl
-  have Hcl0 := api_alloc_client (GF := GF) N E (GMap.listToSet vs) [] [] [] bud .static ∅ none HB
-  rw [H0] at Hcl0
-  ihave Hcl := Hcl0
-  imod ownRaftGhost_alloc_core E (GMap.listToSet vs) (GMap.listToSet vs) none (fun _ _ => True)
-    [] (W64 0) (allocOut N [] bud .static ∅) none (fun _ h => by cases h) false (fun h => by cases h)
-    false (fun h => by cases h) (sokOf snapOk) (fun _ => none) (N .@ "raft") N Hcne
-    Hnz' BootWf_nil (fun h => absurd rfl h)
-    $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, -, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg, Hdup⟩ := Hγ
-  iunfold allocOut at Hout
-  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
-  obtain ⟨Hγr, Hγb, Hγm, -⟩ := Hγr
-  subst Hγr
-  ihave #Hst : isStaticCluster (GF := GF) γ N vs snapOk $$ []
-  · unfold isStaticCluster clusterInv
-    iframe Hcinv Hinv HspT
-    ipureintro
-    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, Hreg, .inl Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
-  imodintro
-  iexists γ
-  iframe Hops Hctx Hst
-  isplitr
-  · ipureintro; exact Hdup
-  isplitl [Hcr]
-  · unfold readCredits; iexact Hcr
-  isplitr
-  · unfold leaderTransferOn; ipureintro; exact Hnx
-  simp only [Option.isSome_none]
-  iapply bigSepM_listToSet _ vs Hnd
-  iapply BigSepM.bigSepM_impl $$ Hnodes
-  imodintro
-  iintro %id %u %_ Hg
-  unfold nodeRestartBoot
-  rw [initPState_eq, Hγb]
-  iframe Hg Hc0 Hbinv Htlb
-  iexists snapOk; iexact Hst
 
 end alloc
 
@@ -1619,19 +1439,6 @@ theorem raft_of_snapshotCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
 -- their laws (the old contract's certificate registry) removed: raft's certificate link is over its
 -- storage names' pins (`storCertOk γ sn`), made at `RestartNode`.
 
-/-- What a certified snapshot's data is, in a static cluster. -/
-theorem snapshotCert_data_impl (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (k : SnapTrip) :
-    isStaticCluster (GF := GF) γ N vs snapOk ∗ snapshotCert γ N k ⊢
-      ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat k.sid.index' ∧ snapOk l k.dat⌝ := by
-  unfold isStaticCluster snapshotCert
-  iintro ⟨⟨%Hst, -⟩, -, -, %L, %M, #Hlb, -, %HL, -⟩
-  iexists strip L
-  iframe Hlb
-  ipureintro
-  exact ⟨by rw [strip_length]; exact HL.2.1,
-    (reSnapOk_sokOf γ.raft snapOk Hst.2.2.2.1 L k.dat).1 HL.2.2.1⟩
-
 theorem toEntries_idx (l : List LogEntry) (Hl : l.length < 2 ^ 64) :
     IdxOk (LogEntry.toEntries l 0) := by
   intro k e Hk
@@ -1647,44 +1454,6 @@ theorem toEntries_idx (l : List LogEntry) (Hl : l.length < 2 ^ 64) :
     have : ((0 + k + 1 : Nat) : Int) < 2 ^ 64 := by omega
     rw [uint_Z_W64 _ (by omega) this]
     push_cast; omega
-
-/-- Certifying a snapshot of a static cluster, at any term. -/
-theorem snapshotCert_static_impl (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (l : List LogEntry) (i : w64) (d : List w8) :
-    (∀ t : w64, SnapListsOk ⟨⟨t, i⟩, ⟨vs, [], [], []⟩, false, d⟩) →
-    l.length = uint.nat i → snapOk l d →
-    isStaticCluster (GF := GF) γ N vs snapOk ∗ isCommittedLogLb γ l ⊢
-      □ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, ⟨vs, [], [], []⟩, false, d⟩ := by
-  intro Hok Hl Hso
-  unfold isStaticCluster
-  iintro ⟨⟨%Hst, -⟩, #Hlb⟩
-  obtain ⟨Hcfg, Hdyn, Hns, Hsok, -, -, -, Hreg, Htrk, -⟩ := Hst
-  have Hlen : l.length < 2 ^ 64 := by have := word.unsigned_range i; rw [Hl]; word
-  imodintro
-  iintro %t
-  unfold snapshotCert
-  isplitr; · ipureintro; exact Hns
-  isplitl []
-  · iapply raftSnapCert_static γ.raft _ (by unfold RaftNames.dyn; rw [Hdyn]; rfl) (Hok t) (hr := Hreg)
-    intro _
-    refine ⟨Hcfg.symm, rfl, ?_⟩
-    intro T hT
-    rcases Htrk with h | h
-    · rw [h] at hT; cases hT
-    · rw [h] at hT; cases hT
-      apply (GMap.union_subseteq _ _ _).2
-      refine ⟨(GMap.union_subseteq _ _ _).2 ⟨GMap.subseteq_refl _, GMap.empty_subseteq _⟩,
-        GMap.empty_subseteq _⟩
-  iexists LogEntry.toEntries l 0, ∅
-  rw [strip_toEntries]
-  iframe Hlb
-  isplitr; · iapply decLb_empty
-  isplitr
-  · ipureintro
-    refine ⟨toEntries_idx l Hlen, by rw [toEntries_length]; exact Hl, ?_, fun h => absurd Hreg h⟩
-    rw [reSnapOk_sokOf γ.raft snapOk Hsok, strip_toEntries]
-    exact Hso
-  iapply snapRegOk_none Hreg
 
 end cert
 
@@ -2014,13 +1783,6 @@ def sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF :
 instance sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     Persistent (sentMsg (GF := GF) γ N src st) := by
   unfold sentMsg; infer_instance
-
-/-- In the no-transfer mode, a sent message has the shape `SentMsgOk`. -/
-theorem sentMsg_transferOff_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
-    leaderTransferOff (GF := GF) γ N ∗ sentMsg γ N src st ⊢ ⌜SentMsgOk st⌝ := by
-  unfold leaderTransferOff sentMsg isRaftMsg
-  iintro ⟨%Hx, -, ⟨-, %Hok, -⟩, -⟩
-  ipureintro; exact Hok Hx
 
 omit [StorageModel GF] sem package_sem in
 /-- A sent `MsgSnap` carries a certified snapshot (the draft's `sentMsg_snapshot`). -/
@@ -3006,15 +2768,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- (open) **Tick credits** (raft's `tickCred`: time receipts). -/
-def tickCredit (_γ : Cluster) (n : Nat) : IProp GF := ⧗ n
-
-theorem tickCredit_intro_impl (γ : Cluster) (n : Nat) : ⧗ n ⊢ tickCredit (GF := GF) γ n := by
-  unfold tickCredit; exact .rfl
-
-theorem tickCredit_zero_impl (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := by
-  unfold tickCredit; exact receipt_zero
 
 /-- (open) **A message `node.Step` takes** at the node `id`: raft's (`stepP`), for any node names
 of the cluster's (`NodeOk`), given a time receipt (2026-10-29, stage U7: `node.Step` takes it from

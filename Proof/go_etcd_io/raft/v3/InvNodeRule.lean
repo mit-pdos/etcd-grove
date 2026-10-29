@@ -12,7 +12,7 @@ allocation, `cluster_alloc_rule`, with raft's persistent `confPolicy`.)
 Every predicate is **sealed** over its definition in `InvApiDec.lean` (laws and allocation proved
 there, `InvApiDecAlloc.lean`); nothing here is `sorry`. The node's other predicates are `InvNode`'s
 (`isNode`, `nodeDriver`, `nodeConfig`, `deliveredLogLb`, `snapshotCert`, ...), the specs over this cluster
-`RestartNode.unifiedSpec`, `node.ApplyConfChange.unifiedSpec`, `node.Advance.unifiedSpec`.
+`RestartNode.spec`, `node.ApplyConfChange.spec`, `node.Advance.spec`.
 
 - **The cluster** (`isCluster`, persistent): its nodes' configuration the membership after their
   applied conf entries, from the voters' membership, each decided once for all nodes; snapshots taken
@@ -124,7 +124,7 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
 
 /-- **A founder's boot token** (exclusive): node `id` of a new cluster of the voters `vs`, for its
 `RestartNode` on an empty storage whose `InitialState` names the voters
-(`RestartNode.unifiedSpec`). -/
+(`RestartNode.spec`). -/
 @[no_expose] def nodeFounder (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
   ApiImpl.nodeFounderU γ N vs id
 
@@ -133,25 +133,28 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
 @[no_expose] def joinAuth (γ : Cluster) (U : GSet w64) : IProp GF := ApiImpl.joinAuthU γ U
 
 /-- **A newcomer's token** (exclusive): node `id`, not a founder, for its `RestartNode` on an empty
-storage whose `InitialState` names the initial membership's voters (`RestartNode.unifiedSpec`). -/
+storage whose `InitialState` names the initial membership's voters (`RestartNode.spec`). -/
 @[no_expose] def nodeJoin (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
   ApiImpl.nodeJoinU γ N id
 
-/-- **A new cluster of the voters `vs`** (§3 of the decision switch, `cluster_alloc` there: the name is
-the static cluster's, `InvNode`; until the switch `cluster_alloc_rule`, of a rule), in the caller's
-namespace `N`: nothing committed, the read contexts with none used, the read credits, the cluster (with snapshots), the authority over its decisions,
-none recorded, the membership of no entry the voters', the registry of the snapshots made (empty),
-leader transfer on, the join authority at the voters (2026-10-29, stage U4), and one founder's token
-per voter. The term budget, backed by time receipts (`receiptBound`), is the cluster's. -/
-theorem cluster_alloc_dec (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
+/-- **A new cluster of the voters `vs`** (§3 of the decision switch; until U9, 2026-10-29,
+`cluster_alloc_dec`, the name `cluster_alloc` being the static cluster's; until the switch
+`cluster_alloc_rule`, of a rule), in the caller's namespace `N`: nothing committed, the read
+contexts with none used, the cluster (with snapshots), the authority over its decisions, none
+recorded, the membership of no entry the voters', the registry of the snapshots made (empty), the
+join authority at the voters (2026-10-29, stage U4), and one founder's token per voter. The term
+budget, backed by time receipts (`receiptBound`), is the cluster's; so (U9) are the read requests'
+credits (raft takes them from its own time receipts: until U9 the post's `readCredits γ (2^64-2)`),
+and leader transfer is on in every cluster (until U9 the post's `leaderTransferOn γ N`). -/
+theorem cluster_alloc (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
-        ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗ joinAuth γ (GMap.listToSet vs) ∗
+        ownSnapsMade γ [] ∗ joinAuth γ (GMap.listToSet vs) ∗
         [∗list] id ∈ vs, nodeFounder γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
-  unfold ownCommittedOps ownReadCtxs readCredits isCluster ownConfDecisions confAt ownSnapsMade
-    leaderTransferOn joinAuth nodeFounder Cluster.dup
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    joinAuth nodeFounder Cluster.dup
   exact ApiImpl.cluster_alloc_dec_impl N vs dup E Hrb Hne Hnd Hnz Hlen
 
 /-! ## Joining -/

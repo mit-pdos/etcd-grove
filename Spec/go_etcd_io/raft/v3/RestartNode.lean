@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`RestartNode(c)` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
-`cluster_alloc_dec`, `InvNodeRule.lean`): starts node `cv.ID'` from a founder's token of the
+`cluster_alloc`, `InvNodeRule.lean`): starts node `cv.ID'` from a founder's token of the
 cluster of the voters `vs` (`nodeFounder`) **or** (2026-10-29, stage U4) a newcomer's (`nodeJoin`,
 `joinAuth_join`), told that `vs` are the initial membership's voters (`confAt` at `0`); the
 storage's `ConfState` the initial membership's either way; and the node's view of its

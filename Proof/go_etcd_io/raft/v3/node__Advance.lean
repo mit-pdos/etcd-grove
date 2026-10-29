@@ -11,7 +11,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 import Proof.go_etcd_io.raft.v3.InvApiDec
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
@@ -199,184 +199,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `node.Advance.spec` from the raw triple (`node`'s names hidden behind the API's). -/
-private theorem node.wp_Advance_impl
-    (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
-    EtcdGrove.node.Advance.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Advance.spec EtcdGrove.Cluster EtcdGrove.isStaticCluster EtcdGrove.nodeDriver
-    EtcdGrove.nodeStopped
-  intro n γ N vs so st es L Hh
-  iintro %Φ ⟨#Hinit, #Hst, Hdrv, Hrc⟩ HΦ
-  iunfold nodeDriver at Hdrv
-  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hstc, #Hdy, Htok⟩
-  obtain ⟨Hnok, Hγs, Hds⟩ := Hf
-  iunfold isStaticCluster at Hst
-  icases Hst with ⟨%Hsn, -⟩
-  have Hmd : γn.mode = .static := by rw [Hnok.2.2.2.1, Hsn.2.2.2.2.1, RNMode.all_self]
-  icases Hstc with (%Hd | ⟨#Hlink, ⟨%ca, %cfg, Hcfg⟩⟩)
-  · exfalso; rw [Hmd] at Hd; cases Hd
-  icases Htok with (⟨%Hh', -⟩ | ⟨%es0, %L0, %Hh', Htok⟩)
-  · rw [Hh] at Hh'; cases Hh'
-  rw [Hh] at Hh'
-  cases Hh'
-  iapply (hA γn id n ds es ca cfg st.hardState L) $$ [Htok Hrc Hcfg]
-  · iframe Hinit Htok Hcfg
-    isplitl
-    · rw [Hγs]; iexact Hrc
-    iapply undecFree_static _ (by rw [Hmd]; rfl)
-  iintro !> Hpost
-  icases Hpost with (⟨Hdrv, Hcfg, -, #Hw⟩ | ⟨#Hstp, Hdrv, Hcfg⟩)
-  rotate_left
-  · -- (2026-10-29, stage U9a) the node stopped
-    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Hdrv
-    iapply HΦ
-    iright
-    isplitr
-    · unfold nodeStopped
-      iexists γn, id
-      iframe Hnc Hstp
-      isplitr
-      · ipureintro; exact Hnok
-      ileft; ipureintro; rw [Hmd]; rfl
-    unfold nodeDriver
-    iexists γn, id, ds
-    isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
-    iframe Hci Hlb0 Hdy
-    isplitl [Hcfg]
-    · iright; iframe Hlink; iexists ca, cfg; iexact Hcfg
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexact Hdrv
-  rw [loanCfg_static (by rw [Hmd]; rfl)]
-  iapply HΦ
-  ileft
-  isplitl [Hdrv Hcfg]
-  · unfold nodeDriver
-    iexists γn, id, ds
-    isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
-    iframe Hci Hlb0 Hdy
-    isplitl [Hcfg]
-    · iright; iframe Hlink; iexists ca, cfg; iexact Hcfg
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexact Hdrv
-  cases L with
-  | none =>
-    simp only
-    iunfold reqOf at Hw
-    iunfold reqWit at Hw
-    icases Hw with ⟨%x, #Hx, %Hle, -⟩
-    iexists x
-    rw [← Hγs]
-    iframe Hx
-    ipureintro
-    rw [← Hds, strip_length]; exact Hle
-  | some l => simp only; itrivial
-
-/-- `node.Advance.dynamicSpec` from the raw triple (`node`'s names hidden behind the API's). -/
-private theorem node.wp_Advance_dynamic_impl
-    (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
-    EtcdGrove.node.Advance.dynamicSpec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Advance.dynamicSpec EtcdGrove.Cluster EtcdGrove.isDynamicCluster EtcdGrove.nodeConfig EtcdGrove.nodeDriver
-    EtcdGrove.nodeStopped
-  intro n γ N c0 decode st es L v Hh Hno
-  iintro %Φ ⟨#Hinit, #Hdc, Hdrv, Hrc, Hcfg⟩ HΦ
-  iunfold isDynamicCluster at Hdc
-  icases Hdc with ⟨%Hdn, -⟩
-  iunfold nodeDriver at Hdrv
-  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hstc, #Hdy, Htok⟩
-  obtain ⟨Hnok, Hγs, Hds⟩ := Hf
-  have Hd := Hdn.isDyn Hnok
-  icases Hdy with (%Hc | ⟨#Htb, #Hhc⟩)
-  · rw [Hd] at Hc; cases Hc
-  icases Htok with (⟨%Hh', -⟩ | ⟨%es0, %L0, %Hh', Htok⟩)
-  · rw [Hh] at Hh'; cases Hh'
-  rw [Hh] at Hh'
-  cases Hh'
-  ihave ⟨Htok, #Hn1, -⟩ := busy_isNode_lb γn id n ds es st.hardState L $$ Htok
-  iunfold nodeConfig at Hcfg
-  icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
-  icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
-  subst Hid
-  icases nodeTabOk_agree γ id γn γn2 $$ Htb Htab2 with %Hnm
-  ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
-  have HA1 : NoConfIn ds v.applied ds.length := by
-    have := noConfIn_of_strip ds v.applied ds.length
-    rw [Hds] at this
-    apply this
-    have Hl : ds.length = st.delivered.length := by rw [← Hds, strip_length]
-    rw [Hl]; exact Hno
-  -- a dynamic cluster is in raft's no-snapshot mode: no snapshot `Ready`
-  have Hns : γn.raft.reNoSnap = true := by rw [Hnok.1]; exact Hdn.noSnap
-  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L) $$ [Htok Hrc Hcf]
-  · iframe Hinit Htok Hcf
-    isplitl
-    · rw [Hγs]; iexact Hrc
-    iapply undecFree_noConf _ _ HA1
-  iintro !> Hpost
-  icases Hpost with (⟨Hdrv, Hcf, %HLn, #Hw⟩ | ⟨#Hstp, Hdrv, -⟩)
-  rotate_left
-  · -- (2026-10-29, stage U9a) the node stopped
-    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Hdrv
-    iapply HΦ
-    iright
-    isplitr
-    · unfold nodeStopped
-      iexists γn, id
-      iframe Hnc Hstp
-      isplitr
-      · ipureintro; exact Hnok
-      iright; iexact Htb
-    unfold nodeDriver
-    iexists γn, id, ds
-    isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
-    iframe Hci Hlb0 Hstc
-    isplitr
-    · iright; iframe Htb Hhc
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexact Hdrv
-  have HL : L = none := by
-    cases L with
-    | none => rfl
-    | some l => have := HLn (by simp); rw [Hns] at this; cases this
-  subst HL
-  rw [loanCfg_none]
-  iapply HΦ
-  ileft
-  isplitl [Hdrv Hstc]
-  · unfold nodeDriver
-    iexists γn, id, ds
-    isplitr
-    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
-    iframe Hci Hlb0 Hstc
-    isplitr
-    · iright; iframe Htb Hhc
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexact Hdrv
-  simp only
-  isplitl [Hcf]
-  · unfold nodeConfig
-    iexists γn, id
-    iframe Hn1 Htb Hcf
-    ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
-  iunfold reqOf at Hw
-  iunfold reqWit at Hw
-  icases Hw with ⟨%x, #Hx, %Hle, -⟩
-  iexists x
-  rw [← Hγs]
-  iframe Hx
-  ipureintro
-  rw [← Hds, strip_length]; exact Hle
-
 /-- (2026-10-28, stage U4a) A log's terms as a client sees it. -/
 private theorem strip_terms (L : List EntryM) : (strip L).map LogEntry.term = L.map (·.Term') := by
   simp only [strip, List.map_map]; rfl
@@ -396,7 +218,7 @@ private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List En
     iexists q; iframe Hq1 Hq2
   · ipureintro; exact Hds
 
-/-- `node.Advance.unifiedSpec` from the raw triple (2026-10-28, stage U4a; the conf-change decision
+/-- `node.Advance.spec` from the raw triple (2026-10-28, stage U4a; the conf-change decision
 switch). A1 from the skips the client recorded (`skippedIn`: a lower bound of the decision map at
 which the node's decoder, which decides nothing else, rejects every conf entry past the view,
 `undecFree`). After a snapshot `Ready`, the view the raw triple returns is at the loan's committed log
@@ -404,10 +226,10 @@ and its fold over the loan's decisions (`loanCfg`, `RNMode.foldCfg`, `loanDec`);
 certificate (`snapshotCert_made_impl`) names a committed prefix of the snapshot's index at the
 membership `m` after it (`confAtU`, over decisions agreeing with the loan's: `fold_agree`), so the
 view is at `m`, and its lists report `m`. -/
-private theorem node.wp_Advance_unified_impl
+private theorem node.wp_Advance_impl
     (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
-    EtcdGrove.node.Advance.unifiedSpec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Advance.unifiedSpec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
+    EtcdGrove.node.Advance.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.Advance.spec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
     EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt EtcdGrove.nodeStopped
   intro n γ N st es L v Hh Hloan
   iintro %Φ ⟨#Hinit, #Hdc, Hdrv, Hrc, Hcfg, Hsk, Hcert⟩ HΦ
@@ -601,14 +423,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem node.Advance.wp_proof :
     node.Advance.spec (GF := GF) (hG := hG) :=
   ApiImpl.node.wp_Advance_impl (node.Advance.wp_raw)
-
-theorem node.Advance.wp_proof_dynamic :
-    node.Advance.dynamicSpec (GF := GF) (hG := hG) :=
-  ApiImpl.node.wp_Advance_dynamic_impl (node.Advance.wp_raw)
-
-theorem node.Advance.wp_proof_unified :
-    node.Advance.unifiedSpec (GF := GF) (hG := hG) :=
-  ApiImpl.node.wp_Advance_unified_impl (node.Advance.wp_raw)
 
 end proof
 

@@ -358,7 +358,6 @@ namespace EtcdGrove
 -- `ownRaftGhost_alloc_boot` is proved
 #print axioms RawNode.wp_Bootstrap
 #print axioms wp_setupNode
-#print axioms wp_StartNode
 #print axioms wp_confChangeToMsg
 #print axioms wp_needStorageAppendRespMsg
 #print axioms wp_newStorageAppendRespMsg

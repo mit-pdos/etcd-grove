@@ -20,7 +20,6 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Spec.go_etcd_io.raft.v3.RestartNode
-public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Proof.go_etcd_io.raft.v3.ConfchangeApi
@@ -48,48 +47,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem wp_StartNode [StorageModel GF] :
-    StartNode.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.wp_StartNode
-
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.wp_RestartNode
 
-/-! The dynamic variants (2026-10-28: the known exception to one spec per function, until a cluster
-takes both snapshots and reconfiguration; `etc/gen-link.py` links only a function's `wp_proof`, so
-they are linked here, from the same callees). -/
+/-! (2026-10-29, U9) One spec per function: `RestartNode`, `node.Advance` and
+`node.ApplyConfChange` over the one cluster (`isCluster`), linked in `Link.lean` like every other
+function (until U9 the static family there, and the dynamic and unified variants here); `StartNode`
+has no spec until the server's repair (U10). -/
 
-theorem wp_StartNode_dynamic [StorageModel GF] :
-    StartNode.dynamicSpec (GF := GF) (hG := hG) :=
-  StartNode.wp_proof_dynamic _root_.Perennial.EtcdGrove.wp_setupNode
-    _root_.Perennial.EtcdGrove.node.wp_run
+theorem node.wp_Advance [StorageModel GF] :
+    node.Advance.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Advance
 
-theorem node.wp_Advance_dynamic [StorageModel GF] :
-    node.Advance.dynamicSpec (GF := GF) (hG := hG) :=
-  node.Advance.wp_proof_dynamic
-
-theorem node.wp_ApplyConfChange_dynamic [StorageModel GF] :
-    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) :=
-  node.ApplyConfChange.wp_proof_dynamic _root_.Perennial.EtcdGrove.raftpb.ConfChange.wp_AsV2
-    _root_.Perennial.EtcdGrove.raftpb.ConfChangeV2.wp_AsV2
-
-/-! The variants over a cluster with snapshots and reconfiguration (2026-10-28, stage U4a:
-`isCluster`, `InvNodeRule.lean`; the same exception, linked here from the same callees). -/
-
-theorem wp_RestartNode_unified [StorageModel GF] :
-    RestartNode.unifiedSpec (GF := GF) (hG := hG) :=
-  RestartNode.wp_proof_unified _root_.Perennial.EtcdGrove.wp_NewRawNode
-    _root_.Perennial.EtcdGrove.wp_newNode _root_.Perennial.EtcdGrove.node.wp_run
-
-theorem node.wp_Advance_unified [StorageModel GF] :
-    node.Advance.unifiedSpec (GF := GF) (hG := hG) :=
-  node.Advance.wp_proof_unified
-
-theorem node.wp_ApplyConfChange_unified [StorageModel GF] :
-    node.ApplyConfChange.unifiedSpec (GF := GF) (hG := hG) :=
-  node.ApplyConfChange.wp_proof_unified _root_.Perennial.EtcdGrove.raftpb.ConfChange.wp_AsV2
-    _root_.Perennial.EtcdGrove.raftpb.ConfChangeV2.wp_AsV2
+theorem node.wp_ApplyConfChange [StorageModel GF] :
+    node.ApplyConfChange.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_ApplyConfChange
 
 /-! (2026-10-29, stage U9a) Stopping a node, and `ForgetLeader` over the node API. -/
 
@@ -123,16 +96,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem wp_NewMemoryStorage [StorageModel GF] :
     NewMemoryStorage.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.wp_NewMemoryStorage
-
-/-- (2026-10-28, stage U4a) `CreateSnapshot` at a term the caller knows: the known exception to one
-spec per function, linked here from the same callees. -/
-theorem MemoryStorage.wp_CreateSnapshot_unified [StorageModel GF] :
-    MemoryStorage.CreateSnapshot.unifiedSpec (GF := GF) (hG := hG) :=
-  MemoryStorage.CreateSnapshot.wp_proof_unified _root_.Perennial.EtcdGrove.raftpb.Snapshot.wp_GetMetadata
-    _root_.Perennial.EtcdGrove.raftpb.SnapshotMetadata.wp_GetIndex
-    _root_.Perennial.EtcdGrove.raftpb.Entry.wp_GetIndex _root_.Perennial.EtcdGrove.MemoryStorage.wp_lastIndex
-    _root_.Perennial.EtcdGrove.raftpb.wp_EnsureSnapshot _root_.Perennial.EtcdGrove.raftpb.Entry.wp_GetTerm
-    _root_.Perennial.EtcdGrove.proto.wp_CloneConfState _root_.Perennial.EtcdGrove.proto.wp_CloneSnapshot
 
 theorem wp_IsEmptyHardState  :
     IsEmptyHardState.spec (GF := GF) (hG := hG) :=
