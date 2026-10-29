@@ -1476,6 +1476,21 @@ theorem ownRaftLog_applying_lt (l : Loc) (ls : LogState) :
       Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
       HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
 
+/-- (D22 S-d4; U8 v2: over the pins, `ksnCerts`) The certificates of the snapshots the log knows
+(`Hkcert`), read out without consuming the log: what a snapshot `Ready` reads its loan's decisions
+from (`ksnCerts_of_link`). -/
+theorem ownRaftLog_kcert (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗ ksnCerts ls.sn ls.ksn ∗ ownRaftLog l ls := by
+  iintro H0
+  iNamed H0
+  ihave #Hkc : ksnCerts ls.sn ls.ksn $$ []
+  · iexact Hkcert
+  iframe Hkc
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore
+    Hoffset Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
+    Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl
+    HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+
 /-- (U8 v2, 2026-10-29) **Certifying the terms of the entries `L`** at the indices `n + 1, …` past
 the certified height `n` (`ownRaftLog_certify`, one by one): each at most `committed`, of the log's
 term there once at or past the boundary. -/

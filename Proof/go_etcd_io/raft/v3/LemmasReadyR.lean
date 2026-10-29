@@ -219,6 +219,15 @@ theorem readStatesPts_nil : ⊢ readStatesPts (GF := GF) slice.nil [] := by
       iprop(⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx' : IProp GF))).2
     iempintro
 
+/-- (raft-final, 2026-10-29) The transfer records' witnesses (`xfW`), read out of `ghostRest`: what a
+`Ready`'s messages' `isRaftMsg` takes (`outboxRelP_isRaftMsgs`). -/
+theorem ghostRest_xfW (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ghostRest (GF := GF) γ md c id s ⊢ xfW γ s ∗ ghostRest γ md c id s := by
+  unfold ghostRest
+  iintro ⟨%Hn, H, #Hl, #Hw, #Hx⟩
+  iframe Hl H Hw Hx
+  ipureintro; exact Hn
+
 /-- The queued messages' contributions are in the outbox, so each one handed out was
 legitimately sent (`outboxRelP_isRaftMsg`, over a list). -/
 theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List Msg)
