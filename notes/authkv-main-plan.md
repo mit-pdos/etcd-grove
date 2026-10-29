@@ -267,17 +267,28 @@ freezable yet; no bug in the Go code. Its findings and what was done:
   `client_Put_any`. A temporary local, not frozen: the merge replaces it by the one
   `(*Client).Put` spec in `client/v3`.
 
-**Open, for the user.**
+**Decided by the user (2026-10-29).**
 - F-S2: `SetUp`'s puts take persistent updates (`□ kvOpAu1`, "may be delivered several times"). A
   late firing of `c/<who>/d` above `setupRev` would put a key the history does not admit into
   root's watch, so the invariant can be allocated neither after `SetUp` (the updates keep needing
   the state) nor before. In Go it cannot happen: a refused attempt did not apply, and a put is
-  resent only after a refusal. The interfaces lose this: `writeOnce` needs `noRefusalAt`, and
-  `etcd_noRefusal` requires auth off. A gap in the proof interfaces, not in the Go code.
-- F-W4: `anon`'s and `bad`'s tokens depend on `reqCtx`'s timeout context having no outgoing
-  metadata, which `reqCtx.spec` does not say (Perennial's context model says nothing of the
-  values of a new context at other keys). Needs `reqCtx.spec` strengthened, from a Perennial
-  context fact (`notes/perennial-changes.md` if so).
+  resent only after a refusal; the interfaces lose this (`writeOnce` needs `noRefusalAt`, and
+  `etcd_noRefusal` requires auth off). A gap in the proof interfaces, not in the Go code.
+  **Decision: a refusal fact in the client's write results** (an attempt answered with a refusal
+  did not fire its update; refusals only at an auth state with `enabled`), so a set-up put's
+  update fires at most once and `SetUp` takes a non-persistent one. The merge session adds it to
+  step 5's client write results and drafts it here before proving it. Then F-S1: `SetUp.spec`'s
+  post gives the last put's revision and the client's `etcdKV` back at it.
+- F-W4: `anon`'s and `bad`'s tokens need `reqCtx`'s timeout context to have no outgoing metadata.
+  Perennial already says its descriptor has no values (`bgDeadlineDesc`); the gap was this
+  repository's grpc model, whose `outgoingOf` is opaque. **Done:**
+  `context.WithTimeoutBackground.spec` gives `cd.Values = ∅` (proved from Perennial's),
+  `client.wp_WithTimeout_bg` passes it on, `reqCtx.spec` gives `outgoingOf c0 = none`, from a new
+  trust-boundary axiom on the grpc model, `metadata.outgoingOf_noValues`
+  (`Proof/google_golang_org/grpc/metadata/OutgoingNoValues.lean`: a context with no values has no
+  outgoing metadata). No Perennial change needed. The `axiom` skill reviews it before the freeze;
+  `etc/tcb-report.py --check --update` before merging.
+- `authkv_Main` takes `DialWithBalancerBody`, as every client-building `Main` does: kept.
 
 **Not yet drafted** (`Main.wp_proof`'s other callees): `startServer`, `Serve`, root's `Put`, the
 wait group, the watches (G2, for `Work`, root's whole keyspace and `u`'s range), a `Collect.spec`

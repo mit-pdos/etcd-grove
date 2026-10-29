@@ -61,7 +61,7 @@ theorem read.Read.sendReadIndex.wp_proof
   ipersist Hsl
   wp_apply context.wp_Background
   wp_apply HRT as %d -
-  wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
+  wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx, -⟩
   · iframe #
   wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr Hcr] as %err ⟨#HerrE, Hrq⟩
   · iframe #; iframe Hfr Hcr

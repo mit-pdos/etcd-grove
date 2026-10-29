@@ -32,7 +32,8 @@ variable [package_sem : context.Assumptions]
 ghost fact `isClosedchanInit`, a premise its proof no longer needs): a context (`isContext`, of
 some descriptor: a `*timerCtx` whose parent is `Background()`) and its `cancel` function, callable
 from anywhere. Perennial's `wp_WithTimeout_Background` says which descriptor (no values, the
-deadline `time.Now().Add(d)`, Done proposition `True`); the callers here need none of it. -/
+deadline `time.Now().Add(d)`, Done proposition `True`); the callers here need only that it has no
+values (authkv's `reqCtx`: so no outgoing metadata, `metadata.outgoingOf_noValues`). -/
 abbrev context.WithTimeoutBackground.spec : Prop :=
   ∀ (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isClosedchanInit }}
@@ -42,7 +43,7 @@ abbrev context.WithTimeoutBackground.spec : Prop :=
       RET (PairV #(interface.ok ctx') #cancel);
       □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-      context.isContext ctx' cd }}
+      context.isContext ctx' cd ∗ ⌜cd.Values = ∅⌝ }}
 
 end spec
 

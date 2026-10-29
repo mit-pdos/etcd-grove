@@ -36,6 +36,7 @@ theorem context.WithTimeoutBackground.wp_proof :
     as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx⟩
   iapply HΦ
   iframe #
+  ipureintro; rfl
 
 end proof
 

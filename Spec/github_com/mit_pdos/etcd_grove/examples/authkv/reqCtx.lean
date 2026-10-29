@@ -28,7 +28,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 (`ctxOk`, whose `Err()` returns client errors, `ctxErrClient`), derived from a timeout context
 `c0` (`context.WithTimeout(context.Background(), RequestTimeout)`): `c0` itself, or for the bad
 principal `c0` with `token: badtoken` appended to its outgoing metadata (contract C3,
-`metadata.AppendToOutgoingContext`). `cancel` is callable from anywhere. -/
+`metadata.AppendToOutgoingContext`). `c0` has no outgoing metadata (no values,
+`metadata.outgoingOf_noValues`; round 1 of `notes/authkv-main-plan.md`, F-W4: so `anon`'s calls
+carry no token, and `bad`'s only `badtoken`). `cancel` is callable from anywhere. -/
 abbrev reqCtx.spec : Prop :=
   ∀ [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
@@ -42,7 +44,8 @@ abbrev reqCtx.spec : Prop :=
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
       ∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c0 : GoInterface),
         ⌜c = GoInterface.ok ci⌝ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-        ⌜if who = go!"bad" then
+        ⌜metadata.outgoingOf c0 = none ∧
+          if who = go!"bad" then
             metadata.outgoingOf c = metadata.mdAdd (metadata.outgoingOf c0) go!"token" badToken
           else c = c0⌝ }}
 
