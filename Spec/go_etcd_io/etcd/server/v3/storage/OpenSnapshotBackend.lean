@@ -8,7 +8,7 @@ Lean-first (no Rocq counterpart); `applySnapshot`'s callee (D22 S-j).
 The pre: the snapshotter (`isSnapshotter`), the snapshot's `Metadata` field and its metadata
 `md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`fileHolds`, D22 S-i's
 snapshot directory gives it, with `D`'s certificate `dbImage`), the backend's path the program's
-(`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`) for the hooks `hooks` as a
+(`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`, with `openMmapOk cfg` since 2026-10-29) for the hooks `hooks` as a
 `backend.Hooks`. The post: on success the backend over `D` (`newPostK`, whose client's half of the
 compaction keys' flag is the no-compaction token if `D` records none, `mvcc.bkNoCmp_of_fkOwn`; until
 the backend-compaction stage, 2026-10-29, a separate wand `⌜noCmpData D⌝ -∗ bkNoCmp γ`) and the

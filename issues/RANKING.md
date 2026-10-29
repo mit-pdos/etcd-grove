@@ -280,6 +280,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-quota-backend-bytes-mmap-panic](etcd-quota-backend-bytes-mmap-panic.md)** (2026-10-29):
+  a `--quota-backend-bytes` above about 2.5·10^14 (amd64) makes `newBackend`'s 110% mmap exceed
+  bbolt's `maxMapSize`, and etcd panics at startup with a message that does not name the flag. An
+  operator's absurd setting, loud and immediate; a validation check and a line in the flag's help
+  fix it. With a test.
 - **[etcd-cfg-watch-progress-interval-race](etcd-cfg-watch-progress-interval-race.md)** (2026-10-26):
   `NewWatchServer` writes `s.Cfg.WatchProgressNotifyInterval` (a sub-100ms setting raised to the
   minimum) while other goroutines read `s.Cfg`; a data race with a non-default setting, benign in

@@ -60,7 +60,7 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (hkb : E.γ.kb = some d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null)
+    (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')

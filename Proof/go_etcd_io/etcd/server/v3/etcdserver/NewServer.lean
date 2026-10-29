@@ -1267,7 +1267,7 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe HalS HalA HisAuth HauR Hlbe Hlcfg Hrc Hisc Hsz
       isplitr
       · ipureintro
-        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdbo, Hbuq, ?_, Hdirps.1⟩
+        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdbo, Hmmap, Hbuq, ?_, Hdirps.1⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

@@ -248,6 +248,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
       (d : mvcc.KBReal),
     ⌜E.γ.kb = some d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
+      storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps)⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate

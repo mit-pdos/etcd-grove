@@ -216,6 +216,11 @@ abbrev NewServer.spec : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
+      -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
+      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- snapshot backend
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
@@ -359,6 +364,11 @@ abbrev NewServer.specCompact : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
+      -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
+      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- snapshot backend
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
@@ -512,6 +522,11 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
+      -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
+      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- snapshot backend
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
