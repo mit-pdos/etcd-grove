@@ -34,7 +34,7 @@ theorem auth.authStore.AuthDisable.wp_tie
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post en sc0
-  wp_start as ⟨#Hinv, Hown, HWR, Htpa, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
@@ -123,8 +123,11 @@ theorem auth.authStore.AuthDisable.wp_tie
   have hstep : authDisableF true st0 = .next (bump { st0 with enabled := false }) := rfl
   obtain ⟨Hrevfit, Hfit⟩ := Hstep
   have Hoff : M = .off → ({ st0 with enabled := false } : AuthState).enabled = false := fun _ => rfl
+  ihave #Hcap1 := Hcap $$ %true
+  ihave #Hcn := capNextM_step M hs (authDisableF true) st0 (bump { st0 with enabled := false }) Hl0
+    (by rw [hstep]; try simp_all) $$ Hcap1
   wp_apply (h_commitRevision st R M P f T ti Lk { st0 with enabled := false } Post hs st0)
-    $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+    $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     exact ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2), Hoff⟩
   have Hl1 := histLast_after M hs { st0 with enabled := false } rev (fun _ => rfl) Hrev

@@ -59,12 +59,13 @@ revision invariant takes it, `newAuthStore_on`) and the batch lock's half of the
 boot state (the backend's, `authSchemaBoot`). -/
 theorem authBoot_alloc (γt γf : GName) :
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗
-      authOwn (GF := GF) (.on γa) [bootState] ∗ authStoreInit γa bootState ∗
-      authLockI (.on γa) bootState := by
+      authOwn (GF := GF) (.on γa) [bootState] ∗ authStoreInit γa [bootState] bootState ∗
+      authLockI (.on γa) bootState ∗ capAuth γa [bootState, bump bootState] ∗
+      capNext (.on γa) [bootState] (bump bootState) := by
   iintro
-  imod (authHist_alloc (GF := GF) γt γf [bootState] bootState
+  imod (authHist_alloc (GF := GF) γt γf [bootState] bootState [bootState, bump bootState]
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
-    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk⟩
+    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl⟩
   imodintro
   iexists γa
   isplitr
@@ -74,10 +75,14 @@ theorem authBoot_alloc (γt γf : GName) :
     iframe Hh
     iexists bootState; iframe Hc1; ipureintro; rfl
   icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
-  iframe Hown HI
-  iunfold authStoreInit; iframe Hc2 Hp; isplitl [He]
-  · iexists false; iframe He
-  iexists ((null : Loc), 0); iframe Hk
+  iframe Hown HI Hcap
+  isplitl [Hc2 Hp He Hk Hq]
+  · iunfold authStoreInit; iframe Hc2 Hp Hq; isplitr
+    · iapply (capLb_le γa [bootState] (by simp)) $$ Hcl
+    isplitl [He]
+    · iexists false; iframe He
+    iexists ((null : Loc), 0); iframe Hk
+  · simp only [capNext, List.cons_append, List.nil_append]; iexact Hcl
 
 /-- **A right to issue a token, minted** from the rights' authority (`tokenSimple_new` gives it,
 empty, with the provider): one for any token not minted before. The server's apply thread, which
@@ -162,13 +167,13 @@ theorem newAuthStore_boot
     {{ (st : GoInterface), RET #st; ∃ (γa : AuthNames) (stp : Loc),
         ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗
         authWR stp (.on γa) P f T ∗ tpAdmin stp (.on γa) ∗ Post ∗
-        authOwn (.on γa) [bootState, bump bootState] ∗
+        authOwn (.on γa) [bootState, bump bootState] ∗ capAuth γa [bootState, bump bootState] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
   wp_start_folded as ⟨%Hlg, %Hab, HD, HT, Hcs, #Htp, HA⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
-  imod (authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI⟩
+  imod (authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn⟩
   iunfold authSchemaBoot at HD
   ihave HD' := HD $$ %γa [] HI
   · ipureintro; exact Hγ
@@ -178,7 +183,7 @@ theorem newAuthStore_boot
   · ipureintro; exact Hγ
   wp_apply (newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg ab tp cost bi
       γa R P f T A Pre Q Post [bootState] bootState rfl bootState_permsFit
-      ⟨bootState, List.mem_singleton_self _, rfl⟩) $$ [$Hpkg $Hrd $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur]
+      ⟨bootState, List.mem_singleton_self _, rfl⟩) $$ [$Hpkg $Hrd $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
@@ -191,7 +196,7 @@ theorem newAuthStore_boot
   ihave HWR := authWRAt_authWR stp (.on γa) P f T ab $$ HWR
   iapply HΦ
   iexists γa, stp
-  iframe Hinv HWR HtpAd HPost Hown' Hslots
+  iframe Hinv HWR HtpAd HPost Hown' Hslots Hcap
   ipureintro; exact ⟨Hγ, Hst⟩
 
 end proof

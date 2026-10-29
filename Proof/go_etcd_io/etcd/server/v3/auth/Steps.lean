@@ -295,7 +295,7 @@ def authOwn (M : AuthMode) (hs : List AuthState) : IProp GF :=
 of the history; in the other modes nothing. -/
 def authLockShare (M : AuthMode) (hs : List AuthState) : IProp GF :=
   match M with
-  | .on γa => authLockHalf γa hs
+  | .on γa => authLockQ γa hs
   | _ => iprop(True)
 
 /-- **The authority inside a batch transaction** (the auth plan's S4f): `on γa`, the history's
@@ -360,7 +360,7 @@ theorem authOwn_lockI_join (M : AuthMode) (hs : List AuthState) (st : AuthState)
   | on γa =>
     simp only [authOwn, authLockShare]
     icases Hown with ⟨Hh, Hc⟩
-    ihave %Heq := authHistHalf_lock_agree γa hs hs' $$ Hh Hsh
+    ihave %Heq := authHistHalf_lockQ_agree γa hs hs' $$ Hh Hsh
     subst Heq
     isplitl
     · iapply (authOwnF_split (.on γa) hs).2
@@ -392,7 +392,7 @@ theorem authHist_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) 
     authHist (GF := GF) γa hs ⊢ |==> (authHist γa hs ∗ authStateAt γa i st) := by
   unfold authHist authStateAt
   iintro ⟨H, %Hk⟩
-  imod (monoListAuthOwn_update (γ := γa.hist) (l := hs) hs (List.prefix_refl hs)) $$ H with ⟨H, #Hlb⟩
+  ihave #Hlb := monoListLbOwn_get γa.hist _ hs $$ H
   imodintro
   iframe H
   isplitr
@@ -419,6 +419,62 @@ theorem authOwnF_last (γa : AuthNames) (hs : List AuthState) :
   isplitl [Hc]
   · iexists st; iframe Hc; ipureintro; exact Hl
   · iexists st; iframe Hst; ipureintro; exact Hl
+
+/-- **The cap's permission to append `st'` to `hs`** (persistent; H5, 2026-10-29): in `on γa`, a
+lower bound of the cap at `hs ++ [st']` (`capLb`), which the store's revision invariant keeps with
+its quarter of the history (`revCur`), so the history stays below the cap; in the other modes
+nothing. The store's client raises the cap (`capAuth`) before a step may append. -/
+def capNext (M : AuthMode) (hs : List AuthState) (st' : AuthState) : IProp GF :=
+  match M with
+  | .on γa => capLb γa (hs ++ [st'])
+  | _ => iprop(True)
+
+instance capNext_persistent (M : AuthMode) (hs : List AuthState) (st' : AuthState) :
+    Persistent (capNext (GF := GF) M hs st') := by
+  unfold capNext; cases M <;> infer_instance
+
+/-- **The cap's permission for a step** (persistent; H5): for the step relation `R`, every `.next`
+state `R` allows at the latest state of `hs` may be appended (`capNext`). An op's spec takes it of
+its own step. -/
+def capNextM (M : AuthMode) (hs : List AuthState) (R : StepRel) : IProp GF :=
+  iprop(□ ∀ st : AuthState, ∀ st' : AuthState, ⌜histLast M hs st ∧ R st (.next st')⌝ -∗
+    capNext M hs st')
+
+instance capNextM_persistent (M : AuthMode) (hs : List AuthState) (R : StepRel) :
+    Persistent (capNextM (GF := GF) M hs R) := by
+  unfold capNextM; infer_instance
+
+theorem capNextM_use (M : AuthMode) (hs : List AuthState) (R : StepRel) (st st' : AuthState)
+    (hl : histLast M hs st) (hR : R st (.next st')) :
+    capNextM (GF := GF) M hs R ⊢ capNext M hs st' := by
+  unfold capNextM
+  iintro #H
+  iapply H; ipureintro; exact ⟨hl, hR⟩
+
+/-- `AuthEnable`'s step at the state's own flag (H5): the store's step reads the flag `en`, which
+in `on γa` is the latest state's (`latestTie`); the cap's permission is given at that flag. -/
+def authEnableOwnR : StepRel := fun st o => o = authEnableF st.enabled st
+
+/-- The cap's permission at every flag gives it at the state's own. -/
+theorem capNextM_authEnableOwn (M : AuthMode) (hs : List AuthState) :
+    (□ ∀ en : Bool, capNextM (GF := GF) M hs (stepOf (authEnableF en))) ⊢
+      capNextM M hs authEnableOwnR := by
+  unfold capNextM
+  iintro #H !> %st %st' %h
+  iapply H $$ %st.enabled %st %st'
+  ipureintro; exact ⟨h.1, h.2⟩
+
+/-- `capNextM_use` for a step function. -/
+theorem capNextM_step (M : AuthMode) (hs : List AuthState) (f : AuthState → Outcome)
+    (st st' : AuthState) (hl : histLast M hs st) (h : f st = .next st') :
+    capNextM (GF := GF) M hs (stepOf f) ⊢ capNext M hs st' :=
+  capNextM_use M hs (stepOf f) st st' hl h.symm
+
+theorem capNextM_off (hs : List AuthState) (R : StepRel) : ⊢ capNextM (GF := GF) .off hs R := by
+  unfold capNextM capNext; iintro !> %_ %_ -; itrivial
+
+theorem capNextM_any (hs : List AuthState) (R : StepRel) : ⊢ capNextM (GF := GF) .any hs R := by
+  unfold capNextM capNext; iintro !> %_ %_ -; itrivial
 
 end ghost
 

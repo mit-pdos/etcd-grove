@@ -760,7 +760,8 @@ def authReadTxLockedL (tx : GoInterface) (R : IProp GF) (M : AuthMode) (hs : Lis
 holds; in the other modes nothing. -/
 def revCur (M : AuthMode) (r : w64) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ st : AuthState, authCurHalf γa st ∗ ⌜uint.nat r = st.revision⌝)
+  | .on γa => iprop(∃ st : AuthState, authCurHalf γa st ∗ ⌜uint.nat r = st.revision⌝ ∗
+      ∃ hs : List AuthState, authHistRev γa hs ∗ capLb γa hs)
   | _ => iprop(True)
 
 instance revCur_timeless (M : AuthMode) (r : w64) : Timeless (revCur (GF := GF) M r) := by
@@ -808,6 +809,30 @@ def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
 instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
     Persistent (authInv (GF := GF) st R M) := by
   unfold authInv; infer_instance
+
+/-- **Every recorded state is below the cap** (H5, 2026-10-29): the store's revision invariant keeps
+a quarter of the history with the cap's lower bound at it (`revCur`), so a recorded state `s` at `i`
+is the `i`-th of a lower bound of the cap. -/
+theorem authStateAt_capped (st : Loc) (R : IProp GF) (γa : AuthNames) (i : Nat) (s : AuthState)
+    (E : CoPset) (hE : ↑(nroot.@"authRev") ⊆ E) :
+    authInv (GF := GF) st R (.on γa) ∗ authStateAt γa i s ={E}=∗
+      ∃ C, capLb γa C ∗ ⌜C[i]? = some s⌝ := by
+  iintro ⟨#Hinv, #Hs⟩
+  iunfold authInv at Hinv
+  icases Hinv with ⟨-, #Hrev, -⟩
+  iinv Hrev with Hi Hclose
+  iunfold revInv at Hi
+  icases Hi with ⟨%r, >Hr, Hv, >Hc, Hf⟩
+  iunfold revCur at Hc
+  icases Hc with ⟨%stc, Hc, %Hrc, %hh, Hq, #Hcl⟩
+  ihave %Hlk := authHistRev_lookup γa hh i s $$ Hq Hs
+  imod Hclose $$ [Hr Hv Hc Hq Hf] with -
+  · inext; iunfold revInv; iexists r; iframe Hr Hv Hf
+    iunfold revCur; iexists stc; iframe Hc; isplitr
+    · ipureintro; exact Hrc
+    · iexists hh; iframe Hq Hcl
+  imodintro
+  iexists hh; iframe Hcl; ipureintro; exact Hlk
 
 /-! ## The write side (the auth plan's S4, 2026-10-24) -/
 
@@ -1147,13 +1172,13 @@ theorem revCur_agree (M : AuthMode) (hs : List AuthState) (r : w64) :
   cases M with
   | on γa =>
     simp only [authOwnF, revCur, histLast]
-    iintro ⟨Hh, ⟨%stl, %Hl, Hc1⟩⟩ ⟨%stc, Hc2, %Hr⟩
+    iintro ⟨Hh, ⟨%stl, %Hl, Hc1⟩⟩ ⟨%stc, Hc2, %Hr, Hq⟩
     ihave %Heq := authCurHalf_agree γa stl stc $$ Hc1 Hc2
     subst Heq
     isplitl [Hh Hc1]
     · iframe Hh; iexists stl; iframe Hc1; ipureintro; exact Hl
-    isplitl [Hc2]
-    · iexists stl; iframe Hc2; ipureintro; exact Hr
+    isplitl [Hc2 Hq]
+    · iexists stl; iframe Hc2 Hq; ipureintro; exact Hr
     · ipureintro
       intro st' Hl' _ _
       rw [Hl] at Hl'; cases Hl'
@@ -1177,13 +1202,13 @@ theorem revCur_agree_own (M : AuthMode) (hs : List AuthState) (r : w64) :
   cases M with
   | on γa =>
     simp only [authOwn, revCur, histLast]
-    iintro ⟨Hh, ⟨%stl, %Hl, Hc1⟩⟩ ⟨%stc, Hc2, %Hr⟩
+    iintro ⟨Hh, ⟨%stl, %Hl, Hc1⟩⟩ ⟨%stc, Hc2, %Hr, Hq⟩
     ihave %Heq := authCurHalf_agree γa stl stc $$ Hc1 Hc2
     subst Heq
     isplitl [Hh Hc1]
     · iframe Hh; iexists stl; iframe Hc1; ipureintro; exact Hl
-    isplitl [Hc2]
-    · iexists stl; iframe Hc2; ipureintro; exact Hr
+    isplitl [Hc2 Hq]
+    · iexists stl; iframe Hc2 Hq; ipureintro; exact Hr
     · ipureintro
       intro st' Hl' _ _
       rw [Hl] at Hl'; cases Hl'
@@ -1206,26 +1231,31 @@ disabled; in `any` nothing. -/
 theorem authOwnF_revCur_append (M : AuthMode) (hs : List AuthState) (st' : AuthState) (r r' : w64)
     (hk : M.isOn = true → M ≠ .any → permKeysOk st') (hoff : M = .off → st'.enabled = false)
     (hr' : M.isOn = true → M ≠ .any → uint.nat r' = st'.revision) :
-    ⊢ authOwnF (GF := GF) M hs -∗ revCur M r -∗
+    ⊢ authOwnF (GF := GF) M hs -∗ revCur M r -∗ capNext M hs st' -∗
       |==> (authOwnF M (hs ++ [st']) ∗ revCur M r' ∗ revisionVerdict M r') := by
   cases M with
   | on γa =>
-    simp only [authOwnF, revCur, revisionVerdict]
-    iintro ⟨Hh, ⟨%stl, %Hl, Hc1⟩⟩ ⟨%stc, Hc2, -⟩
+    simp only [authOwnF, revCur, revisionVerdict, capNext]
+    iintro ⟨Hh, ⟨%stl, %Hl, Hc1⟩⟩ ⟨%stc, Hc2, -, %hh, Hq, -⟩ #Hcap
+    ihave %Hhh := authHist_rev_agree γa hs hh $$ Hh Hq
+    subst Hhh
     imod (authCurHalf_update γa stl stc st') $$ Hc1 Hc2 with ⟨Hc1, Hc2⟩
-    imod (authHist_append γa hs st' (hk rfl (by intro h; cases h))) $$ Hh with Hh
+    imod (authHist_append γa hs st' (hk rfl (by intro h; cases h))) $$ [Hh Hq] with ⟨Hh, Hq⟩
+    · iframe Hh Hq
     imod (authHist_stateAt_keep γa (hs ++ [st']) hs.length st'
       (by simp)) $$ Hh with ⟨Hh, #Hst⟩
     imodintro
     iframe Hh
     isplitl [Hc1]
     · iexists st'; iframe Hc1; ipureintro; simp
-    isplitl [Hc2]
-    · iexists st'; iframe Hc2; ipureintro; exact hr' rfl (by intro h; cases h)
+    isplitl [Hc2 Hq]
+    · iexists st'; iframe Hc2; isplitr
+      · ipureintro; exact hr' rfl (by intro h; cases h)
+      · iexists hs ++ [st']; iframe Hq Hcap
     · iexists hs.length, st'; iframe Hst; ipureintro; exact hr' rfl (by intro h; cases h)
   | off =>
     simp only [authOwnF, revCur, revisionVerdict]
-    iintro %H -
+    iintro %H - -
     imodintro
     isplitr
     · ipureintro
@@ -1238,7 +1268,7 @@ theorem authOwnF_revCur_append (M : AuthMode) (hs : List AuthState) (st' : AuthS
     · isplitr <;> itrivial
   | any =>
     simp only [authOwnF, revCur, revisionVerdict]
-    iintro - -
+    iintro - - -
     imodintro
     isplitr; itrivial; isplitr; itrivial; itrivial
 
@@ -1250,7 +1280,7 @@ theorem authOwnF_revCur_keep (M : AuthMode) (hs : List AuthState) (stl : AuthSta
   cases M with
   | on γa =>
     simp only [authOwnF, revCur, revisionVerdict, histLast] at hl ⊢
-    iintro ⟨Hh, ⟨%stl', %Hl, Hc1⟩⟩ ⟨%stc, Hc2, -⟩
+    iintro ⟨Hh, ⟨%stl', %Hl, Hc1⟩⟩ ⟨%stc, Hc2, -, Hq⟩
     rw [hl] at Hl; cases Hl
     ihave %Heq := authCurHalf_agree γa stl stc $$ Hc1 Hc2
     subst Heq
@@ -1263,8 +1293,8 @@ theorem authOwnF_revCur_keep (M : AuthMode) (hs : List AuthState) (stl : AuthSta
     iframe Hh
     isplitl [Hc1]
     · iexists stl; iframe Hc1; ipureintro; exact hl
-    isplitl [Hc2]
-    · iexists stl; iframe Hc2; ipureintro; exact hr' rfl (by intro h; cases h)
+    isplitl [Hc2 Hq]
+    · iexists stl; iframe Hc2 Hq; ipureintro; exact hr' rfl (by intro h; cases h)
     · iexists hs.length - 1, stl; iframe Hst; ipureintro; exact hr' rfl (by intro h; cases h)
   | off =>
     simp only [authOwnF, revCur, revisionVerdict]
@@ -1647,8 +1677,8 @@ its half of the latest state's ghost variable. -/
 theorem authOwnF_append_same (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState)
     (st0 x : AuthState) (hl : histLast M hs st0) (hrev : x.revision = st0.revision)
     (hk : M.isOn = true → M ≠ .any → permKeysOk x) (hoff : M = .off → x.enabled = false) :
-    authInv (GF := GF) st R M ⊢ authOwnF M hs ={⊤}=∗ authOwnF M (hs ++ [x]) := by
-  iintro #Hinv Hown
+    authInv (GF := GF) st R M ⊢ authOwnF M hs -∗ capNext M hs x ={⊤}=∗ authOwnF M (hs ++ [x]) := by
+  iintro #Hinv Hown #Hcap
   iunfold authInv at Hinv
   icases Hinv with ⟨-, #Hrev, -⟩
   iinv Hrev with Hi Hclose
@@ -1657,7 +1687,7 @@ theorem authOwnF_append_same (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List
   ihave H := revCur_agree M hs r $$ Hown Hc
   icases H with ⟨Hown, Hc, %Hag⟩
   imod (authOwnF_revCur_append M hs x r r hk hoff (fun h1 h2 => by
-    rw [hrev]; exact Hag st0 hl h1 h2)) $$ Hown Hc with ⟨Hown, Hc, #Hv⟩
+    rw [hrev]; exact Hag st0 hl h1 h2)) $$ Hown Hc Hcap with ⟨Hown, Hc, #Hv⟩
   imod Hclose $$ [Hr Hc Hf] with -
   · inext; iunfold revInv; iexists r; iframe Hr Hc Hf; iexact Hv
   imodintro

@@ -177,7 +177,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r name w b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hok, #Hcap⟩
   ihave #Htn : auth.typeNamesOk (GF := GF) $$ []
   · iapply auth.typeNamesOk_of_init
     iPkgInit
@@ -552,8 +552,9 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       · iExactEq HL; rw [hrn]
       obtain ⟨Hrevfit, Hfit⟩ := Hok st0 Hl0
       have Hfit' := Hfit _ _ hstep rfl
+      ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstep $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 name (grantPerms ps w)) Post hs st0)
-        $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+        $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 =>
           permKeysOk_putRole _ _ _ (Hpk st0 Hl0 h1 h2) (hkeys h1 h2), ?_⟩
