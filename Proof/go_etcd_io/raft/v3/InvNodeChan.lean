@@ -547,9 +547,6 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
       termLB γ.bud (W64 0) -∗ rdCred γ.raft 0 -∗ tickCred γ.bud 0 -∗
       netP γ id ml := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   have Hun : UnstampedType st.msg.Type' := by
     rcases Hty with h | h | h | h <;> simp [UnstampedType, h]
   have Hnr : st.msg.Type' ≠ MsgReadIndex := by
@@ -561,8 +558,8 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
   have Hmt : mtypeOf st.msg.Type' = none := by
     rcases Hty with h | h | h | h <;> rw [h] <;> rfl
   have Hok : NetMsgOk id st := by
-    refine ⟨?_, fun h => absurd Hun h, fun _ => Ht, fun h => ?_, fun h => ?_, fun _ => ⟨He, Hc⟩,
-      fun h => ?_, Hr⟩
+    refine ⟨?_, fun h => absurd Hun h, fun _ _ => Ht, fun _ => .inl Ht, fun h => ?_, fun h => ?_,
+      fun _ => ⟨He, Hc⟩, fun h => ?_, Hr⟩
     · rcases Hty with h | h | h | h <;> rw [h] <;> simp [netStepTypes]
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
@@ -574,6 +571,9 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
         simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+  have Hns : st.msg.Type' ≠ MsgSnap := by
+    rcases Hty with h' | h' | h' | h' <;> rw [h'] <;>
+      simp [MsgSnap, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
   iintro Hm #Hlb Hcr Htc
   unfold netP
   ileft
@@ -581,12 +581,11 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
   iframe Hm
   isplitr
   · ipureintro; exact Hok
-  have Hns : st.msg.Type' ≠ MsgSnap := by
-    rcases Hty with h' | h' | h' | h' <;> rw [h'] <;>
-      simp [MsgSnap, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
-  isplitr
-  · ipureintro; exact ⟨Hxt, fun h => absurd h Hns⟩
   rw [Ht, ite_eq_right Hnr, ite_eq_right Hnt]
+  isplitr
+  · imodintro
+    iintro %h
+    exact absurd rfl h.2
   isplitr
   · imodintro
     iintro %ty %Hty'
@@ -597,7 +596,6 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     iintro %h
     exact absurd h Hns
   iframe Hlb Hcr Htc
-  -/
 
 /-- (2026-10-29, stage U7) `Campaign`'s `MsgHup` on `recvc`, with its tick credit. -/
 theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
@@ -613,12 +611,9 @@ theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
 theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     netP (GF := GF) γ id ml ⊢ ∃ st : MsgSt, msgIn ml DFrac.discard st ∗
       ⌜st.msg.Type' ∈ netStepTypes ∨ st = hupSt⌝ ∗ (msgIn ml DFrac.discard st -∗ netP γ id ml) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hnet
   unfold netP
-  icases Hnet with (⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
+  icases Hnet with (⟨%st, Hm, %Hok, #Hxf, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
   · iexists st
     iframe Hm
     isplitr
@@ -626,8 +621,8 @@ theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iintro Hm
     ileft
     iexists st
-    iframe Hm Hab Hsn Hlb Hcr Htc
-    ipureintro; exact ⟨Hok, Hpvb⟩
+    iframe Hm Hxf Hab Hsn Hlb Hcr Htc
+    ipureintro; exact Hok
   · unfold hupP
     icases Hhup with ⟨Hm, Htc⟩
     iexists hupSt
@@ -637,7 +632,6 @@ theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iintro Hm
     iright
     iframe Hm Htc
-  -/
 
 /-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
 channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/
@@ -918,12 +912,8 @@ theorem runCfg_congr (γ : NodeNames) {rs rs' : RNState} (hm : rs'.mode = rs.mod
     (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg)
     (hsn : rs'.sn = rs.sn := by rfl) :
     runCfg (GF := GF) γ rs ⊢ runCfg γ rs' := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   unfold runCfg rsDlv
-  rw [hm, hc, hd, hf, hp, hs, hcfg, hsn]
-  -/
+  rw [hm, hc, hd, hf, hs, hcfg, hsn]
 
 /-! ### `advancec` (D19i part 1): the floor raised at the rendezvous
 
@@ -1204,9 +1194,6 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
           nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -1216,7 +1203,7 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
@@ -1225,11 +1212,10 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   unfold nodeDriverBusy
   iframe Hnode Hld
   isplitr
-  · unfold dlvLb; iexact Hlb
+  · unfold dlvLb; iframe Hlb Hk
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
-  -/
 
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) :
@@ -1296,24 +1282,20 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
         dlvLb γ (dlvAfter ds ce L) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro HP Hdrv
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iexists ce, es, ms, p', L
   iframe Hdata
   unfold nodeDriverBusy dlvLb
-  iframe Hnode Hlb Hld
+  iframe Hnode Hlb Hk Hld
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
-  -/
 
 /-- The handshake's send, where the payload is made only when the send happens (a ghost
 update inside the atomic update): `run` hands out the storage's append right with a
