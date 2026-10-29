@@ -1087,6 +1087,11 @@ structure NGhost [GooseExts] where
   (`SnpOk`), and a snapshot in progress or absorbed has one recorded; it is a snapshot the node may
   send (`ksn`) at most the commit index. Set by `acceptReady`, cleared by `Advance`. -/
   snp : Option SnapTrip := none
+  /-- (U8 v2, 2026-10-29) **The log's storage names** (`LogState.sn`), mirrored (`GhLogOk`), so that
+  every step keeps them (`NetFrame`, `LocalFrame`, `SnapStep`: `s'.gh = s.gh`): the snapshots'
+  certificates the node holds are of them (`qSrcs`, `ghostRest`'s `certLink`). Set when the node
+  is built (`newRaft`), never changed. -/
+  sn : StorNames := {}
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)

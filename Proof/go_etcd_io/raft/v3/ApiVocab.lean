@@ -112,13 +112,8 @@ is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sen
 sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
 def AppFrom (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgApp → st.msg.From' = id
 
-/-- (D21 M3) The no-snapshot mode's cap of the storage (`ownRaftPhys`'s `Hnscap`, at the mode `ns`
-and the log's storage `st`): the storage is never compacted past index `1`. -/
-def NsCap (ns : Bool) (st : Storage) : IProp GF :=
-  iprop(□ (⌜ns = true⌝ -∗ storCap st 1))
-
-instance NsCap_persistent (ns : Bool) (st : Storage) : Persistent (NsCap (GF := GF) ns st) := by
-  unfold NsCap; infer_instance
+-- (U8 v2, 2026-10-29) `NsCap` (the no-snapshot mode's storage cap, `storCap st 1`) removed: the mode
+-- is dropped at raft's level (`ownRaftPhys`'s `Hnsoff`).
 
 end
 
@@ -452,34 +447,9 @@ def softStateRO (p : Loc) : IProp GF :=
 instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
   unfold softStateRO; infer_instance
 
-/-- (D22 S-d3a) What a `Ready` hands the application for the storage: the right to append the batch
-(`appendRight`), or with a snapshot the storage itself, at a state with nothing pending and the
-loan's floor (`ownRaftLog_lend`); (D22 S-d4, 2026-10-21) and the snapshot's certificate in the
-storage's registry (`storCert`, the log's `Hkcert`), which the application's `ApplySnapshot` takes
-(`MemoryStorage.ApplySnapshot`'s `memStorCert`). -/
-def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
-  match L with
-  | none => appendRight st es
-  | some l => iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
-      storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
-
-/-- (D22 S-d3a) **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes:
-the half of the snapshot it was handed, and the storage at the snapshot -- its boundary and its
-own snapshot the loan's, its lists and `AutoLeave` the snapshot's, holding the entries `es` the
-`Ready` handed out after it, nothing pending, the floor it was lent at. What a `MemoryStorage`'s
-`ApplySnapshot` then `Append` give (stage S-r). -/
-def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
-  iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
-    ∃ σr, ownStorage st σr ∗ ⌜σr.prev = snapId l.snap ∧ σr.ss = snapId l.snap ∧ σr.ents = es ∧
-      σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
-
-/-- (D22 S-d4; here since 2026-10-28, from `InvNodeChan.lean`) The driver's receipt at `Advance` for the `Ready`'s storage hand-out: of the append
-of its entries (`appendReceipt`), or after a snapshot `Ready` the storage at the snapshot and the
-half of the snapshot (`snapReceipt`, which `RawNode.Advance` takes, `loanRet`). -/
-def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF
-  | none => appendReceipt st es
-  | some l => snapReceipt st l es
+-- (U8 v2, 2026-10-29) `readyOut`, `snapReceipt`, `advReceipt` (a `Ready`'s storage hand-out and its
+-- receipt over the old contract's `StorState`/`appendRight`/`storCert`) removed until step 4 of U8 v2
+-- restates them over the range vocabulary (see `git show 535c05e68a:Proof/go_etcd_io/raft/v3/ApiVocab.lean`).
 
 /-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
 stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,

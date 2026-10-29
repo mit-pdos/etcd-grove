@@ -273,27 +273,10 @@ instance isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) 
 
 end rangeContract
 
-/-! ## Raft's view of its storage (U8 v2)
+/-! ## The snapshots' certificates as raft carries them (U8 v2; γ-free pins) -/
 
-What raft holds of its storage, for its view `σ` (`StorState`), and the read triples of the view,
-derived from the contract. Raft's ghost names (`StorNames`, the log's `LogState.sn`): the authority of
-the applied lower bounds it publishes (`ga`, at `σ.fl`), of the snapshot last handed out (`gg`, at
-`σ.sg`), and the pin of the contract's `SV` (`gsv`). -/
-
-section view
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- Raft's reading of the contract's `Bnd c`: some applied lower bound or snapshot handed out at or
-past `c` (the API's `nodeAppliedLb`/`snapGiven` are these lower bounds). -/
-def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
-  iprop(∃ (k : Nat), ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
-
-instance raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd (GF := GF) sn c) := by
-  unfold raftBnd; infer_instance
+section certs
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The storage's snapshot `sv` is valid**, as raft carries it (persistent, γ-free): the contract's
 `SV sv`, for the `SV` pinned at `sn.gsv` (the API's `snapshotValid γ`, which the node level recovers
@@ -342,6 +325,31 @@ theorem ksnCerts_mem (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) (h : k 
   iintro #HK
   obtain ⟨i, hi⟩ := List.getElem?_of_mem h
   iapply (BigSepL.bigSepL_lookup (Φ := fun _ k => ksnCert (GF := GF) sn k) hi) $$ HK
+
+end certs
+
+/-! ## Raft's view of its storage (U8 v2)
+
+What raft holds of its storage, for its view `σ` (`StorState`), and the read triples of the view,
+derived from the contract. Raft's ghost names (`StorNames`, the log's `LogState.sn`): the authority of
+the applied lower bounds it publishes (`ga`, at `σ.fl`), of the snapshot last handed out (`gg`, at
+`σ.sg`), and the pin of the contract's `SV` (`gsv`). -/
+
+section view
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- Raft's reading of the contract's `Bnd c`: some applied lower bound or snapshot handed out at or
+past `c` (the API's `nodeAppliedLb`/`snapGiven` are these lower bounds). -/
+def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
+  iprop(∃ (k : Nat), ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+
+instance raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd (GF := GF) sn c) := by
+  unfold raftBnd; infer_instance
+
 
 /-- (U8 v2) Raft's reading of the contract's `DL i` for a valid snapshot of term `t`: raft certified
 the term `t` at `i` (`sn.gd`, whose authority keeps every key at most `committed` and of the log's
