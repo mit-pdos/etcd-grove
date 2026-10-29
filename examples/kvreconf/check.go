@@ -29,12 +29,13 @@ func copyMap(m map[string]string) map[string]string {
 
 // within says whether every key of a has the same value in b (a key b lacks has the value "").
 func within(a, b map[string]string) bool {
+	ok := true
 	for k, v := range a {
 		if b[k] != v {
-			return false
+			ok = false
 		}
 	}
-	return true
+	return ok
 }
 
 // hashString is the FNV-1a hash of s.

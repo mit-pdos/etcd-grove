@@ -231,9 +231,12 @@ noncomputable def within.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "a"))
+  (Let "$r0" (Val #true)
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "a"))
   (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -243,18 +246,21 @@ noncomputable def within.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))))))
-  (App (Val doReturn)
-  (Val #false))
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$key")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value")))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))
 
 /-- hashString is the FNV-1a hash of s.
 
-    go: check.go:41:6 -/
+    go: check.go:42:6 -/
 noncomputable def hashString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -285,7 +291,7 @@ noncomputable def hashString.impl [GooseExts] [GoGlobalContext] : val :=
 /-- hashMap is an order-independent hash of m; an entry of value "" counts for nothing, so that
     the maps Equal says are equal hash alike.
 
-    go: check.go:51:6 -/
+    go: check.go:52:6 -/
 noncomputable def hashMap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
@@ -323,7 +329,7 @@ noncomputable def hashMap.impl [GooseExts] [GoGlobalContext] : val :=
     map[string]string (never changed once made), a key it lacks having the value "". A Put sets
     its key's value, with output ""; a Get or a Read outputs its key's value.
 
-    go: check.go:64:6 -/
+    go: check.go:65:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -405,7 +411,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
     read index (one in four each), of one of the keys "a", "b", "c", with one of the values
     "000".."999".
 
-    go: check.go:92:6 -/
+    go: check.go:93:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (App (Val exceptionDo)
@@ -459,7 +465,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RandomConfig is Main's: random options (RandomOptions), 4 clients of 100 operations, one to
     three proposers of configuration changes, and disruptions.
 
-    go: check.go:118:6 -/
+    go: check.go:119:6 -/
 noncomputable def RandomConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -479,7 +485,7 @@ noncomputable def RandomConfig.impl [GooseExts] [GoGlobalContext] : val :=
     the disruptions and checks the trace against Model with porcupine. It returns porcupine's
     answer and the cluster, still running (the tests check that it converges, then stop it).
 
-    go: check.go:134:6 -/
+    go: check.go:135:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "clock"
@@ -610,7 +616,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
     Ok: the program whose executions are meant to cover raft's uses (the package's comment), and
     the one to prove never panics.
 
-    go: check.go:172:6 -/
+    go: check.go:173:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
