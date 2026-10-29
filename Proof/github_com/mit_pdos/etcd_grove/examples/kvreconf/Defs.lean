@@ -61,6 +61,13 @@ abbrev RReplica [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvreconf.
 /-- The store's cluster struct. -/
 abbrev RCluster [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster
 
+abbrev rReplicaTy [GooseExts] [GoGlobalContext] : go.GoType :=
+  github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica.ty
+abbrev rStorageTy [GooseExts] [GoGlobalContext] : go.GoType :=
+  github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty
+abbrev rClusterTy [GooseExts] [GoGlobalContext] : go.GoType :=
+  github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster.ty
+
 /-- The namespace of the store's raft cluster. -/
 def kvrRaftN : Namespace := nroot.@"kvreconf_raft"
 /-- The store's invariant's. -/
@@ -171,6 +178,9 @@ instance rkvInv_persistent (γr : RNames) : Persistent (rkvInv (GF := GF) γr) :
 def waitP (γr : RNames) (d : List w8) (v : List w8) : IProp GF :=
   iprop(∃ (l : List LogEntry), isCommittedLogLb γr.cluster l ∗ ⌜AnsOk (logHist l) d v⌝)
 
+instance waitP_persistent (γr : RNames) (d v : List w8) : Persistent (waitP (GF := GF) γr d v) := by
+  unfold waitP; infer_instance
+
 /-- A lower bound on the store's history (persistent). -/
 def kvLb (γr : RNames) (L : List (List w8)) : IProp GF :=
   iprop(∃ (l : List LogEntry), isCommittedLogLb γr.cluster l ∗ ⌜L = logHist l⌝)
@@ -201,18 +211,20 @@ def waiterOk (γr : RNames) (d : List w8) (ch : Loc) : IProp GF :=
     isHandoff γh ch (waitP γr d) iprop(True) iprop(False) ∗ handoffProducer γh false)
 
 /-- The applier's half of a replica's replicated state (see the file header), at the committed
-prefix `ap`, the configuration `csp` denoting `m` at `ap`'s end (or `nil`, the node stopped): the
+prefix `ap`, the configuration `csp` denoting `m` at `ap`'s end (or `nil`, the node stopped), the
+index field at `idx` (`len ap` but inside `applyEntry`, which moves it after the entry): the
 store's map (the applier's alone), half of each field the other goroutines read under the lock
 (`applied`, `cs`, `index`) and half of the applied table, with the precise facts. -/
 def repOwn (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap : List LogEntry)
-    (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8)) : IProp GF :=
+    (idx : w64) (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8)) :
+    IProp GF :=
   iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (c : ConfStateM),
     "HmK" ∷ r.[RReplica, go!"kv"] ↦ mK ∗
     "HK" ∷ mK ↦$ K ∗
     "HmA" ∷ r.[RReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
     "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
     "Hcs" ∷ r.[RReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
-    "Hidx" ∷ r.[RReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} W64 ap.length ∗
+    "Hidx" ∷ r.[RReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
     "#Hap" ∷ isCommittedLogLb γr.cluster ap ∗
     "%Hlen" ∷ ⌜(ap.length : Int) < 2 ^ 61⌝ ∗
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (logHist ap) k⌝ ∗

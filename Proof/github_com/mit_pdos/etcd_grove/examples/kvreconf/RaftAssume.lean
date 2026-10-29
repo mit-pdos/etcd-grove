@@ -85,6 +85,10 @@ structure RaftAssume where
       (App (Val #(methods node.ty.PointerType go!"Advance" #n)) (Val #()))
     {{ RET #(); True }}
 
+instance RaftAssume.nodeStopped_pers (RA : RaftAssume (GF := GF)) (n : Loc) (γ : Cluster)
+    (N : Namespace) : Persistent (RA.nodeStopped n γ N) :=
+  RA.nodeStopped_persistent n γ N
+
 end assume
 
 end kvreconf

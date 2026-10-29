@@ -127,6 +127,73 @@ theorem logHist_le_ops [GooseExts] (l ops : List LogEntry) (h : opsOf l <+: ops)
   rw [← logHist_opsOf l]; exact logHist_prefix _ _ h
 
 
+/-- After `r.kv[key] = val`. -/
+theorem kvMap_put (K : GMap (List w8) (List w8)) (m : KVMap) (key val : List w8)
+    (h : ∀ k, (K !! k).getD [] = m k) :
+    ∀ k, ((<[key := val]> K) !! k).getD [] = kvUpd m key val k := by
+  intro k
+  by_cases hk : k = key
+  · subst hk; rw [GMap.lookup_insert, kvUpd_same]; rfl
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk), kvUpd_other _ _ _ _ hk]; exact h k
+
+/-- The odOf of a normal entry with data. -/
+theorem odOf_normal [GooseExts] (e : LogEntry) (ht : e.type = W32 0) (hd : e.data ≠ []) :
+    odOf e = some e.data := by
+  unfold odOf; rw [if_pos ⟨ht, hd⟩]
+
+/-- The odOf of an entry without data. -/
+theorem odOf_nil [GooseExts] (e : LogEntry) (hd : e.data = []) : odOf e = none := by
+  unfold odOf; rw [if_neg (fun h => h.2 hd)]
+
+/-- A decodable datum is not empty. -/
+theorem decodeOp_ne_nil (d : List w8) (x : w64 × w8 × List w8 × List w8)
+    (h : decodeOp d = some x) : d ≠ [] := by
+  rintro rfl; simp [decodeOp] at h
+
+theorem logHist_snoc [GooseExts] (l : List LogEntry) (e : LogEntry) :
+    logHist (l ++ [e]) = histStep (logHist l) (odOf e) := by
+  unfold logHist; rw [List.map_append, List.map_singleton, histOf_snoc]
+
+/-- The replicated state past an entry that changes nothing: one without a datum, an undecodable
+datum, or a datum applied before. -/
+theorem hist_skip [GooseExts] (ap : List LogEntry) (e : LogEntry) (K A : GMap (List w8) (List w8))
+    (HA : AppliedOk A (logHist ap)) (Hval : ∀ k, (K !! k).getD [] = kvFold (logHist ap) k)
+    (Hs : odOf e = none ∨ ∃ d, odOf e = some d ∧ (decodeOp d = none ∨ d ∈ logHist ap)) :
+    (∀ k, (K !! k).getD [] = kvFold (logHist (ap ++ [e])) k) ∧ AppliedOk A (logHist (ap ++ [e])) := by
+  rw [logHist_snoc]
+  rcases Hs with Ho | ⟨d, Ho, Hd⟩
+  · rw [Ho]; exact ⟨Hval, HA⟩
+  · rw [Ho]
+    refine ⟨?_, appliedOk_skip A _ d HA Hd⟩
+    by_cases Hm : d ∈ logHist ap
+    · rw [histStep_mem _ d Hm]; exact Hval
+    · have Hd0 : decodeOp d = none := by rcases Hd with h | h; exact h; exact absurd h Hm
+      rw [histStep_nmem _ d Hm, kvFold_snoc, kvApply_none _ _ Hd0]; exact Hval
+
+/-- The replicated state past the first occurrence of an operation `d`: a `Put` sets its key, and
+the table records the key's value after it. -/
+theorem hist_insert [GooseExts] (ap : List LogEntry) (e : LogEntry) (K A : GMap (List w8) (List w8))
+    (d : List w8) (i : w64) (kd : w8) (key val : List w8)
+    (HA : AppliedOk A (logHist ap)) (Hval : ∀ k, (K !! k).getD [] = kvFold (logHist ap) k)
+    (Ho : odOf e = some d) (Hm : d ∉ logHist ap) (Hdec : decodeOp d = some (i, kd, key, val))
+    (K' : GMap (List w8) (List w8)) (HK' : K' = if kd = opPutB then <[key := val]> K else K) :
+    (∀ k, (K' !! k).getD [] = kvFold (logHist (ap ++ [e])) k) ∧
+      AppliedOk (A.insert d ((K' !! key).getD [])) (logHist (ap ++ [e])) := by
+  rw [logHist_snoc, Ho, histStep_nmem _ d Hm]
+  have HappE : kvApply (kvFold (logHist ap)) d = kvNext kd key val (kvFold (logHist ap)) := by
+    simp [kvApply, Hdec]
+  have HvalN : ∀ k, (K' !! k).getD [] = kvFold (logHist ap ++ [d]) k := by
+    intro k
+    rw [kvFold_snoc, HappE, HK']
+    unfold kvNext
+    by_cases hp : kd = opPutB
+    · rw [if_pos hp, if_pos hp]; exact kvMap_put K _ key val Hval k
+    · rw [if_neg hp, if_neg hp]; exact Hval k
+  refine ⟨HvalN, ?_⟩
+  have Hk : dkey d = key := by simp [dkey, Hdec]
+  have := appliedOk_insert A _ d HA Hm (by rw [Hdec]; rfl)
+  rwa [← Hk, HvalN]
+
 end kvreconf
 end EtcdGrove
 end Perennial
