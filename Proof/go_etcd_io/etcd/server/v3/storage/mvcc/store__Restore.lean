@@ -36,7 +36,7 @@ theorem mvcc.store.Restore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
   intro s γ b' d' γb' P' L R hLR hR
-  wp_start as ⟨#Hs, %Hkb, Hcl, Hfs, Hwsd, Hfrag, Hown, #Hfrz, #HcL, Htoks, HlogQ, #Hok', #HbkT,
+  wp_start as ⟨#Hs, %Hkb, %Hcm', Hcl, Hfs, Hwsd, Hfrag, Hown, #Hfrz, #HcL, Htoks, HlogQ, #Hok', #HbkT,
     #HcrT, Hview, Hnc, Hrr, Hrts⟩
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
@@ -363,9 +363,14 @@ theorem mvcc.store.Restore.wp_proof
     iframe Hq0 Hp0
     isplitl [Hcmp0]
     · iunfold mvcc.compactTok
-      iexists -1
-      iframe Hcmp0
-      ipureintro; exact Int.le_refl _
+      isplitl [Hcmp0]
+      · iexists -1
+        iframe Hcmp0
+        ipureintro; exact Int.le_refl _
+      -- no restore in compaction mode (Q5-3): the new store's job has no budgets
+      simp only [mvcc.StoreNames.withPhys_kb, hk]
+      iapply (mvcc.cmOff_res d' Hcm').2.2.1.2
+      itrivial
     iintro ⟨-, H⟩
     iexact H
   isplitl [HfsW]

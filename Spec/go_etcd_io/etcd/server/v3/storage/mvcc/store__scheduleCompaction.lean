@@ -29,7 +29,8 @@ of `CompactionBatchLimit` (positive: `isStore`) under the batch lock (`UnsafeRan
 `UnsafeDelete` of keys compaction may delete, `delKey`), each committed, `finishedCompactRev = rev`
 written in the last batch: `nil` and the compaction finished (`compactedAt γ rev`); or the store
 stopped between two batches (its stop channel closed): `fmt.Errorf`'s error. The hash
-(`kvHasher`, crc32: an axiom) is any. -/
+(`kvHasher`, crc32: an axiom) is any. The job's budgets (`compactJobResM`, in the token: question
+5's core stage, part (1)) are given back, for the next job. -/
 abbrev mvcc.store.scheduleCompaction.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev prev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.compactJobPre s γ rev ∗
@@ -37,7 +38,7 @@ abbrev mvcc.store.scheduleCompaction.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"scheduleCompaction")) (Val #rev))
       (Val #prev))
   {{ (h : KeyValueHash) (err : GoInterface), RET (PairV #h #err);
-      mvcc.idxCompactor γ.idx (sint.Z rev) ∗
+      mvcc.idxCompactor γ.idx (sint.Z rev) ∗ mvcc.compactJobResM γ.kb ∗
       ((⌜err = GoInterface.nil⌝ ∗ mvcc.compactedAt γ (sint.Z rev)) ∨
         (mvcc.errorfIs err ∗ mvcc.storeStopped s)) }}
 

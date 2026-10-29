@@ -794,7 +794,10 @@ spends two) and a reader token per reader slot; and, since the merge with the st
 The store is never compacted here: `NewStore`'s half of the compaction revision's authority is
 given up (`crevFrozen_alloc`), so its readers are those of a never-compacted store
 (`storeReader`); the backend records no compaction (`bkNoCmp`, `NewStore`'s: D19l (v) (A), D22 S-g),
-and the right to close the store holds its scheduler's stop token (D19m (C)). -/
+and the right to close the store holds its scheduler's stop token (D19m (C)). (Question 5's core
+stage, part (1), the review's N4: the store does not compact, `hcm : d.cm = false`, so it keeps no
+reader back for a compaction job and needs none of its budgets; M2 turns the server's compaction
+on.) -/
 
 section backend
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -811,7 +814,7 @@ tokens: with the store's lessor's leases (none in the empty state), the apply th
 `apply.kvOwn` and `applyEntries`' write budget, for a server whose environment is the store's. -/
 theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (γb γl : GName) (Pk : IProp GF)
     (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (N : Nat) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -843,12 +846,21 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
+  -- (question 5's core stage, part (1)) this store does not compact (`hcm`): no slot, no supply, no
+  -- reader kept back (`cmOff_res`)
+  obtain ⟨-, hj, -, hws, hsr⟩ := mvcc.cmOff_res (GF := GF) d hcm
+  ihave Hsrm : mvcc.kbSRM (GF := GF) (some d) $$ []
+  · iapply hsr.2; itrivial
+  ihave Hwts : mvcc.kbWTSupplyM (GF := GF) (some d) $$ []
+  · iapply hws.2; itrivial
   iapply wp_fupd
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb) $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hro]
+  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
+      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro]
     as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
-  · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro
+  · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm Hwts
     unfold backend.wbTok
     iframe Hw1 Hw2
+  rw [hj, Nat.sub_zero]
   -- the apply thread's store is never compacted (the compaction is not in the server's model):
   -- the compaction right's half given up, the readers those of a never-compacted store (as the
   -- watchable store's `newWatchableStore` does)
@@ -881,7 +893,7 @@ authority; and the watch side's (the watchable store, its watch tokens, its read
 loops', the right to close it). The index's names `γi` and the map `γok` are the caller's (D13a). -/
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (γb γl : GName) (Pk : IProp GF) (f : val)
     (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -932,6 +944,9 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
       schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f rd0 N γi γok M hcfg hrb) $$ [Hpre]
   · iexact Hpre
   inext
+  -- (question 5's core stage, part (1)) `d` does not compact (`hcm`): it is the store's instance
+  have hd : ({ d with cm := false } : mvcc.KBReal) = d := by cases d; cases hcm; rfl
+  rw [hd]
   iintro %ws ⟨%st, %γw, %Hγ, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, -, Hrd, H11⟩
   iapply HΦ
   iexists st, γw
@@ -1024,7 +1039,7 @@ facts (`ciKeys`, `hooksParams`). The lessor is the real one at `lp` (`lease.less
 its lock for the store. The other premises are `server_kv_backend`'s. -/
 theorem server_kv_backend_hooks (lg lp : Loc)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hci : ciKeys d.P)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = false) (hci : ciKeys d.P)
     (hH : storage.hooksParams d.P) (γb γl : GName) (γA : ApplyNames) (ci bh lgh : Loc)
     (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (N : Nat) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
@@ -1068,7 +1083,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
     [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv $Hrl]
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
-  iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP γb γl
+  iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP hcm γb γl
     (batchLockInv γA (metaTM d.γB d.P)) f hf rd0 N hcfg hrb) $$ [Hdl Hv Hncmp Hrg Hw Hrts Hlrd Hro] HΦ
   iframe #
   iframe Hdl Hv Hncmp Hrg Hw Hrts Hlrd Hro

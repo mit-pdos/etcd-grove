@@ -119,10 +119,10 @@ theorem mvcc.store.compact.wp_proof
     wp_auto
     ihave Htok := Hw $$ [HQ HR]
     · iframe HQ HR
-    wp_apply (h3 s γ rev prev) $$ [$Htok] as %h %err ⟨Hidx, Hres⟩
+    wp_apply (h3 s γ rev prev) $$ [$Htok] as %h %err ⟨Hidx, Hjr, Hres⟩
     · iframe #
-    ihave Htok : mvcc.compactTok γ (sint.Z rev) $$ [Hidx]
-    · iunfold mvcc.compactTok; iexists (sint.Z rev); iframe Hidx; ipureintro; exact Int.le_refl _
+    ihave Htok : mvcc.compactTok γ (sint.Z rev) $$ [Hidx Hjr]
+    · iunfold mvcc.compactTok; iframe Hjr; iexists (sint.Z rev); iframe Hidx; ipureintro; exact Int.le_refl _
     icases Hres with (⟨%Herr, #Hdone⟩ | ⟨Herr, #Hstopped⟩)
     · subst Herr
       wp_auto

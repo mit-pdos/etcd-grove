@@ -51,7 +51,10 @@ resource, two write-back tokens, one reader token per reader slot), and a batch 
 negative, on a backend that records no compaction (`bkNoCmp`, D19l (v) (A), D22 S-g), `NewStore`
 returns a store of that instance (with the right to close it, holding the scheduler's stop token,
 and the compaction right's half of the revision's authority: D19m (C); the compaction is of no use
-over this instance, `storeCmp`). -/
+over this instance until the core stage's flip, `storeCmp`). In compaction mode (`d.cm`, question 5's
+core stage, part (1)) the creator also gives the backend's safe-range slot (`kbSRM`, from `newPost`'s
+`srSlot`) and its write-back supply (`kbWTSupplyM`; discharged only by M2, R2-7), and gets one reader
+fewer (`nJobRd`: the compaction job's, kept back); otherwise both are `True` (`cmOff_res`). -/
 theorem mvcc.NewStore_backend
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -89,7 +92,7 @@ theorem mvcc.NewStore_backend
         -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
         backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -107,11 +110,11 @@ theorem mvcc.NewStore_backend
           s.[store, go!"WriteView"] ↦
             (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
           mvcc.isWriteView wv s γ) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- this store never compacts: the registration fixed at "nothing deletable"
   imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
@@ -120,8 +123,12 @@ theorem mvcc.NewStore_backend
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg hrb)
-    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hro Hifresh Hok0]
-  · iframe Hpkg Hbk Hle Hro Hifresh Hok0
+    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro Hifresh Hok0]
+  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Hwts
+    isplitr
+    · iintro %s %γ %hγ
+      iapply Hbk
+      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
       show mvcc.kbNoCmp (GF := GF) (some d) γb = mvcc.bkNoCmp d.γB from rfl,
       show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,

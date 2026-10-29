@@ -244,7 +244,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iunfold mvcc.compactTok at Htok
-  icases Htok with ⟨%c', %hc', Htok⟩
+  icases Htok with ⟨⟨%c', %hc', Htok⟩, Hjr⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -652,7 +652,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_apply HUSR
     (try wp_auto)
     iapply HΦ
-    iframe Htok
+    iframe Htok Hjr
     ileft
     iframe Hdone
     ipureintro; rfl
@@ -749,7 +749,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_apply HUSR
     (try wp_auto)
     iapply HΦ
-    iframe Htok
+    iframe Htok Hjr
     iright
     iframe Herr
     iunfold mvcc.storeStopped

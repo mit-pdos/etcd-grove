@@ -38,13 +38,14 @@ far as its events go (`popFacts`: nothing of its range between its `minRev` and 
 bound), so the clients' view of their watchers (`chanWatcher`, `isClientWatcher`) is unchanged.
 The rest as `store.Restore`'s: the caller's parts of the inner store's current objects and names
 (its closer, the writer's fragment and retired token, never compacted), the new backend's, and
-back the new closer, fragment, token, the old backend's tokens and the new one's left over. -/
+back the new closer, fragment, token, the old backend's tokens and the new one's left over; no
+restore in compaction mode (`store.Restore`'s two `cm = false` premises, Q5-3/Q5-4). -/
 abbrev mvcc.watchableStore.Restore.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log),
   L <+: [[], []] ++ R → mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d⌝ ∗
+      mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝ ∗
       mvcc.storeCloser st γ.st ∗ mvcc.writerFrag γ.st ∗ mvcc.writerOwn γ.st ∗
       mvcc.crevFrozen γ.st ∗ mvcc.watchWriter γ L ∗
       mvcc.certOk γ.st ([[], []] ++ R) ∗

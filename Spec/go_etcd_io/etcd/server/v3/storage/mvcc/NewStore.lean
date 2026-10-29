@@ -79,16 +79,26 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   that `store.Compact` takes, `compactRight_of_closer`), and the reader slots are those of a
   store that may be compacted (`storeReaderC`): a caller that never compacts gives the half up
   (`crevFrozen_alloc`) and has the readers its transactions take (`storeReader_of`).
-* (D22 receiver epochs, S8d, W7, 2026-10-25) The readers' pool's retired count, `0`
-  (`retiredAt`): its creator counts the readers it retires, so that a restore returns exactly the
-  old backend's tokens. -/
+* (D22 receiver epochs, S8d, W7, 2026-10-25) The readers' pool's retired count (`retiredAt`): its
+  creator counts the readers it retires, so that a restore returns exactly the old backend's tokens.
+* (Question 5's wiring, the core stage, part (1), 2026-10-29; `notes/backend-cmp-plan.md`) The
+  compaction mode is the instance's (`kbCmpM kb`: `KBReal.cm` for the real backend). A compacting
+  real store keeps one of the backend's reader tokens back for its compaction job (`nJobRd kb`,
+  out of the readers' pool: the pool's retired count starts there, and the caller gets that many
+  fewer readers), and takes the backend's safe-range slot (`kbSRM`, from the backend's creation)
+  and its write-back supply (`kbWTSupplyM`); the job's budgets travel in the compaction token
+  (`compactTok`). For any other store they are `True` and nothing is kept back (`cmOff_res`). The
+  contract is needed only at the index's names `γi` (F4: a compacting store's backend registers
+  that index's deletable keys). -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
   mvcc.batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
+        mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbSRM kb ∗ mvcc.kbWTSupplyM kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -104,12 +114,12 @@ abbrev mvcc.NewStore.spec : Prop :=
         s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb) (),
         mvcc.storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
-      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ 0 }}
+      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) }}
 
 end spec
 

@@ -50,7 +50,7 @@ theorem applySnapshot_walk
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
-    (hkb : E.γ.kb = some d)
+    (hkb : E.γ.kb = some d) (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
@@ -284,8 +284,11 @@ theorem applySnapshot_walk
   -- its creator fixes nothing deletable
   icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl, Hncmp, -⟩
   imod backend.dlNoDel_fix _ $$ Hdl with #Hnd
-  obtain ⟨d', hγ', hbe', hgx', hP'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧ d'.gx = gx' ∧
-      d'.P = d.P := ⟨{ d with γB := γB, be := nb, gx := gx' }, rfl, rfl, rfl, rfl⟩
+  -- (question 5's core stage, part (1)) the new backend's instance does not compact (no restore in
+  -- compaction mode: Q5-3)
+  obtain ⟨d', hγ', hbe', hgx', hP', hcm'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧
+      d'.gx = gx' ∧ d'.P = d.P ∧ d'.cm = false :=
+    ⟨{ d with γB := γB, be := nb, gx := gx', cm := false }, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hbe']
   iunfold snapOpenK at HnK
   icases HnK with ⟨HnCls, %jf, %γcf, Htcf, #Hidxf⟩
@@ -398,7 +401,9 @@ theorem applySnapshot_walk
     as ⟨%p', %Hp', Hscl', Hfrag', HwOwn', #HhkP', HwW', Hold, Hnew⟩
   · iframe #; iframe Hscl Hfrag HwOwn HwW HnView HnNC
     isplitr
-    · ipureintro; exact ⟨d, by rw [Hγw]; exact hkb⟩
+    · ipureintro; exact ⟨d, by rw [Hγw]; exact hkb, hcm⟩
+    isplitr
+    · ipureintro; exact hcm'
     isplitr
     · rw [Hγw]; iexact Hcok
     isplitr
@@ -798,7 +803,7 @@ theorem applySnapshot_walk
   iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck
   isplitr
   · ipureintro
-    exact ⟨hγ', hP', hgx', rfl, Hp'.1, Hp'.2, Hγw, hbr', Hcov, Hgnn, Hopts'⟩
+    exact ⟨hγ', hP', hgx', hcm', rfl, Hp'.1, Hp'.2, Hγw, hbr', Hcov, Hgnn, Hopts'⟩
   iunfold srvBemuReaderAt
   iframe
   iframe #

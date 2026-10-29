@@ -108,13 +108,16 @@ promised: no fact of the old physical names (`physOk`, `hookOk`, `storeRegd`, `i
 `idxNevLb`, `compactedAt`) claims they are current (that is `cur`'s, which the old parts no longer
 hold), and no fact names a field `Restore` writes (`b`, `kvindex`, `fifoSched`, `stopc`,
 `currentRev`, `compactMainRev`: their points-to are in the shares and the locks; `↦□` only in a
-compacted store's `storeStop`, excluded). -/
+compacted store's `storeStop`, excluded). No restore in compaction mode (question 5's wiring, the
+user's answers Q5-3 and Q5-4, 2026-10-29; M2's scope restriction): the old store's real backend
+and the new one do not compact (`KBReal.cm = false`), so neither has a compaction job's budgets
+(`cmOff_res`). -/
 abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log),
   L <+: [[], []] ++ R → mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d⌝ ∗
+      mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝ ∗
       mvcc.storeCloser s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.crevFrozen γ ∗
       mvcc.idxCert γ.idx L ∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) ∗

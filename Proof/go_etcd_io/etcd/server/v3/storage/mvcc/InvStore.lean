@@ -223,6 +223,11 @@ instance bNames_countable : Pos.Countable backend.BNames :=
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1⟩)
     (fun _ => rfl)
 
+/-- A real instance's parameters are its record's, whatever its compaction mode (the server's
+store at `{ d with cm := false }`: question 5's core stage, part (1)). -/
+@[simp] theorem KBReal.P_withCm (d : KBReal) (c : Bool) : ({ d with cm := c } : KBReal).P = d.P :=
+  rfl
+
 instance kbReal_countable : Pos.Countable KBReal :=
   countableOfLeftInverse (fun x : KBReal => (x.γB, x.BT, x.hookMax, x.limit, x.be, x.gx, x.cm))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
@@ -1626,6 +1631,47 @@ theorem cmOff_res (d : KBReal) (hcm : d.cm = false) :
   · unfold kbWTSupplyM; simp only [hnc, ↓reduceIte]; exact .rfl
   · unfold kbSRM; simp only [hnc, ↓reduceIte]; exact .rfl
 
+/-- `n` copies of `P`, `m ≤ n` of them apart (the readers `NewStore` keeps back for the
+compaction job, `nJobRd`, and the slots it drops for them). -/
+theorem rep_sub (P : IProp GF) (m n : Nat) (h : m ≤ n) :
+    ([∗list] _x ∈ List.replicate n (), P) ⊢
+      ([∗list] _x ∈ List.replicate (n - m) (), P) ∗ ([∗list] _x ∈ List.replicate m (), P) := by
+  conv => lhs; rw [show n = (n - m) + m by omega, ← List.replicate_append_replicate]
+  exact BigSepL.bigSepL_append.1
+
+/-- At most one reader is kept back for the job. -/
+theorem nJobRd_le (kb : Option KBReal) : nJobRd kb ≤ 1 := by
+  unfold nJobRd; cases kb with
+  | none => simp
+  | some d => simp only; split <;> omega
+
+/-- **The job's budgets from the readers kept back and the slot** (the core stage, part (1), the
+user's decision for the job's reader: `NewStore` keeps `nJobRd kb` of the backend's reader tokens
+out of the readers' pool, its retired count starting there): one reader's token and the slot for a
+compacting real store, nothing otherwise. -/
+theorem compactJobResM_of (kb : Option KBReal) :
+    ([∗list] _x ∈ List.replicate (nJobRd kb) (), kbRT (GF := GF) kb) ∗ kbSRM kb ⊢
+      compactJobResM kb := by
+  cases kb with
+  | none =>
+    unfold compactJobResM kbRT kbSR
+    simp only [kbCmpM, ↓reduceIte]
+    iintro -
+    isplitl <;> itrivial
+  | some d =>
+    unfold compactJobResM kbSRM nJobRd
+    cases hc : d.cm with
+    | false =>
+      have hnc : ¬ kbCmpM (some d) := by unfold kbCmpM; simp [hc]
+      simp only [hnc, hc, ↓reduceIte]
+      iintro -; itrivial
+    | true =>
+      have hcm : kbCmpM (some d) := by unfold kbCmpM; simp [hc]
+      simp only [hcm, hc, ↓reduceIte, List.replicate_one]
+      iintro ⟨Hr, Hs⟩
+      icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hr, -⟩
+      iframe Hr Hs
+
 /-- The slot by the mode, from the slot itself (what a creator holding `srSlot` gives). -/
 theorem kbSRM_of_kbSR (kb : Option KBReal) : kbSR (GF := GF) kb ⊢ kbSRM kb := by
   unfold kbSRM
@@ -1894,15 +1940,18 @@ instance crevUB_timeless (γ : IdxNames) (q : Qp) (c : Int) :
 /-- **The index compactor's token, at or below `c`** (exclusive): the index's compactor token
 (`idxCompactor`, `treeIndex.Compact`'s) at the revision of the last compaction of the index, at most
 `c` (a compaction job at `c` may find the index compacted below it: an earlier job interrupted
-before its pass, by a cancelled context, leaves the token where it was; 2026-10-13, unit 5c). -/
+before its pass, by a cancelled context, leaves the token where it was; 2026-10-13, unit 5c), and
+the job's budgets (`compactJobResM`: a compacting real store's reader token and safe-range slot;
+question 5's core stage, part (1)), handed from job to job with it. -/
 def compactTok (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c')
+  iprop((∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c') ∗ compactJobResM γ.kb)
 
 /-- The compactor's token is good at any higher revision. -/
 theorem compactTok_mono (γ : StoreNames) (c c' : Int) (h : c ≤ c') :
     compactTok (GF := GF) γ c ⊢ compactTok γ c' := by
   unfold compactTok
-  iintro ⟨%c₀, %h₀, H⟩
+  iintro ⟨⟨%c₀, %h₀, H⟩, Hj⟩
+  iframe Hj
   iexists c₀
   iframe H
   ipureintro; omega

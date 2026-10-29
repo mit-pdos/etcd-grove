@@ -74,7 +74,8 @@ theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : 
 bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
 `wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s;
 (the backend-compaction stage, 2026-10-29) over data with no compaction recorded, the backend's
-no-compaction token (`mvcc.bkNoCmp_of_fkCl`: until then a separate premise of `bootOk`). -/
+no-compaction token (`mvcc.bkNoCmp_of_fkCl`: until then a separate premise of `bootOk`); (question 5's
+core stage, part (1)) the safe-range slot (`srSlot`, kept for a compacting store: M2's). -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit)
@@ -86,10 +87,12 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx γ P b) ∗
       -- (the backend-compaction stage) the creator's deletable-keys registration, unfixed
-      backend.dlInit γ ∗ mvcc.bkNoCmp γ := by
+      backend.dlInit γ ∗ mvcc.bkNoCmp γ ∗
+      -- (question 5's core stage, part (1)) the safe-range slot, for a compacting store (M2's)
+      backend.srSlot b := by
   unfold backend.newPost
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk, -⟩
-  iframe Hb Hsc Hh Hrb Hdl
+  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk, Hsr⟩
+  iframe Hb Hsc Hh Hrb Hdl Hsr
   ihave Hnc := mvcc.bkNoCmp_of_fkCl γ _ hnc $$ Hfk
   iframe Hnc
   icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩

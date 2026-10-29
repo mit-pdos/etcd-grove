@@ -91,7 +91,9 @@ theorem mvcc.NewStore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, -, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
+  have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
+  have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -198,15 +200,16 @@ theorem mvcc.NewStore.wp_proof
   · rw [Qp.half_add_half]; iexact Hrst
   -- the readers' tickets: every one idle (D22 receiver epochs, S4)
   imod ownTokAuth_alloc (GF := GF) with ⟨%γtk, Htka⟩
-  imod ownTokAuth_add mvcc.nReaders γtk 0 $$ Htka with ⟨Htka, Htks⟩
+  imod ownTokAuth_add (mvcc.nReaders - mvcc.nJobRd kb) γtk 0 $$ Htka with ⟨Htka, Htks⟩
   rw [Nat.zero_add]
   imod ownTokAuth_alloc (GF := GF) with ⟨%γtko, Htkoa⟩
   -- (S5a) the watchable store's deposit ghost, and the tickets out under its lock
   imod ghostVar_alloc (GF := GF) () with ⟨%γwsd, Hwsd⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γtkw, Htkwa⟩
   -- (the restore plan's R5e) the retired tickets: none; (D22 receiver epochs, S8d, W7) the count,
-  -- half the pool's, half the creator's (`retiredAt`)
-  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γtkr, Htkr0⟩
+  -- half the pool's, half the creator's (`retiredAt`); (question 5's core stage, part (1)) it starts
+  -- at the readers kept back for the compaction job (`nJobRd`)
+  imod ghostVar_alloc (GF := GF) (mvcc.nJobRd kb) with ⟨%γtkr, Htkr0⟩
   icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr⟩ :
@@ -284,7 +287,7 @@ theorem mvcc.NewStore.wp_proof
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
   ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P $$ [Hbk]
   · iapply Hbk $$ %«$r0_ptr» %γ
-    ipureintro; exact ⟨hγb, rfl⟩
+    ipureintro; exact ⟨hγb, rfl, rfl⟩
   iunfold mvcc.storeBackend at Hbk1
   icases Hbk1 with ⟨%Dep, #Hbk1⟩
   ihave #Hbk0 := Hbk1
@@ -451,6 +454,9 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.writerInv; iexact Hwi
   -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
   -- (S5a) each slot with a reader token of the backend
+  -- (question 5's core stage, part (1)) less the readers kept back for the compaction job
+  icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hird with ⟨Hird, -⟩
+  icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hrts with ⟨Hrts, Hjrt⟩
   ihave Hslots := mvcc.idxSlots_of γ (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) _ $$ [Hird Hrts]
   · iframe Hird Hrts
   imod (inv_alloc mvcc.poolN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
@@ -461,14 +467,14 @@ theorem mvcc.NewStore.wp_proof
     rw [mvcc.StoreNames.withPhys_self]
     iframe HcurPool
     iunfold mvcc.poolBody
-    iexists mvcc.nReaders, 0, 0, 0
+    iexists mvcc.nReaders - mvcc.nJobRd γ.kb, 0, 0, mvcc.nJobRd γ.kb
     rw [List.replicate_zero]
     iframe Htka Htkoa Htkwa Htkra Hslots
     isplitl []
     · iapply BigSepL.bigSepL_nil_intro; iempintro
     isplitl []
     · iapply BigSepL.bigSepL_nil_intro; iempintro
-    ipureintro; omega
+    ipureintro; rw [hγk]; omega
   ihave #Hpool : mvcc.readerPool γ $$ []
   · iunfold mvcc.readerPool; iexact Hpool
   ihave Hcmp2 : («$r0_ptr».[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half •
@@ -571,6 +577,8 @@ theorem mvcc.NewStore.wp_proof
     iframe ReadView WriteView
     iframe #
     iunfold mvcc.kvOver; ileft; ipureintro; rfl
+  icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hmus with ⟨Hmus, -⟩
+  icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hrevs with ⟨Hrevs, -⟩
   isplitl [Hmus Hrevs Htks]
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» γ
     iframe Hmus Hrevs
@@ -578,17 +586,19 @@ theorem mvcc.NewStore.wp_proof
     iexact Htks
   -- the compaction jobs' queue: the index compactor's token at `-1` beside the scheduler's
   -- queue, whose last name saves the initial `True` (2026-10-13, unit 5c)
-  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0]
+  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0 Hjrt Hsrm]
   · iunfold mvcc.compactQueue
     iexists [n₀], p₀, iprop(True), mvcc.compactTok γ (-1)
     rw [hγs, List.singleton_append]
     iframe Hq0 Hp0
-    isplitl [Hcmp0]
+    isplitl [Hcmp0 Hjrt Hsrm]
     · iunfold mvcc.compactTok
-      iexists -1
-      rw [hγi]
-      iframe Hcmp0
-      ipureintro; exact Int.le_refl _
+      isplitl [Hcmp0]
+      · iexists -1
+        rw [hγi]
+        iframe Hcmp0
+        ipureintro; exact Int.le_refl _
+      iapply mvcc.compactJobResM_of; iframe Hjrt Hsrm
     iintro ⟨-, H⟩
     iexact H
   -- the right to close: the stop channel's close, the scheduler's stop token, the queue (D19m (C))

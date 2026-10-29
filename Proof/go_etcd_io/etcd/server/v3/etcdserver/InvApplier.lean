@@ -471,12 +471,14 @@ buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memor
 write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver epochs, S7c,
 2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
 alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
-(`srvObjsOn`). -/
+(`srvObjsOn`). (Question 5's core stage, part (1), the user's Q5-4 and review round 16's M1,
+2026-10-29) The store's backend does not compact (`d.cm = false`: no restore in compaction mode,
+`store.Restore`'s premise; M2 turns the server's compaction on). -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
-        H = srvObjsOn al st lp cl d.be
+        H = srvObjsOn al st lp cl d.be ∧ d.cm = false
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
