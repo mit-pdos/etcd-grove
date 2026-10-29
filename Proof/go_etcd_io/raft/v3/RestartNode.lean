@@ -17,6 +17,7 @@ import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDyn
 import Proof.go_etcd_io.raft.v3.InvApiDec
+import Proof.go_etcd_io.raft.v3.InvApiJoin
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
@@ -98,8 +99,10 @@ private abbrev RestartNode.specRaw : Prop :=
   csm.Learners' = [] →
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
-  γ.reCfg = GMap.listToSet csm.Voters' →
-  cv.ID' ∈ csm.Voters' →
+  -- (2026-10-29, stage U4: only in the static mode; a dynamic node, a newcomer, need not be one of
+  -- the conf state's voters)
+  (md = .static → γ.reCfg = GMap.listToSet csm.Voters') →
+  (md = .static → cv.ID' ∈ csm.Voters') →
   -- (2026-10-25, T-M M2c: `StepDownOnRemoval` either way; 2026-10-15 to 2026-10-25 on in the dynamic
   -- mode)
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
@@ -243,6 +246,8 @@ private theorem RestartNode.wp_raw
         cfg := cfgState (GMap.listToSet csm.Voters') ∅ } $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
   · cases md with
     | static =>
+      have P25 := P25 rfl
+      have P26 := P26 rfl
       iunfold rnInit at Hghost
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
       · iunfold sdrOk; iexists s.sdr; iexact Hsd0
@@ -442,8 +447,8 @@ private theorem wp_RestartNode_impl
   subst Hv
   ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm true
-    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz Hlen Hvo Hl Hln Hal Hcfg Hid
-    Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
+    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz Hlen Hvo Hl Hln Hal (fun _ => Hcfg)
+    (fun _ => Hid) Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
     isplitl [Hg]
     · unfold rnInit; iexact Hg
@@ -484,12 +489,22 @@ private theorem wp_RestartNode_unified_impl
     (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.unifiedSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.unifiedSpec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.nodeDriver
-    EtcdGrove.nodeFounder EtcdGrove.storageCertLink EtcdGrove.nodeConfig
+    EtcdGrove.nodeFounder EtcdGrove.nodeJoin EtcdGrove.confAt EtcdGrove.storageCertLink
+    EtcdGrove.nodeConfig
   intro γ N vs c cv lok si σ hs csm H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln
-    Hal Hid Hfl
+    Hal Hfl
   iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, #Hinst, Hboot, #Hlink⟩ HΦ
+  -- (2026-10-29, stage U4) a newcomer's token is a founder's of the initial membership's voters
+  ihave Hboot : nodeFounderU (GF := GF) γ N vs cv.ID' $$ [Hboot]
+  · icases Hboot with (Hboot | ⟨Hj, #Hca, %Hnd⟩)
+    · iexact Hboot
+    · iapply nodeJoin_founder_impl γ N vs cv.ID' Hnd $$ [Hj Hca]
+      iframe Hj Hca
   iunfold nodeFounderU at Hboot
-  icases Hboot with ⟨#Hcl, %Hpf, Hg, #Hc0, #Hbinv, #Htlb, ⟨%g, %Hg0, Ha⟩⟩
+  iunfold nodeJoinU at Hboot
+  iunfold joinBaseU at Hboot
+  iunfold joinSlotU at Hboot
+  icases Hboot with ⟨⟨#Hcl, %-, ⟨-, #Hc0, #Hbinv, #Htlb⟩, ⟨Hg, ⟨%g, %Hg0, Ha⟩⟩⟩, %Hpf⟩
   obtain ⟨Hcfg, ⟨gd, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩ := Hpf
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
@@ -502,8 +517,8 @@ private theorem wp_RestartNode_unified_impl
   ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
   iapply wp_fupd
   iapply (hS γ.raft (γ.mode inferInstance) γ.bud c cv lok si σ hs csm true
-    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz (by omega) Hvo Hl Hln Hal Hcfg Hid
-    Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
+    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hne Hnd Hnz (by omega) Hvo Hl Hln Hal
+    (fun _ => Hcfg) (fun h => by rw [Hmd] at h; cases h) Hfl (fun _ => Hns)) $$ [Hc Hown Hg]
   · iframe Hinit Hc Hlog Hstor Hown Hinst Hc0 Hbinv Htlb
     isplitl [Hg]
     · rw [Hmd]

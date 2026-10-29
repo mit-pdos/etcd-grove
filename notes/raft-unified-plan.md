@@ -79,6 +79,8 @@ commit per lemma.
   snapshots and an empty or bootstrap log; `joinAuth`; `RestartNode` from `γ.c0`; a joiner (empty log,
   configuration `c0`) in the protocol invariant beside the founders; pre-votes granted at term 0 with
   no `bootedCluster` premise (scope: newcomers start at `c0`, not on an empty `ConfState`).
+  (2026-10-29: done in the decision cluster, empty bootstrap log: `notes/decisions.md`, "Stage U4:
+  joiners"; spec changes below. A bootstrap-log allocation, and joiners there, remain.)
 - **U5. Automatic leave.** `raft.appliedTo`'s leave proposal (its recursion into `r.Step`), so that
   `c.autoLeave → role ≠ leader` goes from `appliedTo`, `appliedSnap`, `raft.Step`; the invariant that a
   committed empty `EntryConfChangeV2` is raft's leave where the configuration is joint (`RaftLeave`, for
@@ -110,6 +112,29 @@ commit per lemma.
   takes its own time receipts), a Goose project, the importable `confchange`/`tracker` specs over
   `ownTrackerM` and `validConf` over them, its specs and proofs, its `Main`'s adequacy
   (`kvreconf_porcupine_safe`).
+
+## Spec changes during U4 (2026-10-29)
+
+Each: old → new, and why.
+
+- `stepIn_intro` (`InvNode.lean`): premise `⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ` → none. A
+  node at term `0` has an empty log (`ownStepGhost_term0`) and grants every pre-vote, so no rejection is
+  sent at term `0`; the premise excluded pre-votes from every cluster started empty (the frozen design's
+  E4). `bootedCluster`/`nodeBoot_booted` are kept (now unused by raft; their removal is U9's).
+- `RawNode.Step.spec`: premise `st.msg.Type' = MsgPreVote → γ.reBoot ≠ []` → none (same reason).
+- `cluster_alloc_dec` (`InvNodeRule.lean`): post adds `joinAuth γ (GMap.listToSet vs)` (the design's
+  `joinAuth γ (founders)`).
+- New: `joinAuth γ U`, `nodeJoin γ N id`, `joinAuth_join`. **Departure from the design's statement:**
+  `joinAuth_join` takes `isCluster γ N` (a persistent premise: `isCluster γ N ∗ joinAuth γ U ==∗ joinAuth
+  γ ({[id]} ∪ U) ∗ nodeJoin γ N id`). `joinAuth γ U` has no namespace, but the token is of the cluster in
+  `N` (`isNode n γ N id` after `RestartNode`), so the law needs the cluster at `N`; every client holds it.
+- `RestartNode.unifiedSpec`: premise `cv.ID' ∈ vs` → none (no node needs it in the dynamic mode, a
+  founder included: raw `RestartNode`'s `γ.reCfg = …` and `cv.ID' ∈ csm.Voters'` are now
+  static-only); `nodeFounder γ N vs cv.ID'` → `nodeFounder γ N vs cv.ID' ∨ (nodeJoin γ N cv.ID' ∗ confAt
+  γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ⌜vs.Nodup⌝)`. A newcomer is told that `vs` are the initial
+  membership's voters by `confAt` at `0` (`cluster_alloc_dec` gives it), as the design's `confStateIs cs
+  γ.c0` (the cluster has no public `c0`); `vs.Nodup` because `NewRawNode` takes the `ConfState`'s list
+  without repeats.
 
 ## Machinery (the map of the two modes, 2026-10-28)
 

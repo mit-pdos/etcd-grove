@@ -469,6 +469,22 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, stage U4: joiners (2026-10-29, branch `raft-unified`)
+
+Done in the decision cluster (`cluster_alloc_dec`, its log empty); raft's tree builds (`Link`,
+`Linked`, `Results`, `Api`, `ConfPolicy`, `MemstorageInstance`), `etc/api-check.py etc/api/raft.txt
+--check`, `etc/gen-interface.py etc/api/raft.txt --check --layout`; no `sorry` or axiom added.
+- **Joining:** `joinAuth γ U`, `nodeJoin γ N id`, `joinAuth_join` (with an `isCluster γ N` premise),
+  `cluster_alloc_dec` giving `joinAuth γ (listToSet vs)`; `RestartNode.unifiedSpec` takes
+  `nodeFounder ∨ (nodeJoin ∗ confAt γ 0 (simple vs) ∗ ⌜vs.Nodup⌝)`, no `cv.ID' ∈ vs`. The ghost state
+  of every non-zero id is allocated at once (`allNodeIds`, `InvApiJoin.lean`): no protocol change.
+- **Pre-votes:** a node at term `0` has an empty log (`ownStepGhost_term0`, `Protocol/Term0.lean`), so
+  the pre-vote premise left `RawNode.Step.spec`, `netP` and `stepIn_intro`.
+- Remaining for U4: the bootstrap-log allocation in this cluster (and joiners there, review 3's B10).
+- Clients broken by it (not built): examples/kv (`StartCluster.lean`, `deliver.lean`), etcd's server
+  (`InvNet.lean`). Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4"; reasoning:
+  `notes/decisions.md`, "Stage U4: joiners".
+
 ## The conf-change decision switch: done on raft's side (2026-10-28, branch `raft-unified`)
 
 The frozen spec: `notes/spec-first-study/raft-decisions-spec.md` (its "Spec changes during the stage"

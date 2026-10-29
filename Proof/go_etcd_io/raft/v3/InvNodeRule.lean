@@ -29,12 +29,16 @@ there, `InvApiDecAlloc.lean`); nothing here is `sorry`. The node's other predica
 - **Snapshots** (TaDa style): the client's registry of the snapshots it made (`ownSnapsMade`, from the
   allocation, empty), `snapshotCert_make` (a committed prefix at its configuration), `snapshotCert_made`
   (a certificate's prefix, configuration and record), `snapMade_elem`.
+- **Joining** (2026-10-29, stage U4): the ids started or reserved (`joinAuth γ U`, from the allocation
+  at the founders), and a newcomer's token (`nodeJoin γ N id`, `joinAuth_join`), for its `RestartNode`
+  at the initial membership with an empty log, as a founder's.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.ConfRule
 import Proof.go_etcd_io.raft.v3.InvApiDec
 import Proof.go_etcd_io.raft.v3.InvApiDecAlloc
+import Proof.go_etcd_io.raft.v3.InvApiJoin
 import all Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
@@ -124,22 +128,41 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
 @[no_expose] def nodeFounder (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
   ApiImpl.nodeFounderU γ N vs id
 
+/-- **The ids started or reserved** (exclusive): every node id in `U` has had its token taken
+(a founder's or a joiner's); the others' are here. -/
+@[no_expose] def joinAuth (γ : Cluster) (U : GSet w64) : IProp GF := ApiImpl.joinAuthU γ U
+
+/-- **A newcomer's token** (exclusive): node `id`, not a founder, for its `RestartNode` on an empty
+storage whose `InitialState` names the initial membership's voters (`RestartNode.unifiedSpec`). -/
+@[no_expose] def nodeJoin (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+  ApiImpl.nodeJoinU γ N id
+
 /-- **A new cluster of the voters `vs`** (§3 of the decision switch, `cluster_alloc` there: the name is
 the static cluster's, `InvNode`; until the switch `cluster_alloc_rule`, of a rule), in the caller's
 namespace `N`: nothing committed, the read contexts with none used, the read credits, the cluster (with snapshots), the authority over its decisions,
 none recorded, the membership of no entry the voters', the registry of the snapshots made (empty),
-leader transfer on, and one founder's token per voter. The term budget, backed by time receipts
-(`receiptBound`), is the cluster's. -/
+leader transfer on, the join authority at the voters (2026-10-29, stage U4), and one founder's token
+per voter. The term budget, backed by time receipts (`receiptBound`), is the cluster's. -/
 theorem cluster_alloc_dec (N : Namespace) (vs : List w64) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
-        ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗
+        ownSnapsMade γ [] ∗ leaderTransferOn γ N ∗ joinAuth γ (GMap.listToSet vs) ∗
         [∗list] id ∈ vs, nodeFounder γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
   unfold ownCommittedOps ownReadCtxs readCredits isCluster ownConfDecisions confAt ownSnapsMade
-    leaderTransferOn nodeFounder
+    leaderTransferOn joinAuth nodeFounder
   exact ApiImpl.cluster_alloc_dec_impl N vs E Hrb Hne Hnd Hnz Hlen
+
+/-! ## Joining -/
+
+/-- **Reserving a new id**: its token, out of the authority. -/
+theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
+    id ∉ U → id ≠ W64 0 →
+    isCluster (GF := GF) γ N ∗ joinAuth γ U ==∗ joinAuth γ ({[id]} ∪ U) ∗ nodeJoin γ N id := by
+  intro hU hz
+  unfold isCluster joinAuth nodeJoin
+  exact ApiImpl.joinAuth_join_impl γ N U id hU hz
 
 /-! ## Decisions -/
 

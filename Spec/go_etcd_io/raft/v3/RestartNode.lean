@@ -68,10 +68,14 @@ abbrev RestartNode.spec : Prop :=
 
 /-- **`RestartNode(c)` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
 `cluster_alloc_dec`, `InvNodeRule.lean`; until the conf-change decision switch `cluster_alloc_rule`): as `RestartNode.spec`, from a founder's token of the
-cluster of the voters `vs` (`nodeFounder`) in place of `nodeRestartBoot`; and the node's view of
-its configuration at the voters' membership, with nothing applied (`nodeConfig`, as
-`StartNode.dynamicSpec`'s post). (A known exception to one spec per function, as the dynamic
-variants, until stage U9 makes this cluster the only one.) -/
+cluster of the voters `vs` (`nodeFounder`) in place of `nodeRestartBoot`, **or** (2026-10-29, stage
+U4) a newcomer's (`nodeJoin`, `joinAuth_join`), told that `vs` are the initial membership's voters
+(`confAt` at `0`); the storage's `ConfState` the initial membership's either way, so a newcomer
+starts at `c0` without being one of its voters (until U4 `cv.ID' ∈ vs`, which no founder needs
+either); and the node's view of its configuration at the voters' membership, with nothing applied
+(`nodeConfig`, as `StartNode.dynamicSpec`'s post). (A known exception to one spec per function, as
+the dynamic variants, until stage U9 makes this cluster the only one.) Scope: a newcomer starts at
+`c0`, not on an empty `ConfState` as etcd's joining member does (the frozen design's F5). -/
 abbrev RestartNode.unifiedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
@@ -91,7 +95,6 @@ abbrev RestartNode.unifiedSpec : Prop :=
   σ.pend = [] → HsEmpty hs →
   csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
-  cv.ID' ∈ vs →
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
@@ -100,7 +103,9 @@ abbrev RestartNode.unifiedSpec : Prop :=
             hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      nodeFounder γ N vs cv.ID' ∗ storageCertLink γ N (interface.ok si) }}
+      (nodeFounder γ N vs cv.ID' ∨
+        (nodeJoin γ N cv.ID' ∗ confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ⌜vs.Nodup⌝)) ∗
+      storageCertLink γ N (interface.ok si) }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗

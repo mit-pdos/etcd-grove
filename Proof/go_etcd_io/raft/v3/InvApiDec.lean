@@ -213,17 +213,6 @@ instance snapMadeU_persistent (γ : Cluster) (s : SnapRec) :
     Persistent (snapMadeU (GF := GF) γ s) := by
   unfold snapMadeU; infer_instance
 
-/-- **A founder's boot token** (`InvNodeRule`'s `nodeFounder`): node `id` of a cluster of the voters
-`vs` (its initial membership theirs), raft's ghost state at the initial state, the empty log
-committed, the term budget, and the node's table, empty. What its `RestartNode` takes. -/
-def nodeFounderU (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
-  iprop(isClusterU γ N ∗
-    ⌜γ.raft.reCfg = GMap.listToSet vs ∧ (∃ g, ModeDec γ (Membership.simple (GMap.listToSet vs)) g) ∧
-      vs ≠ [] ∧ vs.Nodup ∧ W64 0 ∉ vs ∧ (vs.length : Int) < 2 ^ 62⌝ ∗
-    ownRaftGhost γ.raft id initPState true ∗ isCommitted γ.raft [] ∗
-    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 0) ∗
-    (∃ g : GName, ⌜γ.nodeTab !! id = some g⌝ ∗ ghostMapAuth g 1 (∅ : GMap w64 CfgNames)))
-
 /-- A fresh node's dynamic ghost state, from the allocation's (as `raft_dyn_alloc`'s). -/
 theorem ownRaftGhostR_rinit (γr : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) :
     ownRaftGhost (GF := GF) γr id initPState true ⊢ ownRaftGhostR γr dec c0 id (rinit c0) := by

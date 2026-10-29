@@ -25415,3 +25415,46 @@ the cluster's `N` explicitly.
 etcd's server where it states or proves over `DynCCPreOp` (`EtcdServer.applyConfChange`'s spec and
 proof: its fifth clause is `NoUndecConfIn dec`), destructures `readyP`/`nodeDriverBusy`
 (`InvRaftNode.lean`) or builds a `SnapLoan` (`SrvRaftLog.lean`).
+
+## Stage U4: joiners (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken (in the decision cluster, `cluster_alloc_dec`, whose log starts empty)**
+
+**Ghost state for a node added after allocation: allocate every id at once.** Raft's per-node ghost
+names are pure maps fixed at allocation (`RaftNames.reVotes`, `reTerms`, ... nine of them; the commit
+invariant's vote table ranges over `reVotes`), and so is the API's node table (`Cluster.nodeTab`).
+Making them grow would turn about 90 pure lookups (`⌜γ.reVotes !! v = some γv⌝`, compared by rewriting)
+into ghost-map elements compared by agreement, in `Ghost`, `GhostState`, `Facts`, `StepGhost` and
+`LeaderCompleteness`. Instead `cluster_alloc_dec_impl` passes `ownRaftGhost_alloc_core_reg` (generic
+in its id set) **every non-zero id** (`allNodeIds`, `InvApiJoin.lean`: the `2^64 - 1` ids, a finite set
+built by induction, `exists_idsUpTo`, never computed), and allocates the node table for them too. No
+protocol file changed. Each id's part (`joinSlotU`: `ownRaftGhost` at `initPState` and its table entry)
+goes to the join authority (`joinAuthU γ U`: the parts of the ids outside `U`, with the persistent
+`joinBaseU`: the initial membership's voters `reCfg` with the mode, the empty log committed, the
+budget); `joinAuth_join_list` takes out the founders', `joinAuth_join_impl` a newcomer's
+(`nodeJoinU`). `nodeFounderU` is now `nodeJoinU` plus the voters' facts (moved from `InvApiDec.lean`).
+
+**The protocol invariant admits a newcomer as it is.** The cluster's log starts empty, so a founder and
+a newcomer are, to the protocol, the same: a node at `initPState` (term `0`, empty log) whose
+configuration is `c0` (`rinit c0`). Nothing in the dynamic mode needs a node to be one of its
+configuration's voters: raw `RestartNode`'s `γ.reCfg = listToSet csm.Voters'` and `cv.ID' ∈
+csm.Voters'` were used only in the static branch (`ownRawNode_intro_static`, `TrackedOk`); they are
+now `md = .static → ...`. A founder removed by a conf change was already such a node. (Joiners of a
+cluster with a bootstrap log, review 3's B10, stay open with that allocation.)
+
+**A newcomer's `RestartNode`.** `nodeJoin_founder_impl`: with `confAtU γ 0 (simple (listToSet vs))`
+(the membership of no entry, which pins `c0` through `ModeDec.uniq` against `joinBaseU`'s) and
+`vs.Nodup`, a newcomer's token is a founder's of `vs`; the wrapper then runs as for a founder.
+
+**Pre-votes** (the frozen design's E4). `raft.Step` takes, at term `0`, the candidate up to date
+(`plogUpToDate`); `NetMsgOk.raftStep` got it from `1 ≤ term` in a booted cluster
+(`ownStepGhost_boot_term`, from `reBoot ≠ []`), which every node of a cluster started empty lacked.
+Now: every recorded entry has a term of at least `1` in every cluster (`isEntryR_term_one`, a leader's
+term being a campaign's, `CampOk.term_nz`), and a full log's terms are at most the node's
+(`TermsLe`), so at term `0` the full log is empty (`ownLogGhost_term0`, `Protocol/Term0.lean`;
+`ownStepGhost_term0`), and every candidate is up to date (`plogUpToDate_base0`). The pre-vote premise
+left `RawNode.Step.spec`, `netP`, `wp_rn_raft_Step_net` and `stepIn_intro`.
+
+Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients that break (not built, by
+the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
+`stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
