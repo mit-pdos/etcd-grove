@@ -46,8 +46,8 @@ abbrev node.ApplyConfChange.spec : Prop :=
 /-- **`node.ApplyConfChange(cc)`** in a dynamic cluster, from any goroutine: the change of the next
 conf-change entry `e` of the committed log delivered to the node, at position `k` past its view's
 configuration index (no conf-change entry between), as the decoder gives it (`o'`), or any change
-`o` with its effect on the view's membership; the result not left automatically (no auto-leave
-joint configuration). The view moves past the entry, to the membership the change gives; the answer
+`o` with its effect on the view's membership (2026-10-29, stage U5: an auto-leave joint configuration
+included; until then the result was not left automatically). The view moves past the entry, to the membership the change gives; the answer
 is a fresh `ConfState` reporting it. (Today the dynamic case of `node__ApplyConfChange.lean`,
 `DynCCPreOp`, `nodeCfg`, `dlvLb`.) -/
 abbrev node.ApplyConfChange.dynamicSpec : Prop :=
@@ -56,7 +56,7 @@ abbrev node.ApplyConfChange.dynamicSpec : Prop :=
     (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
   v.applied ≤ k → l[k]? = some e → e.isConfChange → NoConfChangeIn l v.applied k →
   decode (l.take k) e = some o' → Membership.applyChange o' v.membership = some m' →
-  Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
+  Membership.applyChange o v.membership = some m' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       isDynamicCluster γ N c0 decode ∗ ownConfChangeI c DFrac.discard (some o) ∗
       nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
@@ -68,7 +68,8 @@ abbrev node.ApplyConfChange.dynamicSpec : Prop :=
 U4a; `isCluster`, `InvNodeRule.lean`): as `node.ApplyConfChange.dynamicSpec`, the decoder's change
 replaced by the recorded decision (candidate 13's shape): the conf entry at position `k` was decided
 to apply `o'` (`confDecided`), and the change `o` handed in has the effect of `o'` at the view's
-membership. (Until stage U5, no auto-leave result.) (2026-10-28, the conf-change decision switch,
+membership, an auto-leave joint configuration included (2026-10-29, stage U5: until then
+`m'.autoLeave = false`, raft's automatic leave being out of `raft.Step`'s scope). (2026-10-28, the conf-change decision switch,
 §4) The conf entries between the view and `k` decided `.skip` (`skippedIn`; until then none at all,
 `NoConfChangeIn`). -/
 abbrev node.ApplyConfChange.unifiedSpec : Prop :=
@@ -76,7 +77,7 @@ abbrev node.ApplyConfChange.unifiedSpec : Prop :=
     (l : List LogEntry) (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
   v.applied ≤ k → l[k]? = some e → e.isConfChange →
   Membership.applyChange o' v.membership = some m' →
-  Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
+  Membership.applyChange o v.membership = some m' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       isCluster γ N ∗ confDecided γ k (.apply o') ∗ ownConfChangeI c DFrac.discard (some o) ∗
       nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k }}

@@ -552,7 +552,7 @@ theorem RawNode.Bootstrap.wp_proof
             storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
           ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
-          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) rfl Hasync
+          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) Hasync
           (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
           (by rw [HNls]; simp only [logAppend, Hun])
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial

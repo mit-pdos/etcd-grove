@@ -764,11 +764,9 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (dlvAfter d ce L, p') ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor es L ∗
     -- (2026-10-28, stage U3d) after a snapshot `Ready`, the driver's view of the configuration
-    -- (`cap`'s half at `x`), which the rendezvous moves to the snapshot's (`loanCfg`), and
-    -- (dynamically) the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s, until U5)
+    -- (`cap`'s half at `x`), which the rendezvous moves to the snapshot's (`loanCfg`) (until
+    -- 2026-10-29, stage U5, also dynamically the snapshot's `ConfState` no auto-leave one)
     capPay γ L x ∗
-    ⌜∀ l, L = some l → γ.mode.isDyn = true → γ.raft.reNoSnap = false →
-      l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     -- (2026-10-28, the decision switch) or skipped (`undecFree`)
@@ -860,8 +858,7 @@ snapshot's (its index and the fold of its committed log, `loanCfg`), which `RawN
 installs (`advRS`), the committed log handed out the loan's; A1 at the `RawNode` (from the
 driver's) and the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s premises). -/
 @[no_expose] def runCfgLoan (γ : NodeNames) (rs : RNState) (l : SnapLoan) : IProp GF :=
-  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv ∧
-      l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
+  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv⌝ ∗
     undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
     monoListAuthOwn γ.dlm 1 l.dlv ∗
     dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) ∗

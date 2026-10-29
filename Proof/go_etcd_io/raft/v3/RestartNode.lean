@@ -314,7 +314,7 @@ private theorem RestartNode.wp_raw
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
             storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
-          s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
+          s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) Hasync
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) (Hrnpv _) (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)

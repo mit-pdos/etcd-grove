@@ -45,7 +45,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   isplitl
   · iapply ownRawNode_intro γ rn id
       { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s cf fp rnv sv
-      hprev steps Hwf Hin Hal Hasync Hdlen Hunp
+      hprev steps Hwf Hin Hasync Hdlen Hunp
       (fun h => Hsnap ⟨Hps' h.1, h.2⟩) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
       (Hloan.step rs.term rfl (fun _ => ⟨.inl rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩))
@@ -203,7 +203,7 @@ theorem RawNode.Step.wp_proof
         isplitl
         · iapply ownRawNode_intro γ rn id
               { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp'
-              rnv sv hprev steps Hwf' Hin Hal
+              rnv sv hprev steps Hwf' Hin
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
               (fun h => by have h1 := h.1; simp [Hs] at h1)
               (stepsOk_mono_st s s' _ Ht1 Hsd Hc Ha (tc_le_of_gh Hgh) Hstok) rfl
@@ -262,7 +262,7 @@ theorem RawNode.Step.wp_proof
       isplitl
       · iapply ownRawNode_intro γ rn id
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
-            rnv sv hprev steps Hwf' Hin Hal
+            rnv sv hprev steps Hwf' Hin
             Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
             (fun h => by rw [Hsn]; exact Hsnap ⟨Hps' h.1, h.2⟩)
             Hstok' rfl (by rw [Hsg]; exact Hstor)

@@ -47,7 +47,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
-  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, %Hal, %ca_d, #Hcamlb, #HA⟩
+  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, %ca_d, #Hcamlb, #HA⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl, rfl, rfl, HL⟩ := Heq
@@ -186,7 +186,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
           try rw [show rsDlv rs = l.dlv by simp only [rsDlv, Hsl]]
           iframe Hdlm Hcap_r Hcam
           isplitr
-          · ipureintro; exact ⟨Hmd, Hsin, Hns, Hdp, Hal l rfl hd Hns⟩
+          · ipureintro; exact ⟨Hmd, Hsin, Hns, Hdp⟩
           rw [Hmd]
           iapply undecFree_mono γ.raft γ.mode (Nat.le_trans Hcle.2 Hinv) (Nat.le_refl _)
           iexact HA'

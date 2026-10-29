@@ -35,25 +35,24 @@ def node.ApplyConfChange.dynamicSpec : Prop :=
             decode (List.take k l) e = some o' →
               Membership.applyChange o' v.membership = some m' →
                 Membership.applyChange o v.membership = some m' →
-                  m'.autoLeave = false →
-                    ⊢
-                      ∀ Φ,
-                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                            isNode n γ N id ∗
-                              isDynamicCluster γ N c0 decode ∗
-                                ownConfChangeI c DFrac.discard (some o) ∗ nodeConfig n γ N v ∗ deliveredLogLb n γ N l -∗
-                          (▷
-                              ∀ csp cs,
-                                csPts csp (DFrac.own 1) cs true ∗
-                                    nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ -∗
-                                  Φ (intoVal csp)) -∗
-                            WP
-                              ((intoVal
-                                  (methods node.ty.PointerType
-                                    go!"ApplyConfChange"
-                                    (intoVal n)))
-                                (intoVal c))
-                              {{ Φ }}
+                  ⊢
+                    ∀ Φ,
+                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                          isNode n γ N id ∗
+                            isDynamicCluster γ N c0 decode ∗
+                              ownConfChangeI c DFrac.discard (some o) ∗ nodeConfig n γ N v ∗ deliveredLogLb n γ N l -∗
+                        (▷
+                            ∀ csp cs,
+                              csPts csp (DFrac.own 1) cs true ∗
+                                  nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ -∗
+                                Φ (intoVal csp)) -∗
+                          WP
+                            ((intoVal
+                                (methods node.ty.PointerType
+                                  go!"ApplyConfChange"
+                                  (intoVal n)))
+                              (intoVal c))
+                            {{ Φ }}
 
 def node.ApplyConfChange.unifiedSpec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
@@ -63,24 +62,23 @@ def node.ApplyConfChange.unifiedSpec : Prop :=
         e.isConfChange →
           Membership.applyChange o' v.membership = some m' →
             Membership.applyChange o v.membership = some m' →
-              m'.autoLeave = false →
-                ⊢
-                  ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                        isNode n γ N id ∗
-                          isCluster γ N ∗
-                            confDecided γ k (ConfDecision.apply o') ∗
-                              ownConfChangeI c DFrac.discard (some o) ∗
-                                nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
-                      (▷
-                          ∀ csp cs,
-                            csPts csp (DFrac.own 1) cs true ∗
-                                nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ -∗
-                              Φ (intoVal csp)) -∗
-                        WP
-                          ((intoVal
-                              (methods node.ty.PointerType
-                                go!"ApplyConfChange"
-                                (intoVal n)))
-                            (intoVal c))
-                          {{ Φ }}
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      isNode n γ N id ∗
+                        isCluster γ N ∗
+                          confDecided γ k (ConfDecision.apply o') ∗
+                            ownConfChangeI c DFrac.discard (some o) ∗
+                              nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
+                    (▷
+                        ∀ csp cs,
+                          csPts csp (DFrac.own 1) cs true ∗
+                              nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ -∗
+                            Φ (intoVal csp)) -∗
+                      WP
+                        ((intoVal
+                            (methods node.ty.PointerType
+                              go!"ApplyConfChange"
+                              (intoVal n)))
+                          (intoVal c))
+                        {{ Φ }}

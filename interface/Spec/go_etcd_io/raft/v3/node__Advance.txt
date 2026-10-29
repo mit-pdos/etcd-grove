@@ -26,8 +26,7 @@ def node.Advance.unifiedSpec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan)
     (v : ConfigView),
     st.handling = some (es, L) →
-      (∀ (l : SnapLoan),
-          L = some l → l.snap.Metadata'.ConfState'.AutoLeave' = false ∧ l.dlv.length = uint.nat l.snap.Metadata'.Index') →
+      (∀ (l : SnapLoan), L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
         ⊢
           ∀ Φ,
             (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

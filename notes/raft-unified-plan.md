@@ -85,6 +85,8 @@ commit per lemma.
   `c.autoLeave → role ≠ leader` goes from `appliedTo`, `appliedSnap`, `raft.Step`; the invariant that a
   committed empty `EntryConfChangeV2` is raft's leave where the configuration is joint (`RaftLeave`, for
   `opsOf`); the trust-base fact `ccDecodeV2 [] = some` the empty change (the user's approval).
+  (2026-10-29: done but for `committed_emptyV2_joint`: `notes/decisions.md`, "Stage U5: automatic
+  leaves"; spec changes below.)
 - **U6m. Rejection in the model.** The protocol's decoder a decision (`apply op | reject`); `entStep` of
   a rejection keeps the state (joint configurations included); `applyConf` and `advance` require "no
   undecided conf entry between".
@@ -135,6 +137,35 @@ Each: old → new, and why.
   membership's voters by `confAt` at `0` (`cluster_alloc_dec` gives it), as the design's `confStateIs cs
   γ.c0` (the cluster has no public `c0`); `vs.Nodup` because `NewRawNode` takes the `ConfState`'s list
   without repeats.
+
+## Spec changes during U5 (2026-10-29)
+
+Each: old → new, and why. (a)-(e) sent to the coordinator and approved (the cross-track rule).
+
+- (a) `opsOf l` (`NodeApiVocab`): `l.filter (!isFiller)` → `l.filter (!isFiller && !isEmptyV2)`, with the
+  new `LogEntry.isEmptyV2 e := e.data = [] ∧ e.type = W32 2` and `opsOf_noType2`. As designed: raft's
+  automatic leave (an empty `ConfChangeV2`) is no client operation. `isFiller` (and `isFiller_normal`)
+  unchanged. Internal: the protocol's `Filler` is again `d = [] ∧ (ty = 0 ∨ ty = 2)`.
+- (b) `node.ProposeConfChange.spec`'s update: `ownCommittedOps γ (ops ++ [⟨t, ty, bs⟩])` → `ownCommittedOps
+  γ (ops ++ opsOf [⟨t, ty, bs⟩])` (the design's). An explicit `ConfChangeV2{}` is a filler (no deposit,
+  `ccPropArg`'s filler case), so its update may not fire.
+- (c) `node.ApplyConfChange.unifiedSpec` and `.dynamicSpec`: premise `m'.autoLeave = false` → none.
+  Internal: `DynCCPreOp` loses `cs'.cfg.autoLeave = false`; `ownRawNode` (and `ownRawNodeReady`/`Idle`)
+  lose the field `cf.autoLeave = false`.
+- (d) `node.Advance.unifiedSpec`: `l.snap...AutoLeave' = false ∧ l.dlv.length = …` → `l.dlv.length = …`.
+  Internal: `advanceP`'s and `runCfgLoan`'s auto-leave facts, `node.Advance.specRaw`'s premise gone.
+- (e) `RawNode.Advance.spec`: premise `∀ l, rs.slent = some l → rs.mode.isDyn → …AutoLeave' = false` →
+  none.
+- Raft-internal: `raft.appliedTo.spec`: premise `c.autoLeave = true → s.role ≠ .leader` → at a leader
+  `NStateWf s`, `s.term ≠ 0`, the last index a word, and a receipt `⧖ k0` in the pre; post `RET #()`
+  at `logAppliedTo` → `∃ s' B recv, … ⌜LeaveStep c id s1 s' B recv⌝ ∗ (⌜last < B⌝ -∗ ⧖ (k0+1))`; stated
+  at `HasLC.hasLC` (was generic `hlc`), as `raft.appliedSnap.spec` is now too (it calls it).
+  `raft.Step.spec`: premise `m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader` →
+  none (its post unchanged). `StepProof.wp_Step_MsgProp` takes four callee specs, not
+  `raft.Step.Postulates`, and its post gives `s'.logst.applied = s.logst.applied`.
+- Not changed, though now unneeded upstream of `ownRawNode`: `csm.AutoLeave' = false` premises of
+  `NewRawNode`, `StartNode`, `RestartNode`, `setupNode`, `newRaft` (starting at an auto-leave joint
+  `ConfState`); left for U9 (`newRaft`'s tracker invariant still uses it).
 
 ## Machinery (the map of the two modes, 2026-10-28)
 

@@ -318,7 +318,7 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ApplyConfChange.dynamicSpec EtcdGrove.Cluster EtcdGrove.Membership.applyChange EtcdGrove.deliveredLogLb EtcdGrove.isDynamicCluster EtcdGrove.isNode EtcdGrove.nodeConfig
-  intro n γ N id c0 decode c o o' l k e v m' Hk He Hcc Hno Hdec Hap' Hap Hal
+  intro n γ N id c0 decode c o o' l k e v m' Hk He Hcc Hno Hdec Hap' Hap
   iintro %Φ ⟨#Hinit, -, #Hdc, Hcc0, Hcfg, #Hdl⟩ HΦ
   iunfold isDynamicCluster at Hdc
   icases Hdc with ⟨%Hdn, -⟩
@@ -348,7 +348,7 @@ private theorem node.wp_ApplyConfChange_dynamic_impl
   obtain ⟨Hs, -⟩ := memApply_some Hgood Hap
   have Hpre : DynCCPreOp (decOf decode) ds v.applied (stOf v.membership) (ccV2Of o) k eM
       (stOf m') := by
-    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
+    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs⟩
     · rw [← HeMe] at Hcc; exact Hcc
     · refine NoConfIn.noUndec ?_
       intro k' e' h1 h2 he hc
@@ -391,7 +391,7 @@ private theorem node.wp_ApplyConfChange_unified_impl
   unfold EtcdGrove.node.ApplyConfChange.unifiedSpec EtcdGrove.Cluster EtcdGrove.Membership.applyChange
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig
-  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Hal
+  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap
   iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, Hcfg, #Hdl, Hsk⟩ HΦ
   iunfold isClusterU at Hcl
   icases Hcl with ⟨%Hu, -⟩
@@ -439,7 +439,7 @@ private theorem node.wp_ApplyConfChange_unified_impl
     simp [GMap.singleton, GMap.lookup_insert_eq_iff, ConfDecision.toOpt]
   have Hpre : DynCCPreOp (effDec noDec U) ds v.applied (stOf v.membership) (ccV2Of o) k eM
       (stOf m') := by
-    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs, Hal⟩
+    refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs⟩
     · rw [← HeMe] at Hcc; exact Hcc
     · intro k' e' h1 h2 he hc
       have hl' : l[k']? = some (LogEntry.ofEntryM e') := by

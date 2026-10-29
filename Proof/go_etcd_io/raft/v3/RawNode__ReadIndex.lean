@@ -161,7 +161,7 @@ theorem RawNode.ReadIndex.wp_proof
   simp only [named]
   iframe Hpost
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
-  iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal
+  iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) 
     (Hpvoff.step rfl rfl Hpre Hgh (by rw [Hterm]; exact Hpvoff.2.2.1) Hpcs (by msg_ne))

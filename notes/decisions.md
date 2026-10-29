@@ -25458,3 +25458,63 @@ left `RawNode.Step.spec`, `netP`, `wp_rn_raft_Step_net` and `stepIn_intro`.
 Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients that break (not built, by
 the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
 `stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
+
+## Stage U5: automatic leaves (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken but for `committed_emptyV2_joint`: raft's own leave proved, every auto-leave exclusion lifted.**
+
+**The recursion `appliedTo` → `Step`, without a cycle.** `raft.appliedTo` proposes the leave by
+`r.Step(m)` (raft.go:742-763), and `raft.Step`'s `MsgStorageApplyResp` (and `appliedSnap`) call
+`appliedTo`: in the link (one proof per function, the callees' specs as hypotheses, no circular
+hypotheses) `appliedTo` cannot take `Step`'s spec. But the recursion is one level deep: `Step` of a
+local `MsgProp` (term `0`) runs `r.step` (`stepLeader`), which never reaches `appliedTo`. So
+`appliedTo`'s proof takes `Step`'s `MsgProp` branch lemma (`StepProof.wp_Step_MsgProp`, now over the
+four specs it uses -- `traceReceiveMessage`, `stepFollower`, `stepCandidate`, `stepLeader` -- rather
+than `raft.Step.Postulates`, which includes `appliedTo`) and the message getters' specs, and
+`confChangeToMsg`'s. *Rejected*: Löb induction over a joint spec (the link has no form for two
+functions proved together), and unfolding `Step`'s body inside `appliedTo` (the branch lemma is that
+unfolding, already proved).
+
+**Physical in `appliedTo`, ghost in `Step`.** `appliedTo`'s spec stays on the raft struct
+(`ownRaftPhysCVW`), now at `HasLC.hasLC` (the branch lemma's), and its post is `LeaveStep`
+(`AutoLeave.lean`, with `leaveMsgM`/`leaveEntM`/`leaveAbs` and `ccEntsOk_leave`): nothing
+more, or -- a leader at an auto-leave configuration -- the leave's `StepCD` step from the state at the
+new `applied`, the leave's proposal (`leaveAbs`) received when appended, at the bound `B` of its
+entry, with the receipt for it. `raft.Step`'s `MsgStorageApplyResp` composes the advance and the leave
+(`StepCD.trans_leave`: the leave's `DynHyp` from the acknowledgement's, the configuration index moved
+once) and takes one ghost step with the leave received: `isMessage_leave` (the proposal is
+legitimately sent: its entry a filler whose data decodes, `ccDecodeV2_nil`), no ticket
+(`msgTks_leave`). So no ghost resource enters `appliedTo`'s spec, and `appliedSnap` (a follower)
+discharges the leader-only premises vacuously.
+
+**An empty `ConfChangeV2` is a filler again** (the protocol's `Filler`, reversing the 2026-10-27
+narrowing): raft's leave carries no client deposit, so the commit invariant fires the standing
+`noopAu` at it; a client's explicit `ConfChangeV2{}` likewise (`ProposeConfChange`'s `ccPropArg`
+already had the filler case). The API's `opsOf` drops `isFiller` and `isEmptyV2` entries
+(`LogEntry.isFiller` stays the empty normal entry, `isFiller_normal` for etcd's apply loop), so
+`ownCommittedOps` never holds a leave; `opsOf_noType2`.
+
+**The exclusions lifted.** With `raft.Step` taking any configuration, the `RawNode`'s field
+`cf.autoLeave = false` (`ownRawNode`, `ownRawNodeReady`, `ownRawNodeIdle`) had no reader, and with it
+went the facts that only fed it: `DynCCPreOp`'s `cs'.cfg.autoLeave = false` (so
+`node.ApplyConfChange`'s `m'.autoLeave = false`), `RawNode.Advance`'s and `node.Advance`'s lent-snapshot
+`AutoLeave' = false`, the node loop's copies (`advanceP`, `runCfgLoan`, `runCfgR_a1`). The start
+specs' `csm.AutoLeave' = false` stay (U9).
+
+**Left: `committed_emptyV2_joint`** (`l[k]? = some e → e.isEmptyV2 → isCluster γ N ∗ isCommittedLogLb γ
+l ∗ confAt γ k m ⊢ ⌜m.isJoint⌝`). The node invariant already has what the append needs: a leader's
+`propConf` keeps an empty `ConfChangeV2` only at a joint `r.cfg` and with `pci ≤ applied`; `RInv.i3`
+puts every conf entry of the leader's log below `pci`, `applied_cidx` puts `applied ≤ cidx`, and
+`RInv.cfg` folds the log up to `cidx` to `r.cfg`, so the fold of the whole log at the append (the
+entry's prefix) is `r.cfg`, joint. What is missing is the cluster-level record that carries this from
+the append to every committed copy: a per-entry fact in the leader's log record of its term (created
+only by `StepR.propose`/`win`, the sites to touch), the fold of the entry's prefix over the leader's
+witnessed decisions (`decLb`) joint, then `confAt`'s agreement (`fold_agree`, `decLb_compat`) at the
+API. Not started.
+
+Clients that break (not built, by the user's scope): examples/kv (`ProposeConfChange`'s post now
+`opsOf`, `opsOf`'s definition: proofs over `opsOf` of conf entries; the `ApplyConfChange`/`Advance`
+calls pass one premise fewer), etcd's server where it calls `RawNode.Advance`/`raft.Step` with the
+removed premises or destructures `DynCCPreOp`/`ownRawNode` (`InvRaftNode.lean`, `SrvRaftLog.lean`),
+and every client using `LogEntry.isFiller`-based `opsOf` lemmas (`opsOf_snoc_filler`/`_op`,
+`opsOf_eq_self` now take the empty-V2 case too).

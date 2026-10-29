@@ -1001,7 +1001,7 @@ theorem RawNode.acceptReady.wp_proof
     (readyNstate s L ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
-    Hwf Hin Hal Hasync Hdlen'
+    Hwf Hin Hasync Hdlen'
     (by show nextUnstable s.logst = _; rw [Hlogst, Haf12, Hnu0])
     (fun h => by
       rw [Hlogst, Haf2, Hf_snap]
