@@ -53,7 +53,7 @@ theorem applySnapshot_walk
     (hkb : E.γ.kb = some d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null)
+    (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
@@ -271,7 +271,7 @@ theorem applySnapshot_walk
     iunfold storage.openPre
     iframe Hfg Hhooks
     isplitr
-    · ipureintro; exact ⟨hdbo, hcfgl, hP.1, hP.2.1⟩
+    · ipureintro; exact ⟨hdbo, hmmap, hcfgl, hP.1, hP.2.1⟩
     iexact Hcreate
   icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, Hncmp, Hdbp⟩ | ⟨%Herr, -, -⟩)
   rotate_left

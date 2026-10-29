@@ -8,7 +8,7 @@ Lean-first (no Rocq counterpart); `applySnapshot`'s callee (D22 S-j).
 The pre: the snapshotter (`isSnapshotter`), the snapshot's `Metadata` field and its metadata
 `md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`fileHolds`, D22 S-i's
 snapshot directory gives it, with `D`'s certificate `dbImage`), the backend's path the program's
-(`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`) for the hooks `hooks` as a
+(`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`, with `openMmapOk cfg` since 2026-10-29) for the hooks `hooks` as a
 `backend.Hooks`. The post: on success the backend over `D` (`newPost`, and its no-compaction token
 if `D` records none, as `OpenBackend`'s; D22 S-g) and the
 snapshot's entry the program's; on an error (the file not found, the rename failed), with `nil`

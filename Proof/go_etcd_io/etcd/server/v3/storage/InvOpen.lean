@@ -14,7 +14,8 @@ their specs share. Lean-first (no Rocq counterpart).
 * `openLimit cfg`: the batch limit `newBackend` configures (`cfg.BackendBatchLimit`, or the
   backend's default `10000` if it is 0).
 * `openPre cfg h P D W Pk`: what opening a file holding bbolt's data `D` needs besides the file:
-  `dbOpensOk`, the configuration's logger (its `Info` at the end), its feature gate (nil, or one
+  `dbOpensOk`, the configuration's mmap size (`openMmapOk`: its quota's, which bbolt must be able to
+  map; 2026-10-29), the configuration's logger (its `Info` at the end), its feature gate (nil, or one
   that answers `NonBlockingDefrag`), the parameters `P` (`P.Wf`, the batch limit `openLimit`),
   and, as `backend.New`'s spec, the hooks' contract of `h` and the creator's batch-lock resources
   `W γ ∗ Pk γ` from the hook's own keys of `D` and (D22 receiver epochs, S8a, 2026-10-24) the fresh
@@ -68,6 +69,24 @@ def snapOpensOk : Prop :=
   (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk ∧
     dbCloseOk
 
+/-- **The configuration's mmap size is one bbolt can map** (2026-10-29, the `axiom` skill's
+`notes/axiom-review/openbackend.md`; `issues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend`
+(`server/storage/backend.go:53-56`) sets the backend's `MmapSize` to `q + q/10` for a quota
+`q = cfg.QuotaBackendBytes` that is positive and not `DefaultQuotaBytes` (`quota.go:30`, 2 GiB), and
+`backend.New` passes it to bbolt as `InitialMmapSize` (`backend/backend.go:225`), whose `Open` fails
+with "mmap too large" above `maxMapSize` (`0xFFFFFFFFFFFF` on amd64, bbolt `db.go:590`), and
+`newBackend` then panics (`backend/backend.go:235`) on any environment. A premise about the
+configuration, not the environment (`dbOpensOk`'s): the quota is not positive, the default, or
+`q + q/10` (as an integer, so without `int64` overflow) at most `maxMapSize`. -/
+def openMmapOk [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
+  sint.Z cfg.QuotaBackendBytes' ≤ 0 ∨ sint.Z cfg.QuotaBackendBytes' = 2147483648 ∨
+    sint.Z cfg.QuotaBackendBytes' + sint.Z cfg.QuotaBackendBytes' / 10 ≤ 0xFFFFFFFFFFFF
+
+/-- The default configuration's quota (`0`) is mappable. -/
+theorem openMmapOk_of_quota_zero [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (h : cfg.QuotaBackendBytes' = W64 0) : openMmapOk cfg := by
+  left; rw [h]; decide
+
 /-- The batch limit `newBackend(cfg, hooks)` configures (`DefaultBackendConfig`'s
 `defaultBatchLimit`, unless the configuration sets one). -/
 def openLimit [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : w64 :=
@@ -83,14 +102,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **What opening a database file holding `D` needs besides the file** (see the file header). -/
 def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
-  iprop(⌜dbOpensOk ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
+  iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
     hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
 
 /-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
 theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
     (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
-    iprop(⌜dbOpensOk ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
+    iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
       hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ)) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
