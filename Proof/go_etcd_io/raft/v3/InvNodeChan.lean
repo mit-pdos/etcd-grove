@@ -472,6 +472,17 @@ entry `propEntryM d`, D6: the data's bytes `d`. Stage R7c: the result channel's 
     handoffProducer γr false) ∨
     (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m'))
 
+/-- (2026-10-29, stage U7) `node.Campaign`'s message, `pb.Message{Type: MsgHup}`: no term, no
+entries, no context. -/
+def hupSt : MsgSt := ⟨{ (zero_val MessageM) with Type' := W32 0 }, [], none, [], []⟩
+
+/-- (2026-10-29, stage U7) `node.Campaign`'s message on `recvc` (`netP`'s second disjunct): the
+message, read-only, with one tick credit (a time receipt of `Campaign`'s own), which raises the
+term ceiling past the campaign's term (`budget_spend`), as a tick's. Raft-internal: `MsgHup` is
+no network message (`NetMsgOk`, `stepIn`). -/
+def hupP (γ : NodeNames) (ml : Loc) : IProp GF :=
+  iprop(msgIn ml DFrac.discard hupSt ∗ tickCred γ.bud 1)
+
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
 (`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent;
 since 2026-10-13 a read-index request with its read credit; until 2026-10-14, stage R, only
@@ -483,9 +494,10 @@ with more than one voter) and a term within the budget. Also (2026-10-13) the lo
 which the budget must cover as it covers a tick's campaign (`budget_spend`), so whoever
 delivers it pays like a tick; and the context may be the leader-transfer marker (a
 transfer campaign's vote request). (2026-10-16, stage R5: the message at `ml`, owned as
-`raft.Step` takes it, `msgIn ml □ st`; the facts over its state `st`.) -/
+`raft.Step` takes it, `msgIn ml □ st`; the facts over its state `st`.) (2026-10-29, stage U7)
+Or `Campaign`'s local `MsgHup` (`hupP`), outside `NetMsgOk`. -/
 def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
+  iprop((∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
       -- (2026-10-19, D21 M2r) a leader-transfer request only outside the cluster's no-transfer
       -- mode, where leader transfer is off (D22 S-a: `RaftNames.reNoXfer`, until then the
       -- no-snapshot mode's flag); (D22 S-d4, 2026-10-21) a snapshot only at a node that takes one
@@ -512,7 +524,8 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
            snapLocal γ.raft id sv.Metadata'.Index') ∗
       termLB γ.bud st.msg.Term' ∗
       rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
-      tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0))
+      tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0)) ∨
+    hupP γ ml)
 
 /-- (2026-10-13) A local message on `recvc` with no entries, no context and no term (a
 transfer request, `ForgetLeader`'s, a report): no credit (but empty ones), no protocol
@@ -552,6 +565,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
         simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
   iintro Hm #Hlb Hcr Htc
   unfold netP
+  ileft
   iexists st
   iframe Hm
   isplitr
@@ -572,6 +586,42 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     iintro %h
     exact absurd h Hns
   iframe Hlb Hcr Htc
+
+/-- (2026-10-29, stage U7) `Campaign`'s `MsgHup` on `recvc`, with its tick credit. -/
+theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
+    ⊢ msgIn (GF := GF) ml DFrac.discard hupSt -∗ tickCred γ.bud 1 -∗ netP γ id ml := by
+  iintro Hm Htc
+  unfold netP
+  iright
+  unfold hupP
+  iframe Hm Htc
+
+/-- (2026-10-29, stage U7) `recvc`'s message opened for reading: a network message's type is in
+`netStepTypes`, or it is `Campaign`'s `MsgHup`. -/
+theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
+    netP (GF := GF) γ id ml ⊢ ∃ st : MsgSt, msgIn ml DFrac.discard st ∗
+      ⌜st.msg.Type' ∈ netStepTypes ∨ st = hupSt⌝ ∗ (msgIn ml DFrac.discard st -∗ netP γ id ml) := by
+  iintro Hnet
+  unfold netP
+  icases Hnet with (⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
+  · iexists st
+    iframe Hm
+    isplitr
+    · ipureintro; exact .inl Hok.1
+    iintro Hm
+    ileft
+    iexists st
+    iframe Hm Hab Hsn Hlb Hcr Htc
+    ipureintro; exact ⟨Hok, Hpvb⟩
+  · unfold hupP
+    icases Hhup with ⟨Hm, Htc⟩
+    iexists hupSt
+    iframe Hm
+    isplitr
+    · ipureintro; exact .inr rfl
+    iintro Hm
+    iright
+    iframe Hm Htc
 
 /-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
 channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/

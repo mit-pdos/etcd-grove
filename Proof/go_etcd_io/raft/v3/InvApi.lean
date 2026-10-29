@@ -3172,6 +3172,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     unfold stepP
     ileft
     unfold netP
+    ileft
     iexists st
     isplitl [Hm]
     · iapply msgPtsC_cap_any $$ Hm

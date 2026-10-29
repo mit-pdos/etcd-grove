@@ -132,6 +132,7 @@ private theorem node.ReadIndex.wp_raw
     unfold stepP
     ileft
     unfold netP
+    ileft
     iexists ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩
     isplitl [Hm]
     · simp only [msgIn, show needsCap { (zero_val MessageM) with Type' := W32 15 } = false from rfl]

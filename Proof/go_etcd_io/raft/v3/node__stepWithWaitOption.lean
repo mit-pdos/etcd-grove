@@ -58,13 +58,14 @@ theorem node.stepWithWaitOption.wp_proof
   unfold stepArg
   icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent, Htk⟩ | ⟨%Hw, Hfwd⟩)
   · -- a message from the network: `recvc <- m`
-    iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩
+    icases netP_split γ id m $$ Hnet with ⟨%st, Hm, %Hok, Hback⟩
     wp_auto
     wp_apply wp_GetType.1 $$ [Hm] as Hm
     · iexact Hm
     wp_if_destruct
-    · exact absurd Hif (netStepTypes_ne_prop Hok.1)
+    · rcases Hok with Hok | rfl
+      · exact absurd Hif (netStepTypes_ne_prop Hok)
+      · exact absurd Hif (by simp [hupSt, MsgProp])
     wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking_nil
@@ -79,11 +80,8 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · iapply isHandshake_isChan $$ Hrecvc
       iapply handshake_send_au γ.recvc nv.recvc' m (netP γ id) iprop(True)
-        $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hm Hcr Htc]
-      · iunfold netP
-        iexists st
-        iframe Hm Hab Hsn Hlb Hcr Htc
-        ipureintro; exact ⟨Hok, Hpvb⟩
+        $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hm Hback]
+      · iapply Hback $$ Hm
       inext
       iintro -
       wp_auto

@@ -31,6 +31,7 @@ public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
+public import Proof.go_etcd_io.raft.v3.InvNodeRunHup
 public import Proof.go_etcd_io.raft.v3.LemmasRunR
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
@@ -356,7 +357,70 @@ theorem node.run.wp_proof
     inext
     iintro %ml Hnet
     iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hmsg, #Hsnap, #Hlbm, Hcred, Htc⟩
+    icases Hnet with (⟨%st, Hm, %Hok, %Hpvb, #Hmsg, #Hsnap, #Hlbm, Hcred, Htc⟩ | Hhup)
+    rotate_left
+    · -- (2026-10-29, stage U7) `Campaign`'s `MsgHup`: its tick credit raises the term ceiling by
+      -- one, past the campaign's term (as a tick's)
+      iunfold hupP at Hhup
+      icases Hhup with ⟨Hm, Htc⟩
+      generalize Hst : hupSt = st
+      wp_auto_lc 1
+      ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+      iunfold runHead at Hhead
+      icases Hhead with ⟨%rs, Hrn, Hrest⟩
+      wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+      wp_apply wp_IsResponseMsg _ (by rw [← Hst]; simp [hupSt]) as %b2 _
+      wp_if_destruct
+      all_goals try (
+        wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+        wp_apply wp_IsLocalMsgTarget st.msg.From'
+        wp_if_destruct)
+      all_goals try (
+        icases ownRawNode_borrow γ.raft nv.rn' id rs r $$ Hrn Hrnraft with ⟨%cf, %s, Hphys, Hback⟩
+        icases ownRaftPhysC_tracker_same cf r id s $$ Hphys with
+          ⟨%tv, Htrkf, Htrk, Hback2⟩
+        icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+        try wp_auto
+        wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+        try wp_auto
+        wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _
+          st.msg.From' _ $$ Hprs with -
+        ihave Hphys := Hback2 $$ %tv Htrkf Htrk
+        ihave Hrn := Hback $$ Hphys
+        wp_if_destruct)
+      -- filtered out: `break`
+      all_goals try (
+        wp_for_post
+        iframe HΦ n r Hpend Hlive
+        iexists pc', rc', ac, rdv', ld'
+        iframe propc readyc advancec rd lead
+        isplitr
+        · ipureintro; exact Hpc'
+        unfold runHead
+        iexists rs
+        iframe Hrn Hrest)
+      -- `r.Step(m)`
+      all_goals (
+        try wp_auto
+        icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
+        icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
+        imod budget_spend γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Htc Hlb' with ⟨%Hb, #Hlb1⟩
+        icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
+        ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
+        wp_apply wp_rn_raft_Step_hup wp_raft_Step γ.raft nv.rn' id { rs with tc := rs.tc + W64 1 }
+          r ml st Hst.symm (by simp only; word) Hflw $$ [Hrn Hm Hlc1] as %err %t ⟨Hrn, %Ht⟩
+        · iframe Hrn Hm Hrnraft Hlc1
+        ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
+        try wp_auto
+        wp_for_post
+        iframe HΦ n r Hpend Hlive
+        iexists pc', rc', ac, rdv', ld'
+        iframe propc readyc advancec rd lead
+        isplitr
+        · ipureintro; exact Hpc'
+        unfold runHead
+        iexists { { rs with tc := rs.tc + W64 1 } with term := t }
+        iframe Hrn Hrest)
     have Hty0 : 0 ≤ sint.Z st.msg.Type' := netStepTypes_nonneg Hok.1
     wp_auto_lc 1
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid

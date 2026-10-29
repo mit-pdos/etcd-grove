@@ -88,7 +88,18 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
   unfold stepP
   icases H with (Hnet | Hfwd)
   · iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩
+    icases Hnet with (⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
+    rotate_left
+    · -- (2026-10-29, stage U7) `Campaign`'s `MsgHup`
+      iunfold hupP at Hhup
+      icases Hhup with ⟨Hm, Htc⟩
+      iexists DFrac.discard, hupSt
+      iframe Hm
+      isplitr
+      · ipureintro; simp [hupSt]
+      iintro Hm
+      ileft
+      iapply netP_hup γ id ml $$ Hm Htc
     iexists DFrac.discard, st
     iframe Hm
     isplitr
@@ -96,6 +107,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iintro Hm
     ileft
     iunfold netP
+    ileft
     iexists st
     iframe Hm Hab Hsn Hlb Hcr Htc
     ipureintro; exact ⟨Hok, Hpvb⟩
