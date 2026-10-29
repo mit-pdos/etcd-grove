@@ -974,11 +974,21 @@ state with a lower bound has no compaction key. -/
 theorem fkRd_abs (γ : BNames) (P : BParams) (rv : RView) :
     fkOwn (GF := GF) γ 0 ∗ fkRd γ P rv ⊢ fkOwn γ 0 ∗ ⌜fkAbsRv P rv⌝ := by
   unfold fkRd fkOwn
-  iintro ⟨Ho, %f, #Hlb, %Hf0⟩
+  iintro ⟨Ho, %f, %w, #Hlb, -, %Hf0⟩
   ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
   have hf : f = 0 := by have := Hv.2; omega
   iframe Ho
-  ipureintro; exact Hf0 hf
+  ipureintro; exact Hf0.1 hf
+
+/-- **The read law of the compaction keys' bit** (question 4, 2026-10-29): with the bit `true`, a
+reader's state holds only well-formed values at the compaction keys. -/
+theorem fkRd_wf (γ : BNames) (P : BParams) (rv : RView) :
+    fkV (GF := GF) γ true ∗ fkRd γ P rv ⊢ ⌜fkWfRv P rv⌝ := by
+  unfold fkRd fkV
+  iintro ⟨#Ht, %f, %w, -, #Hw, %Hf⟩
+  ihave %Hag := dghostVar_agree γ.fkv true DFrac.discard w DFrac.discard $$ Ht Hw
+  subst Hag
+  ipureintro; exact Hf.2 rfl
 
 /-- The two together: with the client's half at `0`, a held shared read transaction's state has
 no compaction key. -/

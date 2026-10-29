@@ -729,6 +729,87 @@ theorem rt_metaNone (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   ileft
   iframe Hk Hv
 
+/-- **The held shared read transaction's reads of the `Meta` bucket's compaction keys**, with the
+backend's bit of their values at `true` (`fkV`: question 4, 2026-10-29) and the reader's witness
+(`fkRd`): nothing, or the key with a value the store writes there (`metaRevVal`, the backend's
+well-formed values: `hFV`), its slices readable under the reader's token. -/
+theorem rt_metaWf (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (hFV : ∀ v, P.FV v → metaRevVal v)
+    (γ : BNames) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView) (qo : Qp) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ fkRd γ P rv ∗ fkV γ true ⊢
+      metaReadSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
+        false (rdB rtx) (rtTok γ P b rtx rv qo) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hfk, #Hfv⟩
+  ihave %Hwfv := fkRd_wf γ P rv $$ [$Hfv $Hfk]
+  iunfold metaReadSpec
+  iintro %bk %key %kn %dq %Hkn !> %Φ ⟨#HM, Ht, Hkey⟩ HΦ
+  iunfold rtTok at Ht
+  icases Ht with ⟨Hh, Ho⟩
+  ihave #Hbk := meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
+  ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  iapply wp_fupd
+  wp_apply (rtUR_held hUR γ P W Pk b rt rtx rv qo bk metaBI key slice.nil kn [] dq DFrac.discard (W64 0)
+      (by simp) (Or.inl (by simp [rangeLimit])) hP.2.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hkey $Hnil]
+      as %ks %vs ⟨Hh, Ho, Hkey, -, Hout⟩
+  icases rtHeld_wf γ P b rtx rv $$ Hh with ⟨Hh, %HrW⟩
+  irevert Hout
+  rw [rtRange_single P rv metaBI kn (W64 0) hP.2.1 HrW]
+  cases hvo : vOf P rv metaBI.name kn with
+  | none =>
+    dsimp only
+    iintro Hout
+    iunfold kvsOutRd at Hout
+    icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
+    ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
+    ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
+    simp only [List.map_nil, List.length_nil, List.length_eq_zero_iff] at Hlk Hlv
+    subst Hlk Hlv
+    imod ownSlice_persist $$ Hk with #Hk
+    imod ownSlice_persist $$ Hv with #Hv
+    imodintro
+    iapply HΦ
+    iframe Hkey
+    isplitl [Hh Ho]
+    · iunfold rtTok; iframe
+    ileft
+    iframe Hk Hv
+  | some v =>
+    have hv : metaRevVal v := hFV v (fkWfRv_vOf Hwfv hP.2.1 (fkKey_meta Hkn) hvo)
+    dsimp only
+    iintro Hout
+    iunfold kvsOutRd at Hout
+    icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
+    ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
+    ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
+    simp only [List.map_cons, List.map_nil, List.length_cons, List.length_nil] at Hlk Hlv
+    obtain ⟨ksl, rfl⟩ := List.length_eq_one_iff.1 Hlk
+    obtain ⟨vsl, rfl⟩ := List.length_eq_one_iff.1 Hlv
+    iunfold rdSlices at Hrk Hrv
+    icases Hrk with ⟨-, #Hrk⟩
+    icases Hrv with ⟨-, #Hrv⟩
+    irevert Hrk Hrv
+    simp only [List.map_cons, List.map_nil, List.zip_cons_cons, List.zip_nil_left]
+    iintro #Hrk #Hrv
+    ihave #Hrk1 := BigSepL.bigSepL_singleton.1 $$ Hrk
+    ihave #Hrv1 := BigSepL.bigSepL_singleton.1 $$ Hrv
+    imod ownSlice_persist $$ Hk with #Hk
+    imod ownSlice_persist $$ Hv with #Hv
+    imodintro
+    iapply HΦ
+    iframe Hkey
+    isplitl [Hh Ho]
+    · iunfold rtTok; iframe
+    iright
+    iexists ksl, vsl, v
+    iframe Hk Hv Hrk1 Hrv1
+    ipureintro; exact hv
+
 end readers
 
 /-! ## The range of a safe bucket -/
@@ -2216,8 +2297,8 @@ theorem bt_unlockOAt (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG :
 `batchTxSpecG`'s `Meta` clause): the backend's `UnsafePut` into the hook bucket `Meta` (not
 safe-range, untracked, the key not a hook's own: `hHK`), from the lock with no puts to the token
 `bkLockedO … 1` (one operation over the free lock's, nothing the readers see changed), which only
-`Unlock` takes (`bt_unlockOAt`). The value's form (`metaRevVal`) is not needed here: it is what a
-reader of `Meta` needs (`metaReadTx`, the `Meta` keys' value invariant). -/
+`Unlock` takes (`bt_unlockOAt`). The value's form (`metaRevVal`) is the backend's well-formed one
+(`hFV`: question 4, 2026-10-29), so the backend's bit of the compaction keys stays. -/
 theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
@@ -2225,6 +2306,7 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P)
     (hHK : ∀ k, metaCompactKey k → P.HK go_etcd_io.etcd.server.v3.storage.schema.metaName k = false)
+    (hFV : ∀ v, metaRevVal v → P.FV v)
     (γ : BNames) (W Pk : IProp GF) (b t : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -2237,7 +2319,7 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
   iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩
   iunfold metaPutCap
   iintro !> %bk %key %val %k %v %Hkv %Φ !> ⟨#HM, ⟨Hl, Hfk⟩, #Hk, #Hv⟩ HΦ
-  obtain ⟨hk, -⟩ := Hkv
+  obtain ⟨hk, hv⟩ := Hkv
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
     %HPw⟩
   iunfold bkLocked at Hl
@@ -2265,7 +2347,8 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
     itrivial
   ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
   · unfold fkPut; rw [if_pos (fkKey_meta hk)]; iexact Hfk
-  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB)
+  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
+      (fun _ => hFV v hv))
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl, -, -, Hfp⟩
   have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
       iprop(∃ f : Nat, fkOwn γ f) := by
@@ -2655,16 +2738,17 @@ theorem isKeyBackendG_of_backendC
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P)
     (hHK : ∀ k, metaCompactKey k → P.HK go_etcd_io.etcd.server.v3.storage.schema.metaName k = false)
+    (hFV : ∀ v, P.FV v ↔ metaRevVal v)
     (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ keySized γ P b ⊢
+      isBackend γ P W Pk b ∗ keySized γ P b ∗ fkV γ true ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk (bkDel γ) W W iprop(True) True Pk
         (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
         (bkBt b) (backend.srSlot b) (backend.srHeld b) iprop(∃ f : Nat, fkOwn γ f) := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hfv⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
   isplitr
@@ -2703,7 +2787,8 @@ theorem isKeyBackendG_of_backendC
       · -- `UnsafePut(Meta, compaction key, revision)` in a fresh session, ending it in a token only
         -- `Unlock` takes (3.3; R2-3)
         iintro !> -
-        iapply bt_metaPut hUP hUL hID hName hSafe hP hHK γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+        iapply bt_metaPut hUP hUL hID hName hSafe hP hHK (fun v h => (hFV v).2 h) γ W Pk b t
+          $$ [$Hpkg $Hsch $Hb $Ht]
       iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
     isplitr
     · iunfold batchTxInitSpec
@@ -2745,8 +2830,45 @@ theorem isKeyBackendG_of_backendC
     iapply HΦ
     iunfold backend.srSlot
     iexact Hs
-  -- `metaReadTx`: the `Meta` keys' value invariant (3.3, `BParams.VI`), not yet in the backend
-  sorry -- backend-cmp Draft: new case (metaReadTx: needs BParams.VI, 3.3)
+  -- `metaReadTx`: `ReadTx()` with no view; `RLock` from the reader's token holds the shared read
+  -- transaction, whose `Meta` reads find well-formed values (the backend's bit `fkV`: question 4)
+  iintro !> %Φ !> - HΦ
+  wp_apply (hRT γ P W Pk b) $$ [$Hb] as %rt #Hrtf
+  iapply HΦ
+  iunfold metaReadTx
+  iintro !> %Φ' !> HL HΦ'
+  iunfold bkRTx at HL
+  icases HL with ⟨Hrd, Ho⟩
+  wp_apply (hrRL γ P W Pk b rt rdOpen) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
+  icases rtHeld_fkRd γ P b rtx rv $$ Hh with ⟨Hh, #Hfk⟩
+  iapply HΦ'
+  iexists (rdB rtx), (rtTok γ P b rtx rv rdOpen)
+  isplitl [Hh Ho]
+  · iunfold rtTok; iframe
+  isplitr
+  · iunfold rdCap
+    iintro !> %s %v #HRd Ht
+    iunfold rtTok at Ht
+    icases Ht with ⟨Hh, Ho⟩
+    icases rtHeld_read γ P b rtx rv rdOpen s v $$ [$Hh $Ho $HRd] with ⟨%dq, Hs, Hcl⟩
+    iexists dq
+    iframe Hs
+    iintro Hs
+    ihave Hh := Hcl $$ Hs
+    iunfold rtTok
+    iframe
+  isplitr
+  · iintro !>
+    iapply rt_metaWf hrUR hID hName hSafe hP (fun v h => (hFV v).1 h) γ W Pk b rt rtx rv rdOpen
+      $$ [$Hpkg $Hsch $Hb $Hrtf $Hfk $Hfv]
+  iintro !> %Φ'' !> Ht HΦ''
+  iunfold rtTok at Ht
+  icases Ht with ⟨Hh, Ho⟩
+  wp_apply (hrRU γ P W Pk b rt rtx rv) $$ [$Hb $Hrtf $Hh] as Hrd
+  iapply HΦ''
+  iapply bkRT_x γ P b
+  iunfold bkRT
+  iframe Hrd Ho
 
 /-- **The store's backend contract with the witness `True`, of the real backend** (D22 receiver
 epochs, S6; `storeBackendT`: what `store.Restore` takes of its new backend). As

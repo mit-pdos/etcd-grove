@@ -491,25 +491,27 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     DFrac.valid_own_one with ⟨%gdlg, Hdlg⟩
   -- (O1's fallback) the flag: no key deletable yet
   imod dghostVar_alloc false with ⟨%gdlb, Hdlb⟩
-  -- (the compaction keys' tracked absence) their flag, `0` if `D` has none
+  -- (the compaction keys' tracked absence) their flag, `0` if `D` has none; (question 4) the bit,
+  -- `true` if `D`'s are well formed, discarded at once
   imod mono_nat_own_alloc (GF := GF) (fkInit D) with ⟨%gfk, Hfk, #Hfklb⟩
+  imod dghostVar_alloc (fkWInit P D) with ⟨%gfkv, Hfkv⟩
+  imod dghostVar_persist gfkv 1 (fkWInit P D) $$ Hfkv with #Hfkv
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
-    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk⟩
+    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv⟩
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
+  have Hok0 : fkOk P (fkInit D) (fkWInit P D) (st0 D wtx) := fkOk_init rfl rfl rfl rfl
   ihave #Hfkr : fkRd γ P (rv0 D) $$ []
-  · unfold fkRd
-    iexists fkInit D
-    iframe Hfklb
+  · unfold fkRd fkV
+    iexists fkInit D, fkWInit P D
+    iframe Hfklb Hfkv
     ipureintro
-    intro h
-    exact ⟨fkInit_zero h, fkAbsB_empty P⟩
+    exact fkOkRv_of Hok0
   ihave Hfkb : fkHalf γ P (st0 D wtx) $$ [Hfkb]
-  · unfold fkHalf
-    iexists fkInit D
-    iframe Hfkb
+  · unfold fkHalf fkV
+    iexists fkInit D, fkWInit P D
+    iframe Hfkb Hfkv
     ipureintro
-    intro h
-    exact ⟨⟨fkInit_zero h, fkAbsB_empty P⟩, fkInit_zero h, fkAbsB_empty P⟩
+    exact Hok0
   let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true, true⟩
   -- the shares
   icases gv_halves gview _ $$ Hview with ⟨Hviewc, Hview⟩
@@ -640,7 +642,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     isplitl [Hdlg Hdlb]
     · unfold dlInit
       iframe Hdlg Hdlb
-    unfold fkOwn; iexact Hfkc
+    unfold fkCl fkOwn fkV
+    iframe Hfkc Hfkv
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr
 

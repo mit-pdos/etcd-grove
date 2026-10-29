@@ -74,7 +74,7 @@ theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : 
 bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
 `wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s;
 (the backend-compaction stage, 2026-10-29) over data with no compaction recorded, the backend's
-no-compaction token (`mvcc.bkNoCmp_of_fkOwn`: until then a separate premise of `bootOk`). -/
+no-compaction token (`mvcc.bkNoCmp_of_fkCl`: until then a separate premise of `bootOk`). -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit)
@@ -90,7 +90,7 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
   unfold backend.newPost
   iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk⟩
   iframe Hb Hsc Hh Hrb Hdl
-  ihave Hnc := mvcc.bkNoCmp_of_fkOwn γ hnc $$ Hfk
+  ihave Hnc := mvcc.bkNoCmp_of_fkCl γ _ hnc $$ Hfk
   iframe Hnc
   icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
   ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]

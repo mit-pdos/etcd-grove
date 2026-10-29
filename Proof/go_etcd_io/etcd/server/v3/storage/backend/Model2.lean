@@ -50,7 +50,10 @@ buckets (`RB`): their contents in the writer's contents (`rbData`, absent bucket
 tracked by a ghost variable whose other half is the client's (`rbOwn`), so a session that puts in,
 deletes from, creates or deletes one needs it, and the pre-commit hook leaves them (etcd's rest
 buckets, `mvcc.restBuckets`: the lessor's, the auth store's, the alarm store's and the
-membership's, which the apply thread alone writes). -/
+membership's, which the apply thread alone writes). And (the backend-compaction stage, question 4,
+2026-10-29) the values the compaction keys (`fkKey`) may be written with (`FV`: mvcc's revision
+values, `mvcc.metaRevVal`), which a put of one needs (`UnsafePut`'s premise) and which the backend
+tracks when its data at creation had only such values (`fkV`). -/
 structure BParams where
   BT : GMap GoString w64
   HB : GoString → Bool
@@ -59,6 +62,7 @@ structure BParams where
   RB : GoString → Bool
   hookMax : Nat
   limit : w64
+  FV : GoString → Prop := fun _ => True
 
 /-- The parameters are sane: bucket ids distinct, the limit positive and small enough that the
 buffers do not overflow (`bufBound`), the hook's puts few, the safe-range buckets not the hook's. -/
@@ -428,6 +432,34 @@ def fkAbsSt (P : BParams) (st : BSess) : Prop :=
 /-- The flag's initial value over bbolt's data `D`: `0` if it has no compaction key. -/
 def fkInit (D : Data) : Nat := by
   classical exact if fkAbsD D then 0 else 1
+
+/-- bbolt's data holds only well-formed values (`P.FV`) at the compaction keys. -/
+def fkWfD (P : BParams) (D : Data) : Prop := ∀ n k v, fkKey n k → dget D n k = some v → P.FV v
+
+/-- A buffer's buckets' entries at a compaction key hold well-formed values. -/
+def fkWfB (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ n k i, fkKey n k → P.BT.lookup n = some i → ∀ e ∈ bkOf B i, e.1 = k → P.FV e.2
+
+/-- A readers' state holds only well-formed values at the compaction keys. -/
+def fkWfRv (P : BParams) (rv : RView) : Prop := fkWfD P rv.1 ∧ fkWfB P rv.2.bks
+
+/-- The batch state holds only well-formed values at the compaction keys. -/
+def fkWfSt (P : BParams) (st : BSess) : Prop :=
+  fkWfRv P (st.C, st.R) ∧ fkWfD P st.S ∧ fkWfB P st.W.bks
+
+/-- **What the compaction keys' flag `f` and well-formedness bit `w` say of a batch state**
+(question 4, 2026-10-29): at `f = 0` no compaction key, with `w` only well-formed values. -/
+def fkOk (P : BParams) (f : Nat) (w : Bool) (st : BSess) : Prop :=
+  (f = 0 → fkAbsSt P st) ∧ (w = true → fkWfSt P st)
+
+/-- The same of a readers' state. -/
+def fkOkRv (P : BParams) (f : Nat) (w : Bool) (rv : RView) : Prop :=
+  (f = 0 → fkAbsRv P rv) ∧ (w = true → fkWfRv P rv)
+
+/-- The well-formedness bit over bbolt's data `D` at creation: whether its compaction keys hold
+only well-formed values. -/
+def fkWInit (P : BParams) (D : Data) : Bool := by
+  classical exact decide (fkWfD P D)
 
 /-! ## Ranges -/
 

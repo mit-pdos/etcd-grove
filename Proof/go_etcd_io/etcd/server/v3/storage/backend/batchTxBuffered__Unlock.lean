@@ -182,9 +182,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
-      icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun h => (fkAbsSt_wb h).1) $$ Hfkh
+      icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRv_of (fkOk_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
-      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkAbsSt_wb $$ Hfkh
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOk_wb $$ Hfkh
       have hsame := vData_writeback_same P st.C st.W st.R Hvs.2
       have hvs' : vData P ((wbSt P st).C, (wbSt P st).R) = sData P (wbSt P st).S := by
         rw [wbSt_C, wbSt_R, wbSt_S, hsame]
@@ -230,9 +230,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
-      icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun h => (fkAbsSt_wb h).1) $$ Hfkh
+      icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRv_of (fkOk_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
-      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkAbsSt_wb $$ Hfkh
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOk_wb $$ Hfkh
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
       · imod (rtRes_wb_close γ P rt st.W st.C st.R vd true Hwf.2.2.1 hver hsafe) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr]
           with ⟨Hrr, Hrvs, Hv, -⟩

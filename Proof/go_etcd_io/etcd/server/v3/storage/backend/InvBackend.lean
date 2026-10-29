@@ -110,6 +110,10 @@ structure BNames where
   `0` while no state of the backend has one, `1` once one may. Half its authority the batch
   lock's (`fkHalf`), half the client's (`fkOwn`); the readers keep a lower bound (`fkRd`). -/
   fk : GName
+  /-- `dghostVar Bool`, discarded at allocation: whether the compaction keys hold only
+  well-formed values (`P.FV`) in every state of the backend (question 4, 2026-10-29: true when the
+  data at creation does, `fkWInit`; a put of one needs a well-formed value, so it never changes) -/
+  fkv : GName
 
 section phys
 variable [GooseExts]
@@ -291,13 +295,30 @@ def fkOwn (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).ha
 instance fkOwn_timeless (γ : BNames) (n : Nat) : Timeless (fkOwn (GF := GF) γ n) := by
   unfold fkOwn; infer_instance
 
-/-- The batch lock's half of the flag, with what `0` means of its state. -/
-def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
-  iprop(∃ f : Nat, monoNatAuthOwn γ.fk (1 : Qp).half f ∗ ⌜f = 0 → fkAbsSt P st⌝)
+/-- **The compaction keys' well-formedness bit** (persistent; question 4, 2026-10-29): at `true`,
+every state of the backend holds only well-formed values (`P.FV`) at the compaction keys. The
+constructor gives it (`fkWInit`); it never changes. With the flag it is the three levels of the
+user's question 4: `fkOwn γ 0` (no compaction key), `fkV γ true` (only well-formed ones), else
+nothing known. -/
+def fkV (γ : BNames) (w : Bool) : IProp GF := dghostVar γ.fkv DFrac.discard w
 
-/-- A reader's lower bound of the flag, taken when its state `rv` was set (persistent). -/
+instance fkV_persistent (γ : BNames) (w : Bool) : Persistent (fkV (GF := GF) γ w) := by
+  unfold fkV; infer_instance
+
+/-- **What the constructor gives the client of the compaction keys** over bbolt's data `D`: the
+client's half of their flag, at `0` if `D` has none (`fkInit`), and the bit, `true` if `D`'s are
+well formed (`fkWInit`). -/
+def fkCl (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
+  iprop(fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D))
+
+/-- The batch lock's half of the flag, with what it and the bit say of its state (`fkOk`). -/
+def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(∃ (f : Nat) (w : Bool), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkV γ w ∗ ⌜fkOk P f w st⌝)
+
+/-- A reader's lower bound of the flag, taken when its state `rv` was set, with the bit
+(persistent). -/
 def fkRd (γ : BNames) (P : BParams) (rv : RView) : IProp GF :=
-  iprop(∃ f : Nat, monoNatLbOwn γ.fk f ∗ ⌜f = 0 → fkAbsRv P rv⌝)
+  iprop(∃ (f : Nat) (w : Bool), monoNatLbOwn γ.fk f ∗ fkV γ w ∗ ⌜fkOkRv P f w rv⌝)
 
 instance fkRd_persistent (γ : BNames) (P : BParams) (rv : RView) :
     Persistent (fkRd (GF := GF) γ P rv) := by

@@ -42,7 +42,7 @@ theorem backend.batchTxBuffered.UnsafeCreateBucket.wp_proof
   imod batchGhost_step_rb γ P (st := st) (st' := (st.create bi)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_create st bi)
-    (rbData_create_other st bi) fkAbsSt_create $$ Hg Hrbp with ⟨Hg, Hrbp⟩
+    (rbData_create_other st bi) fkOk_create $$ Hg Hrbp with ⟨Hg, Hrbp⟩
   wp_apply (hBT γ P W Pk b t st bk bi Hn0 Hn1) $$ [Htxf Hpend Hwtx] as Hw
   · iframe #
     unfold btW

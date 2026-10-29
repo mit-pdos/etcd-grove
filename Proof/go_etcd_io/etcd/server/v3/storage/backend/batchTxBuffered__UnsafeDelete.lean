@@ -43,7 +43,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   imod batchGhost_step_rb γ P (st := st) (st' := (st.del bi kb)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_del st bi kb Hhk)
-    (rbData_del_other st bi kb) fkAbsSt_del $$ Hg Hrbp with ⟨Hg, Hrbp⟩
+    (rbData_del_other st bi kb) fkOk_del $$ Hg Hrbp with ⟨Hg, Hrbp⟩
   have hBT' := hBT γ P W Pk b t st bk bi key kb dk true
   simp only [↓reduceIte] at hBT'
   wp_apply hBT' $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩

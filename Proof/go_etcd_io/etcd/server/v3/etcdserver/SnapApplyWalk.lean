@@ -391,7 +391,7 @@ theorem applySnapshot_walk
   ihave HnNC : mvcc.kbNoCmp (GF := GF) (some d') E.γ.bucket
       $$ [Hncmp]
   · simp only [mvcc.kbNoCmp, hγ']
-    iapply mvcc.bkNoCmp_of_fkOwn γB (mvcc.keyImage_noCmp hkI) $$ Hncmp
+    iapply mvcc.bkNoCmp_of_fkCl γB _ (mvcc.keyImage_noCmp hkI) $$ Hncmp
   wp_apply hRst ws E.s γw _ d' E.γ.bucket
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) x.log R hpre hRok
     $$ [Hscl Hfrag HwOwn HwW HnView HnNC HlateR HnRTx]

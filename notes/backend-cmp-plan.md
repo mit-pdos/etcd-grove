@@ -1029,3 +1029,36 @@ statement takes it through `openPre`.
 - **Question 4 (the compaction keys' values): on the tracked-absence flag, the user's** (the
   recommendation: three levels, not `BParams.VI`). How it is stated is below ("Question 4's
   statements"), decided by the agent within that choice.
+
+### Question 4's statements (2026-10-29; decided by the agent within the user's choice)
+
+- **The three levels, as a flag and a bit.**
+  - `fkOwn γ 0`: no compaction key, the flag as before.
+  - `fkV γ true`: only well-formed values. This is a new discarded `dghostVar Bool` (`γ.fkv`),
+    persistent.
+  - Neither: nothing is known.
+  - Why not a third level of the `monoNat`: "only well-formed values" is stable, since a put needs a
+    well-formed value. But a reader with no part of the client's exclusive half (the compaction's
+    `checkPrevCompactionCompleted`, concurrent with a job that holds it) could not learn an upper
+    bound of the flag. A persistent bit, fixed at creation, gives the same three levels and is
+    readable by anyone.
+- **The values: `BParams.FV`.** It is a new field, defaulting to `fun _ => True`; `KBReal.P` sets
+  it to `metaRevVal`. Decided by the agent: a field rather than a backend copy of mvcc's
+  `revBytes`, so that the backend does not state mvcc's encoding.
+  - The batch lock's ghost (`fkHalf`) and the readers' witness (`fkRd`) carry `fkOk P f w st` /
+    `fkOkRv P f w rv`: `f = 0` gives absence, `w` gives well-formed values.
+  - The read law is `fkRd_wf`: `fkV γ true ∗ fkRd γ P rv ⊢ ⌜fkWfRv P rv⌝`.
+- **Creation.** `newPost`/`newPostK`'s last component is now `fkCl γ P D :=
+  fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D)`. `OpenBackend`'s text is unchanged, but it says more:
+  the bit is computed from `D`, in `New`'s proof, so the axiom claims nothing more of the file.
+  `bkNoCmp_of_fkOwn` became `bkNoCmp_of_fkCl`, and `fkV_of_fkCl` gives the bit at `true` over data
+  without compaction keys.
+- **`UnsafePut`'s spec** gains the premise `fkKey bi.name kb → P.FV vb`. Its four callers put
+  non-compaction keys (`absurd`), or `metaRevVal` values (`bt_metaPut`, from `metaPutCap`'s premise).
+- **`metaReadTx rt RT`.** `RLock` now takes the reader's budget token `RT` and `RUnlock` gives it
+  back, as `keyReadSnap`'s do. For mvcc's assumed backend `RT = True` (`isKeyBackendG_cmp`), so
+  `checkPrevCompactionCompleted`'s proof is unchanged. Who supplies `storeRT` to it over the real
+  backend stays question 5.
+- **The new bridge** (`isKeyBackendG_of_backendC`, unwired) takes `hFV : ∀ v, P.FV v ↔ metaRevVal v`
+  and the persistent `fkV γ true`. Its `metaReadTx` case is proved (`rt_metaWf`): one `sorry` fewer.
+  The wiring step supplies `fkV γ true` from `fkV_of_fkCl`, over data without compaction keys.

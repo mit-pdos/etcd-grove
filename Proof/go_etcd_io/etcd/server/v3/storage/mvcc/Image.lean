@@ -44,7 +44,7 @@ def keyImage (log : Log) (D : Data) : Prop :=
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
 
 /-- **`D` records no compaction**: its `Meta` bucket holds neither compaction key (a backend
-opened over `D` gives its no-compaction token `bkNoCmp`: `bkNoCmp_of_fkOwn`; D22 S-g). -/
+opened over `D` gives its no-compaction token `bkNoCmp`: `bkNoCmp_of_fkCl`; D22 S-g). -/
 def noCmpData (D : Data) : Prop :=
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
@@ -61,12 +61,23 @@ theorem fkAbsD_of_noCmp {D : Data} (h : noCmpData D) : fkAbsD D := by
 omit package_sem in
 /-- **The no-compaction token of a backend opened over data with no compaction recorded**
 (the backend-compaction stage, 2026-10-29): the creator's half of the backend's compaction-key flag
-(`newPostK`'s `fkOwn γ (fkInit D)`) is at `0`. -/
-theorem bkNoCmp_of_fkOwn (γ : BNames) {D : Data} (h : noCmpData D) :
-    fkOwn (GF := GF) γ (fkInit D) ⊢ bkNoCmp γ := by
+(`newPostK`'s `fkCl γ P D`) is at `0`. -/
+theorem bkNoCmp_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
+    fkCl (GF := GF) γ P D ⊢ bkNoCmp γ := by
+  unfold fkCl
   rw [fkInit_of_abs (fkAbsD_of_noCmp h)]
   unfold bkNoCmp
-  iintro H; iexact H
+  iintro ⟨H, -⟩; iexact H
+
+omit package_sem in
+/-- The same data's compaction keys are well formed: the bit at `true` (question 4, 2026-10-29). -/
+theorem fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
+    fkCl (GF := GF) γ P D ⊢ fkV γ true := by
+  unfold fkCl
+  have hw : fkWInit P D = true := by
+    unfold fkWInit; simpa using fkWfD_of_abs P (fkAbsD_of_noCmp h)
+  rw [hw]
+  iintro ⟨-, H⟩; iexact H
 
 /-- A key image records no compaction. -/
 theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2

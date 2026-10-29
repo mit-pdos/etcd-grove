@@ -62,8 +62,9 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
     -- (the backend-compaction stage, Draft round 2) the creator's part of the deletable keys
     dlInit γ ∗
-    -- (the compaction keys' tracked absence, 2026-10-29) the client's half of their flag
-    fkOwn γ (fkInit D))
+    -- (the compaction keys' tracked absence, 2026-10-29; question 4) the client's half of their
+    -- flag and the bit of their values
+    fkCl γ P D)
 
 end preds
 
@@ -160,7 +161,7 @@ def newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
-    dlInit γ ∗ fkOwn γ (fkInit D))
+    dlInit γ ∗ fkCl γ P D)
 
 /-- The constructor's post with the payment rights kept is `newPost`. -/
 theorem newPost_of_K (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :

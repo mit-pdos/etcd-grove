@@ -200,6 +200,207 @@ theorem rtRange_fkAbs {P : BParams} {rv : RView} {bi : BucketInfo} {kb : GoStrin
   | cons e rest =>
     simp [List.takeWhile, hsub e List.mem_cons_self]
 
+/-! ## The compaction keys' well-formed values (question 4, 2026-10-29) -/
+
+theorem fkWfD_of_abs (P : BParams) {D : Data} (h : fkAbsD D) : fkWfD P D := by
+  intro n k v hf hv
+  rw [h n k hf] at hv; cases hv
+
+theorem fkWfB_of_abs {P : BParams} {B : GMap w64 (List Ent)} (h : fkAbsB P B) : fkWfB P B := by
+  intro n k i hf hi e he hek
+  exact absurd hek (h n k i hf hi e he)
+
+theorem fkWfSt_of_abs {P : BParams} {st : BSess} (h : fkAbsSt P st) : fkWfSt P st :=
+  ⟨⟨fkWfD_of_abs P h.1.1, fkWfB_of_abs h.1.2⟩, fkWfD_of_abs P h.2.1, fkWfB_of_abs h.2.2⟩
+
+theorem fkWfD_put {P : BParams} {S : Data} {n k : GoString} (v : GoString) (h : fkWfD P S)
+    (hv : fkKey n k → P.FV v) : fkWfD P (S.insert n ((bktOf S n).insert k v)) := by
+  intro n' k' v' hf hl
+  rw [dget_insert] at hl
+  split at hl
+  · rename_i hn
+    subst hn
+    rw [GMap.lookup_insert_eq_iff] at hl
+    split at hl
+    · rename_i hkk; subst hkk; cases hl; exact hv hf
+    · rw [← dget_eq_bktOf] at hl; exact h _ _ _ hf hl
+  · exact h _ _ _ hf hl
+
+theorem fkWfD_delk {P : BParams} {S : Data} {n k : GoString} (h : fkWfD P S) :
+    fkWfD P (S.insert n ((bktOf S n).delete k)) := by
+  intro n' k' v' hf hl
+  rw [dget_insert] at hl
+  split at hl
+  · rename_i hn
+    subst hn
+    rw [GMap.lookup_delete_iff] at hl
+    split at hl
+    · cases hl
+    · rw [← dget_eq_bktOf] at hl; exact h _ _ _ hf hl
+  · exact h _ _ _ hf hl
+
+theorem fkWfD_create {P : BParams} {S : Data} {n : GoString} (h : fkWfD P S) :
+    fkWfD P (if S.lookup n = none then S.insert n ∅ else S) := by
+  split
+  · intro n' k' v' hf hl
+    rw [dget_insert] at hl
+    split at hl
+    · simp at hl
+    · exact h _ _ _ hf hl
+  · exact h
+
+theorem fkWfD_delete {P : BParams} {S : Data} {n : GoString} (h : fkWfD P S) :
+    fkWfD P (S.delete n) := by
+  intro n' k' v' hf hl
+  unfold dget at hl
+  rw [GMap.lookup_delete_iff] at hl
+  split at hl
+  · cases hl
+  · exact h _ _ _ hf hl
+
+theorem fkWfB_wbAdd {P : BParams} {B : GMap w64 (List Ent)} {n : GoString} {id : w64}
+    {k v : GoString} (hP : P.Wf) (h : fkWfB P B) (hid : P.BT.lookup n = some id)
+    (hv : fkKey n k → P.FV v) : fkWfB P (wbAdd B id (k, v)) := by
+  intro n' k' i hf hi e he hek
+  rw [bkOf_wbAdd] at he
+  split at he
+  · rename_i hii
+    subst hii
+    rcases List.mem_append.1 he with he | he
+    · exact h n' k' id hf hi e he hek
+    · rw [List.mem_singleton] at he
+      subst he
+      have hn : n = n' := hP.1 n n' id hid hi
+      subst hn
+      simp only at hek
+      subst hek
+      exact hv hf
+  · exact h n' k' i hf hi e he hek
+
+theorem fkWfB_wbMerge {P : BParams} {W R : GMap w64 (List Ent)} (hW : fkWfB P W)
+    (hR : fkWfB P R) : fkWfB P (wbMerge W R) := by
+  intro n k i hf hi e he hek
+  rcases mem_bkOf_wbMerge he with he | he
+  · exact hR n k i hf hi e he hek
+  · exact hW n k i hf hi e he hek
+
+theorem fkWfB_bksReset (P : BParams) (B : GMap w64 (List Ent)) : fkWfB P (bksReset B) :=
+  fkWfB_of_abs (fkAbsB_bksReset P B)
+
+theorem fkWfB_writebackW (P : BParams) (W : WBuf) (R : RBuf) : fkWfB P (writebackW W R).bks :=
+  fkWfB_of_abs (fkAbsB_writebackW P W R)
+
+/-! ## The flag and the bit together: `fkOk` -/
+
+theorem fkOk_put {P : BParams} {st : BSess} {bi : BucketInfo} {k v : GoString} (seq : Bool)
+    (hP : P.Wf) (hbi : P.has bi) (hk : ¬ fkKey bi.name k) (f : Nat) (w : Bool)
+    (h : fkOk P f w st) : fkOk P f w (st.put bi k v seq) := by
+  refine ⟨fun h0 => fkAbsSt_put seq hP hbi hk (h.1 h0), fun hw => ?_⟩
+  obtain ⟨hrv, hS, hW⟩ := h.2 hw
+  refine ⟨hrv, fkWfD_put v hS (fun hf => absurd hf hk), ?_⟩
+  unfold BSess.put
+  cases seq
+  · exact fkWfB_wbAdd hP hW hbi (fun hf => absurd hf hk)
+  · exact fkWfB_wbAdd hP hW hbi (fun hf => absurd hf hk)
+
+/-- A put of a compaction key, of a well-formed value: the flag raised to at least `1`. -/
+theorem fkOk_putFk {P : BParams} {st : BSess} {bi : BucketInfo} {k v : GoString} (seq : Bool)
+    (hP : P.Wf) (hbi : P.has bi) (hv : P.FV v) (f : Nat) (w : Bool) (h : fkOk P f w st) :
+    fkOk P (max f 1) w (st.put bi k v seq) := by
+  refine ⟨fun h0 => absurd h0 (by have := Nat.le_max_right f 1; omega), fun hw => ?_⟩
+  obtain ⟨hrv, hS, hW⟩ := h.2 hw
+  refine ⟨hrv, fkWfD_put v hS (fun _ => hv), ?_⟩
+  unfold BSess.put
+  cases seq
+  · exact fkWfB_wbAdd hP hW hbi (fun _ => hv)
+  · exact fkWfB_wbAdd hP hW hbi (fun _ => hv)
+
+theorem fkOk_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString} (f : Nat) (w : Bool)
+    (h : fkOk P f w st) : fkOk P f w (st.del bi k) :=
+  ⟨fun h0 => fkAbsSt_del (h.1 h0), fun hw => ⟨(h.2 hw).1, fkWfD_delk (h.2 hw).2.1, (h.2 hw).2.2⟩⟩
+
+theorem fkOk_create {P : BParams} {st : BSess} {bi : BucketInfo} (f : Nat) (w : Bool)
+    (h : fkOk P f w st) : fkOk P f w (st.create bi) :=
+  ⟨fun h0 => fkAbsSt_create (h.1 h0), fun hw => ⟨(h.2 hw).1, fkWfD_create (h.2 hw).2.1, (h.2 hw).2.2⟩⟩
+
+theorem fkOk_delBucket {P : BParams} {st : BSess} {bi : BucketInfo} (f : Nat) (w : Bool)
+    (h : fkOk P f w st) : fkOk P f w (st.delBucket bi) :=
+  ⟨fun h0 => fkAbsSt_delBucket (h.1 h0),
+   fun hw => ⟨(h.2 hw).1, fkWfD_delete (h.2 hw).2.1, (h.2 hw).2.2⟩⟩
+
+theorem fkOk_wb {P : BParams} {st : BSess} (f : Nat) (w : Bool) (h : fkOk P f w st) :
+    fkOk P f w (wbSt P st) :=
+  ⟨fun h0 => fkAbsSt_wb (h.1 h0),
+   fun hw => ⟨⟨(h.2 hw).1.1, fkWfB_wbMerge (h.2 hw).2.2 (h.2 hw).1.2⟩, (h.2 hw).2.1,
+     fkWfB_writebackW P st.W st.R⟩⟩
+
+theorem fkOk_commit {P : BParams} {st : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt}
+    (hC : C' = st.S ∨ C' = st.C) (f : Nat) (w : Bool) (h : fkOk P f w st) :
+    fkOk P f w (commitSt st C' tx' cnt') := by
+  refine ⟨fun h0 => fkAbsSt_commit (h.1 h0) hC, fun hw => ?_⟩
+  refine ⟨⟨?_, fkWfB_bksReset P _⟩, (h.2 hw).2.1, (h.2 hw).2.2⟩
+  rcases hC with rfl | rfl
+  · exact (h.2 hw).2.1
+  · exact (h.2 hw).1.1
+
+theorem fkOk_setHw {P : BParams} {st : BSess} (x : Bool) (f : Nat) (w : Bool)
+    (h : fkOk P f w st) : fkOk P f w (st.setHw x) := h
+
+/-- The readers' state of a batch state (its committed data and read buffer). -/
+theorem fkOkRv_of {P : BParams} {st : BSess} {f : Nat} {w : Bool} (h : fkOk P f w st) :
+    fkOkRv P f w (st.C, st.R) :=
+  ⟨fun h0 => (h.1 h0).1, fun hw => (h.2 hw).1⟩
+
+theorem fkInit_wf {P : BParams} {D : Data} (h : fkWInit P D = true) : fkWfD P D := by
+  unfold fkWInit at h
+  simpa using h
+
+/-- The initial state's facts: committed data and writer's contents `D`, empty buffers. -/
+theorem fkOk_init {P : BParams} {D : Data} {st : BSess} (hC : st.C = D) (hS : st.S = D)
+    (hR : st.R.bks = ∅) (hW : st.W.bks = ∅) :
+    fkOk P (fkInit D) (fkWInit P D) st := by
+  refine ⟨fun h0 => ?_, fun hw => ?_⟩
+  · have hD := fkInit_zero h0
+    refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+    · rw [hC]; exact hD
+    · rw [hR]; exact fkAbsB_empty P
+    · rw [hS]; exact hD
+    · rw [hW]; exact fkAbsB_empty P
+  · have hD := fkInit_wf hw
+    refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+    · rw [hC]; exact hD
+    · rw [hR]; exact fkWfB_of_abs (fkAbsB_empty P)
+    · rw [hS]; exact hD
+    · rw [hW]; exact fkWfB_of_abs (fkAbsB_empty P)
+
+/-- A well-formed readers' state's value at a compaction key is well formed. -/
+theorem fkWfRv_vOf {P : BParams} {rv : RView} {bi : BucketInfo} {kb v : GoString}
+    (h : fkWfRv P rv) (hbi : P.has bi) (hk : fkKey bi.name kb)
+    (hv : vOf P rv bi.name kb = some v) : P.FV v := by
+  unfold vOf ovB at hv
+  unfold BParams.has at hbi
+  rw [hbi] at hv
+  simp only [Option.bind_some] at hv
+  cases hl : lastVal (bkOf rv.2.bks bi.id) kb with
+  | some v' =>
+    rw [hl] at hv
+    simp only [Option.some_or] at hv
+    cases hv
+    unfold lastVal at hl
+    cases hf : (bkOf rv.2.bks bi.id).reverse.find? (fun e => decide (e.1 = kb)) with
+    | none => rw [hf] at hl; cases hl
+    | some e =>
+      rw [hf] at hl
+      simp only [Option.map_some] at hl
+      cases hl
+      have hm := List.mem_of_find?_eq_some hf
+      have he := List.find?_some hf
+      exact h.2 bi.name kb bi.id hk hbi e (List.mem_reverse.1 hm) (by simpa using he)
+  | none =>
+    rw [hl] at hv
+    simp only [Option.none_or] at hv
+    exact h.1 bi.name kb v hk hv
+
 end backend
 end EtcdGrove
 end Perennial

@@ -178,7 +178,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         rw [(commit_final (tx' := st'.tx) (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)).2.2, hC, hR]
         exact (Hview hw).symm
       icases fkHalf_rd γ P st' (st'.C, st'.R.reset)
-        (fun h => (fkAbsSt_commit (C' := st'.C) (tx' := st'.tx) (cnt' := st'.cnt) h (Or.inr rfl)).1)
+        (fun f w h => fkOkRv_of (fkOk_commit (C' := st'.C) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inr rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
       imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' hview) $$
         [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
@@ -216,7 +216,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR]
         exact (Hview hw).symm
       icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
-        (fun h => (fkAbsSt_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) h (Or.inl rfl)).1)
+        (fun f w h => fkOkRv_of (fkOk_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
       imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' hview) $$
         [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
@@ -254,7 +254,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR]
       exact (Hview hw).symm
     icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
-      (fun h => (fkAbsSt_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) h (Or.inl rfl)).1)
+      (fun f w h => fkOkRv_of (fkOk_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
       $$ Hfkh with ⟨-, #Hfkr⟩
     imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' hview) $$
       [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB] with ⟨Hrr, -, -, -⟩
