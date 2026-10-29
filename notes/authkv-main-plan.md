@@ -404,3 +404,8 @@ invariant is built; no sorry or axiom"): a law-shaped hypothesis of `Main.wp_pro
 law), `Main.spec` unchanged. Undischarged, `Link.lean`'s `wp_Main` passes it on, so the exported
 `authkv_Main` takes it too: a change to the top-level statement the user sees. At the restatement,
 show the user `authkv_Main`'s exported form with it before committing.
+
+The user approved 5b's `SetUp.spec` draft (the merge session's, on `auth-5b`): its auth half, and
+`clientTokAt` naming the client's `Auth` field over the KV connection. The Watcher's connection
+stays out of 5b: tying it to the same connection (F-W3) is its own statement change, proposed as
+part of G2 after the merge. `clientTokAt_user`'s conclusion is unchanged.
