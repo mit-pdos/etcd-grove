@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem NewAuth.wp_proof (wp_RetryAuthClient : RetryAuthClient.spec (GF := GF) (hG := hG)) :
     NewAuth.spec (GF := GF) (hG := hG) := by
-  intro cl addr
+  intro cl conn
   wp_start as #Hcl
-  iunfold clientKVAt at Hcl
-  icases Hcl with ⟨%Hne, %conn, %sl, #Hconn, #Hkc, #Hcopts, #Hok⟩
+  iunfold clientKVAtS at Hcl
+  icases Hcl with ⟨%Hne, %sl, #Hconn, #Hcopts, #Hok⟩
   wp_auto
   wp_apply wp_RetryAuthClient cl conn $$ [] as %v ⟨%rac, %Hv, #Hrac⟩
   · iexact Hconn
@@ -44,8 +44,8 @@ theorem NewAuth.wp_proof (wp_RetryAuthClient : RetryAuthClient.spec (GF := GF) (
   iexists _
   isplitl []
   · ipureintro; rfl
-  unfold authObjAt
-  iexists rac, conn, sl
+  unfold authObjS
+  iexists rac, sl
   iframe #
 
 end proof

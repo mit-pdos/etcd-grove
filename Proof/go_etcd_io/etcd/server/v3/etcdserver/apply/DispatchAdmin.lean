@@ -44,7 +44,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 /-- **The admin request a request model `rq` carries**, by the field `dispatch` takes
-(`dispatchKind`): one of `SetUp`'s five, or none. -/
+(`dispatchKind`): one of `SetUp`'s five, an `Authenticate` (C1's A2), or none. -/
 def apply.adminReqOf (rq : apply.IRRModel) : Option apply.AdminReq :=
   match apply.dispatchKind rq with
   | .authUserAdd => rq.authUserAdd.map (fun m => .userAdd m.name)
@@ -52,6 +52,7 @@ def apply.adminReqOf (rq : apply.IRRModel) : Option apply.AdminReq :=
   | .authUserGrantRole => rq.authUserGrantRole.map (fun ur => .userGrantRole ur.1 ur.2)
   | .authRoleGrantPermission => rq.authRoleGrantPermission.map (fun nw => .roleGrantPermission nw.1 nw.2)
   | .authEnable => some .authEnable
+  | .authenticate => rq.authenticate.map (fun am => .authenticate am.name am.simpleToken)
   | _ => none
 
 section defs
@@ -60,14 +61,52 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **What an admitted admin request needs besides `mPre`** (C1's A2, 2026-10-28): its
+`AdminReq.extraPre` (an `Authenticate`'s right to issue its token at the index `ConsistentIndex()`
+returns under what it borrows from the critical section's precondition `Pre`). -/
+def apply.adminExtra (E : apply.AEnv GF) (γa : auth.AuthNames) (rq : apply.IRRModel) (Pre : IProp GF) :
+    IProp GF :=
+  match apply.adminReqOf rq with
+  | some ad => ad.extraPre E γa Pre
+  | none => iprop(True)
+
+/-- An `Authenticate`'s `adminExtra`: an index `x` that `ConsistentIndex()` reads under what it
+borrows from `Pre`, and the right to its token at `x`. -/
+theorem apply.adminExtra_authenticate (E : apply.AEnv GF) (γa : auth.AuthNames)
+    (rq : apply.IRRModel) (Pre : IProp GF) (am : apply.AuthenticateModel) (x : w64)
+    (hk : apply.dispatchKind rq = .authenticate) (ha : rq.authenticate = some am) :
+    apply.ciSplitAt E Pre x ∗ auth.tokFresh γa (auth.simpleTok am.simpleToken x) ⊢
+      apply.adminExtra E γa rq Pre := by
+  iintro ⟨#H, Hf⟩
+  unfold apply.adminExtra apply.adminReqOf
+  simp only [hk, ha, Option.map_some, apply.AdminReq.extraPre]
+  iexists x
+  iframe H Hf
+
+/-- Of a request other than `Authenticate`, `adminExtra` is free. -/
+theorem apply.adminExtra_of_ne (E : apply.AEnv GF) (γa : auth.AuthNames) (rq : apply.IRRModel)
+    (Pre : IProp GF) (h : apply.dispatchKind rq ≠ .authenticate) :
+    ⊢ apply.adminExtra E γa rq Pre := by
+  unfold apply.adminExtra apply.adminReqOf
+  cases hk : apply.dispatchKind rq <;> simp only [hk] at h ⊢
+  all_goals first
+    | exact absurd rfl h
+    | itrivial
+    | (cases rq.authUserAdd <;> cases rq.authRoleAdd <;> cases rq.authUserGrantRole <;>
+        cases rq.authRoleGrantPermission <;>
+        simp only [Option.map, apply.AdminReq.extraPre] <;> itrivial)
+
 /-- **The admin outcome of `dispatch`'s result `ar`** (the auth plan's E2n): with `v3`, the
-request's result (`AdminReq.result` at the result's error: the step on the latest recorded state,
-the authority with its fuel after it, or the model's refusal); without, the authority as it was. -/
+request's result (`AdminReq.result` at the result's response and error: the step on the latest
+recorded state, the authority with its fuel after it, or the model's refusal; C1's A2: an
+`Authenticate`'s token); without, the authority as it was. -/
 def apply.adminDone (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames) (M : auth.AuthMode)
     (hs : List auth.AuthState)
     (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) : IProp GF :=
-  if v3 then iprop(∃ (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (ad : apply.AdminReq), ⌜apply.adminReqOf rq = some ad⌝ ∗
-    ar ↦□ v ∗ ad.result Own γa M hs v.Err')
+  if v3 then iprop(∃ (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (ad : apply.AdminReq)
+      (resp : Loc), ⌜apply.adminReqOf rq = some ad ∧
+        v.Resp' = interface.mkOk (go.GoType.PointerType ad.respTy) #resp⌝ ∗
+    ar ↦□ v ∗ ad.result Own γa M hs resp v.Err')
   else Own γa hs
 
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
@@ -76,7 +115,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 file header): `dispatch.spec`'s precondition but for the KV floor, the store's write token, the
 rest buckets and the certificates (which an admin request does not use), with `adminKindOk rq` in
 place of `rqOk`, the current applier's admin triples, the authority with its fuel, a time
-receipt (the admin step's cost, E2l) and `W`. -/
+receipt (the admin step's cost, E2l) and `W`; (C1's A2) with `v3`, the request's `adminExtra` (an
+`Authenticate`'s token right at the index `ConsistentIndex()` reads). -/
 abbrev apply.uberApplier.dispatch.adminSpec : Prop :=
   ∀ (E : apply.AEnv GF) (p : Loc) (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : apply.IRRModel) (skip v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
@@ -89,7 +129,7 @@ abbrev apply.uberApplier.dispatch.adminSpec : Prop :=
       apply.kvOwn E log ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
       ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
         receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
-      Own γa hs ∗ ⧗ 1 ∗ W }}
+      Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.chainResAny c a ∗ structFieldRef uberApplier go!"applyV3" p ↦ a ∗
       ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗
@@ -242,7 +282,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log Pre Q Post info W γa hh Own
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, #Hadm, Hkv, Hc, %Hok, %HcE, Hown, Hrc, HW⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, #Hadm, Hkv, Hc, %Hok, %HcE, Hown, Hrc, HW, Hx⟩
   obtain ⟨Hmode, Hadmk, Hdok, Hrb⟩ := Hok
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
@@ -383,6 +423,8 @@ theorem apply.uberApplier.dispatch.wp_admin
   (try wp_auto)
   ihave Hc : iprop(mvcc.csContract E.P E.f Pre Q Post) $$ [Hc]
   · simp only [apply.cPre, ↓reduceIte]; iexact Hc
+  ihave Hx : apply.adminExtra E γa rq Pre $$ [Hx]
+  · simp only [↓reduceIte]; iexact Hx
   -- the second `switch`: each case computes `ar` and `op` and establishes the postcondition
   -- at `ar`; the `return` and the deferred metrics, after the join, are verified once (not
   -- once per request kind)
@@ -395,7 +437,7 @@ theorem apply.uberApplier.dispatch.wp_admin
           ⌜apply.dispatchStep c rq true log o⌝ ∗ apply.resTrace «$r0_ptr» ∗
           apply.dispatchResult rq true log skip «$r0_ptr» o ∗ W ∗
           apply.adminDone Own γa E.authMode hh rq true «$r0_ptr»))
-    with [a r ar op «$r0» Hc Hres Ha Hkv Hown Hrc HW]
+    with [a r ar op «$r0» Hc Hres Ha Hkv Hown Hrc HW Hx]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -467,12 +509,53 @@ theorem apply.uberApplier.dispatch.wp_admin
     exact absurd Hadmk (by simp [apply.adminKindOk, hk])
   have zAlarm : rq.alarm = none := nAl.1 (by simpa using Hif)
   wp_if_destruct
-  · -- Authenticate (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- Authenticate (C1's A2: admitted in the mode `on`, at the right to its token)
     have hl : lAu ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAu.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAu
     have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
+    have hnm : (apply.AdminReq.authenticate x.name x.simpleToken).nameOk := trivial
+    ihave Hx : (apply.AdminReq.authenticate x.name x.simpleToken).extraPre E γa Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.authenticate x.name x.simpleToken) %lAu %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Hkv Hres Hc Hx] as %resp %err ⟨Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iunfold apply.mPre
+      iframe
+      iexists x
+      iframe HR
+      ipureintro; exact ⟨rfl, rfl⟩
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; rfl)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.authenticate x.name x.simpleToken), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
+    iexact Hdone
   have zAuthenticate : rq.authenticate = none := nAu.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthEnable (the auth plan's E2n: admitted in the mode `on`)
@@ -516,10 +599,10 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, apply.AdminReq.authEnable
+    iexists _, apply.AdminReq.authEnable, resp
     iframe H0
     isplitr
-    · ipureintro; simp [apply.adminReqOf, hk, hs]
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk], rfl⟩
     iexact Hdone
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
@@ -588,10 +671,10 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.userAdd x.name)
+    iexists _, (apply.AdminReq.userAdd x.name), resp
     iframe H0
     isplitr
-    · ipureintro; simp [apply.adminReqOf, hk, hs]
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
     iexact Hdone
   have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
@@ -657,10 +740,10 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.userGrantRole x.1 x.2)
+    iexists _, (apply.AdminReq.userGrantRole x.1 x.2), resp
     iframe H0
     isplitr
-    · ipureintro; simp [apply.adminReqOf, hk, hs]
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
     iexact Hdone
   have zAuthUserGrantRole : rq.authUserGrantRole = none := nUGR.1 (by simpa using Hif)
   wp_if_destruct
@@ -724,10 +807,10 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.roleAdd x)
+    iexists _, (apply.AdminReq.roleAdd x), resp
     iframe H0
     isplitr
-    · ipureintro; simp [apply.adminReqOf, hk, hs]
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
     iexact Hdone
   have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
   wp_if_destruct
@@ -773,10 +856,10 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.roleGrantPermission x.1 x.2)
+    iexists _, (apply.AdminReq.roleGrantPermission x.1 x.2), resp
     iframe H0
     isplitr
-    · ipureintro; simp [apply.adminReqOf, hk, hs]
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
     iexact Hdone
   have zAuthRoleGrantPermission : rq.authRoleGrantPermission = none := nRGP.1 (by simpa using Hif)
   wp_if_destruct

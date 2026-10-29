@@ -73,7 +73,8 @@ def tokenProviderOkCtx (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp 
         (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨ tokOk M t user }}))
+          (⌜err = GoInterface.nil⌝ ∗ tokOk M t user) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}))
 
 end ctxpred
 

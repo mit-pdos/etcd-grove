@@ -1,7 +1,6 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
@@ -45,6 +44,7 @@ axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.opaqueInitsOk
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
@@ -405,6 +405,8 @@ axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom corev1.Resource.wp_proof
+axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
+axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.AsLeaf.wp_proof

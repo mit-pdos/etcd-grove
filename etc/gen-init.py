@@ -829,7 +829,7 @@ SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes'] = dict(
 (`EtcdError`s, whose `Error()` returns), the map `errStringToError` (its values `status.Error`
 errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, of
 the method set goose emits), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
-`ErrAuthOldRevision`, `ErrNoLeader` and the pointer error `ErrGRPCNotSupportedForLearner`. Its variables'
+`ErrAuthOldRevision`, `ErrNoLeader`, `ErrAuthNotEnabled` and the pointer error `ErrGRPCNotSupportedForLearner`. Its variables'
 initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
 `<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.''',
     pre=['/-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,',
@@ -883,10 +883,15 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
         'ErrNoLeader': dict(doc='/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/',
                              post='∃ x : EtcdError, globalAddr ErrNoLeader ↦ interface.mkOk EtcdError.ty #x',
                              pat='⟨%x@, H@⟩'),
+        # (the auth plan's C1, 2026-10-28: the client's `getToken` compares `Authenticate`'s error
+        # with it, `errors.Is`)
+        'ErrAuthNotEnabled': dict(doc='/-- `ErrAuthNotEnabled = Error(ErrGRPCAuthNotEnabled)` (`error.go`): an `EtcdError`. -/',
+                             post='∃ x : EtcdError, globalAddr ErrAuthNotEnabled ↦ interface.mkOk EtcdError.ty #x',
+                             pat='⟨%x@, H@⟩'),
     },
     finish=['ipersist HErrFutureRev', 'ipersist HErrCompacted', 'ipersist HerrStringToError',
             'ipersist HErrUserEmpty', 'ipersist HErrInvalidAuthToken', 'ipersist HErrAuthOldRevision',
-            'ipersist HErrGRPCNotSupportedForLearner', 'ipersist HErrNoLeader',
+            'ipersist HErrGRPCNotSupportedForLearner', 'ipersist HErrNoLeader', 'ipersist HErrAuthNotEnabled',
             'ihave #HFRS : iprop(□ ∀ e : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok e -∗',
             '    go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []',
             '· iintro !> %e He',

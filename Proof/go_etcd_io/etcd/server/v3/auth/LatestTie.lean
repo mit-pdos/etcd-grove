@@ -467,6 +467,25 @@ abbrev auth.authStore.RoleGrantPermission.specTB : Prop :=
       respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
       adminOutP M hs (roleGrantPermissionR name w) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
+/-- **`Authenticate.spec` at the tie's resources, keeping the store's backend `be`** (`authWRxB`;
+C1's A2, 2026-10-28): the apply thread's form, as the admin steps' `X.specTB`. It writes nothing,
+so the halves come back at their values (`b0`, `sc0`). `IsAuthEnabled` read-locks `enabledMu`: a
+reader slot (`enabledRd`), given back; its error is one of the package's (`ErrAuthNotEnabled`,
+`ErrAuthFailed`, or the provider's `assign`'s, `tokenProviderOk`). (The margin: the tie makes the flag `IsAuthEnabled`
+reads the latest state's, `b0`; `authenticated` says only that some recorded state is enabled.) -/
+abbrev auth.authStore.Authenticate.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString)
+    (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      enabledRd st M ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗
+      mvcc.csContract P f Pre Q Post ∗ authnCtx M ctx }}
+    (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
+      (Val #ctx)) (Val #username)) (Val #password))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗
+      authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ authenticated M hs username resp err ∗
+      (⌜err = GoInterface.nil⌝ ∨ ∃ e : AuthErr, authErrOf e err) }}
+
 end spec
 
 section derive

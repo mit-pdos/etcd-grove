@@ -25046,6 +25046,115 @@ to be the specs in, e.g., node__Propose.lean."
 `raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
 
+## E3zc of the auth plan: one client KV stack for both auth modes (2026-10-28 · `notes/auth-plan.md`; E3zb's "What is left", item 1; done but the `*Client` wrappers)
+
+**The problem.** A member with auth on registers the metadata-indexed `On` specs
+(`client/v3/KVServiceOn.lean`), and `Work` needs what their replies add (a write's grant at the
+token the attempt carried, `writeGrantOn`; a read's check, `rangeAuthed`/`txnAuthed`). The
+client's KV stack (`kv.Do`/`Put`/`Get`/`Delete`, `txn.Commit`, `ClientPutGet`) was stated over the
+plain specs (`kvRegsAt`). Two parallel stacks (one per mode) were the first plan; the user: "Shouldn't
+we have one stack?" Taken: one stack, the plain statements its instance.
+
+**Step A (the transport, done).** Every layer between the retry interceptor and `kv.Do`/`txn.Commit`
+takes a metadata-indexed spec (`GrpcSpecMd`), registered with `isGrpcRpcsMd`, and the caller's
+request precondition at every metadata an attempt of the call may deliver:
+`attemptPre conn ctx Spec m Φ := ∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ`
+(`InvKVConn.lean`). `clientAttemptMd conn ctx md`: the retry interceptor sends each attempt on
+`withVersion(ctx)` and grpc's attempt on it delivers `md` (`grpcAttemptMd`); `withVersion`'s
+trust-boundary axiom now states its outgoing metadata (the caller's, with only `client-api-version`
+set: `metadata.mdSet`; true of `ctx.go`), so the attempts' metadata is tied to the caller's context
+(what C2/C4 of E2b speak of). Layers: `etcdInterceptorOk`/`etcdInterceptorOkM` (the interceptor's
+proof: two attempt sites, `attemptPre_attempt`), `etcdConn.InvokeMd` (the plain `etcdConn_Invoke`
+derived at `GrpcSpec.md`: the Auth and Lease stubs unchanged), `kVClient.{Put,Range,DeleteRange,Txn}`,
+`retryKVClient.*`, `kv.Do.wp_generic` (`doRunGen` now names the `*kv`'s connection,
+`kvObjAtC api conn addr`; `kvObjAt_conn`), `txn.Commit.wp_generic` (the builder's `*kv` and its
+connection, `txnObjAt_kv`, `kvObjAtC_agree`). The members' proofs instantiate them at `GrpcSpec.md`
+(`isGrpcRpcs_md`, `attemptPre_md`): no statement above `kv.Do.wp_generic` changed.
+
+**Step B (done): one proof of the `*kv`'s calls, an instance per mode.** The plan above had a
+mode-indexed member (`SrvAtM`) and one proof over such members. Taken instead, simpler: the calls
+are proved once over the transport's terms, for any spec registered at the connection, and each
+mode is an instance by glue.
+- B1, the generic statements (`KVMembers.lean`): `kv.Do.specG` (`kv.Do.wp_generic`'s, `doRunGen`
+  moved there), `kv.Put.specG`, `kv.Get.specG`, `kv.Delete.specG`, `txn.Commit.specG`: a `*kv`
+  over `conn` (`kvObjAtC`), a `GrpcSpecMd` registered at its addresses (`isGrpcRpcsMd`), the
+  caller's precondition `attemptPre conn ctx S … Q` (in `kvReqPre`/`txnReqPre`; `□ ▷` for a
+  read), the answer `putCallOut Q`, .... Proved once (`kv.X.wp_generic`), linked in
+  `LinkMembers.lean` (`v3.kv.wp_PutG`, ..., `v3.txn.wp_CommitG`).
+- B2, auth off: the `specM`s (statements unchanged) are `kv.X.wp_members (wp_X : kv.X.specG)`,
+  glue at `GrpcSpec.md` of the members' specs (`kvObjAt_conn`, `isGrpcRpcs_md`, `kvRegs_rpc*`,
+  `putSpec_of … |>.trans attemptPre_md`).
+- B3, auth on (`client/v3/ResultsOn.lean`): `client_put_on`, `client_range_on`,
+  `client_delete_on`, `client_txn_on`, the `client_*_any` at one member whose methods are
+  registered with the `On` specs (what `etcd_kv_auth_served_on` gives). The answer `Q` the caller
+  picks carries the server's auth fact at some attempt's metadata, `∃ md, ⌜clientAttemptMd conn
+  (GoInterface.ok ci) md⌝ ∗ writeGrantOn … (auth.mdTokenOf md) …` (`rangeAuthed`, `txnAuthOn`):
+  `attemptPre` gives the `md` the `On` spec's reply is at. Premises with auth on: a delete's key
+  non-empty (`auth.reqShape` of a point), a writing transaction's `kvShapeAll`, a read's lower
+  bound `n` of the published index (`auth.authPubLbM`, `0` free).
+
+Not yet: the `*Client` wrappers (`ClientPutGet`'s `client_Put_any`, ..., over `isNewClient`).
+`isNewClient`'s `*kv` (`kvObjAt`) does not name its connection as the client's (`clientKVAt`'s
+`conn` field), and the answers above speak of the `*kv`'s connection: the client's token (C1, over
+`clientAttemptMd`) is a fact of the client's connection, so the wrappers come with C1, which may
+tie the two in `isNewClient` (`NewKV(c)` stores `c.conn`).
+
+## C1's A2, spec-first: the served `Authenticate`'s statements (2026-10-28 · `notes/c1-plan.md`, "A2, spec-first")
+
+Drafted before any proof (the user's instruction). What changed in existing statements, and why:
+- **The consistent index's value** (`AEnv.ciC : IProp GF → w64 → Prop`; `isConsistentIndexer`
+  returns `x` under `C` for `ciC C x`; `ciSplitAt`): before, the apply layer knew only that
+  `ConsistentIndex()` returns some value; the token `<prefix>.<index>` needs the index named, and
+  the right to issue it (`tokFresh`) is per index.
+- **`isAuthStepsX` takes the reader resource `RD`** it lends to `Authenticate` (`IsAuthEnabled`
+  read-locks `enabledMu`): the kit's `E.RD`, which `kvOwn` holds, not a new slot in the server's
+  `W` (the plan's first idea, which would have needed the construction's spare slots).
+- **The applier's `Authenticate` borrows from `Pre`** (`ciSplitAt E Pre x`), not a separate frame
+  `C` (the plan's first idea): the resource `ConsistentIndex()` reads under is inside the critical
+  section's precondition, which the hook needs.
+- **The provider's `assign` returns one of the package's errors** (`tokenProviderOk(A)`): the
+  store returns `assign`'s error as its own, and the server's NOSPACE branch needs the apply
+  result's error to be an auth one. Excludes the JWT provider (out of scope).
+- **`adminKindOk` admits `Authenticate` only in a request needing no admin permission**: else the
+  auth applier's admin check passes on another field and `Authenticate` is dispatched, a step the
+  admin model has no successor for.
+- **`authnOut` owns the response** (`resp ↦ v`): the gRPC reply sends the whole message.
+
+## C1's A2, phase 2: the proofs, and `context.WithValue`'s `Value` (2026-10-28 · the axiom change approved by the user)
+
+- **`context.WithValue`'s trust-boundary axiom states `Value`** (the user: "yes, strengthen the
+  WithValue axiom"). Before, it said nothing of `Value`, so `TokenSimple.assign`'s
+  `ctx.Value(AuthenticateParamIndex{})` was unprovable from the applier's context. The new
+  conjunct: at the key itself `Value` returns the value; at a key of another dynamic type it is the
+  parent's `Value`. Keys of the same type with another value are left out on purpose: Lean's
+  equality of `GoInterface` values agrees with Go's `==` only at the key itself, at nil and across
+  types, so a clause over them could state what Go does not do. Go's `valueCtx.Value` is
+  `if c.key == key { return c.val }; return value(c.Context, key)`.
+- **`authnCtx` promises `Value` at the two parameter keys only.** It used to say `Value` at every
+  key, which the axiom cannot give.
+- **The store's `Authenticate` has one proof** (`wp_core`, generic in the backend and a frame);
+  the two specs are instances. `isAuthStepsX_of_authInvT(B)` take the store's `specTB`; the
+  any-mode one builds `authWRxB` from its own resources (no any-mode `specT`, review 2's worry).
+- **`adminOut_model` takes `adminKindOk rq`**, not `needAdminPermission rq = true` as the only
+  premise for `Authenticate`: an `Authenticate` is treated apart (`adminOut_authn`), its
+  history and state kept.
+- **The rights at the mint** (`srvTokRights_next`): the right to issue is minted at the index the
+  backend reads (`ciEff γ st.k`), before the entry, while the rights are raised to `m.index` for
+  every branch. Stated as an Iris `∧` of the two uses (keep, or keep-and-mint in the mode on), so
+  the branches before the dispatch need not know the kind.
+
+## C1's A3: the `Authenticate` response travels as a resource (2026-10-28 · `notes/c1-plan.md`, "A3 done")
+
+- **Owned, not persistent.** The plan had the waiter's result carry `tokIssued` (persistent) beside
+  the result; but the handler's reply needs the response struct owned (review 1 of A2), and the
+  apply thread never reads the response after `Trigger` (the deferred warning reads it only on an
+  error, when it is nil), so the response goes to the one waiter as a resource: `resultIsWOn`,
+  `resPostM`, `appliedOkM` each gain a conjunct (`authnArM`, `authnAnsM`), `True` off.
+- **`adminPropOk` without `needAdminPermission rq = true`.** The conjunct was redundant for every
+  kind `adminKindOk` admits but `Authenticate`, which it excluded; dropping it admits `Authenticate`
+  through the admin path of `reqPropOkOn` rather than a fourth disjunct, so A4 can follow the admin
+  proposers' path. The commit keeps the model's state for it.
+
 ## lintest's `genSpec`: the generator is called with a client's index (`id ≥ 0`)
 
 **2026-10-28 · accepted; approved by the user 2026-10-28** (branch `logkv-eval`)

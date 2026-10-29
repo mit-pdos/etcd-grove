@@ -479,10 +479,6 @@ theorem chainStep_log_same (B : IRRModel → mvcc.Log → Outcome → Prop) (rq 
     · subst h; rfl
     · exact ih o h
 
-theorem ite_eq_iff' {α : Sort _} {c : Prop} [Decidable c] {a b k : α} :
-    (if c then a else b) = k ↔ (c ∧ a = k) ∨ (¬c ∧ b = k) := by
-  by_cases h : c <;> simp [h]
-
 theorem dispatchKind_put (rq : IRRModel) (h : dispatchKind rq = .put) : rq.put.isSome = true := by
   simp only [dispatchKind, ite_eq_iff', reduceCtorEq, and_false, false_or, or_false] at h
   exact h.2.2.2.2.2.1

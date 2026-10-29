@@ -324,12 +324,12 @@ theorem snap_isConsistentIndexer
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
   isplitr
   · ipureintro; rfl
-  iintro !> %C %HC
-  obtain ⟨cst, cb, hC, hcp, hld⟩ := HC
-  subst hC
+  iintro !> %C %x %HC
+  obtain ⟨cst, cb, hC, hcp, hld, hx⟩ := HC
+  subst hC hx
   iintro %Φ' !> Hpre HΦ'
-  iapply (wp_wand (Φ := fun w => iprop((∀ x : w64,
-      iprop(applyThread γ cst ∗ applyBackend γ ci cb) -∗ Φ' #x) ∗
+  iapply (wp_wand (Φ := fun w => iprop((
+      iprop(applyThread γ cst ∗ applyBackend γ ci cb) -∗ Φ' #(ciEff γ cst.k)) ∗
       (⌜w = #(ciEff γ cst.k)⌝ ∗ applyThread γ cst ∗ applyBackend γ ci cb))))
     $$ [Hpre HΦ']
   · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)

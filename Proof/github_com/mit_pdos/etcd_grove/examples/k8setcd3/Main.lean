@@ -180,7 +180,7 @@ theorem Main.wp_proof
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R go!"127.0.0.1:23896" [] null null [] null default
-  wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V) $$ [] as %kc %cerr Hcl
+  wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V (fun _ => iprop(True))) $$ [] as %kc %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -192,8 +192,10 @@ theorem Main.wp_proof
       refine ⟨?_, ?_⟩
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
+    isplitr
+    · iapply clientAuthPre_anon; rfl
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · cases cerr with
     | nil => exact absurd rfl Hcfail

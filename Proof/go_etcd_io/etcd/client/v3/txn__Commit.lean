@@ -27,27 +27,34 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `t.Commit()` for any spec `Spec` registered for `Txn` at the connection (the transport's terms,
 as the retry client's spec takes them; `txn.Commit.wp_proof` instantiates it with the members'
-spec, `kvTxnSpec`): `txnCallOut`. -/
+spec, `kvTxnSpec`): `txnCallOut`. Since 2026-10-28 (the auth plan's E3zc) the spec is
+metadata-indexed (`GrpcSpecMd`; a plain one is `GrpcSpec.md`), its precondition at every metadata
+an attempt on the connection `conn` of the builder's `*kv` `api` may deliver (`attemptPre`). -/
 theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
-    ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-      (b : TxnBuild) (Spec : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse)
-      (Q : TxnRespM → IProp GF),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" Spec ∗
-        txnReqPre tp addr (Spec (txnWireOf b.model) Q) }}
-      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
-        (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnCallOut Q resp err }} := by
-  intro tp addr ci cd b Spec Q
-  wp_start as ⟨Htx, #Hrpc, Hrun⟩
+    txn.Commit.specG (GF := GF) (hG := hG) := by
+  intro tp api0 conn0 addr ci cd b Spec Q
+  wp_start as ⟨Htx, #Hkv0, #Hobj0, #Hrpc, Hrun⟩
   iunfold txnObjAt at Htx
   icases Htx with ⟨%Htpn, %api, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #Hkvf, #Hkv, #Hctxf,
     #Hctx, #Hce, #Hmu, Hcif, Hcthen, Hcelse, Hiw, Hcmps, Hcsl, Hccap, #Hcpa, Hsus, Hssl, Hscap,
     #Hspa, Hfas, Hfsl, Hfcap, #Hfpa, #Hcof, #Hco⟩
+  -- the builder's `*kv` is `api0`, over `conn0`
+  ihave %Hapi : ⌜api = api0⌝ $$ []
+  · iunfold txnKvIs at Hkv0
+    icombine Hkvf Hkv0 gives %Heq
+    ipureintro; exact Heq
+  subst Hapi
   ihave #Hkv' := Hkv
   iunfold kvObjAt at Hkv'
   icases Hkv' with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco'⟩
+  ihave %Hconn0 : ⌜conn0 = conn⌝ $$ []
+  · iapply (kvObjAtC_agree api conn0 conn addr addr)
+    iframe Hobj0
+    unfold kvObjAtC
+    iexists rkv, sl
+    iframe #
+  subst Hconn0
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hvs, %Hcap, #Hok, %Hsc⟩
   wp_auto
@@ -56,13 +63,14 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
   · iPkgInit
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
-  ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Txn" addr vs (Spec (txnWireOf b.model) Q) $$ [Hrun]
-  · iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Txn" ⟨go!"Txn", rfl⟩ addr vs _ Hsc $$ [Hrun]
+  ihave Hrun' : reqPre conn0 go!"/etcdserverpb.KV/Txn" addr vs
+      (attemptPre conn0 (GoInterface.ok ci) Spec (txnWireOf b.model) Q) $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn0 go!"/etcdserverpb.KV/Txn" ⟨go!"Txn", rfl⟩ addr vs _ Hsc $$ [Hrun]
     iframe Hremote Hrkv
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun
     unfold txnKvIs; iexact Hkvf
-  wp_apply wp_retry_Txn rkv conn addr Spec Q ci cd _ _ (txnWireOf b.model) cosl vs $$ [«$r0» Hrun']
+  wp_apply wp_retry_Txn rkv conn0 addr Spec Q ci cd _ _ (txnWireOf b.model) cosl vs $$ [«$r0» Hrun']
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
@@ -104,14 +112,17 @@ theorem txn.Commit.wp_members (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     txn.Commit.specM (GF := GF) (hG := hG) := by
   intro tp ms ci cd b c F Q
   iintro %Φ ⟨#Pc, Hobj, #Hregs, %Hp, #Hk, Hu⟩ HΦ
-  iapply (txn.Commit.wp_generic wp_retry_Txn wp_ContextError tp (ms.map SrvAt.addr) ci cd b
-    (kvTxnSpec ms) (txnAns ms c F (txnWireOf b.model) Q)) $$ [Hobj Hu] HΦ
+  icases txnObjAt_kv tp (ms.map SrvAt.addr) ci cd b $$ Hobj with ⟨%api, %conn, #Hkv, #Hkc, Hobj⟩
+  -- the plain spec at every metadata (`GrpcSpec.md`)
+  iapply (txn.Commit.wp_generic wp_retry_Txn wp_ContextError tp api conn (ms.map SrvAt.addr) ci cd b
+    (GrpcSpec.md (kvTxnSpec ms)) (txnAns ms c F (txnWireOf b.model) Q)) $$ [Hobj Hu] HΦ
   iframe #
   iframe Hobj
   isplitl []
-  · iapply (kvRegs_rpcTxn ms) $$ Hregs
+  · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcTxn ms) $$ Hregs
   iapply (txnReqPre_wand tp (ms.map SrvAt.addr) (knownAt ms c F) _ _
-    (txnSpec_of ms c F (txnWireOf b.model) Q (txnWireOf_plain _ Hp.1) Hp.2))
+    ((txnSpec_of ms c F (txnWireOf b.model) Q (txnWireOf_plain _ Hp.1) Hp.2).trans
+      (attemptPre_md conn (GoInterface.ok ci) (kvTxnSpec ms) _ _)))
   iframe Hk Hu
 
 /-- `t.Commit()` on a builder over a `*kv` of etcd's KV `γ` (D44): `txn.Commit.wp_members` at its

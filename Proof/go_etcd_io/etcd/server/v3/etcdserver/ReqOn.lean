@@ -88,9 +88,58 @@ def authTie (st : auth.AuthState) (rq : apply.IRRModel) (out : apply.ApplyOut) :
   apply.isKVKind (apply.dispatchKind rq) = true → ∀ o skip, out = .dispatched o skip →
     (o = .rejected .auth ↔ ¬ kvGranted st rq)
 
+/-- **An `Authenticate` entry's response** (C1's A2, 2026-10-28): unless the entry is not an
+`Authenticate` or was not dispatched, the result at `ar` holds the response (`Resp`, a pointer to
+an `AuthenticateResponse`) and its error, and the response is what the store returned
+(`apply.authnOut`: an error and no response, or a token issued to the request's user). -/
+def adminAuthnAr (γa : auth.AuthNames) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    IProp GF :=
+  iprop(⌜apply.dispatchKind rq ≠ .authenticate ∨ ∀ o b, out ≠ .dispatched o b⌝ ∨
+    ∃ (am : apply.AuthenticateModel) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
+      (resp : Loc),
+      ⌜rq.authenticate = some am ∧
+        v.Resp' = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)
+          #resp⌝ ∗
+      ar ↦□ v ∗ apply.authnOut γa am.name resp v.Err')
+
+/-- **An `Authenticate` result's response, in the auth mode `on`** (C1's A3, 2026-10-28): `True`
+off, and at an auth mode other than `.on` (`.any` promises nothing); at `.on γa`, `adminAuthnAr`,
+the response the store returned, owned, for the waiter. -/
+def authnArM (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true =>
+    match E.authMode with
+    | .on γa => adminAuthnAr γa ar rq out
+    | _ => iprop(True)
+
+theorem authnArM_false (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    authnArM (GF := GF) false E ar rq out = iprop(True) := rfl
+
+/-- **Not an `Authenticate`: nothing to carry.** -/
+theorem authnArM_of_ne (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (h : apply.dispatchKind rq ≠ .authenticate) :
+    ⊢ authnArM (GF := GF) on E ar rq out := by
+  cases on
+  · simp only [authnArM]; itrivial
+  simp only [authnArM]
+  cases E.authMode with
+  | off => itrivial
+  | any => itrivial
+  | on γa => iunfold adminAuthnAr; ileft; ipureintro; exact Or.inl h
+
+/-- **At the server's auth mode `.on γa`**, `adminAuthnAr` is `authnArM`'s. -/
+theorem authnArM_of_on (E : apply.AEnv GF) (γa : auth.AuthNames) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (hM : E.authMode = .on γa) :
+    adminAuthnAr (GF := GF) γa ar rq out ⊢ authnArM true E ar rq out := by
+  simp only [authnArM, hM]
+  iintro H; iexact H
+
 /-- **The result `ar` of applying `rq`, with its witness, in the mode `on`** (`resultIsW`'s, with
 the auth layer's verdict the model's at the auth state `st` the entry met, `authTie`; and (E3x) an
-admin request's result without error the model's step from `st` succeeding, `adminTieAr`). -/
+admin request's result without error the model's step from `st` succeeding, `adminTieAr`; and (C1's
+A3) an `Authenticate`'s response, owned, `authnArM`). -/
 def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -99,7 +148,8 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
         out.waived = false ∧ authTie st rq out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ adminTieAr ar rq st (adminNext rq st) out)
+      mvcc.certOk E.γ y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
+      authnArM true E ar rq out)
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
 theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
@@ -191,7 +241,8 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
 
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
 `processInternalRaftRequestOnce.specM`): `resultIsW`'s, at the committed prefix `L` before the
-entry, with what the proposer learns of the model there (`modelOutM`). -/
+entry, with what the proposer learns of the model there (`modelOutM`); (C1's A3) an
+`Authenticate`'s response, `authnArM`. -/
 def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (L : List EntryModel) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -200,7 +251,7 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
         out.waived = false ∧ modelOutM on ρ.kv rq L y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ adminTieM on ρ.kv rq L ar out)
+      mvcc.certOk E.γ y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out)
 
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
@@ -219,16 +270,69 @@ instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (r
     (L : List EntryModel) : Persistent (pubAfterM (GF := GF) on E ρ rq' L) := by
   cases on <;> unfold pubAfterM <;> infer_instance
 
+/-- **An `Authenticate`'s answer, as `raftRequest` reports it, in the auth mode `on`** (C1's A3,
+2026-10-28): `True` off (and at an auth mode other than `.on`); on, unless the request is not an
+`Authenticate`, the answer is a pointer to an `AuthenticateResponse`, owned (the reply the handler
+sends), whose token is issued to the request's user (`auth.tokIssued`). The response's header (a
+fresh `newHeader()`) is not owned: the handler returns the response as it is. -/
+def authnAnsM (on : Bool) (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true =>
+    match E.authMode with
+    | .on γa => iprop(⌜apply.dispatchKind rq ≠ .authenticate⌝ ∨
+        ∃ (am : apply.AuthenticateModel) (rp : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse),
+          ⌜rq.authenticate = some am ∧
+            resp = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty) #rp⌝ ∗
+          rp ↦ v ∗ auth.tokIssued γa v.Token' am.name)
+    | _ => iprop(True)
+
+theorem authnAnsM_false (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) :
+    authnAnsM (GF := GF) false E rq resp = iprop(True) := rfl
+
+/-- **An `Authenticate`'s answer from its result** (C1's A3): a result `ar` dispatched without
+error carries its response (`authnArM`), which `raftRequest` returns as its answer. -/
+theorem authnAnsM_of_ar (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (o : apply.Outcome) (skip : Bool) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
+    (hve : v.Err' = GoInterface.nil) :
+    authnArM (GF := GF) on E ar rq (.dispatched o skip) ⊢ ar ↦□ v -∗ authnAnsM on E rq v.Resp' := by
+  cases on
+  · iintro - -; simp only [authnAnsM]; itrivial
+  simp only [authnArM, authnAnsM]
+  cases E.authMode with
+  | off => iintro - -; itrivial
+  | any => iintro - -; itrivial
+  | on γa =>
+    simp only
+    iintro Hau #Hv
+    iunfold adminAuthnAr at Hau
+    icases Hau with (%Hn | ⟨%am, %v', %resp, %Hr, #Hv', Hout⟩)
+    · ileft; ipureintro
+      rcases Hn with Hn | Hn
+      · exact Hn
+      · exact absurd rfl (Hn o skip)
+    icombine Hv Hv' gives %Hvv
+    subst Hvv
+    iright
+    iunfold apply.authnOut at Hout
+    icases Hout with (⟨%He, -⟩ | ⟨-, %w, Hw, #Ht⟩)
+    · exact absurd hve He.1
+    iexists am, resp, w
+    iframe Hw Ht
+    ipureintro; exact Hr
+
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`; and (E3x) an admin request's step
-succeeded, `adminDoneM`). -/
+succeeded, `adminDoneM`; (C1's A3) an `Authenticate`'s response and its token's issue,
+`authnAnsM`). -/
 def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (L : List EntryModel) : IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log)
+    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log ∗
+    authnAnsM on E rq' resp)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)

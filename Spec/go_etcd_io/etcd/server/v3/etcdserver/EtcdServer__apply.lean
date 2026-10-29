@@ -118,14 +118,17 @@ abbrev EtcdServer.apply.specOn : Prop :=
       srvWTTaken γp w ∗ srvFS s ∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
       kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ srvApRes s γr A }}
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ srvApRes s γr A ∗
+      -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
+      srvTokRights E (ciEff γ st.k) }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗
       srvApRes s γr (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
-        applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
+        applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
+        ciApplying ci a' at' ∗
         epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗

@@ -175,7 +175,7 @@ theorem Client.dialSetupOpts.wp_proof
   · iapply BigSepL.bigSepL_cons.2; iframe Hm1
     iapply BigSepL.bigSepL_cons.2; iframe Hrro'
     iapply BigSepL.bigSepL_nil.2; itrivial
-  wp_apply wp_unaryIc c _ [m1, rro] $$ [$Hc $Hl2 $Hros2] as %ic ⟨#Hic, #HicW⟩
+  wp_apply wp_unaryIc c _ [m1, rro] $$ [$Hc $Hl2 $Hros2] as %ic #Hic
   wp_apply wp_WithUnaryInterceptor ic $$ [$Hgrpc] as %o4 %Ho4
   wp_apply wp_slice_literal (V := GoInterface) [o3, o4]
   isplitr
@@ -188,7 +188,7 @@ theorem Client.dialSetupOpts.wp_proof
   imodintro
   iapply HΦ
   iexists si, ic
-  iframe Ho5c Hic HicW
+  iframe Ho5c Hic
   isplitr
   · iunfold dialOptsAt
     iexists _

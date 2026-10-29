@@ -410,6 +410,11 @@ abbrev rpctypesInit : IProp GF :=
     -- keep-alive loop compares a stream's error with it)
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrNoLeader ↦□
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
+    -- (the auth plan's C1, 2026-10-28) `ErrAuthNotEnabled`, an `EtcdError` (the client's
+    -- `getToken` compares `Authenticate`'s error with it)
+    (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled ↦□
         interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x))
 
 instance rpctypes_is_pkg_init_inst :

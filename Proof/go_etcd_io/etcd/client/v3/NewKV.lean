@@ -24,10 +24,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem NewKV.wp_proof (wp_RetryKVClient : RetryKVClient.spec (GF := GF) (hG := hG)) :
     NewKV.spec (GF := GF) (hG := hG) := by
-  intro cl addr
+  intro cl conn
   wp_start as #Hcl
-  iunfold clientKVAt at Hcl
-  icases Hcl with ⟨%Hne, %conn, %sl, #Hconn, #Hkc, #Hcopts, #Hok⟩
+  iunfold clientKVAtS at Hcl
+  icases Hcl with ⟨%Hne, %sl, #Hconn, #Hcopts, #Hok⟩
   wp_auto
   wp_apply wp_RetryKVClient cl conn $$ [] as %v ⟨%rkv, %Hv, #Hrkv⟩
   · iexact Hconn
@@ -43,8 +43,8 @@ theorem NewKV.wp_proof (wp_RetryKVClient : RetryKVClient.spec (GF := GF) (hG := 
   iexists _
   isplitl []
   · ipureintro; rfl
-  unfold kvObjAt
-  iexists rkv, conn, sl
+  unfold kvObjS
+  iexists rkv, sl
   iframe #
 
 end proof

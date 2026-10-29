@@ -319,7 +319,8 @@ theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
 resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
 store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
-model's from the start (`applyBuiltOn`). -/
+model's from the start (`applyBuiltOn`); and (C1's A1) the rights to issue tokens at the
+consistent index (`srvTokRights`). -/
 def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
@@ -327,7 +328,7 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
 /-- **`applyBuiltNA` in the auth mode `on`**: `applyBuiltNA` at `on = false` (by definition),
 `applyBuiltNAOn` at `on = true`. -/
@@ -456,7 +457,7 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
     applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
   cases on
   · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
-    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs⟩
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs, -⟩
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hap Hfs
     isplitr

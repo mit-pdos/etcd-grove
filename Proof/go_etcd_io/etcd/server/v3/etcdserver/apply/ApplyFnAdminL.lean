@@ -73,7 +73,7 @@ abbrev apply.Apply.adminSpecL : Prop :=
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
         apply.dispatchOk E.authOn rq ∧ E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
       ⌜x.chain = apply.baseChain E.authOn⌝ ∗
-      Own γa hs ∗ ⧗ 1 ∗ W }}
+      Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq Pre else iprop(True)) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
@@ -100,8 +100,8 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` through its admin triple and the postcondition. -/
 local macro "call_tail_adminL" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post W γa hs Own L hsplit)
-      $$ [Hown Hkv Hcs Ho Hrc HW] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, %Hlat, Htr, Hres, HW, Hdone, HRE⟩
-  · iframe # Hown Hkv Hcs Ho Hrc HW
+      $$ [Hown Hkv Hcs Ho Hrc HW Hx] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, %Hlat, Htr, Hres, HW, Hdone, HRE⟩
+  · iframe # Hown Hkv Hcs Ho Hrc HW Hx
     isplitr
     · ipureintro; exact ⟨Hmode, Hadm, Hdk, Hrb⟩
     isplitr
@@ -146,7 +146,7 @@ theorem apply.Apply.wp_adminL
     (hUA : apply.uberApplier.Apply.adminSpecL (GF := GF) (hG := hG)) :
     apply.Apply.adminSpecL (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs Own L hsplit
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, %Hch, Ho, Hrc, HW⟩
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, %Hch, Ho, Hrc, HW, Hx⟩
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hmode, Hrb⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -280,6 +280,7 @@ theorem apply.Apply.wp_adminL
     iclear Hneed
     wp_auto
     call_tail_adminL
+
 
 end proof
 

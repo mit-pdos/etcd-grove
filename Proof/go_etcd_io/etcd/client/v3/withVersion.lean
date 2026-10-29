@@ -1,5 +1,5 @@
 /-
-**Trust boundary**: `withVersion` returns a value context of its argument (an axiom; see `Spec/go_etcd_io/etcd/client/v3/withVersion.lean`). Lean-first (no Rocq counterpart).
+**Trust boundary**: `withVersion` returns a value context of its argument, with the API version set in its outgoing metadata (an axiom; see `Spec/go_etcd_io/etcd/client/v3/withVersion.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -22,7 +22,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **Trust boundary**: `withVersion` returns a value context of its argument. -/
+/-- **Trust boundary**: `withVersion` returns a value context of its argument, with the API version
+set in its outgoing metadata. -/
 axiom withVersion.wp_proof : withVersion.spec (GF := GF) (hG := hG)
 
 end proof

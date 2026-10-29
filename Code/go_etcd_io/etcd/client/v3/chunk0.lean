@@ -1107,6 +1107,51 @@ noncomputable def NewAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType authClient.ty)))) (Pair (Var "api") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Auth.ty))) (Var "$res0")))))
 
+/-- go: auth.go:136:25 -/
+noncomputable def authClient.Authenticate.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "auth"
+  (Lam "ctx"
+  (Lam "name"
+  (Lam "password"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthenticateResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthenticateResponse.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "auth" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "auth"))
+  (Let "password" (App (Val (GoInstruction (GoAlloc go.string))) (Var "password"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "password"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Password")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty) (go.GoType.PointerType AuthenticateResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Var "resp")))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthenticateResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthenticateResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+
 /-- go: auth.go:141:25 -/
 noncomputable def authClient.AuthEnable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "auth"
@@ -1729,6 +1774,92 @@ noncomputable def Client.dialSetupOpts.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #())))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)))) (Var "$res0")))))))
+
+/-- go: client.go:285:18 -/
+noncomputable def Client.getToken.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Username"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Password"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve Auth.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad Auth.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthenticateResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthenticateResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef AuthenticateResponse.ty go!"Token"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthenticateResponse.ty)))) (Var "resp"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.ty go!"UpdateAuthToken"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"authTokenBundle"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!""))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.ty go!"UpdateAuthToken"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"authTokenBundle"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthenticateResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Username"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Val #(go!"")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Password"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Val #(go!""))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Token"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Val #(go!""))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Token"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.ty go!"UpdateAuthToken"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"authTokenBundle"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- dial configures and dials any grpc balancer target.
 
@@ -6994,6 +7125,39 @@ noncomputable def retryAuthClient.RoleGrantPermission.impl [GooseExts] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))))
+
+/-- go: retry.go:311:29 -/
+noncomputable def retryAuthClient.Authenticate.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rac"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Val #())))
+  (Let "$res0" (Var "resp")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res1" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "rac" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)))) (Var "in"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef retryAuthClient.ty go!"ac"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))))
 
 /-- unaryClientInterceptor returns a new retrying unary client interceptor.
 

@@ -110,7 +110,19 @@ zap_Logger__Warn:
 errors_IsStatusErr:
 waitRetryBackoff:
 withVersion:
-Client__getToken:
+# (the auth plan's C1, 2026-10-28) the token fetch: the credentials' token cell (its two methods
+# under the read/write lock, trust-boundary axioms: `notes/c1-plan.md`, finding 2) and
+# `Authenticate` through the client's `Auth`.
+credentials_perRPCCredential__GetRequestMetadata:
+credentials_perRPCCredential__UpdateAuthToken:
+credentials_perRPCCredential__RequireTransportSecurity:
+credentials_perRPCCredentialBundle__PerRPCCredentials: credentials_perRPCCredential__GetRequestMetadata credentials_perRPCCredential__RequireTransportSecurity
+credentials_perRPCCredentialBundle__UpdateAuthToken: credentials_perRPCCredential__UpdateAuthToken
+etcdserverpb_authClient__Authenticate: grpc_StaticMethod grpc_ClientConn__Invoke
+retryAuthClient__Authenticate: etcdserverpb_authClient__Authenticate
+v3_authClient__Authenticate: retryAuthClient__Authenticate ContextError
+errors_Is:
+Client__getToken: v3_authClient__Authenticate credentials_perRPCCredentialBundle__UpdateAuthToken errors_IsStatusErr
 Client__Endpoints:
 Client__GetLogger:
 isContextError: status_Code
@@ -231,7 +243,6 @@ grpc_WithResolvers:
 # (names only, an axiom) when the token's fetch fails
 grpc_WithPerRPCCredentials:
 credentials_NewPerRPCCredentialBundle:
-credentials_perRPCCredentialBundle__PerRPCCredentials:
 Client__Close:
 insecure_NewCredentials:
 resolver_New:

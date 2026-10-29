@@ -215,6 +215,7 @@ class authClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   method_set : go.MethodSetIs authClient.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authClient.ty) [(go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthenticateResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, PermissionType.ty] false [(go.GoType.PointerType AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType UserAddOptions.ty)] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserRevokeRoleResponse.ty), go.error])))]
   ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"AuthEnable" authClient.AuthEnable.impl
+  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"Authenticate" authClient.Authenticate.impl
   ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"RoleAdd" authClient.RoleAdd.impl
   ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"RoleGrantPermission" authClient.RoleGrantPermission.impl
   ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"UserAdd" authClient.UserAdd.impl
@@ -229,6 +230,7 @@ attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.method_set
   authClient.TypeAssumptions.ptr_method_set
   authClient.TypeAssumptions.ptr_AuthEnable_unfold
+  authClient.TypeAssumptions.ptr_Authenticate_unfold
   authClient.TypeAssumptions.ptr_RoleAdd_unfold
   authClient.TypeAssumptions.ptr_RoleGrantPermission_unfold
   authClient.TypeAssumptions.ptr_UserAdd_unfold
@@ -483,6 +485,7 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" Client.credentialsForEndpoint.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
   ptr_dialSetupOpts_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialSetupOpts" Client.dialSetupOpts.impl
+  ptr_getToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"getToken" Client.getToken.impl
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
   ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" Client.shouldRefreshToken.impl
   ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" Client.unaryClientInterceptor.impl
@@ -546,6 +549,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
   Client.TypeAssumptions.ptr_dial_unfold
   Client.TypeAssumptions.ptr_dialSetupOpts_unfold
+  Client.TypeAssumptions.ptr_getToken_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold

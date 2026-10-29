@@ -1541,7 +1541,7 @@ theorem EtcdServer.Txn.wp_proofOn
       have Hrq : rq' = apply.withHeader (irrTxn tw) hm := Hwire.2.2.2 hz
       subst Hrq
       iunfold appliedOkM at Hok
-      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
       obtain ⟨Hstep, Hfl, Hskip, Hmo, -⟩ := Hstep0
       have Hk : apply.dispatchKind (apply.withHeader (irrTxn tw) hm) = .txn := by
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]

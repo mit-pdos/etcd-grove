@@ -235,7 +235,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyResOn at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, ⟨%w, #HWA, %Hw⟩, %Hpure⟩
+    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, ⟨%w, #HWA, %Hw⟩, HtokR, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hstep, Hcap, Hlt⟩ := Hpure
   iunfold schedule.schedRunning at Hrun
@@ -301,7 +301,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
       C.ms C.γs C.wt dv γnc w γa sa (by rw [beSucc_authMode HB]; exact hM) hRB hms hb1 Hloop hok' Hcap hdv Hw)
-    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR]
+    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR]
   · rw [hun]
     iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
     iframe
@@ -309,7 +309,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     iframe
     iexact Hdvr
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', #Hsrv', HAR, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', #Hsrv', HAR, Hai, Hat, Hcs, Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   obtain ⟨hloop', hai', hci', hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
@@ -1178,7 +1178,7 @@ theorem EtcdServer.run.wp_proofOn
   irename appliediE => appliedi
   iunfold applyStartOn at Hstart
   icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
-    #Hlog0, Hkr, HRS, HAR, Hfs⟩
+    #Hlog0, Hkr, HRS, HAR, Hfs, HtokR⟩
   obtain ⟨Hloop0, Hc0⟩ := Hst0
   -- (D19i part 1) the start index is the raft log's start (`kvRun`'s, `rnEnvOk`'s)
   iunfold kvRunAtOn at Hkr
@@ -1192,7 +1192,7 @@ theorem EtcdServer.run.wp_proofOn
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao Hkr HRS HAR Hak0]
+        HKV Hao Hkr HRS HAR Hak0 HtokR]
   · iunfold applyResOn
     iexists ⟨γ, TM, E, b⟩, st₀, ai₀, at₀, a₀, t₀, cs, x₀, srvAuthSt0
     isplitr

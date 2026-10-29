@@ -107,7 +107,9 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
-       else iprop(True)) }}
+       else iprop(True)) ∗
+      -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
+      srvTokRights E (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
   {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
@@ -117,7 +119,8 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗ srvRest E γr (A ++ [m])) ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
-       else applyThread γ st) }}
+       else applyThread γ st) ∗
+      (if v3 then srvTokRights E m.index else srvTokRights E (ciEff γ st.k)) }}
 
 end spec
 

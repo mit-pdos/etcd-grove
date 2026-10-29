@@ -60,7 +60,7 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVOn C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunAtOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
+    (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧ lastTermIs A at'⌝)
 
@@ -73,7 +73,7 @@ def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗
     srvApplyKVOn s E γw x₀ srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunAtOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
-    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
+    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
 /-- **What `run` needs in the mode `on`** (`isServerRun`'s, see the file header). -/
 def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)

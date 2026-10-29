@@ -244,7 +244,7 @@ theorem EtcdServer.applyAll.wp_proofOn
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w γa sa hM hRB
     Hms Hai1 Hok hEok hcap hdv haw
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, HtokR⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -, -⟩
@@ -272,8 +272,8 @@ theorem EtcdServer.applyAll.wp_proofOn
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB
     Hms Hai1 Hok hEok hdv
-    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR]
-    as ⟨Hfs, Hdv, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
+    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR HtokR]
+    as ⟨Hfs, Hdv, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
       ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   · iframe #; iframe
   iunfold srvFS at Hfs
@@ -337,7 +337,7 @@ theorem EtcdServer.applyAll.wp_proofOn
       iframe Hsrv
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr HAR
+      iframe Hai Hat Hcs Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -414,12 +414,14 @@ theorem EtcdServer.applyAll.wp_proofOn
     (try wp_auto)
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
+    ihave HtokR : srvTokRights E (ciEff γ st''.k) $$ [HtokR]
+    · rw [Hst''.2]; iexact HtokR
     iapply HΦ
     iexists γ, TM, E, b, st'', ai', at', a', t', cs'
     iframe Hsrv
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr HAR
+    iframe Hai Hat Hcs Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR
     isplitl [Hao]
     · iexact Hao
     isplitr

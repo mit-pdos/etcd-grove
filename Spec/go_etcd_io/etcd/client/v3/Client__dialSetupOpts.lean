@@ -5,6 +5,7 @@ authentication, with the client's interceptors. Lean-first (no Rocq counterpart)
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `c.dialSetupOpts(creds, dopts...)` on a client `New` builds (`retryClientOk`; its
 configuration `cfg`, read-only), with the options `ds` (`dopts`): grpc's keepalive option if
 `cfg.DialKeepAliveTime` is positive (`kaOpts`, D28), `dopts`, then transport credentials (`creds`, or insecure ones), etcd's stream interceptor and the retry
-interceptor (`etcdInterceptorOk`), in a new slice. -/
+interceptor (`etcdInterceptorOkG`: its contract once the client is ready), in a new slice. -/
 abbrev Client.dialSetupOpts.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
     (ds : List GrpcDialOpt),
@@ -36,9 +37,8 @@ abbrev Client.dialSetupOpts.spec : Prop :=
   {{ (osl : GoSlice), RET #osl; ∃ (si ic : GoFunc),
       dialOptsAt osl (kaOpts cfg ++ ds ++ [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) ∗
       ownSliceCap GoInterface osl (DFrac.own 1) ∗ ⌜etcdStreamInterceptor si⌝ ∗
-      etcdInterceptorOk ic ∗
-      -- (2026-10-21, D29) a write on a refusal-free connection, whatever the configuration
-      etcdInterceptorOkW ic }}
+      -- (the auth plan's C1, 2026-10-28) gated on the client's readiness (D29: both modes)
+      etcdInterceptorOkG c ic }}
 
 end spec
 

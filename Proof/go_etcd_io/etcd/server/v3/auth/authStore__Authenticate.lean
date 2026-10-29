@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S5, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
@@ -30,18 +31,36 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.Authenticate.wp_proof
+/-- **`Authenticate`, over the store's backend `be` and a frame `F`** (C1's A2, 2026-10-28): the
+proof of `Authenticate.spec` and `Authenticate.specTB`, which differ in the write resource's halves
+of the flag and the cache (`authWR`'s, `authWRxB`'s at their values): `Authenticate` reads neither
+(`IsAuthEnabled` reads the flag under `enabledMu`'s read lock), so they are the frame `F`. Its error
+is `nil` or one of the package's. -/
+theorem auth.authStore.Authenticate.wp_core
     (h_IsAuthEnabled : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
     (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG))
     (h_redactToken : auth.redactToken.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
-    (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
-    auth.authStore.Authenticate.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post ctx username password
-  wp_start as ⟨#Hinv, Hen, Hown, HWR, Hcs, Hctx⟩
+    (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG))
+    (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T F : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString)
+    (be : AuthBackend) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+        enabledRd st M ∗ authOwn M hs ∗
+        (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗ T ∗ F ∗
+        mvcc.csContract P f Pre Q Post ∗ authnCtx M ctx }}
+      (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
+        (Val #ctx)) (Val #username)) (Val #password))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗
+        authOwn M hs ∗ (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
+        T ∗ F ∗ (⌜err = GoInterface.nil⌝ ∨ ∃ e : AuthErr, authErrOf e err) ∗
+        authenticated M hs username resp err }} := by
+  wp_start as ⟨#Hinv, Hen, Hown, ⟨Hbe, #Hbeok⟩, HT, HF, Hcs, Hctx⟩
   icases authErrVar_of_init .authNotEnabled $$ Hpkg with ⟨%eNE, #HeNE⟩
   icases authErrVar_of_init .authFailed $$ Hpkg with ⟨%eAF, #HeAF⟩
+  ihave #HfNE := authErrOf_intro .authNotEnabled eNE $$ HeNE
+  ihave #HfAF := authErrOf_intro .authFailed eAF $$ HeAF
   simp only [AuthErr.var]
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -53,8 +72,6 @@ theorem auth.authStore.Authenticate.wp_proof
   iunfold tokenProviderOk at Htpok
   icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign⟩
   subst Htpi
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Henh, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, -, -, #HRds⟩
@@ -70,8 +87,9 @@ theorem auth.authStore.Authenticate.wp_proof
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     iframe Hen Hown
-    isplitl [Hbe HT Henh Hca]
-    · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    iframe Hbe Hbeok HT HF
+    isplitr
+    · iright; iexists .authNotEnabled; iexact HfNE
     iunfold authenticated
     ileft; ipureintro; exact ⟨by simp, rfl⟩
   (try wp_auto)
@@ -90,8 +108,9 @@ theorem auth.authStore.Authenticate.wp_proof
     isplitl [HPost]
     · iexact HPost
     iframe Hen Hown
-    isplitl [Hbe HT Henh Hca]
-    · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    iframe Hbe Hbeok HT HF
+    isplitr
+    · iright; iexists .authFailed; iexact HfAF
     iunfold authenticated
     ileft; ipureintro; exact ⟨by simp, rfl⟩
   ihave Hu' := userOut_some u sta username Hif $$ Hu
@@ -116,17 +135,21 @@ theorem auth.authStore.Authenticate.wp_proof
     (try wp_auto)
     cases err with
     | ok ei =>
+      icases Htok with (⟨%Hn, -⟩ | ⟨-, %e, #He⟩)
+      · cases Hn
       (try wp_auto)
       iapply HΦ
       isplitl [HPost]
       · iexact HPost
       iframe Hen Hown
-      isplitl [Hbe HT Henh Hca]
-      · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      iframe Hbe Hbeok HT HF
+      isplitr
+      · iright; iexists e; iexact He
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
-      icases Htok with (%Hne | #Htok)
+      icases Htok with (⟨-, #Htok⟩ | ⟨%Hne, -⟩)
+      rotate_left
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
@@ -143,8 +166,9 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh Hca]
-        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        iframe Hbe Hbeok HT HF
+        isplitr
+        · ileft; ipureintro; rfl
         iunfold authenticated
         iright
         isplitr
@@ -176,8 +200,9 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh Hca]
-        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        iframe Hbe Hbeok HT HF
+        isplitr
+        · ileft; ipureintro; rfl
         iunfold authenticated
         iright
         isplitr
@@ -205,8 +230,9 @@ theorem auth.authStore.Authenticate.wp_proof
       isplitl [HPost]
       · iexact HPost
       iframe Hen Hown
-      isplitl [Hbe HT Henh Hca]
-      · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      iframe Hbe Hbeok HT HF
+      isplitr
+      · iright; iexists .authFailed; iexact HfAF
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     (try wp_auto)
@@ -222,17 +248,21 @@ theorem auth.authStore.Authenticate.wp_proof
     (try wp_auto)
     cases err with
     | ok ei =>
+      icases Htok with (⟨%Hn, -⟩ | ⟨-, %e, #He⟩)
+      · cases Hn
       (try wp_auto)
       iapply HΦ
       isplitl [HPost]
       · iexact HPost
       iframe Hen Hown
-      isplitl [Hbe HT Henh Hca]
-      · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      iframe Hbe Hbeok HT HF
+      isplitr
+      · iright; iexists e; iexact He
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
-      icases Htok with (%Hne | #Htok)
+      icases Htok with (⟨-, #Htok⟩ | ⟨%Hne, -⟩)
+      rotate_left
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
@@ -249,8 +279,9 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh Hca]
-        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        iframe Hbe Hbeok HT HF
+        isplitr
+        · ileft; ipureintro; rfl
         iunfold authenticated
         iright
         isplitr
@@ -282,8 +313,9 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh Hca]
-        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        iframe Hbe Hbeok HT HF
+        isplitr
+        · ileft; ipureintro; rfl
         iunfold authenticated
         iright
         isplitr
@@ -294,6 +326,51 @@ theorem auth.authStore.Authenticate.wp_proof
         · ipureintro; rfl
         iframe Htok Hev
         ipureintro; exact ⟨sta, Hl, by simp [Hur.1]⟩
+
+theorem auth.authStore.Authenticate.wp_proof
+    (h_IsAuthEnabled : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
+    (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG))
+    (h_redactToken : auth.redactToken.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
+    (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
+    auth.authStore.Authenticate.spec (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post ctx username password
+  iintro %Φ ⟨#Hpkg, #Hinv, Hen, Hown, HWR, Hcs, Hctx⟩ HΦ
+  iunfold authWR at HWR
+  icases HWR with ⟨⟨%be, Hbe⟩, HT, Henh, Hca⟩
+  iapply (auth.authStore.Authenticate.wp_core h_IsAuthEnabled h_Revision h_redactToken h_String
+      h_Check h_Write st R M P f T iprop(enabledHalf st M ∗ cacheHalf st M) hs Pre Q Post ctx
+      username password be) $$ [$Hpkg $Hinv $Hen $Hown $Hbe $HT $Hcs $Hctx Henh Hca]
+  · iframe Henh Hca
+  inext
+  iintro %resp %err ⟨HPP, Hen, Hown, Hbe, HT, ⟨Henh, Hca⟩, -, Hau⟩
+  iapply HΦ
+  iframe HPP Hen Hown Hau
+  iunfold authWR; iframe HT Henh Hca; iexists be; iframe Hbe
+
+/-- **`Authenticate.specTB`** (C1's A2): `wp_core` with the halves at their values as the frame. -/
+theorem auth.authStore.Authenticate.wp_tieB
+    (h_IsAuthEnabled : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
+    (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG))
+    (h_redactToken : auth.redactToken.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
+    (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
+    auth.authStore.Authenticate.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post ctx username password b0 sc0 be
+  iintro %Φ ⟨#Hpkg, #Hinv, Hen, Hown, HWR, Hcs, Hctx⟩ HΦ
+  iunfold authWRxB at HWR
+  icases HWR with ⟨Hbe, HT, Hfl, #Hev, Hca, #Hsn⟩
+  iapply (auth.authStore.Authenticate.wp_core h_IsAuthEnabled h_Revision h_redactToken h_String
+      h_Check h_Write st R M P f T iprop(flagAt st M b0 ∗ cacheAt st M sc0) hs Pre Q Post ctx
+      username password be) $$ [$Hpkg $Hinv $Hen $Hown $Hbe $HT $Hcs $Hctx Hfl Hca]
+  · iframe Hfl Hca
+  inext
+  iintro %resp %err ⟨HPP, Hen, Hown, Hbe, HT, ⟨Hfl, Hca⟩, #He, Hau⟩
+  iapply HΦ
+  iframe HPP Hen Hown Hau He
+  iunfold authWRxB; iframe Hbe HT Hfl Hev Hca Hsn
 
 end proof
 

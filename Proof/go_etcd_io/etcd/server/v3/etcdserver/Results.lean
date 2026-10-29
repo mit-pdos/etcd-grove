@@ -1475,12 +1475,14 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
-        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) :=
+        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) (auth.authRd st R M) :=
   EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie
     (auth.authStore.UserAdd.wp_tieSure auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
       zap.Logger.wp_Info) auth_role_add_tie
-    auth_user_grant_role_tie auth_role_grant_permission_tie st R M P f T
+    auth_user_grant_role_tie auth_role_grant_permission_tie
+    (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
+      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) st R M P f T
 
 theorem apply_UserAdd_fuelX :
     EtcdGrove.apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) :=
@@ -1507,6 +1509,12 @@ theorem apply_AuthEnable_fuelX :
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuelX
     (EtcdGrove.apply.applierV3backend.AuthEnable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
+/-- **The backend applier's `Authenticate` with auth on** (C1's A2, `apply/AuthStepsX.lean`). -/
+theorem apply_Authenticate_specX :
+    EtcdGrove.apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.Authenticate.wp_specX context.wp_WithValue
+    EtcdGrove.apply.applierV3backend.wp_newHeader
+
 /-- **The backend applier's admin triples carrying the history's resource `X`** (the auth plan's
 E2v, `apply/AdminChain.lean`): the authority with its fuel and `X` (the tie, `auth.tieRes`, for
 the real store) through the five `SetUp` admin requests. -/
@@ -1518,7 +1526,7 @@ theorem apply_admin_backendX (E : EtcdGrove.apply.AEnv GF) (X : List auth.AuthSt
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W
         (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
   EtcdGrove.apply.applierAdmin_backendX apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
-    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX E X W p
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX E X W p
 
 end latestApply
 
@@ -1627,7 +1635,7 @@ theorem server_uber_auth_steps_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.ap
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestRes stl (.on γa)) :=
   srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
-    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX
     (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
     Perennial.EtcdGrove.apply.applierV3backend.wp_Apply s ua E γa st hM
 
@@ -1755,7 +1763,7 @@ theorem server_apply_entry_normal_on :
     Perennial.EtcdGrove.apply.wp_Apply apply_apply_kv_latest server_admin_entry_on
     apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
     apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
-    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX
     (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
     Perennial.EtcdGrove.apply.applierV3backend.wp_Apply
     errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64
@@ -2066,7 +2074,9 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
       zap.Logger.wp_Info)
     (auth.authStore.RoleGrantPermission.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String
-      zap.wp_ByteString zap.Logger.wp_Info) hD22
+      zap.wp_ByteString zap.Logger.wp_Info)
+    (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
+      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) hD22
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/

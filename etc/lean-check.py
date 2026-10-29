@@ -195,7 +195,11 @@ class Server:
         self.start()
 
     def start(self):
-        self.proc = subprocess.Popen(["lake", "serve"], cwd=ROOT, stdin=subprocess.PIPE,
+        # `$LAKE_OPTS` (`--packages=...` in a worktree on another Perennial pin), as
+        # `etc/tcb-report.py`: a plain `lake serve` checks out the worktree's pin in the shared
+        # `.lake/packages`
+        self.proc = subprocess.Popen(["lake", *os.environ.get("LAKE_OPTS", "").split(), "serve"],
+                                     cwd=ROOT, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=open(LOG, "ab"))
         self.dead = False
         threading.Thread(target=self.reader, daemon=True).start()

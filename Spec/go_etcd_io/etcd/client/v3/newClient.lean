@@ -5,6 +5,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -28,13 +29,16 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 connected to `eps`, the retry interceptor installed, its `KV` and `Watcher` over the connection),
 or an error (the dial's) and `nil`. -/
 abbrev newClient.spec : Prop :=
-  ∀ (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF),
+  ∀ (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+    (P : GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      p ↦□ cfg ∗ clientCfgOk cfg eps ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+      p ↦□ cfg ∗ clientCfgOk cfg eps ∗
+      -- (the auth plan's C1, 2026-10-28) its credentials' tokens
+      clientAuthPre cfg eps P ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec

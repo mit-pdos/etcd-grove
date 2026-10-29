@@ -75,12 +75,15 @@ theorem adminKindOk_nonKV' (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
   split at h <;> simp_all [apply.isKVKind]
 
 /-- **What an admin proposal needs in the mode `on`** (the auth plan's E3m; `KVAuthShape.lean`): an
-admitted admin request (`adminKindOk`) that needs the admin permission, whose `UserAdd` (if any)
-has a password choice that cannot fail, from a start whose users' roles are sorted; and (E3o) with
-no read field set (`noSideEffect`: `plainEntryOn`'s). (Until E3z it also excluded
-`RoleGrantPermission`, determinate then only at a role with no permission.) -/
+admitted admin request (`adminKindOk`: one needing the admin permission, or (C1's A3) an
+`Authenticate`, which needs none and leaves the model's state), whose `UserAdd` (if any) has a
+password choice that cannot fail, from a start whose users' roles are sorted; and (E3o) with no read
+field set (`noSideEffect`: `plainEntryOn`'s). (Until E3z it also excluded `RoleGrantPermission`,
+determinate then only at a role with no permission; until C1's A3 it required the admin
+permission, excluding `Authenticate`. For an `Authenticate` the name is wider than the request:
+it needs no admin permission, and its `adminPropRes` holds trivially, the model's state kept.) -/
 def adminPropOk (st₀ : auth.AuthState) (rq : apply.IRRModel) : Prop :=
-  apply.adminKindOk rq ∧ apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = true ∧
+  apply.adminKindOk rq ∧ apply.noSideEffect rq = false ∧
     (∀ m, rq.authUserAdd = some m → m.pwSure) ∧ rolesSorted st₀
 
 /-- **The committer's obligation for an admin entry** (`commitOkOn`): admitted, and determinate
@@ -90,7 +93,7 @@ theorem commitOkOn_admin (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState
     (L : List EntryModel) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
     (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (ha : adminPropOk st₀ rq) :
     commitOkOn c₀ ch (st₀, log₀) L e := by
-  obtain ⟨hk, hns, -, hpw, hsort⟩ := ha
+  obtain ⟨hk, hns, hpw, hsort⟩ := ha
   refine ⟨fun _ _ rq' h => ?_, fun _ _ rq' h => ?_⟩
   · rw [hed, hdec] at h; cases h; exact Or.inr ⟨hk, hns⟩
   · rw [hed, hdec] at h
@@ -370,7 +373,6 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · -- an admin request: the KV state kept, the step determinate at the commit
     obtain ⟨hadm, -, hQr⟩ := Had
     subst hQr
-    have hna := hadm.2.2.1
     imodintro
     unfold srvPropAu1
     iauintro
@@ -398,8 +400,15 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hidxe : uint.Z γk.c0 < uint.Z e.index := by
         have := Hok.2.2.2.1
         omega
-      have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
-        kvModelOn_snoc_admin γk st₀ L e rq het hdata (by rw [hed]; exact hdec) hidxe hna
+      have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L := by
+        cases hna : apply.needAdminPermission rq
+        · -- (C1's A3) an `Authenticate`: no admin step, no write
+          have hw : ¬ writeKind (apply.dispatchKind rq) := by
+            have hk := hadm.1
+            unfold apply.adminKindOk at hk
+            split at hk <;> simp_all [writeKind]
+          exact kvModelOn_snoc_nonwrite γk st₀ L e rq (by rw [hed]; exact hdec) hna hw
+        · exact kvModelOn_snoc_admin γk st₀ L e rq het hdata (by rw [hed]; exact hdec) hidxe hna
       have hshe : entryShapeOn e :=
         ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
           fun h => absurd het h⟩
@@ -417,8 +426,8 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       iintro !>
       iunfold adminPropRes
       ipureintro
-      have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2.2
-      exact ⟨hs, authDet_of_sorted rq _ hs hadm.2.2.2.1⟩
+      have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2
+      exact ⟨hs, authDet_of_sorted rq _ hs hadm.2.2.1⟩
 
 /-- **A result predicate of the mode-`on` model of the log is one the server's two logs agree on**
 (2026-10-27; `kv_qinv`'s): the mode-`on` KV invariant keeps the start's consistent index at most
