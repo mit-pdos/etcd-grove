@@ -261,26 +261,17 @@ theorem keyReadSnap_congrDel (View : Qp → Bucket → IProp GF) (RT NC : IProp 
   iexists m', Rd, Tok
   iframe Htok Hl Hth'
 
-/-- A batch transaction over `Del` is one over any `Del'` equivalent to it up to `◇`. -/
+/-- A batch transaction over `Del` is one over any `Del'` that each `Del k` gives up to `◇`, and that
+gives `Del k` back where the compaction deletes (`Cmp`; review round 17). -/
 theorem batchTxSpecG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del Del' : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
     (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
     (MW : IProp GF) :
     batchTxSpecG (GF := GF) bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW ∗
-      □ (∀ k, Del k ∗-∗ ◇ Del' k) ⊢
+      □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     batchTxSpecG bt View RT WT PutOk Del' W Dep Cmp Locked P HF Rb MW := by
-  iintro ⟨#H, #Hd⟩
-  ihave #Hf : (□ (∀ k, Del k -∗ ◇ Del' k) : IProp GF) $$ []
-  · iintro !> %k Hk
-    icases Hd $$ %k with ⟨#H1, -⟩
-    iapply H1 $$ Hk
-  ihave #Hb : (□ (∀ k, Del' k -∗ Del k) : IProp GF) $$ []
-  · iintro !> %k Hk
-    icases Hd $$ %k with ⟨-, #H2⟩
-    iapply H2
-    imodintro
-    iexact Hk
+  iintro ⟨#H, #Hf, #Hb⟩
   iunfold batchTxSpecG at H
   iunfold batchTxSpecG
   icases H with ⟨#H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9⟩
@@ -321,7 +312,8 @@ theorem batchTxSpecG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IPr
   iintro !> %key %k %n %Ψ !> ⟨HK, HU, HDk, #HRd⟩ HΨ
   iapply Hdel $$ %key %k %n [HK HU HDk] HΨ
   iframe HK HU HRd
-  iapply Hb $$ HDk
+  iapply Hb $$ [] HDk
+  ipureintro; exact hc
 
 /-- `batchTxSpecG_congrDel` for the batch transaction with its init clauses. -/
 theorem isBatchTxG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
@@ -330,24 +322,23 @@ theorem isBatchTxG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IProp
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
     (MW : IProp GF) :
     isBatchTxG (GF := GF) bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW ∗
-      □ (∀ k, Del k ∗-∗ ◇ Del' k) ⊢
+      □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     isBatchTxG bt View RT WT PutOk Del' W Wi Dep Cmp P HF Rb Bt MW := by
-  iintro ⟨#H, #Hd⟩
+  iintro ⟨#H, #Hf, #Hb⟩
   iunfold isBatchTxG at H
   iunfold isBatchTxG
   icases H with ⟨%Locked, %LockedO, #Hs, #Hi, #Hbt⟩
   iexists Locked, LockedO
   iframe Hi Hbt
   iapply batchTxSpecG_congrDel bt View RT WT PutOk Del Del' W Dep Cmp Locked P HF Rb MW
-  isplitl
-  · iexact Hs
-  iintro !>
-  iexact Hd
+  iframe Hs Hf Hb
 
 /-- **The store's deletable keys through the backend's registration** (review round 1's F7; the
-Draft's `isKeyBackendG_congrDel.stmt`): a contract over `Del` is one over any `Del'` equivalent to
-it up to `◇` (the backend's registration agrees with the store's predicate under `▷`, and the
-store's `delKey` is timeless). -/
+Draft's `isKeyBackendG_congrDel.stmt`): a contract over `Del` is one over any `Del'` that each
+`Del k` gives up to `◇` (what readers are told of a missing key), and that gives `Del k` back where
+the compaction deletes (`Cmp`: the job's delete takes `Del'`). Review round 17's repair: not an
+equivalence, whose backward direction `◇ Del' k ⊢ Del k` the backend's registration (a saved
+predicate, `bkDel`) cannot meet against the store's `delKey`. -/
 theorem isKeyBackendG_congrDel (b : GoInterface) (View : Qp → Bucket → IProp GF)
     (RT WT NC : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del Del' : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
@@ -355,13 +346,9 @@ theorem isKeyBackendG_congrDel (b : GoInterface) (View : Qp → Bucket → IProp
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
     (SR SRh MW : IProp GF) :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW ∗
-      □ (∀ k, Del k ∗-∗ ◇ Del' k) ⊢
+      □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp P HF Req Rb Bt SR SRh MW := by
-  iintro ⟨#H, #Hd⟩
-  ihave #Hf : (□ (∀ k, Del k -∗ ◇ Del' k) : IProp GF) $$ []
-  · iintro !> %k Hk
-    icases Hd $$ %k with ⟨#H1, -⟩
-    iapply H1 $$ Hk
+  iintro ⟨#H, #Hf, #Hb⟩
   iunfold isKeyBackendG at H
   iunfold isKeyBackendG
   icases H with ⟨%bi, %Hbi, #Hcrt, #Hrt, #Hbt, #Hfc, #Hsz, #Hszu, #Hcmp⟩
@@ -400,13 +387,10 @@ theorem isKeyBackendG_congrDel (b : GoInterface) (View : Qp → Bucket → IProp
   iintro !> %Φ !> Hpre HΦ
   iapply Hbt $$ Hpre
   inext
-  iintro %bt #Hb
+  iintro %bt #Hb'
   iapply HΦ
   iapply isBatchTxG_congrDel bt View RT WT PutOk Del Del' W Wi Dep Cmp P HF Rb Bt MW
-  isplitl
-  · iexact Hb
-  iintro !>
-  iexact Hd
+  iframe Hb' Hf Hb
 
 end laws
 

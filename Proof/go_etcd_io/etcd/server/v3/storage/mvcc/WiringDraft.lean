@@ -27,6 +27,7 @@ as `Prop`s, and nothing here is assumed.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 
@@ -283,8 +284,61 @@ def isKeyBackendG_congrDel.stmt : Prop :=
     (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
     (Bt : GoInterfaceOk → IProp GF) (SR SRh MW : IProp GF),
     isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW ∗
-      □ (∀ k, Del k ∗-∗ ◇ Del' k) ⊢
+      □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp P HF Req Rb Bt SR SRh MW
+
+instance delKeyI_timeless (γi : IdxNames) (k : GoString) : Timeless (delKeyI (GF := GF) γi k) := by
+  unfold delKeyI idxCert crevLb; infer_instance
+
+open Iris.ProofMode in
+/-- **The glue for `isKeyBackendG_congrDel` at a compacting store** (review round 17's repair,
+verified here; proved): the backend's registration fixed to the store's deletable keys
+(`storeDlReg γB γ.idx`) gives the law's two premises from the bridge's `bkDel γB` to the store's
+`delKey γ`: a registered key is the store's up to `◇` (the saved predicate agrees under `▷`;
+`delKey` is timeless), and a key the store may delete is registered (no `◇`: `dlIs` is built from
+the registration itself). The old equivalence's backward direction, `◇ delKey ⊢ bkDel`, is not
+provable: `dlIs` is persistent and has no `◇` to absorb. -/
+theorem storeDlReg_congr (γB : backend.BNames) (γ : StoreNames) (Cmp : Prop) :
+    storeDlReg (GF := GF) γB γ.idx ⊢
+      □ (∀ k, bkDel γB k -∗ ◇ delKey γ k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, delKey γ k -∗ bkDel γB k) := by
+  unfold storeDlReg
+  iintro #Hr
+  isplitl
+  · iintro !> %k Hk
+    iunfold bkDel at Hk
+    iunfold backend.dlIs at Hk
+    icases Hk with ⟨%Φ, #HΦ, #Hv⟩
+    iunfold backend.dlReg at HΦ
+    ihave #Hr' := Hr
+    iunfold backend.dlReg at Hr'
+    icases HΦ with ⟨#Hs1, -⟩
+    icases Hr' with ⟨#Hs2, -⟩
+    ihave Heq := saved_pred_agree γB.dlg _ _ Φ _ (go!"key", k) $$ Hs1 Hs2
+    ihave Hl : ▷ (⌜(go!"key", k).1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+        delKeyI γ.idx (go!"key", k).2) $$ [Heq]
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨H1, -⟩
+      iapply H1
+      iexact Hv
+    ihave Hl' : ◇ (⌜(go!"key", k).1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+        delKeyI γ.idx (go!"key", k).2) $$ [Hl]
+    · iapply Timeless.timeless
+      iexact Hl
+    imod Hl' with ⟨-, Hd⟩
+    imodintro
+    rw [delKey_eq_delKeyI]
+    iexact Hd
+  · iintro !> %- %k #Hk
+    iunfold bkDel
+    iunfold backend.dlIs
+    iexists _
+    iframe Hr
+    iintro !>
+    isplitr
+    · ipureintro; rfl
+    rw [← delKey_eq_delKeyI]
+    iexact Hk
 
 end draft
 

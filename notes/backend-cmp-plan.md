@@ -1727,3 +1727,51 @@ every case (`store.Compact`'s from the apply thread's `writerOwn`; no server cal
 token left as `storeRT γ`, so `checkPrevCompactionCompleted`'s proof no longer depends on it being
 `True`. Exported: `mvcc_store_Compact`'s text is unchanged (it is `store.Compact.spec`); its meaning
 gains the token.
+
+**Core stage: what remains, and why it is one piece** (decided by the agent, 2026-10-29). The rest
+cannot be split into parts that each build and mean something:
+- **The job's tokens.** `store__scheduleCompaction`'s job (765 lines) and `updateCompactRev` (341)
+  reach the backend through `isKeyBackendG_cmp`, which turns every token into `True`. Over a real
+  backend the job needs:
+  - its reader token, for each batch's lock;
+  - the safe-range slot, for `LockForSafeRangeDelete`;
+  - a write-back token per `Unlock` and per `ForceCommit`, from the supply and its receipts;
+  - the write right, for the `Meta` put of `finishedCompactRev`, through `mwSwapW`.
+  `updateCompactRev`'s `SetScheduledCompact` session needs the write-back tokens and the write right
+  too.
+- **The resources must exist first:**
+  - the job's budgets in `compactTok` (`compactJobResM`, `nJobRd` out of `poolBody`);
+  - the write right's home (`mwKeyW`/`mwSlotW` in `writerRes`; `mwInvW`/`physCmpW` in `physOk`;
+    `PhysNames`/`StoreNames.mk`), and `store.restore` handing back the half;
+  - the write-back supply in `physOk`;
+  - `NewStore`, `New` and `newWatchableStore` taking them.
+- **The flip comes last.** Only then can `kbCmp (some d) := d.cm` replace `kb = none`, with a general
+  contract lemma in place of `isKeyBackendG_cmp`, and the `cm = true` store's contract from
+  `isKeyBackendG_of_backendC` at `Cmp := True` and `isKeyBackendG_congrDel` (`delKey` → `bkDel`).
+- **Order for the next round:**
+  1. The resources' definitions and `NewStore`'s statement, with the store's proofs carrying them.
+  2. `updateCompactRev` and `Set*Compact` over a general contract.
+  3. The job.
+  4. The flip and the `cm = true` store.
+  5. D22's side (stage 5).
+
+### Review round 17 (stages 2-4) and its repair (2026-10-29)
+
+Round 17 (`notes/spec-first-study/backend-review-17.md`) on stages Q5-2, R4-4 and (iii). Its one
+first-tier finding is repaired, as decided by the agent:
+- **The finding.** `isKeyBackendG_congrDel`'s premise `□ (∀ k, Del k ∗-∗ ◇ Del' k)` cannot be met
+  from the bridge's `bkDel γB` to the store's `delKey γ`. Its backward direction,
+  `◇ delKey ⊢ bkDel`, is unprovable: `dlIs` is persistent and has no `◇` to absorb.
+- **The repair.** The premise becomes `□ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k)`,
+  and the same for `batchTxSpecG_congrDel` and `isBatchTxG_congrDel`. It is strictly stronger: only
+  the compaction's delete uses the backward direction, under `Cmp`. `WiringDraft`'s `.stmt` follows.
+- **Verified by the glue.** `storeDlReg_congr` (in `WiringDraft`, proved) gives both premises from
+  `storeDlReg γB γ.idx`:
+  - forward: saved-predicate agreement under `▷`, with `delKey` timeless;
+  - backward: `dlIs` built from the registration itself.
+
+  This is the third round on this statement, so there is no new review round for it.
+- **Docs.** D1: `_of_backendC`'s docstring now says `Cmp` is a parameter; `kbCmp`'s and
+  `InvCompact`'s comments are updated. D2: `kbMW`'s docstring now treats `viewFk` as existing.
+- **M1, a note for later:** a future `Defrag` proof needs `safeRangeDeleteMu`'s guard
+  (`isRWMutexGuard`) in `isBackend`, or a slot. `newBackend` keeps only one reader's slot today.

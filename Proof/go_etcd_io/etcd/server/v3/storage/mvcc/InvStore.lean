@@ -498,11 +498,11 @@ def kbNoCmp (kb : Option KBReal) (γb : GName) : IProp GF :=
 /-- **The right to write the compaction keys in the instance `kb`** (the contract's `MW`; the
 backend-compaction stage, review round 8, R8-2): for the real backend, the client's half of its
 compaction-key flag, at any value (`backend.fkOwn`: a put of a compaction key needs it, `fkPut`);
-for mvcc's assumed backend, nothing (decided by the agent: an opaque `viewFk` mirroring the real
-backend, `viewNoCmp γb := viewFk γb 0`, would make that instance satisfiable by an honest creator,
-but it needs the store to hold the right for its compaction, the wiring step's decision; until
-then the assumed instance's `viewNoCmp` has no supplier, so results over it that take `kbNoCmp`
-are vacuous, not wrong). The cost (review round 9, R9-2): the compaction's specs (`store.Compact`,
+for mvcc's assumed backend, still nothing. Its flag `viewFk` exists (stage (iii), 2026-10-29:
+`viewNoCmp γb := viewFk γb 0`), but the assumed instance's right becomes `∃ f, viewFk γb f` only at
+the wiring's core stage, once the store holds the right for its compaction (the write right's home,
+`mwSwapW`); until then results over the assumed instance that take `kbNoCmp` are vacuous, not
+wrong (`viewFk` has no supplier). The cost (review round 9, R9-2): the compaction's specs (`store.Compact`,
 `updateCompactRev`, `scheduleCompaction`) need `storeCmp`, i.e. mvcc's assumed backend, and every
 such store comes from `NewStore`/`New`/`newWatchableStore`, which take `viewNoCmp`: the compaction's
 results hold of no backend until the wiring step, and do not count as verified until then. -/
@@ -1676,9 +1676,9 @@ theorem putMax_ge (γ : StoreNames) : 2 ^ 56 ≤ putMax γ := by
 `Cmp`): mvcc's assumed backend does; the real backend does not yet (its model forbids deleting
 from the safe-range `Key` bucket, and an `Unlock` that changes what readers see needs the
 clients' whole view, which the compaction job, under the batch lock alone, does not hold;
-`notes/decisions.md`, "The compaction over the real backend"). The backend-compaction stage
-(`notes/backend-cmp-plan.md`, decision O5) makes it `True` once the new bridge
-(`isKeyBackendG_of_backendC`) is proved; until then the stores keep the old one. -/
+`notes/decisions.md`, "The compaction over the real backend"). The new bridge
+(`isKeyBackendG_of_backendC`) is proved; the wiring's core stage (question 5, Q5-1) makes it the
+instance's mode, `kbCmp (some d) := d.cm`. Until then the stores keep the old bridge. -/
 def kbCmp (kb : Option KBReal) : Prop := kb = none
 
 /-- The store's backend supports compaction (`kbCmp`). -/

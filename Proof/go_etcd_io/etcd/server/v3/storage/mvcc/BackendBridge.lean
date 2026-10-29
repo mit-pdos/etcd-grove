@@ -3031,7 +3031,10 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
   iapply HΦ'; itrivial
 
 /-- **The bridge with the compaction** (the backend-compaction stage, `notes/backend-cmp-plan.md`
-section 2; Draft, 2026-10-28): `isKeyBackendG_of_backend` with `Cmp` true, the deletable keys those
+section 2; Draft, 2026-10-28): the bridge at the compaction condition `Cmp` (a parameter since stage
+R4-4, 2026-10-29: `isKeyBackendG_of_backend` is its instance at `Cmp := False`, weakened under
+`dlNoDel`; its compaction-only premises, the three callee specs, `hHK`/`hFV` and `fkV γ true`, are
+guarded by `Cmp`), the deletable keys those
 registered at the backend's names (`bkDel`, decision O1) and the safe-range slot
 (`srSlot`/`srHeld`, 3.4). Its non-compaction clauses are the old bridge's proofs, over the same
 `bkLocked` (review round 2, R2-3: the compacting range ends its session in a token of its own, so
@@ -3040,7 +3043,8 @@ clauses are the stage's new cases: the compacting range (`bt_rangeC`, its token 
 `Meta` put (`bt_metaPut`) and the reads of the compaction keys (`rt_metaWf`), the latter two needing
 `hFV` (the backend's value condition `P.FV` is `metaRevVal`) and the bit `fkV γ true` (the
 backend's compaction keys well formed: `fkCl`'s, `mvcc.fkV_of_fkCl`). Proved (no `sorry`, 2026-10-29);
-the stores switch to it at the wiring step (`kbCmp := True`, O5). -/
+a compacting store (`KBReal.cm`, Q5-1) uses it at `Cmp := True` at the wiring step's core stage
+(`kbCmp (some d) := d.cm`). -/
 theorem isKeyBackendG_of_backendC
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))

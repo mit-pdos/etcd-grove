@@ -180,8 +180,8 @@ instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :
 `notes/backend-cmp-plan.md` 3.4; Draft, 2026-10-28): `compactJobPre` and the job's budgets
 (`compactJobRes`: a reader's token, the safe-range slot, the write-back supply), not persistent:
 each batch's `LockOutsideApply` lends the reader's token, its `Unlock` and the `ForceCommit` between
-batches spend write-back tokens from the supply. The job's statement moves to it when the stores
-switch to the new bridge (`isKeyBackendG_of_backendC`); mvcc's assumed backend's budgets are
+batches spend write-back tokens from the supply. The job's statement moves to it at the wiring's
+core stage, for a compacting store (`KBReal.cm`) over the new bridge (`isKeyBackendG_of_backendC`); mvcc's assumed backend's budgets are
 `True`, so `compactJobPre` is its instance (`compactJobPreR_none`). -/
 def compactJobPreR (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(compactJobPre s γ rev ∗ compactJobRes γ.kb)
