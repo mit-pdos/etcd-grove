@@ -638,3 +638,22 @@ backend's registration from that backend's `dlInit` (a proof edit; no D22 statem
   it is worth having only once the new bridge's cases are proved (deriving the old bridge from the new
   one before that would put the new bridge's `sorry`s under every server result), and its proof walks
   `keyReadSnap`, `isBatchTxG` and `batchTxSpecG`'s clauses (about 100 lines).
+- **R4-2 (group 2), not done; what it needs (measured).** The batch lock's quarter of `γ.view` is the
+  physical view in `batchGhostAt` (`InvBackend.lean:619`), `batchGhostW` (`InvBatch.lean:350`), the
+  commit lemmas (`InvCommit.lean:39,65,89,110,128`), the allocation (`NewAlloc.lean:265,310`),
+  `Unlock`'s write-backs (`batchTxBuffered__Unlock.lean:157-192`) and the read side's closes
+  (`ReadSide.lean:351-353`, `rtRes_wb_close`; `:560-567`, `rtRes_cm_close`'s window). The cheapest
+  form (decided by the agent while the user was away, not yet written): `batchGhostAt`'s quarter an
+  existential `viewQ γ ¼ (vData P (st.C, st.R)) L`, so that `batchLocked`'s 97 uses keep their
+  statements and ghost agreement gives the readers' and the batch's quarters the same `L`; a put
+  session's `Unlock` (its second branch, holding the clients' whole view) sets `L' := relog L st`,
+  `(relog L st).lookup nk = (sData P st.S).lookup nk <|> L.lookup nk` (the session's writes over the
+  logical view: compacted keys stay out of mvcc's bucket), thin of the new physical view; a deleting
+  session keeps `L` (`thinV_rebase`, now without its hypothesis). **A user question (D22)**: the same
+  quarter is D22's `viewAt γ vd` (`InvSnapshot.lean:129`, "the batch lock's quarter of the readers'
+  view"), used by D22's snapshot invariants; moving it onto `L` changes `viewAt` non-additively
+  (`viewAt γ vd` would hold `L` with `vd` thin of it, or D22's users would need `dlNoDel` to keep it
+  exact). The options: (a) `viewAt` over `L` with `thinV`, D22's users exact through `dlNoDel` (their
+  backends never compact); (b) a separate quarter for D22 (another split of `γ.view`). Recommended
+  (a). Until decided, `batchTxBuffered.Unlock.specC` and `UnsafeDelete.specC` stay beside their
+  `spec`s (folding them needs this).
