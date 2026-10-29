@@ -25458,3 +25458,42 @@ left `RawNode.Step.spec`, `netP`, `wp_rn_raft_Step_net` and `stepIn_intro`.
 Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients that break (not built, by
 the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
 `stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
+
+## Track B: storage and confchange for clients (2026-10-29 · `notes/raft-unified-plan.md`, branch `raft-unified-storage`)
+
+**Confchange/tracker for clients (U11's §4b).** `ConfchangeApi.lean` (importable): sealed `ownTrackerM`/
+`ownCfgPairM`, the assembly law as a record update, a size law, the apiSpecs of `MakeProgressTracker`,
+`Restore`, `Changer.{Simple,EnterJoint,LeaveJoint}`, derived from the internal specs and linked
+(`RaftLink.*_api`). `Membership.applyChange` is not redefined as Go's `confchange` (the design's H2):
+confAt/ConfDecision rest on it with its `2^62` cut; a sealed `Membership.applyGo` (Go's) with
+`applyChange_eq_applyGo` instead, the Changer specs over it. `Restore` needs `Membership.Restorable`
+(the design's premise was false: `simple {0}`, a staged learner that is a voter); `confAt_restorable`
+gives it from raft's `confAt`. All approved by the coordinator.
+
+**The storage hold (U8), the design.** The frozen design's `storHoldMark` (K1) is a field of the owner's
+view, `StorState.hd`, not a client-held fragment: raft's goroutine may read the storage's snapshot
+(`Storage.Snapshot`, a leader's `maybeSendSnapshot`) while the client handles a `Ready`, so a snapshot
+the client takes mid-`Ready` (above the floor) must be one raft's view can bound by its commit index
+(`SnapOk`): `HSnapshot`'s application-snapshot disjunct moves from `≤ σ.fl` to `≤ σ.hd` (its term over
+`storApp σ σ.pend`). The storage keeps every entry up to the hold (`FloorKept` over `hd`; an append
+starts above it, `HdAbove`; `ApplySnapshot` at or above it), so `storTermsAt` (minted within the hold)
+stays persistent; `storTermsPre` (the owner's word before the append) and the receipt law
+`storTermsAt_receipt` give the client the terms after appending, before `Advance`. `storHoldsLb` is a
+definition over `storTermsAt` (mono for free), not a new `StorageModel` field. Approved by the
+coordinator, with items 1-7 of the plan's "Spec changes during track B".
+
+**The raise and the hand-out window (open).** Raising the hold in `Hhandout` (to the commit index,
+covering the batch's committed entries) breaks raft's natural invariant `hd < offsetInProgress` in the
+window between the hand-out (`ownRawNodeReady_handout`, at `readyc <- rd`) and `acceptUnstable`
+(`logHanded` keeps `inprogress`), and the absorb cannot exclude that window. The way out found: raise the
+hold **after** `acceptApplying` (in `acceptReady`, to the new `applying`), with the batch pending, so that
+raft's invariant is `fl ≤ hd ≤ applying` (the floor's, which `applying < inprogress` and `SipOk` already
+serve). That needs the memory storage to accept raise-only states in `hist` while a batch is pending: the
+owner holds all of `hist`'s authority, the append token a lower bound of `hist` at `H ++ [abs]` (the
+pending state appended), `Append` moving `done` there, raises after it `DataEq` (`RaiseOnly`), which
+`memView`'s idle branch already admits; `Hhandout` raises nothing (its `HdAbove` from `hd ≤ applying <
+inprogress`). The WIP on branch `raft-unified-storage-wip` raised in `Hhandout` (the first attempt);
+`InvStorage`, `InvMemstorage` (FloorKept/HistOk over `hd`, `memHdLb` in `memCutInv`, `memHdLb_view`,
+`hdLb_pending`, `memTermsPre`, `memTermsAt_receipt`), `MemoryStorage.Snapshot` and `InvRaftlog`
+(`HdOk`, `raise_floor` raising `hd`) check there; `InvReadylog`, `MemoryStorage.{Append,ApplySnapshot,
+CreateSnapshot}`, the node chain (`storTermsPre` minted at the `Ready`, `readyData`, `nodeDriver`) remain.

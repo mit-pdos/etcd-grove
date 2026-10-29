@@ -469,6 +469,14 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, track B: storage (U8) and confchange for clients (2026-10-29, branch `raft-unified-storage`)
+
+Done and pushed: `MemoryStorage.SetHardState` importable; the `confchange`/`tracker` client specs (the U11
+section below, from branch `raft-unified-cc`). In progress: U8's storage hold (`StorState.hd`; design and the
+open hand-out window in `notes/decisions.md`, "Track B"; spec changes in `notes/raft-unified-plan.md`,
+"Spec changes during track B"), WIP on branch `raft-unified-storage-wip` (does not build past `InvRaftlog`).
+Not started: the storage-wrapper law.
+
 ## Raft unified, stage U11: `confchange`/`tracker` for clients (2026-10-29, branch `raft-unified-cc`)
 
 The importable specs a client needs to validate a change the way raft does (kvreconf's `validConf`) are
