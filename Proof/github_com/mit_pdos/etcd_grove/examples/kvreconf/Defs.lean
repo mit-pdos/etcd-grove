@@ -106,6 +106,11 @@ structure RNames where
   rmint : GName
   /-- the operations' slots, `data ↦ (γq, γk)` -/
   ops : GName
+  /-- the cluster's next replica id, a lower bound (`monoNat`: authority in the cluster's lock) -/
+  nid : GName
+  /-- whether the replicas' stop tokens were taken (`ghostVar` of `Bool`, halves: the cluster's
+  lock's and the stopper's, `DefsCluster`) -/
+  stp : GName
 
 
 section mint
