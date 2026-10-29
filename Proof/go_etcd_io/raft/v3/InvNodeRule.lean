@@ -329,11 +329,57 @@ def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
     snapMade γ ⟨l.length, m, sv.Data'⟩ ∗
     ⌜l.length = uint.nat sv.Metadata'.Index' ∧ 0 < l.length ∧
       Option.map LogEntry.term l.getLast? = some sv.Metadata'.Term' ∧
-      confStateIs sv.Metadata'.ConfState' m⌝)
+      confStateIs sv.Metadata'.ConfState' m ∧
+      -- (U8 v2, 2026-10-29) the bounds raft's certificate needs (`SnapListsOk`), which nothing
+      -- above gives (a joint configuration may list `2^62 + 2` ids)
+      l.length < 2 ^ 61 ∧
+      (sv.Metadata'.ConfState'.Voters'.length + sv.Metadata'.ConfState'.Learners'.length +
+        sv.Metadata'.ConfState'.VotersOutgoing'.length +
+        sv.Metadata'.ConfState'.LearnersNext'.length : Int) ≤ 2 ^ 62⌝)
 
 instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
     Persistent (snapshotValid (GF := GF) γ sv) := by
   unfold snapshotValid; infer_instance
+
+/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
+
+/-- The compaction's justification (`isStorageP`'s `Bnd`): an applied lower bound or a snapshot
+handed out at or past `c`. -/
+def storBnd (γ : Cluster) (id : w64) (c : Nat) : IProp GF :=
+  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k ∨ snapGiven γ id k))
+
+/-- A stored snapshot's bound (`isStorageP`'s `DL`): the committed log delivered to the node `id`
+reaches its index. -/
+def storDL (γ : Cluster) (id : w64) (i : Nat) : IProp GF :=
+  iprop(∃ (n : Loc) (N : Namespace) (l : List LogEntry), isNode n γ N id ∗ deliveredLogLb n γ N l ∗
+    ⌜i ≤ l.length⌝)
+
+/-- **The storage contract of node `id`'s storage `st`** (persistent; the frozen design's §2,
+`isStorageP` at the cluster's pieces). -/
+def isStorage (γ : Cluster) (id : w64) (st : Storage) : IProp GF :=
+  isStorageP (snapshotValid γ) (storBnd γ id) (storDL γ id) st
+
+/-- (U8 v2, 2026-10-29) **A fresh storage `st` to boot node `id` from** (the boot bundle; approved
+as decision (B)): a frame `R` of the client's, with `FirstIndex` answering `1` and `LastIndex` `0`
+over it, and `InitialState` answering the hard state `hs` and the conf state `csm`, after which the
+client makes the storage contract (`isStorage`) with index `0` a frozen entry of term `0`, the last
+index `0`. `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`,
+and a `MemoryStorage`'s `InitialState` reads its snapshot without the lock
+(`issues/raft-memorystorage-initialstate-unlocked.md`), so its invariant (`memStorInv`) can only be
+made once `InitialState` returned: the contract comes in `InitialState`'s post. A `MemoryStorage`'s
+bundle is a law (`memStorage_bootStorage`). -/
+def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM) :
+    IProp GF :=
+  iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
+    (□ {{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
+       {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+    (□ {{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
+       {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+    (□ {{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
+       {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
+          hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
+          |={⊤}=> isStorage γ id st ∗ ∃ e0 : EntryM, ⌜e0.Term' = W64 0⌝ ∗
+            storLog st 0 DFrac.discard [e0] ∗ storEnd st 1 }}))
 
 end api
 

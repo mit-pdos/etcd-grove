@@ -433,61 +433,8 @@ theorem snapshotCert_static (γ : Cluster) (N : Namespace) (vs : List w64)
   unfold isStaticCluster snapshotCert isCommittedLogLb
   exact ApiImpl.snapshotCert_static_impl γ N vs snapOk l i d Hok Hl Hso
 
-/-- **A `MemoryStorage`'s certificate registry tied to the cluster** (persistent; today
-`memCertInv`): its entries are certified snapshots. The client allocates it from
-`NewMemoryStorage`'s `memCertAuth`. -/
-@[no_expose] def storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF :=
-  ApiImpl.storageCertInv γ N γs
-
-instance storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) :
-    Persistent (storageCertInv (GF := GF) γ N γs) := by
-  unfold storageCertInv; exact ApiImpl.storageCertInv_persistent γ N γs
-
-theorem storageCertInv_alloc (γ : Cluster) (N : Namespace) (γs : MemStorNames) (E : CoPset) :
-    ⊢ memCertAuth (GF := GF) γs ={E}=∗ storageCertInv γ N γs := by
-  unfold storageCertInv; exact ApiImpl.storageCertInv_alloc_impl γ N γs E
-
-/-- A registered snapshot is certified. -/
-theorem storageCert_read (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) :
-    ↑N ⊆ E →
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ memStorCert γs k ={E}=∗ snapshotCert γ N k := by
-  intro hE
-  unfold storageCertInv snapshotCert; exact ApiImpl.storageCert_read_impl γ N γs k E hE
-
-/-- A certified snapshot can be registered. -/
-theorem storageCert_register (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) :
-    ↑N ⊆ E →
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ snapshotCert γ N k ={E}=∗ memStorCert γs k := by
-  intro hE
-  unfold storageCertInv snapshotCert; exact ApiImpl.storageCert_register_impl γ N γs k E hE
-
-/-- ... at any term (what `MemoryStorage.CreateSnapshot` asks). -/
-theorem storageCert_registerAny (γ : Cluster) (N : Namespace) (γs : MemStorNames) (i : w64)
-    (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) :
-    ↑N ⊆ E →
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ (□ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
-  intro hE
-  unfold storageCertInv snapshotCert
-  exact ApiImpl.storageCert_registerAny_impl γ N γs i cl al d E hE
-
-/-- **The storage's certificates are the cluster's** (persistent; today `certLink`, `storCertOk`):
-what `StartNode` and `RestartNode` take of their storage. -/
-@[no_expose] def storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF :=
-  ApiImpl.storageCertLink γ N st
-
-instance storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) :
-    Persistent (storageCertLink (GF := GF) γ N st) := by
-  unfold storageCertLink; exact ApiImpl.storageCertLink_persistent γ N st
-
-theorem storageCertLink_intro (γ : Cluster) (N : Namespace) (st : Storage) :
-    (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗
-        snapshotCert (GF := GF) γ N k) ∗
-      (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢
-      storageCertLink γ N st := by
-  unfold storageCertLink snapshotCert; exact ApiImpl.storageCertLink_intro_impl γ N st
+-- (U8 v2, 2026-10-29) `storageCertInv`, `storageCertLink` (the old contract's certificate registry
+-- and its link) removed: a stored snapshot is valid (`snapshotValid`, `isStorage`).
 
 /-! ## Messages and the term budget (open: carried over) -/
 
@@ -558,15 +505,55 @@ theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src :
   unfold sentMsg msgCredits stepIn
   exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3
 
+/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
+
+/-- **Raft's applied index of node `id` has reached `k`** (persistent, timeless; raft-issued: by
+`Advance`, `node.Advance`'s post). -/
+@[no_expose] def nodeAppliedLb (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
+  ApiImpl.nodeAppliedLbU γ id k
+
+/-- **Node `id` handed out a snapshot at index `k`** to install (persistent, timeless; raft-issued:
+by a snapshot `Ready`). -/
+@[no_expose] def snapGiven (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
+  ApiImpl.snapGivenU γ id k
+
+instance nodeAppliedLb_persistent (γ : Cluster) (id : w64) (k : Nat) :
+    Persistent (nodeAppliedLb (GF := GF) γ id k) := by
+  unfold nodeAppliedLb; infer_instance
+
+instance nodeAppliedLb_timeless (γ : Cluster) (id : w64) (k : Nat) :
+    Timeless (nodeAppliedLb (GF := GF) γ id k) := by
+  unfold nodeAppliedLb; infer_instance
+
+instance snapGiven_persistent (γ : Cluster) (id : w64) (k : Nat) :
+    Persistent (snapGiven (GF := GF) γ id k) := by
+  unfold snapGiven; infer_instance
+
+instance snapGiven_timeless (γ : Cluster) (id : w64) (k : Nat) :
+    Timeless (snapGiven (GF := GF) γ id k) := by
+  unfold snapGiven; infer_instance
+
+theorem nodeAppliedLb_zero (γ : Cluster) (id : w64) : ⊢ nodeAppliedLb (GF := GF) γ id 0 := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_zero γ id
+
+theorem nodeAppliedLb_mono (γ : Cluster) (id : w64) (k k' : Nat) :
+    k' ≤ k → nodeAppliedLb (GF := GF) γ id k ⊢ nodeAppliedLb γ id k' := by
+  intro h; unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_mono γ id k k' h
+
 /-! ## The rest of a `Ready` -/
 
-/-- (open) A `Ready`'s storage part, by its snapshot's loan: none -- the right to append the entries
-`es` -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`, its
-entries at their positions), past what was delivered, half of the snapshot, its certificate, and the
-storage itself (`readyOut`). (Today `readyDataL`'s snapshot part.) -/
-def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+/-- (open) A `Ready`'s storage part, by its snapshot's loan (U8 v2, 2026-10-29: the frozen design's
+§3): none -- the right to write the entries `es` (`appendRight`: the log from their first index on,
+with the end; nothing for no entries) and the committed entries `ce` below them frozen
+(`ceFrozen`) -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`,
+its entries at their positions), past what was delivered, half of the snapshot, its certificate
+(`snapshotCert`; its validity, `snapshotCert_valid`), every range of the storage from an index at
+most the snapshot's on, with the end, and the right to install it (`snapGiven`). (Until U8 v2 the
+old contract's `readyOut`: the storage itself.) -/
+def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
-  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es)
+  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
+      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
   | some l => iprop(
       ⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧ l.ptr = rd.Snapshot' ∧ ce = [] ∧
         st.delivered <+: strip l.dlv ∧ st.delivered.length < l.dlv.length ∧
@@ -575,7 +562,9 @@ def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
         LogIndicesOk (snapId l.snap) es⌝ ∗
       ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommittedLogLb γ (strip l.dlv) ∗
       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
-      readyOut st.storage es (some l))
+      (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+        storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
+      snapGiven γ id (uint.nat l.snap.Metadata'.Index'))
 
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
@@ -594,7 +583,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗
-    readySnap γ N rd st ce es L)
+    readySnap γ N id rd st ce es L)
 
 /-- The implementation's rest of a `Ready` is the draft's. -/
 private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)

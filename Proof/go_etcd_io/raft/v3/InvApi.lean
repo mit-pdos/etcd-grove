@@ -1615,169 +1615,9 @@ theorem raft_of_snapshotCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   iframe HDc Hreg
   ipureintro; exact ⟨HL.2.1, HL.2.2.1⟩
 
-/-- **The storage's certificates are the cluster's** (the draft's `storageCertLink`). -/
-def storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF :=
-  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗ snapshotCert γ N k) ∗
-    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k))
-
-instance storageCertLink_persistent (γ : Cluster) (N : Namespace) (st : Storage) :
-    Persistent (storageCertLink (GF := GF) γ N st) := by
-  unfold storageCertLink; infer_instance
-
-/-- Raft's certificate link (`storCertOk`), at the cluster's certificate namespace `N`. -/
-theorem storCertOk_of_link (γ : Cluster) (N : Namespace) (st : Storage)
-    (HN : γ.raft.reCertNs = N) (Hns : γ.raft.reNoSnap = false) :
-    ⊢ clusterInv (GF := GF) γ N -∗ storageCertLink γ N st -∗ storCertOk γ.raft st := by
-  iintro #Hci #Hl
-  iunfold storageCertLink at Hl
-  icases Hl with ⟨#H1, #H2⟩
-  unfold storCertOk raftCertN
-  rw [HN]
-  isplitl []
-  · imodintro
-    iintro %k %E %HE #Hs
-    imod H1 $$ %k %E %HE Hs with #Hc
-    iapply raft_of_snapshotCert γ N E HE k $$ Hci Hc
-  · imodintro
-    iintro %k %E %HE #Hr
-    imod snapshotCert_of_raft γ N E HE Hns k $$ Hci Hr with #Hc
-    iapply H2 $$ %k %E %HE Hc
-
-/-- What a registry entry of a `MemoryStorage` carries: the client's certificates of its snapshot,
-at every term for an any-term entry. -/
-def certElemApi (γ : Cluster) (N : Namespace) (e : CertKey) : IProp GF :=
-  if e.2 then iprop(∀ t : w64, snapshotCert γ N ⟨⟨t, e.1.sid.index'⟩, e.1.cl, e.1.al, e.1.dat⟩)
-  else snapshotCert γ N e.1
-
-instance certElemApi_persistent (γ : Cluster) (N : Namespace) (e : CertKey) :
-    Persistent (certElemApi (GF := GF) γ N e) := by
-  unfold certElemApi; split <;> infer_instance
-
-instance certElemApi_timeless (γ : Cluster) (N : Namespace) (e : CertKey) :
-    Timeless (certElemApi (GF := GF) γ N e) := by
-  unfold certElemApi; split <;> infer_instance
-
-theorem certElemApi_covers (γ : Cluster) (N : Namespace) (e : CertKey) (k : SnapTrip)
-    (h : certCovers e k) : certElemApi (GF := GF) γ N e ⊢ snapshotCert γ N k := by
-  unfold certElemApi
-  unfold certCovers at h
-  split
-  · rename_i he
-    rw [if_pos he] at h
-    obtain ⟨h1, h2, h3, h4⟩ := h
-    iintro H
-    ihave H := H $$ %k.sid.term'
-    have : (⟨⟨k.sid.term', e.1.sid.index'⟩, e.1.cl, e.1.al, e.1.dat⟩ : SnapTrip) = k := by
-      cases k with | mk sid cl al dat => cases sid; simp only at h1 h2 h3 h4; subst h1 h2 h3 h4; rfl
-    rw [this]; iexact H
-  · rename_i he
-    rw [if_neg he] at h
-    subst h
-    exact .rfl
-
-/-- The registry invariant's namespace. -/
-def certN (N : Namespace) : Namespace := N .@ "cert"
-
-theorem certN_sub (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) : (↑(certN N) : CoPset) ⊆ E :=
-  fun p hp => HE p (nclose_subseteq N "cert" p hp)
-
-/-- **A `MemoryStorage`'s certificate registry tied to the cluster** (the draft's
-`storageCertInv`). -/
-def storageCertInv (γ : Cluster) (N : Namespace) (γs : MemStorNames) : IProp GF :=
-  inv (certN N) iprop(∃ L : List CertKey, monoListAuthOwn γs.cert 1 L ∗
-    [∗list] e ∈ L, certElemApi γ N e)
-
-instance storageCertInv_persistent (γ : Cluster) (N : Namespace) (γs : MemStorNames) :
-    Persistent (storageCertInv (GF := GF) γ N γs) := by
-  unfold storageCertInv; infer_instance
-
-theorem storageCertInv_alloc_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (E : CoPset) :
-    ⊢ memCertAuth (GF := GF) γs ={E}=∗ storageCertInv γ N γs := by
-  iintro Ha
-  unfold storageCertInv
-  iapply inv_alloc
-  inext
-  iexists ([] : List CertKey)
-  iunfold memCertAuth at Ha
-  isplitl [Ha]
-  · iexact Ha
-  iapply (BigSepL.bigSepL_nil (Φ := fun _ e => certElemApi (GF := GF) γ N e)).2
-  iempintro
-
-theorem storageCert_read_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) (hE : ↑N ⊆ E) :
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ memStorCert γs k ={E}=∗ snapshotCert γ N k := by
-  iintro #Hinv #Hc
-  iunfold memStorCert at Hc
-  icases Hc with ⟨%L0, #Hlb, %Hin⟩
-  obtain ⟨e, he, hc⟩ := Hin
-  unfold storageCertInv
-  have hE' := certN_sub N hE
-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  icases mono_list_auth_lb_valid _ _ _ _ $$ Ha Hlb with %Hv
-  obtain ⟨-, Hpre⟩ := Hv
-  have he' : e ∈ L := Hpre.subset he
-  ihave ⟨#He, -⟩ := BigSepL.bigSepL_mem_acc he' $$ Hall
-  ihave #Hk := certElemApi_covers γ N e k hc $$ He
-  imod Hclose $$ [Ha] with -
-  · inext
-    iexists L
-    iframe Ha Hall
-  imodintro
-  iexact Hk
-
-theorem storageCert_register_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) (hE : ↑N ⊆ E) :
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ snapshotCert γ N k ={E}=∗ memStorCert γs k := by
-  iintro #Hinv #Hk
-  unfold storageCertInv
-  have hE' := certN_sub N hE
-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  imod monoListAuthOwn_update_app [((k, false) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
-  ihave #He : certElemApi (GF := GF) γ N ((k, false) : CertKey) $$ []
-  · simp only [certElemApi, Bool.false_eq_true, ↓reduceIte]
-    iexact Hk
-  imod Hclose $$ [Ha] with -
-  · inext
-    iexists L ++ [((k, false) : CertKey)]
-    iframe Ha
-    iapply BigSepL.bigSepL_snoc.2
-    iframe Hall He
-  imodintro
-  iapply memStorCert_of_lb γs (L ++ [((k, false) : CertKey)]) (k, false) k (by simp)
-    (by simp [certCovers]) $$ Hlb
-
-theorem storageCert_registerAny_impl (γ : Cluster) (N : Namespace) (γs : MemStorNames) (i : w64)
-    (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) (hE : ↑N ⊆ E) :
-    ⊢ storageCertInv (GF := GF) γ N γs -∗ (□ ∀ t : w64, snapshotCert γ N ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
-  iintro #Hinv #Hk
-  unfold storageCertInv
-  have hE' := certN_sub N hE
-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  imod monoListAuthOwn_update_app [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)] $$ Ha
-    with ⟨Ha, #Hlb⟩
-  ihave #He : certElemApi (GF := GF) γ N ((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey) $$ []
-  · simp only [certElemApi, ↓reduceIte]
-    iexact Hk
-  imod Hclose $$ [Ha] with -
-  · inext
-    iexists L ++ [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)]
-    iframe Ha
-    iapply BigSepL.bigSepL_snoc.2
-    iframe Hall He
-  imodintro
-  imodintro
-  iintro %t
-  iapply memStorCert_of_lb γs (L ++ [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)])
-    (⟨⟨W64 0, i⟩, cl, al, d⟩, true) ⟨⟨t, i⟩, cl, al, d⟩ (by simp) (by simp [certCovers]) $$ Hlb
-
-theorem storageCertLink_intro_impl (γ : Cluster) (N : Namespace) (st : Storage) :
-    (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ storCert st k ={E}=∗
-        snapshotCert (GF := GF) γ N k) ∗
-      (□ ∀ (k : SnapTrip) (E : CoPset), ⌜↑N ⊆ E⌝ -∗ snapshotCert γ N k ={E}=∗ storCert st k) ⊢
-      storageCertLink γ N st := by
-  unfold storageCertLink; exact .rfl
+-- (U8 v2, 2026-10-29) `storageCertLink`, `storCertOk_of_link`, `certElemApi`, `storageCertInv` and
+-- their laws (the old contract's certificate registry) removed: raft's certificate link is over its
+-- storage names' pins (`storCertOk γ sn`), made at `RestartNode`.
 
 /-- What a certified snapshot's data is, in a static cluster. -/
 theorem snapshotCert_data_impl (γ : Cluster) (N : Namespace) (vs : List w64)
@@ -1915,9 +1755,13 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat
 
-def cfgNamesOf (γn : NodeNames) : CfgNames := (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live)
+/-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
+`nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
+bounds of the node's log (`nodeStorNames`). -/
+def cfgNamesOf (γn : NodeNames) : CfgNames :=
+  (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk)
 
 /-- **Node `id`'s configuration names are `γn`'s** (persistent): the entry of its table. -/
 def nodeTabOk (γ : Cluster) (id : w64) (γn : NodeNames) : IProp GF :=
@@ -1934,6 +1778,88 @@ theorem nodeTabOk_agree (γ : Cluster) (id : w64) (γ1 γ2 : NodeNames) :
   rw [H1] at H2; cases H2
   iapply ghostMapElem_agree $$ E1 E2
 
+/-- (U8 v2, 2026-10-29) **Node `id`'s storage names are `sn`** (persistent): its table's entry
+names them (`cfgNamesOf`'s last five). By this the API's `nodeAppliedLb γ id`/`snapGiven γ id`
+are of the node's log, whichever node structure reaches them (one node per id: the start tokens). -/
+def nodeStorNames (γ : Cluster) (id : w64) (sn : StorNames) : IProp GF :=
+  iprop(∃ (g : GName) (x : CfgNames), ⌜γ.nodeTab !! id = some g ∧
+    x.2.2.2.2.2 = (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk)⌝ ∗ id ↪[g]□ x)
+
+instance nodeStorNames_persistent (γ : Cluster) (id : w64) (sn : StorNames) :
+    Persistent (nodeStorNames (GF := GF) γ id sn) := by
+  unfold nodeStorNames; infer_instance
+
+instance nodeStorNames_timeless (γ : Cluster) (id : w64) (sn : StorNames) :
+    Timeless (nodeStorNames (GF := GF) γ id sn) := by
+  unfold nodeStorNames; infer_instance
+
+theorem nodeStorNames_agree (γ : Cluster) (id : w64) (sn1 sn2 : StorNames) :
+    ⊢ nodeStorNames (GF := GF) γ id sn1 -∗ nodeStorNames γ id sn2 -∗ ⌜sn1 = sn2⌝ := by
+  unfold nodeStorNames
+  iintro ⟨%g1, %x1, %H1, #E1⟩ ⟨%g2, %x2, %H2, #E2⟩
+  rw [H1.1] at H2; cases H2.1
+  ihave %Hx := ghostMapElem_agree $$ E1 E2
+  subst Hx
+  ipureintro
+  have h := H1.2.symm.trans H2.2
+  simp only [Prod.mk.injEq] at h
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5; subst h1 h2 h3 h4 h5; rfl
+
+/-- A node's table entry names its storage names. -/
+theorem nodeTabOk_storNames (γ : Cluster) (id : w64) (γn : NodeNames) :
+    nodeTabOk (GF := GF) γ id γn ⊢ nodeStorNames γ id γn.sn := by
+  unfold nodeTabOk nodeStorNames
+  iintro ⟨%g, %Hg, #E⟩
+  iexists g, cfgNamesOf γn
+  iframe E
+  ipureintro; exact ⟨Hg, rfl⟩
+
+/-- (U8 v2, 2026-10-29) **Raft's applied index of node `id` has reached `k`** (the API's
+`nodeAppliedLb`): `k = 0`, or a lower bound of the floor its log published (`storFloor`), or of a
+snapshot it handed out (which `Advance` applies: `appliedSnap`). -/
+def nodeAppliedLbU (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
+  iprop(⌜k = 0⌝ ∨ ∃ sn : StorNames, nodeStorNames γ id sn ∗
+    (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+
+/-- (U8 v2, 2026-10-29) **Node `id` handed out a snapshot at index `k` or later** (the API's
+`snapGiven`). -/
+def snapGivenU (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
+  iprop(∃ sn : StorNames, nodeStorNames γ id sn ∗ monoNatLbOwn sn.gg k)
+
+instance nodeAppliedLbU_persistent (γ : Cluster) (id : w64) (k : Nat) :
+    Persistent (nodeAppliedLbU (GF := GF) γ id k) := by
+  unfold nodeAppliedLbU; infer_instance
+
+instance nodeAppliedLbU_timeless (γ : Cluster) (id : w64) (k : Nat) :
+    Timeless (nodeAppliedLbU (GF := GF) γ id k) := by
+  unfold nodeAppliedLbU; infer_instance
+
+instance snapGivenU_persistent (γ : Cluster) (id : w64) (k : Nat) :
+    Persistent (snapGivenU (GF := GF) γ id k) := by
+  unfold snapGivenU; infer_instance
+
+instance snapGivenU_timeless (γ : Cluster) (id : w64) (k : Nat) :
+    Timeless (snapGivenU (GF := GF) γ id k) := by
+  unfold snapGivenU; infer_instance
+
+theorem nodeAppliedLbU_zero (γ : Cluster) (id : w64) : ⊢ nodeAppliedLbU (GF := GF) γ id 0 := by
+  unfold nodeAppliedLbU; iintro; ileft; ipureintro; rfl
+
+theorem nodeAppliedLbU_mono (γ : Cluster) (id : w64) (k k' : Nat) (h : k' ≤ k) :
+    nodeAppliedLbU (GF := GF) γ id k ⊢ nodeAppliedLbU γ id k' := by
+  unfold nodeAppliedLbU
+  iintro (%H | ⟨%sn, #Hs, (#Hl | #Hl)⟩)
+  · ileft; ipureintro; omega
+  · iright; iexists sn; iframe Hs; ileft; iapply monoNatLbOwn_le k' h $$ Hl
+  · iright; iexists sn; iframe Hs; iright; iapply monoNatLbOwn_le k' h $$ Hl
+
+theorem snapGivenU_applied (γ : Cluster) (id : w64) (k : Nat) :
+    snapGivenU (GF := GF) γ id k ⊢ nodeAppliedLbU γ id k := by
+  unfold snapGivenU nodeAppliedLbU
+  iintro ⟨%sn, #Hs, #Hl⟩
+  iright; iexists sn; iframe Hs; iright; iexact Hl
+
 /-- The driver's view of the configuration depends on the configuration names only. -/
 theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ca : Nat)
     (cfg : CCState) : nodeCfg (GF := GF) γ1 ca cfg ⊢ nodeCfg γ2 ca cfg := by
@@ -1944,7 +1870,7 @@ theorem nodeCfg_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf 
 theorem dlvLb_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ2)) (ds : List EntryM) :
     dlvLb (GF := GF) γ1 ds ⊢ dlvLb γ2 ds := by
   simp only [cfgNamesOf, Prod.mk.injEq] at H
-  unfold dlvLb; rw [H.1]
+  unfold dlvLb dlvKeys; rw [H.1, H.2.2.2.2.2.2.2.2.1]
 
 /-- Raft's nodes at one location have one id (`isNode`'s persistent points-to's). -/
 theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
@@ -2001,7 +1927,7 @@ theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (id1 id2 : w64
   subst Hid
   ihave %Hn := nodeTabOk_agree γ id1 γ1 γ2 $$ T1 T2
   simp only [cfgNamesOf, Prod.mk.injEq] at Hn
-  ipureintro; exact Hn.2.2.2.2
+  ipureintro; exact Hn.2.2.2.2.1
 
 theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
@@ -2057,14 +1983,17 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
     isCommittedLogLb γ st.delivered ∗
-    (⌜γn.mode.isDyn = true⌝ ∨
-      storageCertLink γ N st.storage ∗ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
+    (⌜γn.mode.isDyn = true⌝ ∨ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
     (⌜γn.mode.isDyn = false⌝ ∨
-      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length ∗
-      (⌜γ.raft.reNoSnap = true⌝ ∨ storageCertLink γ N st.storage)) ∗
+      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length) ∗
     ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
-       nodeDriverBusy γn id n ds es st.hardState L)))
+       nodeDriverBusy γn id n ds es st.hardState L ∗
+       -- (U8 v2, 2026-10-29) after a snapshot `Ready`, the snapshot handed out (what `Advance`'s
+       -- post, `nodeAppliedLb`, is then)
+       (match L with
+        | none => iprop(True)
+        | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index'))))
 
 /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
 def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=

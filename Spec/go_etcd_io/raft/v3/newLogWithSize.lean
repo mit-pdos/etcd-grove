@@ -24,62 +24,54 @@ unstable suffix is empty and starts at `LastIndex()+1` (where `offsetInProgress`
 too: `ip` below), and `committed = applied = applying = FirstIndex()-1`, the compaction
 boundary.
 
-One premise is about the storage's *contents* and is not in `isStorageD`: that the
-stored entries carry contiguous indices after `prev` (`LogIndicesOk`), true of any
-correct `Storage` (and of `MemoryStorage`) but `ownStorage` is abstract, so a client has
-to supply it. (Until 2026-10-13 a second: that none is a configuration change, the
-no-reconfiguration scope `HnoConfChange`, false of a freshly bootstrapped etcd node,
-whose storage holds the `EntryConfChange`s `Bootstrap` wrote.)
+**A fresh boot, over the boot bundle** (U8 v2 step 4, 2026-10-29). `newLogWithSize` reads
+`FirstIndex` and `LastIndex` before `newRaft` calls `InitialState`, and a `MemoryStorage`'s
+contract (`isStorage`) can only be made after `InitialState` returns (it reads the stored snapshot
+without the lock: issues/raft-memorystorage-initialstate-unlocked.md). So the storage is not
+`isStorageD sn st ∗ ownStorage sn st σ` here but a client frame `R` with two persistent triples:
+over `R`, `FirstIndex` answers `1` and `LastIndex` `0` (a fresh storage: nothing compacted, no
+entry). The post gives `R` back, with the wand that completes the log at the fresh view
+`{ prev := ⟨0, 0⟩, ents := [], pend := [] }` (no floor raised, frozen only at the compaction
+point, no snapshot handed out, no term certified) once raft's view of the storage is supplied:
+`newRaft` makes it after `InitialState`. (Until then the premises were a general view `σ` --
+contiguous indices `LogIndicesOk`, nothing pending, fresh to raft -- with the view's read triples
+`isStorageD sn st` and `ownStorage sn st σ`, which the post lent back with the wand.)
 
-(U8 v2, 2026-10-29) The storage is raft's view `σ` of it (`ownStorage sn st σ`, its ranges
-from the compaction point, the end and the authorities of raft's ghost names `sn`), frozen only at
-the compaction point, no floor raised and no snapshot handed out yet; and the read triples of the
-view (`isStorageD sn st`, derived from the contract, `isStorage_of_V`). Until U8 v2 the storage's
-snapshot was premised to be empty or at the boundary (`StoredSnapOk`) and certified
-(`initKsnCert`); the stored snapshot is now the client's.
-
-**The postcondition lends the storage back.** `newRaft` calls
-`c.Storage.InitialState()` *after* building the log -- through the `Config`'s copy of
-the same interface value `st` -- and needs the storage's `ownStorage` for that call.
-`ownRaftLog l ls` cannot provide it: `LogState` has no storage field, so the log's
-`ownStorage` sits inside it at the struct's `storage` field, a value nobody outside can
-relate to `st`. So the post hands out `ownStorage st σ` together with the wand that
-completes the log at the initial state once it is given back. (Until 2026-10-09 the post
-was `l ↦ lv`, the facts about `lv`'s fields with `lv.storage' = st`, and the internal
-`ownRaftLogCore lv none σ.prev σ.ents [] []`, which `newRaft` folded into `ownRaftLog`;
-the principled fix would be a `storage` field in `LogState`, notes/STATUS.md.)
+**Why a wand.** `ownRaftLog l ls` holds the storage's resources inside it (at the struct's
+`storage` field: `LogState` has no field the client could read them back from), and the client
+needs `R` again for `InitialState`; so the post hands out `R` together with the wand that
+completes the log once raft's view is given.
 
 The `Logger` is a non-nil one with `isLogger` (since 2026-10-01): `ownRaftLog` carries
 it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`, and the struct
 literal installs it as both `l.logger` and `l.unstable.logger`. -/
 abbrev newLogWithSize.spec : Prop :=
-  ∀ (st : Storage) (lg : Logger) (maxSize : w64)
-    (sn : StorNames) (σ : StorState) (lok : GoInterfaceOk),
-  LogIndicesOk σ.prev σ.ents →
-  -- nothing pending (2026-10-10)
-  σ.pend = [] →
+  ∀ (si : GoInterfaceOk) (lg : Logger) (maxSize : w64)
+    (sn : StorNames) (lok : GoInterfaceOk) (R : IProp GF),
   lg = interface.ok lok →
   -- a positive applying-size limit (2026-10-05): the log starts with applying unpaused
   -- at size `0`, and `nextCommittedEnts` `Panicf`s on
   -- `maxApplyingEntsSize - applyingEntsSize <= 0`
   0 < uint.Z maxSize →
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
-  σ.fl = W64 0 →
-  -- (U8 v2) frozen only at the compaction point, no snapshot handed out, no term certified
-  σ.fr = uint.nat σ.prev.index' → σ.sg = 0 → σ.dt = ∅ →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorageD sn st ∗
-      ownStorage sn st σ ∗ isLogger lok }}
-    (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ R ∗
+      -- the boot bundle's reads: a fresh storage
+      ({{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
+        {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+      ({{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
+        {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+      isLogger lok }}
+    (App (App (App (Val #(functions newLogWithSize [])) (Val #(interface.ok si))) (Val #lg))
       (Val #maxSize))
   {{ (l : Loc) (ip : w64), RET #l;
-      ⌜uint.Z ip = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
-      ownStorage sn st σ ∗
-      (ownStorage sn st σ -∗
+      R ∗ ⌜uint.Z ip = 1⌝ ∗
+      (isStorageD sn (interface.ok si) -∗
+       ownStorage sn (interface.ok si)
+         ({ prev := entryID.mk (W64 0) (W64 0), ents := [], pend := [] } : StorState) -∗
        ownRaftLog l
-         { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
-           applied := σ.prev.index', snap := none, inprogress := ip,
-           applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-           apmax := maxSize, storage := st, ksn := [], sn := sn }) }}
+         { prev := entryID.mk (W64 0) (W64 0), sents := [], uents := [], committed := W64 0,
+           applied := W64 0, snap := none, inprogress := ip,
+           applying := W64 0, unpersisted := [], stored := [], apsize := W64 0,
+           apmax := maxSize, storage := interface.ok si, ksn := [], sn := sn }) }}
 
 end spec
 

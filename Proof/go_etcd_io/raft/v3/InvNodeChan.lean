@@ -374,6 +374,9 @@ structure NodeNames [GooseExts] where
   bud : BudgetNames
   /-- the node's `Storage` (`RNState.storage`), for the append right and its receipt -/
   stor : Storage
+  /-- (U8 v2, 2026-10-29) raft's ghost names for its storage (`RNState.sn`): the floor's and the
+  certified terms' -/
+  sn : StorNames := {}
   propc : ChanNames
   recvc : ChanNames
   confc : ChanNames
@@ -652,7 +655,9 @@ read-only, which the server reads.) -/
 def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (ms : List QMsg) (p p' : HardStateM) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
-    entsRO rd.Entries' es ∗ appendRight γ.stor es ∗
+    entsRO rd.Entries' es ∗ readyOut γ.stor γ.sn es none ∗
+    -- (U8 v2) the committed entries below the batch, frozen
+    ceFrozen γ.stor d.length ce es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
       termLB γ.bud q.st.msg.Term') ∗
@@ -673,12 +678,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-10-18, D19b stage 5) the indices handed out are within the log (`readyIdx`)
     readyIdx γ.raft d ce es)
 
-/-- (D22 S-d4, 2026-10-21) The committed log handed out after a `Ready` that came after `d` with
-the committed entries `ce`: `d ++ ce`, or, with a snapshot (the loan `l`), the committed log up to
-the snapshot (`SnapLoan.dlv`; a snapshot `Ready` hands out no committed entries). -/
-def dlvAfter (d ce : List EntryM) : Option SnapLoan → List EntryM
-  | none => d ++ ce
-  | some l => l.dlv
+-- (U8 v2) `dlvAfter` (the committed log handed out after a `Ready`) moved to `InvRawnodeReady.lean`.
 
 /-- (D22 S-d4) What `run` has handed the driver of the committed log: `RNState.delivered`, or while
 a snapshot `Ready` is lent (`RNState.slent`) the committed log up to its snapshot, which `Advance`
@@ -734,7 +734,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
       l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
       uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗
-    readyOut γ.stor es (some l))
+    readyOut γ.stor γ.sn es (some l))
 
 /-- (D22 S-d4) A `Ready`'s data, with or without a snapshot (`L`). -/
 def readyDataL (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
@@ -776,6 +776,8 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
     readyDataL γ rd d ce es ms p p' L ∗
     -- (2026-10-15, stage N) the committed log handed out, a lower bound
     monoListLbOwn γ.dlm (dlvAfter d ce L) ∗
+    -- (U8 v2) with raft's certified terms (`dlvLb`)
+    dlvKeys γ.sn (dlvAfter d ce L) ∗
     -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
     loanDecO γ.raft L)
 
@@ -826,7 +828,7 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
 @[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) : IProp GF :=
   iprop(∃ (d ce es : List EntryM) (p' : HardStateM),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (dlvAfter d ce L, p') ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor es L ∗
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor (dlvAfter d ce L).length es L ∗
     -- (2026-10-28, stage U3d) after a snapshot `Ready`, the driver's view of the configuration
     -- (`cap`'s half at `x`), which the rendezvous moves to the snapshot's (`loanCfg`) (until
     -- 2026-10-29, stage U5, also dynamically the snapshot's `ConfState` no auto-leave one)
@@ -850,9 +852,7 @@ post): for `some k` the floor's witness at `k` (D22 S-d4 item 3: also when a sna
 since the `Ready`, `StorExtOk`), for `none` nothing. -/
 def reqWit (γ : NodeNames) : Option (List EntryM) → IProp GF
   | none => iprop(True)
-  | some ds => iprop(∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ ∗
-      -- (2026-10-28, stage U4a) and the storage's terms of the log (`ownRawNode_raise_floor`)
-      storTermsAt γ.stor (ds.map (·.Term')))
+  | some ds => iprop(∃ x : w64, storFloor γ.sn x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝)
 
 instance reqWit_persistent (γ : NodeNames) (q : Option (List EntryM)) :
     Persistent (reqWit (GF := GF) γ q) := by
@@ -863,8 +863,7 @@ needed a client that cannot be handed a snapshot, `H`, now unused.) -/
 theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
     (_H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     reqWit (GF := GF) γ (reqOf none ds) ⊢
-      ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ ∗
-        storTermsAt γ.stor (ds.map (·.Term')) := by
+      ∃ x : w64, storFloor γ.sn x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ := by
   iintro Hw
   unfold reqOf reqWit
   iexact Hw
@@ -876,7 +875,9 @@ theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
 /-- The committed log handed out so far is at least `ds` (2026-10-15, stage N; persistent): what
 the driver knows of `run`'s, for a conf change's entry. -/
 @[no_expose] def dlvLb (γ : NodeNames) (ds : List EntryM) : IProp GF :=
-  monoListLbOwn γ.dlm ds
+  iprop(monoListLbOwn γ.dlm ds ∗
+    -- (U8 v2, 2026-10-29) with raft's certified terms of it (the storage contract's `DL`)
+    dlvKeys γ.sn ds)
 
 instance dlvLb_persistent (γ : NodeNames) (ds : List EntryM) :
     Persistent (dlvLb (GF := GF) γ ds) := by
@@ -909,8 +910,12 @@ apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
       -- takes none (until then, from D22 S-c, at any node)
       (γ.snapIn = false → rs.psnap = false ∧ rs.slent = none) ∧
       (γ.snapIn = true → γ.raft.reNoSnap = false) ∧
-      (∀ l, rs.slent = some l → rs.delivered <+: l.dlv)⌝ ∗
+      (∀ l, rs.slent = some l → rs.delivered <+: l.dlv) ∧
+      -- (U8 v2, 2026-10-29) the storage's names, the node's
+      rs.sn = γ.sn⌝ ∗
     monoListAuthOwn γ.dlm 1 (rsDlv rs) ∗
+    -- (U8 v2, 2026-10-29) raft's certified terms of it, for the driver's lower bounds (`dlvLb`)
+    dlvKeys γ.sn (rsDlv rs) ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
       monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied⌝ ∗
       -- (2026-10-28, the decision switch) over skipped entries (until then none, `NoConfIn`)
@@ -922,9 +927,10 @@ snapshot's (its index and the fold of its committed log, `loanCfg`), which `RawN
 installs (`advRS`), the committed log handed out the loan's; A1 at the `RawNode` (from the
 driver's) and the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s premises). -/
 @[no_expose] def runCfgLoan (γ : NodeNames) (rs : RNState) (l : SnapLoan) : IProp GF :=
-  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv⌝ ∗
+  iprop(⌜rs.mode = γ.mode ∧ γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ rs.delivered <+: l.dlv ∧
+      rs.sn = γ.sn⌝ ∗
     undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
-    monoListAuthOwn γ.dlm 1 l.dlv ∗
+    monoListAuthOwn γ.dlm 1 l.dlv ∗ dlvKeys γ.sn l.dlv ∗
     dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) ∗
     monoNatAuthOwn γ.cam 1 l.dlv.length)
 
@@ -953,10 +959,11 @@ theorem runCfgR_loan (γ : NodeNames) (rs : RNState) (l : SnapLoan) (hl : rs.sle
 /-- (D22 S-d4) `runCfg` reads only these fields of the node's state. -/
 theorem runCfg_congr (γ : NodeNames) {rs rs' : RNState} (hm : rs'.mode = rs.mode)
     (hc : rs'.capplied = rs.capplied) (hd : rs'.delivered = rs.delivered) (hf : rs'.flw = rs.flw)
-    (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg) :
+    (hp : rs'.psnap = rs.psnap) (hs : rs'.slent = rs.slent) (hcfg : rs'.cfg = rs.cfg)
+    (hsn : rs'.sn = rs.sn := by rfl) :
     runCfg (GF := GF) γ rs ⊢ runCfg γ rs' := by
   unfold runCfg rsDlv
-  rw [hm, hc, hd, hf, hp, hs, hcfg]
+  rw [hm, hc, hd, hf, hp, hs, hcfg, hsn]
 
 /-! ### `advancec` (D19i part 1): the floor raised at the rendezvous
 
@@ -992,7 +999,7 @@ taken back by a `select` that fires another case. -/
   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
-    ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
+    ⌜(rs.storage = γ.stor ∧ rs.sn = γ.sn) ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
 
 /-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
 (`flw`), the driver's payload in (its `dlv` half, `rof` back whole, A1's lower bound).

@@ -1046,7 +1046,7 @@ theorem wp_applyConf_dyn
     (Hunp : rs.unpersisted = s.logst.unpersisted)
     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
-    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
@@ -1228,7 +1228,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
-    (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage ∧ rs.sn = s.logst.sn)
     {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
@@ -2087,13 +2087,17 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
     (Hca : rs'.capplied = rs.capplied) (Hfw : rs'.flw = rs.flw)
     (Hps : rs'.psnap = false) (Hsl : rs'.slent = L)
     (HL : ∀ l, L = some l → ce = [] ∧ rs.delivered <+: l.dlv)
-    (HpL : rs.psnap = false → L = none) :
-    ⊢ runCfg (GF := GF) γ rs ==∗
-      runCfg γ rs' ∗ monoListLbOwn γ.dlm (dlvAfter rs.delivered ce L) := by
-  iintro Hcfg
+    (HpL : rs.psnap = false → L = none)
+    -- (U8 v2) the storage's names kept, and raft's certified terms of what is handed out
+    (Hsn' : rs'.sn = rs.sn) (X : List EntryM) (HX : dlvAfter rs.delivered ce L = rs.delivered ++ X) :
+    ⊢ dlvKeysAt (GF := GF) γ.sn rs.delivered.length X -∗ runCfg γ rs ==∗
+      runCfg γ rs' ∗ monoListLbOwn γ.dlm (dlvAfter rs.delivered ce L) ∗
+      dlvKeys γ.sn (dlvAfter rs.delivered ce L) := by
+  iintro #HX' Hcfg
   iunfold runCfg at Hcfg
-  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-  obtain ⟨Hmd, Hcp, Hflw, Hsn, Hsi, -⟩ := Hm0
+  icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+  obtain ⟨Hmd, Hcp, Hflw, Hsn, Hsi, -, Hsnm⟩ := Hm0
+  rw [rsDlv_none Hsl0] at Hdk
   rw [rsDlv_none Hsl0]
   rw [rsDlv_none Hsl0] at Hcp
   have Hext : rs.delivered <+: dlvAfter rs.delivered ce L := by
@@ -2101,8 +2105,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
     | none => exact List.prefix_append _ _
     | some l => exact (HL l rfl).2
   imod monoListAuthOwn_update (dlvAfter rs.delivered ce L) Hext $$ Hdlm with ⟨Hdlm, #Hlb⟩
+  ihave #Hdk' : dlvKeys γ.sn (dlvAfter rs.delivered ce L) $$ []
+  · rw [HX]; iapply (dlvKeysAt_app γ.sn 0 rs.delivered X).2
+    rw [Nat.zero_add]; iframe Hdk HX'
   imodintro
-  iframe Hlb
+  iframe Hlb Hdk'
   have Hrs' : rsDlv rs' = dlvAfter rs.delivered ce L := by
     unfold rsDlv
     rw [Hsl]
@@ -2111,10 +2118,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
     | some l => rfl
   iunfold runCfg
   rw [Hrs', Hd, Hm, Hc, Hca, Hps, Hsl]
-  iframe Hdlm
+  iframe Hdlm Hdk'
   isplitr
   · ipureintro
-    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, fun h => ⟨rfl, HpL (Hsn h).1⟩, Hsi, ?_⟩
+    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, fun h => ⟨rfl, HpL (Hsn h).1⟩, Hsi, ?_,
+      by rw [Hsn']; exact Hsnm⟩
     · exact Nat.le_trans Hcp Hext.length_le
     · intro l hl
       obtain ⟨rfl, Hp⟩ := HL l hl
