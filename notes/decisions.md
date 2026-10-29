@@ -25459,6 +25459,27 @@ Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients th
 the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
 `stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
 
+## kvreconf-final: Go changes and the storage instance
+
+**2026-10-29 · decided (branch `kvreconf-final`)**
+
+- **`validConf` below `2^61` ids** (was `2^62`): a snapshot of a joint configuration lists its
+  voters twice (incoming and outgoing), and `snapshotValid` bounds the four lists' total by `2^62`;
+  with fewer than `2^61` ids the total is below `2^62`. The store's rule (`ConfOk`) carries the cut.
+  Unreachable in practice (at most 9 replicas); no coverage lost.
+- **`copyMsg` instead of `proto.Clone(*raftpb.Message)`** in `send`/`deliver`: the only `PbType` of
+  `*raftpb.Message` is the server's (`rafthttp/PbMessage.lean`, with a trusted wire decoder); a hand
+  copy (fresh message struct and `Entries` slice, shared read-only field cells, entries and
+  `Context`, the snapshot by `proto.CloneSnapshot`, no `Responses`) needs no wire model, so no
+  trust-base change (approved by the coordinator). `Responses` is empty on every message a `Ready`
+  hands out with synchronous storage writes (`SentMsgShape`). `copyMsg` reads its source at any
+  fraction, so the duplicate is copied from the owned copy and `deliver` keeps its shape.
+- **kvreconf's `StorageModel` instance is a `def`** (`kvrStorageModel`), activated per file by
+  `attribute [local instance]`: raft's `memStorageModel` is a global instance under `[MemStorReg GF]`,
+  which kvreconf never has in scope; a second global instance would make resolution depend on
+  declaration order (the coordinator's instruction). The proved methods stay generic over
+  `[StorageModel GF]` and are instantiated at it.
+
 ## Track C: kvreconf
 
 **2026-10-29 · in progress (track C of the raft-unified effort, branch `raft-unified-kvreconf`)**
