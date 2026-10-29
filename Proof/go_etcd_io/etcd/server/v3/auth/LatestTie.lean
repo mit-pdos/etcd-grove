@@ -281,13 +281,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- `AuthEnable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed (the
 flag it read the admin side's half, `en = b0`: the auth plan's E3c) and
-kept tied to the latest state (`tieStep`). -/
+kept tied to the latest state (`tieStep`); the cap's permission (H5) only at the flag `b0` it reads. -/
 abbrev auth.authStore.AuthEnable.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ ∗
-      (□ ∀ en : Bool, capNextM M hs (stepOf (authEnableF en))) }}
+      capNextM M hs (stepOf (authEnableF b0)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
   {{ (err : GoInterface), RET #err; ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
       ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (authEnableF en)) noExtra err (tieStep M hs b0 sc0 b sc) }}
@@ -504,8 +504,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.AuthEnable.spec_of_T (h : auth.authStore.AuthEnable.specT (GF := GF) (hG := hG)) :
     auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post
-  iintro %Φ ⟨#Hpkg, #Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap0⟩ HΦ
   ihave ⟨%b0, %sc0, HWR⟩ := authWR_to_x st M P f T $$ HWR
+  ihave #Hcap := Hcap0 $$ %b0
   iapply (h st R M P f T hs Pre Q Post b0 sc0) $$ [Hown HWR Htpa Hcs]
   · iframe; iframe #; ipureintro; exact ⟨HisOn, Hok⟩
   iintro !> %err ⟨%b, %sc, Htpa, HPP, HWR, %en, -, #Hev, Hout⟩
@@ -661,8 +662,7 @@ theorem auth.authStore.RoleRevokePermission.spec_of_T (h : auth.authStore.RoleRe
 theorem auth.authStore.AuthEnable.specT_of_TB (h : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG)) :
     auth.authStore.AuthEnable.specT (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post b0 sc0
-  iintro %Φ ⟨#Hpkg, #Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap0⟩ HΦ
-  ihave #Hcap := Hcap0 $$ %b0
+  iintro %Φ ⟨#Hpkg, #Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩ HΦ
   ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
   iapply (h st R M P f T hs Pre Q Post b0 sc0 be) $$ [Hown HWR Htpa Hcs]
   · iframe; iframe #; ipureintro; exact ⟨HisOn, Hok⟩

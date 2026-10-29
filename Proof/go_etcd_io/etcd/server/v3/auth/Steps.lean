@@ -464,6 +464,24 @@ theorem capNextM_authEnableOwn (M : AuthMode) (hs : List AuthState) :
   iapply H $$ %st.enabled %st %st'
   ipureintro; exact ⟨h.1, h.2⟩
 
+/-- The cap's permission at the state's own flag gives it at the flag `b0` the latest state has
+(in `on γa`; elsewhere `capNext` is trivial). -/
+theorem capNextM_authEnableOwn_at (M : AuthMode) (hs : List AuthState) (b0 : Bool)
+    (h : ∀ γa, M = .on γa → ∀ st, hs.getLast? = some st → st.enabled = b0) :
+    capNextM (GF := GF) M hs authEnableOwnR ⊢ capNextM M hs (stepOf (authEnableF b0)) := by
+  cases M with
+  | on γa =>
+    unfold capNextM
+    iintro #H !> %st %st' %hh
+    iapply H
+    ipureintro
+    refine ⟨hh.1, ?_⟩
+    have he := h γa rfl st hh.1
+    show _ = authEnableF st.enabled st
+    rw [he]; exact hh.2
+  | off => iintro -; unfold capNextM capNext; iintro !> %_ %_ -; itrivial
+  | any => iintro -; unfold capNextM capNext; iintro !> %_ %_ -; itrivial
+
 /-- `capNextM_use` for a step function. -/
 theorem capNextM_step (M : AuthMode) (hs : List AuthState) (f : AuthState → Outcome)
     (st st' : AuthState) (hl : histLast M hs st) (h : f st = .next st') :
