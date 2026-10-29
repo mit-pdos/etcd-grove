@@ -368,3 +368,15 @@ F-W3 (G2), F-E1 (5b), F-H4/F-S1/F-S2 (5b's route B), F-C1 (temporary) open as br
 
 5b's client admin specs retry each attempt (`□ ▷`), so SetUp's admin updates get through only by
 F-S2's no-refusal route (the view all disabled): F-S2's part 2 comes before 5b's client side.
+
+## 5b, checked against authkv (2026-10-29)
+
+The merge session's 5b candidate 2 (client history view `authHistView`, frozen `authHistFrozen`,
+the admin update `histAu`, `writeGrantG` with `authHistLb (admStates L)`) gives `Work`'s write
+refutation: from `Lset <+: L`, monotone `admStates` and the frozen `hs_set`, `admStates L = hs_set`,
+so the grant is at `setupSt r`. `akAuthFixed`'s write half becomes `authHistFrozen ρ.kv hs ∗
+srvReqLogLb ρ.raft Lset ∗ ⌜admStates Lset = hs ∧ ∃ r, srvAuthAtLog Lset = setupSt r⌝`. Asked and
+taken for candidate 3: `∃ r` in `SetUp`'s post; `histAu`'s post with `srvReqLogLb (L ++ [e])`.
+Open, a design item of 5b's: the read side needs the store's history indices to follow the log's
+prefix order (an index at or after `SetUp`'s published `n` at a log extending `Lset`); the merge
+session plans an invariant tying the store's recorded states to `admStates` along the applied log.
