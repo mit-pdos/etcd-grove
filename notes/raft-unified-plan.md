@@ -156,3 +156,11 @@ Each: old → new, and why.
   specified and proved; `validConf.spec` stated over `ConfOk` (the rule's `Rule.lean`). Minor: kv's
   `foldl_histStep_opsOf` follows `opsOf`'s new filter (an empty `ConfChangeV2` has no client datum).
   Raft-side needs sent to the coordinator (`notes/decisions.md`, "Track C: kvreconf").
+- 2026-10-29 (the coordinator's answers): every replica starts by `RestartNode` on a `Storage` whose
+  `InitialState` answers the bootstrap `ConfState` (founders as newcomers; the `boot == nil` branch
+  gone): **kvreconf no longer exercises `StartNode`** (raft's API has only the empty-log decision
+  cluster). Quick tests and 3 rounds of `kvreconfcheck` pass. Hypotheses until tracks A/B land them,
+  under the frozen names: `committed_confDecodes` (A), `Membership.applyChange_asV2` (B), the stopped
+  answers and `Stop` with `nodeLive` (A, U9a); track B's approved storage hold mark and
+  `applyGo`/`Restorable` to be used as they land.
+

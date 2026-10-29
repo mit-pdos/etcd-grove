@@ -25489,9 +25489,9 @@ over the frozen designs (`notes/spec-first-study/raft-node-unified-candidate.md`
   `committed_confDecodes` (kvreconf panics on an undecodable committed conf entry);
   `Membership.applyChange_asV2` (it validates `cc.AsV2()` and applies `cc`); every node method's
   stopped answer and `Stop` with `nodeLive` (its `Main` stops nodes while their loops may be
-  mid-`Ready`); and the bootstrap question: its founders start by `StartNode` with peers (a bootstrap
-  log), for which raft has no decision-cluster allocation or `StartNode.unifiedSpec` -- either the
-  founders start like newcomers (`RestartNode` on the bootstrap `ConfState`, as kv) or raft's
-  bootstrap-log allocation is a hypothesis. Plus the frozen design's specs not yet in the API: the
+  mid-`Ready`); and the bootstrap question: its founders started by `StartNode` with peers (a bootstrap
+  log), for which raft has no decision-cluster allocation or `StartNode.unifiedSpec`: the user chose
+  (2026-10-29) that they start like newcomers (`RestartNode` on the bootstrap `ConfState`, as kv), so
+  kvreconf no longer exercises `StartNode`. Plus the frozen design's specs not yet in the API: the
   proposal registry, `msgCredits_intro`, `SentMsgShape`, no tick/read credits, `transferAllowed`,
   `storHoldsLb`, the storage-wrapper law, the `confchange`/`tracker` API specs.

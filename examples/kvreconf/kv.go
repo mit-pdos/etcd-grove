@@ -259,23 +259,18 @@ const maxSeq = ^uint64(0)
 
 // Storage is a replica's raft storage: a MemoryStorage that, when raft asks for its snapshot
 // (to send to a follower), may answer at random that none is available for now, as the Storage
-// interface allows (raft then asks again later); and that answers a newcomer's InitialState with
-// the bootstrap configuration (`boot`), so that the newcomer starts where the founders do (Bootstrap
-// makes every peer a voter before the bootstrap's entries are applied) and replays the same
-// configurations from the log. A founder's (`boot` nil) answers the MemoryStorage's, empty, as
-// StartNode requires.
+// interface allows (raft then asks again later); and that answers InitialState with the bootstrap
+// configuration (`boot`), so that every replica, a founder or a newcomer, starts at it and replays
+// the same configurations from the log.
 type Storage struct {
 	*raft.MemoryStorage
 	boot *pb.ConfState
 }
 
-// InitialState is the MemoryStorage's, with the bootstrap configuration for a newcomer.
+// InitialState is the MemoryStorage's hard state, with the bootstrap configuration.
 func (s *Storage) InitialState() (*pb.HardState, *pb.ConfState, error) {
-	hs, cs, err := s.MemoryStorage.InitialState()
-	if s.boot != nil {
-		cs = proto.Clone(s.boot).(*pb.ConfState)
-	}
-	return hs, cs, err
+	hs, _, err := s.MemoryStorage.InitialState()
+	return hs, proto.Clone(s.boot).(*pb.ConfState), err
 }
 
 // Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.

@@ -908,11 +908,12 @@ noncomputable def RandomOptions.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Options.ty))) (Pair (Var "o") (Var "$r0")))))))))
 
-/-- StartCluster bootstraps a cluster of opts.Voters voters, of ids 1 to opts.Voters
-    (raft.StartNode with them as the peers: each node's log starts with their configuration
-    changes).
+/-- StartCluster starts a cluster of opts.Voters voters, of ids 1 to opts.Voters: each a
+    raft.RestartNode on an empty storage whose initial configuration is the bootstrap one (the
+    voters), as a newcomer's (startNew); the log starts empty and the first leader is elected from
+    that configuration.
 
-    go: cluster.go:126:6 -/
+    go: cluster.go:127:6 -/
 noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "opts"
   (App (Val exceptionDo)
@@ -924,7 +925,6 @@ noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral Cluster.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"opts")) (ElementExpression Options.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"replicas")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.PointerType Replica.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"nextID")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"boot")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v3")))])))))))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Cluster.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "peers" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -939,15 +939,15 @@ noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Options.ty go!"Voters"))) (Var "opts"))))))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc Storage.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.NewMemoryStorage []))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Storage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MemoryStorage")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v0")))]))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
+  (App (Val (GoInstruction (CompositeLiteral Storage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MemoryStorage")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"boot")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v1")))])))))
   (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Storage.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Storage.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$a1" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "st"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (Var "peers"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.StartNode []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.RestartNode []))) (Val #())) (Var "$a0")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "st"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
   (Let "$a4" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"tick"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Val #()))
@@ -975,31 +975,23 @@ noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Options.ty go!"Voters"))) (Var "opts"))))))) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (Var "peers"))
-  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Peer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0")))])))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.Peer.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (Pair (Var "peers") (Var "$r0"))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Cluster.ty)))) (Pair (Var "c") (Var "$r0"))))))))))
 
 /-- tick is a random tick interval, 1 to 4ms: the replicas' clocks run at different rates.
 
-    go: cluster.go:144:19 -/
+    go: cluster.go:143:19 -/
 noncomputable def Cluster.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1011,7 +1003,7 @@ noncomputable def Cluster.tick.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- config is raft's configuration of node id on storage st.
 
-    go: cluster.go:149:19 -/
+    go: cluster.go:148:19 -/
 noncomputable def Cluster.config.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1039,7 +1031,7 @@ noncomputable def Cluster.config.impl [GooseExts] [GoGlobalContext] : val :=
     it the log or a snapshot) and returns its id;
     ok is false if the cluster has started maxReplicas already.
 
-    go: cluster.go:169:19 -/
+    go: cluster.go:168:19 -/
 noncomputable def Cluster.startNew.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1102,7 +1094,7 @@ noncomputable def Cluster.startNew.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- all is every replica, in no particular order.
 
-    go: cluster.go:184:19 -/
+    go: cluster.go:183:19 -/
 noncomputable def Cluster.all.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1143,7 +1135,7 @@ noncomputable def Cluster.all.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- random is a random replica.
 
-    go: cluster.go:195:19 -/
+    go: cluster.go:194:19 -/
 noncomputable def Cluster.random.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1161,7 +1153,7 @@ noncomputable def Cluster.random.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- replica is replica id, or nil.
 
-    go: cluster.go:201:19 -/
+    go: cluster.go:200:19 -/
 noncomputable def Cluster.replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1185,7 +1177,7 @@ noncomputable def Cluster.replica.impl [GooseExts] [GoGlobalContext] : val :=
 /-- randomMember is a random member (voter or learner) of a random replica's configuration, or,
     one time in four or if that has none, a random replica.
 
-    go: cluster.go:209:19 -/
+    go: cluster.go:208:19 -/
 noncomputable def Cluster.randomMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1239,7 +1231,7 @@ noncomputable def Cluster.randomMember.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- sender is the transport of replica from's messages.
 
-    go: cluster.go:222:19 -/
+    go: cluster.go:221:19 -/
 noncomputable def Cluster.sender.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "from"
@@ -1261,7 +1253,7 @@ noncomputable def Cluster.sender.impl [GooseExts] [GoGlobalContext] : val :=
 /-- send hands each message of replica from to the network (deliver), each as a fresh copy (the
     wire's).
 
-    go: cluster.go:228:19 -/
+    go: cluster.go:227:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "from"
@@ -1304,7 +1296,7 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
     a leader waits for it before it sends the follower anything else), which the network may
     also report as failed when it was delivered.
 
-    go: cluster.go:248:19 -/
+    go: cluster.go:247:19 -/
 noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -1402,7 +1394,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
     only before stepping it: the target keeps the message and writes it (`Node.Step` sets its
     `From`, a forward sets its `To`: issues/nonissues/raft-step-writes-caller-message.md).
 
-    go: cluster.go:277:19 -/
+    go: cluster.go:276:19 -/
 noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -1493,7 +1485,7 @@ noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dropped tells the sender of a dropped message so.
 
-    go: cluster.go:301:19 -/
+    go: cluster.go:300:19 -/
 noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -1524,7 +1516,7 @@ noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
 /-- do runs one operation through the log: it gives it a fresh id and proposes it at a random
     member until one answers (the same encoding each time: it takes effect once).
 
-    go: cluster.go:314:19 -/
+    go: cluster.go:313:19 -/
 noncomputable def Cluster.«do».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "kind"
@@ -1597,7 +1589,7 @@ noncomputable def Cluster.«do».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Put sets key's value to val.
 
-    go: cluster.go:334:19 -/
+    go: cluster.go:333:19 -/
 noncomputable def Cluster.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1617,7 +1609,7 @@ noncomputable def Cluster.Put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Get returns key's value ("" for a key never set), through the log.
 
-    go: cluster.go:339:19 -/
+    go: cluster.go:338:19 -/
 noncomputable def Cluster.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1633,7 +1625,7 @@ noncomputable def Cluster.Get.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Read returns key's value by a read index at a random member, retried at another until one
     answers (a read has no effect: each attempt is a fresh one).
 
-    go: cluster.go:345:19 -/
+    go: cluster.go:344:19 -/
 noncomputable def Cluster.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1671,7 +1663,7 @@ noncomputable def Cluster.Read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Stop stops every replica.
 
-    go: cluster.go:355:19 -/
+    go: cluster.go:354:19 -/
 noncomputable def Cluster.Stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1698,7 +1690,7 @@ noncomputable def Cluster.Stop.impl [GooseExts] [GoGlobalContext] : val :=
     applied the most to agree with it: the same applied index, the same configuration and the
     same store contents. It returns an error describing the disagreement otherwise.
 
-    go: cluster.go:364:19 -/
+    go: cluster.go:363:19 -/
 noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "timeout"
@@ -1733,7 +1725,7 @@ noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- agree is Converged's check, once.
 
-    go: cluster.go:376:19 -/
+    go: cluster.go:375:19 -/
 noncomputable def Cluster.agree.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1912,7 +1904,7 @@ noncomputable def Cluster.agree.impl [GooseExts] [GoGlobalContext] : val :=
     commit and applied indices, configuration, log's first and last indices and latest
     snapshot, and, for a leader, its followers' progress.
 
-    go: cluster.go:410:19 -/
+    go: cluster.go:409:19 -/
 noncomputable def Cluster.Dump.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -2771,9 +2763,9 @@ noncomputable def fits.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxIndex)))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es")) (Val #(W64 0)))))) (Val #())) (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxIndex)) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")))))))) (Val #false)))))))
 
-/-- InitialState is the MemoryStorage's, with the bootstrap configuration for a newcomer.
+/-- InitialState is the MemoryStorage's hard state, with the bootstrap configuration.
 
-    go: kv.go:273:19 -/
+    go: kv.go:271:19 -/
 noncomputable def Storage.InitialState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2787,31 +2779,23 @@ noncomputable def Storage.InitialState.impl [GooseExts] [GoGlobalContext] : val 
   (Let "$r1" (Var "$ret1")
   (Let "$r2" (Var "$ret2")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val #())))
   (Let "hs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "hs")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Storage.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Storage.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "s")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (Var "cs") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #()))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "hs")) (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef Storage.ty go!"boot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "s")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (Var "cs") (Var "$r1")))))))
+  (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (Var "hs") (Var "$r0")))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (Var "hs") (Var "$r0"))))))))))))))))))
 
 /-- Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.
 
-    go: kv.go:282:19 -/
+    go: kv.go:277:19 -/
 noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2833,7 +2817,7 @@ noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newReplica is replica id on node, a node just started on storage at the configuration cs0, ticked
     every tick; send delivers the node's messages. It starts the replica's loop and its node's clock.
 
-    go: kv.go:313:6 -/
+    go: kv.go:308:6 -/
 noncomputable def newReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "node"
@@ -2883,7 +2867,7 @@ noncomputable def newReplica.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ticker drives the node's clock until the replica stops.
 
-    go: kv.go:324:19 -/
+    go: kv.go:319:19 -/
 noncomputable def Replica.ticker.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2916,7 +2900,7 @@ noncomputable def Replica.ticker.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- stop stops the replica for good: its loop, its clock and its node.
 
-    go: kv.go:338:19 -/
+    go: kv.go:333:19 -/
 noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2946,7 +2930,7 @@ noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
     compacted entries: issues/raft-compact-past-snapshot.md) and its applied index as raft knows
     it (the bound MemoryStorage.Compact documents: what it applied before the last Advance).
 
-    go: kv.go:356:19 -/
+    go: kv.go:351:19 -/
 noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -3103,7 +3087,7 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
     configuration there, unless the latest snapshot is already that recent (or no configuration
     is applied yet: a new replica's, before it catches up); it returns the latest snapshot's index.
 
-    go: kv.go:405:19 -/
+    go: kv.go:400:19 -/
 noncomputable def Replica.maybeSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snapIndex"
@@ -3182,7 +3166,7 @@ noncomputable def Replica.maybeSnapshot.impl [GooseExts] [GoGlobalContext] : val
 /-- maybeCompact compacts the log to a random index allowed after an Advance (run), if there is
     one past the first.
 
-    go: kv.go:429:19 -/
+    go: kv.go:424:19 -/
 noncomputable def Replica.maybeCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snapIndex"
@@ -3246,7 +3230,7 @@ noncomputable def Replica.maybeCompact.impl [GooseExts] [GoGlobalContext] : val 
     and answers each operation waiting here that the snapshot covers -- whose entry this replica
     does not apply -- with the answer the snapshot records.
 
-    go: kv.go:448:19 -/
+    go: kv.go:443:19 -/
 noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "md"
@@ -3349,7 +3333,7 @@ noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- applyEntry applies one committed entry and moves the applied index to it.
 
-    go: kv.go:472:19 -/
+    go: kv.go:467:19 -/
 noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -3422,7 +3406,7 @@ noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
     before it); every replica applies the same entries from the same configuration, so they all
     decide the same.
 
-    go: kv.go:500:19 -/
+    go: kv.go:495:19 -/
 noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cc"
@@ -3504,7 +3488,7 @@ noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
     operations applied records. An operation already applied (retried, so committed more than
     once) does not take effect again: it is answered with its recorded answer.
 
-    go: kv.go:523:19 -/
+    go: kv.go:518:19 -/
 noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "data"
@@ -3625,7 +3609,7 @@ noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
 /-- answer answers the pending reads whose index is applied with the current value of the key
     they read, and returns the others. A read nobody waits for any more (timed out) is dropped.
 
-    go: kv.go:550:19 -/
+    go: kv.go:545:19 -/
 noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "pending"
@@ -3726,7 +3710,7 @@ noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
     is false if none came. A proposal raft drops (no leader known) is proposed again until the
     timeout. If the operation was already applied here, its answer is the recorded one.
 
-    go: kv.go:574:19 -/
+    go: kv.go:569:19 -/
 noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "op"
@@ -3847,7 +3831,7 @@ noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
 /-- read reads key by a read index here, waiting up to timeout; ok is false if no answer came (or
     the replica's read sequence numbers are used up: maxSeq).
 
-    go: kv.go:610:19 -/
+    go: kv.go:605:19 -/
 noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -3952,7 +3936,7 @@ noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- conf is the replica's configuration (nil before any) and its applied index.
 
-    go: kv.go:642:19 -/
+    go: kv.go:637:19 -/
 noncomputable def Replica.conf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3974,7 +3958,7 @@ noncomputable def Replica.conf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- contents is a copy of the store's contents and its applied index.
 
-    go: kv.go:649:19 -/
+    go: kv.go:644:19 -/
 noncomputable def Replica.contents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon

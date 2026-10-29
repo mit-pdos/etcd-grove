@@ -120,20 +120,19 @@ type Cluster struct {
 	nextOp   uint64
 }
 
-// StartCluster bootstraps a cluster of opts.Voters voters, of ids 1 to opts.Voters
-// (raft.StartNode with them as the peers: each node's log starts with their configuration
-// changes).
+// StartCluster starts a cluster of opts.Voters voters, of ids 1 to opts.Voters: each a
+// raft.RestartNode on an empty storage whose initial configuration is the bootstrap one (the
+// voters), as a newcomer's (startNew); the log starts empty and the first leader is elected from
+// that configuration.
 func StartCluster(opts Options) *Cluster {
 	c := &Cluster{opts: opts, replicas: make(map[uint64]*Replica), nextID: opts.Voters + 1, boot: &pb.ConfState{}}
-	var peers []raft.Peer
 	for id := uint64(1); id <= opts.Voters; id++ {
-		peers = append(peers, raft.Peer{ID: id})
 		c.boot.Voters = append(c.boot.Voters, id)
 	}
 	c.mu.Lock()
 	for id := uint64(1); id <= opts.Voters; id++ {
-		st := &Storage{MemoryStorage: raft.NewMemoryStorage()}
-		c.replicas[id] = newReplica(id, raft.StartNode(c.config(id, st), peers), st, c.boot, c.tick(), &c.Stats, c.sender(id))
+		st := &Storage{MemoryStorage: raft.NewMemoryStorage(), boot: c.boot}
+		c.replicas[id] = newReplica(id, raft.RestartNode(c.config(id, st)), st, c.boot, c.tick(), &c.Stats, c.sender(id))
 		c.Stats.add(&c.Stats.ReplicasStarted)
 	}
 	c.mu.Unlock()
