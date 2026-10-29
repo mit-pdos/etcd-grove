@@ -29,14 +29,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`node.Campaign(ctx)`**, from any goroutine: a local `MsgHup` stepped by the node (it starts
 an election, or a pre-election with `Config.PreVote`, unless it is a leader or cannot be one);
 nothing is promised of its effect. The error says only whether
-the message reached the node (`nodeErr`: `nil`, `ErrStopped`, or the context's). -/
+the message reached the node (`nodeErr`: `nil`, `ErrStopped`, or the context's). (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.Campaign.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Campaign"))
       (Val #(interface.ok ctx)))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
 

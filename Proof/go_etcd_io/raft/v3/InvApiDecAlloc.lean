@@ -41,10 +41,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `cluster_alloc`). -/
 theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
-        leaderTransferOn γ N ∗ joinAuthU γ (GMap.listToSet vs) ∗
+        joinAuthU γ (GMap.listToSet vs) ∗
         [∗list] id ∈ vs, nodeFounderU γ N vs id := by
   intro Hrb Hne Hnd Hnz Hlen
   imod budget_alloc (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩

@@ -30,7 +30,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 committed to `Q` beforehand (`readCtx_commit`); a `Ready`'s `ReadState` with context `c` then says
 what it gave (`readStateOk_ctx`). The context may be retried. (U9, 2026-10-29: raft takes the
 request's read credit from a time receipt of its own, `rdPool`; until then the caller's
-`readCredit γ`.) -/
+`readCredit γ`.) (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.ReadIndex.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
     (Q : List LogEntry → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -38,7 +39,7 @@ abbrev node.ReadIndex.spec : Prop :=
       rctx ↦*□ c ∗ isReadCtx γ N c Q }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok ctx))) (Val #rctx))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
 

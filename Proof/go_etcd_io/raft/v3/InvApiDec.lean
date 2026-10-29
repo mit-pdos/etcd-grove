@@ -107,9 +107,10 @@ def UniNames (γ : Cluster) (N : Namespace) : Prop :=
     -- (2026-10-29, stage U5) no empty `ConfChangeV2` in the bootstrap log (it is empty)
     (∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x)
 
-/-- **A cluster of client decisions, with snapshots** (`InvNodeRule`'s `isCluster`). -/
+/-- **A cluster of client decisions, with snapshots** (`InvNodeRule`'s `isCluster`); (raft-final,
+2026-10-29, U7: the design's §2.9) with the read credits' exchange (`rdPool`). -/
 def isClusterU (γ : Cluster) (N : Namespace) : IProp GF :=
-  iprop(⌜UniNames γ N⌝ ∗ clusterInv γ N)
+  iprop(⌜UniNames γ N⌝ ∗ clusterInv γ N ∗ rdPool γ N)
 
 instance isClusterU_persistent (γ : Cluster) (N : Namespace) :
     Persistent (isClusterU (GF := GF) γ N) := by

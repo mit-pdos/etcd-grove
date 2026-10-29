@@ -434,7 +434,7 @@ node's leader and term, with the leader's witness (`ownStepGhost_lead`), into `N
 theorem ownStepGhost_xw_record (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
     (Hl : s.lead ≠ W64 0) :
     ownStepGhost (GF := GF) γ md c id s ⊢
-      ownStepGhost γ md c id { s with gh := { s.gh with xw := insert (s.lead, s.term) () s.gh.xw } } := by
+      ownStepGhost γ md c id { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } := by
   sorry
 
 /-- (D22 S-b′4) The mode is `γ`'s (`ownRaftGhost_mode`), read out. -/

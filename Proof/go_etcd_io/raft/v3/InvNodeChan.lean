@@ -1058,6 +1058,24 @@ instance nodeStoppedRaw_persistent (γ : NodeNames) : Persistent (nodeStoppedRaw
 instance nodeStoppedRaw_timeless (γ : NodeNames) : Timeless (nodeStoppedRaw (GF := GF) γ) := by
   unfold nodeStoppedRaw; infer_instance
 
+/-- (raft-final, 2026-10-29, K5) **A `node` call's error at raft's names, the stopped answer
+carrying `nodeStoppedRaw`** (the `done` receive gives it, `node_done_recv_au`): the raw form of the
+API's `nodeErrS`. -/
+def nodeErrRaw (γ : NodeNames) (cd : context.ContextDesc (IProp GF)) (err : GoInterface) : IProp GF :=
+  iprop(⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStoppedRaw γ) ∨ ctxErr cd err)
+
+instance nodeErrRaw_persistent (γ : NodeNames) (cd : context.ContextDesc (IProp GF))
+    (err : GoInterface) : Persistent (nodeErrRaw (GF := GF) γ cd err) := by
+  unfold nodeErrRaw; infer_instance
+
+/-- (raft-final, 2026-10-29, K5) A proposal's error at raft's names (`propErrS`'s raw form). -/
+def propErrRaw (γ : NodeNames) (cd : context.ContextDesc (IProp GF)) (err : GoInterface) : IProp GF :=
+  iprop(nodeErrRaw γ cd err ∨ stepErr err)
+
+instance propErrRaw_persistent (γ : NodeNames) (cd : context.ContextDesc (IProp GF))
+    (err : GoInterface) : Persistent (propErrRaw (GF := GF) γ cd err) := by
+  unfold propErrRaw; infer_instance
+
 theorem nodeLiveRaw_stopped (γ : NodeNames) (q : Qp) :
     nodeLiveRaw (GF := GF) γ q ∗ nodeStoppedRaw γ ⊢ False := by
   unfold nodeLiveRaw nodeStoppedRaw

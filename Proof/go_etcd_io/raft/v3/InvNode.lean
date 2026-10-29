@@ -267,6 +267,48 @@ instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
     Persistent (nodeStopped (GF := GF) n γ N) := by
   unfold nodeStopped; exact ApiImpl.nodeStopped_persistent n γ N
 
+/-- (raft-final, 2026-10-29, K5: the user's decision overriding the design's A9) **The error of a
+`node` call that hands a message to `run`, the stopped answer carrying `nodeStopped`** (persistent):
+`nil`, `ErrStopped` with the node stopped, or the context's. A holder of `nodeRunning` refutes the
+second (`nodeRunning_stopped`). `nodeErrS_nodeErr` forgets the stop (until then the posts' plain
+`nodeErr`). -/
+def nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
+    (err : GoInterface) : IProp GF :=
+  iprop(⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStopped n γ N) ∨ ctxErr cd err)
+
+instance nodeErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    Persistent (nodeErrS (GF := GF) n γ N cd err) := by
+  unfold nodeErrS; infer_instance
+
+theorem nodeErrS_nodeErr (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    nodeErrS (GF := GF) n γ N cd err ⊢ nodeErr cd err := by
+  unfold nodeErrS nodeErr
+  iintro (%H | ⟨#H, -⟩ | #H)
+  · ileft; ipureintro; exact H
+  · iright; ileft; iexact H
+  · iright; iright; iexact H
+
+/-- (raft-final, 2026-10-29, K5) **A proposal's error, the stopped answer carrying `nodeStopped`**:
+`nodeErrS`, or the proposal's result from `run` (`stepErr`). -/
+def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
+    (err : GoInterface) : IProp GF :=
+  iprop(nodeErrS n γ N cd err ∨ stepErr err)
+
+instance propErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    Persistent (propErrS (GF := GF) n γ N cd err) := by
+  unfold propErrS; infer_instance
+
+theorem propErrS_propErr (n : Loc) (γ : Cluster) (N : Namespace)
+    (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    propErrS (GF := GF) n γ N cd err ⊢ propErr cd err := by
+  unfold propErrS propErr
+  iintro (H | #H)
+  · ileft; iapply nodeErrS_nodeErr $$ H
+  · iright; iexact H
+
 /-- (2026-10-29, stage U7) **A `Status` value's memory is the caller's** (`node.Status`'s post):
 heap ownership only, of its `*pb.HardState` (read-only), its configuration's maps and a leader's
 progress copy (each progress with its own `Inflights`), or the zero `Status{}` of a stopped node.
@@ -327,17 +369,33 @@ context; until then `stepIn_intro_booted` beside it. 2026-10-29, stage U4: no pr
 any cluster: a node at term `0` has an empty log and grants a pre-vote request, so no rejection is
 sent at term `0`; until then `⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ`.) -/
 theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ⊢
     |==> stepIn γ N id ml := by
-  intro H1 H2 H3
+  intro H3
   unfold sentMsg msgCredits stepIn
-  exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3
+  exact ApiImpl.stepIn_intro_impl γ N id ml src st H3
+
+/-- (raft-final, 2026-10-29, U7: the design's §2.5, C12's `sentMsg_shape`) **A sent message has the
+shape raft sends** (`SentMsgShape`: its type, a nonzero sender, stamped or not by type, from another
+node but for the listed types, a `MsgApp` of raft's shape, the transfer messages with no entries and
+no context, no responses), and a `MsgSnap` holds a snapshot of index below `2^61` (the storage's
+snapshots are `snapshotValid`, which bounds it: the design's A10). What a transport needs to marshal
+it and a receiver to step it. -/
+theorem sentMsg_shape (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢
+      ⌜SentMsgShape st ∧
+        (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61)⌝ := by
+  sorry
+
+/-- (raft-final, 2026-10-29, U7: S1's `msgCredits_intro`, the design's §2.9) **A delivered copy of a
+message other than a proposal needs nothing**: its credits are a forwarded proposal's tickets only
+(a `MsgReadIndex`'s read credit is minted by its receiver, `rdPool`). -/
+theorem msgCredits_intro (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits (GF := GF) γ N st := by
+  sorry
 
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
 
@@ -425,6 +483,21 @@ private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (id : w64) (rd 
     (L : Option SnapLoan) :
     ApiImpl.readyRest (GF := GF) γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L := by
   cases L <;> exact .rfl
+
+/-- (raft-final, 2026-10-29, the design's A2, review 1's H2) **A `Ready`'s committed entries inside
+its batch are the batch's** (pure): after a `Ready` without a snapshot whose entries `es` start at
+index `k`, the committed entry at log index `|delivered| + 1 + j` (position `j` of `ce`), if at or past
+`k`, is `es`'s at that index (both lists are read from raft's log in the same step). So a snapshot
+the client creates at an in-batch index has the committed term (`snapshotValid`), and `ce` ends within
+the batch. -/
+theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
+    readyRest (GF := GF) γ N id rd st ce es h none ⊢
+      ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+        uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
+        (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e⌝ ∗
+      readyRest γ N id rd st ce es h none := by
+  sorry
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -566,8 +639,10 @@ theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (src : w64) (st :
 what `Ready` returns with it, and what `stepIn_intro` takes; a network may step any number of copies
 of it. Every other message's credits come from `msgCredits_none` and `msgCredits_snapshot`. -/
 theorem msgCredits_copy (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    γ.dup = true → st.msg.Type' = MsgProp → msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
-  unfold Cluster.dup msgCredits; exact ApiImpl.msgCredits_copy_impl γ N st
+    γ.dup = true → msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
+  -- (raft-final, 2026-10-29: of any message, S1's F1; until then of a `MsgProp`, whose credits had
+  -- no read credit)
+  sorry
 
 /-! ### The server port's additions (2026-10-27, branch `server-port`; proved the same day, branch
 `raft-api`)

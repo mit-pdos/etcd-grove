@@ -449,6 +449,27 @@ instance clusterInv_persistent (γ : Cluster) (N : Namespace) :
     Persistent (clusterInv (GF := GF) γ N) := by
   unfold clusterInv; infer_instance
 
+/-- (raft-final, 2026-10-29, U7: the design's §2.9) **The read-credit exchange** (persistent): an
+invariant in `N .@ "rdpool"` trading the time receipts that came in (`⧗ k`) for read credits
+(`rdCred`) left, `k + c` at least `2^64 - 2` (the credits `cluster_alloc` allocated, which it no
+longer hands out). `node.ReadIndex` and a stepped `MsgReadIndex` mint their credit from a receipt
+of their own (`rdPool_mint`): no client-supplied read credit (until then `readCredit γ`,
+`cluster_alloc`'s `readCredits γ (2^64-2)`). Credits never exceed `rdCredInv`'s bound. -/
+def rdPool (γ : Cluster) (N : Namespace) : IProp GF :=
+  inv (N .@ "rdpool") iprop(∃ (k c : Nat), ⧗ k ∗ rdCred γ.raft c ∗ ⌜2 ^ 64 - 2 ≤ k + c⌝)
+
+instance rdPool_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (rdPool (GF := GF) γ N) := by
+  unfold rdPool; infer_instance
+
+/-- (raft-final, 2026-10-29, U7: the design's §2.9) **A read credit for a time receipt**:
+`receipt_add_one_lt` bounds the receipts in (`k + 1 < receiptBound ≤ 2^64 - 2`), so at least two
+credits are left; one comes out. -/
+theorem rdPool_mint (γ : Cluster) (N : Namespace) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → ↑(N .@ "rdpool") ⊆ E →
+    ⊢ rdPool (GF := GF) γ N -∗ ⧗ 1 ={E}=∗ rdCred γ.raft 1 := by
+  sorry
+
 /-! ### Raft's standing update, from the adapter's invariant -/
 
 /-- **The standing update for the fillers**: the full log grows by the filler, the requested
@@ -1516,11 +1537,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- What a node's names say of it: of the cluster's names and budget, with no snapshot directory,
-in the cluster's mode (`Cluster.mode`), taking snapshots from the network unless the cluster is in
-raft's no-snapshot mode. (2026-10-27: until then in the static mode, taking snapshots.) -/
+in the cluster's mode (`Cluster.mode`). (2026-10-27: until then in the static mode, taking
+snapshots; raft-final, 2026-10-29, U9: until then also taking snapshots from the network unless the
+cluster is in raft's no-snapshot mode, `NodeNames.snapIn`, deleted.) -/
 def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
   γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γ.raft.reSnapLoc = (fun _ => none) ∧
-    γn.mode = γ.mode inferInstance ∧ (γn.snapIn = true ∨ γ.raft.reNoSnap = true)
+    γn.mode = γ.mode inferInstance
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
@@ -1658,9 +1680,13 @@ theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
   ipureintro; exact Hi
 
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
-cluster's names and budget (`NodeOk`), and the cluster's invariants. -/
+cluster's names and budget (`NodeOk`), the names its table names (`nodeTabOk`: so that `nodeStopped`,
+`nodeRunning` and the storage's names agree on them), and the cluster's invariants with the read
+credits' exchange (`rdPool`). (raft-final, 2026-10-29, U7/K5/U8: the design's §2.8; until then
+without the table's entry and the exchange.) -/
 def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
-  iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗ clusterInv γ N)
+  iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ id γn ∗
+    clusterInv γ N ∗ rdPool γ N)
 
 instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
@@ -1677,11 +1703,11 @@ def nodeRunning (n : Loc) (γ : Cluster) (_N : Namespace) (q : Qp) : IProp GF :=
 
 /-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`
 (`nodeStoppedRaw`). For a dynamic cluster's node, of the names its table names (`nodeTabOk`), so that
-it excludes the node's running (`nodeRunning_stopped_impl`); (temporary, until the static clusters
-go in U9) for a static one's, of some names of the node. -/
+it excludes the node's running (`nodeRunning_stopped_impl`). (raft-final, 2026-10-29, U9: until then
+also, for a static cluster's node, of some names of the node.) -/
 def nodeStopped (n : Loc) (γ : Cluster) (_N : Namespace) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64), ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗
-    (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ EtcdGrove.nodeStoppedRaw γn)
+    nodeTabOk γ id γn ∗ EtcdGrove.nodeStoppedRaw γn)
 
 instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
     Persistent (nodeStopped (GF := GF) n γ N) := by
@@ -1752,9 +1778,9 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
     isCommittedLogLb γ st.delivered ∗
-    (⌜γn.mode.isDyn = true⌝ ∨ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
-    (⌜γn.mode.isDyn = false⌝ ∨
-      nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length) ∗
+    -- (raft-final, 2026-10-29, U9: one cluster; until then the static node's `nodeCfg` or the
+    -- dynamic node's table entry and hard state's witness)
+    ⌜γn.mode.isDyn = true⌝ ∗ nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length ∗
     ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L ∗
@@ -1778,7 +1804,9 @@ term within the cluster's budget; (2026-10-27) a `MsgSnap`'s snapshot certified 
 (`sentMsg_snapshot`). -/
 def sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF :=
   iprop(clusterInv γ N ∗ isRaftMsg γ.raft src st ∗ termLB γ.bud st.msg.Term' ∗
-    sentSnapCert γ N st)
+    sentSnapCert γ N st ∗
+    -- (raft-final, 2026-10-29, U7) the read credits' exchange, for the receiver's `stepIn`
+    rdPool γ N)
 
 instance sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     Persistent (sentMsg (GF := GF) γ N src st) := by
@@ -1843,14 +1871,17 @@ theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : Ms
   iintro ⟨-, ⟨-, -, -, -, %H⟩, -⟩
   ipureintro; exact H.2
 
-/-- (open) **What a sent message carries for its receiver's `Step`.** -/
+/-- (open) **What a sent message carries for its receiver's `Step`**: a forwarded proposal's tickets
+(`stTks`). (raft-final, 2026-10-29, U7: the design's §2.9; until then also a `MsgReadIndex`'s read
+credit, which the receiver now mints from its own receipt, `rdPool`.) -/
 def msgCredits (γ : Cluster) (_N : Namespace) (st : MsgSt) : IProp GF :=
-  iprop(rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ.raft st)
+  stTks γ.raft st
 
 /-- (open) A `Ready`'s storage part (the draft's `readySnap`). -/
-def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
-  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es)
+  | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
+      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
   | some l => iprop(
       ⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧ l.ptr = rd.Snapshot' ∧ ce = [] ∧
         st.delivered <+: strip l.dlv ∧ st.delivered.length < l.dlv.length ∧
@@ -1859,7 +1890,9 @@ def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
         LogIndicesOk (snapId l.snap) es⌝ ∗
       ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommittedLogLb γ (strip l.dlv) ∗
       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
-      readyOut st.storage es (some l))
+      (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+        storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
+      snapGivenU γ id (uint.nat l.snap.Metadata'.Index'))
 
 /-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -1874,7 +1907,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧
       Lx < (receiptBound GF : Int) + γ.raft.reBoot.length⌝ ∗
-    readySnap γ N rd st ce es L)
+    readySnap γ N id rd st ce es L)
 
 /-- What receiving a `Ready` gives (`node.readyRecv.spec`'s postcondition). -/
 abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
@@ -2772,9 +2805,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (open) **A message `node.Step` takes** at the node `id`: raft's (`stepP`), for any node names
 of the cluster's (`NodeOk`), given a time receipt (2026-10-29, stage U7: `node.Step` takes it from
 a Go step of its own, a `MsgTimeoutNow`'s tick credit; until then the caller's `tickCredit`), and
-the message not `nil` (what `node.Step` checks before taking the receipt). -/
+the message not `nil` (what `node.Step` checks before taking the receipt). (raft-final, 2026-10-29,
+U7: a `⊤` update, which mints a `MsgReadIndex`'s read credit from the receipt, `rdPool_mint`; until
+then a wand.) -/
 def stepIn (γ : Cluster) (_N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
-  iprop(⌜ml ≠ null⌝ ∗ ∀ γn : NodeNames, ⌜NodeOk γ γn⌝ -∗ ⧗ 1 -∗ stepP γn id ml)
+  iprop(⌜ml ≠ null⌝ ∗ ∀ γn : NodeNames, ⌜NodeOk γ γn⌝ -∗ ⧗ 1 ={⊤}=∗ stepP γn id ml)
 
 /-- A list without repeats is a permutation of the elements of its set. -/
 theorem perm_elements_listToSet' (l : List w64) (h : l.Nodup) :
@@ -2785,9 +2820,8 @@ theorem perm_elements_listToSet' (l : List w64) (h : l.Nodup) :
 /-- **Stepping a sent message** (the draft's `stepIn_intro`). -/
 theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
     (st : MsgSt) :
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
+    -- (raft-final, 2026-10-29, U7: the design's §2.5; until then also `NetMsgOk` of a message not a
+    -- proposal, no transfer request, and a snapshot's index below `2^61`)
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗

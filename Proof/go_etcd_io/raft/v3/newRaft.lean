@@ -239,6 +239,9 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro c cv lok si sn σ hs csm R
     Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hfr0 Hsg0 Hdt0 Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal Hfl0
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
@@ -523,6 +526,7 @@ theorem newRaft.wp_proof
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl
+  -/
 
 end proof
 

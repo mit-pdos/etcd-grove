@@ -33,7 +33,8 @@ leave, `LogEntry.isEmptyV2`), which is no requested entry. The update never fire
 refuses the change (an empty normal entry commits in its place, `raft.go:1341`), and may not fire
 for an empty `ConfChangeV2`. (2026-10-29, stage U5: until then the post was `ops ++ [entry]`, an
 empty `ConfChangeV2` a requested entry.) (2026-10-29, S1) The update is wrapped in `□?γ.dup`, as
-`node.Propose`'s. -/
+`node.Propose`'s. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -45,7 +46,7 @@ abbrev node.ProposeConfChange.spec : Prop :=
             COMM True }>) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
-  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err }}
 
 end spec
 

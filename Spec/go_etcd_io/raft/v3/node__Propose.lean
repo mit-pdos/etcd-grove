@@ -33,7 +33,8 @@ The error is `nil` (run took the proposal; it may still be lost), `ErrStopped`, 
 (raft refused it; it was not appended) or the context's. (2026-10-29, S1) The update is wrapped in
 `□?γ.dup`: the update itself in a cluster whose network never duplicates a `MsgProp` (`γ.dup =
 false`, `□?false U = U`), a persistent one in a cluster whose network may (`msgCredits_copy`), where it
-fires at every committed copy of the proposal. -/
+fires at every committed copy of the proposal. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.Propose.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -44,7 +45,8 @@ abbrev node.Propose.spec : Prop :=
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
   {{ (err : GoInterface), RET #err;
-      ⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err }}
+      ⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStopped n γ N) ∨ errProposalDropped err ∨
+        ctxErr cd err }}
 
 end spec
 

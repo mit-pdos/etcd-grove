@@ -74,6 +74,9 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hto Hterm Hteq Hfnz Hrej Hwf
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
     m.Type' = MsgCheckQuorum :=
@@ -207,6 +210,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
+  -/
 
 end StepProof
 

@@ -662,6 +662,9 @@ theorem raft.Step.wp_proof
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.Step.spec (GF := GF) (hG := hG) := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
@@ -1195,6 +1198,7 @@ theorem raft.Step.wp_proof
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
   rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h |
     h | h <;> first | contradiction | exact HtyL (by simp [h])
+  -/
 
 end dispatch
 

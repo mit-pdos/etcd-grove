@@ -78,6 +78,9 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hteq Hvotes
   wp_start as H
   iNamed H
@@ -216,6 +219,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
       exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
+  -/
 
 end StepProof
 

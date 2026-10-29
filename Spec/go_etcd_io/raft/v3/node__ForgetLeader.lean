@@ -27,14 +27,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`node.ForgetLeader(ctx)`**, from any goroutine: a local `MsgForgetLeader` stepped by the
 node (a follower forgets its leader); nothing is promised of its effect. The error says only whether
-the message reached the node (`nodeErr`: `nil`, `ErrStopped`, or the context's). -/
+the message reached the node (`nodeErr`: `nil`, `ErrStopped`, or the context's). (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
 abbrev node.ForgetLeader.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
       (Val #(interface.ok ctx)))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
 

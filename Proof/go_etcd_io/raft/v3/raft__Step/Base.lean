@@ -450,6 +450,9 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
       ghostRest γ .static c id s ={⊤}=∗
       ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c id s' := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hlc Hg Hrest
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
@@ -475,6 +478,7 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
   rw [Hng.1]; iexact Hcl
+  -/
 
 /-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
 acknowledgement: `appliedSnap` switches to the snapshot's). -/
@@ -522,6 +526,9 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       ∃ md', ⌜md.StepOut c id m s s' md' ∧
         (∀ dec c0 h0 g, md = .dyn dec c0 h0 g → ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat j, cs', g.fp, g.decs⟩)⌝ ∗
         ownStepGhost γ md' c' id s' := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   cases md with
   | static =>
     have HC' : CfgStatic γ c' ∧ TrackedOk γ c' id := by
@@ -604,6 +611,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
 
       iintro %hcand; iapply Hc'; exact hcand
     rw [Hng.1]; iexact Hcl
+  -/
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)

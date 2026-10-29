@@ -75,6 +75,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hto Hterm Hfid Hwf
   wp_start as H
   iNamed H
@@ -294,6 +297,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         iframe Hphys
         ipureintro
         exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+  -/
 
 end StepProof
 

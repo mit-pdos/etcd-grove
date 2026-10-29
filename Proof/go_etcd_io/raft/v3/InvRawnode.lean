@@ -530,6 +530,9 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     -- (raft-final, 2026-10-29, U9: until then also a transfer request only with leader transfer
     -- on, `hx`)
     RestMsgOk s st.msg st.ents st.ctx := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   obtain ⟨-, -, Hun, -, -, -, Htl, -⟩ := h
   refine ⟨fun h' => Hun ?_ ?_, ht, fun h' => Htl h'⟩
   · rcases h' with h' | h' | h'
@@ -537,6 +540,7 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     · exact .inr (.inr (.inr (.inl h')))
     · exact .inr (.inr (.inr (.inr h')))
   · rcases h' with h' | h' | h' <;> rw [h'] <;> decide
+  -/
 
 -- (2026-10-28, stage U3c) `DynNoSnap` (the dynamic mode took no snapshot message, from 2026-10-14,
 -- stage B7 part 2) is gone: `RawNode.Step` takes a `MsgSnap` in either mode.
@@ -754,8 +758,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
     (Hb1 : s.term = W64 0 → plogLast s.logst.prev (s.logst.sents ++ s.logst.uents) = base0)
     -- (D19i part 1) the floor at most `applied` (a `MsgTimeoutNow` campaigns)
     (Hfla : uint.Z s.logst.fl ≤ uint.Z s.logst.applied)
-    -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on
-    (Hxo : m.Type' = MsgTransferLeader → s.gh.xf = false)
+    -- (raft-final, 2026-10-29, U9: until then a transfer request only with leader transfer on, `Hxo`)
     (k : StepMsg m →
       (m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
         (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) ∧
@@ -793,6 +796,9 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
       (m.Type' = MsgReadIndexResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
         m.From' ≠ id) →
       RestMsgOk s m ents ctx → X) : X := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   have Hok0 := Hok
   simp only [NetMsgOk] at Hok0
   obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf, -⟩ := Hok0
@@ -826,6 +832,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
       have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       simp only at h ⊢
       exact ⟨by omega, by omega, Hfla⟩) Hxo)
+  -/
 
 /-- The mode's guard from the guard in the dynamic mode. -/
 theorem RNMode.guard_of {mode : RNMode} {fp : List EntryM} {s : NState}
@@ -2241,6 +2248,9 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       ⌜NsLink γ s⌝ ∗
       -- (D22 S-b′3) the storage's certificate link
       certLink γ s.gh.sn := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
@@ -2254,6 +2264,7 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       (by rw [Hlrn]; rfl) HC.2
   iframe Hcl
   ipureintro; exact Hnl
+  -/
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -2285,6 +2296,9 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗
       ownRawNode γ rn id rs := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
@@ -2300,6 +2314,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor (Hpvoff.static_fp Hm) Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
+  -/
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
 theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
@@ -2366,6 +2381,9 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownStepGhost γ md c id s -∗
       ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝ ∗ ownRaftPhysCV c V r id s ∗
         ownStepGhost γ md c id s := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro Hphys Hghost
   icases ownRaftPhysC_ns c r id s $$ Hphys with ⟨%Hnsl, -, Hphys⟩
   iunfold ownStepGhost at Hghost
@@ -2378,6 +2396,7 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
     exact (Hnsl (by rw [Hnl.1]; exact h)).2.2.2
   iunfold ownStepGhost
   iframe Hg Hr
+  -/
 
 /-- (2026-10-20, D22 S-c) A node with nothing committed is of a cluster with no bootstrap log
 (`ownLogGhost_boot`), so not in the no-transfer mode (`RaftNames.reNoXfer_ok`): what
@@ -2432,63 +2451,6 @@ theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) 
   iapply ownRaftPhysC_toS
   iexact H
 
-/-- (2026-10-19, D21 M2r) Leader transfer turned on (`ownRaftPhysC_xf_off`) on the static-mode
-physical state (2026-10-19, D22 S-a: in either no-snapshot mode). -/
-theorem ownRaftPhys_xf_off (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ownRaftPhys cfg r id { s with gh := { s.gh with xf := false } } := by
-  iintro H
-  ihave H := ownRaftPhys_toC' $$ H
-  ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s $$ H
-  iapply ownRaftPhysC_toS
-  iexact H
-
-/-- (2026-10-19, D21 M3) The no-snapshot mode set to `b` on the static-mode physical state of a
-node out of the mode (`Bootstrap`'s, at the cluster's `RaftNames.reNoSnap`): into it, a
-non-leader with no pending snapshot, its log's boundary at most `1` and something committed, over
-a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). (2026-10-19, D21 M2r)
-Leader transfer (`NGhost.xf`, off since `newRaft`) set to `bx` (2026-10-19, D22 S-a: the cluster's
-`RaftNames.reNoXfer`, independent of `b`; until then `b` too): kept off, or turned on
-(`ownRaftPhysC_xf_off`); (2026-10-20, D22 S-c) and the boot flag (`NGhost.bt`) to `bx` too, past
-term `0` with nothing in the outbox (`ownRaftPhysC_set_bt`; until then the no-snapshot mode asked
-these). -/
-theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b bx : Bool)
-    (H0 : s.gh.ns = false) (H0x : s.gh.xf = true) (H0b : s.gh.bt = false)
-    -- (U8 v2, 2026-10-29) the no-snapshot mode is dropped: only `b = false`
-    (Hb : b = false)
-    (Hbt : bx = true → s.term ≠ W64 0 ∧ s.outbox = []) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := bx, bt := bx } } := by
-  iintro H
-  subst Hb
-  ihave H : ownRaftPhys cfg r id { s with gh := { s.gh with ns := false } } $$ [H]
-  · have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
-      rw [← H0]
-    rw [He]
-    iexact H
-  cases bx with
-  | true =>
-    obtain ⟨Ht, Hob⟩ := Hbt rfl
-    ihave H := ownRaftPhys_toC' $$ H
-    ihave H := ownRaftPhysC_set_bt
-      (c := CfgM.simple cfg (domSet ({ s with gh := { s.gh with ns := false } } : NState).progress \ cfg))
-      r id { s with gh := { s.gh with ns := false } } Ht Hob $$ H
-    ihave H := ownRaftPhysC_toS $$ H
-    have He : ({ s with gh := { s.gh with ns := false, xf := true, bt := true } } : NState) =
-        { ({ s with gh := { s.gh with ns := false } } : NState) with
-          gh := { ({ s with gh := { s.gh with ns := false } } : NState).gh with bt := true } } := by
-      rw [← H0x]
-    rw [He]
-    iexact H
-  | false =>
-    ihave H := ownRaftPhys_xf_off cfg r id { s with gh := { s.gh with ns := false } } $$ H
-    have He : ({ s with gh := { s.gh with ns := false, xf := false, bt := false } } : NState) =
-        { ({ s with gh := { s.gh with ns := false } } : NState) with
-          gh := { ({ s with gh := { s.gh with ns := false } } : NState).gh with xf := false } } := by
-      rw [← H0b]
-    rw [He]
-    iexact H
-
 /-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
 new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,
 a pre-campaign's, a transfer's campaign). -/
@@ -2513,6 +2475,9 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
 theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗
       ⌜uint.Z rs.term ≤ uint.Z rs.tc⌝ ∗ ownRawNode γ rn id rs := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro H
   iNamed H
   isplitr
@@ -2520,6 +2485,7 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
+  -/
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of

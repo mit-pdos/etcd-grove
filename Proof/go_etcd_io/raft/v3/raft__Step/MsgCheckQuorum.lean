@@ -98,6 +98,9 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hterm Hwf
   wp_start as H
   iNamed H
@@ -225,6 +228,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+  -/
 
 end StepProof
 

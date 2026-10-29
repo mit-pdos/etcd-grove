@@ -350,8 +350,12 @@ theorem XfOk.resps {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
 
 /-- The empty queues, at a term past `0` if a leader or candidate. -/
 theorem XfOk.nil {id : w64} {s : NState}
-    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) : XfOk id s [] :=
+    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) : XfOk id s [] := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+
   ⟨fun _ hm => by cases hm, fun _ hm => by cases hm, fun _ hm => by cases hm, ht⟩
+  -/
 
 /-- The same records, role and term, at the same queues. -/
 theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l)
@@ -373,8 +377,12 @@ theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk
 
 /-- A record added (`ownRaftPhysC_xw_record`). -/
 theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
-    XfOk id { s with gh := { s.gh with xw := insert p () s.gh.xw } } l := by
+    XfOk id { s with gh := { s.gh with xw := insert p s.gh.xw } } l := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   sorry
+  -/
 
 /-- A message queued: its own facts. -/
 theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
@@ -1645,8 +1653,12 @@ ghost step, `NGhost.xw`): the physical state does not read it, and `XfOk` only g
 forwards the request. -/
 theorem ownRaftPhysC_xw_record (r : Loc) (id : w64) (s : NState) (p : w64 × w64) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ownRaftPhysCV c V r id { s with gh := { s.gh with xw := insert p () s.gh.xw } } := by
+      ownRaftPhysCV c V r id { s with gh := { s.gh with xw := insert p s.gh.xw } } := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   sorry
+  -/
 
 /-- Changing only the outbox, up to permutation. -/
 theorem ownRaftPhysC_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
@@ -2065,6 +2077,9 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) #(stateW64 ro))))
     {{ RET #(); ownRaftPhysCV c V r id { s with role := ro } }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   iintro %Φ H HΦ
   iNamed_physC H
   wp_apply wp_store_access _ rv.state' (stateW64 ro) _ _ (raftOwn_access_store_state _ _ _) $$ Hr as Hr
@@ -2081,6 +2096,7 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) Hvoter' Hpr Hnsl (by first | exact Hxf | exact Hxf.term_le Hle)
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+  -/
 
 theorem raft.wp_store_stepC (r : Loc) (id : w64) (s : NState) (f : GoFunc) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}

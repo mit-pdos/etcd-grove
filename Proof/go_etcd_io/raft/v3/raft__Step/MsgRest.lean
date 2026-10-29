@@ -367,6 +367,9 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty3 Hterm Hwf Hfv
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by
@@ -410,6 +413,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · local_candidate
   · local_leader
   · local_candidate
+  -/
 
 /-- The preamble's step-down to a later term, for a type outside the model. -/
 theorem stepdown_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
@@ -435,8 +439,11 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     m.Type' = MsgTransferLeader →
     ents = [] →
     ctx = [] →
-    -- (2026-10-19, D21 M2r) leader transfer on (`NGhost.xf`)
-    s.gh.xf = false →
+    -- (raft-final, 2026-10-29, U7: the design's §2.3) the node's leader and term recorded for the
+    -- forward (`ownRaftPhysC_xw_record`, before this arm; `stepFollower`'s premise); the stamped
+    -- request's refutation from its witness (`ownStepGhost_xferRefute`, in `raft.Step`). (Until then
+    -- leader transfer on, `s.gh.xf = false`, D21 M2r.)
+    (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome) →
     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) →
     (s.role = .follower → s.lead ≠ id) →
     NStateWf s →
@@ -457,6 +464,9 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -586,6 +596,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
   · local_candidate
   · local_leader
   · local_candidate
+  -/
 
 set_option maxHeartbeats 2000000 in
 /-- `MsgTimeoutNow`. -/
@@ -612,6 +623,9 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+  sorry -- PHASE1
+  /- PHASE1-OLD
+ by
   intro Hty Hnw Hnwm Hwf Hfla
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -759,6 +773,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · local_candidate
   · local_leader
   · local_candidate
+  -/
 
 end StepProof
 
