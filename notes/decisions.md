@@ -25607,7 +25607,10 @@ in neither mode.
    `LeadOk` (a non-leader's `lead ≠ id`). Count the sites before the edit: `ownRaftGhost_intro` has 33
    callers and `leaderWit` 41 mentions in `Refinement.lean`. A separate persistent conjunct touches
    only the rules that move `lead` or `term`.
-3. *The transfer choice.* `transferChoice γ` is a one-shot; `transferAllowed` and `noTransfer` are its
+3. *(Dropped by the user, 2026-10-29: no transfer mode; `TransferLeadership` takes only `isNode`, so
+   per node `NGhost.xf` is simply `false` in the decision cluster and the queues may hold both
+   transfer messages; what follows was the design.)* *The transfer choice.* `transferChoice γ` is a
+   one-shot; `transferAllowed` and `noTransfer` are its
    two persistent shots. Per node, the ghost flag `NGhost.xf` (no transferee, no undescribed message)
    becomes "true until the node steps a transfer request". Turning it off needs `transferAllowed`
    (`ownRaftPhysC_xf_off` exists). `GMode`'s `s.gh.xf = γ.reNoXfer` (`StepGhostMode.lean:296`) becomes
