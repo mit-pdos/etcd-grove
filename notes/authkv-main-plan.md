@@ -412,9 +412,12 @@ part of G2 after the merge. `clientTokAt_user`'s conclusion is unchanged.
 
 ## After 5b merged (2026-10-29)
 
-`lean` merged into `authkv-main-skel` (SetUp, ClientOn: lean's, the merge session's). The user
-chose one spec for `WithTimeout(Background(), d)`: `context.WithTimeoutBackgroundMd` folded into
-`context.WithTimeoutBackground.spec`'s own conjunct (F-W4's); `SetUp` over `client.wp_WithTimeout_bg`.
+`lean` merged into `authkv-main-skel` (SetUp, ClientOn: lean's, the merge session's). The timeout
+context's metadata: first folded into `context.WithTimeoutBackground.spec` (one spec per function),
+then undone (the user's, 2026-10-29) once the cost showed: on `lean` `WithTimeoutBackground.wp_proof`
+is proved, and the fold made it an axiom under ten other collections. So the split stays: the
+proved base for everyone, the axiom `context.WithTimeoutBackgroundMd` for authkv's `SetUp` and
+`reqCtx` only (F-W4's in-place conjunct not taken; `Work`'s own watch context uses the base).
 `akAuthFixed`'s write half restated over `SetUp`'s post (`srvReqLogLb ρ.raft Lset`, `authHistFrozen`
 at `admStates Lset`, last state `setupSt r`), with the law `akAuthFixed_write` (proved: a grant's
 `authHistLb (admStates L)` at `Lset <+: L` is at `setupSt`).

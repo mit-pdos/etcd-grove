@@ -506,8 +506,8 @@ mode"). 5a carries the write's grant through the client's `On` results (`clientO
 an auth history `kvInvOn` keeps half of (`histAu`; decisions, "The admin requests over a client's
 view of the auth history"), through the server, the Auth gRPC layer and the client's Auth wrappers;
 authkv's `SetUp` (its auth half) proved over it, returning the history frozen at `setupSt r`,
-published, over `context.WithTimeoutBackground`'s outgoing-metadata conjunct (the set-up's
-context has no outgoing metadata; the user's choice; one axiom, the separate `...Md` folded in, 2026-10-29). Still in 5b: F-S2's `etcd_noOtherRefusal`
+published, over the new trust-boundary axiom `context.WithTimeoutBackgroundMd` (the set-up's
+context has no outgoing metadata; the user's choice). Still in 5b: F-S2's `etcd_noOtherRefusal`
 (approved). Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
 

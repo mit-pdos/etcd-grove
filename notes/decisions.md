@@ -25419,9 +25419,7 @@ auth history, not an abstract `Q` the client chooses.
 - **The context's metadata** (user's choice, 2026-10-29: an axiom over a premise): the
   trust-boundary spec `context.WithTimeoutBackgroundMd.spec` says `WithTimeout(Background(), d)`
   has no outgoing metadata (`metadata.outgoingOf = none`; in Go only grpc stores under its
-  unexported key). Reviewed by the `axiom` skill before it is frozen. Superseded (the user's,
-  2026-10-29): one spec per function, the conjunct in `context.WithTimeoutBackground.spec` itself
-  (authkv F-W4's), `...Md` removed.
+  unexported key). Reviewed by the `axiom` skill before it is frozen.
 - **Not here:** `ClientCertAuthEnabled ↦□ false` tied to the started member's config (the premise
   `□ (srvTLSId s -∗ False)`'s source) is `Main`'s, with the rest of its proof: `memberUpOn`
   exposes the config `cfg` but not that the server's field is `cfg.ClientCertAuthEnabled'`.

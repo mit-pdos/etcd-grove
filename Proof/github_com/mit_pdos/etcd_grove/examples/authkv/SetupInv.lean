@@ -11,7 +11,7 @@ to the last state; `SetupHist.lean`). Each admin call's update (`clientHistAu`) 
 - frozen: no update commits. The history's last state is enabled, so the step's admission needs a
   user, and the call's header has none: its token is the context's (no credential,
   `attemptTokOk conn (fun _ => False)`), the context carries no metadata
-  (`context.WithTimeoutBackground`), and the server has no TLS identity (`setupCtx`).
+  (`context.WithTimeoutBackgroundMd`), and the server has no TLS identity (`setupCtx`).
 A reply gives the call's effect (`setup_reply`), recorded or already there; `AuthEnable`'s gives
 the frozen history and the published state (`setup_reply_enable`).
 -/

@@ -77,9 +77,3 @@ map from contexts to metadata) rather than a global function. This axiom makes t
 A Lean proof of a program (none needed for a survival); closed-world contexts from outside the
 program (a context from a library whose `Value` returns a `rawMD` at grpc's key): not reachable, as
 the parent is `Background()` by the triple's syntax.
-
-## Folded (2026-10-29)
-
-The user chose one spec for the call: the conjunct is `context.WithTimeoutBackground.wp_proof`'s own
-(reviewed in [withtimeout-outgoing](withtimeout-outgoing.md), the same claim), and this axiom and
-`client.wp_WithTimeout_bgMd` are gone; `SetUp` uses `client.wp_WithTimeout_bg`.

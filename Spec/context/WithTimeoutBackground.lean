@@ -9,7 +9,6 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Proof.context
-public import Proof.google_golang_org.grpc.metadata.Outgoing
 
 @[expose] public section
 
@@ -33,10 +32,7 @@ variable [package_sem : context.Assumptions]
 ghost fact `isClosedchanInit`, a premise its proof no longer needs): a context (`isContext`, of
 some descriptor: a `*timerCtx` whose parent is `Background()`) and its `cancel` function, callable
 from anywhere. Perennial's `wp_WithTimeout_Background` says which descriptor (no values, the
-deadline `time.Now().Add(d)`, Done proposition `True`); the callers here need none of it. The new
-context has no outgoing grpc metadata (`metadata.outgoingOf … = none`: a fresh `*timerCtx` whose
-parent is `Background()`, so `FromOutgoingContext` finds no value at grpc's key), which
-authkv's `reqCtx` needs (its `anon` principal sends no token). -/
+deadline `time.Now().Add(d)`, Done proposition `True`); the callers here need none of it. -/
 abbrev context.WithTimeoutBackground.spec : Prop :=
   ∀ (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isClosedchanInit }}
@@ -46,7 +42,7 @@ abbrev context.WithTimeoutBackground.spec : Prop :=
       RET (PairV #(interface.ok ctx') #cancel);
       □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-      context.isContext ctx' cd ∗ ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ }}
+      context.isContext ctx' cd }}
 
 end spec
 

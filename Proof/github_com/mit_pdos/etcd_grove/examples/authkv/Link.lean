@@ -24,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.newUserClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.refused
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
 public import Proof.context.WithTimeoutBackground
+public import Proof.context.WithTimeoutBackgroundMd
 public import Proof.google_golang_org.grpc.metadata.AppendToOutgoingContext
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -92,13 +93,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-theorem context.wp_WithTimeoutBackground :
-    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.WithTimeoutBackground.wp_proof
+theorem context.wp_WithTimeoutBackgroundMd :
+    EtcdGrove.context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackgroundMd.wp_proof
 
 theorem wp_SetUp :
     EtcdGrove.authkv.SetUp.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.SetUp.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_Principals wp_keyOf client.v3.authClient.wp_UserAdd client.v3.authClient.wp_UserGrantRole client.v3.authClient.wp_RoleAdd client.v3.authClient.wp_RoleGrantPermission client.v3.authClient.wp_AuthEnable
+  EtcdGrove.authkv.SetUp.wp_proof context.wp_WithTimeoutBackgroundMd context.wp_ErrAny wp_Principals wp_keyOf client.v3.authClient.wp_UserAdd client.v3.authClient.wp_UserGrantRole client.v3.authClient.wp_RoleAdd client.v3.authClient.wp_RoleGrantPermission client.v3.authClient.wp_AuthEnable
 
 theorem wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.authkv.newUserClient.spec (GF := GF) (hG := hG) :=
@@ -110,11 +111,15 @@ theorem metadata.wp_AppendToOutgoingContext :
 
 theorem wp_reqCtx :
     EtcdGrove.authkv.reqCtx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.reqCtx.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny metadata.wp_AppendToOutgoingContext
+  EtcdGrove.authkv.reqCtx.wp_proof context.wp_WithTimeoutBackgroundMd context.wp_ErrAny metadata.wp_AppendToOutgoingContext
 
 theorem wp_checkTxnReads :
     EtcdGrove.authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.checkTxnReads.wp_proof wp_checkKVs
+
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
 
 theorem wp_Work :
     EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=

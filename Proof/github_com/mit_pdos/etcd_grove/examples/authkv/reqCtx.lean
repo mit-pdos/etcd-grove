@@ -1,6 +1,6 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/authkv/reqCtx.lean`: the timeout context
-(`client.wp_WithTimeout_bg`), and for the bad principal its token appended (C3); the appended
+with no outgoing metadata (`client.wp_WithTimeout_bgMd`), and for the bad principal its token appended (C3); the appended
 context's `Err()` returns client errors as every `isContext`'s does (`ctxErrClientAllW_of`).
 Lean-first (no Rocq counterpart).
 -/
@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
 theorem reqCtx.wp_proof
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Append : metadata.AppendToOutgoingContext.spec (GF := GF) (hG := hG)) :
     reqCtx.spec (GF := GF) (hG := hG) := by
@@ -40,7 +40,7 @@ theorem reqCtx.wp_proof
   wp_auto
   wp_apply context.wp_Background
   (try wp_auto)
-  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+  wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
     as %cctx %cd %cancel ⟨#Hcancel, #Hok, #Hce, #Hctx, %Hnone⟩
   (try wp_auto)
   wp_if_destruct

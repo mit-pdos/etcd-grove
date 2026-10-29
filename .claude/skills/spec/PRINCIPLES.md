@@ -52,6 +52,13 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   specs, 2026-10-25 to 10-28: about 3.5k lines of copied proofs, every other track's change made
   twice, `notes/auth-mode-merge-plan.md`; M2's round-1 repair `8950d80bf2`, reversed by the user,
   `notes/m2-plan.md` on `m2`.)
+  The exception is the trust boundary: a fact only an axiom gives does not go into a proved spec,
+  which would put the axiom under every result using that spec. It is a separate trust-boundary spec,
+  the proved one's post plus the assumed fact, and only the callers that need it take it. Before you
+  strengthen a spec in place, check whether its proof is a theorem (`etc/tcb-report.py --check`
+  shows which collections gain an axiom). (`context.WithTimeoutBackgroundMd`, 2026-10-29: folding
+  it into the proved `WithTimeoutBackground` would have put an axiom under ten collections for
+  authkv's one fact; the user kept the split.)
 
 ## Preferences: strength
 

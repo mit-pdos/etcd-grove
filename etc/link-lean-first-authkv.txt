@@ -18,9 +18,11 @@ authkv_checkTxnReads: authkv_checkKVs
 # the request contexts: the timeout context, and the bad principal's token appended (C3, grpc's
 # `metadata` a trust boundary)
 context_WithTimeoutBackground:
+# (5b) the same with no outgoing metadata, the set-up's admin context (a trust-boundary axiom)
+context_WithTimeoutBackgroundMd:
 context_ErrAny: @
 metadata_AppendToOutgoingContext:
-authkv_reqCtx: context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
+authkv_reqCtx: context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext
 # (the auth plan's E2h) `SetUp`: the puts with a persistent update (`client_Put_any`), the
 # admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) at etcd's
 # Auth specs (`setupAuthServed`), in a context with no outgoing metadata (5b)
@@ -29,7 +31,7 @@ v3_authClient__UserGrantRole: @
 v3_authClient__RoleAdd: @
 v3_authClient__RoleGrantPermission: @
 v3_authClient__AuthEnable: @
-authkv_SetUp: context_WithTimeoutBackground context_ErrAny authkv_Principals authkv_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
+authkv_SetUp: context_WithTimeoutBackgroundMd context_ErrAny authkv_Principals authkv_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
 # the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
 client_v3_New: @
 authkv_newUserClient: client_v3_New

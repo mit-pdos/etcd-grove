@@ -28,7 +28,7 @@ server's `AuthInfoFromCtx` reads, `auth.ctxTokenOf`) and a call's outgoing metad
 The bad principal's request is then unbound (`badCtx_unbound`): a handler context delivering
 outgoing metadata whose only token value is `badtoken` gives the server's `AuthInfoFromCtx` no
 auth info in the mode `on γa`. That the timeout context `reqCtx` starts from has no outgoing
-metadata is the trust-boundary spec `context.WithTimeoutBackground.spec` (5b, 2026-10-29; true
+metadata is the trust-boundary spec `context.WithTimeoutBackgroundMd.spec` (5b, 2026-10-29; true
 of Go: only grpc stores under its metadata key; Perennial's context model does not describe values
 at other keys, `ContextDesc.Values` unused), which `SetUp` uses; `reqCtx`'s spec does not yet.
 

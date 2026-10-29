@@ -5,7 +5,7 @@ E2h). Lean-first (no Rocq counterpart).
 The puts: two nested loops over `Principals()` and `{"a", "c"}`, each put in a timeout context
 (`client.wp_WithTimeout_bg`), through `New`'s client with the caller's persistent update
 (`client_Put_on`, S5: at the member's `Put` with auth on), the context cancelled after the call; the admin calls: one timeout
-context with no outgoing metadata (`client.wp_WithTimeout_bg`), cancelled by the `defer` at every
+context with no outgoing metadata (`client.wp_WithTimeout_bgMd`), cancelled by the `defer` at every
 return, each call through the client's `Auth` field (`clientTokAt`'s `authObjAtC`, over the
 connection whose attempts carry no credential), with the update and the reply of `SetupInv.lean`
 (the client's view of the auth history turned into `SetUp`'s cell at the start, `setup_alloc`).
@@ -47,7 +47,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
 theorem SetUp.wp_proof
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Principals : Principals.spec (GF := GF) (hG := hG))
     (wp_keyOf : keyOf.spec (GF := GF) (hG := hG))
@@ -129,7 +129,7 @@ theorem SetUp.wp_proof
       (try wp_auto)
       wp_apply context.wp_Background
       (try wp_auto)
-      wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+      wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
         as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, -⟩
       (try wp_auto)
       wp_apply wp_keyOf x w go!"d"
@@ -177,7 +177,7 @@ theorem SetUp.wp_proof
     icases Hauth with ⟨#Hu, #Hg, #Hr, #Hp, #He⟩
     wp_apply context.wp_Background
     (try wp_auto)
-    wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout⟩
     ihave #Hx : setupCtx s conn (GoInterface.ok cctx) $$ []
     · iunfold setupCtx; iframe Hctok Htls; ipureintro; exact Hout

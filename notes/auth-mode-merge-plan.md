@@ -267,8 +267,7 @@ repository) and authkv's session checked it against its history invariant S1. Th
   client's Auth wrappers (`authObjAtC`, `clientTokAt` naming `Auth`, `clientHistAu`) and authkv's
   `SetUp` (auth half: `SetupHist`, `SetupInv`; the premise `c0 ≤ ai0` added, the reply's
   `authHistLb` and `pubAfterM`'s `e.data ≠ []` found in the proof). The context's metadata: the
-  axiom `context.WithTimeoutBackgroundMd` (user's choice; later folded into
-  `context.WithTimeoutBackground`'s own spec, the user's, 2026-10-29). Left: `etcd_noOtherRefusal`, `Main`'s
+  axiom `context.WithTimeoutBackgroundMd` (user's choice). Left: `etcd_noOtherRefusal`, `Main`'s
   `ClientCertAuthEnabled` from the started member's config.
 - **5b (D2), after step 5:** a mono-list auth history in `kvInvOn`, its client half exported at the
   on start; the admin case of `reqPropOkOn` takes an AU over it; `writeGrantAt` gains the

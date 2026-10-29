@@ -1,20 +1,13 @@
 /-
-The trust boundary: `context.WithTimeout(context.Background(), d)` (an axiom again since 2026-10-29,
-for one conjunct). Everything but the outgoing metadata is Perennial's `wp_WithTimeout_Background`
-(`Perennial/Proof/context/WithDeadlineBackground.lean`, proved; this file proved the spec from it
-2026-10-23..29, `notes/client-timeouts-plan.md` T3). The spec now also says the new context has no
-outgoing grpc metadata, which nothing in Perennial's context model can say: `isContext` does not
-constrain a descriptor's `Values` (unused), and this repository's `metadata.outgoingOf` is opaque.
-It is true in Go: the result is a fresh `*timerCtx` whose parent is `Background()`, and
-`metadata.FromOutgoingContext` looks up grpc's own key with `Value`, which neither has. A first
-attempt, a law that a context with no `Values` has no outgoing metadata, was inconsistent with
-`AppendToOutgoingContext`'s axiom (`notes/axiom-review/outgoingOf-noValues.md`, branch
-`axiom/outgoingOf-noValues`). The general fix, a Perennial `isContext` whose `Values` are what
-`Value` returns, is in `notes/perennial-changes.md`; with it this is proved again.
+`context.WithTimeout(context.Background(), d)`: proved from Perennial's `wp_WithTimeout_Background`
+(`Perennial/Proof/context/WithDeadlineBackground.lean`, the pin since 2026-10-23;
+`notes/client-timeouts-plan.md` T3). Until then the trust boundary: an axiom, Perennial specifying
+`WithDeadlineCause` for an `isContext` parent only, and `Background()` being none.
 -/
 module
 
 public import Spec.context.WithTimeoutBackground
+public import Perennial.Proof.context.Results
 
 @[expose] public section
 
@@ -23,7 +16,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,9 +25,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
-/-- See the file header. -/
-axiom context.WithTimeoutBackground.wp_proof :
-    context.WithTimeoutBackground.spec (GF := GF) (hG := hG)
+/-- The spec's descriptor is Perennial's `bgDeadlineDesc` (no values, the deadline, Done
+proposition `True`); its `isClosedchanInit` premise is unused (Perennial derives it from
+`isPkgInit`). -/
+theorem context.WithTimeoutBackground.wp_proof :
+    context.WithTimeoutBackground.spec (GF := GF) (hG := hG) := by
+  intro d
+  iintro %Φ ⟨#Hpkg, -⟩ HΦ
+  wp_apply (_root_.Perennial.context.wp_WithTimeout_Background d) $$ []
+    as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx⟩
+  iapply HΦ
+  iframe #
 
 end proof
 
