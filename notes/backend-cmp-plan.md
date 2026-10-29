@@ -1083,3 +1083,25 @@ Measured:
 Recommended: a dedicated round, with its own Draft of `relog` and the fold's statement, and a review
 before the proofs, since it changes `Unlock.spec`, a statement 40 files use. Until then
 `Unlock.specC`/`UnsafeDelete.specC` stay beside their specs, and the limited-range `sorry` stays.
+
+### Review round 10: question 4 closed (2026-10-29)
+
+Round 10 (`notes/spec-first-study/backend-review-10.md`, on `facf2ad1e1`) has no first-tier finding.
+It endorses both choices made by the agent: the persistent bit `fkV`, and `BParams.FV`. The
+question-4 increment's review is closed. Its full build of record passed (10943 jobs); the trust
+check matches the baseline.
+
+Second tier, to go in with the next code change:
+- **R10-1:** a law giving `bkNoCmp γ ∗ fkV γ true` from one `fkCl` under `noCmpData D`, plus the bit
+  from `fkWfD P D`. Needed at wiring.
+- **R10-3:** a line in `notes/axiom-review/openbackend.md` on why `OpenBackend`, `Snapshot` and
+  `MustSaveMemberToBackend` stay true with `fkCl`/`fkHalf`. Also R9-1's
+  `MustUnsafeSaveConfStateToBackend` entry.
+- **R10-2:** stale docstrings: `OpenBackend.lean:17` and `OpenSnapshotBackend.lean:13` still say
+  `bkNoCmp_of_fkOwn`; `isKeyBackendG_of_backendC`'s new hypotheses are undocumented; so is
+  `isKeyBackendG`'s `RLock` taking `RT`.
+- **R10-4:** a restart over a file that records a compaction needs a well-formedness premise on the
+  file. The bit never rises.
+- **R10-5:** delete the unused `viOk` (`DelKeys.lean:97-101`); the `BParams.VI` sketch is superseded.
+
+Next: question 2's own round (Draft, then Review), then question 5 (the wiring).
