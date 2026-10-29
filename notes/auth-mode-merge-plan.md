@@ -260,6 +260,9 @@ repository) and authkv's session checked it against its history invariant S1. Th
   `_on` results use.
 - Off-only still (no regression; merges to do): `MemberList.spec`, `read_server`,
   `srvAuthAt_of_views`, `parseProposeCtxErr.spec`.
+- **5a (2026-10-29, done on `auth-5b`):** the write grant through the client's `On` registrations
+  and results (`clientOpAuOn`, `txnUpdAtOn`; decisions, "The write grant through the client's `On`
+  results"), a step-5 gap authkv found.
 - **5b (D2), after step 5:** a mono-list auth history in `kvInvOn`, its client half exported at the
   on start; the admin case of `reqPropOkOn` takes an AU over it; `writeGrantAt` gains the
   history's prefix up to `L`. Needs the on start (step 4's statements). Drafted to authkv's session

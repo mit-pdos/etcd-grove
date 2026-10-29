@@ -502,7 +502,7 @@ grant when it fires (`kvAu1G`, `writeGrantG`; v3rpc's `kvDepOwnOn`; "The write's
 grant"). Merges A, C and D are in: the request path (`parseProposeCtxErr`, `processInternalRaftRequestOnce`,
 `raftRequest`, `doSerialize`, `Put`, `DeleteRange`, `Range`) has one spec each at `E.authOn`, with the
 former pairs as corollaries in `ModeSpecs.lean` (decisions, "The request path in the environment's
-mode"). Still to do: 5b (the admin specs over a client view of the auth history; F-S2's
+mode"). 5a carries the write's grant through the client's `On` results (`clientOpAuOn`). Still to do: 5b (the admin specs over a client view of the auth history; F-S2's
 `etcd_noOtherRefusal`, approved, goes in there). Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
 

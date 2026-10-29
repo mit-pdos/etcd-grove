@@ -25362,3 +25362,21 @@ Decided by the agent:
   finding C2).
 - Laws for clients: `grantedAt_iff` with `srvAuthAtLog` (`ProposeOn.lean`), `kvGranted_emptyUser`
   (`KVAuthModel.lean`) and `srvTLSId_false` (`AuthReqDerive.lean`).
+
+## The write grant through the client's `On` results (2026-10-29, the auth-mode merge's 5a)
+
+Step 5 told a write's update its grant (`v3rpc.kvDepOwnOn`), but only up to v3rpc. The client's
+registrations (`etcdPutSpecOn`, `etcdDeleteSpecOn`, `etcdTxnSpecOn`) and results (`client_put_on`,
+`client_delete_on`, `client_txn_on`) still took a plain `kvOpAu1`, and `ServedOn` dropped the grant
+(`kvDepOwnOn_of_dep` at `L₀ = []`). authkv needs it at the client: its write update refutes a
+foreign principal at the commit. Statements reviewed by authkv's session before the proof.
+- v3rpc: `kvOpAuOn s E ρ tok op Q`, which is `kvDepOwnOn`'s `.op1` case: `∃ L₀, srvReqLogLb ρ.raft
+  L₀ ∗ kvAu1G … (opGrantT s E ρ tok op L₀) Q`. The registrations take it at the attempt's token
+  (`auth.mdTokenOf md`).
+- Client: the caller doesn't know which attempt's metadata the server saw, so its update is told
+  the grant at some attempt's token: `clientGrant` (`∃ md, ⌜clientAttemptMd conn ctx md⌝ ∗
+  opGrantT …`), `clientOpAuOn` (the same shape as `kvOpAuOn`), and for a transaction `txnUpdAtOn`.
+  Laws: `clientOpAuOn_attempt` (to `kvOpAuOn` at an attempt, by `kvAu1G_mono`) and
+  `clientOpAuOn_of_au1` (an update that ignores the grant, at `L₀ = []`).
+- The posts are unchanged.
+
