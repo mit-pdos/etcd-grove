@@ -17,6 +17,23 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Context model: a descriptor's `Values` constrain nothing (2026-10-29, authkv round 1)
+
+- **Limitation.** `isContext c d` never reads `d.Values` (its docstring: "unused"), so
+  `isContext c d ⊢ isContext c { d with Values := ∅ }` and a spec's "no values" says nothing of what
+  `c.Value(k)` returns. A law "a context with no values has no value at grpc's metadata key" is then
+  false of every context; it was inconsistent with `AppendToOutgoingContext`'s axiom
+  (`notes/axiom-review/outgoingOf-noValues.md`, branch `axiom/outgoingOf-noValues`).
+- **Needed by.** authkv's `reqCtx` (its `anon` principal sends no token: `WithTimeout(Background())`
+  has no outgoing grpc metadata); the same gap as the `WithCancel` entry below (the trace key).
+- **Workaround here.** `context.WithTimeoutBackground.wp_proof` is a trust-boundary axiom again,
+  its post with `metadata.outgoingOf (ok ctx') = none` (`Proof/context/WithTimeoutBackground.lean`).
+- **Proposed.** `isContext`'s `Value` clause at every key: `c.Value(k)` returns `d.Values !! k` (or
+  nil), with the derived contexts' specs saying their `Values` (a `cancelCtx`/`timerCtx` the
+  parent's, a `valueCtx` the parent's with one more). Then "no values" is meaningful, the timeout
+  spec is proved again, and the outgoing-metadata fact a law over grpc's key.
+- **Status.** Open.
+
 ### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
 
 - **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`

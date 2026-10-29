@@ -8,7 +8,6 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
 public import Spec.google_golang_org.grpc.metadata.AppendToOutgoingContext
-public import Proof.google_golang_org.grpc.metadata.OutgoingNoValues
 
 @[expose] public section
 
@@ -42,8 +41,7 @@ theorem reqCtx.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
-    as %cctx %cd %cancel ⟨#Hcancel, #Hok, #Hce, #Hctx, %Hv⟩
-  ihave %Hnone := metadata.outgoingOf_noValues cctx cd $$ Hctx
+    as %cctx %cd %cancel ⟨#Hcancel, #Hok, #Hce, #Hctx, %Hnone⟩
   (try wp_auto)
   wp_if_destruct
   · -- the bad principal: its token appended
@@ -69,14 +67,14 @@ theorem reqCtx.wp_proof
     isplitr; · iapply ctxOk_of_isContext; iexact Hctx'
     isplitr; · iapply Hall; iexact Hctx'
     ipureintro
-    exact ⟨Hnone Hv, Hmd⟩
+    exact ⟨Hnone, Hmd⟩
   · (try wp_auto)
     iapply HΦ
     iframe #
     iexists GoInterface.ok cctx
     isplitr; · ipureintro; rfl
     ipureintro
-    refine ⟨Hnone Hv, ?_⟩
+    refine ⟨Hnone, ?_⟩
     simp only [Hif, ↓reduceIte]
 
 end proof

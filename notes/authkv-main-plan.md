@@ -280,14 +280,16 @@ freezable yet; no bug in the Go code. Its findings and what was done:
   step 5's client write results and drafts it here before proving it. Then F-S1: `SetUp.spec`'s
   post gives the last put's revision and the client's `etcdKV` back at it.
 - F-W4: `anon`'s and `bad`'s tokens need `reqCtx`'s timeout context to have no outgoing metadata.
-  Perennial already says its descriptor has no values (`bgDeadlineDesc`); the gap was this
-  repository's grpc model, whose `outgoingOf` is opaque. **Done:**
-  `context.WithTimeoutBackground.spec` gives `cd.Values = ∅` (proved from Perennial's),
-  `client.wp_WithTimeout_bg` passes it on, `reqCtx.spec` gives `outgoingOf c0 = none`, from a new
-  trust-boundary axiom on the grpc model, `metadata.outgoingOf_noValues`
-  (`Proof/google_golang_org/grpc/metadata/OutgoingNoValues.lean`: a context with no values has no
-  outgoing metadata). No Perennial change needed. The `axiom` skill reviews it before the freeze;
-  `etc/tcb-report.py --check --update` before merging.
+  First attempt: a law over the grpc model, "a context with no values has no outgoing metadata"
+  (`metadata.outgoingOf_noValues`). The `axiom` skill refuted it: Perennial's `isContext` does not
+  constrain `Values`, so it was inconsistent with `AppendToOutgoingContext`'s axiom (a Go program
+  that panics, proved not to: `notes/axiom-review/outgoingOf-noValues.md`, branch
+  `axiom/outgoingOf-noValues`). **The user's choice: tie the fact to the call.**
+  `context.WithTimeoutBackground.spec` gives `metadata.outgoingOf (ok ctx') = none`; its
+  `wp_proof` is a trust-boundary axiom again (proved from Perennial's spec until now); the general
+  fix is in `notes/perennial-changes.md` ("a descriptor's `Values` constrain nothing").
+  `client.wp_WithTimeout_bg` passes the fact on, and `reqCtx.spec` gives `outgoingOf c0 = none`.
+- F-S2's part 1, `etcd_noOtherRefusal` (the merge session's, route B): approved by the user.
 - `authkv_Main` takes `DialWithBalancerBody`, as every client-building `Main` does: kept.
 
 **Not yet drafted** (`Main.wp_proof`'s other callees): `startServer`, `Serve`, root's `Put`, the

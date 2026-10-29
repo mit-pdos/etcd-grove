@@ -37,8 +37,8 @@ variable [rpctypes_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`context.WithTimeout(context.Background(), d)` for a client call** (see the file header): the
-context, `ctxOk` and `ctxErrClient` (and the `isContext` they come from, with no values), and its
-`cancel`. -/
+context, `ctxOk` and `ctxErrClient` (and the `isContext` they come from, with no outgoing
+metadata), and its `cancel`. -/
 theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
@@ -52,7 +52,8 @@ theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (
         □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
           WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
         ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗
-        (_root_.Perennial.context.isContext ctx' cd ∗ ⌜cd.Values = ∅⌝) }} := by
+        (_root_.Perennial.context.isContext ctx' cd ∗
+          ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝) }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init
