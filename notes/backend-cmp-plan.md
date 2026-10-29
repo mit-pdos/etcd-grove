@@ -657,3 +657,11 @@ backend's registration from that backend's `dlInit` (a proof edit; no D22 statem
   backends never compact); (b) a separate quarter for D22 (another split of `γ.view`). Recommended
   (a). Until decided, `batchTxBuffered.Unlock.specC` and `UnsafeDelete.specC` stay beside their
   `spec`s (folding them needs this).
+
+**Held for the user (2026-10-29): R4-2 changes a D22 statement.** The batch lock's view quarter is
+also D22's `viewAt γ vd` (`InvSnapshot.lean:129`; `backend.Snapshot`'s spec, `SnapSendBranch`), so
+moving it onto the logical view is a non-additive change to the collaborator's statements. Options:
+(a) `viewAt` over the logical view, D22's users kept exact through `dlNoDel` (their backends never
+compact) — the fork's recommendation; (b) a separate view quarter for D22, leaving `viewAt` as is.
+Not decided by the agent: D22 is the collaborator's track. Until then `Unlock.specC` and
+`UnsafeDelete.specC` stay beside their specs (the stage's exit condition is unmet).
