@@ -146,3 +146,17 @@ kvStOn … L = σ⌝` (at the token level, `hdrBoundT`). Checked against S1:
   `e` the request's entry (`∀ L₀, srvRLogLb ρ.raft L₀ -∗ ⌜L₀ <+: L ++ [e]⌝`). Then `Lset <+: L`,
   since `e` is a KV write. The alternative is a caller-given lower bound in the precondition, as
   reads have.
+
+**Taken (with the merge session, 2026-10-29).** The persistent `∀ L₀` form is false: later lower
+bounds grow past `L ++ [e]`. Instead the lower bound travels with the update. `reqPropOkOn`'s write
+case is `∃ L₀, srvRLogLb ρ.raft L₀ ∗ kvAu1G … (writeGrantAt … L₀) Q`, and `G σ` gives
+`srvRLogLb ρ.raft (L ++ [e])` with `e` the request's entry (a KV write), `L₀ <+: L ++ [e]`,
+`grantedAt … L` and `kvStOn … L = σ`. Gated as a whole on `E.authOn`. authkv's write updates are
+built at `L₀ := Lset` (S6), so `Work.spec` takes `srvRLogLb ρ.raft Lset`. Other clients use
+`L₀ := []` (`srvRLogLb_nil`).
+
+**Also needed (S2; owned by the merge's step 4).** Refuting `hdrBoundT`'s `srvTLSId s` disjunct
+needs `ClientCertAuthEnabled ↦□ false` (`srvTLSId_false`, the merge session's). The value is
+hidden after `NewServer` (`isServerReqM`'s `∃ v`, so `memberUpOn`). Proposed: `srvServeCfg s cfg`
+also gives `srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled'`; authkv's
+configuration leaves the field `false`.
