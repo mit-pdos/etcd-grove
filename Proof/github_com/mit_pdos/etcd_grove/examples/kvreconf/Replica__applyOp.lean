@@ -42,9 +42,9 @@ theorem cfg_normal (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (ap : L
     (e : LogEntry) (csp : Loc) (c : ConfStateM) (m : Membership) (ht : e.type = W32 0) :
     isCommittedLogLb γr.cluster (ap ++ [e]) ∗
       ((⌜confStateIs c m⌝ ∗ confAt γr.cluster ap.length m) ∨
-        (⌜csp = null⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)) ⊢
+        (⌜csp = null ∧ m = Membership.empty⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)) ⊢
       ((⌜confStateIs c m⌝ ∗ confAt γr.cluster (ap ++ [e]).length m) ∨
-        (⌜csp = null⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)) := by
+        (⌜csp = null ∧ m = Membership.empty⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)) := by
   iintro ⟨#Hce, Hc⟩
   icases Hc with (⟨%Hcs, #Hca⟩ | Hs)
   · ileft

@@ -22,6 +22,11 @@ context is minted at `(replica, seq)` (`γr.rmint`), each replica's last read se
 `γr.rseq` (its element in the replica's lock). Every committed datum, slot and used read context was
 minted, so a fresh id or sequence number mints a datum nobody had.
 
+**Conf entries' shape.** Every committed requested conf entry decodes to a change of a defined
+transition (`ConfShaped`, `Rule.lean`): what `Reconfigure` proposes. With raft's automatic leaves
+(outside `opsOf`), every committed conf entry is shaped (`confShaped_of_ops`): `applyEntry` decodes
+it, `validConf` takes its transition.
+
 ## A replica (`lockInv`, `repOwn`)
 
 The applier (the `run` goroutine) writes the replicated state; the other goroutines read some of it
@@ -29,8 +34,8 @@ under the lock: `propose` the applied table, `conf` the configuration and the ap
 applier owns the store's map and half of each shared field (`repOwn`, with the precise facts: the
 fields are the replicated state of a committed prefix `ap`, `r.index = len ap`, the configuration a
 read-only `ConfState` denoting the membership `m` at `ap`'s end, `confAt γ (len ap) m` -- or, after its
-node answered a stopped `ApplyConfChange`, `nil` with the node stopped, `nodeStopped` of
-`RaftAssume`), and the lock the other halves (`repShared`, with what readers need: the applied
+node answered a stopped `ApplyConfChange`, `nil` (the empty membership, as `validConf` reads it) with
+the node stopped, `nodeStopped` of `RaftAssume`), and the lock the other halves (`repShared`, with what readers need: the applied
 table is some committed prefix's). Writing takes the lock. The waiters (keyed by the operation's
 datum: `r.waiters` is a `map[string]chan string`) and the waiting reads (by sequence number) are
 kv's.
@@ -39,6 +44,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ConfStep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RaftAssume
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Stats
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 
 @[expose] public section
@@ -155,7 +161,8 @@ def kvCore (γr : RNames) (ops : List LogEntry) (n : w64) (Mi : GMap w64 (List w
     ownReadCtxs γr.cluster U ∗ ghostVar γr.opn (1 : Qp).half n ∗
     ghostMapAuth γr.mint 1 Mi ∗ ghostMapAuth γr.rseq 1 RS ∗ ghostMapAuth γr.rmint 1 RMi ∗
     ghostMapAuth γr.ops 1 O ∗ ⌜MintOk n Mi RS RMi O U⌝ ∗
-    ⌜∀ d, some d ∈ ops.map odOf → MintedOp Mi d⌝)
+    ⌜∀ d, some d ∈ ops.map odOf → MintedOp Mi d⌝ ∗
+    ⌜∀ e ∈ ops, e.isConfChange → ConfShaped e⌝)
 
 instance kvCore_timeless (γr : RNames) (ops : List LogEntry) (n : w64) (Mi : GMap w64 (List w8))
     (RS : GMap w64 w64) (RMi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName))
@@ -231,7 +238,7 @@ def repOwn (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (r : Loc) (ap :
     "%HA" ∷ ⌜AppliedOk A (logHist ap)⌝ ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
     "#Hcfg" ∷ ((⌜confStateIs c m⌝ ∗ confAt γr.cluster ap.length m) ∨
-               (⌜csp = null⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)))
+               (⌜csp = null ∧ m = Membership.empty⌝ ∗ RA.nodeStopped n γr.cluster kvrRaftN)))
 
 /-- The lock's half of a replica's replicated state: the other halves of `applied`, `cs`, `index`
 and of the applied table, which is the table of some committed prefix (what `propose` answers an
@@ -261,6 +268,15 @@ def lockInv (γr : RNames) (id : w64) (r : Loc) : IProp GF :=
     "%HRdom" ∷ ⌜∀ s ch, Rd !! s = some ch → uint.Z s ≤ uint.Z ns⌝ ∗
     "Hreads" ∷ [∗map] s ↦ ch ∈ Rd, readWaiterOk γr id s ch)
 
+/-- **The applier's view of its node** (see the file header), the committed log delivered `l`
+applied up to `k` at the membership `m`: the node's configuration view at `m`, every conf entry from
+the view's index to `k` rejected (`skippedIn`), or the node stopped. -/
+def appNode (RA : RaftAssume (GF := GF)) (γr : RNames) (n : Loc) (l : List LogEntry) (k : Nat)
+    (m : Membership) : IProp GF :=
+  iprop((∃ v : ConfigView, nodeConfig n γr.cluster kvrRaftN v ∗
+      deliveredLogLb n γr.cluster kvrRaftN l ∗ skippedIn γr.cluster l v.applied k ∗
+      ⌜v.membership = m ∧ v.applied ≤ k⌝) ∨ RA.nodeStopped n γr.cluster kvrRaftN)
+
 /-- What a snapshot the store made promises: a committed prefix `L` of its index, the membership
 there, its data the store's encoded state of `L`. -/
 def kvrSnapRecOk (γr : RNames) (s : SnapRec) : IProp GF :=
@@ -288,6 +304,26 @@ def kvrCluster (γr : RNames) (vs : List w64) : IProp GF :=
 instance kvrCluster_persistent (γr : RNames) (vs : List w64) :
     Persistent (kvrCluster (GF := GF) γr vs) := by
   unfold kvrCluster; infer_instance
+
+/-- **Replica `id` at `r`** (persistent), on node `n` of the store's cluster, with the storage `st`
+and the statistics `sts`: its fields read-only, its lock. -/
+def isReplica (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) : IProp GF :=
+  iprop(
+    "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf ∗
+    "#Hid" ∷ r.[RReplica, go!"id"] ↦□ id ∗
+    "#Hnode" ∷ r.[RReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+    "#Hst" ∷ r.[RReplica, go!"storage"] ↦□ st ∗
+    "#Hsts" ∷ r.[RReplica, go!"stats"] ↦□ sts ∗
+    "#Hstats" ∷ isStats sts ∗
+    "#HisNode" ∷ isNode n γr.cluster kvrRaftN id ∗
+    "#Hcl" ∷ kvrCluster γr vs ∗
+    "#Hmu" ∷ sync.isMutex (r.[RReplica, go!"mu"]) (lockInv γr id r))
+
+set_option synthInstance.maxHeartbeats 400000 in
+set_option synthInstance.maxSize 4096 in
+instance isReplica_persistent (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) :
+    Persistent (isReplica (GF := GF) γr vs id r n st sts) := by
+  unfold isReplica; infer_instance
 
 end ghost
 

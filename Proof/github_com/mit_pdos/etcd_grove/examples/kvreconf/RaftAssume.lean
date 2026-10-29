@@ -10,8 +10,8 @@ takes the record as an argument, so that when tracks A and B land them the rewor
 instantiation (in kvreconf's `Link.lean`). Not axioms: nothing here is assumed globally, and every
 result over it carries the record as a premise until then.
 
-- `committed_confDecodes` (track A, `notes/spec-first-study/raft-decisions-spec.md` §5): every
-  committed conf entry decodes; kvreconf's `applyEntry` panics on one that does not.
+- (`committed_confDecodes` was here until 2026-10-29: the store's own invariant gives it, every
+  committed conf entry being a proposed one or raft's automatic leave, `confShaped_of_ops`.)
 - (`applyChange_asV2` was here until track B proved it, `ConfchangeApi.lean`, 2026-10-29.)
 - The stopped node (track A, U9a; frozen K5/K9): `nodeLive n γ N q` (fractional; whole from
   `RestartNode`), `nodeStopped n γ N` (persistent), `nodeLive_stopped`, `node.Stop` taking the whole
@@ -20,6 +20,12 @@ result over it carries the record as a premise until then.
   running precondition, stated here as `*.stoppedSpec`). kvreconf's `Main` stops every node while its
   loop may be mid-`Ready`, so its calls meet stopped nodes. (The methods' stopped specs are added
   here as the proofs reach them.)
+- The running triples of the methods kvreconf calls on a node that may stop meanwhile, in the frozen
+  one-triple form (K9: a stopped node given the running precondition owes only the stopped answer, so
+  the post is the running post or the stopped answer with `nodeStopped`) and with U5's exclusions
+  lifted (no `autoLeave = false` premise: U5 landed on `raft-unified` after this branch's base):
+  `ApplyConfChange_spec` (today's `node.ApplyConfChange.unifiedSpec`, its stopped disjunct `nil` with
+  the view unchanged).
 -/
 module
 
@@ -51,9 +57,6 @@ variable [StorageModel GF] [AllG GF]
 
 /-- **What kvreconf assumes of raft** (see the file header), under the frozen names. -/
 structure RaftAssume where
-  /-- (track A) Every committed conf entry decodes. -/
-  committed_confDecodes : ∀ (γ : Cluster) (N : Namespace) (l : List LogEntry),
-    isCluster (GF := GF) γ N ∗ isCommittedLogLb (GF := GF) γ l ⊢ ⌜∀ e ∈ l, e.isConfChange → ConfEntryDecodes e⌝
   /-- (track A, U9a) The running node's token, fractional. -/
   nodeLive : Loc → Cluster → Namespace → Qp → IProp GF
   /-- (track A, U9a) The node has stopped (persistent). -/
@@ -67,6 +70,21 @@ structure RaftAssume where
         nodeLive n γ N 1 }}
       (App (Val #(methods node.ty.PointerType go!"Stop" #n)) (Val #()))
     {{ RET #(); nodeStopped n γ N }}
+  /-- (track A, U9a with K9; U5) `node.ApplyConfChange.unifiedSpec` on a node that may stop: the
+  running answer, or `nil` with the node stopped and the view unchanged; no auto-leave premise. -/
+  ApplyConfChange_spec : ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface)
+      (o o' : ConfChangeIM) (l : List LogEntry) (k : Nat) (e : LogEntry) (v : ConfigView)
+      (m' : Membership),
+    v.applied ≤ k → l[k]? = some e → e.isConfChange →
+    Membership.applyChange o' v.membership = some m' →
+    Membership.applyChange o v.membership = some m' →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
+        isCluster γ N ∗ confDecided γ k (.apply o') ∗ ownConfChangeI c DFrac.discard (some o) ∗
+        nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k }}
+      (App (Val #(methods node.ty.PointerType go!"ApplyConfChange" #n)) (Val #c))
+    {{ (csp : Loc), RET #csp; (∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true ∗
+          nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝) ∨
+        (⌜csp = null⌝ ∗ nodeStopped n γ N ∗ nodeConfig n γ N v) }}
   /-- (track A, U9a) `node.ApplyConfChange` of a stopped node: `nil`, the change given back. -/
   ApplyConfChange_stoppedSpec : ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
       (c : GoInterface) (dq : DFrac) (o : ConfChangeIM),
