@@ -2,8 +2,11 @@
 
 Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
 (2026-10-28, "Phase 1: the statements" below); next: the spec-review round (phase 1b), then the
-proofs. Not to be merged into `lean` before the proofs: phase 1's `sorry`s sit under `New` and the
-retry interceptor, so nearly every client result rests on them meanwhile. The auth plan's item 2
+proofs. (Phase 1's note "not to be merged into `lean` before the proofs" held while its `sorry`s
+sat under `New` and the retry interceptor; phase 2 proved them. A1-A3 merged into `lean`
+2026-10-29, at the user's request, for the auth-mode merge: C1's one open `sorry`,
+`etcd_kv_auth_served_onA`, has no consumer, so no result rests on it. A4's draft is parked on
+branch `auth-a4-wip`.) The auth plan's item 2
 (`notes/decisions.md`, "E3zb of the auth plan", "What is left"; E2b's contract C1), run as a
 spec-first stage (`notes/spec-first-plan.md`).
 
