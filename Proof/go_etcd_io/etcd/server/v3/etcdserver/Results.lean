@@ -1780,7 +1780,7 @@ theorem server_apply_on :
     consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex
     consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
     raftpb.Entry.wp_GetType server_apply_entry_normal_on
-    (EtcdServer.setAppliedIndex.wp_proofM true) (EtcdServer.setTerm.wp_proofM true)
+    EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm
     pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId
     membership.RaftCluster.wp_Members
 

@@ -22,21 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.setTerm(v)` stores `v` into the atomic `s.term`. -/
+/-- `s.setTerm(v)` stores `v` into the atomic `s.term` (the server's atomics in the environment's
+auth mode, `srvAtomicsM`; only the term's invariant is used). -/
 abbrev EtcdServer.setTerm.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAtomics s E γr }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setTerm")) (Val #v))
-  {{ RET #(); True }}
-
-
-/-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27): the server's atomics in the
-mode (`srvAtomicsM on`; `spec` at `on = false`, by definition). -/
-abbrev EtcdServer.setTerm.specM (on : Bool) : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAtomicsM on s E γr }}
+      srvAtomicsM E.authOn s E γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setTerm")) (Val #v))
   {{ RET #(); True }}
 

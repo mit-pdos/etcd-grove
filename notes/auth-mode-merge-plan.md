@@ -186,3 +186,36 @@ existing `specM (on : Bool)` converted in this stage, and the exported results' 
 with no mode parameter, the mode `E.authOn` (`.any` excluded); the nine `specM (on : Bool)`
 converted in this stage; each pair of exported results (`server_*`/`server_*_on`, v3rpc's
 `*_of_server`/`*_of_serverOn`) merged into one.
+
+**Step 3, as far as it goes (2026-10-29).** Merged, one spec at `E.authOn` each:
+`snapshotIfNeededAndCompactRaftLog` (its two proofs one), `setAppliedIndex` and `setTerm` (their
+`specM` gone; `apply`'s two proofs take `spec`, the off one obtaining `E.authOn = false` by
+`authOn_false_of_off`). Transitional corollaries for callers not yet merged: `ModeSpecs.lean`
+(`snapshotIfNeededAndCompactRaftLog.spec_off`/`spec_on`, used by `applyAll`'s two proofs).
+
+**Blocked: the rest of steps 3-5, by linking** (found 2026-10-29; the plan missed it). A merged
+spec's one proof needs its auth-on proof's callees, and those are variant families, not `.spec`:
+- `apply` needs `applyEntryNormal.specOn`, whose proof takes `apply.Apply.kvSpecL`,
+  `authApplierV3.*.specL`, `applierV3backend.*.fuelSpecX`/`specX`, `adminEntryOn.spec`, ...
+  (linked in `Results.lean`: `server_apply_entry_normal_on`, over `apply_apply_kv_latest`, ...);
+- the request path (`processInternalRaftRequestOnce`, `raftRequest`, `doSerialize`, so `Put`,
+  `DeleteRange`, `Range`) needs `AuthInfoFromCtx.boundSpec` (`AuthBound.lean`), a stronger
+  precondition (`isReqAuthBound`), not a mode of `spec`;
+- every function above them (`applyEntries`, `applyAll`, `run`, `start`, `Start`) through these.
+`etc/gen-link.py` passes each callee as `wp_<callee> : <callee>.spec`, so the merged
+`apply.spec`, ..., `Start.spec` cannot be linked in `Link.lean` until those families are merged into
+their functions' `.spec`. Linking them in `Results.lean` instead (as the `_on` chain is today) would
+take them out of `Link.lean`, which the examples' Links (`EtcdServer.wp_Start`) and
+`etc/verified-code.py` read: verified code would become unverified. Nor can a leaf (`getAppliedIndex`,
+`AppliedIndex`, `parseProposeCtxErr`) go first: its callers' `specM on` take a free `on`, not
+`E.authOn`. `NewServer.specM on` is a different case: `on` is the configuration's choice, made
+before there is an `E`; it may stay a parameter.
+
+**Recommendation (for the user):** do step 6's family decisions first, bottom-up from the leaves
+the chains need: `AuthInfoFromCtx.boundSpec` into `spec` (then the request path, step 5, and the
+`specM` leaves), then `applyEntryNormal`'s families (then `apply` and the rest of step 3, and
+step 4). Merging a family into a `.spec` changes that function's spec, an escalation trigger.
+Ready for when it resumes: the merged `apply.spec` (drafted) and the
+`M` lemmas of its proof (`srvApplyKVM_small`/`_idxCert`/`_ua_rt`, `srvWTPool_take_nM`,
+`entryOkM_of_shape`, `srvApplyKVM_appliedPub`, `kv_cc_stepM`; compiled) and `applyEntryNormal.specE`, the bridge, parked on branch `auth-mm-apply-wip` (`notes/auth-mm-drafts/`):
+unused until then).

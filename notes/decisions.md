@@ -25258,3 +25258,19 @@ that needs no token frames it itself (counter, logkv, logkvcompact, logkvsnap, l
 k8setcd3, whose closures are proved inline in `Check`: the same, the token added to the
 continuation they pass on). logkvrw's `Apply` passes it to `Get`, and its copies of the driver
 are gone.
+
+## The server's auth mode is the environment's: one spec per function (2026-10-29)
+
+**2026-10-29 · accepted; B chosen by the user 2026-10-29** (branch `auth-mm`,
+`notes/auth-mode-merge-plan.md`, "Step 2")
+
+The server's functions had two specs, `spec` (auth off) and `specOn` (auth on, premise
+`E.authMode = .on γa`), or one `specM (on : Bool)` with a free flag. Now a function has one `spec`
+whose rows are the mode's (`isServerM E.authOn`, `srvApplyKVM E.authOn`, `srvAppliedInvM E.authOn`,
+...), read from the environment `E` (`apply.AEnv.authOn`), with `E.authMode ≠ .any` where the proof
+needs it (`AuthMode.any.isOn = true`, a mode no proof covers) and the premises only `on` needs gated
+by the mode. A free `Bool` (candidate A) kept the exported results split, and its corollary
+`spec := specM false` fails at an `.on` environment (`srvTokRights` is a real resource there). So
+far: `snapshotIfNeededAndCompactRaftLog`, `setAppliedIndex`, `setTerm`. The rest waits on the
+auth-on variant families being merged into `.spec`s (the plan's "Blocked": `gen-link` passes only
+`.spec`).

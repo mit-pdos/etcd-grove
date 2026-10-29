@@ -579,7 +579,7 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
 
 /-- **The apply thread publishes the auth state at its applied log** (E3u): from its KV row at the
 latest auth state `sa` and the model's tie of `sa` to the committed raft log `A`, the auth state at
-the log through `i` published (`appliedPubM true`, what `setAppliedIndex.specM true` takes). -/
+the log through `i` published (`appliedPubM true`, what `setAppliedIndex.spec` takes with auth on). -/
 theorem srvApplyKVOn_appliedPub (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (sa : auth.AuthState) (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γr : ReadNames)
     (A : List EntryModel) (i : w64) (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length) :
