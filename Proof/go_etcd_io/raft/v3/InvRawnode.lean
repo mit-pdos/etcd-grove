@@ -915,61 +915,38 @@ def LoanOk (rs : RNState) (s : NState) : Prop :=
     ∃ pre t e, rs.steps = pre ++ [Pending.appendAck t (snapId l.snap) e (some l.snap)] ∧
       ∀ p ∈ pre, ∃ pv t', p = .self pv t')
 
-/-- (2026-10-28, stage U4a) **The record of the storage's terms is of the committed log handed
-out** (`LogState.stb`/`sdt`, `StorTermsOk`): with a snapshot pending and the storage not lent, the
-term `sdt[k]` is that of `delivered`'s entry at index `stb + k + 1`. Made by a restore when none
-was pending, of the log's terms after its boundary up to `applying` (`restoreSdt`), which are
-`delivered`'s: both are prefixes of the global committed log (`RawNode.Step`). So the floor raised
-with a snapshot pending comes with `delivered`'s terms (`ownRawNode_raise_floor`). -/
+/-- (U8 v2, 2026-10-29; until then, stage U4a, the record of the storage's terms `stb`/`sdt` tied
+to `delivered`) **Raft certified the terms of the committed log handed out, and no more**: the
+log's certified height (`LogState.dtk`, every key of `sn.gd` at most it) is `delivered`'s length.
+So a `Ready` certifies its committed entries' terms afresh (`ownRaftLog_certify`), which the driver
+keeps with the committed log delivered (the API's `deliveredLogLb`, the storage contract's `DL`). -/
 def SdtTie (rs : RNState) (s : NState) : Prop :=
-  s.logst.snap ≠ none →
-    ∀ k t, s.logst.sdt[k]? = some t →
-      (rs.delivered.map (·.Term'))[uint.nat s.logst.stb + k]? = some t
+  s.logst.dtk = rs.delivered.length
 
-/-- `SdtTie` across a step that keeps the record, with no snapshot pending that was not, and only
-extends `delivered`. -/
+/-- `SdtTie` across a step that keeps the certified height and `delivered`'s length. -/
 theorem SdtTie.keep {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
-    (hsn : s'.logst.snap ≠ none → s.logst.snap ≠ none)
-    (hb : s'.logst.stb = s.logst.stb) (hd : s'.logst.sdt = s.logst.sdt)
-    (hdl : rs.delivered <+: rs'.delivered) : SdtTie rs' s' := by
-  intro h1 k t ht
-  rw [hd] at ht; rw [hb]
-  have := H (hsn h1) k t ht
-  obtain ⟨u, hu⟩ := hdl
-  rw [← hu, List.map_append, List.getElem?_append_left (List.getElem?_eq_some_iff.1 this).1]
-  exact this
+    (hk : s'.logst.dtk = s.logst.dtk)
+    (hdl : rs'.delivered.length = rs.delivered.length) : SdtTie rs' s' := by
+  unfold SdtTie at H ⊢; rw [hk, hdl]; exact H
 
-/-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the pending snapshot and the record
-kept, `delivered` unchanged). -/
+/-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the record kept, `delivered`
+unchanged). -/
 theorem SdtTie.ofRec {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
-    (hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
+    (_hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
     (hdl : rs'.delivered = rs.delivered := by rfl) : SdtTie rs' s' :=
-  SdtTie.keep H (by rw [hsn]; exact fun h => h) (congrArg (·.2.1) hr) (congrArg (·.2.2) hr)
-    (by rw [hdl]; exact List.prefix_refl _)
+  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl])
 
-/-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`): the record kept, or the restore's of the
-log's terms (`restoreSdt`), which are `delivered`'s (`Hdag`, `ownStepGhost_dlv_terms`). -/
+/-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`: the certified height kept). -/
 theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : MessageM}
     (H : SdtTie rs s)
-    (Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
+    (_Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
       (rs.delivered.map (·.Term'))[uint.nat s.logst.prev.index' + k]? = some t)
     (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl) :
     SdtTie rs' s' := by
-  intro h1 k t ht
-  rw [hdl]
-  rcases Hsl with ⟨-, h2, -, -, hb, hd⟩ | ⟨-, -, -, -, -, -, hb, hd⟩
-  · rw [hd] at ht; rw [hb]; rw [h2] at h1; exact H h1 k t ht
-  · rw [hd] at ht; rw [hb]
-    unfold restoreSdt at ht ⊢
-    cases hs : s.logst.snap with
-    | none => simp only [hs, Option.isSome_none] at ht ⊢; exact Hdag k t ht
-    | some _ =>
-      simp only [hs, Option.isSome_some, ↓reduceIte] at ht ⊢
-      exact H (by rw [hs]; simp) k t ht
-
-/-- No snapshot pending: nothing to tie. -/
-theorem SdtTie.of_none {rs : RNState} {s : NState} (h : s.logst.snap = none) : SdtTie rs s :=
-  fun h' => absurd h h'
+  apply SdtTie.keep H _ (by rw [hdl])
+  rcases Hsl with h | h
+  · exact h.2.2.2.2.2.2
+  · exact h.2.2.2.2.2.2.2.2
 
 /-- No loan, no snapshot acknowledgement queued. -/
 theorem LoanOk.none_noack {rs : RNState} {s : NState} (H : LoanOk rs s) (h : rs.slent = none) :
@@ -2625,6 +2602,48 @@ theorem ownStepGhost_dlv_terms (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
       · obtain ⟨u, hu⟩ := h
         rw [← hu, List.getElem?_append_left (List.getElem?_eq_some_iff.1 HX).1]; exact HX
     rw [List.getElem?_map, Hn, HDe]; rfl
+  iunfold ownStepGhost
+  isplitl [Hg]
+  · iexact Hg
+  · iexact Hr
+
+/-- (U8 v2, 2026-10-29) **A committed prefix `D` and the log agree** after the log's boundary, up to
+`D`'s length (at most `committed`): both are prefixes of the global committed log
+(`isCommitted_agree`), the log's committed prefix after its full prefix of the boundary's length.
+(`ownStepGhost_dlv_terms`, for whole entries and any committed length.) What the `Ready`'s frozen
+committed entries and the terms it certifies are read from. -/
+theorem ownStepGhost_cmt_ents (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (D : List EntryM) (HD : (D.length : Int) ≤ uint.Z s.logst.committed) :
+    ⊢ isCommitted (GF := GF) γ D -∗ ownStepGhost γ md c id s -∗
+      ⌜∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
+        uint.nat s.logst.prev.index' + k < D.length →
+        D[uint.nat s.logst.prev.index' + k]? = some e⌝ ∗
+      ownStepGhost γ md c id s := by
+  iintro #HD' H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  icases ownRaftGhost_committed γ id (toPState s) $$ Hg with ⟨%fp, %Hf, #Hc⟩
+  icases isCommitted_agree γ _ _ $$ HD' Hc with %Hag
+  isplitr
+  · ipureintro
+    intro k e He hlt
+    have Hfl : (fp.length : Int) = uint.Z s.logst.prev.index' := Hf.1
+    have HL : (toPState s).log = s.logst.sents ++ s.logst.uents := rfl
+    have HC : (toPState s).commit = s.logst.committed := rfl
+    rw [HL, HC] at Hag
+    have Hn : uint.nat s.logst.prev.index' = fp.length := by
+      have := uint_nat_eq s.logst.prev.index'; omega
+    rw [Hn] at hlt ⊢
+    have He2 : (fp ++ (s.logst.sents ++ s.logst.uents))[fp.length + k]? = some e := by
+      rw [List.getElem?_append_right (by omega)]; simpa using He
+    have HX : ((fp ++ (s.logst.sents ++ s.logst.uents)).take
+        (uint.Z s.logst.committed).toNat)[fp.length + k]? = some e := by
+      rw [List.getElem?_take_of_lt (by omega)]; exact He2
+    rcases Hag with h | h
+    · obtain ⟨u, hu⟩ := h
+      rw [← hu, List.getElem?_append_left hlt] at HX; exact HX
+    · obtain ⟨u, hu⟩ := h
+      rw [← hu, List.getElem?_append_left (List.getElem?_eq_some_iff.1 HX).1]; exact HX
   iunfold ownStepGhost
   isplitl [Hg]
   · iexact Hg

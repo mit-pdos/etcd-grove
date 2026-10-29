@@ -461,9 +461,87 @@ def softStateRO (p : Loc) : IProp GF :=
 instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
   unfold softStateRO; infer_instance
 
--- (U8 v2, 2026-10-29) `readyOut`, `snapReceipt`, `advReceipt` (a `Ready`'s storage hand-out and its
--- receipt over the old contract's `StorState`/`appendRight`/`storCert`) removed until step 4 of U8 v2
--- restates them over the range vocabulary (see `git show 535c05e68a:Proof/go_etcd_io/raft/v3/ApiVocab.lean`).
+/-- (U8 v2, 2026-10-29) **Raft's certified terms of the entries `L` at the indices `n+1, n+2, …`**
+(persistent): the key of `sn.gd` at each index is its entry's term (`raftDL`'s first reading). -/
+def dlvKeysAt (sn : StorNames) (n : Nat) (L : List EntryM) : IProp GF :=
+  iprop([∗list] j ↦ e ∈ L, (n + j + 1) ↪[sn.gd]□ e.Term')
+
+instance dlvKeysAt_pers (sn : StorNames) (n : Nat) (L : List EntryM) :
+    Persistent (dlvKeysAt (GF := GF) sn n L) := by
+  unfold dlvKeysAt; infer_instance
+
+/-- ... of a committed log `ds` from its start: what a `Ready` certifies for its committed entries
+(`ownRaftLog_certify`), which the driver keeps with the committed log delivered (the API's
+`deliveredLogLb`); the storage contract's `DL` is read from it. -/
+abbrev dlvKeys (sn : StorNames) (ds : List EntryM) : IProp GF := dlvKeysAt sn 0 ds
+
+theorem dlvKeysAt_nil (sn : StorNames) (n : Nat) : ⊢ dlvKeysAt (GF := GF) sn n [] := by
+  unfold dlvKeysAt; iapply (BigSepL.bigSepL_nil (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF))).2; iempintro
+
+theorem dlvKeysAt_app (sn : StorNames) (n : Nat) (a b : List EntryM) :
+    dlvKeysAt (GF := GF) sn n (a ++ b) ⊣⊢ dlvKeysAt sn n a ∗ dlvKeysAt sn (n + a.length) b := by
+  unfold dlvKeysAt
+  refine (BigSepL.bigSepL_append (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF))).trans ?_
+  have : (fun j (e : EntryM) => iprop((n + (j + a.length) + 1) ↪[sn.gd]□ e.Term' : IProp GF)) =
+      (fun j (e : EntryM) => iprop((n + a.length + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) := by
+    funext j e; rw [show n + (j + a.length) + 1 = n + a.length + j + 1 by omega]
+  simp only [this]
+  exact .rfl
+
+/-- A key out of the certified terms. -/
+theorem dlvKeysAt_lookup (sn : StorNames) (n : Nat) (L : List EntryM) (j : Nat) (e : EntryM)
+    (h : L[j]? = some e) :
+    dlvKeysAt (GF := GF) sn n L ⊢ (n + j + 1) ↪[sn.gd]□ e.Term' := by
+  unfold dlvKeysAt
+  iintro #H
+  iapply (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
+    iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) h) $$ H
+
+/-- (U8 v2, 2026-10-29; until then the right to append, or with a snapshot the storage itself and
+its certificate in the storage's registry) **What a `Ready` hands the application for the storage**
+(the frozen design's §3): without a snapshot, the right to write its batch `es` (`appendRight`: the
+log from the batch's first index on, with the end; nothing for no entries); with a snapshot (its
+loan `l`), every range above raft's frozen prefix, from an index at most the snapshot's, with the
+end, and the right to install it (`storGiven`, the API's `snapGiven`). -/
+def readyOut (st : Storage) (sn : StorNames) (es : List EntryM) : Option SnapLoan → IProp GF
+  | none => appendRight st es
+  | some l => iprop((∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+      storLog st k (DFrac.own 1) old ∗ storEnd st (k + old.length)) ∗
+      storGiven sn (uint.nat l.snap.Metadata'.Index'))
+
+/-- (U8 v2, 2026-10-29) **A `Ready`'s committed entries `ce` below its batch, frozen** (the frozen
+design's §3, `ceBelow`): after the `n` entries delivered before, the first `m` of `ce` -- all of them,
+or those below the batch's first index -- frozen. -/
+def ceFrozen (st : Storage) (n : Nat) (ce es : List EntryM) : IProp GF :=
+  iprop(∃ m : Nat, storLog st (n + 1) DFrac.discard (ce.take m) ∗
+    ⌜m = ce.length ∨ ∃ e0, es.head? = some e0 ∧ n + 1 + m = uint.nat e0.Index'⌝)
+
+instance ceFrozen_pers (st : Storage) (n : Nat) (ce es : List EntryM) :
+    Persistent (ceFrozen (GF := GF) st n ce es) := by
+  unfold ceFrozen; infer_instance
+
+/-- (U8 v2, 2026-10-29; until then the storage at the snapshot, with its floor, lists and data)
+**The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes (§3): the half of
+the snapshot it was handed, and the storage compacted at the snapshot, its dummy there of the
+snapshot's term, frozen, and the entries `es` the `Ready` handed out after it, owned, with the end:
+what `MemoryStorage.ApplySnapshot` then `Append` give. -/
+def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
+  iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
+    storCompacted st (uint.nat l.snap.Metadata'.Index') ∗
+    (∃ e : EntryM, ⌜e.Term' = l.snap.Metadata'.Term'⌝ ∗
+      storLog st (uint.nat l.snap.Metadata'.Index') DFrac.discard [e]) ∗
+    storLog st (uint.nat l.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
+    storEnd st (uint.nat l.snap.Metadata'.Index' + 1 + es.length))
+
+/-- (U8 v2, 2026-10-29) The driver's receipt at `Advance` for the `Ready`'s storage hand-out (§3):
+its batch `es` back (`appendReceipt`), as a frozen prefix `a` within the committed log delivered
+(`n` entries) and an owned rest, or after a snapshot `Ready` the snapshot's receipt. -/
+def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan → IProp GF
+  | none => iprop(∃ a : List EntryM, appendReceipt st es a ∗
+      ⌜a ≠ [] → ∀ e0, es.head? = some e0 → uint.nat e0.Index' - 1 + a.length ≤ n⌝)
+  | some l => snapReceipt st l es
 
 /-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
 stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,
