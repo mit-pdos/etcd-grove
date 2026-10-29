@@ -62,9 +62,7 @@ theorem st0_freeOk (P : BParams) (D : Data) (tx : Loc) (hP : P.Wf) : freeOk P (s
     rw [ovB_empty _ _ _ (fun i => bkOf_empty i), hview]
   · refine ⟨rv0_safe P D, ?_⟩
     intro n i _ _
-    refine ⟨?_, ?_⟩
-    · intro kc vc e _ he; simp [st0, bkOf_empty] at he
-    · intro kc vc h; exact ⟨vc, h⟩
+    intro kc vc e _ he; simp [st0, bkOf_empty] at he
   · simp only [st0]; exact hP.2.1
   · intro n i _ _; rfl
 

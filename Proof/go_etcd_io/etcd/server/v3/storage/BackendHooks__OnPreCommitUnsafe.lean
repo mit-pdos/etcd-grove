@@ -64,7 +64,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
       have h2 := Hpre.2.1
       omega
     have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
-        (bktOf st1.S mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.confStateKeyBytes := by
+        (bktOf st1.C mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.confStateKeyBytes := by
       intro h
       have := HPw.2.2.2.2 _ h
       rw [hP.2.1] at this

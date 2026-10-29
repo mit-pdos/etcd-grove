@@ -243,15 +243,16 @@ def safeRv (P : BParams) (rv : RView) : Prop :=
     (bktOf rv.1 n).lookup kc = some vc → e ∈ bkOf rv.2.bks i → strLt kc e.1
 
 /-- The safe-range discipline on the batch state, for every safe-range bucket (name `n`, id
-`i`): the readers' state is safe (`safeRv`), every committed key is below every key of the write
-buffer (the session's puts were above the writer's contents), and every committed key is in the
-writer's contents (no deletes in safe-range buckets). -/
+`i`): the readers' state is safe (`safeRv`), and every committed key is below every key of the
+write buffer (each put was above the committed keys: `UnsafeSeqPut`'s premise). Until the
+backend-compaction stage (its thin-view Draft round, 2026-10-29) also "every committed key is in the
+writer's contents" (no deletes in safe-range buckets): compaction deletes committed keys of `Key`,
+so the put's premise names the committed keys itself. -/
 def safeSt (P : BParams) (st : BSess) : Prop :=
   safeRv P (st.C, st.R) ∧
   ∀ n i, P.BT.lookup n = some i → P.SB n = true →
-    (∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
-      e ∈ bkOf st.W.bks i → strLt kc e.1) ∧
-    (∀ (kc vc : GoString), (bktOf st.C n).lookup kc = some vc → ∃ vs, (bktOf st.S n).lookup kc = some vs)
+    ∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
+      e ∈ bkOf st.W.bks i → strLt kc e.1
 
 /-- The state's facts at any time. -/
 def sessWf (P : BParams) (st : BSess) : Prop :=

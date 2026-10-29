@@ -257,7 +257,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
     revert h1
     split <;> intro h1 <;> omega
   have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
-      (bktOf st.S mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.ciKeyBytes := by
+      (bktOf st.C mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.ciKeyBytes := by
     intro h
     have := HPw.2.2.2.2 _ h
     rw [show mvcc.metaBI.name = schema.metaName from rfl, hP.2.1] at this
@@ -322,7 +322,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
     revert h1
     split <;> intro h1 <;> omega
   have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
-      (bktOf st.S mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.termKeyBytes := by
+      (bktOf st.C mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.termKeyBytes := by
     intro h
     have := HPw.2.2.2.2 _ h
     rw [show mvcc.metaBI.name = schema.metaName from rfl, hP.2.1] at this

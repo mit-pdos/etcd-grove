@@ -40,7 +40,7 @@ abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
 /-- **`UnsafeDelete` of any bucket** (the backend-compaction stage, 3.1; Draft, 2026-10-28): of a
 safe-range bucket too, for a key registered as deletable at `g` (`dlIs`, decision O1), which the
 readers then may miss (3.2). Replaces `spec` once proved (its proof: the batch lemmas over
-`safeStC`). -/
+`safeSt`, which no longer requires the committed keys in the writer's contents). -/
 abbrev backend.batchTxBuffered.UnsafeDelete.specC : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
     (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),

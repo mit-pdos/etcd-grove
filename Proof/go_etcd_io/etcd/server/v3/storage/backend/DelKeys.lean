@@ -116,20 +116,6 @@ theorem dlReg_false_noDel (γ : BNames) (nk : GoString × GoString) :
   iapply H1
   iexact HΦ
 
-/-- **The safe-range discipline without the "no deletes" clause** (3.1; Draft): `safeSt`'s first two
-parts. A committed key of a safe-range bucket need not be in the writer's contents any more
-(compaction deletes it); the put condition carries "above the committed keys" itself
-(`UnsafeSeqPut.specC`). Replaces `safeSt` when the batch lemmas are re-proved. -/
-def safeStC (P : BParams) (st : BSess) : Prop :=
-  safeRv P (st.C, st.R) ∧
-  ∀ n i, P.BT.lookup n = some i → P.SB n = true →
-    ∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
-      e ∈ bkOf st.W.bks i → strLt kc e.1
-
-/-- `safeSt` gives `safeStC`. -/
-theorem safeStC_of (P : BParams) (st : BSess) (h : safeSt P st) : safeStC P st :=
-  ⟨h.1, fun n i hi hs => (h.2 n i hi hs).1⟩
-
 /-- **A cached read buffer reads thin of the logical view** (3.2; Draft): `cacheValid` with
 "exactly" weakened to "thin of `L`" (a tombstone put and compacted within one commit interval: a
 reader of the cached buffer may still see the deleted key, which it never looks up). -/

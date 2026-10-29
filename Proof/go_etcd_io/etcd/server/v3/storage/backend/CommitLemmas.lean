@@ -277,18 +277,13 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
   have hsw : sessWf P (commitSt st' C' tx' cnt') := by
     obtain ⟨h1, h2, h3, h4, -, -, -, -, -, -, hsf'⟩ := hst'
     have hsafe : safeSt P (commitSt st' C' tx' cnt') := by
-      refine ⟨?_, fun n i hn hsb => ⟨?_, ?_⟩⟩
+      refine ⟨?_, fun n i hn hsb => ?_⟩
       · intro n i _ _ kc vc e _ he
         exact absurd he (by show e ∉ bkOf (bksReset st'.R.bks) i; rw [bkOf_bksResetC]; simp)
       · intro kc vc e _ he
         have hHB : P.HB n = false := hP.2.2.2.2 n hsb
         have : bkOf st'.W.bks i = [] := hW' n i hn hHB
         exact absurd he (by show e ∉ bkOf st'.W.bks i; rw [this]; simp)
-      · intro kc vc hc
-        show ∃ vs, (bktOf st'.S n).lookup kc = some vs
-        rcases hC' with rfl | ⟨_, rfl⟩
-        · exact ⟨vc, hc⟩
-        · exact (hsf'.2 n i hn hsb).2 kc vc hc
     refine ⟨h1, RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
       by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_, hsafe⟩
     show agreeOff P.HB (dget st'.S) (ovB P.BT st'.W.bks (ovB P.BT (bksReset st'.R.bks) (dget C')))

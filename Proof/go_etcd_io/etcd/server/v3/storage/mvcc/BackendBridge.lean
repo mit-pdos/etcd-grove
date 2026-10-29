@@ -1608,11 +1608,14 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   have hW : ∀ e ∈ bkOf st.W.bks keyBI.id, strLt e.1 k := by
     rw [show keyBI.id = W64 1 from rfl, Hs.2.2.1]; exact hord
   have hS := sData_puts hP Hwf Hs Hvd
+  -- (the backend-compaction stage's thin-view round) the premise names the committed keys: with no
+  -- pending delete (`sessPuts`), a committed key of `Key` (off the hook's buckets) is in the
+  -- writer's contents (`sessWf_C_in_S`), above which the puts are
   have hSB : P.SB keyBI.name = true → ∀ kc vc,
-      (bktOf st.S keyBI.name).lookup kc = some vc → strLt kc k := by
-    intro _ kc vc hc
-    rw [show keyBI.name = go_etcd_io.etcd.server.v3.storage.schema.keyName from rfl,
-      bktOf_of_sData hP hS, foldl_insert_lookup] at hc
+      (bktOf st.C keyBI.name).lookup kc = some vc → strLt kc k := by
+    intro _ kc vc0 hc0
+    obtain ⟨vc, hc⟩ := sessWf_C_in_S Hwf Hs.1 (key_not_HB hP) hc0
+    rw [bktOf_of_sData hP hS, foldl_insert_lookup] at hc
     cases hlv : lastVal l kc with
     | some v' =>
       obtain ⟨e, he, hek⟩ := lastVal_isSome_mem (l := l) (k := kc) (by rw [hlv]; rfl)

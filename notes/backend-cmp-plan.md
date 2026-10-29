@@ -478,3 +478,35 @@ bridge an instance through `isKeyBackendG_congrDel` and a fixed registration); t
 over the real backend (the job and `updateCompactRev`, now through `isKeyBackendG_cmp` over mvcc's
 assumed backend; `SetScheduledCompact`/`SetFinishedCompact.spec` over `batchTxSpec`) when `kbCmp :=
 True`; `Cmp` removed (O5).
+
+## The thin-view Draft round (2026-10-29)
+
+**Group 0**: the merged branch (`600f7d12e6`) builds as it is (10943 jobs); round 3's docstrings
+fixed (`batchLimitOk`: a negative limit loops forever; `batchTxSpecG`'s compaction text as the
+delete-only token, R3-3; `etcdserver/Results.lean`'s batch-limit premise; the decisions entry: the
+premise's placement the agent's, accepted by the user).
+
+**Group 1, first part: `safeSt` in place, two variants folded.**
+- `safeSt` (`backend/Model2.lean`) loses its third clause ("every committed key is in the writer's
+  contents"); `safeStC` (`DelKeys.lean`) is gone (it was `safeSt` without that clause).
+- `batchTxBuffered.UnsafeSeqPut.spec`'s and `UnsafePut.spec`'s safe-range premise is "above the
+  committed keys" (`bktOf st.C`); `UnsafeSeqPut.specC` is gone. `UnsafePut` had the same premise over
+  the writer's contents and feeds the same `sessWf_put`; its callers' premises are vacuous (`Meta`, not
+  safe-range: `CindexBackend`, `BackendHooks.OnPreCommitUnsafe`) and only restated. NewAlloc's initial
+  `safeSt` loses the clause's step. `safeSt_put`/`sessWf_put` take the same premise; the writeback, create,
+  non-safe-range and commit lemmas lose the clause's steps.
+- New law `sessWf_C_in_S` (`BatchLemmas.lean`): with no pending delete (`ndel = 0`), a committed key of
+  a bucket off the hook's is in the writer's contents (the buffers hold only puts, so the view keeps
+  every committed key, and `sessWf` makes the writer's contents agree with it). The old bridge's
+  `bt_seqPut` gives the new premise through it (`sessPuts`' `ndel = 0`, `key_not_HB`): its proof stays
+  complete, so no `sorry` reaches a result.
+- **Decided by the agent**: the premise is "above the committed keys" alone, not `specC`'s "above the
+  writer's contents or the committed keys": the proof uses only the committed keys (`safeSt_put`), and
+  a premise the code and proof do not need is the principles' "no unneeded premise". The other
+  callers of `UnsafeSeqPut.spec` (D22's snapshot walk, `applySnapshot`, `NewServer`, `BuildLemmas`,
+  `StoreBackend`) only pass the spec along.
+
+**Left of the round** (the fold list): the backend's invariants over the logical view (`batchGhostAt`
+30 uses in 13 files, `rtRest` 26 in 9, `cacheValid` replaced by `cacheValidC` 18 in 5), then
+`Unlock.specC` and `UnsafeDelete.specC` folded into their specs over it, `cacheValidC` folded; the
+bridge's three new cases and `isKeyBackendG_congrDel`.
