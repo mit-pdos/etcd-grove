@@ -31,12 +31,13 @@ theorem leasingKV.revokeRange.wp_proof
     (hRLK : leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG)) :
     leasingKV.revokeRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs b e
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc⟩
+  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc, %Hbe⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkv, #Hp, -, -, -, #HKV, -⟩
   wp_auto
-  wp_join iprop(∃ L : GoString, lend_ptr ↦ L ∗ lkv_ptr ↦ lkv ∗ ⌜L ≠ [W8 0]⌝) at (if: _ then _ else _)
+  wp_join iprop(∃ L : GoString, lend_ptr ↦ L ∗ lkv_ptr ↦ lkv ∗
+      ⌜L ≠ [W8 0] ∧ L.length ≤ pfx.length + e.length⌝) at (if: _ then _ else _)
     with [lend «end» lkv] as ⟨%L, lend, lkv, %HL⟩
   · wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
     wp_if_destruct
@@ -44,9 +45,10 @@ theorem leasingKV.revokeRange.wp_proof
       wp_join_done
       iexists _; iframe
       ipureintro
+      refine ⟨?_, by simp⟩
       intro h
       have hl := congrArg List.length h
-      have h1 : pfx.length ≠ 0 := by simpa using Hpfx
+      have h1 : pfx.length ≠ 0 := by simpa using Hpfx.1
       cases e with
       | nil => simp_all
       | cons x e' => simp at hl; omega
@@ -78,7 +80,11 @@ theorem leasingKV.revokeRange.wp_proof
   wp_apply HG $$ [] as %gresp %gerr #Hgres
   · iframe Hctx Hopts H0
     ipureintro
-    simp [opGetPanics, op_simps]
+    refine ⟨by simp [opGetPanics, op_simps], by simp [op_simps], ?_⟩
+    apply opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 2 ^ 27 + 2 ^ 26) (V := 0)
+    · exact optsKeep_cons (withRangeM_keep (e := L) (by omega)) (optsKeep_nil _ _ _)
+    · simp only [List.length_append]; omega
+    · decide
   iunfold kvGetResult at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, gerr = GoInterface.ok g := by
@@ -90,7 +96,7 @@ theorem leasingKV.revokeRange.wp_proof
   subst Hgnil
   have HoP : (opGetModel (pfx ++ b) [withRangeM L]).isPrefixGet [] = false := by
     simp [OpFull.isPrefixGet, op_simps]
-    intros; exact HL
+    intros; exact HL.1
   rw [ite_eq_right (c := (opGetModel (pfx ++ b) [withRangeM L]).isPrefixGet [] = true)
     (by rw [HoP]; simp)]
   unfold getRespRange

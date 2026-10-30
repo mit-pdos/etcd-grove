@@ -233,7 +233,7 @@ abbrev lkvReader (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
 def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
   iprop(∃ (cl : Loc) (kv : GoInterfaceOk) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (cancel : GoFunc) (osl : GoSlice),
-    ⌜pfx ≠ []⌝ ∗
+    ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 26⌝ ∗
     structFieldRef leasingKV go!"cl" lkv ↦□ cl ∗
     structFieldRef leasingKV go!"kv" lkv ↦□ GoInterface.ok kv ∗
     structFieldRef leasingKV go!"pfx" lkv ↦□ pfx ∗
@@ -338,6 +338,25 @@ def LTxnBuild.elseOps (b : LTxnBuild) : Option (List TxnOp) := b.elseOs.mapM txn
 def LTxnBuild.inner (b : LTxnBuild) (tops eops : List TxnOp) : TxnBuild :=
   { model := { cmps := b.cmps, thenOps := tops, elseOps := eops },
     cif := b.cif, cthen := b.cthen, celse := b.celse }
+
+/-- **A leasing transaction's size** (what `Commit` takes; 2026-10-30, `notes/decisions.md`,
+"Leasing's sizes"): every comparison's and operation's key, range end and value at most `N` bytes,
+and `5 * n + 1` times `3 * (|pfx| + N) + 256` at most `2 ^ 30`, `n` the number of comparisons and
+operations (the user's transaction's `TxnModel.nodes`, `LTxnBuild.nodes_model`). That bounds the
+transaction `serverTxn` sends (`txnSizeOk_of_bounds`): the user's transaction nested, and for each
+operation at most three guards and one fallback get on its key and range end, prefixed or not
+(`serverTxn_sizeOk`). -/
+def LTxnBuild.sizeOk (pfx : GoString) (b : LTxnBuild) : Prop :=
+  ∃ N, (∀ c ∈ b.cmps, c.bytesLe N) ∧ (∀ o ∈ b.thenOs ++ b.elseOs, OpShape N N N o) ∧
+    (5 * (b.cmps.length + b.thenOs.length + b.elseOs.length) + 1) *
+      (3 * (pfx.length + N) + 256) ≤ 2 ^ 30
+
+/-- **A guard's or a fallback get's strings** (`guardKeys`, `guardRanges`, `fallback`): a key, a
+range end and a value operand for one of the operations `os`: its key and range end, prefixed or
+not, and no value. -/
+def guardOf (pfx : GoString) (os : List OpFull) (key rangeEnd val : GoString) : Prop :=
+  ∃ o ∈ os, key.length ≤ pfx.length + o.key.length ∧
+    rangeEnd.length ≤ pfx.length + o.base.rangeEnd.length ∧ val = []
 
 /-- The slice `sl` of `Cmp`s modelled by `ms`, their operands set (`cmpSetAt`): its elements
 read-only (`cmpsSetAt`), its spare capacity owned (`append` may write it). -/

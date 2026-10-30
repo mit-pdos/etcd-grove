@@ -73,7 +73,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
   · iframe Hctx' Hopts
     ipureintro
-    refine ⟨Hw1, Hw2, by word, ?_⟩
+    refine ⟨Hw1, Hw2, by word, ?_, keyWatch_size _ _ (by simp only [List.length_append]; omega)⟩
     rw [Hw3, Hw4]; intro k _; exact List.nil_prefix
   ihave IH : iprop(∃ (rcv : List go_etcd_io.etcd.client.v3.WatchResponse)
       (v : go_etcd_io.etcd.client.v3.WatchResponse),

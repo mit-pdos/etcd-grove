@@ -23,13 +23,15 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- **`lkv.Get(ctx, key, opts...)`**: `get` of `OpGet(key, opts...)` (`o := opGetModel key gs`). -/
+/-- **`lkv.Get(ctx, key, opts...)`**: `get` of `OpGet(key, opts...)` (`o := opGetModel key gs`). The
+operation's key and range end are at most `2 ^ 27` bytes and its value `2 ^ 28` (`OpShape`:
+leasing's own requests carry it with the prefixed key; "Leasing's sizes"). -/
 abbrev leasingKV.Get.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (lo : w64) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
-      ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗ leasingOpen γ q ∗ threadTok }}
+      ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28) (opGetModel key gs)⌝ ∗ leasingOpen γ q ∗ threadTok }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Get")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
   {{ (ret : Loc) (err : GoInterface), RET (PairV #ret #err); lkvReader lkv γ pfx ∗ leasingOpen γ q ∗ threadTok ∗
       getOutcome γ pfx lo (opGetModel key gs) ret err (lkvReader lkv γ pfx) }}

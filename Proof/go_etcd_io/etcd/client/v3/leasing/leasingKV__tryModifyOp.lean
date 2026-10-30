@@ -40,7 +40,7 @@ theorem leasingKV.tryModifyOp.wp_proof
     leasingKV.tryModifyOp.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o top lo
   wp_start as ⟨#Hlkv, #Hctx, #Hop, #Hlo, %Hpre⟩
-  obtain ⟨Htop, Hot⟩ := Hpre
+  obtain ⟨Htop, Hot, Hsh⟩ := Hpre
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
@@ -118,7 +118,13 @@ theorem leasingKV.tryModifyOp.wp_proof
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ o.key)) .lt (.num (rv + W64 1))], [top], []⟩, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact TxnModel.under_nil _
+  · ipureintro
+    refine ⟨TxnModel.under_nil _, ?_⟩
+    have hw := txnOpOf_wireLen_le Htop
+    obtain ⟨h1, h2, h3⟩ := Hsh
+    simp only [opWireLen, wireSlack] at hw
+    simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, compareM, cmpKeyM, wireSlack]
+    omega
   ihave #Hstep : □ (∀ (st' : LeaseCacheSt) (tt : time.Time), leasingX lkv γ st' 1 ={⊤}=∗
       leasingX lkv γ (st'.evict o.key tt) 1 ∗ (fun _ => iprop(True)) st') $$ []
   · iintro !> %st' %tt HX

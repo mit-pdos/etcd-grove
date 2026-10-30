@@ -66,7 +66,8 @@ theorem leasingKV.Do.wp_proof
     (hTOR : EtcdGrove.TxnResponse.OpResponse.spec (GF := GF) (hG := hG)) :
     leasingKV.Do.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo q
-  wp_start as ⟨#Hlkv, Hrd, Hslot, #Hctx, #Hcc, #Hop, #Hlo, Hopen, Htok, %Hput, Htxn⟩
+  wp_start as ⟨#Hlkv, Hrd, Hslot, #Hctx, #Hcc, #Hop, #Hlo, Hopen, Htok, %Hpre, Htxn⟩
+  obtain ⟨Hput, Hshp⟩ := Hpre
   wp_auto
   ipersist lkv
   ipersist op
@@ -79,7 +80,7 @@ theorem leasingKV.Do.wp_proof
     wp_auto
     wp_apply hget lkv γ pfx ctx cs opv o lo q $$ [$Hpkg $Hlkv $Hrd $Hslot $Hctx $Hop $Hlo $Hopen $Htok]
       as %ret %err ⟨Hrd, Hopen, Htok, Hout⟩
-    · ipureintro; exact h1
+    · ipureintro; exact ⟨h1, Hshp (fun h => absurd (h1.symm.trans h) (by decide))⟩
     try wp_auto
     wp_apply hGOR $$ [$Hcv]
     try wp_auto
@@ -95,7 +96,7 @@ theorem leasingKV.Do.wp_proof
     wp_auto
     wp_apply hput lkv γ pfx ctx cs opv o top lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
       as %pr %err ⟨Hrd, Hout⟩
-    · ipureintro; exact ⟨h2, htop⟩
+    · ipureintro; exact ⟨h2, htop, Hshp (fun h => absurd (h2.symm.trans h) (by decide))⟩
     try wp_auto
     wp_apply hPOR $$ [$Hcv]
     try wp_auto
@@ -117,7 +118,7 @@ theorem leasingKV.Do.wp_proof
     wp_auto
     wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
       as %dr %err ⟨Hrd, Hout⟩
-    · ipureintro; exact h3
+    · ipureintro; exact ⟨h3, Hshp (fun h => absurd (h3.symm.trans h) (by decide))⟩
     try wp_auto
     wp_apply hDOR $$ [$Hcv]
     try wp_auto
