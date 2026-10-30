@@ -37,7 +37,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
+  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
@@ -455,17 +455,16 @@ theorem RawNode.Bootstrap.wp_proof
   have HrnflB : ∀ rs0 : RNState, rs0.steps = [] →
       RNFl rs0 { sk with gh := { sk.gh with tc := W64 1 } } := fun rs0 _ =>
     ⟨fun _ => by rw [Haa]; exact Hflk.1, fun h => absurd h (by rw [Haa]; exact Int.lt_irrefl _)⟩
-  -- (raft-final phase 2) the node is outside the no-snapshot mode (`NsCap`: `NGhost.ns` off), so the
-  -- cluster must be too (`NsLink`). BLOCKED: nothing in the precondition says `γ.reNoSnap = false`
-  -- (a bootstrapped cluster may be allocated in the mode, `RaftNames.reNoSnap_ok`); see P3b's report.
-  have Hns : γ.reNoSnap = false := by
-    sorry
-  -- BLOCKED (the same): the post's `RNState` has the default storage names (`sn := {}`), but
-  -- `rawNodeFresh` does not fix the log's `sn`; see P3b's report. (The certified height `0` is
-  -- `rawNodeFresh`'s, `Hlog`.)
-  have Hsn0 : s.logst.sn = {} := by
-    sorry
+  -- (raft-final phase 2) the node is outside the no-snapshot mode (`NsCap`: `NGhost.ns` off), and
+  -- so is the cluster (the spec's premise): `NsLink`
+  have Hns : γ.reNoSnap = false := Rns
   have Hdtk0 : s.logst.dtk = 0 := Hdtk0'
+  have Hsn0 : s.gh.sn = s.logst.sn := by
+    have h := Hgh0.1.2.2
+    simp only at h
+    rw [HNls, HNgh] at h
+    simp only [logAppend] at h
+    exact h.symm
   have Hnl0 : NsLink γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) := by
     unfold NsLink; show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns]
   have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
@@ -508,7 +507,7 @@ theorem RawNode.Bootstrap.wp_proof
           TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6)⟩
       iapply ownRawNode_intro γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
-            storage := interface.ok si, mode := RNMode.static,
+            storage := interface.ok si, sn := s.gh.sn, mode := RNMode.static,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
           ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
           (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2
@@ -516,7 +515,7 @@ theorem RawNode.Bootstrap.wp_proof
           (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
           (by rw [HNls]; simp only [logAppend, Hun])
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
-          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg]; exact ⟨trivial, Hsn0.symm⟩)
+          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg]; exact ⟨trivial, Hsn0⟩)
           ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
             fun h => (by simp only at h; rw [HNr] at h; cases h),
             fun h => (h (by rw [HNls]; simp only [logAppend, Hsn])).elim⟩
@@ -568,14 +567,14 @@ theorem RawNode.Bootstrap.wp_proof
         iframe Hcl' Hlw Hxw
       iapply ownRawNode_intro γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
-            storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
+            storage := interface.ok si, sn := s.gh.sn, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
           ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
           (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) Hasync
           (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
           (by rw [HNls]; simp only [logAppend, Hun])
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
-          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg]; exact ⟨trivial, Hsn0.symm⟩)
+          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg]; exact ⟨trivial, Hsn0⟩)
           ⟨fun _ _ h => (by simp only at h; rw [HNr] at h; cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
             fun h => (by simp only at h; rw [HNr] at h; cases h),
             fun h => (h (by rw [HNls]; simp only [logAppend, Hsn])).elim⟩
