@@ -316,3 +316,17 @@ The fix: etcd-io/etcd#22377 (`keyIndex.doCompact`) and #22395 (the gRPC path) in
 - `etc/lean-check.py -a` on the three Drafts; targeted `lake build` of the three (3816 jobs, no
   error). No `axiom`, no `sorry`, no Perennial change, no generated file edited; nothing switched,
   so `etc/tcb-report.py --check` is not needed (no axiom or `sorry` changed).
+
+## The user's answers on the Draft (2026-10-30)
+
+- **Q1:** A1/A2 kept: the compaction revision is a field of the apply state (`ApplyKV.crev`), and the
+  compaction right (with the write-back supply) lives with the apply thread, split out of the closer by
+  `start`.
+- **Q2:** the fork fix first for the `Txn` item: upstream's fix (etcd-io/etcd#22377, #22395) in the
+  fork and the etcd pin bumped before the `Txn` item switches; no `Txn` premise. The user pushes the
+  fork. The other items do not wait.
+- **Q3 (G2):** try an mvcc law first: every log the store certifies is in the KV certificate map, so
+  `srvRevLb` gives the model-level "revision reached"; `Compact.spec`'s text stays.
+- **Q4:** `NewServer.spec` and `specCompact` stay separate until the compaction-on case is proved,
+  then merge in one step.
+- **Q5** (approve items 1-16) waits for the review round.
