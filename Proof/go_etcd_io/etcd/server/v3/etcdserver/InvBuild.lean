@@ -130,7 +130,8 @@ def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
 payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
 (`sentMsg`); once, the credits of a `MsgReadIndex` or a forwarded `MsgProp`, delivered at most
-once; any other message may be duplicated, its credits made anew (`msgCredits_none`). (2026-10-19,
+once; any other message may be duplicated, its credits made anew (`msgCredits_intro`, any but a
+`MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
 D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
 the server's clusters send no snapshot). -/
 def srvNet (γ : SrvRaft) : NetPayload GF where
@@ -138,7 +139,7 @@ def srvNet (γ : SrvRaft) : NetPayload GF where
   O st := msgCredits γ.cl srvClusterN st
   once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
   P_pers st := by infer_instance
-  dup st h := msgCredits_none γ.cl srvClusterN st (fun e => h (Or.inl e)) (fun e => h (Or.inr e))
+  dup st h := msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
   img i D := srvImage γ i D
   img_pers i D := by infer_instance
 
@@ -312,9 +313,13 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
-    -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
+    -- (D43 M3, 2026-10-25) a fresh start: no entry replayed (2026-10-30, the repair: in every
+    -- cluster, raft's one mode; until then in its dynamic mode)
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token (`dvRun`), which
+    -- `run` gives the raft loop with `raftNode.stop` (`rnStopBag`)
+    "Hrunh" ∷ rnRunHalf γn ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗

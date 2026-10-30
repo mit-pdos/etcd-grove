@@ -23,7 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
-public import Proof.go_etcd_io.raft.v3.MemstorageAU
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 
 @[expose] public section
@@ -119,6 +119,29 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
+/-- **The apply thread's snapshot state** (see the file header) at the applied index `ai`: the
+snapshot indices at most `ai`, the raft wrapper's `MemoryStorage` `ms`, and (2026-10-30, the
+repair: raft's two-writer `MemoryStorage` specs, R1) the storage's stored snapshot index at least
+`sl` (`memSnapLb`, persistent: `CreateSnapshot` gives it at `ai`, which `compactRaftLog` then
+compacts below). Until the repair: the application's shared snapshot token (`memSnapRO`,
+`memKey`, the counter `γss` in `srvStorTokN`'s invariant, D22 J4).
+
+PENDING the coordinator's answer on D2 (Stage F, 2026-10-30): etcd takes an in-memory snapshot every
+`memorySnapshotCount = 100` applied entries (`shouldSnapshotToMemory`), so `CreateSnapshot` is
+reachable under any `SnapshotCount`, and its `snapshotValid` needs a registered snapshot
+(`snapMade`); what the apply thread holds for that (the cluster's registry, or a premise) is to be
+added here. -/
+def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
+  iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
+    srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
+    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl))
+
+/-- A lower bound of the stored snapshot index is one of every smaller index. -/
+theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)
+    (h : uint.Z sl' ≤ uint.Z sl) :
+    srvSnapState (GF := GF) s ep ms γs ai sl ⊢ srvSnapState s ep ms γs ai sl' := by
+  sorry
+/- REPAIR-OLD
 /-- (D22 J4) The namespace of the storage's shared snapshot token (`srvSnapState`), disjoint from
 the storage's own (`memSnapN`). -/
 def srvStorTokN : Namespace := nroot .@ "etcdserver_stor_tok"
@@ -189,6 +212,7 @@ theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64
   iframe Hinv
   iapply monoNatLbOwn_le (uint.nat sl') (by word) $$ Hlb
 
+-/
 /-! ## The apply thread's backend, per batch (D22 receiver epochs, S7f) -/
 
 /-- **The apply environment `E` on another backend** (D22 receiver epochs, S7f, 2026-10-23): the

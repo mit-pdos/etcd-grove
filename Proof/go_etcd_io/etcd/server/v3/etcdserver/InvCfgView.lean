@@ -283,22 +283,24 @@ of the node `n`; 2026-10-30, the repair: raft's one mode, the decision the clust
 `confPolicy_decide`, and the conf entries between the view and `k` skipped, `skippedIn_noConf`;
 until then the dynamic mode's `raftApplyCCDyn`): of a v1 change, read-only, the next conf entry's
 at position `k` of the committed log `l` delivered (`srvCCPre`, at the cluster's rule), with the
-driver's view, it returns the new `*ConfState`, owned, of the membership `m'`, and the view at
-`⟨k + 1, m'⟩`; or, the node stopped, nil (refuted by the raft loop's share of `nodeRunning`). -/
+driver's view and a share of the node's running token (the apply side's half, `dvRun`, which
+refutes raft's stopped answer, `nodeRunning_stopped`: etcd stops raft only after the scheduler is
+drained), it returns the new `*ConfState`, owned, of the membership `m'`, and the view at
+`⟨k + 1, m'⟩`. -/
 def raftApplyCC (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ ni : GoInterfaceOk, ⌜nd = GoInterface.ok ni⌝ ∗
     □ (∀ (c : GoInterface) (cm : ConfChangeM) (l : List LogEntry) (v : ConfigView)
-        (k : Nat) (e : LogEntry) (m' : Membership),
+        (k : Nat) (e : LogEntry) (m' : Membership) (q : Qp),
       ⌜srvCCPre γs.raft.rule l v (.v1 cm) k e m'⌝ -∗
       {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) ∗
           nodeConfig n γs.raft.cl srvClusterN v ∗
-          deliveredLogLb n γs.raft.cl srvClusterN l }}
+          deliveredLogLb n γs.raft.cl srvClusterN l ∗ nodeRunning n γs.raft.cl srvClusterN q }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
-      {{ (csp : Loc), RET #csp; ((∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true ∗
+      {{ (csp : Loc), RET #csp; (∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true ∗
             ⌜confStateIs cs m'⌝) ∗
-          nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩) ∨
-          (⌜csp = null⌝ ∗ nodeStopped n γs.raft.cl srvClusterN) }}))
+          nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗
+          nodeRunning n γs.raft.cl srvClusterN q }}))
 
 instance raftApplyCC_persistent (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) :
     Persistent (raftApplyCC (GF := GF) γs n nd) := by
@@ -358,6 +360,17 @@ instance dvRes_persistent (s : Loc) (γs : ServerRaftNames) (dv : Option Loc)
     (L : List EntryModel) : Persistent (dvRes (GF := GF) s γs dv L) := by
   unfold dvRes; split <;> infer_instance
 
+/-- (2026-10-30, the repair) **The apply side's half of the node's running token, for a batch with
+a view** (owned): `node.ApplyConfChange` answers nil and `nodeStopped` once the node is stopped,
+which the apply thread refutes with it. `EtcdServer.run` holds the half from the start (the raft
+loop the other, `rnRunHalf`), lends it to a batch's `applyAll` with a view, and gives it to the loop
+with `raftNode.stop` (`rnStopBag`) once the scheduler is drained. -/
+def dvRun (γs : ServerRaftNames) (dv : Option Loc) : IProp GF :=
+  match dv with
+  | none => iprop(True)
+  | some n => letI := srvStor (GF := GF) γs.raft
+      nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half
+
 /-- **The premise on a batch's view**: without one, no conf entry (2026-10-30, the repair: one mode;
 until then also a static cluster); with one, no entry at or below the consistent index `c` (no
 replay: Go hands a replayed conf change to no one), the cluster at the server's rule (from the
@@ -370,20 +383,23 @@ def dvOk (γs : ServerRaftNames) (kc0 : w64) (dv : Option Loc) (c f0 : w64)
     γs.raft.rule = srvRule kc0 γs.raft.boot ∧ γs.pre = [] ∧ γs.ai0 = W64 0
 
 /-- The node resources of `applyConfChange` (its precondition's): with a view, the node's
-conf-change contract, the driver's `nodeConfig` at `v` and the committed log `l` delivered. -/
+conf-change contract, the driver's `nodeConfig` at `v` and the committed log `l` delivered, and
+(2026-10-30, the repair) the apply side's half of the running token (`dvRun`). -/
 def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (v : ConfigView)
     (l : List LogEntry) : IProp GF :=
   match dv with
   | none => iprop(True)
   | some n => letI := srvStor (GF := GF) γs.raft; iprop(srvRaftNodeCC s γs n ∗ nodeConfig n γs.raft.cl srvClusterN v ∗
-      deliveredLogLb n γs.raft.cl srvClusterN l)
+      deliveredLogLb n γs.raft.cl srvClusterN l ∗ dvRun γs (some n))
 
-/-- `applyConfChange`'s node answer: with a view, `nodeConfig` at `⟨k + 1, m'⟩`. -/
+/-- `applyConfChange`'s node answer: with a view, `nodeConfig` at `⟨k + 1, m'⟩`, and (2026-10-30)
+the running token's half back. -/
 def dvCCPost (γs : ServerRaftNames) (dv : Option Loc) (k : Nat) (m' : Membership) :
     IProp GF :=
   match dv with
   | none => iprop(True)
-  | some n => letI := srvStor (GF := GF) γs.raft; nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩
+  | some n => letI := srvStor (GF := GF) γs.raft
+      iprop(nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗ dvRun γs (some n))
 
 /-- A normal entry keeps the view. -/
 theorem dvView_normal (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryModel)
@@ -415,14 +431,16 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
     (Hdyn : ∀ n, dv = some n → ccApplyOkR γs.raft cm ∧
       srvDynPol γs.raft.boot.length lid (γs.pre ++ L ++ [m]) ∧ lid ∈ γs.raft.cfg ∧
       withIdx ((γs.pre ++ L).map EntryModel.toLE) = γs.pre ++ L) :
-    dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ⊢
+    dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ∗ dvRun γs dv ⊢
       ∃ (v : ConfigView) (m' : Membership),
         dvCCPre s γs dv v (srvLE γs (L ++ m :: rest)) ∗
         ⌜∀ n, dv = some n →
           srvCCPre (srvRule kc0 γs.raft.boot) (srvLE γs (L ++ m :: rest)) v
             (.v1 (membership.ccRaftEff (restModel kc0 γs.raft.boot (γs.pre ++ L)).bk cm))
             (γs.pre ++ L).length m.toLE m'⌝ ∗
-        (dvCCPost γs dv (γs.pre ++ L).length m' -∗ dvView γs dv (L ++ [m])) := by
+        (dvCCPost γs dv (γs.pre ++ L).length m' -∗ dvView γs dv (L ++ [m]) ∗ dvRun γs dv) := by
+  sorry
+/- REPAIR-OLD
   unfold dvView dvRes dvCCPre dvCCPost
   rcases dv with _ | n
   · iintro -
@@ -458,6 +476,7 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
     ipureintro
     rw [← List.append_assoc]
     exact Hpost
+-/
 
 end apply
 

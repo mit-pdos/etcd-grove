@@ -82,7 +82,9 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM true ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token
+    "Hrunh" ∷ rnRunHalf γn ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗

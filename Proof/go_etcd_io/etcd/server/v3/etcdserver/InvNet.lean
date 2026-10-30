@@ -68,6 +68,8 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     {γd : GName} (ml : Loc) :
     srvClusterOk (GF := GF) γ.srv ∗ netRecv γn γ.id γd ml ⊢
       |==> stepIn γ.node.cl srvClusterN γ.id ml := by
+  sorry
+/- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
   obtain ⟨N, g, dir, r⟩ := γn
   simp only at HN
@@ -101,6 +103,7 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   rw [ite_eq_right Htn]
   iframe Hrm Hm HO Htc
   iright; iexact Hbt
+-/
 
 end lemmas
 

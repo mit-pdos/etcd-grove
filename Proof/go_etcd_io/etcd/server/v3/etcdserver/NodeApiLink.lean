@@ -35,9 +35,11 @@ theorem srvApi_wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     StartNode.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact wp_StartNode
 
-theorem srvApi_wp_StartNode_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    StartNode.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact RaftLink.wp_StartNode_dynamic
+/-- (2026-10-30, the repair) raft's `node.Stop` (its whole running token to `nodeStopped`), the
+`Stop` clause of `isRaftNodeIfc` (until then the premise `rnStopOk`). -/
+theorem srvApi_wp_Stop : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+    node.Stop.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact node.wp_Stop
 
 theorem srvApi_wp_Ready : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.Ready.spec (GF := GF) (hG := hG) := fun γr => by
@@ -46,10 +48,6 @@ theorem srvApi_wp_Ready : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
 theorem srvApi_wp_Advance : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.Advance.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact node.wp_Advance
-
-theorem srvApi_wp_Advance_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    node.Advance.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact RaftLink.node.wp_Advance_dynamic
 
 theorem srvApi_wp_Tick : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.Tick.spec (GF := GF) (hG := hG) := fun γr => by
@@ -66,10 +64,6 @@ theorem srvApi_wp_Propose : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
 theorem srvApi_wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.ApplyConfChange.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact node.wp_ApplyConfChange
-
-theorem srvApi_wp_ApplyConfChange_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := fun γr => by
-  letI := srvStor (GF := GF) γr; exact RaftLink.node.wp_ApplyConfChange_dynamic
 
 theorem srvApi_wp_Step : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     node.Step.spec (GF := GF) (hG := hG) := fun γr => by

@@ -57,12 +57,11 @@ def ccPeersAfter (v3 : Bool) (m : ConfChangeM) (bk : GMap GoString backend.BktDa
     rs.filter (· != m.nodeId)
   else rs
 
-/-- **The transport's peers cover the other boot members** (D43 M5d/M5e): in raft's static mode for
-good, in the dynamic mode until the boot entries are applied (after them a `RemoveNode` may remove
-one; an `AddNode` comes only before, the dynamic policy's `srvDynLog`). -/
-def srvPeersCover (γs : ServerRaftNames) (lid : w64) (A : List EntryModel) (prs : trIds) : Prop :=
-  (γs.raft.dyn = false ∨ (γs.pre ++ A).length < γs.raft.boot.length) →
-    ∀ f, f ∈ γs.raft.cfg → f ≠ lid → f ∈ prs
+/-- **The transport's peers cover the other boot members** (D43 M5d/M5e; 2026-10-30, the repair,
+D3: static membership after boot, so for good; until then, in the dynamic mode, until the boot
+entries were applied). -/
+def srvPeersCover (γs : ServerRaftNames) (lid : w64) (_A : List EntryModel) (prs : trIds) : Prop :=
+  ∀ f, f ∈ γs.raft.cfg → f ≠ lid → f ∈ prs
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
@@ -225,29 +224,24 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The cluster and the transport, as `applyConfChange` writes them** (see the file header),
 the transport `t` with the member `lid` and the peers' ids `rs`. -/
-def ccMembRes (γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
-  match γs.raft.dyn with
-  | false => iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF), ⌜c.lid = lid⌝ ∗
+def ccMembRes (_γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
+  -- (2026-10-30, the repair, D3: static membership after boot, the old static mode's resource;
+  -- until then, in the dynamic mode, the live transport with the removal registry `rcDyn`)
+  iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF), ⌜c.lid = lid⌝ ∗
       trLive γn t c rs)
-  | true => iprop(∃ (γn : NetNames GF) (c : TrN GF) (γc : GName) (rm : GMap w64 Bool),
-      ⌜c.lid = lid ∧ c.L = []⌝ ∗ trLive γn t c rs ∗ membership.isRaftClusterG cl (membership.rcDyn γc) ∗
-      membership.rcRemovedOwn γc rm)
 
-/-- **The dynamic mode's positional policy** (persistent; D43 M5d, the user's decision: an
-assumption of the dynamic mode, M8's dynamic `NewServer` establishes it): the local member `lid`
+/-- **The positional policy** (persistent; D43 M5d, the user's decision; 2026-10-30, the repair: in
+every cluster, until then in the dynamic mode, `True` in the static one): the local member `lid`
 is a member of raft's configuration, and every conf entry of the committed log (`srvDynPol`, by
 its position in raft's log) decodes to an `AddNode` among the boot entries (re-applied) or a
-`RemoveNode` after them, never of the local member (the stopping server is M6's). True in raft's
-static mode. -/
+`RemoveNode` after them (D3: none), never of the local member. -/
 def srvDynLog (γs : ServerRaftNames) (lid : w64) : IProp GF :=
-  match γs.raft.dyn with
-  | false => iprop(True)
-  | true => iprop(⌜lid ∈ γs.raft.cfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
+  iprop(⌜lid ∈ γs.raft.cfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
       ⌜srvDynPol γs.raft.boot.length lid (γs.pre ++ L)⌝)
 
 instance srvDynLog_persistent (γs : ServerRaftNames) (lid : w64) :
     Persistent (srvDynLog (GF := GF) γs lid) := by
-  unfold srvDynLog; split <;> infer_instance
+  unfold srvDynLog; infer_instance
 
 /-- **The apply thread's membership resource** (D43 M5d/M5e, the user's (B)) after the applied log
 `A`: the server's fields `applyConfChange` reads (`s.beHooks` with the hooks' facts, `s.r.transport`,
@@ -277,6 +271,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (ht : m.typ = W32 0) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr (A ++ [m]) := by
+  sorry
+/- REPAIR-OLD
   unfold srvApRes
   iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
     Hmr, %Hp, #Hd⟩
@@ -293,6 +289,7 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
   · refine ⟨fun k hk => Hp.2.1 k ?_, Hp.2.2⟩
     rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
     exact hk
+-/
 
 /-- The store's reader's token, lent from the apply thread's applier state (its sole writer's,
 `mvcc.writerOwn_rt`). -/
@@ -405,12 +402,13 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
           (cm.type = W32 0 → GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62) ∧
-          (γr.raft.raft.dyn = true →
-            srvDynPol γr.raft.raft.boot.length lid (γr.raft.pre ++ (A ++ [m])) ∧
+          (srvDynPol γr.raft.raft.boot.length lid (γr.raft.pre ++ (A ++ [m])) ∧
             lid ∈ γr.raft.raft.cfg)⌝ ∗
         (∀ v3 : Bool, ccMembRes γs cl tl lid (ccPeersAfter v3 cm
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk prs) -∗
           srvApRes s γr (A ++ [m])) := by
+  sorry
+/- REPAIR-OLD
   subst hγs
   iintro ⟨H, #Hlb⟩
   unfold srvApRes
@@ -491,6 +489,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   · intro k hk
     rw [← List.append_assoc, restModel_append, restEntry_cc _ _ cm _ hty hdec] at hk
     exact ccRest_memKeys _ cm _ _ hin Hp.2.1 k hk
+-/
 
 end lemmas
 
