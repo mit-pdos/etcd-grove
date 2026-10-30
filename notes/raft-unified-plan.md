@@ -1605,8 +1605,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
 4. **S-E allocation, boot and the NewServer composition**: `NodeStart.lean` (`rnToks_of_start` (done),
    `srvMem_bootStorage` (done), `raftNode_of_StartNode` (done)), `bootstrappedRaft__newRaftNode.lean`,
    `NewServerAlloc.lean` (`srvClusterBoot_alloc` (done)), `NewServerAllocOn.lean`
-   (`srvClusterBootOn_alloc` (done)), `BuildGap.lean` (`entryClaims_transfer`, `clusterWorkloadOk_of`,
-   `rnEnvOk_of_cluster`, `isServerBuilt_of_gap`), `StartOn.lean` (`isServerBuilt_of_gapOn`),
+   (`srvClusterBootOn_alloc` (done)), `BuildGap.lean` (`entryClaims_transfer` (done), `clusterWorkloadOk_of` (done),
+   `rnEnvOk_of_cluster` (done), `isServerBuilt_of_gap` (done)), `StartOn.lean` (`isServerBuilt_of_gapOn`),
    `ServerOn.lean` (`clusterWorkloadOkOn_of`, `rnEnvOk_of_clusterOn`, `rnEnvOk_of_clusterM`),
    `InvBuild.lean` (`srvMsgNet_bundle`), `EtcdServer__start.lean` (both), `EtcdServer__run.lean`
    (`run_job_body`, `run_job_bodyOn`, `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
@@ -1686,8 +1686,8 @@ the one `sorry` when the rest is proved. Server files under `Proof/go_etcd_io/et
 | 1 | `InvRaftNode.lean` | `rn_ready_recv` (in a stage-P sorry) | the `some l` case: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from the driver |
 | 2 | `InvRaftLoop.lean` | `rnApplyTok_recv` | the snapshot payload's case: `rnApSnap`'s parts, `cum`'s agreement at `rcv.length`, the consumer's token at `A'` |
 | 3 | `raftNode__start.lean` | `raftNode.start.wp_proof` (in a stage-P sorry) | the Ready-snapshot branch (raft.go:256-282): `SaveSnap`, `MemoryStorage.ApplySnapshot` from `readySnap (some l)` (`snapGiven` for `J.B`/`J.DL`, `snapshotCert_valid` for `J.SV`), notifyc's two sends, `Advance`'s snapshot clause over `snapReceipt`, the `rnApSnap` payload |
-| 4 | `raftNode__processMessages.lean` | `rnMsgR_open` (in a stage-P sorry) | the `MsgSnap` side, `rnSnapMsg`'s `sentMsg`/`msgCredits` kept |
-| 5 | `raftNode__processMessages.lean` | `raftNode.processMessages.wp_proof` (in a stage-P sorry) | the `MsgSnap` arm (raft.go:373-383): `msgSnapC`'s bag takes `rnSnapMsg γ m`, or it is dropped when full |
+| 4 | `raftNode__processMessages.lean` | `rnMsgR_open` (in a stage-P sorry; **proved in stage P**, e304fabaa0) | the `MsgSnap` side, `rnSnapMsg`'s `sentMsg`/`msgCredits` kept |
+| 5 | `raftNode__processMessages.lean` | `raftNode.processMessages.wp_proof` (in a stage-P sorry; **proved in stage P**, e304fabaa0) | the `MsgSnap` arm (raft.go:373-383): `msgSnapC`'s bag takes `rnSnapMsg γ m`, or it is dropped when full |
 | 6 | `NodeBridge.lean` | `isRaftNodeIfc_of_isNode` (in a stage-P sorry) | the snapshot `Advance` clause: `node.Advance.spec` at `L = some l` (`snapReceipt`, `snapshotCert`), the view at the snapshot (`confAt`/`confStateIs`, D3) |
 | 7 | `EtcdServer__applyAll.lean` | `EtcdServer.applyAll.wp_proof`, `wp_proofOn` (in stage-P sorries) | the `ap.snapshot ≠ nil` branch (`applySnapshot.specSnap`, proved on lean, and its premises; the two-receive notify) and the `msgSnapC` merge branch (`createMergedSnapshotMessage`/`sendMergedSnap` over `rnSnapMsg`) |
 | 8 | `EtcdServer__run.lean` | `run_job_body`, `run_job_bodyOn` (in stage-P sorries) | a snapshot payload's job: `applyAll` on a snapshot batch (a spec of it over `applySnapshot.specSnap`'s premises: lean's J8a) |
