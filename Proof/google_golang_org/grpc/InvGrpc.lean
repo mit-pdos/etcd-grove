@@ -67,18 +67,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The size below which grpc's codec sends a message** (`2 ^ 32` bytes; 64-bit Go, the model's
-platform; `notes/decisions.md`, "Invoke's send side: an encoded-size premise";
+platform; `notes/decisions.md`, "The encoded-size bound at grpc's send side";
 `issues/grpc-codec-alloc-before-size-check.md`). grpc-go v1.84's `codecV2.Marshal` allocates
 `proto.Size(m)` bytes (rounded up to 4 KiB) before any size check, and `make` panics above Go's
 `maxAlloc` (`2 ^ 48` on linux/amd64); at `2 ^ 32` bytes and above, grpc refuses the message
 (`encode`'s `MaxUint32` check, an error), so no message at or above the bound is ever delivered. -/
 def grpcMsgMax : Nat := 2 ^ 32
-
-/-- **The fixed part of one request's encoding** (the instances' `wireLen`): its scalar fields and
-every field's tag and length (12 bytes a field at most: a tag of at most 2 bytes, a varint of at
-most 10), with its own tag and length in the enclosing messages; the largest of etcd's requests is
-a `RangeRequest` (13 fields) in a `RequestOp` in a `TxnRequest` (`13·12 + 2·12 = 180`). -/
-def wireSlack : Nat := 256
 
 /-- **A protobuf message type** (see the file header). -/
 structure ProtoMsg (GF : BundledGFunctors) where
@@ -94,8 +88,8 @@ structure ProtoMsg (GF : BundledGFunctors) where
   messages `send` holds field by field (inside `txnReqAt`, `createReqSend`, `userOptsAt`,
   `ownPermW`) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
   translated; requests are struct literals), so the bound is claimed for messages without them
-  (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "Invoke's send
-  side: an encoded-size premise"). `grpcMsgMax` or more: no bound known (the default; responses),
+  (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
+  bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),
   so the message cannot be sent (`grpcInvokerOk`). Part of the instance's trusted wire model. -/
   wireLen : M → Nat := fun _ => grpcMsgMax
   /-- A decoded `*T` holding `m` (read-only). -/

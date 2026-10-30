@@ -951,7 +951,8 @@ read names, none for a serializable one (which is not linearizable). -/
 theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (F lf : mvcc.Log) (hp : TxnModel.plain b.model) (hx : b.model.exactGets)
-    (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model) :
+    (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model)
+    (hsz : txnSizeOk b.model) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         mvcc.idxCert E.γ.idx F ∗ mvcc.certOk E.γ lf ∗ kvAnyAu E γr }}
@@ -1028,6 +1029,8 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     isplitl []
     · iapply knownAt_srvsAt $$ []
       iframe #
+    isplitl []; rotate_left
+    · ipureintro; exact txnSizeOk_wireOf hsz
     iapply txnReqPre_box
     imodintro
     inext
@@ -1072,6 +1075,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
   iexists (txnB tp addr cd)
   -- the commit at a floor, for both `Commit` triples
   have hcommit : ∀ (b : TxnBuild) (lo : w64), b.model.Under pfx → b.model.exactGets →
+      txnSizeOk b.model →
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗ storeSmall E.γ ∗
         kvAnyAu E γr ∗ kvLeasedCommitTodo E γr γr cid mid addr ⊢
@@ -1080,7 +1084,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
-    intro b lo hu hx
+    intro b lo hu hx hsz
     iintro ⟨#Pc, #Hsrd, #Hrpc, #Hsm, #Hnr, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
     iunfold txnB at HB
     icases HB with ⟨Hobj, %hp⟩
@@ -1101,7 +1105,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
     -- the transaction linearized at
     ihave ⟨%lf, #Hcl, %Hll⟩ := certOk_of_reached E lo $$ Hlo
     ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
-    iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk) $$ [Hobj]
+    iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk hsz) $$ [Hobj]
     · iframe
       iframe #
     inext
@@ -1172,13 +1176,14 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
         · exact h2 op h⟩
     isplitl []
     · iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-      iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnr $Hlc] [HB]
+      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnr $Hlc] [HB]
       · iframe; iframe #
       inext
       iintro %resp %err ⟨Hr, -⟩
       iapply HΦ'
       iexact Hr
-    · iintro !> %b %Φ' !> ⟨HB, %hx⟩ HΦ'
+    · iintro !> %b %Φ' !> ⟨HB, %hxs⟩ HΦ'
+      obtain ⟨hx, hsz⟩ := hxs
       iunfold txnB at HB
       icases HB with ⟨Hobj, %hp⟩
       by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
@@ -1196,7 +1201,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
       ihave #Hcl : mvcc.certOk E.γ ([] : mvcc.Log) $$ []
       · unfold mvcc.certOk; ileft; ipureintro; simp
-      iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F [] hp hx hk) $$ [Hobj]
+      iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F [] hp hx hk hsz) $$ [Hobj]
       · iframe
         iframe #
       inext
@@ -1214,7 +1219,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       · ileft; ipureintro; exact Herr.1
   · unfold txnCommitErrTodo
     iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-    iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnr $Hlc] [HB]
+    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnr $Hlc] [HB]
     · iframe; iframe #
     inext
     iintro %resp %err ⟨Hr, Herr⟩
