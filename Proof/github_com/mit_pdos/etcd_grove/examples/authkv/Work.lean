@@ -199,7 +199,7 @@ theorem Work.wp_proof
   icases Hres with (%Hne | ⟨%Herr, %m, -, %Hg⟩)
   rotate_left
   · exfalso
-    exact read_c_refused who (by first | exact Hg.1 | (rw [get_c_ok.2.2.1, get_c_ok.2.2.2] at Hg; exact Hg.1))
+    exact read_c_refused who Hg.1
   wp_apply (wp_refused who _ err Hne)
   (try wp_auto)
   -- the range `[a, d)`: refused
@@ -225,7 +225,7 @@ theorem Work.wp_proof
   icases Hres with (%Hne | ⟨%Herr, %m, -, %Hg⟩)
   rotate_left
   · exfalso
-    exact read_past_refused who (by first | exact Hg.1 | (rw [get_past_ok.2.2.1, get_past_ok.2.2.2] at Hg; exact Hg.1))
+    exact read_past_refused who Hg.1
   wp_apply (wp_refused who _ err Hne)
   (try wp_auto)
   -- T1: a put in `[a, b)` and a get of `[a, b)`: `u`'s
@@ -593,4 +593,137 @@ theorem Work.wp_proof
   wp_apply (wp_refused who _ err
     (fun h => not_permitted_c who _ (akOpGranted_delete who _ hkc (Herr h))))
   (try wp_auto)
-  done
+  -- the watch of `c/` from revision 1: refused, it reports nothing
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  wp_apply context.wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
+    as %wc %wcd %wcancel ⟨#Hwcancel, -, -, #Hwctx, %Hwnone⟩
+  (try wp_auto)
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+      ∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+        wctx_ptr ↦ GoInterface.ok ci ∗ context.isContext ci cd ∗
+        ⌜metadata.outgoingOf (GoInterface.ok ci) = akOut who⌝))) $$ [wctx]
+  · wp_if_destruct
+    · ihave #Pmd : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata $$ []
+      · iPkgInit
+      (try wp_auto)
+      wp_apply wp_slice_literal (V := GoString) [go!"token", badToken]
+      isplitr
+      · ipureintro; rfl
+      iintro %ksl ⟨Hksl, -⟩
+      simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd,
+        show max (max (2 : Int) 0) 0 = 2 from rfl]
+      (try wp_auto)
+      wp_apply wp_Append wc wcd _ (DFrac.own 1) go!"token" badToken
+          (by unfold metadata.lowerKey; decide) $$ [Hksl]
+        as %c' ⟨%ci, %vs, %Hc', #Hctx', %Hmd, -⟩
+      · iframe; iexact Hwctx
+      subst Hc'
+      (try wp_auto)
+      iframe
+      isplitr
+      · ipureintro; rfl
+      iexists { wcd with Values := vs }
+      iframe Hctx'
+      ipureintro
+      exact reqCtx_out _ _ (GoInterface.ok wc) Hwnone (by rw [_root_.if_pos rfl]; exact Hmd)
+    · (try wp_auto)
+      iframe
+      iexists wcd
+      iframe Hwctx
+      ipureintro
+      exact reqCtx_out _ _ (GoInterface.ok wc) Hwnone (by simp only [Hif, ↓reduceIte])
+  iintro %v ⟨%hv, %wci, %wcd', wctx, #Hwctx', %Hwout⟩
+  subst hv
+  (try wp_auto)
+  wp_apply wp_WithPrefix as %f1 #Hf1
+  wp_apply wp_WithRev (W64 1) as %f2 #Hf2
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %wosl ⟨Hwosl, -⟩
+  ipersist Hwosl
+  ihave #Hwopts := optsAt_two (GF := GF) _
+      ([f1, zero_val GoFunc].set (sint.nat (W64 (0 + 1))) f2) f1 f2 withPrefixM (withRevM (W64 1))
+      rfl $$ [Hwosl Hf1 Hf2]
+  · iframe #
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
+  ihave ⟨%w, %wconn, %wwc, %wlg, %wics, #Hwf', #Hcw, #Hwat⟩ :=
+    client.watcher_of_clientTokAt wp_ErrAny hAs cl _ V (akTokP γa who) (by rw [hVa]) hVm hVn
+      $$ [Pc Ppb Pctx Hnc Hwf Htok]
+  · iframe #
+  (try wp_auto)
+  ihave #Hau := akHist_readAu ρ.kv $$ Hinv
+  iunfold kvReadAu at Hau
+  iunfold kvAu at Hau
+  have hE' : (({ V with conn := wconn, ics := wics, wc := wwc, lg := wlg } : WEnv GF).mem 0).2.E.authMode
+      = .on γa := by simp [hVm, hVE, hγa]
+  wp_apply (wp_Watch w { V with conn := wconn, ics := wics, wc := wwc, lg := wlg } ρ.kv wci wcd'
+      go!"c/" _ [withPrefixM, withRevM (W64 1)] (W64 1) (fun σ => iprop(⌜stateHistOk σ⌝)) n) $$ []
+    as %wch %γw ⟨#Hsp, Hcons, -⟩
+  · iframe #
+    isplitr
+    · ipureintro; exact hVk
+    isplitr
+    · ipureintro; exact ⟨watch_c_ok.1.1, watch_c_ok.1.2, by decide⟩
+    iintro !> %_
+    rw [hE']
+    unfold auth.authPubLbM
+    ihave #Hf2 := Hf
+    iunfold akAuthFixed at Hf2
+    icases Hf2 with ⟨#Hp, -⟩
+    iexact Hp
+  (try wp_auto)
+  ihave HI : (∃ (rs : List go_etcd_io.etcd.client.v3.WatchResponse)
+      (v0 : go_etcd_io.etcd.client.v3.WatchResponse),
+      "Hcons" ∷ spscConsumer γw.spsc rs ∗ "wresp" ∷ wresp_ptr ↦ v0 : IProp GF) $$ [Hcons wresp]
+  · iexists [], _; iframe
+  wp_for HI
+  wp_apply (wp_spsc_receive (t := go_etcd_io.etcd.client.v3.WatchResponse.ty) γw.spsc wch _ _ rs)
+    $$ [$Hsp $Hcons] as %v %ok Hv
+  cases ok
+  · -- the channel closed: the loop ends
+    wp_auto
+    wp_for_post
+    wp_apply Hwcancel
+    (try wp_auto)
+    iapply HΦ; itrivial
+  simp only [↓reduceIte]
+  icases Hv with ⟨Hel, Hcons⟩
+  iunfold watchStateElem at Hel
+  icases Hel with ⟨%r, %σ, %c, %c', #Hresp, -, -, -, -, #Hau'⟩
+  iunfold respAt at Hresp
+  icases Hresp with ⟨#Hevs, -, -⟩
+  iunfold eventsAt at Hevs
+  icases Hevs with ⟨%ls, #Hls, %Hlen, -⟩
+  ihave %Hsll := ownSlice_len _ _ _ $$ Hls
+  wp_auto
+  by_cases he : r.events = []
+  · -- no events: the loop goes on
+    have h0 : ¬ (sint.Z (W64 0) < sint.Z v.Events'.len) := by
+      rw [he] at Hlen
+      have := Hsll.1; have := Hsll.2
+      simp only [List.length_nil] at Hlen
+      word
+    rw [decide_eq_false h0]
+    wp_auto
+    wp_for_post
+    iframe
+    iexists _, _
+    iframe
+  · -- events: the watch was granted, which it was not (`akWatch_c_refused`)
+    ihave #Hw := Hau' $$ %he
+    ihave #Hw2 := Hw $$ %hVn
+    ihave #Hw3 : watchCheckOk V.R.γ s wconn (GoInterface.ok wci) n go!"c/" go!"c0" $$ [Hw2]
+    · iExactEq Hw2
+      simp [hVm, hVs]
+      rfl
+    imod (akWatch_c_refused V.R.γ s wconn (GoInterface.ok wci) γa ρ Lset n who Hwout) $$
+      [Hf Hwat Htag Htls] Hw3 with HF
+    · iframe #
+    iexfalso
+    iexact HF

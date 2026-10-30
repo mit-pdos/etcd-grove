@@ -527,6 +527,18 @@ theorem t1_reads (k v : GoString) (r : w64) (s : List EtcdKv) (skip : Bool) (m :
     rw [this, ← hue]; exact hin
   | _ => trivial
 
+/-- `Watch("c/", WithPrefix(), WithRev(1))`: a range watch of `[c/, c0)` from revision `1`. -/
+theorem watch_c_ok :
+    ((opWatchModel go!"c/" [withPrefixM, withRevM (W64 1)]).isRangeWatch (W64 1) = true ∧
+      ¬ opWatchPanics go!"c/" [withPrefixM, withRevM (W64 1)]) ∧
+    (opWatchModel go!"c/" [withPrefixM, withRevM (W64 1)]).key = go!"c/" ∧
+    (opWatchModel go!"c/" [withPrefixM, withRevM (W64 1)]).base.rangeEnd = go!"c0" := by
+  refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+  · simp [opWatchModel, op_simps, OpFull.isRangeWatch]
+  · simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps]
+  · simp [opWatchModel, op_simps]
+  · simp [opWatchModel, op_simps]; decide
+
 end pure
 
 section calls
@@ -881,6 +893,24 @@ theorem optsAt_one (sl : GoSlice) (f : GoFunc) (g : OpFull → OpFull) :
   rcases i with _ | i
   · cases Hf'; cases Hg'; iexact Hf
   · simp at Hf'
+
+/-- **Two options** (a variadic slice of two). -/
+theorem optsAt_two (sl : GoSlice) (fs : List GoFunc) (f1 f2 : GoFunc) (g1 g2 : OpFull → OpFull)
+    (hfs : fs = [f1, f2]) :
+    sl ↦*□ fs ∗ optSpec (GF := GF) f1 g1 ∗ optSpec f2 g2 ⊢ optsAt sl [g1, g2] := by
+  subst hfs
+  iintro ⟨#Hsl, #H1, #H2⟩
+  iunfold optsAt
+  iexists [f1, f2]
+  iframe Hsl
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %f %g %Hf %Hg
+  rcases i with _ | _ | i
+  · cases Hf; cases Hg; iexact H1
+  · cases Hf; cases Hg; iexact H2
+  · simp at Hf
 
 /-- **One operation** (a `Then(op)`'s variadic slice). -/
 theorem opsAt_one (sl : GoSlice) (v1 : go_etcd_io.etcd.client.v3.Op) (o1 : OpFull) :
