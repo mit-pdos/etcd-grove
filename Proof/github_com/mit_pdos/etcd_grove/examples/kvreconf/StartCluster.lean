@@ -149,6 +149,43 @@ theorem StartCluster.wp_proof
   have Hkv : uint.nat k = uint.nat o.Voters' + 1 := by word
   rw [Hkv, show uint.nat o.Voters' + 1 - 1 = uint.nat o.Voters' from by omega]
   try wp_auto
+  -- the bootstrap conf state, frozen
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.ConfState «$v3_ptr» _ _ slice.nil [] ⊤ $$ [state sizeCache unknownFields Hnil]
+    with #Hpb
+  · iframe
+  ihave HcsB : csPts «$v3_ptr» (DFrac.own 1) (bootCS (bootVoters (uint.nat o.Voters'))) false
+    $$ [HbV Hsv Learners VotersOutgoing LearnersNext AutoLeave]
+  · iunfold csPts
+    iexists sv, _, _, _, _
+    simp only [named, bootCS]
+    iframe HbV Hsv Learners VotersOutgoing LearnersNext AutoLeave Hpb
+    isplitr
+    · ipureintro; exact Hv3nn
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · iapply cellRO_null
+    ipureintro; intro h; cases h
+  imod csPts_persist _ _ _ _ $$ HcsB with #HbootCS
+  imod isStats_alloc _ ⊤ $$ Stats with #Hstats
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  try wp_auto
+  wp_apply wp_Mutex_Lock_fresh («$r0_ptr».[RCluster, go!"mu"])
+    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) «$r0_ptr») $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
+  ihave #Hc : isClusterC γr (bootVoters (uint.nat o.Voters')) «$r0_ptr» $$ []
+  · unfold isClusterC
+    iexists o, «$v3_ptr»
+    simp only [named]
+    iframe #
+    ipureintro
+    exact ⟨Hdup, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
   sorry
 
 end proof
