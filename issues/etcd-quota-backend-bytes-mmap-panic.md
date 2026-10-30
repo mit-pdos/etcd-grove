@@ -2,7 +2,7 @@
 upstream: unchecked
 ---
 
-# A `--quota-backend-bytes` above about 2.5·10^14 (amd64) makes etcd panic at startup ("mmap too large")
+# A `--quota-backend-bytes` above about 10^14 (amd64 Linux) makes etcd panic at startup ("mmap too large", or `mmap` failing with ENOMEM)
 
 - **Status**: an unstated precondition. etcd's configuration accepts any positive
   `QuotaBackendBytes` (the flag's help says only "Sets the maximum size (in bytes) that the etcd
@@ -25,6 +25,13 @@ upstream: unchecked
   - `server/embed/config.go:616`: the flag's documentation, with no upper bound. `quota.go` only
     warns above the recommended `MaxQuotaBytes` (8 GiB).
   - A `q` with `q + q/10` above `MaxInt64` overflows in `newBackend` too.
+  - Below `MaxMapSize` too (found 2026-10-29, `notes/axiom-review/openbackend-post.md`): bbolt maps
+    the whole size with one `mmap(2)` (bbolt `bolt_unix.go:57`), and a Linux process on amd64 has
+    47 bits (128 TiB) of address space. A map above what is free fails with `ENOMEM`; measured in a
+    Go test process, the largest single map is about 105 TiB. So `q = 2^47` (`q + q/10` = 140.8 TiB,
+    within `MaxMapSize`) panics too, with bbolt's `mmap failed, size: 154812096184320, error: cannot
+    allocate memory`, and `q + q/10` = 64 TiB opens. The practical limit is therefore about 10^14
+    bytes, and it depends on the process's other mappings and `RLIMIT_AS`.
 - **What happens**: reproduction `issues/etcd-quota-backend-bytes-mmap-panic/repro_test.go`. Copy it
   into `server/storage/` and run `go test ./storage -run 'TestOpenBackend(Large|Default)Quota' -v` from
   `server/`. With `QuotaBackendBytes: 1 << 50` the child process dies with `panic: failed to open
@@ -43,10 +50,13 @@ upstream: unchecked
   positive, is the default, or `q + q/10 ≤ 0xFFFFFFFFFFFF`. `NewServer.spec`, `specCompact` and
   `specM` take it as a premise (`"%Hmmap"`), and the examples discharge it with their default quota.
   The `axiom` skill found the gap: `notes/axiom-review/openbackend.md` (the counterexample on branch
-  `axiom/openbackend`, `examples/axiomcx/openquota`).
+  `axiom/openbackend`, `examples/axiomcx/openquota`). `openMmapOk`'s bound is still bbolt's
+  `MaxMapSize`, so it does not exclude the address-space failure: `notes/axiom-review/openbackend-post.md`
+  (branch `axiom/openbackend-post`, `examples/axiomcx/openva`) proposes `q + q/10 ≤ 2^46`.
 - **Possible fixes**: validate `QuotaBackendBytes` in `embed.Config.Validate` (or in
-  `newBackend`) against `MaxMapSize·10/11` and the `int64` overflow, with a clear error; or clamp
-  the mmap size to bbolt's maximum (the quota alarm still applies); and document the limit in the
+  `newBackend`) against a bound the address space holds (not just `MaxMapSize·10/11`, which still
+  panics on amd64 Linux) and the `int64` overflow, with a clear error; or clamp
+  the initial mmap size to one the process can map (bbolt grows the map as the file grows) (the quota alarm still applies); and document the limit in the
   flag's help.
 - **Found**: 2026-10-29, by the `axiom` skill's review of `storage.OpenBackend`
   (`notes/axiom-review/openbackend.md`).
