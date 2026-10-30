@@ -11,6 +11,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster__all
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.LifeLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ClusterLemmas
 
 @[expose] public section
 
@@ -33,10 +34,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumpt
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
-
-/-- The bootstrap voters are not empty for a positive count. -/
-theorem bootVoters_length (k : Nat) : (bootVoters k).length = k := by
-  simp [bootVoters]
 
 theorem Cluster.all.wp_proof : Cluster.all.spec (GF := GF) (hG := hG) := by
   intro γr vs c own
