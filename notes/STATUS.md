@@ -491,6 +491,18 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`)
+
+Every stage-P `sorry` of etcd's server and examples/kv is proved, each once. The `sorry`s left are
+the SNAPSHOT-SORRY list (#1-#3, #6-#11; #4/#5 turned out provable, #11 added) and those already on
+origin/lean. The downstream server examples (common, putget, putget3, putgetc, linkvtxn, linkv3p,
+authkv, watchkv, cachekv, k8setcd3) are repaired; k8sdaemonset and k8s's apiserver storage needed
+no change. `kv_porcupine_safe` is byte-identical. The statement changes made during the proofs,
+P1-P10 (several trusted, coordinator-approved while the user was away, for the user's review), and
+the open problems for the post-merge snapshot track: `notes/raft-unified-plan.md`, "Repair: Stage P
+changes", "Repair: Stage P progress", "Repair: sorries inherited from lean". The common brief:
+`notes/repair-stageP-brief.md`.
+
 ## Repair, Stage F: the clients' statements (2026-10-30, branch `repair`)
 
 The server's and kv's statements in final form over raft's unified API (D1-D5), every broken proof
