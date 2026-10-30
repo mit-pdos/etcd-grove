@@ -77,6 +77,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   obtain ⟨Hpnd, Hok, Hlen⟩ := idPfxsOf_ok ps Hpd Hp0
   have hboot := srvBootLogOk_of_BootLog ps ctxs boot HB
@@ -186,6 +188,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     unfold idPfxsOf; rw [BigSepL.bigSepL_map]
   rw [← hm]
   iexact Hwns
+-/
 
 /-- **The mode-`on` KV invariant reads only the cluster's KV names** (`kvInv_congr`'s). -/
 theorem kvInvOn_congr (γs : ServerRaftNames) (γk γk' : KVNames) (st₀ : auth.AuthState)

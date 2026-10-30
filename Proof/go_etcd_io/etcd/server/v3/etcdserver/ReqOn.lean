@@ -635,6 +635,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A mode-`on` proposal's request has no range end `[0]` (either case of `reqPropOkOn`). -/
 theorem reqPropOkOn_noZero (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)

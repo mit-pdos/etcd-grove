@@ -82,6 +82,24 @@ its statement does not use), at the server's any-storage model. -/
 theorem srvApi_wp_MemSnapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) := by
   letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Snapshot
 
+/- (2026-10-30, the repair) `MemoryStorage`'s methods `StartNode`'s `bootStorage` runs
+(`srvMem_bootStorage`), raft's linked results at the server's any-storage model. -/
+
+theorem srvApi_wp_MemInitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_InitialState
+
+theorem srvApi_wp_MemLastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_LastIndex
+
+theorem srvApi_wp_MemFirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_FirstIndex
+
+theorem srvApi_wp_MemTerm : MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Term
+
+theorem srvApi_wp_MemEntries : MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Entries
+
 end links
 
 end EtcdGrove

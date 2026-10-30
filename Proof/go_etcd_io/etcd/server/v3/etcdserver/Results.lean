@@ -251,17 +251,18 @@ theorem read_raft (E : RNEnv GF) (γ : RNNames) (r : Loc) :
 `wp_ReadIndex` (`isRaftNodeIfc_of_isNode`), over the wrapper's facts of `E` (`rnEnvOk`), raft's
 `isNode` by the wrapper's names (`rnIsNode`), the server's view of raft's commit invariant
 (`srvRaftLogInv`) and the committed index's invariant (`srvCommittedInv`, the log `ReadIndex`'s
-bound is read from); `Stop` is the premise `rnStopOk` (raft's model never stops). The context's
+bound is read from); `Stop` from raft's `node.Stop` (2026-10-30, the repair; until then the premise
+`rnStopOk`), `ApplyConfChange` from `node.ApplyConfChange` (`raftApplyCC`). The context's
 error is one the gRPC layer takes since stage R7c (raft's `ctxErr` names it, by the trust-boundary
 spec `context.ErrDone`; until then the premise `rnCtxErrOk`). -/
 theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvCommittedInv s E.γr ∗
-      rnStopOk γ.nl ∗ rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
+      rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) :=
   isRaftNodeIfc_of_isNode E γ s issued (srvApi_wp_Ready γ.node) (srvApi_wp_Advance γ.node)
-    (srvApi_wp_Advance_dyn γ.node) (srvApi_wp_Tick γ.node) (srvApi_wp_ReadIndex γ.node)
-    (srvApi_wp_ApplyConfChange_dyn γ.node)
+    (srvApi_wp_Tick γ.node) (srvApi_wp_Stop γ.node) (srvApi_wp_ReadIndex γ.node)
+    (srvApi_wp_ApplyConfChange γ.node)
 
 /-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
 `node.wp_Propose` and, since audit phase B3 (2026-10-18), `node.wp_ApplyConfChange`
@@ -273,7 +274,7 @@ theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) :=
-  raftPropose_of_isNode E γ (srvApi_wp_Propose γ.node) (srvApi_wp_ApplyConfChange γ.node)
+  raftPropose_of_isNode E γ (srvApi_wp_Propose γ.node)
 
 /-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10): raft's
 `memStorage_Append` (over the linked `MemoryStorage.wp_Append`), for a registered storage. -/
@@ -293,10 +294,11 @@ registered `MemoryStorage`, the server's own invariants and the trust-boundary p
 (`NodeStart.lean`'s header classifies them). `PreVote` and `CheckQuorum` either way (etcd's
 default configuration) since 2026-10-17. -/
 theorem server_raft_node_start : NodeStartSpec (GF := GF) :=
-  raftNode_of_StartNode bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance
-    srvApi_wp_Advance_dyn srvApi_wp_Tick srvApi_wp_ReadIndex srvApi_wp_Step
-    srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot srvApi_wp_Propose
-    srvApi_wp_ApplyConfChange srvApi_wp_ApplyConfChange_dyn
+  raftNode_of_StartNode bootstrappedRaft.wp_newRaftNode srvApi_wp_MemInitialState
+    srvApi_wp_MemSnapshot srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm
+    srvApi_wp_MemEntries srvApi_wp_Ready srvApi_wp_Advance srvApi_wp_Tick srvApi_wp_Stop
+    srvApi_wp_ReadIndex srvApi_wp_Step srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot
+    srvApi_wp_Propose srvApi_wp_ApplyConfChange
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
@@ -2100,7 +2102,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats
     types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance
-    srvApi_wp_Advance_dyn srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice
+    srvApi_wp_Stop srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice
     idutil.wp_NewGenerator
     notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With
     membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger
@@ -2125,7 +2127,9 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
     srvApi_wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term
     EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion
-    srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_ApplyConfChange_dyn srvApi_wp_Step
+    srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_MemInitialState
+    srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm srvApi_wp_MemEntries
+    srvApi_wp_Step
     srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved
     EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
     backend.batchTxBuffered.wp_UnsafeDelete
@@ -2158,7 +2162,8 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt : GName) (γk : KVNames),
-        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
+        ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
+          γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
@@ -2168,7 +2173,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          readCredits γ.cl (2 ^ 48) ∗ nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          nodeBoot γ.cl srvClusterN ps ctxs id ∗
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
   srvClusterBootOn_alloc ps ctxs boot Φs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hpd Hp0

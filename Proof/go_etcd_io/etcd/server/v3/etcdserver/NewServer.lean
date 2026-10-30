@@ -47,6 +47,12 @@ public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Spec.go_etcd_io.raft.v3.node__Ready
 public import Spec.go_etcd_io.raft.v3.node__Tick
+public import Spec.go_etcd_io.raft.v3.node__Stop
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Logger__Info
@@ -213,8 +219,9 @@ theorem NewServer.wp_proofM (on : Bool)
     (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.Advance.spec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) `node.Stop` (until then `node.Advance.dynamicSpec`)
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+      node.Stop.spec (GF := GF) (hG := hG))
     (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ReadIndex.spec (GF := GF) (hG := hG))
@@ -289,8 +296,13 @@ theorem NewServer.wp_proofM (on : Bool)
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG))
-    (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) the fresh `MemoryStorage`'s methods `StartNode`'s `bootStorage` runs
+    -- (`srvMem_bootStorage`; until then `node.ApplyConfChange.dynamicSpec`)
+    (h86d : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (h86e : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (h86f : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (h86g : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (h86h : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
     (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
@@ -1877,8 +1889,9 @@ theorem NewServer.wp_proof
     (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.Advance.spec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) `node.Stop` (until then `node.Advance.dynamicSpec`)
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+      node.Stop.spec (GF := GF) (hG := hG))
     (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ReadIndex.spec (GF := GF) (hG := hG))
@@ -1954,8 +1967,13 @@ theorem NewServer.wp_proof
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG))
-    (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) the fresh `MemoryStorage`'s methods `StartNode`'s `bootStorage` runs
+    -- (`srvMem_bootStorage`; until then `node.ApplyConfChange.dynamicSpec`)
+    (h86d : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (h86e : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (h86f : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (h86g : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (h86h : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
     (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
@@ -1972,7 +1990,7 @@ theorem NewServer.wp_proof
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h86d h87 h88 h89 h90 h91 h92 h93 h94
+    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hdec Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok HpU
   -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in
