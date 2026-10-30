@@ -1,6 +1,8 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **the approved items switched** ("The switch of the approved items", the last
+Status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
+leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`
+arm needing a nil-hook `SetScheduledCompact` no approved text states). Before: **the approved items switched** ("The switch of the approved items", the last
 section: 1-13, 19, 26, 28, 29's pure vocabulary, 34, 35 and item 4's supply line real; item 17
 stopped, not provable as drafted (non-atomic loads), with 4's step-2 text, 20, 23, 24 and 31; 14, 27
 and 29's backend part waiting with the restore chain). Before: **review round 4 repaired** ("After review round 4", the last section: A1 by
@@ -1644,6 +1646,9 @@ no generated file edited.
 
 ### Stopped (for the user)
 
+(Item 17 and its dependents but item 31: switched with the lease, "Item 17 switched: the jobs'
+share leased", the last section.)
+
 - **Item 17, the compaction chain over the restorable right, is not provable as drafted.** Its
   `compactJobPreR` gives the job `storeStopR s γ o := inv (fieldShareAt s γ q8 o ∨ schedDone γ.sch)`,
   to read `s.b`, `s.kvindex`, `s.stopc` (`scheduleCompaction`: six loads, `compactBarrier`: one)
@@ -1691,3 +1696,67 @@ v3rpc, client, examples' three, cache), `M2StorageDraftSupply`, `schedule/M2Stor
 - Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11203 jobs, no error.
 - `etc/tcb-report.py --check`: the trust base matches `etc/tcb-baseline.txt` (766 axioms, 18
   sorries: no new axiom, no new `sorry`); every `etc/tcb-collections/*.txt` `--check` matches.
+
+## Item 17 switched: the jobs' share leased (2026-10-30)
+
+The coordinating agent chose repair (b) of the stop above (an internal predicate design, no
+client-facing text changed; `notes/decisions.md`, "M2's storage side: the jobs' share of the
+fields, leased"). Done on `m2-storage`; no `axiom`, no `sorry`, no Perennial change, no generated
+file edited.
+
+### The lease as built (`InvCompact.lean`)
+
+- `jobFieldsInv s γ o gl`: free (`fieldShareAt s γ q8 o ∗` the lease token `dghostVar gl 1 ()`),
+  leased (`dghostVar γ.sch.run ½ ()`, half the run token), reclaimed (`schedDone γ.sch`).
+- `storeStopR s γ o` (persistent, sealed): `(∃ gl, inv jobFieldsN (jobFieldsInv s γ o gl)) ∗
+  isStopChan o.sstop` (the stop channel added: `scheduleCompaction`'s loop receives from it).
+- `jobLease s γ o`: the lease token, half the run token, the worker's thread token.
+- Laws: `storeStopR_alloc`, `storeStopR_stopChan`, `storeStopR_lease` (run token and `£ 1` in, the
+  eighth and the lease out), `jobLease_return` (the eighth, the lease and `£ 1` in, the run token
+  out), `storeStopR_reclaim` (with `schedDone`, after `Stop`), `fieldShare_reclaim`.
+- `storeCloserR`, `compactRightR` (sealed; `compactRightR_iff`, `compactRightR_take` lending the
+  closer's eighth and the queue, `compactRightR_crev` lending the authority's half),
+  `compactRightR_of_closer`, `storeCloserM` (by `kbCmpM γ.kb`, as drafted) with `storeCloserM_off/on`
+  and `storeCloserM_close` (what `Close` uses, either mode), `fieldShareAt_acc` (the four points-to
+  and `physOk` of a share, and the share back).
+- `compactJobPre` redefined in place to the drafted `compactJobPreR` (`∃ o, storeStopR s γ o` in
+  place of `storeStop s γ ∗ schedLive γ.sch`); `storeStopped γ` names the stop by the payload's name
+  `γ.sx` (no field `↦□` any more), `compactDone`'s body follows (text unchanged).
+
+### Switched
+
+- **Item 17**: `store.Compact.spec` (export `mvcc_store_Compact`) over `compactRightR s γ c` (with
+  item 4's step-2 text, the drafted `store.Compact.specR` exactly); internal `updateCompactRev.spec`,
+  `compactLockfree.spec` over `compactRightR` at the hook set (`hookIs ∗ csContract`, `lockCtxM`'s
+  `some f` arm), with the `ErrCompacted` barrier tracked on the right's queue; `compact.spec`,
+  `checkPrevCompactionCompleted.spec` read through a share at `o` (the right's closer's eighth,
+  given back); `scheduleCompaction.spec`, `compactBarrier.spec` through the job's leased share
+  (`compactBarrier` takes `□ (cd.PDone -∗ schedPay γ.sch)`: its re-scheduling branch is dead,
+  `stopPayAt_done`). Each job closure (`compact`'s, the barrier's) leases at its start and returns
+  at its end (`wp_fupd`, two later credits).
+- **Item 20**: `wsCloserR`, `wsCloserR_iff`, `wsCloserR_of_wsCloser` (`WsCloserR.lean`, new).
+- **Item 23**: `store.Close.spec` over `storeCloserM s γ c`; `watchableStore.Close.spec` "alike" over
+  `wsCloserM s st γ.st c` (off `wsCloser`, on `wsCloserR`; drafted here, the approved list names it
+  without a text); `NewServer`'s two error-path closes at `wsCloserM_off` (`¬ kbCmpM γw.st.kb`).
+- **Item 24**: `mvcc_NewStore_backend_cmp`'s post `compactRightR s γ (-1)` (the drafted
+  `mvcc_NewStore_backend_cmpR`, proved by `compactRightR_of_closer`).
+- Deleted from `InvStore.lean`: step 1's `storeStop`, `storeStop_open`, `compactRight`,
+  `compactRight_of_closer`. From the Drafts: everything above (`M2StorageDraftRestore.lean` keeps
+  `restoreRightM`, `wsCloserR_split/join` over `wsCloserR_iff`, the restore chain;
+  `M2StorageDraftChain.lean` keeps only item 31's part).
+
+### Stopped (for the user)
+
+- **Item 31** (`lockNilSpec` as `batchTxSpecG`'s clause, `kbHookNil`, `lockCtxM`/`lockBackM`, and the
+  chain's internal specs generalized by the hook's state) stays a Draft: the `none` arm (the
+  resumed compaction inside `Restore`, the new backend's hook unset) runs `SetScheduledCompact`,
+  whose spec takes the hook's triple (`HF f`); proving the arm needs `SetScheduledCompact.spec`
+  generalized by the hook's state too (one spec per function), which no approved text states. Its
+  only consumer is the waiting restore chain (items 15, 18).
+
+### Checked
+
+- `etc/lean-check.py` on each changed file during the work.
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11204 jobs, no error.
+- `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries); all 43
+  `etc/tcb-collections/*.txt` `--check` match.

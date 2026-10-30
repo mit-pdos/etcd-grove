@@ -64,8 +64,8 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   the right to close the store once (`storeCloser`, with another quarter:
   the channel's close, the scheduler's stop token and the compaction jobs' queue; D19m (C),
   2026-10-18: until then `NewStore` gave the stop token up for good, `isStore` holding
-  `schedLive`, and `Close`'s contract was false). The caller that will not close the store gives
-  the token up for the compaction right (`compactRight_of_closer`).
+  `schedLive`, and `Close`'s contract was false). A compacting store's caller splits it into the
+  restorable compaction right (`compactRightR_of_closer`; M2, the storage side, item 24).
 * (D22 receiver epochs, S5a) The backend's reader tokens are in the readers' pool with the slots of
   the index's lock (`idxSlot`), not in the readers' handles; the watchable store's deposit ghost
   (`wsDep`) is returned for the watchable store's lock (`wsFields`).
@@ -75,8 +75,8 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
   compaction right's half of that revision's authority is returned (`crevUB γ.idx ½ (-1)`; with
-  the closer's queue and the stop token given up it is the compaction right `compactRight γ (-1)`
-  that `store.Compact` takes, `compactRight_of_closer`), and the reader slots are those of a
+  the closer it makes the restorable compaction right `compactRightR s γ (-1)` that
+  `store.Compact` takes, `compactRightR_of_closer`), and the reader slots are those of a
   store that may be compacted (`storeReaderC`): a caller that never compacts gives the half up
   (`crevFrozen_alloc`) and has the readers its transactions take (`storeReader_of`).
 * (D22 receiver epochs, S8d, W7, 2026-10-25) The readers' pool's retired count (`retiredAt`): its

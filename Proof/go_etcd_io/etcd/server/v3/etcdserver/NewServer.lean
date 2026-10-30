@@ -623,6 +623,9 @@ theorem NewServer.wp_proofM (on : Bool)
       γw.st.kb = some ({ d with cm := false } : mvcc.KBReal) ∧ γw.st.idx = E₀.γ.idx ∧
       γw.st.cok = E₀.γ.cok :=
     ⟨Hγw0.1, Hγw0.2.1, Hγw0.2.2.1, Hγw0.2.2.2.1, Hγw0.2.2.2.2.1⟩
+  -- (M2, the storage side, item 23) the store's backend instance does not compact
+  have Hkbw : ¬ mvcc.kbCmpM γw.st.kb := by
+    rw [Hγw.2.2.1]; show ¬ (false = true); decide
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
   -- (2026-10-20, watchkv) 64 more for the watch service's run slots (`srvWatchReaders`)
@@ -730,8 +733,8 @@ theorem NewServer.wp_proofM (on : Bool)
     | nil => exact absurd rfl Haerr
     | ok ei => ?_
     wp_auto
-    wp_apply h42 $$ [Hwcl]
-    · iframe Hws; iframe Hwcl
+    wp_apply (h42 _ _ _ (-1)) $$ [Hwcl]
+    · iframe Hws; iapply (mvcc.wsCloserM_off _ _ γw.st (-1) Hkbw).2; iframe Hwcl
     (try wp_auto)
     wp_apply Hclose
     iapply HΦ
@@ -871,8 +874,8 @@ theorem NewServer.wp_proofM (on : Bool)
     | nil => exact absurd rfl Hterr
     | ok ei => ?_
     wp_auto
-    wp_apply h42 $$ [Hwcl]
-    · iframe Hws; iframe Hwcl
+    wp_apply (h42 _ _ _ (-1)) $$ [Hwcl]
+    · iframe Hws; iapply (mvcc.wsCloserM_off _ _ γw.st (-1) Hkbw).2; iframe Hwcl
     (try wp_auto)
     wp_apply Hclose
     iapply HΦ

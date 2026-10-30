@@ -36,20 +36,20 @@ abbrev mvcc.store.compactLockfree.spec : Prop :=
     (Pre Q Post : IProp GF) (log : mvcc.Log),
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
+      mvcc.isStore s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
-        mvcc.compactRight γ (sint.Z rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗
+        mvcc.compactRightR s γ (sint.Z rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗
         mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
       (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre)) }}
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre)) }}
 
 end spec
 

@@ -29,15 +29,16 @@ queue's scheduler queue stop the scheduler. -/
 theorem mvcc.store.Close.wp_proof
     (wp_Stop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG)) :
     mvcc.store.Close.spec (GF := GF) (hG := hG) := by
-  intro s γ
+  intro s γ c
   wp_start as ⟨#Hs, Hc⟩
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
-  iunfold mvcc.storeCloser at Hc
-  icases Hc with ⟨%o, Hfs, -, Hcl, Htok, Hq⟩
+  -- in either mode (M2, the storage side, item 23): a share of the fields, the stop channel's
+  -- close, the stop token and the queue
+  icases mvcc.storeCloserM_close s γ c $$ Hc with ⟨%o, %q, %c', Hfs, Hcl, Htok, Hq⟩
   -- the closer's share of the fields, at its objects (D22 receiver epochs, S5b: the current ones)
   iunfold mvcc.fieldShareAt at Hfs
   iNamed Hfs

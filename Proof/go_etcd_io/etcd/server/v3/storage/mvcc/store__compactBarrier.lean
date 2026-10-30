@@ -27,19 +27,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+/-- (M2, the storage side, item 17) The fields are read through the running job's share; a
+cancelled context means the scheduler stopped, whose payload is the stop channel closed
+(`stopPayAt_done`), so the receive is ready and the re-scheduling branch dead: `NewJob` and
+`Schedule` are not called (their specs stay the hypotheses of the linked call graph). -/
 theorem mvcc.store.compactBarrier.wp_proof
     (h0 : context.Err.spec (GF := GF) (hG := hG))
     (h1 : schedule.NewJob.spec (GF := GF) (hG := hG))
     (h2 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactBarrier.spec (GF := GF) (hG := hG) := by
-  intro s γ ctx cd ch Q
-  iloeb as IH generalizing %ctx %cd
-  wp_start as ⟨#Hs, #Hstop, #Hlive, #Hctx, Hcl, #HQ⟩
+  intro s γ ctx cd ch Q q o
+  wp_start as ⟨Hfs, #Hctx, #HPD, Hcl, #HQ⟩
   wp_auto
   ipersist s
   ipersist ch
-  -- `ctx.Err()`: some error (`todoCtx`'s is `nil`)
-  ihave #Herr : iprop(□ ∀ Ψ : val → IProp GF, ▷ (∀ err : GoInterface, Ψ #err) -∗
+  -- `ctx.Err()`: `nil` (`todoCtx`'s), or an error of a cancelled context, whose `PDone` holds
+  ihave #Herr : iprop(□ ∀ Ψ : val → IProp GF, ▷ (∀ err : GoInterface,
+      (if err = interface.nil then iprop(True) else iprop(□ cd.PDone)) -∗ Ψ #err) -∗
       WP (App (Val #(methods ctx.ty go!"Err" ctx.v)) (Val #())) {{ Ψ }}) $$ []
   · iunfold mvcc.barrierCtx at Hctx
     icases Hctx with (%Htodo | #Hic)
@@ -50,24 +54,28 @@ theorem mvcc.store.compactBarrier.wp_proof
       wp_method_call
       wp_auto
       iapply HΨ
+      simp only [↓reduceIte]
+      itrivial
     · ihave #HE := h0 ctx cd Broadcast.Unknown $$ Hic
       iintro !> %Ψ HΨ
       iapply HE
       · itrivial
       inext
-      iintro %err - -
+      iintro %err Hm -
       iapply HΨ
-  ihave #Hs' := Hs
-  iunfold mvcc.isStore at Hs'
-  iNamed Hs'
-  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
-  -- `isStore`'s, pinned)
-  icases mvcc.storeStop_open s γ $$ Hstop with
-    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
-  iunfold mvcc.physOk at Hph
-  iNamed Hph
+      by_cases he : err = interface.nil
+      · simp only [he, ↓reduceIte]; itrivial
+      · simp only [he, ↓reduceIte]
+        icases Hm with ⟨#Hd, -⟩
+        iexact Hd
+  icases mvcc.fieldShareAt_acc s γ q o $$ Hfs with ⟨Hflds, #Hph, Hfclose⟩
+  ihave #Hph' := Hph
+  iunfold mvcc.physOk at Hph'
+  iNamed Hph'
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
   try simp only
-  wp_apply Herr as %err
+  wp_apply Herr as %err Hm
   cases err with
   | nil =>
     -- not cancelled: `close(ch)`
@@ -78,19 +86,24 @@ theorem mvcc.store.compactBarrier.wp_proof
     · iexact HQ
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iapply Hfclose
+    iunfold mvcc.storeFields
+    simp only [named]
+    iframe
   | ok e =>
-    -- cancelled: unless the store is stopped, another barrier, under `s.mu`
-    wp_auto
-    ihave #Hsc := Hstopch
-    iunfold mvcc.isStopChan at Hsc
-    icases Hsc with ⟨%γst, #Hsc⟩
-    wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
-        iprop(mvcc.compactCloser ch Q ∗ (True -∗ Φ #())) $$ [] [Hcl HΦ] []
+    -- cancelled: the scheduler was stopped, so its payload holds: the stop channel is closed
+    simp only [reduceCtorEq, ↓reduceIte]
+    icases Hm with #Hdone
+    ihave #Hsp := HPD $$ Hdone
+    ihave #Hcl' := mvcc.stopPayAt_done γ.sx γ.sch o $$ [$Hpay $Hsp]
+    wp_auto_lc 1
+    imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 Hcl' with ⟨%γst, #Hsc⟩
+    wp_apply_core chan.wp_select_nonblocking_alt [iprop(False)]
+        iprop(mvcc.compactCloser ch Q ∗ (True -∗ Φ #())) $$ [] [Hcl HΦ Hfclose Hfb Hfidx Hfsch Hfstop] []
     · iapply BigSepL2.bigSepL2_singleton.2
       iintro ⟨Hcl, HΦ⟩
       simp only [chan.nonblockingAltClausePre]
-      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, sstop, γst
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, o.sstop, γst
       isplitr
       · ipureintro; rfl
       isplitr
@@ -101,54 +114,16 @@ theorem mvcc.store.compactBarrier.wp_proof
         wp_auto
         iapply HΦ
         itrivial
-      · iintro -
-        iframe
-    · iframe
-    · iintro ⟨Hcl, HΦ⟩ -
-      ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
-      · iPkgInit
-      ihave #Hschp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
-      · iPkgInit
+      · itrivial
+    · iframe Hcl
+      iintro -
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HmuP⟩
-      wp_func_lits
-      (try wp_auto)
-      wp_apply h1 γ.sch _ _ iprop(mvcc.compactCloser ch Q ∗ □ Q) iprop(True) iprop(True) $$ []
-        as %j #Hj
-      · iframe #
-        iunfold schedule.jobFnSpec
-        iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', #HQ'⟩, -, #Hctx', -⟩ HΦj
-        wp_auto
-        rw [method_unfold (t := go.GoType.PointerType store.ty) (m := go!"compactBarrier")]
-        wp_apply IH $$ %ctx' %cd' [$Hcl']
-        · iframe #
-          iunfold mvcc.barrierCtx
-          iright
-          iexact Hctx'
-        (try wp_auto)
-        iapply HΦj
-        iframe Hrun
-      (try wp_auto)
-      ihave #Hfifo := HisSched
-      ihave #Hfifo' := Hfifo
-      iunfold schedule.isFifo at Hfifo'
-      icases Hfifo' with ⟨%Hnn, -⟩
-      cases ssched with
-      | nil => exact absurd rfl Hnn
-      | ok sci =>
-        wp_auto
-        wp_apply h2 sci γ.sch j iprop(mvcc.compactCloser ch Q ∗ □ Q) iprop(True) iprop(True) none
-          $$ [Hcl] as -
-        · iframe #
-          iframe Hcl
-          simp only [schedule.schedPre]
-          iframe #
-          ipureintro; trivial
-        (try wp_auto)
-        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $HmuP]
-        (try wp_auto)
-        iapply HΦ
-        itrivial
+      iapply HΦ
+      iapply Hfclose
+      iunfold mvcc.storeFields
+      simp only [named]
+      iframe
+    · iintro - ⟨⟨⟩, -⟩
 
 end proof
 

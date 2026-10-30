@@ -26729,7 +26729,8 @@ by the mode read it (`wsFrozenM`, `crevRightM`); the backend-keyed ones stay on 
 
 ## M2's storage side: the compaction chain over the restorable right is not provable as drafted (2026-10-30, the approval's item 17)
 
-**2026-10-30 · stopped at the switch (for the user)**
+**2026-10-30 · stopped at the switch (for the user)** · *superseded* the same day by repair (b),
+"M2's storage side: the jobs' share of the fields, leased", below.
 
 Drafted (round 4's S3): the jobs read the four fields `store.Restore` writes through
 `storeStopR s γ o := inv (fieldShareAt s γ q8 o ∨ schedDone γ.sch)`, "the per-read invariant
@@ -26750,3 +26751,48 @@ tracked jobs' baton (`compactQueue`'s `Q`/`R`: every barrier is tracked under th
 each job holds it for its run and `Stop` returns the last `Post` with it); (b) a third state of the
 invariant, "leased to the running job", with a lease token the job keeps, so no other holder can
 swap the eighth back while it runs.
+
+## M2's storage side: the jobs' share of the fields, leased (2026-10-30, the approval's item 17)
+
+**2026-10-30 · accepted (an internal predicate design, chosen by the coordinating agent, not by the
+user; no client-facing text changed)**
+
+Repair (b) of the entry above. The jobs' invariant `jobFieldsInv s γ o gl` (`InvCompact.lean`) has
+three states: *free* (an eighth of the fields at the objects `o`, `fieldShareAt s γ q8 o`, and the
+lease token `dghostVar gl 1 ()`), *leased* (half the scheduler's run token, `dghostVar γ.sch.run ½
+()`) and *reclaimed* (the run token, `schedDone γ.sch`). `storeStopR s γ o` (persistent, sealed) is
+`∃ gl, inv jobFieldsN (jobFieldsInv s γ o gl)` with the stop channel's `isStopChan o.sstop` (the
+job's loop receives from it; step 1's `storeStop` had it). Laws: `storeStopR_lease` (a job, with
+its run token `schedRunning` and a later credit, takes the eighth and the lease, `jobLease`,
+leaving half its run token: the free state is the only consistent one, leased and reclaimed make the
+run token more than whole), `jobLease_return` (at its end, with a credit: the eighth and the token
+back, the half returned; the job's lease token excludes the free state), `storeStopR_reclaim` (the
+stopper, with `schedDone` from `Scheduler.Stop` and a credit: the eighth, the invariant reclaimed).
+Nobody else changes the state: free needs the lease token to enter, leased and reclaimed the run
+token's fractions, which the running job or the stopper holds; this closes the hole the drafted
+two-state invariant had (the closer's eighth swapped in mid-job).
+
+**Against Go.** `fifo.Stop` (`pkg/schedule/schedule.go:150-156`) cancels the context and waits on
+`donec`, which `run`'s deferred close fires only after the pending jobs ran (`:158-185`), so the run
+token comes back after every job's `Do` returned, as `Scheduler.Stop.spec` (item 19) says; each job's
+`Do` holds the run token for its whole run (`jobFnSpec`, item 19), so a job's lease spans its loads
+of `s.b`, `s.kvindex`, `s.stopc` (`scheduleCompaction`, `compactBarrier`). `Restore`
+(`kvstore.go`) and `Close` close `stopc` before `Stop`, and write the fields only after it. A job
+finding its context cancelled learns the scheduler's payload (`□ (cd.PDone -∗ schedPay γ.sch)`, the
+job contract's), the stop channel closed (`stopPayAt_done`), so `compactBarrier`'s receive is ready
+and its re-scheduling branch (`s.mu`, `fifoSched.Schedule`) is dead: `compactBarrier.spec` no longer
+needs the never-stopped scheduler `schedLive`, and `updateCompactRev`'s `ErrCompacted` barrier is
+scheduled tracked on the right's queue (its `Prev` and `Post` the last job's `Post`, passed
+through).
+
+**What the chain's functions take.** The job's functions read the fields through a share at its
+objects, given back (`scheduleCompaction.spec`, `compactBarrier.spec`: `fieldShareAt s γ q o`; the
+former also `isStopChan o.sstop`); the caller's functions read `s.b` and `s.fifoSched` through the
+right's closer's eighth (`checkPrevCompactionCompleted.spec`, `compact.spec`: a share at `o`, given
+back; `compactRightR_take`). The store's stop is named by the payload's name (`storeStopped γ`:
+`γ.sx` records a closed channel), not by the field's `↦□`, which nobody has any more
+(`compactDone`'s body; its text is unchanged).
+
+**Not taken.** Repair (a), the eighth along the tracked jobs' queue, would put the fields into every
+tracked job's `Prev`/`Post` and thread them through `compactQueue`'s `Q`/`R` and the server's
+chain; the lease keeps them out of the queue and needs no job's cooperation beyond its own run.

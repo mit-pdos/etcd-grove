@@ -22,8 +22,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`s.Compact(trace, rev)`** with the compaction right at the store's compaction revision `c`
-(`compactRight`: half the revision's authority and the compaction jobs' queue on the store's FIFO
-scheduler, 2026-10-13, unit 5c; the caller is the one that compacts: the server's apply thread,
+(`compactRightR`: half the revision's authority and the compaction jobs' queue on the store's FIFO
+scheduler, 2026-10-13, unit 5c; restorable since M2, the storage side, item 17: the closer's half
+and the jobs' leased share of the fields kept, not discarded, so `store.Close` takes it back; the caller is the one that compacts: the server's apply thread,
 and the exclusive right serializes its compactions: the job is scheduled after `s.mu` is
 released, so only the right can carry the queue there), under the critical-section
 contract of the batch lock (`csContract`: `SetScheduledCompact`'s `LockInsideApply` runs the
@@ -74,22 +75,22 @@ abbrev mvcc.store.Compact.spec : Prop :=
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
+      mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
       mvcc.kbWTSupplyM γ.kb }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
-      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
+      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
+        mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
       (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.compactRight γ c ∗ Pre)) }}
+        mvcc.compactRightR s γ c ∗ Pre)) }}
 
 end spec
 

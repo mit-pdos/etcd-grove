@@ -321,15 +321,16 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
 `mvcc_NewStore_backend` at a backend record in compaction mode (`hcm : d.cm = true`; the
 compaction keys' values tracked, `fkV d.γB true`), its store ready for the compaction's results.
 The store supports the compaction (`storeCmp γ`, `mvcc_store_Compact`'s premise), and the right to
-close it is given up for the compaction right at `-1` (`compactRight_of_closer`), with `storeStop`.
-So `store.Compact.spec`'s premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`,
-`storeStop`, `compactRight γ (-1)`, `idxCert γ.idx [[], []]`, `hookIs`) are this post's; the caller
+close it becomes the restorable compaction right at `-1` (`compactRightR_of_closer`: the closer
+split, not discarded; M2, the storage side, the approval's item 24). So `store.Compact.spec`'s
+premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`, `compactRightR s γ (-1)`,
+`idxCert γ.idx [[], []]`, `hookIs`) are this post's; the caller
 brings the rest (the critical-section contract, the trace, the reader's token `storeRT γ`, and,
 M2's Q1 (a), the compaction's write-back supply `kbWTSupplyM γ.kb`, no longer `NewStore`'s). One
 reader of the pool is kept back for the compaction job (`nJobRd`), and the pool's retired count is
 at `1` (`retiredAt γ 1`, the creator's half, Probe P2, 2026-10-30): the caller makes its reader's
-token by retiring one of the post's readers (`storeReader_retire`, with £1, `isStore`, the pin
-`curAt γ DFrac.discard o` that `storeStop_open` gives, the reader through `storeReader_of`, and
+token by retiring one of the post's readers (`storeReader_retire`, with £1, `isStore`, a part
+`curAt γ dq o` of the post's share of the fields, the reader through `storeReader_of`, and
 `retiredAt γ 1`, giving `storeRT γ` and `retiredAt γ 2`). -/
 theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
@@ -365,7 +366,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
-        mvcc.compactRight γ (-1) ∗ mvcc.storeStop s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
+        mvcc.compactRightR s γ (-1) ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
         mvcc.retiredAt γ 1 }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
     Hrts, Hlrd, #Hle, Hro⟩ HΦ
@@ -389,8 +390,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
   rw [hj]
-  imod mvcc.compactRight_of_closer s γ $$ [Hcl Hright] with ⟨Hcr, #Hstop⟩
-  · iframe Hcl Hright
+  imod mvcc.compactRightR_of_closer s γ ⊤ $$ Hcl Hright with Hcr
   imodintro
   iapply HΦ
   iexists γ
@@ -464,9 +464,10 @@ bucket's range. -/
 
 /-! ## The compaction (units 5a-5c)
 
-`store.Compact` with the compaction right at `c` (`compactRight`: half the compaction revision's
+`store.Compact` with the compaction right at `c` (`compactRightR`: half the compaction revision's
 authority and the compaction jobs' queue on the store's FIFO scheduler, whose last job hands the
-next one the index compactor's token): on success, the right at `rev`, a lower bound `rev` of the
+next one the index compactor's token, with the closer's half and the jobs' leased share of the
+fields, M2's item 17): on success, the right at `rev`, a lower bound `rev` of the
 compaction revision for every reader, and the job's channel, whose receive gives `compactDone`
 (the compaction finished at `rev` or later, `compactedAt`, or interrupted by the store's `Close`
 or a cancelled scheduler context); `ErrCompacted` (the barrier's channel) or `ErrFutureRev`

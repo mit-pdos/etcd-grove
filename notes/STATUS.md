@@ -628,6 +628,25 @@ exported or trusted switched:
   `mvcc.isWatchableStore_frozen` once the store's logical mode is known off there (`γ.st.cm = false`;
   `srvEnvOk` gives the backend's `d.cm = false`, the tie is `physOk`'s).
 
+- **Item 17 switched with the lease** (2026-10-30; the plan's "Item 17 switched: the jobs' share
+  leased"; `notes/decisions.md`, "M2's storage side: the jobs' share of the fields, leased", repair
+  (b), the coordinating agent's internal design). The jobs' invariant has three states (free: the
+  eighth and a lease token; leased: half the run token; reclaimed: the run token); a job leases the
+  eighth for its run and returns it, the stopper reclaims it after `Stop`. Real: item 17
+  (`store.Compact.spec` over `compactRightR`, the chain's internal specs, the `ErrCompacted` barrier
+  tracked, `compactBarrier`'s re-scheduling branch dead by the payload), item 4's step-2 text, item
+  20 (`WsCloserR.lean`), item 23 (`store.Close.spec` over `storeCloserM`; `watchableStore.Close.spec`
+  over `wsCloserM`, NewServer's error paths at `wsCloserM_off`), item 24 (`mvcc_NewStore_backend_cmp`).
+  Step 1's `storeStop`/`compactRight` deleted. **Stopped**: item 31 (its `none` arm needs
+  `SetScheduledCompact.spec` generalized by the hook's state, not in the approved texts; only the
+  waiting restore chain uses it). Full `lake build` passed (11204 jobs); `tcb-report --check` and
+  all collections match (766 axioms, 18 sorries).
+  **Snapshot track**: no snapshot-track file changed (statement or proof); the Drafts
+  `mvcc/M2StorageDraftRestore.lean` (the switched definitions removed, `wsCloserR_split/join` over
+  `wsCloserR_iff`) and `etcdserver/M2StorageDraftRestore.lean` (unchanged) build against the switched
+  statements. `store.Restore.spec`'s docstring still mentions step 1's `compactRight_of_closer`
+  (left for the collaborator).
+
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 
 **Verified.** Over raft's unified API, every `sorry` Stage F left in etcd's server and examples/kv is

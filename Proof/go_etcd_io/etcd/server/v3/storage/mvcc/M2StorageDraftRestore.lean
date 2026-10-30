@@ -69,6 +69,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedComp
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
 
 @[expose] public section
 
@@ -88,105 +89,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-! ## The jobs' share of the fields -/
-
-/-- The jobs' invariant's name. -/
-abbrev mvcc.jobFieldsN : Namespace := nroot.@"mvcc_jobFields"
-
-/-- An eighth (the closer's quarter, halved). -/
-abbrev mvcc.q8 : Qp := (1 : Qp).half.half.half
-
-/-- **The compaction jobs' share of the fields at the objects `o`** (persistent; draft, in place of
-`storeStop` in `compactJobPre`, which carries `∃ o, storeStopR s γ o`): an eighth of the four
-fields `Restore` writes at the objects `o` (`fieldShareAt`: the points-to, the objects' `curAt`,
-the restoring flag down, what they are), or the scheduler's run token. A running job holds the run
-token, so it finds the share; once `Stop` has returned the run token, the stopper takes the share
-out (`storeStopR_reclaim`). The objects are fixed in the invariant (review round 3's S4): while the
-eighth is in it no one writes the fields, and `Restore` reclaims it only after `Stop`, then moves to
-fresh names (`withPhys`, whose scheduler is new); so a job reads every field at the same `o`, as
-today's discarded `curAt` gives it, without holding a fraction. -/
-@[no_expose] def mvcc.storeStopR (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : IProp GF :=
-  inv mvcc.jobFieldsN iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDone γ.sch)
-
-instance mvcc.storeStopR_persistent (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
-    Persistent (mvcc.storeStopR (GF := GF) s γ o) := by
-  unfold mvcc.storeStopR; infer_instance
-
-/-- **The jobs' share back** (`Restore`/`Close`, after `Stop`): with the run token, the share. -/
-theorem mvcc.storeStopR_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
-    ⊢ mvcc.storeStopR (GF := GF) s γ o -∗ schedule.schedDone γ.sch -∗ £ 1 ={⊤}=∗
-      mvcc.fieldShareAt s γ mvcc.q8 o := by
-  iintro #Hi Hd Hlc
-  iunfold mvcc.storeStopR at Hi
-  iinv Hi with Hb Hclose
-  imod lc_fupd_elim_later (E := ⊤ \ ↑mvcc.jobFieldsN) $$ Hlc Hb with Hb
-  icases Hb with (Ho | Hd')
-  · imod Hclose $$ [Hd] with -
-    · inext; iright; iexact Hd
-    imodintro
-    iexact Ho
-  · iexfalso
-    iapply schedule.schedDone_excl γ.sch $$ [$Hd $Hd']
-
-/-! ## The compaction right that survives `Restore` -/
-
-/-- **The closer's half kept by a compacting store** (draft): an eighth of the fields at the objects
-`o`, the stop channel and its close, the scheduler's stop token (today's `storeCloser` with an
-eighth in place of the quarter and without the queue, which the right holds at its revision). -/
-@[no_expose] def mvcc.storeCloserR (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : IProp GF :=
-  iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∗ mvcc.isStopChan o.sstop ∗
-    mvcc.stopCloser o.sstop ∗ schedule.schedStopTok γ.sch)
-
-/-- **The compaction right at `c`, restorable** (draft of `compactRight`; P4's root cause removed):
-the compaction revision's half of the authority, the jobs' queue at `c` (as today), the closer's
-half (`storeCloserR`) and the jobs' share of the fields (`storeStopR`), at the same objects. Nothing
-is discarded, so `store.Restore` (and `Close`) take it back. -/
-@[no_expose] def mvcc.compactRightR (s : Loc) (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
-  iprop(mvcc.crevUB γ.idx (1 : Qp).half c ∗ mvcc.compactQueue γ c ∗
-    ∃ o : mvcc.StoreObjs, mvcc.storeCloserR s γ o ∗ mvcc.storeStopR s γ o)
-
-/-- `q8 + q8` is the closer's quarter. -/
-theorem mvcc.q8_add : mvcc.q8 + mvcc.q8 = (1 : Qp).half.half := Qp.half_add_half _
-
-/-- **The right from the closer** (draft, in place of `compactRight_of_closer`, which discards): the
-closer's quarter split, one eighth into the jobs' invariant; the stop token and the stop channel's
-close kept. -/
-theorem mvcc.compactRightR_of_closer (s : Loc) (γ : mvcc.StoreNames) (E : CoPset) :
-    ⊢ mvcc.storeCloser (GF := GF) s γ -∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ={E}=∗
-      mvcc.compactRightR s γ (-1) := by
-  iintro Hcl Hcu
-  iunfold mvcc.storeCloser at Hcl
-  icases Hcl with ⟨%o, Hf, #Hsc, Hstc, Htok, Hq⟩
-  have hs := (mvcc.fieldShareAt_split (GF := GF) s γ mvcc.q8 mvcc.q8 o).1
-  rw [mvcc.q8_add] at hs
-  icases hs $$ Hf with ⟨Hf1, Hf2⟩
-  imod inv_alloc mvcc.jobFieldsN E
-    iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDone γ.sch)
-    $$ [Hf2] with #Hi
-  · inext; ileft; iexact Hf2
-  imodintro
-  iunfold mvcc.compactRightR
-  iframe Hcu Hq
-  iexists o
-  isplitl [Hf1 Hstc Htok]
-  · iunfold mvcc.storeCloserR
-    iframe Hf1 Hsc Hstc Htok
-  iunfold mvcc.storeStopR
-  iexact Hi
-
-/-- **The closer's quarter again** (`Restore`/`Close` after `Stop`): the closer's eighth and the
-jobs' eighth, reclaimed with the run token, are at the same objects and make the quarter today's
-`storeCloser` holds. -/
-theorem mvcc.fieldShare_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
-    ⊢ mvcc.fieldShareAt (GF := GF) s γ mvcc.q8 o -∗ mvcc.storeStopR s γ o -∗
-      schedule.schedDone γ.sch -∗ £ 1 ={⊤}=∗ mvcc.fieldShareAt s γ (1 : Qp).half.half o := by
-  iintro Hf #Hi Hd Hlc
-  imod mvcc.storeStopR_reclaim s γ o $$ Hi Hd Hlc with Hf'
-  have hs := (mvcc.fieldShareAt_split (GF := GF) s γ mvcc.q8 mvcc.q8 o).2
-  rw [mvcc.q8_add] at hs
-  imodintro
-  iapply hs
-  iframe Hf Hf'
+/- (The jobs' share of the fields, `storeStopR` with its lease, `storeCloserR`, the restorable right
+`compactRightR`, `compactRightR_of_closer` and `fieldShare_reclaim` are switched: `InvCompact.lean`,
+the approval's items 17 and 24, 2026-10-30, with the lease of `notes/decisions.md`, "M2's storage
+side: the jobs' share of the fields, leased".) -/
 
 /-! ## By the mode -/
 
@@ -197,13 +103,7 @@ def mvcc.restoreRightM (s : Loc) (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
   if mvcc.kbCmpM γ.kb then mvcc.compactRightR s γ c
   else iprop(mvcc.storeCloser s γ ∗ mvcc.crevFrozen γ ∗ ⌜c = -1⌝)
 
-/-- **The store's right to close, by the mode** (draft; renamed from `restoreRightPostM`, review
-round 4's S4: it is `Restore.specM`'s post and `Close.specM`'s pre): off, today's closer; on, the
-restorable compaction right at the store's compaction revision `c` (after `Restore`, at the new
-names and the restored revision, its queue holding the job `restore()` resumed, if any).
-`restoreRightM` is it with, off, `crevFrozen ∗ ⌜c = -1⌝`. -/
-def mvcc.storeCloserM (s : Loc) (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
-  if mvcc.kbCmpM γ.kb then mvcc.compactRightR s γ c else mvcc.storeCloser s γ
+/- (`storeCloserM` and its laws are switched: `InvCompact.lean`, the approval's item 23.) -/
 
 theorem mvcc.restoreRightM_off (s : Loc) (γ : mvcc.StoreNames) (c : Int)
     (h : ¬ mvcc.kbCmpM γ.kb) :
@@ -215,16 +115,6 @@ theorem mvcc.restoreRightM_on (s : Loc) (γ : mvcc.StoreNames) (c : Int)
     (h : mvcc.kbCmpM γ.kb) :
     mvcc.restoreRightM (GF := GF) s γ c ⊣⊢ mvcc.compactRightR s γ c := by
   unfold mvcc.restoreRightM; simp only [h, ↓reduceIte]; exact .rfl
-
-theorem mvcc.storeCloserM_off (s : Loc) (γ : mvcc.StoreNames) (c : Int)
-    (h : ¬ mvcc.kbCmpM γ.kb) :
-    mvcc.storeCloserM (GF := GF) s γ c ⊣⊢ mvcc.storeCloser s γ := by
-  unfold mvcc.storeCloserM; simp only [h, ↓reduceIte]; exact .rfl
-
-theorem mvcc.storeCloserM_on (s : Loc) (γ : mvcc.StoreNames) (c : Int)
-    (h : mvcc.kbCmpM γ.kb) :
-    mvcc.storeCloserM (GF := GF) s γ c ⊣⊢ mvcc.compactRightR s γ c := by
-  unfold mvcc.storeCloserM; simp only [h, ↓reduceIte]; exact .rfl
 
 /- (Round 3's `bucketThinnedAt`, any deletable subset missing, is replaced by the job's shape
 `entsCutAt`, `M2StorageDraftIndex.lean`: `bucketThinnedAt_counterexample`, review round 4.) -/
@@ -816,30 +706,7 @@ theorem mvcc.watchableStore.Restore.spec_of_specM
 
 /-! ## The watchable store's closer in compaction mode -/
 
-/-- **The watchable store's closer, a compacting store's** (draft; what the server keeps in compaction
-mode, D22's `srvKVCloser` by the mode): the watchable store's own stop channel's close and waiter
-(as `wsCloser`), and the inner store's restorable compaction right at `c` in place of its closer. -/
-@[no_expose] def mvcc.wsCloserR (s st : Loc) (γs : mvcc.StoreNames) (c : Int) : IProp GF :=
-  iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s ∗
-    mvcc.compactRightR st γs c)
-
-/-- **The compaction right from the watchable store's closer** (draft, in place of
-today's discarding `compactRight_of_closer`: the closer is kept, not discarded; the step after `NewServer`'s last
-error return): the inner closer and the authority's half (`crevRightM`, on) make the restorable
-right at `-1`; the watchable store's own parts are kept. -/
-theorem mvcc.wsCloserR_of_wsCloser (s st : Loc) (γs : mvcc.StoreNames) (h : γs.cm = true)
-    (E : CoPset) :
-    ⊢ mvcc.wsCloser (GF := GF) s st γs -∗ mvcc.crevRightM γs ={E}=∗ mvcc.wsCloserR s st γs (-1) := by
-  unfold mvcc.crevRightM
-  simp only [h, ↓reduceIte]
-  iintro Hcl Hcr
-  iunfold mvcc.wsCloser at Hcl
-  icases Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hcl⟩
-  imod mvcc.compactRightR_of_closer st γs E $$ Hcl Hcr with Hr
-  imodintro
-  iunfold mvcc.wsCloserR
-  iexists stc
-  iframe Hstc Hsc Hw Hr
+/- (`wsCloserR` and `wsCloserR_of_wsCloser` are switched: `WsCloserR.lean`, the approval's item 20.) -/
 
 /-- **The watchable store's closer and the inner store's restore right, by the mode** (draft): what
 `watchableStore.Restore.specM` takes besides the store (`restoreRightM`) and what the watchable store
@@ -849,8 +716,7 @@ theorem mvcc.wsCloserR_split (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h :
       mvcc.restoreRightM st γs c ∗
         (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s) := by
   iintro Hcl
-  iunfold mvcc.wsCloserR at Hcl
-  icases Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hr⟩
+  icases (mvcc.wsCloserR_iff s st γs c).1 $$ Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hr⟩
   isplitl [Hr]
   · iapply (mvcc.restoreRightM_on st γs c h).2; iexact Hr
   iexists stc
@@ -863,7 +729,7 @@ theorem mvcc.wsCloserR_join (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : 
       mvcc.wsCloserR s st γs c := by
   iintro ⟨Hr, ⟨%stc, #Hstc, Hsc, Hw⟩⟩
   ihave Hr := (mvcc.storeCloserM_on st γs c h).1 $$ Hr
-  iunfold mvcc.wsCloserR
+  iapply (mvcc.wsCloserR_iff s st γs c).2
   iexists stc
   iframe Hstc Hsc Hw Hr
 
@@ -1069,34 +935,7 @@ theorem mvcc.store.restore.spec_of_specR (h : mvcc.store.restore.specR (GF := GF
   iapply HΦ
   iexact H
 
-/-! ## `store.Close` (review round 3, S2.4) -/
-
-/-- **Draft of `store.Close.spec`, in either mode**: the right to close by the mode at the store's
-compaction revision `c` (`storeCloserM`: off, today's `storeCloser`; on, the restorable
-compaction right, whose queue is at `c`, not `-1`: today's `storeCloser` has its queue at `-1`, which
-a store that compacted cannot give, `compactQueue_mono` only going up). `Close` closes `stopc`,
-then `Stop` with the stop token, the queue and the payload (`stopPayD`), as `Restore` does.
-Unreachable today (the server's `run` never returns, so `Cleanup` never closes the KV): Q3 does not
-dissolve until a shutdown is modelled; this is what it then takes. -/
-abbrev mvcc.store.Close.specM : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (c : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeCloserM s γ c }}
-    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
-  {{ RET #(GoInterface.nil); True }}
-
-/-- **Off, the drafted `Close` reads as today** (for a store that does not compact). -/
-theorem mvcc.store.Close.spec_of_specM (h : mvcc.store.Close.specM (GF := GF) (hG := hG))
-    (s : Loc) (γ : mvcc.StoreNames) (hoff : ¬ mvcc.kbCmpM γ.kb) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.isStore s γ ∗ mvcc.storeCloser s γ }}
-      (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
-    {{ RET #(GoInterface.nil); True }} := by
-  iintro %Φ ⟨#Hpkg, #Hs, Hcl⟩ HΦ
-  iapply (h s γ (-1)) $$ [Hcl] HΦ
-  iframe Hpkg Hs
-  iapply (mvcc.storeCloserM_off s γ (-1) hoff).2
-  iexact Hcl
+/- (`store.Close.specM` is switched: `store.Close.spec`, the approval's item 23.) -/
 
 end draft
 

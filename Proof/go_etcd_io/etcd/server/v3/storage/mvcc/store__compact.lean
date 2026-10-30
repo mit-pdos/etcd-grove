@@ -57,8 +57,8 @@ theorem mvcc.store.compact.wp_proof
     (h8 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
     (h9 : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     mvcc.store.compact.spec (GF := GF) (hG := hG) := by
-  intro s γ trace rev prev pcc te Htr
-  wp_start as ⟨#Hjob, Hq, Htrc⟩
+  intro s γ trace rev prev pcc te q o Htr
+  wp_start as ⟨#Hjob, Hq, Htrc, Hfs⟩
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
   (try wp_auto)
@@ -77,14 +77,16 @@ theorem mvcc.store.compact.wp_proof
   ipersist ch
   ihave #Hjob' := Hjob
   iunfold mvcc.compactJobPre at Hjob'
-  icases Hjob' with ⟨#Hs, #Hstop, #Hlive, %Hcmp, #Hlb, -, #Hcert⟩
+  icases Hjob' with ⟨#Hs, ⟨%oj, #Hstop⟩, %Hcmp, #Hlb, -, #Hcert⟩
+  ihave #Hjsc := mvcc.storeStopR_stopChan s γ oj $$ Hstop
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
-  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
-  -- `isStore`'s, pinned)
-  icases mvcc.storeStop_open s γ $$ Hstop with
-    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  -- the scheduler, read through the caller's share of the fields (M2, the storage side, item 17)
+  icases mvcc.fieldShareAt_acc s γ q o $$ Hfs with ⟨Hflds, #Hph, Hfclose⟩
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
+  obtain ⟨b, ti, ssched, sstop⟩ := o
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
@@ -96,8 +98,11 @@ theorem mvcc.store.compact.wp_proof
       Q (mvcc.compactTok γ (sint.Z rev))) $$ [] as %j #Hj
   · iframe #
     iunfold schedule.jobFnSpec
-    iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨Hcl, HR, Hw⟩, HQ, #Hctx, -⟩ HΦj
-    wp_auto
+    iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨Hcl, HR, Hw⟩, HQ, #Hctx, #HPD⟩ HΦj
+    iapply wp_fupd
+    wp_auto_lc 2
+    -- the job leases the fields' eighth for its run (item 17)
+    imod mvcc.storeStopR_lease s γ oj $$ Hstop Hrun Hlc1 with ⟨Hfj, Hlease⟩
     ihave #HErrU := h1 ctx cd Broadcast.Unknown $$ Hctx
     wp_apply HErrU as %err Hm #HcS
     cases err with
@@ -105,12 +110,15 @@ theorem mvcc.store.compact.wp_proof
       simp only [reduceCtorEq, ↓reduceIte]
       icases Hm with ⟨-, #Hclosed⟩
       wp_auto
-      wp_apply (h2 s γ ctx cd ch (mvcc.compactDone s γ (sint.Z rev))) $$ [$Hcl]
+      wp_apply (h2 s γ ctx cd ch (mvcc.compactDone s γ (sint.Z rev)) mvcc.q8 oj) $$ [$Hcl $Hfj]
+        as Hfj
       · iframe #
         isplitl []
         · iunfold mvcc.barrierCtx; iright; iexact Hctx
         iunfold mvcc.compactDone; iright; iright; iexists cd; iexact Hclosed
       (try wp_auto)
+      imod mvcc.jobLease_return s γ oj $$ Hlease Hfj Hlc2 with Hrun
+      imodintro
       iapply HΦj
       iframe Hrun
       iapply Hw; iframe HQ HR
@@ -119,7 +127,7 @@ theorem mvcc.store.compact.wp_proof
     wp_auto
     ihave Htok := Hw $$ [HQ HR]
     · iframe HQ HR
-    wp_apply (h3 s γ rev prev) $$ [$Htok] as %h %err ⟨Hidx, Hjr, Hres⟩
+    wp_apply (h3 s γ rev prev mvcc.q8 oj) $$ [$Htok $Hfj] as %h %err ⟨Hfj, Hidx, Hjr, Hres⟩
     · iframe #
     ihave Htok : mvcc.compactTok γ (sint.Z rev) $$ [Hidx Hjr]
     · iunfold mvcc.compactTok; iframe Hjr; iexists (sint.Z rev); iframe Hidx; ipureintro; exact Int.le_refl _
@@ -141,6 +149,8 @@ theorem mvcc.store.compact.wp_proof
       wp_apply wp_broadcast_chan_close $$ [$Hcl] as -
       · iunfold mvcc.compactDone; ileft; iexact Hdone
       (try wp_auto)
+      imod mvcc.jobLease_return s γ oj $$ Hlease Hfj Hlc2 with Hrun
+      imodintro
       iapply HΦj
       iframe Hrun Htok
     · iunfold mvcc.errorfIs at Herr
@@ -161,12 +171,15 @@ theorem mvcc.store.compact.wp_proof
       (try wp_auto)
       wp_apply mvcc.wp_context_TODO_body
       (try wp_auto)
-      wp_apply (h2 s γ mvcc.todoCtxV cd ch (mvcc.compactDone s γ (sint.Z rev))) $$ [$Hcl]
+      wp_apply (h2 s γ mvcc.todoCtxV cd ch (mvcc.compactDone s γ (sint.Z rev)) mvcc.q8 oj)
+        $$ [$Hcl $Hfj] as Hfj
       · iframe #
         isplitl []
         · iunfold mvcc.barrierCtx; ileft; ipureintro; rfl
         iunfold mvcc.compactDone; iright; ileft; iexact Hstopped
       (try wp_auto)
+      imod mvcc.jobLease_return s γ oj $$ Hlease Hfj Hlc2 with Hrun
+      imodintro
       iapply HΦj
       iframe Hrun Htok
   (try wp_auto)
@@ -195,8 +208,10 @@ theorem mvcc.store.compact.wp_proof
   wp_apply (h9 trace te _ slice.nil) $$ [Htrc] as Htrc
   · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
+  ihave Hfs := Hfclose $$ [Hfb Hfidx Hfsch Hfstop]
+  · iunfold mvcc.storeFields; simp only [named]; iframe
   iapply HΦ
-  iframe Htrc
+  iframe Htrc Hfs
   isplitr
   · iunfold mvcc.compactChan; iexists γc; iexact Hrcv
   iunfold mvcc.compactQueue

@@ -2017,26 +2017,16 @@ theorem compactQueue_mono (γ : StoreNames) (c c' : Int) (h : c ≤ c') :
   ihave Ht := Hw $$ HQR
   iapply compactTok_mono γ c c' h $$ Ht
 
-/-- **The compaction right** at `c`: half the compaction revision's authority (the other halves
-are a quarter under each of `s.mu` and `s.revMu`, `muInv`, `revMuInv`), and the compaction jobs'
-queue (`compactQueue`: the scheduler's tracked queue, its last job's `Post` giving the index
-compactor's token at or below `c`; 2026-10-13, unit 5c). `NewStore` returns it at `-1`;
-`store.Compact` takes it (it updates the revision under both locks, which hold the rest of the
-authority, then schedules the job, tracked, after `s.mu` is released: the right is what carries
-the queue there) and returns it at the new revision. It also says the scheduler is never stopped
-(`schedLive`: the compaction's barrier jobs are untracked; D19m (C), 2026-10-18: until then
-`isStore` said it). `NewStore` returns the authority's half and the queue apart, the queue with
-the stop token in the right to close the store (`storeCloser`); the caller that will not close
-the store makes the right of them (`compactRight_of_closer`). -/
-def compactRight (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c ∗ schedule.schedLive γ.sch)
+/- (Step 1's compaction right `compactRight γ c`, with the never-stopped scheduler `schedLive`, is
+replaced by the restorable `compactRightR s γ c`, `InvCompact.lean`: M2, the storage side, the
+approval's item 17, 2026-10-30.) -/
 
 /-- The invariant's name of a frozen compaction revision. -/
 abbrev crevFrozenN : Namespace := nroot.@"mvcc_crevFrozen"
 
 /-- **No compaction, ever** (persistent): the compaction right at `-1`, given up into an
-invariant (`compactRight_freeze`; its half of the revision's authority, the jobs' queue dropped),
-so the revision stays `-1` (no one can gather the authority
+invariant (its half of the revision's authority; the jobs' queue dropped), so the revision stays
+`-1` (no one can gather the authority
 to update it). The store's readers and writers as the txn, apply, request path and watchable
 store use them (`storeReader`, and the transactions at their defaults: `isTxnRead`, …) carry it:
 their statements are of a store that is not compacted (the frozen corollaries, `spec_frozen`, of
@@ -3220,7 +3210,7 @@ instance stopPayAt_persistent (γx : GName) (γs : schedule.SchedNames) (o : Sto
 until then `isStore`'s, at the pinned objects): the backend's contract at `γ`'s view, tokens, put
 condition and lock resource, with the batch lock's invariant recorded (`hookP`) and the deposit
 witness; the tree index; the scheduler. A share of the fields holds it of the current objects
-and names (`fieldShareAt`), and so does the compaction's `storeStop`. (D22 receiver epochs, S6: the
+and names (`fieldShareAt`), and so do the compaction jobs' (`storeStopR`). (D22 receiver epochs, S6: the
 store's registration in its backend, `storeRegd`, moved to the writer's invariant, `writerInv`: a
 restored backend is registered only at its first writer's lock.) -/
 def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
@@ -3453,7 +3443,7 @@ instance readerPool_persistent (γ : StoreNames) : Persistent (readerPool (GF :=
 
 /-- `s.mu`'s resource at fraction `q`, at the compaction revision `c` (`-1`: none): half
 `compactMainRev`'s points-to and a quarter of the compaction revision's authority (`s.revMu`
-holds as much; the compaction right, half the authority, is `compactRight`), with a certified
+holds as much; the compaction right, half the authority, is `compactRightR`), with a certified
 log of which `c` is a revision, safe for readers (`crevSafe`: no key deleted then put again at
 `c`, which `store.Compact`'s caller asserts; 2026-10-13, unit 6a). A transaction holds `s.mu`
 shared for its whole life, so its `rangeKeys` reads `compactMainRev` from its part (`muHeld`). -/
@@ -3745,10 +3735,9 @@ replaces, so they are in the shares of the locks guarding their readers (`fieldS
 `physOk`, at a part of the store's current objects and names, `curAt`), and `isStore s γ` reads
 only `γ`'s logical names (`isStore_withPhys`). **The four fields `store.Restore` writes** (`b`,
 `kvindex`, `fifoSched`, `stopc`) are not here either (S3: until then `↦□`): their points-to are
-shared by the locks (`fieldShare`). That the scheduler is never stopped (`schedLive`) is not the
-store's but the compaction's (`compactRight`, `compactJobPre`), since `NewStore` returns the stop
-token for its caller to give up only once the store will not be closed (D19m (C), 2026-10-18:
-`storeCloser`). The fields `restore` and `Close` change are fixed here (out of scope).
+shared by the locks (`fieldShare`). The scheduler's stop token is the right to close's
+(`storeCloser`, D19m (C), 2026-10-18), which a compacting store keeps in its compaction right
+(`compactRightR`, M2's item 17). The fields `restore` and `Close` change are fixed here (out of scope).
 `compactMainRev` is under the two locks (`muInv`, `revMuInv`); and the certificate of the initial
 log `[[], []]` (`NewStore`'s: revision 1, `currentRev = 1`), so every committed log extends it.
 The time receipts' bound is at most `2 ^ 48` (D19c, 2026-10-18: `NewStore`'s premise): a write
@@ -5476,39 +5465,6 @@ theorem stopPayAt_done (γx : GName) (γs : schedule.SchedNames) (o : StoreObjs)
   iexists γc
   iexact Hb
 
-/-- **The store's fields for good, for its compaction** (persistent; D22 receiver epochs, S3,
-2026-10-22: until then `NewStore` returned the stop channel's `↦□` and `isStore` the others'):
-the four fields `store.Restore` writes, read-only, at the pinned objects, and the stop channel
-(the compaction job's loop selects on it). Only the compaction right is made with it
-(`compactRight_of_closer`, which gives up the right to close the store, so a store with it is
-never restored: `store.Restore` takes the right to close). -/
-def storeStop (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop(∃ o : StoreObjs, curAt γ DFrac.discard o ∗ storeFields s o DFrac.discard ∗
-    isStopChan o.sstop ∗ dghostVar γ.rst DFrac.discard false ∗ □ physOk s γ o)
-
-instance storeStop_persistent (s : Loc) (γ : StoreNames) : Persistent (storeStop (GF := GF) s γ) := by
-  unfold storeStop storeFields; simp only [named]; infer_instance
-
-/-- The compaction's objects (D22 receiver epochs, S5b: the current ones for good, the closer's
-part of them discarded): their fields read-only, the stop channel, the restoring flag down for
-good, and what they are (`physOk`). -/
-theorem storeStop_open (s : Loc) (γ : StoreNames) :
-    storeStop (GF := GF) s γ ⊢ ∃ (b : GoInterface) (ti : Loc) (ssched : GoInterface) (sstop : Loc),
-      (s.[store, go!"b"] ↦□ b : IProp GF) ∗
-      (s.[store, go!"kvindex"] ↦□
-        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
-      (s.[store, go!"fifoSched"] ↦□ ssched : IProp GF) ∗
-      (s.[store, go!"stopc"] ↦□ sstop : IProp GF) ∗ isStopChan sstop ∗
-      dghostVar γ.rst DFrac.discard false ∗ □ physOk s γ ⟨b, ti, ssched, sstop⟩ ∗
-      curAt γ DFrac.discard ⟨b, ti, ssched, sstop⟩ := by
-  unfold storeStop
-  iintro ⟨%o, #Hc, #H, #Hsc, #Hr, #Hph⟩
-  obtain ⟨b, ti, ssched, sstop⟩ := o
-  iexists b, ti, ssched, sstop
-  iunfold storeFields at H
-  iNamed H
-  iframe #
-
 /-- **The fields' shares gathered** (`store.Restore`, the restore plan's R5f): `s.mu`'s half, the
 caller's quarter and the closer's quarter, at the closer's objects and names, make the whole. -/
 theorem fieldShare_gather (s : Loc) (γ : StoreNames) (o : StoreObjs) :
@@ -5547,49 +5503,11 @@ no tracked `Schedule` after `Stop` either; `Scheduler.Stop`'s spec takes both), 
 the fields at the current objects and names, `γ`'s (D22 receiver epochs, S5b: the closer's names
 are the current ones). D19m (C), 2026-10-18: until then only the channel's close, with the stop
 token given up by `NewStore`, so `Close`'s contract let a holder of `isStore` compact after
-`Close`. A caller that will not close the store gives the token up for the compaction right
-(`compactRight_of_closer`), or drops this. -/
+`Close`. A compacting store's caller splits it into the restorable compaction right
+(`compactRightR_of_closer`, M2's item 24), or drops this. -/
 def storeCloser (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ o : StoreObjs, fieldShareAt s γ (1 : Qp).half.half o ∗ isStopChan o.sstop ∗
     stopCloser o.sstop ∗ schedule.schedStopTok γ.sch ∗ compactQueue γ (-1))
-
-/-- **The compaction right, from the right to close the store** (D22 receiver epochs, S3): the
-scheduler's stop token given up for good (`schedLive`), the closer's share of the fields
-discarded (`storeStop`, for the compaction's jobs, which run without the store's locks; S5b: with
-its part of the current objects and names, so the store is never restored), with the compaction
-right's half of the revision's authority (`NewStore`'s). The store is then never closed, nor
-restored. -/
-theorem compactRight_of_closer (s : Loc) (γ : StoreNames) :
-    storeCloser (GF := GF) s γ ∗ crevUB γ.idx (1 : Qp).half (-1) ==∗
-      compactRight γ (-1) ∗ storeStop s γ := by
-  unfold storeCloser fieldShareAt
-  iintro ⟨⟨%o, ⟨Hc, Hf, Hr, #Hph⟩, #Hsc, -, Htok, Hq⟩, Hcu⟩
-  imod dghostVar_persist γ.rst _ false $$ Hr with #Hr
-  iunfold curAt at Hc
-  imod dghostVar_persist γ.cur _ _ $$ Hc with #Hc
-  iunfold schedule.schedStopTok at Htok
-  icases Htok with ⟨%n, #Hn, Hd⟩
-  imod dghostVar_persist n 1 () $$ Hd with #Hd
-  iunfold storeFields at Hf
-  icases Hf with ⟨Hfb, Hfidx, Hfsch, Hfstop⟩
-  ipersist Hfb
-  ipersist Hfidx
-  ipersist Hfsch
-  ipersist Hfstop
-  imodintro
-  isplitl [Hcu Hq]
-  · iunfold compactRight
-    iframe Hcu Hq
-    iunfold schedule.schedLive
-    iexists n
-    iframe Hn Hd
-  iunfold storeStop
-  iexists o
-  iframe Hsc Hr Hph
-  isplitr
-  · iunfold curAt; iexact Hc
-  iunfold storeFields
-  iframe Hfb Hfidx Hfsch Hfstop
 
 end hookLc
 
