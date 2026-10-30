@@ -1742,6 +1742,17 @@ and k8s's apiserver storage. Done items are marked in the sorry list above as th
   `applyAll`'s call under the frozen statements (nothing gives `releaseOk`; `run`'s `ciJ` gives `ci ≤ ai`, the
   wrong direction; in Go, `ci ≥ ai` from boot). Left: S-E `NewServer` (`wp_proof`, `wp_proofM`); D.
 
+## Repair: sorries inherited from lean (2026-10-30)
+
+Stage P's end state: the `sorry`s are the SNAPSHOT-SORRY list ("Repair: snapshot sorries") plus exactly
+those already `sorry` on origin/lean. The latter (origin/lean's `etc/tcb-baseline.txt`, plus one no root
+reaches):
+- `NewServer.wp_proofCompact` (M2 S4: NewServer with the compactor; `NewServer.lean`);
+- `EtcdServer.processInternalRaftRequestOnce.wp_proofCompact` (M2 S2: the compaction arm);
+- `etcdserver.restorePre_of_apply`'s compaction case (`RestorePre.lean`, M2 S1; reached by no root);
+- `Perennial.reflect.Type'.Type'_into_val_typed`, `Perennial.reflect.Type'.Type'_typed_pointsto`;
+- `authkv.Main.wp_proof`; `k8setcd3.client_ctx_field`, `k8setcd3.revRoom`; `kubernetes.kvIs_ne_null`.
+
 ## Repair: Stage P changes (2026-10-30)
 
 Internal invariant/statement changes decided during stage P (by the stage P lead; none is exported).
