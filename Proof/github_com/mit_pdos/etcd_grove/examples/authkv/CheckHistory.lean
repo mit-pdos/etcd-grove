@@ -32,7 +32,7 @@ theorem CheckHistory.wp_proof (wp_SetupWrite : SetupWrite.spec (GF := GF) (hG :=
     (wp_Writer : Writer.spec (GF := GF) (hG := hG))
     (wp_Permitted : Permitted.spec (GF := GF) (hG := hG)) :
     CheckHistory.spec (GF := GF) (hG := hG) := by
-  intro esl evs dq setupRev endKey Hok
+  intro esl evs dq endKey Hok
   wp_start as Hevs
   ihave %Hel := ownSlice_len $$ Hevs
   wp_auto
@@ -55,40 +55,32 @@ theorem CheckHistory.wp_proof (wp_SetupWrite : SetupWrite.spec (GF := GF) (hG :=
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
+      wp_for_post
+      iframe
+      iexists j + W64 1, x
+      iframe
+      ipureintro; constructor <;> word
+    · (try wp_auto)
+      have hne := Hif
+      wp_apply wp_SetupWrite
       wp_if_destruct
-      · (try wp_auto)
+      · -- a repeated set-up put
+        (try wp_auto)
         wp_for_post
         iframe
         iexists j + W64 1, x
         iframe
         ipureintro; constructor <;> word
       · (try wp_auto)
-        have hne := Hif
-        wp_apply wp_SetupWrite
-        wp_if_destruct
-        · -- a repeated set-up put
-          (try wp_auto)
-          wp_for_post
-          iframe
-          iexists j + W64 1, x
-          iframe
-          ipureintro; constructor <;> word
-        · (try wp_auto)
-          wp_apply wp_Writer
-          wp_apply wp_Permitted
-          rw [decide_eq_true (Hok x hxm (by word) hne Hif)]
-          (try wp_auto)
-          wp_for_post
-          iframe
-          iexists j + W64 1, x
-          iframe
-          ipureintro; constructor <;> word
-    · (try wp_auto)
-      wp_for_post
-      iframe
-      iexists j + W64 1, x
-      iframe
-      ipureintro; constructor <;> word
+        wp_apply wp_Writer
+        wp_apply wp_Permitted
+        rw [decide_eq_true (Hok x hxm hne Hif)]
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, x
+        iframe
+        ipureintro; constructor <;> word
   · (try wp_auto)
     iapply HΦ
     iframe

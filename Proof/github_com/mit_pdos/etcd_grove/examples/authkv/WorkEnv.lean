@@ -72,23 +72,18 @@ instance akKVOn_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ :
     (cid mid : w64) : Persistent (akKVOn (GF := GF) addr s E ρ cid mid) := by
   unfold akKVOn; infer_instance
 
-/-- **The namespaces of the auth history's read law** (`authStateAt_setup`): the raft log's, the
-KV invariant's, the history's, the tie's and the store's revision invariant's. -/
-def akReadMask : CoPset :=
-  ↑srvRaftN ∪ ↑kvN ∪ ↑authHistN ∪ ↑authTieN ∪ ↑(nroot.@"authRev")
-
 /-- **The auth state fixed after the set-up** (S6; persistent): for reads (round 1, F-W1), the
 set-up's published index `n` and every state of the auth history from it on `setupSt` at some
 revision (`client_range_on`/`client_txn_on`'s verdicts are from states at indices at least the
 published bound they are given), an update at any mask holding the read law's namespaces
-(`akReadMask`; its source, the server's tie, H5: `akAuthFixed_alloc`); for writes (5b), the
+(`authTieReadMask`; its source, the server's tie, H5: `akAuthFixed_alloc`); for writes (5b), the
 set-up's requested log `Lset` and the auth history frozen at its history (`SetUp`'s post), whose
 last state is `setupSt`: a write's grant at a log extending `Lset` (`writeGrantG`'s `authHistLb`)
 is then at `setupSt` (`akAuthFixed_write`). -/
 def akAuthFixed (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) :
     IProp GF :=
   iprop(auth.authPubLb γa n ∗
-    □ (∀ (E' : CoPset) m st, ⌜akReadMask ⊆ E' ∧ n ≤ m⌝ -∗ auth.authStateAt γa m st ={E'}=∗
+    □ (∀ (E' : CoPset) m st, ⌜authTieReadMask ⊆ E' ∧ n ≤ m⌝ -∗ auth.authStateAt γa m st ={E'}=∗
       ⌜∃ r, st = setupSt r⌝) ∗
     srvReqLogLb ρ.raft Lset ∗
     ∃ (γz : GName) (hs : List auth.AuthState) (r : Nat), authHistFrozen ρ.kv γz hs ∗
@@ -149,18 +144,7 @@ theorem akAuthFixed_alloc (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (
   · iexact Hpub
   isplitl []
   · iintro !> %E' %m %st %Hm #Hst
-    have hsub : ∀ N : CoPset, N ⊆ akReadMask → N ⊆ E' := fun N hN p hp => Hm.1 p (hN p hp)
-    have h0 : (↑srvRaftN : CoPset) ⊆ E' := hsub _ (fun p hp => by
-      unfold akReadMask; simp only [Iris.Std.LawfulSet.mem_union]; exact Or.inl (Or.inl (Or.inl (Or.inl hp))))
-    have h1 : (↑kvN : CoPset) ⊆ E' := hsub _ (fun p hp => by
-      unfold akReadMask; simp only [Iris.Std.LawfulSet.mem_union]; exact Or.inl (Or.inl (Or.inl (Or.inr hp))))
-    have h2 : (↑authHistN : CoPset) ⊆ E' := hsub _ (fun p hp => by
-      unfold akReadMask; simp only [Iris.Std.LawfulSet.mem_union]; exact Or.inl (Or.inl (Or.inr hp)))
-    have h3 : (↑authTieN : CoPset) ⊆ E' := hsub _ (fun p hp => by
-      unfold akReadMask; simp only [Iris.Std.LawfulSet.mem_union]; exact Or.inl (Or.inr hp))
-    have h4 : (↑(nroot.@"authRev") : CoPset) ⊆ E' := hsub _ (fun p hp => by
-      unfold akReadMask; simp only [Iris.Std.LawfulSet.mem_union]; exact Or.inr hp)
-    have law := authStateAt_setup E ρ.rd γa γz hs k m st E' hγa h0 h1 h2 h3 h4
+    have law := authStateAt_setup E ρ.rd γa γz hs k m st E' hγa Hm.1
     rw [hlast] at law
     imod law $$ [Hrl Hkv Htie Hz Hk Hst] with %Heq
     · iframe Hrl Hkv Htie Hz Hk Hst

@@ -566,7 +566,13 @@ history invariant over the whole log, without `setupRev` (`evHistOk`, `akHist_al
 disjunct leaves out the event's kind, which no `opHistOk` of a put can show of an arbitrary state:
 the reader shows it); the read half: `akAuthFixed`'s read row an update at masks over `akReadMask`,
 `akAuthFixed_alloc` proved from the server law `isServerReadM_tie` (`ReadOn.lean`) and
-`authStateAt_setup`. Open before the freeze: the watch spec (G2), the other round-2 items.
+`authStateAt_setup`. Round 3's review (F1-F6, 2026-10-30): `setupRev` dropped (the user's choice:
+`CheckHistory(evs, endKey)` checks every event, `SetUp` returns only `ok`); `Work.spec` ties its
+watcher to the member (`V.addr`, `V.mem`, `V.nm = 1`, `V.R.s/E`, `V.kst`); `Main`'s glue laws
+proved in `Hist.lean` (`revEvents_setupPut_put` under `kvLogOkTo`, `stateHistOk_boot`,
+`opHistOk_putKey`/`opHistOk_endPut`, `histOk_of_evHistOk` moved from `Drafts`); the read law's
+mask a server definition (`authTieReadMask`, `authStateAt_setup` restated over it). Open before
+the freeze: the watch spec (G2), the other round-2 items.
 The trust base gains the stubs' two `sorry`s (`Work.wp_proof`, `newUserClient.wp_proof`).
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)

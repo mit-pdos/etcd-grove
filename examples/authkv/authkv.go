@@ -16,9 +16,9 @@
 //     holds only keys the principal may read (u: [a, b));
 //   - the history: root's watch of every key from revision 1, read up to a last write root makes
 //     after the workload, reports only writes their principal was permitted. A key names its
-//     writer (x/<who>/...: once auth is on, only <who> writes or deletes it), and the writes
-//     before the workload (the keys the deletes may remove, at revisions 2 to setupRev) are the
-//     set-up's, as is a later repeat of one (a retried attempt of a set-up put: SetupWrite).
+//     writer (x/<who>/...: once auth is on, only <who> writes or deletes it), but for the set-up's
+//     puts (the keys the deletes may remove, with the value "setup": SetupWrite), which the check
+//     admits wherever they are in the history.
 //
 // Main calls only what the proofs specify or the client's auth side states as a contract
 // (notes/decisions.md, "E2b of the auth plan"): etcdserver.NewServer, Start, v3rpc.Server (through
@@ -281,48 +281,46 @@ func Work(cli *clientv3.Client, who string) {
 // SetUp puts the keys the principals' deletes may remove (x/<who>/d, for x in a and c), then
 // creates the auth state and enables auth, through cli (auth off: every request is allowed):
 // user root with the root role, role r granted READWRITE on [lo, hi), user u with role r and user
-// v with no role. It returns the last set-up write's revision, and false if a step failed.
-func SetUp(cli *clientv3.Client) (int64, bool) {
-	var rev int64
+// v with no role. It returns false if a step failed.
+func SetUp(cli *clientv3.Client) bool {
 	for _, who := range Principals() {
 		for _, x := range []string{"a", "c"} {
 			ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
-			p, err := cli.Put(ctx, keyOf(x, who, "d"), "setup")
+			_, err := cli.Put(ctx, keyOf(x, who, "d"), "setup")
 			cancel()
 			if err != nil {
-				return 0, false
+				return false
 			}
-			rev = p.Header.Revision
 		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
 	defer cancel()
 	if _, err := cli.Auth.UserAdd(ctx, "root", rootPw); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.UserGrantRole(ctx, "root", "root"); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.RoleAdd(ctx, "r"); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.RoleGrantPermission(ctx, "r", lo, hi,
 		clientv3.PermissionType(clientv3.PermReadWrite)); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.UserAdd(ctx, "u", uPw); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.UserGrantRole(ctx, "u", "r"); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.UserAdd(ctx, "v", vPw); err != nil {
-		return 0, false
+		return false
 	}
 	if _, err := cli.Auth.AuthEnable(ctx); err != nil {
-		return 0, false
+		return false
 	}
-	return rev, true
+	return true
 }
 
 // Writer is the principal whose key k is once auth is on: the who of x/<who>/... for x in a and
@@ -340,8 +338,10 @@ func Writer(k string) string {
 }
 
 // SetupWrite is whether e is one of SetUp's puts (keyOf(x, who, "d") for x in a and c, the value
-// "setup"): an attempt of one may still be applied after SetUp returns (the client retries a
-// refused put), so the history may hold it at any revision.
+// "setup"). CheckHistory admits one at any revision: in Go each is applied before SetUp returns
+// (the client resends a Put only when the attempt was never sent), but the proof's model of the
+// client lets an attempt be applied more than once (SetUp gives each put a persistent update),
+// so the check does not depend on where in the history the set-up's puts are.
 func SetupWrite(e common.Event) bool {
 	for _, who := range Principals() {
 		for _, x := range []string{"a", "c"} {
@@ -353,12 +353,11 @@ func SetupWrite(e common.Event) bool {
 	return false
 }
 
-// CheckHistory panics unless every watched event after the set-up (above revision setupRev) but
-// root's last write (key endKey) and a repeat of a set-up put (SetupWrite) is a write its key's
-// principal was permitted.
-func CheckHistory(evs []common.Event, setupRev int64, endKey string) {
+// CheckHistory panics unless every watched event but root's last write (key endKey) and the
+// set-up's puts (SetupWrite) is a write its key's principal was permitted.
+func CheckHistory(evs []common.Event, endKey string) {
 	for _, e := range evs {
-		if e.Rev > setupRev && e.Key != endKey && !SetupWrite(e) && !Permitted(Writer(e.Key), e.Key) {
+		if e.Key != endKey && !SetupWrite(e) && !Permitted(Writer(e.Key), e.Key) {
 			panic("authkv: the history holds a write its principal was not permitted")
 		}
 	}
@@ -392,8 +391,7 @@ func Main() int {
 	if err != nil {
 		return Failed
 	}
-	setupRev, ok := SetUp(cli)
-	if !ok {
+	if !SetUp(cli) {
 		return Failed
 	}
 	root, err := newUserClient("root", rootPw, lg)
@@ -439,7 +437,7 @@ func Main() int {
 	if !ok {
 		return WatchEnded
 	}
-	CheckHistory(evs, setupRev, "z/end")
+	CheckHistory(evs, "z/end")
 
 	// u's watch of [lo, hi) from revision 1, read up to the history's last event in it: it
 	// reports only keys u may read.

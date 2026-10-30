@@ -1,5 +1,5 @@
 /-
-`CheckHistory(evs, setupRev, endKey)` (`examples/authkv/authkv.go`; the auth plan's E2f).
+`CheckHistory(evs, endKey)` (`examples/authkv/authkv.go`; the auth plan's E2f).
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -23,16 +23,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-/-- `CheckHistory(evs, setupRev, endKey)` returns (does not panic) when every event above
-`setupRev` but of the key `endKey` and a repeat of a set-up put (`setupWriteK`) is a write its
-key's principal was permitted (`histOk`). -/
+/-- `CheckHistory(evs, endKey)` returns (does not panic) when every event but of the key `endKey`
+and the set-up's puts (`setupWriteK`) is a write its key's principal was permitted (`histOk`). -/
 abbrev CheckHistory.spec : Prop :=
-  ∀ (esl : GoSlice) (evs : List wev) (dq : DFrac) (setupRev : w64) (endKey : GoString),
-  histOk evs setupRev endKey →
+  ∀ (esl : GoSlice) (evs : List wev) (dq : DFrac) (endKey : GoString),
+  histOk evs endKey →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       esl ↦*{dq} evs }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.CheckHistory))
-      (Val #esl)) (Val #setupRev)) (Val #endKey))
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.CheckHistory))
+      (Val #esl)) (Val #endKey))
   {{ RET #(); esl ↦*{dq} evs }}
 
 end spec

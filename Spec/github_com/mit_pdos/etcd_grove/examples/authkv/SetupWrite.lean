@@ -23,7 +23,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-/-- `SetupWrite(e)` is whether `e` is a repeat of a set-up put (`setupWriteK`: a put of a key of
+/-- `SetupWrite(e)` is whether `e` is one of the set-up's puts (`setupWriteK`: a put of a key of
 `setupKeys` with the value `setup`). -/
 abbrev SetupWrite.spec : Prop :=
   ∀ (e : wev),

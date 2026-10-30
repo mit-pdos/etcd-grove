@@ -1037,17 +1037,15 @@ noncomputable def Work.impl [GooseExts] [GoGlobalContext] : val :=
 /-- SetUp puts the keys the principals' deletes may remove (x/<who>/d, for x in a and c), then
     creates the auth state and enables auth, through cli (auth off: every request is allowed):
     user root with the root role, role r granted READWRITE on [lo, hi), user u with role r and user
-    v with no role. It returns the last set-up write's revision, and false if a step failed.
+    v with no role. It returns false if a step failed.
 
     go: authkv.go:285:6 -/
 noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.RequestTimeout)
@@ -1069,16 +1067,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev"))
-  (Let "$r1" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1089,16 +1083,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1117,16 +1107,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1145,16 +1131,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1173,16 +1155,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1203,16 +1181,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1230,16 +1204,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1258,16 +1228,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1286,16 +1252,12 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1352,33 +1314,24 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Var "p"))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "p") (Var "$r0"))))))))))))))
+  (Var "$r0")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
@@ -1390,13 +1343,13 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- Writer is the principal whose key k is once auth is on: the who of x/<who>/... for x in a and
     c, "" if k has no such shape.
 
-    go: authkv.go:330:6 -/
+    go: authkv.go:328:6 -/
 noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1454,8 +1407,10 @@ noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- SetupWrite is whether e is one of SetUp's puts (keyOf(x, who, "d") for x in a and c, the value
-    "setup"): an attempt of one may still be applied after SetUp returns (the client retries a
-    refused put), so the history may hold it at any revision.
+    "setup"). CheckHistory admits one at any revision: in Go each is applied before SetUp returns
+    (the client resends a Put only when the attempt was never sent), but the proof's model of the
+    client lets an attempt be applied more than once (SetUp gives each put a persistent update),
+    so the check does not depend on where in the history the set-up's puts are.
 
     go: authkv.go:345:6 -/
 noncomputable def SetupWrite.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1508,18 +1463,15 @@ noncomputable def SetupWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value")))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- CheckHistory panics unless every watched event after the set-up (above revision setupRev) but
-    root's last write (key endKey) and a repeat of a set-up put (SetupWrite) is a write its key's
-    principal was permitted.
+/-- CheckHistory panics unless every watched event but root's last write (key endKey) and the
+    set-up's puts (SetupWrite) is a write its key's principal was permitted.
 
-    go: authkv.go:359:6 -/
+    go: authkv.go:358:6 -/
 noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
-  (Lam "setupRev"
   (Lam "endKey"
   (Seq (App (Val exceptionDo)
   (Let "endKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "endKey"))
-  (Let "setupRev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "setupRev"))
   (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
   (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Val #())))
@@ -1528,7 +1480,7 @@ noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (If (If (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Rev"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "setupRev")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endKey"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Var "e"))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endKey"))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Var "e"))
   (App (App (Val (GoInstruction (FuncResolve SetupWrite []))) (Val #())) (Var "$a0")))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e")))
   (App (App (Val (GoInstruction (FuncResolve Writer []))) (Val #())) (Var "$a0")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e")))
@@ -1541,12 +1493,12 @@ noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Pair (Var "e") (Var "$value"))))))))))))))
-  (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Pair (Var "e") (Var "$value")))))))))))))
+  (Val #()))))
 
 /-- LastIn is the revision of the last event of evs in [lo, hi) (0 if there is none).
 
-    go: authkv.go:368:6 -/
+    go: authkv.go:367:6 -/
 noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -1583,7 +1535,7 @@ noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Main starts the member, sets up and enables auth, runs the four principals' workloads at once,
     then checks the history through root's watch, and u's watch of [lo, hi).
 
-    go: authkv.go:380:6 -/
+    go: authkv.go:379:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1612,16 +1564,6 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val (GoInstruction (FuncResolve SetUp []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "setupRev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1715,6 +1657,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1803,9 +1746,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "uctx") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "setupRev"))
-  (Let "$a2" (Val #(go!"z/end"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve CheckHistory []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (Let "$a1" (Val #(go!"z/end"))
+  (App (App (App (Val (GoInstruction (FuncResolve CheckHistory []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val WatchEnded))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1820,7 +1762,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Pair (Var "evs") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Pair (Var "evs") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (Var "hch") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -1928,7 +1870,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "root") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (App (App (Val (GoInstruction (FuncResolve SetUp []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1937,10 +1880,6 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "setupRev") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed))
   (App (App (Val exceptionSeq) (Lam BAnon

@@ -11,7 +11,9 @@ of authkv's member with auth on (`isNewClient`) whose attempts carry the princip
 (`clientTokAt` at `akTokP`), the member's KV methods with auth on (`akKVOn`), its TLS identity off
 (`srvTLSId`, refuted: the member's configuration has `ClientCertAuthEnabled` false; round 1, F-W2),
 and the watcher's facts as `Main` has them (`watchAddrFacts`; the auth-on watch, S4/G2, replaces
-it), after the set-up: the history invariant (S1, `akHistInv`) and the auth state fixed (S6,
+it), the watcher's one member the server `s` at `E` at authkv's address, its KV state variable
+`ρ.kv`'s (round 3, F1: what `watcher_of_clientTokAt` and `watcher.Watch.spec` need), after the
+set-up: the history invariant (S1, `akHistInv`) and the auth state fixed (S6,
 `akAuthFixed`). Not panicking is
 the workload's part of the auth result: every request the auth state refuses `who` returned an
 error, every reply holds only keys `who` may read, and every write `who`'s client sends keeps the
@@ -47,6 +49,8 @@ abbrev Work.spec : Prop :=
     (cl : Loc) (who : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat),
   who ∈ principals → E.authMode = .on γa →
+  V.addr = go!"127.0.0.1:23916" ∧ V.mem = (fun _ => (V.addr, V.R)) ∧ V.nm = 1 ∧ V.R.s = s ∧
+    V.R.E = E ∧ V.kst = ρ.kv.st →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       isNewClient cl [go!"127.0.0.1:23916"] V ∗ watchAddrFacts V ∗
       clientTokAt cl [go!"127.0.0.1:23916"] (akTokP γa who) ∗

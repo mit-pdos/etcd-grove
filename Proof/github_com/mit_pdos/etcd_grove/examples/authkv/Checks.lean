@@ -5,10 +5,10 @@ the auth plan"). Lean-first (no Rocq counterpart).
 The pure functions the specs of `keyOf`, `Writer`, `SetupWrite`, `CheckHistory` and `LastIn`
 (`examples/authkv/authkv.go`) return or check, over the events `common.Collect` gives (`wev`):
 `keyOfK` the key `x/<who>/<n>`, `writerK` the principal a key names (the first of `principals`
-with `x/<who>/` a proper prefix, for `x` in `a`, `c`), `setupWriteK` a repeat of a set-up put (a
-put of a key of `setupKeys` with the value `setup`), `histOk` the history's check (every event
-above the set-up's revision but the last write's and a repeated set-up put is one its key's
-principal was permitted), `lastIn` the last revision in `[lo, hi)`.
+with `x/<who>/` a proper prefix, for `x` in `a`, `c`), `setupWriteK` one of the set-up's puts (a
+put of a key of `setupKeys` with the value `setup`), `histOk` the history's check (every event but
+the last write's and the set-up's puts is one its key's principal was permitted), `lastIn` the
+last revision in `[lo, hi)`.
 -/
 module
 
@@ -61,19 +61,18 @@ def setupPutK (k v : GoString) : Prop := k ∈ setupKeys ∧ v = go!"setup"
 
 instance (k v : GoString) : Decidable (setupPutK k v) := by unfold setupPutK; infer_instance
 
-/-- **A repeat of a set-up put** (`SetupWrite(e)`, of the event's kind `put`, key `k` and value
+/-- **One of the set-up's puts** (`SetupWrite(e)`, of the event's kind `put`, key `k` and value
 `v`): a put of a set-up key with the value `setup` (`setupPutK`). -/
 def setupWriteK (put : Bool) (k v : GoString) : Prop := put = true ∧ setupPutK k v
 
 instance (put : Bool) (k v : GoString) : Decidable (setupWriteK put k v) := by
   unfold setupWriteK; infer_instance
 
-/-- **The history's check** (`CheckHistory(evs, setupRev, endKey)` returns): every event above
-the set-up's revision `setupRev` but of the key `endKey` and a repeat of a set-up put
-(`setupWriteK`) is a write its key's principal was permitted. -/
-def histOk (evs : List wev) (setupRev : w64) (endKey : GoString) : Prop :=
-  ∀ e ∈ evs, sint.Z setupRev < sint.Z e.Rev' → e.Key' ≠ endKey →
-    ¬ setupWriteK e.Put' e.Key' e.Val' → permittedK (writerK e.Key') e.Key'
+/-- **The history's check** (`CheckHistory(evs, endKey)` returns): every event but of the key
+`endKey` and the set-up's puts (`setupWriteK`) is a write its key's principal was permitted. -/
+def histOk (evs : List wev) (endKey : GoString) : Prop :=
+  ∀ e ∈ evs, e.Key' ≠ endKey → ¬ setupWriteK e.Put' e.Key' e.Val' →
+    permittedK (writerK e.Key') e.Key'
 
 /-- The revision of the last event in `[lo, hi)`, from `last` (`LastIn`'s loop). -/
 def lastInFrom (last : w64) (evs : List wev) : w64 :=

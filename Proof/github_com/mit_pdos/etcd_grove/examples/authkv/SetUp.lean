@@ -83,10 +83,10 @@ theorem SetUp.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
-  ihave HI : (∃ (j : w64) (w0 : GoString) (r : w64),
-      "i" ∷ i_ptr ↦ j ∗ "who" ∷ who_ptr ↦ w0 ∗ "Hpsl" ∷ psl ↦* principals ∗ "rev" ∷ rev_ptr ↦ r ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z psl.len⌝ : IProp GF) $$ [i who Hpsl rev]
-  · iexists W64 0, _, _
+  ihave HI : (∃ (j : w64) (w0 : GoString),
+      "i" ∷ i_ptr ↦ j ∗ "who" ∷ who_ptr ↦ w0 ∗ "Hpsl" ∷ psl ↦* principals ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z psl.len⌝ : IProp GF) $$ [i who Hpsl]
+  · iexists W64 0, _
     iframe
     ipureintro
     constructor <;> word
@@ -109,10 +109,10 @@ theorem SetUp.wp_proof
       show max (max (2 : Int) 0) 0 = 2 from rfl]
     (try wp_auto)
     rename_i oi_ptr
-    ihave HJ : (∃ (n : w64) (x0 : GoString) (r' : w64),
-        "i" ∷ i_ptr ↦ n ∗ "x" ∷ x_ptr ↦ x0 ∗ "Hxsl" ∷ _ ↦* keyParts ∗ "rev" ∷ rev_ptr ↦ r' ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝ : IProp GF) $$ [i x Hxsl rev]
-    · iexists W64 0, _, _
+    ihave HJ : (∃ (n : w64) (x0 : GoString),
+        "i" ∷ i_ptr ↦ n ∗ "x" ∷ x_ptr ↦ x0 ∗ "Hxsl" ∷ _ ↦* keyParts ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝ : IProp GF) $$ [i x Hxsl]
+    · iexists W64 0, _
       iframe
       ipureintro
       constructor <;> word
@@ -144,16 +144,12 @@ theorem SetUp.wp_proof
         ipureintro; exact hk
       (try wp_auto)
       wp_apply Hcancel
-      icases Hout with (⟨%Herr, %m, #Hm, -⟩ | ⟨%Herr, -⟩)
+      icases Hout with (⟨%Herr, -⟩ | ⟨%Herr, -⟩)
       · subst Herr
-        iunfold putRespMsg at Hm
-        icases Hm with ⟨%Hnn, %h, %pk, #Hhd, #Hhf, -⟩
-        iunfold hdrFull at Hhf
-        icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
         (try wp_auto)
         wp_for_post
         iframe
-        iexists n + W64 1, x, _
+        iexists n + W64 1, x
         iframe
         ipureintro; constructor <;> word
       · cases err with
@@ -169,7 +165,7 @@ theorem SetUp.wp_proof
     · (try wp_auto)
       wp_for_post
       iframe
-      iexists j + W64 1, w, _
+      iexists j + W64 1, w
       iframe
       ipureintro; constructor <;> word
   · (try wp_auto)
