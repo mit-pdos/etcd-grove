@@ -452,7 +452,10 @@ theorem w64Field_excl (a : Loc) (v w : w64) :
     a ↦ v ∗ a ↦ w ⊢ (False : IProp GF) := by
   rw [typedPointsto_unseal]; unfold typedPointstoWrap
   iintro ⟨⟨H1, _⟩, ⟨H2, _⟩⟩
-  simp only [typedPointstoDef_heap]
+  -- an integer's points-to is its bytes: the first byte's points-tos clash
+  simp only [typedPointstoDef_w64, natBytes, bytesPointsto]
+  icases H1 with ⟨H1, _⟩
+  icases H2 with ⟨H2, _⟩
   icombine H1 H2 gives % ⟨Hbad, _⟩
   exfalso
   have : (1 + 1 : Rat) ≤ 1 := Hbad

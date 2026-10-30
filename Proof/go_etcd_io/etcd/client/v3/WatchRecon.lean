@@ -57,7 +57,10 @@ theorem ptsto_w64_valid (l : Loc) (v1 v2 : w64) (dq1 dq2 : DFrac) :
   iintro ⟨H1, H2⟩
   icases typedPointsto_split _ _ _ $$ H1 with H1
   icases typedPointsto_split _ _ _ $$ H2 with H2
-  rw [typedPointstoDef_heap, typedPointstoDef_heap]
+  -- an integer's points-to is its bytes: combine the first byte's
+  simp only [typedPointstoDef_w64, natBytes, bytesPointsto]
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
   icombine H1 H2 gives %Hc
   ipureintro; exact Hc.1
 

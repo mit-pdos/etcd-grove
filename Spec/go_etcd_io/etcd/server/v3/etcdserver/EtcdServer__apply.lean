@@ -25,98 +25,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.apply(es, ep, rac)`, by the apply thread, on a non-empty batch of consecutive
-committed entries from `f0` (`entriesFrom`), with the protocol's state `st` processed through
-the larger of `ci` and `f0 - 1` (`loopOk`): each entry at or below `ci` is replayed with no
-backend writes (`ApplyV2storeOnly`), each above is applied (`ApplyBoth`), and afterwards
-`ci` and the processed-through index are both the larger of the old `ci` and the last index
-`L`, which it returns with its term. So no entry's writes are applied twice, and none above
-`ci` is skipped. **The KV** (the apply package's unit 3): the apply thread's applier state goes
-from `x` to `x'` by `entriesStep c ms x x'` (`c` the consistent index the batch starts at: each
-normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `logShape ms` (each
-normal entry's request meets its premise wherever the size clauses hold; the apply thread's log
-is small, `srvApplyKV_small`, so they hold at the state each entry meets: D19c's move,
-2026-10-18; until then `entriesOk c ms x`, the premise at every state the batch can reach). **The wait** (unit 2 of the
-request path): `batchWaitOk` (each normal entry's id claimed for its data; each conf change's id,
-`ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. **The
-applied index** (the request path's unit 4b): the apply thread's half of the ghost applied index
-(`srvAppliedOwn γr`) goes from `f0 - 1` to the last index, each `setAppliedIndex` depositing the KV
-log after its entry, so the last index's log is `x'.log` (`appliedLogAt`); since 2026-10-14 (unit
-C2a) from the log applied through `f0 - 1` the KV's (`appliedLogAt γr (f0 - 1) x.log`), with each
-entry committed (`batchCommittedIdx`: raft's batches, `rnApP`), each entry's log deposited ahead
-of its result (`applyEntryNormal`'s `srvAppliedPre`). **The KV model** (2026-10-14, unit T1): the
-apply thread at the committed raft log `A` through `f0 - 1` (`kvApplied`), the batch committed after
-it (`kvBatch`), at `A ++ ms` after. **The write budget**
-(2026-10-13, unit 6): one write token of the store per entry, spent (a conf change's is wasted);
-since D19b (2026-10-18) taken from the budget `srvWTPool E` with a time receipt of the entry's
-iteration, until then handed in (`txn.storeWTs E.γ ms.length`); (D22 J5, 2026-10-26) the count of
-tokens taken goes from `w` to `w + ms.length` (`srvWTTaken`; until J5 from `f0 - 1` to the last
-index, `srvWTAt`). **The stop** (D19m, 2026-10-18): it
-returns `shouldStop = false`, since `applyConfChange` removes no member (`ccApplyOk`), so the
-caller's `stopWithDelay` is never reached. **The driver's view** (D43 M3, 2026-10-25; raft's
-dynamic mode): with a view `dv` (`dvOk`: no replay, the node at the server's decoder), the view
-after `A` goes to the view after `A ++ ms`, each conf entry applied through `applyConfChange`;
-without, nothing (raft's static mode, or no conf entry in the batch). **The membership** (D43
-M5e, 2026-10-26): the apply thread's membership resource (`srvApRes`: the fields and the cluster
-and transport `applyConfChange` writes) from `A` to `A ++ ms`. -/
+/-- `s.apply(…)` in the environment's auth mode (`E.authOn`; step 3 of the auth-mode merge,
+2026-10-30: one statement for both modes, `.any` excluded; until then `spec` (auth off) and `specOn`,
+now `ModeSpecs.lean`'s `specOff`/`specOn`, corollaries `spec_off`/`spec_on`). As `specOff` (the
+statement off, in `ModeSpecs.lean`, with the full account of every row), with the rows that
+differ by the mode at `E.authOn`: the server's view (`isServerM`), the committed log's shapes
+(`logShapeM`: with auth on, an admitted admin request too), the applier state (`srvApplyKVM`, at the
+model's auth state `sa`, unconstrained off), the apply thread's model (`kvAppliedM`, from
+`srvAuthSt0`). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`), the
+receipts' bound, and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
+at the new consistent index after. -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat),
-  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
-  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
-      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
-      srvWTTaken γp w ∗ srvFS s ∗
-      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ srvApRes s γr A }}
-    (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
-      (Val #es)) (Val #ep)) (Val #rac))
-  {{ (appliedt appliedi : w64) (shouldStop : Bool),
-      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
-      srvApRes s γr (A ++ ms) ∗
-      ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
-        applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
-        srvWTTaken γp (w + ms.length) ∗
-        (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
-          appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗ srvRest E γr (A ++ ms)) ∗
-        ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
-          (ms.getLast?).map EntryModel.term = some appliedt ∧
-          loopOk γ st' appliedi ∧
-          uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z appliedi) ∧
-          shouldStop = false⌝ }}
-
-
-/-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27; `notes/decisions.md`, "E3p of
-the auth plan"): the loop over `applyEntryNormal.specOn`. The server as the apply thread sees it with
-auth on (`isServerM true`), the environment's mode `on γa`; the batch of the mode-`on` log's shapes
-(`logShapeOn`: an admitted admin request too); the applier state with the auth row at the model's
-auth state `sa` (`srvApplyKVOn`), the apply thread at the mode-`on` model of `A`
-(`kvAppliedOn … srvAuthSt0`); the server's lessor finding no lease (`srvLessorNil`) and the receipts'
-bound (`applyEntryNormal.specOn`'s; each entry's receipt for its admin step comes from the
-iteration's Go steps). After the batch, as `spec`'s, the apply thread at the model's state after
-`A ++ ms` (its auth state `sa'`). -/
-abbrev EtcdServer.apply.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
-    (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
-    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat) (γa : auth.AuthNames)
-    (sa : auth.AuthState),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeOn ms →
+    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat) (sa : auth.AuthState),
+  E.authMode ≠ .any → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
+  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
+      isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
       entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp w ∗ srvFS s ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
       kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ srvApRes s γr A ∗
       -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
@@ -131,9 +65,9 @@ abbrev EtcdServer.apply.specOn : Prop :=
         ciApplying ci a' at' ∗
         epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
-        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
+        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗
+          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

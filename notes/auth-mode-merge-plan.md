@@ -308,3 +308,12 @@ needed (the merged spec is the `.spec`). Deviations from the approved text, both
 changes: the recorded-state triple through a callee `.spec` instead of `applierFor`, and the
 receipt gated on the mode (decisions, "Step 6: one `apply.Apply.spec`"). Steps 3-4 (`apply`,
 `applyEntries`, `applyAll`, `run`, `start`, `Start`) are unblocked; `Txn`'s variants remain.
+
+**Step 3, `apply` and `applyEntries` (2026-10-30, branch `apply-mm`):** done, candidate 2 approved by
+the user after one spec-review round (candidate 1's claim that `applyAll` stays untouched was false
+with the precedent's `specOff`, which takes `E.authOn = false`: these off corollaries derive it from
+the server's view instead). The specs' `match dv` stays in the merged statements; the corollaries
+(`ModeSpecs.lean`, which now imports `SDRun`) are written over `srvRunH`, so the old proofs lose
+their matcher rewrites. Left of step 3: `applyAll` and `run`, whose proofs carry the snapshot
+sorries #7/#8 that the snapshot verification will rewrite: merge them after it lands, not
+interleaved. Then step 4 (`start`, `Start`), 5b's D2 (the history at the on start), `Txn`'s variants.

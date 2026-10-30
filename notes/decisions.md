@@ -26745,3 +26745,21 @@ glue proves) could not see it: `recvLoop` was a stub, so `swsIs`'s consumer of t
 was unwritten. The note's claim that `recvLoop`'s stubbed statement was final ("`srvAuthLb` in
 `watchSrvOk`") was checked against what `isWatchPermitted` takes of the server (`srvAuthLb`), not
 against what it takes of the request (the bound), which reaches `recvLoop` only through `upOk`.
+
+## Step 3 for `apply` and `applyEntries`: the off corollaries read the mode off the server (2026-10-30, the auth-mode merge)
+
+`EtcdServer.apply.spec` and `applyEntries.spec` are now one statement each at `E.authOn` (`.any`
+excluded), as `applyEntryNormal.spec` (step 6). Two choices differ from that precedent:
+- **The off corollaries take no `E.authOn = false`.** `applyEntryNormal.specOff` has it as a premise;
+  `apply.specOff`/`applyEntries.specOff` are exactly the old off statements, and `spec_off` derives the
+  mode from the precondition (`authOn_false_of_off`: the off server's view has the auth layer off). So
+  a caller holding only the off view (`applyAll.wp_proof`, which reaches its `applyEntries` call before
+  it has the mode) changes nothing but the callee it takes. Candidate 1 kept the precedent and wrongly
+  claimed `applyAll` untouched (the spec review found it).
+- **The receipts' bound stays an outer premise** (`E.authOn = true → receiptBound GF ≤ 2 ^ 48`), as
+  the loops' `specOn`s had it, where `applyEntryNormal.spec` has it in its precondition's pure row:
+  equivalent; the loops keep their convention.
+Each `wp_proof` is the two old proofs (`wp_proofOff`, `wp_proofOn`) by cases on `E.authMode`; merging
+the proof bodies (about 900 lines each, mostly shared) is later cleanup. The corollaries are stated
+over `srvRunH` (`SDRun.lean`), not the inline `match dv` whose generated matcher each declaration
+names after itself.

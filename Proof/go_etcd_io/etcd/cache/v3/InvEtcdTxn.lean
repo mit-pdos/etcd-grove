@@ -1240,8 +1240,9 @@ variable [sem : go.Semantics]
 theorem w64_ptsto_excl (l : Loc) (v1 v2 : w64) (dq : DFrac) :
     (l ↦{DFrac.own 1} v1 : IProp GF) ∗ l ↦{dq} v2 ⊢ False := by
   rw [typedPointsto_unseal]; unfold typedPointstoWrap
-  rw [typedPointstoDef_heap, typedPointstoDef_heap]
-  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+  -- an integer's points-to is its bytes: combine the first byte's
+  simp only [typedPointstoDef_w64, natBytes, bytesPointsto]
+  iintro ⟨⟨⟨H1, -⟩, -⟩, ⟨⟨H2, -⟩, -⟩⟩
   icombine H1 H2 gives %Hv
   exfalso
   have := DFrac.valid_own_op Hv.1
