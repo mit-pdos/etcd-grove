@@ -50,6 +50,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- A reader's token at the real backend (`bkRTx`). -/
 @[simp] theorem kbRT_some (d : KBReal) : kbRT (GF := GF) (some d) = bkRTx d.γB d.P d.be := rfl
 
+/-- **The mode at the real backend** (M2's storage side, review round 1's S2): the instance compacts
+iff its creator chose it (`KBReal.cm`), so that a client outside mvcc does not unfold `kbCmpM`. -/
+theorem kbCmpM_some (d : KBReal) : kbCmpM (some d) ↔ d.cm = true := Iff.rfl
+
+/-- **The readers a compacting real backend keeps back** (S2): the compaction job's one. -/
+theorem nJobRd_some_on (d : KBReal) (h : d.cm = true) : nJobRd (some d) = 1 := by
+  unfold nJobRd; simp [h]
+
 /-- **The safe-range slot by the mode, from the backend's** (Probe S3): what a creator holding
 `backend.New`'s `srSlot` gives `NewStore` (`kbSRM`), in either mode. -/
 theorem kbSRM_some (d : KBReal) : backend.srSlot (GF := GF) d.be ⊢ kbSRM (some d) := by
@@ -73,10 +81,11 @@ abbrev wtSupplyN : Namespace := nroot.@"mvcc_wtSupply"
 backend `d`, under `receiptBound GF ≤ n + 1`, make the compaction's supply (`kbWTSupplyM`: a token for
 each time receipt), in an invariant holding, for the `a` tokens taken, `a` receipts and the `n'`
 left, with `receiptBound GF ≤ a + n' + 1` (as the server's `srvWTPool`): a receipt more than the
-`a` held is below the bound, so a token is left. For a creator of a compacting store other than the
-server, whose supply shares the server's stock (`srvWTPool`, R2-7). The bound is the law's own: a
+`a` held is below the bound, so a token is left. For a creator other than the server (whose supply
+is `srvWTPool`'s, R2-7): a stock of its own. The bound is the law's own, and its margin is small: a
 creator holding the backend's `wbInit - 2` tokens left after `NewStore`'s two needs
-`receiptBound GF ≤ wbInit - 1 = 2^40 - 2`, stronger than the stores' `receiptBound GF ≤ 2^48`. -/
+`receiptBound GF ≤ wbInit - 1 = 2^40 - 2`, where the stores need only `receiptBound GF ≤ 2^48`
+(review round 1's S8). -/
 theorem kbWTSupplyM_alloc (d : KBReal) (n : Nat) (h : receiptBound GF ≤ n + 1) (E : CoPset) :
     ownToks (GF := GF) d.γB.wb n ⊢ |={E}=> kbWTSupplyM (some d) := by
   iintro Hn

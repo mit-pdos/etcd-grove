@@ -141,10 +141,57 @@ instance mvcc.compactJobPreD_persistent (s : Loc) (γ : mvcc.StoreNames) (rev : 
 
 /-! ## The drafted compaction specs -/
 
-/-- **Draft of `store.Compact.spec`** (Q1 (a)): the pre gains the write-back supply
-`mvcc.kbWTSupplyM γ.kb` (persistent: the caller pays nothing per call; `True` when the store does
-not compact, `cmOff_res`), which the store no longer keeps (`physCmpD`); the job gets it in its
-premise (`compactJobPreD`). The rest as today. -/
+/-- **Draft of `store.Compact.spec`** (Q1 (a); the full docstring it takes at the switch). **`s.Compact(trace, rev)`** with the compaction right at the store's compaction revision `c`
+(`compactRight`: half the revision's authority and the compaction jobs' queue on the store's FIFO
+scheduler, 2026-10-13, unit 5c; the caller is the one that compacts: the server's apply thread,
+and the exclusive right serializes its compactions: the job is scheduled after `s.mu` is
+released, so only the right can carry the queue there), under the critical-section
+contract of the batch lock (`csContract`: `SetScheduledCompact`'s `LockInsideApply` runs the
+post-lock hook), `trace ≠ nil`, the store's backend supporting the compaction (`storeCmp`: mvcc's
+assumed backend, or a real backend in compaction mode, `KBReal.cm`: question 5's core stage, part
+(4), 2026-10-29; until then the assumed backend only); under `s.mu` held exclusively (no transaction open):
+* `rev > c`, `rev` a revision of the committed log: the compaction revision is `rev` (the right
+  at `rev`, its queue ending with the job's `Post`, a lower bound `crevLb γ rev` for every reader
+  since), `nil`, the caller's `Post`, and the job's channel (`compactChan`: once closed, `compactDone s γ rev`: the index and the bucket
+  compacted at `rev`, `finishedCompactRev = rev`, or the compaction interrupted by `Close`);
+* `rev ≤ c`: `ErrCompacted`, the barrier's channel (closed once the jobs before it ran:
+  nothing promised, `True`), `Pre` back;
+* `rev` above the committed log's last revision (a certificate of a shorter log): `ErrFutureRev`,
+  a `nil` channel, `Pre` back.
+The right's revision is at least `-1` (`NewStore`'s; each success raises it: 2026-10-13, unit 5c,
+contract correction: the counter `crevN` cannot tell a right below `-1` from one at `-1`, and
+then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configuration's batch limit
+is positive (`isStore`: `NewStore` excludes a negative one,
+`issues/etcd-compaction-negative-batch-limit.md`).
+
+**The delete-then-put premise** (2026-10-13, unit 6a): the caller holds a certificate of a log
+`log` with revision `rev` (so `rev` is not above the committed log: the `ErrFutureRev` case does
+not arise from such a caller) whose revision `rev` does not delete a key and put it again
+(`NoDelPutAt`): else the compaction deletes the key's live value and a later read `Fatal`s
+(`issues/etcd-compaction-delete-then-put.md`). The store records it for the new compaction
+revision (`crevSafe`, in `s.mu`'s resource) and the keys the job deletes carry it (`delKey`), which
+is what makes the readers' specs hold of a compacted store (`rangeAnswers_not_del`).
+
+**The physical bound** (item 8, 2026-10-17; not a premise since 2026-10-18, D19b): the log up to
+`rev` has fewer than `2 ^ 62` changes (`CompactSmall`), so the job's count of deleted keys (an
+`int`) never wraps and `dbCompactionKeysCounter.Add(float64(count))` gets a non-negative value;
+the job derives it from the certificate's time-receipt bound (`CompactSmall_of_cert`).
+
+**The reader's token** (question 5's switch, decision (i), 2026-10-29): the caller lends the store's
+reader token `storeRT γ` (the apply thread's, from `writerOwn`) for `checkPrevCompactionCompleted`'s
+`ReadTx`, and gets it back in every case.
+
+**The writer's hook** (Probe P1, 2026-10-30): `hookIs γ P f` (the persistent `hookOk` and the
+writer's fragment `writerFrag`) is given back in every case, so the caller can still write
+(`store.Write`), compact again, or restore.
+
+**The write-back supply** (Q1 (a), 2026-10-30; review round 1's S9): the caller gives the
+compaction's supply `kbWTSupplyM γ.kb` (persistent: it pays nothing per call; the server's from
+`srvWTPool` and the apply thread's frozen part of the backend's name, `kbWTSupplyM_of_srvBeOwnD`,
+R2-7; another creator's from a stock of its own, `kbWTSupplyM_alloc`), which the store no longer
+keeps; the job gets it in its premise. Under `storeCmp γ` the gate is always on, so it is the
+supply itself; the `M` form is kept because both sources produce it.
+-/
 abbrev mvcc.store.Compact.specD : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),

@@ -25535,3 +25535,19 @@ needs. No axiom, no `sorry`.
   `srvReqLogLb_of_rlogLb`). The alternative, a requested-log bound in the tie, would rework the
   raise law.
 - **Locked in:** a snapshot is never restored with auth on (already true; the tie needs it).
+
+## M2: the frozen fact stays in `isWatchableStore` (2026-10-30, M2's storage side, review round 1's S6)
+
+**2026-10-30 · accepted**
+
+The review (S6) proposed dropping `isWatchableStore`'s `Hfrz` (and `wsFrozenM`), `New`'s post giving
+one mode-gated conjunct instead, since the watch-store invariant's `wsWatchFrozen` is what
+`syncWatchers` reads after the switch. **Decision: keep `Hfrz`, gated by the mode (`wsFrozenM`).**
+With F1 decided on the client side (the create token carries `crevFrozen`), the off server still
+has two readers of the frozen fact: `NewServer.spec`'s post, which hands it to its watch clients,
+and D22's `RestorePre.restorePre_of_apply` (its `sorry` on `crevFrozen E.γ`). Both hold the
+watchable store's facts already (`srvWatchBuilt`), so with `Hfrz` they read it by a law
+(`isWatchableStoreD_frozen`, at `cm = false`); without it, `crevFrozen` would have to be kept in the
+server's state, a D22 predicate (the collaborator's). The cost is a fact carried twice in off mode
+(the predicate's and the invariant's, once a watcher exists). Revisit if the server's state is
+reworked for the merged `NewServer` spec anyway.

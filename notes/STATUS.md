@@ -501,13 +501,24 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 `notes/m2-storage-plan.md`. The M2 work below the apply loop (the auth-mode merge has not landed for
 the apply loop, so nothing above the store's construction is touched). Draft, checked, nothing
 exported or trusted switched:
-- **Draft** (`mvcc/M2StorageDraft.lean`, `etcdserver/M2StorageDraft.lean`, imported by nothing):
+- **Draft** (`mvcc/M2StorageDraft.lean`, `etcdserver/M2StorageDraft.lean`, and since review round 1
+  `api/v3rpc/M2StorageDraft.lean`, `client/v3/M2StorageDraft.lean`; imported by nothing):
   `New.spec`/`newWatchableStore.spec` in compaction mode give the compaction right's half
-  (`crevRightM`) beside the closer instead of freezing (P3); `isWatchableStore`'s frozen fact gated by
-  the mode (`wsFrozenM`); no watchers in compaction mode (`NewWatchStream` takes `crevFrozen`, the
-  watch-store invariant's `wsWatchFrozen`); the glue proved: `compactRight_of_wsCloser` (after
-  `NewServer`'s last error return), `server_kv_watchable_ofC` (`cm = true`, over
-  `storeBackend_of_backendC`), `kbWTSupplyM_of_srvWTPool` (R2-7's conversion).
+  (`crevRightM γ.st`) beside the closer instead of freezing (P3); `isWatchableStore`'s frozen fact
+  gated by the mode (`wsFrozenM`); no watchers in compaction mode as a client-side premise (review
+  round 1's F1, the user's): the create token (`storeWatchParams`'s `T`, v3rpc's `upOk`/`watchUp`)
+  carries `crevFrozen`, the watch clients' member facts hold it, `NewServer.spec`'s off post gains
+  it; the watch-store invariant's `wsWatchFrozen`. The glue proved: `compactRight_of_wsCloser`,
+  `server_kv_watchable_ofD` (one lemma over `d`, either mode), `kbWTSupplyM_of_srvWTPool` (R2-7).
+- **F2 drafted against D22's predicates** (review round 1, the user's: the backend's name frozen in
+  compaction mode; **for the collaborator**, nothing of D22 changed): `srvBeOwnD`, the apply
+  thread's quarter of `E.γbe` discarded when compacting (`srvBeFrac`), giving the compaction's
+  supply (`kbWTSupplyM_of_srvBeOwnD`). D22 statements that would change: `srvBeOwn`,
+  `srvBeOwn_frag`, `srv_be_swap` (gains `¬ kbCmpM E.γ.kb`), `SnapApplyKV`'s rebuild at the new
+  backend, `NewServer`'s allocation (`srvBe_allocD`); `notes/m2-storage-plan.md`, "After review
+  round 1".
+- **Not every statement reads as today at `cm = false`** (review round 1's S4): the create token
+  and the watch clients' facts gain `crevFrozen` in every mode, and `NewServer.spec`'s post gains it.
 - **Switched, internal** (every statement reads as before at `cm = false`): `mvcc.writerOwn` counts
   `retiredAt γ (2 + nJobRd γ.kb)` (`writerOwn_off`); `bootBackend_of_newPost` keeps `fkV` (and
   `srSlot`), `NewServer` names them; laws `mvcc.kbSRM_some`, `mvcc.kbWTSupplyM_alloc`.
@@ -517,7 +528,9 @@ exported or trusted switched:
   (and `updateCompactRev`/`compactLockfree`'s), handed to the job in `compactJobPre`. Proved: the
   compaction chain against the drafted specs, linked (`mvcc_store_CompactD`, today's axioms), the
   bridge and the exports over `NewStore.specD`, `NewStore`'s changed step (`physCmp_allocD`).
-- **Open, for the user**: Q2, the drafted statements (now with Q1 (a)'s).
+- **Review round 1** (`notes/spec-first-study/m2-storage-review-1.md`): F1, F2 drafted by the user's
+  decisions; S1-S5, S8, S9 fixed, S6 rejected (`notes/decisions.md`), S7 superseded, S10 partly.
+- **Open, for the user**: Q2, the drafted statements (now with Q1 (a)'s and round 1's).
 
 ## backend-cmp: Probe repairs (2026-10-30, branch `backend-cmp`)
 

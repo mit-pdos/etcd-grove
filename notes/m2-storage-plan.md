@@ -3,7 +3,9 @@
 Status (2026-10-30): **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
 user: the drafted statements below and the questions at the end. Q1 answered **(a)** and drafted
 ("Q1 (a), drafted", below; `mvcc/M2StorageDraftSupply.lean`; `12343a4cc9`, full `lake build` passed,
-10958 jobs, no error); Q2 open. M2's plan is `notes/m2-plan.md` on
+10958 jobs, no error); review round 1 (`notes/spec-first-study/m2-storage-review-1.md`) answered and
+repaired ("After review round 1", below: F1 and F2 by the user's decisions, drafted; S1-S10 each
+fixed or rejected); Q2 open. M2's plan is `notes/m2-plan.md` on
 branch `m2`; the findings this step answers are the backend-cmp Probe's
 (`notes/spec-first-study/backend-probe.md`: P3, S1, S2, S3; P4 as decided).
 
@@ -289,3 +291,164 @@ compaction arm (later) gives `store.Compact` the supply from `srvWTPool` through
 Drafting: one finding (Q1, R2-7's timing) that the Probe and the backend-cmp reviews had not
 seen: they checked `kbWTSupply`'s statement and R2-7's conversion, not when `NewServer` holds a pool
 to convert. No Go bug found.
+
+## After review round 1 (2026-10-30)
+
+The report: `notes/spec-first-study/m2-storage-review-1.md` (on `40fb781417`; F1, F2, S1-S10). The
+user's decisions (2026-10-30): **F1**, "no watchers in compaction mode" is a client-side premise,
+in the Watch stream's client-facing contract; **F2**, freeze `E.γbe` in compaction mode, drafted
+against D22's predicates (the collaborator's track: draft only). The rest decided here. Nothing
+exported, trusted or D22's switched; no `axiom`, no `sorry`.
+
+### The gRPC mechanism (checked for F1)
+
+gRPC's stream model (`Proof/google_golang_org/grpc/InvGrpcStream.lean`) gives a stream method three
+parameters: the per-run resource `S` (the server's slot pool), the stream specification
+`Spec γs Dn` (the server's, fixed at registration, given to both ends at the stream's creation),
+and the client's content of each request `Up i m` (given with the client's `Send`, received with
+the handler's `Recv`; `srvStreamIs`, read by the watch server through `v3rpc.upOk`). A client's
+`NewStream` presents nothing. So **a client's fact reaches the handler per request, not at the
+stream's opening**; `watchServer.Watch` calls `NewWatchStream` before any `Recv` (`watch.go:177`),
+so the round's `NewWatchStream.specD` premise could not be met from the client. But a watcher is
+registered only by a create request, and a create request already carries a watch token through
+`Up` (`watchUp`, D19b; the client takes it from `watchTokPool`, which its member facts hold): the
+"no compactor" fact rides with it. (The auth work's grants travel the other way, in `Dn`.)
+
+### F1, drafted: the create token carries the "no compactor" fact
+
+- **mvcc** (`mvcc/M2StorageDraft.lean`): `storeWatchParams`'s per-watch token (internal,
+  `InvWatchStore.lean:1599`) becomes
+  ```lean
+    T := iprop(mvcc.watchTok γ ∗ mvcc.crevFrozen γ.st)
+  ```
+  (`storeWatchParamsD`; the rest unchanged). `watchStream.Watch.spec` and `watchableStore.watch.spec`
+  take `P.T` already, so their texts are unchanged; `watch` re-establishes `wsWatchFrozen` with it.
+  **`NewWatchStream.spec` keeps today's text** (the round's `NewWatchStream.specD` premise is
+  withdrawn: the stream it returns is over the redefined parameters, so it takes the fact per
+  create). Exported: `NewWatchStream.spec`'s post and `watchStream.Watch`'s `P.T` read over the
+  redefinition, in every mode.
+- **v3rpc** (`api/v3rpc/M2StorageDraft.lean`): `upOk` and `watchUp` (`InvWatch.lean:209`, `:225`), the
+  create arm
+  ```lean
+       | .create _ => iprop(mvcc.watchTok γ ∗ mvcc.crevFrozen γ.st)
+  ```
+  (`upOkD`, `watchUpD`, `upOkD_watchUpD`; `createArm_T`: the arm is the drafted `T`). `recvLoop`'s
+  proof destructures one more conjunct (`serverWatchStream__recvLoop.lean:274`). **Unchanged**:
+  `watchServer.Watch.spec` (over `upOk`), `watchSrvOk`, `isWatchServer`, `grpcCfgOk`, `v3rpc.Server`,
+  `common.Serve`, `NewServer.specCompact`'s hand-outs (`srvWatchBuilt`, `srvWatchReaders`): mode-free.
+  A compacting server serves Watch streams; no client can register a watcher on it (no `crevFrozen`
+  exists there: the authority's other half is the compaction right's).
+- **client** (`client/v3/M2StorageDraft.lean`): the member's facts gain the fact,
+  ```lean
+  def client.watchMemberFactsD (V : WEnv GF) : IProp GF :=
+    iprop(mvcc.watchTokPool V.R.γ ∗ mvcc.crevFrozen V.R.γ.st ∗ srvLogsSmall V.R ∗
+      ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V)
+  ```
+  and `watchConnFactsD` (over it and `watchUpD`), `watchAddrFactsD` (`InvClientNewResult.lean:44`:
+  `mvcc.crevFrozen V.R.γ.st ∗` after the pool; `watchUpD`); `watchUpD_create` (a create's content
+  from the member's facts and a token: the client's three create sites, `watchGRPCStream__run.lean`
+  `:518`, `:1619`, `:2718`). These are the premises of `NewWatcher`/`watcher.Watch`/... (the Watch
+  stream's client-facing contract). `putgetc`'s client never watches (`client.New` without
+  `isNewClient_watcher`): it owes nothing.
+- **The off server's source**: `NewServer.spec`'s post (exported) gains `mvcc.crevFrozen E.γ ∗`
+  (persistent; its proof: `mvcc.isWatchableStoreD_frozen` at `{ d with cm := false }`), which the
+  examples whose clients watch pass on (`watchkv/Served.lean:98`, `linkv3p/WatchEnv.lean:82`,
+  `cache/v3/Results.lean:269`, beside `watchTokPool_of_server`). `specCompact`: nothing. The merged
+  spec: `□ (⌜(retention) = 0⌝ -∗ mvcc.crevFrozen E.γ)` (a compacting server has none).
+- A creator other than the server that wants to watch a store over mvcc's assumed backend
+  (`kb = none`, "compacting" for the watch API) freezes it: `mvcc.crevFrozen_of_new` (S5).
+
+### F2, drafted: the apply thread's part of the backend's name discarded in compaction mode
+
+(`etcdserver/M2StorageDraft.lean`.) A discarded part of a ghost variable forbids every update of
+it (an update needs the whole), so discarding **one** holder's part freezes `E.γbe`; the apply
+thread's quarter (`srvBeOwn`) is the one to discard: the apply thread runs the compaction arm, and
+holds it directly (not in an invariant). The others (`bemuP`'s half, `srvWTPool`'s and
+`srvWTStock`'s quarters, the monitor's checked-out parts) stay as they are.
+```lean
+def srvBeFrac (E : apply.AEnv GF) : DFrac :=
+  if mvcc.kbCmpM E.γ.kb then DFrac.discard else DFrac.own (1 : Qp).half.half
+
+def srvBeOwnD (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗
+    srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
+    dghostVar E.γbe (srvBeFrac E) d)
+```
+Proved: `srvBeOwnD_off` (off, today's `srvBeOwn`), `srvBeOwnD_frozen` (on, a discarded part at the
+store's backend, copied out), `kbWTSupplyM_of_srvBeOwnD` (`srvWTPool E γp ∗ srvBeOwnD s E ⊢
+srvBeOwnD s E ∗ mvcc.kbWTSupplyM E.γ.kb` in compaction mode: `store.Compact.specD`'s supply, which
+closes Q1 (a)'s chain to its real caller), `srvBe_allocD` (the boot's three-way split, the apply
+thread's part persisted when the backend compacts).
+
+**The D22 statements that would change** (for the collaborator; none changed here):
+1. `srvBeOwn` (`InvApplier.lean:555`): `srvBeOwnD`'s text.
+2. `srvBeOwn_frag` (`InvApplier.lean:913`): the lent part at `srvBeFrac E` (its users,
+   `srvWTPool_take_at_d`, `srvWTPool_take_extra_d` and `ApplyNormalOn.lean:718`'s agreement, are
+   generic in the fraction).
+3. `srv_be_swap` (`SnapApply.lean:119`): gains `¬ mvcc.kbCmpM E.γ.kb` (it gathers the whole of
+   `E.γbe`); its caller (`applySnapshot`'s walk, `SnapApplyWalk.lean:452-465`) has it from
+   `srvEnvOk`'s `d.cm = false` today, and after the merge (`d.cm = false ∨` the no-snapshot
+   configuration) from the no-snapshot branch, where no snapshot is installed (P4).
+4. The snapshot state's rebuild at the new backend (`SnapApplyKV.lean:117`): `srvBeOwnD` there
+   needs the received backend off (`d'.cm = false`, D22's received backends never compact): a
+   premise if it is not already known.
+5. `NewServer`'s proof: the allocation (`NewServer.lean:644-648`) by `srvBe_allocD`, `srvBeOwn` at
+   boot (`:1561`); the merged spec builds at `cm := (retention ≠ 0)`.
+Unchanged: `srvWTPool`, `srvWTStock`, `bemuP`, `srvBemuReaderAt`, `kbWTSupplyM_of_srvWTPool`.
+
+### The second tier
+
+- **S1, fixed.** One glue lemma, `server_kv_watchable_ofD`, over the backend record `d` (the mode
+  `d.cm`): the deletable keys fixed by the mode inside (`storeDlReg_fix` or `dlNoDel_fix`, with
+  `storeBackend_of_backendC`/`storeBackend_of_backend`), `□ (⌜d.cm = true⌝ -∗ backend.fkV d.γB
+  true)` and `srSlot` (any mode) in the pre, the post at `kb = some d` with
+  `actualMaxReaders - nJobRd (some d) - 2` readers, `retiredAt γ (nJobRd (some d))` and
+  `crevRightM γw.st`. Replaces `server_kv_watchable_ofC`; at the switch it replaces today's
+  `server_kv_watchable_of` (with `txn.isKV`/`kvWriter` back, the Draft's gap).
+- **S2, fixed.** Laws, no unfolds in the glue: `mvcc.kbCmpM_some`, `mvcc.nJobRd_some_on`
+  (`InstanceLaws.lean`, switched: new laws only); `isWatchableStoreD_isStore`,
+  `isWatchableStoreD_readView`, `storeDlReg_fix` (in the Draft; to `InvWatchStore`/`InstanceLaws`
+  with the redefinition). `newServer_compactRight` dropped: at the call, `mvcc.compactRight_of_wsCloser _ _ _ h` with `h`
+  from `γw.st.kb = some d` and `(mvcc.kbCmpM_some d).2 hcm`. Left: `txn.storeWTs`'s unfold (inherited from today's
+  lemma; txn's, not this round's).
+- **S3, fixed.** `crevRightM γs := if kbCmpM γs.kb then crevUB γs.idx ½ (-1) else True`; the posts
+  read `crevRightM γ.st`; `crevRight_split` and `compactRight_of_wsCloser` lose `kb`/`hk`.
+- **S4, fixed.** The false header claim corrected (mvcc Draft's header, "What reads differently
+  at `cm = false`", and STATUS): with F1's route, the create token (`P.T`, `upOk`, `watchUp`, the
+  clients' member facts) gains `crevFrozen` in every mode, and `NewServer.spec`'s post gains it;
+  `RestorePre.restorePre_of_apply` takes it from `isWatchableStoreD_frozen` with `srvEnvOk`'s
+  `d.cm = false`. `srvWatchBuilt`/`srvWatchReaders` are unchanged (with F1 on the client side,
+  nothing above mvcc needs a mode-gated watch state).
+- **S5, fixed.** `mvcc.crevFrozen_of_new : isWatchableStoreD s st γ ∗ crevRightM γ.st ={E}=∗
+  crevFrozen γ.st` (any mode; on, it spends the half). `wsFrozenM`'s docstring says `kb = none`
+  counts as compacting for the watch API; `kbCmpM`'s docstring (`InvStore.lean`) says so at the
+  switch.
+- **S6, rejected** (`notes/decisions.md`, "M2: the frozen fact stays in `isWatchableStore`"): with
+  F1 on the client side, `Hfrz` (mode-gated) is where the off server's two readers find the fact,
+  through a law from what they already hold (`isWatchableStoreD_frozen`): `NewServer`'s new post
+  conjunct and D22's `RestorePre`. Dropping it would put `crevFrozen` into D22's server state.
+- **S7, superseded by F1's route.** No closure capture: the fact is `P.T`'s, which
+  `watchableStore.watch.spec` already takes (text unchanged).
+- **S8, fixed.** `kbWTSupplyM_alloc`'s docstring: "for a creator other than the server (whose supply
+  is `srvWTPool`'s, R2-7): a stock of its own", with the margin (`2^40 - 2` against `2^48`).
+- **S9, fixed.** `store.Compact.specD` carries today's full docstring and the supply paragraph
+  (both sources named).
+- **S10.** `isWatchableStoreD_off` dropped (an `Iff.rfl` at the in-place switch). `writerOwn`'s
+  `2 + nJobRd`: kept, as the reviewer accepts.
+- **The reviewer's open checks.** `WsOk` gives `Wu ≠ ∅ → M ≠ ∅` (proved:
+  `mvcc.wsOk_M_ne_of_Wu`, by `live_st` and `st_m`); the gRPC mechanism, above.
+
+### What the switch costs, revised
+
+Beyond the round's list ("What the switch costs"): mvcc's `storeWatchParams` (one field) and the
+proofs that consume a create token (`watch`, `watchStream.Watch`: one more conjunct); v3rpc's
+`upOk`/`watchUp` and `recvLoop`'s pattern; the client's `watchMemberFacts`/`watchConnFacts`/
+`watchAddrFacts` and its three create sites; `NewServer.spec`'s post (`crevFrozen E.γ`) and the
+three watching examples; D22's five statements above (the collaborator's). No longer: v3rpc's
+`watchServer.Watch` taking `crevFrozen` from the server's watch state, `srvWatchBuilt` carrying it.
+
+### Checked
+
+`etc/lean-check.py` on the four Draft modules and `InstanceLaws.lean`; `lake build` of the Draft
+modules (targeted), and a full `lake build` (below). `#print axioms` of the new results: no
+`sorryAx`.
