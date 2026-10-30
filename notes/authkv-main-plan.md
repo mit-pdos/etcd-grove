@@ -417,7 +417,9 @@ context's metadata: first folded into `context.WithTimeoutBackground.spec` (one 
 then undone (the user's, 2026-10-29) once the cost showed: on `lean` `WithTimeoutBackground.wp_proof`
 is proved, and the fold made it an axiom under ten other collections. So the split stays: the
 proved base for everyone, the axiom `context.WithTimeoutBackgroundMd` for authkv's `SetUp` and
-`reqCtx` only (F-W4's in-place conjunct not taken; `Work`'s own watch context uses the base).
+`reqCtx` only (F-W4's in-place conjunct not taken). `Work`'s own watch context (`authkv.go:268`) takes the Md
+axiom too: G2's refutation needs its outgoing metadata to be none (G2 review round 2, R6; no new
+axiom, it is already in authkv's collection).
 `akAuthFixed`'s write half restated over `SetUp`'s post (`srvReqLogLb ρ.raft Lset`, `authHistFrozen`
 at `admStates Lset`, last state `setupSt r`), with the law `akAuthFixed_write` (proved: a grant's
 `authHistLb (admStates L)` at `Lset <+: L` is at `setupSt`).
@@ -457,3 +459,15 @@ range; each response with events carries `watchAuthed`; the `Watcher` on the cli
 connection, F-W3), and `Work`'s refutation. Spec-first: review rounds (at most three), the user's
 approval of each changed trusted statement, the statements in code over named stubs, then the
 freeze; no proof before it. Estimated as large as `Work`'s proof or larger.
+
+Rounds 1 and 2 (2026-10-29) found seven first-tier problems each; round 2's included a false
+trusted change (`NewStream`'s delivered metadata is `clientAttemptMd`'s, with `withVersion` inside,
+not `grpcAttemptMd` at the caller's context) and a bug in this repository's trust base
+(`streamKeyFromCtx`'s axiom claims a return at a nil context: `notes/audit.md`). The user's
+choices (2026-10-30): strengthen the stream axioms **in place** under their names (`NewStream`,
+`serveStream`, `streamKeyFromCtx`; one proof of `Watch`, so no split is possible; the collections
+resting on each are listed in the candidate and go into the audit rows); the stream context's
+metadata through the existing local axiom `context.WithCancelValCtx` (its post gains `outgoingOf
+ctx' = outgoingOf inctx`), with the general fix (a `Value` contract for `WithCancel`) proposed to
+Perennial; `streamKeyFromCtx` takes `context.isContext`. Candidate 3 went to round 3, the last
+with first-tier findings allowed.
