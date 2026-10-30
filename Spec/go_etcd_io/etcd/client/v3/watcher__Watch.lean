@@ -21,6 +21,12 @@ published index (`authPubLbM`, needed only for `0 < n`), every response with eve
 server's check of the watch's create (`watchCheckOk`: on the stream's metadata, for its token, at
 states no older than `n`). Margin: the code also ends a refused watch with a canceled response
 carrying the refusal's error; the spec says only that no response has events without the row.
+
+**Not the empty key alone** (2026-10-30, after the freeze; `notes/decisions.md`, "G2's freeze:
+`Watch` excludes the empty key's single-key watch"): etcd's server rewrites an empty key to `"\x00"`
+(`v3rpc/watch.go:266-269`), so `Watch(ctx, "")` with no options watches `"\x00"`, not the range
+`inRange [] []`; the premise excludes that one case (from-key and proper ranges from `""` are the
+range from `"\x00"`, the same keys, since no stored key is empty).
 -/
 module
 
@@ -59,7 +65,8 @@ abbrev watcher.Watch.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
       context.isContext ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
-        1 ≤ sint.Z rev⌝ ∗
+        1 ≤ sint.Z rev ∧
+        ((opWatchModel key opts).key = [] → (opWatchModel key opts).base.rangeEnd ≠ [])⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ, COMM □ Q σ }>) }}

@@ -26694,3 +26694,24 @@ needs an entry here.
 the internals' callers were stubs (`Watch`, `run`), so their glue had not been written; the
 spec-first plan's "frozen pending" (`notes/spec-first-plan.md`, the freeze requires every caller's
 glue) applied and the freeze record should have said so.
+
+## G2's freeze: `Watch` excludes the empty key's single-key watch (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** G2 widened `watcher.Watch.spec` from prefix watches of a non-empty key to any range. The
+first proof attempt of `Watch` and `run` (agent, 2026-10-30) found it false at `Watch(ctx, "")` with
+no options: the request's key is empty and its end empty, the spec's range `inRange [] []` is the
+empty key alone, which no stored key matches, while etcd's server rewrites an empty key to `"\x00"`
+(`server/etcdserver/api/v3rpc/watch.go:266-269`) and watches that key, so a `Put("\x00", …)`
+reaches the client as a response with events. Every other range is the same keys either way, since
+no stored key is empty (a from-key or proper range from `""` is the one from `"\x00"`).
+
+**Decision** (the user's, 2026-10-30): the premise `o.key = [] → o.base.rangeEnd ≠ []`, excluding
+only that case; authkv's root watch `Watch("", WithPrefix())` stays covered. The callers (watchkv's
+`Main`, `KMWatch`) watch prefixes of non-empty keys and discharge it from their key's premise.
+Also decided: `run` and the client's internals (general ranges) are proved now; `Watch` after the
+Perennial pin brings `wp_slice_literal_nonnull` (branch `slice-literal-nonnull`), when v3rpc's
+`createRangeOk` is tightened to its from-key reading as G2's design planned (F5).
+
+**Review criterion that should have caught it.** The spec skill's "check what the statement claims
+at the boundary inputs" against the server's normalization of the request: the three review rounds
+checked from-key ranges (F5) but not the empty key's rewrite.

@@ -375,7 +375,7 @@ theorem Main.wp_proof
     · ipureintro; rfl
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by decide⟩
+      refine ⟨?_, hnp, by decide, fun h => absurd (hkey.symm.trans h) (by decide)⟩
       unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
       exact ⟨ht, hr, hpv, hfr, hfp, hfd⟩
     iintro !> %h
