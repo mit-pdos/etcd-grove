@@ -481,8 +481,8 @@ bucket at `L`, no record); on, the `Key` bucket the entries `ents` of the job's 
 records' revision `r.crev` (`entsCutAt`: per key, a prefix of its entries deletable there removed;
 a finished compaction or a leader's bucket mid-job), the `Meta` bucket's two compaction keys
 holding the records' bytes, the records of `L` and past revision `0` (`recsPos`: M2's scope, Q7
-(a)), `r.crev` safe for readers (`NoDelPutAt`) and each key changed once per revision up to it
-(`KeyOnceAt`: etcd's `checkIntervals`). The apply side's obligations (S-j1's), as `L <+: L'` is
+(a)) and `r.crev` safe for readers (`NoDelPutAt`); no premise on how often a revision changes a key
+(the index at a full revision, B1: `idxRestore_cut`). The apply side's obligations (S-j1's), as `L <+: L'` is
 today. The walk's `restoreImageM` and the clean read's records come from it with the backend's
 `fkOpenD`. -/
 def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) : Prop :=
@@ -493,7 +493,7 @@ def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Da
       backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes =
         mvcc.recBytes r.sched ∧
       mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧
-      mvcc.NoDelPutAt L r.crev ∧ (∀ x : Nat, (x : Int) ≤ r.crev → mvcc.KeyOnceAt L x)
+      mvcc.NoDelPutAt L r.crev
   else mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty
 
 theorem mvcc.keyImageM_off (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) :
@@ -511,8 +511,7 @@ def mvcc.restoreImageM (d' : mvcc.KBReal) (γb' : GName) (L : mvcc.Log) (r : mvc
   if d'.cm then
     iprop(∃ ents : List mvcc.KvEnt, mvcc.kbViewC (some d') γb' 1 (mvcc.bucketOfEnts ents) ∗
       mvcc.kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
-      ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧ mvcc.NoDelPutAt L r.crev ∧
-        (∀ x : Nat, (x : Int) ≤ r.crev → mvcc.KeyOnceAt L x)⌝)
+      ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧ mvcc.NoDelPutAt L r.crev⌝)
   else iprop(mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap L) ∗ mvcc.kbNoCmp (some d') γb' ∗
     ⌜r = mvcc.CmpRecs.empty⌝)
 
@@ -929,12 +928,11 @@ text but for the image's records `r` and entries `ents`:
 * the backend's contract at the records (`isKeyBackendGR … (kbRecs γ.kb γ.bucket r) r`, the
   resource `kbRecs γ.kb γ.bucket r`), with `recsOk L' r`;
 * the view over the image's bucket (`restoreViewR … (bucketOfEnts ents) r`: its clean read at the
-  records), the entries of the job's shape at the restored revision with each key once per revision
-  up to it (`entsCutAt L' r.crev ents`, `KeyOnceAt`);
+  records), the entries of the job's shape at the restored revision (`entsCutAt L' r.crev ents`);
 * the index published at the restored revision's level: the lower bound `crevLb γ.idx r.crev` (the
   caller raises the authority to it first), the unlock's payload the view of `m` and the index
-  (`isTreeIndex`, whose lock invariant is at the switch over `IdxCRepN`: today's `IdxCRep` cannot hold,
-  `idxCRep_restore_counterexample`), with the receipts' bound, which the rebuild's receipts give only
+  (`isTreeIndex`, whose lock invariant is over `IdxCRepN`, the index at a full revision: the old
+  `IdxCRep` cannot hold, `idxCRep_restore_counterexample`), with the receipts' bound, which the rebuild's receipts give only
   for the whole bucket: otherwise the caller's (`restoreBoundM`), the new disjunctive premise;
 * the finished record's lock round (`revFinW`, the pair `RevP0`, `dql`), before today's;
 * the post: `Fin`, where the caller's `resumeK` takes `restoreDone` (today's post, `compactMainRev`
@@ -944,9 +942,9 @@ At `r = empty`, `ents` the whole bucket, `RevP0 = RevP`, `Fin = restoreDone …`
 **Not proved** (A1's evidence, `notes/m2-storage-plan.md`, "After review round 4"): the WP proof is
 today's (`store__restore.lean`) with the records' reads (`UnsafeReadFinishedCompact.wp_proofR`,
 `UnsafeReadScheduledCompact.wp_proofR`, proved) and the found branch's lock round; what it cannot
-get today is the rebuilt index's invariant at `r.crev` (`idx_publish` takes `IdxCRep (-1)`; the
-pure fact is `idxRestore_cutStmt`, drafted, unproved, and the lock invariant's `HL` must become
-`IdxCRepN`). Its caller `store.Restore` further needs the backend's view widened from the image's
+get today is the rebuilt index's invariant at `r.crev`: the pure fact is proved (`idxRestore_cut`,
+`InvIndexRestore.lean`) and the lock invariant's `HL` is `IdxCRepN` (branch `m2-index`), but
+`idx_publish` takes the level `-1`, and publishing at `r.crev` needs its variant. Its caller `store.Restore` further needs the backend's view widened from the image's
 bucket to the log's (the store's writer holds `bucketMap L'`, `restore_finish`; the job's deletions
 leave the view, only reads miss them: a backend law at the open, `kbView_widen`, not drafted) and
 the writer's receipts from `restoreBoundM` (`idxWriter`'s `⧗ (logCh L')`, which `⧗ ents.length`
@@ -962,7 +960,6 @@ abbrev mvcc.store.restore.specR : Prop :=
     (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF),
   mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r →
     mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
-    (∀ x : Nat, (x : Int) ≤ r.crev → mvcc.KeyOnceAt ([[], []] ++ R) x) →
     (ents = mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length ∨
       mvcc.logCh ([[], []] ++ R) < receiptBound GF) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -1010,8 +1007,6 @@ theorem mvcc.store.restore.spec_of_specR (h : mvcc.store.restore.specR (GF := GF
   have hrec : mvcc.recsOk ([[], []] ++ R) mvcc.CmpRecs.empty := by
     unfold mvcc.recsOk mvcc.CmpRecs.empty
     refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
-  have hko : ∀ x : Nat, (x : Int) ≤ mvcc.CmpRecs.empty.crev → mvcc.KeyOnceAt ([[], []] ++ R) x := by
-    intro x hx; rw [mvcc.CmpRecs.crev_empty] at hx; omega
   iapply (h s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP RevP RevK
       RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
       iprop(RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
@@ -1021,7 +1016,7 @@ theorem mvcc.store.restore.spec_of_specR (h : mvcc.store.restore.specR (GF := GF
         s.[store, go!"b"] ↦{dqb} b ∗
         s.[store, go!"kvindex"] ↦{dqi}
           (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface))
-      hR hq12 hrec (mvcc.entsCutAt_full _ _) hko (Or.inl rfl)) $$
+      hR hq12 hrec (mvcc.entsCutAt_full _ _) (Or.inl rfl)) $$
     [Hb Hrt Hnc Hview Hkvi Hix Hgn Hgl Hgc Hcur1 Hcmp HRevP HLk HUl]
   · rw [mvcc.kbRecs_empty, mvcc.isKeyBackendGR_empty, mvcc.bucketOfEnts_logEnts,
       mvcc.CmpRecs.crev_empty]
