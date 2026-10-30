@@ -23,6 +23,7 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Spec.time.Time__Unix
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -230,7 +231,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
-  ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
+  -- (question 5's core stage) the store's compaction facts: the write right's invariant (the swap
+  -- of the key for the compaction keys' write right), its registration, the write-back supply
+  have hcmpM : mvcc.kbCmpM γ.kb := mvcc.storeCmp_cmpM γ Hcmp
+  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg, #Hsup⟩
+  ihave #Hswk := mvcc.mwSwap_of_inv γ iprop(True) $$ Hmwi
+  -- the store's contract with its compaction on (its tokens, lock resource, slots, write right)
+  ihave #Hbk' := mvcc.isKeyBackendG_cmpOn _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, #HBT, #HForce, #HSize, #HSizeU, #HCmp⟩
   icases HCmp $$ [] with ⟨#HLSR, #HUSR, -⟩
@@ -244,11 +251,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iunfold mvcc.compactTok at Htok
-  icases Htok with ⟨%c', %hc', Htok⟩
+  icases Htok with ⟨⟨%c', %hc', Htok⟩, Hjr⟩
+  -- the job's budgets (question 5's core stage): its reader's token, the safe-range slot
+  icases (mvcc.compactJobResM_on γ.kb hcmpM).1 $$ Hjr with ⟨HRT, HSR⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply HLSR
+  wp_apply HLSR $$ [$HSR] as HSRh
   (try wp_auto)
   wp_apply time.wp_Now as %t0 -
   (try wp_auto)
@@ -303,7 +312,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iframe
     ipureintro; simp [Hhv]
   wp_for HI
-  wp_apply time.wp_Now as %tst -
+  wp_apply +noauto time.wp_Now as %tst -
+  -- (question 5's core stage) a receipt for the session's write-back token
+  wp_take_receipt as Hr1
+  imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr1] with Hwt1
   (try wp_auto)
   wp_apply HBT as %bt #Hbt
   (try wp_auto)
@@ -311,13 +323,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   icases Hbt with ⟨%Locked, %LockedO, #HbtS, -⟩
   ihave #HbtS0 := HbtS
   iunfold mvcc.batchTxSpecG at HbtS0
-  icases HbtS0 with ⟨-, -, #HUnl0, -, -, #HLockOut, #HDel, #HRng, -⟩
+  icases HbtS0 with ⟨-, -, -, -, -, #HLockOut, #HRng, -⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HLockOut $$ [] 
-  · iframe #
+  iapply HLockOut $$ [HRT Hwt1]
+  · iframe HRT Hwt1; iframe #
   inext
-  iintro ⟨Hlocked, HW, HP, -⟩
-  (try wp_auto)
+  iintro ⟨Hlocked, HW, HP, HRT⟩
+  ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
+  -- (question 5's core stage, part (1)) a later credit for the last batch's swap of the key
+  wp_auto_lc 1
   iunfold mvcc.writerRes at HW
   icases HW with ⟨%ilog, HW⟩
   iNamedSuffix HW "W"
@@ -330,22 +344,25 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ispecialize HRng $$ []
   · ipureintro; trivial
   wp_bind (App (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #lst)) (Val #endS)) (Val #_))
-  iapply HRng $$ %([] : mvcc.Puts) %(1 : Qp).half %(mvcc.bucketMap ilog) %bK %lst %endS %bs %(u64Be (rev + W64 1))
+  iapply HRng $$ %(1 : Qp).half %(mvcc.bucketMap ilog) %bK %lst %endS %bs %(u64Be (rev + W64 1))
     %scfg.CompactionBatchLimit' %(DFrac.own 1) %(DFrac.own 1) [] [Hlocked HbvW HlastS HendS]
   · ipureintro
-    refine ⟨Hcfgl, ?_⟩
+    refine ⟨Hcfgl.1, Hcfgl.2, ?_⟩
     intro hn
     have := congrArg List.length hn
     simp [u64Be_length] at this
   · iframe; iframe #
   inext
-  iintro %ks %vs ⟨Hlocked, HbvW, HlastS, HendS, %m', #Hthin, #Hpv⟩
+  -- (the backend-compaction stage, R2-3) the session ends in the range's token `U`, at the budget
+  -- `limit + 1`: a delete or the `Meta` put spends one, `Unlock` takes any
+  iintro %ks %vs ⟨HbvW, HlastS, HendS, %m', %Rd, %U, HU, #Hthin, #Hcap, #Hcap2, #Hpv,
+    #HDelC, #HMetaC, #HUnlU⟩
   (try wp_auto)
   rename_i igo
   irename : (igo ↦ zero_val w64 : IProp GF) => Higo
   iunfold mvcc.snapThin at Hthin
   icases Hthin with ⟨%Hsub, -⟩
-  simp only [List.foldl_nil] at Hsub
+  (try simp only [List.foldl_nil] at Hsub)
   generalize hL : (mvcc.bucketRange m' bs (u64Be (rev + W64 1))).take
     (sint.Z scfg.CompactionBatchLimit').toNat = L
   have HLent : ∀ p ∈ L, ∃ (r : mvcc.Rev) (t : Bool), p.1 = mvcc.revBytes r t ∧ 0 ≤ sint.Z r.main ∧
@@ -374,15 +391,22 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave IH : iprop(∃ (n k kc : w64) (hv : kvHasher) (rv : Revision) (D : List GoString),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
-      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ Locked [] ∗
+      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗
+      "Hlocked" ∷ (∃ c : Nat, U c ∗ ⌜L.length + 1 ≤ c + sint.nat n⌝) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ L.length⌝ ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧ (∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k) ∧
         (∀ k ∈ D, ∀ j (hj : j < L.length), sint.nat n ≤ j → go.GoStringLt k (L[j]).1) ∧
         (sint.Z n = 0 ∨ ∀ k ∈ D, go.GoStringLt k
           (mvcc.revBytes (mvcc.revOf ⟨rv.Main', rv.Sub' + W64 1⟩) false))⌝)
-    $$ [i Higo keyCompactions h rev Hlocked]
+    $$ [i Higo keyCompactions h rev HU]
   · iexists W64 0, _, _, _, _, D
     simp only [named]
+    ihave HU : iprop(∃ c : Nat, U c ∗ ⌜L.length + 1 ≤ c + sint.nat (W64 0)⌝) $$ [HU]
+    · iexists _; iframe HU; ipureintro
+      have : L.length ≤ (sint.Z scfg.CompactionBatchLimit').toNat := by
+        rw [← hL]; exact List.length_take_le _ _
+      have h0 : sint.nat (W64 0) = 0 := by decide
+      rw [h0]; omega
     iframe
     ipureintro
     refine ⟨⟨by decide, by simp⟩, HD.1, HD.2.1, fun k hk => (HD.2.2 k hk).1, ?_, Or.inl (by decide)⟩
@@ -406,28 +430,36 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · ipureintro; exact Hkv.1
     have Hkb : e.1 = mvcc.revBytes r false ++ (if t then [W8 116] else []) := by
       rw [Hk]; cases t <;> simp [mvcc.revBytes]
-    wp_apply (h4 ksl r (if t then [W8 116] else []) DFrac.discard (by cases t <;> simp) Hr0 Hs0)
-      $$ [] as -
-    · rw [← Hkb]; iexact Hksl
+    -- (backend-cmp, 3.5; R2-3) the key slice read under the range's token
+    icases Hlocked with ⟨%c, Hlocked, %Hc⟩
+    ihave #Hcap' := Hcap $$ %c
+    iunfold mvcc.rdCap at Hcap'
+    icases Hcap' $$ %ksl %e.1 Hksl Hlocked with ⟨%dqk, Hkp, Hkback⟩
+    wp_apply (h4 ksl r (if t then [W8 116] else []) dqk (by cases t <;> simp) Hr0 Hs0)
+      $$ [Hkp] as Hkp
+    · rw [← Hkb]; iexact Hkp
+    ihave Hlocked := Hkback $$ [Hkp]
+    · rw [Hkb]; iexact Hkp
     (try wp_auto)
     wp_apply (wp_map_lookup2 Revision.ty (go.GoType.StructType []) keep A (mvcc.revVal r) (DFrac.own 1))
       $$ [$Hkeep] as Hkeep
     (try wp_auto)
-    ihave #HDel1 := HDel $$ []
-    · ipureintro; trivial
     obtain ⟨HnL, HeL⟩ := List.getElem?_eq_some_iff.1 He
     have Henotin : e.1 ∉ D := fun hm =>
       go.goStringLt_irrefl _ (by have := HD.2.2.2.1 e.1 hm (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this)
     have Hesp : mvcc.sc_space log (sint.Z rev) e.1 :=
       mvcc.sc_mem log ilog rev Hrev.2 HilWf.2.1 Hpre Hsub (HLmem e (List.mem_of_getElem? He)).1 r t
         Hk Hrm
-    wp_join iprop(∃ (kc' : w64) (D' : List GoString), keyCompactions_ptr ↦ kc' ∗ Locked [] ∗
+    wp_join iprop(∃ (kc' : w64) (D' : List GoString), keyCompactions_ptr ↦ kc' ∗
+        (∃ c' : Nat, U c' ∗ ⌜L.length + 1 ≤ c' + (sint.nat n + 1)⌝) ∗
         keys_ptr ↦ ks ∗ igo ↦ n ∗ tx_ptr ↦ GoInterface.ok bt ∗
         ⌜sint.Z kc' = D'.length ∧ D'.Nodup ∧ (∀ k ∈ D', mvcc.sc_space log (sint.Z rev) k) ∧
           ∀ k ∈ D', k = e.1 ∨ k ∈ D⌝)
       with [keyCompactions Hlocked keys Higo tx]
       as ⟨%kc', %D', keyCompactions, Hlocked, keys, Higo, tx, %HD'⟩
     · iexists kc, D
+      ihave Hlocked : iprop(∃ cc : Nat, U cc ∗ ⌜L.length + 1 ≤ cc + (sint.nat n + 1)⌝) $$ [Hlocked]
+      · iexists c; iframe Hlocked; ipureintro; omega
       iframe
       ipureintro
       exact ⟨HD.1, HD.2.1, HD.2.2.1, fun k hk => Or.inr hk⟩
@@ -444,10 +476,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
         revert Hif; cases (A !! mvcc.revVal r).isSome <;> simp
       (try wp_auto)
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))
-      iapply HDel1 $$ [Hlocked]
+      -- (Draft round 2) the key slice `keys[i]` passed lent, as the range returned it; (R2-3) one
+      -- of the range's budget spent (`c ≥ 2`: a key left to read, and the `Meta` put's)
+      obtain ⟨c'', rfl⟩ : ∃ c'', c = c'' + 1 := ⟨c - 1, by omega⟩
+      iapply HDelC $$ %ksl %e.1 %c'' [Hlocked]
       · iframe Hlocked; iframe #
       inext
-      iintro ⟨Hlocked, -⟩
+      iintro Hlocked
       (try wp_auto)
       wp_join_done
       -- the key deleted: one more in `D`, still fewer than the job's changes
@@ -462,6 +497,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       rw [List.length_cons] at Hcnt
       have HDk := HD.1
       iexists kc + W64 1, e.1 :: D
+      ihave Hlocked : iprop(∃ cc : Nat, U cc ∗ ⌜L.length + 1 ≤ cc + (sint.nat n + 1)⌝) $$ [Hlocked]
+      · iexists c''; iframe Hlocked; ipureintro; omega
       iframe
       ipureintro
       refine ⟨?_, Hnd', Hsp', fun k hk => ?_⟩
@@ -470,30 +507,38 @@ theorem mvcc.store.scheduleCompaction.wp_proof
         · exact Or.inl rfl
         · exact Or.inr hk
     (try wp_auto)
-    simp only [Hbnd2, and_self, ↓reduceIte]
+    simp only [Hbnd2, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index ks (sint.Z n) kss DFrac.discard ksl Hn.1 $$ [$Hks] as -
     · ipureintro; exact Hkv.1
     (try wp_auto)
     have Hbnd3 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z vs.len := by
       refine ⟨Hn.1, ?_⟩; have := Hvl.1; rw [hlen2] at this; word
-    simp only [Hbnd3, and_self, ↓reduceIte]
+    simp only [Hbnd3, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index vs (sint.Z n) vss DFrac.discard vsl Hn.1 $$ [$Hvs] as -
     · ipureintro; exact Hkv.2
     (try wp_auto)
     icases h with ⟨h, %Hhv⟩
-    wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 DFrac.discard DFrac.discard)
-      $$ [$h $Hkeep] as ⟨⟨%hv2, h⟩, Hkeep, -, -⟩
+    -- (backend-cmp, 3.5; R2-3) the key and its value read together under the range's token
+    icases Hlocked with ⟨%c', Hlocked, %Hc'⟩
+    ihave #Hcap2' := Hcap2 $$ %c'
+    iunfold mvcc.rdCap2 at Hcap2'
+    icases Hcap2' $$ %ksl %vsl %e.1 %e.2 Hksl Hvsl Hlocked with ⟨%dqk, %dqv, Hkp, Hvp, Hkvback⟩
+    wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 dqk dqv)
+      $$ [$h $Hkeep $Hkp $Hvp] as ⟨⟨%hv2, h⟩, Hkeep, Hkp, Hvp⟩
     · iframe #
       ipureintro
       exact ⟨Hhv, r, _, Hkb, by cases t <;> simp, Hr0, Hs0⟩
+    ihave Hlocked := Hkvback $$ Hkp Hvp
     (try wp_auto)
     wp_for_post
     iframe
+    have Hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    ihave Hlocked : iprop(∃ cc : Nat, U cc ∗ ⌜L.length + 1 ≤ cc + sint.nat (n + W64 1)⌝) $$ [Hlocked]
+    · iexists c'; iframe Hlocked; ipureintro; rw [Hn1]; exact Hc'
     iexists n + W64 1, n, kc', hv2, mvcc.revVal r, D'
     simp only [named]
     iframe
     ipureintro
-    have Hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     have Hsrt := List.pairwise_iff_getElem.1 HLsrt
     have Hnext : ∀ j (hj : j < L.length), sint.nat n < j → go.GoStringLt e.1 (L[j]).1 := by
       intro j hj hnj
@@ -516,21 +561,33 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       · exact Hsucc
       · exact go.goStringLt_trans
           (by have := HD.2.2.2.1 k hk (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this) Hsucc
+  -- (R2-3) the range's token at the loop's end: one left at least, for the `Meta` put
+  icases Hlocked with ⟨%c, HU, %Hc⟩
+  have HnL' : sint.nat n ≤ L.length := Hn.2
+  obtain ⟨c0, rfl⟩ : ∃ c0, c = c0 + 1 := ⟨c - 1, by omega⟩
   -- the batch read: short (the last), or full
   wp_if_destruct
   · -- the last batch: `finishedCompactRev = rev`, the compaction finished
     (try wp_auto)
+    -- (question 5's core stage, part (1)) the key in the batch lock's resource, swapped for the
+    -- compaction keys' write right for the `Meta` put, and back
+    iunfold mvcc.compactRes at HcresW
+    icases HcresW with ⟨%sched, %fin, %nf, Hmeta, Hfin, %Hnf, Hmk⟩
+    ihave Hmk := (mvcc.mwSlot_on γ hcmpM).1 $$ Hmk
+    iunfold mvcc.mwSwap at Hswk
+    imod Hswk $$ [Hmk Hlc1] with ⟨HMW, Hback⟩
+    · iframe Hmk Hlc1
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    iapply (h6 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph (mvcc.hookFn γ) [] rev
-      Hrev.1) $$ [Hlocked]
-    · iframe Hlocked; iframe #
-      iunfold mvcc.batchTxSpec; iexact HbtS
+    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW γ.kb γ.bucket) iprop(U c0 ∗ mvcc.kbMW γ.kb γ.bucket)
+      rev Hrev.1) $$ [HU HMW]
+    · iframe HU HMW; iframe #
+      iapply HMetaC
     inext
-    iintro Hlocked
+    iintro ⟨HU, HMW⟩
+    imod Hback $$ HMW with ⟨Hmk, -⟩
+    ihave Hmk := (mvcc.mwSlot_on γ hcmpM).2 $$ Hmk
     (try wp_auto)
-    iunfold mvcc.compactRes at HcresW
-    icases HcresW with ⟨%sched, %fin, %nf, Hmeta, Hfin, %Hnf⟩
     iunfold mvcc.metaCompact at Hmeta
     imod ghostVar_update (sched, some rev) γ.cmeta _ $$ Hmeta with Hmeta
     imod mono_nat_own_update (max nf (mvcc.crevN (sint.Z rev))) (Nat.le_max_left _ _) $$ Hfin
@@ -539,8 +596,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnl0 $$ [Hlocked HwkW HwvW HbvW Hmeta Hfin HP]
-    · iframe Hlocked HP
+    iapply HUnlU $$ %c0 [HU HwkW HwvW HbvW Hmeta Hfin Hmk HP]
+    · iframe HU HP
+      iapply mvcc.storeW_put s γ
+      iframe Hreg
       iunfold mvcc.writerRes
       iexists ilog
       simp only [named]
@@ -613,17 +672,21 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)
-    wp_apply HUSR
+    wp_apply HUSR $$ [$HSRh] as HSR
     (try wp_auto)
     iapply HΦ
     iframe Htok
+    isplitl [HRT HSR]
+    · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
     ileft
     iframe Hdone
     ipureintro; rfl
   -- a full batch: committed, then the next one after the sleep, unless the store stops
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnl0 $$ [Hlocked HwkW HwvW HbvW HcresW HP]
-  · iframe Hlocked HP
+  iapply HUnlU $$ %(c0 + 1) [HU HwkW HwvW HbvW HcresW HP]
+  · iframe HU HP
+    iapply mvcc.storeW_put s γ
+    iframe Hreg
     iunfold mvcc.writerRes
     iexists ilog
     simp only [named]
@@ -632,14 +695,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ipureintro; exact HneW
   inext
   iintro -
-  (try wp_auto)
+  -- (question 5's core stage) a receipt for `ForceCommit`'s write-back token
+  wp_take_receipt as Hr2
+  imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2
   wp_apply (h15 _ lst bs (Or.inl Hbs)) $$ [$HlastS $HlastC] as %lst2 ⟨HlastS, HlastC⟩
   (try wp_auto)
-  wp_apply HForce $$ %iprop(True) %iprop(True) [] as -
-  · isplitr; · itrivial
+  wp_apply HForce $$ %iprop(True) %iprop(True) [HRT Hwt2] as ⟨HRT, -⟩
+  · iframe HRT Hwt2
     isplitr; · itrivial
-    isplitr; · itrivial
-    iintro !> -; itrivial
+    iapply mvcc.storeReq_true
   (try wp_auto)
   wp_apply time.wp_Since as %d5 -
   (try wp_auto)
@@ -710,10 +774,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)
-    wp_apply HUSR
+    wp_apply HUSR $$ [$HSRh] as HSR
     (try wp_auto)
     iapply HΦ
     iframe Htok
+    isplitl [HRT HSR]
+    · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
     iright
     iframe Herr
     iunfold mvcc.storeStopped

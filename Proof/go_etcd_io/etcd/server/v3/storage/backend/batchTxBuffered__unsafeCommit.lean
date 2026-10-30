@@ -38,9 +38,9 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t rt st win stop m u X Y
-  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpay, HX, #Hrq⟩
-  obtain ⟨Hroom, Hp0, HWe, Hview⟩ := Hc
+  intro γ P W Pk b t rt st win stop m u X Y L'
+  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, Hpay, HX, #Hrq⟩
+  obtain ⟨Hroom, Hp0, HWe⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
@@ -50,8 +50,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   icombine Hrt Hrt2 gives %Heq
   subst Heq
   unfold batchLockedW batchGhostW
-  icases Hl with ⟨%t1, %db0', #Ht1, Hown, Hph, ⟨Hv, %n0, %w0, %u00, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, %Hbg0⟩,
-    %Hwf⟩
+  icases Hl with ⟨%t1, %db0', #Ht1, Hown, Hph, ⟨Hv, %n0, %w0, %u00, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
+    %Hbg0⟩, %Hwf⟩
   icombine Ht Ht1 gives %Heq1
   subst Heq1
   imod (rtRes_cm_open γ P rt st.C st.R win) $$ [$Hrr $Hrvs] with
@@ -63,7 +63,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   have Hwin := hookWin_of Hbg0 Hp0
   ihave Hpay : payIn γ (st.setHw true) stop m u $$ [Hpay]
   · rw [payIn_setHw]; iexact Hpay
-  ihave Hl : batchLocked γ P b (st.setHw true) $$ [Hown Hph Hv Hrvs Ha Hmo Hus Hopn Hhkd]
+  ihave Hl : batchLocked γ P b (st.setHw true) $$ [Hown Hph Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
   · iapply batchLockedW_setHw γ P b st
     unfold batchLockedW batchGhostW
     iexists t, db0'
@@ -75,8 +75,6 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   have Hp0 : (st.setHw true).cnt.p0 = sint.nat (st.setHw true).pend := Hp0
   have HWe : ∀ nm i, P.BT.lookup nm = some i → P.HB nm = false →
       bkOf (st.setHw true).W.bks i = [] := HWe
-  have Hview : win = false →
-      vData P ((st.setHw true).C, (st.setHw true).R) = sData P (st.setHw true).S := Hview
   have Hwf := sessWf_setHw Hwf
   have Hbg0 := bgOk_setHw true Hbg0
   wp_join iprop(∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P (st.setHw true) st'⌝ ∗
@@ -124,8 +122,10 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       exact Hs
   ihave Hl := batchLocked_W γ P b st' $$ Hl
   unfold batchLockedW batchGhostW
-  icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, %Hbg⟩,
-    %Hwf'⟩
+  icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
+    %Hbg⟩, %Hwf'⟩
+  unfold batchViewQ
+  icases Hv with ⟨%Lb, Hv⟩
   icombine Ht Ht1 gives %Heq1
   subst Heq1
   have Hs0 := Hs
@@ -173,16 +173,21 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
-      have hview : win = false → vData P (st'.C, st'.R.reset) = vData P (st'.C, st'.R) := by
-        intro hw
-        rw [(commit_final (tx' := st'.tx) (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)).2.2, hC, hR]
-        exact (Hview hw).symm
-      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' hview) $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      ihave Hpre : (if win then thinV γ (vData P (st'.C, st'.R.reset)) L'
+          else thinV γ (vData P (st'.C, st'.R.reset)) (vData P (st'.C, st'.R))) $$ [Hpre]
+      · rw [(commit_final (tx' := st'.tx) (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)).2.2, hC, hR,
+          setHw_C, setHw_R, setHw_S]
+        iexact Hpre
+      icases fkHalf_rd γ P st' (st'.C, st'.R.reset)
+        (fun f w h => fkOkRv_of (fkOk_commit (C' := st'.C) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inr rfl) f w h))
+        $$ Hfkh with ⟨Hfkh, #Hfkr⟩
+      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L') $$
+        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe #
         iexact Hrd
-      imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 HWe Hp0 Hs Hwf Hbg) $$
-        [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+      imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ HWe Hp0 Hs Hwf Hbg
+        (Or.inr rfl)) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
       imodintro
       iapply HΦ
@@ -207,16 +212,21 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
-      have hview : win = false → vData P (st'.S, st'.R.reset) = vData P (st'.C, st'.R) := by
-        intro hw
-        rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR]
-        exact (Hview hw).symm
-      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' hview) $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      ihave Hpre : (if win then thinV γ (vData P (st'.S, st'.R.reset)) L'
+          else thinV γ (vData P (st'.S, st'.R.reset)) (vData P (st'.C, st'.R))) $$ [Hpre]
+      · rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR,
+          setHw_C, setHw_R, setHw_S]
+        iexact Hpre
+      icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
+        (fun f w h => fkOkRv_of (fkOk_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
+        $$ Hfkh with ⟨Hfkh, #Hfkr⟩
+      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L') $$
+        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe #
         iexact Hrd
-      imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 HWe Hp0 Hs Hwf Hbg) $$
-        [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+      imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ HWe Hp0 Hs Hwf Hbg
+        (Or.inl rfl)) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)
       imodintro
       iapply HΦ
@@ -241,14 +251,18 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     simp only [↓reduceIte]
     icases Hpay with ⟨Hbo, Hq⟩
     imod opn_stop γ $$ Hopn Hq Hbo with #Hbs
-    have hview : win = false → vData P (st'.S, st'.R.reset) = vData P (st'.C, st'.R) := by
-      intro hw
-      rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR]
-      exact (Hview hw).symm
-    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' hview) $$
-      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB] with ⟨Hrr, -, -, -⟩
+    ihave Hpre : (if win then thinV γ (vData P (st'.S, st'.R.reset)) L'
+        else thinV γ (vData P (st'.S, st'.R.reset)) (vData P (st'.C, st'.R))) $$ [Hpre]
+    · rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR,
+        setHw_C, setHw_R, setHw_S]
+      iexact Hpre
+    icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
+      (fun f w h => fkOkRv_of (fkOk_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
+      $$ Hfkh with ⟨-, #Hfkr⟩
+    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L') $$
+      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, -, -⟩
     · simp only [↓reduceIte]
-      iframe Hbs
+      iframe Hbs Hfkr
     imodintro
     iapply HΦ
     iframe Hrr HWR HY

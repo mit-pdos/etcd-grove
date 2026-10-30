@@ -25259,6 +25259,76 @@ k8setcd3, whose closures are proved inline in `Check`: the same, the token added
 continuation they pass on). logkvrw's `Apply` passes it to `Get`, and its copies of the driver
 are gone.
 
+### The compaction over the real backend: the Draft's statements (backend-cmp, 2026-10-28)
+
+**2026-10-28 · drafted** (`notes/backend-cmp-plan.md`, "Draft"; the user's Scope decisions O1-O5)
+
+Supersedes, when proved, "The compaction over the real backend (merge, 2026-10-13)": the real
+backend gets `Cmp` true (`isKeyBackendG_of_backendC`). mvcc's contract changes in three ways, each
+`True`/unchanged for mvcc's assumed backend: one-shot delete permits `DP` (the backend's bound on a
+session's operations), the safe-range slot `SR`/`SRh`, and the limited range's slices lent against
+the session token (`rdCap`, `rdCap2`) instead of read-only for good (false of bbolt, whose slices die
+with the transaction). The backend's view becomes exact up to keys registered as deletable (a saved
+predicate fixed at creation, `dlReg`), with `dlNone` for D22's exact readers. The new statements stand
+beside the old (`…specC`, `isKeyBackendG_of_backendC`) until proved, so that their `sorry`s reach no
+existing result but the job's one marked step.
+
+### bbolt's `Bucket.Delete_kv` takes a key of its own transaction (the backend-compaction stage, 2026-10-29)
+
+**2026-10-29 · taken (the user's: review round 1's F3, `notes/backend-cmp-plan.md`)**
+
+A **trust-base change**: the axiom `Spec/go_etcd_io/bbolt/Bucket__Delete_kv.lean` gains a flag `own`:
+the key is the caller's own slice (`key ↦*{dk} kb`, as before) or a slice of the transaction itself
+(`txBytes tx key kb`, which a cursor of the same transaction returned), and is given back as it came.
+Why: etcd's compaction job deletes `keys[i]`, a slice its `UnsafeRange` returned uncopied
+(`kvstore_compaction.go`), so the old statement (an owned slice only) could not be met. True of bbolt
+v1.5.0 (reviewed in round 2: `bucket.go:498-533`, `node.go:145-159`: `Delete` reads the key through
+`seek` and `bytes.Equal`, and `node.del` moves inode headers only; no page is remapped or written
+before `Commit`'s spill, so the slice's bytes stay valid). A flag rather than a disjunction (a
+caller would get a disjunction back). **Not seen by the trust-base check**: `etc/tcb-baseline.txt`
+lists axioms by name, so a widened statement does not change it; this entry and the axiom's
+docstring record it. To be covered by the Test step's bbolt tester (a `Delete` of a key a range of
+the same transaction returned).
+
+### The store's batch limit at most 2^56 (the backend-compaction stage, 2026-10-29)
+
+**2026-10-29 · taken (decision O3 the user's; the premise placed on every store by the agent after
+review round 2, accepted by the user after review round 3)**
+
+A **scope premise**: `mvcc.batchLimitOk cfg.CompactionBatchLimit'` (`0 ≤ x ∧ x ≤ 2^56`) replaces the
+premise `0 ≤ CompactionBatchLimit` of `NewStore`, `mvcc.New`, `newWatchableStore` and `NewServer`
+(and the results carrying it: `StoreBackend`, mvcc's and the server's `Results`, `BuildLemmas`);
+`isStore`'s `Hcfgl` gives the job `0 < limit ≤ 2^56`, and the compacting range takes `limit ≤ 2^56`
+(`rangeLimitMax`). Why: the range's session (at most `limit` deletes and one `Meta` put after a
+start below the backend's `P.limit ≤ 2^57`) must stay within the backend's count
+(`pend + hookMax < 2^58`). Go has no such bound (`pending` is an `int` that only wraps), so it
+restricts the configuration the results cover (etcd's default is 1000; the examples' configs
+leave it `0`, the default). Placed on every store, not only the real backend's compacting instance
+(review round 2 suggested scoping it there): the range's clause is one statement for every
+instance, so its premise is; scoping it would need a parameter of the contract; review round 3 put
+the placement to the user, who accepted it (2026-10-29).
+
+## The compaction keys tracked inside the backend: `fkKey` fixed, not a `BParams` field (2026-10-29)
+
+The backend-compaction stage (`notes/backend-cmp-plan.md`, "The compaction keys' tracked absence")
+makes the backend track the absence of `Meta`'s two compaction keys with a `monoNat` flag
+(`fkOwn`/`fkHalf`/`fkRd`). The keys are fixed in the backend package (`Model2.lean`'s `fkKey`: the
+bucket `meta` and the keys `scheduledCompactRev`, `finishedCompactRev`), unlike the hook's own keys
+(`BParams.HK`, `P.hk`) and the tracked buckets (`BParams.RB`), which are parameters.
+
+**Why.** The no-compaction token `mvcc.bkNoCmp` comes from `storage.OpenBackend`'s axiom over a file
+with no compaction recorded (`mvcc.noCmpData`, a statement about these two keys). With a parameter
+`P.FK`, the axiom quantifies over every `P`, so it would claim the absence of `P.FK`'s keys whenever
+`noCmpData D` holds, which is false for any `P.FK` beyond these two (review round 7, R7-1). With the
+keys fixed, `fkAbsD D ↔ noCmpData D` for every `P`, and the axiom's post is simply `New`'s. The
+parameter would have needed a `bridgeParams` conjunct `P.FK = cmpFK` and a `Wf` clause ("an `FK` key
+is not a hook's own key") instead.
+
+**The cost** (review round 8, R8-3): mvcc's schema is baked into a backend that Go keeps
+schema-agnostic. A second "not yet written" key for another component would be a backend change, not
+a parameter. If that is ever needed, supersede this entry with the parameter and the two conjuncts
+above.
+
 ## The server's auth mode is the environment's: one spec per function (2026-10-29)
 
 **2026-10-29 · accepted; B chosen by the user 2026-10-29** (branch `auth-mm`,

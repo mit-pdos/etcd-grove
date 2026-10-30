@@ -92,13 +92,16 @@ theorem backend.backend.run.wp_proof
       wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
       · iframe #
       ihave Hl := batchLocked_W γ P b st $$ Hl
-      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True)) $$ [$Hl $HWR Hus]
+      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R))) $$ [$Hl $HWR Hus]
         as ⟨-, HWR, Hpo, Hpost⟩
       · iframe #
         isplitr
         · ipureintro
-          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1,
-        fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1⟩
+          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1⟩
+        isplitr
+        · simp only [Bool.false_eq_true, ↓reduceIte]
+          rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
+          iapply thinV_refl
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb

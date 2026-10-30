@@ -39,7 +39,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hwts, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -49,7 +49,7 @@ theorem mvcc.newWatchableStore.wp_proof
     · ipureintro; rfl
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hwts $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
       Hwsd, Hfrag, Hright, Hret⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's
@@ -200,7 +200,10 @@ theorem mvcc.newWatchableStore.wp_proof
   isplitl [Hok]
   · iexact Hok
   isplitr [Hstop]
-  · iapply mvcc.watchReaders_of «$r0_ptr» st γ
+  · have hjr : mvcc.nJobRd kb ≤ Int.toNat sync.rwmutex.actualMaxReaders :=
+      Nat.le_trans (mvcc.nJobRd_le kb) (Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos))
+    icases mvcc.rep_sub _ (mvcc.nJobRd kb) _ hjr $$ Hmus with ⟨Hmus, -⟩
+    iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus
   iexists stc
   iframe stopc

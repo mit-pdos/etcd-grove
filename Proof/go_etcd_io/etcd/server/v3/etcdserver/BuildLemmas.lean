@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 
 @[expose] public section
 
@@ -30,6 +31,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- The real backend's facts of the instance `d` are those of `d` not compacting (question 5's core
+stage, part (1): the server's store at `{ d with cm := false }`). -/
+theorem isBackend_cmOff (d : mvcc.KBReal) (Pk : IProp GF) :
+    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateW d.gx) Pk d.be ⊢
+      backend.isBackend ({ d with cm := false } : mvcc.KBReal).γB ({ d with cm := false } : mvcc.KBReal).P (mvcc.lateW ({ d with cm := false } : mvcc.KBReal).gx) Pk ({ d with cm := false } : mvcc.KBReal).be := by
+  exact .rfl
+
+theorem plHookRO_cmOff (d : mvcc.KBReal) (f : GoFunc) :
+    backend.plHookRO (GF := GF) d.γB f ⊢ backend.plHookRO ({ d with cm := false } : mvcc.KBReal).γB f := by
+  exact .rfl
+
+theorem keySized_cmOff (d : mvcc.KBReal) :
+    (□ ∀ (γB : backend.BNames) (b : Loc), mvcc.keySized (GF := GF) γB d.P b) ⊢
+      □ ∀ (γB : backend.BNames) (b : Loc),
+        mvcc.keySized γB ({ d with cm := false } : mvcc.KBReal).P b := by
+  exact .rfl
 
 /-- `server_kv_watchable` (`Results.lean`) from the specs it uses. -/
 theorem server_kv_watchable_of
@@ -60,12 +78,15 @@ theorem server_kv_watchable_of
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
     (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode)
-    (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
+        -- where its compaction mode is chosen (today's stores never compact: `dlNoDel`)
+        backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -79,7 +100,7 @@ theorem server_kv_watchable_of
     {{ (ws : Loc), RET #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws);
         ∃ (st : Loc) (γw : mvcc.WsNames),
-        ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧ γw.st.kb = some d ∧ γw.st.idx = γi ∧
+        ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧ γw.st.kb = some ({ d with cm := false } : mvcc.KBReal) ∧ γw.st.idx = γi ∧
           γw.st.cok = γok⌝ ∗
         txn.isKV (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws) st γw.st ∗
@@ -93,28 +114,38 @@ theorem server_kv_watchable_of
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.retiredAt γw.st 0 ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif, Hok⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif, Hok⟩ HΦ
+  -- this store never compacts: the registration fixed at "nothing deletable"
+  imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
   -- the auth mode's tag (the auth plan's A4): the store's owner tag names the mode `M`
   imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
+  -- (question 5's core stage, part (1)) the store over the backend's instance not compacting,
+  -- `{ d with cm := false }` (M2 turns the server's compaction on), whose backend is `d`'s: no slot,
+  -- no supply, no reader kept back (`cmOff_res`)
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
+    hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe ({ d with cm := false } : mvcc.KBReal) hP rfl Pk γb $$ []
+  · simp only [mvcc.KBReal.P_withCm]; iframe #
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag hcfg hrb)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok
+  obtain ⟨-, hj, -, hws, hsr⟩ := mvcc.cmOff_res (GF := GF) ({ d with cm := false } : mvcc.KBReal) rfl
+  ihave Hsrm : mvcc.kbSRM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
+  · iapply hsr.2; itrivial
+  ihave Hwts : mvcc.kbWTSupplyM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
+  · iapply hws.2; itrivial
+  iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg hrb)
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro Hif Hok]
+  · iframe Hpkg Hle Hro Hif Hok Hsrm Hwts
     isplitr
     · iintro %s %γ %hγ
-      iapply Hsb $$ %s %γ %hγ
-    rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
-      show mvcc.kbNoCmp (GF := GF) (some d) γb = mvcc.bkNoCmp d.γB from rfl,
-      show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
-      show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
-      show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
+      iapply Hsb
+      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+    simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
+      mvcc.kbRT_some, mvcc.KBReal.P_withCm]
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
+  rw [hj, Nat.sub_zero]
   iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag, Hret⟩
   obtain ⟨hb, hl, hk, hi, hc, ht⟩ := Hγ
   ihave #Hws' := Hws

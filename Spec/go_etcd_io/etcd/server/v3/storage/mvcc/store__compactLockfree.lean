@@ -26,7 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 the compaction right's queue (2026-10-13, unit 5c). Of a store whose
 backend supports the compaction (`storeCmp`). The caller asserts that revision `rev` of a
 certified log does not delete then put a key (`NoDelPutAt`, as `store.Compact`'s; 2026-10-13,
-unit 6a). -/
+unit 6a).
+
+**The reader's token** (question 5's switch, decision (i), 2026-10-29): the caller lends the store's
+reader token `storeRT γ` (the apply thread's, from `writerOwn`) for `checkPrevCompactionCompleted`'s
+`ReadTx`, and gets it back in every case. So is the caller's `hookIs γ P f` (Probe P1, 2026-10-30). -/
 abbrev mvcc.store.compactLockfree.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log),
@@ -34,10 +38,10 @@ abbrev mvcc.store.compactLockfree.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
-      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeRT γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
-      (⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
+      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
         mvcc.compactRight γ (sint.Z rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗
         mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
@@ -45,7 +49,7 @@ abbrev mvcc.store.compactLockfree.spec : Prop :=
         mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
       (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre) }}
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre)) }}
 
 end spec
 

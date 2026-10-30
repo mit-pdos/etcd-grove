@@ -50,7 +50,10 @@ buckets (`RB`): their contents in the writer's contents (`rbData`, absent bucket
 tracked by a ghost variable whose other half is the client's (`rbOwn`), so a session that puts in,
 deletes from, creates or deletes one needs it, and the pre-commit hook leaves them (etcd's rest
 buckets, `mvcc.restBuckets`: the lessor's, the auth store's, the alarm store's and the
-membership's, which the apply thread alone writes). -/
+membership's, which the apply thread alone writes). And (the backend-compaction stage, question 4,
+2026-10-29) the values the compaction keys (`fkKey`) may be written with (`FV`: mvcc's revision
+values, `mvcc.metaRevVal`), which a put of one needs (`UnsafePut`'s premise) and which the backend
+tracks when its data at creation had only such values (`fkV`). -/
 structure BParams where
   BT : GMap GoString w64
   HB : GoString → Bool
@@ -59,6 +62,7 @@ structure BParams where
   RB : GoString → Bool
   hookMax : Nat
   limit : w64
+  FV : GoString → Prop := fun _ => True
 
 /-- The parameters are sane: bucket ids distinct, the limit positive and small enough that the
 buffers do not overflow (`bufBound`), the hook's puts few, the safe-range buckets not the hook's. -/
@@ -243,15 +247,16 @@ def safeRv (P : BParams) (rv : RView) : Prop :=
     (bktOf rv.1 n).lookup kc = some vc → e ∈ bkOf rv.2.bks i → strLt kc e.1
 
 /-- The safe-range discipline on the batch state, for every safe-range bucket (name `n`, id
-`i`): the readers' state is safe (`safeRv`), every committed key is below every key of the write
-buffer (the session's puts were above the writer's contents), and every committed key is in the
-writer's contents (no deletes in safe-range buckets). -/
+`i`): the readers' state is safe (`safeRv`), and every committed key is below every key of the
+write buffer (each put was above the committed keys: `UnsafeSeqPut`'s premise). Until the
+backend-compaction stage (its thin-view Draft round, 2026-10-29) also "every committed key is in the
+writer's contents" (no deletes in safe-range buckets): compaction deletes committed keys of `Key`,
+so the put's premise names the committed keys itself. -/
 def safeSt (P : BParams) (st : BSess) : Prop :=
   safeRv P (st.C, st.R) ∧
   ∀ n i, P.BT.lookup n = some i → P.SB n = true →
-    (∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
-      e ∈ bkOf st.W.bks i → strLt kc e.1) ∧
-    (∀ (kc vc : GoString), (bktOf st.C n).lookup kc = some vc → ∃ vs, (bktOf st.S n).lookup kc = some vs)
+    ∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
+      e ∈ bkOf st.W.bks i → strLt kc e.1
 
 /-- The state's facts at any time. -/
 def sessWf (P : BParams) (st : BSess) : Prop :=
@@ -396,6 +401,65 @@ theorem hkData_eq {P : BParams} {S S' : Data}
   · rfl
   · simp only [↓reduceIte]
     exact h _ _ hh
+
+/-! ## The compaction keys' tracked absence -/
+
+/-- **The `Meta` bucket's compaction keys** (`schema.ScheduledCompactKeyName`,
+`FinishedCompactKeyName`), whose absence the backend tracks (the backend-compaction stage,
+2026-10-29: the ghost `γ.fk`, `fkOwn`): only mvcc's compaction writes them, and a put of one needs
+the client's half (`fkPut`). Fixed here rather than a parameter: the backend serves one schema. -/
+def fkKey (n k : GoString) : Prop :=
+  n = go!"meta" ∧ (k = go!"scheduledCompactRev" ∨ k = go!"finishedCompactRev")
+
+instance fkKey_dec (n k : GoString) : Decidable (fkKey n k) := by
+  unfold fkKey; infer_instance
+
+/-- bbolt's data has no compaction key. -/
+def fkAbsD (D : Data) : Prop := ∀ n k, fkKey n k → dget D n k = none
+
+/-- A buffer's buckets have no entry at a compaction key (through the table). -/
+def fkAbsB (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ n k i, fkKey n k → P.BT.lookup n = some i → ∀ e ∈ bkOf B i, e.1 ≠ k
+
+/-- A readers' state has no compaction key: neither its committed data nor its read buffer. -/
+def fkAbsRv (P : BParams) (rv : RView) : Prop := fkAbsD rv.1 ∧ fkAbsB P rv.2.bks
+
+/-- The batch state has no compaction key: the readers' state, the writer's contents, the write
+buffer. -/
+def fkAbsSt (P : BParams) (st : BSess) : Prop :=
+  fkAbsRv P (st.C, st.R) ∧ fkAbsD st.S ∧ fkAbsB P st.W.bks
+
+/-- The flag's initial value over bbolt's data `D`: `0` if it has no compaction key. -/
+def fkInit (D : Data) : Nat := by
+  classical exact if fkAbsD D then 0 else 1
+
+/-- bbolt's data holds only well-formed values (`P.FV`) at the compaction keys. -/
+def fkWfD (P : BParams) (D : Data) : Prop := ∀ n k v, fkKey n k → dget D n k = some v → P.FV v
+
+/-- A buffer's buckets' entries at a compaction key hold well-formed values. -/
+def fkWfB (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ n k i, fkKey n k → P.BT.lookup n = some i → ∀ e ∈ bkOf B i, e.1 = k → P.FV e.2
+
+/-- A readers' state holds only well-formed values at the compaction keys. -/
+def fkWfRv (P : BParams) (rv : RView) : Prop := fkWfD P rv.1 ∧ fkWfB P rv.2.bks
+
+/-- The batch state holds only well-formed values at the compaction keys. -/
+def fkWfSt (P : BParams) (st : BSess) : Prop :=
+  fkWfRv P (st.C, st.R) ∧ fkWfD P st.S ∧ fkWfB P st.W.bks
+
+/-- **What the compaction keys' flag `f` and well-formedness bit `w` say of a batch state**
+(question 4, 2026-10-29): at `f = 0` no compaction key, with `w` only well-formed values. -/
+def fkOk (P : BParams) (f : Nat) (w : Bool) (st : BSess) : Prop :=
+  (f = 0 → fkAbsSt P st) ∧ (w = true → fkWfSt P st)
+
+/-- The same of a readers' state. -/
+def fkOkRv (P : BParams) (f : Nat) (w : Bool) (rv : RView) : Prop :=
+  (f = 0 → fkAbsRv P rv) ∧ (w = true → fkWfRv P rv)
+
+/-- The well-formedness bit over bbolt's data `D` at creation: whether its compaction keys hold
+only well-formed values. -/
+def fkWInit (P : BParams) (D : Data) : Bool := by
+  classical exact decide (fkWfD P D)
 
 /-! ## Ranges -/
 

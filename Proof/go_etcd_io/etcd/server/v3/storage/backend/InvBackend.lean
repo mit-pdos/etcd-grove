@@ -46,6 +46,7 @@ bbolt as a key-value contract, the locks and the views".
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Model2
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.FkLemmas
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.DGhostVar
@@ -96,6 +97,23 @@ structure BNames where
   the restore plan's R5a, 2026-10-23), half the clients' (inside `bView`), half `readTx.mu`'s
   (`RdSt.cln`) -/
   cln : GName
+  /-- saved predicate: the deletable keys' registration (`DelKeys.lean`, `dlReg`; the
+  backend-compaction stage, decision O1): allocated by the constructor at `False` (nothing
+  deletable), its whole fraction to the creator (`dlInit`), who fixes the predicate once -/
+  dlg : GName
+  /-- `dghostVar Bool`: whether keys may be deletable at all (O1's fallback, decided by the agent
+  while the user was away, 2026-10-29): allocated at `false`, its whole fraction to the creator
+  (`dlInit`), who fixes it once, at `true` with the predicate (`dlReg`) or at `false` (`dlNoDel`):
+  a discrete value, so "nothing deletable" needs no later -/
+  dlb : GName
+  /-- `monoNat`: the compaction keys' flag (`fkKey`; the backend-compaction stage, 2026-10-29):
+  `0` while no state of the backend has one, `1` once one may. Half its authority the batch
+  lock's (`fkHalf`), half the client's (`fkOwn`); the readers keep a lower bound (`fkRd`). -/
+  fk : GName
+  /-- `dghostVar Bool`, discarded at allocation: whether the compaction keys hold only
+  well-formed values (`P.FV`) in every state of the backend (question 4, 2026-10-29: true when the
+  data at creation does, `fkWInit`; a put of one needs a well-formed value, so it never changes) -/
+  fkv : GName
 
 section phys
 variable [GooseExts]
@@ -165,6 +183,58 @@ abbrev cbufOf (b : Loc) : Loc := structFieldRef txReadBufferCache go!"buf" (cach
 abbrev cverOf (b : Loc) : Loc := structFieldRef txReadBufferCache go!"bufVersion" (cacheOf b)
 
 end addrs
+
+/-! ## The logical view after a put session (question 2, option (a), 2026-10-29) -/
+
+/-- **The logical view after a put session's `Unlock`**: the writer's contents over `L`, `L`'s
+entries kept only where the readers' physical view before the session already lacked them (keys
+compaction deleted earlier, still in mvcc's logical bucket: R5-1). A key the session itself deleted
+leaves the logical view if the readers could see it; a key already compacted stays in it (R11-6).
+(Question 2's Draft had the extra condition "in a safe-range bucket" (`P.SB`), redundant: review
+round 11, R11-5.) -/
+def relog (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess) : GMap (GoString × GoString) GoString :=
+  sData P st.S ∪ GMap.filter (fun nk _ => decide ((vData P (st.C, st.R)).lookup nk = none)) L
+
+theorem relog_lookup (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess) (nk : GoString × GoString) :
+    (relog P L st).lookup nk =
+      ((sData P st.S).lookup nk).or
+        (if (vData P (st.C, st.R)).lookup nk = none then L.lookup nk else none) := by
+  unfold relog
+  show ((sData P st.S).lookup nk).or ((L.lookup nk).filter _) = _
+  congr 1
+  cases hL : L.lookup nk <;>
+    by_cases h : (vData P (st.C, st.R)).lookup nk = none <;>
+    simp_all [Option.filter]
+
+/-- **With an exact logical view, `relog` is the writer's contents.** -/
+theorem relog_exact (P : BParams) (st : BSess) :
+    relog P (vData P (st.C, st.R)) st = sData P st.S := by
+  apply GMap.ext
+  intro nk
+  rw [relog_lookup]
+  by_cases h : (vData P (st.C, st.R)).lookup nk = none
+  · simp only [h, ↓reduceIte]; cases (sData P st.S).lookup nk <;> rfl
+  · simp only [h, ↓reduceIte]; cases (sData P st.S).lookup nk <;> rfl
+
+/-- `relog` reads only the writer's contents (through `sData`) and the readers' state (R12-2). -/
+theorem relog_congr (P : BParams) (L : GMap (GoString × GoString) GoString) {st st' : BSess}
+    (hS : sData P st.S = sData P st'.S) (hC : st.C = st'.C) (hR : st.R = st'.R) :
+    relog P L st = relog P L st' := by
+  unfold relog; rw [hS, hC, hR]
+
+/-- **A session that changed nothing the readers see keeps the logical view**: if the writer's
+contents are the physical view and the physical view is included in `L`, `relog` is `L`. -/
+theorem relog_same (P : BParams) (L : GMap (GoString × GoString) GoString) (st : BSess)
+    (hs : sData P st.S = vData P (st.C, st.R))
+    (hsub : ∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) :
+    relog P L st = L := by
+  apply GMap.ext
+  intro nk
+  rw [relog_lookup, hs]
+  cases h : (vData P (st.C, st.R)).lookup nk with
+  | none => simp
+  | some v => simp [hsub nk v h]
+
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -267,6 +337,59 @@ def rbPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
 theorem rbPut_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.RB n = false) :
     ⊢ rbPut (GF := GF) γ P n S := by
   unfold rbPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+/-- **The client's half of the compaction keys' flag** (`γ.fk`, the backend-compaction stage,
+2026-10-29): at `0`, no state of the backend has a compaction key (`fkKey`), not the batch
+lock's (`fkHalf`) and not any reader's (`fkRd`, `rtHeldF_fk`); a put of a compaction key needs it
+and gives it back raised (`fkPut`). The constructor gives it (`fkInit`). -/
+def fkOwn (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).half n
+
+instance fkOwn_timeless (γ : BNames) (n : Nat) : Timeless (fkOwn (GF := GF) γ n) := by
+  unfold fkOwn; infer_instance
+
+/-- **The compaction keys' well-formedness bit** (persistent; question 4, 2026-10-29): at `true`,
+every state of the backend holds only well-formed values (`P.FV`) at the compaction keys. The
+constructor gives it (`fkWInit`); it never changes. With the flag it is the three levels of the
+user's question 4: `fkOwn γ 0` (no compaction key), `fkV γ true` (only well-formed ones), else
+nothing known. -/
+def fkV (γ : BNames) (w : Bool) : IProp GF := dghostVar γ.fkv DFrac.discard w
+
+instance fkV_persistent (γ : BNames) (w : Bool) : Persistent (fkV (GF := GF) γ w) := by
+  unfold fkV; infer_instance
+
+/-- **What the constructor gives the client of the compaction keys** over bbolt's data `D`: the
+client's half of their flag, at `0` if `D` has none (`fkInit`), and the bit, `true` if `D`'s are
+well formed (`fkWInit`). -/
+def fkCl (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
+  iprop(fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D))
+
+/-- The batch lock's half of the flag, with what it and the bit say of its state (`fkOk`). -/
+def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(∃ (f : Nat) (w : Bool), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkV γ w ∗ ⌜fkOk P f w st⌝)
+
+/-- A reader's lower bound of the flag, taken when its state `rv` was set, with the bit
+(persistent). -/
+def fkRd (γ : BNames) (P : BParams) (rv : RView) : IProp GF :=
+  iprop(∃ (f : Nat) (w : Bool), monoNatLbOwn γ.fk f ∗ fkV γ w ∗ ⌜fkOkRv P f w rv⌝)
+
+instance fkRd_persistent (γ : BNames) (P : BParams) (rv : RView) :
+    Persistent (fkRd (GF := GF) γ P rv) := by
+  unfold fkRd; infer_instance
+
+/-- What a put of key `k` in bucket `n` needs and gives back of the flag: the client's half, at
+some value, if `k` is a compaction key, else nothing. (The put raises the flag to at least `1`;
+the post does not say so, no caller needing it.) -/
+def fkPut (γ : BNames) (n k : GoString) : IProp GF :=
+  if fkKey n k then iprop(∃ f : Nat, fkOwn γ f) else iprop(True)
+
+/-- A put of a key that is not a compaction key needs nothing of the flag. -/
+theorem fkPut_other (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) : ⊢ fkPut (GF := GF) γ n k := by
+  unfold fkPut; rw [if_neg h]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
+    fkPut (GF := GF) γ n k = iprop(True) := by
+  unfold fkPut; exact if_neg h
 
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
 (`γ.hkd`) and the tracked buckets (`γ.rbk`). -/
@@ -407,15 +530,91 @@ instance wgInv_persistent (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) :
 
 /-! ## `readTx.mu` -/
 
-/-- The cached copies of the states up to `idx` at the current version read as the current
-state, off the hook's buckets, over the current committed data. -/
-def cacheValid (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (rv' : RView), ⌜i ≤ idx⌝ -∗ histAt γ rv.2.ver i rv' -∗
-    cachedAt γ rv.2.ver i -∗ ⌜vData P (rv.1, rv'.2) = vData P rv⌝)
+/-- **The deletable keys' registration** (persistent): the saved predicate `Φ` of
+(bucket, key) pairs at the backend's name `γ.dlg`, fixed by the backend's creator, with the flag
+`γ.dlb` at `true` (keys may be deletable). -/
+def dlReg (γ : BNames) (Φ : GoString × GoString → IProp GF) : IProp GF :=
+  iprop(savedPredOwn γ.dlg DFrac.discard Φ ∗ dghostVar γ.dlb DFrac.discard true)
 
-instance cacheValid_persistent (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) :
-    Persistent (cacheValid (GF := GF) γ P rv idx) := by
+/-- **Nothing is deletable** (persistent; O1's fallback): the creator fixed the backend's
+deletable-keys flag at `false` (a backend whose creator registered nothing as deletable: the old
+bridge's, D22's restore over a new backend). Not `mvcc.bkNoCmp`, which says the backend's data
+records no compaction (no compaction keys in `meta`): a fact about the data at opening, for
+`restore`. Rules out every deletable key with no later (`dlNoDel_noDel`). -/
+def dlNoDel (γ : BNames) : IProp GF := dghostVar γ.dlb DFrac.discard false
+
+instance dlNoDel_persistent (γ : BNames) : Persistent (dlNoDel (GF := GF) γ) := by
+  unfold dlNoDel; infer_instance
+
+instance dlReg_persistent (γ : BNames) (Φ : GoString × GoString → IProp GF) :
+    Persistent (dlReg (GF := GF) γ Φ) := by
+  unfold dlReg; infer_instance
+
+/-- **The key `nk` (bucket, key) is deletable** (persistent): the registered predicate holds of it. -/
+def dlIs (γ : BNames) (nk : GoString × GoString) : IProp GF :=
+  iprop(∃ Φ : GoString × GoString → IProp GF, dlReg γ Φ ∗ □ Φ nk)
+
+instance dlIs_persistent (γ : BNames) (nk : GoString × GoString) :
+    Persistent (dlIs (GF := GF) γ nk) := by
+  unfold dlIs; infer_instance
+
+/-- **A physical view thin of the logical view `L`** (persistent): every entry of the physical
+view `vd` is `L`'s, and an entry of `L` missing from `vd` is a deletable key. -/
+def thinV (γ : BNames) (vd L : VData) : IProp GF :=
+  iprop(⌜∀ nk v, vd.lookup nk = some v → L.lookup nk = some v⌝ ∗
+    □ ∀ nk, ⌜L.lookup nk ≠ none ∧ vd.lookup nk = none⌝ -∗ dlIs γ nk)
+
+instance thinV_persistent (γ : BNames) (vd L : VData) : Persistent (thinV (GF := GF) γ vd L) := by
+  unfold thinV; infer_instance
+
+/-- An exact view is thin. -/
+theorem thinV_refl (γ : BNames) (vd : VData) : ⊢ thinV (GF := GF) γ vd vd := by
+  iunfold thinV
+  isplitr
+  · ipureintro; intro nk v h; exact h
+  · iintro !> %nk %h
+    exact absurd h.2 h.1
+
+/-- **A cached read buffer reads thin of the logical view** (3.2; Draft): the cached copies of the states up to `idx` at the current version read thin of the
+logical view `L` (until the stage: "exactly as the current state"; now (a tombstone put and compacted within one commit interval: a
+reader of the cached buffer may still see the deleted key, which it never looks up). -/
+def cacheValid (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) (L : VData) :
+    IProp GF :=
+  iprop(□ ∀ (i : Nat) (rv' : RView), ⌜i ≤ idx⌝ -∗ histAt γ rv.2.ver i rv' -∗
+    cachedAt γ rv.2.ver i -∗ thinV γ (vData P (rv.1, rv'.2)) L)
+
+instance cacheValid_persistent (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) (L : VData) :
+    Persistent (cacheValid (GF := GF) γ P rv idx L) := by
   unfold cacheValid; infer_instance
+
+/-- **A quarter of the readers' view, over the logical view** (the thin-view Draft round): the
+ghost share at the logical view `L` the clients hold, and the physical view `phys` thin of it
+(`thinV`). Until the stage the share held the physical view itself; an exact holder is the instance
+`L = phys` (`viewQ_exact`). -/
+def viewQ (γ : BNames) (q : Qp) (phys L : VData) : IProp GF :=
+  iprop(ghostVar γ.view q L ∗ thinV γ phys L)
+
+/-- The view's quarters split and combine (`thinV` persistent). -/
+theorem viewQ_split (γ : BNames) (a b : Qp) (phys L : VData) :
+    viewQ (GF := GF) γ (a + b) phys L ⊣⊢ viewQ γ a phys L ∗ viewQ γ b phys L := by
+  unfold viewQ
+  constructor
+  · iintro ⟨Hv, #Ht⟩
+    icases ghostVar_split γ.view L a b $$ Hv with ⟨H1, H2⟩
+    iframe H1 H2
+    iframe #
+  · iintro ⟨⟨H1, #Ht⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 as Hv
+    iframe Hv
+    iframe #
+
+/-- A quarter at an exact view. -/
+theorem viewQ_exact (γ : BNames) (q : Qp) (vd : VData) :
+    ghostVar (GF := GF) γ.view q vd ⊢ viewQ γ q vd vd := by
+  iintro H
+  iunfold viewQ
+  iframe H
+  iapply thinV_refl
 
 /-- The read buffer's buffers are writable (a free slot each). -/
 def bksOk (Pb : BksPhys) (B : GMap w64 (List Ent)) : Prop :=
@@ -447,9 +646,14 @@ and window agreed with the batch lock (`γ.rvs`), the current state's key and wi
 `cacheInv` (`γ.cur`)), the history's authority, the shared transaction's fields, the facts (the
 read buffer canonical, of the table's buckets and writable; the current state the latest of
 the history; a window only at a version's first state), the cache's validity, the window's
-poison mark, the readers' budget's authority, and the interval. -/
+poison mark, the readers' budget's authority, the interval, and a lower bound of the compaction
+keys' flag taken when `rv` was set (`fkRd`: set wherever `rv` changes, at the constructor, the
+`Unlock`'s write-back (`wb_core`) and the commit (`rtRes_cm_close`); `CommitAndStop` commits
+through `batchTxBuffered.commit` and `unsafeCommit`, so its stop branch of `rtRes_cm_close` sets it
+too; the backend-compaction stage, 2026-10-29). -/
 def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) :
+    IProp GF :=
   iprop(ghostVar γ.rd q rd ∗
     ghostVar γ.rvs q.half (rv, rd.win) ∗ ghostVar γ.cur q.half ((rv.2.ver, rd.idx), rd.win) ∗
     clnPart γ P q rd rv ∗
@@ -458,26 +662,29 @@ def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RVi
     ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ H.lookup (rv.2.ver, rd.idx) = some rv ∧
       (∀ k rv', H.lookup k = some rv' → keyLe k (rv.2.ver, rd.idx)) ∧
       (rd.win = true → rd.idx = 0) ∧ safeRv P rv⌝ ∗
-    histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx ∗
+    histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx L ∗
     (if rd.win then poisonAt γ rv.2.ver rd.idx else iprop(True)) ∗
-    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1 p)
+    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1 p ∗ fkRd γ P rv)
 
-/-- `rtCore` with the view's quarter (at `q`). -/
+/-- `rtCore` with the view's quarter (at `q`), over the logical view `L` (the physical state's
+view `vData P rv` thin of it: `viewQ`; exact by default). -/
 def rtRest (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
-  iprop(ghostVar γ.view q.half.half (vData P rv) ∗ rtCore γ P rt q rd rv cm H p)
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) :
+    IProp GF :=
+  iprop(viewQ γ q.half.half (vData P rv) L ∗ rtCore γ P rt q rd rv cm H p L)
 
 /-- `readTx.mu`'s resource at `q`, in the layout `rd`, the readers' state `rv` and the history
 `H`: the read buffer at `q` (writable buffers), the buckets map's field, and the rest. -/
 def rtResAt (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
+    (H : GMap (w64 × Nat) RView) (p : Qp := q.half) (L : VData := vData P rv) : IProp GF :=
   iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap),
     rbAt (rbufOf (baseOf rt)) (DFrac.own q) m Pb rv.2 ∗ ⌜bksOk Pb rv.2.bks⌝ ∗
-    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H p)
+    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H p L)
 
 /-- `readTx.mu`'s resource at `q`. -/
 def rtRes (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView), rtResAt γ P rt q rd rv H)
+  iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView) (L : VData),
+    rtResAt γ P rt q rd rv H q.half L)
 
 
 /-! ## The cache -/
@@ -518,21 +725,30 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
     ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx db ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
 
-/-- The batch lock's share of the ghost state for `st`: the view's quarter at `(C, R)`, half of
+/-- **The batch lock's quarter of the readers' view, over the logical view** (question 2, option (a),
+2026-10-29; until then the quarter at the physical view `vData P (st.C, st.R)` itself): some logical
+view `L`, the physical view thin of it (`viewQ`). Exact is the instance `L = vData P (st.C, st.R)`
+(`batchViewQ_of_exact`). -/
+def batchViewQ (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) L)
+
+/-- The batch lock's share of the ghost state for `st`: the view's quarter over the logical view,
+the physical view `(C, R)` thin of it (`batchViewQ`), half of
 the readers' state `γ.rvs` at `(C, R)` (so the batch side's `C` and `R` are the read side's),
 with no `Unlock` window open (an `Unlock`'s commit closes it for its hook's run), the write-back budget's authority (`n` tokens out), the count of write-backs
 `w` (monotone) and half of `γ.used` (the `run` goroutine has the other half), a quarter of the
 open token (the `run` goroutine has another quarter, the clients' `bOpen` the half: so the
 batch lock is never held in a stopped backend), half of the hook's own keys `γ.hkd` and of the
-tracked buckets `γ.rbk` at the writer's contents (`trkHalf`), with the bounds of `bgOk` over the
-state's counters (`free`: the lock is free). -/
+tracked buckets `γ.rbk` at the writer's contents (`trkHalf`), half the compaction keys' flag, at
+`0` only while the state has none (`fkHalf`, the backend-compaction stage, 2026-10-29), with the
+bounds of `bgOk` over the state's counters (`free`: the lock is free). -/
 def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) : IProp GF :=
-  iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
+  iprop(batchViewQ γ P st ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
       ownTokAuth γ.wb n ∗
       monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-      trkHalf γ P st.S ∗ ⌜bgOk P st free n w u⌝)
+      trkHalf γ P st.S ∗ fkHalf γ P st ∗ ⌜bgOk P st free n w u⌝)
 
 /-- The batch lock's ghost share, held. -/
 abbrev batchGhost (γ : BNames) (P : BParams) (st : BSess) : IProp GF := batchGhostAt γ P st false
@@ -553,6 +769,97 @@ def batchLockedAt (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) : IPro
 /-- The batch lock held by the client, in state `st`. -/
 def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
+
+/-- A thin view's entries are the logical view's (review round 12, R12-2: a law, so a client need
+not unfold `thinV`). -/
+theorem thinV_sub (γ : BNames) (vd L : VData) :
+    thinV (GF := GF) γ vd L ⊢ ⌜∀ nk v, vd.lookup nk = some v → L.lookup nk = some v⌝ := by
+  iunfold thinV
+  iintro ⟨%H, -⟩
+  ipureintro; exact H
+
+/-- A logical view's entry the thin view lacks is registered as deletable (R12-2). -/
+theorem thinV_dl (γ : BNames) (vd L : VData) :
+    thinV (GF := GF) γ vd L ⊢ □ ∀ nk, ⌜L.lookup nk ≠ none ∧ vd.lookup nk = none⌝ -∗ dlIs γ nk := by
+  iunfold thinV
+  iintro ⟨-, #H⟩
+  iexact H
+
+/-- **Thinness composes**: a view thin of one thin of `L` is thin of `L` (a deleting session's
+commit: the new physical view thin of the old, the old thin of the logical). -/
+theorem thinV_trans (γ : BNames) (a b c : VData) :
+    thinV (GF := GF) γ a b ∗ thinV γ b c ⊢ thinV γ a c := by
+  iunfold thinV
+  iintro ⟨⟨%H1, #D1⟩, ⟨%H2, #D2⟩⟩
+  isplitr
+  · ipureintro; intro nk v h; exact H2 nk v (H1 nk v h)
+  · iintro !> %nk %h
+    cases hb : b.lookup nk with
+    | none => iapply D2; ipureintro; exact ⟨h.1, hb⟩
+    | some v => iapply D1; ipureintro; exact ⟨by simp [hb], h.2⟩
+
+/-- **A put session keeps the physical view thin of the logical one**: the new physical view
+`sData P st.S` is thin of `relog P L st` whenever the old physical view was thin of `L`. -/
+theorem thinV_relog (γ : BNames) (P : BParams) (L : VData) (st : BSess) :
+    thinV (GF := GF) γ (vData P (st.C, st.R)) L ⊢ thinV γ (sData P st.S) (relog P L st) := by
+  iunfold thinV
+  iintro ⟨-, #D⟩
+  isplitr
+  · ipureintro; intro nk v h; rw [relog_lookup, h]; rfl
+  · iintro !> %nk %h
+    obtain ⟨h1, h2⟩ := h
+    rw [relog_lookup, h2] at h1
+    by_cases hc : (vData P (st.C, st.R)).lookup nk = none
+    · simp only [hc, ↓reduceIte] at h1
+      iapply D
+      ipureintro
+      exact ⟨by simpa using h1, hc⟩
+    · simp only [hc, ↓reduceIte] at h1; exact absurd rfl h1
+
+/-- Today's exact quarter is an instance of the batch lock's logical quarter. -/
+theorem batchViewQ_of_exact (γ : BNames) (P : BParams) (st : BSess) :
+    ghostVar (GF := GF) γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ⊢ batchViewQ γ P st := by
+  unfold batchViewQ
+  iintro H
+  iexists vData P (st.C, st.R)
+  iapply viewQ_exact $$ H
+
+/-- **The clients' view is the logical one** (agreement of the shares of `γ.view`): the batch
+lock's physical view is thin of what a client holds. -/
+theorem batchViewQ_bView (γ : BNames) (P : BParams) (st : BSess) (q : Qp) (vd : VData) :
+    batchViewQ (GF := GF) γ P st ∗ bView γ q vd ⊢
+      batchViewQ γ P st ∗ bView γ q vd ∗ thinV γ (vData P (st.C, st.R)) vd := by
+  unfold batchViewQ bView bViewC viewQ
+  iintro ⟨⟨%L, Hq, #Ht⟩, ⟨%c, Hv, Hc, Hl⟩⟩
+  icombine Hq Hv gives %Heq
+  obtain ⟨-, rfl⟩ := Heq
+  iframe Hc Hl Hq Hv
+  iframe #
+
+/-- **What a client reads of the batch lock: the physical view is thin of the clients' view.** -/
+theorem batchLocked_thin (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (q : Qp) (vd : VData) :
+    batchLocked (GF := GF) γ P b st ∗ bView γ q vd ⊢
+      batchLocked γ P b st ∗ bView γ q vd ∗ thinV γ (vData P (st.C, st.R)) vd := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, Hrest⟩, %Hwf⟩, Hc⟩
+  ihave ⟨Hv, Hc, #Hth⟩ := batchViewQ_bView γ P st q vd $$ [$Hv $Hc]
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact Hwf
+  iexact Hth
+
+/-- **A no-change session is a deleting session with nothing deleted** (`viewSame`: the writer's
+contents are the physical view, no puts to the non-hook buckets). -/
+theorem viewSame_thin (γ : BNames) (P : BParams) (st : BSess) (h : viewSame P st) :
+    ⊢ thinV (GF := GF) γ (sData P st.S) (vData P (st.C, st.R)) ∗
+      ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ := by
+  rw [← h.1]
+  isplitl
+  · iapply thinV_refl
+  · ipureintro; exact h.2
 
 /-- What a commit (`unsafeCommit`) needs besides the batch lock: at a stop, the rest of the open
 token (the clients' half, which `run` got from `Close`, and the `run` goroutine's quarter); otherwise a payment for the hook's
@@ -727,17 +1034,17 @@ def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) :
 /-- The shared read transaction held (`ReadTx().RLock()`), over the readers' state `rv` and
 bbolt's transaction `rtx`. -/
 def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
-  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
+  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
 
 /-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
 `sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
 plan's R5b). -/
 def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
-  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
+  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
 
 theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl

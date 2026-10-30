@@ -74,7 +74,7 @@ theorem newServer.wp_proof
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
       γ id ctxs ρ E₀ N Φs γn dir γd hraft hdyn hc0 hch hlog hcok
-      Hlg (by simp) rfl Htb Hrb48 HrbN
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩ rfl Htb Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
       (by
         have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
@@ -176,7 +176,7 @@ theorem newServer.wp_proofCompact
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
       γ id ctxs ρ E₀ N Φs γn dir γd hraft hdyn hc0 hch hlog hcok
-      Hlg (by simp) rfl (by simpa using Hret) Htb Hrb48 HrbN
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩ rfl (by simpa using Hret) Htb Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
       (by
         have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl

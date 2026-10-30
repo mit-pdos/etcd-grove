@@ -93,7 +93,7 @@ theorem startServer.wp_proof
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [common.httpURL go!"127.0.0.1:23926"]⟩
       γ id ctxs ρ E₀ N Φs γn dir γd hraft hdyn hc0 hch hlog hcok
-      Hlg (by simp) rfl Htb Hrb48 HrbN
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩ rfl Htb Hrb48 HrbN
       (by
         have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
         have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide

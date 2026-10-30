@@ -108,7 +108,8 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -, #HbtB⟩
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
-      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ) $$ []
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
+      (mvcc.kbMW γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
