@@ -1093,6 +1093,20 @@ theorem ownStepGhost_leader_tnz (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
   iapply ownRaftGhost_leader_tnz $$ Hg
 
 
+/-- (raft-final phase 2) `applyConfChange` keeps the leader witness (`leadW`): a `StepC` receiving
+nothing, or a removed leader's step-down, which records no leader (`applyCCOkC_step`). -/
+private theorem leadW_applyCC (γ : RaftNames) {c' : CfgM} {id : w64} {s s' : NState}
+    (H : ApplyCCOkC c' id s s') :
+    leadW (GF := GF) γ id (toPState s) ⊢ leadW γ id (toPState s') := by
+  rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨Hst, -⟩ | ⟨-, -, -, ps1, -, Hps⟩
+  · iintro #Hl
+    iapply leadW_stepC γ c' id 0 _ [] _ Hst $$ [] Hl
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iempintro
+  · iintro -
+    iapply leadW_none
+    rw [Hps]; rfl
+
 /-- `r.applyConfChange(cc)` at a dynamic node (2026-10-14, stage B7 part 2): the configuration
 takes the next conf entry's change (`StepR.applyConf`), then `switchToConfig`'s effect
 (`applyCCOkC_stepR`, a removed leader's step-down included); the node's ghost state follows
@@ -1138,9 +1152,6 @@ theorem wp_applyConf_dyn
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
     #Hstrecs, #Hloanc, #Hsloc, Hch, Hlc, #HDd⟩ HΦ
@@ -1245,8 +1256,16 @@ theorem wp_applyConf_dyn
     iframe Hgr HM
     isplitr
     · ipureintro; exact ⟨HD, rfl, by unfold NsLink; rw [Hok.gh]; exact Hnl⟩
-    rw [show s'.logst.storage = s.logst.storage by rw [(applyCCOkC_frame Hok Hwf).2.2.2.2.1]]
-    iexact Hcl
+    -- (raft-final phase 2) the certificate link and the transfer records over the kept ghost
+    -- fields, the leader witness across the step (`leadW_applyCC`)
+    icases Hcl with ⟨#Hcl1, #Hlw, #Hxw⟩
+    isplitr
+    · rw [Hok.gh]; iexact Hcl1
+    isplitr
+    · iapply leadW_applyCC γ Hok $$ Hlw
+    · iunfold xfW at Hxw
+      iunfold xfW
+      rw [Hok.gh]; iexact Hxw
   ihave Hghost : ownStepGhost γ (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
       ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,
        ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp, ds⟩) cs'.cfg id s' $$ [Hghost]
@@ -1277,7 +1296,6 @@ theorem wp_applyConf_dyn
       (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')
       (by unfold SdtTie; rw [Hls']; exact Hsdt) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hsloc'
   ipureintro; exact Hcs0
-  -/
 
 /-! ### The static mode -/
 
@@ -1323,9 +1341,6 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
     (applyCCOkC_step (B := 0) _ _ _ _ Hok).resolve_right
       (fun ⟨_, Hv, _⟩ => Hv (by rw [CfgM.voters_simple]; exact Hin))
@@ -1340,8 +1355,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     exact ⟨by rw [Hsf, Hro]; exact H1, by rw [Htk]; exact H2⟩
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc Hlc
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsnap') $$ Hsloc
-  ihave #Hcl' : certLink (GF := GF) γ s'.logst.storage $$ []
-  · rw [Hstor']; iexact Hcl
+  ihave #Hcl' : certLink (GF := GF) γ s'.gh.sn $$ []
+  · rw [Hgh]; iexact Hcl
   rw [← Hrel.1] at *
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
   ihave %Hst0 := ownRaftGhost_static γ id _ $$ Hghost
@@ -1352,14 +1367,13 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iapply ownRawNode_intro_static γ rn id rs s' (toPState s') rnv sv hprev steps Hm ⟨rfl, Hwf'⟩ Hin Hasync
     (by rw [Happ]; exact Hdlen) (by rw [Hunp']; exact Hunp) (by rw [Hsnap']; exact Hsnap)
     (stepsOk_mono_le s s' _ (by rw [Htm]; exact Int.le_refl _) ⟨Hprev, Hstored⟩ Hc Happ (tc_le_of_gh Hgh) Hstok)
-    (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keepS rfl rfl Hpv Hgh Htm Hro Hsnap' Hm)
+    (by rw [Htm]; exact Htrm) (by rw [Hls]; exact Hstor) (Hpvoff.keepS rfl rfl Hpv Hgh Htm Hro Hsnap' Hm)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
     (by unfold RNFl; rw [Hls]; exact Hrnfl)
     (Hloan.keep Hgh (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) Hc)
     (by unfold SdtTie; rw [Hls]; exact Hsdt)
     Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc'
-  -/
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
