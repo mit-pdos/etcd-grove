@@ -26953,3 +26953,40 @@ clean read, `dlInit_noDel` for exactness), as `NewStore` does. Also the records'
 **Item 37, round 4's ghost law refutable**: the view's other half is in the two locks' resources, so
 only an operation holding both can widen (`Unlock.specW`, drafted); whether to widen at the store's
 first `Unlock` or to let mvcc's writer relation be "thin of the log's bucket" is the chain's choice.
+
+---
+
+## M2's restore chain, round 2
+
+**2026-10-30 · accepted (internal; `notes/m2-storage-plan.md`, "The restore chain, round 2")**
+
+**`etc/gen-link.py` emits raft's assumptions variable.** Since server Stage F (`b1542227ac`) files
+over raft's unified API declare `variable [raftAsm : go_etcd_io.raft.v3.Assumptions]`, and four
+Links got the variable by hand. Decision: the generator emits it when the mode's package assumptions
+do not already import raft's (Goose's `import_*_Assumption` fields, followed transitively: then the
+instance is there, as in the server's Link) and a linked spec or proof file, or an `@` callee's Link,
+declares it. Rejected: a fixed list of modes (drifts as packages start using raft's API). read's
+hand-added line, redundant under the rule, is dropped.
+
+**The nil-hook clause is `batchTxSpecG`'s, with `HN` a parameter defaulting to `False`.** The store's
+contracts pass `kbHookNil γ.kb`; the specs that never lock with the hook unset keep the contract
+without the clause, reached by `*_noNil` laws (the clause at `False` holds of anything). Rejected:
+`HN` computed from a `kb` argument (the contract is generic in its backend and has no `kb`), and
+changing `SetScheduledCompact.spec` to take the clause from the contract (its `lockArmS` already
+carries `lockNilSpec`, approved).
+
+**The clean read lends the unfixed registration with the reader's token** (`RT ∗ dlInit`), riding on
+the lock token until `RUnlock` (`keyReadLockedR_frame`). Why there: the read's exactness is needed at
+`RLock` (the reader's state is fixed then, `rtHeld_clean`'s `thinV` persistent), and `ReadTx`'s and
+`RLock`'s pres hold only the view and the token. Rejected: `dlInit` inside the records' resource `NC`
+(only the meta clause sees `NC`). The records' sign is a premise (`recsSign`, from `recsOk`), not a
+change of `metaReadSpecR` (switched, shared with the `UnsafeRead*Compact` specs).
+
+**Item 37 deferred to item 15.** The coordinator's choice (the writer's relation thin of the log's
+bucket) is designed, not implemented: its users are twenty files of the store's invariant and its
+only consumer, `store.Restore.specM`'s proof, is not written. The refuted widening Draft is dropped.
+
+**B2's pure form, glued at a model bound `B`.** The user's `logCh ≤ 2·MaxTxnOps·|entries|` is not a
+fact of the model (the apply side checks no `--max-txn-ops`, nesting multiplies the budget, the start
+log counts); the glue (`srvChBound_of_len`) takes any monotone `B`, so the form the user approves
+(the request's size bound `K` in place of `MaxTxnOps`, or none, by a gate) plugs in.

@@ -646,6 +646,42 @@ exported or trusted switched:
   `wsCloserR_iff`) and `etcdserver/M2StorageDraftRestore.lean` (unchanged) build against the switched
   statements. `store.Restore.spec`'s docstring still mentions step 1's `compactRight_of_closer`
   (left for the collaborator).
+- **The index at a full revision** (2026-10-30, branch `m2-index`, merged; the plan's "The index at a
+  full revision"): the index invariant's compaction level a full revision (`IdxCRepN`,
+  `InvIndexCut.lean`), `idxRestore_cut` proved with no premise on how often a revision changes a key.
+  **Item 32 switched** (internal), **item 33 dropped** (`KeyOnceAt` and its apply-side obligation).
+- **The restore chain, mvcc part** (2026-10-30; the plan's section): **item 18 switched**,
+  `store.restore.spec` over a compacted image (the records `r`, the image's entries cut at `r.crev`,
+  the index published at the restored level, the resumed compaction through `resumeK`), proved;
+  today's text kept as `store.restore.specNC`. `SetScheduledCompact.spec` by the hook's state
+  (`lockArmS`). B2 drafted (`etcdserver/M2StorageDraftB2.lean`).
+- **The restore chain, backend part** (2026-10-30, branch `m2-backend`, merged; the plan's section):
+  **item 29's backend part switched**: the merged ghost (the bit, the flag's and the compaction keys'
+  values at the open: `fkOpen`), the records clause `fkOkG` kept by every operation, `fkRd_open`;
+  two premises added to the backend's `UnsafeDelete`/`UnsafeDeleteBucket` specs (no compaction key,
+  no `meta`). Item 30's records half (`rt_metaRecs`). Item 37's round-4 ghost law refuted.
+- **The restore chain, round 2** (2026-10-30; the plan's section; `notes/decisions.md`, "M2's restore
+  chain, round 2"):
+  - `etc/gen-link.py` emits `raftAsm` itself (the four Links `b1542227ac` edited by hand); every Link
+    regenerates to the committed file (read's redundant line dropped).
+  - **Item 31 switched** (store level): `batchTxSpecG`'s nil-hook clause (`HN := kbHookNil γ.kb`,
+    proved by the bridge, `bt_lockInNil`); `updateCompactRev.spec`/`compactLockfree.spec` by the
+    hook's state (`lockCtxM`/`lockBackM`, the approved texts), proved; `resumeHookM` out of the Draft.
+  - **Item 30 proved** in the repaired form (`keyCleanRead_of_backendC`, `BackendRecs.lean`): the
+    registration unfixed (`dlInit`) lent with the clean read's token, the records' sign a premise.
+  - **Item 37 stopped**: designed (the writer's view thin of the log's bucket, `bucketViewL`), the
+    refuted widening Draft dropped; implementation deferred to item 15 (twenty files, no consumer yet).
+  - **B2**: the glue from a model bound and a run bound (`srvChBound_of_len`, proved); the user's
+    `2·MaxTxnOps·N` premise is not sound as stated (nested transactions, no apply-side check, the start
+    log); `NewServer.specCompact`'s text drafted for approval (the plan).
+  **For the collaborator (snapshot track; Drafts only, no switched statement changed)**: the restore
+  Draft's `Restore.specM`/`watchableStore.Restore.specM` take `restoreRegM d'` (`dlInit` on), the
+  contract as a wand from `restoreFixM` (`storeDlReg` on), the clean read at `storeRT ∗ restoreRegM`;
+  `storeBackendTR` passes `kbHookNil`. `store.restore.spec` shares one `RT` between its contract and
+  its clean read: item 15 needs the contract at `storeRT ∗ dlInit` (a framing law) or the contract's
+  token separated (its generalized proof does not use the contract).
+  Full `lake build` passed (11211 jobs); `tcb-report --check` and all collections match (766
+  axioms, 18 sorries).
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 

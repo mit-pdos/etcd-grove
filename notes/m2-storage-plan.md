@@ -2039,3 +2039,135 @@ the glue maps it to the drafted Iris form (`srvChBound`).
 view is a subset of the log's bucket, the missing keys deletable" (mvcc-internal, no backend change),
 not a pending widening carried to the writer's first `Unlock` (the round-4 ghost form is refutable,
 `backend/M2BackendDraft.lean`).
+
+## The restore chain, round 2 (2026-10-30)
+
+On `m2-storage` after the merge of `m2-backend` (`6e838fe36f`). No `axiom`, no `sorry`, no Perennial
+change; generated files only by their scripts; no snapshot-track statement changed (the Restore
+Drafts changed, as asked). `notes/decisions.md`, "M2's restore chain, round 2".
+
+### Task 1: `Link.lean`'s generation
+
+`b1542227ac` (server Stage F, on `lean`) added `variable [raftAsm : go_etcd_io.raft.v3.Assumptions]`
+by hand to four generated Links (mvcc, txn, apply, read): since Stage F, files over raft's unified
+API declare that variable (mvcc's `store.scheduleCompaction`), and a Link instantiating such a proof
+needs the instance. `etc/gen-link.py` now emits it in a mode whose package assumptions do not import
+raft's (Goose's `import_*_Assumption` fields, followed transitively: the server's, v3rpc's and read's
+do) when a linked function's spec or proof file declares it, or an `@` callee's Link does (txn, apply:
+through mvcc's results). Every mode's output equals the committed Link but read's, whose hand-added
+line was redundant (its assumptions import raft's) and is dropped (its importers rebuilt: passed),
+and logkvcompact/logkvsnap, whose docstrings already differ from the script on `lean` (not touched).
+mvcc's Link equals the committed file, the previously hand-edited `store.restore` line included.
+
+### Task 2: item 31's store-level chain (switched)
+
+- `batchTxSpecG` gains the nil-hook clause `lockNilSpec bt RT WT W P HN Locked` (`InvStore.lean`;
+  `lockNilSpec` and `kbHookNil` moved there), with `HN` a new last parameter (default `False`, where
+  the clause holds of anything: `lockNilSpec_false`) passed through `isBatchTxG`, `isKeyBackendG`,
+  `isKeyBackendGR`; the store's contracts (`physOk`, `storeBackend`, `storeBackendT`, the Draft's
+  `storeBackendTR`) at `HN := kbHookNil γ.kb`. The bridge proves it (`bt_lockInNil`, moved to
+  `BackendBridge.lean`; `isKeyBackendG_of_backendC`'s conclusion at `HN := plHook γ func.nil`).
+  `*_noNil` drop the clause where a spec takes the contract without it (`SetScheduledCompact`'s,
+  `store.restore`'s, `rangeEvents`', `isKeyBackendG_wand`, `mvcc_backend_bridge`'s proof: the
+  export's statement unchanged).
+- `updateCompactRev.spec`/`compactLockfree.spec` are the approved `specR` texts (`lockCtxM`/
+  `lockBackM`, `LockArm.lean`), proved for both arms (the `none` arm: `SetScheduledCompact` at
+  `hk = none` with the clause's `lockNilSpec` and the post `Post ∗ kbHookNil`); `store.Compact` passes
+  `some f`. `resumeHookM` moved to `RestoreRecs.lean`. `M2StorageDraftChain.lean` deleted.
+
+### Task 3: item 30 proved, in the repaired form
+
+- **D1** (exactness): `keyCleanRead_of_backendC` (`BackendRecs.lean`, proved): the clean read at
+  `RT := storeRT γ ∗ dlInit d.γB` (the new backend's registration unfixed, lent with the reader's
+  token and given back at `RUnlock`), its exactness `thinV_exact_init` (`DelKeys.lean`, from
+  `dlInit_noDel`); `bridge_rt_cleanR` is `bridge_rt_clean` with it; the token rides on the lock token
+  by the framing laws (`keyReadLockedR_frame`, `keyCleanReadR_frame`, `RestoreRecs.lean`).
+- **D2** (sign): the premise `recsSign r` (`CmpRecs.lean`; `recsOk_sign` from `recsOk`); the reader's
+  meta clause from `rt_metaRecs` (`rt_lockedR`, over `bkRecs`, the real backend's records resource;
+  the Draft's `kbRecs (some d) = bkRecs d.γB`, `kbRecs_some`).
+- **The Drafts**: `Restore.specM`/`watchableStore.Restore.specM` take `restoreRegM d'` (`dlInit` on,
+  `True` off), the contract as a wand from `restoreFixM d' (γ.withPhys p)` (`storeDlReg` on), the
+  clean read at `storeRT ∗ restoreRegM d'`; `restoreRegM_fix` fixes it; the off-mode laws
+  (`spec_of_specM`) re-proved; `keyCleanRead_of_backendC_stmt` restated and proved
+  (`keyCleanRead_of_backendC_holds`). **For the collaborator**: the switched `store.restore.spec`
+  shares one `RT` between its backend contract and its clean read, so `Restore`'s proof (item 15)
+  calls it with `RT := storeRT ∗ dlInit` and needs the contract at that `RT` (a framing law of
+  `isKeyBackendGR`, or `store.restore.spec` with the contract's token separate: its generalized proof
+  never uses the contract).
+
+### Task 4: item 37 (stopped; design and impact recorded)
+
+The coordinator's choice: the writer's relation becomes "the backend's view is a subset of the log's
+bucket, the missing keys deletable". **Not implemented this round**; the refuted widening Draft is
+dropped (`backend/M2BackendDraft.lean` deleted; its refutation is in "The restore chain, backend
+part"; `Unlock.specW` is not needed under this choice). The design:
+
+    bucketViewL γ q L := ∃ m, bucketView γ q m ∗ snapThin (bucketMap L) m (delKey γ)
+
+in place of `bucketView γ q (bucketMap L)` in `writerRes`, `revMuBody` (its `Fractional` instance
+then needs the two parts' views to agree: `bucketView` agreement, by cases on `kb`), the write
+transaction's `Hbv`, `writerInv_checkout`'s post. Laws: `bucketViewL_exact` (`snapThin_refl`), the
+readers' composition (a snapshot thin of `m`, `m` thin of `bucketMap L`: `snapThin_trans`), `Unlock`'s
+fold (`snapThin` kept by the same inserts), the write range (`keyReaderD` over the thinner bucket),
+`keyPutOk` monotone (fewer keys). In off mode `delKey` holds of nothing, so the relation is exact.
+Users to re-prove (the files naming the two `Hbv`/`Hbucket` resources): `InvStore`, `NewStore`,
+`store__Read`, `store__Write`, `store__restore`, `store__Restore`, `store__scheduleCompaction`,
+`store__updateCompactRev`, `storeTxnWrite__{put,delete,deleteRange,DeleteRange,Range,End,Rev}`,
+`storeTxnCommon__rangeKeys`, `rangeEvents` (its spec takes `bucketView γ q (bucketMap log)`:
+internal), `watchableStore__{syncWatchers,notify,watch,moveVictims}`, `watcherGroup__choose`,
+`newWatcherBatch`, `newWatchableStore`, `New`, `restoreChunk`, `RestoreMoves`, and `NewServer`'s and
+the snapshot walk's uses (proof-only). No exported statement's text changes (the exports mention
+`isStore`, not the relation). Why stopped: a twenty-file refactor of the store's invariant whose only
+consumer is item 15 (`store.Restore.specM`'s proof, not written), done here it would have no user to
+check the shape against; best done with item 15.
+
+### Task 5: B2 in the user's form
+
+- **Proved glue** (`etcdserver/M2StorageDraftB2.lean`): `srvChBound_of_len`: a model bound `B`
+  (`kvChLe γk st₀ B := ∀ L, logCh (kvModelOn γk st₀ L) ≤ B L.length`, pure), monotone, `B N <
+  receiptBound GF`, and the run bound `srvLogLe γ N` (every prefix of the request log has at most `N`
+  entries) give `srvChBound`; `restoreBoundM_of_len` then `Restore.specM`'s `restoreBoundM`.
+- **The user's `logCh ≤ 2·MaxTxnOps·|entries|` is not a fact of the KV model**: the apply side checks
+  no `--max-txn-ops` (the model applies any decoded request: one entry may put any number of keys),
+  `checkTxnRequest`'s budget is per level (`issues/nonissues/etcd-max-txn-ops-nested.md`: nesting
+  multiplies it), and the start log's changes count. What holds of the cluster's entries (argued, not
+  proved): changes are puts and deletes, a delete removes a key an earlier put or the start log made
+  live, so `logCh ≤ 2·logCh log₀ + 2·puts`; a proposal's data is at most `MaxRequestBytes`
+  (`processInternalRaftRequestOnce`'s `ErrRequestTooLarge`), so a per-entry put bound `K` comes from
+  the request's size. It is a fact of the request log (the server's proposals), not of every log, so
+  the model half is Iris (over `srvReqLogLb`), like `srvChBound` itself.
+- **The run half is not pure**: "the cluster commits at most `N` entries" is a property of the run.
+  `putgetc`'s closed theorem (`putgetc_adequate`) has the step count `n` with `receiptBound GF = n +
+  1` (`etcd_adequate`); its compactor proposes a compaction periodically, so its committed entries
+  are bounded by nothing but `n`, and `2·K·N < n + 1` at `N = n` is false. What `putgetc` can supply:
+  nothing is needed, since its one member never installs an image (B2's gate, option (ii)); or a
+  bound counting only entries that change the KV log (one `Put`: `logCh ≤ 2`), which a premise on
+  `n` (`2·K + c ≤ n + 1`) would make pure at the cost of short runs.
+- **A route without a premise** (for the user): every member's writer pays a receipt per change of its
+  own log (`idxWriter`), receipts are the run's (`receiptBound GF = n + 1` for all members, one
+  program), and an image is made by a member from its own sealed log (`idxSealed`'s `logCh < receiptBound`):
+  carried with the snapshot through a cluster invariant ("every snapshot's log is some member's sealed
+  log"), the bound is a theorem, not a premise.
+- **`NewServer.specCompact`'s drafted text** (trusted; for the user's approval, not edited), beside
+  `receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →`:
+
+      -- (M2, the storage side, B2, the user's form, 2026-10-30) the cluster commits at most
+      -- `Nc` entries, each changing the KV log by at most `K` (puts) and their deletes: the KV
+      -- history stays below the receipts' bound
+      ∀ (Nc K : Nat), 2 * mvcc.logCh ρ.rd.kv.log0 + 2 * K * Nc < receiptBound GF →
+
+  with, in the pre, the run half and the model half as persistent facts the caller provides:
+
+      "#HlogLe" ∷ srvLogLe ρ.rd.raft Nc ∗
+      "#HputLe" ∷ srvPutLe ρ.rd.raft ρ.rd.kv K    -- every request-log entry puts ≤ K keys
+
+  (`srvPutLe` not defined: the per-entry put count of the KV model, the piece the amortized lemma
+  `logCh (kvModelOn …) ≤ 2·logCh log₀ + 2·K·|L|` needs). At `log0 = [[], []]` the first term is `0`.
+
+### Checked
+
+- `etc/lean-check.py -a` on every changed file; targeted `lake build`s (mvcc `Results`, the mvcc,
+  backend and etcdserver Drafts, apply and txn `Results`; read Link's importers' leaves).
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11211 jobs, no error.
+- `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries); every
+  `etc/tcb-collections/*.txt` `--check` matches.
