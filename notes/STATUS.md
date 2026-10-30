@@ -394,6 +394,10 @@ store's `GetList` is still names-only.
   and D1 closed by the pin `ad74ee4f6` (2026-10-28), D2's fix in it too (the exclusions not yet
   dropped). Next: D2's body hypotheses discharged, then phases 4 (informers) and 5 (controller).
 
+- `m2-storage-plan.md`: M2's storage side (the backend-cmp Probe's P3, S1-S3): compaction mode in
+  the watchable store's construction, the boot's budgets, `writerOwn`'s count. **Draft** written
+  (branch `m2-storage`); the user's batch Q1 (R2-7's timing) and Q2 (the drafted statements) open.
+
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
   auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
   scope (A), the compactor and the server's compaction path (the user's). Next: phase 1.
@@ -490,6 +494,25 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 # Raft and the witness part
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
+
+## M2, the storage side (2026-10-30, branch `m2-storage`)
+
+`notes/m2-storage-plan.md`. The M2 work below the apply loop (the auth-mode merge has not landed for
+the apply loop, so nothing above the store's construction is touched). Draft, checked, nothing
+exported or trusted switched:
+- **Draft** (`mvcc/M2StorageDraft.lean`, `etcdserver/M2StorageDraft.lean`, imported by nothing):
+  `New.spec`/`newWatchableStore.spec` in compaction mode give the compaction right's half
+  (`crevRightM`) beside the closer instead of freezing (P3); `isWatchableStore`'s frozen fact gated by
+  the mode (`wsFrozenM`); no watchers in compaction mode (`NewWatchStream` takes `crevFrozen`, the
+  watch-store invariant's `wsWatchFrozen`); the glue proved: `compactRight_of_wsCloser` (after
+  `NewServer`'s last error return), `server_kv_watchable_ofC` (`cm = true`, over
+  `storeBackend_of_backendC`), `kbWTSupplyM_of_srvWTPool` (R2-7's conversion).
+- **Switched, internal** (every statement reads as before at `cm = false`): `mvcc.writerOwn` counts
+  `retiredAt γ (2 + nJobRd γ.kb)` (`writerOwn_off`); `bootBackend_of_newPost` keeps `fkV` (and
+  `srSlot`), `NewServer` names them; laws `mvcc.kbSRM_some`, `mvcc.kbWTSupplyM_alloc`.
+- **Open, for the user** (the plan's batch): Q1, R2-7's timing: `mvcc.New` needs the write-back supply
+  in `NewServer`, but `srvWTPool` exists only from `start` (recommended: the supply a premise of
+  `store.Compact` instead of `NewStore`); Q2, the drafted statements.
 
 ## backend-cmp: Probe repairs (2026-10-30, branch `backend-cmp`)
 
