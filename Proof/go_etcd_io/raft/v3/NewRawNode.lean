@@ -50,7 +50,7 @@ theorem NewRawNode.wp_proof
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as %hp ⟨#Hhp, Hphys⟩
   obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hlsn, Hgh,
-    Hrst, Hrpd, Hsdr', Hdom⟩ := Hpost
+    Hrst, Hrpd, Hsdr', Hdom, Hdtk⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have HV : hs.Vote' = W64 0 := Hhs.2.1
   have Hrel : NStateRel s initPState :=
@@ -74,7 +74,7 @@ theorem NewRawNode.wp_proof
   · iapply rawNodeFresh_intro_sn «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
         cv.PreVote' s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
-          Hsn, Hsg⟩
+          Hsn, Hsg, Hdtk⟩
         (by rw [Hgh]) Hpv Hsdr' Hdom
         (by simp only [hardstateVal, nodeHardstate, hsZero]; rw [Ht, HT, Hv, HV, Hcm0])
       $$ «$r0» Hphys ss Hhp [] []
@@ -82,7 +82,9 @@ theorem NewRawNode.wp_proof
       | iapply ownSlice_nil
       | iapply ownSliceCap_nil
       | (simp only; rw [HAW, Hasync])
+  isplitr
   · ipureintro; rfl
+  ipureintro; exact ⟨Hlsn, by rw [Hgh]⟩
 
 end proof
 

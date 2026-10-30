@@ -160,12 +160,9 @@ private theorem RestartNode.wp_raw
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.specRaw (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P28 HsnIn
-  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
+  intro γ md bud c cv lok si sn σ hs csm R R' P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
+  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HInit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
     | static =>
@@ -206,25 +203,17 @@ private theorem RestartNode.wp_raw
       icases ownRaftGhost_noXfer_of_commit γ cv.ID' _ rfl $$ Hg with ⟨%H, -⟩
       ipureintro; exact H
   wp_auto
-  -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
-  wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28
-    $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s0, Hfresh0, %Herr⟩
-  · iintro %Φ %ss' Hs HK
-    iapply Hinit $$ Hs
-    iintro %hp %cs %al Hs Hhs Hcs
-    iapply HK $$ Hs [] Hhs Hcs
-    iempintro
+  wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' P1 P2 P3 P4 P5 P6 P7 P8 P9 P10
+    P11 P12 P13 P14 P15 P16 P17 P19 P20 P21 P22 P23 P24 P25 P28
+    $$ [$Hc $Hlg $HR $HFI $HLI $HInit] as %rn %err ⟨HR', %s, Hfresh, %Herr, %Hsn2⟩
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
   -- leaves it open, `rawNodeFresh`)
-  -- (2026-10-19, D21 M2r) out of the no-snapshot mode: leader transfer on; (D22 S-a) at the
-  -- cluster's no-transfer mode (`RaftNames.reNoXfer`), either way
-  icases rawNodeFresh_set_xf _ _ _ _ _ _ s0 γ.reNoXfer $$ Hfresh0 with ⟨%s, Hfresh⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
-  obtain ⟨Hp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg⟩ := Hlog
+  obtain ⟨Hp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg, Hdtk⟩ := Hlog
+  obtain ⟨Hlsn, Hgsn⟩ := Hsn2
   -- (D22l) `prevHardSt` zero, `RNState.phs`'s default
   ihave #Hhard0 := prevHS_of_zero γ _ _ Hhz $$ Hhard
   obtain ⟨Ht0, Hv0, Hr, -, -, -⟩ := Hterm0
@@ -233,7 +222,7 @@ private theorem RestartNode.wp_raw
   -- (2026-10-17) the term ceiling at the term, `0`
   have Hrnpv : ∀ fp, RNPv
       { delivered := [], unpersisted := [], steps := [], term := W64 0,
-        storage := interface.ok si, mode := md,
+        storage := interface.ok si, sn := sn, mode := md,
         cfg := cfgState (GMap.listToSet csm.Voters') ∅ } fp s := fun _ =>
     ⟨fun _ _ h => (by rw [Hr] at h; cases h), by rw [Hgh], by rw [Ht0, Hgh]; exact Int.le_refl _,
       fun h => (by rw [Hr] at h; cases h), fun _ => Hr⟩
@@ -248,12 +237,12 @@ private theorem RestartNode.wp_raw
      fun h => absurd h (by rw [Hap, Hapg]; exact Int.lt_irrefl _)⟩
   ihave Hrn : ownRawNode γ rn cv.ID'
       { delivered := [], unpersisted := [], steps := [], term := W64 0,
-        storage := interface.ok si, mode := md,
+        storage := interface.ok si, sn := sn, mode := md,
         cfg := cfgState (GMap.listToSet csm.Voters') ∅ } $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
   · cases md with
     | static =>
-      have P25 := P25 rfl
-      have P26 := P26 rfl
+      have P25 := P26 rfl
+      have P26 := P27 rfl
       iunfold rnInit at Hghost
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
       · iunfold sdrOk; iexists s.sdr; iexact Hsd0
@@ -262,25 +251,25 @@ private theorem RestartNode.wp_raw
       · rw [P25]; iexact Hphys
       iapply ownRawNode_intro_static γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
-            storage := interface.ok si, mode := .static,
+            storage := interface.ok si, sn := sn, mode := .static,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s initPState rnv sv hprev [] rfl Hrel
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
-          (by rw [Ht0]) (by rw [Hsg]) (Hrnpv []) (by rw [Hgh]) (by rw [Hgh])
+          (by rw [Ht0]) ⟨by rw [Hsg], by rw [Hlsn]⟩ (Hrnpv []) (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
-          (SdtTie.of_none Hsn)
+          (SdtTie.of_none (by rw [Hdtk]; rfl))
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
-          (by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩)
+          (by unfold NsLink; rw [Hgh, Hns0])
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
-      · rw [Hsg]; iexact Hcl
+      · rw [Hgsn]; iexact Hcl
       · rw [Hsn]; iapply snapLocOk_none
     | dyn dec c0 h0 h1 =>
       iunfold rnInit at Hghost
@@ -312,22 +301,25 @@ private theorem RestartNode.wp_raw
         iframe Hgr
         isplitr
         · ipureintro
-          refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩⟩
+          refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]⟩
           rw [Hdiff]; rfl
         isplitr; · iapply decLb_empty
-        rw [Hsg]; iexact Hcl
+        isplitr; · rw [Hgsn]; iexact Hcl
+        isplitr; · iapply leadW_none γ cv.ID' _ (by rw [Hrel.1]; rfl)
+        unfold xfW; rw [Hgh]
+        iapply BigSepM.bigSepM_empty.2; iempintro
       iapply ownRawNode_intro γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
-            storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1,
+            storage := interface.ok si, sn := sn, mode := .dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) Hasync
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
-          (by rw [Ht0]) (by rw [Hsg]) (Hrnpv _) (by rw [Hgh]) (by rw [Hgh])
+          (by rw [Ht0]) ⟨by rw [Hsg], by rw [Hlsn]⟩ (Hrnpv _) (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
-          (SdtTie.of_none Hsn) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] []
+          (SdtTie.of_none (by rw [Hdtk]; rfl)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
@@ -361,7 +353,7 @@ private theorem RestartNode.wp_raw
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
                           mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
-                          snapIn := sn, live := γlive }
+                          sn := sn, live := γlive }
   ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1]
   · unfold nodeLiveRaw; iexact Hlive1
   ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2]
@@ -408,9 +400,12 @@ private theorem RestartNode.wp_raw
       unfold runCfg
       isplitr
       · ipureintro
-        exact ⟨rfl, Nat.le_refl _, rfl, fun _ => ⟨rfl, rfl⟩, HsnIn, fun _ h => by cases h⟩
+        exact ⟨rfl, Nat.le_refl _, rfl, fun _ h => by simp at h, rfl⟩
       isplitl [Hdlm]
       · iExactEq Hdlm; rfl
+      isplitr
+      · simp only [rsDlv]
+        iapply dlvKeysAt_nil
       iexists 0
       iframe Hcap1 Hcam
       isplitr
@@ -421,17 +416,18 @@ private theorem RestartNode.wp_raw
   iexists γn, n_ptr
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-  iframe Hnode Hlive2
+  iframe Hnode Hlive2 HR'
   isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriverChan dlvLb
     iframe Hnode Hdlv2 Hdlb
+    isplitr
+    · iapply dlvKeysAt_nil
     iexists _
     iframe Hreq1 Hreq2
   unfold nodeCfg
   iframe Hcap2 Hcamlb
   iexists _
   iframe Hccq1 Hccq2
-  -/
 
 end proof
 

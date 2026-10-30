@@ -73,7 +73,7 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
     "%Hlog" ∷ ⌜s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
-      s.logst.snap = none ∧ s.logst.storage = interface.ok si⌝ ∗
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0⌝ ∗
     "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
@@ -90,7 +90,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
     (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
-      s.logst.snap = none ∧ s.logst.storage = interface.ok si)
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
     (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
     (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
@@ -116,7 +116,7 @@ theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GS
     (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
-      s.logst.snap = none ∧ s.logst.storage = interface.ok si)
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
     (Hgh : s.gh = { sn := s.gh.sn }) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
     (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗

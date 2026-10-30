@@ -139,7 +139,9 @@ abbrev NewRawNode.spec : Prop :=
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
         rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' cv.PreVote' s ∗
-        ⌜err = interface.nil⌝ }}
+        ⌜err = interface.nil⌝ ∗
+        -- (raft-final phase 2) the log's and the ghost state's storage names, the bundle's
+        ⌜s.logst.sn = sn ∧ s.gh.sn = sn⌝ }}
 
 end spec
 

@@ -192,7 +192,9 @@ abbrev newRaft.spec : Prop :=
         s.rd.states = [] ∧ s.rd.pend = [] ∧
         -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the
         -- `Config`'s `StepDownOnRemoval`, and the voters tracked, no learner
-        s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = GMap.listToSet csm.Voters'⌝ }}
+        s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = GMap.listToSet csm.Voters' ∧
+        -- (raft-final phase 2) nothing certified yet (for `SdtTie` at `RestartNode`)
+        s.logst.dtk = 0⌝ }}
 
 end spec
 
