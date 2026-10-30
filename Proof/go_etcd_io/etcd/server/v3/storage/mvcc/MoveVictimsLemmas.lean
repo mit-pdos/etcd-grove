@@ -97,7 +97,10 @@ theorem mv_w64_excl (l : Loc) (v v' : w64) (q : Qp) :
   iintro ⟨H1, H2⟩
   icases typedPointsto_split _ _ _ $$ H1 with H1
   icases typedPointsto_split _ _ _ $$ H2 with H2
-  rw [typedPointstoDef_heap, typedPointstoDef_heap]
+  -- an integer's points-to is its bytes: combine the first byte's
+  simp only [typedPointstoDef_w64, natBytes, bytesPointsto]
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
   icombine H1 H2 gives % ⟨Hv, -⟩
   exfalso
   rw [DFrac.op_own] at Hv

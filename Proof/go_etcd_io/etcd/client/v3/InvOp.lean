@@ -237,6 +237,41 @@ its `switch` rules out. -/
 def opWatchPanics (key : GoString) (gs : List (OpFull → OpFull)) : Prop :=
   (opWatchModel key gs).watchPanics
 
+/-- **The range a watch of `o` is of** (G2, 2026-10-30, the user's decision): `o` with an empty
+key read as `"\x00"`, as etcd's server reads a create's key (`v3rpc/watch.go:266-269`, the
+registered range's `createRangeOk`); the range from `""` would also contain the empty key, which
+the server never watches. A non-empty key is kept (`OpFull.watchNorm_of_ne`). -/
+def OpFull.watchNorm (o : OpFull) : OpFull :=
+  if o.key = [] then { o with key := [W8 0] } else o
+
+/-- A watch of a non-empty key is of its own range. -/
+theorem OpFull.watchNorm_of_ne (o : OpFull) (h : o.key ≠ []) : o.watchNorm = o := by
+  unfold OpFull.watchNorm; rw [if_neg h]
+
+/-- The normalized key: `"\x00"` for an empty one. -/
+theorem OpFull.watchNorm_key (o : OpFull) :
+    o.watchNorm.key = (if o.key = [] then [W8 0] else o.key) := by
+  unfold OpFull.watchNorm; split <;> rfl
+
+/-- The normalized key is never empty. -/
+theorem OpFull.watchNorm_key_ne (o : OpFull) : o.watchNorm.key ≠ [] := by
+  rw [OpFull.watchNorm_key]; split
+  · simp
+  · assumption
+
+/-- The normalization keeps everything but the key. -/
+theorem OpFull.watchNorm_base (o : OpFull) : o.watchNorm.base = o.base := by
+  unfold OpFull.watchNorm; split <;> rfl
+
+theorem OpFull.watchNorm_t (o : OpFull) : o.watchNorm.t = o.t := by
+  unfold OpFull.watchNorm; split <;> rfl
+
+theorem OpFull.watchNorm_leaseID (o : OpFull) : o.watchNorm.leaseID = o.leaseID := by
+  unfold OpFull.watchNorm; split <;> rfl
+
+theorem OpFull.watchNorm_watchPanics (o : OpFull) : o.watchNorm.watchPanics ↔ o.watchPanics := by
+  unfold OpFull.watchPanics; rw [OpFull.watchNorm_base, OpFull.watchNorm_leaseID]
+
 /-- `WithLimit(n)` -/
 def withLimitM (n : w64) (o : OpFull) : OpFull := { o with base := { o.base with limit := n } }
 /-- `WithRev(rev)` -/

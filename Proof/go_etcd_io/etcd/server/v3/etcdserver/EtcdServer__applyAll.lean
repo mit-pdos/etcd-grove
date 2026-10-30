@@ -47,8 +47,8 @@ theorem EtcdServer.applyAll.wp_proof
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid Hms Hai1
     Hok hEok hdv haw
   simp only [srvRunH_applyAll_spec]
-  unfold EtcdServer.applyEntries.spec at hAE
-  simp only [srvRunH_applyEntries_spec] at hAE
+  have hAE := EtcdServer.applyEntries.spec_off hAE
+  unfold EtcdServer.applyEntries.specOff at hAE
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun⟩
   ihave #Hsrv' := Hsrv
@@ -239,7 +239,6 @@ theorem EtcdServer.applyAll.wp_proofOn
     Hms Hai1 Hok hEok hdv haw
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE
-  simp only [srvRunH_applyEntries_spec] at hAE
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR⟩
   ihave #Hsrv' := Hsrv

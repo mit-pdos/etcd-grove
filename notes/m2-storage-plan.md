@@ -2246,3 +2246,31 @@ Draft (used by `idxWriterP_seal`).
 - `etc/lean-check.py -a` on both Drafts; targeted `lake build` of both (3646 jobs).
 - Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11212 jobs, no error.
 - `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries).
+
+## Merge of `lean` at `51b0f7adad` (G2's freeze; 2026-10-30)
+
+`lean` brought G2's freeze, which changed the same create arm as step 1: `upOk` gained the server's
+mode `M`, `watchUp` takes the watch server `R : WSrv GF`, and the create arm carries the client's
+bound on the auth store's published index. The merge keeps both meanings: `lean`'s signatures, its
+bound, and step 1's "no compactor" conjunct appended last (as in step 1). Nothing else of either
+side's approved text changes. The combined text (`api/v3rpc/InvWatch.lean`):
+
+```lean
+def upOk (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
+  iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
+    (match m with
+     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound ∗ mvcc.noCompactor γ.st
+     | _ => iprop(True)))
+
+def watchUp (R : WSrv GF) (_i : Nat) (m : WatchReqM) : IProp GF :=
+  iprop(⌜watchReqOk m⌝ ∗
+    (match m with
+     | .create c => mvcc.watchTok R.γ ∗ □ auth.authPubLbM R.E.authMode c.bound ∗
+         mvcc.noCompactor R.γ.st
+     | _ => iprop(True)))
+```
+
+Repairs: `serverWatchStream.recvLoop` (proved on `lean` by G2) takes the conjunct from `upOk` and
+passes it with the token as mvcc's `P.T`; `watchGRPCStream.run`'s three create sites frame
+`Hnoc` (the member facts') beside `lean`'s bound; `client.watchUp_create` (step 1, unused) takes
+the create's bound as a premise. The pin moved with `lean` (`ad74ee4f6` -> `6da88b280`).

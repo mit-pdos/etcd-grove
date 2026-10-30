@@ -24,7 +24,10 @@ namespace EtcdGrove
 namespace metadata
 
 /-- **The outgoing metadata of the context `ctx`** (opaque, see the file header): `none` if it
-has none, else each key's values. -/
+has none, else each key's values, as `FromOutgoingContext` returns them: the context's metadata
+merged with its appended pairs (`added` after `md`), keys lower-cased. A raw `MD` whose keys collide
+up to case (a literal map given to `NewOutgoingContext`, where grpc's result depends on map order) is
+outside the model (G2, 2026-10-30: `streamKeyOf`'s laws rely on this reading). -/
 opaque outgoingOf [GooseExts] : GoInterface → Option (GoString → Option (List GoString))
 
 /-- Metadata (`none`: no metadata) with `v` appended to the values of the key `k`. -/
@@ -60,8 +63,10 @@ def mdNorm (md : Option (GoString → Option (List GoString))) :
     | some [] => none
     | v => v
 
-/-- A key with no upper-case ASCII letter (grpc lower-cases the keys it is given). -/
-def lowerKey (k : GoString) : Prop := ∀ b ∈ k, ¬ (W8 65 ≤ b ∧ b ≤ W8 90)
+/-- A key of ASCII bytes with no upper-case letter: one grpc's `strings.ToLower` leaves unchanged.
+(Excluding only `A`-`Z` was not enough: `ToLower` lower-cases all of Unicode, `É` to `é`, and
+replaces invalid UTF-8; G2's axiom review, `notes/axiom-review/g2-streamkey.md`.) -/
+def lowerKey (k : GoString) : Prop := ∀ b ∈ k, b < W8 128 ∧ ¬ (W8 65 ≤ b ∧ b ≤ W8 90)
 
 end metadata
 end EtcdGrove

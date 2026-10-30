@@ -68,6 +68,10 @@ theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
+theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape L := rfl
+
+theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
+
 theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (A ++ B)) :
     logShapeM on A := by
   cases on

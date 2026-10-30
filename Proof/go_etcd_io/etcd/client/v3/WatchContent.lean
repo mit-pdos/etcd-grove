@@ -226,21 +226,16 @@ theorem covers_inRange (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange) (k : G
     by_cases h1 : c.rangeEnd = [W8 0]
     · rw [if_pos h1] at he
       simp only [if_neg h0, if_pos h1, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
-      rcases he with he | he
-      · rw [he] at hcov
-        simp only [decide_eq_true_eq] at hcov
-        obtain ⟨hge, hlt⟩ := hcov
-        rw [adt.affCmp_nonneg_iff, hk] at hge
-        intro hl
-        apply hge
-        refine ⟨?_, Or.inr hl⟩
-        intro hk0
-        rw [adt.affCmp_neg_iff] at hlt
-        exact hlt.1 hk0
-      · rw [he] at hcov
-        simp only [decide_eq_true_eq] at hcov
-        rw [hcov, ← hk]
-        exact go.goStringLt_irrefl _
+      rw [he] at hcov
+      simp only [decide_eq_true_eq] at hcov
+      obtain ⟨hge, hlt⟩ := hcov
+      rw [adt.affCmp_nonneg_iff, hk] at hge
+      intro hl
+      apply hge
+      refine ⟨?_, Or.inr hl⟩
+      intro hk0
+      rw [adt.affCmp_neg_iff] at hlt
+      exact hlt.1 hk0
     · rw [if_neg h1] at he
       rw [he] at hcov
       simp only [decide_eq_true_eq] at hcov
@@ -495,7 +490,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     (hsrc : m.src = some ρ) (hρw : ρ.evs ≠ [] → ρ.w = w)
     (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
     (hps : ps.length = ρ.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
-    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr) X rg)
+    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr P.bd) X rg)
     (hrr : P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rr)
     (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
     (hhi : (evsOf Dm w = [] ∧ hi = hb) ∨

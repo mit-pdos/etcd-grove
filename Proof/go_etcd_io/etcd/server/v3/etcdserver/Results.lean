@@ -1759,32 +1759,15 @@ outcome the model's admin step, the row back at the history after it. -/
 theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
   apply_admin_entry_on apply_apply_admin_latest
 
-/-- **The apply loop over a batch with auth on** (the auth plan's E3p, `EtcdServer__apply.lean`'s
-`wp_proofOn`): each entry through `applyEntryNormal.spec` (`wp_applyEntryNormal`; its admin step's time receipt from
-the iteration's Go steps), each conf change through `applyConfChange`; the apply thread after the
-batch at the mode-`on` model of the committed log (`kvAppliedOn`). -/
-theorem server_apply_on :
-    EtcdServer.apply.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.apply.wp_proofOn zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer
-    consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex
-    consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
-    raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal
-    EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm
-    pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId
-    membership.RaftCluster.wp_Members
-
-/-- **`applyEntries` with auth on** (the auth plan's E3p): the batch's unapplied entries through
-`server_apply_on`. -/
-theorem server_apply_entries_on :
-    EtcdServer.applyEntries.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntries.wp_proofOn raftpb.Entry.wp_GetIndex server_apply_on
-
-/-- **`applyAll` with auth on** (the auth plan's E3p): the batch through `server_apply_entries_on`,
+/-- **`applyAll` with auth on** (the auth plan's E3p): the batch through `applyEntries.spec`'s mode
+`on` (`spec_on`; step 3 of the auth-mode merge, 2026-10-30: until then `server_apply_entries_on` over
+`server_apply_on`),
 the snapshot and compaction with the mode-`on` applier row (`snapshot`'s contract over the part
 both rows share, `srvApplyKVCore`). -/
 theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proofOn EtcdServer.wp_applySnapshot server_apply_entries_on
+  EtcdServer.applyAll.wp_proofOn EtcdServer.wp_applySnapshot
+    (EtcdServer.applyEntries.spec_on EtcdServer.wp_applyEntries)
     EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency
     EtcdServer.wp_snapshotIfNeededAndCompactRaftLog
 
@@ -1885,8 +1868,6 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
 #print axioms Perennial.EtcdGrove.server_admin_entry_on
-#print axioms Perennial.EtcdGrove.server_apply_on
-#print axioms Perennial.EtcdGrove.server_apply_entries_on
 #print axioms Perennial.EtcdGrove.server_apply_all_on
 #print axioms Perennial.EtcdGrove.server_run_on
 #print axioms Perennial.EtcdGrove.server_start_on

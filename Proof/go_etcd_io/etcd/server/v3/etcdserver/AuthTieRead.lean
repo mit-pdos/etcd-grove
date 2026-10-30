@@ -42,6 +42,24 @@ theorem nodup_at_last {α : Type _} (l : List α) (hn : l.Nodup) (k m : Nat) (x 
   have heq : k = l.length - 1 := List.Nodup.eq_of_getElem?_eq hn hkl (hk.trans hlast.symm)
   omega
 
+/-- **The namespaces of the tie's read law** (`authStateAt_setup`): the raft log's invariant, the
+KV invariant, the auth history's, the tie's and the auth store's revision invariant. -/
+def authTieReadMask : CoPset :=
+  ↑srvRaftN ∪ ↑kvN ∪ ↑authHistN ∪ ↑authTieN ∪ ↑(nroot.@"authRev")
+
+/-- A mask holding the read law's namespaces holds each. -/
+theorem authTieReadMask_sub (E' : CoPset) (h : authTieReadMask ⊆ E') :
+    ↑srvRaftN ⊆ E' ∧ ↑kvN ⊆ E' ∧ ↑authHistN ⊆ E' ∧ ↑authTieN ⊆ E' ∧
+      ↑(nroot.@"authRev") ⊆ E' := by
+  unfold authTieReadMask at h
+  refine ⟨fun p hp => h p ?_, fun p hp => h p ?_, fun p hp => h p ?_, fun p hp => h p ?_,
+    fun p hp => h p ?_⟩ <;> simp only [Iris.Std.LawfulSet.mem_union]
+  · exact Or.inl (Or.inl (Or.inl (Or.inl hp)))
+  · exact Or.inl (Or.inl (Or.inl (Or.inr hp)))
+  · exact Or.inl (Or.inl (Or.inr hp))
+  · exact Or.inl (Or.inr hp)
+  · exact Or.inr hp
+
 end pure
 
 section ghost
@@ -90,12 +108,12 @@ theorem authHistFrozen_adm (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
 store's state `last hs` at the index `k`, the store's state at an index `m ≥ k` is `last hs`. -/
 theorem authStateAt_setup (E : apply.AEnv GF) (ρ : ReadNames) (γa : auth.AuthNames) (γz : GName)
     (hs : List auth.AuthState) (k m : Nat) (st : auth.AuthState) (E' : CoPset)
-    (hγa : E.authMode = .on γa) (hE0 : ↑srvRaftN ⊆ E') (hE1 : ↑kvN ⊆ E') (hE2 : ↑authHistN ⊆ E')
-    (hE3 : ↑authTieN ⊆ E') (hE4 : ↑(nroot.@"authRev") ⊆ E') :
+    (hγa : E.authMode = .on γa) (hE : authTieReadMask ⊆ E') :
     srvRaftLogInv ρ.raft ∗ kvInvOn ρ.raft ρ.kv srvAuthSt0 ∗ authHistTie E ρ srvAuthSt0 ∗
         authHistFrozen ρ.kv γz hs ∗ auth.authStateAt γa k (hs.getLastD srvAuthSt0) ∗ ⌜k ≤ m⌝ ∗
         auth.authStateAt γa m st ={E'}=∗
       ⌜st = hs.getLastD srvAuthSt0⌝ := by
+  obtain ⟨hE0, hE1, hE2, hE3, hE4⟩ := authTieReadMask_sub E' hE
   unfold authHistTie
   rw [hγa]
   iintro ⟨#Hrl, #Hkv, ⟨⟨%stl, %R, #Hinv⟩, #Htinv⟩, #Hfz, #Hk, %hkm, #Hm⟩

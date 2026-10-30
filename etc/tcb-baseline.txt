@@ -776,6 +776,8 @@ sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry authkv.Main.wp_proof
+sorry authkv.Work.wp_proof
+sorry authkv.newUserClient.wp_proof
 sorry isRaftNodeIfc_of_isNode
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

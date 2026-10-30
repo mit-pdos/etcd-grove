@@ -21,7 +21,9 @@ store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread
 `E.γ`), `Term()`/`Leader()` return (`raftStatusOk`), and its auth store (`isReqAuth`, A2's, and the
 apply package's `isAuthStore`, both at the reader resource `E.RD`, the latter in the store's mode
 `E.authOn`), with auth on the store's bound request side too (`isReqAuthBound`, the
-auth-mode merge, 2026-10-29).
+auth-mode merge, 2026-10-29), and (G2, 2026-10-30) the server's auth store at a reader's lower bound
+(`srvAuthLb`, what `isWatchPermitted` takes for a create's bound: `True` with auth off,
+`srvAuthLb_off`).
 
 **The watch server** (`isWatchServer p R`, persistent): `NewWatchServer`'s `*watchServer`, its
 fields fixed (`WSrv`: the server, its environment, the watchable store and its names, the cluster
@@ -43,6 +45,7 @@ public import Proof.errors.NewVar
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Proof.sync
@@ -150,7 +153,10 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
       srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authMode E.RW) ∗
-    watchVars ∗ mvcc.watchTokPool γ ∗ auth.modeTag γ.tag E.authMode)
+    watchVars ∗ mvcc.watchTokPool γ ∗ auth.modeTag γ.tag E.authMode ∗
+    -- (G2, 2026-10-30) the server's auth store at a reader's lower bound (what
+    -- `isWatchPermitted` takes for a create's bound)
+    srvAuthLb s E)
 
 instance watchSrvOk_persistent (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) :
     Persistent (watchSrvOk s E γ wsl) := by
@@ -234,31 +240,36 @@ theorem isWatchServer_noCompactor_env (p : Loc) (R : WSrv GF) (h : R.E.γ.cm = f
 
 /-- **What the client's content of a request gives the server** (persistent): the request is
 restricted (`watchReqOk`) and, for a create request, comes with a watch token of the store
-(`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends) and (M2, the
-storage side, 2026-10-30: review round 1's F1, the user's: no watchers in compaction mode) the "no
+(`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends), (G2's
+freeze, 2026-10-30) the client's bound on the auth store's published index in the server's mode `M`
+(`authPubLbM M c.bound`, `watchUp`'s: what `recvLoop` checks the create at), and (M2, the storage
+side, 2026-10-30: review round 1's F1, the user's: no watchers in compaction mode) the "no
 compactor" fact (`mvcc.noCompactor γ.st`, the create token's in mvcc's watch parameters). -/
-def upOk (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
+def upOk (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
     (match m with
-     | .create _ => iprop(mvcc.watchTok γ ∗ mvcc.noCompactor γ.st)
+     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound ∗ mvcc.noCompactor γ.st
      | _ => iprop(True)))
 
-instance upOk_persistent (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) :
-    Persistent (upOk γ Up) := by
+instance upOk_persistent (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) :
+    Persistent (upOk γ M Up) := by
   unfold upOk; infer_instance
 
 /-- **The client's content of the watch method's requests** (unit W-W: what the client's `Send`
 gives with each request, `Up` of the registered method): the request is restricted
-(`watchReqOk`) and a create request comes with a watch token of the store and (M2, the storage
-side) the "no compactor" fact. -/
-def watchUp (γ : mvcc.WsNames) (_i : Nat) (m : WatchReqM) : IProp GF :=
+(`watchReqOk`) and a create request comes with a watch token of the store, (G2, 2026-10-30) the
+client's bound on the auth store's published index (`authPubLbM` of the create's ghost `bound`,
+at the server's mode: the check is fresh at it), and (M2, the storage side) the "no compactor"
+fact. -/
+def watchUp (R : WSrv GF) (_i : Nat) (m : WatchReqM) : IProp GF :=
   iprop(⌜watchReqOk m⌝ ∗
     (match m with
-     | .create _ => iprop(mvcc.watchTok γ ∗ mvcc.noCompactor γ.st)
+     | .create c => mvcc.watchTok R.γ ∗ □ auth.authPubLbM R.E.authMode c.bound ∗
+         mvcc.noCompactor R.γ.st
      | _ => iprop(True)))
 
 /-- The registered content meets the watch server's restrictions and budget (`upOk`). -/
-theorem upOk_watchUp (γ : mvcc.WsNames) : ⊢ upOk (GF := GF) γ (watchUp γ) := by
+theorem upOk_watchUp (R : WSrv GF) : ⊢ upOk (GF := GF) R.γ R.E.authMode (watchUp R) := by
   unfold upOk
   iintro !> %i %m H
   unfold watchUp
@@ -333,7 +344,7 @@ request's answer token: not persistent). -/
 def ctrlP (r : WRun GF) (_k : Int) (l : Loc) : IProp GF :=
   iprop(∃ m : WatchRespM, watchRespMsg l m ∗
     ⌜m.hdr.clusterId = r.srv.cid ∧ m.hdr.memberId = r.srv.mid ∧ m.src = none⌝ ∗
-      ctrlOk r.γs r.srv.γ m)
+      ctrlOk r.γs r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) m)
 
 /-- **The run's `serverWatchStream` `sws`** (persistent; see the file header). -/
 def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
@@ -354,9 +365,10 @@ def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
     swsF sws go!"closec" ↦□ r.cc ∗
     watchSrvOk r.srv.s r.srv.E r.srv.γ r.srv.wsl ∗
     srvStreamIs r.st r.γs pbWatchRequest pbWatchResponse r.Up r.Dn r.ci r.cd ∗
-    watchStreamSpec r.γs r.srv.γ r.srv.cid r.srv.mid r.Dn ∗
+    watchStreamSpec r.γs r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) r.srv.cid r.srv.mid
+      r.Dn ∗
     streamAuxIs r.γs (auxOf r.γo r.γa) ∗
-    upOk r.srv.γ r.Up ∗
+    upOk r.srv.γ r.srv.E.authMode r.Up ∗
     mvcc.isWatchStream r.wsp (wsIface r.srv.wsl) (wParams r.srv) r.γo ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" r.wsp ↦□ r.ch ∗
     isChan r.ch r.γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗
@@ -390,16 +402,19 @@ and the send loop's. -/
 def watchRunSlot (R : WSrv GF) : IProp GF := iprop(recvRes R ∗ sendRes R)
 
 /-- **The watch method's stream specification** (unit W-W: `Spec` of the registered method):
-`watchStreamSpec` at the server's store names and ids. -/
-abbrev watchSpec (R : WSrv GF) : StreamSpec (GF := GF) pbWatchResponse :=
-  fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn
+`watchStreamSpec` at the server's store names and ids, and (G2, 2026-10-30) the server and the
+stream's token `tok` its watchers' authorizations name (`watchAuthed`); the registration is at
+`tok := auth.mdTokenOf md` for the stream's metadata `md`. -/
+abbrev watchSpec (R : WSrv GF) (tok : Option GoString) : StreamSpec (GF := GF) pbWatchResponse :=
+  fun γs Dn => watchStreamSpec γs R.γ R.s tok R.cid R.mid Dn
 
 /-- The watch method's stream specification is satisfiable per stream (`streamSpecOk`): its
 content is `watchDn`. -/
-theorem streamSpecOk_watchSpec (R : WSrv GF) : ⊢ streamSpecOk (watchSpec R) := by
+theorem streamSpecOk_watchSpec (R : WSrv GF) (tok : Option GoString) :
+    ⊢ streamSpecOk (watchSpec R tok) := by
   unfold streamSpecOk
   iintro !> %γs
-  iexists (watchDn γs R.γ R.cid R.mid)
+  iexists (watchDn γs R.γ R.s tok R.cid R.mid)
   simp only [watchSpec]; unfold watchStreamSpec
   iintro !> !> %j %m
   isplit

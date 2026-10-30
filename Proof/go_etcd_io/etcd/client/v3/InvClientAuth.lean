@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 public import Proof.go_etcd_io.etcd.client.v3.credentials.Defs
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 public import Perennial.Ghost.DGhostVar
+public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 
 @[expose] public section
 
@@ -48,6 +49,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
+open client (watcherIfaceOf watcherConnAt)
 open go_etcd_io.etcd.cache.v3 (statusErrOk errCellOk)
 
 section defs
@@ -385,13 +387,14 @@ theorem mdTokenOf_norm (md md' : GrpcMd) (hne : ∀ k, mdGet md k ≠ some [])
 
 /-- **Every attempt on the connection `conn` carries a token meeting `P`, or the context's own**
 (persistent; the auth plan's C1, 2026-10-28; C1's review, Q1): the handler of an attempt of a call
-with the context `ctx` sees a token meeting `P` (trimmed of `"Bearer "`, as the server reads it,
-`auth.mdTokenOf`), or the token of the context's outgoing metadata as grpc delivers it
+with a context of outgoing metadata `m` (over the metadata since G2, 2026-10-30; a context's is
+`m := outgoingOf ctx`) sees a token meeting `P` (trimmed of `"Bearer "`, as the server reads it,
+`auth.mdTokenOf`), or the token of the outgoing metadata as grpc delivers it
 (`metadata.mdNorm`). -/
 def attemptTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterface) (md : GrpcMd), ⌜clientAttemptMd conn ctx md⌝ -∗
+  iprop(□ ∀ (m md : GrpcMd), ⌜clientAttemptMdOf conn m md⌝ -∗
     (∃ t, ⌜auth.mdTokenOf md = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
-    ⌜auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm (metadata.outgoingOf ctx))⌝)
+    ⌜auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm m)⌝)
 
 instance attemptTokOk_persistent (conn : Loc) (P : GoString → IProp GF) :
     Persistent (attemptTokOk conn P) := by
@@ -402,10 +405,10 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
     connTokOk conn P ⊢ attemptTokOk conn P := by
   unfold connTokOk attemptTokOk
   iintro #H
-  iintro !> %ctx %md %h
+  iintro !> %m %md %h
   obtain ⟨c, v, hc, cm, hy, hvals, hne⟩ := h
   have hot : ∀ k, k ≠ go!"client-api-version" →
-      metadata.mdVals (metadata.outgoingOf c) k = metadata.mdVals (metadata.outgoingOf ctx) k := by
+      metadata.mdVals (metadata.outgoingOf c) k = metadata.mdVals m k := by
     intro k hk
     unfold metadata.mdVals
     rw [hc, metadata.mdVals_mdSet_ne _ _ _ _ hk]
@@ -516,21 +519,52 @@ theorem clientAuthPre_anon (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List 
 `New` gives at `clientAuthPre`'s `P`): its `KV` a `*kv` over a connection (`kvObjAtC`, the one
 `isNewClient`'s `kvObjAt` names) whose attempts carry a token meeting `P` or the context's own
 (`attemptTokOk`), and (5b) its `Auth` an `*authClient` over the same connection (`authObjAtC`), so
-that an admin call's attempts are the connection's too. -/
+that an admin call's attempts are the connection's too, and (G2's F-W3, 2026-10-30) its `Watcher` a
+`*watcher` whose stub is over it too (`watcherConnAt`), so that a watch's stream attempts are. -/
 def clientTokAt (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) : IProp GF :=
   iprop(∃ api conn : Loc,
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
     kvObjAtC api conn eps ∗ attemptTokOk conn P ∗
     -- (5b) its `Auth`, an `*authClient` over the same connection
-    ∃ ap : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" cl ↦□
+    (∃ ap : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" cl ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
           GoInterface) ∗
-      authObjAtC ap conn eps)
+      authObjAtC ap conn eps) ∗
+    -- (G2's F-W3) its `Watcher`, a `*watcher` whose stub is over the same connection
+    ∃ w : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
+        GoInterface.ok (watcherIfaceOf w) ∗ watcherConnAt w conn)
 
 instance clientTokAt_persistent (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) :
     Persistent (clientTokAt cl eps P) := by
   unfold clientTokAt; infer_instance
+
+/-- **A client's watcher's attempts carry its tokens** (G2's F-W3, 2026-10-30): the `*watcher` in
+the client `cl`'s `Watcher` field, over the connection `conn` (`watcherConnAt`, from
+`isClientWatcher`: `watcherConnAt_of_watcher`), is over the connection `clientTokAt` names, so the
+attempts on `conn` carry a token meeting `P` or the context's own (`attemptTokOk`), what
+`watchCheckOk_tok` takes. -/
+theorem attemptTokOk_of_watcher (cl : Loc) (eps : List GoString) (P : GoString → IProp GF)
+    (w conn : Loc) :
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
+        GoInterface.ok (watcherIfaceOf w) ∗ watcherConnAt w conn ∗ clientTokAt cl eps P ⊢
+      attemptTokOk conn P := by
+  iintro ⟨#Hw, #Hc, #Ht⟩
+  iunfold clientTokAt at Ht
+  icases Ht with ⟨%api, %conn', -, -, #Hk, -, %w', #Hw', #Hc'⟩
+  icombine Hw Hw' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  iunfold watcherConnAt at Hc Hc'
+  icases Hc with ⟨%wc, #Hr, #Hs⟩
+  icases Hc' with ⟨%wc', #Hr', #Hs'⟩
+  icombine Hr Hr' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  ihave %Heq := v3rpc.watchStubAt_agree wc conn conn' $$ [Hs Hs']
+  · iframe #
+  subst Heq
+  iexact Hk
 
 end defs
 

@@ -57,7 +57,10 @@ theorem ptsto_w64_valid (l : Loc) (v1 v2 : w64) (dq1 dq2 : DFrac) :
   iintro ⟨H1, H2⟩
   icases typedPointsto_split _ _ _ $$ H1 with H1
   icases typedPointsto_split _ _ _ $$ H2 with H2
-  rw [typedPointstoDef_heap, typedPointstoDef_heap]
+  -- an integer's points-to is its bytes: combine the first byte's
+  simp only [typedPointstoDef_w64, natBytes, bytesPointsto]
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
   icombine H1 H2 gives %Hc
   ipureintro; exact Hc.1
 
@@ -325,14 +328,18 @@ theorem mv_facts (S : RunSt) (U : GMap Loc Unit) (keys : List w64) (hg : gOk S U
 but its id field and `donec`). -/
 def wsElemC (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (ws : Loc)
     (a : WsPrm GF × WPh × LifePrm) : IProp GF :=
-  iprop(⌜a.1.ws = ws ∧ phOk S ws a.2.1⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
+  iprop(⌜a.1.ws = ws ∧ phOk S ws a.2.1 ∧
+      streamKeyOf (metadata.outgoingOf (GoInterface.ok a.1.ctx)) =
+      streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
     noCancelOk S a.1 a.2.1 ∗ lifeInvIs V G a.1 a.2.2 ∗ lifeTk V a.1 a.2.2 ∗
     (⌜a.2.1.isOrphan = true⌝ ∨ genOk a.1 a.2.2 n))
 
 /-- **A substream whose goroutine's deposit `run` took** (`wsElemC` with the deposit for the token). -/
 def wsElemT (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (S : RunSt) (ws : Loc)
     (a : WsPrm GF × WPh × LifePrm) : IProp GF :=
-  iprop(⌜a.1.ws = ws ∧ phOk S ws a.2.1⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
+  iprop(⌜a.1.ws = ws ∧ phOk S ws a.2.1 ∧
+      streamKeyOf (metadata.outgoingOf (GoInterface.ok a.1.ctx)) =
+      streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V a.1 ∗ wsRest V γs S.Dm a.1 a.2.1 ∗
     lifeInvIs V G a.1 a.2.2 ∗ (resumeBody V G a.1 ∨ wsStopped a.1 ∗ stopBody V a.1))
 
 theorem wsElem_choose (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt)
@@ -346,7 +353,7 @@ theorem wsElem_choose (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
       donecAt ws (lifeDn V G a.1 a.2.2))) U
   iapply (BigSepM.bigSepM_mono (fun {ws _} _ => by
     unfold wsElem
-    iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+    iintro ⟨%P, %ph, ⟨%HPws, %Hph, %Hkey⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
     unfold wsLife
     icases Hlife with ⟨%L, Hdc, #Hli, Htk, Hg⟩
     iexists (P, ph, L)
@@ -354,7 +361,7 @@ theorem wsElem_choose (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
     iframe HP Hid Hrest Hnc Hli Htk Hg
     subst HPws
     iframe Hdc
-    ipureintro; exact ⟨rfl, Hph⟩)) $$ H
+    ipureintro; exact ⟨rfl, Hph, Hkey⟩)) $$ H
 
 /-- **Pure facts of each conjunct of `U`'s conjunction, for all keys.** -/
 theorem bigSepM_pure_of (Φ : Loc → IProp GF) (Q : Loc → Prop) (U : GMap Loc Unit)
@@ -377,7 +384,7 @@ theorem wsElemCs_pure (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
   unfold wsElemC
   iintro ⟨%H, R⟩
   iframe R
-  ipureintro; exact ⟨H, H⟩
+  ipureintro; exact ⟨H, ⟨H.1, H.2.1⟩⟩
 
 /-- **Taking what a lifetime's goroutine left** (`newWatchClient`, after `joinSubstreams`: its
 `donec` closed, `lifeQ`): resumed or stopped for good. -/
@@ -480,11 +487,11 @@ theorem wsElem_recon_any (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs γs' : Str
     (S : RunSt) (l' : List Loc) (ws : Loc) :
     wsElem V G n γs (S.reconnect l') ws ⊢ wsElem V G n γs' (S.reconnect l') ws := by
   unfold wsElem
-  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph, %Hkey⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   iexists P, ph
   iframe HP Hid Hnc Hlife
   isplitr
-  · ipureintro; exact ⟨HPws, Hph⟩
+  · ipureintro; exact ⟨HPws, Hph, Hkey⟩
   cases ph with
   | reg X => exfalso; simp [phOk, RunSt.reconnect, GMap.lookup_empty] at Hph
   | closedRun X => exfalso; simp [phOk, RunSt.reconnect, GMap.lookup_empty] at Hph
@@ -596,7 +603,7 @@ theorem wsElem_recon_at (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNam
     (S : RunSt) (l' : List Loc) (ws : Loc) (i : Nat) :
     wsElem V G n γs (S.reconnect l') ws ⊢ wsElem (V.atIdx i) G n γs (S.reconnect l') ws := by
   unfold wsElem
-  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph, %Hkey⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   iexists P, ph
   rw [wsIs_atIdx, wsLife_atIdx]
   have hnr : ∀ X, ph ≠ .reg X := by
@@ -604,7 +611,7 @@ theorem wsElem_recon_at (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNam
     simp [phOk, RunSt.reconnect, GMap.lookup_empty] at Hph
   rw [wsRest_atIdx V i γs _ P ph hnr]
   iframe HP Hid Hnc Hlife Hrest
-  ipureintro; exact ⟨HPws, Hph⟩
+  ipureintro; exact ⟨HPws, Hph, Hkey⟩
 
 /-- **A substream neither registered nor queued across a reconnection** (server-cancelled, refused,
 or closed): its state of the next generation (`closedRun` becomes `closed`). -/
@@ -616,12 +623,12 @@ theorem recon_other (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) 
       wsElem V G (n + 1) γs (S.reconnect l') ws := by
   iintro ⟨HC, Hid, Hdc⟩
   unfold wsElemC
-  icases HC with ⟨⟨%HPws, -⟩, #HP, Hrest, -, #Hli, Htk, Hg⟩
+  icases HC with ⟨⟨%HPws, -, %Hkey⟩, #HP, Hrest, -, #Hli, Htk, Hg⟩
   subst HPws
   unfold wsElem wsLife
   iexists a.1, a.2.1.recon
   isplitr
-  · ipureintro; exact ⟨rfl, hrec⟩
+  · ipureintro; exact ⟨rfl, hrec, Hkey⟩
   iframe HP
   rw [WPh.recon_id]
   iframe Hid

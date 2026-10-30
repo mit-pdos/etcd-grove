@@ -27024,3 +27024,161 @@ with `srvImage`, kept in the receiver's snapshot directory. `EtcdServer.snapshot
 **Cost.** The writer's receipts stop being exclusive, so they no longer add up with another pool's;
 nothing uses that (`idxWriter_split` has no user). Drafts: `storage/mvcc/M2StorageDraftSealed.lean`,
 `etcdserver/M2StorageDraftB2.lean`; the plan's "B2 by sealed logs".
+
+## G2's freeze: the client's watch internals frozen pending (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** The freeze (`5682e997c4`) froze every statement G2 put in code. The first proof attempt
+of `watcher.Watch` (agent, 2026-10-30) showed that the frozen `watcher.Watch.spec` is unreachable
+over the client's internal watch definitions as G2 left them: the channel `Watch` returns gets its
+element predicate from `retcP`/`outcElem`, whose row is `True` (Perennial's `isSpsc` puts the
+element predicate in an invariant, so it cannot be strengthened afterwards); creates are built
+with `bound := 0` (`createOf`); `watcherMu` does not record a shared stream's key; `runCore`'s epoch
+token is existential. The approved design said so ("The client's internals", "Bound 0 today": kept
+"until `Watch` and `run` are re-proved"), but the freeze record did not exclude them.
+
+**Decision.** Those internals and the internal specs over them are frozen pending the joint re-proof
+of `Watch` and `run` (one task: the two share them); `watcher.Watch.spec`, the md-indexed gRPC and
+server statements, the auth vocabulary and the axioms stay frozen. A change to the latter still
+needs an entry here.
+
+**Review criterion that should have caught it.** The freeze's check "every caller's glue proves":
+the internals' callers were stubs (`Watch`, `run`), so their glue had not been written; the
+spec-first plan's "frozen pending" (`notes/spec-first-plan.md`, the freeze requires every caller's
+glue) applied and the freeze record should have said so.
+
+## G2's freeze: `Watch` excludes the empty key's single-key watch (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** G2 widened `watcher.Watch.spec` from prefix watches of a non-empty key to any range. The
+first proof attempt of `Watch` and `run` (agent, 2026-10-30) found it false at `Watch(ctx, "")` with
+no options: the request's key is empty and its end empty, the spec's range `inRange [] []` is the
+empty key alone, which no stored key matches, while etcd's server rewrites an empty key to `"\x00"`
+(`server/etcdserver/api/v3rpc/watch.go:266-269`) and watches that key, so a `Put("\x00", …)`
+reaches the client as a response with events. Every other range is the same keys either way, since
+no stored key is empty (a from-key or proper range from `""` is the one from `"\x00"`).
+
+**Decision** (the user's, 2026-10-30): the premise `o.key = [] → o.base.rangeEnd ≠ []`, excluding
+only that case; authkv's root watch `Watch("", WithPrefix())` stays covered. The callers (watchkv's
+`Main`, `KMWatch`) watch prefixes of non-empty keys and discharge it from their key's premise.
+Also decided: `run` and the client's internals (general ranges) are proved now; `Watch` after the
+Perennial pin brings `wp_slice_literal_nonnull` (branch `slice-literal-nonnull`), when v3rpc's
+`createRangeOk` is tightened to its from-key reading as G2's design planned (F5).
+
+**Review criterion that should have caught it.** The spec skill's "check what the statement claims
+at the boundary inputs" against the server's normalization of the request: the three review rounds
+checked from-key ranges (F5) but not the empty key's rewrite.
+
+**Superseded (2026-10-30, the user's request):** the premise is dropped. With `Watch.spec`'s range
+normalized (`OpFull.watchNorm`, "G2's freeze: `Watch`'s range from `""` starts at `"\x00"`"),
+`Watch(ctx, "")` is the single key `"\x00"`, which the spec now states correctly; the proof no longer
+used the premise.
+
+## G2's freeze: `upOk` keeps a create's bound (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** G2's `watchUp` (`v3rpc/InvWatch.lean`) gives a create's `□ auth.authPubLbM R.E.authMode
+c.bound`, but the server's view of the client's content, `upOk γ Up` (the same file, held by
+`swsIs` and taken by `watchServer.Watch.spec`), kept only `⌜watchReqOk m⌝ ∗ mvcc.watchTok γ` for a
+create, and `upOk_watchUp` dropped the bound. `serverWatchStream.recvLoop` sees the request content
+only through `swsIs`'s `upOk`, so it could not call `isWatchPermitted` at `n := c.bound` and with
+auth on could not give `ctrlWatcher`'s `watchAuthed γ s tok c.bound c.key c.rangeEnd` for a
+registered create (`watchReqOk` does not bound `c.bound`; `authPubLbM_zero` gives only `0`): its
+frozen statement was unprovable.
+
+**Decision** (the user's, 2026-10-30): `upOk γ M Up` takes the server's auth mode `M` and a
+create keeps `□ auth.authPubLbM M c.bound`; `swsIs` holds `upOk r.srv.γ r.srv.E.authMode r.Up`,
+`watchServer.Watch.spec` takes `upOk R.γ R.E.authMode Up`, and `upOk_watchUp` is
+`⊢ upOk R.γ R.E.authMode (watchUp R)` (by definition: `upOk`'s create content is `watchUp`'s).
+Nothing else frozen moved. With it `recvLoop` is proved (`hPerm` at `c.bound`, the store check from
+`watchSrvOk`'s `srvAuthLb`). The steps that needed other packages' definitions are laws in their
+packages (`auth.permVerdictFrom_on_nil`; `apply.classResFrom_not_on`,
+`apply.classResFrom_on_singleton`, `apply.watchKey_eq`, `apply.watchClassFrom_of_classResFrom`,
+`apply.classResFrom_of_permVerdictFrom`, `apply.rangeCheckFrom_of_isAuthStoreRangeLb`,
+`apply.rangeCheckFrom_of_permCheck3`; `srvAuthLb_rangeCheck` in `ReadOn.lean`,
+`infoBoundT_of_principalBoundI` in `AuthBound.lean`, where `principalBoundI` is visible).
+
+**Review criterion that should have caught it.** The freeze's caller-glue check (every caller's
+glue proves) could not see it: `recvLoop` was a stub, so `swsIs`'s consumer of the request content
+was unwritten. The note's claim that `recvLoop`'s stubbed statement was final ("`srvAuthLb` in
+`watchSrvOk`") was checked against what `isWatchPermitted` takes of the server (`srvAuthLb`), not
+against what it takes of the request (the bound), which reaches `recvLoop` only through `upOk`.
+
+## G2's freeze: `createRangeOk` reads the from-key end (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** v3rpc's `createRangeOk` (`InvWatchStream.lean`), frozen with G2, read a create's range
+end `"\x00"` as `r.end? = some [] ∨ r.end? = none`: "from the key on", or, in the model only, a single
+key, because Perennial's `wp_slice_literal` did not say that recvLoop's `[]byte{}` is not `nil`. With
+the disjunct a from-key watch's registered range is not determined, so the client cannot show it
+covers exactly the watch's range (`rangeExact`), and `watcher.Watch.spec`'s widening to any range
+(F5) had no proof for from-key watches, authkv's root watch `Watch("", WithPrefix())` among them.
+
+**Decision** (planned in G2's design, F5: "the Perennial lemma ... Root's watch waits for the pin
+bump"; done after the pin `6da88b280` brought `wp_slice_literal_nonnull`): `createRangeOk` gives
+`r.end? = some []` only, and its docstring's caveat goes. `recvLoop`'s proof shows the literal's
+pointer non-null (`wp_slice_literal_nonnull`), so its range end is not `nil` whenever the request's
+is not empty. The users of the disjunct: `createRangeOk_inRange` (`WatchClass.lean`, its `none` case
+now vacuous) and the client's `covers_inRange` (`WatchContent.lean`, one branch less). New laws in
+their packages for the client's from-key case: `mvcc.covers_from`, `adt.affLt_top_iff`,
+`adt.affLt_iff_of_ne`, the cache's `inRange_from`.
+
+**Review criterion that should have caught it.** None: the weakening was deliberate and recorded
+(`notes/g2-watch-auth.md`, "Scope choices", F5), pending a Perennial change.
+
+## G2's freeze: `Watch`'s range from `""` starts at `"\x00"` (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** `watcher.Watch.spec`'s events were of the range of `opWatchModel key opts`, which for an
+empty key starts at `""`. etcd's server rewrites an empty key to `"\x00"` (`v3rpc/watch.go:266-269`;
+`createRangeOk`'s registered key), so the range it watches misses the empty key, and the spec's range
+equals it only given that no stored key is empty, which the KV model (`LogWf'`) does not say. With
+`createRangeOk` tightened (the entry above) every other watch's range is registered exactly; the root
+watch `Watch("", WithPrefix())` (from-key from `""`) was the one left.
+
+**Decision** (the user's, 2026-10-30; not an invariant that no stored key is empty): the spec's events
+are of the watch's range with an empty key read as `"\x00"`, `OpFull.watchNorm` (`InvOp.lean`):
+the post is `watchStateElem γw (opWatchModel key opts).watchNorm Q Au`. Not in `watchStateElem`,
+shared with the cache's and k8s's proofs: a change there would move every caller's statement, while
+the normalization is `Watch`'s alone (what the server does to a create). The row (`watchCheckOk`)
+stays over the request's own key and range end, as the server checked them. Callers with a non-empty
+key rewrite with `OpFull.watchNorm_of_ne`. The premise `o.key = [] → o.base.rangeEnd ≠ []` stays
+(no longer needed by the proof: the normalized point watch of `""` is the point `"\x00"`, as the
+server watches it). Inside the client, `WsPrm.o` is the normalized op and `wsReqOk` relates it to the
+request's key (`(if P.key = [] then [0] else P.key) = P.o.key`); `rangeExact` quantifies over the
+creates whose key the server reads as `key`, and holds of every range of a non-empty key
+(`rangeExact_of_ne`); `wsRow` is over the request's `P.key`/`P.ed`.
+
+**Review criterion that should have caught it.** The spec skill's "check what the statement claims
+at the boundary inputs" against the server's normalization of the request (as for the entry "G2's
+freeze: `Watch` excludes the empty key's single-key watch"): the empty key's from-key range was
+checked against the from-key reading (F5) but not against the key's rewrite.
+
+## Step 3 for `apply` and `applyEntries`: the off corollaries read the mode off the server (2026-10-30, the auth-mode merge)
+
+`EtcdServer.apply.spec` and `applyEntries.spec` are now one statement each at `E.authOn` (`.any`
+excluded), as `applyEntryNormal.spec` (step 6). Two choices differ from that precedent:
+- **The off corollaries take no `E.authOn = false`.** `applyEntryNormal.specOff` has it as a premise;
+  `apply.specOff`/`applyEntries.specOff` are exactly the old off statements, and `spec_off` derives the
+  mode from the precondition (`authOn_false_of_off`: the off server's view has the auth layer off). So
+  a caller holding only the off view (`applyAll.wp_proof`, which reaches its `applyEntries` call before
+  it has the mode) changes nothing but the callee it takes. Candidate 1 kept the precedent and wrongly
+  claimed `applyAll` untouched (the spec review found it).
+- **The receipts' bound stays an outer premise** (`E.authOn = true → receiptBound GF ≤ 2 ^ 48`), as
+  the loops' `specOn`s had it, where `applyEntryNormal.spec` has it in its precondition's pure row:
+  equivalent; the loops keep their convention.
+Each `wp_proof` is the two old proofs (`wp_proofOff`, `wp_proofOn`) by cases on `E.authMode`; merging
+the proof bodies (about 900 lines each, mostly shared) is later cleanup. The corollaries are stated
+over `srvRunH` (`SDRun.lean`), not the inline `match dv` whose generated matcher each declaration
+names after itself.
+
+## authkv's checker admits a repeated set-up write (2026-10-30, the user's choice for F-S1)
+
+`SetUp`'s puts are given persistent updates (`□ kvOpAu1`), because the client's put spec may resend
+an attempt; so the model allows a set-up put to be applied after `SetUp` returns, and Go's
+`CheckHistory` would then panic on it (a write to `c/<who>/d` that `who` is not permitted). In Go it
+cannot happen: clientv3 resends a non-repeatable `Put` only when the attempt was never sent, so each
+set-up put is applied before `SetUp` returns. Excluding it in the proof needs F-S2 part 2 (the auth
+refusals' identity, parked: it changes the grpc client contract and about 15 server specs) or a new
+axiom. The user chose instead to change the example's checker: `CheckHistory` skips a set-up put
+(`SetupWrite`), and the history invariant admits it at any revision. **What the checker loses**: for
+those 8 key/value pairs only, a server bug that applied a set-up put after `AuthEnable` (a write
+accepted with no token: `anon` and `bad` share the set-up client) would go unnoticed. With
+`setupRev` gone the checker checks every event, set-up puts included. Revisit if F-S2 part 2 is done:
+the skip can then go.
+

@@ -58,6 +58,19 @@ def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthE
 instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
   unfold srvTLSId; infer_instance
 
+/-- **An auth info is the caller's** (persistent; `infoBoundM`'s over the token: E3zb): its user
+the empty one or the one the caller's token `tok` was issued to, or the server's TLS fallback is
+on. (Moved from `v3rpc/ServerKVOn.lean` in G2, 2026-10-30, for the watch stream's vocabulary.) -/
+def v3rpc.infoBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
+    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s))
+
+instance v3rpc.infoBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (v3rpc.infoBoundT (GF := GF) s M tok info) := by
+  unfold v3rpc.infoBoundT; infer_instance
+
 open Iris.ProofMode in
 /-- The TLS fallback is off at a server whose config says so (a law for clients of `hdrBoundM`). -/
 theorem srvTLSId_false (s : Loc) :

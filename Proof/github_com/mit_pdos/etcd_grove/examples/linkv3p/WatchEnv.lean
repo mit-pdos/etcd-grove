@@ -124,12 +124,15 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ client.eofOk ∗
       memberWatch γr s₁ E₁ ρ₁ R₁ ∗ memberWatch γr s₂ E₂ ρ₂ R₂ ∗ memberWatch γr s₃ E₃ ρ₃ R₃ ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₁
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₁.γ) (v3rpc.watchSpec R₁) ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₂
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₂.γ) (v3rpc.watchSpec R₂) ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₃
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₃.γ) (v3rpc.watchSpec R₃) ⊢
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₁
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₁)
+        (fun md => v3rpc.watchSpec R₁ (auth.mdTokenOf md)) ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₂
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₂)
+        (fun md => v3rpc.watchSpec R₂ (auth.mdTokenOf md)) ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₃
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₃)
+        (fun md => v3rpc.watchSpec R₃ (auth.mdTokenOf md)) ⊢
       □ ∀ (conn : Loc) (ics : List GoFunc),
         grpcConn (GF := GF) conn [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] ics [] -∗
           client.watchConnFacts { watchEnv R₁ R₂ R₃ γr pfx with conn := conn, ics := ics } := by
@@ -137,7 +140,7 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
   iintro !> %conn %ics #Hc
   iapply watchConnFacts_of_members wp_ErrAny hAs (watchEnv R₁ R₂ R₃ γr pfx) conn ics
   rw [watchEnv_addrs]
-  simp only [isGrpcStreams, watchEnv_memOf₁, watchEnv_memOf₂, watchEnv_memOf₃]
+  simp only [isGrpcStreamsMd, watchEnv_memOf₁, watchEnv_memOf₂, watchEnv_memOf₃]
   iframe #
   isplitr
   · iintro !> %i %hi

@@ -125,7 +125,8 @@ local macro "cc_respond" : tactic => `(tactic| (
   ))
 
 set_option maxHeartbeats 800000 in
-theorem EtcdServer.apply.wp_proof
+/-- **`apply.specOff`**, the loop with auth off (until step 3 of the auth-mode merge, `wp_proof`). -/
+theorem EtcdServer.apply.wp_proofOff
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
@@ -143,13 +144,12 @@ theorem EtcdServer.apply.wp_proof
     (hACC : EtcdServer.applyConfChange.spec (GF := GF) (hG := hG))
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
-    EtcdServer.apply.spec (GF := GF) (hG := hG) := by
+    EtcdServer.apply.specOff (GF := GF) (hG := hG) := by
   have hAEN := EtcdServer.applyEntryNormal.spec_off hAEN
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok hdv
-  simp only [srvRunH_apply_spec]
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR⟩
   ihave #Hsrv0 := Hsrv
@@ -948,7 +948,6 @@ theorem EtcdServer.apply.wp_proofOn
   have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w γa sa hM hRB hne hfrom hok
     hEok hdv
-  simp only [srvRunH_apply_spec]
   have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
   wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
@@ -1678,6 +1677,64 @@ theorem EtcdServer.apply.wp_proofOn
     refine ⟨by rw [hgl]; simp [hmi], by rw [hgl]; simp [hmt], ⟨hpend', ?_⟩, ?_, Hsb⟩
     · rw [hp', hc', ← hmi, hidx, hjZ]; omega
     · rw [hc', ← hmi, hidx, hjZ]; omega
+
+/-- **`apply.spec`**, the loop in the environment's auth mode (step 3 of the auth-mode merge,
+2026-10-30): `wp_proofOff` with auth off, `wp_proofOn` with auth on. -/
+theorem EtcdServer.apply.wp_proof
+    (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
+    (hInt : zap.Int'.spec (GF := GF) (hG := hG))
+    (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hStr : zap.Stringer.spec (GF := GF) (hG := hG))
+    (hCI : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (hSAI : consistentIndex.SetConsistentApplyingIndex.spec (GF := GF) (hG := hG))
+    (hSCI : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (hGTy : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
+    (hAEN : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG))
+    (hSet1 : EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG))
+    (hSet2 : EtcdServer.setTerm.spec (GF := GF) (hG := hG))
+    (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
+    (hACC : EtcdServer.applyConfChange.spec (GF := GF) (hG := hG))
+    (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
+    (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
+    EtcdServer.apply.spec (GF := GF) (hG := hG) := by
+  have hOff := EtcdServer.apply.wp_proofOff hDebug hInt hU64 hStr hCI hSAI hSCI hGI hGT hGTy hAEN hSet1 hSet2 hMU hACC hId hMem
+  have hOn := EtcdServer.apply.wp_proofOn hDebug hInt hU64 hStr hCI hSAI hSCI hGI hGT hGTy hAEN hSet1 hSet2 hMU hACC hId hMem
+  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa hany hRB hne hfrom hok
+    hEok hdv
+  simp only [srvRunH_apply_spec]
+  cases hm : E.authMode with
+  | any => exact absurd hm hany
+  | off =>
+    have hoff : E.authOn = false := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
+      intro k; unfold srvTokRights; rw [hm]
+    rw [hoff] at hEok ⊢
+    simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT]
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
+      HWP, HWA0, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR, -⟩ HΦ
+    iapply (hOff s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok
+      hdv) $$ [Hbw Hes Hents Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS Hkb Hdv
+      Hdvr Hrun HAR] [HΦ]
+    · iframe Hpkg Hsrv Hbw Hes Hents Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS
+        Hkb Hdv Hdvr Hrun HAR
+    iintro !> %appliedt %appliedi %shouldStop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, Hst, Hbe,
+      Hci, Hcs, Hlr, Hgr, Hao, HWT, ⟨%x', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
+    iapply HΦ
+    iframe Hfs Hdv Hrun HAR
+    iexists st', a', at', csl
+    iframe Hst Hbe Hci Hcs Hlr Hgr Hao HWT
+    isplitl [HKV Hlog Hka HRS]
+    · iexists x', sa; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
+    ipureintro; exact Hp
+  | on γa =>
+    have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    rw [hon] at hEok ⊢
+    simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true]
+    exact hOn s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w γa sa hm (hRB hon) hne
+      hfrom hok hEok hdv
+
 end proof
 
 end EtcdGrove

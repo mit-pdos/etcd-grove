@@ -194,6 +194,37 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
 
+**The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
+statement goes in the stage's change log (old → new, why), as raft-unified's did
+(`notes/raft-unified-plan.md`), and is tagged there **when it is made**, with one category and how it
+was found. A raw count misleads: of raft-unified's 162 logged entries, 22 were status notes or
+duplicates, and of the other 140 only 59 were the review's misses. The categories:
+- **F, fix**: the frozen statement is false of the code or unprovable (a premise added, a post
+  weakened, a statement restated). A review miss.
+- **R, redesign**: the frozen design of an abstraction is replaced (raft-unified's storage contract,
+  candidate 17). A review miss, and the costliest kind.
+- **W, weakening**: a premise turns out unnecessary and is dropped.
+- **E, extension**: a spec, law or vocabulary the frozen design does not have (a new method's spec, a
+  law a client asks for).
+- **D, decision**: the user or the coordinator changes the scope or the design, not forced by a proof.
+- **A, adaptation**: a client restated over a changed API (what the freeze exists to allow).
+- **C, conformance**: the design built as stated, renames, moves, visibility, deletions, the
+  follow-through of another change.
+
+How it was found: *proof* (a proof or glue failed), *Go* (reading the code showed the statement false:
+the change then often comes with an `issues/` file), *test*, *user*, *check* (a final `tcb-report`
+or API check). Also mark whether the change touches a public or trusted statement or only an
+internal one, and whether the user approved it or it awaits review. The tag is one line ahead of the
+entry, e.g. `[F, Go, trusted, awaits user]`.
+
+The metric is the review's misses (F and R) after the freeze, by category, against the spec's
+size; the tags also show where the misses cluster. raft-unified's (classified after the fact,
+2026-10-30, one reader): F 41, R 18, W 12, E 8, D 13, A 12, C 36; the misses concentrated in the
+storage contract, the newest abstraction, which had the fewest review rounds before the freeze; 28
+fixes touched public or trusted statements, 8 were facts of the Go code or the protocol, and 7 trusted
+changes (Stage P's P2, P4-P6, P8-P10) were approved by the coordinator while the user was away.
+Lesson: review depth should match how new the abstraction is.
+
 **Agents in Draft and Review** (M2, 2026-10-28): a long agent drifts toward proving. Its brief says
 skeleton only from the start (statements; the glue; a marked `sorry` on the failing step of anything
 else) and **never deletes a finished proof**: a broken one keeps its text, with the `sorry` on the

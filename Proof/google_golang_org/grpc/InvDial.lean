@@ -150,19 +150,23 @@ instance dialOptsAt_persistent (sl : GoSlice) (ds : List GrpcDialOpt) :
     Persistent (dialOptsAt (GF := GF) sl ds) := by
   unfold dialOptsAt; infer_instance
 
-/-- **A dial `NewClient` connects with** (pure): its stream interceptors are etcd's, and its one
-resolver is `rb` (every `WithResolvers` of the dial gives `rb` alone, and one does). -/
+/-- **A dial `NewClient` connects with** (pure): its stream interceptors are etcd's, and there is
+one (G2, 2026-10-30: `NewStream`'s post states the metadata etcd's interceptor's `withVersion`
+adds, false on a connection with no stream interceptor), and its one resolver is `rb` (every
+`WithResolvers` of the dial gives `rb` alone, and one does). -/
 def dialOk (ds : List GrpcDialOpt) (rb : GoInterface) : Prop :=
   (∀ si, GrpcDialOpt.streamInterceptor si ∈ ds → etcdStreamInterceptor si) ∧
-    (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds
+    (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds ∧
+    ∃ si, GrpcDialOpt.streamInterceptor si ∈ ds
 
 
 /-- Keepalive sets no stream interceptor and no resolver: a dial with it is `NewClient`'s if the
 dial without it is. -/
 theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
     dialOk ds rb → dialOk (.keepalive :: ds) rb := by
-  intro ⟨h1, h2, h3⟩
-  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3⟩
+  intro ⟨h1, h2, h3, si, h4⟩
+  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3,
+    si, List.mem_cons_of_mem _ h4⟩
   · simpa using h
   · simpa using h
 
@@ -170,8 +174,9 @@ theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
 `NewClient`'s if the dial without them is. -/
 theorem dialOk_perRPCCreds (ds : List GrpcDialOpt) (rb : GoInterface) (pc : GoInterface) :
     dialOk ds rb → dialOk (ds ++ [.perRPCCreds pc]) rb := by
-  intro ⟨h1, h2, h3⟩
-  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_append_left _ h3⟩
+  intro ⟨h1, h2, h3, si, h4⟩
+  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_append_left _ h3,
+    si, List.mem_append_left _ h4⟩
   · simpa using h
   · simpa using h
 

@@ -294,6 +294,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   or a restart a member's compaction revision is `-1` where its peers have `0`. Reproduced at the
   mvcc level; needs a client `Compact(0)` (the auto-compactors never issue it) and observable only
   through a re-issued `Compact(0)` or `HashKV`.
+- **[etcd-watch-stream-key-collision](etcd-watch-stream-key-collision.md)** (2026-10-29): the
+  client keys its watch streams by `%+v` of the outgoing metadata, which collides, so a watch can
+  go out with another context's metadata (its token). Needs a metadata value with a space; etcd's
+  tokens have none. A small fix (an injective key); no test yet.
 - **[etcd-cluster-version-stale-proposal-downgrade](etcd-cluster-version-stale-proposal-downgrade.md)**
   (2026-10-30): two `ClusterVersionSet` proposals in flight (the monitor proposes from goroutines,
   from its own read of the version) can apply out of order, regressing the cluster version and

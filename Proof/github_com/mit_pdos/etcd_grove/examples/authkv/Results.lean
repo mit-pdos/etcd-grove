@@ -58,8 +58,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-/-- **`Main` does not panic** (`Link.lean`'s `authkv.wp_Main`; not proved: a `sorry`). -/
-theorem authkv_Main : authkv.Main.spec (GF := GF) (hG := hG) :=
+/-- **`Main` does not panic** (`Link.lean`'s `authkv.wp_Main`; not proved: a `sorry`). At the
+hypothesis on the semantics every client-building `Main` has (`DialWithBalancerBody`, through
+`newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...). -/
+theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    authkv.Main.spec (GF := GF) (hG := hG) :=
   authkv.wp_Main
 
 /-- **`Permitted(who, k)` is `permittedK who k`** (`Link.lean`'s `authkv.wp_Permitted`). -/
