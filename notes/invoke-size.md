@@ -7,7 +7,7 @@ the axiom review `axiom/txn-nested-wire` refuted. grpc v1.84's `codecV2.Marshal`
 is recorded in `notes/decisions.md`, "The encoded-size bound at grpc's send side". This file
 records the state of the change and what `txn-nested` must fold.
 
-## State: partial (passes 1, 2 and the cache's part of pass 3)
+## State: partial (passes 1, 2, the cache's part of pass 3, concurrency's prefix bounds)
 
 **Done (builds: `Proof.go_etcd_io.etcd.client.v3.Link`, `Results`, `ResultsOn`, `ClientPutGet`,
 the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `ServerKVPut`,
@@ -94,6 +94,45 @@ the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `S
 
      **Decided (2026-10-30): (a)**, stated in code ("Receive-size fact" below); the servers' proofs
      use it once `concurrency` takes its bounds.
+
+     **Progress (2026-10-30, `2be4b6c12a`).** Done: `isMutex`/`isElection` keep `pfx.length ≤ 2 ^ 27`
+     (in the pure conjunct with `pfx ≠ []`); `NewMutex`/`NewElection` take `pfx.length < 2 ^ 27`
+     (the prefix before its `/`), `ResumeElection` `pfx.length ≤ 2 ^ 27`; `ownerOp_size`,
+     `lastCreateOp_size`, `keyOp_size` (`InvMutexLemmas`); `Election.Leader` builds; the Lock and
+     Election servers (`lockServer.Lock`, `electionServer.{Campaign,Leader,Proclaim,Resign}`) discharge
+     the constructors' bounds by `grpcRecvBytesOk.lt` and build.
+
+     **Stopped: two statements the plan assumed do not hold** (questions for the user):
+     - **The held key has no length bound in the model.** `tryAcquire` and `Campaign` build the key
+       with `fmt.Sprintf("%s%x", pfx, lease)`. `SprintfOut` (Perennial `Proof/fmt/Base.lean`) models
+       only `%s`, `%d`, `%v`, `%0Nd`, `%%`; at `%x` the rest of the output is arbitrary
+       (`SprintfOut.other`; Perennial's `TrustedCode/fmt.lean` emits `arbitraryString()`). So the key is
+       `pfx ++` an unbounded string, and `acquireTxn`'s `txnSizeOk`, `Unlock`'s delete, `Lock`'s get,
+       `Campaign`'s transaction, `Proclaim`/`Resign` cannot be discharged. Blocks
+       `Mutex__{tryAcquire,TryLock,Lock,Unlock}`, `Election__{Campaign,Proclaim,Resign}`. A fix:
+       `%x` of an integer in Perennial's `Sprintf` model and `SprintfOut` (lower-case hex, at most 16
+       digits and a sign), a general change on its own Perennial branch, then a pin bump. (The
+       `fmt.SprintfNamed` axiom here is stated over `SprintfOut`, so it would follow.)
+     - **Keys read from etcd's state have no length bound in the model.** `waitDeletes` watches (through
+       `waitDelete`) the key its get returned (`string(resp.Kvs[0].Key)`), and `Election.observe` the
+       leader's key `string(kv.Key)`; `isEtcdRangeWatcher` needs `watchSizeOk`. `etcdState`/`EtcdStateWf`
+       say nothing of key lengths (etcd's server bounds a stored key by its request limit, but the
+       client-side model does not carry it). Blocks `waitDelete`, `waitDeletes`, `Election__observe`
+       (and through `waitDeletes`, `Lock` and `Campaign`). Options: (a) a key-length fact on etcd's
+       state (`EtcdStateWf` or `etcdState`: every key at most the server's limit), a trusted fact about
+       the client's model of etcd, justified by the server's request limit; (b) `waitDelete`'s watch
+       takes a key-length premise, and `waitDeletes`/`observe` get it from (a) anyway.
+     - **STM (Q6 (ii)) needs two statements the draft does not list**, so it is not started either:
+       - a per-attempt count of calls in the model (`STMSt` gains a field, or `stmState` an index):
+         `GetPost`/`RevPost` and the `Put`/`Del` posts advance it, and `stmState` keeps (hidden) that
+         the read and write sets' keys are within the touched keys, each within `N`, values within `N`;
+       - **`applySpec` gains a premise on its start state** (the count at most the prefetch's): with
+         `WithPrefetch`, `NewSTM` wraps `apply` in `s.Get(prefetch...)`, so the user's closure starts
+         after a counted `Get`, and without the premise it cannot know its budget. `NewSTM` takes the
+         prefetch keys within `N` and their number within the budget.
+       Proposal: `N = 2 ^ 20`, at most `M = 2 ^ 8` keys per attempt (`M * (3 * N + 2 * 256) ≤ 2 ^ 30`
+       covers `SerializableSnapshot`'s commit: two comparisons and an `Else` get per read, a comparison
+       and an operation per write).
 2. **leasing**: each KV operation of the leasing KV gains the client's predicate. Its own
    transactions (key and lease key) must fit `txnBuilderSpecO`'s `txnSizeOk`; `isEtcdDoKV`'s get
    too.
