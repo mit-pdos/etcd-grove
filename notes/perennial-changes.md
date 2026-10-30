@@ -32,10 +32,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   pointer is non-null, from the backing array's typed points-to (`typedPointsto_not_null`, which
   holds at length zero too); `wp_slice_literal` unchanged, its corollary. A proof, not a semantics
   change: no trusted-base delta.
-- **Status.** On Perennial branch `slice-literal-nonnull` (`6da88b280`, off `origin/lean`
-  `8df4f63d3`; worktree `/shared/perennial-slicelit`), built (`Perennial.Golang.Theory.Slice`;
-  `#print axioms`: Lean's three only). Not landed: Perennial's `etc/land.sh` (prepare, review, push)
-  is the user's. The pin then moves to it.
+- **Status.** Landed on Perennial `lean` 2026-10-30 (`6da88b280`), in the pin with this bump
+  (branch `pin-6da88b2`, `notes/STATUS.md`, "Perennial pin `6da88b280`"). `#print axioms`: Lean's
+  three only.
 
 ### Context model: `WithCancel` keeps its parent's values (2026-10-30, authkv G2)
 
