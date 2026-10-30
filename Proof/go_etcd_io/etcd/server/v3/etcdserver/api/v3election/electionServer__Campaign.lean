@@ -75,6 +75,7 @@ theorem electionServer.Campaign.wp_proof
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hEC e s γ c id (name ++ go!"/") ElectionSt.init ctx cs val (W64 0) $$
       [$Hcpkg $He $Hest $Hctx $Hcc $Hlo] as %err Hc
+  · ipureintro; exact Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.2) (by decide))
   icases Hc with (⟨%Herr, %key, %rev, %r, %rv, %R, %hdr, Hest, #Hhr, #HR, #Hkv, Hout, %Hp⟩ |
     ⟨%Hne, %st', Hest⟩)
   rotate_left

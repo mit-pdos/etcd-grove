@@ -33,12 +33,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 * `ErrElectionNotLeader`: no leader session, unchanged; or the guard failed: the leader key is
   cleared, and (if it was under the prefix) it is not there with create revision `rev` at some
   `r ≥ lo` (`notLeaderAt`);
-* any other error, unchanged. -/
+* any other error, unchanged.
+The value is at most `2 ^ 28` bytes (2026-10-30: the request carrying it fits a gRPC message). -/
 abbrev Election.Proclaim.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
-      electionState e s st ∗ context.isContext ctx cs ∗ etcdReached lo }}
+      electionState e s st ∗ context.isContext ctx cs ∗ etcdReached lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Proclaim"))
       (Val #(GoInterface.ok ctx))) (Val #val))
   {{ (err : GoInterface), RET #err;

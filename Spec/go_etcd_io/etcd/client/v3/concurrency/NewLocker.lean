@@ -25,12 +25,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`NewLocker(s, pfx)`**: a `sync.Locker` wrapping (`lockerMutex`) a new mutex on `pfx + "/"`
-(`NewMutex`). Its `Lock` and `Unlock` panic on any error of `Mutex.Lock`/`Unlock`, which every
+(`NewMutex`, whose prefix bound it takes). Its `Lock` and `Unlock` panic on any error of `Mutex.Lock`/`Unlock`, which every
 client call allows (`lockerMutex.Lock.spec`, `lockerMutex.Unlock.spec`: a panic outcome). -/
 abbrev NewLocker.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client (pfx ++ go!"/") }}
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewLocker)) (Val #s)) (Val #pfx))
   {{ (l : GoInterface), RET #l; ∃ (lm m : Loc),
       ⌜l = interface.mkOk (go.GoType.PointerType lockerMutex.ty) #lm⌝ ∗

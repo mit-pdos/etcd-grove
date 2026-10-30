@@ -89,6 +89,7 @@ theorem electionServer.Proclaim.wp_proof
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hEP e s γ c id name { key := key, rev := rev, sess := s, hdr := null } ctx cs val (W64 0) $$
       [$Hcpkg $He $Hest $Hctx $Hlo] as %err Hp
+  · ipureintro; exact Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecvv) (by decide))
   icases Hp with (⟨%Hok2, %hdr, Hest, Hfacts⟩ | ⟨#Hpe, -⟩ | ⟨%Hne', -⟩)
   · obtain ⟨rfl, -⟩ := Hok2
     (try wp_auto)

@@ -213,7 +213,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     (hSp : EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG)) :
     Election.Campaign.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs pv lo
-  wp_start as ⟨#He, Hst, #Hctx, #Hcc, #Hlo⟩
+  wp_start as ⟨#He, Hst, #Hctx, #Hcc, #Hlo, %Hvl⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩

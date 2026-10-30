@@ -70,7 +70,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     Election.Proclaim.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs val lo
   rcases st with ⟨key, rev, sess, hdr0⟩
-  wp_start as ⟨#He, Hst, #Hctx, #Hlo⟩
+  wp_start as ⟨#He, Hst, #Hctx, #Hlo, %Hvl⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
