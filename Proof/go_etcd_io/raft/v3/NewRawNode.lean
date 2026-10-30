@@ -35,23 +35,13 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  intro c cv lok si σ hs csm R Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
-    Happ Hprev Hents Hss Hpe Hhs Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hfl0
-  wp_start as ⟨Hc, #Hlg, #Hst, HSt, Hinit⟩
-  -- (D22 S-b′3) an empty storage has no snapshot to certify
-  have Hss0 : σ.ss.index' = W64 0 := by
-    rcases Hss with h | h
-    · word
-    · rw [h, Hprev]
-  ihave #Hic := initKsnCert_zero (GF := GF) (interface.ok si) σ Hss0
+  intro c cv lok si sn σ hs csm R R' Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
+    Happ Hprev Hents Hpend Hfr Hsg0 Hdt Hhs Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hfl0
+  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HInit⟩
   wp_auto
-  wp_apply wp_newRaft c cv lok si σ hs csm R Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
-    (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
-    Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hfl0
-    $$ [$Hc $Hlg $Hst $HSt $Hic $Hinit] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost⟩
+  wp_apply wp_newRaft c cv lok si sn σ hs csm R R' Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
+    Happ Hhs Hprev Hents Hpend Hfr Hsg0 Hdt Hfl0 Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
+    $$ [$Hc $Hlg $HR $HFI $HLI $HInit] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   try wp_auto
@@ -59,8 +49,8 @@ theorem NewRawNode.wp_proof
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as %hp ⟨#Hhp, Hphys⟩
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hgh, Hrst,
-    Hrpd, Hsdr', Hdom⟩ := Hpost
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hlsn, Hgh,
+    Hrst, Hrpd, Hsdr', Hdom⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have HV : hs.Vote' = W64 0 := Hhs.2.1
   have Hrel : NStateRel s initPState :=
@@ -81,11 +71,11 @@ theorem NewRawNode.wp_proof
   iframe HR
   iexists s
   isplitl [«$r0» Hphys]
-  · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
+  · iapply rawNodeFresh_intro_sn «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
         cv.PreVote' s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
           Hsn, Hsg⟩
-        Hgh Hpv Hsdr' Hdom
+        (by rw [Hgh]) Hpv Hsdr' Hdom
         (by simp only [hardstateVal, nodeHardstate, hsZero]; rw [Ht, HT, Hv, HV, Hcm0])
       $$ «$r0» Hphys ss Hhp [] []
     all_goals first
@@ -93,7 +83,6 @@ theorem NewRawNode.wp_proof
       | iapply ownSliceCap_nil
       | (simp only; rw [HAW, Hasync])
   · ipureintro; rfl
-  -/
 
 end proof
 
