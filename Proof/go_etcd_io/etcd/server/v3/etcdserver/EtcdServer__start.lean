@@ -116,7 +116,7 @@ theorem EtcdServer.start.wp_proof
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
-  icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
+  icases Hscu with ⟨%scu0, Hscu⟩
   wp_auto
   -- the snapshot defaults
   wp_join iprop(∃ n : w64, srvSnapCountAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hsc s lg]
@@ -125,25 +125,14 @@ theorem EtcdServer.start.wp_proof
     wp_apply hZU as %f2 -
     start_info
     wp_join_done
-  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg ∗
-      ⌜receiptBound GF ≤ uint.Z n + 1⌝) with [Hscu s lg]
-    as ⟨%scu1, Hscu, s, lg, %Hscu1⟩
+  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hscu s lg]
+    as ⟨%scu1, Hscu, s, lg⟩
   · wp_apply hZU as %f1 -
     wp_apply hZU as %f2 -
     start_info
     simp only [DefaultSnapshotCatchUpEntries]
     wp_auto
     wp_join_done
-    iexists _
-    iframe
-    ipureintro
-    simpa using Hscu0
-  · iexists _
-    iframe
-    ipureintro
-    split at Hscu0
-    · simp_all
-    · exact Hscu0
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
@@ -621,7 +610,7 @@ theorem EtcdServer.start.wp_proofOn
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
-  icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
+  icases Hscu with ⟨%scu0, Hscu⟩
   wp_auto
   -- the snapshot defaults
   wp_join iprop(∃ n : w64, srvSnapCountAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hsc s lg]
@@ -630,25 +619,14 @@ theorem EtcdServer.start.wp_proofOn
     wp_apply hZU as %f2 -
     start_info
     wp_join_done
-  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg ∗
-      ⌜receiptBound GF ≤ uint.Z n + 1⌝) with [Hscu s lg]
-    as ⟨%scu1, Hscu, s, lg, %Hscu1⟩
+  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hscu s lg]
+    as ⟨%scu1, Hscu, s, lg⟩
   · wp_apply hZU as %f1 -
     wp_apply hZU as %f2 -
     start_info
     simp only [DefaultSnapshotCatchUpEntries]
     wp_auto
     wp_join_done
-    iexists _
-    iframe
-    ipureintro
-    simpa using Hscu0
-  · iexists _
-    iframe
-    ipureintro
-    split at Hscu0
-    · simp_all
-    · exact Hscu0
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
