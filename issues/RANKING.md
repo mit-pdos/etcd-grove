@@ -283,6 +283,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-cluster-version-stale-proposal-downgrade](etcd-cluster-version-stale-proposal-downgrade.md)**
+  (2026-10-30): two `ClusterVersionSet` proposals in flight (the monitor proposes from goroutines,
+  from its own read of the version) can apply out of order, regressing the cluster version and
+  forcing a disk snapshot with no downgrade enabled. Unreproduced and its reachability unchecked;
+  ranked here until a reproduction shows it is more than a startup window.
 - **[etcd-quota-backend-bytes-mmap-panic](etcd-quota-backend-bytes-mmap-panic.md)** (2026-10-29):
   a `--quota-backend-bytes` above about 2.5·10^14 (amd64) makes `newBackend`'s 110% mmap exceed
   bbolt's `maxMapSize`, and etcd panics at startup with a message that does not name the flag. An
