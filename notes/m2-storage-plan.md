@@ -1559,3 +1559,18 @@ round 3's list. None is axiom-backed unless said.
 **The user's answer on Q8 (2026-10-30): (a)**, the receipt bound for a restored compacted image is
 `Restore`'s premise `restoreBoundM`, supplied by the apply side; the index writer counts receipts from
 its last restore. No configuration premise.
+
+## After review round 5: the user's decisions (2026-10-30)
+
+Round 5 (`notes/spec-first-study/m2-storage-review-5.md`) was step 2's third and last review round.
+- **Q2: the 28 approvable items approved** (1-14, 17, 19, 20, 22-29, 31, 34, 35), with round 5's text
+  fixes (S1, S4, S5). To switch on `m2-storage`, except the snapshot track's (22, 25: drafts for the
+  collaborator). The 9 waiting items (15, 16, 18, 21, 30, 32, 33, 36, 37) stay drafts.
+- **B1: the index invariant's compaction level becomes a full revision** (main and sub), removing
+  `KeyOnceAt` (item 33) and its apply-side obligation (`issues/etcd-txn-check-intervals-sibling.md`
+  shows it is no etcd guarantee).
+- **B2: Q8 becomes (b)**, a configuration bound: a stated premise at `NewServer` that a log's changes
+  stay below the receipt bound, covering every restored image (supersedes Q8 (a)). A new trusted
+  premise, approved in principle; its exact text comes with the restore chain.
+- No more review rounds for step 2's waiting items: they are settled by proofs and glue against the
+  real callers (the index rebuild theorem, the backend's records clause, the view widening).
