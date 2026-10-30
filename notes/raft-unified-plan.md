@@ -1622,7 +1622,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `rnEnvOk_of_cluster` (done), `isServerBuilt_of_gap` (done)), `StartOn.lean` (`isServerBuilt_of_gapOn` (done)),
    `ServerOn.lean` (`clusterWorkloadOkOn_of` (done), `rnEnvOk_of_clusterOn` (done), `rnEnvOk_of_clusterM` (done)),
    `InvBuild.lean` (`srvMsgNet_bundle` (done)), `EtcdServer__start.lean` (done) (both), `EtcdServer__run.lean` (done)
-   (`run_job_body` (done), `run_job_bodyOn` (done), `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
+   (`run_job_body` (done), `run_job_bodyOn` (done), `wp_proof`, `wp_proofOn`), `NewServer.lean` (done) (`wp_proofM`,
    `wp_proof`; `wp_proofCompact` was already `sorry`).
 5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
    `KvRun*` lemma modules, `SnapData.lean`.
