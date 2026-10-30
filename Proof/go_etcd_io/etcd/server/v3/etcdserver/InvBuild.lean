@@ -167,14 +167,11 @@ leader transfer off, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `
 theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
     srvMsgNet (GF := GF) γ id m ∗ srvMsgNoSnap m ⊢
       netBundle (srvNet γ) id m := by
-  sorry
-/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
-  iintro ⟨#Hxo, H, Hns⟩
+  iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, Hc⟩
-  ihave %Hsent := sentMsg_transferOff γ.cl srvClusterN id st $$ [Hxo Hr]
-  · iframe Hxo Hr
+  ihave %Hsh := sentMsg_shape γ.cl srvClusterN id st $$ Hr
   ihave %Hfrom := sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
   iunfold srvMsgNoSnap at Hns
   icases Hns with ⟨%st', #Hm', %Hns⟩
@@ -189,8 +186,7 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
     iexists id; iexact Hr
   ipureintro
   rw [Hty]
-  exact ⟨Hns, Hsent.2.2.2.2.2.2, fun ha => ⟨Hsent.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
--/
+  exact ⟨Hns, Hsh.1.2.2.2.2.2.2.2, fun ha => ⟨Hsh.1.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p) with its bundle (`srvMsgNet`, D21 stage M1), a
