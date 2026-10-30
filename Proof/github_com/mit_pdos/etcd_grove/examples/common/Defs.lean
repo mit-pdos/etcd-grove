@@ -325,7 +325,10 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗
+    -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
+    -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
+    □ (srvTLSId s -∗ False) ∗ srvBcryptField s)
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on

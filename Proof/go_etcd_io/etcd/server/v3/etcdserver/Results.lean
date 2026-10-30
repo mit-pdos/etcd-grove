@@ -1950,11 +1950,17 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
         auth.tpAdmin stp (.on γa) ∗ Post ∗ auth.authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [auth.bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
-  auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
+          auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} := by
+  iintro %Φ Hpre HΦ
+  iapply (auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
     auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa R P f T A Pre Q Post hs stl hlast
-    hfit hempty
+    hfit hempty) $$ Hpre
+  iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, Hr⟩
+  iapply HΦ
+  iexists stp, hs'
+  iframe
+  ipureintro; exact ⟨Heq, Hh⟩
 
 /-- **`NewAuthStore` at the server's boot, in the mode `on γa`** (the auth plan's E2e;
 `auth.newAuthStore_boot`, `Proof/go_etcd_io/etcd/server/v3/auth/Boot.lean`): the auth names

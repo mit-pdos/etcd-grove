@@ -561,3 +561,10 @@ cluster and member allocations. The serve step (`wk_served`'s analog) needs four
    the config's `false`.
 
 3 and 4 are an export from `NewServer` through `startServer`'s post (`memberUpOn`).
+
+**Done (2026-10-30): 3 and 4** (`notes/decisions.md`, "The started member exports its auth store's
+cost field and its TLS fallback off"): `memberUpOn` gives `srvBcryptField s` and
+`□ (srvTLSId s -∗ False)`. **2** is left to C1's A5: `etcd_kv_auth_served_onA` dropped `hreg`
+(it is a `sorry` meanwhile). The serve step's KV and Auth half is proved over them
+(`ak_served_kv`, `MainServe.lean`: `akKVOn`, `setupAuthServed`, `Authenticate`); its watch half
+waits on 1.

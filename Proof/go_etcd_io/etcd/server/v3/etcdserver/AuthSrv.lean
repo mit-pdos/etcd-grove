@@ -97,7 +97,11 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
-        □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) }})
+        □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
+        -- (authkv's Main, 2026-10-30) with auth on, the store's cost field, read-only
+        -- (`BcryptCost()`'s; `newAuthStore_on`'s)
+        □ (⌜M.isOn = true⌝ →
+          ∃ c : w64, structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c) }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
@@ -161,6 +165,16 @@ def authSchemaSrv : IProp GF :=
 instance authSchemaSrv_persistent : Persistent (authSchemaSrv (GF := GF)) := by
   unfold authSchemaSrv; infer_instance
 
+/-- **The server's auth store's cost field** (persistent; authkv's Main, 2026-10-30): the server's
+`authStore` field is a `*authStore` whose `bcryptCost` field is read-only, what `BcryptCost()`
+returns (`bcryptCostOk`, the Auth service's `UserAdd`). `NewServer.specM true`'s. -/
+def srvBcryptField (s : Loc) : IProp GF :=
+  iprop(∃ (stl : Loc) (c : w64), structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"authStore" s ↦□ auth.authIface stl ∗
+    structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c)
+
+instance srvBcryptField_persistent (s : Loc) : Persistent (srvBcryptField (GF := GF) s) := by
+  unfold srvBcryptField; infer_instance
+
 end defs
 
 section proof
@@ -203,8 +217,10 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
     itrivial
   isplitr
   · unfold authCapM; itrivial
-  iintro !> -
-  iexact HauR
+  isplitr
+  · iintro !> -
+    iexact HauR
+  iintro !> %h; exact absurd h (by decide)
 
 /-- **`authSrvTP false`**, of `NewTokenProvider`'s proof and `NewAuthStore`'s axiom. -/
 theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
@@ -289,7 +305,7 @@ theorem authStoreKit_on
         #abl) γa R P f T A Pre Q Post [auth.bootState] auth.bootState rfl auth.bootState_permsFit
       ⟨auth.bootState, List.mem_singleton_self _, rfl⟩)
     $$ [$Hpkg $Hrdok $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
-    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', Hslots⟩
+    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', #Hbc, Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
     ipureintro; rfl
@@ -371,8 +387,11 @@ theorem authStoreKit_on
     · iexact Hcap
     iexists R; iexact Hinv
   -- (D22 J1a) the mode is `on`: no `Recover` clause
-  iintro !> %Hm
-  exfalso; cases Hm
+  isplitr
+  · iintro !> %Hm
+    exfalso; cases Hm
+  iintro !> -
+  iexact Hbc
 
 /-- **`authSrvTP true`** (see the file header): the simple provider, its names the auth names'
 token names, the auth names allocated over the boot state, the kit in the mode `on`. -/

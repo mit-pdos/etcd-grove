@@ -574,7 +574,12 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
           -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
-          srvLessorNil srv }}
+          srvLessorNil srv ∗
+          -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
+          -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
+          -- auth on the auth store's cost field (`BcryptCost()`'s)
+          srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
+          □ (⌜on = true⌝ → srvBcryptField srv) }}
 
 end spec
 

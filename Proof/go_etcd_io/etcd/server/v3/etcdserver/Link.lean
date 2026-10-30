@@ -158,6 +158,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__BcryptCost
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__CheckPassword
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__HasRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
@@ -1120,6 +1121,10 @@ theorem zapcore.CheckedEntry.wp_Write :
 theorem auth.authStore.wp_Authenticate :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) :=
   auth.authStore.Authenticate.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write
+
+theorem auth.authStore.wp_BcryptCost :
+    auth.authStore.BcryptCost.spec (GF := GF) (hG := hG) :=
+  auth.authStore.BcryptCost.wp_proof
 
 theorem auth.authStore.wp_lockedReadTx :
     auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) :=

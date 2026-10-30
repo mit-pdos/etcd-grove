@@ -26848,3 +26848,21 @@ Go: the prefix is `genTokenPrefix`'s 16 letters (`tokenSimple`, `[a-zA-Z]`), nev
   `genTokenPrefix`) owe it, an obligation they did not have before.
 - Rejected: an axiom on the token reader, or a `Work.spec` premise naming the trim: the fact is the
   token provider's, where Go establishes it.
+
+## The started member exports its auth store's cost field and its TLS fallback off (2026-10-30, branch `authkv-hist`)
+
+User-approved ("Approve, prove it"; the draft of authkv Main's blockers 3 and 4,
+`notes/authkv-main-plan.md`, "Main: what blocks it"). The served Auth service's `UserAdd` needs the
+auth store's `BcryptCost()` (`bcryptCostOk`), and `SetUp`/`Work` need `□ (srvTLSId s -∗ False)`;
+the started member (`memberUpOn`) gave neither.
+- **`authStore.BcryptCost`** translated (`Code/.../auth.toml`) and proved (one load), its spec over
+  the field `bcryptCost` read-only; `bcryptCostOk_of_field` (`authkv/MainServe.lean`) turns the
+  field into `bcryptCostOk`.
+- **Exported along the chain**: `auth.newAuthStore_on`'s post gains the field (`↦□`, made
+  read-only before the store is returned); `authStoreKit`'s, under `M.isOn = true`;
+  `NewServer.specM`'s post gains the configuration's `ClientCertAuthEnabled` field and
+  `□ (⌜on = true⌝ → srvBcryptField srv)`; `common.memberUpOn` gains `□ (srvTLSId s -∗ False)`
+  (`srvTLSId_false` at the composite literal's `false`) and `srvBcryptField s`. `startServer`
+  stays proved. `etcdserver/Results.lean`'s `auth_store_new_on` keeps its statement (drops the
+  new conjunct).
+- Only in the mode `on`: `auth.NewAuthStore`'s axiom (the auth-off store) is untouched.

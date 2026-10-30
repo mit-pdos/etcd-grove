@@ -677,7 +677,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HauR⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HauR, #Hbc⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1398,6 +1398,15 @@ theorem NewServer.wp_proofM (on : Bool)
   · iunfold srvLessorNil
     iexists (lease.lessorIface lp)
     iframe Hlnil lessor
+  -- (authkv's Main) with auth on, the store's cost field
+  ihave #HBF : iprop(□ (⌜on = true⌝ → srvBcryptField s)) $$ []
+  · iintro !> %hon
+    icases HM with %HM
+    ihave ⟨%c, #Hc⟩ := Hbc $$ %(by rw [HM.1]; exact hon)
+    iunfold srvBcryptField
+    iexists astl, c
+    rw [← Hastl]
+    iframe authStore Hc
   imodintro
   wp_auto
   iapply HΦ
@@ -1410,7 +1419,7 @@ theorem NewServer.wp_proofM (on : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil
+  iframe HLnil HBF ClientCertAuthEnabledS
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr

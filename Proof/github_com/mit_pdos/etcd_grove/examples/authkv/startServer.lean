@@ -123,7 +123,7 @@ theorem startServer.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -168,9 +168,17 @@ theorem startServer.wp_proof
   iframe #
   isplitr
   · ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
-  iunfold common.srvPeerCtl
-  iexists τ
-  iframe Hnm Htokp
+  isplitl [Htokp]
+  · iunfold common.srvPeerCtl
+    iexists τ
+    iframe Hnm Htokp
+  -- the TLS fallback off: the configuration's `ClientCertAuthEnabled` is the default `false`
+  isplitr
+  · iintro !> #Ht
+    iapply srvTLSId_false srv $$ [Ht]
+    iframe Ht
+    iExactEq Hcca; rfl
+  iapply HBF; ipureintro; first | rfl | trivial
 
 end proof
 

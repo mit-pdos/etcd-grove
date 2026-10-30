@@ -4560,6 +4560,21 @@ noncomputable def authStore.HasRole.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
+/-- go: store.go:1238:22 -/
+noncomputable def authStore.BcryptCost.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"bcryptCost"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
 /-- go: store.go:1242:22 -/
 noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
@@ -5412,6 +5427,7 @@ class authStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthEnable" authStore.AuthEnable.impl
   ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthInfoFromCtx" authStore.AuthInfoFromCtx.impl
   ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Authenticate" authStore.Authenticate.impl
+  ptr_BcryptCost_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"BcryptCost" authStore.BcryptCost.impl
   ptr_CheckPassword_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"CheckPassword" authStore.CheckPassword.impl
   ptr_HasRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"HasRole" authStore.HasRole.impl
   ptr_IsAdminPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAdminPermitted" authStore.IsAdminPermitted.impl
@@ -5471,6 +5487,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_AuthEnable_unfold
   authStore.TypeAssumptions.ptr_AuthInfoFromCtx_unfold
   authStore.TypeAssumptions.ptr_Authenticate_unfold
+  authStore.TypeAssumptions.ptr_BcryptCost_unfold
   authStore.TypeAssumptions.ptr_CheckPassword_unfold
   authStore.TypeAssumptions.ptr_HasRole_unfold
   authStore.TypeAssumptions.ptr_IsAdminPermitted_unfold

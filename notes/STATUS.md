@@ -599,7 +599,7 @@ replies with an error, until client/v3's builder and `Commit` specs cover nested
 The per-call lemmas are in `WorkCalls.lean` (`work_put`/`_delete`/`_get`/`_commit`, the last now also
 giving the reply's responses, `txnReplied_facts`; T1's reads in `[a, b)`, `t1_reads`); the refused
 watch's events refuted by `akWatch_c_refused`. The authkv results now reach G2's `streamKeyOf_none`
-and `streamKeyOf_single` (reviewed, approved axioms; `notes/audit.md`), through the watch. **`Main`** (2026-10-30): `ak_alloc` proved (`MainAlloc.lean`); blocked on four facts nothing gives, first `watchAddrFacts` with auth on (its `srvKVFacts` is the auth-off `srvKVInvs`, so `Work.spec`'s premise and `Main`'s watches cannot be met at an auth-on member); `notes/authkv-main-plan.md`, "Main: what blocks it". Open:
+and `streamKeyOf_single` (reviewed, approved axioms; `notes/audit.md`), through the watch. **`Main`** (2026-10-30): `ak_alloc` proved (`MainAlloc.lean`); the started member now exports its auth store's cost field and the TLS fallback off (`memberUpOn`; blockers 3, 4), and the serve step's KV and Auth half is proved (`ak_served_kv`, `MainServe.lean`, over `etcd_kv_auth_served_onA`'s `sorry`); still blocked on `watchAddrFacts` with auth on (its `srvKVFacts` is the auth-off `srvKVInvs`; a mode-generic one is the peer's) and `Authenticate`'s registration (C1's A5); `notes/authkv-main-plan.md`, "Main: what blocks it". Open:
 `Main`.
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)

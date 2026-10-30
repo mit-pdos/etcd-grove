@@ -65,14 +65,14 @@ theorem authTokReg_of (addr u pw : GoString) (γa : auth.AuthNames) :
     iexact Ht
 
 /-- **`etcd_kv_auth_served_on` with `Authenticate` served too** (see the file header; `sorry`
-until the handler's proof). -/
+until the handler's proof). `Authenticate`'s registration is to come from `v3rpc.authRegs` (C1's
+A5, Q9: one registration for every mode), which does not list it yet; until then the statement is
+a stub authkv's `Main` uses (2026-10-30: its separate premise `hreg` dropped, which nothing gives). -/
 theorem etcd_kv_auth_served_onA (addr : GoString) (p q pa s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (ast : GoInterfaceOk) (regs : List (GoString × val × GoInterface)) (N : Nat)
     (γa : auth.AuthNames) (hγa : E.authMode = .on γa)
-    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q ++ v3rpc.authRegs pa, x ∈ regs)
-    (hreg : (authnMethod, (@! etcdserverpb._Auth_Authenticate_Handler),
-      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa) ∈ regs) :
+    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q ++ v3rpc.authRegs pa, x ∈ regs) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
