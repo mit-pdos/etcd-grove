@@ -1602,7 +1602,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
 4. **S-E allocation, boot and the NewServer composition**: `NodeStart.lean` (`rnToks_of_start` (done),
    `srvMem_bootStorage` (done), `raftNode_of_StartNode` (done)), `bootstrappedRaft__newRaftNode.lean`,
    `NewServerAlloc.lean` (`srvClusterBoot_alloc` (done)), `NewServerAllocOn.lean`
-   (`srvClusterBootOn_alloc`), `BuildGap.lean` (`entryClaims_transfer`, `clusterWorkloadOk_of`,
+   (`srvClusterBootOn_alloc` (done)), `BuildGap.lean` (`entryClaims_transfer`, `clusterWorkloadOk_of`,
    `rnEnvOk_of_cluster`, `isServerBuilt_of_gap`), `StartOn.lean` (`isServerBuilt_of_gapOn`),
    `ServerOn.lean` (`clusterWorkloadOkOn_of`, `rnEnvOk_of_clusterOn`, `rnEnvOk_of_clusterM`),
    `InvBuild.lean` (`srvMsgNet_bundle`), `EtcdServer__start.lean` (both), `EtcdServer__run.lean`
