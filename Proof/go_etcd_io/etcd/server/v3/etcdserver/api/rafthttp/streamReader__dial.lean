@@ -27,6 +27,7 @@ public import Spec.strings.TrimSuffix
 public import Spec.fmt.ErrorfPlain
 public import Proof.github_com.Masterminds.semver.v3.Simple
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -62,14 +63,14 @@ theorem id_stringMethodSpec (hIDString : types.ID.String.spec (GF := GF) (hG := 
 set_option hygiene false in
 /-- A log call (`cr.lg.Warn(...)` and the like): its fields' strings, the call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZError as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | (wp_apply hDebug lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Debug" => (wp_apply hDebug lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | wp_auto)))
 
 set_option hygiene false in

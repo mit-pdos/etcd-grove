@@ -18,6 +18,7 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.context.WithCancelBackground
 public import Perennial.Spec.context.Background
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -44,14 +45,14 @@ abbrev cancelCd (γ : context.ContextNames) : context.ContextDesc (IProp GF) :=
 set_option hygiene false in
 /-- A log call: its fields' strings (`peerID.String()`), the call. -/
 local macro "sp_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hIDStringPtr _ _ _ $$ [peerID] as %_ ⟨peerID, -⟩; iexact peerID)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZError as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ _ _ $$ [peerID] as %_ ⟨peerID, -⟩; iexact peerID)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | wp_auto)))
 
 set_option hygiene false in

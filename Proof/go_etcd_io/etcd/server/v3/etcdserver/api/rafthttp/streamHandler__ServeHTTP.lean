@@ -22,6 +22,7 @@ public import Spec.path.Dir
 public import Spec.path.Base
 public import Proof.github_com.Masterminds.semver.v3.Simple
 public import Perennial.Spec.strings.Split
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -44,16 +45,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 set_option hygiene false in
 /-- A log call (`h.lg.Warn(...)` and the like): its fields' strings, the call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hIDStringPtr _ _ _ $$ [«from»] as %_ ⟨«from», -⟩; iexact «from»)
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hIDString as %_ -)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZError as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ _ _ $$ [«from»] as %_ ⟨«from», -⟩; iexact «from»)
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "String" => (wp_apply hIDString as %_ -)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hWarn hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
-    | (wp_apply hDebug hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Warn" => (wp_apply hWarn hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Debug" => (wp_apply hDebug hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
     | wp_auto)))
 
 set_option hygiene false in
