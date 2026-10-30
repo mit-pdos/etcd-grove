@@ -72,11 +72,11 @@ theorem MemoryStorage.Snapshot.wp_proof
   wp_apply wp_EnsureSnapshot.1 sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
   · simp only [snapOpt]; iexact Hsnap
   ihave Hr := ownSnapS_W _ _ _ $$ Hr
+  simp only [Option.getD_some]
+  wp_apply wp_CloneSnapshot.2.2.1 r (DFrac.own 1) sv $$ [Hr] as %p' ⟨Hr, Hp'⟩
+  · iframe Hr
   ihave Hr := ownSnapW_E $$ Hr
   ihave Hr := ownSnapE_weaken $$ Hr
-  simp only [Option.getD_some]
-  wp_apply wp_CloneSnapshot.1 r (DFrac.own 1) sv $$ [Hr] as %p' ⟨Hr, Hp'⟩
-  · iframe Hr
   imod memSnap_put ms γs J ⊤ HN $$ Hsi [Hhk Hsnapshot Hr Hsxh] with Hlk
   · iunfold memSnapHome
     iframe Hhk
@@ -98,7 +98,6 @@ theorem MemoryStorage.Snapshot.wp_proof
     ipureintro; exact Hok_inv
   iapply HΦ
   iframe Hnone
-  iright
   isplitr
   · ipureintro; rfl
   iexists sv

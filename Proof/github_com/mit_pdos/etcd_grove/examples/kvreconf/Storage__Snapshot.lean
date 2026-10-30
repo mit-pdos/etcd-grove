@@ -44,8 +44,9 @@ theorem Storage.Snapshot.wp_proof
     · iempintro
     try wp_auto
     iapply HΦ
-    icases Hres with (%H | ⟨%H, %sv, Hs, %Hsv, Hv⟩)
-    · ileft; ipureintro; exact H
+    icases Hres with ⟨%H, %sv, Hs, %Hsv, Hv⟩
+    ihave Hs := ownSnapW_E $$ Hs
+    ihave Hs := ownSnapE_weaken $$ Hs
     iright
     iframe
     ipureintro; exact ⟨H, Hsv.1⟩

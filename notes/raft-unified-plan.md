@@ -1437,3 +1437,13 @@ The approved items, as built (statements shown to the coordinator first,
 - Internal: `allocOut` carries `isCommittedLogLb γ boot`; `cluster_alloc_dec_impl`'s post gives
   `reBoot.length = 0`. kvreconf's `StartCluster` call adapted (4 lines).
 - `#print axioms wp_StartNode`: exactly `wp_RestartNode`'s; no `sorry`.
+- **`MemoryStorage.Snapshot.spec` strengthened** (Stage F of the client repair, 2026-10-30, the
+  coordinator's decision): the concrete method never fails, so its post is `err = nil` (the
+  `ErrSnapshotTemporarilyUnavailable` disjunct dropped; the `esu` premise kept, unread) and the clone
+  is whole (`ownSnapW`: metadata and conf state set, `EnsureSnapshot`'s; until then `ownSnapM`).
+  The `Storage` interface contract (`isStorageP`'s `Snapshot` clause) keeps admitting the error for
+  wrappers. Why: etcd's `run` reads `raftStorage.Snapshot()` at start, `lg.Panic`s on an error and
+  reads `sn.Metadata.ConfState` directly; the server's `rnSnapOnce_of_tok` is now proved from it.
+  Users adapted by one weakening (`ownSnapW_E`, `ownSnapE_weaken`): `MemstorageInstance`,
+  kvreconf's and kv's `Storage.Snapshot` proofs. Raft's `Results`, kvreconf's and kv's `Results`
+  rebuilt; `interface/` regenerated (`MemoryStorage__Snapshot`, `Linked`).

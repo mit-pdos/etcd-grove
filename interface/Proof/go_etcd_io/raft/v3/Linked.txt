@@ -203,13 +203,12 @@ theorem RaftLink.MemoryStorage.wp_Snapshot [package_sem : Assumptions] : MemoryS
                   typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
           (▷
               ∀ snap err,
-                (if b = true then memSnapNone γs else emp) ∗
-                    (⌜err = esu⌝ ∨
-                      ⌜err = GoInterface.nil⌝ ∗
-                        ∃ sv,
-                          ownSnapM snap (DFrac.own 1) sv ∗
-                            ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
-                              (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) -∗
+                ((if b = true then memSnapNone γs else emp) ∗
+                    ⌜err = GoInterface.nil⌝ ∗
+                      ∃ sv,
+                        ownSnapW snap (DFrac.own 1) sv ∗
+                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
+                            (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP
               ((intoVal

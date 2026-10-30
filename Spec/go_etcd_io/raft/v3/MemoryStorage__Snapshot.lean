@@ -35,10 +35,13 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       (if b then memSnapNone γs else emp) ∗
-      (⌜err = esu⌝ ∨
-       (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+      -- (2026-10-30, the repair) never an error: `MemoryStorage.Snapshot` returns `nil` (the
+      -- `Storage` contract, `isStorageP`, keeps admitting `ErrSnapshotTemporarilyUnavailable` for
+      -- wrappers); `esu` is unread; and the clone whole (`ownSnapW`: its metadata and conf state
+      -- set, `EnsureSnapshot`'s), which etcd's `run` reads directly
+      ⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapW snap (DFrac.own 1) sv ∗
          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
-         (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')))) }}
+         (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) }}
 
 end spec
 

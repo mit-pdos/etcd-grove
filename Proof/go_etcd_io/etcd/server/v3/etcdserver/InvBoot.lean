@@ -460,10 +460,9 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
-  sorry
-/- REPAIR-OLD
   subst Hms0
-  iintro #Hpkg #Hrn Htok
+  iintro #Hpkg #Hrn #Hinv Hnone
+  iunfold memStorInv at Hinv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamed Hrn'
@@ -474,20 +473,24 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iintro %Φ HΦ
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
+  ihave #Hinit := isInitialized_access $$ Hraft
+  iunfold isInitialized at Hinit
+  iNamed Hinit
+  ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot.2 γ.ms γs memStorEmpty $$ [$Htok] as %snap ⟨Htok, %sv, Hw, %Hid⟩
+  wp_apply wp_Snapshot γ.ms γs _ 0 true _ $$ [$Hraft $Hinv $Hc0 Hnone $ErrSnapUnavail]
+    as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
+  · simp only [↓reduceIte]; iexact Hnone
   imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc, #Hcs⟩
   imodintro
-  obtain ⟨Hid, -, -⟩ := Hid
-  simp only [snapId, memStorEmpty, entryID.mk.injEq] at Hid
-  iapply HΦ $$ %snap %pm %pc %sv [] Hsn Hpm Hpc [] [Htok]
+  have Hsv0 := Hsv.2 rfl
+  subst Hsv0
+  subst Herr
+  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone]
   · ipureintro
-    exact ⟨Hid.2, Hid.1, Hnn.1, Hnn.2⟩
+    exact ⟨rfl, rfl, Hnn.1, Hnn.2⟩
   · iapply epCsOk_of_csOptA $$ Hcs
-  · iexists memStorEmpty
-    iframe Htok
-    ipureintro; simp [memStorEmpty]
--/
+  · iexact Hnone
 
 end snap
 
