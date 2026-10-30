@@ -1735,3 +1735,13 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   `rnMsgOk_of_api`, reads the clause in its non-`MsgSnap` branch; `MsgSnap`s go through `rnSnapMsg`/
   `msgSnapC` (SNAPSHOT-SORRY #4/#5). `rnEnvOk` is a premise of the exported `node_contract*` results
   (`Results.lean`), which become stronger.
+- **P3 `rnReadyData` += `rnCeFrozen γ d ce es`** (`InvRaftNode`, internal): raft's `readySnap none`
+  fact `ceFrozen` (the delivered prefix's committed entries frozen in storage) and its index facts
+  (`es` consecutive, `ce` matching `es`), which `rn_ready_recv` used to drop. `raftNode.start` needs them
+  for `rnApN`'s `srvFrozenRange` (with a new `RaftLoopFreeze.lean`, kvreconf's `batch_freeze`).
+  Used only in `InvRaftNode`/`raftNode__start`.
+- **P4 (pending the coordinator) `isRNMemStor_of_memstorage`/`node_contract_memstor`** += premise
+  `memStorLock γ.ms γ.γs` (`MemoryStorage.Append.spec` needs it; not derivable from `rnMemStorReg`),
+  over `RaftLink.MemoryStorage.wp_Append`.
+- Minor (S-C): `rnApP_cum` += `(hid : γ1.id = γ2.id)` (`rnApP` reads `nodeAppliedLb` at `γ.id`; used only in `newRaftNode`).
+- Snapshot sorries #4 and #5 (`processMessages`'s `MsgSnap` side) were proved in stage P: not sorries any more.
