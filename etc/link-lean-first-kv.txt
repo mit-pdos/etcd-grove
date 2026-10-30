@@ -64,7 +64,6 @@ KV__Get: KV__do
 KV__Append: KV__do
 KV__Read: encode node__ReadIndex
 KV__TransferLeadership: node__TransferLeadership
-KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
 KV__install: decode
 # (2026-10-28, stage U4a) the node's methods over raft's cluster with snapshots and

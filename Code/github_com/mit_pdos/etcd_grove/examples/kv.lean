@@ -2018,10 +2018,11 @@ noncomputable def fits.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- run handles the node's Readys: install the snapshot, if any, persist the entries, send the
     messages, note the read states, apply the committed entries in order (a configuration
-    change, RemoveMember's, to the node: Node.ApplyConfChange, before the Advance that
-    acknowledges it, as raft needs), answer the reads whose index is applied, then Advance. A
-    log that would outgrow maxIndex stops the replica (2^61 entries: it does not happen). The
-    applied index is the number of entries applied: the log starts empty, at index 1.
+    change to the node: Node.ApplyConfChange, before the Advance that acknowledges it, as raft
+    needs; the store itself proposes none), answer the reads whose index is applied, then
+    Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does not
+    happen). The applied index is the number of entries applied: the log starts empty, at
+    index 1.
 
     Snapshots: a Ready's snapshot (one of another replica's, which this one lags too far behind
     to be sent entries) is installed before the entries after it are appended: its data, the
@@ -2036,7 +2037,7 @@ noncomputable def fits.impl [GooseExts] [GoGlobalContext] : val :=
     no more snapshots (a snapshot it installs is of an index before any configuration change,
     as every snapshot is).
 
-    go: kv.go:255:14 -/
+    go: kv.go:256:14 -/
 noncomputable def KV.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -2218,7 +2219,7 @@ noncomputable def KV.run.impl [GooseExts] [GoGlobalContext] : val :=
     this replica does not apply -- with the key's value after it the snapshot records: what apply
     would have sent.
 
-    go: kv.go:309:14 -/
+    go: kv.go:310:14 -/
 noncomputable def KV.install.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "kv"
@@ -2324,7 +2325,7 @@ noncomputable def KV.install.impl [GooseExts] [GoGlobalContext] : val :=
     hands out a node's read states only to that node, so a read's context is always its own
     replica's).
 
-    go: kv.go:331:14 -/
+    go: kv.go:332:14 -/
 noncomputable def KV.answer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "pending"
@@ -2456,7 +2457,7 @@ noncomputable def KV.answer.impl [GooseExts] [GoGlobalContext] : val :=
     that an operation takes effect once. Operations are told apart by their encoding, which
     is unique: the replica and a sequence number of its own.
 
-    go: kv.go:363:14 -/
+    go: kv.go:364:14 -/
 noncomputable def KV.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -2603,7 +2604,7 @@ noncomputable def KV.apply.impl [GooseExts] [GoGlobalContext] : val :=
     (a leader transferring its leadership) is not: do then waits forever (partial
     correctness, like Read).
 
-    go: kv.go:406:14 -/
+    go: kv.go:407:14 -/
 noncomputable def KV.«do».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "kind"
@@ -2672,7 +2673,7 @@ noncomputable def KV.«do».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Put sets key's value to val.
 
-    go: kv.go:423:14 -/
+    go: kv.go:424:14 -/
 noncomputable def KV.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -2690,7 +2691,7 @@ noncomputable def KV.Put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Get returns key's value ("" for a key never set).
 
-    go: kv.go:428:14 -/
+    go: kv.go:429:14 -/
 noncomputable def KV.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -2711,7 +2712,7 @@ noncomputable def KV.Get.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Append appends val to key's value.
 
-    go: kv.go:433:14 -/
+    go: kv.go:434:14 -/
 noncomputable def KV.Append.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -2732,7 +2733,7 @@ noncomputable def KV.Append.impl [GooseExts] [GoGlobalContext] : val :=
     request to its leader, which the transport drops: deliverable). Nothing is promised of
     the outcome, and the store's operations are correct whoever leads.
 
-    go: kv.go:441:14 -/
+    go: kv.go:442:14 -/
 noncomputable def KV.TransferLeadership.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -2746,35 +2747,13 @@ noncomputable def KV.TransferLeadership.impl [GooseExts] [GoGlobalContext] : val
   (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"TransferLeadership"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KV.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (Val #()))))
 
-/-- RemoveMember asks raft to remove replica id from the cluster's voters
-    (Node.ProposeConfChange): once the change is committed, every replica's run applies it to
-    its node (Node.ApplyConfChange), and the cluster's quorums are then those of the remaining
-    voters; a leader that removes itself steps down (Config.StepDownOnRemoval). Nothing is
-    promised of the outcome: raft drops a change proposed while another one is not yet
-    applied, and RemoveMember proposes it once.
-
-    go: kv.go:451:14 -/
-noncomputable def KV.RemoveMember.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "r"
-  (Lam "id"
-  (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType KV.ty)))) (Var "r"))
-  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode)) (Val #()))
-  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1")))]))))))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ProposeConfChange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KV.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))))
-  (Val #()))))
-
 /-- Read returns key's value, by a read index rather than through the log: a fresh context
     (the replica and a new sequence number, like an operation's, and the key), the read
     index raft confirms for it with a quorum (Node.ReadIndex), and the key's value once the
     replica has applied the log that far. A request raft drops (no leader known) is not
     retried: Read then waits forever.
 
-    go: kv.go:460:14 -/
+    go: kv.go:451:14 -/
 noncomputable def KV.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -3243,12 +3222,11 @@ class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   get_reads : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"reads") #x (Val #(x.reads'))
   set_reads : ∀ (x : KV) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"reads") (PairV #x #y) (Val #(({ x with reads' := y } : KV)))
   method_set : go.MethodSetIs KV.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) [(go!"Append", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Read", (some (go.signature.Signature [go.string] false [go.string]))), (go!"RemoveMember", (some (go.signature.Signature [go.uint64] false []))), (go!"TransferLeadership", (some (go.signature.Signature [go.uint64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.answer", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty), go.uint64] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.apply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.do", (some (go.signature.Signature [go.byte, go.string, go.string] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.install", (some (go.signature.Signature [(go.GoType.MapType go.string go.string), (go.GoType.MapType go.string go.string)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.run", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) [(go!"Append", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Read", (some (go.signature.Signature [go.string] false [go.string]))), (go!"TransferLeadership", (some (go.signature.Signature [go.uint64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.answer", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty), go.uint64] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.apply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.do", (some (go.signature.Signature [go.byte, go.string, go.string] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.install", (some (go.signature.Signature [(go.GoType.MapType go.string go.string), (go.GoType.MapType go.string go.string)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kv.run", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))] false [])))]
   ptr_Append_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"Append" KV.Append.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"Get" KV.Get.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"Put" KV.Put.impl
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"Read" KV.Read.impl
-  ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"RemoveMember" KV.RemoveMember.impl
   ptr_TransferLeadership_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"TransferLeadership" KV.TransferLeadership.impl
   ptr_answer_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"answer" KV.answer.impl
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"apply" KV.apply.impl
@@ -3282,7 +3260,6 @@ attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.ptr_Get_unfold
   KV.TypeAssumptions.ptr_Put_unfold
   KV.TypeAssumptions.ptr_Read_unfold
-  KV.TypeAssumptions.ptr_RemoveMember_unfold
   KV.TypeAssumptions.ptr_TransferLeadership_unfold
   KV.TypeAssumptions.ptr_answer_unfold
   KV.TypeAssumptions.ptr_apply_unfold
