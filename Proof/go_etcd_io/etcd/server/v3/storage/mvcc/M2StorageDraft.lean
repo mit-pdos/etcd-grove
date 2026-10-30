@@ -177,7 +177,8 @@ theorem mvcc.compactRight_of_wsCloser (s st : Loc) (kb : Option mvcc.KBReal) (γ
 
 /-- **Draft of `newWatchableStore.spec`** (P3): the post's `isWatchableStore` is `isWatchableStoreD`
 (the frozen fact by the mode), and it gains `crevRightM kb γ.st` (the compaction right's half in
-compaction mode, `True` otherwise). The rest as today. -/
+compaction mode, `True` otherwise); and (Q1 (a), `M2StorageDraftSupply.lean`) the pre loses
+`kbWTSupplyM kb`, which the compaction takes (`store.Compact.specD`). The rest as today. -/
 abbrev mvcc.newWatchableStore.specD : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName),
@@ -186,7 +187,7 @@ abbrev mvcc.newWatchableStore.specD : Prop :=
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗ mvcc.kbWTSupplyM kb ∗
+      mvcc.kbSRM kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -205,7 +206,8 @@ abbrev mvcc.newWatchableStore.specD : Prop :=
 
 /-- **Draft of `New.spec`** (P3): as `newWatchableStore.specD`, the post's `isWatchableStoreD` and
 `crevRightM kb γ.st` beside the closer (`wsCloser`, kept: the caller makes the compaction right
-only after its last error return, `compactRight_of_wsCloser`). -/
+only after its last error return, `compactRight_of_wsCloser`); and (Q1 (a)) the pre loses
+`kbWTSupplyM kb`. -/
 abbrev mvcc.New.specD : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName),
@@ -214,7 +216,7 @@ abbrev mvcc.New.specD : Prop :=
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗ mvcc.kbWTSupplyM kb ∗
+      mvcc.kbSRM kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}

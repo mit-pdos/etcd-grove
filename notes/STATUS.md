@@ -396,7 +396,8 @@ store's `GetList` is still names-only.
 
 - `m2-storage-plan.md`: M2's storage side (the backend-cmp Probe's P3, S1-S3): compaction mode in
   the watchable store's construction, the boot's budgets, `writerOwn`'s count. **Draft** written
-  (branch `m2-storage`); the user's batch Q1 (R2-7's timing) and Q2 (the drafted statements) open.
+  (branch `m2-storage`); Q1 (R2-7's timing) answered (a), the supply per compaction, and drafted;
+  Q2 (the drafted statements) open.
 
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
   auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
@@ -510,9 +511,13 @@ exported or trusted switched:
 - **Switched, internal** (every statement reads as before at `cm = false`): `mvcc.writerOwn` counts
   `retiredAt γ (2 + nJobRd γ.kb)` (`writerOwn_off`); `bootBackend_of_newPost` keeps `fkV` (and
   `srSlot`), `NewServer` names them; laws `mvcc.kbSRM_some`, `mvcc.kbWTSupplyM_alloc`.
-- **Open, for the user** (the plan's batch): Q1, R2-7's timing: `mvcc.New` needs the write-back supply
-  in `NewServer`, but `srvWTPool` exists only from `start` (recommended: the supply a premise of
-  `store.Compact` instead of `NewStore`); Q2, the drafted statements.
+- **Q1 (a), drafted** (the user's answer; `mvcc/M2StorageDraftSupply.lean`, the plan's "Q1 (a),
+  drafted"): the write-back supply `kbWTSupplyM γ.kb` leaves `NewStore`/`newWatchableStore`/`New`'s
+  pre (and `mvcc_NewStore_backend(_cmp)`'s) and `physCmp`, and enters `store.Compact.spec`'s pre
+  (and `updateCompactRev`/`compactLockfree`'s), handed to the job in `compactJobPre`. Proved: the
+  compaction chain against the drafted specs, linked (`mvcc_store_CompactD`, today's axioms), the
+  bridge and the exports over `NewStore.specD`, `NewStore`'s changed step (`physCmp_allocD`).
+- **Open, for the user**: Q2, the drafted statements (now with Q1 (a)'s).
 
 ## backend-cmp: Probe repairs (2026-10-30, branch `backend-cmp`)
 

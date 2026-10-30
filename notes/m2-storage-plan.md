@@ -1,7 +1,8 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
 Status (2026-10-30): **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
-user: the drafted statements below and the questions at the end. M2's plan is `notes/m2-plan.md` on
+user: the drafted statements below and the questions at the end. Q1 answered **(a)** and drafted
+("Q1 (a), drafted", below; `mvcc/M2StorageDraftSupply.lean`); Q2 open. M2's plan is `notes/m2-plan.md` on
 branch `m2`; the findings this step answers are the backend-cmp Probe's
 (`notes/spec-first-study/backend-probe.md`: P3, S1, S2, S3; P4 as decided).
 
@@ -80,8 +81,8 @@ reads over the redefined predicate, and the post gains one conjunct after the in
 ```lean
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM kb γ.st ∗
 ```
-Pre unchanged in both (they already take `kbSRM kb ∗ kbWTSupplyM kb` and keep `nJobRd kb` readers
-back). At `cm = false` (`¬ kbCmpM kb`) the new conjunct is `True` (`crevRightM_off`) and the predicate
+Pre unchanged in both by P3 (they already take `kbSRM kb` and keep `nJobRd kb` readers back);
+since Q1 (a) both lose `kbWTSupplyM kb` (below). At `cm = false` (`¬ kbCmpM kb`) the new conjunct is `True` (`crevRightM_off`) and the predicate
 is today's: the statements read as today.
 
 **`watchableStore.NewWatchStream.spec`** (drafted `NewWatchStream.specD`; "no watchers in compaction
@@ -107,7 +108,7 @@ isWatchableStoreD s st γ ⊢ crevFrozen γ.st` (a law, so no client unfolds the
 - `server_kv_watchable_ofC` (etcdserver): `server_kv_watchable_of` at `hcm : d.cm = true`, over
   `New.specD`, the compacting bridge `storeBackend_of_backendC` (the registration fixed by
   `backend.dlReg_fix` at `storeDlReg d.γB γi`), `fkV d.γB true`, `srSlot d.be` (through
-  `kbSRM_some`) and `kbWTSupplyM (some d)` (a premise: see Q1), three more callee specs
+  `kbSRM_some`), three more callee specs (since Q1 (a) no `kbWTSupplyM (some d)` premise)
   (`LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`, `UnsafePut`). Its post: the store at
   `γw.st.kb = some d`, `actualMaxReaders - 1 - 2` watch readers, `retiredAt γw.st 1`, the closer and
   `crevRightM (some d) γw.st`. **Gap**: it gives `watchWriter`/`writerFrag` and no `txn.isKV`, where
@@ -152,7 +153,7 @@ isWatchableStoreD s st γ ⊢ crevFrozen γ.st` (a law, so no client unfolds the
 
 - **`NewServer.spec` merged with `specCompact`**: the store built at `cm := (retention ≠ 0)` instead
   of `{ d with cm := false }`; at `cm = true`, `server_kv_watchable_ofC` (switched to the real
-  `New.spec`), its pre's `fkV`/`srSlot` from `bootBackend_of_newPost` (now kept), its supply (Q1);
+  `New.spec`), its pre's `fkV`/`srSlot` from `bootBackend_of_newPost` (now kept), no supply (Q1 (a): `store.Compact` takes it);
   after the transport's `Start`, `newServer_compactRight`; the readers' hand-outs from
   `actualMaxReaders - nJobRd - 2` (one fewer); the retired count `1 + 2 = 3`, which `writerOwn` now
   accepts (`writerOwn_off` only at `cm = false`).
@@ -163,14 +164,15 @@ isWatchableStoreD s st γ ⊢ crevFrozen γ.st` (a law, so no client unfolds the
   `crevFrozen` at `cm = false` only.
 - **The apply's compaction arm** (`applierV3backend.Compaction` over `mvcc_store_Compact`): lends
   `storeRT` from `writerOwn` (`writerOwn_rt`, any count), passes `hookIs` (returned since P1) and
-  `compactRight`, and needs `storeStop`.
+  `compactRight`, and needs `storeStop`; since Q1 (a) also the supply `kbWTSupplyM (some d)`, from
+  `srvWTPool` (`kbWTSupplyM_of_srvWTPool`, with the boot backend's discarded `E.γbe` part: P4).
 - **The etcd pin bump for `NoDelPutAt`** (#22377): nothing from this step; it re-proves
   `keyIndex.doCompact`/`store.Compact` without the premise, and every statement drafted here is
   independent of it.
 
 ## Questions for the user (one batch)
 
-- **Q1, R2-7's timing (found by this Draft).** `mvcc.New` takes `kbWTSupplyM (some d)` when the store
+- **Q1, R2-7's timing (found by this Draft).** *Answered (a), 2026-10-30; drafted below.* `mvcc.New` takes `kbWTSupplyM (some d)` when the store
   is built, inside `NewServer`; the server's write budget `srvWTPool` is allocated by `start`
   (`EtcdServer__start.lean:432`, from `srvWTStock` in the built server's state), after `NewServer`
   returns. It cannot simply be allocated earlier: its invariant holds the storage-version monitor's
@@ -196,6 +198,90 @@ isWatchableStoreD s st γ ⊢ crevFrozen γ.st` (a law, so no client unfolds the
   unreachable in the model: `Cleanup` runs only in `run`'s deferred shutdown, which is never reached
   (`EtcdServer__run.lean`: `run` never returns). If the shutdown is ever modelled, the closer must
   be mode-gated there.
+
+## Q1 (a), drafted (2026-10-30)
+
+The user's answer to Q1: **(a)**, the write-back supply per compaction, not per store. Drafted in
+`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/M2StorageDraftSupply.lean` (new, imported by nothing;
+no `axiom`, no `sorry`), and in the two existing Draft modules (`New.specD`/`newWatchableStore.specD`,
+`server_kv_watchable_ofC`). Nothing switched: the internal predicates `physCmp` and `compactJobPre`
+cannot change in place without `updateCompactRev.spec` changing, hence `store.Compact.spec`
+(exported, `mvcc_store_Compact`), so they are drafted too (`physCmpD`, `compactJobPreD`).
+`compactJobResM` (the job's exclusive budgets) and `compactRes` are untouched: the supply is
+persistent and travels in the job's persistent premise, not in its token.
+
+**The drafted texts** (each replaces the definition or statement of the same name without `D` at the
+switch; only the changed parts shown, the full texts in the Draft module):
+- `mvcc.physCmp` (internal, `InvStore.lean`) loses the supply:
+  ```lean
+  def physCmp (s : Loc) (γ : StoreNames) : IProp GF :=
+    if kbCmpM γ.kb then iprop(mwInv γ ∗ storeRegd s γ) else iprop(True)
+  ```
+  with `physCmp_on`/`physCmp_off`/`mwSwap_of_physOk` restated (`physCmpD_on`, `physCmpD_off`,
+  `mwSwap_of_physCmpD`), and `physCmp_alloc` without its `kbWTSupplyM γ.kb` argument
+  (`physCmp_allocD : mwRest γ ∗ kbMW γ.kb γ.bucket ∗ storeRegd s γ ={⊤}=∗ physCmp s γ`).
+- `mvcc.compactJobPre` (internal, `InvCompact.lean`) gains it, after `crevLb`:
+  ```lean
+  def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
+    iprop(isStore s γ ∗ storeStop s γ ∗ schedule.schedLive γ.sch ∗ ⌜storeCmp γ⌝ ∗
+      crevLb γ.idx (sint.Z rev) ∗ kbWTSupplyM γ.kb ∗
+      ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
+        ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
+  ```
+  plus an instance `kbWTSupplyM_persistent` and a law `kbWTSupplyM_on (h : kbCmpM kb) :
+  kbWTSupplyM kb ⊣⊢ kbWTSupply kb` (`InvStore.lean`).
+- **`store.Compact.spec`** (exported, `mvcc_store_Compact`): the pre's last line becomes
+  ```lean
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
+      mvcc.kbWTSupplyM γ.kb }}
+  ```
+  (post unchanged). Its docstring gains: "**The write-back supply** (Q1 (a), 2026-10-30): the
+  caller gives the compaction's supply `kbWTSupplyM γ.kb` (persistent; the server's from
+  `srvWTPool`, R2-7), which the store no longer keeps; the job gets it in its premise."
+- `store.updateCompactRev.spec`, `store.compactLockfree.spec` (internal, linked): the same pre line
+  (`… ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}`); `updateCompactRev`'s docstring's "from the
+  store's supply (`physCmp`'s `kbWTSupply`)" becomes "from the caller's supply". Posts unchanged
+  (`compactJobPre` read over the redefinition).
+- `store.compact.spec`, `store.scheduleCompaction.spec`: unchanged text (over the redefined
+  `compactJobPre`).
+- **`NewStore.spec`**, **`newWatchableStore.spec`**, **`New.spec`**: the pre line
+  `mvcc.kbSRM kb ∗ mvcc.kbWTSupplyM kb ∗` becomes `mvcc.kbSRM kb ∗` (nothing else; `New.specD` and
+  `newWatchableStore.specD` carry it beside P3's changes). `NewStore`'s docstring: "and its
+  write-back supply (`kbWTSupplyM`)" goes; `kbWTSupplyM`'s and `kbWTSupply`'s docstrings
+  (`InvStore.lean`) say `store.Compact` takes it.
+- The internal bridge `mvcc.NewStore_backend` (`StoreBackend.lean`) and the exports
+  **`mvcc_NewStore_backend`**, **`mvcc_NewStore_backend_cmp`** (`Results.lean`): the pre line
+  `backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗`
+  becomes `backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗`. `_cmp`'s docstring: its
+  client brings the supply to `store.Compact` (with the contract, the trace and the reader's token).
+
+**What was proved** (`etc/lean-check.py` and a targeted `lake build`):
+- **The compaction chain, against the drafted specs, linked**: copies of today's proofs of
+  `updateCompactRev`, `scheduleCompaction`, `compact`, `compactLockfree` and `Compact`
+  (`…wp_proofD`), each against its `specD` over `compactJobPreD`; the store's `physCmp` read only
+  through `physCmpD` (`physCmpD_of_physCmp`, then `iclear`: the copies cannot use today's supply);
+  the supply from the pre (`updateCompactRev`) or the job's premise (`scheduleCompaction`). And
+  `mvcc_store_CompactD : store.Compact.specD` and `wp_compactLockfreeD`, linked with today's
+  callees: no hypothesis. The changes against today's proofs are the marked lines (`Q1 (a)`):
+  two `wp_start` patterns, the `physCmp` destructuring (two sites), four `compactJobPre`
+  destructurings, the hypotheses' names. At the switch they replace today's proofs as they are.
+- **The creation side**: `physCmp_allocD` (`NewStore`'s one changed step: it drops `Hwts`);
+  `NewStore_backendD` (the bridge, over `NewStore.specD`), and the exports
+  `mvcc_NewStore_backendD`/`mvcc_NewStore_backend_cmpD` over `NewStore.specD` (a hypothesis: the
+  linked `wp_NewStore` proves today's `NewStore.spec`). Not proved: `NewStore.specD` itself, since
+  `NewStore`'s proof builds `isStore`, whose `physOk` holds `physCmp`, so it can only be re-proved
+  over the in-place redefinition; its change is `physCmp_allocD` and dropping `Hwts`.
+  `newWatchableStore`/`New` pass the pre through to `NewStore` (drop `Hwts` from two patterns).
+- **The server glue**: `server_kv_watchable_ofC` (over `New.specD`) without its `kbWTSupplyM
+  (some d)` premise, re-checked.
+
+`mvcc_store_CompactD` rests on exactly `mvcc_store_Compact`'s axioms (`#print axioms`, the same 1118).
+
+**At the switch, elsewhere**: `etcdserver/BuildLemmas.lean:134` (for `New`) and
+`etcdserver/Results.lean:855` (for `mvcc_NewStore_backend`; its one caller outside mvcc) each make
+`Hwts : mvcc.kbWTSupplyM … $$ []` at `cm = false` and pass it: both lines go. The apply loop's
+compaction arm (later) gives `store.Compact` the supply from `srvWTPool` through
+`kbWTSupplyM_of_srvWTPool` (at `start`'s pool, the boot backend's `E.γbe` part discarded, P4).
 
 ## The tally
 

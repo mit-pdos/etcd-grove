@@ -7,14 +7,16 @@ compaction mode, proved against that statement before any proof is switched:
   (`d.cm = true`), over the compacting bridge (`storeBackend_of_backendC`, the backend's deletable
   keys fixed at the store's, `storeDlReg`), with the compaction's budgets from what the boot holds:
   the compaction keys' values tracked (`fkV`, from `bootBackend_of_newPost`), the safe-range slot
-  (`srSlot`, through `mvcc.kbSRM_some`) and the write-back supply (`kbWTSupplyM`, a premise: its
-  server source is the open question R2-7-timing of the plan). Its post gives what the compacting
+  (`srSlot`, through `mvcc.kbSRM_some`); not the write-back supply, which `New` no longer takes
+  (Q1 (a), the user's: the compaction takes it, `store.Compact.specD`). Its post gives what the compacting
   server keeps: the closer and the compaction right's half (`crevRightM`), to make the right after
   `NewServer`'s last error return (`mvcc.compactRight_of_wsCloser`), and the retired count at `1`
   (the job's reader kept back), so the server's two retirements end at `3 = 2 + nJobRd`, which
   `writerOwn` now counts.
 - `kbWTSupplyM_of_srvWTPool`: R2-7's conversion, the supply from the server's write budget at the
-  boot backend, its part of `E.γbe` discarded (no snapshot is installed in compaction mode).
+  boot backend, its part of `E.γbe` discarded (no snapshot is installed in compaction mode): what
+  the apply loop's compaction arm hands `store.Compact` (Q1 (a)), after `start` has allocated the
+  pool.
 
 The post leaves out `server_kv_watchable_of`'s `txn.isKV` and `txn.kvWriter` (it gives the writer's
 `watchWriter` and fragment instead): both are defined over today's `isWatchableStore`, which the
@@ -103,7 +105,7 @@ theorem server_kv_watchable_ofC
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
         backend.dlInit d.γB ∗ backend.fkV d.γB true ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        ownToks d.γB.wb (N + 2) ∗ backend.srSlot d.be ∗ mvcc.kbWTSupplyM (some d) ∗
+        ownToks d.γB.wb (N + 2) ∗ backend.srSlot d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
@@ -128,7 +130,7 @@ theorem server_kv_watchable_ofC
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM (some d) γw.st ∗ mvcc.retiredAt γw.st 1 ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw, Hsr, Hwts, Hrts, Hlrd,
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw, Hsr, Hrts, Hlrd,
     #Hle, Hro, Hif, Hok⟩ HΦ
   -- this store compacts: the backend's deletable keys fixed at the store's (`storeDlReg`, over the
   -- index's names `γi`), and its contract the compacting bridge's
@@ -145,8 +147,8 @@ theorem server_kv_watchable_ofC
   ihave Hsrm := mvcc.kbSRM_some d $$ Hsr
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
   iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag hcfg hrb)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm Hwts
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
+  · iframe Hpkg Hle Hro Hif Hok Hsrm
     isplitr
     · iintro %s %γ %hγ
       iapply Hsb
