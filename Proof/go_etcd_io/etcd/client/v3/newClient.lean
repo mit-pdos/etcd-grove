@@ -366,8 +366,13 @@ theorem newClient.wp_proof
     isplitl []
     · iapply kvObjAtC_of
       iframe HapiS Hconn
-    iapply attemptTokOk_of
-    iexact Hctok
+    isplitl []
+    · iapply attemptTokOk_of
+      iexact Hctok
+    iexists ap
+    iframe Auth
+    iapply authObjAtC_of
+    iframe HapS Hconn
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>

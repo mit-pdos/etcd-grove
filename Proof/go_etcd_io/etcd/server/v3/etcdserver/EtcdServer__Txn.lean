@@ -4,6 +4,7 @@ counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
@@ -646,6 +647,8 @@ theorem EtcdServer.Txn.wp_proof
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
+  have hDS := EtcdServer.doSerialize.spec_off hDS
+  have hRR := EtcdServer.raftRequest.spec_off hRR
   intro s E ρ γr c ctx cd r t Q Qr ot te F
   wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF, Hnp⟩
   wp_auto
@@ -663,7 +666,7 @@ theorem EtcdServer.Txn.wp_proof
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerReq at Hsrv'
-  icases Hsrv' with ⟨%v, #Hv⟩
+  icases Hsrv' with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, #Hfgf, #Hfg, -⟩
   iunfold isFeatureGate at Hfg
@@ -1358,8 +1361,7 @@ theorem EtcdServer.Txn.wp_proofOn
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
   iunfold txnPermitOn at Hnp
-  iunfold txnPermit at Hnp
-  icases Hnp with ⟨⟨%Ht, Hau⟩, %Ha⟩
+  icases Hnp with ⟨%Ht, %Ha, Hau⟩
   ihave #Hrt' := Hrt
   iunfold txn.txnRequestIs at Hrt'
   icases Hrt' with ⟨%Hrn, #Hf⟩
@@ -1524,11 +1526,14 @@ theorem EtcdServer.Txn.wp_proofOn
         $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hau]
-      · iapply txnPermitOn_reqPropOk ρ.kv tw Q γc
+      · iapply txnPermitOn_reqPropOk ρ.raft ρ.kv _ _ tw Q γc
+          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc)
         iunfold txnPermitOn
-        iunfold txnPermit
-        iframe Hau
-        ipureintro; exact ⟨Ht, Ha⟩
+        isplitr
+        · ipureintro; exact Ht
+        isplitr
+        · ipureintro; exact Ha
+        iexact Hau
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)

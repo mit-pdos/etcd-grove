@@ -8,10 +8,12 @@ What the proof needs (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth pl
   `auth.authSchemaBoot`, the provider's `auth.tokenProviderBoot`), `srvAuthBound` from
   `srvAuthBound_of_authInv`, the apply thread admitting auth requests with the authority
   `authOwn`;
-- **`SetUp`'s admin calls**: the client's `Auth` field (not in `isNewClient`'s model; `NewAuth`,
-  `RetryAuthClient` and the `authClient` methods untranslated) and the server's Auth service as
-  `isGrpcRpc` contracts over the apply layer's admin steps (`apply.isAuthSteps`); the history
-  after them `setupSt` at every later position (`auth.authHistHalf_lookup`, S4f);
+- **`SetUp`'s premises** (the auth-mode merge's 5b): `clientTokAt cl [ep] (fun _ => False)` (G1's
+  `NewClient`), `setupAuthServed` (`etcd_kv_auth_served_on`), `□ (srvTLSId s -∗ False)` (the
+  started member's `ClientCertAuthEnabled` is the config's `false`: `memberUpOn` does not yet
+  export it), the client's view `authHistView ρ.kv [srvAuthSt0]` and `c0 ≤ ai0` (the boot,
+  `server_cluster_alloc_on`); its post, the history frozen at `setupSt r`, then gives `setupSt` at
+  every later position (`authHistFrozen_prefix`);
 - **the client's auth contract** over the contexts' metadata (`ClientAuth.lean`): C1
   (`userAttemptOk`) and C2/C4 (`deliversOutgoing`) in the client's attempt contract
   (`grpcInvokerOk` says nothing of metadata today), C3 the spec

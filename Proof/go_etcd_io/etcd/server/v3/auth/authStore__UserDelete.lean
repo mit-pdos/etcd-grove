@@ -41,7 +41,7 @@ theorem auth.authStore.UserDelete.wp_tie
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserDelete.specT (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r name en sc0
-  wp_start as ⟨#Hinv, #Hr, Hown, HWR, Htpa, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .invalidAuthMgmt $$ Hpkg with ⟨%eIAM, #HeIAM⟩
   simp only [AuthErr.var]
@@ -193,8 +193,11 @@ theorem auth.authStore.UserDelete.wp_tie
     simp [userDeleteF, hnr, Hur.1]
   obtain ⟨Hrevfit, Hfit⟩ := Hstep
   have Hfit' := Hfit _ _ rfl hstep
+  ihave #Hcap1 := Hcap $$ %en
+  ihave #Hcn := capNextM_step M hs (userDeleteF en name) st0 (bump (delUser st0 name)) Hl0
+    (by rw [hstep]; try simp_all) $$ Hcap1
   wp_apply (h_commitRevision st R M P f T ti Lk (delUser st0 name) Post hs st0)
-    $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+    $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delUser _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
     intro hM; subst hM; exact Hl0

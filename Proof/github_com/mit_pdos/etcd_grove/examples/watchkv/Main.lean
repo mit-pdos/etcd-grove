@@ -285,7 +285,7 @@ theorem Main.wp_proof
   wp_apply (wp_NewClient go!"127.0.0.1:23872" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) Hlg
       (by unfold plainEndpoint; decide) Htb31) as %cl %cerr Hcl
-  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

@@ -146,6 +146,24 @@ instance rangeClassFrom_persistent (M : auth.AuthMode) (n : Nat) (info : auth.Au
     (o : OpFull) : Persistent (rangeClassFrom (GF := GF) M n info o) := by
   unfold rangeClassFrom; infer_instance
 
+/-- **A read's class with auth off is one no older than any `n`** (the auth-mode merge's step 5:
+the mode-off `Range` in the merged spec's terms). -/
+theorem rangeClassFrom_off (n : Nat) (info : auth.AuthInfo) (o : OpFull) :
+    rangeClass (GF := GF) .off info o ⊢ rangeClassFrom .off n info o := by
+  unfold rangeClass rangeClassFrom
+  iintro ⟨%e, %he, -⟩
+  iexists e
+  unfold auth.permVerdictFrom
+  ipureintro; exact ⟨he, rfl⟩
+
+theorem rangeClass_of_from_off (n : Nat) (info : auth.AuthInfo) (o : OpFull) :
+    rangeClassFrom (GF := GF) .off n info o ⊢ rangeClass .off info o := by
+  unfold rangeClass rangeClassFrom
+  iintro ⟨%e, %he, -⟩
+  iexists e
+  unfold classRes
+  ipureintro; exact ⟨he, trivial⟩
+
 /-- A check's verdict in the mode `off` is a pass. -/
 theorem permVerdictFrom_isOn (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
     (k e : GoString) (op : auth.PermType) (err : GoInterface) :

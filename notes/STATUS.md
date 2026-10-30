@@ -585,9 +585,26 @@ The plan is `notes/auth-mode-merge-plan.md` (its "Progress" is the log). Decided
 function, the mode the environment's (`E.authOn`, `.any` excluded), the exported pairs merged.
 Merged: `snapshotIfNeededAndCompactRaftLog`, `setAppliedIndex`, `setTerm` (on `lean`);
 `AuthInfoFromCtx` and the six guards above it, the binding gated by the mode (branch `auth-bound`;
-`notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). Next: the
-request path (step 5), then `applyEntryNormal`'s variant families, which block `apply` and the
+`notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). Step 5
+(the request path, branch `auth-req`): design D is in. A write's update with auth on is told its
+grant when it fires (`kvAu1G`, `writeGrantG`; v3rpc's `kvDepOwnOn`; "The write's update told its
+grant"). Merges A, C and D are in: the request path (`parseProposeCtxErr`, `processInternalRaftRequestOnce`,
+`raftRequest`, `doSerialize`, `Put`, `DeleteRange`, `Range`) has one spec each at `E.authOn`, with the
+former pairs as corollaries in `ModeSpecs.lean` (decisions, "The request path in the environment's
+mode"). 5a carries the write's grant through the client's `On` results (`clientOpAuOn`). 5b (branch `auth-5b`, in progress): the admin requests' permission is a client's update of
+an auth history `kvInvOn` keeps half of (`histAu`; decisions, "The admin requests over a client's
+view of the auth history"), through the server, the Auth gRPC layer and the client's Auth wrappers;
+authkv's `SetUp` (its auth half) proved over it, returning the history frozen at `setupSt r`,
+published, over the new trust-boundary axiom `context.WithTimeoutBackgroundMd` (the set-up's
+context has no outgoing metadata; the user's choice). F-S2 part 1 is in: the axiom
+`etcd_noOtherRefusal` (approved; `api/v3rpc/NoRefusal.lean`, with `noOtherRefusalAt` in `InvGrpc`),
+not yet read by the attempt contract, so no result rests on it; part 2 (the auth refusals' identity
+in the error branches) makes `etcd_noRefusal` a theorem. Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
+H5 (branch `h5-tie`, 2026-10-30): the auth store's history capped and tied to the committed log
+(`authHistTie`, in `srvKVInvsOn`; decisions, "H5: the auth history's cap, tied to the log"), with
+authkv's read law `authStateAt_setup` (`AuthTieRead.lean`) proved; full build, trust base unchanged.
+`Main`'s read half can now take the law from the tie instead of a premise.
 
 ## Two compaction-path axioms refuted (2026-10-29)
 

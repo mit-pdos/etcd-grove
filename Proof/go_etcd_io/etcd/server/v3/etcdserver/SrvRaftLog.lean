@@ -813,6 +813,74 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
     simp only [EntryModel.toLE] at h1 h2
     rw [← h1, ← h2]; exact ht
 
+
+/-- **A prefix of the server's log of requested entries** (persistent; the auth-mode merge's step 5,
+2026-10-29): a lower bound in the view of the KV invariant's log (`srvRLog`), which holds no raft
+fillers; `srvRLogLb` bounds raft's committed log, fillers included, and converts to it
+(`srvReqLogLb_of_rlogLb`). -/
+def srvReqLogLb (γ : ServerRaftNames) (L : List EntryModel) : IProp GF :=
+  monoListLbOwn γ.raft.log L
+
+instance srvReqLogLb_persistent (γ : ServerRaftNames) (L : List EntryModel) :
+    Persistent (srvReqLogLb (GF := GF) γ L) := by
+  unfold srvReqLogLb; infer_instance
+
+/-- The empty prefix. -/
+theorem srvReqLogLb_nil (γ : ServerRaftNames) : ⊢ |==> srvReqLogLb (GF := GF) γ [] := by
+  unfold srvReqLogLb; exact monoListLbOwn_nil _
+
+/-- The server's half extends every prefix. -/
+theorem srvReqLogLb_prefix (γ : ServerRaftNames) (L L₀ : List EntryModel) :
+    srvRLog (GF := GF) γ L ∗ srvReqLogLb γ L₀ ⊢ srvRLog γ L ∗ ⌜L₀ <+: L⌝ := by
+  unfold srvRLog srvReqLogLb
+  iintro ⟨Hl, #Hlb⟩
+  ihave %Hp := mono_list_auth_lb_valid γ.raft.log _ L L₀ $$ Hl Hlb
+  iframe Hl
+  ipureintro; exact Hp.2
+
+/-- **A committed prefix as a prefix of the requested entries**: a lower bound of raft's committed
+log gives one of the server's log with the same requested entries. -/
+theorem srvReqLogLb_of_rlogLb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
+    (A : List EntryModel) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRLogLb γ A ={E}=∗
+      ∃ L₀, srvReqLogLb γ L₀ ∗ ⌜srvEqv γ A L₀⌝ := by
+  have hE : (↑srvLogN : CoPset) ⊆ E := fun p hp => hE0 p (srvLogN_sub p hp)
+  iintro #Hinv #HA
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, -, -, -⟩
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfr, %Hfacts⟩
+  ihave #Hlb := monoListLbOwn_get γ.raft.log _ Lf $$ Hlog
+  iunfold srvRLogLb at HA
+  icases HA with ⟨#HAc, %HAi⟩
+  ihave %Hp := ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HAc]
+  · iframe Hown HAc
+  imod Hclose $$ [Hown Hlog HP HF HR Hfr Hregs] with -
+  · inext
+    iexists Lf, P, F, R
+    iunfold srvLogCore
+    iframe Hown Hlog HP HF HR Hfr Hregs
+    ipureintro; exact Hfacts
+  have hpre := srv_ops_prefix γ A Lf Hfacts.2.1 Hp
+  let k := (opsOf (A.map EntryModel.toLE)).length
+  have htk : (Lf.take k).map EntryModel.toLE = opsOf (A.map EntryModel.toLE) := by
+    rw [List.map_take]
+    obtain ⟨r, hr⟩ := hpre
+    rw [← hr]; simp [k]
+  imodintro
+  iexists Lf.take k
+  isplitl
+  · iunfold srvReqLogLb
+    iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ Hlb
+  ipureintro
+  refine ⟨HAi, srvIdxOkW_prefix _ _ _ Hfacts.1 (List.take_prefix _ _), ?_⟩
+  rw [opsOf_nofill ((Lf.take k).map EntryModel.toLE), htk]
+  · intro x hx
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 hx
+    exact Hfacts.2.1 m (List.mem_of_mem_take hm)
+
 end lb
 
 /-! ## The server's updates as the node API's -/

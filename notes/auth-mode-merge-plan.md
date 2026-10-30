@@ -231,3 +231,58 @@ server's `checkMembershipOperationPermission` and `requireAuthInfo` and v3rpc's
 now state the binding. `AuthInfoFromCtx.wpM`'s `hAuthB` premise is gone, so the request path's
 proofs link over `.spec` alone. Next: the request path's mode merge (step 5), then
 `applyEntryNormal`'s families.
+
+**Step 5 (branch `auth-req`, worktree `/shared/etcd-grove-rq`, started 2026-10-29).** The user
+folded authkv's D into it (the write update told its grant) and decided authkv's D2, option (A):
+the admin specs take a caller update over a client-side view of the auth history. Spec-first: the
+candidate went through three rounds with the spec reviewer (`step5-review.md`, kept outside the
+repository) and authkv's session checked it against its history invariant S1. The design:
+- A: `processInternalRaftRequestOnce`, `raftRequest`, `doSerialize`: `spec := specM E.authOn` (no
+  `.any` premise; by cases on `E.authOn`). `processInternalRaftRequestOnce.specCompact` stays a
+  second spec (M2's).
+- B (D): the on write update is `kvAu1G` (an AU whose atomic postcondition, supplied by the server
+  at the commit, carries `writeGrantAt`: some stamped header bound to the context, and a committed
+  prefix `L` of the requested log, `L₀ <+: L` for the lower bound `srvReqLogLb ρ.raft L₀` the
+  client sends with its update, at which the model grants the write and whose KV state is the
+  update's). Laws for clients: `srvReqLogLb_nil`, `srvReqLogLb_of_rlogLb` (from raft's committed
+  view), `grantedAt_iff`, `kvGranted_emptyUser` (enabled, no `""` user, a request with
+  permissions), `srvTLSId_false`. Threaded through Put, DeleteRange, Txn (its merge stays step 6)
+  and the v3rpc/client `On` results.
+- C: `Put`, `DeleteRange`: one spec, the grant row `□ (⌜E.authOn = true⌝ → …)`; `isServerReq`
+  gains `⌜E.authOn = false⌝` (decided by the agent: its one constructor is the off `start`), with
+  laws `isServerReq_authOff`, `isServerReq_fields`.
+- D: `Range`: one spec, `E.authMode ≠ .any` (the user's B); `srvAuthLb_off`, `rangeClassFrom_off`.
+- E: bridges `specOff`/`specOn` for `Start`'s two specs until step 4.
+- **Done (2026-10-29):** A (`ModeSpecs.lean` holds `specM`/`spec_M` and the off forms), C, D
+  (one proof each, the prefix shared, split on `E.authOn`; the tails unify later), the laws
+  (`grantedAt_iff`, `kvGranted_emptyUser`, `srvTLSId_false`, `srvAuthLb_off`, `rangeClassFrom_off`).
+  E holds as the `ModeSpecs` corollaries (`spec_off`/`spec_on`), which `ServerKV`/`ServerKVOn` and the
+  `_on` results use.
+- Off-only still (no regression; merges to do): `MemberList.spec`, `read_server`,
+  `srvAuthAt_of_views`, `parseProposeCtxErr.spec`.
+- **5a (2026-10-29, done on `auth-5b`):** the write grant through the client's `On` registrations
+  and results (`clientOpAuOn`, `txnUpdAtOn`; decisions, "The write grant through the client's `On`
+  results"), a step-5 gap authkv found.
+- **5b progress (2026-10-29, branch `auth-5b`):** the server side, the Auth gRPC layer, the
+  client's Auth wrappers (`authObjAtC`, `clientTokAt` naming `Auth`, `clientHistAu`) and authkv's
+  `SetUp` (auth half: `SetupHist`, `SetupInv`; the premise `c0 ≤ ai0` added, the reply's
+  `authHistLb` and `pubAfterM`'s `e.data ≠ []` found in the proof). The context's metadata: the
+  axiom `context.WithTimeoutBackgroundMd` (user's choice). Left: `Main`'s
+  `ClientCertAuthEnabled` from the started member's config.
+- **5b (D2), after step 5:** a mono-list auth history in `kvInvOn`, its client half exported at the
+  on start; the admin case of `reqPropOkOn` takes an AU over it; `writeGrantAt` gains the
+  history's prefix up to `L`. Needs the on start (step 4's statements). Drafted to authkv's session
+  before proof. authkv's S2 also needs `ClientCertAuthEnabled ↦□ cfg…` exported from the start
+  (`srvServeCfg`), step 4 or 5b.
+  authkv's S6 asks of 5b (2026-10-29): the history is a pure function of the requested log
+  (`admStates γk L`, with `last (admStates L) = srvAuthAtLog … L` and `L₁ <+: L₂ → admStates L₁ <+:
+  admStates L₂`), and an admin update's commit gives `srvReqLogLb ρ.raft (L ++ [e])` with
+  `admStates (L ++ [e]) = hs ++ [next]` (so the set-up's `Lset` is tied to the view's states).
+  F-S2's refusal split (route B): part 1, the axiom `etcd_noOtherRefusal` (no KV answer is one of
+  the non-auth refusals, in either mode), reviewed by the `axiom` skill (survives under the voter
+  condition, `notes/axiom-review/etcd-noOtherRefusal.md`) and **approved by the user as stated**
+  (2026-10-29, relayed), its docstring to cite `ccLogOk` and state the voter assumption; added in
+  5b, where it is used. Added on `lean` 2026-10-29 (after 5b's merge, which did not need it):
+`noOtherRefusalAt`/`otherRefusalDescs` in `InvGrpc`, the axiom in `NoRefusal.lean`; unused until
+the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
+  axiom); `etcd_noRefusal` then becomes a theorem.

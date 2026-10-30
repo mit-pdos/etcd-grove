@@ -27,6 +27,7 @@ take (`srvErrIs`, from `applyErrIs`: `srvErrIs_of_applyErrIs`).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
@@ -524,7 +525,7 @@ theorem hdr_of_own (hf h : Loc) (rv : w64) (R : IProp GF) (hrv : rv ≠ W64 0) :
   iexact Hrev
 
 /-- **`raftKV`'s `Put` conjunct, from `EtcdServer.Put`**. -/
-theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
+theorem kvPutOk_of_server (hPut : EtcdServer.Put.specOff (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (d : KVDep GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerReq s E ρ ⊢
@@ -585,7 +586,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     iunfold putErr
     iexact Hfail
 
-theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG := hG))
+theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.specOff (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (d : KVDep GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerReq s E ρ ⊢
@@ -647,7 +648,7 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
     iexact Hfail
 
 /-- **`raftKV`'s `Range` conjunct, from `EtcdServer.Range`**. -/
-theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG))
+theorem kvRangeOk_of_server (hRange : EtcdServer.Range.specOff (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (d : KVDep GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -870,7 +871,7 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   iunfold isServerReq at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, -⟩
   iunfold srvPeersOk at Hpeers
@@ -940,9 +941,9 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
 /-- **The server's contract `raftKV`, from the server's linked specs** (no premise but the
 server's facts: the request path's fields and invariants, `isServerReq`; the read side's,
 `isServerRead`), at the parameters `srvKVAns s E ρ γr c`. -/
-theorem raftKV_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
-    (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG := hG))
-    (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG))
+theorem raftKV_of_server (hPut : EtcdServer.Put.specOff (GF := GF) (hG := hG))
+    (hDel : EtcdServer.DeleteRange.specOff (GF := GF) (hG := hG))
+    (hRange : EtcdServer.Range.specOff (GF := GF) (hG := hG))
     (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))

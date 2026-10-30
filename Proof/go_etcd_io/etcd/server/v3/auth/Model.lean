@@ -344,6 +344,10 @@ structure AuthNames where
   fen : GName
   /-- the ghost variable of the permission cache's state (the auth plan's E3h: its freshness) -/
   fca : GName
+  /-- **the history's cap** (H5, 2026-10-29): a mono-list the history stays a prefix of (`capLb`,
+  kept in the store's revision invariant with a quarter of the history, `revCur`); its authority
+  (`capAuth`) is the store's client's, which raises it before a step may append -/
+  cap : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -374,7 +378,75 @@ with valid permission keys (`permKeysOk`: what `isValidPermissionRange` enforces
 backend's data is assumed to have on boot; the permission cache computes the model's coverage of
 such states, the auth plan's S2). -/
 def authHist (γa : AuthNames) (hs : List AuthState) : IProp GF :=
-  iprop(monoListAuthOwn γa.hist 1 hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
+  iprop(monoListAuthOwn γa.hist Qp.threeQuarters hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
+
+/-- **The revision invariant's quarter of the history** (H5, 2026-10-29): the rest of the authority
+beside `authHist`'s three quarters, which the store's revision invariant keeps with the cap's lower
+bound at it (`revCur`), so the history stays below the cap. -/
+def authHistRev (γa : AuthNames) (hs : List AuthState) : IProp GF :=
+  monoListAuthOwn γa.hist Qp.quarter hs
+
+instance authHistRev_timeless (γa : AuthNames) (hs : List AuthState) :
+    Timeless (authHistRev (GF := GF) γa hs) := by
+  unfold authHistRev; infer_instance
+
+/-- **The cap's authority** (H5): the history (`γa.hist`) stays a prefix of it. -/
+def capAuth (γa : AuthNames) (C : List AuthState) : IProp GF :=
+  monoListAuthOwn γa.cap 1 C
+
+/-- **A lower bound of the cap** (persistent; H5): an append of a state takes one at the history
+it makes (`authOwnF_revCur_append`). -/
+def capLb (γa : AuthNames) (C : List AuthState) : IProp GF :=
+  monoListLbOwn γa.cap C
+
+instance capAuth_timeless (γa : AuthNames) (C : List AuthState) :
+    Timeless (capAuth (GF := GF) γa C) := by
+  unfold capAuth; infer_instance
+
+instance capLb_persistent (γa : AuthNames) (C : List AuthState) :
+    Persistent (capLb (GF := GF) γa C) := by
+  unfold capLb; infer_instance
+
+instance capLb_timeless (γa : AuthNames) (C : List AuthState) :
+    Timeless (capLb (GF := GF) γa C) := by
+  unfold capLb; infer_instance
+
+theorem capAuth_lb (γa : AuthNames) (C : List AuthState) :
+    capAuth (GF := GF) γa C ⊢ capAuth γa C ∗ capLb γa C := by
+  unfold capAuth capLb
+  iintro H
+  ihave #Hlb := monoListLbOwn_get γa.cap 1 C $$ H
+  iframe H Hlb
+
+theorem capLb_le (γa : AuthNames) {C : List AuthState} (C' : List AuthState) (h : C' <+: C) :
+    capLb (GF := GF) γa C ⊢ capLb γa C' := by
+  unfold capLb
+  iintro H
+  iapply (monoListLbOwn_le C' h) $$ H
+
+/-- A lower bound is a prefix of the authority. -/
+theorem capAuth_lb_prefix (γa : AuthNames) (C C' : List AuthState) :
+    capAuth (GF := GF) γa C ∗ capLb γa C' ⊢ ⌜C' <+: C⌝ := by
+  unfold capAuth capLb
+  iintro ⟨H, Hlb⟩
+  icases mono_list_auth_lb_valid γa.cap 1 C C' $$ H Hlb with %Hv
+  ipureintro; exact Hv.2
+
+/-- Two lower bounds are comparable. -/
+theorem capLb_comparable (γa : AuthNames) (C C' : List AuthState) :
+    capLb (GF := GF) γa C ∗ capLb γa C' ⊢ ⌜C <+: C' ∨ C' <+: C⌝ := by
+  unfold capLb
+  iintro ⟨H1, H2⟩
+  iapply (mono_list_lb_valid γa.cap C C') $$ H1 H2
+
+/-- The cap grows. -/
+theorem capAuth_update (γa : AuthNames) {C : List AuthState} (C' : List AuthState) (h : C <+: C') :
+    capAuth (GF := GF) γa C ⊢ |==> capAuth γa C' := by
+  unfold capAuth
+  iintro H
+  imod (monoListAuthOwn_update (γ := γa.cap) C' h) $$ H with ⟨H, -⟩
+  imodintro; iexact H
+
 
 /-- Half of the ghost variable of the latest state (S4). -/
 def authCurHalf (γa : AuthNames) (st : AuthState) : IProp GF :=
@@ -396,6 +468,13 @@ def authStateAt (γa : AuthNames) (i : Nat) (st : AuthState) : IProp GF :=
 instance authStateAt_persistent (γa : AuthNames) (i : Nat) (st : AuthState) :
     Persistent (authStateAt (GF := GF) γa i st) := by
   unfold authStateAt; infer_instance
+
+/-- The revision invariant's quarter fixes every recorded state. -/
+theorem authHistRev_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState) :
+    ⊢ authHistRev (GF := GF) γa hs -∗ authStateAt γa i st -∗ ⌜hs[i]? = some st⌝ := by
+  unfold authHistRev authStateAt
+  iintro H1 ⟨H2, -⟩
+  iapply (mono_list_auth_idx_lookup γa.hist _ hs i st) $$ H1 H2
 
 /-- **The published index's authority** (the auth plan's E3g): the history's index up to which
 every state is committed to the backend (the store's freshness invariant is to hold it; until then
@@ -439,10 +518,11 @@ theorem authPubAuth_lb_le (γa : AuthNames) (p i : Nat) :
   ipureintro; exact Hv.2
 
 /-- **The store's ghost at its allocation** (the auth plan's E3h, 2026-10-27): the half of the
-latest state's ghost variable that the store's revision invariant takes (`revCur`), and the
+latest state's ghost variable and the history's quarter with the cap's lower bound at it (H5) that the
+store's revision invariant takes (`revCur`), and the
 published index's authority at `0` (the invariant's freshness, `revFresh`). -/
-def authStoreInit (γa : AuthNames) (st : AuthState) : IProp GF :=
-  iprop(authCurHalf γa st ∗ authPubAuth γa 0 ∗ (∃ b : Bool, ghostVar γa.fen 1 b) ∗
+def authStoreInit (γa : AuthNames) (hs : List AuthState) (st : AuthState) : IProp GF :=
+  iprop(authCurHalf γa st ∗ authHistRev γa hs ∗ capLb γa hs ∗ authPubAuth γa 0 ∗ (∃ b : Bool, ghostVar γa.fen 1 b) ∗
     ∃ v : Loc × Nat, ghostVar γa.fca 1 v)
 
 theorem authStateAt_permKeysOk (γa : AuthNames) (i : Nat) (st : AuthState) :
@@ -462,7 +542,7 @@ theorem authHist_stateAt (γa : AuthNames) (hs : List AuthState) (i : Nat) (st :
   unfold authHist authStateAt
   iintro ⟨H, %Hk⟩
   isplitl [H]
-  · ihave Hlb := monoListLbOwn_get γa.hist 1 hs $$ H
+  · ihave Hlb := monoListLbOwn_get γa.hist _ hs $$ H
     iapply (monoListIdxOwn_get i st h) $$ Hlb
   · ipureintro; exact Hk st (List.mem_of_getElem? h)
 
@@ -470,44 +550,72 @@ theorem authHist_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : 
     authHist (GF := GF) γa hs ∗ authStateAt γa i st ⊢ ⌜hs[i]? = some st⌝ := by
   unfold authHist authStateAt
   iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
-  iapply (mono_list_auth_idx_lookup γa.hist 1 hs i st) $$ H1 H2
+  iapply (mono_list_auth_idx_lookup γa.hist _ hs i st) $$ H1 H2
 
 /-- `authHist_lookup`, the authority kept. -/
 theorem authHist_lookup_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState) :
     authHist (GF := GF) γa hs ∗ authStateAt γa i st ⊢ authHist γa hs ∗ ⌜hs[i]? = some st⌝ :=
   (and_intro (by iintro ⟨H, -⟩; iexact H) (authHist_lookup γa hs i st)).trans persistent_and_sep_mp
 
+/-- The whole authority: `authHist`'s three quarters and the revision invariant's quarter. -/
+theorem authHist_full (γa : AuthNames) (hs : List AuthState) :
+    monoListAuthOwn (GF := GF) γa.hist 1 hs ⊣⊢
+      monoListAuthOwn γa.hist Qp.threeQuarters hs ∗ authHistRev γa hs := by
+  unfold authHistRev
+  have h := (monoListAuthOwn_fractional (GF := GF) γa.hist hs).fractional Qp.threeQuarters Qp.quarter
+  have hq : Qp.threeQuarters + Qp.quarter = 1 := Subtype.ext (by simp; grind)
+  rw [hq] at h
+  exact h
+
 /-- A history and its latest state's ghost variable, both halves, with the token providers'
 issued tokens under `γt` (allocated with the provider, `tokAlloc`, `Tokens.lean`) and the fresh
 tokens under `γf` (`Tokens.lean`, S5b). -/
-theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
+theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState) (C : List AuthState)
     (hk : ∀ st ∈ hs, permKeysOk st) :
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ authHist (GF := GF) γa hs ∗
       authCurHalf γa cur ∗
-      authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) := by
-  unfold authHist authCurHalf authPubAuth
+      authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) ∗
+      authHistRev γa hs ∗ capAuth γa C ∗ capLb γa C := by
+  unfold authCurHalf authPubAuth
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
+  imod (mono_list_own_alloc (GF := GF) C) with ⟨%γcap, Hcap, #Hcl⟩
+  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γe, He⟩
   imod (ghostVar_alloc (GF := GF) ((null : Loc), 0)) with ⟨%γk, Hk⟩
   imodintro
-  iexists ⟨γ, γc, γt, γf, γp, γe, γk⟩
-  iframe H Hp He Hk
+  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap⟩
+  unfold authHist authHistRev capAuth capLb
+  iframe H Hp He Hk Hr Hcap Hcl
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   isplitr
   · ipureintro; exact hk
   · iapply (ghostVar_split_half γc 1 cur).1 $$ Hc
 
+
+/-- The three quarters and the revision invariant's quarter agree. -/
+theorem authHist_rev_agree (γa : AuthNames) (hs hh : List AuthState) :
+    ⊢ authHist (GF := GF) γa hs -∗ authHistRev γa hh -∗ ⌜hs = hh⌝ := by
+  unfold authHist authHistRev
+  iintro ⟨H1, -⟩ H2
+  ihave %H := monoListAuthOwn_agree γa.hist _ _ hs hh $$ H1 H2
+  ipureintro; exact H.2
+
+/-- An append needs the revision invariant's quarter too. -/
 theorem authHist_append (γa : AuthNames) (hs : List AuthState) (st : AuthState)
-    (hk : permKeysOk st) : authHist (GF := GF) γa hs ⊢ |==> authHist γa (hs ++ [st]) := by
+    (hk : permKeysOk st) : authHist (GF := GF) γa hs ∗ authHistRev γa hs ⊢
+      |==> (authHist γa (hs ++ [st]) ∗ authHistRev γa (hs ++ [st])) := by
   unfold authHist
-  iintro ⟨H, %Hk⟩
+  iintro ⟨⟨H, %Hk⟩, Hr⟩
+  ihave H := (authHist_full γa hs).2 $$ [H Hr]
+  · iframe H Hr
   imod (monoListAuthOwn_update_app (γ := γa.hist) (l := hs) [st]) $$ H with ⟨H, -⟩
+  icases (authHist_full γa (hs ++ [st])).1 $$ H with ⟨H, Hr⟩
   imodintro
-  iframe H
+  iframe H Hr
   ipureintro
   intro x hx
   rw [List.mem_append, List.mem_singleton] at hx
@@ -518,7 +626,7 @@ theorem authHist_append (γa : AuthNames) (hs : List AuthState) (st : AuthState)
 /-! ### The history's two halves (the auth plan's S4f, 2026-10-25)
 
 The history's authority is split between the store's admin side (`authHistHalf`, in `authOwn`,
-`Steps.lean`) and the backend's batch lock (`authLockHalf`, what the lock holds with the auth
+`Steps.lean`) and the backend's batch lock (`authLockQ`, what the lock holds with the auth
 buckets, `authLockI`): an append (`authHist_append`) needs both, so it happens only while the lock
 is held, and the lock's half is what ties the buckets' contents to the history. -/
 
@@ -526,22 +634,26 @@ is held, and the lock's half is what ties the buckets' contents to the history. 
 def authHistHalf (γa : AuthNames) (hs : List AuthState) : IProp GF :=
   iprop(monoListAuthOwn γa.hist (1 : Qp).half hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
 
-/-- The batch lock's half of the history's authority. -/
-def authLockHalf (γa : AuthNames) (hs : List AuthState) : IProp GF :=
-  monoListAuthOwn γa.hist (1 : Qp).half hs
+/-- The batch lock's quarter of the history's authority (a half until H5, 2026-10-29, which gave
+the other quarter to the revision invariant, `authHistRev`). -/
+def authLockQ (γa : AuthNames) (hs : List AuthState) : IProp GF :=
+  monoListAuthOwn γa.hist Qp.quarter hs
 
-instance authLockHalf_timeless (γa : AuthNames) (hs : List AuthState) :
-    Timeless (authLockHalf (GF := GF) γa hs) := by
-  unfold authLockHalf; infer_instance
+instance authLockQ_timeless (γa : AuthNames) (hs : List AuthState) :
+    Timeless (authLockQ (GF := GF) γa hs) := by
+  unfold authLockQ; infer_instance
 
-/-- The authority is its two halves. -/
+theorem Qp.half_add_quarter : (1 : Qp).half + Qp.quarter = Qp.threeQuarters :=
+  Subtype.ext (by simp; grind)
+
+/-- `authHist`'s three quarters are the admin side's half and the lock's quarter. -/
 theorem authHist_split (γa : AuthNames) (hs : List AuthState) :
-    authHist (GF := GF) γa hs ⊣⊢ authHistHalf γa hs ∗ authLockHalf γa hs := by
-  unfold authHist authHistHalf authLockHalf
-  have h : monoListAuthOwn (GF := GF) γa.hist 1 hs ⊣⊢
-      monoListAuthOwn γa.hist (1 : Qp).half hs ∗ monoListAuthOwn γa.hist (1 : Qp).half hs := by
-    have h := (monoListAuthOwn_fractional (GF := GF) γa.hist hs).fractional (1 : Qp).half (1 : Qp).half
-    rw [Qp.half_add_half] at h
+    authHist (GF := GF) γa hs ⊣⊢ authHistHalf γa hs ∗ authLockQ γa hs := by
+  unfold authHist authHistHalf authLockQ
+  have h : monoListAuthOwn (GF := GF) γa.hist Qp.threeQuarters hs ⊣⊢
+      monoListAuthOwn γa.hist (1 : Qp).half hs ∗ monoListAuthOwn γa.hist Qp.quarter hs := by
+    have h := (monoListAuthOwn_fractional (GF := GF) γa.hist hs).fractional (1 : Qp).half Qp.quarter
+    rw [Qp.half_add_quarter] at h
     exact h
   constructor
   · iintro ⟨H, %Hk⟩
@@ -553,9 +665,9 @@ theorem authHist_split (γa : AuthNames) (hs : List AuthState) :
     · ipureintro; exact Hk
 
 /-- The two halves agree. -/
-theorem authHistHalf_lock_agree (γa : AuthNames) (hs hs' : List AuthState) :
-    ⊢ authHistHalf (GF := GF) γa hs -∗ authLockHalf γa hs' -∗ ⌜hs = hs'⌝ := by
-  unfold authHistHalf authLockHalf
+theorem authHistHalf_lockQ_agree (γa : AuthNames) (hs hs' : List AuthState) :
+    ⊢ authHistHalf (GF := GF) γa hs -∗ authLockQ γa hs' -∗ ⌜hs = hs'⌝ := by
+  unfold authHistHalf authLockQ
   iintro ⟨H1, -⟩ H2
   ihave %H := monoListAuthOwn_agree γa.hist _ _ hs hs' $$ H1 H2
   ipureintro; exact H.2

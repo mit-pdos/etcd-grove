@@ -25366,3 +25366,172 @@ callers' specs; instead the row went into the server views the guards already ta
 `□ (⌜E.authMode.isOn⌝ → isReqAuthBound st E.RD E.authMode)`. The guards' preconditions are
 unchanged. `start` builds the row: with auth on from `srvUberBase`'s store fact, with auth off
 vacuously (`authOn_false_of_run`, `AppliedOn.lean`: the off start state has the off chain).
+
+## The write's update told its grant (2026-10-29, step 5 of the auth-mode merge, design D)
+
+A client's write update with auth on (`putPermitOn`, `deletePermitOn`, `txnPermitOn`) was
+`kvOpAu1`: the server fired it at the commit and the grant reached the client only after the
+answer (`writeGrantOn`). authkv's history invariant needs the grant **at** the linearization
+point, so the update is now `kvAu1G γk f G Q` (`InvRequest.lean`): `kvAu1`, whose atomic
+postcondition also carries `G σ`, supplied by the committer. With auth on, `G` is `writeGrantG`
+(`ProposeOn.lean`). It says: for some header `hm` the server stamped and the caller's binding admits
+(`Gb hm`), the committed prefix `L` of the server's requested log extends the client's lower bound
+`L₀` (`srvReqLogLb`, a mono-list lower bound of `kvInvOn`'s log), the stamped request is granted at
+`L`, and `L`'s KV state is the one linearized at. **The user folded D into step 5** (2026-10-29).
+
+Decided by the agent:
+- **`L₀` is a lower bound of the requested log, not raft's.** Raft's committed log has fillers;
+  the requested log is what the model and `grantedAt` read (spec review round 1). Raft's lower
+  bound gives one with the same requested entries (`srvReqLogLb_of_rlogLb`).
+- **The binding `Gb` is a parameter of the permission.** Put, DeleteRange and Txn propose under a
+  derived context. The server's binding is `hdrBoundM true s E ctx`, and v3rpc's client binds a
+  token (`hdrBoundT`). The permits are antitone in `Gb` (`*PermitOn_mono`), which bridges both
+  (`hdrBoundM_ctx`, `hdrBoundM_tok`).
+- **v3rpc's deposit with auth on** is `kvDepOwnOn` (`ServerKVOn.lean`): a write's update told
+  `opGrantT` (`writeGrantG` at the token's binding). A plain deposit converts at `L₀ = []`
+  (`kvDepOwnOn_of_dep`, using `kvAu1_G`, which drops the grant). The exported
+  `{put,deleteRange,range,txn}_end_to_end_on` take and return `kvDepOwnOn` (D's statement change).
+- **`aupd_post_mono`** (an atomic update whose committer supplies more) is a fact of Iris's atomic
+  updates, proved here and proposed for Perennial (`notes/perennial-changes.md`).
+
+## The request path in the environment's mode (2026-10-29, step 5 of the auth-mode merge, merges A, C, D)
+
+The request path's specs are now one each, at `E.authOn` (the user's B). The functions are
+`parseProposeCtxErr`, `processInternalRaftRequestOnce`, `raftRequest` and `doSerialize` (A),
+`Put` and `DeleteRange` (C), and `Range` (D), with the design reviewed in three rounds
+(`auth-mode-merge-plan.md`, step 5).
+- **A** has one proof over a free mode (`wp_proofM on`), and `spec` is its instance at `E.authOn`.
+- **C and D** each have one proof whose prefix is shared. It splits on `E.authOn` where the modes
+  first differ: at the proposal (Put, DeleteRange) or at the auth check (Range). The tails stay
+  the two former proofs' (about 100 lines each), so the duplicated prefix is gone but not the tails.
+  Unifying the tails would take the off lemmas generalized to the mode (`readServed_logRM`, the
+  `permCheck3` forms); that is left for later.
+
+Spec decisions:
+- **C's grant row is gated as a whole**, `□ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt …⌝ ∗ pubAfterM true …)`.
+  With auth off it says nothing, rather than holding an unconstrained `∃ L` (review finding C1).
+- **C's permission** is `putPermitM`/`deletePermitM` (`ReqOn.lean`), which is the former off
+  permission when off and `putPermitOn`/`deletePermitOn` when on. The non-empty key stays on-only.
+- **D keeps the premise `E.authMode ≠ .any`**, because the on proof needs `.on γa`. This is a
+  scope restriction, by the user's B.
+- **D's off instance reads its lower bound `n` and range check as trivial.** `authPubLbM .off = True`,
+  and `srvAuthLb` comes from the off proposer's view (`srvAuthLb_off`). The class is
+  `rangeClassFrom .off m`, a pass; `rangeClassFrom_off` and `rangeClass_of_from_off` convert it.
+
+Decided by the agent:
+- **The former pairs are corollaries in `ModeSpecs.lean`**: `<F>.specOff`/`spec_off` and
+  `<F>.specOn`/`spec_on`, and `specM`/`spec_M` for A. They have no second proof. They exist for the
+  callers not merged yet (v3rpc's `ServerKV`/`ServerKVOn`, `Start`'s two specs, `Txn`), which is
+  E's bridge, and they go at step 4.
+- **The `_on` exported results are instances.** `server_put_on`, `server_delete_range_on`,
+  `server_range_on`, `server_raft_request_on` and `server_process_irr_on` are now `spec_on`/`spec_M`
+  of the one linked result, not proofs of their own. They stay as statements until v3rpc's
+  `*_of_serverOn` merge at step 4 ("merge each pair").
+- **`isServerReq` carries `⌜E.authOn = false⌝`** (`isServerReq_authOff`), and its one constructor
+  is the off `start`. So an off caller converts with `spec_off` and needs no new premise (review
+  finding C2).
+- Laws for clients: `grantedAt_iff` with `srvAuthAtLog` (`ProposeOn.lean`), `kvGranted_emptyUser`
+  (`KVAuthModel.lean`) and `srvTLSId_false` (`AuthReqDerive.lean`).
+
+## The write grant through the client's `On` results (2026-10-29, the auth-mode merge's 5a)
+
+Step 5 told a write's update its grant (`v3rpc.kvDepOwnOn`), but only up to v3rpc. The client's
+registrations (`etcdPutSpecOn`, `etcdDeleteSpecOn`, `etcdTxnSpecOn`) and results (`client_put_on`,
+`client_delete_on`, `client_txn_on`) still took a plain `kvOpAu1`, and `ServedOn` dropped the grant
+(`kvDepOwnOn_of_dep` at `L₀ = []`). authkv needs it at the client: its write update refutes a
+foreign principal at the commit. Statements reviewed by authkv's session before the proof.
+- v3rpc: `kvOpAuOn s E ρ tok op Q`, which is `kvDepOwnOn`'s `.op1` case: `∃ L₀, srvReqLogLb ρ.raft
+  L₀ ∗ kvAu1G … (opGrantT s E ρ tok op L₀) Q`. The registrations take it at the attempt's token
+  (`auth.mdTokenOf md`).
+- Client: the caller doesn't know which attempt's metadata the server saw, so its update is told
+  the grant at some attempt's token: `clientGrant` (`∃ md, ⌜clientAttemptMd conn ctx md⌝ ∗
+  opGrantT …`), `clientOpAuOn` (the same shape as `kvOpAuOn`), and for a transaction `txnUpdAtOn`.
+  Laws: `clientOpAuOn_attempt` (to `kvOpAuOn` at an attempt, by `kvAu1G_mono`) and
+  `clientOpAuOn_of_au1` (an update that ignores the grant, at `L₀ = []`).
+- The posts are unchanged.
+
+
+## The admin requests over a client's view of the auth history; authkv's `SetUp` (2026-10-29, the auth-mode merge's 5b)
+
+D2 of the 5b design (user-approved): the admin requests' permission is a client's update of an
+auth history, not an abstract `Q` the client chooses.
+- **The history.** `kvInvOn` holds half of a mono-list of auth states along the requested log
+  (`admStates γk st₀ L`: the boot state, then the state after each recorded admin entry,
+  `admEntry`); the other half, `authHistView`, is exported at the on boot (`server_cluster_alloc_on`).
+  Its holder alone can give the update a recorded admin entry needs (`histAu`, an atomic update
+  over the view, fired at the entry's commit with the header, the logs `L`, `L ++ [e]`, the
+  admission and the history after it), so no admin request changes the auth state without it.
+  A client freezes it (`authHistCell`, `authHistFrozen`): a frozen history is an upper bound of
+  every later lower bound (`authHistFrozen_prefix`), so the auth state stays where it was frozen.
+- **The reply** (`adminReplied`) carries `adminRecRes`: a lower bound of the history at the reply's
+  `L`, and `□ Q` if the entry was recorded (`admRec`), else that it was not. The lower bound was
+  added while proving `SetUp` (2026-10-29): a reply that recorded nothing (a `UserGrantRole` of a
+  role the user has) still tells its effect, but only at a state of the history, which needs the
+  bound. A strengthening of a proved post; no trust change.
+- **`pubAfterM`** gains `e.data ≠ []` (2026-10-29): the published state after an admin reply's
+  entry is computed by `srvAuthAtLog_snoc_adm`, which needs it; the proof had it.
+- **The client** names the connection in its Auth wrappers (`authObjAtC`, as `kvObjAtC`) and in
+  `clientTokAt` (the `Auth` field over the `KV`'s connection), so an attempt's token is known;
+  its update is `clientHistAu` (the header bound to some attempt's token, as `clientGrant`).
+- **authkv's `SetUp`** (the auth half; 2c adds the KV half): its pre is the approved one
+  (`clientTokAt cl [ep] (fun _ => False)`, `setupAuthServed`, `□ (srvTLSId s -∗ False)`,
+  `authHistView ρ.kv [srvAuthSt0]`, `E.authMode = .on γa`) plus the pure premise
+  `uint.Z ρ.kv.c0 ≤ uint.Z ρ.raft.ai0` (found in the proof: the published state after
+  `AuthEnable`'s entry needs the entry above the start's consistent index; the boot gives
+  `c0 = 0`). The post on success: the history frozen at a log `Lset` with
+  `srvAuthAtLog Lset = setupSt r`, and `setupSt r` published (`authPubLb`, `authStateAt`).
+  The proof (`SetupHist.lean`, pure; `SetupInv.lean`, ghost): the cell's open half in `SetUp`'s
+  invariant with what holds of an open history (every state `setupLike`, every effect kept);
+  an update while open appends (and `AuthEnable`'s, after the seven effects, appends `setupSt`
+  and freezes); while frozen none commits: the last state is enabled, so admission needs a user,
+  and the header has none (no credential token, no outgoing metadata in the context, no TLS
+  identity).
+- **The context's metadata** (user's choice, 2026-10-29: an axiom over a premise): the
+  trust-boundary spec `context.WithTimeoutBackgroundMd.spec` says `WithTimeout(Background(), d)`
+  has no outgoing metadata (`metadata.outgoingOf = none`; in Go only grpc stores under its
+  unexported key). Reviewed by the `axiom` skill before it is frozen.
+- **Not here:** `ClientCertAuthEnabled ↦□ false` tied to the started member's config (the premise
+  `□ (srvTLSId s -∗ False)`'s source) is `Main`'s, with the rest of its proof: `memberUpOn`
+  exposes the config `cfg` but not that the server's field is `cfg.ClientCertAuthEnabled'`.
+
+## H5: the auth history's cap, tied to the log (2026-10-30, the auth-mode merge's 5b, candidate 3)
+
+User-approved (candidate 3, after three review rounds). The auth store's recorded states are the
+model's history along a committed log, so a client that froze the history (`authHistFrozen`) reads
+the frozen state at every later index of the store (`authStateAt_setup`), which `Main`'s read half
+needs. No axiom, no `sorry`.
+- **The cap** (`auth/`): `AuthNames.cap`, a mono-list (`capAuth`, `capLb`). The history's authority
+  is split three ways: ½ `authHistHalf` (admin side), ¼ the lock's, ¼ `authHistRev` kept by the
+  revision invariant's `revCur` with `capLb` at the same history. Every append needs `capNext M hs
+  st'` (the cap already at `hs ++ [st']`), so every op spec takes `capNextM M hs R` beside its step
+  relation (`AuthEnable`'s at the state's own flag, `authEnableOwnR`). `authOwn_capped`,
+  `authStateAt_capped`: the store's states are below the cap. `bootState` moved to `Steps.lean`
+  (`Boot.lean` is too heavy for the server's files to import).
+- **The apply layer**: the cap permission is threaded through `isAuthSteps(X)` and the step/fuel
+  specs; the dispatch's extra precondition takes the history (`apply.adminExtra E γa rq hs Pre`,
+  `AdminReq.extraPre`), and above the dispatch it is guarded by the admission check's verdict
+  (`apply.adminExtraG := ⌜adminPassL E.authMode hs rq⌝ -∗ adminExtra …`). The callbacks of
+  `applierAdmL`/`authApplierV3.Apply.specL` gain `⌜adminPassL …⌝`: true of the Go
+  (`IsAdminPermitted` runs before `applyFunc`). Round 2's finding: an unguarded `∀ hs` premise
+  cannot be proved by the server, whose cap covers its own `hs` only.
+- **The tie** (`authHistTie E ρ st₀`, `KVApplyOn.lean`): the store's invariant, and an invariant
+  (`authTieN`) that the cap is `bootState :: admStates A` for a committed `A` (`srvRLogLb`). It is
+  a conjunct of `srvKVInvsOn` (so `Start.specOn`'s post carries it through `isServerBuiltOn`
+  without a textual change; `srvKVInvsM` is now defined by cases on the mode), allocated in
+  `NewServer` from the kit's new output `authCapM` (`authHistTie_alloc`).
+- **No history parameter through the apply thread.** Candidate 3 sketched a pin `hs = admStates A`
+  in `kvAppliedOn`; instead the pin is derived where it is needed, at the admin entry
+  (`authHistTie_raise`, `AuthTie.lean`): the store's history is below the cap (`authOwn_capped`),
+  the cap is the history of a committed `A₀`, comparable with `A ++ [m]` (`srvRLogLb_prefix`); the
+  log's history has no state twice (`srvHist_nodup`: `authOrd`, twice the revision plus the flag,
+  strictly increases along recorded steps), so a prefix ending at `A`'s last state is `A`'s history
+  (`prefix_eq_of_last`). The apply thread raises the cap to `A ++ [m]` and gives the step its
+  permission. Fewer files change (no `kvAppliedOn` edit).
+- **The read law** (`authStateAt_setup`, `AuthTieRead.lean`): the frozen `hs` is `kvInvOn`'s
+  `admStates L` (`authHistFrozen_adm`); every recorded state is in `bootState :: hs`, where
+  `last hs` sits only at the last index. No `setupFrozenOk` needed (round 3), so `SetUp.spec` does
+  not change. Its masks are separate premises (holding at `⊤`, authkv's ask); one more than the
+  plan's: `↑srvRaftN` (turning the tie's committed-log bound into a requested-log one,
+  `srvReqLogLb_of_rlogLb`). The alternative, a requested-log bound in the tie, would rework the
+  raise law.
+- **Locked in:** a snapshot is never restored with auth on (already true; the tie needs it).

@@ -468,6 +468,8 @@ theorem EtcdServer.start.wp_proof
     #Q15, #Q16, #Q17, #Q18, %Q19⟩
   ihave #Hreq : isServerReq s E { ρ with wait := γw } $$ []
   · iunfold isServerReq
+    isplitl; rotate_left
+    · ipureintro; exact hAuthOff
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAt
     iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
@@ -1063,7 +1065,8 @@ theorem EtcdServer.start.wp_proofOn
   ihave #Hmint : readCtxMinted (GF := GF) γr $$ []
   · ihave #Hkvi3 := Hkvi
     iunfold srvKVInvsM at Hkvi3
-    icases Hkvi3 with ⟨-, -, #Hli, -⟩
+    iunfold srvKVInvsOn at Hkvi3
+    icases Hkvi3 with ⟨-, -, #Hli, -, -⟩
     ihave #Hq17 := Q17
     iunfold srvMintInv at Hq17
     icases Hq17 with ⟨-, #Hrf⟩

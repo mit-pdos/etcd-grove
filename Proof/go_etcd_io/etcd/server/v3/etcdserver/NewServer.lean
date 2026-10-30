@@ -164,6 +164,24 @@ instance bemuP_fractional (s : Loc) (γbe : GName) : Fractional (bemuP (GF := GF
       iintro ⟨⟨-, H1, -⟩, ⟨-, H2, -⟩⟩
       iapply dghostVar_agree γbe x _ y _ $$ H1 H2)
 
+/-- **The auth history's tie to the log, allocated** (H5): the auth store's cap at its two boot
+states, and the log's empty lower bound, give the tie at the empty log (`srvHist []`). -/
+theorem authHistTie_alloc (E : apply.AEnv GF) (γr : ReadNames) (stl : Loc) (Eu : CoPset) :
+    ⊢ authCapM E.authMode stl -∗ srvRLogLb γr.raft [] ={Eu}=∗ authHistTie E γr srvAuthSt0 := by
+  unfold authCapM authHistTie
+  generalize E.authMode = M
+  cases M with
+  | on γa =>
+    iintro ⟨Hcap, %R, #Hinv⟩ #Hlb
+    imod inv_alloc authTieN Eu (iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
+      auth.capAuth γa (auth.bootState :: admStates γr.kv srvAuthSt0 A))) $$ [Hcap] with #Ht
+    · inext; iexists []; iframe Hlb; rw [admStates_nil]; simp only [srvAuthSt0]; iexact Hcap
+    imodintro
+    isplitl []
+    · iexists stl, R; iexact Hinv
+    iexact Ht
+  | _ => iintro - -; imodintro; itrivial
+
 /-- `time.Duration(ttl) * time.Second` is positive for a TTL in `(0, 2 ^ 32)` seconds. -/
 theorem tokenTTL_pos (x : w64) (h1 : 0 < uint.Z x) (h2 : uint.Z x < 2 ^ 32) :
     0 < sint.Z (x * W64 1000000000) := by
@@ -652,7 +670,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, #HbBk, HAres, #HauR⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1077,6 +1095,8 @@ theorem NewServer.wp_proofM (on : Bool)
   imod (kvCertInvM_alloc on ρ.rd.raft ρ.rd.kv srvAuthSt0 ⊤ (by rw [Hlog0]; simp)) $$ [Hcok] Hkhi1 Hrlb
     with #Hkci
   · rw [Hcok, ← Hγw.2.2.2.2]; iexact Hcok
+  imod authHistTie_alloc (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) ρ.rd astl ⊤ $$ HcapM Hrlb
+    with #Htie
   -- the mints
   have hργ : ρ.raft.raft = γ := by simp only [ReqNames.raft, HρRaft]
   imod (srvMintInv_alloc ρ ⊤) $$ [] [] [HrdCred] with #Hmint
@@ -1473,9 +1493,14 @@ theorem NewServer.wp_proofM (on : Bool)
     iapply rnSnapMsg_false mm $$ Hmm
   isplitr
   · -- `#Hkvi`
-    unfold srvKVInvsM Perennial.named
-    iframe Hkci Hsrl Hkvinv
-    ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
+    unfold Perennial.named
+    cases on
+    · simp only [srvKVInvsM, srvKVInvs, kvInvM, kvCertInvM]
+      iframe Hkci Hsrl Hkvinv
+      ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
+    · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
+      iframe Hkci Hsrl Hkvinv Htie
+      ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
   isplitr
   · ipureintro
     refine ⟨?_, rfl, fun _ => ⟨Int.le_refl _, Hrn6, rfl⟩⟩

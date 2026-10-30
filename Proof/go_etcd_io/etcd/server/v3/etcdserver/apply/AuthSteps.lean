@@ -84,14 +84,16 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF),
       {{ ⌜M.isOn = true⌝ ∗ auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authEnableF en))⌝ }}
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authEnableF en))⌝ ∗
+          (□ ∀ en : Bool, auth.capNextM M hs (auth.stepOf (auth.authEnableF en))) }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ W ∗ applyErrIs err ∗
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOut M hs (auth.stepOf (auth.authEnableF en)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF),
       {{ auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authDisableF en))⌝ }}
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authDisableF en))⌝ ∗
+          (□ ∀ en : Bool, auth.capNextM M hs (auth.stepOf (auth.authDisableF en))) }}
         (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
       {{ RET #(); (Post ∨ Pre) ∗ W ∗
           ∃ en : Bool, auth.enabledVerdict M en ∗
@@ -99,14 +101,16 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
           auth.authOwn M hs ∗ W ∗
-          mvcc.csContract P f Pre Q Post ∗ ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ }}
+          mvcc.csContract P f Pre Q Post ∗ ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ ∗
+          auth.capNextM M hs (auth.stepOf (auth.userAddF name)) }}
         (App (Val #(methods ai.ty go!"UserAdd" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserAddResponse resp err ∗
           auth.adminOut M hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userDeleteReqIs r name ∗ auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userDeleteF en name))⌝ }}
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userDeleteF en name))⌝ ∗
+          (□ ∀ en : Bool, auth.capNextM M hs (auth.stepOf (auth.userDeleteF en name))) }}
         (App (Val #(methods ai.ty go!"UserDelete" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserDeleteResponse resp err ∗
@@ -115,7 +119,8 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
           auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜auth.stepOk M hs (auth.stepOf (auth.userChangePasswordF name))⌝ }}
+          ⌜auth.stepOk M hs (auth.stepOf (auth.userChangePasswordF name))⌝ ∗
+          auth.capNextM M hs (auth.stepOf (auth.userChangePasswordF name)) }}
         (App (Val #(methods ai.ty go!"UserChangePassword" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗
@@ -123,7 +128,8 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
             (fun e => e = .noPasswordUser) err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.authOwn M hs ∗ W ∗
-          mvcc.csContract P f Pre Q Post ∗ ⌜auth.stepOk M hs (auth.stepOf (auth.roleAddF name))⌝ }}
+          mvcc.csContract P f Pre Q Post ∗ ⌜auth.stepOk M hs (auth.stepOf (auth.roleAddF name))⌝ ∗
+          auth.capNextM M hs (auth.stepOf (auth.roleAddF name)) }}
         (App (Val #(methods ai.ty go!"RoleAdd" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleAddResponse resp err ∗
@@ -132,7 +138,8 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString),
       {{ auth.userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
           auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userRevokeRoleF en name role))⌝ }}
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userRevokeRoleF en name role))⌝ ∗
+          (□ ∀ en : Bool, auth.capNextM M hs (auth.stepOf (auth.userRevokeRoleF en name role))) }}
         (App (Val #(methods ai.ty go!"UserRevokeRole" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserRevokeRoleResponse resp err ∗
@@ -141,7 +148,8 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString),
       {{ auth.roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
           auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜auth.stepOk M hs (auth.roleRevokePermissionR role key rangeEnd)⌝ }}
+          ⌜auth.stepOk M hs (auth.roleRevokePermissionR role key rangeEnd)⌝ ∗
+          auth.capNextM M hs (auth.roleRevokePermissionR role key rangeEnd) }}
         (App (Val #(methods ai.ty go!"RoleRevokePermission" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
@@ -149,6 +157,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (role : GoString),
       {{ auth.roleDeleteReqIs r role ∗ auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.roleDeleteF en role))⌝ ∗
+          (□ ∀ en : Bool, auth.capNextM M hs (auth.stepOf (auth.roleDeleteF en role))) ∗
           ⌜∀ s : auth.AuthState, auth.histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
             n.length ≤ backend.maxKeySize⌝ }}
         (App (Val #(methods ai.ty go!"RoleDelete" ai.v)) (Val #r))
@@ -162,7 +171,8 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
           auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
           ⌜∀ (sta : auth.AuthState) (u : auth.User), auth.histLast M hs sta →
             sta.users !! user = some u → u.length < 2 ^ 62⌝ ∗
-          ⌜auth.stepOk M hs (auth.userGrantRoleR user role)⌝ }}
+          ⌜auth.stepOk M hs (auth.userGrantRoleR user role)⌝ ∗
+          auth.capNextM M hs (auth.userGrantRoleR user role) }}
         (App (Val #(methods ai.ty go!"UserGrantRole" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
@@ -172,7 +182,8 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
         (w : Option auth.PermW),
       {{ auth.roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
           auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
-          ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ }}
+          ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ ∗
+          auth.capNextM M hs (auth.roleGrantPermissionR name w) }}
         (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
@@ -320,7 +331,7 @@ theorem isAuthSteps_of_authInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hEnable st R M P f T hs Pre Q Post) $$ [Ho HW HA Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hon
@@ -331,7 +342,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hDisable st R M P f T hs Pre Q Post) $$ [Ho HW HA Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> ⟨HA, HPP, HW, %en, #Hv, Hout⟩
@@ -339,7 +350,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hUserAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -350,7 +361,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hUserDelete st R M P f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> %resp %err ⟨HA, HPP, HW, Hresp, %en, #Hv, Hout⟩
@@ -359,7 +370,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hUserChangePassword st R M P f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -370,7 +381,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hRoleAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -382,7 +393,7 @@ theorem isAuthSteps_of_authInv
     iframe #
 
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hUserRevokeRole st R M P f T hs Pre Q Post r name role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -393,7 +404,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %role %key %rangeEnd %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %role %key %rangeEnd %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hRoleRevokePermission st R M P f T hs Pre Q Post r role key rangeEnd) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -404,7 +415,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok, %Hnm⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap, %Hnm⟩ HΦ
     iapply (hRoleDelete st R M P f T hs Pre Q Post r role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hok
@@ -415,7 +426,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hb, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
     iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -427,7 +438,7 @@ theorem isAuthSteps_of_authInv
     iapply HΦ
     iframe
     iframe #
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
     iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -456,6 +467,7 @@ abbrev applierV3backend.UserAdd.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userAddReqIs r name ∗
         auth.userAddSure r ∗ auth.authOwn E.authMode hs ∗ W ∗
+        auth.capNextM E.authMode hs (auth.stepOf (auth.userAddF name)) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -473,6 +485,7 @@ abbrev applierV3backend.UserDelete.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userDeleteReqIs r name ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.userDeleteF en name))) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -492,6 +505,7 @@ abbrev applierV3backend.UserChangePassword.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userChangePasswordReqIs r name ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        auth.capNextM E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserChangePassword")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -510,6 +524,7 @@ abbrev applierV3backend.RoleAdd.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleAddReqIs r name ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        auth.capNextM E.authMode hs (auth.stepOf (auth.roleAddF name)) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -528,6 +543,7 @@ abbrev applierV3backend.UserRevokeRole.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userRevokeRoleReqIs r name role ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.userRevokeRoleF en name role))) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserRevokeRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -547,6 +563,7 @@ abbrev applierV3backend.UserGrantRole.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userGrantRoleReqIs r user role ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        auth.capNextM E.authMode hs (auth.userGrantRoleR user role) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserGrantRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -564,6 +581,7 @@ abbrev applierV3backend.RoleGrantPermission.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleGrantPermissionReqIs r name w ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        auth.capNextM E.authMode hs (auth.roleGrantPermissionR name w) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleGrantPermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -581,6 +599,7 @@ abbrev applierV3backend.RoleRevokePermission.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleRevokePermissionReqIs r role key rangeEnd ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        auth.capNextM E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleRevokePermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -598,6 +617,7 @@ abbrev applierV3backend.RoleDelete.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleDeleteReqIs r role ∗
         auth.authOwn E.authMode hs ∗ W ∗
+        (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.roleDeleteF en role))) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -615,6 +635,7 @@ abbrev applierV3backend.AuthEnable.stepSpec : Prop :=
     (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authEnableF en))) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwn E.authMode hs ∗ W ∗
+        (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.authEnableF en))) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthEnable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -631,6 +652,7 @@ abbrev applierV3backend.AuthDisable.stepSpec : Prop :=
     (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authDisableF en))) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwn E.authMode hs ∗ W ∗
+        (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.authDisableF en))) ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthDisable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -653,7 +675,7 @@ theorem applierV3backend.UserAdd.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -667,7 +689,7 @@ theorem applierV3backend.UserAdd.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr Hsure; isplitr
+  · iframe Hcap; iframe Hr Hsure; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -695,7 +717,7 @@ theorem applierV3backend.UserDelete.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserDelete.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -709,7 +731,7 @@ theorem applierV3backend.UserDelete.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, %en, #Hv, Hout⟩
-  · iframe Hr; ipureintro; exact hok
+  · iframe Hcap; iframe Hr; ipureintro; exact hok
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
   wp_if_destruct
@@ -735,7 +757,7 @@ theorem applierV3backend.UserChangePassword.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserChangePassword.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -749,7 +771,7 @@ theorem applierV3backend.UserChangePassword.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -777,7 +799,7 @@ theorem applierV3backend.RoleAdd.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleAdd.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -791,7 +813,7 @@ theorem applierV3backend.RoleAdd.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -819,7 +841,7 @@ theorem applierV3backend.AuthEnable.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.AuthEnable.stepSpec (GF := GF) (hG := hG) := by
   intro E W p log Pre Q Post info hs hon hok
-  wp_start as ⟨#Hb, #Hs, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -833,7 +855,7 @@ theorem applierV3backend.AuthEnable.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HW $Hcs] as %err ⟨HPP, HW, #HeI, %en, #Hv, Hout⟩
-  · isplitr
+  · iframe Hcap; isplitr
     · ipureintro; exact hon
     ipureintro; exact hok
   rcases err with ei | _
@@ -861,7 +883,7 @@ theorem applierV3backend.AuthDisable.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.AuthDisable.stepSpec (GF := GF) (hG := hG) := by
   intro E W p log Pre Q Post info hs hok
-  wp_start as ⟨#Hb, #Hs, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -875,7 +897,7 @@ theorem applierV3backend.AuthDisable.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HW $Hcs] as ⟨HPP, HW, %en, #Hv, Hout⟩
-  · ipureintro; exact hok
+  · iframe Hcap; ipureintro; exact hok
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
   irename «$r0» => Hl
   generalize «$r0_ptr» = l at *
@@ -893,7 +915,7 @@ theorem applierV3backend.UserGrantRole.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs user role hn hb hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -907,7 +929,7 @@ theorem applierV3backend.UserGrantRole.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %user %role [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hn
     isplitr
     · ipureintro; exact hb
@@ -937,7 +959,7 @@ theorem applierV3backend.RoleGrantPermission.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleGrantPermission.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name w hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -951,7 +973,7 @@ theorem applierV3backend.RoleGrantPermission.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name %w [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -979,7 +1001,7 @@ theorem applierV3backend.UserRevokeRole.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserRevokeRole.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name role hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -993,7 +1015,7 @@ theorem applierV3backend.UserRevokeRole.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name %role [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, %en, #Hv, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -1021,7 +1043,7 @@ theorem applierV3backend.RoleRevokePermission.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleRevokePermission.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs role key rangeEnd hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -1035,7 +1057,7 @@ theorem applierV3backend.RoleRevokePermission.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %role %key %rangeEnd [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -1063,7 +1085,7 @@ theorem applierV3backend.RoleDelete.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleDelete.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs role hok hnm
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, #Hcap, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -1077,7 +1099,7 @@ theorem applierV3backend.RoleDelete.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %role [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, %en, #Hv, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hcap; iframe Hr; isplitr
     · ipureintro; exact hok
     ipureintro; exact hnm
   iunfold auth.respOk at Hresp

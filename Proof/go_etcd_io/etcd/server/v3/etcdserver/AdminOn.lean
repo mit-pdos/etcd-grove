@@ -8,16 +8,18 @@ covers the admin requests the mode admits (`reqPropOkOn`'s third case, `adminPro
 
 - `adminRespTy`: the response type of an admitted admin request's kind.
 - `adminPreOn`, `adminOutOn`: `raftRequest.specM true`'s pre (but for the request and its
-  permission) and post, as the contract's `P` and `Q` (the post at the typed response's pointer);
-  `adminQh`: the proposal's result, the step's determinacy at the commit (`adminPropRes`).
-- `reqPropOkM_true_admin`: an admin request meeting `adminPropOk` has `reqPropOkM true`, its result
-  the step's determinacy at the commit (`adminPropRes`).
+  permission; with, 5b, what gives the client's history update) and post, as the contract's `P`
+  and `Q` (the post at the typed response's pointer); `adminQh`: the proposal's result, the step's
+  determinacy at the commit (`adminPropRes`) and the history update's result (`adminRecRes`).
+- `reqPropOkM_true_admin`: an admin request meeting `adminPropOk`, with its client's history update
+  (`histAu`), has `reqPropOkM true`, its result `adminQh`.
 - `authRaftOk_on`: `raftRequest.specM true` gives the contract, for any `Q` `adminOutOn` gives.
 
 Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthEntry
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthShape
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
@@ -116,27 +118,45 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **What `raftRequest.specM true` needs besides the request and its permission** (the contract's
-`P`; the permission of an admitted admin request is free, `reqPropOkM_true_admin`). -/
+`P`; the permission of an admitted admin request is its client's update of the auth history,
+`reqPropOkM_true_admin`): (5b) `□ Hh`, which gives that update (`histAu`, at the server's header
+bound for `ctx`) for the request proposed (`authRaftOk_on`'s `hh`; `UserAdd`'s for every model of
+its request). -/
 def adminPreOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) : IProp GF :=
+    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (Hh : IProp GF) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
     isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-    context.isContext ctx cd ∗ mvcc.idxCert E.γ.idx F)
+    context.isContext ctx cd ∗ mvcc.idxCert E.γ.idx F ∗ □ Hh)
+
+/-- **An admin request's client update of the auth history, at the server's header bound for
+`ctx`** (persistent; 5b): `histAu` with `Gb` the bound the server stamps a header under
+(`hdrBoundM true`). -/
+def adminHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
+  histAu ρ.raft ρ.kv srvAuthSt0 (hdrBoundM true s E (GoInterface.ok ctx)) rq Q
+
+instance adminHistAu_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
+    Persistent (adminHistAu (GF := GF) s E ρ ctx rq Q) := by
+  unfold adminHistAu; infer_instance
 
 /-- **An admitted admin request's proposal result** at the stamped header `hm` and the committed
 prefix `L` before its entry: its step determinate at the model's auth state there
-(`adminPropRes`). -/
-def adminQh (γk : KVNames) (rq : apply.IRRModel) (hm : apply.HeaderModel) (L : List EntryModel) :
-    IProp GF :=
-  adminPropRes γk srvAuthSt0 (apply.withHeader rq hm) L
+(`adminPropRes`), and (5b) its client's history update's result if the entry is recorded
+(`adminRecRes`). -/
+def adminQh (γk : KVNames) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) : IProp GF :=
+  iprop(adminPropRes γk srvAuthSt0 (apply.withHeader rq hm) L ∗
+    adminRecRes γk srvAuthSt0 (apply.withHeader rq hm) Q L)
 
 /-- **What `raftRequest.specM true` answers, at the entry point's response** (the contract's `Q`):
 on `nil`, the request applied at the committed prefix `L` before its entry (`appliedOkM true`, at
 the response `*T` pointing to `l`; with E3x's `adminDoneM`: its step from the state `L` reaches
-succeeded, `adminStepOk`), the auth state after it published (`pubAfterM true`) and the
-proposal's result `Qh`; else the error the apply thread answered with, or the request perhaps
-proposed. -/
-def adminOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
+succeeded, `adminStepOk`), the auth state after it published (`pubAfterM true`), the
+proposal's result `Qh` and (5b) the header bound to the call's context `ctx` (`hdrBoundM`); else
+the error the apply thread answered with, or the request perhaps proposed. -/
+def adminOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (F : mvcc.Log)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (T : go.GoType) (l : Loc)
     (err : GoInterface) : IProp GF :=
   iprop(srvLeadTimeReader s ∗ E.RD ∗
@@ -144,7 +164,7 @@ def adminOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
         (L : List EntryModel),
         ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ srvRLogLb ρ.raft L ∗
         appliedOkM true E ρ rq' F (interface.mkOk (go.GoType.PointerType T) #l) L ∗
-        pubAfterM true E ρ rq' L ∗ □ Qh hm L) ∨
+        pubAfterM true E ρ rq' L ∗ □ Qh hm L ∗ hdrBoundM true s E (GoInterface.ok ctx) hm) ∨
      (⌜err ≠ GoInterface.nil⌝ ∗
        ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
@@ -159,18 +179,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **An admin request's proposal in the mode `on`**: meeting `adminPropOk`, at any header, its
-result the step's determinacy at the commit (`adminPropRes`). -/
-theorem reqPropOkM_true_admin (γk : KVNames) (rq : apply.IRRModel)
-    (ha : adminPropOk srvAuthSt0 rq) (hz : irrNoZeroEnd rq) :
-    ⊢ reqPropOkM (GF := GF) true γk rq (adminQh γk rq) := by
+/-- **An admin request's proposal in the mode `on`**: meeting `adminPropOk` and needing the admin
+permission, at any header, with its client's update of the auth history (`histAu`; 5b); its result
+the step's determinacy at the commit and the update's result (`adminQh`). -/
+theorem reqPropOkM_true_admin (γ : ServerRaftNames) (γk : KVNames)
+    (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
+    (ha : adminPropOk srvAuthSt0 rq) (hz : irrNoZeroEnd rq)
+    (hna : apply.needAdminPermission rq = true) :
+    histAu (GF := GF) γ γk srvAuthSt0 Gb rq Q ⊢ reqPropOkM true γ γk Gb rq (adminQh γk rq Q) := by
+  iintro #Hha
   iunfold reqPropOkM
   iintro %hm
   iunfold reqPropOkOn
   iright
   iright
+  iright
+  iexists Q
+  iframe Hha
   ipureintro
-  exact ⟨ha, hz, rfl⟩
+  exact ⟨ha, hz, hna, rfl⟩
 
 /-- **`dispatch`'s answer to an admitted admin request is a response of its type.** -/
 theorem dispatchAnswer_admin (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
@@ -188,25 +215,32 @@ theorem dispatchAnswer_admin (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool
 
 /-- **The Auth entry points' contract, in the mode `on`** (see the file header): for an admitted
 admin request (`adminRespTy`, `adminPropOk`), `raftRequest.specM true` is `authRaftOk` over
-`adminPreOn`, answering any `Q` that `adminOutOn` gives. -/
+`adminPreOn` (its `□ Hh` giving the request's history update, `hh`; 5b), answering any `Q` that
+`adminOutOn` gives. -/
 theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true)
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (rq : apply.IRRModel) (F : mvcc.Log) (T : go.GoType)
-    (Q : Loc → GoInterface → IProp GF)
+    (Hh : IProp GF) (Qa : List auth.AuthState → IProp GF) (Q : Loc → GoInterface → IProp GF)
     (hid : rq.id = W64 0) (hT : adminRespTy (apply.dispatchKind rq) = some T)
     (ha : adminPropOk srvAuthSt0 rq) (hz : irrNoZeroEnd rq)
-    (hQ : ∀ l err, adminOutOn s E ρ rq F (adminQh ρ.kv rq) T l err ⊢ Q l err) :
-    ⊢ authRaftOk (GF := GF) s ctx rq T (adminPreOn s E ρ ctx cd F) Q := by
+    (hna : apply.needAdminPermission rq = true)
+    (hh : Hh ⊢ adminHistAu s E ρ ctx rq Qa)
+    (hQ : ∀ l err, adminOutOn s E ρ ctx rq F (adminQh ρ.kv rq Qa) T l err ⊢ Q l err) :
+    ⊢ authRaftOk (GF := GF) s ctx rq T (adminPreOn s E ρ ctx cd F Hh) Q := by
   iunfold authRaftOk
   iintro %p !> %Φ ⟨HP, Hirr, Hh⟩ HΦ
   iunfold adminPreOn at HP
-  icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #HF⟩
-  ihave Hperm : reqPropOkM true ρ.kv rq (adminQh ρ.kv rq) $$ []
-  · iapply reqPropOkM_true_admin (GF := GF) ρ.kv rq ha hz
-  wp_apply hRR s E ρ ctx cd p rq (adminQh ρ.kv rq) F hid $$ [Hrd Hard Hcred Hirr Hh Hperm]
+  icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #HF, #Hhh⟩
+  ihave Hperm : reqPropOkM true ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq
+      (adminQh ρ.kv rq Qa) $$ []
+  · iapply reqPropOkM_true_admin (GF := GF) ρ.raft ρ.kv _ rq Qa ha hz hna
+    ihave Hau := hh $$ Hhh
+    iunfold adminHistAu at Hau
+    iexact Hau
+  wp_apply hRR s E ρ ctx cd p rq (adminQh ρ.kv rq Qa) F hid $$ [Hrd Hard Hcred Hirr Hh Hperm]
       as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hirr Hperm Hh
-  icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, #HL, Hok, #HpAf, #HQh, -⟩ | ⟨⟨%Hre, %Hne⟩, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, #HL, Hok, #HpAf, #HQh, #Hhb⟩ | ⟨⟨%Hre, %Hne⟩, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOkM at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, Hok⟩

@@ -232,6 +232,28 @@ instance authObjAt_persistent (api : Loc) (addr : List GoString) :
     Persistent (authObjAt (GF := GF) api addr) := by
   unfold authObjAt; infer_instance
 
+/-- **The `*authClient` `api` over the connection `conn`** (5b): `authObjAt`'s, with the connection
+named, which a metadata-indexed call's precondition speaks of (`attemptPre`), as `kvObjAtC`. -/
+def authObjAtC (api conn : Loc) (addr : List GoString) : IProp GF :=
+  iprop(∃ (rac : Loc) (sl : GoSlice),
+    structFieldRef go_etcd_io.etcd.client.v3.authClient go!"remote" api ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #rac :
+        GoInterface) ∗
+    retryAuthAt rac conn ∗ isEtcdConn conn addr ∗
+    structFieldRef go_etcd_io.etcd.client.v3.authClient go!"callOpts" api ↦□ sl ∗ callOptsAt sl)
+
+instance authObjAtC_persistent (api conn : Loc) (addr : List GoString) :
+    Persistent (authObjAtC (GF := GF) api conn addr) := by
+  unfold authObjAtC; infer_instance
+
+/-- An `*authClient` over a named connection is one over some connection. -/
+theorem authObjAt_of_C (api conn : Loc) (addr : List GoString) :
+    authObjAtC (GF := GF) api conn addr ⊢ authObjAt api addr := by
+  unfold authObjAt authObjAtC
+  iintro ⟨%rac, %sl, H⟩
+  iexists rac, conn, sl
+  iexact H
+
 end defs
 
 end EtcdGrove
