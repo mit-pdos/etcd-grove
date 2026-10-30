@@ -205,6 +205,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A step never lowers the state's revision** (a step commits one revision or none). -/
 theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commit cs).rev := by

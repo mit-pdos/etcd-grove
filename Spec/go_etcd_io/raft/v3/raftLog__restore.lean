@@ -53,12 +53,14 @@ abbrev raftLog.restore.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
   uint.Z ls.committed < uint.Z (snapId sv).index' →
   uint.Z (snapId sv).index' < 2 ^ 61 →
+  -- (2026-10-28, stage U0) its `ConfState` names a node (`unstable.restore`'s)
+  (∃ x, sv.Metadata'.ConfState'.lists.Has x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       -- (D22 S-d4 item 4) every pointer field set (`raft.restore`'s `EnsureSnapshot`)
       "Hsnap" ∷ ownSnapS sp dq sv ∗
-      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry: it joins the
-      -- ones the node may send (`ksn`), each of which is (`ownRaftLog`'s `Hkcert`)
-      "#Hcert" ∷ storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+      -- (U8 v2) its certificate, as the log keeps it (`ksnCert`; until step 2e registered in the
+      -- storage, `storCert`)
+      "#Hkc" ∷ ksnCert ls.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"restore")) (Val #sp))
   {{ RET #(); ownSnapS sp dq sv ∗
       ownRaftLog l (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)) }}

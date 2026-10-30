@@ -18,11 +18,12 @@ theorem sendMsgReadIndexResponse.wp_proof [package_sem : Assumptions] (wp_IsSing
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM)
     (ctx : List w8) (rs : List Loc),
     s.role = PRole.leader →
-      ents ≠ [] →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                  "#Hm" ∷ msgOwn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } -∗
-              (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ -∗ Φ (intoVal ())) -∗
-                WP (((intoVal (functions sendMsgReadIndexResponse [])) (intoVal r)) (intoVal ml)) {{ Φ }}
+      s.term ≠ W64 0 →
+        ents ≠ [] →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                    "#Hm" ∷ msgOwn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } -∗
+                (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ -∗ Φ (intoVal ())) -∗
+                  WP (((intoVal (functions sendMsgReadIndexResponse [])) (intoVal r)) (intoVal ml)) {{ Φ }}

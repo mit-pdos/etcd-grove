@@ -32,7 +32,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStoppedRaw`.) -/
 abbrev node.step.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -41,7 +41,7 @@ abbrev node.step.spec : Prop :=
       stepP γ id ml }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"step"))
       (Val #(interface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; nodeErrRaw γ cd err }}
 
 end spec
 

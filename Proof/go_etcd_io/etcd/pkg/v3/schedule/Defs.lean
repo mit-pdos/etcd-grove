@@ -202,13 +202,17 @@ seen, the pending jobs taken). `chainOk L b items`: the tracked pending jobs' na
 from index `b` on, consecutively. Until `Stop`, `cancel` is the context's cancel function and the
 `stopped` flag is `false` (fully owned); after it, `cancel` is `nil`, the flag is `true`
 (persistent: `stopped`, the context's `PDone`) and the invariant holds `Stop`'s stop token and
-queue half, which every later `Schedule` contradicts (tracked: the queue's third half; untracked:
-`schedLive`, the stop token's discarded name).
+a fraction of the queue's authority (`Stop` keeps a quarter, the worker takes part of the rest when
+it drains), which every later `Schedule` contradicts (tracked: the queue's half beyond the whole;
+untracked: `schedLive`, the stop token's discarded name).
 
 **The channels' invariants**: `f.resume` is buffered until the worker closes it, which it does only
 once the scheduler is stopped (its close right `rc` goes into the invariant), so `Schedule`, which
 sends to it only while not stopped, never sends on a closed channel; `f.donec` is empty until the
-worker closes it (its close right `dc`).
+worker closes it (its close right `dc`), and then holds `donecCarry`: the worker's fraction of
+the final queue with the last tracked job's `Post`, which `Stop` takes (its quarter of the queue
+agreeing on the list; `Stop` persists only half of the `stopped` flag and leaves the other half in
+the baton's place).
 -/
 
 section fifoFields
@@ -363,17 +367,26 @@ def fifoLockInv (l : Loc) (γ : SchedNames) (F : FifoNames) : IProp GF :=
     "Hitems" ∷ ([∗list] it ∈ items, itemOk γ it) ∗
     "Hbaton" ∷ batonAt F L b rs ∗
     "Hst" ∷ ((⌜cf = F.cf⌝ ∗ dghostVar F.st (DFrac.own 1) false) ∨
-      (⌜cf = func.nil⌝ ∗ stopped F ∗ schedStopTok γ ∗ monoListAuthOwn γ.jobs (1 : Qp).half L)))
+      (⌜cf = func.nil⌝ ∗ stopped F ∗ schedStopTok γ ∗ ∃ q : Qp, monoListAuthOwn γ.jobs q L)))
 
 /-- `f.resume`'s invariant: buffered until the worker closes it, once stopped. -/
 def resumeInv (F : FifoNames) : IProp GF :=
   iprop(∃ l : List Unit, ownChan F.γr Unit (.Buffered l) ∨
     (ownChan F.γr Unit (.Closed l) ∗ dghostVar F.rc (DFrac.own 1) () ∗ stopped F))
 
-/-- `f.donec`'s invariant: empty until the worker closes it. -/
-def donecInv (F : FifoNames) : IProp GF :=
+/-- **What the worker hands `Stop` through `f.donec`** (2026-10-30, the repair, P11): a fraction
+of the queue's authority at the final queue `L` (once stopped, frozen), with the last tracked
+job's `Post` (the baton at `L`'s last index), or, once `Stop` took it, half of the `stopped`
+flag in its place (`Stop` keeps the other half, which with the discarded rest excludes a second
+taker). -/
+def donecCarry (γ : SchedNames) (F : FifoNames) : IProp GF :=
+  iprop(∃ (L : List GName) (q : Qp), monoListAuthOwn γ.jobs q L ∗
+    (baton L (L.length - 1) ∨ dghostVar F.st (DFrac.own (1 : Qp).half) true))
+
+/-- `f.donec`'s invariant: empty until the worker closes it, with `donecCarry`. -/
+def donecInv (γ : SchedNames) (F : FifoNames) : IProp GF :=
   iprop(ownChan F.γd Unit (.Buffered []) ∨
-    (ownChan F.γd Unit (.Closed []) ∗ dghostVar F.dc (DFrac.own 1) ()))
+    (ownChan F.γd Unit (.Closed []) ∗ dghostVar F.dc (DFrac.own 1) () ∗ donecCarry γ F))
 
 def resumeN : Namespace := nroot .@ "schedule.fifo.resume"
 def donecN : Namespace := nroot .@ "schedule.fifo.donec"
@@ -393,7 +406,7 @@ def fifoIs (l : Loc) (γ : SchedNames) (F : FifoNames) : IProp GF :=
     "#Hrch" ∷ isChan F.rch F.γr Unit ∗
     "#Hdch" ∷ isChan F.dch F.γd Unit ∗
     "#Hrinv" ∷ inv resumeN (resumeInv F) ∗
-    "#Hdinv" ∷ inv donecN (donecInv F) ∗
+    "#Hdinv" ∷ inv donecN (donecInv γ F) ∗
     "#Hisctx" ∷ _root_.Perennial.context.isContext F.ctx (fifoCtxDesc F) ∗
     "#Hcancel" ∷ _root_.Perennial.context.cancelSpec F.cf F.γc (stopped F) ∗
     "%Hcfnn" ∷ ⌜F.cf ≠ func.nil⌝)

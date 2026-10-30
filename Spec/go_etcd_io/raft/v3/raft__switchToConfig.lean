@@ -119,6 +119,8 @@ abbrev raft.switchToConfig.spec : Prop :=
   -- (2026-10-25, T-M M2c; until then `id ∉ c.voters` only with `s.sdr = true`) a leader that stays a
   -- voter keeps its peers' `Match` values
   (s.role = .leader → id ∈ c.voters → MatchKept s.prvals pvs) →
+  -- (2026-10-29, stage U7) a leader's term past `0` (`send`'s stamp: `maybeSendAppend`, `bcastAppend`)
+  (s.role = .leader → s.term ≠ W64 0) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c.voters) →
   -- (2026-10-16, stage R8a, D11) at a leader the new `Progress` values are within its log (the
   -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a

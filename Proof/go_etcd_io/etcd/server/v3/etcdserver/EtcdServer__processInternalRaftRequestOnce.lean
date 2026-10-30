@@ -211,7 +211,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold srvRaftNode at Hrn
     icases Hrn with ⟨%nd, #Hnd, #Hprop⟩
     iunfold raftPropose at Hprop
-    icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose, -⟩
+    icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose⟩
     -- (linkv-txn stage B1) the id registered in this member's registry, before the proposal
     ihave #Hireg : iprop(idRegd ρ.ids id) $$ []
     · iunfold idRegd

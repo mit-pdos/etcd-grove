@@ -306,14 +306,14 @@ theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
   itrivial
 
 /-- **The mints** (`srvMintInv`): the cluster's proposals' mint and read contexts (stage M4,
-2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`), and the member's share of
-the cluster's read credits (`2 ^ 48`, the node API's `readCredits`). (Until M4 from raft's fresh-data and fresh read-context
-authorities and its whole read budget.) -/
+2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`). (2026-10-30, the repair: no
+read credits; until then also the member's share of the cluster's, `2 ^ 48`. Until M4 from raft's
+fresh-data and fresh read-context authorities and its whole read budget.) -/
 theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
-    ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued -∗
-      readCredits ρ.raft.raft.cl (2 ^ 48) ={E}=∗ srvMintInv ρ := by
-  iintro #HP #HR Hc
-  imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
+    ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued ={E}=∗
+      srvMintInv ρ := by
+  iintro #HP #HR
+  imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR with #Hrd
   iunfold srvMintInv
   iframe HP Hrd
 

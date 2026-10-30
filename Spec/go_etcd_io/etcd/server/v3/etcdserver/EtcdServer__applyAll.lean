@@ -55,11 +55,9 @@ abbrev EtcdServer.applyAll.spec : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat),
+    (w : Nat) (nid : w64),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
-  -- (2026-10-19, D21 M3) the storage's cap at least `1` (`snapshotIfNeededAndCompactRaftLog`'s)
-  1 ≤ γs.cap →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
@@ -68,9 +66,15 @@ abbrev EtcdServer.applyAll.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
-      -- (D19i part 1) closed once raft advanced past the batch: the storage's floor past it
-      rnAdvChan rac (memFloorAtLeast mst γs
-        (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+      -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
+      -- node `nid`'s applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
+      -- storage's floor)
+      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
+        iprop(nodeAppliedLb ρ.raft.raft.cl nid
+          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
+          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
+          srvFrozenRange γs (uint.nat ai + 1)
+            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -79,7 +83,9 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A }}
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
+      -- (2026-10-30, the repair) with a view, the apply side's half of the running token
+      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -89,7 +95,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
@@ -116,12 +122,10 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (γa : auth.AuthNames) (sa : auth.AuthState),
+    (w : Nat) (nid : w64) (γa : auth.AuthNames) (sa : auth.AuthState),
   E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShapeOn (unapplied ai ms) →
-  -- (2026-10-19, D21 M3) the storage's cap at least `1` (`snapshotIfNeededAndCompactRaftLog`'s)
-  1 ≤ γs.cap →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
@@ -131,9 +135,15 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ isServerApplyAll s γr ∗
       batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
-      -- (D19i part 1) closed once raft advanced past the batch: the storage's floor past it
-      rnAdvChan rac (memFloorAtLeast mst γs
-        (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+      -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
+      -- node `nid`'s applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
+      -- storage's floor)
+      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
+        iprop(nodeAppliedLb ρ.raft.raft.cl nid
+          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
+          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
+          srvFrozenRange γs (uint.nat ai + 1)
+            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -143,6 +153,8 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
+      -- (2026-10-30, the repair) with a view, the apply side's half of the running token
+      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
       srvTokRights E (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
@@ -154,7 +166,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ srvTokRights E' (ciEff γ' st'.k) ∗
         applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗

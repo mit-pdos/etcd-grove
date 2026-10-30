@@ -8,7 +8,7 @@ theorem node.run.wp_proof [package_sem : Assumptions] (wp_RawNode_HasReady : Raw
     RawNode.Tick.spec) (wp_raft_Step : raft.Step.spec) (wp_raft_hasLeader : raft.hasLeader.spec)
     (wp_IsResponseMsg : IsResponseMsg.spec) (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec)
     (wp_raft_applyConfChange : raft.applyConfChange.spec) (wp_GetType : raftpb.Message.GetType.spec)
-    (wp_GetFrom : raftpb.Message.GetFrom.spec) : node.run.spec
+    (wp_GetFrom : raftpb.Message.GetFrom.spec) (wp_getStatus : getStatus.spec) : node.run.spec
   -- `Perennial.EtcdGrove.node.run.spec`, unfolded:
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
     ⊢

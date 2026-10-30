@@ -10,17 +10,17 @@ theorem raftLog.restore.wp_proof [package_sem : Assumptions] (wp_unstable_restor
   ∀ (l : Loc) (ls : LogState) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
     uint.Z ls.committed < uint.Z (snapId sv).index' →
       uint.Z (snapId sv).index' < 2 ^ 61 →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                "Hlog" ∷ ownRaftLog l ls ∗
-                  "Hsnap" ∷ ownSnapS sp dq sv ∗
-                    "#Hcert" ∷ storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
-              ▷
-                  (ownSnapS sp dq sv ∗ ownRaftLog l (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
-                    Φ (intoVal ())) -∗
-                WP
-                  ((intoVal
-                      (methods raftLog.ty.PointerType go!"restore" (intoVal l)))
-                    (intoVal sp))
-                  {{ Φ }}
+        (∃ x, sv.Metadata'.ConfState'.lists.Has x) →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hlog" ∷ ownRaftLog l ls ∗
+                    "Hsnap" ∷ ownSnapS sp dq sv ∗ "#Hkc" ∷ ksnCert ls.sn (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
+                ▷
+                    (ownSnapS sp dq sv ∗ ownRaftLog l (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+                      Φ (intoVal ())) -∗
+                  WP
+                    ((intoVal
+                        (methods raftLog.ty.PointerType go!"restore" (intoVal l)))
+                      (intoVal sp))
+                    {{ Φ }}

@@ -1,11 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
 `StartCluster(voters)` (cluster.go), on the voters `1, 2, 3`: a replica of the store on a raft
-node of each (raft's `RestartNode`, in its dynamic mode: the cluster's only configuration
-change is `RemoveMember(3)`'s, `KVCC`), with its storage, the transport between them
-(`deliver`) and each node's ticks (`tick`). Everything the cluster needs is allocated here,
-from nothing but the storage registry (`kvStorInv`, for the storages): raft's ghost state, the
-term budget and its tick credits, the store's invariant. It returns the replicas (a fresh
+node of each (raft's `RestartNode`; the store proposes no configuration change), with its
+storage, the transport between them (`deliver`) and each node's ticks (`tick`). Everything the
+cluster needs is allocated here, from nothing but the storage registry (`kvStorInv`, for the
+storages): raft's ghost state, the store's invariant. It returns the replicas (a fresh
 slice of three, of one store, `isKV γr`) and the client's half of the store's state, the empty
 store (`rkvVal γr kvEmpty`).
 -/

@@ -28,8 +28,9 @@ theorem ownRaftGhost_alloc_core [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     ≠ ∅ → ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C
     nsN ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked =
     trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN
-    ∧ γ.reCertNs = certN⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids,
-    ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none ∧ γ.dup = false⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗
+    ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ
+    (2 ^ 64 - 2) ∗ rdCredInv γ
 
 theorem heartbeat_commit_le_last [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (ps : PState)
     (m : Msg) {md : Bool} : m.ty = MsgType.heartbeat → m.dst = id → uint.Z ps.term ≤ uint.Z m.term →
@@ -106,6 +107,18 @@ theorem BootWf.terms {L : List EntryM} (H : BootWf L) (e : EntryM) : e ∈ L →
 def bootFreshFrom (F : GMap (List w8) Unit) (L : List EntryM) : GMap (List w8) Unit :=
   List.foldl (fun m e => Std.insert m (entKey e.Type' e.Data') ()) F L
 
+theorem ownRaftGhost_alloc_core_reg [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (dyn
+    : Option ((e : GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (t : w64)
+    (C : RaftNames → IProp GF) (trk : Option (GSet w64)) (Htrk : ∀ (T : GSet w64), trk = some T →
+    cfg ⊆ T ∧ dyn = none) (ns : Bool) (Hns : ns = true → L ≠ []) (nx : Bool) (Hnx : nx = true → L ≠
+    []) (sok : List BootEntry → List w8 → Prop) (sl : w64 → Option GName) (nsN certN : Namespace)
+    (reg rdec : Option GName) (dup : Bool) : cfg ≠ ∅ → ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤
+    uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C nsN ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧
+    γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧
+    γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
+    γ.reDec = rdec ∧ γ.dup = dup⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids,
+    ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+
 theorem ownRaftGhost_alloc_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (dyn :
     Option ((e : GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     cfg ≠ ∅ → ¬W64 0 ∈ ids → ⊢ allocClient E cfg dyn C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧
@@ -145,8 +158,8 @@ theorem ownRaftGhost_inv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (
     ownRaftGhost γ id s -∗ raftCommitInv γ
 
 theorem prop_deposit [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (d : List w8) (Q : List
-    EntryM → IProp GF) : ↑(raftN γ) ⊆ E → ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ propAu1 γ d Q ={E}=∗
-    propTk γ d
+    EntryM → IProp GF) : ↑(raftN γ) ⊆ E → ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ □?γ.dup propAu1 γ d Q
+    ={E}=∗ propTk γ d
 
 theorem ownRaftGhost_alloc_boot [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (ccOk :
     w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) (C : RaftNames → IProp GF) (ns nx

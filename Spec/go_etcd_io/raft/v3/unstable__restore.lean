@@ -41,6 +41,8 @@ read-only for good (`ownSnap`; until the retarget `&s` of the by-value parameter
 caller's `ConfState` slices, `ownCSL` of the lists `voters`, now the record's own). -/
 abbrev unstable.restore.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
+  -- (2026-10-28, stage U0) its `ConfState` names a node (`pendKsn`)
+  (∃ x, sv.Metadata'.ConfState'.lists.Has x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
       -- (D22 S-d4 item 4) every pointer field set (`raft.restore`'s `EnsureSnapshot`)

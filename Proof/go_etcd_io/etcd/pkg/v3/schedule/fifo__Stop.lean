@@ -49,8 +49,12 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
     exact absurd Hv.1 (dfrac_own_one_op_invalid _)
   subst Hcf
   (try wp_auto)
+  -- the `stopped` flag: half persisted (`stopped`), half kept (the baton's taker's mark)
   imod dghostVar_update true F.st false $$ Hst with Hst
-  imod dghostVar_persist F.st 1 true $$ Hst with #Hstp
+  ihave ⟨Hst, Hmark⟩ := dghostVar_split F.st true (DFrac.own (1 : Qp).half)
+    (DFrac.own (1 : Qp).half) $$ [Hst]
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hst
+  imod dghostVar_persist F.st (1 : Qp).half true $$ Hst with #Hstp
   ihave #Hstp' : stopped F $$ []
   · iunfold stopped; iexact Hstp
   iunfold _root_.Perennial.context.cancelSpec at Hcancel
@@ -60,6 +64,10 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
   iunfold schedQueue at HqS
   ihave %HPs := monoListAuthOwn_agree γ.jobs _ _ Ps L $$ HqS Hq
   obtain ⟨-, rfl⟩ := HPs
+  -- the queue's half: a quarter to the lock invariant, a quarter kept
+  ihave ⟨HqS, HqK⟩ := (monoListAuthOwn_fractional γ.jobs Ps).fractional (1 : Qp).half.half
+    (1 : Qp).half.half |>.1 $$ [HqS]
+  · rw [Qp.half_add_half]; iexact HqS
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hpend Hsl Hcap Hsch Hfin Hcf Hrs Hq Hitems Hbaton
     Htok HqS]
   · inext
@@ -73,7 +81,7 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
     iframe
     iframe #
   (try wp_auto)
-  -- `<-f.donec`: returns once the worker has closed it
+  -- `<-f.donec`: returns once the worker has closed it, with the last tracked job's `Post`
   wp_bind (App (Val (chan.receive _)) (Val #F.dch))
   wp_apply_core chan.wp_receive (V := Unit) F.dch F.γd $$ Hdch
   iintro -
@@ -84,20 +92,39 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
   iintro Hmask
   inext
   iunfold donecInv at Hi
-  icases Hi with (Hch | ⟨Hch, Hdc⟩)
+  icases Hi with (Hch | ⟨Hch, Hdc, Hcar⟩)
   · iexists .Buffered []
     iframe Hch
   · iexists .Closed []
     iframe Hch
     dsimp only
     iintro Hch
+    iunfold donecCarry at Hcar
+    icases Hcar with ⟨%L', %q', Hqa, (Hbt | Hm)⟩
+    rotate_left
+    · -- taken already: three parts of the `stopped` flag
+      icombine Hmark Hm as Hst1
+      ihave %Hv := dghostVar_valid_2 F.st true (DFrac.own 1) true DFrac.discard $$ Hst1 Hstp
+      exact absurd Hv.1 (dfrac_own_one_op_invalid _)
+    ihave %HL := monoListAuthOwn_agree γ.jobs _ _ Ps L' $$ HqK Hqa
+    obtain ⟨-, rfl⟩ := HL
     imod Hmask with -
-    imod Hclose $$ [Hch Hdc] with -
+    imod Hclose $$ [Hch Hdc Hqa Hmark] with -
     · inext; iunfold donecInv; iright; iframe
+      iunfold donecCarry
+      iexists Ps, q'
+      iframe
     imodintro
     wp_auto
     iapply HΦ
-    itrivial
+    iunfold baton at Hbt
+    icases Hbt with ⟨%p, %Q, %Hp, #HQs, HQ⟩
+    have Hlast : Ps.getLast? = some p := by
+      rw [List.getLast?_eq_getElem?]; exact Hp
+    rw [Hlast]
+    iexists Q
+    iframe
+    iframe #
 
 end proof
 

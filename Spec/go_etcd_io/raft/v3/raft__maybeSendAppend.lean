@@ -58,6 +58,8 @@ abbrev raft.maybeSendAppend.spec : Prop :=
   -- runs at a compacted log (every caller is a leader: `stepLeader`, a won election,
   -- `switchToConfig`'s leader branch, `bcastAppend`/`sendAppend`)
   s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendAppend"))

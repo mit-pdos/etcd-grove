@@ -51,7 +51,7 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
                             "Hm" ∷
                                 msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                                   { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
-                              "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn -∗
+                              "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn -∗
                         (▷
                             ∀ err s' dropped c',
                               (ownRaftPhysCV c' c'.voters r id s' ∗

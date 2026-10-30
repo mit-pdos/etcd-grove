@@ -33,8 +33,9 @@ abbrev raftNode.ReadIndex.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
       context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast E.γr n ∗
       srvReadAu E.γr.raft Qr ∗
-      -- (2026-10-16, stage R7b) raft's read credit and the context's fresh token
-      srvRdCred E.γr.raft ∗ srvRdFresh E.γr.raft (beBytes id) }}
+      -- (2026-10-16, stage R7b) the context's fresh token (2026-10-30, the repair: no read
+      -- credit, raft's `ReadIndex` takes none)
+      srvRdFresh E.γr.raft (beBytes id) }}
     (App (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"ReadIndex"))
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (err : GoInterface), RET #err; applyErrIs err ∗

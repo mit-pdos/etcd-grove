@@ -44,6 +44,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`kv.Put(ctx, key, val)` through a `*kv` over `conn` to a member with auth on** (as
 `client_put_any` at one member): etcd's `Put` with auth on registered at `addr`, the floor `F`

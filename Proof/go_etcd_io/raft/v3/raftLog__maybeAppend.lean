@@ -59,7 +59,7 @@ private theorem logTruncateAppend_fields (ls : LogState) (ents : List EntryM) :
     (logTruncateAppend ls ents).applying = ls.applying ∧
     (logTruncateAppend ls ents).snap = ls.snap ∧
     (logTruncateAppend ls ents).unpersisted = ls.unpersisted ∧
-    (logTruncateAppend ls ents).stored = ls.stored ∧
+    logStoreRec (logTruncateAppend ls ents) = logStoreRec ls ∧
     (logTruncateAppend ls ents).storage = ls.storage ∧
     (logTruncateAppend ls ents).fl = ls.fl := by
   cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
@@ -128,7 +128,7 @@ theorem raftLog.maybeAppend.wp_proof
     isplitr
     · ipureintro
       simp [plogMaybeAppend, Hnm]
-    ipureintro; exact ⟨rfl, id, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun h => absurd h (Int.lt_irrefl _)⟩
+    ipureintro; exact ⟨rfl, id, SnpKeep.refl _, fun h => absurd h (Int.lt_irrefl _)⟩
   | true =>
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' := of_decide_eq_true Hb.symm
     simp only [plogMaybeAppend, ite_eq_left Hm]
@@ -183,8 +183,8 @@ theorem raftLog.maybeAppend.wp_proof
       iframe
       isplitr
       · ipureintro
-        simp only [w64Min, and_self, ite_true]
-      ipureintro; exact ⟨rfl, id, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun h => absurd h (Int.lt_irrefl _)⟩
+        simp only [w64Min, _root_.and_self, ite_true, logStoreRec]
+      ipureintro; exact ⟨rfl, id, SnpKeep.refl _, fun h => absurd h (Int.lt_irrefl _)⟩
     · -- a conflict at `ci = ents[k].Index = a.prev.index + 1 + k`
       have Hke := Hwf k e Hk
       have Hcine : e.Index' ≠ W64 0 := by intro Hc; rw [Hc] at Hke; word
@@ -294,7 +294,7 @@ theorem raftLog.maybeAppend.wp_proof
       · ipureintro
         have Hkd : (uint.Z e.Index' - uint.Z a.prev'.index' - 1).toNat = k := by
           push_cast at Hke; omega
-        simp only [Hkd, ite_false, w64Min, true_and]
+        simp only [Hkd, ite_false, w64Min, _root_.true_and]
         exact ⟨Hp1, Hsplit, Ha1, by rw [Hc1], Hag1, Hsn1, Hun1, Hst1, Hsg1, Hfl1⟩
       ipureintro
       have Hk1 := logTruncateAppend_snpKeep ls (ents.drop k)

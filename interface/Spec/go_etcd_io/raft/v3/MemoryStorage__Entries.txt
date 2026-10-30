@@ -3,28 +3,26 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.Entries.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (lo hi maxSize : w64) (ec : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (dq1 dq2 : DFrac) (a b : List EntryM) (lo hi maxSize : w64)
+    (ec : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hms" ∷ ownMemoryStorage ms γs σ ∗
-              ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧
-                    uint.Z lo < uint.Z hi ∧ uint.Z hi ≤ uint.Z σ.prev.index' + ↑σ.ents.length + 1⌝ ∗
-                ⌜PendFrom σ (uint.Z hi)⌝ ∗ "#Hec" ∷ typedPointsto (globalAddr ErrCompacted) ec DFrac.discard -∗
+            memStorLock ms γs ∗
+              memLog γs k dq1 a ∗
+                memLog γs (k + a.length) dq2 b ∗
+                  ⌜k ≤ uint.nat lo ∧ uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ k + a.length + b.length⌝ ∗
+                    typedPointsto (globalAddr ErrCompacted) ec DFrac.discard -∗
           (▷
               ∀ s es err,
-                ⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ memStorCut γs (uint.Z lo) ∗ ownMemoryStorage ms γs σ ∨
-                    ⌜err = GoInterface.nil⌝ ∗
-                      entsRO s es ∗
-                        ⌜es ≠ [] ∧
-                              ↑es.length ≤ uint.Z hi - uint.Z lo ∧
-                                (∀ (e : EntryM),
-                                    e ∈ es → e ∈ List.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat σ.ents) ∧
-                                  s.cap = s.len ∧
-                                    es <+:
-                                      List.drop (uint.Z lo - uint.Z σ.prev.index' - 1).toNat
-                                        (List.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat σ.ents)⌝ ∗
-                          ownMemoryStorage ms γs σ -∗
+                memLog γs k dq1 a ∗
+                    memLog γs (k + a.length) dq2 b ∗
+                      (⌜err = ec⌝ ∗ memCompacted γs (uint.nat lo) ∨
+                        ⌜err = GoInterface.nil⌝ ∗
+                          entsRO s es ∗
+                            ⌜es ≠ [] ∧
+                                s.cap = s.len ∧
+                                  es <+: List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b))⌝) -∗
                   Φ (intoVal s, intoVal err)) -∗
             WP
               ((((intoVal

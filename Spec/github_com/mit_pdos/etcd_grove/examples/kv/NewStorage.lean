@@ -1,7 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-`NewStorage(voters)` (kv.go:55): a new storage, registered (`kvStorRec`), holding the
-voters (read-only) and a new `MemoryStorage` (at `memStorEmpty`).
+`NewStorage(voters)` (kv.go): a new storage, registered (`kvStorRec`), holding the voters
+(read-only) and a new `MemoryStorage`, with what `NewMemoryStorage` gives of it (2026-10-30, stage
+F of the client repair: its lock, the frozen dummy entry, its end, the never-snapshotted token, the
+hard state's metadata and the fresh token; until then `ownMemoryStorage` at `memStorEmpty`, the
+certificate registry and the snapshot token).
 -/
 module
 
@@ -32,11 +35,9 @@ abbrev NewStorage.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.NewStorage)) (Val #vsl))
   {{ (s : Loc), RET #s; ∃ (ms : Loc) (γs : MemStorNames),
       kvStorRec s ms γs ∗ s.[RStorage, go!"voters"] ↦□ vsl ∗
-      ownMemoryStorage ms γs memStorEmpty ∗
-      -- (D22 S-b′3, 2026-10-20) the certificate registry's authority (`NewMemoryStorage`'s)
-      memCertAuth γs ∗
-      -- (D22 S-r, 2026-10-21) the application's snapshot token, at the cap `2^64`
-      memSnapTok ms γs memStorEmpty ∗ ⌜γs.cap = 2 ^ 64⌝ }}
+      memStorLock ms γs ∗ memLog γs 0 DFrac.discard [zero_val EntryM] ∗ memEnd γs 1 ∗
+      memSnapNone γs ∗ memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+      memStorFresh ms γs }}
 
 end spec
 

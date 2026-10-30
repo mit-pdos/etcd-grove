@@ -8,7 +8,6 @@ public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Spec.go_uber_org.zap.Stringer
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.noSideEffect
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier__Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 
@@ -37,48 +36,15 @@ theorem cPost_if (v3 : Bool) (Pre Post : IProp GF) :
     apply.cPost v3 Pre Post ⊢ (if v3 then iprop(Post ∨ Pre) else Pre) := by
   cases v3 <;> simp only [apply.cPost, Bool.false_eq_true, ↓reduceIte] <;> iintro H <;> iexact H
 
-set_option hygiene false in
-/-- The call `uberApply.Apply(wrapper, v3)` and the postcondition. -/
-local macro "call_tail" : tactic => `(tactic| (
-  wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 F Pre Q Post rs)
-      $$ [Hown Hkv Hwt Hcs HFS HSp HRO] as %ar ⟨HFS, %x', %out, Hown, Hkv, HPP, HRO, %Hst, Htr, Hres, #Hauth⟩
-  · iframe # Hown Hkv Hwt Hcs HFS HSp HRO
-    ipureintro
-    refine ⟨⟨Hrq, Hdk⟩, fun h => ?_⟩
-    rw [← hsk] at h
-    simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at h
-    cases ht : rq.txn with
-    | none => exact absurd (Hlt.2 ht) h.2
-    | some _ => rfl
-  ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
-  iapply HΦ
-  iframe HRD HFS
-  isplitl [HPP]
-  · iapply cPost_if; iexact HPP
-  iframe Hok Htr
-  isplitr
-  · ipureintro; rfl
-  iexists x', out
-  iframe Hres HRO Hauth
-  isplitl [Hown Hkv]
-  · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
-  isplitr
-  · ipureintro; exact ⟨Hst.1, Hst.2.2⟩
-  icases Hwv with (%Hsk | HG)
-  · ileft; ipureintro
-    rcases Hst.2.1 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived, Hsk]
-  · iright; iexact HG))
-
 theorem apply.Apply.wp_proof
     (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
     (hZS : zap.Stringer.spec (GF := GF) (hG := hG))
     (hDbg : zap.Logger.Debug.spec (GF := GF) (hG := hG))
-    (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG))
-    (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
+    (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #HF, HFS, HSp, HRO⟩
-  obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
+  intro lg e m ua w v3 rq id RD K G ot P Q
+  wp_start as ⟨#Hwok, HRD, HK, %Hlg, #He, %Hprem, ⟨%ui, %Hui, #Htr⟩, HP⟩
+  obtain ⟨Hdec, Hid⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil $$ []
@@ -153,24 +119,15 @@ theorem apply.Apply.wp_proof
     · ipureintro; exact Hwn
     iexists raftReq_ptr
     iframe #
-  -- the uber-applier
-  iunfold apply.applierFor at Hfor
-  icases Hfor with ⟨%p, %opts, %Hua, #Hu⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p', %Hua', Hown, Hkv⟩
-  subst Hua
-  have := apply.mkOk_ptr_inj _ _ _ Hua'
-  subst this
-  ihave Hcs : iprop(apply.cPre v3 E.P E.f Pre Q Post) $$ [Hhook HPre]
-  · cases v3
-    · simp only [apply.cPre, Bool.false_eq_true, ↓reduceIte]
-      iexact HPre
-    · simp only [apply.cPre, ↓reduceIte, mvcc.csContract]
-      icases Hhook with ⟨#Htr, Hup⟩
-      iframe HPre Hup
-      imodintro
-      iexact Htr
+  subst Hui
   generalize hsk : (!need && !decide (lt = null)) = sk
+  have hskt : sk = true → rq.txn.isSome = true := by
+    intro h
+    rw [← hsk] at h
+    simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at h
+    cases ht : rq.txn with
+    | none => exact absurd (Hlt.2 ht) h.2
+    | some _ => rfl
   cases need
   · -- no waiter: applied only with side effects
     icases Hneed with (%Hf | HG)
@@ -181,38 +138,37 @@ theorem apply.Apply.wp_proof
     subst Hb
     cases hns : apply.noSideEffect rq
     · wp_auto
-      ihave Hwv : iprop(⌜sk = false⌝ ∨ G ot id) $$ [HG]
-      · iright; iexact HG
-      call_tail
-    · wp_auto
+      wp_apply Htr $$ %«$r0_ptr» %sk [HP] as %ar HQ
+      · iframe Hwr HP; ipureintro; exact hskt
       iapply HΦ
-      iframe HRD HFS
-      isplitl [Hcs]
-      · iapply cPost_if; iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hcs
-      isplitr
-      · iunfold apply.resultErrOk; ileft; ipureintro; rfl
-      isplitr
-      · iapply apply.resTrace_null
+      iframe HRD
       isplitr
       · ipureintro; rfl
-      iexists x, .skipped
-      simp only [apply.applyResultIs, apply.restOut]
-      iframe HRO
-      isplitl [Hown Hkv]
-      · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
-      isplitr
-      · ipureintro; simp [apply.applyStep, apply.applyFloorOk, hns]
-      isplitr
-      · itrivial
-      isplitr
-      · simp only [apply.applyAuthRes]; itrivial
+      ileft
+      iexists sk
+      iframe HQ
       iright; iexact HG
+    · wp_auto
+      iapply HΦ
+      iframe HRD
+      isplitr
+      · ipureintro; rfl
+      iright
+      iframe HG HP
+      ipureintro; exact ⟨rfl, rfl⟩
   · -- a waiter: applied
-    ihave Hwv : iprop(⌜sk = false⌝ ∨ G ot id) $$ []
-    · ileft; ipureintro; rw [← hsk]; simp
     iclear Hneed
     wp_auto
-    call_tail
+    wp_apply Htr $$ %«$r0_ptr» %sk [HP] as %ar HQ
+    · iframe Hwr HP; ipureintro; exact hskt
+    iapply HΦ
+    iframe HRD
+    isplitr
+    · ipureintro; rfl
+    ileft
+    iexists sk
+    iframe HQ
+    ileft; ipureintro; rw [← hsk]; simp
 
 end proof
 

@@ -1,11 +1,7 @@
-/- Port of election_proof/spec_MemoryStorage__Entries.v (feb5c73d4).
+/- `MemoryStorage.Entries` (`storage.go:143`).
 
-Lean notes: `ownMemoryStorage`/`memstorageFields` (`InvMemstorage.lean`) need
-ghost state, so the section has the extra variable `[AllG GF]` (porting guide,
-"Section variables"); in Rocq it comes with `heapGS Σ`.
-Rocq's `(#s, #interface.nil)` is `PairV #s #interface.nil`; `` `prefix_of` `` is
-`<+:` (`List.IsPrefix`); `Z.to_nat` is `Int.toNat`.
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). The contract's `Entries` triple, over two pieces (a frozen prefix and an owned tail, possibly empty). -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
@@ -22,43 +18,25 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `ms.Entries(lo, hi, maxSize)` (`storage.go:131`), stated exactly as `isStorage`'s
-`HEntries` asks of the method. The range premise
-`prev.index + 1 <= lo < hi <= prev.index + |ents| + 1` makes all three error paths
-unreachable: `lo <= ents[0].Index` (`ErrCompacted`), `hi > lastIndex + 1` (the `Panicf`)
-and `len(ents) == 1` (`ErrUnavailable`). The result is `limitSize` of the sub-slice
-`ents[lo-offset:hi-offset]`, re-sliced with `cap = len`; the entries are returned
-read-only and for good, which `ownMemoryStorage` can allow because it holds `ms.ents`
-read-only itself. -/
+/-- `ms.Entries(lo, hi, maxSize)` within two adjacent ranges the caller holds. -/
 abbrev MemoryStorage.Entries.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
+  ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (dq1 dq2 : DFrac) (a b : List EntryM)
     (lo hi maxSize : w64) (ec : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms γs σ ∗
-      ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
-         uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
-      -- below the pending batch (2026-10-10)
-      ⌜PendFrom σ (uint.Z hi)⌝ ∗
-      "#Hec" ∷ globalAddr ErrCompacted ↦□ ec }}
-    (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Entries"))
-      (Val #lo)) (Val #hi)) (Val #maxSize))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      memLog γs k dq1 a ∗ memLog γs (k + a.length) dq2 b ∗
+      ⌜k ≤ uint.nat lo ∧ uint.nat lo < uint.nat hi ∧ uint.nat hi ≤ k + a.length + b.length⌝ ∗
+      globalAddr ErrCompacted ↦□ ec }}
+    (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Entries")) (Val #lo)) (Val #hi)) (Val #maxSize))
   {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
-      -- (D19i part 1) `ErrCompacted` at or below the floor, the storage compacted up to `lo`
-      (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ memStorCut γs (uint.Z lo) ∗
-        ownMemoryStorage ms γs σ) ∨
-      (⌜err = interface.nil⌝ ∗
-      entsRO s es ∗
-      ⌜es ≠ [] ∧
-        (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-        (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧
-        s.cap = s.len ∧
-        es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
-                 (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
-      ownMemoryStorage ms γs σ) }}
+      memLog γs k dq1 a ∗ memLog γs (k + a.length) dq2 b ∗
+      ((⌜err = ec⌝ ∗ memCompacted γs (uint.nat lo)) ∨
+       (⌜err = interface.nil⌝ ∗ entsRO s es ∗
+        ⌜es ≠ [] ∧ s.cap = s.len ∧
+          es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}
 
 end spec
 

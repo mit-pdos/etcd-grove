@@ -80,9 +80,11 @@ clause per shape a caller builds:
     nothing in scope sends, takes exactly this path through the body and holds its
     place, so that a caller's `by right; right; right` still picks `MsgHeartbeatResp`.)
 (c) a message the model does not describe (`mtypeOf = none`). It is queued and drops
-    out of the abstract outbox. `Term` unset, not self-addressed. (2026-10-19, D21 M2r) Only
-    with leader transfer on (`NGhost.xf = false`): raft sends two such types, `MsgTimeoutNow`
-    and a forwarded `MsgTransferLeader`, both of a transfer.
+    out of the abstract outbox. `Term` unset, not self-addressed. Raft sends two such types,
+    `MsgTimeoutNow` and a forwarded `MsgTransferLeader`, both of a transfer (2026-10-29, U7 (ii):
+    with no entries and no context). (raft-final, 2026-10-29) A forwarded `MsgTransferLeader`'s
+    destination and the node's term recorded in `NGhost.xw` (what `XfOk` keeps of a stamped one;
+    until then, D21 M2r, only with leader transfer on, `NGhost.xf = false`).
 (c') `MsgSnap` (2026-10-02): stamped and queued like (b), but the abstract message is
     `absSnapFrom` of the snapshot `m.Snapshot` points to and of that snapshot's
     `ConfState.Voters`. `send` does not read the pointer, so the caller names the two
@@ -125,26 +127,37 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
      mtypeOf m.Type' = some ty ∧
      m.Term' = W64 0 ∧
      m.To' ≠ id ∧
+     -- (2026-10-29, stage U7) a term past `0` to stamp (`SentMsgShape`)
+     s.term ≠ W64 0 ∧
      out = [absMsgFrom ty m id s.term ents ctx])
   ∨
   ((m.Type' = MsgSnap ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     -- (2026-10-19, D21 M3) not in the no-snapshot mode
-    s.gh.ns = false)
+    s.gh.ns = false ∧
+    -- (2026-10-29, stage U7) a term past `0` to stamp (`SentMsgShape`)
+    s.term ≠ W64 0)
    ∨
-   (mtypeOf m.Type' = none ∧
+   -- (2026-10-29, stage U7: until then any type with `mtypeOf = none`) the two transfer messages,
+   -- with no entries and no context, a `MsgTimeoutNow` at a term past `0` (`SentMsgShape`)
+   ((m.Type' = MsgTimeoutNow ∨ m.Type' = MsgTransferLeader) ∧
+    (m.Type' = MsgTimeoutNow → s.term ≠ W64 0) ∧ ents = [] ∧ ctx = [] ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     out = [] ∧
-    -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`): the types the model does
-    -- not describe that raft sends are `MsgTimeoutNow` and a forwarded `MsgTransferLeader`
-    s.gh.xf = false))
+    -- (raft-final, 2026-10-29, U7: the design's §2.3) a forwarded `MsgTransferLeader`, stamped with
+    -- the node's term, to a destination and at a term recorded with a witness that it leads it
+    -- (`NGhost.xw`, `xfW`; `raft.Step`'s transfer arm records its leader before `stepFollower`
+    -- forwards). Until then only with leader transfer on (`NGhost.xf = false`, D21 M2r).
+    (m.Type' = MsgTransferLeader → (s.gh.xw !! (m.To', s.term)).isSome)))
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧
+   -- (2026-10-29, stage U7: until then only self-addressed) a term past `0` to stamp
+   s.term ≠ W64 0 ∧
    (m.To' = id →
-      ents = [] ∧ ctx = [] ∧ s.term ≠ W64 0 ∧
+      ents = [] ∧ ctx = [] ∧
       m.Reject' = false) ∧
    out = [absMsgFrom .appResp m id s.term ents ctx])
   ∨
@@ -233,9 +246,9 @@ abbrev raft.send.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
-      -- (`tsSrc_ne` for any other type)
-      "#Hsrc" ∷ tsSrc s.logst.storage m.Type' sn }}
+      -- (D22 S-b′3; U8 v2: valid or received, as the node's storage names pin it, `tsSrc`) a
+      -- `MsgSnap`'s snapshot certified (`tsSrc_ne` for any other type)
+      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 

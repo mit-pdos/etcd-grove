@@ -88,7 +88,7 @@ theorem mvcc.store.Restore.wp_proof
   iunfold mvcc.compactQueue at Hq
   icases Hq with ⟨%Ps, %p, %Q, %R', Hq, -, -, -⟩
   (try wp_auto)
-  wp_apply hStop fi γ.sch (Ps ++ [p]) $$ [Htok Hq]
+  wp_apply hStop fi γ.sch (Ps ++ [p]) $$ [Htok Hq] as -
   · iframe; iframe #
   (try wp_auto)
   -- `s.kvindex = newTreeIndex(s.lg)`: fresh event-count and compactor names over the store's

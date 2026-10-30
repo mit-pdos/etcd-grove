@@ -97,13 +97,13 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (id : w64) (idx : mvcc.IdxNames) (cok rev : GName)
     (Hiss : γk.ids.issued = issued) (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hdyn : γ.dyn = false) (Hvs : γ.vs = ps)
+    (Hvs : γ.vs = ps)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev)) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt Φs -∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
-      (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗ readCredits γ.cl (2 ^ 48) ∗
+      (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
         nodeBoot γ.cl srvClusterN ps ctxs id ∗
         ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) -∗
@@ -113,7 +113,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0⌝ ∗
         memberBoot { γ with reg := reg } ctxs ρ (env₀ idx cok rev) Φs id := by
-  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC, Hnb, Hsd⟩ Hwn Hreg Hidx Hcok Hrev
+  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, Hnb, Hsd⟩ Hwn Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
   imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok) $$ Hkv' Hp Hwn
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
@@ -131,10 +131,10 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   ihave #Hrc' := srvRdCtxInv_reg γ reg issued $$ Hrc
   ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id $$ [Hnb]
   · rw [Hvs]; iexact Hnb
-  iframe Hnb' Hsrl' Hcl Hpm' Hrc'  Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
+  iframe Hnb' Hsrl' Hcl Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
   isplitr
   · ipureintro
-    refine ⟨rfl, Hdyn, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
+    refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
       hpfx, ?_⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
@@ -158,7 +158,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
       ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
-      ⌜γ.vs = [id₁, id₂, id₃] ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧
+      ⌜γ.vs = [id₁, id₂, id₃] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧
         kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
@@ -195,17 +195,17 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
       (by simp [hn12, hn13, hn23]) (by simp)
       (by intro h; exact Hnz _ h rfl) Hcc Hlow Hlow0) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hvs, hdyn, hboot, hreg, hc0, hch, hlog, hiss⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss⟩ := Hγ
   icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₁ issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog
-      hdyn hvs HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
+      hvs HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
   imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₂ issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog
-      hdyn hvs HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
+      hvs HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
   imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₃ issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog
-      hdyn hvs HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
+      hvs HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network (rafthttp stage 6d; until then a slot per member): each peer address
   -- reserved for the raft protocol, so every member's transport may post to the others'
@@ -225,7 +225,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
   isplitr
   · ipureintro
-    refine ⟨hvs, hdyn, hboot, Hγn.1, Hγn.2, by rw [hlog₁, hlog],
+    refine ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hlog₁, hlog],
       by rw [hst₂, hst₁], by rw [hst₃, hst₁],
       by funext B; unfold kvModel; rw [hc0₂, hch₂, hlog₂, hc0₁, hch₁, hlog₁],
       by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],

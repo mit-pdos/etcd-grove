@@ -50,7 +50,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     ⊢ bootMarshal (GF := GF) [id] ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-      ⌜γ.vs = [id] ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧
+      ⌜γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []]⌝ ∗
       memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
@@ -64,8 +64,8 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot Φs reg Hrb Hrb2 HB (by simp) (by simp)
       (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hvs, hdyn, hboot, hreg, hc0, hch, hlog, hiss⟩ := Hγ
-  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, HrdC, Hnb, Hsd⟩, -⟩
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss⟩ := Hγ
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
@@ -80,7 +80,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   iframe Hnet
   isplitr
   · ipureintro
-    exact ⟨hvs, hdyn, hboot, Hγn.1, Hγn.2, by rw [hlog', hlog]⟩
+    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hlog', hlog]⟩
   iunfold memberBoot
   simp only [env₀]
   rw [hiss', hcnt, hraft, hiss, hvs, hreg]
@@ -88,10 +88,10 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   rw [← hboot, etcdKV_congr ρ.rd.kv γk hst,
     show kvModelSt ρ.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
       unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
-  iframe Hnb Hsrl Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg
+  iframe Hnb Hsrl Hcl Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg
   isplitr
   · ipureintro
-    exact ⟨rfl, hdyn, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
+    exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
       hpfx, rfl⟩
   iunfold idNoZero
   rw [hiss', hiss]

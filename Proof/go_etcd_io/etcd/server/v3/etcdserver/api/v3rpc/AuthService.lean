@@ -135,6 +135,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server's update from the client's** at the call's context: the bound the server
 stamps a header under (`hdrBoundM true`) is one bound to the context's token (`hdrBoundM_tok`). -/

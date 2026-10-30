@@ -34,6 +34,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 open Iris.ProofMode in
 /-- **A read update fired at a certified log** (`kv_cert_floor`'s, with the state): with the

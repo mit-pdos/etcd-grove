@@ -22,32 +22,28 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize σ lok Hidx Hss Hpe Hlg Hmax Hfl0
+  intro si lg maxSize sn lok R Hlg Hmax
   subst Hlg
-  wp_start as ⟨#Hsto, HStorage, #Hlg, #Hic⟩
-  ihave #Hsto2 : isStorage st $$ [Hsto]
-  · iexact Hsto
-  iNamed Hsto
-  subst Hstok
-  icases Hbounded $$ HStorage with ⟨%Hbnd, HStorage⟩
+  wp_start as ⟨HR, #HFirstIndex, #HLastIndex, #Hlg⟩
   wp_auto
-  wp_apply HFirstIndex $$ HStorage as %fi ⟨%Hfi0, -, HStorage⟩
-  -- (D19i part 1) the floor is not raised: the storage's boundary is the view's
-  have Hfi : uint.Z fi = uint.Z σ.prev.index' + 1 := by
-    rw [Hfl0, show uint.Z (W64 0) = 0 from rfl,
-      Int.max_eq_left (show (0 : Int) ≤ uint.Z σ.prev.index' by word)] at Hfi0
-    omega
-  wp_apply HLastIndex $$ [$HStorage] as %li ⟨%Hli, HStorage⟩
-  · ipureintro; exact Hpe
+  -- (U8 v2 step 4) the boot bundle's reads: a fresh storage
+  wp_apply_raw HFirstIndex $$ [$HR]
+  inext
+  iintro HR
+  wp_auto
+  wp_apply_raw HLastIndex $$ [$HR]
+  inext
+  iintro HR
+  wp_auto
   irename «$r0» => Hl
   generalize «$r0_ptr» = l at *
-  iapply HΦ
+  iapply HΦ $$ %l %(W64 0 + W64 1)
+  iframe HR
   isplitr
-  rotate_left
-  · iframe HStorage
-    iintro HStorage
+  · ipureintro; rfl
+  · iintro #Hsto2 HStorage
     unfold ownRaftLog
-    iexists _, σ
+    iexists _, ({ prev := entryID.mk (W64 0) (W64 0), ents := [], pend := [] } : StorState)
     simp only [named, List.append_nil]
     iframe Hl Hsto2
     isplitr
@@ -67,7 +63,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · ipureintro; rfl
     isplitr
-    · ipureintro; exact Hidx
+    · ipureintro; intro _ _ h; simp at h
     isplitr
     · ipureintro; simp only [List.length_nil]; word
     -- (D22 S-d1b) the storage, not lent
@@ -78,28 +74,21 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · iapply (ownSnap_None _).2; ipureintro; rfl
     isplitr
-    · ipureintro; exact initKsn_mem σ
-    isplitr
     · iapply pendKsn_none
     isplitr
-    · iunfold initKsnCert at Hic; iexact Hic
+    · iapply ksnCerts_nil
     isplitr
-    · ipureintro; word
+    · ipureintro; simp only [List.length_nil]; rfl
     isplitr
     · iapply entsPts_nil
     isplitr
     · iapply ownSliceCap_nil
     isplitr
-    · ipureintro; constructor <;> word
+    · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
     isplitr
-    · ipureintro; intro _; word
+    · ipureintro; intro _; exact Int.le_refl _
     isplitr
-    · ipureintro; word
-    isplitr
-    · ipureintro; intro _
-      rcases Hss with Hss | Hss
-      · exact .inl Hss
-      · exact .inr ⟨by rw [Hss]; word, by rw [Hss]; exact plogTermAt_base _ _⟩
+    · ipureintro; simp
     isplitr
     · unfold isLoggerVal; iexists lok; iframe Hlg; ipureintro; rfl
     isplitr
@@ -112,16 +101,20 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
       · simp [storApp]
       · intro _; simp [storApp]
     isplitr
-    · ipureintro; word
+    · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
     isplitr
     · ipureintro; intro _; word
     isplitr
     · ipureintro; rfl
     isplitr
-    · ipureintro; exact ⟨Hpe, fun _ e0 He0 => by simp at He0⟩
+    · ipureintro; exact ⟨rfl, fun _ e0 He0 => by simp at He0⟩
     isplitr
     · ipureintro
-      refine ⟨Hfl0, by simp, by word, fun e0 He0 => by simp [Hpe] at He0, fun h => absurd rfl h⟩
+      refine ⟨rfl, by simp, by word, fun e0 He0 => by simp at He0, fun h => absurd rfl h,
+        fun h => absurd rfl h⟩
+    isplitr
+    · ipureintro
+      exact ⟨fun _ => ⟨by simp, by simp, fun _ h => by cases h⟩, rfl, DtOk.empty _⟩
     -- (D22 S-d1b) not lent, no window, no snapshot in progress
     isplitr
     · ipureintro; first | exact trivial | (intro h; cases h)
@@ -130,7 +123,6 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · ipureintro; first | exact trivial | (intro h; cases h) | exact ⟨(fun h => by cases h), (fun h => absurd rfl h)⟩
     ipureintro; first | exact trivial | (intro h; cases h)
-  · ipureintro; word
 
 end proof
 

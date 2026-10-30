@@ -35,6 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- `n` of `M ≥ n` copies of `P`. -/
 theorem replicate_takeN (P : IProp GF) (n M : Nat) (h : n ≤ M) :
@@ -67,6 +68,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The configuration fields `v3rpc.Server` reads that `srvBuilt` does not hold** (persistent;
 see the file header). -/

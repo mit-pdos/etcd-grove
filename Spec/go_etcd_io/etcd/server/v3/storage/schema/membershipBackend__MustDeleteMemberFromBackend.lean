@@ -23,6 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`mb.MustDeleteMemberFromBackend(id)`** (the trust boundary; D43 M5b′, 2026-10-26, the
 user's decision): as `MustSaveMemberToBackend`'s contract (the membership backend `mb` over the

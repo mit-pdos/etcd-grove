@@ -62,15 +62,15 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
-        "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+        "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
-        -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)⌝ ∗
+        -- (2026-10-28, stage U0) the configuration kept (from stage B7 the snapshot's after a restore)
+        "%Hc'" ∷ ⌜c' = c⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
-            StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
+            StepCDS c c' (snapCfg sv scfg) (scfg.Has id) id B (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
@@ -105,13 +105,13 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
-  ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage m.Type' sn $$ []
-  · rw [Hsn, show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage = s.logst.storage by simp [becomeFollower, resetTo, resetTo0]]
-    iapply tsSrc_snap; iexact Hcert
+  ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
+  · rw [Hsn, show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn = s.gh.sn by simp [becomeFollower, resetTo, resetTo0]]
+    iapply rcvSrc_snap; iexact Hcert
   wp_apply _P.stepFollower c scfg r id
       ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs sv ctx
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
-      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro _; simp only [becomeFollower, resetTo, resetTo0]; exact Hterm)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -120,14 +120,15 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (by notfwd_tac) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
+  subst c1
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
-  iapply HΦ $$ %interface.nil %s1 %c1
+  iapply HΦ $$ %interface.nil %s1 %c
   iframe Hphys
   ipureintro
-  refine ⟨snapCfgOk_cases' Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
+  refine ⟨rfl, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
     by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
     SnapStep.of_handle (t := { becomeFollower s m.Term' m.From' with prvals := pvs })
       (by simp [becomeFollower, resetTo, resetTo0]) rfl
@@ -148,10 +149,11 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     have Hcf := stepCF_higher_term_snap c id (toPState s) m sv scfg Hgt Hto Hfid
     rw [← e] at Hcf
     refine StepCDS.trans_frame Hcf ⟨by simp [becomeFollower, resetTo, resetTo0],
-      by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩ ?_
-    exact stepCDS_handle_snap c c1 id _ _ m sv scfg s1
+      by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩
+      (by rw [e]; exact ⟨rfl, rfl⟩) ?_
+    exact stepCDS_handle_snap c id _ _ m sv scfg s1
       (adopt_follower _ m.From' rfl rfl) rfl (by simp [becomeFollower]) rfl Hto
-      (by simp [toPState, becomeFollower, resetTo, resetTo0]) Hfid Hhs Hc1
+      (by simp [toPState, becomeFollower, resetTo, resetTo0]) Hfid Hhs
 
 end StepProof
 

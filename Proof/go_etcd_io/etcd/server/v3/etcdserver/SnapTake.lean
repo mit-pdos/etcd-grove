@@ -39,7 +39,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+/- (2026-10-30, the repair, Stage F) The free certificate registry (`memCertReg`, `srvCertN`) is
+gone with the old storage contract (raft's `memCertAuth`); what replaces it for `CreateSnapshot`'s
+`J.SV` is PENDING the coordinator's answer on D2. -/
+/- REPAIR-OLD
 /-- The registry's namespace. -/
 def srvCertN : Namespace := nroot .@ "etcdserver_cert_reg"
 
@@ -69,6 +74,7 @@ theorem memCertReg_alloc (γs : MemStorNames) (Ec : CoPset) :
   iexists ([] : List CertKey)
   iexact Ha
 
+-/
 /-- **The raft wrapper's `SaveSnap`** (persistent; the trust boundary, names-only: the WAL's
 `SaveSnapshot` and the snapshotter's `SaveSnap` write the snapshot's `.snap` file and its WAL
 record, outside what the model tracks; `bootOk`'s storage contract, J1a): for a read-only
@@ -105,6 +111,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A Texan triple's later continuation used across the call's step (`MemstorageAU.lean`'s). -/
 theorem wp_later_frame_srv {e : Expr} {Φ : val → IProp GF} {R : IProp GF}
@@ -117,6 +124,11 @@ theorem wp_later_frame_srv {e : Expr} {Φ : val → IProp GF} {R : IProp GF}
   · iintro %v ⟨HR, H⟩
     iapply H $$ HR
 
+/- (2026-10-30, the repair, Stage F) `certCovers_created` and `MemoryStorage.CreateSnapshot.wp_reg`
+(`CreateSnapshot` over the old shared token and the free certificate registry) are gone with the
+old storage contract; `CreateSnapshot`'s new premise (`J.SV`, a registered snapshot) is PENDING the
+coordinator's answer on D2 (see `srvSnapState`). -/
+/- REPAIR-OLD
 /-- An any-term entry for the snapshot `CreateSnapshot(i, cs, data)` makes from the state `σ`
 covers it at every term. -/
 theorem certCovers_created (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : List w8) :
@@ -219,6 +231,7 @@ theorem MemoryStorage.CreateSnapshot.wp_reg
     iexists σt, t
     iexact Hsnap
 
+-/
 end proof
 
 end EtcdGrove

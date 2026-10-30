@@ -5,18 +5,19 @@
 theorem MemoryStorage.Term.wp_proof [package_sem : Assumptions] (wp_GetIndex :
     raftpb.Entry.GetIndex.spec) (wp_GetTerm : raftpb.Entry.GetTerm.spec) : MemoryStorage.Term.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Term.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (i0 : w64) (ec : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (dq : DFrac) (es : List EntryM) (i0 : w64) (ec : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hms" ∷ ownMemoryStorage ms γs σ ∗
-              ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧ uint.Z i0 ≤ uint.Z σ.prev.index' + ↑σ.ents.length⌝ ∗
-                ⌜PendFrom σ (uint.Z i0 + 1)⌝ ∗ "#Hec" ∷ typedPointsto (globalAddr ErrCompacted) ec DFrac.discard -∗
+            memStorLock ms γs ∗
+              memLog γs k dq es ∗
+                ⌜k ≤ uint.nat i0 ∧ uint.nat i0 < k + es.length⌝ ∗
+                  typedPointsto (globalAddr ErrCompacted) ec DFrac.discard -∗
           (▷
               ∀ t err,
-                (⌜err = GoInterface.nil ∧ termAt σ.prev σ.ents i0 = some t⌝ ∨
-                      ⌜err = ec ∧ uint.Z i0 < uint.Z σ.fl⌝ ∗ memStorCut γs (uint.Z i0 + 1)) ∗
-                    ownMemoryStorage ms γs σ -∗
+                memLog γs k dq es ∗
+                    (⌜err = GoInterface.nil ∧ (fun e => e.Term') <$> es[uint.nat i0 - k]? = some t⌝ ∨
+                      ⌜err = ec⌝ ∗ memCompacted γs (uint.nat i0 + 1)) -∗
                   Φ (intoVal t, intoVal err)) -∗
             WP ((intoVal (methods MemoryStorage.ty.PointerType go!"Term" (intoVal ms))) (intoVal i0))
               {{ Φ }}

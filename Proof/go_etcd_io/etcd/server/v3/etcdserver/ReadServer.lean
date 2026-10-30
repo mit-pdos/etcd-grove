@@ -5,7 +5,7 @@ the request path's unit 4b, 2026-10-13): from the server's persistent views (the
 server value `s` meets the contract the read loop is verified over, with the caller's resource
 `LR := srvReadLR s` (the logger's reader slot and the two notifiers' reader slots) and the id
 resource `NR := idCred ρ.ids 1` (one id of the generator's budget); and (2026-10-16, stage R7b)
-the id's context's fresh token and read credit, minted by the server from the id
+the id's context's fresh token (2026-10-30, the repair: no read credit with it), minted by the server from the id
 (`srvRdFresh_mint`, the mint `srvRdFreshInv` in `srvMintInv`), which is why the proposer's names
 `ρ` and the reader's `γr` must agree (`ρ.rd = γr`). Lean-first (no Rocq counterpart).
 -/
@@ -166,18 +166,18 @@ theorem isReadServer_of_serverM (on : Bool)
     iunfold bcastOrClosed
     iunfold bcastChan
     iexact Hch
-  -- `NextRequestID()`: the id mints its context's token and a read credit
+  -- `NextRequestID()`: the id mints its context's token
   isplitr
   · iintro !> %Φ !> #Hcred HΦ
     iapply wp_fupd
     wp_apply hNR s v.gen ρ.ids $$ [] as %id Hfresh
     · iframe #
     imod srvRdFresh_mint ρ.raft ρ.ids v.gen (srvFloorFact E) id $$ Hgen Hcred Hrf Hfresh
-      with ⟨Hfr, Hcr⟩
+      with Hfr
     imodintro
     iapply HΦ
     rw [show ρ.raft = γr.raft by subst hρ; rfl]
-    iframe Hfr Hcr
+    iexact Hfr
   -- `RequestTimeout()`
   · iintro !> %Φ !> - HΦ
     wp_apply hRT s v.electionTicks v.tickMs $$ [] as %d -

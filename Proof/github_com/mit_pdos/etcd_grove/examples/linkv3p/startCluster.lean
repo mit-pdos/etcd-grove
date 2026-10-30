@@ -129,7 +129,7 @@ theorem startCluster.wp_proof
       $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
     ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
-  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
@@ -142,7 +142,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
-      Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
+      Htb Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -166,7 +166,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
-      Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
+      Htb Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
@@ -191,7 +191,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
-      Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
+      Htb Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
@@ -327,9 +327,9 @@ theorem startCluster.wp_proof
   iexists γ, γn, ρ₁, ρ₂, ρ₃, E₁', E₂', E₃', cid₁, cid₂, cid₃, mid₁, mid₂, mid₃, R₁, R₂, R₃,
     s₁, s₂, s₃, cl₁, cl₂, cl₃, br₁, br₂, br₃
   iframe Hetcd Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
-  obtain ⟨hr₁, -, hc₁, hch₁, hl₁, -⟩ := Hp₁
-  obtain ⟨hr₂, -, hc₂, hch₂, hl₂, -⟩ := Hp₂
-  obtain ⟨hr₃, -, hc₃, hch₃, hl₃, -⟩ := Hp₃
+  obtain ⟨hr₁, hc₁, hch₁, hl₁, -⟩ := Hp₁
+  obtain ⟨hr₂, hc₂, hch₂, hl₂, -⟩ := Hp₂
+  obtain ⟨hr₃, hc₃, hch₃, hl₃, -⟩ := Hp₃
   iframe #
   isplitr
   · iunfold memberAt; iframe #; isplitr

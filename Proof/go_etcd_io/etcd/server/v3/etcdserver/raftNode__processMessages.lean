@@ -35,7 +35,7 @@ it is for the transport (any but a `MsgSnap`) or for `msgSnapC` (a `MsgSnap`). -
 theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
       ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
-       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg m)) := by
+       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
   iintro H
   iunfold rnMsgR at H
   icases H with (⟨%to, %ty, #Hat, %Hty, HM⟩ | Hs)
@@ -56,7 +56,17 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    iexfalso; iexact Hs
+    icases Hs with ⟨%dq, %st, Hm, %Hty, #Hsm, Hc⟩
+    iexists dq, st
+    iframe Hm
+    isplit
+    · iintro %h
+      exact absurd Hty h
+    · iintro %_ Hm
+      iunfold rnSnapMsg
+      iexists dq, st
+      iframe Hm Hsm Hc
+      ipureintro; exact Hty
 
 /-- `m.GetTo()` at any fraction. -/
 theorem wp_msgOwn_GetTo (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
@@ -144,7 +154,7 @@ theorem raftNode.processMessages.wp_proof
     · iframe Hsl; ipureintro; exact hm
     -- (D21 stage M1) the message's bundle, taken from the ones not yet looked at
     have htake : msL.take (sint.Z k + 1).toNat = msL.take (sint.Z k).toNat ++ [m] := by
-      rw [show (sint.Z k + 1).toNat = (sint.Z k).toNat + 1 by omega, List.take_succ, hm]; rfl
+      rw [show (sint.Z k + 1).toNat = (sint.Z k).toNat + 1 by omega, List.take_add_one, hm]; rfl
     have hk1 : (sint.Z (k - W64 1) + 1).toNat = (sint.Z k).toNat := by
       have : sint.Z (k - W64 1) = sint.Z k - 1 := by word
       omega
@@ -210,12 +220,12 @@ theorem raftNode.processMessages.wp_proof
         -- (D22 S-l sender) owned, with its protocol facts
         have hsn : st.msg.Type' = MsgSnap := hty
         icases HK with ⟨-, HK⟩
-        ihave HmS : rnSnapMsg m $$ [HK Hmat]
+        ihave HmS : rnSnapMsg γ m $$ [HK Hmat]
         · iapply HK $$ %hsn Hmat
         iunfold isRNMsgSnapC at Hmsci
         icases Hmsci with ⟨%γc, #Hbag⟩
         ihave #Hbagch := is_bag_is_chan γc msc
-          rnSnapMsg $$ Hbag
+          (rnSnapMsg γ) $$ Hbag
         rw [isChanBag_unseal]
         iunfold isChanBagDef at Hbag
         icases Hbag with ⟨#Hch, #Hinv⟩

@@ -93,7 +93,7 @@ and the bare `panic` unreachable.
 **The former admission (`Hfitsx`, resolved 2026-10-08).** `extend` computes
 `need := len(dst) + len(vals)` as a Go `int`, and its spec used to ask for
 `|ents| + |unstable| < 2^63`. That bound is not derivable from the predicates:
-`isStorage`'s `Hbounded` gives `prev.index + |sents| < 2^61`, `ownSlice_len` gives
+`isStorageD`'s `Hbounded` gives `prev.index + |sents| < 2^61`, `ownSlice_len` gives
 `|uents| < 2^63`, and their sum clears `2^64` but not `2^63` -- the arithmetic
 `InvRaftlog.lean`'s `Hnowrap` comment describes (tightening `Hnowrap` to `2^63` was
 tried on 2026-09-20 and reverted: `raft.appendEntry` cannot re-establish a bound below
@@ -210,9 +210,8 @@ theorem raftLog.slice.wp_proof
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hstlen := Hstored.length_le
     take_storage Hsn
-    ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
-    · unfold isStorage; iexact HisStorage
+    ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
+    · unfold isStorageD; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
     iNamed Hsto

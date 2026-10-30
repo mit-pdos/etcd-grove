@@ -42,6 +42,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (v : w64)
     (L : mvcc.Log) :
@@ -184,6 +186,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's atomics in the mode `on`** (`srvAtomics` at `false`): the applied index's
 invariant over the mode's model (`srvAppliedInvM`) and the KV invariants in the mode
@@ -191,7 +195,7 @@ invariant over the mode's model (`srvAppliedInvM`) and the KV invariants in the 
 def srvAtomicsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(srvAppliedInvM on s E γr ∗
     inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v) ∗
-    srvKVInvsM on E γr)
+    srvKVInvsM on s E γr)
 
 instance srvAtomicsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvAtomicsM (GF := GF) on s E γr) := by

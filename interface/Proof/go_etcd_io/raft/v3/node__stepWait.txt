@@ -14,7 +14,7 @@ theorem node.stepWait.wp_proof [package_sem : Assumptions] (wp_node_stepWithWait
                 msgIn ml (DFrac.own 1)
                     { msg := propMsgM, ents := [propEntryM data], snap := none, ctx := [], resps := [] } ∗
                   propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) -∗
-          (▷ ∀ err, propErr cd err -∗ Φ (intoVal err)) -∗
+          (▷ ∀ err, propErrRaw γ cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"stepWait" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))

@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The key-value store's ghost lemmas (2026-10-10; 2026-10-27: over raft's draft API)
 
-- `kvStor_register`: a new storage joins the registry (`kvStorInv`, `Defs.lean`).
+- (`kvStor_register`, a new storage joining the registry, is in `KvStorage.lean` since 2026-10-30.)
 - `kv_mint`: a new sequence number mints the operation's datum (`MintOk`) and the operation's
   slot, holding the client's atomic update (`opSlot`).
 - `kv_mint_read`: a new sequence number mints a read's context and commits it, once, to the read
@@ -12,7 +12,9 @@ Lean-first (no Rocq counterpart).
 - `kv_propAu`: the atomic update over the committed requested entries (`ownCommittedOps`)
   that `Node.Propose` takes for an operation's datum, fired at most once: the history moves by the
   datum, and at its first occurrence the client's update runs from the operation's slot (the
-  linearization point); `kv_ccAu`, `RemoveMember`'s conf change's (no datum).
+  linearization point). (`kv_ccAu`, `RemoveMember`'s conf change's, went with it, 2026-10-30.)
+- `kv_committed_conf`: a committed conf entry is raft's empty `ConfChangeV2` (the store proposes
+  none, `NormalReqs`).
 - `kv_collect`: the client's result, from its slot, with its ticket.
 - `rkvVal_agree`, `rkvVal_update`: the client's half of the history's ghost variable against the
   invariant's.
@@ -236,57 +238,6 @@ theorem rkvVal_update (γr : RKVNames) (H : List (List w8)) (x : KVMap) (H' : Li
   iframe Hx
   ipureintro; rfl
 
-/-- A pointer-valued location wholly owned has no other fraction. -/
-theorem loc_pointsto_excl (l : Loc) (v1 v2 : Loc) (q : Qp) :
-    ⊢ (l ↦ v1 : IProp GF) -∗ l ↦{DFrac.own q} v2 -∗ False := by
-  iintro H1 H2
-  ihave H1 := typedPointsto_split _ _ _ $$ H1
-  ihave H2 := typedPointsto_split _ _ _ $$ H2
-  have h : ∀ (v : Loc) (dq : DFrac),
-      typedPointstoDef (GF := GF) l v dq = heapPointsto l dq #v := fun _ _ => rfl
-  rw [h, h]
-  icombine H1 H2 gives %H
-  exfalso
-  have := DFrac.valid_own_op H.1
-  have h1 : (1 : Qp).val = 1 := rfl
-  have h2 : 0 < q.val := q.property
-  grind
-
-/-- A new storage joins the registry. -/
-theorem kvStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑kvStorN ⊆ E) :
-    ⊢ kvStorInv (GF := GF) -∗ s.[RStorage, go!"MemoryStorage"] ↦ ms ={E}=∗
-      kvStorRec s ms γs := by
-  iintro #Hinv Hf
-  unfold kvStorInv
-  iinv Hinv with >Hi Hclose
-  unfold kvStorInvBody
-  icases Hi with ⟨%M, Ha, Hm⟩
-  cases HM : M !! s with
-  | some x =>
-    icases (BigSepM.bigSepM_lookup_acc (Φ := fun (s : Loc) (x : MemStorRec) =>
-      iprop(s.[RStorage, go!"MemoryStorage"] ↦{DFrac.own (1 : Qp).half} x.1)) HM).1 $$ Hm
-      with ⟨Hx, -⟩
-    iexfalso
-    iapply loc_pointsto_excl $$ Hf Hx
-  | none =>
-    imod ghost_map_insert_persist s (memStorRec ms γs) HM $$ Ha with ⟨Ha, #Hfrag⟩
-    icases (typedPointsto_dfractional (GF := GF) (s.[RStorage, go!"MemoryStorage"]) ms).dfractional
-      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) |>.1 $$ [Hf] with ⟨Hf1, Hf2⟩
-    · rw [DFrac.op_own, Qp.half_add_half]; iexact Hf
-    imod (typedPointsto_dfractional (GF := GF) _ ms).dfractional_persist _ $$ Hf2 with #Hf2
-    imod Hclose $$ [Ha Hm Hf1] with -
-    · inext
-      iexists M.insert s (memStorRec ms γs)
-      iframe Ha
-      iapply (BigSepM.bigSepM_insert (Φ := fun (s : Loc) (x : MemStorRec) =>
-        iprop(s.[RStorage, go!"MemoryStorage"] ↦{DFrac.own (1 : Qp).half} x.1)) HM).2
-      iframe Hm
-      unfold memStorRec
-      iexact Hf1
-    imodintro
-    unfold kvStorRec
-    iframe Hf2 Hfrag
-
 /-- A new sequence number mints the operation's datum and records it; the operation's slot, with
 the client's atomic update and a later credit. -/
 theorem kv_mint (γr : RKVNames) (id ns : w64) (kind : w8) (key val : List w8)
@@ -476,8 +427,11 @@ theorem odOf_mem_opsOf [GooseExts] (l : List LogEntry) (d : List w8)
   refine List.mem_map.2 ⟨e, ?_, hd⟩
   unfold opsOf
   refine List.mem_filter.2 ⟨he, ?_⟩
-  simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
-  intro hf; rw [odOf_filler e hf] at hd; cases hd
+  have hc : e.type = W32 0 ∧ e.data ≠ [] := by
+    unfold odOf at hd; split at hd
+    · assumption
+    · cases hd
+  simp [LogEntry.isFiller, LogEntry.isEmptyV2, hc.2]
 
 /-- A datum of a committed log with a minted key is the one minted there: every committed
 datum was minted (only the store's updates move the committed requested entries). -/
@@ -610,11 +564,11 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
       rcases List.mem_append.mp h with h | h
       · exact Hodm d' h
       · simp only [List.mem_singleton, Option.some.injEq] at h; subst h; exact HMd
-    have Hrm' : RmReqs (ops ++ [(⟨t, W32 0, d⟩ : LogEntry)]) := by
-      intro e he hty
+    have Hrm' : NormalReqs (ops ++ [(⟨t, W32 0, d⟩ : LogEntry)]) := by
+      intro e he
       rcases List.mem_append.mp he with h | h
-      · exact Hrm e h hty
-      · simp only [List.mem_singleton] at h; subst h; exact absurd rfl hty
+      · exact Hrm e h
+      · simp only [List.mem_singleton] at h; subst h; rfl
     by_cases Hm : d ∈ logHist ops
     · -- a later occurrence: the history does not move
       have Hocc : logHist (ops ++ [⟨t, W32 0, d⟩]) = logHist ops := by
@@ -688,70 +642,17 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
         itrivial
       · exact absurd (Hp.1.subset (List.mem_append_right _ (List.mem_singleton_self d))) Hm
 
-/-- **The update `Node.ProposeConfChange` takes** for a conf change (`RemoveMember`'s): its entry
-carries no datum, so the history does not move. -/
-theorem kv_ccAu (γr : RKVNames) (id : w64) (Hsh : RmShrink id) :
-    ⊢ rkvInv (GF := GF) γr -∗
-      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γr.cluster ops }>
+/-- `kv_propAu` in the form `node.Propose` takes it (2026-10-30: the update under `□?γ.dup`;
+kvreconf's `kvr_propAu_dup`). -/
+theorem kv_propAu_dup (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d ≠ []) :
+    ⊢ rkvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗
+      □?γr.cluster.dup AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γr.cluster ops }>
           @ ⊤ \ ↑kvRaftN, ∅
-        <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some (.v1 (rmCC id))) bs⌝ ∗
-             ownCommittedOps γr.cluster
-               (ops ++ [(⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : LogEntry)]),
+        <{ ∀∀ (t : w64), ownCommittedOps γr.cluster (ops ++ [(⟨t, W32 0, d⟩ : LogEntry)]),
            COMM True }> := by
-  iintro #Hinv
-  iauintro
-  unfold atomic_acc rkvInv rkvInvBody
-  have Hdisj := rkvN_raftN
-  iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
-  iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
-  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑kvRaftN) \ ↑rkvN from
-    Std.LawfulSet.empty_subset)
-  iintro Hclose2
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iexists ops
-  iframe Hops
-  isplit
-  · iintro Hops
-    imod Hclose2 with -
-    imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
-    · inext
-      iexists ops, S, Mi, O, U
-      iframe Hsl
-      unfold kvCore
-      iframe Hops Hv HU HS HMi HO
-      ipureintro; exact ⟨Hok, Hodm, Hrm⟩
-    imodintro
-    iempintro
-  · iintro %t %bs ⟨%Hbs, Hops⟩
-    imod Hclose2 with -
-    have Hod : odOf (⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : LogEntry) = none := by
-      unfold odOf; rw [if_neg]
-      rintro ⟨h, -⟩
-      exact absurd h (by simp only [confChangeEntryType]; intro h1; revert h1; word)
-    have Hocc : logHist (ops ++ [⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩]) = logHist ops := by
-      unfold logHist; rw [List.map_append, List.map_singleton, Hod, histOf_snoc]; rfl
-    imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
-    · inext
-      iexists ops ++ [⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩], S, Mi, O, U
-      rw [Hocc]
-      iframe Hsl
-      unfold kvCore
-      rw [Hocc]
-      iframe Hops Hv HU HS HMi HO
-      ipureintro
-      refine ⟨Hok, fun d' h => ?_, ?_⟩
-      · rw [List.map_append, List.map_singleton, Hod] at h
-        rcases List.mem_append.mp h with h | h
-        · exact Hodm d' h
-        · simp at h
-      · intro e he hty
-        rcases List.mem_append.mp he with h | h
-        · exact Hrm e h hty
-        · simp only [List.mem_singleton] at h; subst h
-          exact ⟨rfl, id, Hbs, Hsh⟩
-    imodintro
-    itrivial
+  iintro #Hinv #Hop
+  iapply intuitionisticallyIf_of_intuitionistically
+  iapply kv_propAu γr d γp Hne $$ Hinv Hop
 
 /-- Collecting an operation's result: given a committed log `l`, whose entries' data are `ods`, in
 which `d` first occurs at position `m`, the ticket buys the result of the client's update at `d`'s
@@ -825,16 +726,17 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
   · iexfalso
     iapply token_exclusive $$ Htok Htok'
 
-/-- **A committed conf-change entry is a `RemoveMember`'s** (2026-10-27): an entry of type `1` (a
-`ConfChange`, never a filler) of a committed log is among the committed requested entries
-(`ownCommittedOps_lb_prefix`), whose conf changes are `RemoveMember`'s (`RmReqs`): its bytes
-decode to `rmCC id` for some `id`. What `run` applies with `node.ApplyConfChange`. -/
-theorem kv_committed_cc (γr : RKVNames) (l : List LogEntry) (e : LogEntry) (E : CoPset)
+/-- **A committed conf entry is raft's empty `ConfChangeV2`** (2026-10-30, stage F: the store
+proposes no conf change, D4; until then a `RemoveMember`'s, `kv_committed_cc`): a conf-change entry
+of a committed log that is not raft's empty `ConfChangeV2` (`isEmptyV2`, which `opsOf` leaves out
+with the fillers) is among the committed requested entries (`ownCommittedOps_lb_prefix`), all
+normal (`NormalReqs`). `run` refutes the empty `ConfChangeV2` with `committed_emptyV2_joint` (the
+voters' membership is not joint). -/
+theorem kv_committed_conf (γr : RKVNames) (l : List LogEntry) (e : LogEntry) (E : CoPset)
     (HE : ↑rkvN ⊆ E) :
-    e ∈ l → e.type = W32 1 →
-    ⊢ rkvInv (GF := GF) γr -∗ isCommittedLogLb γr.cluster l ={E}=∗
-      ⌜∃ id, ccDecodeV1 e.data = some (rmCC id) ∧ RmShrink id⌝ := by
-  intro Hel Hty
+    e ∈ l → e.isConfChange →
+    ⊢ rkvInv (GF := GF) γr -∗ isCommittedLogLb γr.cluster l ={E}=∗ ⌜e.isEmptyV2⌝ := by
+  intro Hel Hcc
   iintro #Hinv #Hl
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
@@ -842,21 +744,22 @@ theorem kv_committed_cc (γr : RKVNames) (l : List LogEntry) (e : LogEntry) (E :
   icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
-  have Hnf : ¬ e.isFiller := by
-    rintro ⟨-, h⟩; rw [Hty] at h; revert h; word
-  have Hin : e ∈ ops := Hpre.subset (List.mem_filter.mpr ⟨Hel, by simp [Hnf]⟩)
-  have Hne : e.type ≠ W32 0 := by rw [Hty]; intro h; revert h; word
-  obtain ⟨-, id, Hm, Hsh⟩ := Hrm e Hin Hne
-  imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
-  · inext
-    iexists ops, S, Mi, O, U
-    iframe Hsl
-    unfold kvCore
-    iframe Hops Hv HU HS HMi HO
-    ipureintro; exact ⟨Hok, Hodm, Hrm⟩
-  imodintro
-  ipureintro
-  exact ⟨id, Hm, Hsh⟩
+  have Hne : e.type ≠ W32 0 := by
+    rcases Hcc with h | h <;> rw [h] <;> intro h' <;> revert h' <;> word
+  have Hnf : ¬ e.isFiller := fun h => Hne h.2
+  by_cases Hev : e.isEmptyV2
+  · imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
+    · inext
+      iexists ops, S, Mi, O, U
+      iframe Hsl
+      unfold kvCore
+      iframe Hops Hv HU HS HMi HO
+      ipureintro; exact ⟨Hok, Hodm, Hrm⟩
+    imodintro
+    ipureintro
+    exact Hev
+  · have Hin : e ∈ ops := Hpre.subset (List.mem_filter.mpr ⟨Hel, by simp [Hnf, Hev]⟩)
+    exact (Hne (Hrm e Hin)).elim
 
 end lemmas
 

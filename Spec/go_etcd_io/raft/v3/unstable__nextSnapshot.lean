@@ -36,7 +36,9 @@ abbrev unstable.nextSnapshot.spec : Prop :=
   {{ (p : Loc), RET #p; ownUnstable u us ∗ ⌜p = null ↔ (us.snap = none ∨ us.sip = true)⌝ ∗
       (⌜p = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
         ⌜us.snap = some sid ∧ us.sip = false ∧ snapId sv = sid ∧
-          snapTrip sv sv.Metadata'.ConfState'.lists ∈ us.ksn⌝ ∗
+          snapTrip sv sv.Metadata'.ConfState'.lists ∈ us.ksn ∧
+          -- (2026-10-28, stage U0) its `ConfState` naming a node (`pendKsn`)
+          (∃ x, sv.Metadata'.ConfState'.lists.Has x)⌝ ∗
         -- (D22 S-d4 item 4) every pointer field set
         ownSnapS p (DFrac.own 1) sv) }}
 
