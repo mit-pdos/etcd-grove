@@ -32,7 +32,26 @@ tokens contain none, so with etcd's credentials alone it is not reached. Or an e
 prints `[]string{}` (and `nil`) and `[]string{""}` alike, so `{"k": {}}` (a literal `MD` given to
 `NewOutgoingContext`) and `AppendToOutgoingContext(ctx, "k", "")` both key as `map[k:[]]`, no space
 needed (found by the `axiom` review of the key's laws, `notes/axiom-review/g2-streamkey.md`,
-2026-10-30; `examples/axiomcx/g2streamkey`, `TestEmptyValue`).
+2026-10-30; `examples/axiomcx/g2streamkey`, `TestEmptyValue`, on branch `axiom/g2-streamkey`).
+A self-contained reproduction (`streamKeyFromCtx`'s body, `client/v3/watch.go`):
+
+```go
+func key(ctx context.Context) string {
+	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+		return fmt.Sprintf("%+v", md)
+	}
+	return ""
+}
+
+func TestEmptyValue(t *testing.T) {
+	bg := context.Background()
+	c1 := metadata.AppendToOutgoingContext(bg, "k", "")       // {k:[""]}
+	c2 := metadata.NewOutgoingContext(bg, metadata.MD{"k": {}}) // {k:[]}
+	if key(c1) != key(c2) {
+		t.Fatalf("keys differ") // never: both are "map[k:[]]"
+	}
+}
+```
 
 **Expected**: a watch is sent with its own context's metadata (`WithRequireLeader` and per-call
 tokens are documented per context).

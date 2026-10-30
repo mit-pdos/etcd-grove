@@ -51,7 +51,7 @@ runtime's `n` slots are a pool (`grpcSlotPool S`, an invariant) that a run is gi
 (`grpcStreamMethodOkR`) and may return its slot to from whichever thread frees it last
 (`grpcSlotPool_return`): the model bounds the runs holding a slot at once, not all runs.
 `grpcStreamMethodOk` (a run that keeps its slot) gives it (`grpcStreamMethodOk_R`). `Spec` is
-satisfiable per stream at every metadata (`□ ∀ md, streamSpecOk (Spec md)`): the transport picks `Dn` with `□ Spec γ Dn` and gives a
+satisfiable per stream at every metadata (`□ ∀ md, streamSpecOk (Spec md)`): the transport picks `Dn` with `□ Spec md γ Dn`, at the stream's metadata `md`, and gives a
 copy to each end. Served by `grpc.serveStream` from `grpcStreamServerAt addr ics sregs` (an
 axiomatized token of the server's construction, beside the unary `grpcServerAt`), obtaining
 `grpcServesStream`; `isGrpcStreamMd addr name Up Spec` is what a client needs (`isGrpcStream`, its
