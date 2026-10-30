@@ -58,12 +58,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
+/-- **The member started with auth on** (`startServer.lean`; E3zb): `NewServer.specM true`
+(`server_new_auth_on`, with its named premises) and `Start.specOn` (`server_Start_on`). -/
+theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
+    (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+    authkv.startServer.spec (GF := GF) (hG := hG) :=
+  authkv.startServer.wp_proof common.features.wp_NewDefaultServerFeatureGate
+    (server_new_auth_on hValid hD22) server_Start_on
+
 /-- **`Main` does not panic** (`Link.lean`'s `authkv.wp_Main`; not proved: a `sorry`). At the
 hypothesis on the semantics every client-building `Main` has (`DialWithBalancerBody`, through
-`newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...). -/
-theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+`newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
+(`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s): its named premises
+(`isValidSimpleToken`'s spec `auth.ValidSpec`, D22's `authSchemaSrv`) and hypotheses on the
+semantics (`Float64ToInt64Semantics`, `ErrorStringLeaf`). -/
+theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
+    (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     authkv.Main.spec (GF := GF) (hG := hG) :=
-  authkv.wp_Main
+  authkv.wp_Main (authkv_startServer hValid hD22)
 
 /-- **`Permitted(who, k)` is `permittedK who k`** (`Link.lean`'s `authkv.wp_Permitted`). -/
 theorem authkv_Permitted : authkv.Permitted.spec (GF := GF) (hG := hG) :=
@@ -98,14 +111,6 @@ theorem authkv_bad_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
     (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [authkv.badToken]) :
     auth.ctxBound (GF := GF) (.on γa) h a ⊢ ⌜a = null⌝ :=
   authkv.badCtx_unbound γa c h a hd ht
-
-/-- **The member started with auth on** (`startServer.lean`; E3zb): `NewServer.specM true`
-(`server_new_auth_on`, with its named premises) and `Start.specOn` (`server_Start_on`). -/
-theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
-    (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
-    authkv.startServer.spec (GF := GF) (hG := hG) :=
-  authkv.startServer.wp_proof common.features.wp_NewDefaultServerFeatureGate
-    (server_new_auth_on hValid hD22) server_Start_on
 
 end results
 

@@ -779,6 +779,7 @@ sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry authkv.Main.wp_proof
 sorry authkv.then_commit_nested_refused
+sorry client.etcd_kv_auth_served_onA
 sorry isRaftNodeIfc_of_isNode
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

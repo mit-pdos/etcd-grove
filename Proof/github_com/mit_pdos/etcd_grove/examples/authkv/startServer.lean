@@ -44,7 +44,6 @@ theorem startServer.wp_proof
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
-  iunfold common.bootPremise at Hboot
   iunfold common.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
@@ -104,7 +103,7 @@ theorem startServer.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩, hvs, hrule, hboot⟩
-      unfold common.cfgOk; simp
+      unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl

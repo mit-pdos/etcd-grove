@@ -46,7 +46,11 @@ public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
+public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.LinkOn
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.startServer
 public import Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
@@ -162,6 +166,10 @@ theorem wp_LastIn :
     EtcdGrove.authkv.LastIn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.LastIn.wp_proof wp_InRange
 
+theorem zap.wp_NewNop :
+    EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.NewNop.wp_proof
+
 theorem wp_refused :
     EtcdGrove.authkv.refused.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.refused.wp_proof
@@ -221,15 +229,28 @@ theorem wp_Work :
     EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted context.wp_WithTimeoutBackgroundMd context.wp_ErrAny metadata.wp_AppendToOutgoingContext v3.wp_OpPut v3.wp_OpGet v3.wp_OpTxn v3.wp_Compare v3.wp_Value v3.wp_WithRange v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_Watch
 
-theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
-    EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Main.wp_proof wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn
-
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
 
 end links_hasLC
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
+variable (h_authkv_startServer : EtcdGrove.authkv.startServer.spec (GF := GF) (hG := hG))
+include h_authkv_startServer
+
+theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.Main.wp_proof zap.wp_NewNop h_authkv_startServer common.wp_ServeOn common.wp_NewClient auth.authStore.wp_BcryptCost wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn
+
+end links_pending
 
 end authkv
 end EtcdGrove

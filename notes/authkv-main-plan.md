@@ -549,9 +549,12 @@ cluster and member allocations. The serve step (`wk_served`'s analog) needs four
 1. **`watchAddrFacts V` with auth on** (first-tier). Its `srvKVFacts` is `srvKVInvs`, the auth-off
    KV invariant (`kvInv`), and the watch client's proofs fire the read update through it
    (`watch_fire`, `raw_to_state`, `WatchFire.lean`; `WatchRun.lean`). An auth-on member has
-   `srvKVInvsOn` only, so `Work.spec`'s premise and `Main`'s two watches cannot be met. Fix: a
-   mode-generic `srvKVFacts` (`srvKVInvsM`) and `watch_fire`/`raw_to_state` over `kvInvOn`/
-   `kvCertInvOn` (G2's follow-up, client/v3).
+   `srvKVInvsOn` only, so `Work.spec`'s premise and `Main`'s two watches cannot be met. **Fixed**
+   (G2's follow-up, on `lean` `8a4cba9dc6`): `srvKVFacts V = ∃ on γr, srvKVCoreM on V.R.E γr ∗ …`
+   (`client/v3/InvWatch.lean`), from `memberUpOn`'s `isServerReadM true` by `srvKVCoreM_of_readM`
+   (`etcdserver/ReadOn.lean`), `srvKVFacts_intro`; `watchAddrFacts`' `srvLogsSmall` by
+   `srvLogsSmall_of_receipts` (`ServerWatcher.lean`, any mode). Left: assembling `watchAddrFacts`
+   from `grpcUpOn` (the watch half of the serve step).
 2. **`Authenticate`'s registration** in `grpcUpOn`: `v3rpc.authRegs` holds the five admin methods,
    not `Authenticate` (C1's A5, "Q9"); `etcd_kv_auth_served_onA` takes it as `hreg`.
 3. **The auth store's `BcryptCost()`** (`bcryptCostOk`, a premise of `etcd_kv_auth_served_on(A)`):
@@ -568,3 +571,14 @@ cost field and its TLS fallback off"): `memberUpOn` gives `srvBcryptField s` and
 (it is a `sorry` meanwhile). The serve step's KV and Auth half is proved over them
 (`ak_served_kv`, `MainServe.lean`: `akKVOn`, `setupAuthServed`, `Authenticate`); its watch half
 waits on 1.
+
+**`Main.wp_proof` up to `SetUp` (2026-10-30)**: the logger, `ak_alloc` and `akHist_alloc`,
+`startServer`, `Serve.specOn` with `ak_served_kv`, `NewClient`, `SetUp` (its puts by
+`akHist_setupAu`), every error's `Failed`; a `sorry` from `SetUp`'s success on. Linking: the
+callees `zap.NewNop`, `startServer` (pending in `Link.lean`, `?`: `Results.lean`'s `authkv_Main`
+passes `authkv_startServer`, so it takes its premises `auth.ValidSpec`, `authSchemaSrv` and the
+semantics' `Float64ToInt64Semantics`, `ErrorStringLeaf`; the user's choice), `Serve.specOn`
+(`=common.wp_ServeOn`, `common/LinkOn.lean`), `NewClient`, `authStore.BcryptCost`. `startServer.spec`
+takes `bootstrap`'s contract at authkv's `cfgOk`/`urlsOk` (Main's premise; was `common.bootPremise`,
+whose `common.cfgOk` leaves out the simple token provider, so Main could not meet it; the user's
+choice). `ak_alloc` also gives `ρ.rd.kv.c0 = 0` (`SetUp`'s `c0 ≤ ai0`).

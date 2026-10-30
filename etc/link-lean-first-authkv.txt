@@ -59,5 +59,12 @@ WithPrefix: getPrefix
 WithRev:
 watcher__Watch: @
 authkv_Work: authkv_keyOf authkv_reqCtx authkv_refused authkv_checkKVs authkv_checkTxnReads authkv_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev watcher__Watch
+# `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
+# its proof takes the named premises `auth.ValidSpec` and `authSchemaSrv`, `Results.lean`'s
+# `authkv_startServer`), `Serve`'s auth-on spec (`=common.wp_ServeOn`, `common/LinkOn.lean`), the
+# client, and the auth store's `BcryptCost` (the server's `Link.lean`)
+zap_NewNop:
+authkv_startServer: ?
+common_NewClient: @
 # `Main`: its proof over the stubs (notes/authkv-main-plan.md)
-authkv_Main: authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn
+authkv_Main: zap_NewNop authkv_startServer =common.wp_ServeOn common_NewClient =auth.authStore.wp_BcryptCost authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn

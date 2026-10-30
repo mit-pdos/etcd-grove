@@ -497,6 +497,8 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # `Serve`'s auth-on spec, linked by hand (`=common.wp_ServeOn` callee)
+                 "--authkv": ["Proof.github_com.mit_pdos.etcd_grove.examples.common.LinkOn"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
                  "--k8scache": ["Perennial.Proof.slices.Link", "Perennial.Proof.cmp.Link"],
                  # the informer factory's package (its assumptions, the section's variable)
