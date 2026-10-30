@@ -152,6 +152,57 @@ theorem akOpGranted_txn_put (who k v : GoString) (le : w64) (t : TxnModel) (hk :
   · have h1 := put_mem_opsPerms k v [] le _ hm
     simp [reqPerms, irrTxn, apply.dispatchKind, apply.irrEmpty, h1]
 
+/-- The shape of a wire operation's permissions, from its model's: a plain put's key not empty, a
+get's range of the cache's shape. -/
+def opShapeOk : TxnOp → Prop
+  | .put k _ _ => k ≠ []
+  | .get o => auth.reqShape o.key o.base.rangeEnd
+  | _ => False
+
+theorem opsPerms_shape (ops : List txn.TxnOpW)
+    (h : ∀ op ∈ txn.TxnOpW.toOps ops, opShapeOk op) :
+    ∀ x ∈ opsPerms ops, auth.reqShape x.1 x.2.1 := by
+  induction ops with
+  | nil => intro x hx; simp [opsPerms] at hx
+  | cons w ops ih =>
+    intro x hx
+    simp only [opsPerms, List.mem_append] at hx
+    have hw : opShapeOk w.toOp := h _ (by simp [txn.TxnOpW.toOps])
+    rcases hx with hx | hx
+    · cases w with
+      | put o =>
+        simp only [txn.TxnOpW.toOp, txn.putTxnOp] at hw
+        split at hw
+        · exact hw.elim
+        split at hw
+        · exact hw.elim
+        simp only [opPerms, apply.putPerms] at hx
+        split at hx <;> simp at hx <;> rcases hx with rfl | rfl <;>
+          exact ⟨hw, Or.inl rfl⟩
+      | get o =>
+        simp only [opPerms, List.mem_singleton] at hx
+        subst hx; exact hw
+      | delete o => exact hw.elim
+      | txn cs ts es => exact hw.elim
+    · exact ih (fun op hop => h op (by simp [txn.TxnOpW.toOps, hop])) x hx
+
+/-- **A transaction's permissions have the shape the cache decides** when its comparisons' and
+operations' models do. -/
+theorem kvShapeAll_irrTxn (tw : txn.TxnModelW)
+    (hc : ∀ c ∈ tw.toModel.cmps, auth.reqShape c.key c.rangeEnd)
+    (ho : ∀ op ∈ tw.toModel.thenOps ++ tw.toModel.elseOps, opShapeOk op) :
+    kvShapeAll (irrTxn tw) := by
+  intro x hx
+  have hr : reqPerms (irrTxn tw) = tw.cmps.map (fun cm => ((cm.key, cm.rangeEnd, .read) :
+      apply.Perm3)) ++ opsPerms tw.thenOps ++ opsPerms tw.elseOps := by
+    simp [reqPerms, irrTxn, apply.dispatchKind, apply.irrEmpty]
+  rw [hr, List.mem_append, List.mem_append] at hx
+  rcases hx with (hx | hx) | hx
+  · obtain ⟨c, hcm, rfl⟩ := List.mem_map.1 hx
+    exact hc c hcm
+  · exact opsPerms_shape _ (fun op hop => ho op (List.mem_append_left _ hop)) x hx
+  · exact opsPerms_shape _ (fun op hop => ho op (List.mem_append_right _ hop)) x hx
+
 /-- No events after the state's revision. -/
 theorem revEvents_after (σ : KVState) (r : Nat) (hr : σ.rev < r) : σ.revEvents r = [] := by
   unfold KVState.revEvents
