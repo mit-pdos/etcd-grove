@@ -1608,7 +1608,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    (`kvRaftSt_ops` (done)), `KVReadOn.lean` (`kv_cert_floor_on` (done)); and `SnapTake.lean`/`SnapTakeProof.lean`/
    `EtcdServer__snapshot` once D2 is answered.
 4. **S-E allocation, boot and the NewServer composition**: `NodeStart.lean` (`rnToks_of_start` (done),
-   `srvMem_bootStorage` (done), `raftNode_of_StartNode` (done)), `bootstrappedRaft__newRaftNode.lean`,
+   `srvMem_bootStorage` (done), `raftNode_of_StartNode` (done)), `bootstrappedRaft__newRaftNode.lean` (done),
    `NewServerAlloc.lean` (`srvClusterBoot_alloc` (done)), `NewServerAllocOn.lean`
    (`srvClusterBootOn_alloc` (done)), `BuildGap.lean` (`entryClaims_transfer` (done), `clusterWorkloadOk_of` (done),
    `rnEnvOk_of_cluster` (done), `isServerBuilt_of_gap` (done)), `StartOn.lean` (`isServerBuilt_of_gapOn` (done)),
