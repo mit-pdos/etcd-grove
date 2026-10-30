@@ -1,8 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`c.Read(key)` (cluster.go): a linearizable read by read index at random members, retried until one
-answers: the value is `key`'s in a history at least the client's lower bound `L0` (kv's `KV.Read`,
-without a read credit: raft's `ReadIndex` takes none).
+`c.Read(key)` (cluster.go): logically atomic over the store's map, returning `m key`: a read by
+read index at random members, retried until one answers.
 -/
 module
 
@@ -30,11 +29,12 @@ attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.Read.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (c : Loc) (key : List w8) (L0 : List (List w8)),
+  ∀ (γr : RNames) (vs : List w64) (c : Loc) (key : List w8) (Φ : List w8 → IProp GF),
   (key.length : Int) < 2 ^ 61 →
-  {{ isClusterC γr vs c ∗ kvLb γr L0 }}
+  {{ isClusterC γr vs c ∗
+      AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvrMask, ∅ <{ rkvVal γr x, COMM Φ (x key) }> }}
     (App (Val (c @!! go.GoType.PointerType rClusterTy @!! go!"Read")) (Val #key))
-  {{ (x : List w8), RET #x; ∃ L, kvLb γr L ∗ ⌜L0 <+: L ∧ x = kvFold L key⌝ }}
+  {{ (res : List w8), RET #res; Φ res }}
 
 end spec
 

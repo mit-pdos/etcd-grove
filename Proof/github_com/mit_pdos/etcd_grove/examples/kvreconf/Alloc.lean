@@ -92,12 +92,14 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (γn γs : GName) :
   imod ghost_map_alloc (GF := GF) (lifeConstMap allIds (W64 0)) with ⟨%γrs, HRS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γrm, HRM⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γop, HO⟩
-  let γr : RNames := ⟨γ, γv, γo, γmi, γrs, γrm, γop, γn, γs⟩
-  imod inv_alloc rkvN E (rkvInvBody (GF := GF) γr) $$ [Hops Hv1 HU Ho1 HMi HRS HRM HO] with #Hinv
+  imod ghost_map_alloc_empty (GF := GF) (K := GName) (V := ReadRec) with ⟨%γrd, HRD⟩
+  let γr : RNames := ⟨γ, γv, γo, γmi, γrs, γrm, γop, γn, γs, γrd⟩
+  imod inv_alloc rkvN E (rkvInvBody (GF := GF) γr) $$ [Hops Hv1 HU Ho1 HMi HRS HRM HO HRD]
+    with #Hinv
   · inext
     unfold rkvInvBody
     iexists [], W64 0, ∅, lifeConstMap allIds (W64 0), ∅, ∅, ∅
-    isplitl
+    isplitl [Hops Hv1 HU Ho1 HMi HRS HRM HO]
     · unfold kvCore
       simp only [show logHist ([] : List LogEntry) = [] from rfl]
       iframe Hops Hv1 HU Ho1 HMi HRS HRM HO
@@ -109,7 +111,13 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (γn γs : GName) :
       · intro c h; rw [GMap.elem_of_gset] at h; simp at h
       · intro d h; simp at h
       · intro e h; simp at h
-    · iapply BigSepM.bigSepM_empty.2
+    · unfold rkvSlots readReg
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2
+        itrivial
+      iexists ∅
+      iframe HRD
+      iapply BigSepM.bigSepM_empty.2
       itrivial
   imodintro
   iexists γr

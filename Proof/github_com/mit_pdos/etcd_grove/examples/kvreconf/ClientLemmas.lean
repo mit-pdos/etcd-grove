@@ -206,6 +206,8 @@ theorem kvr_mint (γr : RNames) (nop : w64) (kind : w8) (key val : List w8)
   iintro #Hinv Hopn Hlc Hau
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %n, %Mi, %RS, %RMi, %O, %U, >Hc, Hsl⟩ Hclose
+  iunfold rkvSlots at Hsl
+  icases Hsl with ⟨Hsl, Hrd⟩
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv, HU, Hn', HMi, HRS, HRMi, HO, %Hok, %Hodm, %Hsh⟩
   ihave %Heq := ghostVar_agree γr.opn nop (1 : Qp).half n (1 : Qp).half $$ Hopn Hn'
@@ -222,7 +224,7 @@ theorem kvr_mint (γr : RNames) (nop : w64) (kind : w8) (key val : List w8)
   imod ghostVar_update_halves (nop + W64 1) γr.opn nop nop $$ Hopn Hn' with ⟨Hopn, Hn'⟩
   imod ghost_map_insert_persist (nop + W64 1) d HMi0 $$ HMi with ⟨HMi, -⟩
   imod ghost_map_insert_persist d ((γq, γk) : GName × GName) HO0 $$ HO with ⟨HO, #Hop⟩
-  imod Hclose $$ [Hops Hv HU Hn' HMi HRS HRMi HO Hsl Hlc Hau] with -
+  imod Hclose $$ [Hops Hv HU Hn' HMi HRS HRMi HO Hsl Hrd Hlc Hau] with -
   · inext
     iexists ops, nop + W64 1, Mi.insert (nop + W64 1) d, RS, RMi, O.insert d (γq, γk), U
     isplitl [Hops Hv HU Hn' HMi HRS HRMi HO]
@@ -230,6 +232,8 @@ theorem kvr_mint (γr : RNames) (nop : w64) (kind : w8) (key val : List w8)
       iframe Hops Hv HU Hn' HMi HRS HRMi HO
       ipureintro
       exact ⟨Hok', fun d' Hd' => mintedOp_insert _ _ _ _ HMi0 (Hodm d' Hd'), Hsh⟩
+    unfold rkvSlots
+    iframe Hrd
     iapply (BigSepM.bigSepM_insert (Φ := fun d γp => opSlot (GF := GF) γr d γp (logHist ops))
       HO0).2
     iframe Hsl
@@ -373,6 +377,8 @@ theorem kvr_collect (γr : RNames) (d : List w8) (γp : GName × GName) (Ψ : Li
   obtain ⟨H1, HH1, Hd1, Hv⟩ := Hans
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %n, %Mi, %RS, %RMi, %O, %U, >Hc, Hsl⟩ Hclose
+  iunfold rkvSlots at Hsl
+  icases Hsl with ⟨Hsl, Hrd⟩
   iunfold kvCore at Hc
   icases Hc with ⟨Hops, Hv', HU, Hn, HMi, HRS, HRMi, HO, %Hok, %Hodm, %Hsh⟩
   ihave %Hpre := ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
@@ -396,13 +402,15 @@ theorem kvr_collect (γr : RNames) (d : List w8) (γp : GName × GName) (Ψ : Li
   · ihave #Heq : ▷ ▷ (Φ' (kvFold (H0 ++ [d]) (dkey d)) ≡ Ψ (kvFold (H0 ++ [d]) (dkey d))) $$ []
     · inext
       iapply saved_pred_agree γp.1 DFrac.discard DFrac.discard Φ' Ψ _ $$ Hsp' Hsp
-    imod Hclose $$ [Hops Hv' HU Hn HMi HRS HRMi HO Hsl Htok] with -
+    imod Hclose $$ [Hops Hv' HU Hn HMi HRS HRMi HO Hsl Hrd Htok] with -
     · inext
       iexists ops, n, Mi, RS, RMi, O, U
       isplitl [Hops Hv' HU Hn HMi HRS HRMi HO]
       · unfold kvCore
         iframe Hops Hv' HU Hn HMi HRS HRMi HO
         ipureintro; exact ⟨Hok, Hodm, Hsh⟩
+      unfold rkvSlots
+      iframe Hrd
       iapply (BigSepM.bigSepM_delete (Φ := fun d γp =>
         opSlot (GF := GF) γr d γp (logHist ops)) HOd).2
       iframe Hsl

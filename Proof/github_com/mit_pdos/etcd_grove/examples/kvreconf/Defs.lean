@@ -113,6 +113,25 @@ structure RNames where
   /-- whether the replicas' stop tokens were taken (`ghostVar` of `Bool`, halves: the cluster's
   lock's and the stopper's, `DefsCluster`) -/
   stp : GName
+  /-- the reads in flight (`Cluster.Read`), `γΦ ↦ ReadRec` (exclusive elements, the reader's;
+  authority in the invariant, `readReg`) -/
+  rds : GName
+
+/-- A read in flight (`Cluster.Read`): its key, the store's history when it started, and the
+answer its prophecy says it returns (`none`: it never returns). -/
+structure ReadRec where
+  key : List w8
+  start : List (List w8)
+  ans : Option (List w8)
+
+instance ReadRec.countable : Pos.Countable ReadRec :=
+  .ofInjective (fun r => Pos.Countable.encode (r.key, r.start, r.ans))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a; cases b
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3⟩ := h
+      subst h1 h2 h3; rfl)
 
 
 section mint
@@ -181,10 +200,30 @@ instance kvCore_timeless (γr : RNames) (ops : List LogEntry) (n : w64) (Mi : GM
     (U : GSet (List w8)) : Timeless (kvCore (GF := GF) γr ops n Mi RS RMi O U) := by
   unfold kvCore; infer_instance
 
+/-- **A read's slot** at the history `H` (`Cluster.Read`), its caller's predicate saved at `γΦ`:
+pending, no history since its start giving `key` the prophesied answer, with the caller's update
+(and a later credit, as `opSlot`); or fired at a history whose `key` value is the answer, holding
+`Φ` of it until the reader takes it (deleting its element). -/
+def readSlot (γr : RNames) (γΦ : GName) (s : ReadRec) (H : List (List w8)) : IProp GF :=
+  iprop(∃ Φ : List w8 → IProp GF, savedPredOwn γΦ DFrac.discard Φ ∗
+    ( (⌜∀ H', s.start <+: H' → H' <+: H → s.ans ≠ some (kvFold H' s.key)⌝ ∗ £ 1 ∗
+        AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvrMask, ∅ <{ rkvVal γr x, COMM Φ (x s.key) }>)
+    ∨ (∃ v, ⌜s.ans = some v⌝ ∗ Φ v) ))
+
+/-- The registry of the reads in flight, at the history `H`. -/
+def readReg (γr : RNames) (H : List (List w8)) : IProp GF :=
+  iprop(∃ RD : GMap GName ReadRec, ghostMapAuth γr.rds 1 RD ∗
+    [∗map] γΦ ↦ s ∈ RD, readSlot γr γΦ s H)
+
+/-- The slots of the store's invariant at the history `H`: the operations' and the reads'. -/
+def rkvSlots (γr : RNames) (O : GMap (List w8) (GName × GName)) (H : List (List w8)) :
+    IProp GF :=
+  iprop(([∗map] d ↦ γp ∈ O, opSlot γr d γp H) ∗ readReg γr H)
+
 def rkvInvBody (γr : RNames) : IProp GF :=
   iprop(∃ (ops : List LogEntry) (n : w64) (Mi : GMap w64 (List w8)) (RS : GMap w64 w64)
       (RMi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) (U : GSet (List w8)),
-    kvCore γr ops n Mi RS RMi O U ∗ [∗map] d ↦ γp ∈ O, opSlot γr d γp (logHist ops))
+    kvCore γr ops n Mi RS RMi O U ∗ rkvSlots γr O (logHist ops))
 
 /-- The store's invariant (see the file header). -/
 def rkvInv (γr : RNames) : IProp GF := inv rkvN (rkvInvBody γr)

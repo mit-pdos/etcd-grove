@@ -21,7 +21,7 @@ the operation's slot):
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ClientLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ReadSlot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Rule
 
 @[expose] public section
@@ -171,6 +171,8 @@ theorem kvr_propAu (γr : RNames) (d : List w8) (γp : GName × GName) :
     · -- the first occurrence: the client's update runs, from the slot
       have Hocc : logHist (ops ++ [⟨t, W32 0, d⟩]) = logHist ops ++ [d] := by
         rw [Hhist, histStep_nmem _ _ Hm]
+      iunfold rkvSlots at Hsl
+      icases Hsl with ⟨Hsl, Hrd⟩
       ihave Hsl := (BigSepM.bigSepM_later).1 $$ Hsl
       icases (BigSepM.bigSepM_delete (Φ := fun d γp =>
         iprop(▷ opSlot (GF := GF) γr d γp (logHist ops))) HOd).1 $$ Hsl with ⟨Hsd, Hsl⟩
@@ -196,7 +198,9 @@ theorem kvr_propAu (γr : RNames) (d : List w8) (γp : GName × GName) :
         rw [Hf]
         imod Hcommit $$ [Hx] with HΦ
         · rw [← Hf]; iexact Hx
-        imod Hclose $$ [Hops Hv HU Hn HMi HRS HRMi HO Hsl HΦ] with -
+        -- the reads' slots fire whose answer the grown history gives (helping)
+        imod readReg_grow γr (logHist ops) d _ kvrMask_sub $$ Hv Hrd with ⟨Hv, Hrd⟩
+        imod Hclose $$ [Hops Hv HU Hn HMi HRS HRMi HO Hsl Hrd HΦ] with -
         · inext
           iexists ops ++ [⟨t, W32 0, d⟩], n, Mi, RS, RMi, O, U
           rw [Hocc]
@@ -205,24 +209,27 @@ theorem kvr_propAu (γr : RNames) (d : List w8) (γp : GName × GName) :
             rw [Hocc]
             iframe Hops Hv HU Hn HMi HRS HRMi HO
             ipureintro; exact ⟨Hok, Hodm', Hsh'⟩
-          iapply (BigSepM.bigSepM_delete (Φ := fun d' γp' =>
-            opSlot (GF := GF) γr d' γp' (logHist ops ++ [d])) HOd).2
-          isplitl [HΦ]
-          · unfold opSlot
-            iexists Φ
-            iframe Hsp
-            iright
-            iexists logHist ops
-            isplitr
-            · ipureintro; exact ⟨List.prefix_refl _, Hm⟩
-            ileft
-            rw [Hf]
-            iexact HΦ
-          iapply BigSepM.bigSepM_impl $$ Hsl
-          imodintro
-          iintro %k %v %Hkv Hs
-          have Hne' : k ≠ d := (Iris.Std.LawfulPartialMap.get?_delete_some_iff.mp Hkv).1.symm
-          iapply opSlot_grow γr k d v (logHist ops) Hne' $$ Hs
+          unfold rkvSlots
+          isplitl [Hsl HΦ]
+          · iapply (BigSepM.bigSepM_delete (Φ := fun d' γp' =>
+              opSlot (GF := GF) γr d' γp' (logHist ops ++ [d])) HOd).2
+            isplitl [HΦ]
+            · unfold opSlot
+              iexists Φ
+              iframe Hsp
+              iright
+              iexists logHist ops
+              isplitr
+              · ipureintro; exact ⟨List.prefix_refl _, Hm⟩
+              ileft
+              rw [Hf]
+              iexact HΦ
+            iapply BigSepM.bigSepM_impl $$ Hsl
+            imodintro
+            iintro %k %v %Hkv Hs
+            have Hne' : k ≠ d := (Iris.Std.LawfulPartialMap.get?_delete_some_iff.mp Hkv).1.symm
+            iapply opSlot_grow γr k d v (logHist ops) Hne' $$ Hs
+          iframe Hrd
         imodintro
         itrivial
       · exact absurd (Hp.1.subset (List.mem_append_right _ (List.mem_singleton_self d))) Hm

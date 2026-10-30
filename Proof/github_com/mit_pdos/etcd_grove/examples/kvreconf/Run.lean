@@ -8,11 +8,8 @@ keeps its `Pending` token (to close it), each goroutine gets `.Unknown`. The pro
 disruptions run under a `WaitGroup` (`sync.join`, resources `True`); its counter stays below
 `2^31 - 1` since there are fewer than `2^31 - 2` goroutines (`Proposers < 2^31 - 1`, one more for
 the disruptions). The client closure `apply` meets `lintest.Run`'s `applySpec` from the store's
-logically atomic `Put`/`Get` (`DriverLemmas.lean`: the driver's copy of the state under the
-invariant `checkN`) and an atomic `Read`, `ReadAtomic.lean`'s `run_apply_read` (a **`sorry`**: the
-frozen `Cluster.Read.spec` answers with a lower bound, not atomically; `Cluster.Read` gets an
-atomic spec, proved with a prophecy, which then replaces it here), and porcupine answers `Ok` (no
-timeout).
+logically atomic `Put`/`Get`/`Read` (`DriverLemmas.lean`: the driver's copy of the state under
+the invariant `checkN`), and porcupine answers `Ok` (no timeout).
 -/
 module
 
@@ -20,13 +17,13 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.StartCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster__Put
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster__Get
+public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster__Read
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster__Reconfigure
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Cluster__Disrupt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Gen
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.DriverLemmas
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ReadAtomic
 public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
@@ -63,6 +60,7 @@ theorem Run.wp_proof
     (wp_Disrupt : Cluster.Disrupt.spec (GF := GF) (hG := hG))
     (wp_Put : Cluster.Put.spec (GF := GF) (hG := hG))
     (wp_Get : Cluster.Get.spec (GF := GF) (hG := hG))
+    (wp_Read : Cluster.Read.spec (GF := GF) (hG := hG))
     (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_lintestRun : lintest.Run.spec (GF := GF) (hG := hG)) :
@@ -207,13 +205,13 @@ theorem Run.wp_proof
         try wp_auto
         iapply HΨ
         ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
-      · -- Read (the atomic `Read` of `ReadAtomic.lean`, a `sorry` until `Cluster.Read`'s atomic spec)
+      · -- Read
         replace Hng : ¬ x.Kind' = opGetB := Hif
         ihave HAU' := kvrAu_of_run γr γd x (fun s => s) (fun s => s x.Key')
           (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
           (fun s => by unfold inStep; rw [ite_eq_right Hnp])
           (fun s => by unfold inOut; rw [ite_eq_right Hnp]) $$ Hinv HAU
-        wp_apply run_apply_read γr _ c x.Key'
+        wp_apply wp_Read γr _ c x.Key'
           (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) -∗ Φ' #(boxS v)))
           Hk $$ [$Hcl $HAU'] as %v HΨ
         try wp_auto
