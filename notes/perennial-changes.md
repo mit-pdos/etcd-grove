@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Sync: locking a fresh mutex at any invariant (2026-10-30, kvreconf-final)
+
+`sync.init_Mutex` takes `▷ R`, the lock invariant, when the mutex is made. A goroutine that allocates
+a mutex and locks it before the invariant holds cannot use it: kvreconf's `StartCluster` locks
+`c.mu` and then inserts the founders, and `clusterLockInv` holds only at the `Unlock`. The lock is
+needed because the replicas' `run` goroutines, started inside the loop, call `c.replica`. The
+workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/MutexFresh.lean`.
+It is proved, with no axiom, from Perennial's exported unsealing equations and `lock.lock`'s code:
+`Lock` of a wholly owned mutex at `false` gives `isMutex m R ∗ ownMutex m` for any `R`, and the
+first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
+`Proof/sync/Base.lean`, after which the local copy goes. Status: not yet proposed.
+
 ### Lemmas: `strings.split` of `strings.Join` (2026-10-27, D22 J-T)
 
 Perennial's `Proof/strings/Base.lean` has `intercalate_split` (joining the fields of a split gives
