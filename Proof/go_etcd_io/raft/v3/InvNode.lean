@@ -387,14 +387,38 @@ theorem sentMsg_shape (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     sentMsg (GF := GF) γ N src st ⊢
       ⌜SentMsgShape st ∧
         (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61)⌝ := by
-  sorry
+  unfold sentMsg
+  have H1 : ApiImpl.sentMsg (GF := GF) γ N src st ⊢ ⌜SentMsgShape st⌝ := by
+    iintro Hs
+    iunfold ApiImpl.sentMsg at Hs
+    icases Hs with ⟨-, Hr, -⟩
+    iunfold isRaftMsg at Hr
+    icases Hr with ⟨%Hsh, -⟩
+    ipureintro; exact Hsh
+  have H2 : ApiImpl.sentMsg (GF := GF) γ N src st ⊢ ⌜st.msg.Type' = MsgSnap →
+      ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ := by
+    by_cases Hty : st.msg.Type' = MsgSnap
+    · iintro Hs
+      ihave %H := ApiImpl.sentMsg_snap_bound γ N src st Hty $$ Hs
+      ipureintro; exact fun _ => H
+    · iintro -
+      ipureintro; exact fun h => absurd h Hty
+  iintro Hs
+  icases (persistent_entails_left H1) $$ Hs with ⟨Hs, %A⟩
+  ihave %B := H2 $$ Hs
+  ipureintro; exact ⟨A, B⟩
 
 /-- (raft-final, 2026-10-29, U7: S1's `msgCredits_intro`, the design's §2.9) **A delivered copy of a
 message other than a proposal needs nothing**: its credits are a forwarded proposal's tickets only
 (a `MsgReadIndex`'s read credit is minted by its receiver, `rdPool`). -/
 theorem msgCredits_intro (γ : Cluster) (N : Namespace) (st : MsgSt) :
     st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits (GF := GF) γ N st := by
-  sorry
+  intro Hp
+  unfold msgCredits ApiImpl.msgCredits stTks
+  rw [if_neg Hp]
+  iintro
+  imodintro
+  iempintro
 
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
 
@@ -444,7 +468,14 @@ old contract's `readyOut`: the storage itself.) -/
 def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
   | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
-      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
+      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es ∗
+      -- (raft-final phase 2, for kvreconf) the batch's indices consecutive, and the committed
+      -- entries at or past its first index the batch's (`readyRest_indices`, `readyRest_ceInBatch`)
+      ⌜∀ e0, es.head? = some e0 →
+        (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+        (∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+          uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
+          (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e)⌝)
   | some l => iprop(
       ⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧ l.ptr = rd.Snapshot' ∧ ce = [] ∧
         st.delivered <+: strip l.dlv ∧ st.delivered.length < l.dlv.length ∧
@@ -496,7 +527,47 @@ theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
         uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
         (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e⌝ ∗
       readyRest γ N id rd st ce es h none := by
-  sorry
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readyRest readySnap
+  iintro ⟨%ms, -, -, -, -, -, -, -, -, -, %Hb⟩
+  ipureintro
+  intro e0 he
+  exact (Hb e0 he).2
+
+/-- (raft-final phase 2, for kvreconf) **A `Ready`'s entries have consecutive indices** (pure):
+from its first index on (`LogIndicesOk` after a snapshot; `readySnap`'s clause otherwise). -/
+theorem readyRest_indices (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (L : Option SnapLoan) :
+    readyRest (GF := GF) γ N id rd st ce es h L ⊢
+      ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : EntryM), es[j]? = some e →
+        uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗
+      readyRest γ N id rd st ce es h L := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readyRest
+  cases L with
+  | none =>
+    unfold readySnap
+    iintro ⟨%ms, -, -, -, -, -, -, -, -, -, %Hb⟩
+    ipureintro
+    intro e0 he
+    exact (Hb e0 he).1
+  | some l =>
+    unfold readySnap
+    iintro ⟨%ms, -, -, -, -, -, -, %Hf, -⟩
+    ipureintro
+    intro e0 he j e hj
+    have HI := Hf.2.2.2.2.2.2.2.2.2
+    have h0 : es[0]? = some e0 := by
+      cases es with
+      | nil => simp at he
+      | cons x xs => simpa using he
+    have a0 := HI 0 e0 h0
+    have aj := HI j e hj
+    have u1 := uint_nat_eq e.Index'
+    have u2 := uint_nat_eq e0.Index'
+    push_cast at a0 aj
+    omega
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -641,7 +712,15 @@ theorem msgCredits_copy (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.dup = true → msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
   -- (raft-final, 2026-10-29: of any message, S1's F1; until then of a `MsgProp`, whose credits had
   -- no read credit)
-  sorry
+  intro Hd
+  by_cases Hp : st.msg.Type' = MsgProp
+  · unfold msgCredits Cluster.dup at *
+    exact ApiImpl.msgCredits_copy_impl γ N st Hd Hp
+  · unfold msgCredits ApiImpl.msgCredits stTks
+    rw [if_neg Hp]
+    iintro -
+    imodintro
+    iempintro
 
 /-! ### The server port's additions (2026-10-27, branch `server-port`; proved the same day, branch
 `raft-api`)

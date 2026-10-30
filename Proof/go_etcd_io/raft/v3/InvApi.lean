@@ -2009,7 +2009,14 @@ def msgCredits (γ : Cluster) (_N : Namespace) (st : MsgSt) : IProp GF :=
 def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
   | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
-      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
+      ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es ∗
+      -- (raft-final phase 2, for kvreconf) the batch's indices consecutive, and the committed
+      -- entries at or past its first index the batch's (`readyRest_indices`, `readyRest_ceInBatch`)
+      ⌜∀ e0, es.head? = some e0 →
+        (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+        (∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+          uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
+          (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e)⌝)
   | some l => iprop(
       ⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧ l.ptr = rd.Snapshot' ∧ ce = [] ∧
         st.delivered <+: strip l.dlv ∧ st.delivered.length < l.dlv.length ∧
@@ -2204,8 +2211,13 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       · ipureintro; exact Hnull
       rw [← Hγs, Hce, Hlen]
       iframe Hfz
-      iExactEq Hout
-      rfl
+      isplitl [Hout]
+      · iExactEq Hout
+        rfl
+      ipureintro
+      -- (raft-final phase 2) PENDING P4: from `readyData`'s indices clause (the batch's indices
+      -- consecutive, the committed entries at or past its first index the batch's)
+      sorry
     unfold nodeDriver
     dsimp only
     iexists γn, id, ds ++ ce
