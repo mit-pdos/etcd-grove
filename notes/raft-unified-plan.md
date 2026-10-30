@@ -1615,8 +1615,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    (`srvClusterBootOn_alloc` (done)), `BuildGap.lean` (`entryClaims_transfer` (done), `clusterWorkloadOk_of` (done),
    `rnEnvOk_of_cluster` (done), `isServerBuilt_of_gap` (done)), `StartOn.lean` (`isServerBuilt_of_gapOn` (done)),
    `ServerOn.lean` (`clusterWorkloadOkOn_of` (done), `rnEnvOk_of_clusterOn` (done), `rnEnvOk_of_clusterM` (done)),
-   `InvBuild.lean` (`srvMsgNet_bundle` (done)), `EtcdServer__start.lean` (done) (both), `EtcdServer__run.lean`
-   (`run_job_body`, `run_job_bodyOn`, `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
+   `InvBuild.lean` (`srvMsgNet_bundle` (done)), `EtcdServer__start.lean` (done) (both), `EtcdServer__run.lean` (done)
+   (`run_job_body` (done), `run_job_bodyOn` (done), `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
    `wp_proof`; `wp_proofCompact` was already `sorry`).
 5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
    `KvRun*` lemma modules, `SnapData.lean`.
@@ -1727,6 +1727,9 @@ and k8s's apiserver storage. Done items are marked in the sorry list above as th
 - S-0 done (98ca8947c0). K-b done (76e45b36f4: `KV.run` over `KvRunFrozen`/`KvRunSnap`/`KvRunInv`; the
   conf-change branch refuted by `kv_noConf`; three callee specs of `KV.run` now unused, Link may drop
   them). S-A started after K-b (wave 2). Queued: K-a + K-c.
+- S-C done (22a212d8d6; #1, #2, #3, #6 kept, #4/#5 proved). S-A done (48f1423c83). K-a done (3e5661b9d8).
+  P7 made (fe1e67eef3). `run` (both) done (bd38df4399, #8 kept). Wave 3: K-c (with K-a's helper), D (the
+  downstream server examples and k8s's apiserver storage) started. Left: S-D `applyAll`; S-E P6, `NewServer`.
 
 ## Repair: Stage P changes (2026-10-30)
 
