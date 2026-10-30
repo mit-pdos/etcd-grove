@@ -1600,7 +1600,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
 3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
    `srvSnapState`, `SnapTake*`, the `snapshot` axiom): `EtcdServer__applyAll.lean` (`wp_proof`,
    `wp_proofOn`), `EtcdServer__applyEntries.lean` (both), `EtcdServer__apply.lean` (done) (both),
-   `EtcdServer__applyConfChange.lean` (done), `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean`,
+   `EtcdServer__applyConfChange.lean` (done), `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean` (done),
    `EtcdServer__compactRaftLog.lean` (done), `ModeSpecs.lean` (`spec_off`, `spec_on`), `InvApplyAll.lean`
    (`srvSnapState_sl_le` (done)), `InvApRes.lean` (`srvApRes_normal` (done), `srvApRes_cc` (done)), the KV model's
    V2-entry cases: `KVApply.lean` (`kv_log_plain` (done)), `KVAuthModel.lean` (`kvRaftOfOn_ops` (done),
