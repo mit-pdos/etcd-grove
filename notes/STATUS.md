@@ -503,6 +503,20 @@ the open problems for the post-merge snapshot track: `notes/raft-unified-plan.md
 changes", "Repair: Stage P progress", "Repair: sorries inherited from lean". The common brief:
 `notes/repair-stageP-brief.md`.
 
+Checked at the end (2026-10-30): full `lake build` green; `etc/tcb-report.py --check` against the old
+baseline differed by exactly +`ccDecodeV2_nil`, −the `EtcdServer.snapshot` axiom, + the SNAPSHOT-SORRY
+roots (baseline updated; collections `raft`, `kv`, `server-raft` updated, `kvreconf` added; kv's
+results reach no `sorry`); `api-check` and `gen-interface --check --layout` for raft (0 new).
+Which SNAPSHOT-SORRY reaches which exported result of the server's `Results.lean` (12 of its 164
+roots reach a `sorry`, all of them snapshot ones):
+- `node_contract_ifc`, `server_raft_node_start`, `server_new_auth_on` (and its composites): #6
+  (`isRaftNodeIfc_of_isNode`, the snapshot `Advance` clause).
+- `applyAll_model`, `server_apply_all_on`: #7 (`applyAll`'s msgSnapC merge), #9 (`snapshot`), #11
+  (`snapshotIfNeeded…`'s due branch).
+- `server_run(_on)`, `server_start(_on)`, `server_Start(_on)`, `start_gives_views`: #1 (`rn_ready_recv`),
+  #2 (`rnApplyTok_recv`), #3 (`raftNode.start`), #7, #8 (`run`), #9, #11.
+(#10, `SnapTakeProof`, reaches no root.)
+
 ## Repair, Stage F: the clients' statements (2026-10-30, branch `repair`)
 
 The server's and kv's statements in final form over raft's unified API (D1-D5), every broken proof
