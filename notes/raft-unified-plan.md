@@ -1581,7 +1581,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `srvReadAu_api` (done), `srvReadWit_of` (done), `srv_snapMade_false` *fresh*, `srv_snapshotCert_false`
    *fresh*, `srv_snapshotValid_false` *fresh*, `srv_sentMsg_notSnap` *fresh* (old body with
    `srv_readySnap_none`'s), `srv_readySnap_none`, `srvLogInv_alloc` (done). Also owns `InvCfgView.lean`
-   (`srvRule_keeps` *fresh* (done), `dvView_cc`).
+   (`srvRule_keeps` *fresh* (done), `dvView_cc` (done)).
 2. **S-C the raft loop** (Ready hand-out, Append, Advance, `raftAdvancedC`, the running halves):
    `InvRaftNode.lean` (`rn_ready_recv`), `InvRaftLoop.lean` (`rnCfgAt_normal1` (done), `rnCfgAt_back_true` (done),
    `rnApR_dv` (done), `rnApGive_dv` (done), `srvRaftNodeCC_of_isRaftNode` (done)), `NodeBridge.lean`
