@@ -422,6 +422,19 @@ theorem kvr_collect (γr : RNames) (d : List w8) (γp : GName × GName) (Ψ : Li
   · iexfalso
     iapply token_exclusive $$ Htok Htok'
 
+/-- A waiter dropped from the replica's waiters (`propose`, after its timeout). -/
+theorem waiters_drop (γr : RNames) (W : GMap (List w8) Loc) (d : List w8) :
+    ([∗map] k ↦ c ∈ W, waiterOk (GF := GF) γr k c) ⊢
+      [∗map] k ↦ c ∈ GMap.delete d W, waiterOk γr k c := by
+  cases h : W !! d with
+  | none =>
+    rw [GMap.delete_notin W d h]
+  | some x =>
+    iintro H
+    icases (BigSepM.bigSepM_delete (Φ := fun k c => waiterOk (GF := GF) γr k c) h).1 $$ H
+      with ⟨-, H⟩
+    iexact H
+
 /-- **A receive's atomic update is a non-blocking receive's** (whose not-ready case, an empty
 buffer or a waiting receiver, asks nothing). -/
 theorem recvAu_nonblocking {V : Type} [Pos.Countable V] [ZeroVal V] (γ : ChanNames) (Φ : V → Bool → IProp GF) :
