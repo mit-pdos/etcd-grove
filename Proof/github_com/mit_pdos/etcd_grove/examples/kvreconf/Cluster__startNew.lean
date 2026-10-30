@@ -127,7 +127,82 @@ theorem Cluster.startNew.wp_proof
     iright
     iframe Hnj Hca0
     ipureintro; exact Hvnd
-  sorry
+  subst Hnd
+  ihave #HisNode' : isNode n γr.cluster kvrRaftN nid $$ []
+  · rw [← HcID]; iexact HisNode
+  have Hiface : kvrStorIface «$r0_ptr» =
+      GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
+  rw [← Hiface]
+  try wp_auto
+  wp_apply wp_tick γr vs c $$ [$Hc] as %tk %Htk
+  try wp_auto
+  -- the new id is known: the next-id bound raised
+  imod mono_nat_own_update (uint.nat nid + 1) (by omega) $$ HnidA with ⟨HnidA, #Hlb⟩
+  ihave #Hknown : repKnown γr nid $$ []
+  · unfold repKnown; iframe Hlb; ipureintro; exact Hnid0
+  wp_apply wp_sender γr vs c nid $$ [$Hc $Hknown] as %f #Hf
+  -- the id's read-sequence element
+  have e2 : uint.nat (nid + W64 1) = uint.nat nid + 1 := by word
+  have Hfr : freshIds (uint.nat nid) = nid :: freshIds (uint.nat (nid + W64 1)) := by
+    rw [freshIds_cons _ Hn9, e2]; congr 1; word
+  ihave Hrseq : iprop([∗list] i ∈ nid :: freshIds (uint.nat (nid + W64 1)), i ↪[γr.rseq] W64 0)
+    $$ [Hrseq]
+  · rw [← Hfr]; iexact Hrseq
+  icases (BigSepL.bigSepL_cons (Φ := fun _ i => iprop(i ↪[γr.rseq] W64 0))).1 $$ Hrseq
+    with ⟨Hseq, Hrseq⟩
+  have Hvl : (vs.length : Int) < 2 ^ 61 := by
+    rw [Ho.2, bootVoters_length]; have := Ho.1.2.1; word
+  wp_apply (wp_newReplica γr vs nid n «$r0_ptr» (c.[RCluster, go!"Stats"]) bp tk f ms γs _ Htk Hvnd
+      Hvl (bootCS_is vs Hvnd))
+    $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap $HbootCS
+      $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
+  have HRn : R !! nid = none := by
+    cases h : R !! nid with
+    | none => rfl
+    | some _ => have := (HdomR nid).1 (by simp [h]); omega
+  wp_apply wp_mapInsert go.uint64 mR R nid r $$ [$HR] as HR
+  try wp_auto
+  ihave #Hctr := isStats_field (c.[RCluster, go!"Stats"]) go!"ReplicasStarted" (by decide) $$ Hstats
+  wp_apply wp_add (c.[RCluster, go!"Stats"]) _ $$ [$Hpkg $Hctr]
+  try wp_auto
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hr
+      Hrseq Hstp Htoks Hrs]
+  · inext
+    unfold clusterLockInv
+    iexists mR, <[nid := r]> R, nid + W64 1, nop, {nid} ∪ U, b
+    rw [e2]
+    iframe Hnid Hnop Hopn HnidA Hjoin HmR HR Hrseq Hstp
+    isplitr
+    · ipureintro
+      refine ⟨?_, ?_, by omega, by omega⟩
+      · intro i
+        by_cases hi : nid = i
+        · subst hi; simp; omega
+        · rw [GMap.lookup_insert_ne _ _ hi, HdomR]
+          have : uint.nat i ≠ uint.nat nid := fun h => hi (by word)
+          omega
+      · intro i
+        rw [GMap.elem_of_union, GMap.elem_of_singleton, HdomU]
+        constructor
+        · rintro (rfl | h) <;> omega
+        · intro h
+          by_cases hi : i = nid
+          · left; exact hi
+          · right; have : uint.nat i ≠ uint.nat nid := fun h => hi (by word)
+            omega
+    isplitl [Hreps]
+    · iapply (BigSepM.bigSepM_insert (Φ := fun id r => isRep (GF := GF) γr vs id r) HRn).2
+      iframe Hreps
+      iexact Hr
+    cases b with
+    | true => simp only [↓reduceIte]; itrivial
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iapply (BigSepM.bigSepM_insert (Φ := fun _ r => repStop (GF := GF) γr vs r) HRn).2
+      iframe Htoks Hrs
+  try wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
