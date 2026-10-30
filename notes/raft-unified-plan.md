@@ -1185,7 +1185,8 @@ Phase 2 (internal statement changes):
   consecutive from its head and the committed entries at or past the batch's head the batch's
   (`readyRest_indices`, new, and `readyRest_ceInBatch` are its projections). Its sources (internal,
   P4): `readyData` (InvNodeChan) gets the same fact as its last conjunct, and `ownRawNodeReady` gets
-  `"%Hcepre" ∷ ⌜ce <+: logCommittedEnts s.logst⌝` (from `readyWithoutAccept`'s `Hce`).
+  `"%Hcepre" ∷ ⌜es ≠ [] → ce <+: logCommittedEnts s.logst⌝` (from `readyWithoutAccept`'s `Hce`;
+  guarded: `ownRawNodeIdle_ready` re-sends a stale `Ready` with `es = []`).
 
 ### Phase 2 progress (the lead's hand-off)
 
