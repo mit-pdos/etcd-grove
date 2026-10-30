@@ -2259,13 +2259,10 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       ⌜NsLink γ s⌝ ∗
       -- (D22 S-b′3) the storage's certificate link
       certLink γ s.gh.sn := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl⟩
+  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl, -, -⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
@@ -2275,7 +2272,6 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       (by rw [Hlrn]; rfl) HC.2
   iframe Hcl
   ipureintro; exact Hnl
-  -/
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -2392,22 +2388,15 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownStepGhost γ md c id s -∗
       ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝ ∗ ownRaftPhysCV c V r id s ∗
         ownStepGhost γ md c id s := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hphys Hghost
-  icases ownRaftPhysC_ns c r id s $$ Hphys with ⟨%Hnsl, -, Hphys⟩
-  iunfold ownStepGhost at Hghost
-  icases Hghost with ⟨Hg, Hr⟩
-  icases ghostRest_nsLink γ md c id s $$ Hr with ⟨%Hnl, Hr⟩
-  iframe Hphys
-  isplitr
-  · ipureintro
-    intro h
-    exact (Hnsl (by rw [Hnl.1]; exact h)).2.2.2
-  iunfold ownStepGhost
-  iframe Hg Hr
-  -/
+  icases ownRaftPhysC_sn c r id s $$ Hphys with ⟨%Hsn, Hphys⟩
+  icases ownStepGhost_nsLink γ md c id s $$ Hghost with ⟨%Hnl, Hghost⟩
+  iframe Hphys Hghost
+  ipureintro
+  intro h
+  unfold NsLink at Hnl
+  rw [Hsn.1, h] at Hnl
+  cases Hnl
 
 /-- (2026-10-20, D22 S-c) A node with nothing committed is of a cluster with no bootstrap log
 (`ownLogGhost_boot`), so not in the no-transfer mode (`RaftNames.reNoXfer_ok`): what
@@ -2486,9 +2475,6 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
 theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗
       ⌜uint.Z rs.term ≤ uint.Z rs.tc⌝ ∗ ownRawNode γ rn id rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H
   iNamed H
   isplitr
@@ -2496,7 +2482,6 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
-  -/
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
