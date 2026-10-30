@@ -390,6 +390,73 @@ theorem work_get (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ileft
     ipureintro; exact Herr.1
 
+/-- A writing transaction's reply holds its update's result. -/
+theorem txnReplied_Q (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (t : TxnModel) (P : Prop) (cid mid : w64) (m : TxnRespM) (hro : txn.txnReadonly t = false) :
+    txnReplied E γw γr c F t (fun _ => iprop(⌜P⌝)) cid mid m ⊢ ⌜P⌝ := by
+  iintro H
+  unfold txnReplied
+  rw [hro]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases H with ⟨%_, %_, %_, %_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
+  ipureintro; exact HP
+
+/-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
+permission cache decides): a reply with no error was granted to `who` (`hop`: a granted
+transaction keeps the history). -/
+theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
+    (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
+    (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
+    (hsh : ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw))
+    (hro : txn.txnReadonly (txnWireOf b.model) = false)
+    (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
+    (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))) :
+    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ txnObjAt tp [go!"127.0.0.1:23916"] ci cd b ∗
+        txnKvIs tp api }}
+      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
+        (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        ⌜err = GoInterface.nil → akOpGranted who (.txn (txnWireOf b.model))⌝ }} := by
+  iintro %Φ ⟨#Henv, Hobj, #Hkt⟩ HΦ
+  iunfold akCallEnv at Henv
+  icases Henv with ⟨#Pc, #Hkvf, #Hobjc, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
+  ihave #Hau := akWriteAu s E γa ρ Lset n who conn (GoInterface.ok ci)
+    (.txn (txnWireOf b.model)) hγa hout hop $$ []
+  · iframe #
+  iunfold akKVOn at Hkv
+  icases Hkv with ⟨-, -, -, #Htxn⟩
+  ihave #Hpub : auth.authPubLbM E.authMode n $$ []
+  · rw [hγa]
+    iunfold akAuthFixed at Hf
+    icases Hf with ⟨#Hp, -⟩
+    unfold auth.authPubLbM
+    iexact Hp
+  imod (monoNatLbOwn_0 (GF := GF) ρ.rd.committed) with #H0
+  ihave #Hc0 : committedAtLeast ρ.rd (W64 0) $$ []
+  · unfold committedAtLeast
+    rw [show uint.nat (W64 0) = 0 from rfl]
+    iexact H0
+  wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci cd b
+      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] hp hin
+      (fun _ => hsh)) $$ [Hobj] as %resp %err Hout
+  · iframe #
+    iframe Hobj
+    ileft
+    iintro !>
+    unfold txnUpdAtOn
+    iright
+    iright
+    isplitl []
+    · ipureintro; exact ⟨hro, hpl⟩
+    iexact Hau
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, -, Hr, -⟩ | ⟨%Herr, -⟩)
+  · ihave %Hq := txnReplied_Q _ _ _ _ _ _ _ _ _ _ hro $$ Hr
+    ipureintro; intro _; exact Hq
+  · ipureintro; intro h; exact absurd h Herr.1
+
 end calls
 
 end authkv
