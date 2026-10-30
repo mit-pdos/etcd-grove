@@ -1576,17 +1576,17 @@ to force an invariant or statement tweak** (the user's order: start the first fo
 Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a path is given.
 
 1. **S-0 the server's raft log core** (`SrvRaftLog.lean`; highest risk: every server invariant
-   rests on it, and the D3 static-membership facts are new): `srv_confAt_simple` *fresh*,
-   `srv_committed_noV2` *fresh*, `srvRLogLb_intro`, `srvPropAu_api`, `srvPropWits_of`,
+   rests on it, and the D3 static-membership facts are new): `srv_confAt_simple` *fresh* (done),
+   `srv_committed_noV2` *fresh* (done), `srvRLogLb_intro` (done), `srvPropAu_api`, `srvPropWits_of`,
    `srvReadAu_api`, `srvReadWit_of`, `srv_snapMade_false` *fresh*, `srv_snapshotCert_false`
    *fresh*, `srv_snapshotValid_false` *fresh*, `srv_sentMsg_notSnap` *fresh* (old body with
    `srv_readySnap_none`'s), `srv_readySnap_none`, `srvLogInv_alloc`. Also owns `InvCfgView.lean`
-   (`srvRule_keeps` *fresh*, `dvView_cc`).
+   (`srvRule_keeps` *fresh* (done), `dvView_cc`).
 2. **S-C the raft loop** (Ready hand-out, Append, Advance, `raftAdvancedC`, the running halves):
    `InvRaftNode.lean` (`rn_ready_recv`), `InvRaftLoop.lean` (`rnCfgAt_normal1`, `rnCfgAt_back_true`,
    `rnApR_dv`, `rnApGive_dv`, `srvRaftNodeCC_of_isRaftNode`), `NodeBridge.lean`
-   (`isRNMemStor_of_memstorage`, `raftPropose_of_isNode`, `raftApplyCC_of_isNode`,
-   `isRaftNodeIfc_of_isNode`, `rnStepIfc_of_isNode`), `raftNode__start.lean`,
+   (`isRNMemStor_of_memstorage`, `raftPropose_of_isNode` (done), `raftApplyCC_of_isNode`,
+   `isRaftNodeIfc_of_isNode`, `rnStepIfc_of_isNode` (done)), `raftNode__start.lean`,
    `raftNode__onStop.lean`, `raftNode__stop.lean`, `raftNode__tick.lean`, `newRaftNode.lean`
    (`rnApP_cum`, `newRaftNode.wp_proof`).
 3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
@@ -1594,10 +1594,10 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `wp_proofOn`), `EtcdServer__applyEntries.lean` (both), `EtcdServer__apply.lean` (both),
    `EtcdServer__applyConfChange.lean`, `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean`,
    `EtcdServer__compactRaftLog.lean`, `ModeSpecs.lean` (`spec_off`, `spec_on`), `InvApplyAll.lean`
-   (`srvSnapState_sl_le`), `InvApRes.lean` (`srvApRes_normal`, `srvApRes_cc`), the KV model's
-   V2-entry cases: `KVApply.lean` (`kv_log_plain`), `KVAuthModel.lean` (`kvRaftOfOn_ops`,
-   `admStep_ops`, `kvRaftOfOn_of_lb`, `detLogOn_transfer`, `kv_log_plain_on`), `KVLemmas.lean`
-   (`kvRaftSt_ops`), `KVReadOn.lean` (`kv_cert_floor_on`); and `SnapTake.lean`/`SnapTakeProof.lean`/
+   (`srvSnapState_sl_le` (done)), `InvApRes.lean` (`srvApRes_normal`, `srvApRes_cc`), the KV model's
+   V2-entry cases: `KVApply.lean` (`kv_log_plain` (done)), `KVAuthModel.lean` (`kvRaftOfOn_ops` (done),
+   `admStep_ops` (done), `kvRaftOfOn_of_lb` (done), `detLogOn_transfer` (done), `kv_log_plain_on` (done)), `KVLemmas.lean`
+   (`kvRaftSt_ops` (done)), `KVReadOn.lean` (`kv_cert_floor_on` (done)); and `SnapTake.lean`/`SnapTakeProof.lean`/
    `EtcdServer__snapshot` once D2 is answered.
 4. **S-E allocation, boot and the NewServer composition**: `NodeStart.lean` (`rnToks_of_start`,
    `srvMem_bootStorage`, `raftNode_of_StartNode`), `bootstrappedRaft__newRaftNode.lean`,
