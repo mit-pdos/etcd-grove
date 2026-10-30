@@ -1624,7 +1624,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    (`isReadRaft_of_raftNode` (done)), `ReadServer.lean` (`isReadServer_of_serverM` (done)), `raftNode__ReadIndex.lean` (done),
    `read/Read__requestCurrentIndex.lean` (done), `read/Read__sendReadIndex.lean` (done),
    `EtcdServer__processInternalRaftRequestOnce.lean` (`wp_proofM`).
-7. **K-a kv transport** (low): `examples/kv/deliver.lean` (`deliver.wp_proof`).
+7. **K-a kv transport** (low): `examples/kv/deliver.lean` (done) (`deliver.wp_proof`).
 8. **K-c kv start and link** (low): `examples/kv/StartCluster.lean` (`StartCluster.wp_proof`), then
    kv's `Link`/`Results` only if a callee list changes.
 
