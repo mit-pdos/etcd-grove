@@ -108,6 +108,50 @@ theorem srvRangeOk_keys (o : OpFull) (st kvs : List EtcdKv) (more : Bool)
   unfold txn.respKv txn.kvRead
   split <;> split <;> simpa using hk
 
+/-! ### A transaction's puts -/
+
+theorem mem_opsPerms (op : txn.TxnOpW) :
+    ∀ (ops : List txn.TxnOpW), op ∈ ops → ∀ x ∈ opPerms op, x ∈ opsPerms ops
+  | [], h => absurd h List.not_mem_nil
+  | o :: ops, h => by
+    intro x hx
+    simp only [opsPerms, List.mem_append]
+    rcases List.mem_cons.1 h with rfl | h'
+    · exact Or.inl hx
+    · exact Or.inr (mem_opsPerms op ops h' x hx)
+
+/-- A put among a wire transaction's operations needs the write permission on its key. -/
+theorem put_mem_opsPerms (k v l : GoString) (le : w64) (ops : List txn.TxnOpW)
+    (h : TxnOp.put k v le ∈ txn.TxnOpW.toOps ops) :
+    ((k, [], .write) : apply.Perm3) ∈ opsPerms ops := by
+  rw [txn.TxnOpW.toOps_eq_map] at h
+  obtain ⟨w, hw, he⟩ := List.mem_map.1 h
+  cases w with
+  | put o =>
+    simp only [txn.TxnOpW.toOp, txn.putTxnOp] at he
+    split at he
+    · cases he
+    split at he
+    · cases he
+    obtain ⟨rfl, -, -⟩ := TxnOp.put.inj he
+    exact mem_opsPerms _ _ hw _ (by simp [opPerms, apply.putPerms])
+  | get o => simp [txn.TxnOpW.toOp] at he
+  | delete o => simp [txn.TxnOpW.toOp] at he
+  | txn cs ts es => simp [txn.TxnOpW.toOp] at he
+
+/-- **A granted transaction of `who`'s with a put of a non-empty key `k`** (in either branch) is
+`who`'s to make. -/
+theorem akOpGranted_txn_put (who k v : GoString) (le : w64) (t : TxnModel) (hk : k ≠ [])
+    (hm : TxnOp.put k v le ∈ t.thenOps ++ t.elseOps) (h : akOpGranted who (.txn t)) :
+    permittedK who k := by
+  obtain ⟨tw, rfl, hg⟩ := h
+  refine akGranted_point who _ k .write hg ?_ hk
+  rcases List.mem_append.1 hm with hm | hm
+  · have h1 := put_mem_opsPerms k v [] le _ hm
+    simp [reqPerms, irrTxn, apply.dispatchKind, apply.irrEmpty, h1]
+  · have h1 := put_mem_opsPerms k v [] le _ hm
+    simp [reqPerms, irrTxn, apply.dispatchKind, apply.irrEmpty, h1]
+
 /-! ### `Work`'s three ranges -/
 
 /-- A key in `[a, b)` is `u`'s to read. -/

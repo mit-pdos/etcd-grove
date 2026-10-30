@@ -527,3 +527,10 @@ Proved: `akHist_writeAu`, `akHist_readAu`, `newUserClient.wp_proof`. `Work.wp_pr
 3. **The `*Client` methods with auth on** (`ClientOn.lean`): `Get`, `Delete`, `Txn`'s builder, a
    `Put` told its grant (F-C1's second `Put` spec), the `Watcher` field.
 4. **`Work` itself**, one call at a time.
+
+Progress (2026-10-30): `WorkCalls.lean` holds the per-call lemmas: `akWriteAu`, `work_put`,
+`work_delete`, `work_get` (with `srvRangeOk_keys`), `work_commit`, and the pure facts of the
+three ranges. **The nested transaction (T4)** is outside client/v3's proved specs: `txn.Then`
+needs every op's `txnOpOf` (an `OpTxn` has none), and `client_txn_on` needs `TxnModel.plain`. The
+user chose to extend client/v3's specs to nested transactions; that is handed to the G2 session
+(etcd-grove-83). Until it lands, Work's T4 call is a named `sorry`.
