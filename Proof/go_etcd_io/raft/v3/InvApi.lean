@@ -897,7 +897,9 @@ def StaticNames (γ : Cluster) (N : Namespace) (vs : List w64)
 def allocOut (N : Namespace) (boot : List LogEntry) (bud : BudgetNames) (md : RNMode)
     (tab : GMap w64 GName) (γr : RaftNames) : IProp GF :=
   iprop(∃ γ : Cluster, ⌜γ.raft = γr ∧ γ.bud = bud ∧ γ.mode = md.all ∧ γ.nodeTab = tab⌝ ∗
-    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)) ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅)
+    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)) ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗
+    -- (2026-10-30, stage R5) the bootstrap log committed
+    isCommittedLogLb γ boot)
 
 /-- The adapter's part of raft's allocation: its ghost state and invariant, raft's standing update
 from it. -/
@@ -960,19 +962,22 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
   iexists γ
   isplitr; · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   iframe Hinv' HspT
+  ihave #Hblb : isCommittedLogLb (GF := GF) γ boot $$ []
+  · unfold isCommittedLogLb
+    rw [(BootLog_opsOf HB)]
+    iright; iframe Hflb Holb
+    isplitr; · ipureintro; exact Hblen
+    unfold cmtFactsS
+    iexists LogEntry.toEntries boot 0
+    isplitr; · ipureintro; exact strip_toEntries boot 0
+    iapply cmtFacts_bootOk γ (BootLog_ok HB)
+  iframe Hblb
   isplitl [Ho2]
   · unfold ownCommittedOps
     iframe Ho2
     iexists boot
-    unfold isCommittedLogLb
     rw [(BootLog_opsOf HB)]
-    isplitl []
-    · iright; iframe Hflb Holb
-      isplitr; · ipureintro; exact Hblen
-      unfold cmtFactsS
-      iexists LogEntry.toEntries boot 0
-      isplitr; · ipureintro; exact strip_toEntries boot 0
-      iapply cmtFacts_bootOk γ (BootLog_ok HB)
+    iframe Hblb
     ipureintro; rfl
   · unfold ownReadCtxs
     iexists ∅

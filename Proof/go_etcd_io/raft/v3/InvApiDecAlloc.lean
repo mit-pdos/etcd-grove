@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `cluster_alloc`). -/
 theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup ∧ γ.raft.reBoot.length = 0⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
@@ -73,7 +73,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup⟩ := Hγ
   iunfold allocOut at Hout
-  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
+  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx, -⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
   subst Hγr
   have Hrn : DecNames γ c0 gd := by
@@ -132,7 +132,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
   iexists γ
   iframe Hops Hctx Hdc Hja
   isplitr
-  · ipureintro; exact Hdup
+  · ipureintro; exact ⟨Hdup, by rw [HbootL]; rfl⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

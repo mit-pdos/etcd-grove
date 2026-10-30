@@ -75,11 +75,14 @@ theorem StartCluster.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   -- the ghost state
-  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) true ⊤ Hrb
+  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true ⊤ Hrb
     (by intro h; have := congrArg List.length h; rw [bootVoters_length] at this; simp at this; omega)
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
-    (by rw [bootVoters_length]; omega)
-    with ⟨%γ, %Hdup, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hjoin, Hfounders⟩
+    (by rw [bootVoters_length]; omega) (fun h => absurd rfl h)
+    $$ [] with ⟨%γ, ⟨%Hdup, -⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hjf⟩
+  · rw [if_pos rfl]; iempintro
+  isimp only [↓reduceIte] at Hjf
+  icases Hjf with ⟨Hjoin, Hfounders⟩
   imod confPolicy_alloc γ kvrConfN kvrRule ⊤ $$ Hdec with #Hpol
   imod mono_nat_own_alloc (GF := GF) (uint.nat o.Voters' + 1) with ⟨%γn, HnidA, #Hlb⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γs, Hstp⟩
