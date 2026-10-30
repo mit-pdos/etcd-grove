@@ -127,6 +127,12 @@ structure AuthInfoM where
 def authInfoM [GooseExts] (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : AuthInfoM :=
   ⟨info.Username', uint.nat info.Revision'⟩
 
+/-- **A prefix the simple provider makes** (2026-10-30, for authkv's `Work`): no space
+(`genTokenPrefix`'s 16 letters, `simple_token.go`), so no token of it has one, and the server's
+`"Bearer "` trim (`AuthInfoFromCtx`) leaves it as issued (`tokShape_trimBearer`). The log's
+`Authenticate` entries carry the prefix (`apply.adminKindOk`), whose proposer owes it. -/
+def tokPrefixOk (pre : GoString) : Prop := W8 32 ∉ pre
+
 /-- The root role's name (`store.go`, `rootRole`). -/
 def rootRole : GoString := go!"root"
 

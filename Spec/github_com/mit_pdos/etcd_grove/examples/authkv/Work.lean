@@ -14,7 +14,9 @@ and the watcher's facts as `Main` has them (`watchAddrFacts`; the auth-on watch,
 it), the watcher's one member the server `s` at `E` at authkv's address, its KV state variable
 `ρ.kv`'s (round 3, F1: what `watcher_of_clientTokAt` and `watcher.Watch.spec` need), after the
 set-up: the history invariant (S1, `akHistInv`) and the auth state fixed (S6,
-`akAuthFixed`). Not panicking is
+`akAuthFixed`), and the member's watch server's mode tag at auth on with `γa` (`auth.modeTag`,
+what `Main` has from the member's start: the watch's verdict, `watchCheckOk_tok`, is at the tagged
+mode). Not panicking is
 the workload's part of the auth result: every request the auth state refuses `who` returned an
 error, every reply holds only keys `who` may read, and every write `who`'s client sends keeps the
 history invariant (its update, `akHist_writeAu`, at the write's grant).
@@ -55,7 +57,7 @@ abbrev Work.spec : Prop :=
       isNewClient cl [go!"127.0.0.1:23916"] V ∗ watchAddrFacts V ∗
       clientTokAt cl [go!"127.0.0.1:23916"] (akTokP γa who) ∗
       akKVOn go!"127.0.0.1:23916" s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗
-      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n }}
+      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ auth.modeTag V.R.γ.tag (.on γa) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.Work)) (Val #cl))
       (Val #who))
   {{ RET #(); True }}

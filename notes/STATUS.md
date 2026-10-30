@@ -575,6 +575,18 @@ mask a server definition (`authTieReadMask`, `authStateAt_setup` restated over i
 the freeze: the watch spec (G2), the other round-2 items.
 The trust base gains the stubs' two `sorry`s (`Work.wp_proof`, `newUserClient.wp_proof`).
 
+Proving the stubs (2026-10-30, branch `authkv-hist`; the plan: `notes/authkv-main-plan.md`, "Proving
+the stubs"): `newUserClient` proved (its `sorry` gone). For `Work`: `WorkAuth.lean` (the principal of
+an attempt, `akOut`/`akTokSeen`; a write told its grant was granted at `setupSt`,
+`akOpGranted_of_grant`; reads and the refused watch at `setupSt`, `akRead_granted`,
+`akWatch_c_refused`). The auth model's simple token now has a prefix with no space
+(`auth.tokPrefixOk`, decisions.md "The simple token's prefix has no space"): the server's
+`TrimPrefix(token, "Bearer ")` leaves an issued token unchanged (`tokIssued_trim`); the served
+`Authenticate` owes it (C1's A4-A5). `Work.spec` gains `auth.modeTag V.R.γ.tag (.on γa)` (the watch's
+verdict is at the tagged mode; `Main` has it from the member's start), and `Work.wp_proof` takes the
+builders' and the watch's specs and `WithTimeoutBackgroundMd` (Link regenerated). Open: `Work`'s
+per-call lemmas and its proof, then `Main`.
+
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 
 **Verified.** Over raft's unified API, every `sorry` Stage F left in etcd's server and examples/kv is

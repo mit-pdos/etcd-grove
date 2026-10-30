@@ -66,13 +66,14 @@ instance akTokSeen_persistent (γa : auth.AuthNames) (who : GoString) (tok : Opt
     Persistent (akTokSeen (GF := GF) γa who tok) := by
   unfold akTokSeen; infer_instance
 
-/-- **An issued token has no `"Bearer "` prefix.** OPEN (2026-10-30): true of Go (the simple
-provider's prefix is `genTokenPrefix`'s 16 letters, so a token has no space), but the model's shape
-(`auth.tokShape`, `auth.authnCtx`'s prefix) does not record it: a `sorry` until the auth package's
-shape does (`notes/authkv-main-plan.md`, "Proving the stubs"). -/
+/-- **An issued token has no `"Bearer "` prefix**: it has the simple provider's shape, whose
+prefix has no space (`auth.tokShape_trimBearer`). -/
 theorem tokIssued_trim (γa : auth.AuthNames) (t u : GoString) :
     auth.tokIssued (GF := GF) γa t u ⊢ ⌜strings.trimPrefix t go!"Bearer " = t⌝ := by
-  sorry
+  iintro H
+  ihave %Hsh := auth.tokIssued_shape γa t u $$ H
+  ipureintro
+  exact auth.tokShape_trimBearer t Hsh
 
 /-- **The token of an attempt of `who`**, from the connection's token fact's two cases: a token
 meeting `akTokP γa who` (issued to `who`, for `u` and `v`; none for the others), or the token of

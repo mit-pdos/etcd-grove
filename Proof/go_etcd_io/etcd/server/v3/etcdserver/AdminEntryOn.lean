@@ -230,7 +230,7 @@ theorem apply_admin_entry_on
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs rq ar out hka
         hout $$ Hout
       have hna : apply.needAdminPermission rq = false := by
-        have h := Hadm; unfold apply.adminKindOk at h; rw [hka] at h; exact h
+        have h := Hadm; unfold apply.adminKindOk at h; rw [hka] at h; exact h.1
       icases Hown with ⟨Hfu, Htie⟩
       simp only [↓reduceIte] at *
       iapply HΦ

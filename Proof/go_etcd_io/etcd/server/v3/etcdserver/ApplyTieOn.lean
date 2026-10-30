@@ -407,7 +407,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
       exfalso
       unfold apply.adminKindOk at hka
       rw [hkd] at hka
-      rw [hka] at hn
+      rw [hka.1] at hn
       cases hn
     · cases had
 

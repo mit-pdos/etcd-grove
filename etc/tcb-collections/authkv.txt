@@ -101,6 +101,7 @@ axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
+axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
@@ -119,7 +120,12 @@ axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
@@ -136,6 +142,7 @@ axiom grpcPeerOpt
 axiom grpcResolverAt
 axiom grpcServes
 axiom grpcServesStream
+axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom http.CloseIdleConnections_ok
@@ -233,11 +240,13 @@ axiom snap.Message.CloseWithError.wp_proof
 axiom snap.Message.fields.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
+axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
@@ -246,6 +255,7 @@ axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.NewTicker.wp_proof
 axiom time.Ticker.Reset.wp_proof
 axiom time.Ticker.Stop.wp_proof
+axiom time.Time.IsZero.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.ApplySecObserve.wp_proof
@@ -295,8 +305,10 @@ sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry authkv.Main.wp_proof
 sorry authkv.Work.wp_proof
-sorry authkv.newUserClient.wp_proof
 sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
 sorry rnApplyTok_recv
 sorry rn_ready_recv
+sorry watchGRPCStream.newWatchClient.wp_proof
+sorry watchGRPCStream.run.wp_proof
+sorry watcher.Watch.wp_proof
