@@ -435,6 +435,19 @@ theorem waiters_drop (γr : RNames) (W : GMap (List w8) Loc) (d : List w8) :
       with ⟨-, H⟩
     iexact H
 
+/-- A read dropped from the replica's waiting reads (`read`, after its timeout). -/
+theorem reads_drop (γr : RNames) (id : w64) (Rd : GMap w64 Loc) (s : w64) :
+    ([∗map] k ↦ c ∈ Rd, readWaiterOk (GF := GF) γr id k c) ⊢
+      [∗map] k ↦ c ∈ GMap.delete s Rd, readWaiterOk γr id k c := by
+  cases h : Rd !! s with
+  | none =>
+    rw [GMap.delete_notin Rd s h]
+  | some x =>
+    iintro H
+    icases (BigSepM.bigSepM_delete (Φ := fun k c => readWaiterOk (GF := GF) γr id k c) h).1 $$ H
+      with ⟨-, H⟩
+    iexact H
+
 /-- **A receive's atomic update is a non-blocking receive's** (whose not-ready case, an empty
 buffer or a waiting receiver, asks nothing). -/
 theorem recvAu_nonblocking {V : Type} [Pos.Countable V] [ZeroVal V] (γ : ChanNames) (Φ : V → Bool → IProp GF) :
