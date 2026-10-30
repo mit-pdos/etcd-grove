@@ -52,6 +52,12 @@ elsewhere, do not create worktrees, do not switch branches. Scratch: /home/ubunt
    lemmas into a new small module (`public import`ed by the file that needs it; the new module starts
    with `module`, `public import`s, `@[expose] public section`, as CLAUDE.md "Modules" says). Use
    `--split` on very long proofs.
+   **A file other modules import must compile on disk at all times** (other helpers' checks rebuild
+   it with Lake; a broken copy deletes its .olean and blocks everyone importing it). Draft a proof
+   in an uncommitted scratch copy (`<File>Draft.lean` next to it, imported by nothing, deleted
+   before you finish) or in a new module nothing imports until it checks; splice the proof in only
+   once it checks, then re-check the real file and `lake build` its module. Only leaf files nobody
+   imports may be edited in place while broken.
 5. **Commit per proved lemma or group**, only your files, with explicit paths:
    `git add <files> && git commit -m "server Stage P (<track>): <what>" -- <files>`
    (end the message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`); then
