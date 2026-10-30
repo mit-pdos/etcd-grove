@@ -1550,6 +1550,8 @@ results see them:
 - **`node_contract_memstor`** (stage P, P4; trusted premise strengthened (persistent, from `NewMemoryStorage`'s
   post); coordinator-approved while the user was away, for the user's review): += `memStorLock γ.ms γ.γs`
   ("Repair: Stage P changes").
+- **`isRNMemStor`'s `rnAppendRight`** (stage P, P5; trusted conclusion's precondition strengthened (only consecutive batches, as raft hands out); coordinator-approved while the user was away, for the user's review): += `rnConsec es`
+  ("Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1749,3 +1751,7 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   over `RaftLink.MemoryStorage.wp_Append`.
 - Minor (S-C): `rnApP_cum` += `(hid : γ1.id = γ2.id)` (`rnApP` reads `nodeAppliedLb` at `γ.id`; used only in `newRaftNode`).
 - Snapshot sorries #4 and #5 (`processMessages`'s `MsgSnap` side) were proved in stage P: not sorries any more.
+- **P5 `rnAppendRight`'s pure part** `⌜rnFits es⌝` → `⌜rnFits es ∧ rnConsec es⌝` (`InvRaftNode`; **trusted conclusion's precondition strengthened (only consecutive batches, as raft hands out); coordinator-approved while the user was away, for the user's review**),
+  `rnConsec es := ∀ e0, es.head? = some e0 → ∀ j e, es[j]? = some e → uint.Z e.index = uint.Z e0.index + j`.
+  Why: `MemoryStorage.Append.spec` needs consecutive indices; `rn_ready_recv` gets them from `readySnap none`.
+  `isRNMemStor` (the conclusion of the exported `node_contract_memstor`) reads `rnAppendRight`.
