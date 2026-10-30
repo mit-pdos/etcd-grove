@@ -26831,3 +26831,14 @@ accepted with no token: `anon` and `bad` share the set-up client) would go unnot
 `setupRev` gone the checker checks every event, set-up puts included. Revisit if F-S2 part 2 is done:
 the skip can then go.
 
+
+## Nested transactions with auth on only (2026-10-30 · `notes/txn-nested.md`, the user's Q2)
+
+The auth-on `Commit` (`client_txn_on`, `etcdTxnSpecOn`) admits writing transactions with nested
+transactions (`txnNestOk`); the auth-off one (`txn.Commit.spec`, `etcdTxnSpec`, `client_txn_any`)
+keeps `TxnModel.plain`: its response relation (`txnSpec_of`, `ServerKVTxn.srvRunTxn_wire`: `srvOp` of
+`opWire op` = `srvOp` of `op`, `plain_branch`, `flat_branch`) is proved for plain operations only. A
+scope restriction, not a second design: lifting it is the same premise change on the off side plus
+those pure lemmas at depth, to do with (or before) the auth-mode merge; the merge takes the on
+side's premise (`txnNestOk`), not `TxnModel.plain`. (`Then`/`Else` themselves take nested
+operations in both modes: the restriction is `Commit`'s.)
