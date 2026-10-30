@@ -829,15 +829,23 @@ private theorem wp_RestartNode_impl
     · ipureintro; rfl
     iexact Hdrv
   isplitl [Hcf]
-  · unfold nodeConfig
-    iexists γn, cv.ID'
-    iframe Hnode Htb
-    isplitr
-    · ipureintro
-      refine ⟨Hnok, Hdy, ?_⟩
-      show CCGood (stOf (Membership.simple (GMap.listToSet csm.Voters')))
-      rw [stOf_simple]; exact ccGood_cfgState _
-    rw [stOf_simple]; iexact Hcf
+  · isplitl [Hcf]
+    · unfold nodeConfig
+      iexists γn, cv.ID'
+      iframe Hnode Htb
+      isplitr
+      · ipureintro
+        refine ⟨Hnok, Hdy, ?_⟩
+        show CCGood (stOf (Membership.simple (GMap.listToSet csm.Voters')))
+        rw [stOf_simple]; exact ccGood_cfgState _
+      rw [stOf_simple]; iexact Hcf
+    -- (2026-10-30, stage R3) the initial membership, of no entry
+    unfold confAtU
+    iexists [], ∅
+    isplitr; · iapply isCommittedLogLb_nil_impl
+    isplitr; · iapply decLb_empty
+    ipureintro
+    exact ⟨Nat.le_refl _, _, gd, Hmr, rfl⟩
   isplitl [Hlive]
   · -- (2026-10-29, stage U9a) the node runs
     unfold nodeRunning

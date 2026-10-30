@@ -85,6 +85,22 @@ instance confAt_timeless (γ : Cluster) (k : Nat) (m : Membership) :
     Timeless (confAt (GF := GF) γ k m) := by
   unfold confAt; exact ApiImpl.confAtU_timeless γ k m
 
+/-- (open) **A node's configuration view** (exclusive, one per node): what `node.ApplyConfChange`
+moves and `node.Advance` checks. Separate from the `Ready` loop's token (`nodeDriver`): an application
+may apply the conf changes on another goroutine than its `Ready` loop (etcd's server applies them on
+its apply goroutine, and hands the view back before `Advance`). (2026-10-30, stage R3: moved here
+from `InvNode.lean`, with the configuration it names, `confAt`, `nodeConfig_confAt`.) -/
+@[no_expose] def nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
+  iprop(ApiImpl.nodeConfig n γ N v ∗ ApiImpl.confAtU γ v.applied v.membership)
+
+/-- (2026-10-30, stage R3) **A node's view is the cluster's configuration** at its applied index. -/
+theorem nodeConfig_confAt (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) :
+    nodeConfig (GF := GF) n γ N v ⊢ nodeConfig n γ N v ∗ confAt γ v.applied v.membership := by
+  haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
+  unfold nodeConfig confAt
+  iintro ⟨H, #Hc⟩
+  iframe H Hc
+
 /-- **The conf entry at position `k` (index `k + 1`) of the committed log was decided `d`**
 (persistent). -/
 @[no_expose] def confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF :=
@@ -286,6 +302,47 @@ theorem skippedIn_noConf (γ : Cluster) (l : List LogEntry) (a b : Nat) :
         exact absurd he.2 (hn j e (hx j (List.mem_cons_self ..)).1 (hx j (List.mem_cons_self ..)).2 he.1)
       iapply ih (fun x h => hx x (List.mem_cons_of_mem _ h))
   exact H _ (fun j hj => by have := List.mem_range'_1.1 hj; omega)
+
+/-- (2026-10-30, stage R3) **Past skipped conf entries**: the membership stays. -/
+theorem confAt_skipped (γ : Cluster) (l : List LogEntry) (a b : Nat) (m : Membership) :
+    a ≤ b → b ≤ l.length →
+    isCommittedLogLb (GF := GF) γ l ∗ confAt γ a m ∗ skippedIn γ l a b ⊢ confAt γ b m := by
+  intro hab hb
+  obtain ⟨n, rfl⟩ : ∃ n, b = a + n := ⟨b - a, by omega⟩
+  clear hab
+  induction n generalizing a with
+  | zero => iintro ⟨-, Hc, -⟩; iExactEq Hc; rfl
+  | succ n ih =>
+    unfold skippedIn
+    rw [show a + (n + 1) - a = n + 1 by omega, List.range'_succ]
+    iintro ⟨#Hl, #Hc, #Hs⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨#Hs0, #Hs⟩
+    ihave #Hc1 : confAt (GF := GF) γ (a + 1) m $$ []
+    · cases he : l[a]? with
+      | none =>
+        exfalso
+        have := List.getElem?_eq_none_iff.1 he
+        omega
+      | some e =>
+        by_cases hcc : e.isConfChange
+        · ihave #Hd := Hs0 $$ %e %(And.intro rfl hcc)
+          icases confAt_decided γ a m .skip $$ [Hc Hd] with ⟨%m', %Hm', #Hc'⟩
+          · iframe Hc Hd
+          simp only [ConfDecision.step] at Hm'
+          cases Hm'
+          iexact Hc'
+        · iapply confAt_noConf γ l a (a + 1) m
+            (fun k e' h1 h2 h3 => by
+              have : k = a := by omega
+              subst this; rw [he] at h3; cases h3; exact hcc)
+            (by omega) (by omega)
+          iframe Hl Hc
+    rw [show a + (n + 1) = (a + 1) + n by omega]
+    iapply ih (a + 1) (by omega)
+    iframe Hl Hc1
+    unfold skippedIn
+    rw [show a + 1 + n - (a + 1) = n by omega]
+    iexact Hs
 
 /-! ## Snapshots -/
 

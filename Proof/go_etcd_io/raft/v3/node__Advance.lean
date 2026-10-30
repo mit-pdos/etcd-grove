@@ -310,6 +310,7 @@ private theorem node.wp_Advance_impl
   -- (U8 v2) the driver's storage names, of the node's table
   ihave #Hsn : nodeStorNames γ id γn.sn $$ []
   · iapply nodeTabOk_storNames $$ Htb
+  icases Hcfg with ⟨Hcfg, Hcat⟩
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
   icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
@@ -374,6 +375,7 @@ private theorem node.wp_Advance_impl
       ileft
       iunfold storFloor at Hx
       iapply monoNatLbOwn_le _ (by rw [← Hds, strip_length]; word) $$ Hx
+    iframe Hcat
     unfold nodeConfig
     iexists γn, id
     iframe Hn1 Htb Hcf
@@ -428,10 +430,13 @@ private theorem node.wp_Advance_impl
     have Hmv : x.Valid := decFold_valid M1 c1 x _ hm1.valid hf1
     iexists x
     isplitl [Hcf]
-    · unfold nodeConfig
-      iexists γn, id
-      iframe Hn1 Htb Hcf
-      ipureintro; exact ⟨Hnok, Hd, Hmv.2⟩
+    · isplitl [Hcf]
+      · unfold nodeConfig
+        iexists γn, id
+        iframe Hn1 Htb Hcf
+        ipureintro; exact ⟨Hnok, Hd, Hmv.2⟩
+      rw [show uint.nat l.snap.Metadata'.Index' = L'.length from HL'len.symm]
+      iexact Ha
     isplitr
     · rw [show uint.nat l.snap.Metadata'.Index' = L'.length from HL'len.symm]
       iexact Ha

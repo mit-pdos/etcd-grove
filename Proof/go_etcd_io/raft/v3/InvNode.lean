@@ -211,15 +211,22 @@ server port's addition): the receipts' bound past the bootstrap log is at most `
 index raft hands out is within its log, whose last index has a record keeping a time receipt
 (`lastRec_receipt`), so below the receipts' bound past the bootstrap log; so is every committed log
 (`isCommittedLogLb_length`, `readyRest_fits`). What etcd's raft loop needs to call
-`MemoryStorage.Append` (which checks no bound, unlike the key-value example's `fits`); (raft-final,
-2026-10-29) no law gives it today (`cluster_alloc` does not: it went with the static and the dynamic
-allocations, U9). -/
+`MemoryStorage.Append` (which checks no bound, unlike the key-value example's `fits`); (2026-10-30,
+stage R2) `readyFits_intro`, from `cluster_alloc`'s `γ.bootLen`. -/
 @[no_expose] def readyFits (γ : Cluster) (_N : Namespace) : IProp GF :=
   iprop(⌜receiptBound GF + γ.bootLen ≤ 2 ^ 61⌝)
 
 instance readyFits_persistent (γ : Cluster) (N : Namespace) :
     Persistent (readyFits (GF := GF) γ N) := by
   unfold readyFits; infer_instance
+
+/-- (2026-10-30, stage R2) **A cluster whose receipts' bound past its bootstrap log is at most
+`2 ^ 61` fits**: `cluster_alloc` tells the bootstrap log's length (`Cluster.bootLen`). -/
+theorem readyFits_intro (γ : Cluster) (N : Namespace) :
+    receiptBound GF + γ.bootLen ≤ 2 ^ 61 → ⊢ readyFits (GF := GF) γ N := by
+  intro h
+  unfold readyFits
+  ipureintro; exact h
 
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent). -/
 @[no_expose] def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
@@ -634,13 +641,7 @@ theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) :
 
 /-! ### A node's configuration view (2026-10-29, U9: the dynamic cluster `isDynamicCluster` deleted) -/
 
-/-- (open) **A node's configuration view** (exclusive, one per node; today `nodeCfg`): what
-`node.ApplyConfChange.dynamicSpec` moves and `node.Advance.dynamicSpec` checks. Separate from the
-`Ready` loop's token (`nodeDriver`): an application may apply the conf changes on another goroutine
-than its `Ready` loop (etcd's server applies them on its apply goroutine, and hands the view back
-before `Advance`). -/
-@[no_expose] def nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
-  ApiImpl.nodeConfig n γ N v
+-- (2026-10-30, stage R3) `nodeConfig` moved to `InvNodeRule.lean`: it holds `confAt`.
 
 /-- (open) **The committed log delivered to node `n` extends `l`** (persistent; today `dlvLb`): what
 `node.ApplyConfChange.dynamicSpec` takes of the entry it applies. -/

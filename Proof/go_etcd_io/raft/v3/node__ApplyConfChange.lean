@@ -308,6 +308,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-10-30, stage R3) The configuration after the applied entry: past the skipped ones, then
+the decision at `k`. -/
+private theorem confAt_applied (γ : Cluster) (l : List LogEntry) (k : Nat) (e : LogEntry)
+    (v : ConfigView) (o' : ConfChangeIM) (m' : Membership) :
+    v.applied ≤ k → l[k]? = some e → Membership.applyChange o' v.membership = some m' →
+    ⊢ EtcdGrove.isCommittedLogLb (GF := GF) γ l -∗ confAt γ v.applied v.membership -∗
+      skippedIn γ l v.applied k -∗ confDecided γ k (.apply o') -∗ confAt γ (k + 1) m' := by
+  intro hk he hap
+  have hkl : k < l.length := (List.getElem?_eq_some_iff.mp he).1
+  iintro Hl Hc Hs Hd
+  ihave Hck : confAt (GF := GF) γ k v.membership $$ [Hl Hc Hs]
+  · iapply confAt_skipped γ l v.applied k v.membership hk (by omega)
+    iframe Hl Hc Hs
+  ihave Hx : (∃ m'', ⌜(ConfDecision.apply o').step v.membership = some m''⌝ ∗ confAt (GF := GF) γ (k + 1) m'') $$ [Hck Hd]
+  · iapply confAt_decided γ k v.membership (.apply o')
+    iframe Hck Hd
+  icases Hx with ⟨%m'', %Hm, Hc'⟩
+  simp only [ConfDecision.step] at Hm
+  rw [hap] at Hm
+  cases Hm
+  iexact Hc'
+
 /-- `node.ApplyConfChange.spec` from the raw triple (2026-10-28, stage U4a; the conf-change
 decision switch): the cluster's decoder decides nothing, so the node's decisions are the recorded
 ones: the decision at `k` to apply `o'` (`confDecidedU`'s element) and the skips of the conf entries
@@ -320,7 +342,20 @@ private theorem node.wp_ApplyConfChange_impl
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig EtcdGrove.nodeStopped
   intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap
-  iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, Hcfg, #Hdl, Hsk⟩ HΦ
+  haveI := skippedIn_persistent (GF := GF) γ l v.applied k
+  haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
+  iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, ⟨Hcfg, #Hca⟩, #Hdl, #Hsk⟩ HΦ
+  -- (2026-10-30, stage R3) the configuration after the entry
+  ihave Hlc0 : EtcdGrove.isCommittedLogLb (GF := GF) γ l $$ []
+  · unfold EtcdGrove.isCommittedLogLb
+    iunfold ApiImpl.deliveredLogLb at Hdl
+    icases Hdl with ⟨-, #Hlc⟩
+    iexact Hlc
+  ihave Hca1 : EtcdGrove.confAt (GF := GF) γ v.applied v.membership $$ []
+  · unfold EtcdGrove.confAt; iexact Hca
+  ihave Hdec1 : EtcdGrove.confDecided (GF := GF) γ k (.apply o') $$ []
+  · unfold EtcdGrove.confDecided; iexact Hdec
+  ihave Hca' := confAt_applied γ l k e v o' m' Hk He Hap' $$ Hlc0 Hca1 Hsk Hdec1
   iunfold isClusterU at Hcl
   icases Hcl with ⟨%Hu, -⟩
   obtain ⟨⟨c0, gd, Hmd0⟩, -, -⟩ := Hu
@@ -407,11 +442,14 @@ private theorem node.wp_ApplyConfChange_impl
   iapply HΦ
   ileft
   iframe Hcs
-  isplitl [Hcf']
-  · unfold nodeConfig
-    iexists γn, id1
-    iframe Hn1 Htab1 Hcf'
-    ipureintro; exact ⟨Hnok, Hdy, Hg'⟩
+  isplitl [Hcf' Hca']
+  · isplitl [Hcf']
+    · unfold nodeConfig
+      iexists γn, id1
+      iframe Hn1 Htab1 Hcf'
+      ipureintro; exact ⟨Hnok, Hdy, Hg'⟩
+    iunfold EtcdGrove.confAt at Hca'
+    iexact Hca'
   ipureintro
   have := confStateIs_of_ok cs _ Hok
   rw [stOf_cfg, memOf_cfgOf] at this
