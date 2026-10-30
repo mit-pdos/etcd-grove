@@ -18354,3 +18354,18 @@ axiom added; commits `b056769ac1`, `01cf882ad1`):**
    `confDecide`, `skippedIn`; `ConfPolicy.lean` (`confPolicy` an invariant over the authority);
    `RestartNode`/`ApplyConfChange`/`Advance`/`CreateSnapshot` `.unifiedSpec`s re-proved; §5's items
    removed. Then kv (deferred by the user).
+
+## raft-final: phases 0-1, every statement final, proofs `sorry` (2026-10-29, branch `raft-final`)
+
+The final raft proof, after `notes/raft-unified-plan.md`'s design (the coordinator's gap design and
+its review, amendments A1-A10, K5 back in by the user's decision). Phase 0: tracks A and B merged
+(`raft-unified` + `raft-unified-storage2`), track B's node-level WIP re-applied, U9's deletions (the
+static and dynamic families, `StartNode`'s spec until U10, `InvApiDyn` → `InvApiView`). Phase 1:
+every definition, invariant and spec statement in final form (the leader witness `leadW`, the
+transfer records `NGhost.xw`/`xfW`, `XfOk`'s final form, `isRaftMsg` with the transfer witness,
+`NetMsgOk` internal, the read-credit exchange `rdPool`, `isNode` with its table entry, K5's
+`nodeErrS`, the storage node level, A1-A4); raft's `Link`, `Linked`, `Results`, `Api` and
+`MemstorageApi` build, with 152 `sorry`s in 76 files (listed, with the phase-2 tracks' file map, in
+the plan's "Phase 1 sorries"), each broken proof kept in a `PHASE1-OLD` comment. Phase 2 (the
+proofs, parallel tracks) waits for the review of the statements (`interface/` regenerated). Clients
+(kv, server, examples) broken until later.

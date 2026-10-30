@@ -1219,3 +1219,17 @@ Phase 2 (internal statement changes):
   `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
   P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
   P5 together with P7. All tracks done (phase 2 complete at `9491b601ab`); phase 3 next. Then phase 3.
+
+### Phase 3 (done 2026-10-30)
+
+- `Link.lean` regenerated (`etc/gen-link.py --raft`): unchanged. `Linked` exports every `node` method
+  and `MemoryStorage.{InitialState, CreateSnapshot, ApplySnapshot, Compact, Snapshot}` (review F3).
+  `Results` also prints the axioms of `InvNode`'s, `InvNodeRule`'s, `MemstorageApi`'s and
+  `InvMemstorage`'s laws. No result depends on `sorryAx`.
+- `interface/` regenerated; `etc/api-check.py etc/api/raft.txt --check` passes; `gen-interface
+  --check --layout`: 0 new layout violations.
+- Axioms, read off `#print axioms` of all 415 printed results, against `etc/tcb-collections/raft.txt`:
+  the baseline's 13, plus **`ccDecodeV2_nil`** (the expected one, user-approved). The type
+  axioms of untranslated types are the same as before. `etc/tcb-report.py --collection … --check
+  --update` is not run: it needs the whole repository built, and the clients are broken until the
+  repair phase. Run it, with the user's go-ahead, once they build.
