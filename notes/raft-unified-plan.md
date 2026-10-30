@@ -1554,6 +1554,8 @@ results see them:
   ("Repair: Stage P changes").
 - **`isServerApplyAll`** (stage P, P6; trusted precondition weakened; coordinator-approved while the user was away, for the user's review): the msgSnapC bag's False clause and
   `receiptBound ≤ scu + 1` dropped ("Repair: Stage P changes").
+- **`srvSnapState`** (stage P, P8; exported applyAll_model's pre/post: frozen-entry parts removed (equal to lean's); coordinator-approved while the user was away, for the user's review): the frozen-entry parts moved to `srvSnapFrozen`
+  ("Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1774,3 +1776,11 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   unless a snapshot is due, then calls `snapshot` and `compactRaftLog`: the specs take only what the
   no-snapshot path and the guard need; the due branch is **SNAPSHOT-SORRY #11**. The strong statements and
   S-D's proofs of them are kept as `specFull`/`wp_proofFull` (for the snapshot track after the merge).
+- **P8 `srvSnapState`** (`InvApplyAll`; **exported applyAll_model's pre/post: frozen-entry parts removed (equal to lean's); coordinator-approved while the user was away, for the user's review**): back to lean's form; its Stage F parts
+  `srvFrozenAt γs ai ∗ srvFrozenBelow γs ai` move to a new **`srvSnapFrozen γs ai`**, taken/returned only by the
+  snapshot-only statements (`EtcdServer.snapshot.spec`, `snapshotIfNeeded…specFull`, ModeSpecs' `specFull*`).
+  Why: `applyAll`'s post could not re-establish them (the `s.stopping` arm returns before the batch is
+  frozen; entry 0 is never in a batch's range). **Open for the post-merge snapshot track:** (1) the
+  stopping arm needs an "or stopping" form of the frozen state in `applyAll`'s post and `run`'s `InvRun`;
+  (2) entry 0 (`srvFrozenBelow` at `ai = 0`) from `NewMemoryStorage`'s `memLog 0 □ [zero]`, e.g. a stronger
+  `srvFrozenAt 0`. Made by S-D (with `run`'s patterns, coordinated with S-E).
