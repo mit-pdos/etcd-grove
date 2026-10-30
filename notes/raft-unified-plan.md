@@ -1610,7 +1610,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `NewServerAlloc.lean` (`srvClusterBoot_alloc` (done)), `NewServerAllocOn.lean`
    (`srvClusterBootOn_alloc` (done)), `BuildGap.lean` (`entryClaims_transfer` (done), `clusterWorkloadOk_of` (done),
    `rnEnvOk_of_cluster` (done), `isServerBuilt_of_gap` (done)), `StartOn.lean` (`isServerBuilt_of_gapOn`),
-   `ServerOn.lean` (`clusterWorkloadOkOn_of`, `rnEnvOk_of_clusterOn`, `rnEnvOk_of_clusterM`),
+   `ServerOn.lean` (`clusterWorkloadOkOn_of` (done), `rnEnvOk_of_clusterOn` (done), `rnEnvOk_of_clusterM` (done)),
    `InvBuild.lean` (`srvMsgNet_bundle`), `EtcdServer__start.lean` (both), `EtcdServer__run.lean`
    (`run_job_body`, `run_job_bodyOn`, `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
    `wp_proof`; `wp_proofCompact` was already `sorry`).
