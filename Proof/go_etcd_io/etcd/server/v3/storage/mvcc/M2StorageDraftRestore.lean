@@ -91,51 +91,54 @@ abbrev mvcc.jobFieldsN : Namespace := nroot.@"mvcc_jobFields"
 /-- An eighth (the closer's quarter, halved). -/
 abbrev mvcc.q8 : Qp := (1 : Qp).half.half.half
 
-/-- **The compaction jobs' share of the fields** (persistent; draft, in place of `storeStop` in
-`compactJobPre`): an eighth of the four fields `Restore` writes at the current objects and names
-(`fieldShareAt`: the points-to, the objects' `curAt`, the restoring flag down, what they are), or the
-scheduler's run token. A running job holds the run token, so it finds the share; once `Stop` has
-returned the run token, the stopper takes the share out (`storeStopR_reclaim`). -/
-@[no_expose] def mvcc.storeStopR (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  inv mvcc.jobFieldsN iprop((∃ o : mvcc.StoreObjs, mvcc.fieldShareAt s γ mvcc.q8 o) ∨
-    schedule.schedDoneD γ.sch)
+/-- **The compaction jobs' share of the fields at the objects `o`** (persistent; draft, in place of
+`storeStop` in `compactJobPre`, which carries `∃ o, storeStopR s γ o`): an eighth of the four
+fields `Restore` writes at the objects `o` (`fieldShareAt`: the points-to, the objects' `curAt`,
+the restoring flag down, what they are), or the scheduler's run token. A running job holds the run
+token, so it finds the share; once `Stop` has returned the run token, the stopper takes the share
+out (`storeStopR_reclaim`). The objects are fixed in the invariant (review round 3's S4): while the
+eighth is in it no one writes the fields, and `Restore` reclaims it only after `Stop`, then moves to
+fresh names (`withPhys`, whose scheduler is new); so a job reads every field at the same `o`, as
+today's discarded `curAt` gives it, without holding a fraction. -/
+@[no_expose] def mvcc.storeStopR (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : IProp GF :=
+  inv mvcc.jobFieldsN iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDoneD γ.sch)
 
-instance mvcc.storeStopR_persistent (s : Loc) (γ : mvcc.StoreNames) :
-    Persistent (mvcc.storeStopR (GF := GF) s γ) := by
+instance mvcc.storeStopR_persistent (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
+    Persistent (mvcc.storeStopR (GF := GF) s γ o) := by
   unfold mvcc.storeStopR; infer_instance
 
 /-- **The jobs' share back** (`Restore`/`Close`, after `Stop`): with the run token, the share. -/
-theorem mvcc.storeStopR_reclaim (s : Loc) (γ : mvcc.StoreNames) :
-    ⊢ mvcc.storeStopR (GF := GF) s γ -∗ schedule.schedDoneD γ.sch -∗ £ 1 ={⊤}=∗
-      ∃ o : mvcc.StoreObjs, mvcc.fieldShareAt s γ mvcc.q8 o := by
+theorem mvcc.storeStopR_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
+    ⊢ mvcc.storeStopR (GF := GF) s γ o -∗ schedule.schedDoneD γ.sch -∗ £ 1 ={⊤}=∗
+      mvcc.fieldShareAt s γ mvcc.q8 o := by
   iintro #Hi Hd Hlc
   iunfold mvcc.storeStopR at Hi
   iinv Hi with Hb Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑mvcc.jobFieldsN) $$ Hlc Hb with Hb
-  icases Hb with (⟨%o, Ho⟩ | Hd')
+  icases Hb with (Ho | Hd')
   · imod Hclose $$ [Hd] with -
     · inext; iright; iexact Hd
     imodintro
-    iexists o; iexact Ho
+    iexact Ho
   · iexfalso
     iapply schedule.schedDoneD_excl γ.sch $$ [$Hd $Hd']
 
 /-! ## The compaction right that survives `Restore` -/
 
-/-- **The closer's half kept by a compacting store** (draft): an eighth of the fields at the current
-objects, the stop channel and its close, the scheduler's stop token (today's `storeCloser` with an
+/-- **The closer's half kept by a compacting store** (draft): an eighth of the fields at the objects
+`o`, the stop channel and its close, the scheduler's stop token (today's `storeCloser` with an
 eighth in place of the quarter and without the queue, which the right holds at its revision). -/
-@[no_expose] def mvcc.storeCloserR (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(∃ o : mvcc.StoreObjs, mvcc.fieldShareAt s γ mvcc.q8 o ∗ mvcc.isStopChan o.sstop ∗
+@[no_expose] def mvcc.storeCloserR (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : IProp GF :=
+  iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∗ mvcc.isStopChan o.sstop ∗
     mvcc.stopCloser o.sstop ∗ schedule.schedStopTok γ.sch)
 
 /-- **The compaction right at `c`, restorable** (draft of `compactRight`; P4's root cause removed):
 the compaction revision's half of the authority, the jobs' queue at `c` (as today), the closer's
-half (`storeCloserR`) and the jobs' share of the fields (`storeStopR`). Nothing is discarded, so
-`store.Restore` (and `Close`) take it back. -/
+half (`storeCloserR`) and the jobs' share of the fields (`storeStopR`), at the same objects. Nothing
+is discarded, so `store.Restore` (and `Close`) take it back. -/
 @[no_expose] def mvcc.compactRightR (s : Loc) (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
-  iprop(mvcc.crevUB γ.idx (1 : Qp).half c ∗ mvcc.compactQueue γ c ∗ mvcc.storeCloserR s γ ∗
-    mvcc.storeStopR s γ)
+  iprop(mvcc.crevUB γ.idx (1 : Qp).half c ∗ mvcc.compactQueue γ c ∗
+    ∃ o : mvcc.StoreObjs, mvcc.storeCloserR s γ o ∗ mvcc.storeStopR s γ o)
 
 /-- `q8 + q8` is the closer's quarter. -/
 theorem mvcc.q8_add : mvcc.q8 + mvcc.q8 = (1 : Qp).half.half := Qp.half_add_half _
@@ -153,34 +156,27 @@ theorem mvcc.compactRightR_of_closer (s : Loc) (γ : mvcc.StoreNames) (E : CoPse
   rw [mvcc.q8_add] at hs
   icases hs $$ Hf with ⟨Hf1, Hf2⟩
   imod inv_alloc mvcc.jobFieldsN E
-    iprop((∃ o : mvcc.StoreObjs, mvcc.fieldShareAt s γ mvcc.q8 o) ∨ schedule.schedDoneD γ.sch)
+    iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDoneD γ.sch)
     $$ [Hf2] with #Hi
-  · inext; ileft; iexists o; iexact Hf2
+  · inext; ileft; iexact Hf2
   imodintro
   iunfold mvcc.compactRightR
   iframe Hcu Hq
+  iexists o
   isplitl [Hf1 Hstc Htok]
   · iunfold mvcc.storeCloserR
-    iexists o
     iframe Hf1 Hsc Hstc Htok
   iunfold mvcc.storeStopR
   iexact Hi
 
 /-- **The closer's quarter again** (`Restore`/`Close` after `Stop`): the closer's eighth and the
-jobs' eighth, reclaimed with the run token, are at the same current objects (`curAt`) and make the
-quarter today's `storeCloser` holds. -/
+jobs' eighth, reclaimed with the run token, are at the same objects and make the quarter today's
+`storeCloser` holds. -/
 theorem mvcc.fieldShare_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
-    ⊢ mvcc.fieldShareAt (GF := GF) s γ mvcc.q8 o -∗ mvcc.storeStopR s γ -∗
+    ⊢ mvcc.fieldShareAt (GF := GF) s γ mvcc.q8 o -∗ mvcc.storeStopR s γ o -∗
       schedule.schedDoneD γ.sch -∗ £ 1 ={⊤}=∗ mvcc.fieldShareAt s γ (1 : Qp).half.half o := by
   iintro Hf #Hi Hd Hlc
-  imod mvcc.storeStopR_reclaim s γ $$ Hi Hd Hlc with ⟨%o', Hf'⟩
-  ihave %Hv : ⌜o = o'⌝ $$ [Hf Hf']
-  · iunfold mvcc.fieldShareAt at Hf Hf'
-    iNamedSuffix Hf "1"
-    iNamedSuffix Hf' "2"
-    ihave %H := mvcc.curAt_agree γ γ rfl _ _ o o' $$ [$Hcur1 $Hcur2]
-    ipureintro; exact H.1
-  subst Hv
+  imod mvcc.storeStopR_reclaim s γ o $$ Hi Hd Hlc with Hf'
   have hs := (mvcc.fieldShareAt_split (GF := GF) s γ mvcc.q8 mvcc.q8 o).2
   rw [mvcc.q8_add] at hs
   imodintro
