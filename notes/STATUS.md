@@ -605,6 +605,29 @@ exported or trusted switched:
   proved), `γx`'s home (`stopPayAt_done` proved), `StoreNamesD.cm`. New Drafts:
   `mvcc/M2StorageDraft{Index,Chain}.lean`, `etcdserver/M2StorageDraftScope.lean`.
 
+- **The approved items switched** (2026-10-30, after review round 5; the plan's "The switch of the
+  approved items"): items 1-13, 19, 26, 28 (one spec per read, S1), 29 (its pure vocabulary,
+  `mvcc/CmpRecs.lean`), 34, 35 (with S4's margin) and item 4's step-1 text (the supply) are real; the step-1 Drafts, the schedule, Supply and Scope Drafts are
+  deleted. **Stopped, for the user**: item 17 (the compaction chain over the restorable right) is not
+  provable as drafted: Perennial's loads are not atomic (`StartRead`/`FinishRead`), so a job cannot
+  read the fields through `storeStopR`'s invariant, and leasing the eighth for a job's run against
+  the run token is unsound; with it the statements over `compactRightR` (item 4's step-2 text, 20, 23,
+  24) and item 31 (whose `lockCtxM` only item 17's specs use) stay Drafts (`notes/decisions.md`,
+  "M2's storage side: the compaction chain over the restorable right is not provable as drafted",
+  two repairs proposed). Item 14 stays a Draft: it is stated over D22's `srvWTPoolR` (item 21's). Item
+  27 (the records threaded through `keyReadLocked`…`storeBackendT`, `restoreViewR`) and item 29's
+  backend part (the merged compaction-key ghost, `kbRecs`) stay Drafts with item 30, their only users
+  being the waiting restore chain.
+  **Snapshot-track proof-only changes, for the collaborator** (no snapshot-track statement changed):
+  `mvcc/store__Restore.lean` (the new scheduler's payload name `sx` allocated, `NewFIFOScheduler`'s
+  `Pay`, `Stop`'s `schedPay` from the closed stop channel, `physOk`'s two new conjuncts at the new
+  names), `mvcc/watchableStore__Restore.lean` (the lock's body's `wsWatchFrozen`); the Drafts of the
+  snapshot track (`etcdserver/M2StorageDraftRestore.lean`) adapted: `srvEnvOkD` over `apply.AEnv`
+  (its `cmp` real), `srvKVCloserM_of_new` and `restorePre_of_applyM` take the logical mode
+  (`E.γ.cm`). D22's `RestorePre.restorePre_of_apply`'s `sorry` (`crevFrozen E.γ`) can now be closed by
+  `mvcc.isWatchableStore_frozen` once the store's logical mode is known off there (`γ.st.cm = false`;
+  `srvEnvOk` gives the backend's `d.cm = false`, the tie is `physOk`'s).
+
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 
 **Verified.** Over raft's unified API, every `sorry` Stage F left in etcd's server and examples/kv is

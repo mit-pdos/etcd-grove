@@ -19,7 +19,7 @@ draft of one, for them to read.
   backend, as the pool's today (the shared counter bounds all takes together). Alternatives in the
   plan (questions for the user).
 - **The apply environment's facts by the mode** (`srvEnvOkD`: `d.cm = E.cmp` in place of
-  `d.cm = false`, over N1's `apply.AEnvD`), with the step the install makes (`srvEnvOkD_mode_step`).
+  `d.cm = false`, over N1's `apply.AEnv` with `cmp`), with the step the install makes (`srvEnvOkD_mode_step`).
 - **The KV's closer by the mode** (`srvKVCloserM`: today's `srvKVCloser` off; on, the watchable
   store's own parts and the inner store's restorable right, `mvcc.wsCloserR`), and **`RestorePre`
   drafted** (`restorePre_of_applyM`: today's `restorePre_of_apply` in either mode, without its
@@ -252,25 +252,25 @@ theorem srv_be_swapR (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRe
 
 /-! ## The apply environment by the mode -/
 
-/-- **Draft of `srvEnvOk`** (D22's, `InvApplier.lean:478`), over N1's `apply.AEnvD`: the store's
+/-- **Draft of `srvEnvOk`** (D22's, `InvApplier.lean:478`), over N1's `apply.AEnv` with `cmp`: the store's
 backend at the server's mode (`d.cm = E.cmp`) in place of `d.cm = false` (Q5-4's restriction,
 withdrawn: restore works in compaction mode). -/
-def srvEnvOkD (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnvD GF) (cl : Loc) : Prop :=
+def srvEnvOkD (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
         H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
 
 /-- **At the off mode it is today's.** -/
-theorem srvEnvOkD_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnvD GF) (cl : Loc)
-    (h : E.cmp = false) : srvEnvOkD s γ ci E cl ↔ srvEnvOk s γ ci E.toAEnv cl := by
+theorem srvEnvOkD_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : E.cmp = false) : srvEnvOkD s γ ci E cl ↔ srvEnvOk s γ ci E cl := by
   unfold srvEnvOkD srvEnvOk
   rw [h]
 
 /-- **The install keeps the mode** (the step `SnapApplyDefs`/`SnapApplyIsServer` make, at
 `hcm' : d'.cm = d.cm` in place of `d'.cm = false`): the new backend at the old one's mode, so the
 store's mode is the server's after it too (`envAgreeD`'s mode clause, S5'). -/
-theorem srvEnvOkD_mode_step (E E' : apply.AEnvD GF) (d d' : mvcc.KBReal)
+theorem srvEnvOkD_mode_step (E E' : apply.AEnv GF) (d d' : mvcc.KBReal)
     (hkb' : E'.γ.kb = some d') (hcm : d.cm = E.cmp) (hcm' : d'.cm = d.cm)
     (hE : E'.cmp = E.cmp) :
     d'.cm = E'.cmp ∧ (mvcc.kbCmpM E'.γ.kb ↔ E'.cmp = true) := by
@@ -305,12 +305,13 @@ theorem srvKVCloserM_off (s : Loc) (E : apply.AEnv GF) (c : Int) (h : ¬ mvcc.kb
 /-- **`NewServer`'s step, on** (draft; after its last error return, in place of
 step 1's discarding `compactRight_of_wsCloser`, dropped): the kept closer and the authority's half make the closer by the mode
 at `-1`. -/
-theorem srvKVCloserM_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.kb) :
+theorem srvKVCloserM_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.kb)
+    (hc : E.γ.cm = true) :
     ⊢ srvKVCloser (GF := GF) s E -∗ mvcc.crevRightM E.γ ={⊤}=∗ srvKVCloserM s E (-1) := by
   iintro Hcl Hcr
   iunfold srvKVCloser at Hcl
   icases Hcl with ⟨%wsl, #Hkv, Hcl⟩
-  imod mvcc.wsCloserR_of_wsCloser wsl E.s E.γ h ⊤ $$ Hcl Hcr with Hr
+  imod mvcc.wsCloserR_of_wsCloser wsl E.s E.γ hc ⊤ $$ Hcl Hcr with Hr
   unfold srvKVCloserM
   simp only [h, ↓reduceIte]
   imodintro
@@ -326,7 +327,7 @@ Off, the frozen fact is the watchable store's own, by a law (`isWatchableStore_f
 switch `isWatchableStoreD_frozen`, its `wsFrozenM` mode-gated; review round 3's S7, no unfold); on, there is none: the compaction right is
 taken instead. No `sorry`. -/
 theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c : Int)
-    (hwq : E.γ.watchQ = true) :
+    (hwq : E.γ.watchQ = true) (htie : mvcc.kbCmpM E.γ.kb ↔ E.γ.cm = true) :
     apply.kvOwn E log ∗ srvKVCloserM s E c ⊢
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.restoreRightM E.s γw.st c ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
@@ -365,7 +366,8 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
       icases Hcl with ⟨%stc, #Hstc, Hstcl, Hwsw, Hcl⟩
       ihave #Hfrz : mvcc.crevFrozen E.γ $$ []
       · rw [← hγw]
-        iapply mvcc.isWatchableStore_frozen ws E.s γw $$ Hws
+        iapply mvcc.isWatchableStore_frozen ws E.s γw
+          (by rw [hγw]; exact Bool.eq_false_iff.mpr (fun hc => h (htie.2 hc))) $$ Hws
       isplitl [Hcl]
       · iapply (mvcc.restoreRightM_off E.s E.γ c h).2
         iframe Hcl Hfrz

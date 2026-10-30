@@ -163,6 +163,8 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (wkDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
+  ihave ⟨%Hcmp0, Hmb⟩ := common.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
   -- watchkv's invariant over the KV state's half, at the plan: the bootstrap log changes no KV
   -- state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes = [[]] := by
@@ -202,6 +204,7 @@ theorem Main.wp_proof
   icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
+  have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
@@ -259,7 +262,7 @@ theorem Main.wp_proof
     · iframe Hgsn Hlis; iframe #
     imod (wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) go!"127.0.0.1:23872"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl)
+        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hoff)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>

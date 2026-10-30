@@ -37,7 +37,7 @@ theorem schedule.NewJob.wp_proof (hDo : schedule.job.Do.spec (GF := GF) (hG := h
   imodintro
   iintro %ctx %cd %Φ'
   imodintro
-  iintro ⟨Hrun, HPre, HPrev, Hctx⟩ HΦ'
+  iintro ⟨Hrun, HPre, HPrev, Hctx, #Hpd⟩ HΦ'
   iapply (hDo γ { name' := name, do' := f } ctx cd Pre Prev Post) $$ [Hrun HPre HPrev Hctx] HΦ'
   iframe
   iframe #

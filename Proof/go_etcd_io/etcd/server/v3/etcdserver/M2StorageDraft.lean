@@ -1,39 +1,22 @@
 /-
-**M2, the storage side: the server's glue over the Draft** (`notes/m2-storage-plan.md`; revised
-after review round 1, `notes/spec-first-study/m2-storage-review-1.md`). Imported by nothing. What
-`NewServer` and the apply thread do with the drafted mvcc statements (`mvcc/M2StorageDraft.lean`),
-proved against them before any proof is switched:
+**M2, the storage side: the server's glue, still Draft** (`notes/m2-storage-plan.md`). The step-1
+statements are switched (2026-10-30, "The switch of the approved items": `apply.AEnv.cmp`,
+`envAgree`'s mode clause, `NewServer.spec`'s `E₀.cmp` premise, `mvcc.New.spec`'s `crevRightM`); what
+stays here is the glue for the compacting server (`NewServer.specCompact`, whose proof is still the
+skeleton's `sorry`), imported by nothing but the server's step-2 Draft:
 
-- `server_kv_watchable_ofD` (review round 1's S1: one lemma over the backend record `d`, the mode
-  `d.cm`, in place of `server_kv_watchable_of` and the round's `server_kv_watchable_ofC`): the
-  server's KV from `New.specD` over the backend `d` in either mode: the deletable keys fixed by the
-  mode (nothing deletable off, the store's keys on: `storeDlReg`), the compaction keys' values
-  tracked when compacting (`□ (⌜d.cm = true⌝ -∗ fkV)`, as `mvcc_NewStore_backend` takes it), the
-  safe-range slot in either mode (`mvcc.kbSRM_some`). Its post: the store at `kb = some d`,
-  `actualMaxReaders - nJobRd (some d) - 2` watch readers, `retiredAt γ (nJobRd (some d))`, the
-  closer and `crevRightM γw.st` (the right made after `NewServer`'s last error return,
-  `mvcc.wsCloserR_of_wsCloser` with `mvcc.kbCmpM_some`, step 2's, the closer kept: `srvKVCloserM_of_new`; the round's wrapper
-  `newServer_compactRight` dropped, S2). It gives `watchWriter`/`writerFrag` in place of today's
-  `txn.isKV`/`txn.kvWriter`, which are defined over today's `isWatchableStore` (a Draft artifact:
-  at the switch the predicate is redefined in place and they follow as today).
-- `kbWTSupplyM_of_srvWTPool`: R2-7's conversion (unchanged; its discarded part of `E.γbe` had F2
-  as its source, which the user withdrew with P4 on 2026-10-30, "restore must work in compaction
-  mode": the supply's server source is pending step 2, `notes/m2-storage-plan.md`).
-- **F2 withdrawn** (2026-10-30, the user's decisions after `lean`'s Stage P): `srvBeFrac`,
-  `srvBeOwnD`, `srvBeOwnD_off`, `srvBeOwnD_frozen`, `kbWTSupplyM_of_srvBeOwnD` and `srvBe_allocD`
-  are gone (step 2 replaces them; review round 2's S1' and S2' with them).
-- **N1, the server's mode in its apply environment** (review round 2's N1; the route decided after
-  the round, `notes/m2-storage-plan.md`): `apply.AEnvD` (`apply.AEnv` with the field `cmp`),
-  `envAgreeD` (today's `envAgree` with `E.cmp = E'.cmp` and the mode clause `kbCmpM E.γ.kb ↔
-  E.cmp = true`: S5', the one reading of the mode), its laws (`envAgreeD_agree`, `envAgreeD_off`,
-  `envAgreeD_on`, `envAgreeD_mode`) and `NewServer`'s step (`envAgreeD_of_new`, at
-  `NewServer.lean:1039`).
+- `server_kv_watchable_ofD`: the server's KV from `New.spec` over the backend `d` in either mode
+  (nothing deletable off, the store's keys on: `storeDlReg`), the post at `kb = some d` with
+  `crevRightM γw.st` (the right made after `NewServer`'s last error return).
+- `kbWTSupplyM_of_srvWTPool`: R2-7's conversion (its discarded part of `E.γbe` had F2 as its source,
+  withdrawn; the step-2 source is `etcdserver/M2StorageDraftRestore.lean`'s `kbWTSupplyM_of_poolR`).
+- `txn.storeWTs_someD`: a law of txn's (to `txn/Defs.lean` when a real proof uses it).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraft
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 
 @[expose] public section
 
@@ -81,7 +64,7 @@ theorem txn.storeWTs_someD (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hd : γ.kb 
 /-- **`server_kv_watchable_of` over the backend record `d`, in either mode** (S1; see the file
 header). -/
 theorem server_kv_watchable_ofD
-    (hNew : mvcc.New.specD (GF := GF) (hG := hG))
+    (hNew : mvcc.New.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
@@ -140,7 +123,7 @@ theorem server_kv_watchable_ofD
           mvcc.isReadView rv st γw.st) ∗
         mvcc.hookInit γw.st Pk f ∗ mvcc.watchWriter γw [[], []] ∗ mvcc.writerFrag γw.st ∗
         txn.storeWTs γw.st N ∗ ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        mvcc.isWatchableStoreD ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
+        mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate
             (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d) - 2) (),
           mvcc.watchReader ws st γw) ∗
@@ -186,8 +169,8 @@ theorem server_kv_watchable_ofD
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret⟩
-  obtain ⟨hb, hl, hk, hi, hc, ht⟩ := Hγ
-  ihave #Hrv := mvcc.isWatchableStoreD_readView ws st γw $$ Hws
+  obtain ⟨hb, hl, hk, hi, hc, ht, -⟩ := Hγ
+  ihave #Hrv := mvcc.isWatchableStore_readView ws st γw $$ Hws
   iapply HΦ
   iexists st, γw
   rw [ht]
@@ -195,78 +178,6 @@ theorem server_kv_watchable_ofD
   isplitr
   · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
   iapply (txn.storeWTs_someD γw.st d hk N) $$ Hw
-
-/-! ## N1: the server's compaction mode in its apply environment (review round 2's N1)
-
-The watching examples hold `memberBuilt`/`memberUp`, whose apply environment `E` is existential and
-whose parameters carry no mode; both `NewServer.spec` and `NewServer.specCompact` give them. The
-mode reaches them through the stand-in `E₀` they already pass: `apply.AEnv` gains a field `cmp`
-(drafted as `apply.AEnvD`, a structure extending today's), `envAgree E E₀` (a pure conjunct of
-`NewServer.spec`'s post, `memberBuilt`, `memberUp`) agrees on it and ties it to the store's mode
-(`envAgreeD`), and `NewServer.spec` takes `E₀.cmp = false` (`specCompact`: `E₀.cmp = true`). An
-example then reads `¬ kbCmpM E.γ.kb` off `envAgree` (`envAgreeD_off`), the premise of the watch
-server's "no compactor" law (`v3rpc.isWatchServerD_noCompactor_env`). -/
-
-/-- **Draft of `apply.AEnv`** (N1; `apply/Chain.lean`): one more field, after `γbe`,
-```
-  /-- (M2, the storage side, N1) the server's compaction mode: whether its store compacts (the
-  auto-compactor on), which `envAgree` ties to the store's backend (`kbCmpM E.γ.kb`) and the
-  stand-in `E₀` carries to the examples; the apply package does not use it (as `γrev`) -/
-  cmp : Bool := false
-```
-(drafted as an extension, so the Draft reads today's predicates at `E.toAEnv`). -/
-structure apply.AEnvD (GF : BundledGFunctors) extends apply.AEnv GF where
-  cmp : Bool := false
-
-instance apply.AEnvD.coe : CoeOut (apply.AEnvD GF) (apply.AEnv GF) := ⟨apply.AEnvD.toAEnv⟩
-
-/-- **Draft of `envAgree`** (N1; `InvBuild.lean`): two environments agree on the names (today's),
-on the compaction mode, and the first one's mode is its store's (S5': one reading of the mode,
-`E.cmp` the server's own, not a second copy that could drift; D22's snapshot install, which
-replaces `E.γ.kb`, keeps the clause in step 2). -/
-def envAgreeD (E E' : apply.AEnvD GF) : Prop :=
-  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧
-    (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)
-
-/-- Today's agreement (what `srvC_agree`/`srvCM_agree` read: at the switch their patterns
-`⟨hi, hc, hr⟩` become `⟨hi, hc, hr, -, -⟩`). -/
-theorem envAgreeD_agree (E E' : apply.AEnvD GF) (h : envAgreeD E E') :
-    envAgree (GF := GF) E.toAEnv E'.toAEnv :=
-  ⟨h.1, h.2.1, h.2.2.1⟩
-
-/-- **The mode, read at the stand-in** (N1, S5'): the server's store compacts exactly when the
-stand-in says so. -/
-theorem envAgreeD_mode (E E₀ : apply.AEnvD GF) (h : envAgreeD E E₀) :
-    mvcc.kbCmpM E.γ.kb ↔ E₀.cmp = true := by
-  rw [h.2.2.2.2, h.2.2.2.1]
-
-/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
-`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
-theorem envAgreeD_off (E E₀ : apply.AEnvD GF) (h : envAgreeD E E₀) (h0 : E₀.cmp = false) :
-    ¬ mvcc.kbCmpM E.γ.kb := by
-  rw [envAgreeD_mode E E₀ h, h0]; simp
-
-/-- A compacting stand-in, a compacting server (`specCompact`'s, for the compaction arm). -/
-theorem envAgreeD_on (E E₀ : apply.AEnvD GF) (h : envAgreeD E E₀) (h0 : E₀.cmp = true) :
-    mvcc.kbCmpM E.γ.kb :=
-  (envAgreeD_mode E E₀ h).2 h0
-
-/-- **`NewServer`'s step** (N1; `NewServer.lean:1039`, `hγs`): today's agreement, the store built
-over the boot backend `d` at the environment's mode (`{ d with cm := E.cmp }`; today
-`{ d with cm := false }`), and the environment built at the stand-in's mode (`cmp := E₀.cmp`, the
-anonymous constructor's one more component) give the drafted agreement. -/
-theorem envAgreeD_of_new (E E₀ : apply.AEnvD GF) (d : mvcc.KBReal)
-    (h : envAgree (GF := GF) E.toAEnv E₀.toAEnv) (hkb : E.γ.kb = some d) (hd : d.cm = E.cmp)
-    (hc : E.cmp = E₀.cmp) : envAgreeD E E₀ :=
-  ⟨h.1, h.2.1, h.2.2, hc, by rw [hkb, mvcc.kbCmpM_some, hd]⟩
-
-/-- `NewServer.spec`'s instance (`E₀.cmp = false`, the store at `{ d with cm := false }`). -/
-theorem envAgreeD_of_new_off (E E₀ : apply.AEnvD GF) (d : mvcc.KBReal)
-    (h : envAgree (GF := GF) E.toAEnv E₀.toAEnv)
-    (hkb : E.γ.kb = some ({ d with cm := false } : mvcc.KBReal)) (hc : E.cmp = false)
-    (h0 : E₀.cmp = false) : envAgreeD E E₀ :=
-  envAgreeD_of_new E E₀ _ h hkb (by rw [hc]) (by rw [hc, h0])
-
 
 end draft
 

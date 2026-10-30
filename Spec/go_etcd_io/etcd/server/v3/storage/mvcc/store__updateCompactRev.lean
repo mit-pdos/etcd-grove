@@ -40,7 +40,7 @@ critical-section contract of the batch lock (`csContract`:
 The store's reader token `storeRT γ` is lent and given back in every case (question 5's core stage,
 parts (2)-(4), decided by the agent: `SetScheduledCompact`'s `LockInsideApply` and the
 `ForceCommit` after it take it; the caller's, `compactLockfree`'s and `store.Compact`'s). Their
-write-back tokens come from the store's supply (`physCmp`'s `kbWTSupply`) and the receipts of its own
+write-back tokens come from the caller's supply (`kbWTSupplyM`, M2's Q1 (a)) and the receipts of its own
 steps. The caller's `hookIs γ P f` is given back in every case (Probe P1, 2026-10-30). -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
@@ -49,7 +49,7 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
-      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeRT γ }}
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
       mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗

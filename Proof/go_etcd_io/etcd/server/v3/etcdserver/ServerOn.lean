@@ -633,7 +633,7 @@ open Iris.ProofMode in
 theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (h : envAgree E E') :
     srvCM on ρ E ai₀ c₀ x₀ = srvCM on ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr⟩ := h
+  obtain ⟨hi, hc, hr, -, -⟩ := h
   have hres : resultΨ (GF := GF) E = resultΨ E' := by
     funext ρ' rq F x
     unfold resultΨ resultIsW revMinted revTok mvcc.certOk

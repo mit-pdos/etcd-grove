@@ -91,7 +91,7 @@ theorem mvcc.NewStore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hwts, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
@@ -138,12 +138,17 @@ theorem mvcc.NewStore.wp_proof
   wp_apply (hNewIdx γi lg' 0 []) $$ [Hnauth0 Hcmpf] as %ti ⟨Hix, Hig, Hcmp0⟩
   · iframe Hnauth0 Hcmpf; iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, HsStop, Hq0, #Hp0⟩
+  -- (M2, the storage side, item 34) the scheduler's payload, the stop channel closed, through an
+  -- agreement name allocated first (the channel is made after the scheduler)
+  imod (dghostVar_alloc (GF := GF) (null : Loc)) with ⟨%γx, Hx⟩
+  wp_apply hFifo _ (mvcc.stopPay γx) $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, HsStop, Hq0, #Hp0, #Hpi⟩
   · ipureintro; exact Hlgnn
   -- the scheduler's stop token goes to the closer (`storeCloser`, D19m (C), 2026-10-18): the
   -- caller gives it up when the store will not be closed (until then given up here)
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %stopc %γstop ⟨#Hstc, %Hstcap, Hstown⟩
+  imod dghostVar_update stopc γx _ $$ Hx with Hx
+  imod dghostVar_persist γx 1 stopc $$ Hx with #Hx
   (try wp_auto)
   iStructNamed «$r0»
   wp_apply hHash as %hp #Hhs
@@ -194,7 +199,7 @@ theorem mvcc.NewStore.wp_proof
   -- the store's objects, pinned (D22 receiver epochs, S3: until S5)
   -- (S5b) the store's current objects and physical names, set once the names are made
   imod (dghostVar_alloc (GF := GF) (((⟨b, ti, sc, stopc⟩ : mvcc.StoreObjs),
-      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, γmk⟩ : mvcc.PhysNames)) :
+      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, γmk, γx⟩ : mvcc.PhysNames)) :
       mvcc.StoreObjs × mvcc.PhysNames)) with ⟨%γcur, Hcur1⟩
   -- `s.revMu`'s restoring flag, down: half the lock's, half the fields' shares' (S3)
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γrst, Hrst⟩
@@ -215,16 +220,17 @@ theorem mvcc.NewStore.wp_proof
   imod ghostVar_alloc (GF := GF) (mvcc.nJobRd kb) with ⟨%γtkr, Htkr0⟩
   icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
-      γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk :=
+      γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hγrst] at *
   rw [← hγtk, ← hγtko, ← hγtkw, ← hγtkr]
   ihave Hwsd : mvcc.wsDep γ $$ [Hwsd]
@@ -523,13 +529,16 @@ theorem mvcc.NewStore.wp_proof
   -- `restore` (lent), then a quarter each to the right to close and the watchable store's share
   -- (question 5's core stage, part (1)) the write right back from `restore`: its invariant, with the
   -- registration and the write-back supply, when the store compacts
-  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $Hregd $Hwts] with #HmwP
+  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $Hregd] with #HmwP
   -- what the objects are (D22 receiver epochs, S5b: until then `isStore`'s)
+  ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
+  · iunfold mvcc.stopPayAt; rw [hγsx, hγs]; iframe Hx Hpi
   ihave #Hph : mvcc.physOk «$r0_ptr» γ (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
   · iunfold mvcc.physOk
     iexists P, Dep
     simp only [named]
     iframe #
+    ipureintro; rw [hγcm, hγk]; simp
   ihave Hfs : mvcc.fieldShareAt «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half) (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs)
       $$ [b kvindex fifoSched stopc HrstF HcurF]
   · rw [Qp.half_add_half]
@@ -576,7 +585,7 @@ theorem mvcc.NewStore.wp_proof
   iapply HΦ
   iexists γ
   isplitr
-  · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_⟩ <;> first | rfl | assumption
+  · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_, ?_⟩ <;> first | rfl | assumption | simp [hγcm, hγk]
   iframe Hs Hro Hok' Hhook Htoks Hcert HlogQ
   isplitl [ReadView WriteView]
   · iexists rv, wv

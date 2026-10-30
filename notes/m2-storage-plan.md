@@ -1,6 +1,9 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **review round 4 repaired** ("After review round 4", the last section: A1 by
+Status (2026-10-30): **the approved items switched** ("The switch of the approved items", the last
+section: 1-13, 19, 26, 28, 29's pure vocabulary, 34, 35 and item 4's supply line real; item 17
+stopped, not provable as drafted (non-atomic loads), with 4's step-2 text, 20, 23, 24 and 31; 14, 27
+and 29's backend part waiting with the restore chain). Before: **review round 4 repaired** ("After review round 4", the last section: A1 by
 evidence (the records' reads proved; today's index invariant shown false over a compacted image,
 repaired as `IdxCRepN` with readers unaffected, proved; round 3's bucket shape refuted, the job's
 `entsCutAt` in its place; the rebuild's pure theorem stated, not proved; two more facts found: the
@@ -1574,3 +1577,117 @@ Round 5 (`notes/spec-first-study/m2-storage-review-5.md`) was step 2's third and
   premise, approved in principle; its exact text comes with the restore chain.
 - No more review rounds for step 2's waiting items: they are settled by proofs and glue against the
   real callers (the index rebuild theorem, the backend's records clause, the view widening).
+
+## The switch of the approved items (2026-10-30)
+
+The user approved 28 items after round 5 (all but the snapshot track's 22 and 25 to switch here),
+with round 5's S1, S4, S5. Done on `m2-storage`: the drafted texts redefined in place (`…D` → the real
+names), every affected proof re-proved, the Draft copies that became real deleted, the rest of the
+Drafts kept building against the switched statements. No `axiom`, no `sorry`, no Perennial change,
+no generated file edited.
+
+### Switched
+
+- **Items 1-3, 5** (`New.spec`, `newWatchableStore.spec`, `NewStore.spec`, the exports
+  `mvcc_NewStore_backend(_cmp)`'s pre): the pre loses `kbWTSupplyM kb` (Q1 (a)); `New`/
+  `newWatchableStore` give `crevRightM γ.st` beside the closer (P3, `crevRight_split` in
+  `newWatchableStore`'s proof). With item 26 the three creation posts also state the logical mode,
+  `γ.cm = decide (kbCmpM kb)` (appended to the pure facts: the tie is in `physOk`, under the fields'
+  shares, so a client reads the mode off the post).
+- **Item 4, its step-1 text** (`store.Compact.spec`, `mvcc_store_Compact`, internal
+  `updateCompactRev`/`compactLockfree`): the pre's supply line `kbWTSupplyM γ.kb`; `physCmp` loses the
+  supply, `compactJobPre` carries it. The step-2 text (`compactRightR`) stops with item 17, below.
+- **Item 6** (mvcc in place): `isWatchableStore`'s `Hfrz` is `wsFrozenM γ.st`; the lock's body gains
+  `wsWatchFrozen γ σ` (a conjunct of `watchStoreBody`, `watchStoreInv`'s: every step that changes the
+  watchers re-establishes it, `watch` from the create token, `syncWatchers`' non-empty branch reads it,
+  `wsWatchFrozen_of_Wu`); `storeWatchParams`' `T := watchTok γ ∗ noCompactor γ.st`; new names
+  `wsFrozenM`, `crevRightM`, `noCompactor` (sealed) and laws `noCompactor_frozen/_of_frozen`,
+  `isWatchableStore_frozen/_isStore/_readView/_noCompactor`, `noCompactor_of_new`, `crevRight_split`.
+- **Items 7, 8** (v3rpc, client): `upOk`/`watchUp`'s create arm `watchTok γ ∗ noCompactor γ.st`;
+  `isWatchServer_link`, `isWatchServer_noCompactor(_env)`; `watchMemberFacts`/`watchAddrFacts` gain
+  `noCompactor V.R.γ.st` (appended), projections `watchMemberFacts_noCompactor/_kv/_st`,
+  `watchUp_create`; the client's sites destructure one more conjunct.
+- **Items 9-12**: `apply.AEnv.cmp : Bool := false`; `envAgree`'s clause `E.cmp = E'.cmp ∧ E.γ.cm =
+  E.cmp` (item 26's reading; laws `envAgree_mode/_off/_on`); `NewServer.spec`/`specM` take
+  `E₀.cmp = false`, `specCompact` `E₀.cmp = true`; examples/common `env₀ … (cmp := false)`,
+  `memberBoot … (cmp := false)` with `E₀.cmp = cmp` (`memberBoot_cmp`), `memberBootOn` alike,
+  `alloc1 … (cmp := false)`, `newServer.specCompact`/`StartCompactingServer.spec` at
+  `memberBoot … true` (putgetc's `Main` allocates at `cmp := true`).
+- **Item 13**: `etcd_cache_served`, watchkv's `wk_served` take `(hoff : V.R.E.γ.cm = false)` (item
+  26's reading of the drafted `¬ kbCmpM V.R.E.γ.kb`); linkv3p's `memberWatch`/`memberAt` append
+  `E.γ.cm = false`. Each `Main` reads `E₀.cmp = false` off its boot bundle and `envAgree_off` gives
+  the rest.
+- **Item 19** (`schedule`): `SchedNames.pay`; `schedPayIs`, `schedPay`, `schedPay_of/_true/_elim`,
+  `schedDone`, `schedDone_excl`; `jobDoSpec`/`jobFnSpec`'s `□ (cd.PDone -∗ schedPay γ)`;
+  `NewFIFOScheduler.spec`'s `Pay`; `Scheduler.Stop.spec` takes `schedPay γ` and returns `schedDone γ`
+  (internal: `fifoCtxDesc γ F`'s `PDone`, the cancel function's, `donecCarry` with the run token,
+  `job.Do.spec`'s premise). The server's `run` makes its scheduler with `Pay = True`.
+- **Item 26**: `StoreNames.cm` (logical) and `physOk`'s tie `kbCmpM γ.kb ↔ γ.cm = true`;
+  `wsFrozenM`/`crevRightM` read `γ.cm`.
+- **Item 34**: `StoreNames.sx`/`PhysNames.sx`, `stopPay`, `stopPayAt`, `physOk`'s `stopPayAt γ.sx γ.sch
+  o`, `stopPay_of_done`, `stopPayAt_done`: `NewStore`/`store.Restore` make the scheduler with the
+  payload "the stop channel is closed", `store.Close`/`store.Restore` present it to `Stop`.
+- **Item 35** (with S4): `EtcdServer.Compact.spec`'s `1 ≤ r` (its docstring names the margin: it also
+  excludes negative revisions, which Go handles harmlessly), `compactPropOk` with `1 ≤ r`,
+  `plainLogC_compaction_pos`; `compactableOk_server` discharges it from the permit. `recsPos` is
+  `CmpRecs.lean`'s; its use in `keyImageM` waits with item 21.
+- **S5**: the issue file's "How the proof handles it" updated; item 19's approved text is the field
+  `pay`, as switched.
+- **Item 28, with S1** (one spec per function): `UnsafeReadFinishedCompact.spec`/
+  `UnsafeReadScheduledCompact.spec` over an optional record set, `metaReadSpecR rt rs` (`none`:
+  `metaReadSpec rt false`, `checkPrevCompactionCompleted`'s reader; `some r`: the records exactly,
+  `some CmpRecs.empty` being `metaReadSpec rt true`, `store.restore`'s reader under `kbNoCmp`); the
+  post `∀ r, rs = some r → the record` beside today's two facts. One proof each (the flag cases by
+  the flag's proof, kept in the proof file as `wp_proofNC`; the record case the Draft's `wp_proofR`).
+- **Item 29, the pure vocabulary**: `CmpRecs` (`empty`, `finRev`, `schedRev`, `resumes`, `crev`,
+  `at`), `recsOk`, `recsPos` and their lemmas, in `mvcc/CmpRecs.lean` (new, beside `metaReadSpecR`).
+
+### Stopped (for the user)
+
+- **Item 17, the compaction chain over the restorable right, is not provable as drafted.** Its
+  `compactJobPreR` gives the job `storeStopR s γ o := inv (fieldShareAt s γ q8 o ∨ schedDone γ.sch)`,
+  to read `s.b`, `s.kvindex`, `s.stopc` (`scheduleCompaction`: six loads, `compactBarrier`: one)
+  "per read, the invariant opened around an atomic load". Perennial's loads are not atomic: `GoLoad`
+  reduces to `Read` = `StartRead` then `FinishRead` (`Perennial/GooseLang/Lang.lean`,
+  `Golang/Defn/PostLang.lean`'s `load_primitive`), and the only load spec
+  (`IntoValTyped.wp_load`) needs the points-to across the whole call; an invariant can be opened
+  only around one atomic step. Leasing the eighth for the job's run (swap the run token's ghost part
+  `schedDone` into the invariant, take the eighth out, swap back at the end) is unsound locally: the
+  closer's own eighth (`storeCloserR`) can be swapped in while the job runs and the run token taken,
+  and then the job cannot return `schedRunning`. Repairs (internal to mvcc: `storeStopR`,
+  `compactRightR`'s body; no client text changes): (a) carry the eighth along the tracked jobs'
+  baton (`compactQueue`'s `Q`/`R`; under the approved design every barrier is tracked, so each job
+  holds it for its run, and `Stop` returns the last job's `Post` with it); (b) a third state of the
+  invariant, "leased", whose lease token the running job keeps. `notes/decisions.md`, "M2's storage
+  side: the compaction chain over the restorable right is not provable as drafted".
+  With it stay Drafts: item 4's step-2 text (`compactRightR` in `store.Compact.spec`), item 20
+  (`wsCloserR_of_wsCloser`), item 23 (`store.Close.specM`, whose on mode is `compactRightR`), item
+  24 (`mvcc_NewStore_backend_cmp`'s post `compactRightR s γ (-1)`; S5: with item 29's backend merge
+  its pre's `fkV` is the merged ghost's `fkVM`), and item 31 (`lockNilSpec`, `kbHookNil`,
+  `lockCtxM`/`lockBackM`: its only users are item 17's `updateCompactRev.specR`/
+  `compactLockfree.specR` and item 15's `resumeHookM`; switching the clause alone would change the
+  backend contract `batchTxSpecG` with no consumer).
+- **Item 14** (`kbWTSupplyM_of_poolR`) stays a Draft: it is stated over D22's `srvWTPoolR`, item 21's.
+- **Item 27** (the records threaded through `keyReadLocked`, `keyReadSnap(C)`, `keyCleanRead`,
+  `isKeyBackendG`, `storeBackendTR`, `restoreViewR`) and **item 29's backend part** (the merged
+  compaction-key ghost `fkVD`/`fkVM`/`fkOpenD`, `kbRecs`, `recBytes`) stay Drafts: their only users
+  are the waiting restore chain (items 15, 18, 21, 30); `kbRecs` needs the merged ghost, which changes
+  the backend's constructor (`fkCl` at the open's records) and every `fkV` site. Not a proof problem:
+  switched with item 30.
+
+### The Drafts now
+
+`mvcc/M2StorageDraftRestore.lean` (the restorable right, `restoreRightM`/`storeCloserM`, the records
+vocabulary's backend part, `keyImageM`/`restoreImageM`, `Restore.specM`, `store.restore.specR`,
+`Close.specM`, `wsCloserR`), `mvcc/M2StorageDraftChain.lean` (item 17), `mvcc/M2StorageDraftIndex.lean`
+(items 32, 33), `etcdserver/M2StorageDraft.lean` (`server_kv_watchable_ofD`, the glue for
+`specCompact`), `etcdserver/M2StorageDraftRestore.lean` (D22's). Deleted: the step-1 Drafts (mvcc,
+v3rpc, client, examples' three, cache), `M2StorageDraftSupply`, `schedule/M2StorageDraft`,
+`etcdserver/M2StorageDraftScope`.
+
+### Checked
+
+- `etc/lean-check.py` on each changed file during the work; targeted `lake build`s.
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11203 jobs, no error.
+- `etc/tcb-report.py --check`: the trust base matches `etc/tcb-baseline.txt` (766 axioms, 18
+  sorries: no new axiom, no new `sorry`); every `etc/tcb-collections/*.txt` `--check` matches.

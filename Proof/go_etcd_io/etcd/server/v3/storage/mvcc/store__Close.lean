@@ -50,8 +50,10 @@ theorem mvcc.store.Close.wp_proof
   (try wp_auto)
   iunfold mvcc.stopCloser at Hcl
   icases Hcl with ⟨%γc, Hcl⟩
-  wp_apply wp_broadcast_chan_close _ γc iprop(True) $$ [$Hcl] as -
+  wp_apply wp_broadcast_chan_close _ γc iprop(True) $$ [$Hcl] as #Hdone
   · imodintro; itrivial
+  -- (M2, the storage side, item 34) the scheduler's payload: its stop channel closed
+  ihave #Hsp := mvcc.stopPay_of_done γ.sx γ.sch ⟨b, ti, ssched, sstop⟩ γc $$ [$Hpay $Hdone]
   (try wp_auto)
   ihave #Hfifo' := HisSched
   iunfold schedule.isFifo at Hfifo'

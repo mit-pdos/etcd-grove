@@ -117,7 +117,7 @@ theorem mvcc.store.compactBarrier.wp_proof
         as %j #Hj
       · iframe #
         iunfold schedule.jobFnSpec
-        iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', #HQ'⟩, -, #Hctx'⟩ HΦj
+        iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', #HQ'⟩, -, #Hctx', -⟩ HΦj
         wp_auto
         rw [method_unfold (t := go.GoType.PointerType store.ty) (m := go!"compactBarrier")]
         wp_apply IH $$ %ctx' %cd' [$Hcl']

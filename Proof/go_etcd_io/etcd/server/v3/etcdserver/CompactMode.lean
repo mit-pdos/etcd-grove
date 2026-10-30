@@ -45,16 +45,19 @@ section pure
 variable [GooseExts]
 
 /-- **A compaction request**, as `EtcdServer.Compact` proposes it (`&pb.InternalRaftRequest{
-Compaction: r}`): of the kind `compaction`, at some revision. -/
+Compaction: r}`): of the kind `compaction`, at a revision `≥ 1` (M2, the storage side, 2026-10-30:
+**M2's scope restriction**, the user's Q7 (a), the approval's item 35: no compaction at revision `0`,
+`issues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s premise `1 ≤ r`). -/
 def compactPropOk (rq : apply.IRRModel) : Prop :=
-  apply.dispatchKind rq = .compaction ∧ ∃ r : w64, rq.compaction = some r
+  apply.dispatchKind rq = .compaction ∧ ∃ r : w64, rq.compaction = some r ∧ 1 ≤ sint.Z r
 
 /-- `&pb.InternalRaftRequest{Compaction: r}`, for `r` at the revision `rev` (`EtcdServer.Compact`'s). -/
 def irrCompaction (rev : w64) : apply.IRRModel := { apply.irrEmpty with compaction := some rev }
 
-/-- `Compact`'s request is a compaction. -/
-theorem compactPropOk_irrCompaction (rev : w64) : compactPropOk (irrCompaction rev) :=
-  ⟨by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty], rev, rfl⟩
+/-- `Compact`'s request at a revision `≥ 1` is a compaction in M2's scope. -/
+theorem compactPropOk_irrCompaction (rev : w64) (h : 1 ≤ sint.Z rev) :
+    compactPropOk (irrCompaction rev) :=
+  ⟨by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty], rev, rfl, h⟩
 
 /-- **A request that deletes no key it puts again** in the revision it makes (S2, option (a)):
 whatever the chain, a dispatch that appends a revision appends one with `mvcc.NoDelPutAt`, so a
@@ -96,6 +99,20 @@ def plainEntryC (m : EntryModel) : Prop :=
 
 /-- Every entry plain, in compaction mode. -/
 def plainLogC (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryC m
+
+/-- **Every committed compaction is past revision `0`** (M2's scope restriction, item 35; the log
+invariant's content): a committed entry decoding to a compaction request at `r` has `1 ≤ r` (a
+plain request is not a compaction: `putgetKind`). -/
+theorem plainLogC_compaction_pos (L : List EntryModel) (hL : plainLogC L) (m : EntryModel)
+    (hm : m ∈ L) (ht : m.typ = W32 0) (hd : m.data ≠ []) (rq : apply.IRRModel)
+    (hrq : apply.irrDecode m.data = some rq) (hk : apply.dispatchKind rq = .compaction) (r : w64)
+    (hr : rq.compaction = some r) : 1 ≤ sint.Z r := by
+  rcases hL m hm ht hd rq hrq with hp | ⟨-, r', hr', h1⟩
+  · exfalso
+    have := hp.2
+    rw [hk] at this
+    simp [putgetKind] at this
+  · rw [hr] at hr'; cases hr'; exact h1
 
 /-- A plain entry is one in compaction mode. -/
 theorem plainEntryC_of (m : EntryModel) (h : plainEntry m) : plainEntryC m :=

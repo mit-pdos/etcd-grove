@@ -166,9 +166,12 @@ again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job dele
 `delKey`; 2026-10-13, unit 6a), with the index's count of its events (`idxNevLb`: D22
 receiver epochs, S1). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's
 physical bound; now the job derives it, `CompactSmall_of_cert`.) And the scheduler never stopped
-(`schedLive`, from the compaction right: the job's barrier is untracked; D19m (C), 2026-10-18). -/
+(`schedLive`, from the compaction right: the job's barrier is untracked; D19m (C), 2026-10-18).
+And (M2, the storage side, Q1 (a), 2026-10-30) the write-back supply (`kbWTSupplyM γ.kb`,
+persistent), which `store.Compact`'s caller gave and the job's write sessions spend. -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ storeStop s γ ∗ schedule.schedLive γ.sch ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
+    kbWTSupplyM γ.kb ∗
     ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
 

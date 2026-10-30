@@ -216,7 +216,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   intro s γ rev prev
   wp_start as ⟨#Hjob, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, #Hnevc, %Hrev'⟩
+  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, #HsupM, %log, #Hcert, #Hnevc, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
   have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
@@ -235,7 +235,9 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   -- (question 5's core stage) the store's compaction facts: the write right's invariant (the swap
   -- of the key for the compaction keys' write right), its registration, the write-back supply
   have hcmpM : mvcc.kbCmpM γ.kb := mvcc.storeCmp_cmpM γ Hcmp
-  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg, #Hsup⟩
+  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg⟩
+  -- (M2, the storage side, Q1 (a)) the supply from the job's premise
+  ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcmpM).1 $$ HsupM
   ihave #Hswk := mvcc.mwSwap_of_inv γ iprop(True) $$ Hmwi
   -- the store's contract with its compaction on (its tokens, lock resource, slots, write right)
   ihave #Hbk' := mvcc.isKeyBackendG_cmpOn _ s γ _ _ _ Hcmp $$ Hbk

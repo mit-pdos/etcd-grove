@@ -198,14 +198,24 @@ structure StoreNames where
   right's lock key (`ghostVar Bool`): half in the batch lock's resource (`mwSlot`, when the store
   compacts), half in the write right's invariant (`mwInv`), recording where the right is -/
   mwk : GName := 0
+  /-- (M2, the storage side, 2026-10-30: review round 3's S2.5, the user's approval item 26;
+  logical) the store's compaction mode, set by `NewStore` (`decide (kbCmpM kb)`), kept by
+  `withPhys` (a restore keeps the mode), tied to the current backend by `physOk` (`kbCmpM γ.kb ↔
+  γ.cm = true`): what the logical predicates gated by the mode read (`wsFrozenM`, `crevRightM`),
+  so that they do not move when `store.Restore` installs a backend -/
+  cm : Bool := false
+  /-- (M2, the storage side, review round 4's S2.2, the approval's item 34; physical) the agreement
+  name of the scheduler's payload (`stopPayAt`): fresh per scheduler, it records the store's stop
+  channel, which `NewStore`/`store.Restore` make after the scheduler -/
+  sx : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
 
 instance schedNames_countable : Pos.Countable schedule.SchedNames :=
-  countableOfLeftInverse (fun x : schedule.SchedNames => (x.run, x.jobs)) (fun p => ⟨p.1, p.2⟩)
-    (fun _ => rfl)
+  countableOfLeftInverse (fun x : schedule.SchedNames => (x.run, x.jobs, x.pay))
+    (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
 
 instance dbNames_countable : Pos.Countable backend.DBNames :=
   countableOfLeftInverse (fun x : backend.DBNames => (x.db, x.wr)) (fun p => ⟨p.1, p.2⟩)
@@ -235,8 +245,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => (((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk))
-    (fun r => let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2⟩)
+    (fun x : StoreNames => ((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx))
+    (fun r0 => let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2⟩)
     (fun _ => rfl)
 
 /-- **The store's physical ghost names** (D22 receiver epochs, S5b, 2026-10-22): those of one
@@ -258,22 +268,25 @@ structure PhysNames where
   wk : GName
   wv : GName
   mwk : GName
+  /-- (M2, the storage side, item 34) the scheduler's payload's agreement name (`stopPayAt`) -/
+  sx : GName
 
 instance physNames_countable : Pos.Countable PhysNames :=
   countableOfLeftInverse
-    (fun x : PhysNames => ((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk))
-    (fun q => let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2, q.2⟩)
+    (fun x : PhysNames => ((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx))
+    (fun q => let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2, q.2.1, q.2.2⟩)
     (fun _ => rfl)
 
 /-- The physical names of the store's names `γ`. -/
 def StoreNames.phys (γ : StoreNames) : PhysNames :=
-  ⟨γ.idx.nev, γ.idx.cmp, γ.bucket, γ.hook, γ.hookFn, γ.kb, γ.cmeta, γ.fin, γ.sch, γ.wk, γ.wv, γ.mwk⟩
+  ⟨γ.idx.nev, γ.idx.cmp, γ.bucket, γ.hook, γ.hookFn, γ.kb, γ.cmeta, γ.fin, γ.sch, γ.wk, γ.wv, γ.mwk,
+    γ.sx⟩
 
 /-- **The store's names `γ` at the physical names `p`** (S5b): the logical names `γ`'s. -/
 def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
   ⟨⟨γ.idx.hist, p.nev, γ.idx.log, γ.idx.crev, p.cmp⟩, p.bucket, γ.clog, γ.leases, γ.revs, p.hook,
     p.hookFn, p.kb, p.cmeta, p.fin, p.sch, γ.cok, γ.watchQ, γ.wr, p.wk, p.wv, γ.cur, γ.rst, γ.tk,
-    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk⟩
+    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx⟩
 
 @[simp] theorem StoreNames.withPhys_phys (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).phys = p := rfl
@@ -366,6 +379,12 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 
 @[simp] theorem StoreNames.withPhys_mwk (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).mwk = p.mwk := rfl
+
+@[simp] theorem StoreNames.withPhys_cm (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).cm = γ.cm := rfl
+
+@[simp] theorem StoreNames.withPhys_sx (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).sx = p.sx := rfl
 
 
 /-- **The store's objects** (D22 receiver epochs, S3, 2026-10-22): the values of the four fields
@@ -2228,6 +2247,70 @@ theorem crevFrozen_lb (γ : StoreNames) (c : Int) (hc : -1 ≤ c) :
   imodintro
   ipureintro; omega
 
+/-- **The frozen fact, by the mode** (M2, the storage side: P3, review rounds 1-3; a conjunct of
+`isWatchableStore`): a store that does not compact (`γs.cm = false`: today's servers) is frozen
+(`crevFrozen`); a compacting one is not. The mode is the logical one (`StoreNames.cm`, item 26:
+`withPhys` keeps it, so a restore does not move it). A store over mvcc's assumed backend
+(`kb = none`) counts as compacting (`kbCmpM none`, so `cm = true`): its creator gets the
+authority's half (`crevRightM`) and chooses, by `noCompactor_of_new`, to freeze it and watch. -/
+def wsFrozenM (γs : StoreNames) : IProp GF :=
+  if γs.cm then iprop(True) else crevFrozen γs
+
+instance wsFrozenM_persistent (γs : StoreNames) : Persistent (wsFrozenM (GF := GF) γs) := by
+  unfold wsFrozenM; split <;> infer_instance
+
+omit package_sem in
+/-- At `cm = false` the frozen fact is `crevFrozen`. -/
+theorem wsFrozenM_off (γs : StoreNames) (h : γs.cm = false) :
+    wsFrozenM (GF := GF) γs ⊣⊢ crevFrozen γs := by
+  unfold wsFrozenM; simp only [h, Bool.false_eq_true, ↓reduceIte]; exact .rfl
+
+/-- **The compaction right's half of the revision's authority, by the mode** (M2, the storage side:
+P3; a conjunct of `newWatchableStore`'s and `New`'s posts): in compaction mode the caller gets it
+(and makes the compaction right of it with the closer, or freezes the store,
+`noCompactor_of_new`); otherwise nothing, the store being frozen. -/
+def crevRightM (γs : StoreNames) : IProp GF :=
+  if γs.cm then crevUB γs.idx (1 : Qp).half (-1) else iprop(True)
+
+omit package_sem in
+/-- At `cm = false` the conjunct is `True` (the posts read as before). -/
+theorem crevRightM_off (γs : StoreNames) (h : γs.cm = false) :
+    crevRightM (GF := GF) γs ⊣⊢ iprop(True) := by
+  unfold crevRightM; simp only [h, Bool.false_eq_true, ↓reduceIte]; exact .rfl
+
+/-- `newWatchableStore`'s step, by the mode: the authority's half frozen (off) or handed out (on). -/
+theorem crevRight_split (γs : StoreNames) :
+    crevUB (GF := GF) γs.idx (1 : Qp).half (-1) ⊢ |={⊤}=> wsFrozenM γs ∗ crevRightM γs := by
+  unfold wsFrozenM crevRightM
+  by_cases h : γs.cm = true
+  · simp only [h, ↓reduceIte]
+    iintro H; imodintro; iframe H
+  · simp only [h, Bool.false_eq_true, ↓reduceIte]
+    iintro H
+    imod crevFrozen_alloc γs ⊤ $$ H with #Hf
+    imodintro; iframe Hf
+
+/-- **No compactor** (M2, the storage side, review round 2's S4': the client-facing name of the
+fact a watch client presents with each create request; sealed: mvcc's `crevFrozen`, the compaction
+right at `-1` given up for good into an invariant, is its body; clients use the laws below). An off
+store has it (`isWatchableStore_noCompactor`); a compacting store's creator can make it by giving
+up compacting (`noCompactor_of_new`); a compacting store whose creator made the compaction right
+never has it (the authority's other half is the right's). -/
+@[no_expose] def noCompactor (γs : StoreNames) : IProp GF := crevFrozen γs
+
+instance noCompactor_persistent (γs : StoreNames) : Persistent (noCompactor (GF := GF) γs) := by
+  unfold noCompactor; infer_instance
+
+omit package_sem in
+/-- What mvcc's own proofs read of it (`watch`, which re-establishes `wsWatchFrozen` with it). -/
+theorem noCompactor_frozen (γs : StoreNames) : noCompactor (GF := GF) γs ⊢ crevFrozen γs := by
+  unfold noCompactor; exact .rfl
+
+omit package_sem in
+/-- The converse, for mvcc's own sources of the frozen fact. -/
+theorem noCompactor_of_frozen (γs : StoreNames) : crevFrozen (GF := GF) γs ⊢ noCompactor γs := by
+  unfold noCompactor; exact .rfl
+
 /-- **The meta keys' record** at fraction `q`: the values the store last wrote at
 `scheduledCompactRev` and `finishedCompactRev` (`none`: never), its own view of the `Meta`
 bucket's compaction keys (not `MetaCI`, the consistent index's). The batch lock holds it. -/
@@ -2414,12 +2497,22 @@ instance mwSwap_persistent (W MW : IProp GF) : Persistent (mwSwap (GF := GF) W M
 instance kbWTSupply_persistent (kb : Option KBReal) : Persistent (kbWTSupply (GF := GF) kb) := by
   unfold kbWTSupply; cases kb <;> simp only <;> infer_instance
 
+instance kbWTSupplyM_persistent (kb : Option KBReal) :
+    Persistent (kbWTSupplyM (GF := GF) kb) := by
+  unfold kbWTSupplyM; split <;> infer_instance
+
+/-- A compacting store's supply. -/
+theorem kbWTSupplyM_on (kb : Option KBReal) (h : kbCmpM kb) :
+    kbWTSupplyM (GF := GF) kb ⊣⊢ kbWTSupply kb := by
+  unfold kbWTSupplyM; simp only [h, ↓reduceIte]; exact .rfl
+
 /-- **The store's compaction facts in `physOk`** (the Draft's `physCmpW`, review round 15's N3, gated
-by the mode): the write right's invariant, the store's registration in its backend (the swap from
-`storeW`, which for the real backend reaches `writerRes` through it; a compacting store is never
-restored, so its registration is never pending), and the write-back supply (F5). -/
+by the mode): the write right's invariant and the store's registration in its backend (the swap from
+`storeW`, which for the real backend reaches `writerRes` through it). (M2, the storage side, Q1 (a),
+2026-10-30: the write-back supply is no longer here: `store.Compact` takes it per compaction, and
+hands it to the job, `compactJobPre`.) -/
 def physCmp (s : Loc) (γ : StoreNames) : IProp GF :=
-  if kbCmpM γ.kb then iprop(mwInv γ ∗ storeRegd s γ ∗ kbWTSupply γ.kb) else iprop(True)
+  if kbCmpM γ.kb then iprop(mwInv γ ∗ storeRegd s γ) else iprop(True)
 
 instance physCmp_persistent (s : Loc) (γ : StoreNames) : Persistent (physCmp (GF := GF) s γ) := by
   unfold physCmp; split <;> infer_instance
@@ -2430,7 +2523,7 @@ theorem physCmp_off (s : Loc) (γ : StoreNames) (h : ¬ kbCmpM γ.kb) : ⊢ phys
 
 /-- A compacting store's compaction facts. -/
 theorem physCmp_on (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
-    physCmp (GF := GF) s γ ⊣⊢ iprop(mwInv γ ∗ storeRegd s γ ∗ kbWTSupply γ.kb) := by
+    physCmp (GF := GF) s γ ⊣⊢ iprop(mwInv γ ∗ storeRegd s γ) := by
   unfold physCmp; rw [if_pos h]; exact .rfl
 
 /-- **The key's other half, by the mode** (what `NewStore` keeps of the key's ghost variable for the
@@ -2450,14 +2543,14 @@ theorem mwSlot_alloc (γ : StoreNames) :
     iintro -; isplitl <;> itrivial
 
 /-- **`NewStore`'s allocation of the compaction facts** (after `restore` gives the right back): the
-invariant at `true` with the right, the registration and the supply. -/
+invariant at `true` with the right, and the registration. -/
 theorem physCmp_alloc (s : Loc) (γ : StoreNames) :
-    mwRest (GF := GF) γ ∗ kbMW γ.kb γ.bucket ∗ storeRegd s γ ∗ kbWTSupplyM γ.kb ={⊤}=∗
+    mwRest (GF := GF) γ ∗ kbMW γ.kb γ.bucket ∗ storeRegd s γ ={⊤}=∗
       physCmp s γ := by
-  unfold mwRest physCmp kbWTSupplyM
+  unfold mwRest physCmp
   by_cases hc : kbCmpM γ.kb
   · simp only [hc, ↓reduceIte]
-    iintro ⟨Hh, Hmw, #Hr, #Hs⟩
+    iintro ⟨Hh, Hmw, #Hr⟩
     imod (inv_alloc mwN ⊤ iprop(∃ b : Bool, ghostVar γ.mwk (1 : Qp).half b ∗
         if b then kbMW γ.kb γ.bucket else iprop(True))) $$ [Hh Hmw] with #Hi
     · inext
@@ -2467,7 +2560,7 @@ theorem physCmp_alloc (s : Loc) (γ : StoreNames) :
       iexact Hmw
     imodintro
     iunfold mwInv
-    iframe Hi Hr Hs
+    iframe Hi Hr
   · simp only [hc, ↓reduceIte]
     iintro -; imodintro; itrivial
 
@@ -3095,6 +3188,34 @@ theorem storeFields_split (s : Loc) (o : StoreObjs) (q1 q2 : Qp) :
     · iapply (hs _).2; iframe Hs1 Hs2
     iapply (ht _).2; iframe Ht1 Ht2
 
+/-- **The store's stop channel is closed** (persistent; M2, the storage side, review round 3's F2):
+the payload mvcc's store gives its scheduler (`schedule.NewFIFOScheduler.spec`'s `Pay`).
+`NewStore`/`store.Restore` make the scheduler before the stop channel (`kvstore.go:309-310`), so the
+payload names the channel through an agreement name `γx` (`StoreNames.sx`) the store allocates
+first and fixes (discarded) once the channel is made; the channel's broadcast is then `Done`.
+`Restore`/`Close` close `stopc` before `Stop`, so they have it for `Scheduler.Stop`; a job finding
+its context cancelled learns it (`schedule.schedPay_elim`, `stopPayAt_done`). At the later-credit
+instance (the channels' specs need it); nothing at the other, as `schedule.isFifoOf`. -/
+def stopPay (γx : GName) : IProp GF :=
+  match hlc, hG, sem with
+  | .hasLC, hG', _ => iprop(∃ c : Loc, dghostVar γx DFrac.discard c ∗
+      ∃ γc : ChanNames, ownBroadcastChan (hG := hG') c γc iprop(True) Broadcast.Done)
+  | .hasNoLC, _, _ => iprop(True)
+
+instance stopPay_persistent (γx : GName) : Persistent (stopPay (GF := GF) (hG := hG) γx) := by
+  unfold stopPay; cases hlc <;> infer_instance
+
+/-- **The payload's channel name, at home** (M2, the storage side, review round 4's S2.2, the
+approval's item 34): the agreement name `γx` a store allocates for its scheduler's payload
+(`StoreNames.sx`, fresh per scheduler) records the stop channel `o.sstop` (fixed once the channel
+is made) and is the scheduler's payload's (`physOk`'s conjunct at the current objects `o`). -/
+def stopPayAt (γx : GName) (γs : schedule.SchedNames) (o : StoreObjs) : IProp GF :=
+  iprop(dghostVar γx DFrac.discard o.sstop ∗ schedule.schedPayIs γs (stopPay γx))
+
+instance stopPayAt_persistent (γx : GName) (γs : schedule.SchedNames) (o : StoreObjs) :
+    Persistent (stopPayAt (GF := GF) (hG := hG) γx γs o) := by
+  unfold stopPayAt; infer_instance
+
 /-- **What the store's objects `o` are at its names `γ`** (persistent; D22 receiver epochs, S5b:
 until then `isStore`'s, at the pinned objects): the backend's contract at `γ`'s view, tokens, put
 condition and lock resource, with the batch lock's invariant recorded (`hookP`) and the deposit
@@ -3113,7 +3234,11 @@ def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch ∗
     -- (question 5's core stage, part (1)) the compaction facts, by the mode
-    "#HmwP" ∷ physCmp s γ)
+    "#HmwP" ∷ physCmp s γ ∗
+    -- (M2, the storage side, item 34) the scheduler's payload: its stop channel closed
+    "#Hpay" ∷ stopPayAt γ.sx γ.sch o ∗
+    -- (M2, the storage side, item 26) the logical mode is the current backend's
+    "%Hcmt" ∷ ⌜kbCmpM γ.kb ↔ γ.cm = true⌝)
 
 set_option synthInstance.maxSize 8192 in
 set_option synthInstance.maxHeartbeats 800000 in
@@ -5315,6 +5440,42 @@ instance isStopChan_persistent (c : Loc) : Persistent (isStopChan (GF := GF) c) 
 def stopCloser (c : Loc) : IProp GF :=
   iprop(∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) Broadcast.Pending)
 
+/-- **The payload, from the closed stop channel** (`store.Close`/`store.Restore`, after closing
+`stopc`, before `Stop`). -/
+theorem stopPay_of_done (γx : GName) (γs : schedule.SchedNames) (o : StoreObjs) (γc : ChanNames) :
+    stopPayAt (GF := GF) γx γs o ∗ ownBroadcastChan o.sstop γc iprop(True) Broadcast.Done ⊢
+      schedule.schedPay γs := by
+  iintro ⟨#Ha, #Hd⟩
+  iunfold stopPayAt at Ha
+  icases Ha with ⟨#Hx, #Hp⟩
+  iapply schedule.schedPay_of γs (stopPay γx)
+  iframe Hp
+  imodintro
+  iunfold stopPay
+  iexists o.sstop
+  iframe Hx
+  iexists γc
+  iexact Hd
+
+/-- **What a job finding its context cancelled learns** (M2, the storage side, item 34): the stop
+channel of the objects `o` it reads through is closed, a step later; so `compactBarrier`'s
+nonblocking receive takes the ready branch. -/
+theorem stopPayAt_done (γx : GName) (γs : schedule.SchedNames) (o : StoreObjs) :
+    stopPayAt (GF := GF) γx γs o ∗ schedule.schedPay γs ⊢
+      ▷ ∃ γc : ChanNames, ownBroadcastChan o.sstop γc iprop(True) Broadcast.Done := by
+  iintro ⟨#Ha, #Hq⟩
+  iunfold stopPayAt at Ha
+  icases Ha with ⟨#Hx, #Hp⟩
+  ihave Hl := schedule.schedPay_elim γs (stopPay γx) $$ [$Hp $Hq]
+  inext
+  icases Hl with #Hs
+  iunfold stopPay at Hs
+  icases Hs with ⟨%c, #Hc, %γc, #Hb⟩
+  ihave %He := dghostVar_agree γx o.sstop DFrac.discard c DFrac.discard $$ Hx Hc
+  subst He
+  iexists γc
+  iexact Hb
+
 /-- **The store's fields for good, for its compaction** (persistent; D22 receiver epochs, S3,
 2026-10-22: until then `NewStore` returned the stop channel's `↦□` and `isStore` the others'):
 the four fields `store.Restore` writes, read-only, at the pinned objects, and the stop channel
@@ -5447,7 +5608,7 @@ macro "withPhys_simp" : tactic => `(tactic| simp only [Perennial.EtcdGrove.mvcc.
     Perennial.EtcdGrove.mvcc.revMuInv_withPhys, Perennial.EtcdGrove.mvcc.idxCert_withPhys, Perennial.EtcdGrove.mvcc.idxSealed_withPhys,
     Perennial.EtcdGrove.mvcc.idxLogAuth_withPhys, Perennial.EtcdGrove.mvcc.crevUB_withPhys, Perennial.EtcdGrove.mvcc.crevLb_withPhys, Perennial.EtcdGrove.mvcc.certOk_withPhys,
     Perennial.EtcdGrove.mvcc.delKey_withPhys, Perennial.EtcdGrove.mvcc.revToken_withPhys, Perennial.EtcdGrove.mvcc.muInv_withPhys, Perennial.EtcdGrove.mvcc.writerInv_withPhys,
-    Perennial.EtcdGrove.mvcc.readerPool_withPhys, Perennial.EtcdGrove.mvcc.wDep_withPhys, Perennial.EtcdGrove.mvcc.wsDep_withPhys, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_clog, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_leases, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_revs, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cok, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_watchQ, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cur, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_rst, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tk, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tko, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wsd, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkw, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_hist, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_log, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_crev])
+    Perennial.EtcdGrove.mvcc.readerPool_withPhys, Perennial.EtcdGrove.mvcc.wDep_withPhys, Perennial.EtcdGrove.mvcc.wsDep_withPhys, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_clog, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_leases, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_revs, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cok, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_watchQ, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cur, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_rst, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tk, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tko, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wsd, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkw, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cm, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_hist, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_log, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_crev])
 
 section physShare
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -5587,7 +5748,7 @@ theorem mwSwap_of_physOk (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
     physCmp (GF := GF) s γ ⊢ mwSwap (storeW s γ) (kbMW γ.kb γ.bucket) := by
   unfold physCmp
   rw [if_pos h]
-  iintro ⟨#Hi, #Hr, -⟩
+  iintro ⟨#Hi, #Hr⟩
   iapply mwSwap_frame (writerRes s γ)
   isplitr
   · iintro !> HW

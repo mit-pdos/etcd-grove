@@ -85,11 +85,14 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   compaction mode is the instance's (`kbCmpM kb`: `KBReal.cm` for the real backend). A compacting
   real store keeps one of the backend's reader tokens back for its compaction job (`nJobRd kb`,
   out of the readers' pool: the pool's retired count starts there, and the caller gets that many
-  fewer readers), and takes the backend's safe-range slot (`kbSRM`, from the backend's creation)
-  and its write-back supply (`kbWTSupplyM`); the job's budgets travel in the compaction token
+  fewer readers), and takes the backend's safe-range slot (`kbSRM`, from the backend's creation);
+  the job's budgets travel in the compaction token
   (`compactTok`). For any other store they are `True` and nothing is kept back (`cmOff_res`). The
   contract is needed only at the index's names `γi` (F4: a compacting store's backend registers
-  that index's deletable keys). -/
+  that index's deletable keys). (M2, the storage side, Q1 (a), 2026-10-30: the write-back supply
+  `kbWTSupplyM` is no longer taken here: `store.Compact` takes it per compaction.)
+* (M2, the storage side, item 26) The store's logical compaction mode (`γ.cm`) is the instance's
+  (`decide (kbCmpM kb)`); a restore keeps it. -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
@@ -98,14 +101,15 @@ abbrev mvcc.NewStore.spec : Prop :=
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗ mvcc.kbWTSupplyM kb ∗
+      mvcc.kbSRM kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-      ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok⌝ ∗
+      ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧
+        γ.cm = decide (mvcc.kbCmpM kb)⌝ ∗
       mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦

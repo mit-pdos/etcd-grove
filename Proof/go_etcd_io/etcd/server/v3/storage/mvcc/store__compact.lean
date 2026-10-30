@@ -77,7 +77,7 @@ theorem mvcc.store.compact.wp_proof
   ipersist ch
   ihave #Hjob' := Hjob
   iunfold mvcc.compactJobPre at Hjob'
-  icases Hjob' with ⟨#Hs, #Hstop, #Hlive, %Hcmp, #Hlb, #Hcert⟩
+  icases Hjob' with ⟨#Hs, #Hstop, #Hlive, %Hcmp, #Hlb, -, #Hcert⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -96,7 +96,7 @@ theorem mvcc.store.compact.wp_proof
       Q (mvcc.compactTok γ (sint.Z rev))) $$ [] as %j #Hj
   · iframe #
     iunfold schedule.jobFnSpec
-    iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨Hcl, HR, Hw⟩, HQ, #Hctx⟩ HΦj
+    iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨Hcl, HR, Hw⟩, HQ, #Hctx, -⟩ HΦj
     wp_auto
     ihave #HErrU := h1 ctx cd Broadcast.Unknown $$ Hctx
     wp_apply HErrU as %err Hm #HcS

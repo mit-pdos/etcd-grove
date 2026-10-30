@@ -855,16 +855,14 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   -- (question 5's core stage, part (1)) this store does not compact (`hcm`): no slot, no supply, no
   -- reader kept back (`cmOff_res`)
-  obtain ⟨-, hj, -, hws, hsr⟩ := mvcc.cmOff_res (GF := GF) d hcm
+  obtain ⟨-, hj, -, -, hsr⟩ := mvcc.cmOff_res (GF := GF) d hcm
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some d) $$ []
   · iapply hsr.2; itrivial
-  ihave Hwts : mvcc.kbWTSupplyM (GF := GF) (some d) $$ []
-  · iapply hws.2; itrivial
   iapply wp_fupd
   wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
-      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro]
+      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
     as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
-  · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm Hwts
+  · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm
     isplitr
     · iintro !> %h; rw [hcm] at h; cases h
     unfold backend.wbTok
@@ -960,7 +958,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
   iapply HΦ
   iexists st, γw
   iframe
-  ipureintro; exact Hγ
+  ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1⟩
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's

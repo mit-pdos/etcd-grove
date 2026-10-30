@@ -116,6 +116,14 @@ theorem kbWTSupplyM_alloc (d : KBReal) (n : Nat) (h : receiptBound GF ≤ n + 1)
     iexact Ht
   · itrivial
 
+/-- **The backend's deletable keys fixed at the store's** (M2, the storage side, review round 1's S2:
+a law, so the server's glue does not unfold `storeDlReg`). -/
+theorem storeDlReg_fix (γB : backend.BNames) (γi : IdxNames) :
+    backend.dlInit (GF := GF) γB ⊢ |==> storeDlReg γB γi := by
+  iintro H
+  unfold storeDlReg
+  iapply backend.dlReg_fix γB _ $$ H
+
 end supply
 
 end mvcc

@@ -46,7 +46,8 @@ abbrev StartCompactingServer.spec : Prop :=
       threadTok ∗
       bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      -- (M2, the storage side, N1) the member's boot bundle in compaction mode
+      memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id }}

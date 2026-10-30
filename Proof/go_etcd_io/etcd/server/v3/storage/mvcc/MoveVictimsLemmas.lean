@@ -952,7 +952,7 @@ theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : 
 slice now the nil slice `vnil`), and the mover's per batch (`vbs.zip VB`) victims. -/
 theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil : GoSlice) :
     ghostVar (GF := GF) γ.wst 1 (takeState σ vnil) ∗ wlogQ γ 1 σ.Lmu ∗
-      idxCert γ.st.idx σ.Lmu ∗
+      idxCert γ.st.idx σ.Lmu ∗ wsWatchFrozen γ σ ∗
       ownWatcherGroup (syncedAddr s) σ.Ws ∗ ownWatcherGroup (unsyncedAddr s) σ.Wu ∗
       typedPointsto (victimsAddr s) vnil (DFrac.own 1) ∗ ownSlice vnil ([] : List GoMap) (DFrac.own 1) ∗
       ownSliceCap GoMap vnil (DFrac.own 1) ∗
@@ -963,7 +963,8 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
       ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ⊢
     watchStoreBody s γ 1 (takeState σ vnil) ∗
       [∗list] x ∈ σ.vbs.zip σ.VB, [∗map] w ↦ b ∈ x.2, outW γ w b := by
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, Hst, Hwo, Hmeta, Hwt, #Hmfix, Hmem, #Hout⟩
+  iintro ⟨Hσ, Hwlog, #Hcert, #Hwfz, Hsy, Hun, Hvf, Hvs, Hvcap, Hst, Hwo, Hmeta, Hwt, #Hmfix, Hmem, #Hout⟩
+  ihave #Hwfz2 := wsWatchFrozen_mono γ σ (takeState σ vnil) (fun h => h) $$ Hwfz
   let p : Loc → WatcherSt → Bool := fun w _ => (σ.victimOf w).isSome
   icases (mv_bigSepM_split _ p σ.ST).1 $$ Hst with ⟨HstV, HstN⟩
   icases (mv_bigSepM_split _ p σ.ST).1 $$ Hmem with ⟨HmV, HmN⟩
@@ -991,6 +992,7 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
     dsimp only [takeState]
     simp only [named]
     iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hmeta Hwt Hmfix
+    iframe Hwfz2
     isplitr
     · ipureintro; rfl
     isplitr
@@ -1062,7 +1064,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
     (hd : b = true → max γw.lo σ.Lmu.length ≤ sint.nat st.minRev)
     (hσ' : σ' = readdState σ w r { st with victim := false } b (evsw, sint.nat st.minRev)) :
     ghostVar (GF := GF) γ.wst 1 σ' ∗
-      wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
+      wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗ wsWatchFrozen γ σ ∗
       ownWatcherGroup (syncedAddr s) (if b then <[w := r]> σ.Ws else σ.Ws) ∗
       ownWatcherGroup (unsyncedAddr s) (if b then σ.Wu else <[w := r]> σ.Wu) ∗
       typedPointsto (victimsAddr s) σ.vs (DFrac.own 1) ∗ ownSlice σ.vs σ.vbs (DFrac.own 1) ∗
@@ -1095,12 +1097,13 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
   have evbs : σ'.vbs = σ.vbs := by rw [hσ']; rfl
   have eVB : σ'.VB = σ.VB := by rw [hσ']; rfl
   have evo : ∀ k, σ'.victimOf k = σ.victimOf k := by intro k; rw [hσ']; rfl
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hw, Hwo, Hmeta, Hwt, #Hmfix,
+  iintro ⟨Hσ, Hwlog, #Hcert, #Hwfz, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hw, Hwo, Hmeta, Hwt, #Hmfix,
     Hmem, #Hout, #Hm, #Hf, #Hc, #Hfo, Hev, Hl, #Hwf, Hcrt⟩
+  ihave #Hwfz2 := wsWatchFrozen_mono γ σ σ' (fun h => by rw [eM]; exact h) $$ Hwfz
   unfold watchStoreBody
   rw [eL, eWs, eWu, eST, eWo, eM, evs, evbs, eVB]
   simp only [named]
-  iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
+  iframe Hσ Hwlog Hcert Hwfz2 Hsy Hun Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
   isplitr
   · ipureintro; exact Hvlen
   isplitl [Hst Hw]
@@ -1207,7 +1210,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     (hNVe : ∀ w x, NV !! w = some x → x.B.evs ≠ [])
     (hσ' : σ' = appendState σ NV vs' nvm) :
     ghostVar (GF := GF) γ.wst 1 σ' ∗
-      wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
+      wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗ wsWatchFrozen γ σ ∗
       ownWatcherGroup (syncedAddr s) σ.Ws ∗ ownWatcherGroup (unsyncedAddr s) σ.Wu ∗
       typedPointsto (victimsAddr s) vs' (DFrac.own 1) ∗ ownSlice vs' (σ.vbs ++ [nvm]) (DFrac.own 1) ∗
       ownSliceCap GoMap vs' (DFrac.own 1) ∗ ⌜σ.vbs.length = σ.VB.length⌝ ∗
@@ -1252,8 +1255,9 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     cases hn : NV !! k with
     | none => cases σ.Wo !! k <;> simp [Option.filter]
     | some x => rw [hNV k x hn]; simp [Option.filter]
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwo, Hmeta, Hwt, #Hmfix,
+  iintro ⟨Hσ, Hwlog, #Hcert, #Hwfz, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwo, Hmeta, Hwt, #Hmfix,
     Hmem, #Hout, Hnvm, Hnvb, Hnv⟩
+  ihave #Hwfz2 := wsWatchFrozen_mono γ σ σ' (fun h => by rw [eM]; exact h) $$ Hwfz
   icases (mv_bigSepM_split _ (fun w _ => (NV !! w).isSome) σ.Wo).1 $$ Hwo with ⟨HwoN, HwoR⟩
   ihave HwoN' : [∗map] k ↦ v ∈ GMap.fmap NvEnt.st NV, watcherOwn (GF := GF) k v (1 : Qp).half $$ [HwoN]
   · rw [← hWoN]; iexact HwoN
@@ -1283,7 +1287,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
   unfold watchStoreBody
   rw [eL, eWs, eWu, eST, eWo, eM, evs, evbs, eVB]
   simp only [named]
-  iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hmeta Hwt Hmfix
+  iframe Hσ Hwlog Hcert Hwfz2 Hsy Hun Hvf Hvs Hvcap Hmeta Hwt Hmfix
   isplitr
   · ipureintro; simp [Hvlen]
   isplitl [Hvbs Hnvm Hnvb]

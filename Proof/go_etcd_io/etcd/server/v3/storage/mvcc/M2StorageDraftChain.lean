@@ -26,7 +26,9 @@ and the `None` arm of `lockCtxM` through `lockNilSpec`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftSupply
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftRestore
 
 @[expose] public section
@@ -155,7 +157,7 @@ abbrev mvcc.store.compactLockfree.specR : Prop :=
 `compactRight γ (-1) ∗ storeStop s γ` is the restorable right `compactRightR s γ (-1)` (the closer
 split, not discarded: `compactRightR_of_closer`). -/
 theorem mvcc_NewStore_backend_cmpR [go_etcd_io.etcd.cache.v3.Assumptions]
-    (hNS : mvcc.NewStore.specD (GF := GF) (hG := hG)) (lg : Loc) (le : GoInterface)
+    (hNS : mvcc.NewStore.spec (GF := GF) (hG := hG)) (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (γb γl : GName)
     (Pk : IProp GF) (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc)
@@ -195,7 +197,7 @@ theorem mvcc_NewStore_backend_cmpR [go_etcd_io.etcd.cache.v3.Assumptions]
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
     Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
-  wp_apply (mvcc.NewStore_backendD hNS backend.backend.wp_ConcurrentReadTx
+  wp_apply (mvcc.NewStore_backend hNS backend.backend.wp_ConcurrentReadTx
         backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
         backend.backend.wp_Size backend.backend.wp_SizeInUse
         backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock

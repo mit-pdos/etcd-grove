@@ -42,7 +42,8 @@ theorem mvcc.store.Compact.wp_of_le
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ }}
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
+      mvcc.kbWTSupplyM γ.kb }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
@@ -54,7 +55,7 @@ theorem mvcc.store.Compact.wp_of_le
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
         mvcc.compactRight γ c ∗ Pre)) }} := by
-  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc, HRTok⟩
+  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -115,7 +116,7 @@ theorem mvcc.store.Compact.wp_of_le
     isplitl [Hcr Hq]
     · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
     iunfold mvcc.compactJobPre at Hjob
-    icases Hjob with ⟨-, -, -, -, #Hlb, -⟩
+    icases Hjob with ⟨-, -, -, -, #Hlb, -, -⟩
     iexact Hlb
   · subst Herr
     (try wp_auto)

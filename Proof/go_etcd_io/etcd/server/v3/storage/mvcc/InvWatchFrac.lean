@@ -322,6 +322,7 @@ theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG
   simp only [named]
   exact wFractional_sep (ghostVar_fractional _ _) (wFractional_sep
     (wlogQ_fractional _ _) (wFractional_sep (wFractional_persistent _)
+    (wFractional_sep (wFractional_persistent _)
     (wFractional_sep (ownWatcherGroup_fractional hsplit _ _) (wFractional_sep
     (ownWatcherGroup_fractional hsplit _ _) (wFractional_sep (wFractional_typed _ _)
     (wFractional_sep (fractional_of_dfractional (fun dq => ownSlice σ.vs σ.vbs dq))
@@ -333,7 +334,7 @@ theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG
       (wFractional_sep (ghostMapAuth_fractional _ _) (wFractional_sep (watchBudget_fractional _ _)
       (wFractional_sep (wFractional_persistent _)
       (wFractional_sep (wFractional_bigSepM _ _ (fun w st => memberRes_fractional γ σ w st))
-      (wFractional_sep (wFractional_persistent _) (wFractional_pure _)))))))))))))))))
+      (wFractional_sep (wFractional_persistent _) (wFractional_pure _))))))))))))))))))
 
 /-- **The lock invariant is fractional** (through the tree's pending fractionality): two parts
 agree on the state through `γ.wst`. -/

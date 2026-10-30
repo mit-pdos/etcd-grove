@@ -271,7 +271,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         -- (the backend's constructor's `fkCl`)
         □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -324,7 +324,8 @@ The store supports the compaction (`storeCmp γ`, `mvcc_store_Compact`'s premise
 close it is given up for the compaction right at `-1` (`compactRight_of_closer`), with `storeStop`.
 So `store.Compact.spec`'s premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`,
 `storeStop`, `compactRight γ (-1)`, `idxCert γ.idx [[], []]`, `hookIs`) are this post's; the caller
-brings the rest (the critical-section contract, the trace, and the reader's token `storeRT γ`). One
+brings the rest (the critical-section contract, the trace, the reader's token `storeRT γ`, and,
+M2's Q1 (a), the compaction's write-back supply `kbWTSupplyM γ.kb`, no longer `NewStore`'s). One
 reader of the pool is kept back for the compaction job (`nJobRd`), and the pool's retired count is
 at `1` (`retiredAt γ 1`, the creator's half, Probe P2, 2026-10-30): the caller makes its reader's
 token by retiring one of the post's readers (`storeReader_retire`, with £1, `isStore`, the pin
@@ -341,7 +342,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗ backend.dlInit d.γB ∗ backend.fkV d.γB true ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -367,7 +368,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         mvcc.compactRight γ (-1) ∗ mvcc.storeStop s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
         mvcc.retiredAt γ 1 }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
-    Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+    Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
   wp_apply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
         backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
@@ -382,9 +383,9 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
         backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
         lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
-      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro]
+      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
     as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret⟩
-  · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro
+  · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
   rw [hj]

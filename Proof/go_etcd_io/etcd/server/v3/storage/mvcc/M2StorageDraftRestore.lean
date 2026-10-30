@@ -48,7 +48,7 @@ today's full bucket and no compaction record off; on, a bucket thinned at the re
 that `restore()` computes from the image's compaction records `r`, with the records' write right
 `kbRecs`, `c ≤ r.crev`: review round 3's F1), the new job's budgets, the write-back supply and the
 hook's contract for the compaction `restore()` resumes (`kbSRM`, `kbWTSupplyM` of `d'`,
-`resumeCsM`), the old job's budgets back
+`resumeHookM`: the new backend's unset hook, lent), the old job's budgets back
 (`compactJobResM γ.kb`, for the old backend's `Close`), the new store's right
 (`storeCloserM`). Also drafted: the generalized `store.restore` (`store.restore.specR`, item
 18) and `store.Close` by the mode (`store.Close.specM`). At `cm = false` each reads as today: `store.Restore.spec_of_specM` and
@@ -59,16 +59,16 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraft
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
-public import Proof.go_etcd_io.etcd.pkg.v3.schedule.M2StorageDraft
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
 
 @[expose] public section
 
@@ -106,7 +106,7 @@ eighth is in it no one writes the fields, and `Restore` reclaims it only after `
 fresh names (`withPhys`, whose scheduler is new); so a job reads every field at the same `o`, as
 today's discarded `curAt` gives it, without holding a fraction. -/
 @[no_expose] def mvcc.storeStopR (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : IProp GF :=
-  inv mvcc.jobFieldsN iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDoneD γ.sch)
+  inv mvcc.jobFieldsN iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDone γ.sch)
 
 instance mvcc.storeStopR_persistent (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
     Persistent (mvcc.storeStopR (GF := GF) s γ o) := by
@@ -114,7 +114,7 @@ instance mvcc.storeStopR_persistent (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.S
 
 /-- **The jobs' share back** (`Restore`/`Close`, after `Stop`): with the run token, the share. -/
 theorem mvcc.storeStopR_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
-    ⊢ mvcc.storeStopR (GF := GF) s γ o -∗ schedule.schedDoneD γ.sch -∗ £ 1 ={⊤}=∗
+    ⊢ mvcc.storeStopR (GF := GF) s γ o -∗ schedule.schedDone γ.sch -∗ £ 1 ={⊤}=∗
       mvcc.fieldShareAt s γ mvcc.q8 o := by
   iintro #Hi Hd Hlc
   iunfold mvcc.storeStopR at Hi
@@ -126,7 +126,7 @@ theorem mvcc.storeStopR_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.Store
     imodintro
     iexact Ho
   · iexfalso
-    iapply schedule.schedDoneD_excl γ.sch $$ [$Hd $Hd']
+    iapply schedule.schedDone_excl γ.sch $$ [$Hd $Hd']
 
 /-! ## The compaction right that survives `Restore` -/
 
@@ -161,7 +161,7 @@ theorem mvcc.compactRightR_of_closer (s : Loc) (γ : mvcc.StoreNames) (E : CoPse
   rw [mvcc.q8_add] at hs
   icases hs $$ Hf with ⟨Hf1, Hf2⟩
   imod inv_alloc mvcc.jobFieldsN E
-    iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDoneD γ.sch)
+    iprop(mvcc.fieldShareAt s γ mvcc.q8 o ∨ schedule.schedDone γ.sch)
     $$ [Hf2] with #Hi
   · inext; ileft; iexact Hf2
   imodintro
@@ -179,7 +179,7 @@ jobs' eighth, reclaimed with the run token, are at the same objects and make the
 `storeCloser` holds. -/
 theorem mvcc.fieldShare_reclaim (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
     ⊢ mvcc.fieldShareAt (GF := GF) s γ mvcc.q8 o -∗ mvcc.storeStopR s γ o -∗
-      schedule.schedDoneD γ.sch -∗ £ 1 ={⊤}=∗ mvcc.fieldShareAt s γ (1 : Qp).half.half o := by
+      schedule.schedDone γ.sch -∗ £ 1 ={⊤}=∗ mvcc.fieldShareAt s γ (1 : Qp).half.half o := by
   iintro Hf #Hi Hd Hlc
   imod mvcc.storeStopR_reclaim s γ o $$ Hi Hd Hlc with Hf'
   have hs := (mvcc.fieldShareAt_split (GF := GF) s γ mvcc.q8 mvcc.q8 o).2
@@ -231,83 +231,8 @@ theorem mvcc.storeCloserM_on (s : Loc) (γ : mvcc.StoreNames) (c : Int)
 
 /-! ## The compaction records (review round 3, F1) -/
 
-/-- **A backend image's compaction records** (draft; `Meta`'s `finishedCompactRev` and
-`scheduledCompactRev`: absent, or a revision), what `restore()` reads (`kvstore.go:330-342`). -/
-structure mvcc.CmpRecs where
-  fin : Option w64
-  sched : Option w64
-  deriving DecidableEq
-
-/-- No record (today's received images, `kbNoCmp`). -/
-def mvcc.CmpRecs.empty : mvcc.CmpRecs := ⟨none, none⟩
-
-/-- The finished record, `-1` if absent (`restore()`'s first `compactMainRev`). -/
-def mvcc.CmpRecs.finRev (r : mvcc.CmpRecs) : Int := (r.fin.map sint.Z).getD (-1)
-
-/-- The scheduled record as `restore()` reads it: `0` if absent (`UnsafeReadScheduledCompact`'s
-`(0, false)`, whose found flag `restore()` drops). -/
-def mvcc.CmpRecs.schedRev (r : mvcc.CmpRecs) : Int := (r.sched.map sint.Z).getD 0
-
-/-- **`restore()` resumes the scheduled compaction**: the scheduled record (read as above) is not
-`0` and is past the finished one (`kvstore.go:389-391`, `:411`). A scheduled record of `0` is never
-resumed (`issues/etcd-restore-scheduled-compact-zero.md`). -/
-def mvcc.CmpRecs.resumes (r : mvcc.CmpRecs) : Bool := decide (r.schedRev ≠ 0 ∧ r.finRev < r.schedRev)
-
-/-- **The compaction revision `restore()` leaves** (`compactMainRev` after it): the scheduled one if
-it is resumed (`compactLockfree` → `updateCompactRev`, which succeeds: past the finished one, and
-`currentRev` was raised to it), else the finished one, else `-1`. -/
-def mvcc.CmpRecs.crev (r : mvcc.CmpRecs) : Int := if r.resumes then r.schedRev else r.finRev
-
-theorem mvcc.CmpRecs.crev_empty : mvcc.CmpRecs.empty.crev = -1 := by decide
-
-theorem mvcc.CmpRecs.resumes_empty : mvcc.CmpRecs.empty.resumes = false := by decide
-
-/-- **The records are of the log `L`** (pure): each a revision of `L` (`metaRevVal`'s `0 ≤`; below
-`|L|`, so `restore()`'s raise of `currentRev` to the scheduled one leaves `|L| - 1`). -/
-def mvcc.recsOk (L : mvcc.Log) (r : mvcc.CmpRecs) : Prop :=
-  (∀ x, r.fin = some x → 0 ≤ sint.Z x ∧ sint.Z x < L.length) ∧
-  (∀ x, r.sched = some x → 0 ≤ sint.Z x ∧ sint.Z x < L.length)
-
-/-- The restored revision is a revision of the log (or `-1`): `recsOk` and the log's two first
-revisions make round 3's `r.crev < L.length` conjunct redundant (review round 4, S4). -/
-theorem mvcc.recsOk_crev_lt (L : mvcc.Log) (r : mvcc.CmpRecs) (h : mvcc.recsOk L r)
-    (hL : 2 ≤ L.length) : r.crev < L.length := by
-  have hf : ∀ x, r.fin = some x → sint.Z x < L.length := fun x hx => (h.1 x hx).2
-  have hs : ∀ x, r.sched = some x → sint.Z x < L.length := fun x hx => (h.2 x hx).2
-  unfold mvcc.CmpRecs.crev mvcc.CmpRecs.schedRev mvcc.CmpRecs.finRev
-  rcases r with ⟨_ | x, _ | y⟩ <;>
-    simp only [Option.map_none, Option.map_some, Option.getD_none, Option.getD_some] at hf hs ⊢
-  · split <;> omega
-  · have := hs y rfl; split <;> omega
-  · have := hf x rfl; split <;> omega
-  · have := hf x rfl; have := hs y rfl; split <;> omega
-
-/-- **The records are past revision `0`** (pure; M2's scope restriction, Q7 (a): every committed
-compaction is at a revision `≥ 1`, `CompactScope`'s `compactPropOkD`, so the image's records,
-written by applying them, are; `issues/etcd-restore-scheduled-compact-zero.md`). -/
-def mvcc.recsPos (r : mvcc.CmpRecs) : Prop :=
-  (∀ x, r.fin = some x → 1 ≤ sint.Z x) ∧ (∀ x, r.sched = some x → 1 ≤ sint.Z x)
-
-/-- **Under the scope restriction the restored revision is none or a compaction's** (`-1` or
-`≥ 1`): the corner of Q7 (a scheduled compaction at `0`, never resumed) cannot arise, so the
-apply side's `c ≤ r.crev` is `crevOf_mono` without exception. -/
-theorem mvcc.recsPos_crev (r : mvcc.CmpRecs) (h : mvcc.recsPos r) : r.crev = -1 ∨ 1 ≤ r.crev := by
-  have hf : ∀ x, r.fin = some x → 1 ≤ sint.Z x := h.1
-  have hs : ∀ x, r.sched = some x → 1 ≤ sint.Z x := h.2
-  unfold mvcc.CmpRecs.crev mvcc.CmpRecs.resumes mvcc.CmpRecs.schedRev mvcc.CmpRecs.finRev
-  rcases r with ⟨_ | x, _ | y⟩ <;>
-    simp only [Option.map_none, Option.map_some, Option.getD_none, Option.getD_some] at hf hs ⊢
-  · left; simp
-  · have := hs y rfl
-    have h0 : sint.Z y ≠ 0 := by omega
-    have h1 : (-1 : Int) < sint.Z y := by omega
-    right; simp [h0, h1]; omega
-  · have := hf x rfl
-    right; simp; omega
-  · have := hf x rfl; have := hs y rfl
-    have h0 : sint.Z y ≠ 0 := by omega
-    right
-    by_cases hc : sint.Z x < sint.Z y <;> simp [h0, hc] <;> omega
+/- (`CmpRecs` and its revision `crev`, `recsOk`, `recsPos`, `recsOk_crev_lt`, `recsPos_crev` are
+switched: `CmpRecs.lean`, the approval's items 29 and 35.) -/
 
 /-- The bytes stored at a record (`RevToBytes(Revision{Main: x})`). -/
 def mvcc.recBytes (x : Option w64) : Option GoString := x.map (fun x => mvcc.revBytes ⟨x, W64 0⟩ false)
@@ -376,38 +301,8 @@ theorem mvcc.kbRecs_MW (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs
       iexists n
       iexact H
 
-/-- The record a compaction key holds. -/
-def mvcc.CmpRecs.at (r : mvcc.CmpRecs) (kn : GoString) : Option w64 :=
-  if kn = mvcc.finKeyBytes then r.fin else r.sched
-
-/-- **A read of a compaction key under the records `r`** (draft; `metaReadSpec`'s generalization):
-at no record, today's `metaReadSpec rt true` (nothing is found; `metaReadSpecR_empty` is `rfl`);
-else the key's record, exactly: nothing if absent, else the key and the record's bytes, a
-non-negative revision (`recsOk`). `keyReadLockedR`'s meta clause gives it (review round 4, A1 (a));
-`UnsafeReadFinishedCompact`/`UnsafeReadScheduledCompact` return the record (`specR`, proved below). -/
-def mvcc.metaReadSpecR (rt : GoInterfaceOk) (r : mvcc.CmpRecs) (Rd : GoSlice → GoString → IProp GF)
-    (Tok : IProp GF) : IProp GF :=
-  if r = mvcc.CmpRecs.empty then mvcc.metaReadSpec rt true Rd Tok
-  else iprop(∀ (b : GoInterface) (key : GoSlice) (kn : GoString) (dq : DFrac),
-    ⌜mvcc.metaCompactKey kn⌝ →
-    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ Tok ∗ key ↦*{dq} kn }}
-      (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #key))
-        (Val #(slice.nil))) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ key ↦*{dq} kn ∗
-        ((⌜r.at kn = none⌝ ∗ ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice)) ∨
-          ∃ (ksl vsl : GoSlice) (x : w64), ⌜r.at kn = some x ∧ 0 ≤ sint.Z x⌝ ∗ ks ↦*□ [ksl] ∗
-            Rd ksl kn ∗ vs ↦*□ [vsl] ∗ Rd vsl (mvcc.revBytes ⟨x, W64 0⟩ false)) }})
-
-instance mvcc.metaReadSpecR_persistent (rt : GoInterfaceOk) (r : mvcc.CmpRecs)
-    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
-    Persistent (mvcc.metaReadSpecR (GF := GF) rt r Rd Tok) := by
-  unfold mvcc.metaReadSpecR; split <;> infer_instance
-
-/-- At no record, today's. -/
-theorem mvcc.metaReadSpecR_empty (rt : GoInterfaceOk) (Rd : GoSlice → GoString → IProp GF)
-    (Tok : IProp GF) :
-    mvcc.metaReadSpecR (GF := GF) rt mvcc.CmpRecs.empty Rd Tok = mvcc.metaReadSpec rt true Rd Tok := by
-  unfold mvcc.metaReadSpecR; simp
+/- (`CmpRecs.at` and the reader under records, `metaReadSpecR`, now over an optional record set, are
+switched: `CmpRecs.lean`, item 28 with review round 5's S1. The drafts below read it at `some r`.) -/
 
 /-! ## The backend vocabulary with the records (review round 4, A1 (a))
 
@@ -424,7 +319,7 @@ def mvcc.keyReadLockedR (RT NC : IProp GF) (r : mvcc.CmpRecs) (rng : Bool) (rt :
   iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
     □ mvcc.keyRangeSpec rt m Rd Tok ∗
     (if rng then iprop(□ mvcc.keyRangeReadSpec rt m Rd Tok ∗ □ mvcc.keyRangeLimSpec rt m Rd Tok cl ∗
-      □ mvcc.rdSplit rt m Rd Tok cl ∗ □ (NC -∗ NC ∗ □ mvcc.metaReadSpecR rt r Rd Tok))
+      □ mvcc.rdSplit rt m Rd Tok cl ∗ □ (NC -∗ NC ∗ □ mvcc.metaReadSpecR rt (some r) Rd Tok))
      else iprop(True)) ∗
     mvcc.rdCap Rd Tok)
 
@@ -932,7 +827,7 @@ mode, D22's `srvKVCloser` by the mode): the watchable store's own stop channel's
 today's discarding `compactRight_of_closer`: the closer is kept, not discarded; the step after `NewServer`'s last
 error return): the inner closer and the authority's half (`crevRightM`, on) make the restorable
 right at `-1`; the watchable store's own parts are kept. -/
-theorem mvcc.wsCloserR_of_wsCloser (s st : Loc) (γs : mvcc.StoreNames) (h : mvcc.kbCmpM γs.kb)
+theorem mvcc.wsCloserR_of_wsCloser (s st : Loc) (γs : mvcc.StoreNames) (h : γs.cm = true)
     (E : CoPset) :
     ⊢ mvcc.wsCloser (GF := GF) s st γs -∗ mvcc.crevRightM γs ={E}=∗ mvcc.wsCloserR s st γs (-1) := by
   unfold mvcc.crevRightM
@@ -972,305 +867,13 @@ theorem mvcc.wsCloserR_join (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : 
   iexists stc
   iframe Hstc Hsc Hw Hr
 
-/-! ## The store's payload for its scheduler (F2) -/
+/- (The store's payload for its scheduler, `stopPay`/`stopPayAt`/`stopPayAt_done`, and the logical
+mode `StoreNames.cm` with `physOk`'s tie are switched: `InvStore.lean`, the approval's items 34 and
+26, 2026-10-30. `restoreRightM`/`storeCloserM` below still read `kbCmpM γ.kb`, as drafted: at
+their switch, with item 15, they read the logical mode `γ.cm`, equal under `physOk`'s tie.) -/
 
-/-- **The store's stop channel is closed** (persistent; draft): the payload mvcc's store gives its
-scheduler (`schedule.NewFIFOScheduler.specD`'s `Pay`). `NewStore`/`store.Restore` make the scheduler
-before the stop channel (`kvstore.go:309-310`), so the payload names the channel through an
-agreement name `γx` the store allocates first and fixes (discarded) once the channel is made; the
-channel's broadcast is then `Done`. `Restore`/`Close` close `stopc` before `Stop`, so they have it
-for `Scheduler.Stop.specD`; a job finding its context cancelled learns it
-(`schedule.schedPay_elim`), and `compactBarrier`'s nonblocking receive on a `Done` broadcast needs no
-proof of the not-ready branch (`ownBroadcastChan_nonblocking_receive`): the re-schedule branch is
-dead, and no `schedLive` is needed. -/
-def mvcc.stopPayD (γx : GName) : IProp GF :=
-  iprop(∃ c : Loc, dghostVar γx DFrac.discard c ∗
-    ∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) Broadcast.Done)
-
-instance mvcc.stopPayD_persistent (γx : GName) : Persistent (mvcc.stopPayD (GF := GF) γx) := by
-  unfold mvcc.stopPayD; infer_instance
-
-/-- **The payload's channel name, at home** (draft; review round 4's S2.2): the agreement name
-`γx` a store allocates for its scheduler's payload is a field of the physical names (`PhysNames`
-gains `sx : GName`, fresh per scheduler, `NewStore` and `store.Restore` allocate it before
-`NewFIFOScheduler`), and `physOk`'s conjunct is `stopPayAt p.sx γ.sch o` at the current objects `o`:
-the name records the stop channel `o.sstop` (fixed once the channel is made) and is the scheduler's
-payload's. Internal, as item 26. -/
-def mvcc.stopPayAt (γx : GName) (γs : schedule.SchedNamesD) (o : mvcc.StoreObjs) : IProp GF :=
-  iprop(dghostVar γx DFrac.discard o.sstop ∗ schedule.schedPayIs γs (mvcc.stopPayD γx))
-
-instance mvcc.stopPayAt_persistent (γx : GName) (γs : schedule.SchedNamesD) (o : mvcc.StoreObjs) :
-    Persistent (mvcc.stopPayAt (GF := GF) γx γs o) := by
-  unfold mvcc.stopPayAt; infer_instance
-
-/-- **What a job finding its context cancelled learns** (proved): the stop channel of the objects it
-reads through (`storeStopR s γ o`, the same `o` as `physOk`'s) is closed, a step later; so
-`compactBarrier`'s nonblocking receive takes the ready branch, the re-schedule branch is dead. -/
-theorem mvcc.stopPayAt_done (γx : GName) (γs : schedule.SchedNamesD) (o : mvcc.StoreObjs) :
-    mvcc.stopPayAt (GF := GF) γx γs o ∗ schedule.schedPay γs ⊢
-      ▷ ∃ γc : ChanNames, ownBroadcastChan o.sstop γc iprop(True) Broadcast.Done := by
-  iintro ⟨#Ha, #Hq⟩
-  iunfold mvcc.stopPayAt at Ha
-  icases Ha with ⟨#Hx, #Hp⟩
-  ihave Hl := schedule.schedPay_elim γs (mvcc.stopPayD γx) $$ [$Hp $Hq]
-  inext
-  icases Hl with #Hs
-  iunfold mvcc.stopPayD at Hs
-  icases Hs with ⟨%c, #Hc, %γc, #Hb⟩
-  ihave %He := dghostVar_agree γx o.sstop DFrac.discard c DFrac.discard $$ Hx Hc
-  subst He
-  iexists γc
-  iexact Hb
-
-/-! ## The logical mode (review round 3's S2.5, decided; drafted after round 4) -/
-
-/-- **The store's names with the logical mode** (draft of item 26: at the switch `cm` is
-`StoreNames`' own field): `NewStore` sets it to `decide (kbCmpM kb)`, `withPhys` keeps it, and
-`physOk`'s conjunct ties it to the current backend (`cmTie`). -/
-structure mvcc.StoreNamesD extends mvcc.StoreNames where
-  cm : Bool
-
-/-- `withPhys`, keeping the mode. -/
-def mvcc.StoreNamesD.withPhysD (γ : mvcc.StoreNamesD) (p : mvcc.PhysNames) : mvcc.StoreNamesD :=
-  { γ with toStoreNames := γ.toStoreNames.withPhys p }
-
-theorem mvcc.StoreNamesD.withPhysD_cm (γ : mvcc.StoreNamesD) (p : mvcc.PhysNames) :
-    (γ.withPhysD p).cm = γ.cm := rfl
-
-/-- **`physOk`'s tie of the mode to the backend** (pure; draft). -/
-def mvcc.cmTie (γ : mvcc.StoreNamesD) : Prop := mvcc.kbCmpM γ.kb ↔ γ.cm = true
-
-/-- `Restore` re-ties it at the new names when the new backend's mode is the old one's
-(`d'.cm = d.cm`, `Restore.specM`'s premise): the only place it is needed. -/
-theorem mvcc.cmTie_withPhysD (γ : mvcc.StoreNamesD) (p : mvcc.PhysNames) (h : mvcc.cmTie γ)
-    (hp : mvcc.kbCmpM p.kb ↔ mvcc.kbCmpM γ.kb) : mvcc.cmTie (γ.withPhysD p) := by
-  unfold mvcc.cmTie at h ⊢
-  show mvcc.kbCmpM (γ.toStoreNames.withPhys p).kb ↔ γ.cm = true
-  rw [mvcc.StoreNames.withPhys_kb]
-  exact hp.trans h
-
-/-- **`restoreRightM` over the logical mode** (draft): the gated logical predicates read `γ.cm`. -/
-def mvcc.restoreRightMC (s : Loc) (γ : mvcc.StoreNamesD) (c : Int) : IProp GF :=
-  if γ.cm then mvcc.compactRightR s γ.toStoreNames c
-  else iprop(mvcc.storeCloser s γ.toStoreNames ∗ mvcc.crevFrozen γ.toStoreNames ∗ ⌜c = -1⌝)
-
-/-- Under the tie it is round 3's (so the drafted statements read the same either way). -/
-theorem mvcc.restoreRightMC_eq (s : Loc) (γ : mvcc.StoreNamesD) (c : Int) (h : mvcc.cmTie γ) :
-    mvcc.restoreRightMC (GF := GF) s γ c = mvcc.restoreRightM s γ.toStoreNames c := by
-  unfold mvcc.restoreRightMC mvcc.restoreRightM
-  by_cases hc : γ.cm = true
-  · have : mvcc.kbCmpM γ.kb := h.2 hc
-    simp only [hc, this, ↓reduceIte]
-  · have : ¬ mvcc.kbCmpM γ.kb := fun h' => hc (h.1 h')
-    simp only [hc, this, Bool.false_eq_true, ↓reduceIte]
-
-/-! ## The records read (`restore()`'s two reads of the compaction keys; proved) -/
-
-/-- **Draft of `UnsafeReadFinishedCompact.spec` over the records' reader**: the finished record,
-exactly (found and its revision, or `0` and not found). At no record it is today's at `nc = true`. -/
-abbrev mvcc.UnsafeReadFinishedCompact.specR : Prop :=
-  ∀ (rt : GoInterfaceOk) (r : mvcc.CmpRecs) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      □ mvcc.metaReadSpecR rt r Rd Tok ∗ mvcc.rdCap Rd Tok ∗ Tok }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact))
-      (Val #(GoInterface.ok rt)))
-  {{ (x : w64) (found : Bool), RET (PairV #x #found); Tok ∗
-      ⌜(found = true ∧ r.fin = some x) ∨ (found = false ∧ r.fin = none ∧ x = W64 0)⌝ }}
-
-/-- **Draft of `UnsafeReadScheduledCompact.spec` over the records' reader**: the scheduled
-record, exactly. -/
-abbrev mvcc.UnsafeReadScheduledCompact.specR : Prop :=
-  ∀ (rt : GoInterfaceOk) (r : mvcc.CmpRecs) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      □ mvcc.metaReadSpecR rt r Rd Tok ∗ mvcc.rdCap Rd Tok ∗ Tok }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact))
-      (Val #(GoInterface.ok rt)))
-  {{ (x : w64) (found : Bool), RET (PairV #x #found); Tok ∗
-      ⌜(found = true ∧ r.sched = some x) ∨ (found = false ∧ r.sched = none ∧ x = W64 0)⌝ }}
-
-theorem mvcc.CmpRecs.at_fin (r : mvcc.CmpRecs) : r.at mvcc.finKeyBytes = r.fin := by
-  unfold mvcc.CmpRecs.at; simp [mvcc.finKeyBytes, mvcc.schedKeyBytes]
-
-set_option maxHeartbeats 800000 in
-/-- **The records' fin read** (proved: today's proof over the records' reader; at no record,
-today's spec at `nc = true`). -/
-theorem mvcc.UnsafeReadFinishedCompact.wp_proofR
-    (h0 : mvcc.BytesToRev.spec (GF := GF) (hG := hG))
-    (hT : mvcc.UnsafeReadFinishedCompact.spec (GF := GF) (hG := hG)) :
-    mvcc.UnsafeReadFinishedCompact.specR (GF := GF) (hG := hG) := by
-  intro rt r Rd Tok
-  by_cases hr : r = mvcc.CmpRecs.empty
-  · subst hr
-    rw [mvcc.metaReadSpecR_empty]
-    iintro %Φ ⟨#Hpkg, #Hrd, #Hcap, Htok⟩ HΦ
-    iapply (hT rt true Rd Tok) $$ [$Htok]
-    · iframe #
-    iintro !> %x %found ⟨Htok, %Hf⟩
-    iapply HΦ
-    iframe Htok
-    ipureintro
-    obtain ⟨-, h1, h2⟩ := Hf
-    right; exact ⟨h2 rfl, rfl, h1 (h2 rfl)⟩
-  wp_start as ⟨#Hrd, #Hcap, Htok⟩
-  ihave Hmi : (mvccInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%skn, #Hskn, #Hsknv⟩, -⟩
-  ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
-  · iPkgInit
-  ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨⟨%bM, #HMetaG, -⟩, -⟩
-  unfold mvcc.metaReadSpecR
-  simp only [hr, ↓reduceIte]
-  (try wp_auto)
-  wp_bind (App (App (App (App (Val #(methods rt.ty _ rt.v)) (Val #bM)) (Val #skn)) (Val #(slice.nil)))
-    (Val #(W64 0)))
-  ihave #Hrd' := Hrd $$ %bM %skn %mvcc.finKeyBytes %DFrac.discard []
-  · ipureintro; exact Or.inr rfl
-  iapply Hrd' $$ [Htok]
-  · iframe HMetaG Htok
-    unfold mvcc.finKeyBytes
-    iexact Hsknv
-  inext
-  iintro %ks %vs ⟨Htok, -, Hr⟩
-  rw [mvcc.CmpRecs.at_fin]
-  icases Hr with (⟨%Hnone, #Hks, #Hvs⟩ | ⟨%ksl, %vsl, %x, %Hx, #Hks, -, #Hvs, Hvsl⟩)
-  · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
-    (try wp_auto)
-    obtain ⟨h1, h2⟩ := Hlen
-    have hl0 : vs.len = W64 0 := by
-      simp only [List.length_nil] at h1; unfold sint.nat at h1; word
-    wp_if_destruct
-    all_goals try (exfalso; exact Hif hl0)
-    (try wp_auto)
-    iapply HΦ
-    iframe Htok
-    ipureintro
-    right; exact ⟨by trivial, Hnone, by trivial⟩
-  · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
-    obtain ⟨hxr, hx0⟩ := Hx
-    iunfold mvcc.rdCap at Hcap
-    icases Hcap $$ %vsl %(mvcc.revBytes ⟨x, W64 0⟩ false) Hvsl Htok with ⟨%dqv, Hvb, Hback⟩
-    ihave Hvsl' : vsl ↦*{dqv} (mvcc.revBytes ⟨x, W64 0⟩ false ++ []) $$ [Hvb]
-    · rw [List.append_nil]; iexact Hvb
-    (try wp_auto)
-    obtain ⟨h1, h2⟩ := Hlen
-    have hl1 : vs.len ≠ W64 0 := by
-      simp only [List.length_singleton] at h1; unfold sint.nat at h1; intro h; rw [h] at h1
-      simp at h1
-    wp_if_destruct
-    all_goals try (exfalso; exact hl1 Hif)
-    have Hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z vs.len := by
-      simp only [List.length_singleton] at h1; unfold sint.nat at h1
-      refine ⟨by decide, ?_⟩
-      rw [show sint.Z (W64 0) = 0 by decide]
-      have h3 : (sint.Z vs.len).toNat = 1 := h1.symm
-      omega
-    simp only [Hb0, _root_.and_self, ite_true]
-    wp_apply wp_load_slice_index vs (sint.Z (W64 0)) _ DFrac.discard vsl (by decide) $$ [$Hvs] as -
-    · ipureintro; rfl
-    wp_apply (h0 vsl ⟨x, W64 0⟩ [] dqv (by simp) hx0 (show (0 : Int) ≤ sint.Z (W64 0) by decide)) $$ [$Hvsl'] as Hvsl'
-    (try wp_auto)
-    iapply HΦ
-    isplitl [Hvsl' Hback]
-    · iapply Hback
-      rw [List.append_nil] at *
-      iexact Hvsl'
-    ipureintro
-    try simp only [mvcc.revVal_main]
-    left; exact ⟨trivial, hxr⟩
-
-theorem mvcc.CmpRecs.at_sched (r : mvcc.CmpRecs) : r.at mvcc.schedKeyBytes = r.sched := by
-  unfold mvcc.CmpRecs.at; simp [mvcc.finKeyBytes, mvcc.schedKeyBytes]
-
-set_option maxHeartbeats 800000 in
-/-- **The records' sched read** (proved: today's proof over the records' reader; at no record,
-today's spec at `nc = true`). -/
-theorem mvcc.UnsafeReadScheduledCompact.wp_proofR
-    (h0 : mvcc.BytesToRev.spec (GF := GF) (hG := hG))
-    (hT : mvcc.UnsafeReadScheduledCompact.spec (GF := GF) (hG := hG)) :
-    mvcc.UnsafeReadScheduledCompact.specR (GF := GF) (hG := hG) := by
-  intro rt r Rd Tok
-  by_cases hr : r = mvcc.CmpRecs.empty
-  · subst hr
-    rw [mvcc.metaReadSpecR_empty]
-    iintro %Φ ⟨#Hpkg, #Hrd, #Hcap, Htok⟩ HΦ
-    iapply (hT rt true Rd Tok) $$ [$Htok]
-    · iframe #
-    iintro !> %x %found ⟨Htok, %Hf⟩
-    iapply HΦ
-    iframe Htok
-    ipureintro
-    obtain ⟨-, h1, h2⟩ := Hf
-    right; exact ⟨h2 rfl, rfl, h1 (h2 rfl)⟩
-  wp_start as ⟨#Hrd, #Hcap, Htok⟩
-  ihave Hmi : (mvccInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%skn, #Hskn, #Hsknv⟩, -⟩
-  ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
-  · iPkgInit
-  ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨⟨%bM, #HMetaG, -⟩, -⟩
-  unfold mvcc.metaReadSpecR
-  simp only [hr, ↓reduceIte]
-  (try wp_auto)
-  wp_bind (App (App (App (App (Val #(methods rt.ty _ rt.v)) (Val #bM)) (Val #skn)) (Val #(slice.nil)))
-    (Val #(W64 0)))
-  ihave #Hrd' := Hrd $$ %bM %skn %mvcc.schedKeyBytes %DFrac.discard []
-  · ipureintro; exact Or.inl rfl
-  iapply Hrd' $$ [Htok]
-  · iframe HMetaG Htok
-    unfold mvcc.schedKeyBytes
-    iexact Hsknv
-  inext
-  iintro %ks %vs ⟨Htok, -, Hr⟩
-  rw [mvcc.CmpRecs.at_sched]
-  icases Hr with (⟨%Hnone, #Hks, #Hvs⟩ | ⟨%ksl, %vsl, %x, %Hx, #Hks, -, #Hvs, Hvsl⟩)
-  · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
-    (try wp_auto)
-    obtain ⟨h1, h2⟩ := Hlen
-    have hl0 : vs.len = W64 0 := by
-      simp only [List.length_nil] at h1; unfold sint.nat at h1; word
-    wp_if_destruct
-    all_goals try (exfalso; exact Hif hl0)
-    (try wp_auto)
-    iapply HΦ
-    iframe Htok
-    ipureintro
-    right; exact ⟨by trivial, Hnone, by trivial⟩
-  · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
-    obtain ⟨hxr, hx0⟩ := Hx
-    iunfold mvcc.rdCap at Hcap
-    icases Hcap $$ %vsl %(mvcc.revBytes ⟨x, W64 0⟩ false) Hvsl Htok with ⟨%dqv, Hvb, Hback⟩
-    ihave Hvsl' : vsl ↦*{dqv} (mvcc.revBytes ⟨x, W64 0⟩ false ++ []) $$ [Hvb]
-    · rw [List.append_nil]; iexact Hvb
-    (try wp_auto)
-    obtain ⟨h1, h2⟩ := Hlen
-    have hl1 : vs.len ≠ W64 0 := by
-      simp only [List.length_singleton] at h1; unfold sint.nat at h1; intro h; rw [h] at h1
-      simp at h1
-    wp_if_destruct
-    all_goals try (exfalso; exact hl1 Hif)
-    have Hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z vs.len := by
-      simp only [List.length_singleton] at h1; unfold sint.nat at h1
-      refine ⟨by decide, ?_⟩
-      rw [show sint.Z (W64 0) = 0 by decide]
-      have h3 : (sint.Z vs.len).toNat = 1 := h1.symm
-      omega
-    simp only [Hb0, _root_.and_self, ite_true]
-    wp_apply wp_load_slice_index vs (sint.Z (W64 0)) _ DFrac.discard vsl (by decide) $$ [$Hvs] as -
-    · ipureintro; rfl
-    wp_apply (h0 vsl ⟨x, W64 0⟩ [] dqv (by simp) hx0 (show (0 : Int) ≤ sint.Z (W64 0) by decide)) $$ [$Hvsl'] as Hvsl'
-    (try wp_auto)
-    iapply HΦ
-    isplitl [Hvsl' Hback]
-    · iapply Hback
-      rw [List.append_nil] at *
-      iexact Hvsl'
-    ipureintro
-    try simp only [mvcc.revVal_main]
-    left; exact ⟨trivial, hxr⟩
+/- (The records reads, `UnsafeReadFinishedCompact`/`UnsafeReadScheduledCompact` over the records,
+are switched as one spec each over an optional record set: item 28, review round 5's S1.) -/
 
 /-! ## `store.restore`, generalized (item 18) -/
 

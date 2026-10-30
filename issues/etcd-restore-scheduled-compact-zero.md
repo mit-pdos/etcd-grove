@@ -32,9 +32,14 @@ links: []
 - **Expected**: the compaction revision is a function of the applied log (every member that applied
   the same entries has the same `compactMainRev`), as `restore()` arranges for every other revision
   (it resumes a scheduled compaction above the finished one).
-- **How the proof handles it**: not yet (M2's storage side, Draft). `store.Restore.specM`'s premise
-  `c ≤ c'` (the user's Q5 (a): the compaction revision logical across a restore) is false in this
-  corner (`c = 0`, `c' = -1`): `notes/m2-storage-plan.md`, "After review round 3", Q7.
+- **How the proof handles it**: as M2's scope restriction (the user's Q7 (a), switched 2026-10-30):
+  `EtcdServer.Compact.spec` takes `1 ≤ r` (no compaction at revision `0`; a client's `Compact(0)` RPC
+  is out of M2's scope, M2's compactor never issues it: `compactableOk_server`), and the committed
+  log's compactions are past `0` (`compactPropOk`, `plainLogC_compaction_pos`, `CompactMode.lean`).
+  The restored images' records are then past `0` (`mvcc.recsPos`, `recsPos_crev`: still a Draft with
+  the restore chain), so `store.Restore.specM`'s premise `c ≤ c'` (the user's Q5 (a)) has no corner.
+  Until then it was false in this corner (`c = 0`, `c' = -1`): `notes/m2-storage-plan.md`, "After
+  review round 3", Q7.
 - **Possible fixes**: read the scheduled record's found flag and resume when it is found and above
   `compactMainRev` (`scheduledCompact, scheduledFound := ...; if scheduledFound && scheduledCompact >
   s.compactMainRev`), or reject `Compact(rev)` with `rev <= 0` in the RPC or the applier (it deletes

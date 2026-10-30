@@ -35,7 +35,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post log hcmp
-  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs, HRTok⟩
+  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs, HRTok, #HsupM⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
@@ -65,7 +65,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     isplitl [Hcrev Hq]
     · iunfold mvcc.compactRight; iframe Hcrev Hq Hlive
     iunfold mvcc.compactJobPre at Hjob
-    icases Hjob with ⟨-, -, -, -, #Hlb, -⟩
+    icases Hjob with ⟨-, -, -, -, #Hlb, -, -⟩
     iexact Hlb
   · subst Herr
     (try wp_auto)

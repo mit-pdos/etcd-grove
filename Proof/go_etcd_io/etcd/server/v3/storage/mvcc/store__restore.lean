@@ -90,18 +90,24 @@ theorem mvcc.store.restore.wp_proof
     icases Hmc $$ Hncmp with ⟨Hncmp, #Hmeta⟩
     ihave Hncmp := mvcc.kbNoCmp_MW _ _ $$ Hncmp
     ihave #Hcap := mvcc.keyReadLocked_cap _ _ _ _ _ _ _ _ $$ Hlk
-    wp_apply (hFin rt true Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
-    · iframe #
+    wp_apply (hFin rt (some mvcc.CmpRecs.empty) Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
+    · rw [mvcc.metaReadSpecR_empty]; iframe #
     obtain ⟨-, Hf0, Hfnf⟩ := Hf
-    have Hfound : found = false := Hfnf rfl
+    have Hfound : found = false := by
+      rcases Hfnf _ rfl with ⟨-, h⟩ | ⟨h, -⟩
+      · cases h
+      · exact h
     subst Hfound
     have Hxf := Hf0 rfl
     subst Hxf
     (try wp_auto)
-    wp_apply (hSch rt true Rd Tok) $$ [$Htok] as %xs %sfound ⟨Htok, %Hs⟩
-    · iframe #
+    wp_apply (hSch rt (some mvcc.CmpRecs.empty) Rd Tok) $$ [$Htok] as %xs %sfound ⟨Htok, %Hs⟩
+    · rw [mvcc.metaReadSpecR_empty]; iframe #
     obtain ⟨-, Hs0, Hsnf⟩ := Hs
-    have Hsfound : sfound = false := Hsnf rfl
+    have Hsfound : sfound = false := by
+      rcases Hsnf _ rfl with ⟨-, h⟩ | ⟨h, -⟩
+      · cases h
+      · exact h
     subst Hsfound
     have Hxs := Hs0 rfl
     subst Hxs
@@ -603,18 +609,24 @@ theorem mvcc.store.restore.wp_proof
   icases Hmc $$ Hncmp with ⟨Hncmp, #Hmeta⟩
   ihave Hncmp := mvcc.kbNoCmp_MW _ _ $$ Hncmp
   ihave #Hcap := mvcc.keyReadLocked_cap _ _ _ _ _ _ _ _ $$ Hlk
-  wp_apply (hFin rt true Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
-  · iframe #
+  wp_apply (hFin rt (some mvcc.CmpRecs.empty) Rd Tok) $$ [$Htok] as %xf %found ⟨Htok, %Hf⟩
+  · rw [mvcc.metaReadSpecR_empty]; iframe #
   obtain ⟨-, Hf0, Hfnf⟩ := Hf
-  have Hfound : found = false := Hfnf rfl
+  have Hfound : found = false := by
+    rcases Hfnf _ rfl with ⟨-, h⟩ | ⟨h, -⟩
+    · cases h
+    · exact h
   subst Hfound
   have Hxf := Hf0 rfl
   subst Hxf
   (try wp_auto)
-  wp_apply (hSch rt true Rd Tok) $$ [$Htok] as %xs %sfound ⟨Htok, %Hs⟩
-  · iframe #
+  wp_apply (hSch rt (some mvcc.CmpRecs.empty) Rd Tok) $$ [$Htok] as %xs %sfound ⟨Htok, %Hs⟩
+  · rw [mvcc.metaReadSpecR_empty]; iframe #
   obtain ⟨-, Hs0, Hsnf⟩ := Hs
-  have Hsfound : sfound = false := Hsnf rfl
+  have Hsfound : sfound = false := by
+    rcases Hsnf _ rfl with ⟨-, h⟩ | ⟨h, -⟩
+    · cases h
+    · exact h
   subst Hsfound
   have Hxs := Hs0 rfl
   subst Hxs

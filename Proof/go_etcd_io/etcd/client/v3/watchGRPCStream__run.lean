@@ -207,7 +207,7 @@ theorem watchGRPCStream.run.wp_proof
     ihave ⟨#Hmf, %Hpre⟩ := watchConnFacts_cur V $$ Hconn
     ihave #Hmf' := Hmf
     iunfold watchMemberFacts at Hmf'
-    icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf⟩
+    icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf, #Hnoc⟩
     ihave #Hconn' := Hconn
     iunfold watchConnFacts at Hconn'
     icases Hconn' with ⟨#Hgc, #Hgs, #Hdesc, -, #Heof, #HerrNew, #Hcea, #Hvars, -⟩
@@ -520,7 +520,8 @@ theorem watchGRPCStream.run.wp_proof
           as %err ⟨-, Hres⟩
         · iframe
           unfold v3rpc.watchUp
-          iframe
+          dsimp only
+          iframe Hwt Hnoc
           ipureintro; simp [v3rpc.watchReqOk, createOf]
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
             cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗ ⌜client.addCase S L' si si⌝ ∗
@@ -1621,7 +1622,8 @@ theorem watchGRPCStream.run.wp_proof
             as %err ⟨-, Hres'⟩
           · iframe
             unfold v3rpc.watchUp
-            iframe
+            dsimp only
+            iframe Hwt Hnoc
             ipureintro; simp [v3rpc.watchReqOk, createOf]
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
               cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗
@@ -2627,7 +2629,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave ⟨#Hmf, %Hpre⟩ := watchConnFacts_cur V $$ Hconn
         ihave #Hmf' := Hmf
         iunfold watchMemberFacts at Hmf'
-        icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf⟩
+        icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf, #Hnoc⟩
         ihave #Hconn' := Hconn
         iunfold watchConnFacts at Hconn'
         icases Hconn' with ⟨#Hgc, #Hgs, #Hdesc, -, #Heof, #HerrNew, #Hcea, #Hvars, -⟩
@@ -2721,7 +2723,8 @@ theorem watchGRPCStream.run.wp_proof
           as %err3 ⟨-, Hres'⟩
         · iframe
           unfold v3rpc.watchUp
-          iframe
+          dsimp only
+          iframe Hwt Hnoc
           ipureintro; simp [v3rpc.watchReqOk, createOf]
         have hne2 : (S.reconnect l').l.dropWhile (fun y => decide (y = null)) ≠ [] := by
           intro e0; rw [e0] at hhd; simp at hhd

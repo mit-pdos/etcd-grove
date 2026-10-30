@@ -26690,3 +26690,63 @@ holds the channel, the `snapDone` handoff and `memSnapLb γs 0` (`newReplica` op
 `c ≤ snapIndex` kept). Tests: `go test ./kvreconf/ -race` passes; the non-short `TestRounds`
 takes ~300-1400 snapshots and compactions per round.
 
+
+## M2's storage side, the switch: the scheduler's payload and run token (2026-10-30, the approval's item 19)
+
+**2026-10-30 · taken (the user's approval of review round 5's list; `notes/m2-storage-plan.md`, "The
+switch of the approved items")**
+
+`schedule.SchedNames` gains `pay`, the name of a saved proposition its creator fixes
+(`NewFIFOScheduler.spec`'s new argument `Pay`, `schedPayIs γ Pay` in its post). The scheduler's
+context is done with `stopped F ∗ schedPay γ` (`fifoCtxDesc γ F`), so `Scheduler.Stop.spec`, which
+cancels it, takes `schedPay γ`; a job's `Do` (`jobDoSpec`/`jobFnSpec`) gets
+`□ (cd.PDone -∗ schedPay γ)` for its context, so a job finding the context cancelled learns the
+payload (`schedPay_elim`). `Stop` returns the run token's ghost part (`schedDone γ`): the worker puts
+it in `donecCarry` with the last baton when it closes `donec`. Why a field and not an extension
+(round 4's S2.1): `isFifo sc γ` must pin `γ.pay`, else `Stop` cannot produce the context's real
+`PDone`. mvcc's store gives the payload "its stop channel is closed" (`stopPay`, through the
+agreement name `StoreNames.sx`, item 34), the server's `run` `True`.
+
+## M2's storage side: the store's logical mode `StoreNames.cm` (2026-10-30, the approval's item 26)
+
+**2026-10-30 · taken (review round 3's S2.5, approved)**
+
+`StoreNames.cm : Bool` (logical: `withPhys` keeps it), set by `NewStore` to `decide (kbCmpM kb)` and
+tied to the current backend by `physOk`'s `⌜kbCmpM γ.kb ↔ γ.cm = true⌝`. The logical predicates gated
+by the mode read it (`wsFrozenM`, `crevRightM`); the backend-keyed ones stay on `kb` (`physCmp`,
+`nJobRd`, `kbSRM`, `kbWTSupplyM`, `compactJobResM`). Two consequences decided at the switch:
+- the creation posts (`NewStore.spec`, `newWatchableStore.spec`, `New.spec`) expose the mode in
+  their pure facts (`γ.cm = decide (kbCmpM kb)`): the tie is in `physOk`, under the fields' shares,
+  not in the persistent `isStore` (which reads only logical names: `isStore_withPhys` stays `rfl`),
+  so a client learns `γ.cm` from the post;
+- the client-facing mode facts are stated over `γ.cm`: `envAgree`'s clause is `E.γ.cm = E.cmp`
+  (round 2's N1 drafted `kbCmpM E.γ.kb ↔ E.cmp = true`; the plan's item 10 said "at the switch
+  `E.γ.cm = E.cmp`"), the watch laws take `R.γ.st.cm = false` / `R.E.γ.cm = false`
+  (`isWatchServer_noCompactor(_env)`), and the examples' premise is `hoff : V.R.E.γ.cm = false`
+  (`etcd_cache_served`, watchkv's `wk_served`; linkv3p's `memberWatch`/`memberAt`: `E.γ.cm =
+  false`). Equal to the drafted `¬ kbCmpM …` under the tie; read off `envAgree` (`envAgree_off`)
+  with no backend fact, and a snapshot install (`withPhys`) does not move it.
+
+## M2's storage side: the compaction chain over the restorable right is not provable as drafted (2026-10-30, the approval's item 17)
+
+**2026-10-30 · stopped at the switch (for the user)**
+
+Drafted (round 4's S3): the jobs read the four fields `store.Restore` writes through
+`storeStopR s γ o := inv (fieldShareAt s γ q8 o ∨ schedDone γ.sch)`, "the per-read invariant
+opening (an atomic load each, the job holding the run token)". Perennial's loads are not atomic:
+`GoLoad` of a primitive type reduces to `Read`, i.e. `StartRead` then `FinishRead`
+(`Perennial/GooseLang/Lang.lean`, `Golang/Defn/PostLang.lean`), the non-atomic read of the race
+detector, and its only spec
+(`IntoValTyped.wp_load`) needs the points-to before the call and gives it back after: an invariant can
+be opened around one atomic step, not around a load. The other route, leasing the eighth out of
+the invariant for the job's run in exchange for the run token (`schedDone`), is unsound locally: at
+the job's end the invariant may hold an eighth again (any holder of a `fieldShareAt q8 o`, the
+closer's `storeCloserR`, can swap it in and take the run token), and the job cannot return
+`schedRunning`. So the chain's reads have no permission under the drafted `storeStopR`, and item 17
+(with what is stated over `compactRightR`: item 4's step-2 text, items 20, 23, 24, and item 31's
+`lockCtxM`, whose only users are item 17's specs) stays a Draft. Repairs for the user (each changes
+the internal `storeStopR`/`compactRightR`, not a client's text): (a) the eighth carried along the
+tracked jobs' baton (`compactQueue`'s `Q`/`R`: every barrier is tracked under the approved design, so
+each job holds it for its run and `Stop` returns the last `Post` with it); (b) a third state of the
+invariant, "leased to the running job", with a lease token the job keeps, so no other holder can
+swap the eighth back while it runs.

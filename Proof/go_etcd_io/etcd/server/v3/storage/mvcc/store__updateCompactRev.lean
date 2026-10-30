@@ -63,7 +63,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs, HRTok⟩
+  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs, HRTok, #HsupM⟩
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, HwFrag⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
@@ -118,7 +118,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
-      iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', -⟩, -, #Hctx'⟩ HΦj
+      iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', -⟩, -, #Hctx', -⟩ HΦj
       wp_auto
       wp_apply (h1 s γ ctx' cd' ch iprop(True)) $$ [$Hcl']
       · iframe #
@@ -248,7 +248,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
       have hcM := mvcc.storeCmp_cmpM γ hcmp
       ihave #Hbk' := mvcc.isKeyBackendG_cmpOn b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
       ihave #Hsw := mvcc.mwSwap_of_physOk s γ hcM $$ HmwP
-      icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg, #Hsup⟩
+      icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg⟩
+      -- (M2, the storage side, Q1 (a)) the supply from the pre
+      ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcM).1 $$ HsupM
       iunfold mvcc.isKeyBackendG at Hbk'
       icases Hbk' with ⟨%bi, %Hbi, -, -, #HB, #HForce, -⟩
       subst Hbi

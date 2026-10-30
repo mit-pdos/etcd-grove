@@ -64,6 +64,10 @@ reader token `storeRT γ` (the apply thread's, from `writerOwn`) for `checkPrevC
 **The writer's hook** (Probe P1, 2026-10-30): `hookIs γ P f` (the persistent `hookOk` and the
 writer's fragment `writerFrag`) is given back in every case, so the caller can still write
 (`store.Write`), compact again, or restore.
+
+**The write-back supply** (M2, the storage side, Q1 (a), 2026-10-30): the caller gives the
+compaction's supply `kbWTSupplyM γ.kb` (persistent; the server's from its write budget, R2-7),
+which the store no longer keeps; the job gets it in its premise (`compactJobPre`).
 -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
@@ -73,7 +77,8 @@ abbrev mvcc.store.Compact.spec : Prop :=
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ }}
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
+      mvcc.kbWTSupplyM γ.kb }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
