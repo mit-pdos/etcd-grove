@@ -2,32 +2,19 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`. Lean-first (no
 Rocq counterpart).
 
-**2026-10-30 (stage F of the client repair): the proof is `sorry`**, its body before the repair
-kept below it (`REPAIR-OLD`) as stage P's starting point (kvreconf's `StartCluster.lean` shows the
-new middle). Over raft's new API: the cluster is `cluster_alloc kvRaftN clusterIds [] [] false`
-(no boot log; its post's `ownConfDecisions γ ∅` makes the decision authority, `confPolicy_alloc`
-at `kvConfN`; `ownSnapsMade γ []` the registry, `kvSnapInv_alloc`; `joinAuth` is dropped; each
-`nodeFounder` goes to its `RestartNode`), each storage (`NewStorage`: its records and
-`NewMemoryStorage`'s tokens) gives `RestartNode`'s `bootStorage` by `kv_bootStorage` (the frame,
-the storage's invariant at `kvJ γ id`, comes back as `RestartNode`'s `Q`, with `memSnapNone_open`'s
-`memSnapLb γs 0` making `runStor`), and `RestartNode` (`RestartNode.spec`: `HsEmpty` of the
-store's `HardState{}`, the conf state `kvConfState clusterIds`) gives the node's `nodeRunning … 1`
-for `New`. The text below describes the proof before the repair.
-
-The cluster bring-up of the store's `Main`, at any storage registry (`[KVStor GF]`): raft's
-cluster of the voters `1, 2, 3` with snapshots and reconfiguration, its conf entries decided by the
-store's rule (2026-10-28, stage U4a: `cluster_alloc_rule`, each node a founder's `RestartNode`,
-`RestartNode.unifiedSpec`, and the store's registry of the snapshots made, `kvSnapInv_alloc`;
-2026-10-27 to 2026-10-28 raft's static cluster, `cluster_alloc_static`, with the term budget; until
-then `ownRaftGhost_alloc_snap` and `budget_alloc`) with the store's
-invariant (`rkvInv_alloc`, which gives the client's half at the empty store), then a first loop over the voters (`NewStorage`, `RestartNode` into `peers` and
-`storages`), the transfer budget and the `send` closure (`deliver`), and a second loop that
-starts each replica (`New`), appends it to `kvs` and forks its `tick`.
-
-**Raft v3.7 (2026-10-16, stage R6b).** `RestartNode` takes the store's storage under the
-store's `StorageModel` (`kvStorage_isStorage`) and its `InitialState` closure
-(`kvStorage_initialState`); the conf state it returns is `kvConfState clusterIds` (the voters,
-no `AutoLeave`: `al = false`, which `RestartNode.spec` admits since stage R6b).
+The cluster bring-up of the store's `Main`, at any storage registry (`[KVStor GF]`), over raft's
+unified API (2026-10-30, stage P of the client repair): raft's cluster of the voters `1, 2, 3`
+with no boot log, its conf entries decided by the store's rule, the store's invariant and its
+registry of the snapshots made (`kvCluster_alloc`: `cluster_alloc`, `confPolicy_alloc` at
+`kvConfN`, `rkvInv_alloc`, `kvSnapInv_alloc`), then a first loop over the voters: each storage
+(`NewStorage`: its records and `NewMemoryStorage`'s tokens) gives `RestartNode`'s `bootStorage`
+(`kvStorage_bootStorage`), whose frame, the storage's invariant at `kvJ γ id`, comes back as
+`RestartNode`'s `Q`; with `memSnapNone_open`'s `memSnapLb γs 0` it makes `runStor`. `RestartNode`
+(its `nodeFounder` disjunct, `HardState{}`, the conf state `kvConfState clusterIds`: the voters,
+no `AutoLeave`) gives the node, its driver token, its configuration view and its running token
+`nodeRunning … 1`, into `peers` and `storages` (`drvRes`). Then the transfer budget and the `send`
+closure (`deliver`), and a second loop that starts each replica (`New`), appends it to `kvs` and
+forks its `tick`.
 -/
 module
 
@@ -233,9 +220,6 @@ theorem StartCluster.wp_proof
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  sorry
-/- REPAIR-OLD (StartCluster.wp_proof, the proof before stage F of the client repair, 2026-10-30;
-a starting point for stage P)
   intro vsl Hrb
   wp_start as ⟨#HstorInv, #Hvsl⟩
   rw [show ([W64 1, W64 2, W64 3] : List w64) = clusterIds from rfl]
@@ -251,16 +235,8 @@ a starting point for stage P)
   -- decided by the store's rule `kvRule` (2026-10-28); its term budget backed by the time
   -- receipts), then the store's invariant from the client's share, with the client's half of the
   -- store's state and the sequence-number tokens, and the store's registry of the snapshots made
-  imod cluster_alloc_rule (GF := GF) kvRaftN clusterIds kvRule ⊤ Hrb (by decide)
-    clusterIds_nodup (by decide) (by decide)
-    with ⟨%γ, Hops, HU, -, #Hiscl, #Hpol, #Hca0, Hsm, #Hxfer, Hboots⟩
-  imod rkvInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ Hops HU
-    with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
-  subst Hγr
-  imod kvSnapInv_alloc γr ⊤ $$ Hsm with #Hsinv
-  ihave #Hkc : kvCluster γr $$ []
-  · unfold kvCluster
-    iframe Hiscl Hpol Hca0 Hsinv
+  imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) Hrb
+    with ⟨%γr, -, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
@@ -300,40 +276,31 @@ a starting point for stage P)
     wp_apply wp_load_slice_index _ (sint.Z k) _ DFrac.discard id0 Hk.1 $$ [Hvsl] as -
     · iframe Hvsl; ipureintro; exact Hid0
     wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
-      as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca, Hstok, %Hcap⟩
-    -- the storage's certificate registry tied to the cluster
-    imod storageCertInv_alloc γr.cluster kvRaftN γs ⊤ $$ Hca with #Hci
-    ihave #Hcl := kvStorCertLink_intro γr.cluster kvRaftN st ms γs $$ Hci Hrec
+      as %st ⟨%ms, %γs, #Hrec, #Hvoters, #Hml, #Hmlog, Hmend, Hmsnap, -, Hfresh⟩
+    imod memSnapNone_open γs $$ Hmsnap with #Hsnap0
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
-    icases Htodo with ⟨⟨Hboot, Hseq⟩, Htodo⟩
+    icases Htodo with ⟨⟨Hboot0, Hseq⟩, Htodo⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
-    ihave #Hstor := kvStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries st
-      ms γs $$ Hpkg Hrec
-    ihave #Hinit := kvStorage_initialState wp_InitialState st _ clusterIds memStorEmpty
-      $$ Hpkg Hvoters Hvsl
+    ihave Hboot := kvStorage_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex
+      wp_Term wp_Entries st ms γs vsl clusterIds γr.cluster id0
+      $$ Hpkg Hrec Hvoters Hvsl Hml Hfresh Hmlog Hmend
     have Hiface : kvStorIface st = GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩ := rfl
-    rw [Hiface]
-    ihave Hown : kvOwnStorage (interface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩) memStorEmpty
-      $$ [Hmem]
-    · unfold kvOwnStorage
-      iexists st, ms, γs
-      iframe Hrec Hmem
-      ipureintro; rfl
-    ihave Hown : ownStorage (interface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩) memStorEmpty
-      $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
     wp_apply (wp_RestartNode γr.cluster kvRaftN clusterIds _ (nodeConfig id0 st) qLogger
-      ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
-      (kv.kvConfState clusterIds)
+      ⟨go.GoType.PointerType rStorageTy, #st⟩ (HardStateM.mk (W64 0) (W64 0) (W64 0))
+      (kv.kvConfState clusterIds) iprop(memStorInvP ms γs (kvJ γr.cluster id0))
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
-      rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
-      rfl rfl rfl rfl rfl Hid0m rfl)
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hboot $Hcl]
-      as %nd ⟨%n, %Hnd, #HisNode, Hdrv, Hcfg⟩
+      rfl rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl rfl)
+      $$ [$Hraftinit $«$a0» $Hlogger Hboot Hboot0]
+      as %nd ⟨%n, %Hnd, #HisNode, Hdrv, Hcfg, Hrun, #HmsInv⟩
+    · rw [← Hiface]
+      iframe Hboot
+      ileft
+      iexact Hboot0
     subst Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
     have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
@@ -386,7 +353,7 @@ a starting point for stage P)
         unfold drvRes
         iexists n
         rw [← Hiface]
-        iframe HisNode Hdrv Hcfg Hseq
+        iframe HisNode Hdrv Hcfg Hseq Hrun
         isplitr
         · ipureintro; rfl
         isplitr
@@ -394,9 +361,7 @@ a starting point for stage P)
           iframe Hrec
         unfold runStor
         iexists ms, γs, vsl
-        iframe Hrec Hstok Hci Hvoters Hvsl
-        ipureintro
-        exact ⟨Hcap, Int.le_refl _⟩
+        iframe Hrec HmsInv Hsnap0 Hvoters Hvsl
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
@@ -461,13 +426,13 @@ a starting point for stage P)
       icases Hdrv with ⟨⟨%nd, %st, %Hlk, Hres⟩, Hdrv⟩
       obtain ⟨HMl, HSl⟩ := Hlk
       unfold drvRes
-      icases Hres with ⟨%n, %Hgn, #HisNode, Hnode, Hcfg, #Hsrec, Hseq, Hrs⟩
+      icases Hres with ⟨%n, %Hgn, #HisNode, Hnode, Hcfg, #Hsrec, Hrun, Hseq, #Hrs⟩
       subst Hgn
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       wp_apply wp_map_lookup1 go.uint64 _ mS S id0 DFrac.discard $$ HmS as -
       simp only [HMl, HSl, Option.getD_some]
-      wp_apply (wp_New γr id0 n st _) $$ [Hnode Hcfg Hseq Hrs]
-      · iframe Hreg HisNode Hnode Hcfg Hkc Hxfer Hsrec Hseq Hrs
+      wp_apply (wp_New γr id0 n st _) $$ [Hnode Hcfg Hrun Hseq]
+      · iframe Hreg HisNode Hnode Hcfg Hrun Hkc Hsrec Hseq Hrs
         unfold sendSpec
         imodintro
         iintro %src %msl %ms %Φ'
@@ -511,7 +476,6 @@ a starting point for stage P)
       iexists γr, rs
       iframe Hks Hval Hregs
       ipureintro; rw [Hrs, Hk3']
--/
 
 end reg
 
