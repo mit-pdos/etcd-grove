@@ -1547,6 +1547,9 @@ results see them:
 - **`rnEnvOk`'s message clause** (stage P, P2; trusted premise weakened; coordinator-approved while the
   user was away, for the user's review): `∗ ⌜st.msg.Type' ≠ MsgSnap⌝` in the antecedent (the
   `node_contract*` results' premise; "Repair: Stage P changes").
+- **`node_contract_memstor`** (stage P, P4; trusted premise strengthened (persistent, from `NewMemoryStorage`'s
+  post); coordinator-approved while the user was away, for the user's review): += `memStorLock γ.ms γ.γs`
+  ("Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1677,7 +1680,7 @@ Statement changes vs the "Repair: Stage F statements" above (approved: the two e
 
 ## Repair: snapshot sorries (2026-10-30; exact)
 
-Each is a `-- SNAPSHOT-SORRY` in the file (`grep -rn SNAPSHOT-SORRY Proof Spec`). "In a stage-P
+(Stage P: #4 and #5 were proved; the remaining snapshot sorries are #1-#3, #6-#10.) Each is a `-- SNAPSHOT-SORRY` in the file (`grep -rn SNAPSHOT-SORRY Proof Spec`). "In a stage-P
 sorry" means the whole proof is a stage-P `sorry` today and the marker names the branch to keep as
 the one `sorry` when the rest is proved. Server files under `Proof/go_etcd_io/etcd/server/v3/etcdserver/`.
 
@@ -1686,8 +1689,8 @@ the one `sorry` when the rest is proved. Server files under `Proof/go_etcd_io/et
 | 1 | `InvRaftNode.lean` | `rn_ready_recv` (in a stage-P sorry) | the `some l` case: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from the driver |
 | 2 | `InvRaftLoop.lean` | `rnApplyTok_recv` | the snapshot payload's case: `rnApSnap`'s parts, `cum`'s agreement at `rcv.length`, the consumer's token at `A'` |
 | 3 | `raftNode__start.lean` | `raftNode.start.wp_proof` (in a stage-P sorry) | the Ready-snapshot branch (raft.go:256-282): `SaveSnap`, `MemoryStorage.ApplySnapshot` from `readySnap (some l)` (`snapGiven` for `J.B`/`J.DL`, `snapshotCert_valid` for `J.SV`), notifyc's two sends, `Advance`'s snapshot clause over `snapReceipt`, the `rnApSnap` payload |
-| 4 | `raftNode__processMessages.lean` | `rnMsgR_open` (in a stage-P sorry; **proved in stage P**, e304fabaa0) | the `MsgSnap` side, `rnSnapMsg`'s `sentMsg`/`msgCredits` kept |
-| 5 | `raftNode__processMessages.lean` | `raftNode.processMessages.wp_proof` (in a stage-P sorry; **proved in stage P**, e304fabaa0) | the `MsgSnap` arm (raft.go:373-383): `msgSnapC`'s bag takes `rnSnapMsg γ m`, or it is dropped when full |
+| 4 | `raftNode__processMessages.lean` | `rnMsgR_open` (**proved in stage P**, e304fabaa0: no longer a snapshot sorry) | the `MsgSnap` side, `rnSnapMsg`'s `sentMsg`/`msgCredits` kept |
+| 5 | `raftNode__processMessages.lean` | `raftNode.processMessages.wp_proof` (**proved in stage P**, e304fabaa0: no longer a snapshot sorry) | the `MsgSnap` arm (raft.go:373-383): `msgSnapC`'s bag takes `rnSnapMsg γ m`, or it is dropped when full |
 | 6 | `NodeBridge.lean` | `isRaftNodeIfc_of_isNode` (in a stage-P sorry) | the snapshot `Advance` clause: `node.Advance.spec` at `L = some l` (`snapReceipt`, `snapshotCert`), the view at the snapshot (`confAt`/`confStateIs`, D3) |
 | 7 | `EtcdServer__applyAll.lean` | `EtcdServer.applyAll.wp_proof`, `wp_proofOn` (in stage-P sorries) | the `ap.snapshot ≠ nil` branch (`applySnapshot.specSnap`, proved on lean, and its premises; the two-receive notify) and the `msgSnapC` merge branch (`createMergedSnapshotMessage`/`sendMergedSnap` over `rnSnapMsg`) |
 | 8 | `EtcdServer__run.lean` | `run_job_body`, `run_job_bodyOn` (in stage-P sorries) | a snapshot payload's job: `applyAll` on a snapshot batch (a spec of it over `applySnapshot.specSnap`'s premises: lean's J8a) |
@@ -1740,7 +1743,8 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   (`es` consecutive, `ce` matching `es`), which `rn_ready_recv` used to drop. `raftNode.start` needs them
   for `rnApN`'s `srvFrozenRange` (with a new `RaftLoopFreeze.lean`, kvreconf's `batch_freeze`).
   Used only in `InvRaftNode`/`raftNode__start`.
-- **P4 (pending the coordinator) `isRNMemStor_of_memstorage`/`node_contract_memstor`** += premise
+- **P4 `isRNMemStor_of_memstorage`/`node_contract_memstor`** (**trusted premise strengthened (persistent, from
+  `NewMemoryStorage`'s post); coordinator-approved while the user was away, for the user's review**) += premise
   `memStorLock γ.ms γ.γs` (`MemoryStorage.Append.spec` needs it; not derivable from `rnMemStorReg`),
   over `RaftLink.MemoryStorage.wp_Append`.
 - Minor (S-C): `rnApP_cum` += `(hid : γ1.id = γ2.id)` (`rnApP` reads `nodeAppliedLb` at `γ.id`; used only in `newRaftNode`).
