@@ -1,6 +1,6 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **Draft** written and checked (`fe466ad8d5`); internal repairs made; for the
+Status (2026-10-30): **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
 user: the drafted statements below and the questions at the end. M2's plan is `notes/m2-plan.md` on
 branch `m2`; the findings this step answers are the backend-cmp Probe's
 (`notes/spec-first-study/backend-probe.md`: P3, S1, S2, S3; P4 as decided).
