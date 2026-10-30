@@ -401,6 +401,179 @@ theorem fkWfRv_vOf {P : BParams} {rv : RView} {bi : BucketInfo} {kb v : GoString
     simp only [Option.none_or] at hv
     exact h.1 bi.name kb v hk hv
 
+/-! ## The compaction keys' values at the open (`fkOkG`; M2 storage plan, items 27/29) -/
+
+theorem fkValD_put {S : Data} {n k : GoString} {v : FkVals} (x : GoString) (h : fkValD v S)
+    (hk : ¬ fkKey n k) : fkValD v (S.insert n ((bktOf S n).insert k x)) := by
+  intro n' k' hf
+  rw [dget_insert]
+  split
+  · rename_i hn
+    subst hn
+    rw [GMap.lookup_insert_eq_iff]
+    split
+    · rename_i hkk; subst hkk; exact absurd hf hk
+    · rw [← dget_eq_bktOf]; exact h _ _ hf
+  · exact h _ _ hf
+
+theorem fkValD_delk {S : Data} {n k : GoString} {v : FkVals} (h : fkValD v S) (hk : ¬ fkKey n k) :
+    fkValD v (S.insert n ((bktOf S n).delete k)) := by
+  intro n' k' hf
+  rw [dget_insert]
+  split
+  · rename_i hn
+    subst hn
+    rw [GMap.lookup_delete_iff]
+    split
+    · rename_i hkk; subst hkk; exact absurd hf hk
+    · rw [← dget_eq_bktOf]; exact h _ _ hf
+  · exact h _ _ hf
+
+theorem fkValD_create {S : Data} {n : GoString} {v : FkVals} (h : fkValD v S) :
+    fkValD v (if S.lookup n = none then S.insert n ∅ else S) := by
+  split
+  · rename_i hnone
+    intro n' k' hf
+    rw [dget_insert]
+    split
+    · rename_i hn
+      subst hn
+      have h0 := h _ _ hf
+      unfold dget at h0
+      rw [hnone] at h0
+      rw [← h0]
+      rfl
+    · exact h _ _ hf
+  · exact h
+
+theorem fkValD_delete {S : Data} {n : GoString} {v : FkVals} (h : fkValD v S)
+    (hn : ∀ k, ¬ fkKey n k) : fkValD v (S.delete n) := by
+  intro n' k' hf
+  unfold dget
+  rw [GMap.lookup_delete_iff]
+  split
+  · rename_i hnn; subst hnn; exact absurd hf (hn k')
+  · exact h _ _ hf
+
+/-- bbolt's data holds its own compaction-key values. -/
+theorem fkValD_fkVals (D : Data) : fkValD (fkVals D) D := by
+  intro n k hf
+  obtain ⟨rfl, hk⟩ := hf
+  unfold fkAt fkVals
+  rcases hk with rfl | rfl
+  · simp only; split
+    · rename_i h; exact absurd h (by decide)
+    · rfl
+  · simp
+
+/-- A readers' state holding `v` at the compaction keys reads `v` at one. -/
+theorem vOf_fkVal {P : BParams} {rv : RView} {v : FkVals} {bi : BucketInfo} {kb : GoString}
+    (h : fkValRv P v rv) (hbi : P.has bi) (hk : fkKey bi.name kb) :
+    vOf P rv bi.name kb = fkAt v kb := by
+  unfold vOf ovB
+  unfold BParams.has at hbi
+  rw [hbi]
+  simp only [Option.bind_some]
+  have hl : lastVal (bkOf rv.2.bks bi.id) kb = none := by
+    unfold lastVal
+    rw [Option.map_eq_none_iff, List.find?_eq_none]
+    intro e he
+    have := h.2 bi.name kb bi.id hk hbi e (List.mem_reverse.1 he)
+    simpa using this
+  rw [hl, Option.none_or]
+  exact h.1 _ _ hk
+
+theorem fkValSt_put {P : BParams} {st : BSess} {bi : BucketInfo} {k x : GoString} {v : FkVals}
+    (seq : Bool) (hP : P.Wf) (hbi : P.has bi) (hk : ¬ fkKey bi.name k) (h : fkValSt P v st) :
+    fkValSt P v (st.put bi k x seq) := by
+  obtain ⟨hC, hR, hS, hW⟩ := h
+  refine ⟨hC, hR, fkValD_put x hS hk, ?_⟩
+  unfold BSess.put
+  cases seq
+  · exact fkAbsB_wbAdd hP hW hbi hk
+  · exact fkAbsB_wbAdd hP hW hbi hk
+
+theorem fkValSt_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString} {v : FkVals}
+    (hk : ¬ fkKey bi.name k) (h : fkValSt P v st) : fkValSt P v (st.del bi k) :=
+  ⟨h.1, h.2.1, fkValD_delk h.2.2.1 hk, h.2.2.2⟩
+
+theorem fkValSt_create {P : BParams} {st : BSess} {bi : BucketInfo} {v : FkVals}
+    (h : fkValSt P v st) : fkValSt P v (st.create bi) :=
+  ⟨h.1, h.2.1, fkValD_create h.2.2.1, h.2.2.2⟩
+
+theorem fkValSt_delBucket {P : BParams} {st : BSess} {bi : BucketInfo} {v : FkVals}
+    (hn : ∀ k, ¬ fkKey bi.name k) (h : fkValSt P v st) : fkValSt P v (st.delBucket bi) :=
+  ⟨h.1, h.2.1, fkValD_delete h.2.2.1 hn, h.2.2.2⟩
+
+theorem fkValSt_wb {P : BParams} {st : BSess} {v : FkVals} (h : fkValSt P v st) :
+    fkValSt P v (wbSt P st) :=
+  ⟨h.1, fkAbsB_wbMerge h.2.2.2 h.2.1, h.2.2.1, fkAbsB_writebackW P st.W st.R⟩
+
+theorem fkValSt_commit {P : BParams} {st : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt}
+    {v : FkVals} (h : fkValSt P v st) (hC : C' = st.S ∨ C' = st.C) :
+    fkValSt P v (commitSt st C' tx' cnt') := by
+  refine ⟨?_, fkAbsB_bksReset P _, h.2.2.1, h.2.2.2⟩
+  rcases hC with rfl | rfl
+  · exact h.2.2.1
+  · exact h.1
+
+theorem fkOkG_put {P : BParams} {st : BSess} {bi : BucketInfo} {k v : GoString} (seq : Bool)
+    (hP : P.Wf) (hbi : P.has bi) (hk : ¬ fkKey bi.name k) (f : Nat) (g : FkG)
+    (h : fkOkG P f g st) : fkOkG P f g (st.put bi k v seq) :=
+  ⟨fkOk_put seq hP hbi hk f g.1 h.1, h.2.1, fun he => fkValSt_put seq hP hbi hk (h.2.2 he)⟩
+
+/-- A put of a compaction key, of a well-formed value: the flag raised by one, past the open's
+value, so the records clause no longer applies. -/
+theorem fkOkG_putFk {P : BParams} {st : BSess} {bi : BucketInfo} {k v : GoString} (seq : Bool)
+    (hP : P.Wf) (hbi : P.has bi) (hv : P.FV v) (f : Nat) (g : FkG) (h : fkOkG P f g st) :
+    fkOkG P (f + 1) g (st.put bi k v seq) := by
+  refine ⟨⟨fun h0 => absurd h0 (by omega), fun hw => ?_⟩, by have := h.2.1; omega,
+    fun he => absurd he (by have := h.2.1; omega)⟩
+  exact (fkOk_putFk seq hP hbi hv f g.1 h.1).2 hw
+
+theorem fkOkG_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString}
+    (hk : ¬ fkKey bi.name k) (f : Nat) (g : FkG) (h : fkOkG P f g st) :
+    fkOkG P f g (st.del bi k) :=
+  ⟨fkOk_del f g.1 h.1, h.2.1, fun he => fkValSt_del hk (h.2.2 he)⟩
+
+theorem fkOkG_create {P : BParams} {st : BSess} {bi : BucketInfo} (f : Nat) (g : FkG)
+    (h : fkOkG P f g st) : fkOkG P f g (st.create bi) :=
+  ⟨fkOk_create f g.1 h.1, h.2.1, fun he => fkValSt_create (h.2.2 he)⟩
+
+theorem fkOkG_delBucket {P : BParams} {st : BSess} {bi : BucketInfo}
+    (hn : ∀ k, ¬ fkKey bi.name k) (f : Nat) (g : FkG) (h : fkOkG P f g st) :
+    fkOkG P f g (st.delBucket bi) :=
+  ⟨fkOk_delBucket f g.1 h.1, h.2.1, fun he => fkValSt_delBucket hn (h.2.2 he)⟩
+
+theorem fkOkG_wb {P : BParams} {st : BSess} (f : Nat) (g : FkG) (h : fkOkG P f g st) :
+    fkOkG P f g (wbSt P st) :=
+  ⟨fkOk_wb f g.1 h.1, h.2.1, fun he => fkValSt_wb (h.2.2 he)⟩
+
+theorem fkOkG_commit {P : BParams} {st : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt}
+    (hC : C' = st.S ∨ C' = st.C) (f : Nat) (g : FkG) (h : fkOkG P f g st) :
+    fkOkG P f g (commitSt st C' tx' cnt') :=
+  ⟨fkOk_commit hC f g.1 h.1, h.2.1, fun he => fkValSt_commit (h.2.2 he) hC⟩
+
+theorem fkOkG_setHw {P : BParams} {st : BSess} (x : Bool) (f : Nat) (g : FkG)
+    (h : fkOkG P f g st) : fkOkG P f g (st.setHw x) := h
+
+/-- The readers' state of a batch state: at a flag not past the open's value, it is the open's. -/
+theorem fkOkRvG_of {P : BParams} {st : BSess} {f : Nat} {g : FkG} (h : fkOkG P f g st) :
+    fkOkRvG P f g (st.C, st.R) :=
+  ⟨fkOkRv_of h.1, fun hle => by
+    have he : f = g.2.1 := by have := h.2.1; omega
+    exact ⟨(h.2.2 he).1, (h.2.2 he).2.1⟩⟩
+
+/-- The initial state's facts at the open's ghost value. -/
+theorem fkOkG_init {P : BParams} {D : Data} {st : BSess} (hC : st.C = D) (hS : st.S = D)
+    (hR : st.R.bks = ∅) (hW : st.W.bks = ∅) :
+    fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) st := by
+  refine ⟨fkOk_init hC hS hR hW, Nat.le_refl _, fun _ => ⟨?_, ?_, ?_, ?_⟩⟩
+  · rw [hC]; exact fkValD_fkVals D
+  · rw [hR]; exact fkAbsB_empty P
+  · rw [hS]; exact fkValD_fkVals D
+  · rw [hW]; exact fkAbsB_empty P
+
 end backend
 end EtcdGrove
 end Perennial

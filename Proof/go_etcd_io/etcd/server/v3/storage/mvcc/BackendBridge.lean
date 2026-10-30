@@ -735,6 +735,12 @@ theorem key_not_fk (k : GoString) : ¬ fkKey keyBI.name k := by
   rw [fkKey_iff] at h
   exact absurd h.1 (by decide)
 
+/-- No key of the `Lease` bucket is a compaction key. -/
+theorem lease_not_fk (k : GoString) : ¬ fkKey leaseBI.name k := by
+  intro h
+  rw [fkKey_iff] at h
+  exact absurd h.1 (by decide)
+
 /-- A compaction key of the `Meta` bucket is one the backend tracks. -/
 theorem fkKey_meta {kn : GoString} (h : metaCompactKey kn) : fkKey metaBI.name kn := by
   unfold metaCompactKey schedKeyBytes finKeyBytes at h
@@ -2016,7 +2022,7 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
     simp only [↓reduceIte]
     rw [rbData_del hrb]
   rw [← hrp]
-  have hDel' := hDel γ P W Pk b t st bk leaseBI key k dq true hhas hroom (hhk k)
+  have hDel' := hDel γ P W Pk b t st bk leaseBI key k dq true hhas hroom (hhk k) (lease_not_fk k)
   simp only [↓reduceIte] at hDel'
   wp_apply hDel' $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
   ihave Hrb : rbOwn γ (rbDel (rbData P st.S) leaseName k) $$ [Hrb]
@@ -2911,7 +2917,8 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
         rw [htx]
         iexact Hks
     icases Harg with ⟨%own, Harg⟩
-    wp_apply (hDel γ P W Pk b t st' bk keyBI key k DFrac.discard own hP.1 hpend (key_not_hk hP k))
+    wp_apply (hDel γ P W Pk b t st' bk keyBI key k DFrac.discard own hP.1 hpend (key_not_hk hP k)
+        (key_not_fk k))
       $$ [$Hb $Ht $Hl' $Hbk $Harg $Hrb] as ⟨Hl', -, -⟩
     iapply HΦ'
     iunfold bkLockedC
