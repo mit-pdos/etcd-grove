@@ -1,9 +1,44 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
-Status (2026-10-30): **Draft** written and checked (`0a88a357f8`: three Draft modules, imported by
-nothing, no `axiom`, no `sorry`, nothing switched). For the user: the drafted statements below and
-the questions at the end (one batch). Review round 1 not run yet (the next step, `spec-reviewer` on
-the Drafts, per `notes/spec-first-plan.md`, "Review").
+Status (2026-10-30, **checkpoint for a session handoff**): Draft written and checked; the user's
+answers Q1-Q4 recorded (end of file); **review round 1 done** (`notes/spec-first-study/
+m2-apply-review-1.md`, six first-tier findings F-1..F-6); nothing switched; nothing running.
+
+**Resume here.**
+1. *Done so far.* Draft modules `etcdserver/apply/M2ApplyDraft.lean`, `etcdserver/M2ApplyDraft.lean`,
+   `etcdserver/M2ApplyDraftSpecs.lean` (imported by nothing; no `axiom`/`sorry`); full build of the
+   branch passes. The `NoDelPutAt` fork fix is **already on `lean`** since 2026-10-28 (fork branch
+   `goose-lean-compactfix`, pushed, `249d76bea`; pin `5d82727117`; proofs `7c8ef717ef`): what is left
+   is dropping the premise from the specs (`notes/STATUS.md`, "The delete-then-put fix in the fork:
+   what is left").
+2. *Next step: the round-1 repair* (one agent, on this branch), per the review: F-1 drop
+   `store.Compact`/`updateCompactRev`'s unreachable `ErrFutureRev` arm (an exported mvcc spec: needs
+   the user's approval; new gap G6, new item); F-2 the compaction result carries "error implies no
+   trace" (G7; keep `specCompact` until then); F-3 the tie `ρ.kv.cmp = E.cmp` in the request path's
+   view, made at `NewServer` (G8); F-4 `compactPropOkD` in `cmpEntryOk`; F-5 the items in their form
+   *without* `NoDelPutAt` (so dropping `NoDelPutAt` from mvcc's specs gates the whole switch, not only
+   `Txn`: correct the Q2 note); F-6 two closer predicates (with/without the right) or the right as its
+   own conjunct; second tier: a mode-indexed `dispatchOkM` instead of redefining `dispatchOk` in place
+   (keeps the off texts), `specRec`, `bootKV`/`bootKVOf` naming `ApplyKV.crev`, the unlisted
+   dependencies (the storage side's `srvEnvOkD` first; Q4's interim texts). Q3 (G2): the law as
+   phrased is false (a restore certifies only the image's log); use "the store's current committed log
+   is certified".
+3. *Then* review round 2; then the user's approval batch: Q5 (items, per round 1's verdict table),
+   dropping `NoDelPutAt` from mvcc/server specs (`store.Compact.spec`, `compactLockfree`,
+   `updateCompactRev`, `crevSafe`/`delKey`/`compactJobPre`, `CompactMode`'s clause, `irrNoDelPut`;
+   `check_gives_nodup`'s `noFromKeyDelL` needs a proof attempt), F-1's new item.
+4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
+   track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
+   `notes/m2-storage-plan.md`).
+
+**Environment.** Worktree `/shared/etcd-grove-m2a` (branch `m2-apply`, local, unpushed; its
+`.lake/build` is a fresh full build). Build with `lake build --packages=<manifest>` where the manifest
+is `lean`'s `lake-manifest.json` with the `perennial` entry `{"type": "path", "dir":
+"/shared/perennial-6da88b280", ...}` (the pin `6da88b280`; check `lake-manifest.json` first: if
+`lean` moved the pin, use a checkout at the new one); `LAKE_OPTS=--packages=<manifest>` for
+`etc/tcb-report.py`; `PERENNIAL_DIR=<that checkout>` for `etc/gen-init.py`. The paused branch `m2`
+(worktree `/shared/etcd-grove-cp`) is reference only: superseded by `m2-apply`, delete it when this
+branch lands.
 
 M2's plan is `notes/m2-plan.md`; the storage side (merged) is `notes/m2-storage-plan.md`; the
 paused `m2` branch's drafts were read for ideas only (it is 277+ commits behind: its `compactStep`,

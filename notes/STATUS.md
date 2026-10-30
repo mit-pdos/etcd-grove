@@ -520,6 +520,9 @@ fork fix, ...); gaps G1-G5; `applyAll`/`run`: `run` unchanged, `applyAll`/`apply
 `applyEntryNormal` one pure conjunct each; the 3-member `putgetc` scoped. For the user: Q1-Q5 (one
 batch). Next: review round 1 (`spec-reviewer`) on the Drafts. Checked: full `lake build` of the base
 (11247 jobs), `lean-check -a` and a targeted build (3816 jobs) of the Drafts.
+**Checkpoint (2026-10-30, for a session handoff):** the user's Q1-Q4 recorded; review round 1 done
+(`notes/spec-first-study/m2-apply-review-1.md`: F-1..F-6). Resume at `notes/m2-apply-plan.md`,
+"Resume here" (next: the round-1 repair).
 
 ## The delete-then-put fix in the fork: what is left (2026-10-30, branch `etcd-ndp-fix`)
 
