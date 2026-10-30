@@ -469,6 +469,26 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## `examples/kvreconf`'s proof: every function proved, adequacy in progress (2026-10-30, branch `kvreconf-final`)
+
+On `raft-final` (merged as its statement fixes and laws landed). Every kvreconf function on `Main`'s
+call graph below `Run` is specified and proved, with no `sorry` of kvreconf's own and no new axiom:
+the leaf layer, the replica's methods (`applyOp`, `applyConf`, `applyEntry`, `install`, `answer`,
+`maybeSnapshot`, `maybeCompact`, `run`, `propose`, `read`, `conf`, `stop`, `ticker`), the storage
+wrapper (`KvrStorage`/`KvrStorageApi`: a local `StorageModel` instance as a `def`, the boot bundle,
+`isStorage`, the promoted methods), the cluster (`StartCluster`, `startNew`, `config`, `tick`, `all`,
+`random`, `replica`, `randomMember`, `Stop`, `do`, `Put`, `Get`, `Read`), the network (`sender`,
+`send`, `copyMsg`, `deliver`, `step`, `dropped`) and the reconfiguration and disruption loops
+(`sleep`, `randomID`, `randomChange`, `Reconfigure`, `Disrupt`). What they rest on beyond raft's
+specs: raft's own `sorry`s (raft-final's proofs are being finished: e.g. `readyRecv_open`,
+`snapshotCert_valid`), and a local proved stand-in for a Perennial lemma (`MutexFresh.lean`,
+`notes/perennial-changes.md`). Go changes (each in `notes/decisions.md`, "kvreconf-final"):
+`validConf` below `2^61` ids, `copyMsg` instead of `proto.Clone` of a message, `step` drops on any
+error. Raft API gaps found and fixed on raft's side: `Membership.Valid.snapListsOk'`,
+`readyRest_indices`, `ownSnapM_combine` importable. In progress: `RandomOptions`, `RandomConfig`,
+`Run`, `Main`, `Link.lean` (`etc/gen-link.py --kvreconf`), `Adequacy`, `Results`
+(`kvreconf_porcupine_safe`). The plan's "kvreconf-final" section has the structure.
+
 ## `examples/kvreconf`'s proof, track C: the leaf layer (2026-10-29, branch `raft-unified-kvreconf`)
 
 Track C of the parallel raft-unified effort (`notes/raft-unified-plan.md`, U11; "Track C log" there;
