@@ -1556,6 +1556,8 @@ results see them:
   `receiptBound ≤ scu + 1` dropped ("Repair: Stage P changes").
 - **`srvSnapState`** (stage P, P8; exported applyAll_model's pre/post: frozen-entry parts removed (equal to lean's); coordinator-approved while the user was away, for the user's review): the frozen-entry parts moved to `srvSnapFrozen`
   ("Repair: Stage P changes").
+- **`NewServer.spec`/`specCompact`/`specM`** (stage P, P9; trusted premise replacing the old γ.dyn = false (given by the allocation's post); coordinator-approved while the user was away, for the user's review): += `γ.rule = srvRule (W64 0) γ.boot`
+  ("Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1786,3 +1788,7 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   stopping arm needs an "or stopping" form of the frozen state in `applyAll`'s post and `run`'s `InvRun`;
   (2) entry 0 (`srvFrozenBelow` at `ai = 0`) from `NewMemoryStorage`'s `memLog 0 □ [zero]`, e.g. a stronger
   `srvFrozenAt 0`. Made by S-D (with `run`'s patterns, coordinated with S-E).
+- **P9 `NewServer.spec`/`specCompact`/`specM`** (**trusted premise replacing the old γ.dyn = false (given by the allocation's post); coordinator-approved while the user was away, for the user's review**): += `γ.rule = srvRule (W64 0) γ.boot →` where
+  `γ.dyn = false →` stood. Why: `rnEnvOk` (the node's install) needs the cluster's rule to be `srvRule`; Stage F
+  dropped `γ.dyn = false` without a replacement, and `srvClusterOk` gives only `confPolicy`/`srvRuleKeeps`.
+  The allocation's post (`srvClusterBoot_alloc`/`On`) gives it; `Results.lean`'s composites pass it.
