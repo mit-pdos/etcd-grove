@@ -406,8 +406,10 @@ EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3r
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
                  "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
-                 # Perennial's `time` results (`=_root_.Perennial.time.*`)
-                 "--kvreconf": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link"],
+                 # Perennial's `time` results (`=_root_.Perennial.time.*`), gokv's trusted
+                 # `ResolveBytes`'s proved spec (`Cluster.Read`'s prophecy, `=_root_.Perennial.…`)
+                 "--kvreconf": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
+                                "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
                  # rafthttp's proofs take as terms (`=` callees)
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
@@ -762,7 +764,13 @@ variable [package_sem : {assumptions}]
         # ... or, stated over any raft storage model, that (the store's transport); (raft-final,
         # 2026-10-29) also when a callee's result takes it (U8 v2's generic `MemoryStorage` specs
         # call the storage-model internals `firstIndex`, `limitSize`)
-        if not any(r in src for r in STOR_REGS) and ("[StorageModel GF]" in src or needs_sm(fn)):
+        # (2026-10-30) or when its proof is stated over one though its spec is not (kvreconf's
+        # `validConf`, whose `=` callees, raft's importable `confchange` specs, take it)
+        if not any(r in src for r in STOR_REGS) and (
+                "[StorageModel GF]" in src or needs_sm(fn)
+                or (fn not in pending and os.path.exists(proof_file(fn))
+                    and "[StorageModel GF]" in open(proof_file(fn)).read()
+                    and any(c.startswith("=") for c in callees[fn]))):
             allg += " [StorageModel GF]"
         # ... or over the `MemoryStorage` registry (the server's `NewServer`, 2026-10-16: its raft
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)

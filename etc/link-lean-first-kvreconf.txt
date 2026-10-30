@@ -2,7 +2,8 @@
 # (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --kvreconf`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`; `@`: linked in its package's
 # `Link.lean` (raft's, lintest's, context's); `=term`: a term given as is (Perennial's `time`
-# results, raft's importable `confchange`/`tracker` specs in `Linked.lean`).
+# results, raft's importable `confchange`/`tracker` specs in `Linked.lean`, the proved spec of
+# gokv's trusted `trusted_proph.ResolveBytes`).
 #
 # the callees outside the store
 IsEmptyHardState: @
@@ -20,7 +21,6 @@ MemoryStorage__Snapshot: @
 MemoryStorage__Term: @
 NewMemoryStorage: @
 RestartNode: @
-context_WithTimeoutBackground: @
 lintest_CounterClock: @
 lintest_Run: @
 node__Advance: @
@@ -62,11 +62,14 @@ raftpb_SnapshotMetadata__GetConfState: @
 raftpb_SnapshotMetadata__GetIndex: @
 raftpb_Snapshot__GetData: @
 raftpb_Snapshot__GetMetadata: @
+# context's trust-boundary axiom (`Proof/context/WithTimeoutBackground.lean`), linked here as in
+# examples/common's list
+context_WithTimeoutBackground:
 # the store (examples/kvreconf)
 kvreconf_Cluster__Disrupt: kvreconf_sleep kvreconf_Cluster__random kvreconf_below node__TransferLeadership node__Campaign node__ForgetLeader node__Status context_WithTimeoutBackground
 kvreconf_Cluster__Get: kvreconf_Cluster__do
 kvreconf_Cluster__Put: kvreconf_Cluster__do
-kvreconf_Cluster__Read: kvreconf_Cluster__randomMember kvreconf_Replica__read kvreconf_Stats__add
+kvreconf_Cluster__Read: kvreconf_Cluster__randomMember kvreconf_Replica__read kvreconf_Stats__add =_root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes.wp_proof
 kvreconf_Cluster__Reconfigure: kvreconf_sleep kvreconf_Cluster__randomChange kvreconf_Cluster__random kvreconf_Stats__add node__ProposeConfChange context_WithTimeoutBackground
 kvreconf_Cluster__Stop: kvreconf_Cluster__all kvreconf_Replica__stop
 kvreconf_Cluster__all:
@@ -102,7 +105,7 @@ kvreconf_Replica__read: kvreconf_readCtx node__ReadIndex context_WithTimeoutBack
 kvreconf_Replica__run: kvreconf_Replica__applyEntry kvreconf_Replica__install kvreconf_Replica__answer kvreconf_Replica__maybeSnapshot kvreconf_Replica__maybeCompact kvreconf_fits kvreconf_oneIn kvreconf_decodeState node__Ready node__Advance IsEmptySnap IsEmptyHardState raftpb_Snapshot__GetData raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__SetHardState
 kvreconf_Replica__stop: node__Stop
 kvreconf_Replica__ticker: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop node__Tick
-kvreconf_Run: kvreconf_StartCluster kvreconf_Cluster__Reconfigure kvreconf_Cluster__Disrupt kvreconf_Cluster__Put kvreconf_Cluster__Get kvreconf_Model kvreconf_Gen lintest_Run
+kvreconf_Run: kvreconf_StartCluster kvreconf_Cluster__Reconfigure kvreconf_Cluster__Disrupt kvreconf_Cluster__Put kvreconf_Cluster__Get kvreconf_Cluster__Read kvreconf_Model kvreconf_Gen lintest_Run
 kvreconf_StartCluster: kvreconf_Cluster__config kvreconf_Cluster__tick kvreconf_Cluster__sender kvreconf_newReplica kvreconf_Stats__add RestartNode NewMemoryStorage kvreconf_Storage__InitialState kvreconf_Storage__Snapshot MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries kvreconf_quietLogger__Debugf kvreconf_quietLogger__Errorf kvreconf_quietLogger__Infof kvreconf_quietLogger__Warningf
 kvreconf_Stats__add:
 kvreconf_Storage__InitialState: MemoryStorage__InitialState proto_CloneConfState
