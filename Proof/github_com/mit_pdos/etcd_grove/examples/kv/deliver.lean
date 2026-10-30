@@ -121,6 +121,9 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD (deliver.wp_proof, the proof before stage F of the client repair, 2026-10-30;
+a starting point for stage P)
   intro γ peers tr P src msl ms
   wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -254,6 +257,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           ihave Hsnc := (snapOpt_some_iff snc (DFrac.own 1) q.st.snap sv Hsq).2 $$ Hsnc
           deliver_tail snc
   · iapply HΦ; itrivial
+-/
 
 end proof
 

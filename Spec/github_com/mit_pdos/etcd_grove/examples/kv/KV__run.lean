@@ -4,9 +4,16 @@
 `Ready`'s snapshot (its data, decoded, replaces the store's state, `install`, which answers this
 replica's waiters among the operations it covers (2026-10-22); `ApplySnapshot`), append each
 `Ready`'s entries to the storage, send its messages (`send`, a callback, gets what a
-transport needs: each message sent, `sentMsg`, with its credits), note its read states, apply its committed entries (counting them: the
-applied index), answer the reads whose index is applied (`answer`), `Advance`; (D22 S-r) every `snapEvery`
-applied entries take a snapshot (`encodeState`, `CreateSnapshot`) and compact (`Compact`).
+transport needs: each message sent, `sentMsg`, with its credits), note its read states, apply its
+committed entries (counting them: the applied index), answer the reads whose index is applied
+(`answer`), `Advance`; (D22 S-r) every `snapEvery` applied entries take a snapshot
+(`encodeState`, `CreateSnapshot`) and compact (`Compact`).
+
+2026-10-30 (stage F of the client repair): the node's running token (`nodeRunning … 1`: the store
+never stops a node, so `Advance`'s and `ApplyConfChange`'s stopped answers are refuted), and what
+the applier holds of its storage is persistent (`runStor`: the storage's invariant at node `id`'s
+justifications, the stored snapshot open for writes); until then the snapshot token at the fresh
+storage.
 -/
 module
 
@@ -39,9 +46,11 @@ abbrev KV.run.spec : Prop :=
       -- configuration (2026-10-28), at the voters' membership, nothing applied
       nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
       nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
+      -- (2026-10-30) the node runs: the store never stops it
+      nodeRunning n γr.cluster kvRaftN 1 ∗
       runOwn γr r [] ∗
-      -- the storage's snapshot token, at a fresh storage (`runStor`)
-      runStor γr st memStorEmpty ∗
+      -- what the applier holds of its storage (`runStor`, persistent)
+      runStor γr id st ∗
       sendSpec send γr.cluster }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"run")) (Val #send))
   {{ RET #(); True }}

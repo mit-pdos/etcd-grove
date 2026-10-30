@@ -361,13 +361,14 @@ theorem foldl_histStep_opsOf [GooseExts] (l : List LogEntry) (L : List (List w8)
   | nil => rfl
   | cons e l ih =>
     unfold opsOf at ih ⊢
-    by_cases hf : e.isFiller
-    · simp only [List.filter_cons, hf, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte,
-        List.map_cons, List.foldl_cons, odOf_filler e hf, histStep]
-      exact ih L
-    · simp only [List.filter_cons, hf, decide_false, Bool.not_false, ↓reduceIte, List.map_cons,
-        List.foldl_cons]
-      exact ih _
+    rw [List.filter_cons]
+    split
+    · simp only [List.map_cons, List.foldl_cons]; exact ih _
+    · rename_i hk
+      have hn : odOf e = none := by
+        unfold odOf; rw [ite_eq_right_iff]; rintro ⟨h1, h2⟩
+        simp [LogEntry.isFiller, LogEntry.isEmptyV2, h2] at hk
+      simp only [List.map_cons, List.foldl_cons, hn, histStep]; exact ih L
 
 /-- The history of a log is that of its requested entries (a filler carries no datum). -/
 theorem logHist_opsOf [GooseExts] (l : List LogEntry) :

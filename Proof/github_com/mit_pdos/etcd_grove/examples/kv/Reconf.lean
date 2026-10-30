@@ -1,30 +1,28 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# The store over raft's cluster with snapshots and reconfiguration (2026-10-28, stage U4a)
+# The store over raft's cluster with snapshots and reconfiguration (2026-10-28, stage U4a;
+2026-10-30, stage F of the client repair)
 
 What `run`, `New` and `StartCluster` use of the store's cluster (`kvCluster`, `Defs.lean`):
 
-* **The configuration stays the voters'.** A committed conf entry is a `RemoveMember`'s
-  (`kv_committed_conf`, `Lemmas.lean`) of a non-voter (`rmShrink_notVoter`), so the store's rule's
-  decision on it (`kvRule_decide`) keeps `kvMembership` (`kvMembership_rm`). The positions with no
-  conf entry (`NoConfChangeIn`) grow along a log (`noConf_snoc`) and survive extending it
-  (`noConf_prefix`).
+* **The configuration stays the voters'.** The store proposes no conf change (`NormalReqs`), so a
+  committed conf entry is raft's empty `ConfChangeV2` (`kv_committed_conf`, `Lemmas.lean`), which
+  no simple configuration has (`committed_emptyV2_joint`): no committed entry is a conf entry, and
+  every position keeps `kvMembership` (`skippedIn_noConf`, `confAt_skipped`). The positions with
+  no conf entry (`NoConfChangeIn`) grow along a log (`noConf_snoc`) and survive extending it
+  (`noConf_prefix`). (Until 2026-10-30 the committed conf entries were `RemoveMember`'s of
+  non-voters, `rmShrink_notVoter`, `kvMembership_rm`, `kvRule_decide`.)
 * **The snapshots' registry** (`kvSnapInv`): allocated empty (`kvSnapInv_alloc`); a snapshot the
-  store certifies at a committed prefix of the voters' membership with no conf entry, its data the
-  encoded state, is recorded (`kv_snap_make`); a certificate's snapshot is one of those
-  (`kv_snap_read`). The invariant's contents are timeless (raft's `ownSnapsMade_timeless`): opening
-  it spends no later credit.
-* **`CreateSnapshot` with the token in hand, at a known term** (`CreateSnapshot.unifiedSpec_tok_of`):
-  `MemoryStorage.CreateSnapshot.unifiedSpec` as `MemoryStorage.CreateSnapshot.spec_tok` is of
-  `.spec` (`MemstorageAU.lean`).
+  store takes at a committed prefix of the voters' membership, its data the encoded state, is
+  recorded, which gives its validity, what `CreateSnapshot` takes (`kv_snap_make`); a
+  certificate's snapshot is one of those (`kv_snap_read`). The invariant's contents are timeless
+  (raft's `ownSnapsMade_timeless`): opening it spends no later credit.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
-public import Proof.go_etcd_io.raft.v3.CCApply
-public import Proof.go_etcd_io.raft.v3.MemstorageAU
 
 @[expose] public section
 
@@ -90,46 +88,6 @@ theorem kvConfState_is : confStateIs (kv.kvConfState kvVoters) kvMembership :=
   ⟨kv_perm_elements_listToSet _ (by decide), kv_perm_elements_empty, kv_perm_elements_empty,
     kv_perm_elements_empty, rfl⟩
 
-/-- **`RemoveMember(id)` that keeps the voters removes a non-voter.** -/
-theorem rmShrink_notVoter (id : w64) (H : RmShrink id) : id ∉ GMap.listToSet kvVoters := by
-  intro hV
-  have h0 : id ≠ W64 0 := by
-    intro h; subst h; rw [GMap.elem_of_list_to_set] at hV; revert hV; decide
-  obtain ⟨lrn', -, Hm⟩ := H ∅ (fun k hk => absurd hk (GMap.not_elem_of_empty _))
-  let c : ConfChangeSingleM := { Type' := W32 1, NodeId' := id }
-  have hne : (GMap.delete id (GMap.listToSet kvVoters) : GSet w64) ≠ ∅ := by
-    intro he
-    -- two of the three voters are not `id`; one of them survives the deletion
-    have hmem : ∀ x, x ∈ kvVoters → x ≠ id → x ∈ (GMap.delete id (GMap.listToSet kvVoters) : GSet w64) := by
-      intro x hx hxi
-      rw [GMap.elem_of_gset] at ⊢
-      rw [GMap.lookup_delete_ne _ (Ne.symm hxi)]
-      have : x ∈ GMap.listToSet kvVoters := (GMap.elem_of_list_to_set _ _).2 hx
-      rw [GMap.elem_of_gset] at this; exact this
-    by_cases h1 : (W64 1) = id
-    · have := hmem (W64 2) (by decide) (by intro h; rw [← h1] at h; revert h; decide)
-      rw [he] at this; exact GMap.not_elem_of_empty _ this
-    · have := hmem (W64 1) (by decide) h1
-      rw [he] at this; exact GMap.not_elem_of_empty _ this
-  have Hs := simpleM_cfgState_removeVoter (GMap.listToSet kvVoters) ∅ c rfl h0 hV hne
-    (fun k hk => absurd hk (GMap.not_elem_of_empty _))
-  have Hc : ccApplyM (W32 0) [c] (cfgState (GMap.listToSet kvVoters) ∅) =
-      some (cfgState (GMap.delete id (GMap.listToSet kvVoters)) ∅) := by
-    unfold ccApplyM
-    rw [ite_eq_right (by simp)]
-    have He : enterJointOf (W32 0) [c].length = some (false, false) := by
-      simp [enterJointOf]
-    rw [He]
-    exact Hs
-  have Hm' : ccApplyM (W32 0) [c] (cfgState (GMap.listToSet kvVoters) ∅) =
-      some (cfgState (GMap.listToSet kvVoters) lrn') := Hm
-  rw [Hc] at Hm'
-  have Hinc := congrArg (fun o => o.map (fun s : CCState => s.cfg.incoming)) Hm'
-  simp only [Option.map_some, Option.some.injEq, cfgState, cfgM] at Hinc
-  have : id ∈ (GMap.delete id (GMap.listToSet kvVoters) : GSet w64) := by rw [Hinc]; exact hV
-  rw [GMap.elem_of_gset, GMap.lookup_delete] at this
-  cases this
-
 end pure
 
 section reg
@@ -139,21 +97,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
-
-/-- **`RemoveMember(id)` of a non-voter keeps the voters' membership.** -/
-theorem kvMembership_rm (id : w64) (H : RmShrink id) (Hv : kvMembership.Valid) :
-    Membership.applyChange (.v1 (rmCC id)) kvMembership = some kvMembership := by
-  by_cases h0 : id = W64 0
-  · subst h0; exact Membership.applyChange_nodeZero _ _ rfl Hv
-  · exact Membership.applyChange_removeAbsent _ _ rfl h0 (rmShrink_notVoter id H) Hv
-
-/-- The store's rule on a `RemoveMember(id)` entry: apply the change. -/
-theorem kvRule_decide (pre : List LogEntry) (m : Membership) (e : LogEntry) (id : w64)
-    (hty : e.type = W32 1) (hd : ccDecodeV1 e.data = some (rmCC id)) :
-    ConfDecision.ofRule (kvRule pre m e) = .apply (.v1 (rmCC id)) := by
-  unfold kvRule ccDecode
-  rw [if_pos hty, hd]
-  rfl
 
 theorem kvSnapN_raftN : (↑kvRaftN : CoPset) ⊆ ⊤ \ ↑kvSnapN :=
   mask_ndot_ne' nroot "kv_raft" "kv_snaps" (by decide)
@@ -170,13 +113,14 @@ theorem kvSnapInv_alloc (γr : RKVNames) (E : CoPset) :
   iapply (BigSepL.bigSepL_nil).2; iempintro
 
 /-- **A certificate's snapshot is one the store made**: of a committed prefix of the snapshot's
-index with no conf entry, at the voters' membership (its lists report it, no auto-leave), its data
-the encoded state of the prefix. -/
+index, at the membership there (its lists report it, its auto-leave the membership's), its data
+the encoded state of the prefix. (Until 2026-10-30 also at the voters' membership with no conf
+entry in the prefix: the registry's records are kvreconf's now, `kvSnapRecOk`.) -/
 theorem kv_snap_read (γr : RKVNames) (k : SnapTrip) (E : CoPset) (HE : ↑kvSnapN ⊆ E) :
     ⊢ kvCluster (GF := GF) γr -∗ snapshotCert γr.cluster kvRaftN k ={E}=∗
-      ∃ L : List LogEntry, isCommittedLogLb γr.cluster L ∗ confAt γr.cluster L.length kvMembership ∗
-        ⌜L.length = uint.nat k.sid.index' ∧ kvSnapOk L k.dat ∧ NoConfChangeIn L 0 L.length ∧
-          k.cl.Is kvMembership ∧ k.al = false⌝ := by
+      ∃ (L : List LogEntry) (m : Membership), isCommittedLogLb γr.cluster L ∗
+        confAt γr.cluster L.length m ∗
+        ⌜L.length = uint.nat k.sid.index' ∧ kvSnapOk L k.dat ∧ k.cl.Is m ∧ k.al = m.autoLeave⌝ := by
   iintro #Hcl #Hcert
   ihave #Hcl' := Hcl
   unfold kvCluster
@@ -191,33 +135,32 @@ theorem kv_snap_read (γr : RKVNames) (k : SnapTrip) (E : CoPset) (HE : ↑kvSna
   obtain ⟨j, Hj⟩ := List.getElem?_of_mem Hel
   ihave #Hrec := (BigSepL.bigSepL_lookup (Φ := fun _ s => kvSnapRecOk (GF := GF) γr s) Hj) $$ HS
   unfold kvSnapRecOk
-  icases Hrec with ⟨%L, #HL, %HLp⟩
-  obtain ⟨Hlen, Hconf, Hok, Hnc⟩ := HLp
-  simp only at Hlen Hconf Hok
-  subst Hconf
+  icases Hrec with ⟨%L, #HL, #HLa, %HLp⟩
+  obtain ⟨Hlen, Hok⟩ := HLp
+  simp only at Hlen Hok
   imod Hclose $$ [Hown] with -
   · inext
     iexists S
     iframe Hown HS
   imodintro
-  iexists L
-  iframe HL
-  rw [Hlen]
-  iframe Ha
+  iexists L, m
+  iframe HL HLa
   ipureintro
-  rw [Hlen] at Hnc
-  exact ⟨Hp.1, Hok, Hnc, Hp.2.2.1, Hp.2.2.2⟩
+  exact ⟨Hlen.trans Hp.1, Hok, Hp.2.2.1, Hp.2.2.2⟩
 
 /-- **Certifying a snapshot the store takes** of the committed prefix `l` (its length `i`, last
-term `t`) with no conf entry, at the voters' membership, its `ConfState` the voters, its data `d`
-the encoded state of `l`: recorded in the store's registry. -/
+term `t`), at the voters' membership, its `ConfState` the voters, its data `d` the encoded state of
+`l`: recorded in the store's registry, and so valid (`snapshotCert_valid`), what
+`MemoryStorage.CreateSnapshot` takes (`J.SV` of `kvJ`). (Until 2026-10-30 the certificate, with no
+conf entry in `l`.) -/
 theorem kv_snap_make (γr : RKVNames) (l : List LogEntry) (i t : w64) (d : List w8)
-    (Hlen : l.length = uint.nat i) (Hlast : Option.map LogEntry.term l.getLast? = some t)
+    (Hlen : l.length = uint.nat i) (Hpos : 0 < uint.Z i) (Hi : uint.Z i < 2 ^ 61)
+    (Hlast : Option.map LogEntry.term l.getLast? = some t)
     (Hok : SnapListsOk ⟨⟨t, i⟩, (kv.kvConfState kvVoters).lists, false, d⟩)
-    (Hd : kvSnapOk l d) (Hnc : NoConfChangeIn l 0 l.length) :
+    (Hd : kvSnapOk l d) :
     ⊢ kvCluster (GF := GF) γr -∗ isCommittedLogLb γr.cluster l -∗
       confAt γr.cluster l.length kvMembership ={⊤}=∗
-      snapshotCert γr.cluster kvRaftN ⟨⟨t, i⟩, (kv.kvConfState kvVoters).lists, false, d⟩ := by
+      snapshotValid γr.cluster (memSnapMade i t (kv.kvConfState kvVoters) d) := by
   iintro #Hcl #Hl #Ha
   unfold kvCluster
   icases Hcl with ⟨#Hc, -, -, #Hinv⟩
@@ -235,123 +178,17 @@ theorem kv_snap_make (γr : RKVNames) (l : List LogEntry) (i t : w64) (d : List 
     iframe HS
     unfold kvSnapRecOk
     iexists l
-    iframe Hl
+    iframe Hl Ha
     ipureintro
-    exact ⟨rfl, rfl, Hd, Hnc⟩
+    exact ⟨rfl, Hd⟩
   imodintro
+  iapply snapshotCert_valid γr.cluster kvRaftN (memSnapMade i t (kv.kvConfState kvVoters) d) Hpos Hi
+  iframe Hc
+  simp only [snapTrip, snapId, memSnapMade]
   rw [show (false = kvMembership.autoLeave) from rfl]
   iexact Hcert
 
 end reg
-
-section stok
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- `ms.CreateSnapshot(i, cs, data)` at a term the caller knows, with the token in hand:
-`MemoryStorage.CreateSnapshot.unifiedSpec` as `MemoryStorage.CreateSnapshot.spec_tok` is of
-`.spec`. -/
-abbrev CreateSnapshot.unifiedSpec_tok : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x i : w64) (cs : Loc) (dq : DFrac)
-    (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface)
-    (ts : List w64) (t : w64),
-  ts[uint.nat i - 1]? = some t →
-  (uint.Z σt.ss.index' < uint.Z i →
-    uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Htok" ∷ memSnapTok ms γs σt ∗
-      "#Hfw" ∷ memFloorTok ms γs x ∗
-      "#Hts" ∷ memTermsAt γs ts ∗
-      "Hcs" ∷ (match oc with
-               | none => iprop(⌜cs = null⌝)
-               | some c => ownCSM cs dq c) ∗
-      "Hdata" ∷ data ↦* bs ∗
-      "#Hcert" ∷ memStorCert γs
-        (snapTrip (memSnapCreated σt i t oc bs) (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists) ∗
-      "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
-    (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
-      (Val #i)) (Val #cs)) (Val #data))
-  {{ (snap' : Loc) (err : GoInterface), RET (PairV #snap' #err);
-      (match oc with
-       | none => iprop(⌜cs = null⌝)
-       | some c => ownCSM cs dq c) ∗
-      ((⌜uint.Z i ≤ uint.Z σt.ss.index' ∧ snap' = null ∧ err = eood⌝ ∗
-        memSnapTok ms γs σt ∗ data ↦* bs) ∨
-      (⌜uint.Z σt.ss.index' < uint.Z i ∧ err = interface.nil⌝ ∗
-        ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) ∗
-        memSnapTok ms γs { σt with ss := entryID.mk t i,
-                                   scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
-                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave',
-                                   sdat := bs })) }}
-
-omit [StorageModel GF] in
-private theorem mask_empty_sub' : (∅ : CoPset) ⊆ ⊤ \ ↑memSnapN := Std.LawfulSet.empty_subset
-
-omit [StorageModel GF] in
-/-- `MemstorageAU.lean`'s `wp_later_frame` (private there). -/
-private theorem wp_later_frame' {e : Expr} {Φ : val → IProp GF} {R : IProp GF}
-    (h : toVal e = none) :
-    ⊢ ▷ R -∗ WP e {{ v, R -∗ Φ v }} -∗ WP e {{ Φ }} := by
-  iintro HR Hwp
-  iapply (wp_wand (Φ := fun v => iprop(R ∗ (R -∗ Φ v)))) $$ [HR Hwp]
-  · iapply (wp_frame_step_l' h (fun _ hp => hp))
-    iframe
-  · iintro %v ⟨HR, H⟩
-    iapply H $$ HR
-
-omit [StorageModel GF] in
-theorem CreateSnapshot.unifiedSpec_tok_of
-    (wp_CreateSnapshot : MemoryStorage.CreateSnapshot.unifiedSpec (GF := GF) (hG := hG)) :
-    CreateSnapshot.unifiedSpec_tok (GF := GF) (hG := hG) := by
-  intro ms γs σt x i cs dq oc data bs eood ts t Hts Hpre
-  wp_start_folded as ⟨Htok, #Hfw, #Hts, Hcs, Hdata, #Hcert, #Herr⟩
-  icases (memSnapTok_split ms γs σt).1 $$ Htok with ⟨#Hro, Hak, Htg⟩
-  ihave Hcs : memCsArg cs dq oc $$ [Hcs]
-  · cases oc <;> simp only [memCsArg] <;> iexact Hcs
-  iapply (wp_later_frame' rfl) $$ HΦ
-  iapply wp_CreateSnapshot ms γs x i cs dq oc data bs eood ts t Hts $$ [Hak Hcs Hdata] [Htg]
-  · iframe Hpkg Hro Hak Hfw Hts Hcs Hdata Herr
-  iapply fupd_mask_intro mask_empty_sub'
-  iintro Hclose
-  iexists σt
-  iframe Htg Hcert
-  isplitr
-  · ipureintro; exact Hpre
-  isplit
-  · iintro %Hle Htg
-    imod Hclose with -
-    imodintro
-    iintro Hak Hcs Hdata
-    iintro HΦ
-    iapply HΦ
-    isplitl [Hcs]
-    · cases oc <;> simp only [memCsArg] <;> iexact Hcs
-    ileft
-    isplitr
-    · ipureintro; exact ⟨Hle, rfl, rfl⟩
-    iframe Hdata
-    iapply (memSnapTok_split ms γs σt).2
-    iframe Hro Hak Htg
-  · iintro %Hlt Htg
-    imod Hclose with -
-    imodintro
-    iintro %snap' Hsnap Hak Hcs
-    iintro HΦ
-    iapply HΦ
-    isplitl [Hcs]
-    · cases oc <;> simp only [memCsArg] <;> iexact Hcs
-    iright
-    isplitr
-    · ipureintro; exact ⟨Hlt, rfl⟩
-    iframe Hsnap
-    iapply (memSnapTok_split ms γs _).2
-    unfold memStorCreated
-    iframe Hro Hak Htg
-
-end stok
 
 end EtcdGrove
 end Perennial

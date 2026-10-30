@@ -12,7 +12,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Append
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Read
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__RemoveMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__TransferLeadership
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
@@ -108,10 +107,6 @@ theorem kv.KV.wp_Read [KVStor GF] :
     kv.KV.Read.spec (GF := GF) (hG := hG) :=
   kv.KV.Read.wp_proof kv.wp_encode node.wp_ReadIndex
 
-theorem kv.KV.wp_RemoveMember [KVStor GF] :
-    kv.KV.RemoveMember.spec (GF := GF) (hG := hG) :=
-  kv.KV.RemoveMember.wp_proof node.wp_ProposeConfChange raftpb.ConfChangeType.wp_Enum
-
 theorem kv.KV.wp_TransferLeadership [KVStor GF] :
     kv.KV.TransferLeadership.spec (GF := GF) (hG := hG) :=
   kv.KV.TransferLeadership.wp_proof node.wp_TransferLeadership
@@ -170,7 +165,7 @@ theorem kv.wp_decodeState :
 
 theorem kv.KV.wp_run [KVStor GF] :
     kv.KV.run.spec (GF := GF) (hG := hG) :=
-  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer kv.KV.wp_install kv.wp_encodeState kv.wp_decodeState node.wp_Ready RaftLink.node.wp_Advance_unified MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot RaftLink.MemoryStorage.wp_CreateSnapshot_unified MemoryStorage.wp_Compact proto.wp_UnmarshalConfChange RaftLink.node.wp_ApplyConfChange_unified raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
+  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer kv.KV.wp_install kv.wp_encodeState kv.wp_decodeState node.wp_Ready node.wp_Advance MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_Compact proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
 
 theorem kv.wp_NewStorage [KVStor GF] :
     kv.NewStorage.spec (GF := GF) (hG := hG) :=
@@ -250,7 +245,7 @@ theorem kv.quietLogger.wp_Warningf :
 
 theorem kv.wp_StartCluster [KVStor GF] :
     kv.StartCluster.spec (GF := GF) (hG := hG) :=
-  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf RaftLink.wp_RestartNode_unified MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
+  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
 
 theorem kv.wp_Main :
     kv.Main.spec (GF := GF) (hG := hG) :=

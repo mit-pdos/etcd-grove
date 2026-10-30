@@ -2,6 +2,18 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`. Lean-first (no
 Rocq counterpart).
 
+**2026-10-30 (stage F of the client repair): the proof is `sorry`**, its body before the repair
+kept below it (`REPAIR-OLD`) as stage P's starting point (kvreconf's `StartCluster.lean` shows the
+new middle). Over raft's new API: the cluster is `cluster_alloc kvRaftN clusterIds [] [] false`
+(no boot log; its post's `ownConfDecisions γ ∅` makes the decision authority, `confPolicy_alloc`
+at `kvConfN`; `ownSnapsMade γ []` the registry, `kvSnapInv_alloc`; `joinAuth` is dropped; each
+`nodeFounder` goes to its `RestartNode`), each storage (`NewStorage`: its records and
+`NewMemoryStorage`'s tokens) gives `RestartNode`'s `bootStorage` by `kv_bootStorage` (the frame,
+the storage's invariant at `kvJ γ id`, comes back as `RestartNode`'s `Q`, with `memSnapNone_open`'s
+`memSnapLb γs 0` making `runStor`), and `RestartNode` (`RestartNode.spec`: `HsEmpty` of the
+store's `HardState{}`, the conf state `kvConfState clusterIds`) gives the node's `nodeRunning … 1`
+for `New`. The text below describes the proof before the repair.
+
 The cluster bring-up of the store's `Main`, at any storage registry (`[KVStor GF]`): raft's
 cluster of the voters `1, 2, 3` with snapshots and reconfiguration, its conf entries decided by the
 store's rule (2026-10-28, stage U4a: `cluster_alloc_rule`, each node a founder's `RestartNode`,
@@ -192,15 +204,17 @@ section reg
 variable [KVStor GF]
 
 /-- What `StartCluster` holds of a replica between starting its node and starting its replica: the
-node (`isNode`), its driver token idle on the store's storage, the storage's record, the
-replica's sequence-number token, and the storage's snapshot token, for `run`. -/
+node (`isNode`), its driver token idle on the store's storage, its configuration view and (2026-10-30)
+its running token, the storage's record, the replica's sequence-number token, and what `run` holds
+of the storage (`runStor`, persistent; until 2026-10-30 the storage's snapshot token). -/
 def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF :=
   iprop(∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     isNode n γr.cluster kvRaftN id ∗
     nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
     EtcdGrove.nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
     (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
-    id ↪[γr.seq] W64 0 ∗ runStor γr st memStorEmpty)
+    nodeRunning n γr.cluster kvRaftN 1 ∗
+    id ↪[γr.seq] W64 0 ∗ runStor γr id st)
 
 theorem StartCluster.wp_proof
     (wp_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG))
@@ -213,12 +227,15 @@ theorem StartCluster.wp_proof
     (wp_Errorf : quietLogger.Errorf.spec (GF := GF) (hG := hG))
     (wp_Infof : quietLogger.Infof.spec (GF := GF) (hG := hG))
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG))
-    (wp_RestartNode : RestartNode.unifiedSpec (GF := GF) (hG := hG))
+    (wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG))
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD (StartCluster.wp_proof, the proof before stage F of the client repair, 2026-10-30;
+a starting point for stage P)
   intro vsl Hrb
   wp_start as ⟨#HstorInv, #Hvsl⟩
   rw [show ([W64 1, W64 2, W64 3] : List w64) = clusterIds from rfl]
@@ -494,6 +511,7 @@ theorem StartCluster.wp_proof
       iexists γr, rs
       iframe Hks Hval Hregs
       ipureintro; rw [Hrs, Hk3']
+-/
 
 end reg
 

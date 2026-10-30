@@ -1,13 +1,15 @@
 /- Lean-first (no Rocq counterpart).
 
-`New(id, node, storage, send)` (kv.go:96): replica `id` on its running node (the driver's token
-idle at its start on the store's storage, and the node's view of its configuration, `nodeConfig`)
-of the store's cluster (`kvCluster`, 2026-10-28: raft's cluster with snapshots and reconfiguration;
-2026-10-27 to 2026-10-28 raft's static cluster, `isStaticCluster`; until then raft's static mode,
-`KVStat`), and its storage; it starts `run`. The replica's
-seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) starts its sequence numbers. (D22
-S-r, 2026-10-21) And what `run` holds of the storage to install and take snapshots (`runStor`: its
-snapshot token at the fresh storage, its certificate registry, its voters).
+`New(id, node, storage, send)` (kv.go): replica `id` on its running node (the driver's token
+idle at its start on the store's storage, the node's view of its configuration, `nodeConfig`, and
+its running token, `nodeRunning`) of the store's cluster (`kvCluster`, 2026-10-28: raft's cluster
+with snapshots and reconfiguration; 2026-10-27 to 2026-10-28 raft's static cluster,
+`isStaticCluster`; until then raft's static mode, `KVStat`), and its storage; it starts `run`. The
+replica's seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) starts its sequence numbers.
+And what `run` holds of the storage (`runStor`, persistent: the storage's invariant at node `id`'s
+justifications, the stored snapshot open for writes, its voters; until 2026-10-30 its snapshot
+token at the fresh storage, its certificate registry). (2026-10-30, stage F of the client repair:
+no `leaderTransferOn`, raft's leader-transfer mode being gone.)
 -/
 module
 
@@ -40,11 +42,12 @@ abbrev New.spec : Prop :=
       isNode n γr.cluster kvRaftN id ∗
       nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
       nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
+      -- (2026-10-30) the node runs: the store never stops it
+      nodeRunning n γr.cluster kvRaftN 1 ∗
       kvCluster γr ∗
-      leaderTransferOn γr.cluster kvRaftN ∗
       (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗ id ↪[γr.seq] (W64 0) ∗
-      -- the storage's snapshot token, for `run` (`runStor`)
-      runStor γr st memStorEmpty ∗
+      -- what `run` holds of the storage (`runStor`, persistent)
+      runStor γr id st ∗
       sendSpec send γr.cluster }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.New))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))

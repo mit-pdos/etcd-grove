@@ -1,6 +1,22 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__run.lean`. Lean-first (no
-Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): a `Ready`'s entries and committed entries
+Rocq counterpart).
+
+**2026-10-30 (stage F of the client repair): the proof is `sorry`**, its body before the repair
+kept below it (`REPAIR-OLD`) as stage P's starting point, which is to follow kvreconf's
+`Replica__run.lean` and its `Run*` lemma modules. Over raft's new API: `Advance`, `CreateSnapshot`
+and `ApplyConfChange` are the plain specs (`node.Advance.spec`, `MemoryStorage.CreateSnapshot.spec`,
+`node.ApplyConfChange.spec`; the `unifiedSpec`s and `MemstorageAU` are gone); the storage calls
+are the wrapper's promoted methods (`kvStorage.wp_*`, `KVStorageInstance.lean`) over `runStor`
+(persistent: the storage's invariant at `kvJ`, `memSnapLb γs 0`); the loop's invariant holds
+`appNode` (the node's view, at `kvMembership`), `frozenTo` (the delivered entries frozen above the
+known compaction point) and `nodeRunning … 1` (refuting the stopped answers). No committed conf
+entry exists (`kv_committed_conf`, then `committed_emptyV2_joint` against `kvMembership`), so the
+`ApplyConfChange` branch is unreachable and `reconf` stays `false`; a snapshot `Ready`'s certificate
+gives the encoded state (`kv_snap_read`) and the `ApplySnapshot` justifications (`snapshotCert_valid`,
+`snapGiven`); `CreateSnapshot` takes `kv_snap_make`'s validity, `storDL` from the delivered log, the
+frozen entry at the applied index and `memSnapLb γs 0`, and gives `memSnapLb γs applied`, whose
+mono is `Compact`'s `memSnapLb`. The text below describes the proof before the repair. raft v3.7 (2026-10-16, stage R6b): a `Ready`'s entries and committed entries
 are read-only entry pointers (`entsRO`), its messages owned pointers (`sendSpec`), its read
 states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its hard state `hsOpt`
 (unused: the store persists no hard state); a conf-change entry is decoded with
@@ -67,7 +83,9 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
-public import Proof.go_etcd_io.raft.v3.MemstorageAU
+public import Spec.go_etcd_io.raft.v3.node__Ready
+public import Spec.go_etcd_io.raft.v3.node__Advance
+public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
@@ -136,16 +154,19 @@ theorem KV.run.wp_proof
     (wp_encodeState : kv.encodeState.spec (GF := GF) (hG := hG))
     (wp_decodeState : kv.decodeState.spec (GF := GF) (hG := hG))
     (wp_node_Ready : node.Ready.spec (GF := GF) (hG := hG))
-    (wp_node_Advance : node.Advance.unifiedSpec (GF := GF) (hG := hG))
+    (wp_node_Advance : node.Advance.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Append : MemoryStorage.Append.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_ApplySnapshot : MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG))
-    (wp_MemoryStorage_CreateSnapshot : MemoryStorage.CreateSnapshot.unifiedSpec (GF := GF) (hG := hG))
+    (wp_MemoryStorage_CreateSnapshot : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Compact : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (wp_proto_UnmarshalConfChange : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
-    (wp_node_ApplyConfChange : node.ApplyConfChange.unifiedSpec (GF := GF) (hG := hG))
+    (wp_node_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD (KV.run.wp_proof, the proof before stage F of the client repair, 2026-10-30;
+a starting point for stage P)
   -- (D22 J3) the storage's snapshot methods with the whole token in hand: the AU specs' corollaries
   replace wp_MemoryStorage_ApplySnapshot :=
     MemoryStorage.ApplySnapshot.spec_tok_of wp_MemoryStorage_ApplySnapshot
@@ -895,6 +916,7 @@ theorem KV.run.wp_proof
         iframe Hcav
         ipureintro
         exact ⟨Hv, Ha, Ha0.2.1, Hsa, Ha0.2.2.2.1, rfl, HstorEq⟩
+-/
 
 end proof
 

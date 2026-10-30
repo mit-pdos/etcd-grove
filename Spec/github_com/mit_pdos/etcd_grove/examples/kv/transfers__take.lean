@@ -1,9 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*transfers).take()` (cluster.go), 2026-10-13: under the lock, one of the `MsgTimeoutNow`
-the transport may still pass on is used up, if one is left. With the transfer budget
-(`isTransfers`): `true` with one tick credit of the term budget (what `Node.Step` takes with
-a `MsgTimeoutNow`), or `false`.
+the transport may still pass on is used up, if one is left (`true`), or none is (`false`).
+Nothing more is promised (2026-10-30, stage F of the client repair: `Node.Step` takes a
+`MsgTimeoutNow` with no tick credit since raft's credits are gone; until then `true` came with
+one tick credit, `tickCredit`).
 -/
 module
 
@@ -33,7 +34,7 @@ abbrev transfers.take.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isTransfers γ tr }}
     (App (Val (tr @!! go.GoType.PointerType rTransfersTy @!! go!"take")) (Val #()))
-  {{ (b : Bool), RET #b; if b then tickCredit γ 1 else True }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 

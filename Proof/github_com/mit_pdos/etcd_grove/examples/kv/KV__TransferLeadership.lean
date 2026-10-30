@@ -39,7 +39,7 @@ theorem KV.TransferLeadership.wp_proof
   wp_apply context.wp_Background
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   wp_apply wp_node_TransferLeadership n γr.cluster kvRaftN id id to context.backgroundCtxVal bgCd
-    $$ [$Hraftinit $HisNode $Hbg $Hxfer]
+    $$ [$Hraftinit $HisNode $Hbg]
   iapply HΦ
   itrivial
 

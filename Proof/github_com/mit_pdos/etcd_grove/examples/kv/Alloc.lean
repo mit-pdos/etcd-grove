@@ -9,7 +9,7 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
   ghost map at the registry's name (allocated first, `ghost_map_alloc_empty`, and made the
   `KVStor` instance).
 * `rkvInv_alloc`: the store's invariant over raft's cluster, from what the cluster's allocation
-  (`cluster_alloc_rule`) hands the client -- the committed requested entries (none) and the
+  (`cluster_alloc`) hands the client -- the committed requested entries (none) and the
   read contexts (none used) -- with the client's half of the value (the empty store, `kvEmpty`)
   and the replicas' sequence-number tokens at `S0` (for `New`, each at 0).
 -/
@@ -39,7 +39,7 @@ variable [KVStor GF]
 
 /-- The storage registry's invariant, with no storage registered yet. -/
 theorem kvStorInv_alloc (E : CoPset) :
-    ⊢ ghostMapAuth (KVStor.kvStorName (GF := GF)) 1 (∅ : GMap Loc MemStorRec) ={E}=∗
+    ⊢ ghostMapAuth (KVStor.kvStorName (GF := GF)) 1 (∅ : GMap Loc KVStorRecT) ={E}=∗
       kvStorInv (GF := GF) := by
   iintro Ha
   unfold kvStorInv
@@ -52,7 +52,7 @@ theorem kvStorInv_alloc (E : CoPset) :
   itrivial
 
 /-- The store's invariant over raft's cluster `γ`, from what its allocation hands the client
-(`cluster_alloc_rule`): the committed requested entries, none, and the read contexts, none
+(`cluster_alloc`): the committed requested entries, none, and the read contexts, none
 used; with the client's half of the value and the sequence-number tokens of `S0` (`New` takes
 `id ↪[γr.seq] 0`). -/
 theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
