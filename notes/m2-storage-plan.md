@@ -1555,3 +1555,7 @@ round 3's list. None is axiom-backed unless said.
 - Targeted `lake build` of the 15 Draft modules (7148 jobs, no error).
 - No `axiom`, no `sorry` in any Draft (grep).
 - Full `lake build` of `40cfa3ae75` passed (11212 jobs, no error).
+
+**The user's answer on Q8 (2026-10-30): (a)**, the receipt bound for a restored compacted image is
+`Restore`'s premise `restoreBoundM`, supplied by the apply side; the index writer counts receipts from
+its last restore. No configuration premise.
