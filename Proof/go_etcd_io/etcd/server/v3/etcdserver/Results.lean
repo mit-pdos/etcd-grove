@@ -481,7 +481,9 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
          else applyThread γ st) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
     HRS, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
-  iapply (EtcdServer.wp_applyEntryNormal s γ ci TM E ρ b e m st v3 x γr (some t) v A)
+  imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
+  iapply (EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
+      s γ ci TM E ρ b e m st v3 x γr (some t) v A hoff)
     $$ [Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS]
   · iframe Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS
     iframe #
@@ -1728,24 +1730,8 @@ outcome the model's admin step, the row back at the history after it. -/
 theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
   apply_admin_entry_on apply_apply_admin_latest
 
-/-- **The apply thread's step on one committed normal entry, with auth on** (the auth plan's E3o,
-`EtcdServer__applyEntryNormal.lean`'s `wp_proofOn`), every callee linked: a KV request's verdict
-the latest state's (`apply_apply_kv_latest`), an admin request's step the auth row's
-(`server_admin_entry_on`); the state after the entry the mode-`on` model's (`kvAppliedOn`), the
-result handed to its waiter with the verdict tied to the model (`resultΨOn`). -/
-theorem server_apply_entry_normal_on :
-    EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntryNormal.wp_proofOn raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
-    consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex
-    notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout
-    Perennial.EtcdGrove.apply.wp_Apply Perennial.EtcdGrove.apply.uberApplier.wp_Apply
-    apply_apply_kv_latest server_admin_entry_on
-    errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64
-    zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
-    EtcdServer.wp_MemberID
-
 /-- **The apply loop over a batch with auth on** (the auth plan's E3p, `EtcdServer__apply.lean`'s
-`wp_proofOn`): each entry through `server_apply_entry_normal_on` (its admin step's time receipt from
+`wp_proofOn`): each entry through `applyEntryNormal.spec` (`wp_applyEntryNormal`; its admin step's time receipt from
 the iteration's Go steps), each conf change through `applyConfChange`; the apply thread after the
 batch at the mode-`on` model of the committed log (`kvAppliedOn`). -/
 theorem server_apply_on :
@@ -1753,7 +1739,7 @@ theorem server_apply_on :
   EtcdServer.apply.wp_proofOn zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer
     consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex
     consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
-    raftpb.Entry.wp_GetType server_apply_entry_normal_on
+    raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal
     EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm
     pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId
     membership.RaftCluster.wp_Members
@@ -1870,7 +1856,6 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
 #print axioms Perennial.EtcdGrove.server_admin_entry_on
-#print axioms Perennial.EtcdGrove.server_apply_entry_normal_on
 #print axioms Perennial.EtcdGrove.server_apply_on
 #print axioms Perennial.EtcdGrove.server_apply_entries_on
 #print axioms Perennial.EtcdGrove.server_apply_all_on

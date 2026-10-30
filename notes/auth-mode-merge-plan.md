@@ -286,3 +286,11 @@ repository) and authkv's session checked it against its history invariant S1. Th
 `noOtherRefusalAt`/`otherRefusalDescs` in `InvGrpc`, the axiom in `NoRefusal.lean`; unused until
 the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
   axiom); `etcd_noRefusal` then becomes a theorem.
+
+**Step 6, `applyEntryNormal` (2026-10-30, branch `fam-merge`, candidate 3 approved by the user):**
+done. One parametric `apply.Apply.spec`; the on server's uber-applier contracts built by
+`NewServer` (`srvUberOn`); `applyEntryNormal.spec` merged and linked; the bridge `specE` is not
+needed (the merged spec is the `.spec`). Deviations from the approved text, both reducing what
+changes: the recorded-state triple through a callee `.spec` instead of `applierFor`, and the
+receipt gated on the mode (decisions, "Step 6: one `apply.Apply.spec`"). Steps 3-4 (`apply`,
+`applyEntries`, `applyAll`, `run`, `start`, `Start`) are unblocked; `Txn`'s variants remain.

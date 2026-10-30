@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setTerm
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
@@ -142,6 +143,7 @@ theorem EtcdServer.apply.wp_proof
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
+  have hAEN := EtcdServer.applyEntryNormal.spec_off hAEN
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
@@ -423,7 +425,7 @@ theorem EtcdServer.apply.wp_proof
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
-            (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
+            (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost⟩
         · rw [ite_eq_left rfl]
           iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
@@ -717,7 +719,7 @@ theorem EtcdServer.apply.wp_proof
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
-            (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
+            (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
@@ -977,7 +979,7 @@ theorem EtcdServer.apply.wp_proofOn
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (hGT : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
     (hGTy : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
-    (hAEN : EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG))
+    (hAEN : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG))
     (hSet1 : EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG))
     (hSet2 : EtcdServer.setTerm.spec (GF := GF) (hG := hG))
     (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
@@ -985,6 +987,7 @@ theorem EtcdServer.apply.wp_proofOn
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.specOn (GF := GF) (hG := hG) := by
+  have hAEN := EtcdServer.applyEntryNormal.spec_on hAEN
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy

@@ -25465,3 +25465,56 @@ needs. No axiom, no `sorry`.
   `srvReqLogLb_of_rlogLb`). The alternative, a requested-log bound in the tie, would rework the
   raise law.
 - **Locked in:** a snapshot is never restored with auth on (already true; the tie needs it).
+
+## Step 6: one `apply.Apply.spec`; the uber-applier's contracts with auth on built by `NewServer` (2026-10-30, the auth-mode merge's step 6, candidate 3)
+
+The user approved candidate 3 (three review rounds), which aimed to give `applyEntryNormal` one
+spec, linked over `.spec`s only. Before this entry its mode-`on` proof took 14 hypotheses that are
+not `.spec`s:
+- 12 interface-method specs, used only to build the uber-applier's latest-state predicates;
+- two variant triples of `apply.Apply`.
+
+- **`apply.Apply.spec` is parametric** in the `UberApplier`'s `Apply` contract. Its pre and post
+  are `P`/`Q sk ar`, a persistent method triple at the wrapper's skip flag, written as `waitOk`
+  writes its method (`∃ ui, ⌜ua = .ok ui⌝ ∗ □ ∀ r sk, {{…}} methods ui.ty "Apply" ui.v …`).
+  - Post: `Q sk ar` with the waiter fact, or (no call) `ar = null`, `noSideEffect rq`, `G ot id`
+    and `P` back.
+  - Its three former forms are corollaries, none of them a second proof of the Go code:
+    - `ApplyRec.lean`'s `specRec`, the old statement, via `spec_rec`, at `uberApplier.Apply.spec`;
+    - `kvSpecL` (`wp_kvL`, now over `apply.uberKVC`);
+    - `adminSpecL` (`wp_adminL`, over `apply.uberAdmC`).
+- **Off: a deviation from the approved §3**, which put the recorded-state uber triple in
+  `applierFor` (changing both `NewUberApplier` specs, and the two places that assemble it).
+  - Instead, `applyEntryNormal`'s proof takes `uberApplier.Apply.spec` as one more callee `.spec`
+    (link line `apply_uberApplier__Apply: @`) and applies `spec_rec`. This is legitimate because
+    `applierFor` already pins the concrete type, so the dynamic call's target is known.
+  - Fewer trusted statements change: `applierFor`, the `NewUberApplier` specs and `SnapApplyKV`
+    are untouched.
+- **On: as approved.** `apply.uberKVC`/`apply.uberAdmC` are the uber-applier's latest-state `Apply`
+  triples at `ua`, in the method form `Apply.spec` calls. Their `_of` lemmas build them from
+  `uberKVL`/`uberAuthStepsL` and the uber-applier's own `kvSpecL`/`adminSpecL`. `uberAdmC` keeps
+  `adminSpecL`'s lending premise as a pure premise of its triple.
+  - `srvUberOn s` (`ServerOn.lean`) holds, for every `E` with auth on and every `ua` with
+    `srvUberBase s ua E`:
+    - the KV contract, given `srvLessorNil s`;
+    - the admin contract at every admin row's store, backend and token.
+  - It is a conjunct of `srvKVInvsM true`, which gains the server `s` as a parameter (`false`
+    stays `rfl`; `srvKVInvsM_true` is now an entailment, with `srvKVInvsM_uberOn` beside it).
+    `srvLessorNil` moved to `ServerOn.lean` for it.
+  - `NewServer.wp_proofM` takes the kit `uberKitM on` (`UberKit.lean`): `True` off, and on, the
+    uber-applier's two latest-state triples plus the 12 specs. It builds the row with
+    `srvUberOn_of_kit`; `Results.lean` supplies the kit.
+- **`applyEntryNormal.spec` is the merged statement** (from `specE`, `auth-mm-apply-wip`).
+  - It is in the environment's mode, with `.any` excluded.
+  - One deviation from `specE`: the time receipt is gated (`if E.authOn then ⧗ 1 else True`), so
+    that the off statement is a corollary.
+  - The two old statements are `ModeSpecs.lean`'s `specOff` (with `E.authOn = false`) and
+    `specOn`, with corollaries `spec_off`/`spec_on`.
+  - The proofs: `wp_proofOff` (the old off proof), `wp_proofOn` (no non-`.spec` hypotheses; the
+    two variants derived from `apply.Apply.spec` inside) and `wp_proof` (by the mode), linked.
+  - `server_apply_entry_normal_on` is gone. `apply`'s proofs take the merged spec;
+    `request_delivered` derives the mode from `authOn_false_of_off`.
+- **Debt kept** (candidate 3's decision C): `uberApplier.Apply`/`dispatch`'s variants,
+  `authApplierV3.*.specL`, `applierV3backend.*.fuelSpecX`/`specX`, the check functions' and the
+  auth store's variants. Each is consumed only where the on applier is built or on `Txn`'s path.
+  Dead code: `apply.Apply.adminSpec` (`ApplyFnAdmin.lean`), `uberApplier.Apply.adminSpec`.

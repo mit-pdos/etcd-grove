@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyRec
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthTie
 
@@ -219,7 +220,7 @@ local macro "tail_any" : tactic => `(tactic| (
   · tail_skip))
 
 set_option maxHeartbeats 800000 in
-theorem EtcdServer.applyEntryNormal.wp_proof
+theorem EtcdServer.applyEntryNormal.wp_proofOff
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (hGT : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
     (hC : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -239,11 +240,11 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
+    EtcdServer.applyEntryNormal.specOff (GF := GF) (hG := hG) := by
   have hA := apply.Apply.spec_rec hA0 hUb
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
-  intro s γ ci TM E ρ b e m st v3 x γr ot v A
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A _hoff
   wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, HFS, Hao, #HLv, #Hcm, Hka,
     HRS, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
@@ -955,8 +956,6 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
     (hA0 : apply.Apply.spec (GF := GF) (hG := hG))
     (hUb : apply.uberApplier.Apply.spec (GF := GF) (hG := hG))
-    (hK : apply.Apply.kvSpecL (GF := GF) (hG := hG))
-    (hAd : adminEntryOn.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -969,6 +968,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG) := by
   have hA := apply.Apply.spec_rec hA0 hUb
+  have hK := apply.Apply.wp_kvL hA0
+  have hAd := apply_admin_entry_on (apply.Apply.wp_adminL hA0)
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hM
@@ -1569,6 +1570,66 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         ihave HAu : authnArM true E ar rq out $$ []
         · iapply (authnArM_of_ne true E ar rq out hka)
         tail_on sa'
+
+
+/-- **`applyEntryNormal.spec`**, in the environment's auth mode (step 6 of the auth-mode merge,
+2026-10-30): with auth off `wp_proofOff`'s, with auth on `wp_proofOn`'s. -/
+theorem EtcdServer.applyEntryNormal.wp_proof
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (hC : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
+    (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
+    (hL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
+    (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
+    (hA0 : apply.Apply.spec (GF := GF) (hG := hG))
+    (hUb : apply.uberApplier.Apply.spec (GF := GF) (hG := hG))
+    (hIs : errors.Is.spec (GF := GF) (hG := hG))
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hZS : zap.String.spec (GF := GF) (hG := hG))
+    (hZI : zap.Int64.spec (GF := GF) (hG := hG))
+    (hZE : zap.Error.spec (GF := GF) (hG := hG))
+    (hHB : go_humanize.Bytes.spec (GF := GF) (hG := hG))
+    (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
+    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
+  have h := EtcdServer.applyEntryNormal.wp_proofOff hGI hGT hC hS hN hL hE hA0 hUb hIs hAG hLg hZS hZI hZE hHB hW hGA hMID
+  have hOn := EtcdServer.applyEntryNormal.wp_proofOn hGI hGT hC hS hN hL hE hA0 hUb hIs hAG hLg hZS hZI hZE hHB hW hGA hMID
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A sa hany
+  cases hm : E.authMode with
+  | any => exact absurd hm hany
+  | off =>
+    have hoff : E.authOn = false := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
+      intro k; unfold srvTokRights; rw [hm]
+    rw [hoff]
+    simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
+      entryOkM_false, Bool.false_eq_true, ↓reduceIte]
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, -, Hao, Hlog,
+      #Hcm, Hka, HRS, #Hrl, %Hv, %Hidx, %Hpre, Hv3, -⟩ HΦ
+    iapply (h s γ ci TM E ρ b e m st v3 x γr ot v A hoff) $$
+      [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
+    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
+      ipureintro; exact ⟨Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
+    inext
+    iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst⟩
+    iapply HΦ
+    iframe Hbe Hlr Hgr Hfs Hst
+    isplitl [HKV Hdel Hap Hka HRS]
+    · iexists x', out, sa; iframe HKV Hdel Hap Hka HRS; ipureintro; exact Hstep
+    cases v3 <;> simp only [hT, ite_true, ite_false, Bool.false_eq_true] <;> itrivial
+  | on γa =>
+    have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    rw [hon]
+    simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true, ↓reduceIte]
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
+      #Hcm, Hka, HRS, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
+    iapply (hOn s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hm) $$
+      [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
+    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+    ipureintro; exact ⟨Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, Hpre.2.2.2 trivial⟩
 
 end proof
 
