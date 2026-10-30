@@ -124,6 +124,7 @@ stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a
 proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
 receiver's own facts. -/
 def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
+  letI := srvStor (GF := GF) γ
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
     msgCredits γ.cl srvClusterN st)
 
@@ -134,14 +135,15 @@ once; any other message may be duplicated, its credits made anew (`msgCredits_in
 `MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
 D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
 the server's clusters send no snapshot). -/
-def srvNet (γ : SrvRaft) : NetPayload GF where
-  P st := iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
-  O st := msgCredits γ.cl srvClusterN st
-  once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
-  P_pers st := by infer_instance
-  dup st h := msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
-  img i D := srvImage γ i D
-  img_pers i D := by infer_instance
+def srvNet (γ : SrvRaft) : NetPayload GF :=
+  letI := srvStor (GF := GF) γ
+  { P := fun st => iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
+    O := fun st => msgCredits γ.cl srvClusterN st
+    once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
+    P_pers := fun st => by infer_instance
+    dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
+    img := fun i D => srvImage γ i D
+    img_pers := fun i D => by infer_instance }
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
@@ -160,10 +162,13 @@ theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
 /-- A message raft hands the server, with its bundle, not a snapshot (D22 S-i: `Send` takes
 none), is one the network takes from its sender (`netBundle`; 2026-10-24, rafthttp stage 6d: with
 leader transfer off, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `AppFrom`;
-2026-10-27: the node API's `sentMsg_transferOff`, `sentMsg_appFrom`). -/
+2026-10-27: the node API's `sentMsg_transferOff`, `sentMsg_appFrom`; 2026-10-30, the repair:
+`sentMsg_shape`, no leader-transfer premise). -/
 theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
-    leaderTransferOff (GF := GF) γ.cl srvClusterN ∗ srvMsgNet γ id m ∗ srvMsgNoSnap m ⊢
+    srvMsgNet (GF := GF) γ id m ∗ srvMsgNoSnap m ⊢
       netBundle (srvNet γ) id m := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro ⟨#Hxo, H, Hns⟩
   iunfold srvMsgNet at H
@@ -185,6 +190,7 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
   ipureintro
   rw [Hty]
   exact ⟨Hns, Hsent.2.2.2.2.2.2, fun ha => ⟨Hsent.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
+-/
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p) with its bundle (`srvMsgNet`, D21 stage M1), a

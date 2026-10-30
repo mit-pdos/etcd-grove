@@ -89,6 +89,8 @@ type and data as one of the server's log. -/
 theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryModel)
     (hA : srvIdxOkW ai₀ A) (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
     ([∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ [∗list] m ∈ A, entryClaim γi m := by
+  sorry
+/- REPAIR-OLD
   have key : ∀ (k : Nat) (m : EntryModel), A[k]? = some m →
       iprop(□ [∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ entryClaim γi m := by
     intro k m hk
@@ -109,6 +111,7 @@ theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryMode
   iapply (BigSepL.bigSepL_intro (Φ := fun _ m => entryClaim (GF := GF) γi m) key)
   imodintro
   iexact HL
+-/
 
 /-- **The workload clause, proved** (D19c, 2026-10-18; until then a premise of `NewServer.spec`):
 a committed log is a prefix of the KV invariant's, whose entries have good shapes and claimed ids
@@ -116,6 +119,8 @@ a committed log is a prefix of the KV invariant's, whose entries have good shape
 theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
       clusterWorkloadOk ρ E := by
+  sorry
+/- REPAIR-OLD
   iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOk
   iintro !> %L #HL
@@ -154,10 +159,11 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   isplitr
   · ipureintro; exact hshL
   iapply batchWaitOk_of_work ρ E L hshL hcclL $$ HclL HNZ HL
+-/
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (the cluster the server's, the start log and index the
-server's), in a dynamic cluster at the server's decoder, the storage's cap at least `1`: the tick's
+server's), the cluster at the server's rule: the tick's
 resource and the read registrations by `srvEr`'s definition, every message the node sends
 admitted with its bundle (`srvMsgNet`, D21 stage M1) and no snapshot (`srv_sentMsg_notSnap`), a
 committed log's `E.C` from the KV invariant's indices (a committed log's requested entries are a
@@ -168,15 +174,16 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (x₀ : apply.ApplyKV) (γw : RNNames)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    -- (D43 M3, 2026-10-25) in a dynamic cluster at the server's decoder
-    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
-    -- (D21 M3) the storage's cap at least `1`
-    (hcap : 1 ≤ γw.γs.cap)
+    -- (D43 M3, 2026-10-25) the cluster at the server's rule (2026-10-30, the repair: in every
+    -- cluster, and no storage cap; until then in a dynamic cluster, its decoder)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
     -- `Send`'s borrow
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
       rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S) γw := by
+  sorry
+/- REPAIR-OLD
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only
@@ -227,6 +234,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     ipureintro
     rw [hai0]; exact Hc.1
   · ipureintro; trivial
+-/
 
 /-- **`start`'s construction premise from `NewServer`'s built part and the residual**
 (`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts
@@ -237,6 +245,8 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
+  sorry
+/- REPAIR-OLD
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
       #Hrn, %HEr, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
@@ -270,6 +280,7 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   · ipureintro; exact Hok
   iexists ua
   iframe Hua Hfor Hakv
+-/
 
 end gap
 

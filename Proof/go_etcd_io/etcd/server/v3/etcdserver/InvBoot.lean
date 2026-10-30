@@ -269,34 +269,21 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       cv.ID' = id ∧
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
-    -- (D21 M3, 2026-10-19) the fresh `MemoryStorage` at the cap `1` (`MemStorNames.cap`,
-    -- `NewMemoryStorage`'s choice): never compacted past index `1`, what `StartNode` takes of a
-    -- dynamic cluster's storage (`storCap`). (2026-10-27: until then with raft's no-snapshot and
-    -- no-transfer modes, now the cluster's kind, `srvClusterOk`.)
-    "%Hcap" ∷ ⌜γs.cap = 1⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
     "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple (∅ : GMap Loc MemStorNamesRec)) ∗
-    "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
-    "Hstor" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
-    "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
-       ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
-       memSnapTok bv.storage' γs memStorEmpty -∗
-       (∀ (hp cs : Loc) (al : Bool),
-        ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
-        memSnapTok bv.storage' γs memStorEmpty -∗
-        hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-        csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
-        Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-       WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
-         (Val #())) {{ Φ }}) ∗
-    -- (D17d, 2026-10-18) the application's snapshot token of the fresh storage (`NewMemoryStorage`
-    -- gives it), which `InitialState` borrows and `run`'s `Snapshot()` reads
-    "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
-    -- (2026-10-27) the storage's certificate registry's authority, empty (`NewMemoryStorage`'s):
-    -- a static cluster's storage's certificates are the cluster's (`storageCertInv_alloc`)
-    "Hcauth" ∷ memCertAuth γs ∗
+    -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs) the fresh storage as
+    -- `NewMemoryStorage` leaves it: its lock, dummy entry and end, the "no snapshot taken yet"
+    -- token (which `run`'s `Snapshot()` reads), its hard state and fresh state (which
+    -- `StartNode`'s `bootStorage` takes, `srvMem_bootStorage`). Until then the storage's
+    -- `isStorage`/`ownStorage`, the trusted `InitialState` closure, the snapshot token, the
+    -- certificate registry's authority and the cap `1`.
+    "#Hmlock" ∷ memStorLock bv.storage' γs ∗
+    "#Hlog0" ∷ memLog γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ "Hend" ∷ memEnd γs 1 ∗
+    "Hsnone" ∷ memSnapNone γs ∗
+    "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+    "Hfresh" ∷ memStorFresh bv.storage' γs ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
@@ -463,14 +450,18 @@ variable [MemStorReg GF]
 
 /-- **`run`'s snapshot contract from the application's token** (D17d, 2026-10-18; until then the
 construction's residual `srvBuildGap`): the wrapper's `raftStorage` field holds the storage `ms`,
-and `ms.Snapshot()` -- the application's triple of `MemoryStorage.Snapshot.spec`, with the token of
-the fresh storage -- returns the empty snapshot (index and term `0`), whole (`ownSnapW`: metadata
-and conf state set), frozen. -/
+and `ms.Snapshot()` -- `MemoryStorage.Snapshot.spec` with the "no snapshot taken yet" token
+`memSnapNone` (2026-10-30, the repair; until then the application's snapshot token) -- returns the
+empty snapshot (index and term `0`), whole (metadata and conf state set), frozen. PENDING (Stage F,
+reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any storage, on which
+`run` panics; the bare `MemoryStorage` never returns it, but its spec does not say so. -/
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memSnapTok ms0 γs memStorEmpty -∗
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
+  sorry
+/- REPAIR-OLD
   subst Hms0
   iintro #Hpkg #Hrn Htok
   ihave #Hrn' := Hrn
@@ -496,6 +487,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   · iexists memStorEmpty
     iframe Htok
     ipureintro; simp [memStorEmpty]
+-/
 
 end snap
 

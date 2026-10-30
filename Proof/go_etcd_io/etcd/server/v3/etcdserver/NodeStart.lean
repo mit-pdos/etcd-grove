@@ -47,6 +47,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 
 @[expose] public section
 
@@ -235,9 +236,9 @@ theorem srvMem_bootStorage
     (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (id : w64) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
-    ⊢ memStorReg ms γs -∗ memStorLock ms γs -∗ memStorFresh ms γs -∗
-      memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-      memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
+    memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs ∗
+      memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+      memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ⊢
       bootStorage γr.cl id (memStorIface ms) (HardStateM.mk (W64 0) (W64 0) (W64 0))
         memSnapEmpty.Metadata'.ConfState'
         iprop(memStorInv ms γs γr.cl id ∗

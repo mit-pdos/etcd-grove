@@ -125,6 +125,8 @@ theorem snapDirs_alloc : ∀ (ps : List w64), ps.Nodup →
     iframe H
     ipureintro; simp [hx, h]
 
+/- (2026-10-30, the repair) `readCredits_members` is gone with raft's read credits. -/
+/- REPAIR-OLD
 /-- `c` of the cluster's read credits for each member of `ps`, out of `n` (D21e (A): `c = 2 ^ 48`;
 2026-10-27: the node API's `readCredits`, until then raft's `rdCred`). -/
 theorem readCredits_members (cl : Cluster) (c : Nat) :
@@ -145,6 +147,7 @@ theorem readCredits_members (cl : Cluster) (c : Nat) :
     iframe H1
     iapply (readCredits_members cl c ps (n - c) (by omega)) $$ H2
 
+-/
 /-- The node API's bootstrap log, as the server's entries, is the node API's log. -/
 theorem bootEntries_toLE (boot : List LogEntry) :
     (bootEntries (LogEntry.toEntries boot 0)).map EntryModel.toLE = boot := by
@@ -162,8 +165,8 @@ directories) with the server's raft invariant (`srvRaftLogInv`: the cluster's ki
 `readyFits`, started from the bootstrap log), the KV
 invariant at the bootstrap log (`kvInv_alloc_boot`), the cluster's claims at the claimers' facts
 `Φs` (the caller's: a member's at its prefix), with the reserved id `0`, the proposals' mint, the
-read contexts, and each member's share: its prefix's entry of the claims, `2 ^ 48` of the
-cluster's read credits, its boot token and its snapshot directory. The pure premises (D21e (A),
+read contexts, and each member's share: its prefix's entry of the claims (2026-10-30: no read credits), the
+its boot token and its snapshot directory. The pure premises (D21e (A),
 `issues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
 `0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
 theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
@@ -176,7 +179,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt : GName) (γk : KVNames),
-        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
+        ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
@@ -184,7 +187,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          readCredits γ.cl (2 ^ 48) ∗ nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          nodeBoot γ.cl srvClusterN ps ctxs id ∗
           -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
