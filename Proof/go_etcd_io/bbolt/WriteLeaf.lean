@@ -156,7 +156,8 @@ theorem bktClean_leafSet (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bkt
     (e4 : r'.nv.pgid' = r.nv.pgid') (e5 : r'.nv.parent' = r.nv.parent') (e6 : r'.nv.key' = r.nv.key')
     (e7 : r'.key = r.key) (e8 : r'.ksrc = r.ksrc) (e9 : r'.cs = r.cs)
     (hlen : r'.ins.length = r'.ws.length) (hs : wsSorted r'.ws) (hk : ∀ w ∈ r'.ws, 0 < w.key.length)
-    (hlive : wsLive r'.ws) (hbv : ∀ w ∈ r'.ws, isBktFlag w.flags → bvalOK W.pages hwm w.value ∧
+    (hlive : wsLive r'.ws) (hbv : ∀ w ∈ r'.ws, isBktFlag w.flags →
+      ((B.bm !! w.key).isSome = false → bvalOK W.pages hwm w.value) ∧
       (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)) :
     bktClean W hwm bl { B with ns := <[l := r']> B.ns } := by
   obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc

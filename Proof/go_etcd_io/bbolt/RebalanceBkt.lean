@@ -113,13 +113,13 @@ theorem bktNested_upd (W : WView) (T : WTx) (st : TxStats) (bl : Loc) (B B' : BR
     bktNested W (wtxUpd T st bl B') X' := by
   intro k c hk
   rw [hbmX] at hk
-  obtain ⟨C, v, hC, he, hl, hr, hn⟩ := hX k c hk
+  obtain ⟨C, v, hC, he, hl, hg, hr, hn⟩ := hX k c hk
   by_cases hc : c = bl
   · subst hc; rw [hB] at hC; cases hC
-    refine ⟨B', v, ?_, hentX k v he, hl, by rw [hib]; exact hr, fun h0 => ?_⟩
+    refine ⟨B', v, ?_, hentX k v he, hl, hg, by rw [hib]; exact hr, fun h0 => ?_⟩
     · show (<[c := B']> T.bs) !! c = some B'; rw [GMap.lookup_insert]
     · rw [hib]; exact hn (by rw [← hbv]; exact h0)
-  · refine ⟨C, v, ?_, hentX k v he, hl, hr, hn⟩
+  · refine ⟨C, v, ?_, hentX k v he, hl, hg, hr, hn⟩
     show (<[bl := B']> T.bs) !! c = some C
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hc)]; exact hC
 

@@ -281,7 +281,8 @@ def nodeClean (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec)
   (B.ib.root' = W64 0 → r.nv.pgid' = W64 0) ∧
   (B.ib.root' ≠ W64 0 → treeWF W.pages hwm (uint.nat r.nv.pgid')) ∧
   (r.nv.key' = slice.nil ∨ (0 < r.key.length ∧ r.ksrc ≠ Src.stale)) ∧
-  (r.nv.isLeaf' = true → ∀ w ∈ r.ws, isBktFlag w.flags → bvalOK W.pages hwm w.value ∧
+  (r.nv.isLeaf' = true → ∀ w ∈ r.ws, isBktFlag w.flags →
+    ((B.bm !! w.key).isSome = false → bvalOK W.pages hwm w.value) ∧
     (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)) ∧
   (r.nv.isLeaf' = false → 0 < r.ws.length ∧ (r.ws.map WEntry.pgid).Nodup ∧ ∀ w ∈ r.ws,
     uint.nat w.pgid < hwm ∧
@@ -291,6 +292,14 @@ def nodeClean (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec)
   (r.nv.parent' ≠ null → ∃ rp, B.ns !! r.nv.parent' = some rp ∧ rp.nv.isLeaf' = false ∧
     l ∈ rp.cs ∧ ∃ w ∈ rp.ws, w.pgid = r.nv.pgid') ∧
   r.cs.Nodup ∧ (∀ c ∈ r.cs, ∃ rc, B.ns !! c = some rc ∧ rc.nv.parent' = l)
+
+/-- `nodeClean`'s nested-bucket clause from its unconditional form. -/
+theorem spBvalW (W : WView) (hwm : Nat) (P : WEntry → Prop) (ws : List WEntry)
+    (h : ∀ w ∈ ws, isBktFlag w.flags → bvalOK W.pages hwm w.value ∧
+      (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)) :
+    ∀ w ∈ ws, isBktFlag w.flags → (P w → bvalOK W.pages hwm w.value) ∧
+      (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard) :=
+  fun w hw hb => ⟨fun _ => (h w hw hb).1, (h w hw hb).2⟩
 
 /-- The bucket `bl` (record `B`) is well-formed (see the module doc). -/
 def bktClean (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) : Prop :=

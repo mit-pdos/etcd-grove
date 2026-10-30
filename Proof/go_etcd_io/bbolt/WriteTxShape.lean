@@ -27,7 +27,8 @@ its entry's and whose tree has the entry's bounds (`treeKeys`).
 
 **Nested buckets** (`bktNested`): an opened bucket `C` (name `k`) is the value of `B`'s entry
 `k` (`entryIn`: in a materialized leaf, or on a page of a position of `B`): its root is the
-value's, and, if `C` has no materialized root (it did not change), its header is the value's.
+value's, and, if `C` has no materialized root (it did not change), its header is the value's;
+an inline value's page is good (`inlineGood`).
 
 **Nodes' pages** (`txPg`, `NodePages.lean`): before `Commit` a branch node's entries are its
 page's and a leaf's entries have no child page, which `rebalance` needs (`RebalanceReady.lean`).
@@ -113,7 +114,7 @@ def nodeKeys (W : WView) (B : BRec) (bnd : Loc → Option (List w8) × Option (L
       treeKeys W.pages (uint.nat w.pgid) (entryBnd (bnd l) r.ws i).1 (entryBnd (bnd l) r.ws i).2)) ∧
   (r.nv.isLeaf' = true → r.nv.unbalanced' = false → r.nv.parent' ≠ null → 0 < r.ws.length) ∧
   (r.nv.isLeaf' = true → ∀ w ∈ r.ws, isBktFlag w.flags → inBucketRoot w.value ≠ 0 →
-    treeKeys W.pages (inBucketRoot w.value) none none)
+    ¬ opened B w.key → treeKeys W.pages (inBucketRoot w.value) none none)
 
 /-- The keys of the bucket `B` (see the module doc), its nodes' bounds `bnd`. -/
 def bktKeysB (W : WView) (B : BRec) (bnd : Loc → Option (List w8) × Option (List w8)) : Prop :=
@@ -161,6 +162,7 @@ def entryIn (W : WView) (B : BRec) (k v : List w8) : Prop :=
 /-- The buckets `B` opened are its entries' (see the module doc). -/
 def bktNested (W : WView) (T : WTx) (B : BRec) : Prop :=
   ∀ k c, B.bm !! k = some c → ∃ C v, T.bs !! c = some C ∧ entryIn W B k v ∧ 16 ≤ v.length ∧
+    (inBucketRoot v = 0 → inlineGood (inlinePage v)) ∧
     C.ib.root' = (ibOf v).root' ∧ (C.bv.rootNode' = null → C.ib = ibOf v)
 
 end keys

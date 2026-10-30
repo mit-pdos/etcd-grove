@@ -84,7 +84,7 @@ def rblNodeKeys (W : WView) (B : BRec) (bnd : Loc → Option (List w8) × Option
   (dfc ≠ some l → r.nv.isLeaf' = true → r.nv.unbalanced' = false → r.nv.parent' ≠ null →
     0 < r.ws.length) ∧
   (r.nv.isLeaf' = true → ∀ w ∈ r.ws, w.pgid = W64 0 ∧ (isBktFlag w.flags →
-    inBucketRoot w.value ≠ 0 → treeKeys W.pages (inBucketRoot w.value) none none))
+    inBucketRoot w.value ≠ 0 → ¬ opened B w.key → treeKeys W.pages (inBucketRoot w.value) none none))
 
 /-- The keys of the bucket `B` during rebalance (see the module doc). -/
 def rblKeysB (W : WView) (B : BRec) (bnd : Loc → Option (List w8) × Option (List w8))

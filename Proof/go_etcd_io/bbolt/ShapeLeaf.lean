@@ -321,9 +321,9 @@ theorem txFacts_upd (W : WView) (T T' : WTx) (bl : Loc) (B B'' : BRec)
   have hnest : ∀ C C2, (∀ k c, C2.bm !! k = some c → C.bm !! k = some c) →
       (∀ k v, entryIn W C k v → entryIn W C2 k v) → bktNested W T C → bktNested W T' C2 := by
     intro C C2 hm he hn k c hkc
-    obtain ⟨C0, v, h0, h1, h2, h3, h4⟩ := hn k c (hm k c hkc)
+    obtain ⟨C0, v, h0, h1, h2, hg, h3, h4⟩ := hn k c (hm k c hkc)
     obtain ⟨C', h5, h6, h7⟩ := htgt c C0 v h0 h3 h4
-    exact ⟨C', v, h5, he k v h1, h2, h6, h7⟩
+    exact ⟨C', v, h5, he k v h1, h2, hg, h6, h7⟩
   intro bl' C hC
   rw [hlk] at hC
   by_cases h : bl' = bl

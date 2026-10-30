@@ -411,14 +411,24 @@ variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
 theorem entryIn_bOpen (W : WView) (B : BRec) (k : List w8) (cl : Loc) (k' v : List w8) :
     entryIn W (bOpen B k cl) k' v ↔ entryIn W B k' v := Iff.rfl
 
-theorem bktKeys_bOpen (W : WView) (B : BRec) (k : List w8) (cl : Loc) :
-    bktKeys W (bOpen B k cl) ↔ bktKeys W B := Iff.rfl
+theorem bktKeys_bOpen (W : WView) (B : BRec) (k : List w8) (cl : Loc) (h : bktKeys W B) :
+    bktKeys W (bOpen B k cl) := by
+  obtain ⟨bnd, h1, h2, h3⟩ := h
+  refine ⟨bnd, h1, h2, fun l r hr => ?_⟩
+  obtain ⟨c1, c2, c3, c4, c5, c6⟩ := h3 l r hr
+  exact ⟨c1, c2, c3, c4, c5, fun hl w hw hb h0 hno =>
+    c6 hl w hw hb h0 (fun ho => hno (by
+      unfold opened bOpen at *
+      by_cases e : w.key = k
+      · subst e; simp only [GMap.lookup_insert]; rfl
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact ho))⟩
 
 /-- The facts of the transaction with the bucket `bl`'s entry `k` (value `v`) opened as the new
 bucket `cl` (record `Bc`). -/
 theorem txFacts_add (W : WView) (T : WTx) (st : TxStats) (bl : Loc) (B : BRec) (k : List w8)
     (cl : Loc) (Bc : BRec) (v : List w8) (hB : T.bs !! bl = some B) (hfr : T.bs !! cl = none)
-    (hent : entryIn W B k v) (h16 : 16 ≤ v.length) (hcib : Bc.ib = ibOf v)
+    (hent : entryIn W B k v) (h16 : 16 ≤ v.length)
+    (hinl : inBucketRoot v = 0 → inlineGood (inlinePage v)) (hcib : Bc.ib = ibOf v)
     (hcbm : Bc.bm = ∅) (hcns : Bc.ns = ∅)
     (hkeys : inBucketRoot v ≠ 0 → treeKeys W.pages (inBucketRoot v) none none)
     (hf : ∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B) :
@@ -444,11 +454,13 @@ theorem txFacts_add (W : WView) (T : WTx) (st : TxStats) (bl : Loc) (B : BRec) (
     · exact ⟨C0, by rw [if_neg e]; exact h0, rfl, rfl⟩
   have hn1 : ∀ C k' c, bktNested W T C → C.bm !! k' = some c → ∃ C1 v',
       (wtxAdd T st bl (bOpen B k cl) cl Bc).bs !! c = some C1 ∧ entryIn W C k' v' ∧
-      16 ≤ v'.length ∧ C1.ib.root' = (ibOf v').root' ∧ (C1.bv.rootNode' = null → C1.ib = ibOf v') := by
+      16 ≤ v'.length ∧ (inBucketRoot v' = 0 → inlineGood (inlinePage v')) ∧
+      C1.ib.root' = (ibOf v').root' ∧ (C1.bv.rootNode' = null → C1.ib = ibOf v') := by
     intro C k' c hn hkc
-    obtain ⟨C0, v', h0, h1, h2, h3, h4⟩ := hn k' c hkc
+    obtain ⟨C0, v', h0, h1, h2, hg, h3, h4⟩ := hn k' c hkc
     obtain ⟨C1, h5, h6, h7⟩ := htgt c C0 h0
-    exact ⟨C1, v', h5, h1, h2, by rw [h6]; exact h3, fun h => by rw [h6]; exact h4 (by rw [← h7]; exact h)⟩
+    exact ⟨C1, v', h5, h1, h2, hg, by rw [h6]; exact h3,
+      fun h => by rw [h6]; exact h4 (by rw [← h7]; exact h)⟩
   intro b C hC
   rw [hlk] at hC
   by_cases e1 : b = cl
@@ -462,14 +474,14 @@ theorem txFacts_add (W : WView) (T : WTx) (st : TxStats) (bl : Loc) (B : BRec) (
   · rw [if_neg e1] at hC
     by_cases e2 : b = bl
     · rw [if_pos e2] at hC; cases hC
-      refine ⟨(hf bl B hB).1, fun k' c hkc => ?_⟩
+      refine ⟨bktKeys_bOpen W B k cl (hf bl B hB).1, fun k' c hkc => ?_⟩
       by_cases ek : k' = k
       · subst ek
         have : c = cl := by
           have h := hkc; unfold bOpen at h; simp only at h
           rw [GMap.lookup_insert] at h; exact (Option.some.inj h).symm
         subst this
-        exact ⟨Bc, v, by rw [hlk, if_pos rfl], hent, h16, by rw [hcib], fun _ => hcib⟩
+        exact ⟨Bc, v, by rw [hlk, if_pos rfl], hent, h16, hinl, by rw [hcib], fun _ => hcib⟩
       · have h : B.bm !! k' = some c := by
           have h := hkc; unfold bOpen at h; simp only at h
           rwa [GMap.lookup_insert_ne _ _ (Ne.symm ek)] at h
@@ -488,6 +500,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
 theorem txShape_add (γ : GName) (W : WView) (T : WTx) (st : TxStats) (bl : Loc) (B : BRec)
     (k : List w8) (cl : Loc) (Bc : BRec) (v : List w8) (hB : T.bs !! bl = some B)
     (hfr : T.bs !! cl = none) (hent : entryIn W B k v) (h16 : 16 ≤ v.length)
+    (hinl : inBucketRoot v = 0 → inlineGood (inlinePage v))
     (hcib : Bc.ib = ibOf v) (hcbm : Bc.bm = ∅) (hcns : Bc.ns = ∅)
     (hkeys : inBucketRoot v ≠ 0 → treeKeys W.pages (inBucketRoot v) none none)
     (htoks : bktToks (GF := GF) γ W B ⊢ bktToks γ W (bOpen B k cl) ∗ bktToks γ W Bc) :
@@ -497,7 +510,7 @@ theorem txShape_add (γ : GName) (W : WView) (T : WTx) (st : TxStats) (bl : Loc)
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]; exact hfr
   have hbs : (wtxAdd T st bl (bOpen B k cl) cl Bc).bs = <[cl := Bc]> (<[bl := bOpen B k cl]> T.bs) :=
     rfl
-  have Hfacts := txFacts_add W T st bl B k cl Bc v hB hfr hent h16 hcib hcbm hcns hkeys
+  have Hfacts := txFacts_add W T st bl B k cl Bc v hB hfr hent h16 hinl hcib hcbm hcns hkeys
   unfold txShape
   rw [hbs]
   iintro ⟨%M, Ha, %Hd, Hbs, %Hf, %Hp⟩
@@ -1007,7 +1020,7 @@ theorem treeKeys_entry (W : WView) (B : BRec) (hk : bktKeys W B) (c p : Nat) (hp
 (`entryIn`), its tree's keys, and where its bytes are. -/
 theorem seekRes_bkt (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean W hwm bl B)
     (hvw : viewOK W) (hk : bktKeys W B) (k v : GoSlice) (f : w32) (kbs vbs : List w8)
-    (h : seekRes W hwm B (k, v, f) kbs vbs) (hf : isBktFlag f) :
+    (h : seekRes W hwm B (k, v, f) kbs vbs) (hf : isBktFlag f) (hno : (B.bm !! kbs).isSome = false) :
     bvalOK W.pages hwm vbs ∧ entryIn W B kbs vbs ∧
     (inBucketRoot vbs ≠ 0 → treeKeys W.pages (inBucketRoot vbs) none none) ∧
     ∃ src : Src, (src = Src.view ∨ src = Src.own DFrac.discard) ∧
@@ -1026,8 +1039,8 @@ theorem seekRes_bkt (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean
     obtain ⟨-, -, -, -, -, -, -, -, -, -, h11, -⟩ := hc.2.2.2.2.2.2.2.1 l r hr
     obtain ⟨hb, hvs⟩ := h11 hleaf w hmem hf
     obtain ⟨bnd, -, -, hk3⟩ := hk
-    refine ⟨hb, Or.inl ⟨l, r, w, hr, hleaf, hmem, rfl, hf, rfl⟩,
-      fun h0 => (hk3 l r hr).2.2.2.2.2 hleaf w hmem hf h0, w.vs, hvs, Or.inr ⟨l, r, i, it, w, hr, hit, hw, rfl, rfl, rfl⟩⟩
+    refine ⟨hb hno, Or.inl ⟨l, r, w, hr, hleaf, hmem, rfl, hf, rfl⟩,
+      fun h0 => (hk3 l r hr).2.2.2.2.2 hleaf w hmem hf h0 (by unfold opened; rw [hno]; simp), w.vs, hvs, Or.inr ⟨l, r, i, it, w, hr, hit, hw, rfl, rfl, rfl⟩⟩
   · unfold kvResult at he
     rw [if_neg (by omega)] at he
     simp only [Prod.mk.injEq] at he
@@ -1213,9 +1226,9 @@ theorem txFacts_upd2 (W : WView) (T T' : WTx) (bl : Loc) (B B'' : BRec)
   have hnest : ∀ C C2, (∀ k c, C2.bm !! k = some c → C.bm !! k = some c) →
       (∀ k v, entryIn W C k v → entryIn W C2 k v) → bktNested W T C → bktNested W T' C2 := by
     intro C C2 hm he hn k c hkc
-    obtain ⟨C0, v, h0, h1, h2, h3, h4⟩ := hn k c (hm k c hkc)
+    obtain ⟨C0, v, h0, h1, h2, hg, h3, h4⟩ := hn k c (hm k c hkc)
     obtain ⟨C', h5, h6, h7⟩ := htgt c C0 v h0 h3 h4
-    exact ⟨C', v, h5, he k v h1, h2, h6, h7⟩
+    exact ⟨C', v, h5, he k v h1, h2, hg, h6, h7⟩
   intro bl' C hC
   rw [hlk] at hC
   by_cases h : bl' = bl
@@ -1632,8 +1645,8 @@ def shapeEq (B1 B2 : BRec) : Prop :=
 theorem bktKeys_shapeEq (W : WView) (B1 B2 : BRec) (h : shapeEq B1 B2) :
     bktKeys W B1 ↔ bktKeys W B2 := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
-  unfold bktKeys bktKeysB nodeKeys
-  rw [h1, h2, h3, h4]
+  unfold bktKeys bktKeysB nodeKeys opened
+  rw [h1, h2, h3, h4, h5]
 
 theorem entryIn_shapeEq (W : WView) (B1 B2 : BRec) (h : shapeEq B1 B2) (k v : List w8) :
     entryIn W B1 k v ↔ entryIn W B2 k v := by

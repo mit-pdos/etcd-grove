@@ -132,15 +132,38 @@ theorem bktClean_child (W : WView) (hwm : Nat) (cl txl ibl pgl : Loc) (bm nm : G
   · intro l1 i1 c1 l2 i2 c2 h1; obtain ⟨r, w, h, -⟩ := h1; simp [childRec] at h
   · intro l i c h1; obtain ⟨r, w, h, -⟩ := h1; simp [childRec] at h
 
-/-- What a writer's cursor found, with a bucket's flag: a good value, of a page of the view or of
-a node entry (whose source is the view or persistent). -/
+/-- What a writer's cursor found (`kvSrcOK`), its key's bytes `kb`: for a node entry, that
+entry's key. -/
+def spKvKey (W : WView) (hwm : Nat) (B : BRec) (kv : GoSlice × GoSlice × w32) (kb : List w8) : Prop :=
+  (kv = (slice.nil, slice.nil, W32 0) ∧ kb = []) ∨
+  (∃ (l : Loc) (r : NRec) (i : Nat) (it : Inode) (w : WEntry), B.ns !! l = some r ∧
+    r.nv.isLeaf' = true ∧ r.ins[i]? = some it ∧ r.ws[i]? = some w ∧
+    kv = (it.key', it.value', it.flags') ∧ it.flags' = w.flags ∧ w.ks ≠ Src.stale ∧
+    w.vs ≠ Src.stale ∧ w.key = kb) ∨
+  (∃ (pid : w64) (p : Loc) (pg : List w8) (i : Nat), wpageAt W B pid = some (p, pg) ∧
+    (B.ib.root' = W64 0 → B.bv.page' ≠ null ∧ B.isrc ≠ Src.stale ∧ inlineOK pg) ∧
+    (B.ib.root' ≠ W64 0 → treeWF W.pages hwm (uint.nat pid)) ∧
+    16 ≤ pg.length ∧ leafWF pg pg.length ∧ pageFlags pg = leafPageFlag ∧ i < pageCount pg ∧
+    kv = kvResult p pg (i : Int))
+
+theorem spKvKey_kvSrc (W : WView) (hwm : Nat) (B : BRec) (kv : GoSlice × GoSlice × w32)
+    (kb : List w8) (h : spKvKey W hwm B kv kb) : kvSrcOK W hwm B kv := by
+  rcases h with ⟨h0, -⟩ | ⟨l, r, i, it, w, a1, a2, a3, a4, a5, a6, a7, a8, -⟩ | h
+  · exact Or.inl h0
+  · exact Or.inr (Or.inl ⟨l, r, i, it, w, a1, a2, a3, a4, a5, a6, a7, a8⟩)
+  · exact Or.inr (Or.inr h)
+
+/-- What a writer's cursor found, with a bucket's flag, its key `kb` not of an opened bucket: a
+good value, of a page of the view or of a node entry (whose source is the view or
+persistent). -/
 theorem kvSrc_bkt (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean W hwm bl B)
-    (hvw : viewOK W) (k v : GoSlice) (f : w32) (h : kvSrcOK W hwm B (k, v, f)) (hf : isBktFlag f) :
+    (hvw : viewOK W) (k v : GoSlice) (f : w32) (kb : List w8) (h : spKvKey W hwm B (k, v, f) kb)
+    (hno : (B.bm !! kb).isSome = false) (hf : isBktFlag f) :
     (∃ vb, bvalOK W.pages hwm vb ∧ inViewAt W v vb) ∨
     (∃ (l : Loc) (r : NRec) (i : Nat) (it : Inode) (w : WEntry),
         B.ns !! l = some r ∧ r.ins[i]? = some it ∧ r.ws[i]? = some w ∧ it.value' = v ∧
         bvalOK W.pages hwm w.value ∧ (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)) := by
-  rcases h with h0 | ⟨l, r, i, it, w, hr, hleaf, hit, hw, he, hfl, -, -⟩ |
+  rcases h with ⟨h0, -⟩ | ⟨l, r, i, it, w, hr, hleaf, hit, hw, he, hfl, -, -, hkb⟩ |
     ⟨pid, p, pg, i, hpa, hinl, htree, hlen, hwf, hflp, hi, he⟩
   · simp only [Prod.mk.injEq] at h0
     rw [h0.2.2] at hf; exact absurd hf (by unfold isBktFlag; decide)
@@ -149,7 +172,7 @@ theorem kvSrc_bkt (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean W
     obtain ⟨-, -, -, -, -, -, -, -, -, -, h11, -⟩ := hc.2.2.2.2.2.2.2.1 l r hr
     rw [hfl] at hf
     obtain ⟨hb, hvs⟩ := h11 hleaf w (List.mem_of_getElem? hw) hf
-    exact Or.inr ⟨l, r, i, it, w, hr, hit, hw, rfl, hb, hvs⟩
+    exact Or.inr ⟨l, r, i, it, w, hr, hit, hw, rfl, hb (by rw [hkb]; exact hno), hvs⟩
   · left
     unfold kvResult at he
     rw [if_neg (by omega)] at he
@@ -381,6 +404,59 @@ theorem childRec_own (W : WView) (cl txl ibl pgl : Loc) (bm nm : GoMap) (vb : Li
   · iapply BigSepM.bigSepM_empty.2
     iempintro
 
+
+/-- A key a writer's cursor found (`kvSrcOK`), its bytes `kb` lent out (and back), with the
+entry they are the key of (`spKvKey`). -/
+theorem spKeySrc_accK (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (txl : Loc) (pmap : GoMap)
+    (pm : GMap w64 Loc) (dqp : DFrac) (k v : GoSlice) (f : w32) (hc : W.data.locCar ≠ 0)
+    (h : kvSrcOK W hwm B (k, v, f)) :
+    wctx (GF := GF) W bl B txl pmap pm dqp ⊢ ∃ (dq : DFrac) (bs : List w8),
+      ⌜spKvKey W hwm B (k, v, f) bs⌝ ∗ k ↦*{dq} bs ∗
+      (k ↦*{dq} bs -∗ wctx W bl B txl pmap pm dqp) := by
+  iintro Hctx
+  rcases h with h0 | ⟨l, r, i, it, w, hr, hleaf, hit, hw, he, hfl, hks, hvs⟩ | hpg
+  · have hk : k = slice.nil := congrArg Prod.fst h0
+    subst hk
+    iexists DFrac.own 1, []
+    isplitr
+    · ipureintro; exact Or.inl ⟨h0, rfl⟩
+    isplitl []
+    · iapply ownSlice_nil
+    iintro -; iexact Hctx
+  · have hk : it.key' = k := by simp only [Prod.mk.injEq] at he; exact he.1.symm
+    subst hk
+    unfold wctx
+    icases Hctx with ⟨Hb, Hv, Hpf, Hpm, Hdb⟩
+    isimp only [wView] at Hv
+    icases Hv with ⟨Hdata, #Hps, #Hlg, Hfli, #Hdl, %Hlgv, Hpv⟩
+    icases bktOwn_node_acc W bl B l r hr $$ Hb with ⟨Hn, Hback⟩
+    isimp only [nodeOwn] at Hn
+    icases Hn with ⟨Hn, Hins, Hicap, Hents, Hch, Hchcap, Hkey⟩
+    icases BigSepL2.bigSepL2_lookup_acc (Φ := fun _ it w => wOwn (GF := GF) W it w) hit hw $$ Hents
+      with ⟨Hi, Hentsback⟩
+    isimp only [wOwn] at Hi
+    icases Hi with ⟨%Hfp, Hk, Hvv⟩
+    icases srcBorrow W hc W.q it.key' w.ks w.key hks $$ [Hpv Hk] with ⟨%dq, -, Hk, Hkback⟩
+    · iframe
+    iexists dq, w.key
+    isplitr
+    · ipureintro; exact Or.inr (Or.inl ⟨l, r, i, it, w, hr, hleaf, hit, hw, he, hfl, hks, hvs, rfl⟩)
+    iframe Hk
+    iintro Hk
+    ihave Hk := Hkback $$ Hk
+    icases Hk with ⟨Hpv, Hk⟩
+    ihave Hents := Hentsback $$ [Hk Hvv]
+    · unfold wOwn; iframe; ipureintro; exact Hfp
+    ihave Hb := Hback $$ %r [Hn Hins Hicap Hents Hch Hchcap Hkey]
+    · unfold nodeOwn; iframe
+    rw [bktOwn_insert_same W bl B l r hr]
+    iframe
+    unfold wView; iframe; iframe #; ipureintro; exact Hlgv
+  · icases keySrc_acc W bl B txl pmap pm dqp k hc (kvSrc_key W hwm B (k, v, f) (Or.inr (Or.inr hpg))) $$ Hctx
+      with ⟨%dq, %bs, Hk, Hb⟩
+    iexists dq, bs
+    iframe
+    ipureintro; exact Or.inr (Or.inr hpg)
 end own
 
 end bbolt

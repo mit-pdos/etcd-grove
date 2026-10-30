@@ -1,4 +1,5 @@
 module
+public import Proof.go_etcd_io.bbolt.ShapeOpen
 public import Spec.go_etcd_io.bbolt.Bucket__CreateBucketIfNotExists
 public import Spec.go_etcd_io.bbolt.Bucket__openBucket_w
 public import Spec.go_etcd_io.bbolt.DB__Logger
@@ -39,6 +40,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
   intro W txl T bl key kb dk Hbl
   obtain ⟨B, HB⟩ := Option.isSome_iff_exists.1 Hbl
   wp_start as ⟨Hown, Hk⟩
+  icases ShapeOpen.ownWriteTx_nonnull W txl T $$ Hown with ⟨%Hnn, Hown⟩
   icases ownWriteTx_put_add W txl T bl B HB $$ Hown with ⟨%Hok, Hrest, Hmv, Hpm, Hb, Hv, Hrh, Hclose⟩
   obtain ⟨HvOK, Hwr, Hdb, Hdbn, Hpm0, H2, Hhwm, Hroot, Hbs⟩ := Hok
   obtain ⟨Htx, Hclean, Hbmv⟩ := Hbs bl B HB
@@ -127,8 +129,8 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
         · unfold wView; iframe; iframe #; ipureintro; exact Hlgv
         iframe
       try wp_auto
-      icases keySrc_acc W bl B txl T.t.pages' T.pm (DFrac.own 1) k HvOK.1 (kvSrc_key W _ B _ Hsk.2.2) $$ Hctx
-        with ⟨%dq, %bs, Hkk, Hkback⟩
+      icases spKeySrc_accK W _ bl B txl T.t.pages' T.pm (DFrac.own 1) k v f HvOK.1 Hsk.2.2 $$ Hctx
+        with ⟨%dq, %bs, %Hkb, Hkk, Hkback⟩
       wp_apply bytes.wp_Equal nk k (DFrac.own 1) dq kb bs $$ [Hnk Hkk] as ⟨Hnk, Hkk⟩
       · iframe
       ihave Hctx := Hkback $$ Hkk
@@ -159,7 +161,13 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
               ((src = Src.view ∧ inViewAt W v vb) ∨ (∃ (l : Loc) (r : NRec) (i : Nat)
                 (it : internal.common.Inode) (w : WEntry), B.ns !! l = some r ∧ r.ins[i]? = some it ∧
                 r.ws[i]? = some w ∧ it.value' = v ∧ w.value = vb ∧ w.vs = src)) := by
-            rcases kvSrc_bkt W _ bl B Hclean HvOK k v f Hsk.2.2 Hf with ⟨vb, Hvb, Hin⟩ |
+            have Hno : (B.bm !! bs).isSome = false := by
+              rw [← Heq]; apply Bool.eq_false_iff.2; intro h
+              obtain ⟨c, hc⟩ := Option.isSome_iff_exists.1 h
+              rw [hc] at Hc0; simp only [Option.getD_some] at Hc0
+              obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 (Hbmv kb c hc)
+              exact Hnn c C hC Hc0
+            rcases kvSrc_bkt W _ bl B Hclean HvOK k v f bs Hkb Hno Hf with ⟨vb, Hvb, Hin⟩ |
               ⟨l, r, i, it, w, Hr, Hit, Hw, Hv', Hvb, Hvs⟩
             · exact ⟨vb, Src.view, Hvb, Or.inl rfl, Or.inl ⟨rfl, Hin⟩⟩
             · exact ⟨w.value, w.vs, Hvb, Hvs, Or.inr ⟨l, r, i, it, w, Hr, Hit, Hw, Hv', rfl, rfl⟩⟩
@@ -234,7 +242,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
               · simp only at h; rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h; exact Or.inr (Hbmv _ c h)
             icases Hclose with ⟨-, Hclose⟩
             ihave Hown := Hclose $$ %({ T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 }) %({ B with bm := <[kb := cl]> B.bm }) %cl %(childRec txl ibl pgl bm nm vb src) [] [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf] Hmv Hpm Hbk Hcbk Hv Hrh
-            · ipureintro; exact ⟨Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn Hsrc, rfl, rfl⟩
+            · ipureintro; exact ⟨spBktClean_bm W _ bl B _ (fun k' h => spIns_isSome _ _ _ k' h) Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn Hsrc, rfl, rfl⟩
             · unfold TxW_rest_root; simp only; rw [Hwr, Hdb]; iframe; ipureintro; exact Htxn
             ispecialize HΦ $$ %cl %_ %_
             iapply HΦ
@@ -282,7 +290,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
               · simp only at h; rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h; exact Or.inr (Hbmv _ c h)
             icases Hclose with ⟨-, Hclose⟩
             ihave Hown := Hclose $$ %({ T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 }) %({ B with bm := <[kb := cl]> B.bm }) %cl %(childRec txl ibl pgl bm nm vb (Src.own DFrac.discard)) [] [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf] Hmv Hpm Hbk Hcbk Hv Hrh
-            · ipureintro; exact ⟨Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn (Or.inr rfl), rfl, rfl⟩
+            · ipureintro; exact ⟨spBktClean_bm W _ bl B _ (fun k' h => spIns_isSome _ _ _ k' h) Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn (Or.inr rfl), rfl, rfl⟩
             · unfold TxW_rest_root; simp only; rw [Hwr, Hdb]; iframe; ipureintro; exact Htxn
             ispecialize HΦ $$ %cl %_ %_
             iapply HΦ
@@ -401,7 +409,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
           have Hhex : ∀ w ∈ r'.ws, w = (⟨W32 1, W64 0, kb, emptyBV, Src.own (DFrac.own halfQ), Src.own DFrac.discard⟩ : WEntry) ∨ w ∈ r.ws := fun w hw => by
             rw [Hr'] at hw; exact mem_putList _ _ _ _ _ hw
           have Hrn : B'.bv.rootNode' ≠ null := fun h => by rw [(Hc'.2.2.1 h).1] at Hr; cases Hr
-          have Hcl1 := bktClean_leafSet W _ bl B' Hc' l r r' Hr Hleaf (by rw [Hr']; exact Hleaf) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']; simp only [length_putList, h2]) (by rw [Hr']; simp only; rw [Hexeq]; exact wsSorted_putList r.ws (sint.nat idx) (⟨W32 1, W64 0, kb, emptyBV, Src.own (DFrac.own halfQ), Src.own DFrac.discard⟩ : WEntry) h3 Hle (fun k hk => by rw [← wMatch_key _ _ Hm]; exact Hlt k hk) (fun h => by rw [← wMatch_key _ _ Hm]; exact Hge (by rw [← Hwl]; exact h))) (fun w hw => by rcases Hhex w hw with rfl | hw; exact Hkpos; exact h4 w hw) (fun w hw => by rcases Hhex w hw with rfl | hw; exact ⟨by nofun, by nofun⟩; exact h5 w hw) (fun w hw hb => by rcases Hhex w hw with rfl | hw; exact ⟨bvalOK_empty _ _, Or.inr rfl⟩; exact h11 Hleaf w hw hb)
+          have Hcl1 := bktClean_leafSet W _ bl B' Hc' l r r' Hr Hleaf (by rw [Hr']; exact Hleaf) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']; simp only [length_putList, h2]) (by rw [Hr']; simp only; rw [Hexeq]; exact wsSorted_putList r.ws (sint.nat idx) (⟨W32 1, W64 0, kb, emptyBV, Src.own (DFrac.own halfQ), Src.own DFrac.discard⟩ : WEntry) h3 Hle (fun k hk => by rw [← wMatch_key _ _ Hm]; exact Hlt k hk) (fun h => by rw [← wMatch_key _ _ Hm]; exact Hge (by rw [← Hwl]; exact h))) (fun w hw => by rcases Hhex w hw with rfl | hw; exact Hkpos; exact h4 w hw) (fun w hw => by rcases Hhex w hw with rfl | hw; exact ⟨by nofun, by nofun⟩; exact h5 w hw) (fun w hw hb => by rcases Hhex w hw with rfl | hw; exact ⟨fun _ => bvalOK_empty _ _, Or.inr rfl⟩; exact h11 Hleaf w hw hb)
           have Hcl2 := bktClean_pageNil W _ bl _ Hcl1 Hrn
           icases Hclose with ⟨Hclose, -⟩
           ihave Hown := Hclose $$ %st' %({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns }) [] Hrest Hmv Hpm Hbk Hv Hrh
@@ -504,7 +512,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_proof (hLog : DB.Logger.spec (GF := GF
           have Hhex : ∀ w ∈ r'.ws, w = (⟨W32 1, W64 0, kb, emptyBV, Src.own (DFrac.own halfQ), Src.own DFrac.discard⟩ : WEntry) ∨ w ∈ r.ws := fun w hw => by
             rw [Hr'] at hw; exact mem_putList _ _ _ _ _ hw
           have Hrn : B'.bv.rootNode' ≠ null := fun h => by rw [(Hc'.2.2.1 h).1] at Hr; cases Hr
-          have Hcl1 := bktClean_leafSet W _ bl B' Hc' l r r' Hr Hleaf (by rw [Hr']; exact Hleaf) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']; simp only [length_putList, h2]) (by rw [Hr']; simp only; rw [Hexeq]; exact wsSorted_putList r.ws (sint.nat idx) (⟨W32 1, W64 0, kb, emptyBV, Src.own (DFrac.own halfQ), Src.own DFrac.discard⟩ : WEntry) h3 Hle (fun k hk => by rw [← wMatch_key _ _ Hm]; exact Hlt k hk) (fun h => by rw [← wMatch_key _ _ Hm]; exact Hge (by rw [← Hwl]; exact h))) (fun w hw => by rcases Hhex w hw with rfl | hw; exact Hkpos; exact h4 w hw) (fun w hw => by rcases Hhex w hw with rfl | hw; exact ⟨by nofun, by nofun⟩; exact h5 w hw) (fun w hw hb => by rcases Hhex w hw with rfl | hw; exact ⟨bvalOK_empty _ _, Or.inr rfl⟩; exact h11 Hleaf w hw hb)
+          have Hcl1 := bktClean_leafSet W _ bl B' Hc' l r r' Hr Hleaf (by rw [Hr']; exact Hleaf) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr']; simp only [length_putList, h2]) (by rw [Hr']; simp only; rw [Hexeq]; exact wsSorted_putList r.ws (sint.nat idx) (⟨W32 1, W64 0, kb, emptyBV, Src.own (DFrac.own halfQ), Src.own DFrac.discard⟩ : WEntry) h3 Hle (fun k hk => by rw [← wMatch_key _ _ Hm]; exact Hlt k hk) (fun h => by rw [← wMatch_key _ _ Hm]; exact Hge (by rw [← Hwl]; exact h))) (fun w hw => by rcases Hhex w hw with rfl | hw; exact Hkpos; exact h4 w hw) (fun w hw => by rcases Hhex w hw with rfl | hw; exact ⟨by nofun, by nofun⟩; exact h5 w hw) (fun w hw hb => by rcases Hhex w hw with rfl | hw; exact ⟨fun _ => bvalOK_empty _ _, Or.inr rfl⟩; exact h11 Hleaf w hw hb)
           have Hcl2 := bktClean_pageNil W _ bl _ Hcl1 Hrn
           icases Hclose with ⟨Hclose, -⟩
           ihave Hown := Hclose $$ %st' %({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns }) [] Hrest Hmv Hpm Hbk Hv Hrh

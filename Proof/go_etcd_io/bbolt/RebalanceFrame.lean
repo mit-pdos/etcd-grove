@@ -125,7 +125,7 @@ theorem bktClean_sim {B B' : BRec} (h : bktSim B B') (hc : bktClean W hwm bl B) 
     refine ⟨by rw [q6]; exact n1, by rw [q3, q1]; exact n2, by rw [q1]; exact n3,
       by rw [q1]; exact n4, by rw [q1]; exact n5, by rw [q8]; exact n6,
       by rw [hnm, q10]; exact n7, by rw [hib, q10]; exact n8, by rw [hib, q10]; exact n9,
-      by rw [q9, q4, q5]; exact n10, by rw [q7, q1]; exact n11, ?_, by rw [q11, hbv]; exact n13,
+      by rw [q9, q4, q5]; exact n10, by rw [q7, q1, hbm]; exact n11, ?_, by rw [q11, hbv]; exact n13,
       ?_, by rw [q2]; exact n15, ?_⟩
     · intro hl
       rw [q7] at hl
@@ -188,7 +188,9 @@ theorem rblKeysB_sim {B B' : BRec} (h : bktSim B B') (bnd : Loc → Option (List
       exact ⟨r0', hr0', by rw [e0.2.2.2.2.2.2.1]; exact hk0⟩
     · rw [hnm] at hn
       rw [q1]; exact b2 hn
-  · rw [q7] at hl; rw [q1]; exact n5 hl
+  · rw [q7] at hl; rw [q1]
+    have hop : opened B' = opened B := by unfold opened; rw [hbm]
+    rw [hop]; exact n5 hl
 
 theorem rblAcyc_sim {B B' : BRec} (h : bktSim B B') (ha : rblAcyc B) : rblAcyc B' := by
   obtain ⟨ht, hh⟩ := ha

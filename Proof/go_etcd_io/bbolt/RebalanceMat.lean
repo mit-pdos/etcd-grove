@@ -29,7 +29,7 @@ theorem rblNodeKeys_frame (W : WView) (B B' : BRec) (bnd bnd' : Loc → Option (
     (hbp : ry.nv.parent' ≠ null → bnd' ry.nv.parent' = bnd ry.nv.parent')
     (hws : ry'.ws = ry.ws) (hpar : ry'.nv.parent' = ry.nv.parent') (hleaf : ry'.nv.isLeaf' = ry.nv.isLeaf')
     (hkey' : ry'.nv.key' = ry.nv.key') (hkey : ry'.key = ry.key) (hpgid : ry'.nv.pgid' = ry.nv.pgid')
-    (hunb : ry'.nv.unbalanced' = ry.nv.unbalanced')
+    (hunb : ry'.nv.unbalanced' = ry.nv.unbalanced') (hbm : B'.bm = B.bm)
     (hns : ∀ z rz, B.ns !! z = some rz → ∃ rz', B'.ns !! z = some rz' ∧ rz'.ws = rz.ws ∧
       rz'.nv.isLeaf' = rz.nv.isLeaf')
     (hnmB : ∀ k l', B'.nm !! k = some l' → B.nm !! k = some l' ∨ (B.nm !! k = none ∧
@@ -37,8 +37,10 @@ theorem rblNodeKeys_frame (W : WView) (B B' : BRec) (bnd bnd' : Loc → Option (
         r'.nv.isLeaf' = decide (pageFlags pg = leafPageFlag)))
     (hnmN : ∀ k, B'.nm !! k = none → B.nm !! k = none) : rblNodeKeys W B' bnd' dfc y ry' := by
   obtain ⟨c1, c2, c3, c4, c5⟩ := h
-  refine ⟨by rw [hws, hb]; exact c1, ?_, ?_, by rw [hleaf, hunb, hpar, hws]; exact c4,
-    by rw [hleaf, hws]; exact c5⟩
+  refine ⟨by rw [hws, hb]; exact c1, ?_, ?_, by rw [hleaf, hunb, hpar, hws]; exact c4, by
+      rw [hleaf, hws]; intro hl w hw
+      refine ⟨(c5 hl w hw).1, fun hbk h0 hno => (c5 hl w hw).2 hbk h0 ?_⟩
+      unfold opened at hno ⊢; rwa [hbm] at hno⟩
   · intro hp
     rw [hpar] at hp
     obtain ⟨hk', rp0, i0, w0, hrp0, hw0, hpg0, hkey0, hbnd0⟩ := c2 hp
@@ -118,7 +120,7 @@ theorem rblKeys_addChild (hrd : pageReadable pg) (bnd : Loc → Option (List w8)
     intro y ry ry' hy h1 h2 h3 h4 h5 h6 h7
     refine rblNodeKeys_frame W B _ bnd _ dfc y ry ry' (hk3 y ry hy)
       (by rw [if_neg (hold y (by rw [hy]; rfl))])
-      (fun hp => by rw [if_neg (hold _ (hpar y ry hy hp))]) h1 h2 h3 h4 h5 h6 h7
+      (fun hp => by rw [if_neg (hold _ (hpar y ry hy hp))]) h1 h2 h3 h4 h5 h6 h7 rfl
       (fun z rz hz => by
         obtain ⟨rz', a, b, c, -⟩ := hnsB z rz hz; exact ⟨rz', a, b, c⟩) ?_ ?_
     · intro k l' hl'
@@ -161,7 +163,7 @@ theorem rblKeys_addChild (hrd : pageReadable pg) (bnd : Loc → Option (List w8)
       refine ⟨n1, fun _ => ⟨?_, ({ rp with nv := { rp.nv with children' := cs' }, cs := rp.cs ++ [y] } : NRec),
         i, w, ?_, hw, ?_, ?_, ?_⟩, fun hlf => ?_,
         fun _ _ _ _ => by show 0 < (pageWs pg src').length; rw [pageWs_length]; exact hcnt,
-        fun hlf w' hw' => ⟨?_, n6 hlf w' hw'⟩⟩
+        fun hlf w' hw' => ⟨?_, fun hbk h0 _ => n6 hlf w' hw' hbk h0⟩⟩
       · show (if pageCount pg = 0 then slice.nil else (inodeOf p pg 0).key') ≠ slice.nil
         rw [if_neg (by omega)]; exact inodeOf_key_ne_nil p pg hrd hcnt
       · show (nodeAdded B w.pgid nl y (readNRec bl nl p pg s src') cs').ns !! nl = _

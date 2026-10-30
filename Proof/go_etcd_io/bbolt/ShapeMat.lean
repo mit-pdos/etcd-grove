@@ -544,7 +544,7 @@ theorem nodeKeys_frame (W : WView) (B B' : BRec) (bnd bnd' : Loc → Option (Lis
     (hbp : ry.nv.parent' ≠ null → bnd' ry.nv.parent' = bnd ry.nv.parent')
     (hws : ry'.ws = ry.ws) (hpar : ry'.nv.parent' = ry.nv.parent') (hleaf : ry'.nv.isLeaf' = ry.nv.isLeaf')
     (hkey' : ry'.nv.key' = ry.nv.key') (hkey : ry'.key = ry.key) (hpgid : ry'.nv.pgid' = ry.nv.pgid')
-    (hunb : ry'.nv.unbalanced' = ry.nv.unbalanced')
+    (hunb : ry'.nv.unbalanced' = ry.nv.unbalanced') (hbm : B'.bm = B.bm)
     (hns : ∀ z rz, B.ns !! z = some rz → ∃ rz', B'.ns !! z = some rz' ∧ rz'.ws = rz.ws ∧
       rz'.nv.isLeaf' = rz.nv.isLeaf')
     (hnmB : ∀ k l', B'.nm !! k = some l' → B.nm !! k = some l' ∨ (B.nm !! k = none ∧
@@ -553,7 +553,9 @@ theorem nodeKeys_frame (W : WView) (B B' : BRec) (bnd bnd' : Loc → Option (Lis
     (hnmN : ∀ k, B'.nm !! k = none → B.nm !! k = none) : nodeKeys W B' bnd' y ry' := by
   obtain ⟨c1, c2, c3, c4, c5, c6⟩ := h
   refine ⟨by rw [hws, hb]; exact c1, by rw [hpar, hb]; exact c2, ?_, ?_,
-    by rw [hleaf, hunb, hpar, hws]; exact c5, by rw [hleaf, hws]; exact c6⟩
+    by rw [hleaf, hunb, hpar, hws]; exact c5, by
+      rw [hleaf, hws]; intro hl w hw hb h0 hno
+      exact c6 hl w hw hb h0 (by unfold opened at hno ⊢; rwa [hbm] at hno)⟩
   · intro hp
     rw [hpar] at hp
     obtain ⟨hk', rp0, i0, w0, hrp0, hw0, hpg0, hkey0, hbnd0⟩ := c3 hp
@@ -764,7 +766,7 @@ theorem keys_addChild (hrd : pageReadable pg) (bnd : Loc → Option (List w8) ×
     intro y ry ry' hy h1 h2 h3 h4 h5 h6 h7
     refine nodeKeys_frame W B _ bnd _ y ry ry' (hk3 y ry hy)
       (by rw [if_neg (hold y (by rw [hy]; rfl))])
-      (fun hp => by rw [if_neg (hold _ (hpar y ry hy hp))]) h1 h2 h3 h4 h5 h6 h7
+      (fun hp => by rw [if_neg (hold _ (hpar y ry hy hp))]) h1 h2 h3 h4 h5 h6 h7 rfl
       (fun z rz hz => by
         obtain ⟨rz', a, b, c, -⟩ := hnsB z rz hz; exact ⟨rz', a, b, c⟩) ?_ ?_
     · intro k l' hl'
@@ -806,7 +808,8 @@ theorem keys_addChild (hrd : pageReadable pg) (bnd : Loc → Option (List w8) ×
         (by simp) hfree
       refine ⟨n1, fun h => absurd h hnl, fun _ => ⟨?_, ({ rp with nv := { rp.nv with children' := cs' }, cs := rp.cs ++ [y] } : NRec),
         i, w, ?_, hw, ?_, ?_, ?_⟩, n4,
-        fun _ _ _ => by show 0 < (pageWs pg src').length; rw [pageWs_length]; exact hcnt, n6⟩
+        fun _ _ _ => by show 0 < (pageWs pg src').length; rw [pageWs_length]; exact hcnt,
+        fun hl w hw hb h0 _ => n6 hl w hw hb h0⟩
       · show (if pageCount pg = 0 then slice.nil else (inodeOf p pg 0).key') ≠ slice.nil
         rw [if_neg (by omega)]; exact inodeOf_key_ne_nil p pg hrd hcnt
       · show (nodeAdded B w.pgid nl y (readNRec bl nl p pg s src') cs').ns !! nl = _
@@ -898,7 +901,8 @@ theorem keys_addRoot (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK 
           · intro he
             exact child_ne_self W hv _ pg hpg hb j hj hs
               ((W64_eq_iff_nat _ B.ib.root' (branchPgid_lt pg j)).1 he.symm))
-      exact ⟨n1, fun _ => rfl, fun h => hpar _ h, n4, fun _ _ h => hpar _ h, n6⟩
+      exact ⟨n1, fun _ => rfl, fun h => hpar _ h, n4, fun _ _ h => hpar _ h,
+        fun hl w hw hb h0 _ => n6 hl w hw hb h0⟩
   · cases hy
 
 theorem entryIn_addRoot (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK W)

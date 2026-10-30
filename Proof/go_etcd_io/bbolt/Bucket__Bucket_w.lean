@@ -1,4 +1,5 @@
 module
+public import Proof.go_etcd_io.bbolt.ShapeOpen
 public import Spec.go_etcd_io.bbolt.Bucket__Bucket_w
 public import Spec.go_etcd_io.bbolt.Bucket__Cursor_w
 public import Spec.go_etcd_io.bbolt.Cursor__seek_w
@@ -27,6 +28,7 @@ theorem Bucket.Bucket.wp_wproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
   intro W txl T bl name nb dk Hbl
   obtain ⟨B, HB⟩ := Option.isSome_iff_exists.1 Hbl
   wp_start as ⟨Hown, Hk⟩
+  icases ShapeOpen.ownWriteTx_nonnull W txl T $$ Hown with ⟨%Hnn, Hown⟩
   icases ownWriteTx_bkt_add W txl T bl B HB $$ Hown with ⟨%Hok, Hrest, Hmv, Hpm, Hb, Hv, Hclose⟩
   obtain ⟨HvOK, Hwr, Hdb, Hdbn, Hpm0, H2, Hhwm, Hroot, Hbs⟩ := Hok
   obtain ⟨Htx, Hclean, Hbmv⟩ := Hbs bl B HB
@@ -69,8 +71,8 @@ theorem Bucket.Bucket.wp_wproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
       · unfold bktOwn; iframe
       iframe
     try wp_auto
-    icases keySrc_acc W bl B txl T.t.pages' T.pm (DFrac.own 1) k HvOK.1 (kvSrc_key W _ B _ Hsk.2.2) $$ Hctx
-      with ⟨%dq, %bs, Hkk, Hkback⟩
+    icases spKeySrc_accK W _ bl B txl T.t.pages' T.pm (DFrac.own 1) k v f HvOK.1 Hsk.2.2 $$ Hctx
+      with ⟨%dq, %bs, %Hkb, Hkk, Hkback⟩
     wp_apply bytes.wp_Equal name k dk dq nb bs $$ [Hk Hkk] as ⟨Hk, Hkk⟩
     · iframe
     ihave Hctx := Hkback $$ Hkk
@@ -99,7 +101,13 @@ theorem Bucket.Bucket.wp_wproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
             ((src = Src.view ∧ inViewAt W v vb) ∨ (∃ (l : Loc) (r : NRec) (i : Nat)
               (it : internal.common.Inode) (w : WEntry), B.ns !! l = some r ∧ r.ins[i]? = some it ∧
               r.ws[i]? = some w ∧ it.value' = v ∧ w.value = vb ∧ w.vs = src)) := by
-          rcases kvSrc_bkt W _ bl B Hclean HvOK k v f Hsk.2.2 Hf with ⟨vb, Hvb, Hin⟩ |
+          have Hno : (B.bm !! bs).isSome = false := by
+            rw [← Heq]; apply Bool.eq_false_iff.2; intro h
+            obtain ⟨c, hc⟩ := Option.isSome_iff_exists.1 h
+            rw [hc] at Hc0; simp only [Option.getD_some] at Hc0
+            obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 (Hbmv nb c hc)
+            exact Hnn c C hC Hc0
+          rcases kvSrc_bkt W _ bl B Hclean HvOK k v f bs Hkb Hno Hf with ⟨vb, Hvb, Hin⟩ |
             ⟨l, r, i, it, w, Hr, Hit, Hw, Hv', Hvb, Hvs⟩
           · exact ⟨vb, Src.view, Hvb, Or.inl rfl, Or.inl ⟨rfl, Hin⟩⟩
           · exact ⟨w.value, w.vs, Hvb, Hvs, Or.inr ⟨l, r, i, it, w, Hr, Hit, Hw, Hv', rfl, rfl⟩⟩
@@ -174,7 +182,7 @@ theorem Bucket.Bucket.wp_wproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
             · simp only at h; rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h; exact Or.inr (Hbmv _ c h)
           icases Hclose with ⟨-, Hclose⟩
           ihave Hown := Hclose $$ %({ T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 }) %({ B with bm := <[nb := cl]> B.bm }) %cl %(childRec txl ibl pgl bm nm vb src) [] [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf] Hmv Hpm Hbk Hcbk Hv
-          · ipureintro; exact ⟨Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn Hsrc, rfl, rfl⟩
+          · ipureintro; exact ⟨spBktClean_bm W _ bl B _ (fun k' h => spIns_isSome _ _ _ k' h) Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn Hsrc, rfl, rfl⟩
           · unfold TxW_rest_root; simp only; rw [Hwr, Hdb]; iframe; ipureintro; exact Htxn
           ispecialize HΦ $$ %cl %_
           iapply HΦ
@@ -222,7 +230,7 @@ theorem Bucket.Bucket.wp_wproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
             · simp only at h; rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h; exact Or.inr (Hbmv _ c h)
           icases Hclose with ⟨-, Hclose⟩
           ihave Hown := Hclose $$ %({ T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 }) %({ B with bm := <[nb := cl]> B.bm }) %cl %(childRec txl ibl pgl bm nm vb (Src.own DFrac.discard)) [] [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf] Hmv Hpm Hbk Hcbk Hv
-          · ipureintro; exact ⟨Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn (Or.inr rfl), rfl, rfl⟩
+          · ipureintro; exact ⟨spBktClean_bm W _ bl B _ (fun k' h => spIns_isSome _ _ _ k' h) Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn (Or.inr rfl), rfl, rfl⟩
           · unfold TxW_rest_root; simp only; rw [Hwr, Hdb]; iframe; ipureintro; exact Htxn
           ispecialize HΦ $$ %cl %_
           iapply HΦ

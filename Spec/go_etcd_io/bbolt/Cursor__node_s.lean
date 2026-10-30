@@ -2,6 +2,7 @@ module
 public import Proof.go_etcd_io.bbolt.WriteTxClean
 public import Proof.go_etcd_io.bbolt.WriteTxShape
 public import Proof.go_etcd_io.bbolt.PathFlags
+public import Proof.go_etcd_io.bbolt.RebalanceDefs
 
 @[expose] public section
 
@@ -23,8 +24,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `c.node()` (`Cursor.node.spec`) with the bucket's shape: the nodes it materializes take
 their positions' tokens, the keys stay a B+tree's, nested buckets' entries stay where they are,
 if the path descended by a key `k` (`kroute`), `k` is within the leaf's bounds, and the leaf's
-entries with a key are those of the path's end (`pathKey`); the nodes' pages stay (`bktPg`: a
-new node is read from its page). -/
+entries with a key are those of the path's end (`pathKey`); the nodes' pages and heights stay
+(`bktPg`, `rblHt`: a new node is read from its page), and the old nodes keep their entries and
+kind (only a parent's children list grows). -/
 abbrev Cursor.node.sspec : Prop :=
   ∀ (γ : GName) (cl : Loc) (cv : Cursor) (path : List elemRef) (W : WView) (hwm : Nat) (bl : Loc)
     (B : BRec) (txl : Loc) (st : TxStats) (pmap : GoMap) (pm : GMap w64 Loc) (dqp : DFrac),
@@ -41,7 +43,9 @@ abbrev Cursor.node.sspec : Prop :=
           ∃ bnd, bktKeysB W B' bnd ∧ keyIn (bnd l).1 (bnd l).2 k) ∧
         (∀ k P, pathKey W B k P B.ib.root' path → ∀ r, B'.ns !! l = some r →
           ∀ w ∈ r.ws, w.key = k → P w.flags) ∧
-        (bktPg W B → bktPg W B')⌝ }}
+        (bktPg W B → bktPg W B') ∧ (rblHt W B → rblHt W B') ∧
+        (∀ l r, B.ns !! l = some r → ∃ r', B'.ns !! l = some r' ∧ r'.ws = r.ws ∧
+          r'.nv.isLeaf' = r.nv.isLeaf')⌝ }}
 
 end spec
 

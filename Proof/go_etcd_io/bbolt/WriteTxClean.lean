@@ -109,7 +109,7 @@ variable [ext : FfiSyntax]
 /-- A node's well-formedness survives the bucket's growing by a node for the page `c`, which is
 none of its children nor itself. -/
 theorem nodeClean_frame (W : WView) (hwm : Nat) (bl : Loc) (B B' : BRec) (x : Loc) (r : NRec)
-    (c : w64) (hib : B'.ib = B.ib) (hrn : B'.bv.rootNode' = B.bv.rootNode')
+    (c : w64) (hib : B'.ib = B.ib) (hbm : B'.bm = B.bm) (hrn : B'.bv.rootNode' = B.bv.rootNode')
     (hnm : ∀ k, k ≠ c → B'.nm !! k = B.nm !! k)
     (hns : ∀ y ry, B.ns !! y = some ry → ∃ ry', B'.ns !! y = some ry' ∧
       ry'.nv.parent' = ry.nv.parent' ∧ ry'.nv.isLeaf' = ry.nv.isLeaf' ∧ ry'.ws = ry.ws ∧
@@ -118,7 +118,7 @@ theorem nodeClean_frame (W : WView) (hwm : Nat) (bl : Loc) (B B' : BRec) (x : Lo
     (h : nodeClean W hwm bl B x r) : nodeClean W hwm bl B' x r := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16⟩ := h
   refine ⟨h1, h2, h3, h4, h5, h6, by rw [hnm _ hpgid]; exact h7, by rw [hib]; exact h8,
-    by rw [hib]; exact h9, h10, h11, ?_, by rw [hrn]; exact h13, ?_, h15, ?_⟩
+    by rw [hib]; exact h9, h10, by rw [hbm]; exact h11, ?_, by rw [hrn]; exact h13, ?_, h15, ?_⟩
   · intro hl
     obtain ⟨a, b, hk⟩ := h12 hl
     refine ⟨a, b, fun w hw => ?_⟩
@@ -142,6 +142,27 @@ end frame
 
 section add
 variable [ext : FfiSyntax]
+
+theorem spIns_isSome {V : Type} (m : GMap GoString V) (k : GoString) (v : V) (k' : GoString)
+    (h : (m !! k').isSome = true) : ((<[k := v]> m) !! k').isSome = true := by
+  by_cases e : k' = k
+  · subst e; rw [GMap.lookup_insert]; rfl
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact h
+
+/-- A clean bucket stays clean with more buckets opened (`nodeClean`'s nested values are
+exempt for opened buckets). -/
+theorem spBktClean_bm (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (m : GMap GoString Loc)
+    (hm : ∀ k, (B.bm !! k).isSome = true → (m !! k).isSome = true) (h : bktClean W hwm bl B) :
+    bktClean W hwm bl { B with bm := m } := by
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := h
+  refine ⟨c1, c2, c3, c4, c5, c6, c7, fun l r hr => ?_, c9, c10⟩
+  obtain ⟨n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16⟩ := c8 l r hr
+  refine ⟨n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, fun hl w hw hb => ⟨fun hn => ?_,
+    (n11 hl w hw hb).2⟩, n12, n13, n14, n15, n16⟩
+  apply (n11 hl w hw hb).1
+  cases e : (B.bm !! w.key).isSome
+  · rfl
+  · have := hm _ e; simp only at hn; rw [hn] at this; cases this
 
 theorem nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α), l.Nodup →
     (∀ a ∈ l, ∀ b ∈ l, f a = f b → a = b) → (l.map f).Nodup := by
@@ -352,7 +373,7 @@ theorem bktClean_addChild (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vi
         simp only [pageW, hfl, ↓reduceIte] at hbk ⊢
         rw [isBktFlag_iff _ (by unfold leafFlags; exact leAt_lt _ _ 4)] at hbk
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
-        · exact ⟨⟨hbw j hj hbk, fun h0 => (hgood.1 hfl j hj).2 hbk h0⟩, hsrc1⟩
+        · exact ⟨fun _ => ⟨hbw j hj hbk, fun h0 => (hgood.1 hfl j hj).2 hbk h0⟩, hsrc1⟩
         · rw [hb] at hfl; exact absurd hfl (by unfold branchPageFlag leafPageFlag; decide)
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -442,7 +463,7 @@ theorem bktClean_addChild (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vi
             exact ⟨(readNRec bl nl p pg s src'), by rw [hns', if_pos rfl], rfl⟩
       · -- another node
         rw [if_neg hyn] at hy
-        refine nodeClean_frame W hwm bl B (nodeAdded B w.pgid nl l (readNRec bl nl p pg s src') cs') y ry w.pgid hib' (by rw [hbv'])
+        refine nodeClean_frame W hwm bl B (nodeAdded B w.pgid nl l (readNRec bl nl p pg s src') cs') y ry w.pgid hib' rfl (by rw [hbv'])
           (fun k hk => by rw [hnm', if_neg hk]) (fun y' ry' hy' => ?_) ?_ ?_ (hc8 y ry hy)
         · obtain ⟨a, b, c1, d, e, -, f⟩ := hnsB y' ry' hy'
           exact ⟨a, b, c1, d, e, f⟩
@@ -706,7 +727,7 @@ theorem bktClean_addRoot (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vie
         simp only [pageW, hfl, ↓reduceIte] at hbk ⊢
         rw [isBktFlag_iff _ (by unfold leafFlags; exact leAt_lt _ _ 4)] at hbk
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
-        · exact ⟨hbw j hj hbk, hsrc1⟩
+        · exact ⟨fun _ => hbw j hj hbk, hsrc1⟩
         · rw [hb] at hfl; exact absurd hfl (by unfold branchPageFlag leafPageFlag; decide)
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by

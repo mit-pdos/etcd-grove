@@ -179,7 +179,7 @@ theorem Bucket.Put.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
               wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
                 Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
               · iframe
-              obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
+              obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg, -, -⟩ := Hn
               obtain ⟨bnd, Hbkb, Hkin⟩ := Hroute kb Hkr
               have HP := Hpath kb _ Hpk r Hr
               have Hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null := fun h => by
@@ -307,7 +307,7 @@ theorem Bucket.Put.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
               wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
                 Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
               · iframe
-              obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
+              obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg, -, -⟩ := Hn
               obtain ⟨bnd, Hbkb, Hkin⟩ := Hroute kb Hkr
               have HP := Hpath kb _ Hpk r Hr
               have Hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null := fun h => by
@@ -454,7 +454,7 @@ theorem Bucket.Put.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
             wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
               Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
             · iframe
-            obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
+            obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg, -, -⟩ := Hn
             obtain ⟨bnd, Hbkb, Hkin⟩ := Hroute kb Hkr
             have HP := Hpath kb _ Hpk r Hr
             have Hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null := fun h => by
@@ -582,7 +582,7 @@ theorem Bucket.Put.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
             wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
               Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
             · iframe
-            obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
+            obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg, -, -⟩ := Hn
             obtain ⟨bnd, Hbkb, Hkin⟩ := Hroute kb Hkr
             have HP := Hpath kb _ Hpk r Hr
             have Hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null := fun h => by

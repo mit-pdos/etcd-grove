@@ -100,8 +100,14 @@ theorem Bucket.Bucket.wp_sproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
         ipureintro; exact ⟨wtxSub_of_same _ _ (wtxSame_upd T _ bl B _ HB), Or.inl rfl⟩
       · rw [decide_eq_false Hf]
         try wp_auto
+        have Hno : (B.bm !! bs).isSome = false := by
+          rw [← Heq]; apply Bool.eq_false_iff.2; intro h
+          obtain ⟨c, hc⟩ := Option.isSome_iff_exists.1 h
+          rw [hc] at Hc0; simp only [Option.getD_some] at Hc0
+          obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 (Hbmv nb c hc)
+          exact Hnn c C hC Hc0
         obtain ⟨Hvb, Hent, Htk, src, Hsrc, Hacc⟩ :=
-          seekRes_bkt W _ bl B Hclean HvOK (Hsf bl B HB).1 k v f bs vb Hres Hf
+          seekRes_bkt W _ bl B Hclean HvOK (Hsf bl B HB).1 k v f bs vb Hres Hf Hno
         subst Heq
         have Hnb : ¬ opened B nb := by
           intro h; unfold opened at h
@@ -180,10 +186,10 @@ theorem Bucket.Bucket.wp_sproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
             · simp only at h; rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h; exact Or.inr (Hbmv _ c h)
           icases Hclose with ⟨-, Hclose⟩
           ihave Hown := Hclose $$ %({ T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 }) %({ B with bm := <[nb := cl]> B.bm }) %cl %(childRec txl ibl pgl bm nm vb src) [] [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf] Hmv Hpm Hbk Hcbk Hv
-          · ipureintro; exact ⟨Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn Hsrc, rfl, rfl⟩
+          · ipureintro; exact ⟨spBktClean_bm W _ bl B _ (fun k' h => spIns_isSome _ _ _ k' h) Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn Hsrc, rfl, rfl⟩
           · unfold TxW_rest_root; simp only; rw [Hwr, Hdb]; iframe; ipureintro; exact Htxn
           icases Hown with ⟨Hown, %Hfr⟩
-          have Hadd := txShape_add (GF := GF) γ W T { T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 } bl B nb cl (childRec txl ibl pgl bm nm vb src) vb HB Hfr Hent H16 rfl rfl rfl Htk
+          have Hadd := txShape_add (GF := GF) γ W T { T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 } bl B nb cl (childRec txl ibl pgl bm nm vb src) vb HB Hfr Hent H16 Hvb.2 rfl rfl rfl Htk
             ((bktToks_open γ W _ bl B cl nb vb Hclean HvOK Hnb Hent).trans
               (sep_mono .rfl (bktToks_child γ W txl ibl pgl bm nm vb src)))
           unfold bOpen at Hadd
@@ -234,10 +240,10 @@ theorem Bucket.Bucket.wp_sproof (hCur : Bucket.Cursor.wspec (GF := GF) (hG := hG
             · simp only at h; rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h; exact Or.inr (Hbmv _ c h)
           icases Hclose with ⟨-, Hclose⟩
           ihave Hown := Hclose $$ %({ T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 }) %({ B with bm := <[nb := cl]> B.bm }) %cl %(childRec txl ibl pgl bm nm vb (Src.own DFrac.discard)) [] [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf] Hmv Hpm Hbk Hcbk Hv
-          · ipureintro; exact ⟨Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn (Or.inr rfl), rfl, rfl⟩
+          · ipureintro; exact ⟨spBktClean_bm W _ bl B _ (fun k' h => spIns_isSome _ _ _ k' h) Hclean, Htx, Hbm3, bktClean_child W _ cl txl ibl pgl bm nm vb _ Hvb Hpnn (Or.inr rfl), rfl, rfl⟩
           · unfold TxW_rest_root; simp only; rw [Hwr, Hdb]; iframe; ipureintro; exact Htxn
           icases Hown with ⟨Hown, %Hfr⟩
-          have Hadd := txShape_add (GF := GF) γ W T { T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 } bl B nb cl (childRec txl ibl pgl bm nm vb (Src.own DFrac.discard)) vb HB Hfr Hent H16 rfl rfl rfl Htk
+          have Hadd := txShape_add (GF := GF) γ W T { T.t.stats' with CursorCount' := T.t.stats'.CursorCount' + W64 1 } bl B nb cl (childRec txl ibl pgl bm nm vb (Src.own DFrac.discard)) vb HB Hfr Hent H16 Hvb.2 rfl rfl rfl Htk
             ((bktToks_open γ W _ bl B cl nb vb Hclean HvOK Hnb Hent).trans
               (sep_mono .rfl (bktToks_child γ W txl ibl pgl bm nm vb (Src.own DFrac.discard))))
           unfold bOpen at Hadd
