@@ -113,12 +113,18 @@ theorem kvEntrySt_filler (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseT
   unfold kvEntrySt kvEntry kvTable
   simp [ht, hd]
 
+theorem kvEntrySt_emptyV2 (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseTable)
+    (m : EntryModel) (h : m.toLE.isEmptyV2) : kvEntrySt c₀ ch s m = s := by
+  obtain ⟨-, ht⟩ := h
+  simp only [EntryModel.toLE] at ht
+  have h0 : ¬ m.typ = W32 0 := by rw [ht]; decide
+  unfold kvEntrySt kvEntry kvTable
+  rw [if_neg h0, if_neg h0]
+
 theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (s : mvcc.Log × LeaseTable),
       (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
-      kvRaftSt c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpSt ch) s := by
-  sorry
-/- REPAIR-OLD
+      kvRaftSt c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpSt ch) s
   | [], _, _ => rfl
   | m :: A, s, h => by
     have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
@@ -130,13 +136,18 @@ theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
         simp [opsOf, hf]
       rw [this]
       exact kvRaftSt_ops c₀ ch A s hA
+    by_cases hv : m.toLE.isEmptyV2
+    · rw [kvEntrySt_emptyV2 c₀ ch s m hv]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hv]
+      rw [this]
+      exact kvRaftSt_ops c₀ ch A s hA
     · rw [kvEntrySt_above c₀ ch s m (h m (List.mem_cons_self ..))]
       have : opsOf ((m :: A).map EntryModel.toLE) =
           m.toLE :: opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hf]
+        simp [opsOf, hf, hv]
       rw [this, List.foldl_cons]
       exact kvRaftSt_ops c₀ ch A _ hA
--/
 
 /-- Every entry of a log consecutive after `ai₀` is above a consistent index at most `ai₀`. -/
 theorem srvIdxOkW_above (ai₀ c₀ : w64) (A : List EntryModel) (h : srvIdxOkW ai₀ A)

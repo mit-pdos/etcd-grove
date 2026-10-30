@@ -709,12 +709,19 @@ theorem kvEntryOn_filler (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × 
   unfold kvEntryOn kvEntry
   simp [hd]
 
+theorem kvEntryOn_emptyV2 (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (hv : m.toLE.isEmptyV2) : kvEntryOn c₀ ch s m = s := by
+  obtain ⟨-, ht⟩ := hv
+  simp only [EntryModel.toLE] at ht
+  have h0 : ¬ m.typ = W32 0 := by rw [ht]; decide
+  have h0' : ¬ (m.typ = W32 0 ∧ m.data ≠ []) := fun h => h0 h.1
+  unfold kvEntryOn kvEntry
+  rw [if_neg h0', if_neg h0]
+
 theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (s : auth.AuthState × mvcc.Log),
       (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
-      kvRaftOfOn c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s := by
-  sorry
-/- REPAIR-OLD
+      kvRaftOfOn c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s
   | [], _, _ => rfl
   | m :: A, s, h => by
     have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
@@ -726,13 +733,18 @@ theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
         simp [opsOf, hf]
       rw [this]
       exact kvRaftOfOn_ops c₀ ch A s hA
+    by_cases hv : m.toLE.isEmptyV2
+    · rw [kvEntryOn_emptyV2 c₀ ch s m hv]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hv]
+      rw [this]
+      exact kvRaftOfOn_ops c₀ ch A s hA
     · rw [kvEntryOn_above c₀ ch s m (h m (List.mem_cons_self ..))]
       have : opsOf ((m :: A).map EntryModel.toLE) =
           m.toLE :: opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hf]
+        simp [opsOf, hf, hv]
       rw [this, List.foldl_cons]
       exact kvRaftOfOn_ops c₀ ch A _ hA
--/
 
 end pure2
 
@@ -1135,6 +1147,10 @@ theorem authHistLb_of_reqLogLb (γ : ServerRaftNames) (γk : KVNames) (st₀ : a
   iapply (monoListLbOwn_le _ (admStatesR_prefix _ _ _ _ _ Hp))
   iexact Hlb
 
+/-- The requested entries of the requested entries are themselves. -/
+theorem opsOf_opsOf (a : List LogEntry) : opsOf (opsOf a) = opsOf a := by
+  unfold opsOf; rw [List.filter_filter]; congr 1; funext e; simp [Bool.and_self]
+
 /-- **The mode-`on` model of two logs with the same requested entries** is the same. -/
 theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
     (s : auth.AuthState × mvcc.Log) (A B : List EntryModel) (h : srvEqv γ A B)
@@ -1166,9 +1182,7 @@ theorem admEntry_above (c₀ : w64) (st : auth.AuthState) (m : EntryModel)
 theorem admStep_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (acc : (auth.AuthState × mvcc.Log) × List auth.AuthState),
       (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
-      A.foldl (admStep c₀ ch) acc = (opsOf (A.map EntryModel.toLE)).foldl (admStepLE ch) acc := by
-  sorry
-/- REPAIR-OLD
+      A.foldl (admStep c₀ ch) acc = (opsOf (A.map EntryModel.toLE)).foldl (admStepLE ch) acc
   | [], _, _ => rfl
   | m :: A, acc, h => by
     have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index :=
@@ -1189,9 +1203,23 @@ theorem admStep_ops (c₀ : w64) (ch : apply.Chain) :
         simp [hna]
       rw [hst]
       exact admStep_ops c₀ ch A acc hA
+    by_cases hv : m.toLE.isEmptyV2
+    · have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hv]
+      rw [this]
+      have hst : admStep c₀ ch acc m = acc := by
+        have hna : ¬ admEntry c₀ acc.1.1 m := by
+          obtain ⟨-, ht⟩ := hv
+          simp only [EntryModel.toLE] at ht
+          rintro ⟨h1, -⟩; rw [ht] at h1; exact absurd h1 (by decide)
+        unfold admStep
+        rw [kvEntryOn_emptyV2 c₀ ch acc.1 m hv]
+        simp [hna]
+      rw [hst]
+      exact admStep_ops c₀ ch A acc hA
     · have : opsOf ((m :: A).map EntryModel.toLE) =
           m.toLE :: opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hf]
+        simp [opsOf, hf, hv]
       rw [this, List.foldl_cons]
       have hst : admStep c₀ ch acc m = admStepLE ch acc m.toLE := by
         unfold admStep admStepLE
@@ -1203,7 +1231,6 @@ theorem admStep_ops (c₀ : w64) (ch : apply.Chain) :
           simp [ha, hb]
       rw [hst]
       exact admStep_ops c₀ ch A _ hA
--/
 
 /-- **Logs with the same requested entries have the same auth history.** -/
 theorem admStatesR_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
@@ -1221,16 +1248,10 @@ theorem kvRaftOfOn_of_lb (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
     (hA : srvIdxOkW γ.ai0 A) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
     (hp : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
     ∃ L', L' <+: L ∧ kvRaftOfOn c₀ ch s₀ A = kvRaftOfOn c₀ ch s₀ L' := by
-  sorry
-/- REPAIR-OLD
   refine ⟨L.take (opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, ?_⟩
   apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hA, srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _), ?_⟩ hc
   obtain ⟨r, hr⟩ := hp
-  rw [opsOf_nofill ((L.take (opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE)
-    (fun x hx => by
-      obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
-      exact hnf y (List.mem_of_mem_take hy)), List.map_take, ← hr, List.take_left' rfl]
--/
+  rw [List.map_take, ← hr, List.take_left' rfl, opsOf_opsOf]
 
 /-- **Determinacy on a committed log** from the server's log of requested entries (2026-10-27): a
 committed log's entries are the server's (at the same model state before them) or fillers (no
@@ -1240,12 +1261,13 @@ theorem detLogOn_transfer (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
     (hB : srvIdxOkW γ.ai0 B) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
     (hp : opsOf (B.map EntryModel.toLE) <+: L.map EntryModel.toLE)
     (h : detLogOn c₀ ch s₀ L) : detLogOn c₀ ch s₀ B := by
-  sorry
-/- REPAIR-OLD
   intro i m hm
   by_cases hf : m.toLE.isFiller
   · intro _ hd; exact absurd hf.1 hd
-  obtain ⟨m', hm', hme, htk⟩ := srv_pos B L i m hm hf hp
+  by_cases hv : m.toLE.isEmptyV2
+  · intro ht; obtain ⟨-, ht2⟩ := hv; simp only [EntryModel.toLE] at ht2
+    rw [ht2] at ht; exact absurd ht (by decide)
+  obtain ⟨m', hm', hme, htk⟩ := srv_pos B L i m hm ⟨hf, hv⟩ hp
   have hdet := h _ m' hm'
   have hBi : srvIdxOkW γ.ai0 (B.take i) := srvIdxOkW_prefix _ _ B hB (List.take_prefix _ _)
   have hLj : srvIdxOkW γ.ai0 (L.take (opsOf ((B.take i).map EntryModel.toLE)).length) :=
@@ -1253,10 +1275,7 @@ theorem detLogOn_transfer (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
   have hst : kvRaftOfOn c₀ ch s₀ (B.take i) =
       kvRaftOfOn c₀ ch s₀ (L.take (opsOf ((B.take i).map EntryModel.toLE)).length) := by
     apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hBi, hLj, ?_⟩ hc
-    rw [opsOf_nofill ((L.take (opsOf ((B.take i).map EntryModel.toLE)).length).map
-      EntryModel.toLE) (fun x hx => by
-        obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
-        exact hnf y (List.mem_of_mem_take hy)), htk]
+    rw [htk, opsOf_opsOf]
   rw [hst]
   have h1 := congrArg LogEntry.type hme
   have h2 := congrArg LogEntry.data hme
@@ -1269,7 +1288,6 @@ theorem detLogOn_transfer (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
   have hm'i : uint.Z c₀ < uint.Z m'.index := by
     have := (hL _ m' hm').1; omega
   exact ⟨fun _ ha => hd'.1 hm'i ha, hd'.2⟩
--/
 
 /-- **The committed log is a mode-`on` log, determinate, and the start chain has auth on** (the
 mode-`on` invariant's; `kv_log_plain`'s counterpart): what the apply thread reads of a committed
@@ -1279,8 +1297,6 @@ theorem kv_log_plain_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
     ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
       ⌜plainLogOn B ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) B ∧
         γk.ch0 = apply.alarmChain true false false⌝ := by
-  sorry
-/- REPAIR-OLD
   iintro #Hinv #Hr #HB
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
@@ -1292,15 +1308,15 @@ theorem kv_log_plain_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
   · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  refine ⟨srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ HBi Hp.2.2 Hok.1,
-    detLogOn_transfer γ _ _ _ B L Hok.2.2.2.1 HBi Hp.1 Hp.2.1 Hp.2.2 Hok.2.1, Hok.2.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ ?_ HBi Hp.2.2 Hok.1,
+    detLogOn_transfer γ _ _ _ B L Hok.2.2.2.1 HBi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2 Hok.2.1, Hok.2.2.2.2.1⟩
   · intro m m' he h ht hd rq hdec
     have h1 := congrArg LogEntry.type he
     have h2 := congrArg LogEntry.data he
     simp only [EntryModel.toLE] at h1 h2
     exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
   · intro m _ hd _ h; exact absurd hd h
--/
+  · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
 
 end lemmas
 

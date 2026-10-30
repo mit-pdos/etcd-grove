@@ -91,8 +91,6 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
     (hx3 : x ≠ "raft_commit") (l : mvcc.Log) (σ : KVState) :
     ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ kvCertInvOn γ γk st₀ -∗ srvRaftLogInv γ -∗
       mvcc.certOk γs l -∗ etcdKV γk σ ={⊤ \ ↑(nroot.@x)}=∗ etcdKV γk σ ∗ ⌜l.length ≤ σ.rev + 1⌝ := by
-  sorry
-/- REPAIR-OLD
   have hc : (↑kvcN : CoPset) ⊆ ⊤ \ ↑(nroot.@x) := mask_ndot_ne' nroot "server_kv_cert" x (Ne.symm hx2)
   have hk : (↑kvN : CoPset) ⊆ ⊤ \ ↑(nroot.@x) := mask_ndot_ne' nroot "server_kv" x (Ne.symm hx1)
   have hr : (↑srvRaftN : CoPset) ⊆ (⊤ \ ↑(nroot.@x)) \ ↑kvN :=
@@ -121,7 +119,7 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
       ihave %HAi := srvRLogLb_idx γ A $$ HA
       imodintro; iframe HL; ipureintro
       obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γ γk.c0 γk.ch0 (st₀, γk.log0) A L Hok'.2.2.2.1
-        HAi Hp.1 Hp.2.1 Hp.2.2
+        HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
       have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) L' L hL').length_le
       unfold kvModelOn at hA ⊢; rw [← hA, hAL]; exact this
   imod Hp with ⟨HL, %Hle⟩
@@ -136,7 +134,6 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
   unfold kvModelOn at *
   simp only at hlen
   omega
--/
 
 end lemmas
 
