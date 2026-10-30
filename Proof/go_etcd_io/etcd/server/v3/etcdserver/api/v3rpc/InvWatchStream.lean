@@ -700,6 +700,17 @@ def watchStubAt (wc conn : Loc) : IProp GF :=
 instance watchStubAt_persistent (wc conn : Loc) : Persistent (watchStubAt (GF := GF) wc conn) := by
   unfold watchStubAt; infer_instance
 
+/-- **A watch stub's connection is determined** (G2's proofs, 2026-10-30): two `watchStubAt` facts of
+one stub name the same connection (its `cc` field is read-only). -/
+theorem watchStubAt_agree (wc conn conn' : Loc) :
+    watchStubAt (GF := GF) wc conn ∗ watchStubAt wc conn' ⊢ ⌜conn = conn'⌝ := by
+  iintro ⟨#Hs, #Hs'⟩
+  unfold watchStubAt
+  icombine Hs Hs' gives %Heq
+  simp at Heq
+  ipureintro
+  exact go.intoVal_inj Heq
+
 /-- **The `Watch` service's descriptor** (persistent; a fact of `etcdserverpb`'s initialization,
 as `watchVars`: `Watch_ServiceDesc` is the generated literal and nothing writes it): its
 `Streams` slice holds at least one `StreamDesc` (the `Watch` stream's), read-only, a client

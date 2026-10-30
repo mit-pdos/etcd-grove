@@ -561,10 +561,9 @@ theorem attemptTokOk_of_watcher (cl : Loc) (eps : List GoString) (P : GoString â
   icombine Hr Hr' gives %Heq
   simp at Heq
   obtain rfl := go.intoVal_inj Heq
-  iunfold v3rpc.watchStubAt at Hs Hs'
-  icombine Hs Hs' gives %Heq
-  simp at Heq
-  obtain rfl := go.intoVal_inj Heq
+  ihave %Heq := v3rpc.watchStubAt_agree wc conn conn' $$ [Hs Hs']
+  Â· iframe #
+  subst Heq
   iexact Hk
 
 end defs
