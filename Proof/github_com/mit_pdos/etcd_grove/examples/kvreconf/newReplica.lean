@@ -42,7 +42,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     (wp_ticker : Replica.ticker.spec (GF := GF) (hG := hG))
     (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG)) :
     newReplica.spec (GF := GF) (hG := hG) := by
-  intro γr vs id n st sts cs0 tick f ms γs hs Htick Hcsm
+  intro γr vs id n st sts cs0 tick f ms γs hs Htick Hnd Hvl Hcsm
   wp_start as ⟨#Hcci, #Hcl, #Hstats, #HisNode, Hdrv, Hrun, Hcfg, #Hrec, #HmsInv, Hmeta,
     Hsnap, #Hcs0, #Hsend, Hseq⟩
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -139,7 +139,8 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
       ipureintro
       refine ⟨by simp, ?_, HA0, Hcsm, ?_⟩
       rotate_left
-      · sorry -- the membership size bound: newReplica.spec lacks a bound on `vs` (reported)
+      · simp only [Membership.ids, Membership.simple, GMap.union_empty_r_L]
+        rw [GMap.size_list_to_set vs Hnd]; omega
       intro k; simp [logHist, histOf, kvFold, kvEmpty]
     itrivial
   try wp_auto
