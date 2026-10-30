@@ -25474,6 +25474,11 @@ the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s
   trust-base change (approved by the coordinator). `Responses` is empty on every message a `Ready`
   hands out with synchronous storage writes (`SentMsgShape`). `copyMsg` reads its source at any
   fraction, so the duplicate is copied from the owned copy and `deliver` keeps its shape.
+- **`step` drops on any `Step` error** (`err != nil`, was `err == context.DeadlineExceeded`): the
+  comparison of two interfaces needs their dynamic type comparable, which `context`'s model does
+  not state of its error values (the server takes it as a premise, `ContextReadErrs`); a target
+  that stopped (`ErrStopped`) has not taken the message either, so counting it as dropped (and a
+  snapshot as failed) is the more faithful report. Tests and `-race` pass.
 - **kvreconf's `StorageModel` instance is a `def`** (`kvrStorageModel`), activated per file by
   `attribute [local instance]`: raft's `memStorageModel` is a global instance under `[MemStorReg GF]`,
   which kvreconf never has in scope; a second global instance would make resolution depend on
