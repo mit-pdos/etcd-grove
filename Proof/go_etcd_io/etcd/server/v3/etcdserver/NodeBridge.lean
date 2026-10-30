@@ -288,18 +288,23 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) := by
-  sorry
-/- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv⟩
   iunfold rnIsNode at Hnode
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, -, -, -, -, -, -, -⟩
+  icases Henv with ⟨-, %Hn, -, -, -, -, -, -⟩
   obtain ⟨Hraft, -, -⟩ := Hn
   ihave #Hnode' : isNode γ.nl E.γr.raft.raft.cl srvClusterN γ.id $$ []
   · rw [Hraft]; iexact Hnode
+  ihave %Hdup : ⌜E.γr.raft.raft.cl.dup = false⌝ $$ []
+  · ihave #Hcl := Hinv
+    iunfold srvRaftLogInv at Hcl
+    icases Hcl with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, %H, -⟩
+    ipureintro; exact H
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -308,24 +313,6 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   · iexact Hinv
   isplitr
   · iapply srvPropWits_of E.γr.raft $$ Hinv
-  isplitr
-  rotate_left
-  · -- `ApplyConfChange` (audit phase B3): a static cluster, a change that keeps the voters
-    iintro !> %c %cm %Hstatic %Hok %Φ !> Hc HΦ
-    ihave #Hcl := Hinv
-    iunfold srvRaftLogInv at Hcl
-    icases Hcl with ⟨-, #Hcl, -, -⟩
-    iunfold srvClusterOk at Hcl
-    isimp only [Hstatic, Bool.false_eq_true, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hst, -, -, -⟩
-    have hsh := ccShrink_addVoter (GMap.listToSet E.γr.raft.raft.vs) cm Hok.1 Hok.2
-    wp_apply (wp_ApplyConfChange γ.nl E.γr.raft.raft.cl srvClusterN γ.id E.γr.raft.raft.vs
-        (fun _ _ => False) c (.v1 cm) hsh) $$ [Hc] as %csp %cs ⟨Hcs, -⟩
-    · iframe #
-      iframe Hc
-    iapply HΦ
-    iexists cs
-    iexact Hcs
   iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg, Hlc⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
   iunfold srvPropArg at Harg
@@ -338,7 +325,8 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   wp_apply wp_Propose γ.nl E.γr.raft.raft.cl srvClusterN γ.id dsl data ctx cd $$ [Hapi]
     as %err #Herr
   · iframe #
-    iframe Hapi
+    rw [Hdup]
+    iexact Hapi
   iapply HΦ
   isplitr
   · iunfold srvPropRes
@@ -349,8 +337,8 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iunfold srvIsProp
     iexists γQ, γt
     iframe Hel HQ HQinv
-  · iapply applyErrIs_of_proposeErr cd err $$ Hpkg Herr
--/
+  · ihave #Herr' := propErrS_propErr _ _ _ cd err $$ Herr
+    iapply applyErrIs_of_propErr cd err $$ Hpkg Herr'
 
 /-- **The node meets `raftApplyCC`** (D43 M3; 2026-10-27: over the node API; 2026-10-30, the
 repair: `node.ApplyConfChange.spec`, the decision the cluster's rule's by `confPolicy_decide`
@@ -584,8 +572,6 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
       node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnIsNode γ ⊢
       rnStepIfc γ (rnNodeIface γ) := by
-  sorry
-/- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpkg, #Hnode⟩
   iunfold rnIsNode at Hnode
@@ -600,7 +586,7 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
     wp_apply wp_Step γ.nl γ.node.cl srvClusterN γ.id ml ctx cd $$ [Hst] as %err #Herr
     · iframe #; iframe Hst
     iapply HΦ
-    iexact Herr
+    iapply nodeErrS_nodeErr $$ Herr
   isplitr
   · iintro !> %x %Φ !> - HΦ
     wp_apply wp_ReportUnreachable γ.nl γ.node.cl srvClusterN γ.id x $$ []
@@ -612,7 +598,6 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
     · iframe #
     iapply HΦ
     itrivial
--/
 
 end bridge
 
