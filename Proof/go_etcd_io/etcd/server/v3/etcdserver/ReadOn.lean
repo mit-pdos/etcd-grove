@@ -128,6 +128,35 @@ theorem srvAuthLb_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   unfold authStoreLbM
   ipureintro; trivial
 
+/-- **The server's range check at a bound `n` of the published index** (G2's freeze, 2026-10-30):
+the store of the server's `authStore` field (`isAuthStore`'s `permCheck3`, and with auth on
+`srvAuthLb`'s check no older than `n`), its passing verdict the class no older than `n`. -/
+theorem srvAuthLb_rangeCheck (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) (n : Nat) :
+    srvAuthStoreAddr s ↦□ (GoInterface.ok ai) ∗ srvAuthLb s E ∗ □ auth.authPubLbM E.authMode n ∗
+      apply.permCheck3 ai go!"IsRangePermitted" E.RD E.authMode .read ⊢
+    □ (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (key re : GoSlice)
+      (k e : List w8) (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ E.RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty go!"IsRangePermitted" ai.v)) (Val #a)) (Val #key))
+        (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ E.RD ∗
+        authApplyErrIs err ∗
+        (⌜err = GoInterface.nil⌝ → apply.classResFrom E.authMode n info [(k, e, .read)]) }}) := by
+  iintro ⟨#Hf, #HLb, #Hpub, HP3⟩
+  cases hM : E.authMode with
+  | on γa =>
+    iunfold srvAuthLb at HLb
+    icases HLb with ⟨%au, #Hf2, #HLbM⟩
+    icombine Hf Hf2 gives %Hau
+    subst Hau
+    rw [hM]
+    iunfold authStoreLbM at HLbM
+    ihave #HR := HLbM $$ Hpub
+    iapply apply.rangeCheckFrom_of_isAuthStoreRangeLb $$ HR
+  | _ =>
+    iapply apply.rangeCheckFrom_of_permCheck3 $$ HP3
+    intro γa h; cases h
+
 /-- **A successful `Range` in the auth mode `on`** (`rangeReadOk` with the deposit's committed log
 `L` at the mode's model, `kvModelM on`; `rangeReadOk` at `on = false`, by definition). -/
 def rangeReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)

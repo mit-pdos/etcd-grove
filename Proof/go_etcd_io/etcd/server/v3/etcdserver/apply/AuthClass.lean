@@ -510,6 +510,39 @@ theorem watchClassFrom_on (γa : auth.AuthNames) (n : Nat)
   ihave ⟨H1, -⟩ := BigSepL.bigSepL_cons.1 $$ H
   iexact H1
 
+/-- Outside the mode `on`, the class no older than any `n` holds (G2's freeze, 2026-10-30). -/
+theorem classResFrom_not_on (M : auth.AuthMode) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (perms : List Perm3)
+    (h : ∀ γa, M ≠ .on γa) : ⊢ classResFrom (GF := GF) M n info perms := by
+  cases M with
+  | off => unfold classResFrom; itrivial
+  | any => unfold classResFrom; itrivial
+  | on γa => exact absurd rfl (h γa)
+
+/-- In the mode `on γa`, a state recorded at an index at least `n` permitting one permission gives
+its class no older than `n` (G2's freeze, 2026-10-30). -/
+theorem classResFrom_on_singleton (γa : auth.AuthNames) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (k e : GoString) (op : auth.PermType) :
+    (∃ (i : Nat) (st : auth.AuthState), auth.authStateAt (GF := GF) γa i st ∗
+        ⌜n ≤ i ∧ auth.permitted st (auth.authInfoM info) k e op⌝) ⊢
+      classResFrom (.on γa) n info [(k, e, op)] := by
+  unfold classResFrom
+  iintro H
+  iapply BigSepL.bigSepL_singleton.2
+  iexact H
+
+/-- The watch's normalized key (G2's freeze, 2026-10-30). -/
+theorem watchKey_eq (key : GoString) : watchKey key = if key = [] then [W8 0] else key := rfl
+
+/-- The class of the watch's normalized read is the watch's class (G2's freeze, 2026-10-30). -/
+theorem watchClassFrom_of_classResFrom (M : auth.AuthMode) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) :
+    classResFrom (GF := GF) M n info
+        [((if key = [] then [W8 0] else key), rangeEnd, auth.PermType.read)] ⊢
+      watchClassFrom M n info key rangeEnd := by
+  unfold watchClassFrom watchPerms watchKey
+  iintro H; iexact H
+
 /-- A registered watch's request has the shape the permission cache decides (`auth.reqShape`):
 mvcc's `Watch` registers `[k, e')` (`e'` the rewritten range end: empty for `"\x00"`) only for
 `e' = []` or `k < e'`. -/
