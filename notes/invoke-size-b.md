@@ -8,9 +8,9 @@ grpc's send side"; this file records only this branch's state and departures.
 
 | Package | State |
 |---|---|
-| recipes | done but for the four functions that send a key read from a response (below); `584186e94e` |
-| leasing | not started: needs a statement beyond the draft (below) |
-| k8s | not started: blocked by the example `linkvtxn/Calls.lean`, which this branch may not touch (below) |
+| recipes | done but for four proofs blocked on the key-length bound on etcd's state (below); `584186e94e` |
+| leasing | done but for `revokeLeaseKvs`, blocked on the same bound (below); `b56be48c57` |
+| k8s | kubernetes client and etcd3 store done, the cacher unchanged and building; `eb00a8b15f`, `3e05cb4f0d`. `k8setcd3`'s closed theorem is pass 4 (below) |
 
 ### recipes
 
@@ -60,85 +60,72 @@ adds `waitersOp_size` and `leaveOp_size`.
 `Session.Lease`) and pure lemmas of `InvMutexLemmas`/`InvSTMAtomic`. If the concurrency branch
 changes `isSession`, the merge must revisit them.
 
-## Statement question 1: keys read from etcd (recipes, leasing)
+## Keys read from etcd: blocked on the key-length bound
 
-Each remaining failure sends a request on a key that came from a response:
-- `Dequeue` claims the first key `Get(kp, WithFirstRev())` returned (`claimFirstKey` →
-  `deleteRevKey`), or the key of a watch event (`deleteRevKey`);
-- `waitOnLastRev` and `Leave` watch a key `Get` returned (`WaitEvents`).
+Some requests carry a key that came from a response. Nothing bounded such a key (the etcd model had
+no length bound on its keys; the client's receive limit, `math.MaxInt32` by default, gives only
+`2 ^ 31`). The user chose (2026-10-30) a key-length bound on etcd's state: every key at most
+`2 ^ 27` (`etcdKeyMax`), designed separately as a law of the clients' model (likely
+`etcdState_keys` in `EtcdModel`). The proofs that need it are left failing, each at the goal it
+needs:
 
-Nothing bounds such a key:
-- the etcd model has no length bound on its keys;
-- the client's receive limit (`MaxCallRecvMsgSize`, `math.MaxInt32` by default) gives at most
-  `2 ^ 31`, which the draft's `2 ^ 30` cannot use;
-- `deleteRevKey` sends the key twice.
+| Proof | Where | The goal |
+|---|---|---|
+| `Queue.Dequeue` | `Queue__Dequeue.lean:111` | `claimFirstKey`'s premise for the keys `Get(kp, WithFirstRev())` returned: `v.key.length ≤ 2 ^ 28` for `v` in the response |
+| | `:222` | `deleteRevKey`'s `e.key.length ≤ 2 ^ 28` for a watch event's key `e.key` |
+| `PriorityQueue.Dequeue` | `PriorityQueue__Dequeue.lean:115`, `:226` | the same two |
+| `RWMutex.waitOnLastRev` | `RWMutex__waitOnLastRev.lean:192` | `WaitEvents`' `w.key.length ≤ 2 ^ 28` for the key `w` a `Get` returned |
+| `DoubleBarrier.Leave` | `DoubleBarrier__Leave.lean:389` | `WaitEvents`' `wh.key.length ≤ 2 ^ 28` (the highest waiter's key, from a `Get`) |
+| | `:375`, `:418` (the `leave_not_lowest` macro) | `WaitEvents`' `wl.key.length ≤ 2 ^ 28` (the lowest waiter's key) |
+| `leasingKV.revokeLeaseKvs` | `leasingKV__revokeLeaseKvs.lean:111` | `v.key.length ≤ 2 ^ 27` for a key `v` of the lease keys a `Get` returned (the `have Hk`; the rest of the call is proved from it) |
 
-leasing has the same problem: `revokeLeaseKvs` revokes the keys a `Get` of the lease keys returned.
+With the bound (`2 ^ 27 ≤ 2 ^ 28`) each goal is one application of the law to the key's
+membership in etcd's state. The modules that import these proofs do not build until then: recipes'
+`Link`, `Results`, `Vertical`; leasing's `Link`, `Results`. With the leasing goal admitted
+locally (not committed), leasing's `Link` and `Results` build.
 
-The draft's table assumes that the recipes' strings are "the prefix + bounded suffixes", but these
-keys are under the prefix with any suffix. Options:
-- (a) a trusted fact that every key in etcd's state is shorter than the server's request limit:
-  the receive-size fact, carried into the model as an invariant of `etcdState`;
-- (b) the four specs take a premise bounding every key under the prefix: a protocol invariant
-  over the prefix, which the specs cannot state today;
-- (c) the client's `Get` and watch contracts return keys of at most a bound, a new
-  trust-boundary statement about the client.
+## leasing (approved 2026-10-30; `notes/decisions.md`, "Leasing's sizes")
 
-## Statement question 2: leasing's own transactions
+- `NewKV` takes `pfx.length ≤ 2 ^ 26`, kept in `isLeasingKV` (`isLeasingKV_kv` returns it).
+- `Get`, `Put`, `Delete` and `Do` (get, put, delete) take `OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28)` of
+  their operation; `get`, `put`, `delete`, `deleteRange`, `tryModifyOp` the same.
+- `Commit`, `serverTxn` and `Do`'s transaction (`doTxnPre pfx`) take `LTxnBuild.sizeOk pfx b`
+  (`InvLeasingKV`): every comparison's and operation's string at most `N` bytes, and
+  `(5 * n + 1) * (3 * (|pfx| + N) + 256) ≤ 2 ^ 30`, `n` the comparisons and operations.
+  `serverTxn_sizeOk` (`InvLeasingCommitLemmas`) bounds the server transaction with L-s4.
+- L-s4 is in `cache/v3/InvEtcdTxn.lean`: `CmpModel.bytesLe`, `TxnOp.bytesLe`, `TxnModel.bytesLe`,
+  `TxnOp.nodes`, `TxnModel.nodes`, `txnSizeOk_of_bounds`, `TxnModel.bytesLe_empty`/`nodes_empty`,
+  `bytesLe_append`/`nodes_append` (the builder's steps). Also there: `txnOpOf_wireLen_le` and
+  `keyWatch_size`.
+- `guardKeys`, `guardRanges`, `guard` and `fallback` return `guardOf` of each string (the
+  operation's key and range end, prefixed or not, no value) and their counts (one, two, three, one
+  per operation); `guardRanges` and `guard` take the operations' keys and range ends at most
+  `2 ^ 27` (from `sizeOk`: `LTxnBuild.sizeOk_ops`).
+- `rescind`, `waitRescind`, `monitorLease`, `revoke` take the key at most `2 ^ 27`; `revoke` also
+  `OpShape` of its operation; `acquire` `OpShape (2 ^ 27) 0 0` (Go's `OpGet(key)`);
+  `deleteRangeRPC`, `revokeRange` the key and range end at most `2 ^ 27`.
+- The lease cache keeps no bound: every request on a cached key gets the key from the user's
+  operation. The proposal had the cache keep it; nothing needs it.
 
-The draft gives "each KV operation of the leasing KV gains the client's predicate on its
-arguments". That premise cannot discharge leasing's own requests, because each one carries the
-user's operation and the prefixed key several times:
-- `acquire(key, op)`: comparisons on `pfx+key` and on the lease value, and `op`, `Put(pfx+key)` in
-  `Then`, `op`, `Get(pfx+key)` in `Else`. That is twice the user's operation plus three times
-  `pfx+key`: up to 5 · 2^30 under `opSizeOk`.
-- `serverTxn`:
-  - the user's transaction nested (`OpTxn`);
-  - a guard for each write operation (`pfx+key`; for a range, the key and range end, prefixed
-    and not);
-  - a fallback get for each write operation (`pfx+key`, `pfx+end`).
+## k8s
 
-  With `txnSizeOk` of the user's transaction, the server's transaction can be about three times
-  `2 ^ 30` plus the number of operations times `|pfx|`.
-- `deleteRangeRPC`, `revoke`, `rescind`, `tryModifyOp`: the prefixed key and the operation.
-
-A proposal, which would need approval:
-- `NewKV` takes `pfx.length ≤ 2 ^ 26`, kept in `isLeasingKV`.
-- `Get`, `Put`, `Delete` and `Do` take `OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28)` of their operation
-  (the existing vocabulary in `InvOp`) instead of `opSizeOk`.
-- `txnLeasing.Commit` takes a leasing predicate: the user's transaction's `txnWireLen` at most
-  `2 ^ 27`, and its node count (L-s4's `TxnModel.nodes`, not yet written) times `2 ^ 26 + 2 ^ 10`
-  at most `2 ^ 28`.
-- The lease cache's keys keep the operation's key bound (`monitorLease`, `rescind`, `revoke`).
-- `revokeLeaseKvs` needs question 1's answer.
-
-## k8s: blocked by an example
-
-`Proof/go_etcd_io/etcd/client/v3/kubernetes/Defs.lean` imports
-`Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls`, for the generic half: `srvStart`,
-`kvRegs_*`, `rangeReply_state'`. That module no longer builds since pass 1:
-- `client_List_st` (`Calls.lean:265`) needs `opSizeOk (opGetModel listFrom [withRangeM listTo])`;
-- `txn_Commit_st` (`:344`, `:392`) needs `txnSizeOk (txnWireOf b.model)`.
-
-This branch may not touch the examples, so neither the kubernetes client nor the etcd3 store
-can be checked. Two ways to unblock it:
-- give those two theorems the size hypotheses, which pass 5 needs anyway, with linkvtxn's
-  `GenIn` discharging them;
-- move the generic half out of the example.
-
-Once unblocked, the plan, as the draft's section 7 says:
-- `Client.Get` gains `opSizeOk (opGetModel key [])`, passed to `client_range_any`'s `hsz`.
-- `Client.OptimisticPut`/`OptimisticDelete` gain `txnSizeOk` of their transaction (`optPutTxn`,
-  `optDelTxn`, on the wire), passed to `client_txn_any`.
-- The etcd3 store's specs take the key's bound (`c.pathPrefix ++ k`) and the encoded objects'
-  bound. The encoded objects are `c.S.encode o` for `Create` and every object
-  `GuaranteedUpdate`'s update returns. The specs affected: `Create`, `Get`, `Delete`,
-  `GuaranteedUpdate`, `GetCurrentResourceVersion`, `getCurrentState`, `updateOnce`.
-- The cacher passes the bounds on.
-- `k8setcd3`'s closed theorem is pass 4 and is left alone. It will need:
-  - `GenIn`'s keys (`a`, `b`, `c`) and the value bound from `workloadVals`;
-  - `encodeV0(name, val)`'s length computed;
-  - the path prefix's length.
+- `linkvtxn/Calls.lean` (the example, now allowed): `client_List_st` takes
+  `hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])` and `txn_Commit_st`
+  `hsz : txnSizeOk (txnWireOf b.model)`. Their callers in `linkvtxn` are not updated (pass 4).
+- `kubernetes.Client`: `Get` takes `key.length ≤ 2 ^ 27` (for `opts.Revision' = 0`, the path
+  that reads etcd); `OptimisticPut` `key.length ≤ 2 ^ 27` and `val.length ≤ 2 ^ 28` (for
+  `opts.LeaseID' = 0`); `OptimisticDelete` `key.length ≤ 2 ^ 27`. `clientTxn_size`
+  (`kubernetes/Defs.lean`) bounds their transactions.
+- etcd3 store: `Get`, `GetCurrentResourceVersion`, `Create`, `Delete`, `GuaranteedUpdate` take
+  `(c.pathPrefix ++ k).length ≤ 2 ^ 27`; `getCurrentState`, `deleteOnce`, `conditionalDelete`,
+  `updateOnce` `key.length ≤ 2 ^ 27`. `Create` takes `c.S.storedSizeOk o` and `GuaranteedUpdate`
+  `storedSizeOk` of every object its update returns (`ObjCodec.storedSizeOk`, `Contract.lean`:
+  every encoding of the object is at most `2 ^ 28` bytes); `updateOnce` the same of its `o'`.
+- The cacher builds unchanged.
+- `k8setcd3`'s closed theorem (pass 4, untouched) will need: the callers of `client_List_st` and
+  `txn_Commit_st` in `linkvtxn` to discharge `hsz` (`GenIn`'s keys and values); in `k8setcd3`'s
+  `call.lean`, `(pathPrefix ++ k).length ≤ 2 ^ 27` for its keys, and `storedSizeOk` of the
+  objects it creates and updates (`encodeV0(name, val)`'s length, with `GenIn`'s value bound).
 
 ## Departures
 
@@ -149,3 +136,10 @@ Once unblocked, the plan, as the draft's section 7 says:
   `RemoteKV.Delete`/`Put` plus the bound in `rwMyKey`/`dbMyKey`.
 - `isRWMutex` keeps `2 ^ 27 + 1`, the stored prefix ends in `/`. The constructor's premise is on
   the user's prefix.
+- The leasing premise is on `OpFull`s (`OpShape N N N` of each operation, `CmpModel.bytesLe N` of
+  each comparison) and counts the operations, not on the user's `TxnModel`: the guards read the
+  operations' range ends, which a put's `TxnOp` drops. The count is the user transaction's
+  `TxnModel.nodes` (the operations are plain). `5 * n + 1` over-counts the guards (at most two per
+  operation; three is what the per-function counts give without splitting by kind).
+- The internal guard and fallback specs gained posts (`guardOf`, counts) and `guardRanges`/`guard`
+  a premise: not in the draft, needed by the approved `Commit` bound.
