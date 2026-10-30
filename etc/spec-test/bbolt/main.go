@@ -20,7 +20,17 @@
 // Each spec is transcribed by hand from its Lean statement (the comment on each step cites it).
 // The -old flags select statements found false: -old-info and -old-cursor-kvw the axiom audit's
 // (notes/audit.md, "bbolt"), as they were before audit B4b (commit 39dd386a43); -old-wbkt the
-// handles without a generation, as before 2026-10-27 (issues/bbolt-deleted-bucket-handle.md).
+// handles without a generation, as before 2026-10-27 (issues/bbolt-deleted-bucket-handle.md);
+// -old-delete Bucket.Delete_kv before its widening to the transaction's own slices (backend-cmp
+// F3, commit 699bc59950).
+//
+// txBytes: the tester records every slice a cursor move hands out (curAt: txBytes tx k e.1,
+// txBytes tx v e.2) with its bytes. Persistent, each is readable whenever its transaction is live
+// (txBytes_acc: a fraction of txLive tx q gives s ↦*{dq} b): the step "(read txBytes)" checks
+// them, Seek may take one as its key, and Delete takes one as its key -- the transaction's own
+// (own = false, the widened statement) or another live transaction's (own = true, through
+// txBytes_acc, as before). A write cursor's ownCur goes back with the wand before a Delete (the
+// Delete needs ownWTxG), so iteration continues after a Delete only on a new cursor.
 package main
 
 import (
@@ -34,6 +44,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unsafe"
 
 	bolt "go.etcd.io/bbolt"
 	berrors "go.etcd.io/bbolt/errors"
@@ -133,6 +144,15 @@ type bktW struct { // wBkt tx b n g, persistent
 // -old-wbkt (wBkt without a generation, as before 2026-10-27).
 func (w bktW) current() bool { return *oldWBkt || w.gen == w.tx.G[w.n] }
 
+// txBytes tx s b (persistent): the slice s holds b while tx is live.
+type txBytesG struct {
+	tx      *txG
+	s       []byte
+	b       string
+	deleted bool // used as the key of a Delete
+	mmap    bool // instrumentation: a key pointing into the memory map
+}
+
 type bktR struct { // rBkt tx b es, persistent
 	tx *txG
 	h  *bolt.Bucket
@@ -145,6 +165,7 @@ type state struct {
 	curs  []*curG
 	wbkts []bktW
 	rbkts []bktR
+	byts  []*txBytesG
 	dir   string
 	nfile int
 	nbkt  int
@@ -160,7 +181,11 @@ var (
 	seed         = flag.Int64("seed", 1, "first seed")
 	verbose      = flag.Bool("v", false, "print every run's trace")
 	oldWBkt      = flag.Bool("old-wbkt", false, "wBkt without a generation, as before 2026-10-27 (false: a deleted bucket's handle)")
-	mutant       = flag.String("mutant", "", "a deliberately wrong spec: seek-gt, wrtok-dup, commit-old, rollback-keeps-live, read-latest, create-resets, delete-noop")
+	oldDelete    = flag.Bool("old-delete", false, "Bucket.Delete_kv before 2026-10-28 (backend-cmp F3): the key owned only, not the transaction's own txBytes")
+	mutant       = flag.String("mutant", "", "a deliberately wrong spec: seek-gt, wrtok-dup, commit-old, rollback-keeps-live, read-latest, create-resets, delete-noop, delete-tx-noop (a Delete of the tx's own slice keeps the key), delete-clears-txbytes (a Delete of the tx's own slice changes what it reads)")
+	focus        = flag.String("focus", "", "weight the steps toward a path: delete (Puts, write cursors, Deletes of their slices, txBytes reads; Close rare)")
+	nkeys        = flag.Int("nkeys", 3, "number of distinct keys")
+	vmax         = flag.Int("vmax", 0, "pad values by up to this many bytes (large buckets are not inline: keys read from the memory map)")
 	blockAfter   = flag.Duration("block-after", 100*time.Millisecond, "a call not returned by then is blocked")
 )
 
@@ -192,7 +217,7 @@ func call(name string, f func()) {
 }
 
 var names = []string{"a", "b"}
-var keys = []string{"k1", "k2", "k3"}
+var keys []string // k1 .. k<nkeys>, set in main
 
 func (s *state) newW(t *txG, b *bolt.Bucket, n string) {
 	s.nbkt++
@@ -247,6 +272,9 @@ var stepsTable = []step{
 			return false
 		}
 		w := r.Intn(2) == 0
+		if *focus == "delete" {
+			w = r.Intn(5) != 0 // mostly writers: committed data, keys read back from the memory map
+		}
 		if w && !d.wrTok {
 			return false
 		}
@@ -403,8 +431,11 @@ var stepsTable = []step{
 			return false
 		}
 		k, v := keys[r.Intn(len(keys))], fmt.Sprintf("v%d", r.Intn(100))
+		if *vmax > 0 {
+			v += strings.Repeat("x", r.Intn(*vmax))
+		}
 		var err error
-		s.logf("Put(#%d %s: %s=%s) ...", w.id, w.n, k, v)
+		s.logf("Put(#%d %s: %s=%.8s (%d bytes)) ...", w.id, w.n, k, v, len(v))
 		call("Put", func() { err = w.h.Put([]byte(k), []byte(v)) })
 		s.logf("  = err %v", err)
 		if err != nil {
@@ -415,8 +446,11 @@ var stepsTable = []step{
 		w.tx.S[w.n] = m
 		return true
 	}},
-	// Bucket.Delete_kv: G n = g → S n = some m → ownWTxG tx γ D S G ∗ wBkt tx b n g
-	// {RET nil; ownWTxG tx γ D S[n := m.delete k] G}
+	// Bucket.Delete_kv: G n = g → S n = some m →
+	//   ownWTxG tx γ D S G ∗ wBkt tx b n g ∗ (if own then key ↦*{dk} kb else txBytes tx key kb)
+	// {RET nil; ownWTxG tx γ D S[n := m.delete kb] G ∗ (if own then key ↦*{dk} kb else txBytes tx key kb)}
+	// -old-delete: own only (key ↦*{dk} kb). An owned key is a fresh slice, or another live
+	// transaction's txBytes opened with txBytes_acc; own = false takes one of tx's own txBytes.
 	{"Delete", func(s *state, r *rand.Rand) bool {
 		w, ok := pick(r, s.wbkts)
 		if !ok || !w.tx.ownWTx {
@@ -426,19 +460,87 @@ var stepsTable = []step{
 		if !found || !w.current() {
 			return false
 		}
-		k := keys[r.Intn(len(keys))]
+		var same, other []*txBytesG
+		for _, tb := range s.byts {
+			if tb.tx == w.tx && !*oldDelete {
+				same = append(same, tb)
+			} else if tb.tx != w.tx && txLiveFor(tb.tx) {
+				other = append(other, tb)
+			}
+		}
+		var key []byte
+		var kb, kind string
+		var tb *txBytesG
+		switch c := r.Intn(4); {
+		case c <= 1 && len(same) > 0:
+			tb, kind = same[r.Intn(len(same))], "txBytes of this tx"
+		case c == 2 && len(other) > 0:
+			tb, kind = other[r.Intn(len(other))], "txBytes of another live tx"
+		default:
+			kb, kind = keys[r.Intn(len(keys))], "own"
+			if r.Intn(8) == 0 {
+				kb = ""
+			}
+			key = []byte(kb)
+		}
+		if tb != nil {
+			key, kb = tb.s, tb.b
+		}
 		var err error
-		s.logf("Delete(#%d %s: %s) ...", w.id, w.n, k)
-		call("Delete", func() { err = w.h.Delete([]byte(k)) })
+		s.logf("Delete(#%d %s: %q, %s) ...", w.id, w.n, kb, kind)
+		call("Delete", func() { err = w.h.Delete(key) })
 		s.logf("  = err %v", err)
+		coverage["Delete: "+kind]++
 		if err != nil {
 			fail("Delete returned %v, spec says nil", err)
 		}
+		if !bytes.Equal(key, []byte(kb)) {
+			fail("Delete: its key slice reads %.16q after the call, spec gives it back holding %.16q", key, kb)
+		}
+		_, present := m[kb]
+		if present && kind == "txBytes of this tx" {
+			coverage["Delete: a present key, by this tx's slice"]++
+			if tb.mmap {
+				coverage["Delete: a present key, by this tx's slice into the memory map"]++
+			}
+		}
 		m = m.clone()
-		if *mutant != "delete-noop" {
-			delete(m, k)
+		if *mutant != "delete-noop" && !(*mutant == "delete-tx-noop" && kind == "txBytes of this tx") {
+			delete(m, kb)
 		}
 		w.tx.S[w.n] = m
+		if tb != nil {
+			tb.deleted = true
+			if *mutant == "delete-clears-txbytes" && kind == "txBytes of this tx" {
+				tb.b = ""
+			}
+		}
+		return true
+	}},
+	// txBytes_acc (a ghost step and a Go read): txBytes tx s b ∗ txLive tx q ⊢ s ↦*{dq} b ∗ ...
+	// Every recorded slice of a live transaction still holds its bytes.
+	{"(read txBytes)", func(s *state, r *rand.Rand) bool {
+		t, ok := pick(r, s.txs)
+		if !ok || !txLiveFor(t) {
+			return false
+		}
+		n := 0
+		for _, tb := range s.byts {
+			if tb.tx != t {
+				continue
+			}
+			n++
+			if tb.deleted {
+				coverage["(read txBytes): a slice used as a Delete's key"]++
+			}
+			if !bytes.Equal(tb.s, []byte(tb.b)) {
+				fail("txBytes: a live transaction's slice reads %q, spec says %q (deleted: %v)", tb.s, tb.b, tb.deleted)
+			}
+		}
+		if n == 0 {
+			return false
+		}
+		s.logf("(read %d txBytes)", n)
 		return true
 	}},
 	// Bucket.Cursor_kvr: rBkt tx b es ∗ rtxStats tx ∗ txLive tx q  {ownCur tx c es none ∗ ...}
@@ -497,11 +599,25 @@ var stepsTable = []step{
 		if r.Intn(4) == 0 {
 			key = "k0"
 		}
+		ks := []byte(key)
+		// The key may be a live transaction's slice (key ↦*{dk} kb through txBytes_acc, with a
+		// fraction of txLive).
+		var live []*txBytesG
+		for _, tb := range s.byts {
+			if txLiveFor(tb.tx) {
+				live = append(live, tb)
+			}
+		}
+		if len(live) > 0 && r.Intn(4) == 0 {
+			tb := live[r.Intn(len(live))]
+			ks, key = tb.s, tb.b
+			coverage["Seek: by a txBytes key"]++
+		}
 		var k, v []byte
-		call("Seek", func() { k, v = c.h.Seek([]byte(key)) })
+		call("Seek", func() { k, v = c.h.Seek(ks) })
 		i := seekIdx(c.es, key)
-		s.logf("Seek(%s) = %q,%q (model: index %d of %v)", key, k, v, i, c.es)
-		checkCurAt(c, i, k, v)
+		s.logf("Seek(%q) = %q,%q (model: index %d of %v)", key, k, v, i, c.es)
+		s.checkCurAt(c, i, k, v)
 		c.pos = i
 		return true
 	}},
@@ -515,7 +631,7 @@ var stepsTable = []step{
 		var k, v []byte
 		call("Next", func() { k, v = c.h.Next() })
 		s.logf("Next() = %q,%q (model: index %d of %v)", k, v, c.pos+1, c.es)
-		checkCurAt(c, c.pos+1, k, v)
+		s.checkCurAt(c, c.pos+1, k, v)
 		c.pos = min(c.pos+1, len(c.es))
 		return true
 	}},
@@ -613,16 +729,31 @@ var stepsTable = []step{
 	}},
 }
 
-// checkCurAt: curAt tx es i k v -- es[i] = (k, v) with k non-nil, or k = v = nil past the end.
-func checkCurAt(c *curG, i int, k, v []byte) {
+// checkCurAt: curAt tx es i k v -- es[i] = (k, v) with k non-nil, or k = v = nil past the end;
+// the post's txBytes tx k e.1 ∗ txBytes tx v e.2 are recorded.
+func (s *state) checkCurAt(c *curG, i int, k, v []byte) {
 	if i < len(c.es) {
 		e := c.es[i]
 		if k == nil || !bytes.Equal(k, []byte(e.k)) || !bytes.Equal(v, []byte(e.v)) {
 			fail("cursor at index %d: Go returned %q=%q, spec says %q=%q (entries %v)", i, k, v, e.k, e.v, c.es)
 		}
+		mm := inMmap(c.tx.db, k)
+		s.byts = append(s.byts, &txBytesG{tx: c.tx, s: k, b: e.k, mmap: mm}, &txBytesG{tx: c.tx, s: v, b: e.v})
 	} else if k != nil || v != nil {
 		fail("cursor past the end (index %d of %d): Go returned %q=%q, spec says nil, nil", i, len(c.es), k, v)
 	}
+}
+
+// inMmap (instrumentation, no spec step): k points into the database's memory map (Info's Data,
+// up to the file's size), not into the heap.
+func inMmap(d *dbG, k []byte) bool {
+	fi, err := os.Stat(d.path)
+	if err != nil || len(k) == 0 {
+		return false
+	}
+	base := d.h.Info().Data
+	p := uintptr(unsafe.Pointer(&k[0]))
+	return p >= base && p < base+uintptr(fi.Size())
 }
 
 // run makes one run of up to n calls; it returns the refutation, if any.
@@ -660,7 +791,7 @@ func run(sd int64, n int) (msg string, log []string) {
 	}()
 	stepsTable[0].try(s, r) // Open
 	for done := 0; done < n; {
-		st := stepsTable[r.Intn(len(stepsTable))]
+		st := pickStep(r)
 		if st.try(s, r) {
 			coverage[st.name]++
 			done++
@@ -669,11 +800,50 @@ func run(sd int64, n int) (msg string, log []string) {
 	return "", s.log
 }
 
+// focusWeights: -focus delete. A step not listed weighs 1.
+var focusWeights = map[string]map[string]int{
+	"delete": {"Close": 0, "Stats": 0, "Info": 0, "Tx.Stats": 0, "Tx.Size": 0, "Tx.DB": 0,
+		"Begin": 2, "Commit": 3, "Rollback": 4, "CreateBucketIfNotExists": 3, "Put": 8, "Delete": 6, "Cursor(w)": 4,
+		"(close write cursor)": 4, "Seek": 4, "Next": 8, "(read txBytes)": 4},
+}
+
+func pickStep(r *rand.Rand) step {
+	ws, ok := focusWeights[*focus]
+	if !ok {
+		if *focus != "" {
+			fmt.Fprintf(os.Stderr, "unknown -focus %q\n", *focus)
+			os.Exit(2)
+		}
+		return stepsTable[r.Intn(len(stepsTable))]
+	}
+	w := func(st step) int {
+		if x, ok := ws[st.name]; ok {
+			return x
+		}
+		return 1
+	}
+	tot := 0
+	for _, st := range stepsTable {
+		tot += w(st)
+	}
+	x := r.Intn(tot)
+	for _, st := range stepsTable {
+		if x < w(st) {
+			return st
+		}
+		x -= w(st)
+	}
+	panic("unreachable")
+}
+
 var blockedRuns int
 var coverage = map[string]int{}
 
 func main() {
 	flag.Parse()
+	for i := 1; i <= *nkeys; i++ {
+		keys = append(keys, fmt.Sprintf("k%02d", i))
+	}
 	refuted := map[string]int{}
 	total := 0
 	first := map[string]int64{}
@@ -698,8 +868,11 @@ func main() {
 		}
 		refuted[key]++
 	}
-	fmt.Printf("runs %d, steps %d, old-info %v, old-cursor-kvw %v, old-wbkt %v; %d refuted, %d ended blocked\n",
-		*runs, *steps, *oldInfo, *oldCursorKvw, *oldWBkt, total, blockedRuns)
+	fmt.Printf("runs %d, steps %d, old-info %v, old-cursor-kvw %v, old-wbkt %v, old-delete %v; %d refuted, %d ended blocked\n",
+		*runs, *steps, *oldInfo, *oldCursorKvw, *oldWBkt, *oldDelete, total, blockedRuns)
+	if *focus != "" {
+		fmt.Printf("focus %s\n", *focus)
+	}
 	if *mutant != "" {
 		fmt.Printf("mutant %s\n", *mutant)
 	}
@@ -708,6 +881,14 @@ func main() {
 		cov = append(cov, fmt.Sprintf("%s %d", st.name, coverage[st.name]))
 	}
 	fmt.Printf("calls made: %s\n", strings.Join(cov, ", "))
+	var sub []string
+	for k, c := range coverage {
+		if strings.Contains(k, ": ") {
+			sub = append(sub, fmt.Sprintf("%s %d", k, c))
+		}
+	}
+	sort.Strings(sub)
+	fmt.Printf("of which: %s\n", strings.Join(sub, "; "))
 	if len(refuted) == 0 {
 		fmt.Println("no refutation")
 		return
