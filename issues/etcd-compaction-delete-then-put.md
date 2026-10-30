@@ -9,7 +9,10 @@ links:
 
 # server/storage/mvcc: compacting at a revision that deletes a key and puts it again deletes the live value
 
-- **Status**: open (not filed; no fix branch yet). Reachable through etcd's gRPC API (2026-10-14,
+- **Status**: fixed in the fork (2026-10-28): upstream's etcd-io/etcd#22377 (`keyIndex.doCompact`)
+  cherry-picked as `e7bb9f2de` and #22395 (the gRPC path, below) as `249d76bea`, branch
+  `goose-lean-compactfix` of `upamanyus/etcd`, `etc/goose.py`'s etcd pin since `5d82727117`.
+  Open upstream (both PRs open when last checked). Reachable through etcd's gRPC API (2026-10-14,
   below): `checkIntervals` rejects a transaction that deletes and puts one key only when the
   delete names the key or a bounded range; a from-key delete gets the empty interval
   ([etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md)), so
@@ -175,6 +178,15 @@ links:
   carries it (`delKey`), which is what lets the readers of a compacted store prove a read at or
   above the compaction revision unaffected (`rangeAnswers_not_del`). In the server it is the
   transaction checks' guarantee (`checkIntervals`, the txn package's `NoDupKeysPerRev`).
+  **Since the fix (2026-10-28, `7c8ef717ef`)** the model follows the fixed loop (`compactGenIdx`
+  over `genAdv`/`genRecreatedAt`, `Compact.lean`; `generation.isRecreatedAt` specified and
+  proved) and `keyIndex.doCompact.wp_proof` is re-proved against it, but the premise is still in
+  place: `kiGet_avail` still takes `NoDelPutAt` (one `exfalso` branch, the tombstone at `c` and
+  the read's revision at `c` in a later generation, uses it, where the fixed loop's
+  `genRecreatedAt` now covers that case), and with it `named_not_del`, `rangeAnswers_not_del`,
+  `crevSafe`, `delKey`, `compactJobPre`, and the specs of `store.Compact`, `compactLockfree` and
+  `updateCompactRev`. Dropping it is a spec change, not yet made (`notes/STATUS.md`, "The
+  delete-then-put fix in the fork").
 - **Possible fixes**: in `doCompact`, skip a generation whose tombstone is at `atRev` when a later
   generation has a revision at `atRev` (compare the next generation's first revision, not the
   tombstone, with `atRev`); or reject a put of a key the same write transaction deleted.
