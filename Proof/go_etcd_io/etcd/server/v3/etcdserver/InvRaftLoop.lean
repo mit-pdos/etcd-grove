@@ -104,15 +104,9 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
 theorem rnCfgAt_normal1 (γ : RNNames) (L : List EntryModel) (m : EntryModel)
     (hm : m.typ = W32 0) :
     rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ [m]) := by
-  sorry
-/- REPAIR-OLD
-  unfold rnCfgAt
-  split
-  · have := dvView_normal (GF := GF) γ.srv (some γ.nl) L m hm
-    unfold dvView at this
-    exact this
-  · exact .rfl
--/
+  have := dvView_normal (GF := GF) γ.srv (some γ.nl) L m hm
+  unfold dvView at this
+  exact this
 
 /-- (D43 M3) A batch of normal entries keeps the view. -/
 theorem rnCfgAt_normal (γ : RNNames) (ce : List EntryModel)
@@ -153,19 +147,11 @@ theorem rnCfgAt_back_false (γ : RNNames) (ai₀ : w64) (L ce : List EntryModel)
 theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
     (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
       rnCfgAt γ (L ++ ce) := by
-  sorry
-/- REPAIR-OLD
+  have hh : rnHands γ ce = true := hcc
   unfold rnApR
-  cases hd : γ.node.dyn
-  · have hh : rnHands γ ce = false := by unfold rnHands; simp [hd]
-    rw [ite_eq_right (by rw [hh]; decide), ite_eq_right (by rw [hh]; decide)]
-    iintro ⟨H, -⟩
-    iapply rnCfgAt_static γ L (L ++ ce) hd $$ H
-  · have hh : rnHands γ ce = true := by unfold rnHands; simp [hd, hcc]
-    rw [ite_eq_left hh, ite_eq_left hh]
-    iintro ⟨-, H⟩
-    iexact H
--/
+  rw [ite_eq_left hh, ite_eq_left hh]
+  iintro ⟨-, H⟩
+  iexact H
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
@@ -176,17 +162,12 @@ def rnDv (γ : RNNames) (ce : List EntryModel) : Option Loc :=
 theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
     (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
     rnApR (GF := GF) γ A ce = dvView γs (rnDv γ ce) (A ++ ce) := by
-  sorry
-/- REPAIR-OLD
   unfold rnApR rnDv dvView
   by_cases h : rnHands γ ce
-  · have hd : γ.node.dyn = true := by
-      unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
-    rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_left h, ite_eq_left h]
     unfold rnCfgAt srvCfgView
-    rw [ite_eq_left hd, hpre, hraft]
+    rw [hraft, ← hpre]
   · rw [ite_eq_right h, ite_eq_right h]
--/
 
 /-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's
 conf-change contract (`isRaftNodeIfc`'s). -/
@@ -194,47 +175,33 @@ theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.
     (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
     srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ A ce ⊢
       dvView γs (rnDv γ ce) A ∗ dvRes s γs (rnDv γ ce) (A ++ ce) := by
-  sorry
-/- REPAIR-OLD
   unfold rnApGive rnDv dvView dvRes
   by_cases h : rnHands γ ce
-  · have hd : γ.node.dyn = true := by
-      unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
-    rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_left h, ite_eq_left h]
     simp only
-    unfold rnCfgAt srvCfgView
-    rw [ite_eq_left hd, srvRaftNodeDyn_congr s γs γ.srv γ.nl hraft]
-    iintro ⟨(%Hf | #Hn), Hv, #Hd⟩
-    · rw [hd] at Hf; cases Hf
-    have hγs : γs = ⟨γ.node, γ.pre, γs.ai0⟩ := by cases γs; simp_all
-    rw [hγs]
-    iframe Hv Hn
-    unfold srvLE at *
-    iexact Hd
+    rw [srvRaftNodeCC_congr s γs γ.srv γ.nl hraft]
+    unfold rnCfgAt srvCfgView srvLE
+    rw [hraft, ← hpre]
+    iintro ⟨#Hn, Hv, #Hd⟩
+    iframe Hv Hn Hd
   · rw [ite_eq_right h, ite_eq_right h]
     simp only
     iintro -
     isplit <;> itrivial
--/
 
 /-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's
 (`isRaftNodeIfc`). (2026-10-30, the repair: in every cluster; until then `srvRaftNodeDyn`, in the
 dynamic mode.) -/
 theorem srvRaftNodeCC_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
     isRaftNode E γ (srvRAddr s) ⊢ srvRaftNodeCC s γ.srv γ.nl := by
-  sorry
-/- REPAIR-OLD
   iintro #H
   iunfold isRaftNode at H
   iNamed H
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hn, (%Hd | #Hd), -⟩
-  · ileft; ipureintro; exact Hd
-  · iright
-    iunfold srvRaftNodeDyn
-    iexists n
-    iframe Hn Hd
--/
+  icases Hni with ⟨%ni, %Hn, #Hcc, -⟩
+  iunfold srvRaftNodeCC
+  iexists n
+  iframe Hn Hcc
 
 end lemmas
 
