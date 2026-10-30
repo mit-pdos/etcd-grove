@@ -21,6 +21,16 @@ published index (`authPubLbM`, needed only for `0 < n`), every response with eve
 server's check of the watch's create (`watchCheckOk`: on the stream's metadata, for its token, at
 states no older than `n`). Margin: the code also ends a refused watch with a canceled response
 carrying the refusal's error; the spec says only that no response has events without the row.
+
+**The range from `""` starts at `"\x00"`** (2026-10-30, the user's decision; `notes/decisions.md`,
+"G2's freeze: `Watch`'s range from `""` starts at `"\x00"`"): etcd's server rewrites an empty key
+to `"\x00"` (`v3rpc/watch.go:266-269`), so the events are of the watch's range with its key so
+normalized (`OpFull.watchNorm`; a non-empty key's range unchanged, `OpFull.watchNorm_of_ne`), not
+of the range from `""`, which also contains the empty key (the KV model does not say that no
+stored key is empty). The row is of the request's own key and range end, as the server checked
+them. With the normalization, `Watch(ctx, "")` with no options is the single key `"\x00"`: the
+premise that excluded it (`notes/decisions.md`, "G2's freeze: `Watch` excludes the empty key's
+single-key watch") was dropped once unused (2026-10-30).
 -/
 module
 
@@ -66,7 +76,7 @@ abbrev watcher.Watch.spec : Prop :=
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
         go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
-      isSpsc γw.spsc ch (watchStateElem γw (opWatchModel key opts) Q
+      isSpsc γw.spsc ch (watchStateElem γw (opWatchModel key opts).watchNorm Q
         iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
           (GoInterface.ok ctx) n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
         (fun _ => iprop(True)) ∗

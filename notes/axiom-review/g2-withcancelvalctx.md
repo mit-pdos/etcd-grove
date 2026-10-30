@@ -1,7 +1,7 @@
 # `context.WithCancelValCtx.wp_proof` (G2's (h): keeps `outgoingOf`): survives
 
 **Reviewed** 2026-10-30, at `g2-stmts` `7ec9f1f715` (diff against `8527537fba`; etcd fork
-`249d76bea`, grpc v1.84.0, go1.27.3), by the `axiom` skill. Branch `axiom/g2-withcancelvalctx`.
+`249d76bea`, grpc v1.84.0, go1.27.3), by the `axiom` skill. Branch `axiom/g2-withcancelvalctx` (deleted 2026-10-30; last commit `8b47c519de`).
 
 ## The axiom
 

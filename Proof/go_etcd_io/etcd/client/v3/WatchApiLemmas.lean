@@ -80,13 +80,13 @@ omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (G
 accepts) is any position's element of a watch's channel (`outcElem`, D47: an error, at a firing
 `σ0` of the read update, the second cursor standing still). -/
 theorem outcElem_canceled (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
-    (σ0 : KVState) (i : Nat) (c : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
+    (Au : IProp GF) (σ0 : KVState) (i : Nat) (c : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (hv : v.Events' = slice.nil ∧ v.CompactRevision' = W64 0 ∧ v.Canceled' = true ∧
       v.Created' = false ∧ v.Header' ≠ null) :
     structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" v.Header' ↦□ W64 0 ∗
       go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' ∗ □ Q σ0 ∗
       monoListIdxOwn γ.cur2 i c ∗ monoListIdxOwn γ.cur2 (i + 1) c ⊢
-    outcElem γ o Q (i : Int) v := by
+    outcElem γ o Q Au (i : Int) v := by
   obtain ⟨he, hc, hca, hcr, hh⟩ := hv
   iintro ⟨#Hrev, #Hse, #HQ, #Hi, #Hi'⟩
   unfold outcElem watchStateElem
@@ -117,16 +117,16 @@ theorem outcElem_canceled (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IP
     iframe Hse
     ipureintro
     exact ⟨Or.inr (Or.inr hca), rfl⟩
-  iintro !> -
-  itrivial
+  iintro !> %h
+  exact absurd rfl h
 
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **`Watch`'s `closeCh`** (its loop's state): not made yet, or an SPSC channel of the watch
 with both sides at the start (the producer's cursor at `rev - 1`). -/
-def closeChRes (o : OpFull) (Q : KVState → IProp GF) (rev : w64) (b : Bool) (cc : Loc) :
-    IProp GF :=
+def closeChRes (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF) (rev : w64) (b : Bool)
+    (cc : Loc) : IProp GF :=
   iprop(⌜cc = chan.nil⌝ ∨ ∃ γ : EtcdWatchNames,
-    isSpsc γ.spsc cc (outcElem γ o Q) (fun _ => iprop(True)) ∗
+    isSpsc γ.spsc cc (outcElem γ o Q Au) (fun _ => iprop(True)) ∗
     spscProducer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListAuthOwn γ.cur 1 [rev - W64 1] ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
@@ -135,13 +135,13 @@ def closeChRes (o : OpFull) (Q : KVState → IProp GF) (rev : w64) (b : Bool) (c
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **A fresh channel as a watch's SPSC channel**, both sides at the start, the producer's cursor
 at `rev - 1` (a new mono list). -/
-theorem watch_spsc_alloc (o : OpFull) (Q : KVState → IProp GF) (rev : w64)
+theorem watch_spsc_alloc (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF) (rev : w64)
     (b : Bool) (ch : Loc) (γc : ChanNames) :
     ⊢ isChan ch γc go_etcd_io.etcd.client.v3.WatchResponse -∗
       (ownChan γc go_etcd_io.etcd.client.v3.WatchResponse .Idle ∨
         ownChan γc go_etcd_io.etcd.client.v3.WatchResponse (.Buffered [])) ={⊤}=∗
       ∃ γ : EtcdWatchNames,
-        isSpsc γ.spsc ch (outcElem γ o Q) (fun _ => iprop(True)) ∗
+        isSpsc γ.spsc ch (outcElem γ o Q Au) (fun _ => iprop(True)) ∗
         spscProducer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
         monoListAuthOwn γ.cur 1 [rev - W64 1] ∗
         spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
@@ -149,13 +149,13 @@ theorem watch_spsc_alloc (o : OpFull) (Q : KVState → IProp GF) (rev : w64)
         ⌜γ.cur2 = γ.cur ∧ γ.cpl = b⌝ := by
   iintro #Hch Ho
   imod mono_list_own_alloc [rev - W64 1] with ⟨%γcur, Ha, #Hlb⟩
-  imod start_spsc ch (outcElem ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ o Q) (fun _ => iprop(True)) γc
+  imod start_spsc ch (outcElem ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ o Q Au) (fun _ => iprop(True)) γc
     $$ Hch Ho with ⟨%γs, #Hs, Hp, Hc⟩
   imodintro
   iexists ⟨γs, γcur, γcur, b⟩
   iframe Hp Ha Hc
-  have heq : outcElem (GF := GF) ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ o Q =
-      outcElem ⟨γs, γcur, γcur, b⟩ o Q := by unfold outcElem watchStateElem; rfl
+  have heq : outcElem (GF := GF) ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ o Q Au =
+      outcElem ⟨γs, γcur, γcur, b⟩ o Q Au := by unfold outcElem watchStateElem; rfl
   rw [← heq]
   isplitr
   · iexact Hs
@@ -169,12 +169,13 @@ omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (G
 /-- **`Watch`'s result** (D47): a watch's channel of `outcElem` at the names `γ`, the consumer's
 side and the second cursor at the start, is the triple's (`watchStateElem`) at `γ` with its second
 cursor as the cursor. -/
-theorem watch_post (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (ch : Loc) (rev : w64) :
-    isSpsc γ.spsc ch (outcElem γ o Q) (fun _ => iprop(True)) ∗
+theorem watch_post (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF)
+    (ch : Loc) (rev : w64) :
+    isSpsc γ.spsc ch (outcElem γ o Q Au) (fun _ => iprop(True)) ∗
       spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn γ.cur2 0 (rev - W64 1) ⊢
     isSpsc ({ γ with cur := γ.cur2 } : EtcdWatchNames).spsc ch
-        (watchStateElem { γ with cur := γ.cur2 } o Q iprop(True)) (fun _ => iprop(True)) ∗
+        (watchStateElem { γ with cur := γ.cur2 } o Q Au) (fun _ => iprop(True)) ∗
       spscConsumer ({ γ with cur := γ.cur2 } : EtcdWatchNames).spsc
         ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn ({ γ with cur := γ.cur2 } : EtcdWatchNames).cur 0 (rev - W64 1) := by

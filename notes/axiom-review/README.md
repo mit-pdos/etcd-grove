@@ -19,3 +19,10 @@ axioms) or every attack tried. The verdicts are also in `notes/audit.md`'s table
 | [g2-servestream](g2-servestream.md) | G2 (b) `grpc.serveStream`'s md-indexed contract and (b′) `srvStreamInterceptorOk` with `grpc_prometheus.ServerMetrics.StreamServerInterceptor` (`7ec9f1f715`) | (b′) **survives**; (b) **refuted on the Go side** (Lean proof not built), the same `host` flaw as g2-newstream, repaired with it (2026-10-30) |
 | [g2-streamkey](g2-streamkey.md) | `clientv3.streamKeyFromCtx` (G2's (c), `7ec9f1f715`), `streamKeyOf_none`, `streamKeyOf_single`, with `AppendToOutgoingContext` and `outgoingOf` | **refuted jointly**: `streamKeyOf_single` with `AppendToOutgoingContext.wp_proof` at non-ASCII keys (Lean theorem); `streamKeyOf_single` false at `v = ""` (latent). Repaired: `lowerKey` ASCII, `v ≠ ""`. `streamKeyOf_none` and `streamKeyFromCtx`'s return ok (2026-10-30) |
 | [g2-withcancelvalctx](g2-withcancelvalctx.md) | `context.WithCancelValCtx.wp_proof` as strengthened by G2's (h) (`7ec9f1f715`) | **survives** (2026-10-30): `valCtx` promotes `inctx`'s `Value`, a `*cancelCtx` delegates every key but `&cancelCtxKey`, so grpc reads the same `rawMD` |
+
+The G2 reviews' branches (`axiom/g2-newstream`, `-servestream`, `-streamkey`, `-withcancelvalctx`), which
+held their counterexamples (Go programs and tests, Lean proofs), were deleted on 2026-10-30 at the
+user's request, after the repairs landed; their last commits were `2f1e9c8cdb`, `d400040099`,
+`5c8e1c382b` and `8b47c519de` (unreachable, so gone once git collects them). The reports keep the
+programs' descriptions and outputs; the stream-key test is inlined in
+`issues/etcd-watch-stream-key-collision.md`.

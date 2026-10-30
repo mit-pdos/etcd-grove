@@ -74,7 +74,8 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ipersist closingc
   ipersist lg
   imod wgsWg_init _ Hb $$ wg with Hadder
-  imod start_bag (reqP V) _ reqc γreq (by trivial) $$ Hreqc Hreqo with #Hbreq
+  imod start_bag (reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok cx)))) _ reqc γreq
+    (by trivial) $$ Hreqc Hreqo with #Hbreq
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
   -- (D25) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
   imod mono_list_own_alloc (GF := GF) ([] : List EpInfo) with ⟨%γep, Hep, -⟩

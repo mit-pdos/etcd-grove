@@ -101,6 +101,15 @@ theorem affLt_irrefl (a : GoString) : ¬ affLt a a := by
   · exact ha h
   · exact go.goStringLt_irrefl a h
 
+/-- Below the top `""`: exactly the non-empty keys. -/
+theorem affLt_top_iff (a : GoString) : affLt a go!"" ↔ a ≠ go!"" := by
+  unfold affLt; simp
+
+/-- Below a non-empty key: the non-empty keys below it in Go's order. -/
+theorem affLt_iff_of_ne (a b : GoString) (hb : b ≠ go!"") :
+    affLt a b ↔ a ≠ go!"" ∧ go.GoStringLt a b := by
+  unfold affLt; simp [hb]
+
 theorem affLt_trans {a b c : GoString} (h1 : affLt a b) (h2 : affLt b c) : affLt a c := by
   obtain ⟨ha, hab⟩ := h1
   obtain ⟨hb, hbc⟩ := h2

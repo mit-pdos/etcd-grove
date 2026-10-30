@@ -211,15 +211,17 @@ instance isWatchServer_persistent (p : Loc) (R : WSrv GF) : Persistent (isWatchS
 
 /-- **What the client's content of a request gives the server** (persistent): the request is
 restricted (`watchReqOk`) and, for a create request, comes with a watch token of the store
-(`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends). -/
-def upOk (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
+(`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends) and (G2's
+freeze, 2026-10-30) the client's bound on the auth store's published index in the server's mode `M`
+(`authPubLbM M c.bound`, `watchUp`'s: what `recvLoop` checks the create at). -/
+def upOk (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
     (match m with
-     | .create _ => mvcc.watchTok γ
+     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound
      | _ => iprop(True)))
 
-instance upOk_persistent (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) :
-    Persistent (upOk γ Up) := by
+instance upOk_persistent (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) :
+    Persistent (upOk γ M Up) := by
   unfold upOk; infer_instance
 
 /-- **The client's content of the watch method's requests** (unit W-W: what the client's `Send`
@@ -234,16 +236,11 @@ def watchUp (R : WSrv GF) (_i : Nat) (m : WatchReqM) : IProp GF :=
      | _ => iprop(True)))
 
 /-- The registered content meets the watch server's restrictions and budget (`upOk`). -/
-theorem upOk_watchUp (R : WSrv GF) : ⊢ upOk (GF := GF) R.γ (watchUp R) := by
+theorem upOk_watchUp (R : WSrv GF) : ⊢ upOk (GF := GF) R.γ R.E.authMode (watchUp R) := by
   unfold upOk
   iintro !> %i %m H
   unfold watchUp
-  icases H with ⟨%Hm, H⟩
-  isplitr
-  · ipureintro; exact Hm
-  cases m with
-  | create c => icases H with ⟨H, -⟩; iexact H
-  | _ => iexact H
+  iexact H
 
 /-! ## One run -/
 
@@ -338,7 +335,7 @@ def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
     watchStreamSpec r.γs r.srv.γ r.srv.s (auth.ctxTokenOf (GoInterface.ok r.ci)) r.srv.cid r.srv.mid
       r.Dn ∗
     streamAuxIs r.γs (auxOf r.γo r.γa) ∗
-    upOk r.srv.γ r.Up ∗
+    upOk r.srv.γ r.srv.E.authMode r.Up ∗
     mvcc.isWatchStream r.wsp (wsIface r.srv.wsl) (wParams r.srv) r.γo ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" r.wsp ↦□ r.ch ∗
     isChan r.ch r.γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗

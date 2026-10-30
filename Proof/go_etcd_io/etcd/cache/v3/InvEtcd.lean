@@ -621,6 +621,10 @@ def inRange (key rangeEnd k : GoString) : Bool :=
   else if rangeEnd = [W8 0] then !decide (go.GoStringLt k key)
   else !decide (go.GoStringLt k key) && decide (go.GoStringLt k rangeEnd)
 
+/-- A from-key range (`rangeEnd = [0]`): the keys from `key` on. -/
+theorem inRange_from (key k : GoString) : inRange key [W8 0] k = !decide (go.GoStringLt k key) := by
+  unfold inRange; simp
+
 /-- Every key of the range `[key, rangeEnd)` has the prefix `pfx`. -/
 def KeyRangeUnder (pfx key rangeEnd : GoString) : Prop :=
   ∀ k, inRange key rangeEnd k = true → pfx <+: k

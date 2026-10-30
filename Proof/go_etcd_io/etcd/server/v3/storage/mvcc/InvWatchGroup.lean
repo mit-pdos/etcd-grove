@@ -338,6 +338,28 @@ theorem covers_some (r : WatchRange) (k e : GoString) (h : r.end? = some e) :
     r.covers k = true ↔ adt.ivlCmp (k, k ++ go!"\x00") (r.key, e) = 0 := by
   unfold WatchRange.covers; rw [h, ivlCmp_point_iff]; simp
 
+omit [GooseExts] in
+/-- **A from-key range** (the end `some []`: `[]byte{}`, the top of the affine order) of a
+non-empty key covers the keys from it on, in Go's order. -/
+theorem covers_from (r : WatchRange) (k : GoString) (h : r.end? = some []) (hk : r.key ≠ []) :
+    r.covers k = !decide (go.GoStringLt k r.key) := by
+  unfold WatchRange.covers; rw [h]
+  have h1 := adt.affCmp_nonneg_iff k r.key
+  have h2 := adt.affCmp_neg_iff k go!""
+  rw [adt.affLt_iff_of_ne k r.key hk] at h1
+  rw [adt.affLt_top_iff] at h2
+  rw [Bool.eq_iff_iff]
+  simp only [decide_eq_true_eq, Bool.not_eq_true', decide_eq_false_iff_not]
+  rw [h1, h2]
+  constructor
+  · rintro ⟨hn, hne⟩ hlt; exact hn ⟨hne, hlt⟩
+  · intro hn
+    have hne : k ≠ go!"" := by
+      rintro rfl; apply hn
+      obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hk
+      rw [ht]; exact go.goStringLt_nil_cons a t
+    exact ⟨fun h => hn h.2, hne⟩
+
 /-- The tree's entries a key's point interval overlaps are those of the range members
 holding the key. -/
 theorem stab_point_ne_nil_iff (W : GMap Loc WatchRange) (L : List adt.Entry)

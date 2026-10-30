@@ -185,14 +185,12 @@ def ctrlAnswers (req : WatchReqM) (m : WatchRespM) : Prop :=
 
 /-- **The range `r` a create request `c` registers** with the watch id `id` (`recvLoop`'s
 normalization): an empty key is `"\x00"` (the smallest key); an empty range end is a single key
-(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, the end
-`some []`), or, in the model only, a single key: Perennial's `wp_slice_literal` does not say that
-the empty literal `[]byte{}` is not `nil` (in Go it is not; `notes/STATUS.md`, "W-M"); any other
-range end is kept. -/
+(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, not
+`nil`: the end `some []`); any other range end is kept. -/
 def createRangeOk (c : CreateReqM) (id : w64) (r : mvcc.WatchRange) : Prop :=
   r.key = (if c.key = [] then [W8 0] else c.key) ∧ r.startRev = c.startRev ∧ r.id = id ∧
   (if c.rangeEnd = [] then r.end? = none
-   else if c.rangeEnd = [W8 0] then r.end? = some [] ∨ r.end? = none
+   else if c.rangeEnd = [W8 0] then r.end? = some []
    else r.end? = some c.rangeEnd)
 
 /-- **The response the send loop makes of the mvcc response `r`** with the header `h` (its
@@ -496,6 +494,19 @@ instance watchAuthed_persistent (γ : mvcc.WsNames) (s : Loc) (tok : Option GoSt
     Persistent (watchAuthed (GF := GF) γ s tok n key rangeEnd) := by
   unfold watchAuthed; infer_instance
 
+/-- **What a passed check gives** (G2's freeze, 2026-10-30): the mode `M` and the auth info `info`
+the check classed, the mode's tag, the class at the bound `n`, with auth on `info` bound to the
+token, and the request's shape (for a client of `watchAuthed`, e.g. `client.watchCheckOk_tok`, in
+place of unfolding it). -/
+theorem watchAuthed_elim (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString) (n : Nat)
+    (key rangeEnd : GoString) :
+    watchAuthed (GF := GF) γ s tok n key rangeEnd ⊢
+      ∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        auth.modeTag γ.tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
+        □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+        ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
+  unfold watchAuthed; iintro H; iexact H
+
 /-- **The watcher a created response names** (the watch slice's units W-M and W-C): for a
 create request `c` answered by a registered (not canceled) response `m`, the mvcc watcher `w`
 the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, the request's
@@ -686,6 +697,17 @@ def watchStubAt (wc conn : Loc) : IProp GF :=
 
 instance watchStubAt_persistent (wc conn : Loc) : Persistent (watchStubAt (GF := GF) wc conn) := by
   unfold watchStubAt; infer_instance
+
+/-- **A watch stub's connection is determined** (G2's proofs, 2026-10-30): two `watchStubAt` facts of
+one stub name the same connection (its `cc` field is read-only). -/
+theorem watchStubAt_agree (wc conn conn' : Loc) :
+    watchStubAt (GF := GF) wc conn ∗ watchStubAt wc conn' ⊢ ⌜conn = conn'⌝ := by
+  iintro ⟨#Hs, #Hs'⟩
+  unfold watchStubAt
+  icombine Hs Hs' gives %Heq
+  simp at Heq
+  ipureintro
+  exact go.intoVal_inj Heq
 
 /-- **The `Watch` service's descriptor** (persistent; a fact of `etcdserverpb`'s initialization,
 as `watchVars`: `Watch_ServiceDesc` is the generated literal and nothing writes it): its

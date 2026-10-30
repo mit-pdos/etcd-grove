@@ -36,9 +36,8 @@ theorem startOk_false (V : WEnv GF) (rev : w64) : ⊢ startOk V false rev := by
 /-- What a promised completeness says of the watch's start revision. -/
 theorem cplCond_rev {sr : Bool} {o : OpFull} {rev : w64} (h : cplCond sr o rev = true) :
     sr = true ∧ rev ≠ W64 0 := by
-  unfold cplCond at h
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-  exact ⟨h.1, h.2.2.2.2⟩
+  have h := cplCond_iff.1 h
+  exact ⟨h.1, h.2.2⟩
 
 /-- **The resume revision at the substream's start**: the watch's start revision. -/
 theorem resumeOk_init (V : WEnv GF) (P : WsPrm GF) (hok : wsReqOk V.pfx P)
