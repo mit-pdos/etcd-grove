@@ -299,6 +299,13 @@ instance akHistInv_persistent (γk : KVNames) :
     Persistent (akHistInv (GF := GF) γk) := by
   unfold akHistInv; infer_instance
 
+/-- The invariant's namespace is inside the updates' outer mask. -/
+theorem akHistN_mask : (↑akHistN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  exact ⟨⟨CoPset.mem_full, fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩,
+    fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩
+
 /-- **The invariant's allocation**: from the client's half at a state the history admits (the
 boot state, before `SetUp`: no event). -/
 theorem akHist_alloc (γk : KVNames) (σ : KVState) (h : stateHistOk σ) :
@@ -311,7 +318,7 @@ theorem akHist_alloc (γk : KVNames) (σ : KVState) (h : stateHistOk σ) :
   iframe Hσ
   ipureintro; exact h
 
-/-- **A write's update under the invariant** (stub; round 1, F-H1/F-H2): an update whose grant
+/-- **A write's update under the invariant** (round 1, F-H1/F-H2): an update whose grant
 `G`, as it fires, makes the operation one the history admits keeps the invariant. The caller
 refutes or uses the grant with what it holds (`clientTokAt`, `akAuthFixed`, the TLS refutation)
 inside `hG`, in the mask the update fires in, the invariant opened; `Q` is the caller's result: a
@@ -320,14 +327,70 @@ theorem akHist_writeAu (γk : KVNames) (op : KVOp) (G Q : KVState → IProp GF) 
     akHistInv (GF := GF) γk ∗
       □ (∀ σ, G σ -∗ |={((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑akHistN}=> ⌜opHistOk op⌝ ∗ Q σ) ⊢
     □ kvAu1G γk (kvOpStep op) G Q := by
-  sorry
+  have Hm := akHistN_mask
+  iintro ⟨#Hinv, #HG⟩
+  imodintro
+  unfold kvAu1G
+  iauintro
+  unfold atomic_acc
+  iunfold akHistInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, Hσ, %HS⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑akHistN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hσ] with -
+    · inext; iexists σ; iframe; ipureintro; exact HS
+    imodintro
+    iempintro
+  · iintro ⟨Hσ, HGσ⟩
+    imod Hclose2 with -
+    imod HG $$ HGσ with ⟨%Hop, HQ⟩
+    imod Hclose $$ [Hσ] with -
+    · inext; iexists _; iframe; ipureintro; exact stateHistOk_step op σ HS Hop
+    imodintro
+    iexact HQ
 
-/-- **A read's update under the invariant** (stub): a read (root's watch, `u`'s watch: the
+/-- **A read's update under the invariant**: a read (root's watch, `u`'s watch: the
 watch's read update, as watchkv's `wk_read_au`) fired at a state the invariant holds, so every
 event of it is admitted. -/
 theorem akHist_readAu (γk : KVNames) :
     akHistInv (GF := GF) γk ⊢ kvReadAu γk (fun σ => iprop(⌜stateHistOk σ⌝)) := by
-  sorry
+  have Hm := akHistN_mask
+  iintro #Hinv
+  unfold kvReadAu kvAu
+  imodintro
+  iauintro
+  unfold atomic_acc
+  iunfold akHistInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, Hσ, %HS⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑akHistN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hσ] with -
+    · inext; iexists σ; iframe; ipureintro; exact HS
+    imodintro
+    iempintro
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hσ] with -
+    · inext; iexists σ; iframe; ipureintro; exact HS
+    imodintro
+    imodintro
+    ipureintro; exact HS
 
 /-- An update told nothing (`G := True`) is a plain one. -/
 theorem kvAu1G_true (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
