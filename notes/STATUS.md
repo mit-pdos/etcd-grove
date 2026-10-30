@@ -532,6 +532,13 @@ exported or trusted switched:
 - **Review round 1** (`notes/spec-first-study/m2-storage-review-1.md`): F1, F2 drafted by the user's
   decisions; S1-S5, S8, S9 fixed, S6 rejected (`notes/decisions.md`), S7 superseded, S10 partly.
 - **Open, for the user**: Q2, the drafted statements (now with Q1 (a)'s and round 1's).
+- **Step 1 on the merged `lean`** (2026-10-30, after Stage P; the plan's "Step 1 on the merged lean"):
+  the Supply Draft builds again (raft's `Assumptions` instance); N1 drafted end to end (`apply.AEnvD`'s
+  `cmp`, `envAgreeD` with the mode clause, `memberBootD`, `wk_servedD`/`etcd_cache_servedD`/linkv3p's
+  `memberWatchD`, new Drafts under `examples/{common,watchkv,linkv3p}` and `cache/v3`); F2's drafts
+  dropped (withdrawn by the user); S3'/S5'/S6' done, S1'/S2' moot; the consolidated Q2 list (14
+  items, none D22's; the supply's server source pending step 2). Step 2 (restore in compaction mode)
+  not started; what it needs is listed there. Full `lake build` passed (11206 jobs).
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 

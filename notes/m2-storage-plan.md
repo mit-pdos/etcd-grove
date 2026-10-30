@@ -1,6 +1,8 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
+Status (2026-10-30): **step 1 on the merged `lean` done** ("Step 1 on the merged lean", the last
+section: Supply repaired, N1 drafted end to end, F2 dropped, the Q2 list); step 2 (restore in
+compaction mode) not started. Earlier: **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
 user: the drafted statements below and the questions at the end. Q1 answered **(a)** and drafted
 ("Q1 (a), drafted", below; `mvcc/M2StorageDraftSupply.lean`; `12343a4cc9`, full `lake build` passed,
 10958 jobs, no error); review round 1 (`notes/spec-first-study/m2-storage-review-1.md`) answered and
@@ -360,6 +362,9 @@ registered only by a create request, and a create request already carries a watc
 
 ### F2, drafted: the apply thread's part of the backend's name discarded in compaction mode
 
+**Withdrawn** (2026-10-30, the user's decisions after `lean`'s Stage P: restore must work in
+compaction mode); the drafts were removed in step 1 ("Step 1 on the merged lean", below).
+
 (`etcdserver/M2StorageDraft.lean`.) A discarded part of a ghost variable forbids every update of
 it (an update needs the whole), so discarding **one** holder's part freezes `E.γbe`; the apply
 thread's quarter (`srvBeOwn`) is the one to discard: the apply thread runs the compaction arm, and
@@ -521,7 +526,7 @@ false)`, `memberBoot_cmp`, linkv3p's `memberWatch` `⌜… ∧ E.cmp = false⌝`
   passing the new premise. Not drafted: `envAgreeD`, `memberBootD`, `envAgreeD_of_new`,
   `envAgreeD_off`, and the examples' glue; all to redo against the merged `lean` (NewServer moved).
 
-### Not done
+### Not done (as of the stop; step 1 below takes them up)
 
 - **S1'** (`kbWTSupplyM_of_srvBeOwnD`'s needless mode premise), **S2'** (`srvBeFracOf`),
   **S5'** (`srvBeFrac`'s docstring: the store's `γ.st.kb` and `E.γ.kb` agree, `γ.st = E.γ` from
@@ -554,3 +559,168 @@ false)`, `memberBoot_cmp`, linkv3p's `memberWatch` `⌜… ∧ E.cmp = false⌝`
   `srvEnvOk`, `applySnapshot.specSnap`, the walk lemmas). Draft only: D22 is the collaborator's, who
   will see it through the notes. The server's restore branch is still SNAPSHOT-SORRY #8
   (`EtcdServer__run.lean:811`); the 3-member program comes after the apply-loop side.
+
+## Step 1 on the merged lean (2026-10-30)
+
+The parts that do not depend on restore, against `lean` merged at `9b09b9f411` (Stage P, the
+auth-mode merge's step 6). Commits `e80d70f0c9` (the Supply repaired), `f58a6b6adf` (N1, F2 dropped,
+the S-items), and this notes commit. Nothing exported, trusted or D22's switched; no `axiom`, no
+`sorry`; no Perennial change.
+
+### What Stage P changed for the Drafts
+
+- **`M2StorageDraftSupply.lean`**: its 64 errors were one cause, the missing
+  `go_etcd_io.raft.v3.Assumptions` instance at the linked results (Stage P's instance-argument
+  pattern, as in `mvcc/Link.lean`/`Results.lean`); one `variable` line. Nothing else moved.
+- **The other Draft modules still say what they did**: `lean` changed mvcc, v3rpc and the client
+  only by the same instance lines (and `store.Close`'s `as -`): `isWatchableStore`,
+  `watchStoreInv`, `storeWatchParams`, `store.Compact`'s chain, `NewStore`/`New`/
+  `newWatchableStore`'s specs, `upOk`/`watchUp`/`watchSrvOk`/`isWatchServer`,
+  `watchMemberFacts`/`watchAddrFacts` are textually today's of the Drafts' copies (checked by diff of
+  `4e2bc21c8c..9b09b9f411`).
+- **The server moved**: `NewServer` now has three specs, `spec` (`= specM false`,
+  `NewServer.spec_of_specM`), `specM on` (auth on or off) and `specCompact`; the environment is
+  built in `NewServer.wp_proofM` (generic in `on`), its agreement at `NewServer.lean:1039` (`hγs`),
+  the store at `{ d with cm := false }` (`Hγw.2.2.1`, from `server_kv_watchable_of`'s post).
+  `memberBoot` lost `readCredits` and `γ.dyn` (Stage P), and gained a twin `memberBootOn` (auth on).
+  `NewServer.spec`'s post carries `srvKVCloser` (D22 S-g) and no `crevFrozen` (N1's law route).
+
+### N1, drafted end to end
+
+The route decided after round 2 (the mode through the stand-in `E₀`), over the current `NewServer`
+and `examples/common`:
+- **Server** (`etcdserver/M2StorageDraft.lean`): `apply.AEnvD` (today's `AEnv` extended by
+  `cmp : Bool := false`: at the switch a field of `AEnv` itself), and
+  ```lean
+  def envAgreeD (E E' : apply.AEnvD GF) : Prop :=
+    E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧
+      (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)
+  ```
+  Laws: `envAgreeD_agree` (today's `envAgree`, for `srvC_agree`/`srvCM_agree`), `envAgreeD_mode`,
+  `envAgreeD_off` (`envAgreeD E E₀ → E₀.cmp = false → ¬ kbCmpM E.γ.kb`), `envAgreeD_on`, and
+  NewServer's step `envAgreeD_of_new` (today's agreement, `E.γ.kb = some d`, `d.cm = E.cmp`,
+  `E.cmp = E₀.cmp`), `envAgreeD_of_new_off` (today's instance: `{ d with cm := false }`).
+- **The specs' premises** (text, at the switch; not copied into Lean: one line each, the rest
+  unchanged, the post's `envAgree E E₀` read over the redefinition):
+  `NewServer.spec` and `NewServer.specM`: `E₀.cmp = false →` beside
+  `cfg.AutoCompactionRetention' = 0 →`; `NewServer.specCompact`: `E₀.cmp = true →` beside
+  `0 < sint.Z cfg.AutoCompactionRetention' →`; the merged spec:
+  `(E₀.cmp = true ↔ cfg.AutoCompactionRetention' ≠ 0) →`. Their proofs: the anonymous `AEnv`
+  constructor at `NewServer.lean:1039` gains `E₀.cmp`, `hγs` becomes `envAgreeD_of_new_off`.
+- **Examples' boot** (`examples/common/M2StorageDraft.lean`, new): `env₀D … (cmp := false)`,
+  `memberBootD … (cmp : Bool := false)` (pure facts gain `E₀.cmp = cmp`, appended),
+  `memberBootD_cmp` (a `Main` reads the mode before `newServer` takes the bundle), `memberBootD_of`
+  (the allocations' bundle at `env₀D … cmp`), `memberBootD_to` (what `newServer` passes on).
+  `memberBuilt`/`memberUp`/`memberServed` keep their texts. `memberBootOn` (auth on) gets the same
+  argument at the switch (authkv does not watch: default).
+- **The watching examples' glue**, proved against the drafted watch-stream registration as a
+  hypothesis (`v3rpc.etcd_watch_served_chain.specD`: `etcd_watch_served_chain` over `watchUpD`,
+  `isWatchServerD`):
+  - watchkv (`examples/watchkv/M2StorageDraft.lean`): `wk_servedD`, `wk_served` with
+    `(hoff : ¬ mvcc.kbCmpM V.R.E.γ.kb)` and the post's `watchAddrFactsD V`;
+  - cache (`cache/v3/M2StorageDraft.lean`): `etcd_cache_servedD`, the same for the exported
+    `etcd_cache_served`;
+  - linkv3p (`examples/linkv3p/M2StorageDraft.lean`): `memberWatchD`, `memberAtD` (pure facts gain
+    `¬ mvcc.kbCmpM E.γ.kb`, appended), `memberWatchD_facts` (to `client.watchMemberFactsD`),
+    `memberWatchD_of_at` (MainWatch's step).
+  - At each `Main` (`watchkv/Main.lean`, `cachekv/Main.lean`; linkv3p's `startCluster` from
+    `memberServed`): `hoff` is `envAgreeD_off` of the unfolded `envAgree E E₀` with the boot
+    bundle's `E₀.cmp = false`.
+  - Draft-only bridges (the identity at the in-place switch): `mvcc.isWatchableStoreD_to`,
+    `v3rpc.isWatchServerD_to`, so the glue reuses today's client lemmas.
+
+### The second-tier items
+
+- **S1'** (`kbWTSupplyM_of_srvBeOwnD`'s mode premise): moot, the lemma is withdrawn with F2.
+- **S2'** (`srvBeFracOf`): moot, withdrawn with F2.
+- **S3'**: projections `client.watchMemberFactsD_kv` (for `watcher__Watch.lean:54-55`'s
+  `⟨-, -, -, -, #Hkf0⟩`, which the appended conjunct breaks: at the switch the site reads
+  `ihave #Hkf0 := watchMemberFacts_kv V $$ Hmf0`) and `watchMemberFactsD_st` (`InvWatch.lean:469`,
+  `linkv3p/WatchEnv.lean`'s unfold). `InvClientNewResult.lean:112` unfolds all three facts: one
+  more conjunct there.
+- **S5'** (one reading of the mode): the mode clause of `envAgreeD`, `kbCmpM E.γ.kb ↔ E.cmp =
+  true`, with `isWatchServerD_link` (`R.γ.st = R.E.γ`) for the watch side. In step 2 D22's install
+  (which replaces `E.γ.kb`, `snapE_kb`) must keep it: the received backend at the server's mode.
+- **S6'**: `mvcc.storeWatchParamsD_T`/`_R` were already dropped; `v3rpc.createArm_T` stays marked
+  Draft-only. `txn.storeWTs`'s unfold replaced by a law, `txn.storeWTs_someD` (goes to
+  `txn/Defs.lean` at the switch). `backend.wbTok`'s unfold **kept**: with a law
+  (`wbTok_split`, or `InvApplier`'s `wbToks_split`) in place of `ownToks_add_1` + `unfold`, the
+  kernel's check of `server_kv_watchable_ofD` hit deep recursion, then a deterministic timeout at
+  `maxRecDepth 8000` (cause not found; the elaborator accepted it).
+- **F2's drafts dropped** (`srvBeFrac`, `srvBeOwnD`, `_off`, `_frozen`, `kbWTSupplyM_of_srvBeOwnD`,
+  `srvBe_allocD`). `kbWTSupplyM_of_srvWTPool` kept: its discarded part of `E.γbe` has no source now
+  (pending step 2).
+
+### Statements for the user's approval (Q2)
+
+Every exported or trusted statement the switch changes (the drafted text in the named Draft
+module). None is D22's: F2's five are withdrawn, and step 2 lists its own.
+1. **`mvcc.New.spec`** (linked; a callee of `NewServer`'s proof): pre loses `mvcc.kbWTSupplyM kb ∗`
+   (Q1 (a)); post `mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗` (P3), over the redefined
+   `isWatchableStore` (`mvcc.New.specD`).
+2. **`mvcc.newWatchableStore.spec`**: the same, `mvcc.storeCloser st γ.st ∗ mvcc.crevRightM γ.st ∗`
+   (`newWatchableStore.specD`).
+3. **`mvcc.NewStore.spec`**: pre loses `mvcc.kbWTSupplyM kb ∗` (`NewStore.specD`, Supply module).
+4. **`mvcc.store.Compact.spec`**, export **`mvcc_store_Compact`**: pre's last line
+   `… ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}` (`store.Compact.specD`); internal
+   `updateCompactRev`/`compactLockfree` alike.
+5. Exports **`mvcc_NewStore_backend`**, **`mvcc_NewStore_backend_cmp`**: pre loses
+   `mvcc.kbWTSupplyM (some d) ∗` (Supply module).
+6. **mvcc, in place** (exported texts unchanged, meaning changed): `isWatchableStore`'s
+   `"#Hfrz" ∷ mvcc.wsFrozenM γ.st`; `watchStoreInv` gains `mvcc.wsWatchFrozen γ σ`;
+   `storeWatchParams`' `T := iprop(mvcc.watchTok γ ∗ mvcc.noCompactor γ.st)`, read by
+   `NewWatchStream.spec`'s post and `watchStream.Watch`'s `P.T`. New exported names:
+   `mvcc.noCompactor` (sealed, body `crevFrozen`) and its laws, `wsFrozenM`, `crevRightM`,
+   `compactRight_of_wsCloser`, `noCompactor_of_new`.
+7. **v3rpc, in place**: `upOk`'s and `watchUp`'s create arm
+   `| .create _ => iprop(mvcc.watchTok γ ∗ mvcc.noCompactor γ.st)`: the registered content of
+   `etcd_watch_served(_chain)` (texts unchanged). New law: `isWatchServer_noCompactor(_env)`,
+   `isWatchServer_link`.
+8. **client, in place**: `watchMemberFacts` and `watchAddrFacts` gain `∗ mvcc.noCompactor V.R.γ.st`
+   (appended last); `watchConnFacts` reads them (the premises of `NewWatcher`, `watcher.Watch`, ...).
+9. **`apply.AEnv`**: the field `cmp : Bool := false`.
+10. **`envAgree`**: `envAgreeD`'s text (the mode clause).
+11. **`NewServer.spec`**, **`NewServer.specM`**: premise `E₀.cmp = false →`;
+    **`NewServer.specCompact`**: `E₀.cmp = true →` (trusted until proved: its proof is `sorry`).
+12. **examples/common**: `env₀ … (cmp : Bool := false)`; `memberBoot … (cmp : Bool := false)` with
+    `E₀.cmp = cmp`; `newServer.specCompact` and `StartCompactingServer.spec` at `memberBoot … true`
+    (their allocation at `env₀ … true`); `memberBootOn` the same argument.
+13. **`etcd_cache_served`** (exported): `(hoff : ¬ mvcc.kbCmpM V.R.E.γ.kb)`; post over the
+    redefined `watchAddrFacts` (`etcd_cache_servedD`). watchkv's `wk_served` alike; linkv3p's
+    `memberWatch`, `memberAt` gain `¬ mvcc.kbCmpM E.γ.kb` (appended).
+14. **The write-back supply's server source**: **pending step 2** (`kbWTSupplyM_of_srvWTPool`'s
+    discarded part of `E.γbe` had F2 as its source; with restore in compaction mode `E.γbe` changes,
+    so the supply must follow the backend through `applySnapshot`).
+
+### What step 2 will need (seen on the merged lean; not started)
+
+- **`store.Restore.spec`** (`Spec/.../mvcc/store__Restore.lean:120`): pre
+  `⌜∃ d, γ.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝`, `writerOwn γ`, `crevFrozen γ`; its proof
+  uses `writerOwn_off` (`store__Restore.lean:190`, `:390`) and `¬ kbCmpM` at `:295`. Step 2: take the
+  compaction right, `storeStop` and the job's budgets (`compactJobResM`), hand out the new store's;
+  `writerOwn` at `2 + nJobRd` already accepts a compacting count.
+- **`watchableStore.Restore.spec`** (the walk's `hRst`, `SnapApplyWalk.lean:68`).
+- **`applySnapshot.specSnap`** (`Spec/.../EtcdServer__applySnapshot.lean:54`): `(hcm : d.cm = false)`.
+- **`srvEnvOk`** (`InvApplier.lean:478`): `… ∧ d.cm = false`.
+- **The walk**: `SnapApplyWalk.lean:55` (`hcm`), `:291-292` (the new backend `d'.cm = false`),
+  `:406-408`, `:461` (`srv_be_swap`, which gathers the whole of `E.γbe`: no discarded part may
+  exist, so the supply cannot come from one), `:808`; `SnapApplyDefs.lean:95`, `:181` (`d'.cm =
+  false` in the walk's state and post); `SnapApplyIsServer.lean:49` (`hcm'`);
+  `SnapApplyPost.lean:116-155`; `SnapApplyKV`'s `snapE_kb` (with N1: the new backend at
+  `cm := E.cmp`, so `envAgree`'s mode clause survives the install).
+- **`RestorePre.lean:79-80`**: `sorry -- M2 S1` for `crevFrozen E.γ` (closable off by
+  `isWatchableStoreD_frozen` with `srvEnvOk`'s `d.cm = false`; in compaction mode there is none:
+  `Restore` takes the compaction right instead).
+- **`srvKVCloser`** (`NewServer.spec`'s post, D22 S-g): at `cm = true` the closer becomes the right
+  after `NewServer`'s last error return, so it holds `compactRight ∗ storeStop` (or is mode-gated).
+- **SNAPSHOT-SORRY #8** (`EtcdServer__run.lean:811`, and `:1332` for `run`'s auth-on proof): the
+  snapshot payload's job, over `applySnapshot.specSnap`'s premises: where a compacting server's
+  restore will enter.
+- **The supply**: `kbWTSupplyM_of_srvWTPool` (etcdserver Draft) needs a discarded part of `E.γbe`
+  at `d`; with restore in compaction mode the supply must be re-made per backend (from `srvWTPool`
+  at the current backend, under `bemu`) or be stated over the current backend.
+
+### Checked
+
+`etc/lean-check.py` on each Draft module; a targeted `lake build` of the nine Draft modules (7142
+jobs, no error); the full `lake build` of `f58a6b6adf` passed (11206 jobs, no error).
