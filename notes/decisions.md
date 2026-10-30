@@ -26956,3 +26956,40 @@ error branch in the contracts (c).
   and it would change every server handler's proof.
 - A bound on the request's whole encoded size (the sum of its fields): stronger than the servers
   need.
+
+## The STM's sizes: a per-attempt count and `applySpec`'s start premise (2026-10-30 · accepted, the user's approval of Q6 (ii) as proposed · `notes/invoke-size.md`)
+
+**Why:** with the send-side bound (two entries above), the STM's `commit` must show `txnSizeOk` of
+its one transaction: the read set's comparisons, the write set's comparisons (`SerializableSnapshot`)
+and operations, and (serializable levels) a get per read key; and `stm.fetch` that of its read
+transaction. The user's closure chooses all of them. The draft's Q6 (ii), approved: bound each call's
+keys and values, and the number of keys an attempt's calls name (the read and write sets are reset
+on each retry).
+
+**Decision (in `InvSTM.lean`):**
+
+- **The count.** `STMSt` gains `n : Nat`, the keys the attempt's calls named: `Get(keys...)` its
+  keys, `Put`, `Rev`, `Del` one each. `GetPost`/`RevPost` and the `Put`/`Del` posts advance it;
+  `STMSt.empty` has `n = 0`. The user's closure tracks it as it tracks the read and write sets.
+- **Each call's premise.** `STMCallOk st ks vs`: `st.n + ks.length ≤ stmCallMax` and every key and
+  value within `stmKeyMax`. `stmMethods`' `Get`, `Put`, `Rev`, `Del` take it.
+- **The constants.** `stmKeyMax = 2 ^ 20` bytes, `stmCallMax = 2 ^ 8` keys per attempt:
+  `stmCallMax * (3 * stmKeyMax + 2 * wireSlack) ≤ 2 ^ 30` covers the largest commit (per counted
+  key: a comparison and an `Else` get for a read, a comparison and an operation for a write).
+- **Kept by the state, hidden.** `stmState` keeps `STMSizeOk st`: lists of the read and the written
+  keys, as many as `n` together, each within `stmKeyMax`, as the written values. `stmCommit_size` and
+  `fetchTxn_size` turn it (and `fetch`'s premise: at most `stmCallMax` keys within `stmKeyMax`) into
+  `txnSizeOk`. Internal specs: `stm.commit` takes `STMSizeOk`, `stm.fetch` the keys' bound,
+  `stm.Get`/`stmSerializable.Get`/`.Rev` `STMCallOk`, `stm.Rev` the key's bound.
+- **`applySpec`'s start premise.** `applySpec pfx P apply Q`: the closure starts from an attempt with
+  `st.n ≤ P`. Without it the closure cannot know its budget: with `WithPrefetch`, `NewSTM` wraps
+  `apply` in `s.Get(prefetch...)`, a counted call before the user's code. `NewSTM` takes `P` with the
+  prefetch keys within `stmKeyMax`, at most `P` of them, `P ≤ stmCallMax`; `runSTM` any `P` (it
+  starts at `n = 0`); `NewSTMRepeatable`/`Serializable`/`ReadCommitted` (no prefetch) take
+  `applySpec pfx 0`.
+
+**Alternatives rejected:** a premise on the closure that every run's sets fit (Q6 (i): states the
+sizes in terms of the commit, which the user cannot see); a byte budget instead of a count (finer,
+but every call's premise then needs the sum of its keys' lengths); counting distinct keys rather than
+calls (a key read and written is two entries of the commit, so the bound per key would be `5N`, over
+`2 ^ 30` at these constants).

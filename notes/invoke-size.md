@@ -7,7 +7,7 @@ the axiom review `axiom/txn-nested-wire` refuted. grpc v1.84's `codecV2.Marshal`
 is recorded in `notes/decisions.md`, "The encoded-size bound at grpc's send side". This file
 records the state of the change and what `txn-nested` must fold.
 
-## State: partial (passes 1, 2, the cache's part of pass 3, concurrency's prefix bounds)
+## State: partial (passes 1, 2, the cache's part of pass 3; concurrency: the prefix and value bounds, the STM)
 
 **Done (builds: `Proof.go_etcd_io.etcd.client.v3.Link`, `Results`, `ResultsOn`, `ClientPutGet`,
 the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `ServerKVPut`,
@@ -122,17 +122,33 @@ the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `S
        state (`EtcdStateWf` or `etcdState`: every key at most the server's limit), a trusted fact about
        the client's model of etcd, justified by the server's request limit; (b) `waitDelete`'s watch
        takes a key-length premise, and `waitDeletes`/`observe` get it from (a) anyway.
-     - **STM (Q6 (ii)) needs two statements the draft does not list**, so it is not started either:
-       - a per-attempt count of calls in the model (`STMSt` gains a field, or `stmState` an index):
-         `GetPost`/`RevPost` and the `Put`/`Del` posts advance it, and `stmState` keeps (hidden) that
-         the read and write sets' keys are within the touched keys, each within `N`, values within `N`;
-       - **`applySpec` gains a premise on its start state** (the count at most the prefetch's): with
-         `WithPrefetch`, `NewSTM` wraps `apply` in `s.Get(prefetch...)`, so the user's closure starts
-         after a counted `Get`, and without the premise it cannot know its budget. `NewSTM` takes the
-         prefetch keys within `N` and their number within the budget.
-       Proposal: `N = 2 ^ 20`, at most `M = 2 ^ 8` keys per attempt (`M * (3 * N + 2 * 256) ≤ 2 ^ 30`
-       covers `SerializableSnapshot`'s commit: two comparisons and an `Else` get per read, a comparison
-       and an operation per write).
+
+     **The user's decisions (2026-10-30):** (1) `%x`: a general Perennial change (`SprintfOut` models
+     `%x` of an integer), then a pin bump, by another agent: the Sprintf-blocked proofs wait for the
+     pin. (2) A key-length invariant in `EtcdStateWf` (every key at most `2 ^ 27`), proved from the
+     server's receive limit where the adapters prove the contracts, drafted spec-first by another
+     agent: the proofs blocked on it wait. (3) The STM as proposed: approved, done (`58ac7ee604`;
+     `notes/decisions.md`, "The STM's sizes").
+
+     **Done since (`58ac7ee604`):**
+     - The STM: `STMSt.n`, `STMCallOk`, `STMSizeOk` (in `stmState`), `stmKeyMax = 2 ^ 20`,
+       `stmCallMax = 2 ^ 8`, `applySpec pfx P`, `NewSTM`'s prefetch premise; `stm__commit`,
+       `stm__fetch`, `stmSerializable__commit` and every STM proof build.
+     - `NewLocker` takes `NewMutex`'s prefix bound (missed in `2be4b6c12a`).
+     - `Election.Campaign`/`Proclaim` take `val.length ≤ 2 ^ 28` (statements; their proofs wait for
+       (1) and (2)); `electionServer.Campaign`/`Proclaim` discharge it by `grpcRecvBytesOk.lt`.
+     - Builds: every `concurrency` module but those below; the v3lock and v3election handler proofs.
+
+     **Still blocked:**
+     - On (1) (`%x`): `Mutex__{tryAcquire,TryLock,Lock,Unlock}`, `Election__{Campaign,Proclaim,Resign}`.
+       They also need the held key's bound in `mutexState`/`electionState` (the plan's), and
+       `ResumeElection` a bound on its `leaderKey` (the servers have `< 2 ^ 27` from the receive fact).
+     - On (2) (keys from etcd's state): `waitDelete`, `waitDeletes`, `Election__observe` (and `Lock`,
+       `Campaign` through `waitDeletes`).
+     - So `concurrency`'s `Link`/`Results` and v3lock's/v3election's `Link`/`Results` do not build yet.
+     - The examples using the STM (`lintest`, `linkvtxn`, `k8setcd3`, `kv`, `linkv3p`, `kvreconf`) need
+       `applySpec`'s `P` and the per-call premises: pass 4.
+
 2. **leasing**: each KV operation of the leasing KV gains the client's predicate. Its own
    transactions (key and lease key) must fit `txnBuilderSpecO`'s `txnSizeOk`; `isEtcdDoKV`'s get
    too.
