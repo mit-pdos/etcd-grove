@@ -45,6 +45,8 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
     (rv0 : GoString) (f : Obj → Nat → Except E Obj) (uf : GoFunc) (W : IProp GF)
     [Timeless W] (Φ : KVState → IProp GF) (k : GoString),
   prepareKeyM c.resourcePrefix key false = some k →
+  (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
+  (∀ o n o', f o n = .ok o' → c.S.storedSizeOk o') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt dest o0 rv0 ∗ W ∗
       ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) c.S.zero f) W Φ) ∗

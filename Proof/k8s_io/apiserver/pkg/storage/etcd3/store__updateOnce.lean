@@ -59,7 +59,7 @@ theorem store.updateOnce.wp_proof
     (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
     store.updateOnce.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl σ0 kv0 v p z f o' W Φu
-    hk hkv0 hs hok hw
+    hk hkl hkv0 hs hok hosz hw
   wp_start as ⟨#Hst, #Hctx, #Hce, %Hspn, Hos, #Hdsl, Hout, %Hv, #Hrd0, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -141,7 +141,7 @@ theorem store.updateOnce.wp_proof
     (try wp_auto)
     wp_apply (wp_kPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
-          #c.kc)) c.ms c.V ci cd key vsl val s.rev ⟨true, zero_val _⟩ _ rfl) $$ [Hau']
+          #c.kc)) c.ms c.V ci cd key vsl val s.rev ⟨true, zero_val _⟩ _ rfl hkl (hosz val Hval)) $$ [Hau']
       as %resp %perr Hput
     · iframe #
       iexact Hau'

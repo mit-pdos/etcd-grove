@@ -42,7 +42,7 @@ theorem store.getCurrentState.wp_proof
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.getCurrentState.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd verb key v p R hk hR
+  intro _ _ Obj _ sp c ci cd verb key v p R hk hkl hR
   wp_start as ⟨#Hst, #Hctx, #Hce, %Hv⟩
   iapply wp_fupd
   (try wp_auto)

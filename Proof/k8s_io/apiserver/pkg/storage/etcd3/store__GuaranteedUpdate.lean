@@ -70,7 +70,7 @@ theorem store.GuaranteedUpdate.wp_proof
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GuaranteedUpdate.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 f uf W _ Φu k hk
+  intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 f uf W _ Φu k hk hkl hfsz
   wp_start as ⟨#Hst, #Hctx, #Hce, Hout, HW, #Hau, #Hup⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -144,7 +144,7 @@ theorem store.GuaranteedUpdate.wp_proof
   obtain ⟨rfl, Hv⟩ := Hen'
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci' cd go!"updateGet" (c.pathPrefix ++ k) v p
-      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) c.S.zero f))) hpfx hR) $$ [] as %gf #Hgf
+      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) c.S.zero f))) hpfx hkl hR) $$ [] as %gf #Hgf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
@@ -336,7 +336,7 @@ theorem store.GuaranteedUpdate.wp_proof
               isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
               wp_apply (wp_updateOnce Obj E sp c ci' cd spn (c.pathPrefix ++ k)
                   (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st s x' esl σ kv v p c.S.zero f o' W Φu
-                  hpfx hkv hs hfr hw) $$ [$Hx $Hout $HT] as %st' %ok %uerr Hd
+                  hpfx hkl hkv hs hfr (hfsz _ _ _ hfr) hw) $$ [$Hx $Hout $HT] as %st' %ok %uerr Hd
               · iframe #
                 ipureintro; exact ⟨Hspn, Hv⟩
               icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, Hout, %σ', #Hfs', Hat, HT'⟩)
@@ -464,7 +464,7 @@ theorem store.GuaranteedUpdate.wp_proof
             isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
             wp_apply (wp_updateOnce Obj E sp c ci' cd spn (c.pathPrefix ++ k)
                 (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st s x' esl σ kv v p c.S.zero f o' W Φu
-                hpfx hkv hs hfr hw) $$ [$Hx $Hout $HT] as %st' %ok %uerr Hd
+                hpfx hkl hkv hs hfr (hfsz _ _ _ hfr) hw) $$ [$Hx $Hout $HT] as %st' %ok %uerr Hd
             · iframe #
               ipureintro; exact ⟨Hspn, Hv⟩
             icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, Hout, %σ', #Hfs', Hat, HT'⟩)
