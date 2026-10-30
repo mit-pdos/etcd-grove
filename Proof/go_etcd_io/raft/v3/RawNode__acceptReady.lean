@@ -717,7 +717,21 @@ theorem RawNode.acceptReady.wp_proof
   have HsnpN : SnpOk { s.gh with outlb := 0, unst := false, slent := L.isSome, snp := loanTrip L }
       (logAcceptApplying (logAcceptUnstable ls0) ce sz) := by
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, -⟩ := Haf
-    refine ⟨by rw [a5, Hf_lent], fun k hk => ?_, fun h => ?_, fun h => ?_, fun k hk hlt => ?_⟩
+    refine ⟨by rw [a5, Hf_lent], fun k hk => ?_, fun h => ?_, fun h => ?_, fun k hk hlt => ?_,
+      fun _ k hk => ?sg⟩
+    case sg =>
+      -- (raft-final phase 2) the snapshot handed out is the lent one (`lendLog`'s `sg`): `SnpSg`
+      cases hL : L with
+      | none => rw [hL] at hk; cases hk
+      | some l =>
+        rw [hL] at hk; simp only [loanTrip, Option.map_some, Option.some.injEq] at hk; subst hk
+        obtain ⟨-, Hs1, -⟩ := Hrdp.2 l hL
+        have hp : ls0.prev = snapId l.snap :=
+          (Hsfa.2.2.2 _ (show ls0.snap = _ by rw [Hf_snap]; exact Hs1)).1
+        have hsg0 : ls0.sg = uint.nat ls0.prev.index' := by rw [← Hls0, hL]; rfl
+        have hsgA : (logAcceptApplying (logAcceptUnstable ls0) ce sz).sg = ls0.sg := by
+          unfold logAcceptApplying; split <;> rfl
+        rw [hsgA, hsg0, hp]; exact Nat.le_refl _
     rotate_right
     · -- (D22 S-d4 item 3) a snapshot handed out lends the storage
       exfalso

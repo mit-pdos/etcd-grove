@@ -338,7 +338,7 @@ theorem newRaft.wp_proof
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _)
-    ⟨fun h => absurd h Bool.false_ne_true, SnpOk.of_quiet rfl rfl rfl rfl (fun _ h => by cases h) (fun _ h => by cases h), rfl⟩
+    ⟨fun h => absurd h Bool.false_ne_true, SnpOk.of_quiet rfl rfl rfl rfl (fun _ h => by cases h) (fun _ h => by cases h) (fun _ _ h => by cases h), rfl⟩
     (fun h => absurd rfl h) (LogNsOk.off rfl)
     -- the queues empty; a follower
     (XfOk.nil (fun h => absurd h (by simp only [s0]; decide)))

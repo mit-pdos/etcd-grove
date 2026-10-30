@@ -2044,6 +2044,12 @@ then. A mirror
 of the log's ghost fields in `NGhost`, which every step keeps (`NetFrame`, `LocalFrame`,
 `SnapStep`: `s'.gh = s.gh`), so that the `RawNode` knows them across the steps between a snapshot's
 `Ready` and its `Advance`. -/
+def SnpSg (g : NGhost) (ls : LogState) : Prop :=
+  ls.lent = true → ∀ k, g.snp = some k → ls.sg ≤ uint.nat k.sid.index'
+
+/-- ... (raft-final phase 2, 2026-10-30) and while the storage is lent, the snapshot index last
+handed out (`LogState.sg`, `ownRaftLog_lend`'s) at most the lent one's (`SnpSg`): what the
+snapshot's `Advance` needs to absorb the storage back at it (`ownRaftLog_absorb_snap`'s `Hsg`). -/
 def SnpOk (g : NGhost) (ls : LogState) : Prop :=
   ls.lent = g.slent ∧
   (∀ k, g.snp = some k →
@@ -2051,7 +2057,7 @@ def SnpOk (g : NGhost) (ls : LogState) : Prop :=
     k ∈ ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) ∧
   (ls.sip = true ∨ ls.sat = true → g.snp ≠ none) ∧
   (ls.sip = true ∨ ls.sat = true → ∃ k, g.snp = some k ∧ ls.snap = some k.sid) ∧
-  SnpExt g ls
+  SnpExt g ls ∧ SnpSg g ls
 
 /-- `SnpOk` of a log that keeps the fields it reads (`hx`: by default the fields `SnpExt` reads
 are the same). -/
@@ -2059,10 +2065,12 @@ theorem SnpOk.of_fields {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls)
     (hlt : ls'.lent = ls.lent) (hsn : ls'.snap = ls.snap) (hsip : ls'.sip = ls.sip)
     (hsat : ls'.sat = ls.sat) (hk : ls'.ksn = ls.ksn)
     (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed)
-    (hx : SnpExt g ls → SnpExt g ls' := by exact fun h => h) : SnpOk g ls' := by
-  obtain ⟨H1, H2, H3, H4, H5⟩ := H
+    (hx : SnpExt g ls → SnpExt g ls' := by exact fun h => h)
+    (hsg : ls'.sg = ls.sg := by rfl) : SnpOk g ls' := by
+  obtain ⟨H1, H2, H3, H4, H5, H6⟩ := H
   refine ⟨hlt.trans H1, fun k hk' => ?_, fun h => H3 (by rw [← hsip, ← hsat]; exact h),
-    fun h => by rw [hsn]; exact H4 (by rw [← hsip, ← hsat]; exact h), hx H5⟩
+    fun h => by rw [hsn]; exact H4 (by rw [← hsip, ← hsat]; exact h), hx H5,
+    fun hl k hk => by rw [hsg]; exact H6 (hlt ▸ hl) k hk⟩
   obtain ⟨Ha, Hb, Hc⟩ := H2 k hk'
   refine ⟨fun h => ?_, hk ▸ Hb, Int.le_trans Hc hcm⟩
   rw [hsip, hsat, hlt]; exact Ha (hsn ▸ h)
@@ -2071,11 +2079,11 @@ theorem SnpOk.of_fields {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls)
 theorem SnpOk.of_quiet {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent)
     (hsn : ls.snap = none) (hsip : ls.sip = false) (hsat : ls.sat = false)
     (hk : ∀ k, g.snp = some k → k ∈ ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed)
-    (hx : SnpExt g ls) :
+    (hx : SnpExt g ls) (hsg : SnpSg g ls) :
     SnpOk g ls :=
   ⟨hlt, fun k h => ⟨(fun h' => by rw [hsn] at h'; cases h'), hk k h⟩,
     (fun h => by rcases h with h | h <;> simp_all), (fun h => by rcases h with h | h <;> simp_all),
-    hx⟩
+    hx, hsg⟩
 
 /-- (D22 S-d3b) `SnpOk` with nothing handed out, in progress, absorbed or lent (a snapshot may be
 pending: one restored after the last `Ready`). -/
@@ -2083,7 +2091,7 @@ theorem SnpOk.of_none {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent)
     (hsnp : g.snp = none) (hsip : ls.sip = false) (hsat : ls.sat = false) : SnpOk g ls :=
   ⟨hlt, fun k h => (by rw [hsnp] at h; cases h),
     (fun h => by rcases h with h | h <;> simp_all), (fun h => by rcases h with h | h <;> simp_all),
-    fun k h => by rw [hsnp] at h; cases h⟩
+    (fun k h => by rw [hsnp] at h; cases h), (fun _ k h => by rw [hsnp] at h; cases h)⟩
 
 /-- (D22 S-d3a) `SnpOk` after a restore past the commit index: the snapshot restored is not the
 one handed out (at most the commit index), and is not in progress. -/
@@ -2091,10 +2099,10 @@ theorem SnpOk.restore {g : NGhost} {ls : LogState} (k : SnapTrip) (H : SnpOk g l
     (Hgt : uint.Z ls.committed < uint.Z k.sid.index')
     -- (D22 S-d4 item 3) outside `appliedSnap`'s window (a quiet log)
     (Haps : ls.aps = false) : SnpOk g (logRestore ls k) := by
-  obtain ⟨H1, H2, -, -, H5⟩ := H
+  obtain ⟨H1, H2, -, -, H5, H6⟩ := H
   refine ⟨H1, fun k0 hk0 => ?_, fun h => by simp [logRestore] at h,
     fun h => by simp [logRestore] at h, fun k0 hk0 hl => ⟨fun _ => ?_, fun h => by
-      simp [logRestore] at h⟩⟩
+      simp [logRestore] at h⟩, H6⟩
   rotate_left
   · have hl' : ls.lent = false := hl
     show uint.Z k0.sid.index' ≤
@@ -2123,19 +2131,21 @@ def SnpKeep (ls ls' : LogState) : Prop :=
   -- (D22 S-d4 item 3) and what `SnpExt` reads
   ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying ∧
   -- (U8 v2) and the storage names (`GhLogOk`'s mirror)
-  ls'.sn = ls.sn
+  ls'.sn = ls.sn ∧
+  -- (raft-final phase 2) and the snapshot last handed out (`SnpSg`)
+  ls'.sg = ls.sg
 
-theorem SnpKeep.refl (ls : LogState) : SnpKeep ls ls := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+theorem SnpKeep.refl (ls : LogState) : SnpKeep ls ls := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem SnpOk.keep {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hk : SnpKeep ls ls')
     (hsn : ls'.snap = ls.snap) (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed) : SnpOk g ls' :=
   H.of_fields hk.1 hsn hk.2.1 hk.2.2.1 hk.2.2.2.1 hcm (fun h k hk' hl => by
     obtain ⟨h1, -, -, -, h5, h6, h7, -⟩ := hk
-    rw [h5, h6, h7, hsn]; rw [h1] at hl; exact h k hk' hl)
+    rw [h5, h6, h7, hsn]; rw [h1] at hl; exact h k hk' hl) hk.2.2.2.2.2.2.2.2
 
 theorem logTruncateAppend_snpKeep (ls : LogState) (ents : List EntryM) :
     SnpKeep ls (logTruncateAppend ls ents) := by
-  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- (D22 S-d3b, 2026-10-21) **A truncation's mark**: `offsetInProgress` moved back to `i` by an append
 of `ents` (`raftLog.maybeAppend`'s conflict arm, `unstable.truncateAndAppend`): above the commit
