@@ -1454,7 +1454,9 @@ Stage F of the client repair (the design: `repair-design.md` §2-§5, the user's
 2026-10-30): every statement the server's and kv's repair needs, in final form over raft's unified
 API, proofs `sorry` where they broke (old bodies kept in `/- REPAIR-OLD … -/` right below). Built:
 the server's `Results`/`Link`, kv's `Results`/`Link`/`AdequacyLinked`, raft's `Results`, kvreconf's
-`Results`. **One open decision (D2, with the user):** etcd takes an in-memory snapshot every
+`Results`. (2026-10-30, later: D2 decided, snapshots allowed: "Repair: Stage F revision, snapshots
+allowed" and "Repair: snapshot sorries" below supersede what this section says of D2, the
+placeholders and the snapshot axiom.) **One open decision (D2, with the user):** etcd takes an in-memory snapshot every
 `memorySnapshotCount = 100` applied entries (`shouldSnapshotToMemory`, `server.go:1248`) and on
 `ForceSnapshot`, so `CreateSnapshot` is reachable under D2(i)'s `receiptBound ≤ SnapshotCount`, and
 its `J.SV` needs a registered snapshot (`snapMade`), which D2(i)'s empty-for-good registry refutes.
@@ -1620,3 +1622,86 @@ Not stage P's: `rnSnapOnce_of_tok` (proved in stage F). After stage P (or at the
 build): `etc/tcb-report.py --check --update` for the sorries and the changed `snapshot` axiom
 statement, `etc/tcb-collections/kv.txt`; the downstream server examples (`examples/common` and the
 eight server-based ones) are repaired after, as planned.
+
+## Repair: Stage F revision, snapshots allowed (2026-10-30, the user's decisions; supersedes D2 above)
+
+The user's final D2 decision (after D2(i), (a) and (D′) were each found false of the Go or too
+narrow: the in-memory snapshot every `memorySnapshotCount = 100` entries, `ForceSnapshot` on a
+cluster-version downgrade, which the request model reaches,
+`issues/etcd-cluster-version-stale-proposal-downgrade.md`, and `compactRaftLog`'s `Compact(1)`):
+**snapshots are allowed**. The server registers its snapshots; the code paths that run only with a
+snapshot are each closed by one marked `-- SNAPSHOT-SORRY` (list below), to be proved after the
+merge into `lean`; every other path is proved. No run-length premise, no new trust-boundary axiom,
+no new ghost state.
+
+Statement changes vs the "Repair: Stage F statements" above (approved: the two exported ones,
+`NewServer` without run-length premises, the allocation's post with the registry):
+- `srvClusterOk`: `inv srvSnapsN (∃ S, ownSnapsMade cl S)` (the registry; no content: etcd's raft
+  snapshot data is nil). Gone (false now): `srv_snapMade_false`, `srv_snapshotCert_false`,
+  `srv_snapshotValid_false`, `srv_sentMsg_notSnap`, `srv_readySnap_none`, `rnSnapMsg_false`.
+- `InvRaftNode`: `rnSnapMsg γ m` real (an owned `MsgSnap`, at a `Ready`'s fraction, with `sentMsg`
+  and `msgCredits`; until then `False`), in `rnMsgR` and `isRNMsgSnapC`; `rnReadySnap` (the node
+  API's `readySnap … (some l)`, the snapshot's log `A'`, the `Ready`'s other parts) and `rnBusyS`
+  (the driver busy with the loan) real; `rnApSnap` real (the clone read-only, its certificate,
+  `E.C A'`, `notifyc` stated with one receive until the two-receive variant is written with the
+  branch's proof, `raftAdvancedC`'s payload at the snapshot); `rn_ready_recv`'s post a disjunction
+  (a snapshot `Ready`); `isRaftNodeIfc` gains `Advance`'s snapshot clause (`snapReceipt`,
+  `snapshotCert`); the entries' `Advance` clause takes raft's `advReceipt` (**`rnAdvReceipt`**, the
+  loop freezing the committed prefix); `rnApN`'s `raftAdvancedC` payload carries the batch's frozen
+  entries (**`srvFrozenAt`/`srvFrozenRange`/`srvFrozenBelow`**); `rnApplyTok_recv`'s post a
+  disjunction (a snapshot payload).
+- `srvSnapState` += `srvFrozenAt γs ai ∗ srvFrozenBelow γs ai`; new persistent bundle
+  **`srvSnapStor ms γs γr nid ai at'`** (`memStorInv`, `storDL ai`, `srvRaftLogInv`, a committed log of
+  length `ai` ending at `at'`): what `CreateSnapshot` takes.
+- **`EtcdServer.snapshot`**: a theorem now (was the trusted axiom); its spec is lean's proved
+  `specFull` with `memCertReg` replaced by `srvSnapStor`, `isServerM E.authOn`; the old `spec`
+  deleted; its callees linked (`etc/link-lean-first-server.txt`).
+- `snapshotIfNeededAndCompactRaftLog.spec` (and `ModeSpecs`' `specOff`/`specOn`) take what
+  `snapshot` takes (`isServerM`, `srvSnapDisk`, `appliedAtLeast`, the KV commit contract with `RC`,
+  `srvSnapStor`, the consistent index past `ai`, `releaseOk`); post `RC ∨ RC'`.
+- `applyAll.spec(On)`: the `raftAdvancedC` payload with the batch's frozen entries.
+- `NewServer` (×3): **no run-length premise** (the `SnapshotCatchUpEntries` one, and D2(i)'s, dropped).
+- Also in this round: T1b (`schedule.Scheduler.Stop.spec`/`fifo.Stop.spec` return the last
+  tracked job's `Post`: `fifo.Stop` waits on `donec`, closed once every pending job ran,
+  `schedule.go:150-184`; mvcc's two callers discard it), T1c (`srvLogInv_alloc`'s `hcc`), T1d
+  (`srvDynLog = ⌜lid ∈ cfg⌝`; `srvDynPol` dropped from `srvApRes_cc`'s post and `dvView_cc`'s
+  `Hdyn`), the running token's halves written out (`rnRunHalf`, `dvRun` inlined:
+  `nodeRunning … (1 : Qp).half` at the server's storage model).
+- Not done: kv's `kvJ` → raft's `memStorJ`. `memStorJ` is stated at `MemoryStorage`'s own storage
+  model (an instance from `[MemStorReg GF]`), kv's storage is a wrapper with its own
+  `StorageModel` (`kvStorageModel`), so the two justifications are at different instances; the
+  swap needs kv's model to be raft's `memStorageModel`, a kv-internal redesign (left to K-a).
+
+## Repair: snapshot sorries (2026-10-30; exact)
+
+Each is a `-- SNAPSHOT-SORRY` in the file (`grep -rn SNAPSHOT-SORRY Proof Spec`). "In a stage-P
+sorry" means the whole proof is a stage-P `sorry` today and the marker names the branch to keep as
+the one `sorry` when the rest is proved. Server files under `Proof/go_etcd_io/etcd/server/v3/etcdserver/`.
+
+| # | File | Declaration | The snapshot branch, and what its proof needs |
+|---|---|---|---|
+| 1 | `InvRaftNode.lean` | `rn_ready_recv` (in a stage-P sorry) | the `some l` case: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from the driver |
+| 2 | `InvRaftLoop.lean` | `rnApplyTok_recv` | the snapshot payload's case: `rnApSnap`'s parts, `cum`'s agreement at `rcv.length`, the consumer's token at `A'` |
+| 3 | `raftNode__start.lean` | `raftNode.start.wp_proof` (in a stage-P sorry) | the Ready-snapshot branch (raft.go:256-282): `SaveSnap`, `MemoryStorage.ApplySnapshot` from `readySnap (some l)` (`snapGiven` for `J.B`/`J.DL`, `snapshotCert_valid` for `J.SV`), notifyc's two sends, `Advance`'s snapshot clause over `snapReceipt`, the `rnApSnap` payload |
+| 4 | `raftNode__processMessages.lean` | `rnMsgR_open` (in a stage-P sorry) | the `MsgSnap` side, `rnSnapMsg`'s `sentMsg`/`msgCredits` kept |
+| 5 | `raftNode__processMessages.lean` | `raftNode.processMessages.wp_proof` (in a stage-P sorry) | the `MsgSnap` arm (raft.go:373-383): `msgSnapC`'s bag takes `rnSnapMsg γ m`, or it is dropped when full |
+| 6 | `NodeBridge.lean` | `isRaftNodeIfc_of_isNode` (in a stage-P sorry) | the snapshot `Advance` clause: `node.Advance.spec` at `L = some l` (`snapReceipt`, `snapshotCert`), the view at the snapshot (`confAt`/`confStateIs`, D3) |
+| 7 | `EtcdServer__applyAll.lean` | `EtcdServer.applyAll.wp_proof`, `wp_proofOn` (in stage-P sorries) | the `ap.snapshot ≠ nil` branch (`applySnapshot.specSnap`, proved on lean, and its premises; the two-receive notify) and the `msgSnapC` merge branch (`createMergedSnapshotMessage`/`sendMergedSnap` over `rnSnapMsg`) |
+| 8 | `EtcdServer__run.lean` | `run_job_body`, `run_job_bodyOn` (in stage-P sorries) | a snapshot payload's job: `applyAll` on a snapshot batch (a spec of it over `applySnapshot.specSnap`'s premises: lean's J8a) |
+| 9 | `EtcdServer__snapshot.lean` | `EtcdServer.snapshot.wp_proof` | the whole function: `SnapTakeProof.lean`'s proof, rewired (`CreateSnapshot` over `srvSnapStor`: `snapshotCert_make` in the registry, `snapshotCert_valid`, `storDL`, the frozen entry) |
+| 10 | `SnapTakeProof.lean` | `EtcdServer.snapshot.wp_proof_full` | lean's proof, kept below, to rewire (it becomes #9's proof) |
+
+Not snapshot sorries (stay proved as they are, the build says so): `EtcdServer.applySnapshot`'s
+`specSnap`/`wp_proof_snap` and `SnapApply*`, `createMergedSnapshotMessage`, `sendMergedSnap`,
+rafthttp's `snapshotSender.send`/`snapshotHandler.ServeHTTP`. `compactRaftLog` and
+`snapshotIfNeededAndCompactRaftLog` are ordinary stage-P sorries (their snapshot inputs come from
+`snapshot`'s post).
+
+Track map for stage P (supersedes the earlier one's order where it differs; file-disjoint, by
+likely influence): (1) S-0 `SrvRaftLog`/`InvCfgView`; (2) S-C the raft loop (`InvRaftNode`,
+`InvRaftLoop`, `NodeBridge`, `raftNode__*`, `newRaftNode`), snapshot sorries #1-#6 left in place;
+(3) S-D the apply thread and storage (`EtcdServer__applyAll/applyEntries/apply/applyConfChange/
+snapshotIfNeeded…/compactRaftLog`, `ModeSpecs`, `InvApplyAll`, `InvApRes`, the KV model's
+V2-entry cases), #7 left in place; (4) S-E allocation, boot, NewServer, `run`/`start` (#8 left in
+place); (5) K-b kv's run; (6) S-A net/read/errors; (7) K-a; (8) K-c; then the snapshot track (#9,
+#10 first: the proof exists on lean) after the merge into `lean`.

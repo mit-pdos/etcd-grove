@@ -496,11 +496,14 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 The server's and kv's statements in final form over raft's unified API (D1-D5), every broken proof
 `sorry` with its old body in a `REPAIR-OLD` comment: the server's `Results`/`Link` and kv's
 `Results`/`Link`/`AdequacyLinked` build. kv's `RemoveMember` removed (D4, Go included).
-`MemoryStorage.Snapshot.spec` strengthened (never errs, the whole clone). Open: **D2** (etcd's
-in-memory snapshot every 100 entries reaches `CreateSnapshot` under D2(i)); the snapshot and
-compaction statements are placeholders until the answer, the `snapshot` axiom claims nothing of
-the storage. The statement changes, the findings and the sorries by stage P track:
-`notes/raft-unified-plan.md`, "Repair: Stage F statements" and "Repair: Stage F sorries".
+`MemoryStorage.Snapshot.spec` strengthened (never errs, the whole clone). D2 decided: snapshots
+allowed, the server registers them, the snapshot-only branches closed by marked
+`SNAPSHOT-SORRY`s (to prove after the merge into `lean`), `EtcdServer.snapshot` a theorem (no
+longer an axiom), `NewServer` without run-length premises. Found on the way:
+`issues/etcd-cluster-version-stale-proposal-downgrade.md`. The statement changes, the findings
+and the sorries by stage P track: `notes/raft-unified-plan.md`, "Repair: Stage F statements",
+"Repair: Stage F sorries", "Repair: Stage F revision, snapshots allowed", "Repair: snapshot
+sorries".
 
 ## Stage R, raft side: StartNode, readyFits, nodeConfig ⊢ confAt (2026-10-30, branch `repair`)
 

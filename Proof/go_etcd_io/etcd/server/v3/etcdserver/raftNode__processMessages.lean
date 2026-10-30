@@ -36,6 +36,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
       ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
        (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
+  -- SNAPSHOT-SORRY (to keep, when the rest is proved): the `MsgSnap` side: `rnSnapMsg`'s `sentMsg`/`msgCredits` kept
   sorry
 /- REPAIR-OLD
   iintro H
@@ -104,6 +105,7 @@ theorem raftNode.processMessages.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.processMessages.spec (GF := GF) (hG := hG) := by
+  -- SNAPSHOT-SORRY (to keep, when the rest is proved): the `MsgSnap` arm (raft.go:373-383): `msgSnapC`'s bag takes `rnSnapMsg γ m`, or it is dropped when full
   sorry
 /- REPAIR-OLD
   have wp_GetTo := wp_msgOwn_GetTo' wp_GetTo

@@ -415,6 +415,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvCommittedInv s E.γr ∗
       rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) := by
+  -- SNAPSHOT-SORRY (to keep, when the rest is proved): the snapshot `Advance` clause (`node.Advance.spec` at `L = some l`: `snapReceipt`, `snapshotCert`; the view at the snapshot from `confAt`/`confStateIs`, D3's static membership)
   sorry
 /- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node

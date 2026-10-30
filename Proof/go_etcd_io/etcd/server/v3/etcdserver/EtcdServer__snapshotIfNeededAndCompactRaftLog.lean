@@ -37,6 +37,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
+  -- (no SNAPSHOT-SORRY expected: the trigger branch calls `snapshot`/`compactRaftLog` over their specs; mark one only if threading `snapshot.spec`'s premises is costly
   sorry
 /- REPAIR-OLD
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs γp w sa hok hcap haw

@@ -61,6 +61,7 @@ theorem raftNode.start.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
+  -- SNAPSHOT-SORRY (to keep, when the rest is proved): the Ready-snapshot branch (raft.go:256-282): `SaveSnap`, `MemoryStorage.ApplySnapshot` from `readySnap (some l)` (ranges, `snapGiven` for `J.B`/`J.DL`, `snapshotCert_valid` for `J.SV`), notifyc's two sends, `Advance`'s snapshot clause over `snapReceipt`, the `rnApSnap` payload
   sorry
 /- REPAIR-OLD
   have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap

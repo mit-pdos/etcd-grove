@@ -43,6 +43,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
+  -- SNAPSHOT-SORRY (to keep, when the rest is proved): the `ap.snapshot ≠ nil` branch (`applySnapshot.specSnap` and its premises, the two-receive notify) and the `msgSnapC` merge branch (`createMergedSnapshotMessage`/`sendMergedSnap` over `rnSnapMsg`)
   sorry
 /- REPAIR-OLD
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w Hms Hai1
@@ -247,6 +248,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
+  -- SNAPSHOT-SORRY (to keep, when the rest is proved): as `wp_proof`'s
   sorry
 /- REPAIR-OLD
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w γa sa hM hRB
