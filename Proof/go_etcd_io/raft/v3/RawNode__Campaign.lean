@@ -40,9 +40,6 @@ theorem RawNode.Campaign.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Campaign.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ rn id rs Hterm Hflw
   wp_start as H
   iNamed H
@@ -63,6 +60,7 @@ theorem RawNode.Campaign.wp_proof
   ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
     [] [] none []
@@ -76,6 +74,10 @@ theorem RawNode.Campaign.wp_proof
     $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     simp only [hP, ↓reduceIte, named]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by msg_ne)
     isplitl [Hm]
     · iframe Hm
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -89,12 +91,13 @@ theorem RawNode.Campaign.wp_proof
     iintro %Hc
     simp [MsgSnap] at Hc
   simp only [hP]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   obtain ⟨Ht1, Ht2, -, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht2' := Ht2 rfl
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
@@ -105,7 +108,7 @@ theorem RawNode.Campaign.wp_proof
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) 
+        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact ⟨Hstor.1, by rw [Hsn1.2, Hgh, ← Hns0.2]; exact Hstor.2⟩) 
         (Hpvoff.step rfl rfl Hpre Hgh (by have := Ht2 rfl; omega) Hpcs (fun _ => Htc1))
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
@@ -114,7 +117,6 @@ theorem RawNode.Campaign.wp_proof
     rw [Htrm]
     exact ⟨⟨Ht1, Ht2'⟩, Herr⟩
   · exfalso; revert Hc'; msg_ne
-  -/
 
 end proof
 
