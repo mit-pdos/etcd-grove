@@ -237,9 +237,6 @@ private theorem wp_step_pending
          SnapRoleBack s s' ∧
          -- (2026-10-28, stage U3) an append acknowledgement does not move `applied`
          (st.msg.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied)⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
@@ -265,6 +262,11 @@ private theorem wp_step_pending
       $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : m.Type' ≠ MsgProp := by not_self
       simp only [hP, ↓reduceIte, named]
+      -- (raft-final phase 2) no transfer request: its witness is vacuous
+      isplitr
+      · imodintro
+        iintro %h
+        exact absurd h.1 (by first | not_self | msg_ne)
       isplitl [Hmin]
       · isplitl [Hmin]
         · iexact Hmin
@@ -287,9 +289,9 @@ private theorem wp_step_pending
       revert Hc
       not_self
     · inext
-      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, -, %Hframe, %Hterm, %Hresp, -⟩
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, -, %Hframe, -, %Hterm, %Hresp, -⟩
       have e2 := Hcc (fun h => absurd h (by not_self)); subst c'
-      have Hfr' := Hframe (by not_self) (by not_self) (fun h => absurd h (by not_self))
+      have Hfr' := Hframe (by not_self) (by not_self) (by not_self) (fun h => absurd h (by not_self))
       have Htm := Hterm (by not_self)
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
@@ -344,6 +346,11 @@ private theorem wp_step_pending
     · have hP : (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' = none := rfl
+      -- (raft-final phase 2) no transfer request: its witness is vacuous
+      isplitr
+      · imodintro
+        iintro %h
+        exact absurd h.1 (by first | not_self | msg_ne)
       isplitl [Hmin]
       · isplitl [Hmin]
         · iexact Hmin
@@ -367,7 +374,7 @@ private theorem wp_step_pending
       revert Hc
       msg_ne
     · inext
-      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, %Hterm, -⟩
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, -, %Hterm, -⟩
       have e2 := Hcc (fun _ => rfl); subst c'
       obtain ⟨Hfr, Hap, -, Hapa⟩ := Hloc.1 (fun _ => rfl) (.inr (.inl rfl))
       iapply HΦ $$ %err %s' %md'
@@ -395,6 +402,11 @@ private theorem wp_step_pending
     · have hP : (applyAckM id).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (applyAckM id).Type' = none := rfl
+      -- (raft-final phase 2) no transfer request: its witness is vacuous
+      isplitr
+      · imodintro
+        iintro %h
+        exact absurd h.1 (by first | not_self | msg_ne)
       isplitl [Hmin]
       · isplitl [Hmin]
         · iexact Hmin
@@ -418,7 +430,7 @@ private theorem wp_step_pending
       revert Hc
       msg_ne
     · inext
-      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, %Hterm, -⟩
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, -, %Hterm, -⟩
       have e2 := Hcc (fun h => absurd h (by msg_ne)); subst c'
       obtain ⟨Hfr, Hap, Happ, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inr (.inr rfl))
       iapply HΦ $$ %err %s' %md'
@@ -431,7 +443,6 @@ private theorem wp_step_pending
         fun _ => PreGuardF.step (Hterm (by msg_ne)), Hfr.2.2.2.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.2.2.2,
         fun ce' h => by injection h with h; subst h; exact Happ rfl,
         (Hterm (by msg_ne)).2.2.2.2.2.2, fun h => absurd h (by msg_ne)⟩
-  -/
 
 /-- (2026-10-28, stage U3c) The dynamic mode's invariant (`RInv`), read off the ghost state. -/
 private theorem ownStepGhost_rinv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
@@ -517,31 +528,29 @@ private theorem wp_step_snapack
          ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), s' = { s with
            logst := ackSnapLog s.logst (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) s.term sv,
            progress := prs, prvals := pvs, isLearner := il }⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, Hlc, #HD⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   obtain ⟨Hle0, -⟩ := Hok
   -- (U0) the snapshot's certificate: in `ksn`, registered in the storage's registry
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
-  have Hk : snapTrip sv sv.Metadata'.ConfState'.lists ∈ s.logst.ksn := (Hgh.1.2.2.1 _ Hsnp0).2.1
+  have Hk : snapTrip sv sv.Metadata'.ConfState'.lists ∈ s.logst.ksn := (Hgh.1.2.1.2.1 _ Hsnp0).2.1
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_kcert _ _ $$ Hlog with ⟨#Hkc, Hlog⟩
   ihave Hphys := Hlogback $$ Hlog
+  iunfold ksnCerts at Hkc
   ihave ⟨#Hsc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkc
-  icases ownRaftPhysC_ns c r id s $$ Hphys with ⟨%Hnsl, -, Hphys⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hg, Hrest⟩
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnlk, Hrm, #Hlink⟩
-  ihave #Hlink' := Hlink
-  iunfold certLink at Hlink'
-  icases Hlink' with (%Hns | #Hok')
-  · exfalso; exact Hpnd (Hnsl (by rw [Hnlk.1]; exact Hns)).1
+  icases Hrest with ⟨%Hnlk, Hrm, #Hlink, #Hlw, #Hxw⟩
+  ihave #Hok' := Hlink
+  iunfold certLink at Hok'
   iunfold storCertOk at Hok'
-  icases Hok' with ⟨#Hreg, -⟩
-  imod Hreg $$ %_ %⊤ %CoPset.subseteq_top Hsc with #HcrD
+  -- (U8 v2) the log's storage names are the ghost state's (`GhLogOk`)
+  ihave #Hsc' : ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+  · rw [← Hgh.1.2.2]; iexact Hsc
+  icases Hok' with ⟨-, #Hreg, -⟩
+  imod Hreg $$ %_ %⊤ %CoPset.subseteq_top Hsc' with #HcrD
   iunfold raftSnapCertD at HcrD
   icases HcrD with ⟨#Hcr, -⟩
   iunfold raftSnapCert at Hcr
@@ -580,7 +589,7 @@ private theorem wp_step_snapack
       isplitr
       · ipureintro; intro _ _ _ _ h; cases h
       unfold ownStepGhost ghostRest
-      iframe Hg Hlink
+      iframe Hg Hlink Hlw Hxw
       isplitr
       · ipureintro; exact Hnlk
       simp only [ghostRestM]; ipureintro; exact HC
@@ -591,7 +600,7 @@ private theorem wp_step_snapack
       obtain ⟨HDy, hc, HI⟩ := Hdgc
       ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g) c id s $$ [Hg Hcamp]
       · unfold ownStepGhost ghostRest
-        iframe Hg Hlink
+        iframe Hg Hlink Hlw Hxw
         isplitr
         · ipureintro; exact Hnlk
         simp only [ghostRestM]
@@ -647,6 +656,11 @@ private theorem wp_step_snapack
   · have hP : (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' ≠ MsgProp := by msg_ne
     simp only [hP, ↓reduceIte, named]
     have Hty0 : mtypeOf (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' = none := rfl
+    -- (raft-final phase 2) no transfer request: its witness is vacuous
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by first | not_self | msg_ne)
     isplitl [Hmin]
     · isplitl [Hmin]
       · iexact Hmin
@@ -670,7 +684,7 @@ private theorem wp_step_snapack
     revert Hc
     msg_ne
   · inext
-    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, %Hterm, -⟩
+    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -, -, %Hterm, -⟩
     obtain ⟨Hc', Hs', Hmd'⟩ := Hloc.2 rfl sv rfl
     subst Hc'
     -- dynamically the configuration afterwards the fold of `D` (`RInv.cfg` at the new index)
@@ -706,7 +720,6 @@ private theorem wp_step_snapack
     iframe Hphys Hghost
     ipureintro
     exact ⟨Hwf', fun h => by subst h; exact Hstp.1, Hmd2, Hs'⟩
-  -/
 
 /-- (D22 S-d3a) What a snapshot's acknowledgement leaves of the log (`ackSnapLog`), the snapshot the
 pending one, `applying` at most its index, `applied` at most `applying`: the snapshot dropped, nothing
