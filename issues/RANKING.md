@@ -289,6 +289,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   handler. Reproduced at the mvcc level with a test; a narrow window (a compaction queued behind
   another, plus a snapshot install), a liveness effect only, and a one-line fix in
   `compactBarrier`.
+- **[etcd-restore-scheduled-compact-zero](etcd-restore-scheduled-compact-zero.md)** (2026-10-30):
+  `restore()` ignores a scheduled, unfinished compaction at revision 0, so after a snapshot install
+  or a restart a member's compaction revision is `-1` where its peers have `0`. Reproduced at the
+  mvcc level; needs a client `Compact(0)` (the auto-compactors never issue it) and observable only
+  through a re-issued `Compact(0)` or `HashKV`.
 - **[etcd-cluster-version-stale-proposal-downgrade](etcd-cluster-version-stale-proposal-downgrade.md)**
   (2026-10-30): two `ClusterVersionSet` proposals in flight (the monitor proposes from goroutines,
   from its own read of the version) can apply out of order, regressing the cluster version and
