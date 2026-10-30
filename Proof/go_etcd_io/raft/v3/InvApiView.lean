@@ -202,36 +202,51 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
 theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  unfold nodeDriver
-  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩
-  ihave #Hl : iprop(EtcdGrove.isNodeChan (GF := GF) γn id n ∗ dlvLb γn ds) $$ [Htok]
-  · icases Htok with (⟨-, Htok⟩ | ⟨%es, %L, -, Htok⟩)
-    · icases drv_isNode_lb γn id n ds st.hardState $$ Htok with ⟨-, $⟩
-    · icases busy_isNode_lb γn id n ds es st.hardState L $$ Htok with ⟨-, $⟩
-  ihave #Htb : iprop(⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk (GF := GF) γ id γn) $$ []
-  · icases Hdy with (%H | ⟨#H, -, -⟩)
-    · ileft; ipureintro; exact H
-    · iright; iexact H
-  icases Hl with ⟨#Hnd, #Hdl⟩
-  isplitl [Hst Htok]
-  · iexists γn, id, ds
-    iframe Hci Hlb0 Hst Hdy Htok
-    ipureintro; exact Hf
-  unfold deliveredLogLb
-  iframe Hlb0
-  iexists γn, id, ds
-  iframe Hnd Htb Hdl
-  ipureintro; exact ⟨Hf.1, Hf.2.2⟩
-  -/
+  unfold nodeDriver deliveredLogLb
+  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, Htok⟩
+  icases Htok with (⟨%Hn, Htok⟩ | ⟨%es, %L, %Hh, Htok, Hm⟩)
+  · icases drv_isNode_lb γn id n ds st.hardState $$ Htok with ⟨Htok, #Hnd, #Hdl⟩
+    isplitl [Htok]
+    · iexists γn, id, ds
+      isplitr; · ipureintro; exact Hf
+      isplitr; · iexact Hci
+      isplitr; · iexact Hlb0
+      isplitr; · ipureintro; exact Hdyn
+      isplitr; · iexact Htab
+      isplitr; · iexact Hhc
+      ileft
+      iframe Htok
+      ipureintro; exact Hn
+    isplitr
+    · iexists γn, id, ds
+      isplitr; · ipureintro; exact ⟨Hf.1, Hf.2.2⟩
+      isplitr; · iexact Hnd
+      isplitr; · iright; iexact Htab
+      iexact Hdl
+    iexact Hlb0
+  · icases busy_isNode_lb γn id n ds es st.hardState L $$ Htok with ⟨Htok, #Hnd, #Hdl⟩
+    isplitl [Htok Hm]
+    · iexists γn, id, ds
+      isplitr; · ipureintro; exact Hf
+      isplitr; · iexact Hci
+      isplitr; · iexact Hlb0
+      isplitr; · ipureintro; exact Hdyn
+      isplitr; · iexact Htab
+      isplitr; · iexact Hhc
+      iright
+      iexists es, L
+      iframe Htok Hm
+      ipureintro; exact Hh
+    isplitr
+    · iexists γn, id, ds
+      isplitr; · ipureintro; exact ⟨Hf.1, Hf.2.2⟩
+      isplitr; · iexact Hnd
+      isplitr; · iright; iexact Htab
+      iexact Hdl
+    iexact Hlb0
 
 theorem deliveredLogLb_mono_impl (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hp
   unfold deliveredLogLb
   iintro ⟨⟨%γn, %id, %ds, %Hf, #Hnd, #Htb, #Hdl⟩, #Hlb⟩
@@ -245,9 +260,14 @@ theorem deliveredLogLb_mono_impl (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2
       show (strip ds).take l1.length = l1
       rw [Hf.2]; exact (List.prefix_iff_eq_take.1 Hp).symm
     unfold dlvLb
-    iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ Hdl
+    icases Hdl with ⟨#Hm, #Hk⟩
+    isplitl []
+    · iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ Hm
+    ihave #Hk' := (dlvKeysAt_app γn.sn 0 (ds.take l1.length) (ds.drop l1.length)).1 $$ [Hk]
+    · rw [List.take_append_drop]; iexact Hk
+    icases Hk' with ⟨#H1, -⟩
+    iexact H1
   iapply isCommittedLogLb_mono_impl γ l1 l2 Hp $$ Hlb
-  -/
 
 theorem deliveredLogLb_committed_impl (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     deliveredLogLb (GF := GF) n γ N l ⊢ isCommittedLogLb γ l := by
@@ -287,25 +307,11 @@ tickets persistent. -/
 theorem msgCredits_copy_impl (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.raft.dup = true → st.msg.Type' = MsgProp →
     msgCredits (GF := GF) γ N st ⊢ □ msgCredits γ N st := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hd Hty
   unfold msgCredits stTks
-  have h1 : st.msg.Type' ≠ MsgReadIndex := by rw [Hty]; simp [MsgReadIndex, MsgProp]
-  rw [if_neg h1, if_pos Hty]
-  iintro ⟨Hr, Hts⟩
-  ihave Hr : □ rdCred (GF := GF) γ.raft 0 $$ [Hr]
-  · unfold rdCred
-    haveI : Iris.CMRA.CoreId (0 : Nat) := CommMonoidLike.instCoreIdZero
-    icases Hr with #Hr
-    imodintro
-    iexact Hr
-  icases Hr with #Hr
-  ihave #Hts := entTks_persist_impl γ.raft Hd st.ents $$ Hts
-  imodintro
-  iframe Hr Hts
-  -/
+  rw [if_pos Hty]
+  iintro Hts
+  iapply entTks_persist_impl γ.raft Hd st.ents $$ Hts
 
 /-- The `.snap` clause of `isMessage` does not read the `ConfState` lists or `AutoLeave` (as the
 server's `isMessage_snap_lists`). -/
@@ -331,13 +337,10 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
     ⊢ sentMsg (GF := GF) γ N src st -∗ committedAtTerm γ N st.msg.Term' c -∗
       isCommittedLogLb γ l -∗ snapshotCert γ N (snapTrip sv' sv'.Metadata'.ConfState'.lists) ={E}=∗
       sentMsg γ N src { st with snap := some sv' } := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro HE Hty Hsn Hix Hc Hl Hlt
   iintro #Hs #Hca #Hlb #Hk
   unfold sentMsg
-  icases Hs with ⟨#Hci, #Hrm, #Htlb, -⟩
+  icases Hs with ⟨#Hci, #Hrm, #Htlb, -, #Hpool, %HU⟩
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -348,7 +351,7 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
   iunfold committedAtTerm at Hca
   icases Hca with ⟨#Hw, -⟩
   iunfold isRaftMsg at Hrm
-  icases Hrm with ⟨%Hns, %Hsent, ⟨%a, %Habs, #Hmsgs⟩, -, %Hra⟩
+  icases Hrm with ⟨%Hsh, ⟨%a, %Habs, #Hmsgs⟩, -, %Haf, #Hxw⟩
   have Ha : a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists) := by
     rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv0, -, Hsv, rfl⟩
     · rw [Hty, mtypeOf_MsgSnap] at Hn; cases Hn
@@ -378,56 +381,58 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
     { absSnap st.msg sv sv.Metadata'.ConfState'.lists with
       index := sv'.Metadata'.Index', logterm := sv'.Metadata'.Term' }
     sv'.Metadata'.ConfState'.lists sv'.Metadata'.ConfState'.AutoLeave' rfl
+  have Hsh' : SentMsgShape { st with snap := some sv' } := by
+    obtain ⟨h1, h2, h3, h4, h5, -, h7, h8⟩ := Hsh
+    exact ⟨h1, h2, h3, h4, h5, fun h => absurd h (by rw [Hty]; simp [MsgSnap, MsgApp]), h7, h8⟩
   imodintro
-  iframe Hci Htlb
-  isplitl
-  rotate_left
+  isplitr; · iexact Hci
+  isplitr
+  · iunfold isRaftMsg
+    isplitr; · ipureintro; exact Hsh'
+    isplitr
+    · iexists some (absSnap st.msg sv' sv'.Metadata'.ConfState'.lists)
+      isplitr
+      · ipureintro
+        right; right
+        exact ⟨sv', by simp only; rw [Hty]; exact mtypeOf_MsgSnap, rfl, rfl⟩
+      simp only [Option.toList_some]
+      iapply BigSepL.bigSepL_cons.2
+      isplitl
+      · have Heq : absSnap st.msg sv' sv'.Metadata'.ConfState'.lists =
+            { { absSnap st.msg sv sv.Metadata'.ConfState'.lists with
+                index := sv'.Metadata'.Index', logterm := sv'.Metadata'.Term' } with
+              cl := sv'.Metadata'.ConfState'.lists, al := sv'.Metadata'.ConfState'.AutoLeave' } := rfl
+        iapply isMessageC_intro
+        · rw [Heq, Hvo]; iexact Hm'
+        unfold msgCert; iright
+        have Hk : raftSnapCert (GF := GF) γ.raft
+            (msgSnapTrip (absSnap st.msg sv' sv'.Metadata'.ConfState'.lists)) =
+            raftSnapCert γ.raft (snapTrip sv' sv'.Metadata'.ConfState'.lists) := by
+          unfold raftSnapCert; rfl
+        rw [Hk]; iexact Hrc
+      iapply BigSepL.bigSepL_nil.2; iempintro
+    isplitr
+    · unfold msgDat
+      iintro !> %sv0 %Hsv
+      obtain ⟨-, Hsv⟩ := Hsv
+      simp only [Option.some.injEq] at Hsv
+      subst Hsv
+      have Hd : snapDataOk (GF := GF) γ.raft
+          (snapTrip sv' sv'.Metadata'.ConfState'.lists).sid.index'
+          (snapTrip sv' sv'.Metadata'.ConfState'.lists).dat =
+          snapDataOk γ.raft sv'.Metadata'.Index' sv'.Data' := rfl
+      rw [← Hd]; iexact Hdat
+    isplitr; · ipureintro; exact Haf
+    iexact Hxw
+  isplitr; · iexact Htlb
+  isplitr
   · unfold sentSnapCert
     iright
     iexists sv'
     iframe Hk
     ipureintro; rfl
-  iunfold isRaftMsg
-  isplitr
-  · ipureintro; exact Hns
-  isplitr
-  · ipureintro
-    exact fun h => (Hsent h).of_msg rfl Hra.1 (by rw [Hty]; simp [MsgSnap, MsgApp])
-  isplitr
-  · iexists some (absSnap st.msg sv' sv'.Metadata'.ConfState'.lists)
-    isplitr
-    · ipureintro
-      right; right
-      exact ⟨sv', by simp only; rw [Hty]; exact mtypeOf_MsgSnap, rfl, rfl⟩
-    simp only [Option.toList_some]
-    iapply BigSepL.bigSepL_cons.2
-    isplitl
-    · have Heq : absSnap st.msg sv' sv'.Metadata'.ConfState'.lists =
-          { { absSnap st.msg sv sv.Metadata'.ConfState'.lists with
-              index := sv'.Metadata'.Index', logterm := sv'.Metadata'.Term' } with
-            cl := sv'.Metadata'.ConfState'.lists, al := sv'.Metadata'.ConfState'.AutoLeave' } := rfl
-      iapply isMessageC_intro
-      · rw [Heq, Hvo]; iexact Hm'
-      unfold msgCert; iright
-      have Hk : raftSnapCert (GF := GF) γ.raft
-          (msgSnapTrip (absSnap st.msg sv' sv'.Metadata'.ConfState'.lists)) =
-          raftSnapCert γ.raft (snapTrip sv' sv'.Metadata'.ConfState'.lists) := by
-        unfold raftSnapCert; rfl
-      rw [Hk]; iexact Hrc
-    iapply BigSepL.bigSepL_nil.2; iempintro
-  isplitr
-  · unfold msgDat
-    iintro !> %sv0 %Hsv
-    obtain ⟨-, Hsv⟩ := Hsv
-    simp only [Option.some.injEq] at Hsv
-    subst Hsv
-    have Hd : snapDataOk (GF := GF) γ.raft
-        (snapTrip sv' sv'.Metadata'.ConfState'.lists).sid.index'
-        (snapTrip sv' sv'.Metadata'.ConfState'.lists).dat =
-        snapDataOk γ.raft sv'.Metadata'.Index' sv'.Data' := rfl
-    rw [← Hd]; iexact Hdat
-  ipureintro; exact Hra
-  -/
+  isplitr; · iexact Hpool
+  ipureintro; exact HU
 
 /-- No conf entry in a range of the delivered log is none in raft's. -/
 theorem noConfIn_of_strip (ds : List EntryM) (lo hi : Nat) (H : NoConfChangeIn (strip ds) lo hi) :
