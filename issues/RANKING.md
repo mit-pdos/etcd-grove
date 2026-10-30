@@ -283,6 +283,12 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
+  (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
+  `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
+  handler. Reproduced at the mvcc level with a test; a narrow window (a compaction queued behind
+  another, plus a snapshot install), a liveness effect only, and a one-line fix in
+  `compactBarrier`.
 - **[etcd-cluster-version-stale-proposal-downgrade](etcd-cluster-version-stale-proposal-downgrade.md)**
   (2026-10-30): two `ClusterVersionSet` proposals in flight (the monitor proposes from goroutines,
   from its own read of the version) can apply out of order, regressing the cluster version and

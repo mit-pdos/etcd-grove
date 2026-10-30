@@ -1,8 +1,10 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **step 1 on the merged `lean` done** ("Step 1 on the merged lean", the last
-section: Supply repaired, N1 drafted end to end, F2 dropped, the Q2 list); step 2 (restore in
-compaction mode) not started. Earlier: **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
+Status (2026-10-30): **step 2 drafted** ("Step 2: restore in compaction mode", the last section:
+the restorable compaction right, `Restore.specM` by the mode with off-mode laws, the supply as one
+stock per backend, D22's statements drafted for the collaborator, Q4-Q6 for the user, a Go liveness
+bug recorded). **Step 1 on the merged `lean` done** ("Step 1 on the merged lean": Supply repaired,
+N1 drafted end to end, F2 dropped, the Q2 list). Earlier: **Draft** written and checked (`fe466ad8d5`; full `lake build` passed, 10957 jobs, no error); internal repairs made; for the
 user: the drafted statements below and the questions at the end. Q1 answered **(a)** and drafted
 ("Q1 (a), drafted", below; `mvcc/M2StorageDraftSupply.lean`; `12343a4cc9`, full `lake build` passed,
 10958 jobs, no error); review round 1 (`notes/spec-first-study/m2-storage-review-1.md`) answered and
@@ -724,3 +726,305 @@ module). None is D22's: F2's five are withdrawn, and step 2 lists its own.
 
 `etc/lean-check.py` on each Draft module; a targeted `lake build` of the nine Draft modules (7142
 jobs, no error); the full `lake build` of `f58a6b6adf` passed (11206 jobs, no error).
+
+## Step 2: restore in compaction mode (2026-10-30)
+
+The user's order, item (2): `store.Restore` in compaction mode, the write-back supply following the
+backend, D22's statements. Draft only: nothing exported, trusted or D22's switched; no `axiom`, no
+`sorry`; no Perennial change. Commits `5e66e2c5b6` (mvcc), `c826174109` (etcdserver), and this notes
+and issue commit. New Draft modules, imported by nothing:
+`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/M2StorageDraftRestore.lean`,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/M2StorageDraftRestore.lean`.
+
+### The Go code (read at the pin, `.lake/go-src/etcd` `249d76bea7`)
+
+- `store.Restore` (`kvstore.go:292-314`): under `s.mu`, `close(s.stopc)`, then `s.fifoSched.Stop()`,
+  which cancels the scheduler's context and returns once the worker has run every pending job (with
+  the cancelled context) and exited (`schedule.go:150-184`, `<-f.donec`). Only then does `Restore`
+  write `s.b`, `s.kvindex`, `s.fifoSched`, `s.stopc` and call `restore()`, which reads
+  `finishedCompactRev` into `compactMainRev`, raises `currentRev` to `scheduledCompactRev`, and, when
+  the scheduled one is past the finished one, **resumes the compaction** (`compactLockfree`: a
+  `SetScheduledCompact` and `ForceCommit` on the new backend, a job on the new scheduler).
+- **A job in flight is safe.** The running job (`scheduleCompaction`) reads `s.b`, `s.kvindex`,
+  `s.stopc` without a lock between batches; it finds `stopc` closed at its next `select` and returns
+  an error, then `compactBarrier(context.TODO(), ch)` closes its channel. Every read of the fields by
+  an old job happens before `donec` closes, so before `Restore`'s writes: no race. The barrier's
+  re-schedule branch (a cancelled context with `stopc` open, which would take `s.mu` and deadlock
+  against `Restore`) is unreachable, because `Restore` and `Close` close `stopc` before `Stop` (PR
+  11817's fix). The interrupted job leaves the old backend half compacted, and the old backend is
+  closed after the swap. The old backend's pre-commit hook during the job's last `ForceCommit` (after
+  `ci.SetBackend(newbe)`) saves index `0`, which `unsafeUpdateConsistentIndex` skips. In
+  `applySnapshot` (`server.go:1059-1104`), `Restore` comes before `s.be = newbe`, so every old job is
+  done by the swap.
+- **A bug: a queued job is dropped without closing its channel.** A compaction still in the queue
+  when `Stop` runs gets the cancelled context, calls `compactBarrier(ctx, ch)`, finds `stopc` closed
+  and returns without `close(ch)`. A `Physical: true` compaction RPC waits on that channel with no
+  other case (`v3_server.go:402`), so it hangs and its handler leaks. Reproduced with a Go test
+  (`issues/etcd-restore-pending-compaction-unclosed.md`, with `repro_test.go`). It is a liveness bug:
+  the proofs are partial correctness, and `compactDone` already allows a cancelled context, so no
+  statement changes.
+
+### The design drafted (the root cause of P4 removed)
+
+- **P4's root cause** is that today's compaction right is made by *discarding* the closer's share of
+  the four fields `Restore` writes (`storeStop`: `↦□`, `curAt` and the restoring flag discarded) and
+  the scheduler's stop token (`schedLive`). The jobs need the former to read the fields without a
+  lock, and the untracked barriers need the latter.
+- **The jobs' share in an invariant keyed by the scheduler's run token** (`mvcc.storeStopR`: an
+  eighth of the fields at the current objects, `fieldShareAt s γ q8 o`, *or* `schedule.schedDoneD
+  γ.sch`). A job runs with the run token (`schedule.jobIs`), so it finds the share there. Drafted for
+  `schedule`: `Scheduler.Stop.spec`'s post gains `schedDoneD γ` (the run token's ghost part, given
+  up by the worker at exit). The stopper swaps it in and takes the share out
+  (`storeStopR_reclaim`). No job's cooperation is needed, so untracked barrier jobs are covered too.
+- **A compacting store keeps its closer** (`mvcc.compactRightR s γ c := crevUB γ.idx ½ c ∗
+  compactQueue γ c ∗ storeCloserR s γ ∗ storeStopR s γ`). `storeCloserR` is the closer with an
+  eighth of the fields (the other eighth is the jobs'), the stop channel's close and the stop token.
+  It is made from the closer by a split (`compactRightR_of_closer`, in place of
+  `compactRight_of_closer`). After `Stop`, the two eighths are today's quarter again
+  (`fieldShare_reclaim`, by `curAt`'s agreement). `Restore` then proceeds as over today's closer,
+  with the queue and the revision at `c`. The same holds for `Close`, so Q3 (`Cleanup`) dissolves:
+  a compacting server keeps its closer.
+- **No `schedLive`.** `updateCompactRev`'s `ErrCompacted` barrier runs inside `Compact`, which holds
+  the right (the queue), so it becomes a tracked job. The barrier's re-schedule branch is dead:
+  drafted, `Scheduler.Stop` takes a persistent payload (the store's: its stop channel closed) that a
+  job finding its context cancelled learns. A first idea, half the stop token in `s.mu`'s resource,
+  fails because `store.Close` does not take `s.mu`. This is internal to mvcc and `schedule` and not
+  written in Lean.
+- **The compaction revision across a restore.** `γ.idx.crev` is logical: `Restore` keeps it, and its
+  authority is monotone. The image's revision `c'` (the larger of its two records) is what the store
+  ends at. Drafted: `c ≤ c'` as a premise, true because the compaction revision is a function of the
+  committed raft log and the image is of a longer prefix. That is the apply side's obligation, as
+  `L <+: L'` is today. Alternative (a question below): make `crev` physical.
+
+### The drafted statements (Lean in `mvcc/M2StorageDraftRestore.lean`)
+
+- **`mvcc.store.Restore.specM`** (drafts `store.Restore.spec`, D22 S6's statement, mvcc's Spec): the
+  parameters gain `(c c' : Int)` and the premise `c ≤ c'`. The pre changes:
+  ```lean
+      mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗
+      mvcc.restoreRightM s γ c ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ …
+      (∀ p, … → mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.withPhys p)) (mvcc.storeRT (γ.withPhys p))
+          (mvcc.restoreNCM (γ.withPhys p))) ∗
+      mvcc.restoreImageM d' γb' ([[], []] ++ R) c' ∗ mvcc.kbRegRight (some d') ∗
+      mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ …
+  ```
+  (in place of `⌜… d.cm = false⌝ ∗ ⌜d'.cm = false⌝`, `storeCloser s γ`, `crevFrozen γ`, `kbNoCmp` in
+  the clean read, `kbViewC … (bucketMap L') ∗ kbNoCmp (some d') γb'`). The post changes:
+  ```lean
+      mvcc.restoreRightPostM s (γ.withPhys p') c' ∗ … ∗
+      mvcc.compactJobResM γ.kb ∗
+      ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.kb) (), mvcc.storeRT γ) ∗ …
+  ```
+  The predicates by the mode:
+  ```lean
+  def mvcc.restoreRightM (s : Loc) (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
+    if mvcc.kbCmpM γ.kb then mvcc.compactRightR s γ c
+    else iprop(mvcc.storeCloser s γ ∗ mvcc.crevFrozen γ ∗ ⌜c = -1⌝)
+  def mvcc.restoreRightPostM (s : Loc) (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
+    if mvcc.kbCmpM γ.kb then mvcc.compactRightR s γ c else mvcc.storeCloser s γ
+  def mvcc.restoreImageM (d' : mvcc.KBReal) (γb' : GName) (L : mvcc.Log) (c' : Int) : IProp GF :=
+    if d'.cm then
+      iprop(∃ m : mvcc.Bucket, mvcc.kbViewC (some d') γb' 1 m ∗ backend.fkV d'.γB true ∗
+        ⌜mvcc.imageAt L c' m ∧ -1 ≤ c' ∧ c' < L.length ∧ mvcc.NoDelPutAt L c'⌝)
+    else iprop(mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap L) ∗ mvcc.kbNoCmp (some d') γb' ∗
+      ⌜c' = -1⌝)
+  ```
+  Here `imageAt L c m` says the bucket is the log's thinned at `c`: every entry of `m` is
+  `bucketMap L`'s, and every missing one is `KeyDel L c`. That covers both a finished compaction
+  and a leader's bucket mid-job.
+- **`mvcc.watchableStore.Restore.specM`**: the same changes over today's text (`restoreRightM st γ.st
+  c` in place of `storeCloser st γ.st ∗ crevFrozen γ.st`).
+- **Off-mode laws, proved**: `mvcc.store.Restore.spec_of_specM` and
+  `mvcc.watchableStore.Restore.spec_of_specM` (`specM → spec`). At `cm = false` the drafted specs
+  give today's, at `c = c' = -1`, through `restoreRightM_off`, `restoreRightPostM_off`,
+  `restoreImageM_off`, `restoreNCM_off` and `cmOff_true` (the slot, the supply and the budgets are
+  `True`, `nJobRd = 0`).
+- **Not drafted in Lean: `store.restore.spec`** (the trust boundary `restore()`; today
+  `kbNoCmp`, `compactMainRev = -1`, no resume). Its compaction-mode generalization must:
+  - read the two records (`finishedCompactRev` into `compactMainRev`, `scheduledCompactRev`
+    resumed);
+  - rebuild the index from a thinned bucket (**gap**: the index model's state after `restore` over
+    a partially compacted bucket, some keys of the compaction at `c'` already deleted and others
+    not, is neither "the index of `L'`" nor "compacted at `c'`"; the resumed job's
+    `treeIndex.Compact` makes it the latter; this needs the index model's `keyIndex` of a thinned
+    bucket);
+  - take the compaction right's pieces at the new names (the new queue, the jobs' invariant, the
+    new job's budgets and the supply) and give `compactRightR s γ' c'`.
+
+  This is the first thing to design before `Restore.specM` can be proved, and the largest piece.
+- **The compaction chain** (internal, at the switch): `compactJobPre`'s `storeStop s γ ∗ schedLive
+  γ.sch` become `storeStopR s γ`. `compactRight` becomes `compactRightR` in `store.Compact.spec`
+  (exported, `mvcc_store_Compact`) and the internal chain. `Scheduler.Stop.spec`'s post gains
+  `schedDoneD γ` and its pre the cancellation payload. `compactRight_of_closer` and
+  `compactRight_of_wsCloser` give way to `compactRightR_of_closer` and `wsCloserR_of_wsCloser`.
+  `wsCloserR` (the watchable store's own parts with the inner right) is what a compacting server
+  keeps (`wsCloserR_split`/`_join` around `Restore`). `storeStop` and `schedLive` go.
+
+### The write-back supply following the backend (task 2)
+
+**Drafted (recommended): one stock invariant per backend, sharing the pool's receipt counter**
+(`etcdserver/M2StorageDraftRestore.lean`):
+```lean
+def srvWTStockInv (γp : GName) (d : mvcc.KBReal) : IProp GF :=
+  inv srvWTStockN iprop(∃ (m n : Nat), monoNatLbOwn γp m ∗ ownToks d.γB.wb n ∗
+    ⌜receiptBound GF ≤ m + n + 1⌝)
+def srvWTPoolR (E : apply.AEnv GF) (γp : GName) : IProp GF :=
+  inv srvWTN iprop(∃ (a : Nat) (d : mvcc.KBReal), ⧗ a ∗
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ srvWTStockInv γp d ∗
+    monoNatAuthOwn γp 1 a ∗
+    (mvcc.bkRTx d.γB d.P d.be ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) d))
+```
+- The tokens leave the pool for a stock named by the backend `d`, which never changes. A take
+  (`srvWTStock_take`) puts a receipt into the pool (the count `a` up by one) and takes a token from
+  `d`'s stock, whose lower bound of the count keeps `receiptBound ≤ m + n + 1`.
+- So the supply of any backend with a stock is persistent (`kbWTSupplyM_of_stock : srvWTPoolR E γp
+  ∗ srvWTStockInv γp d ⊢ mvcc.kbWTSupplyM (some d)`). A job's supply of the old backend stays good
+  after the swap, and the swap still gathers all of `E.γbe`.
+- `srv_be_swapR` (proved): `srv_be_swap` with `srvWTStockInv γp d'` in place of `ownToks d'.γB.wb
+  n'` and its bound, and without handing out the old backend's tokens (`backend.Close` needs the
+  `bOpen` shares, not write tokens).
+- The new backend's stock is made from its fresh tokens *before* `Restore` (`srvWTStock_alloc`,
+  `snap_supply_before`), because `Restore` needs the supply when `restore()` resumes a compaction.
+  The walk takes its three hook and commit tokens first (ghost reordering).
+- It needs no more tokens than today: one stock of `receiptBound - 1` per backend, as the pool's
+  today. The shared counter bounds all takes together. It follows R2-7 (the supply from the server's
+  write budget).
+- One cost: the take at the current backend (`srvWTPoolR_take_extra_d`, D22's
+  `srvWTPool_take_extra_d`) needs a later credit, since the stock's fact sits under the pool's `▷`.
+  Its 8 callers have one from their steps.
+
+**Alternatives, for the user (Q4 below):**
+- (b) **A second stock per backend, apart from the pool** (Q1's (c) again). A receipt-backed
+  invariant of its own counter per backend (`kbWTSupplyM_alloc`, step 1's law). The D22 pool and
+  swap are unchanged. Each backend needs about twice the receipt bound in tokens:
+  `hrbw : receiptBound GF ≤ backend.wbInit - 6` becomes about `2 * receiptBound GF ≤ wbInit - 7` in
+  `NewServer`/`start`/`specSnap`. This departs from R2-7.
+- (c) **A lease: a fraction of `E.γbe` lent to the jobs through the queue**, returned at `Stop`.
+  Rejected: the compaction `restore()` resumes runs inside `Restore`, *before* the swap moves
+  `E.γbe` to `d'`, so no fraction at `d'` exists yet.
+
+### D22's statements that change (for the collaborator; drafted, nothing edited)
+
+Each drafted in `etcdserver/M2StorageDraftRestore.lean` (Lean) or as text here:
+1. **`srvEnvOk`** (`InvApplier.lean:478`): `∧ d.cm = false` becomes `∧ d.cm = E.cmp`, over N1's
+   `apply.AEnv` with `cmp` (`srvEnvOkD`; `srvEnvOkD_off`: today's at `E.cmp = false`). The two
+   other `∃ d, E.γ.kb = some d` facts of Q5-4 (`InvApplier`'s `:554`, `:830`) go back to having no
+   `cm` clause.
+2. **`applySnapshot.specSnap`** (`EtcdServer__applySnapshot.lean:54`):
+   - `(hcm : d.cm = false)` goes;
+   - new parameters `(c c' : Int)`, `(hcc : c ≤ c')` and `(hkI : mvcc.keyImageM d.cm ([[], []] ++ R)
+     c' D)`, in place of `hkI : mvcc.keyImage …`. `keyImageM` is to define: off, today's `keyImage`
+     and `c' = -1`; on, the image's `Key` bucket thinned at `c'` and its meta records with that
+     revision. These are S-j1's premises to discharge;
+   - pre `srvKVCloser s E` becomes `srvKVCloserM s E c`, and `srvWTPool E γp` becomes
+     `srvWTPoolR E γp`;
+   - post: the closer at the new environment `srvKVCloserM s E' c'`.
+3. **The walk** (`SnapApplyWalk.lean`):
+   - `:55`: `(hcm : d.cm = false)` goes, with the same new parameters as `specSnap`;
+   - `:291-293`: the new backend at the old mode, `{ d with γB := γB, be := nb, gx := gx' }` (no
+     `cm := false`), so `hcm' : d'.cm = d.cm`;
+   - `:385`: `storeBackendT_of_backend … hcm'` (off only). On, the compacting bridge
+     (`mvcc_backend_bridge` over `storeDlReg d'.γB γi`, `fkV`, the safe-range slot), with
+     `dlNoDel_fix` (`:288`) replaced by `storeDlReg_fix` by the mode;
+   - `:391-399`: the image's view and `kbNoCmp` become `restoreImageM` (by the mode, from `hkI`);
+   - `:400`: `hRst : watchableStore.Restore.spec` becomes `.specM`, at `c c'`, with the pre's
+     `restoreRightM` from `restorePre_of_applyM`, the new slot `kbSRM (some d')` (the new backend's
+     `srSlot`) and the supply `kbWTSupplyM (some d')` (`snap_supply_before`);
+   - `:406-408`: `⌜∃ d, … ∧ d'.cm = d.cm⌝` in place of the two `cm = false`;
+   - `:461`: `srv_be_swap … (wbInit - 5) …` with the tokens becomes `srv_be_swapR … d'` with
+     the stock fact, the stock made before `:400` from `wbInit - 5` tokens;
+   - `:808`: `hcm'` is `d'.cm = d.cm`;
+   - the post's closer by `snap_closer_after`, and the old job's budgets `compactJobResM (some d)`
+     (`Restore.specM`'s post) to the old backend's `Close` with the readers.
+4. **`SnapApplyDefs`**: `:66`/`:69` drop `cm := false` (the record keeps `d.cm`); `:95` and `:181`:
+   `d'.cm = false` becomes `d'.cm = d.cm`.
+5. **`SnapApplyIsServer.lean:49`** (`snap_isServer`): `(hcm' : d'.cm = false)` becomes `(hcm' :
+   d'.cm = E.cmp)` (`srvEnvOkD_mode_step`); `:64` passes it.
+6. **`SnapApplyPost.lean:116-155`**: `hcm'` as above; the closer re-made by `snap_closer_after`.
+7. **`srvKVCloser`** (`InvWatchBuilt.lean:70`): by the mode, `srvKVCloserM s E c` (off: today's at
+   `c = -1`, `srvKVCloserM_off`; on: `∃ wsl, srvKVAddr s ↦□ … ∗ mvcc.wsCloserR wsl E.s E.γ c`). Its
+   readers are `NewServer.spec`'s post (`srvKVCloserM_of_new` after the last error return, on),
+   `specSnap`, the walk and `run`'s state.
+8. **`RestorePre.restorePre_of_apply`** (`RestorePre.lean:54-80`): becomes `restorePre_of_applyM`
+   (proved, no `sorry`). Pre `srvKVCloserM s E c`, post `mvcc.restoreRightM E.s γw.st c` in place
+   of `mvcc.storeCloser E.s γw.st ∗ mvcc.crevFrozen γw.st`. Off, the frozen fact is the watchable
+   store's `Hfrz` (at the switch `isWatchableStoreD_frozen`); on, none is needed.
+9. **`srvWTPool`** (`InvApplier.lean:819`), `srvWTStock`, `srvWTPool_alloc` (`:870`), the take laws
+   (`srvWTPool_take_extra_d` `:1040`, `_extra`, `_two`, `_at`: a later credit each) and
+   **`srv_be_swap`** (`SnapApply.lean:119`): as drafted (`srvWTPoolR`, `srvWTStockInv`,
+   `srv_be_swapR`); `start`'s allocation makes the boot backend's stock and the pool.
+10. **SNAPSHOT-SORRY #8** (`EtcdServer__run.lean:811`, `:1332`): its job calls `specSnap` with the
+    compaction revision `c` of the server's closer and the image's `c'`, and `c ≤ c'` from the
+    apply side's model. **Gap**: the KV model of the raft log (`kvRaftOf`) does not track the
+    compaction revision yet (the apply loop's `Compaction` arm is not in scope).
+
+### Glue proved (against the drafted statements)
+
+- mvcc: `compactRightR_of_closer`, `storeStopR_reclaim`, `fieldShare_reclaim` (the right's two
+  eighths back to the closer's quarter after `Stop`), `wsCloserR_of_wsCloser`, `wsCloserR_split`,
+  `wsCloserR_join`, and the two off-mode laws `spec_of_specM`.
+- etcdserver: `srvWTStock_take`, `kbWTSupplyM_of_stock`, `srvWTStock_alloc`,
+  `srvWTPoolR_take_extra_d`, `srv_be_swapR`, `srvEnvOkD_off`, `srvEnvOkD_mode_step`,
+  `srvKVCloserM_of_new`, `restorePre_of_applyM` (either mode), `snap_supply_before`,
+  `snap_closer_after` (`Restore.specM`'s post to the new closer, either mode).
+- The restore step composes at the level of its interfaces: `restorePre_of_applyM` gives exactly
+  `watchableStore.Restore.specM`'s `restoreRightM` with the watchable store's own parts set aside.
+  `snap_supply_before` gives its supply, and `snap_closer_after` takes its `restoreRightPostM`
+  back with those parts. The mode step keeps `srvEnvOkD`. **Not done:** a Hoare-level glue through
+  `hRst : watchableStore.Restore.specM`. The watchable store the walk calls is `kvOwn`'s `ws`, and the
+  closer's `wsl` is a separate existential that the walk equates today; it would duplicate the walk.
+- **Gaps** (not proved, not drafted in Lean):
+  - `store.restore.spec`'s generalization (the index over a thinned bucket);
+  - the compaction chain over `storeStopR` (re-proving `scheduleCompaction`, `compactBarrier`,
+    `compact`, `updateCompactRev` with the tracked barrier);
+  - `schedule`'s `Stop` changes (the run token out, the cancellation payload) and their proofs;
+  - `keyImageM`;
+  - the apply side's `c ≤ c'`;
+  - `Restore.specM`'s proof (`store__Restore.lean`: `writerOwn_off` and `¬ kbCmpM` at `:190`,
+    `:295`, `:390` become by the mode; `restore_switch`'s pool refill at `nReaders - 2 - nJobRd`).
+
+### Questions for the user
+
+- **Q4, the supply's source** (above): (a) stock per backend sharing the pool's counter
+  (drafted, recommended: no token doubling, R2-7 kept, a later credit in the take laws), (b) a second
+  stock per backend (token premise doubled, D22's pool untouched), (c) a lease (rejected: the
+  resumed compaction runs before the swap).
+- **Q5, the compaction revision across a restore**: (a) logical, `c ≤ c'` a premise (drafted:
+  `Restore` never lowers the store's compaction revision, a true and useful fact; the apply side
+  must model the compaction revision of the committed log), or (b) physical (`IdxNames.crev` moves
+  into `PhysNames`, D22's definitions; `Restore` allocates a fresh authority at `c'`, no premise; the
+  spec then says nothing of the revision across the install).
+- **Q6, the scheduler's spec** (internal, `schedule`): `Stop` returns the run token and takes a
+  cancellation payload, and `updateCompactRev`'s barrier becomes tracked (drafted), instead of
+  keeping `schedLive` (which `Restore` cannot have).
+
+### Q2, step 2 block (statements that change; D22's marked)
+
+15. **`mvcc.store.Restore.spec`** (D22's statement, mvcc's Spec): `store.Restore.specM`'s text.
+16. **`mvcc.watchableStore.Restore.spec`** (D22's): `watchableStore.Restore.specM`'s text.
+17. **`mvcc.store.Compact.spec`**, export **`mvcc_store_Compact`**: `compactRight γ c` becomes
+    `compactRightR s γ c` in pre and post (with Q1 (a)'s supply line). `mvcc.compactRight_of_closer`
+    is replaced by `compactRightR_of_closer`; `storeStop` and `schedLive` leave `compactJobPre`.
+18. **`mvcc.store.restore.spec`** (trusted, the trust boundary): its compaction-mode generalization
+    (to design: the gap above).
+19. **`schedule.Scheduler.Stop.spec`** (and `fifo.Stop`): its post gains `schedDoneD γ`, and a
+    cancellation payload is added. `Scheduler.Schedule.spec`'s untracked arm keeps `schedLive` (no
+    longer used by mvcc).
+20. **Step 1's drafts revised**: `compactRight_of_wsCloser` becomes `wsCloserR_of_wsCloser` (the
+    closer kept); item 14 (the supply's server source) is `kbWTSupplyM_of_stock` (Q4).
+21. **D22's** (the collaborator's): `srvEnvOk`; `applySnapshot.specSnap`; the walk
+    (`SnapApplyWalk`); `SnapApplyDefs`; `SnapApplyIsServer`; `SnapApplyPost`; `srvKVCloser`;
+    `restorePre_of_apply`; `srvWTPool`, `srvWTStock`, `srvWTPool_alloc`, the take laws and
+    `srv_be_swap`. These are items 1-9 of "D22's statements that change" above.
+22. **`NewServer.spec`/`specCompact`**: the post's `srvKVCloser` becomes `srvKVCloserM s E (-1)`.
+
+### Checked
+
+- `etc/lean-check.py -a` on both Draft modules.
+- Targeted `lake build` of each (mvcc: 2365 jobs; etcdserver: 3651 jobs; no error).
+- `#print axioms` of the off-mode laws, `fieldShare_reclaim`, `restorePre_of_applyM`,
+  `snap_closer_after`, `srv_be_swapR`, `snap_supply_before`, `srvWTPoolR_take_extra_d` and
+  `srvKVCloserM_of_new`: no `sorryAx`.
+- The full `lake build` of `c826174109` passed (11208 jobs, no error).
+- Go: the reproduction test (`issues/etcd-restore-pending-compaction-unclosed/repro_test.go`) fails
+  as the issue says, in 6 runs, 5 of them with `-race`.

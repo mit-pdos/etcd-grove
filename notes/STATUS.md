@@ -398,7 +398,7 @@ store's `GetList` is still names-only.
 - `m2-storage-plan.md`: M2's storage side (the backend-cmp Probe's P3, S1-S3): compaction mode in
   the watchable store's construction, the boot's budgets, `writerOwn`'s count. **Draft** written
   (branch `m2-storage`); Q1 (R2-7's timing) answered (a), the supply per compaction, and drafted;
-  Q2 (the drafted statements) open.
+  Q2 (the drafted statements) open; step 2 (restore in compaction mode) drafted, Q4-Q6 open.
 
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
   auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
@@ -539,6 +539,35 @@ exported or trusted switched:
   dropped (withdrawn by the user); S3'/S5'/S6' done, S1'/S2' moot; the consolidated Q2 list (14
   items, none D22's; the supply's server source pending step 2). Step 2 (restore in compaction mode)
   not started; what it needs is listed there. Full `lake build` passed (11206 jobs).
+- **Step 2, restore in compaction mode, drafted** (2026-10-30; the plan's "Step 2: restore in
+  compaction mode"; `mvcc/M2StorageDraftRestore.lean`, `etcdserver/M2StorageDraftRestore.lean`,
+  imported by nothing, no `axiom`/`sorry`). P4's root cause removed in the Draft: a compacting store
+  keeps its closer (`compactRightR`), the jobs reading the fields through an invariant they leave
+  when `Stop` returns the scheduler's run token (`storeStopR`). `store.Restore.specM` and
+  `watchableStore.Restore.specM` by the mode, with the off-mode laws (`spec_of_specM`: today's specs
+  follow at `cm = false`). The supply follows the backend: one stock invariant per backend sharing
+  the pool's receipt counter (`srvWTStockInv`, `kbWTSupplyM_of_stock`, `srv_be_swapR`). Questions
+  Q4-Q6 for the user. Gaps: `store.restore`'s generalization (the index over a thinned bucket),
+  the compaction chain over `storeStopR`, `schedule`'s `Stop`, the apply side's `c ≤ c'`. A Go
+  liveness bug found and reproduced: `issues/etcd-restore-pending-compaction-unclosed.md`. Full
+  `lake build` passed (11208 jobs).
+  **For the collaborator (D22's statements drafted to change, nothing edited)**: the drafts of the
+  D22 statements are in the etcdserver Draft, or as text in the plan. Why: restore must now work in
+  compaction mode (the user's decision after Stage P), so Q5-4's `cm = false` restrictions go, and
+  the supply cannot rest on a discarded part of `E.γbe`.
+  - `srvEnvOk`: `d.cm = false` becomes `d.cm = E.cmp` (`srvEnvOkD`).
+  - `applySnapshot.specSnap`: `hcm` goes; the compaction revisions `c ≤ c'` and a mode-gated image
+    premise are added; the closer is by the mode; the pool becomes `srvWTPoolR`.
+  - The walk (`SnapApplyWalk` `:55`, `:291-293`, `:385`, `:391-400`, `:406-408`, `:461`, `:808`):
+    the new backend at the old mode, `hRst` over `.specM`, the new backend's stock made before
+    `Restore`, `srv_be_swapR`.
+  - `SnapApplyDefs` `:66`/`:69`/`:95`/`:181`: `d'.cm = d.cm`.
+  - `SnapApplyIsServer:49` and `SnapApplyPost:116-155`: the same.
+  - `srvKVCloser` by the mode (`srvKVCloserM`).
+  - `restorePre_of_apply`: becomes `restorePre_of_applyM`, proved in either mode, its `sorry` gone.
+  - `srvWTPool`, `srvWTStock`, `srvWTPool_alloc`, the take laws (a later credit each) and
+    `srv_be_swap` (`srvWTPoolR`, `srvWTStockInv`).
+  - `store.Restore.spec`/`watchableStore.Restore.spec` (`.specM`).
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 

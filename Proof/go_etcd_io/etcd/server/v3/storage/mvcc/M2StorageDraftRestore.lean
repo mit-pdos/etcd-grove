@@ -31,11 +31,14 @@ job's reads of the fields only need a share that comes back when `Stop` returns:
   `compactRight_of_wsCloser`); after `Stop`, the two eighths make the closer's quarter again
   (`fieldShare_reclaim`), so `Restore` (and `Close`) proceed as over today's closer, with the queue
   and the revision at `c` instead of `-1`.
-- **No `schedLive`**: the untracked `Schedule`s (`updateCompactRev`'s `ErrCompacted` barrier, the
-  barrier's re-schedule in `compactBarrier`) all run under `s.mu` held exclusively; drafted, their
-  permission is half the stop token kept in `s.mu`'s resource (`muInv`, internal), `Stop` taking
-  both halves (`Restore` and `Close` hold `s.mu`). Not written in Lean here (internal to mvcc and
-  `schedule`); listed in the plan.
+- **No `schedLive`**: of the two untracked `Schedule`s, `updateCompactRev`'s `ErrCompacted` barrier
+  runs inside `Compact`, which holds the right, hence the queue: it becomes a tracked job (passing
+  the queue's token through). The barrier's re-schedule in `compactBarrier` (a cancelled context
+  with `stopc` open) is dead: `Restore` and `Close` close `stopc` before `Stop` cancels the context
+  (etcd PR 11817's order); drafted, `Scheduler.Stop` takes a persistent payload that a job finding
+  its context cancelled learns (the store's: its stop channel closed). Not written in Lean here
+  (internal to mvcc and `schedule`); listed in the plan. (Not half the stop token in `s.mu`'s
+  resource: `store.Close` does not take `s.mu`.)
 
 **The statements** (`store.Restore.specM`, `watchableStore.Restore.specM`): the mode survives the
 install (`d'.cm = d.cm`); by the mode, the store's right (`restoreRightM`: today's closer and
