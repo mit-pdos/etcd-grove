@@ -97,6 +97,7 @@ theorem StartCluster.wp_proof
   try wp_auto
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mR HR
   try wp_auto
+  generalize hcl : «$r0_ptr» = cl
   icases typedPointsto_split _ _ _ $$ «$r0» with Hc0
   simp only [TypedPointsto.typedPointstoDef]
   icases Hc0 with ⟨opts, Stats, boot, mu, replicas, nextID, nextOp, -⟩
@@ -177,9 +178,9 @@ theorem StartCluster.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   try wp_auto
-  wp_apply wp_Mutex_Lock_fresh («$r0_ptr».[RCluster, go!"mu"])
-    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) «$r0_ptr») $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
-  ihave #Hc : isClusterC γr (bootVoters (uint.nat o.Voters')) «$r0_ptr» $$ []
+  wp_apply wp_Mutex_Lock_fresh (cl.[RCluster, go!"mu"])
+    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) cl) $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
+  ihave #Hc : isClusterC γr (bootVoters (uint.nat o.Voters')) cl $$ []
   · unfold isClusterC
     iexists o, «$v3_ptr»
     simp only [named]
@@ -220,7 +221,93 @@ theorem StartCluster.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   wp_for IH
   wp_if_destruct
-  · sorry
+  · obtain ⟨Hk1, HkV, HdomR⟩ := Hk
+    have HkV' : uint.nat k ≤ uint.nat o.Voters' := by word
+    have Hnid0 : k ≠ W64 0 := by intro h; subst h; simp at Hk1
+    have Hget : (bootVoters (uint.nat o.Voters'))[uint.nat k - 1]? = some k := by
+      rw [bootVoters_getElem _ _ (by omega)]; congr 1; word
+    rw [life_drop_cons _ _ _ Hget, show uint.nat k - 1 + 1 = uint.nat k from by omega]
+    icases Htodo with ⟨⟨Hfd, Hseq⟩, Htodo⟩
+    try wp_auto
+    wp_apply wp_NewMemoryStorage $$ [$Hraft] as %ms %γs' ⟨#Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
+    try wp_auto
+    iStructNamed «$r0»
+    imod kvrStor_alloc «$r0_ptr» ms «$v3_ptr» γs' (bootCS (bootVoters (uint.nat o.Voters'))) ⊤
+      (fun _ _ => CoPset.mem_full) $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
+    wp_apply wp_config γr _ cl k «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
+    obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+    ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+      wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster k
+      $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend
+    ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
+    wp_apply (wp_RestartNode γr.cluster kvrRaftN (bootVoters (uint.nat o.Voters')) cp cv qLogger
+        ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ (HardStateM.mk (W64 0) (W64 0) (W64 0))
+        (bootCS (bootVoters (uint.nat o.Voters')))
+        iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+          memStorInvP ms γs' (kvrJ γr.cluster k)) HcV HcLg HcSt HcM HcDP HcRO
+        HcDC HcSz HcAS HcAp ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl rfl)
+      $$ [$Hraft $Hcv $Hlogger Hboot Hfd]
+      as %nd ⟨%n, %Hnd, #HisNode, Hdrv, Hncfg, Hrun, Hmeta, #HmsInv⟩
+    · have Hiface : kvrStorIface «$r0_ptr» =
+          GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
+      rw [HcID, ← Hiface]
+      isplitl [Hboot]
+      · iexact Hboot
+      ileft
+      iexact Hfd
+    subst Hnd
+    ihave #HisNode' : isNode n γr.cluster kvrRaftN k $$ []
+    · rw [← HcID]; iexact HisNode
+    have Hiface : kvrStorIface «$r0_ptr» =
+        GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
+    rw [← Hiface]
+    try wp_auto
+    wp_apply wp_tick γr _ cl $$ [$Hc] as %tk %Htk
+    try wp_auto
+    ihave #Hknown : repKnown γr k $$ []
+    · unfold repKnown
+      isplitr
+      · ipureintro; exact Hnid0
+      iapply monoNatLbOwn_le (uint.nat k + 1) (by omega) $$ Hlb
+    wp_apply wp_sender γr _ cl k $$ [$Hc $Hknown] as %f #Hf
+    have Hvl : ((bootVoters (uint.nat o.Voters')).length : Int) < 2 ^ 61 := by
+      rw [bootVoters_length]; omega
+    wp_apply (wp_newReplica γr _ k n «$r0_ptr» (cl.[RCluster, go!"Stats"]) «$v3_ptr» tk f ms γs' _
+        Htk Hvnd Hvl (bootCS_is _ Hvnd))
+      $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
+        $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
+    have HRn : R !! k = none := by
+      cases h : R !! k with
+      | none => rfl
+      | some _ => have := (HdomR k).1 (by simp [h]); omega
+    wp_apply wp_mapInsert go.uint64 mR R k r $$ [$HR] as HR
+    try wp_auto
+    ihave #Hctr := isStats_field (cl.[RCluster, go!"Stats"]) go!"ReplicasStarted" (by decide)
+      $$ Hstats
+    wp_apply wp_add (cl.[RCluster, go!"Stats"]) _ $$ [$Hpkg $Hctr]
+    try wp_auto
+    wp_for_post
+    iframe
+    iexists k + W64 1, <[k := r]> R
+    have e2 : uint.nat (k + W64 1) = uint.nat k + 1 := by word
+    rw [e2, show uint.nat k + 1 - 1 = uint.nat k from by omega]
+    iframe
+    isplitr
+    · ipureintro
+      refine ⟨by omega, by omega, fun i => ?_⟩
+      by_cases hi : k = i
+      · subst hi; simp; omega
+      · rw [GMap.lookup_insert_ne _ _ hi, HdomR]
+        have : uint.nat i ≠ uint.nat k := fun h => hi (by word)
+        omega
+    isplitl [Hreps]
+    · iapply (BigSepM.bigSepM_insert (Φ := fun id r => isRep (GF := GF) γr
+        (bootVoters (uint.nat o.Voters')) id r) HRn).2
+      iframe Hreps
+      iexact Hr
+    iapply (BigSepM.bigSepM_insert (Φ := fun _ r => repStop (GF := GF) γr
+      (bootVoters (uint.nat o.Voters')) r) HRn).2
+    iframe Htoks Hrs
   sorry
 
 end proof
