@@ -41,11 +41,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__ap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__applyOp
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__conf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__install
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__maybeCompact
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__maybeSnapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__propose
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__read
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__request
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__snapshot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__snapshotter
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__stop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Replica__ticker
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Run
@@ -280,13 +281,9 @@ theorem kvreconf.wp_encodeState :
     kvreconf.encodeState.spec (GF := GF) (hG := hG) :=
   kvreconf.encodeState.wp_proof kvreconf.wp_putMap
 
-theorem kvreconf.Replica.wp_maybeSnapshot [AllG GF] [KvrStor GF] :
-    kvreconf.Replica.maybeSnapshot.spec (GF := GF) (hG := hG) :=
-  kvreconf.Replica.maybeSnapshot.wp_proof kvreconf.Stats.wp_add kvreconf.wp_encodeState raftpb.ConfState.wp_GetVotersOutgoing MemoryStorage.wp_CreateSnapshot
-
-theorem kvreconf.Replica.wp_maybeCompact [AllG GF] [KvrStor GF] :
-    kvreconf.Replica.maybeCompact.spec (GF := GF) (hG := hG) :=
-  kvreconf.Replica.maybeCompact.wp_proof kvreconf.Stats.wp_add kvreconf.wp_below MemoryStorage.wp_FirstIndex MemoryStorage.wp_Compact
+theorem kvreconf.Replica.wp_request [AllG GF] [KvrStor GF] :
+    kvreconf.Replica.request.spec (GF := GF) (hG := hG) :=
+  kvreconf.Replica.request.wp_proof kvreconf.wp_encodeState
 
 theorem kvreconf.wp_fits :
     kvreconf.fits.spec (GF := GF) (hG := hG) :=
@@ -306,15 +303,23 @@ theorem kvreconf.wp_decodeState :
 
 theorem kvreconf.Replica.wp_run [AllG GF] [KvrStor GF] :
     kvreconf.Replica.run.spec (GF := GF) (hG := hG) :=
-  kvreconf.Replica.run.wp_proof kvreconf.Replica.wp_applyEntry kvreconf.Replica.wp_install kvreconf.Replica.wp_answer kvreconf.Replica.wp_maybeSnapshot kvreconf.Replica.wp_maybeCompact kvreconf.wp_fits kvreconf.wp_oneIn kvreconf.wp_decodeState node.wp_Ready node.wp_Advance wp_IsEmptySnap wp_IsEmptyHardState raftpb.Snapshot.wp_GetData raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState
+  kvreconf.Replica.run.wp_proof kvreconf.Replica.wp_applyEntry kvreconf.Replica.wp_install kvreconf.Replica.wp_answer kvreconf.Replica.wp_request kvreconf.wp_fits kvreconf.wp_oneIn kvreconf.wp_decodeState node.wp_Ready node.wp_Advance wp_IsEmptySnap wp_IsEmptyHardState raftpb.Snapshot.wp_GetData raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState
 
 theorem kvreconf.Replica.wp_ticker [AllG GF] [KvrStor GF] :
     kvreconf.Replica.ticker.spec (GF := GF) (hG := hG) :=
   kvreconf.Replica.ticker.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop node.wp_Tick
 
+theorem kvreconf.Replica.wp_snapshot [AllG GF] [KvrStor GF] :
+    kvreconf.Replica.snapshot.spec (GF := GF) (hG := hG) :=
+  kvreconf.Replica.snapshot.wp_proof kvreconf.Stats.wp_add kvreconf.wp_below raftpb.ConfState.wp_GetVotersOutgoing MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_FirstIndex MemoryStorage.wp_Compact
+
+theorem kvreconf.Replica.wp_snapshotter [AllG GF] [KvrStor GF] :
+    kvreconf.Replica.snapshotter.spec (GF := GF) (hG := hG) :=
+  kvreconf.Replica.snapshotter.wp_proof kvreconf.Replica.wp_snapshot
+
 theorem kvreconf.wp_newReplica [AllG GF] [KvrStor GF] :
     kvreconf.newReplica.spec (GF := GF) (hG := hG) :=
-  kvreconf.newReplica.wp_proof kvreconf.Replica.wp_run kvreconf.Replica.wp_ticker proto.wp_CloneConfState
+  kvreconf.newReplica.wp_proof kvreconf.Replica.wp_run kvreconf.Replica.wp_ticker kvreconf.Replica.wp_snapshotter proto.wp_CloneConfState
 
 theorem kvreconf.Storage.wp_InitialState [KvrStor GF] :
     kvreconf.Storage.InitialState.spec (GF := GF) (hG := hG) :=

@@ -660,6 +660,25 @@ Step 4 (the node level, 2026-10-29; in progress):
   `ownRawNode_appended` takes the frozen prefix `a` within `delivered`; `ownRaftPhys_set_ns` only
   at `b = false` (no `NsCap`).
 
+- **kvreconf-snapshot-thread (2026-10-30, user-approved new client-visible ghost state)**: the
+  exclusive `memSnapExact γs sv` replaced by the persistent `memSnapLb γs i` (the stored snapshot's
+  index `≥ i`, monotone; `MemStorNames.sl`, the authority in the lock) — the deferred two-writer
+  form, now built. `CreateSnapshot(i)`: both outcomes give `memSnapLb γs i` (no exact knowledge,
+  `ErrSnapOutOfDate` tolerated); `Compact(x)` takes `memSnapLb γs x` (no `sv0`, no `x ≤ sv0.Index`
+  premise); `ApplySnapshot` takes no snapshot token (its success proved in the lock's invariant, as
+  before) and gives `memSnapLb γs s`. **Deviations (logged for the user):** (1) the writers
+  (`CreateSnapshot`, `ApplySnapshot`) take `memSnapLb γs 0`, and `NewMemoryStorage` gives the
+  exclusive `memSnapNone γs` (`MemStorNames.pr`) instead, opened by `memSnapNone_open :
+  memSnapNone γs ==∗ memSnapLb γs 0`: R1 of the server's repair design (`Snapshot()` on a storage
+  that never stored a snapshot answers exactly the empty one) needs a fact the writers cannot
+  invalidate, so they need a permission (persistent, so two writers share it); `Snapshot`'s one
+  spec takes `(if b then memSnapNone γs else emp)` and, for `b = true`, says `sv = memSnapEmpty`
+  (the contract law uses `b = false`). (2) `CreateSnapshot`'s `cs` must be non-`nil` (`ownCSM cs dq
+  c`, was `memCsArg`): a `nil` one keeps the stored snapshot's conf state, which a writer beside
+  another does not know; kvreconf and etcd pass one. **Note for the server's repair:** the old
+  `SnapTake.lean` says `ep.confState` may be `nil`; the server must pass a non-`nil` one or show it
+  non-`nil`. `memSnapMade i t c bs` names the stored snapshot (`memSnapCreated_some`).
+
 ### Where step 4 stopped (2026-10-29, the user's wrap-up)
 
 The tree builds up to the log and raft level and `InvRawnode`; the node level does not build.

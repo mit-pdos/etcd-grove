@@ -16,7 +16,7 @@ theorem NewMemoryStorage.wp_proof [package_sem : Assumptions] (wp_EnsureSnapshot
               memStorLock ms γs ∗
                   memLog γs 0 DFrac.discard [zero_val EntryM] ∗
                     memEnd γs 1 ∗
-                      memSnapExact γs memSnapEmpty ∗
+                      memSnapNone γs ∗
                         memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗ memStorFresh ms γs -∗
                 Φ (intoVal ms)) -∗
           WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}

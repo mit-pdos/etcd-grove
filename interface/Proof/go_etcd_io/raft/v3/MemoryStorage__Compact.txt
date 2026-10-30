@@ -6,20 +6,17 @@ theorem MemoryStorage.Compact.wp_proof [package_sem : Assumptions] (wp_GetIndex 
     raftpb.Entry.GetIndex.spec) (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec)
     (wp_GetTerm : raftpb.Entry.GetTerm.spec) : MemoryStorage.Compact.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Compact.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (sv0 : SnapshotM) (ecomp : GoInterface),
-    uint.nat x ≤ uint.nat sv0.Metadata'.Index' →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              memStorInvP ms γs J ∗
-                ((∃ e, memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
-                  J.B (uint.nat x) ∗ memSnapExact γs sv0 ∗ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
-            (▷
-                ∀ err,
-                  ⌜err = GoInterface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) ∗ memSnapExact γs sv0 -∗
-                    Φ (intoVal err)) -∗
-              WP
-                ((intoVal
-                    (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
-                  (intoVal x))
-                {{ Φ }}
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            memStorInvP ms γs J ∗
+              ((∃ e, memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
+                J.B (uint.nat x) ∗
+                  memSnapLb γs (uint.nat x) ∗ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
+          (▷ ∀ err, ⌜err = GoInterface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) -∗ Φ (intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
+                (intoVal x))
+              {{ Φ }}

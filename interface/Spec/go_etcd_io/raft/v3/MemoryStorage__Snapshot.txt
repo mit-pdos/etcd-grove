@@ -3,20 +3,23 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.Snapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (esu : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (b : Bool) (esu : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             memStorInvP ms γs J ∗
-              memCompacted γs c ∗ typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
+              memCompacted γs c ∗
+                (if b = true then memSnapNone γs else emp) ∗
+                  typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
           (▷
               ∀ snap err,
-                (⌜err = esu⌝ ∨
-                    ⌜err = GoInterface.nil⌝ ∗
-                      ∃ sv,
-                        ownSnapM snap (DFrac.own 1) sv ∗
-                          ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
-                            (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) -∗
+                (if b = true then memSnapNone γs else emp) ∗
+                    (⌜err = esu⌝ ∨
+                      ⌜err = GoInterface.nil⌝ ∗
+                        ∃ sv,
+                          ownSnapM snap (DFrac.own 1) sv ∗
+                            ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
+                              (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP
               ((intoVal

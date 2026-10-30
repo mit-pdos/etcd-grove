@@ -7,8 +7,8 @@ theorem MemoryStorage.ApplySnapshot.wp_proof [package_sem : Assumptions] (wp_Ens
     raftpb.SnapshotMetadata.GetIndex.spec) (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec)
     (wp_CloneSnapshot : proto.CloneSnapshot.spec) : MemoryStorage.ApplySnapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.ApplySnapshot.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc) (dq : DFrac)
-    (sv sv0 : SnapshotM) (eood : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM)
+    (eood : GoInterface),
     j ≤ uint.nat sv.Metadata'.Index' →
       uint.nat sv.Metadata'.Index' < 2 ^ 61 →
         ⊢
@@ -21,12 +21,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof [package_sem : Assumptions] (wp_Ens
                         J.SV sv ∗
                           J.DL (uint.nat sv.Metadata'.Index') ∗
                             snapArg sp dq sv ∗
-                              memSnapExact γs sv0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                              memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
               ▷
                   (ownSnapM sp dq sv ∗
                       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
                         memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
-                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapExact γs sv -∗
+                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') -∗
                     Φ (intoVal GoInterface.nil)) -∗
                 WP
                   ((intoVal

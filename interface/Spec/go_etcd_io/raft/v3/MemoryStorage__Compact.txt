@@ -3,20 +3,17 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.Compact.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (sv0 : SnapshotM) (ecomp : GoInterface),
-    uint.nat x ≤ uint.nat sv0.Metadata'.Index' →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              memStorInvP ms γs J ∗
-                ((∃ e, memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
-                  J.B (uint.nat x) ∗ memSnapExact γs sv0 ∗ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
-            (▷
-                ∀ err,
-                  ⌜err = GoInterface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) ∗ memSnapExact γs sv0 -∗
-                    Φ (intoVal err)) -∗
-              WP
-                ((intoVal
-                    (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
-                  (intoVal x))
-                {{ Φ }}
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            memStorInvP ms γs J ∗
+              ((∃ e, memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
+                J.B (uint.nat x) ∗
+                  memSnapLb γs (uint.nat x) ∗ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
+          (▷ ∀ err, ⌜err = GoInterface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) -∗ Φ (intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
+                (intoVal x))
+              {{ Φ }}

@@ -1276,3 +1276,13 @@ supplies more. It is a fact of Iris's atomic updates (the Rocq `atomic_update_mo
 here by `greatest_fixpoint_coiter` and `aupd_aacc` (`Proof/.../etcdserver/InvRequest.lean`, step 5
 of the auth-mode merge). Proposed change: the lemma in Perennial's/Iris's atomic-update library,
 next to `aupd_aacc`.
+
+## A bag channel's non-blocking send (2026-10-30, kvreconf-snapshot-thread)
+
+Perennial's bag idiom (`Chan/Idioms/Bag.lean`) has the blocking send's atomic update
+(`bag_send_au`) but not the non-blocking one a `select` with a `default` needs. kvreconf's `request`
+sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : £ 1 -∗ isChanBag γ ch
+P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
+(`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
+the lemma in `Bag.lean`, next to `bag_send_au`.
+

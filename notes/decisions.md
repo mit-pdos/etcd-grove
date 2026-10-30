@@ -26589,3 +26589,36 @@ needs. No axiom, no `sorry`.
   `srvReqLogLb_of_rlogLb`). The alternative, a requested-log bound in the tie, would rework the
   raise law.
 - **Locked in:** a snapshot is never restored with auth on (already true; the tie needs it).
+
+## kvreconf's snapshots in a goroutine of their own (2026-10-30, kvreconf-snapshot-thread)
+
+**The Go change** (`examples/kvreconf/kv.go`; the user's request, etcd's structure: its apply thread
+takes snapshots and compacts while the raft goroutine appends and installs, `server.go:2102-2108`
+tolerating `ErrSnapOutOfDate`). Each replica has a snapshot goroutine (`snapshotter`, started by
+`newReplica`, waited for by `stop` on `snapDone`, like `run`/`ticker`). `run` no longer calls
+`CreateSnapshot` or `Compact`: at the points where it called `maybeSnapshot`/`maybeCompact` (after an
+entry at random, after `Advance` at random) it calls `request(snapIndex, snap, compact)`, which reads
+`r.index`, `r.cs` and encodes the state under `r.mu`, as `maybeSnapshot` did, and sends a `snapReq`
+`{index, cs, data, compact}` on `snapc` (capacity 1) without waiting (dropped if one is pending).
+`snapshot` calls `CreateSnapshot` (an error other than `ErrSnapOutOfDate` panics: unreachable),
+then compacts to a random index from `FirstIndex` to the least of the request's bound and `known`
+(the stored index as the goroutine knows it: its own snapshots' indices, a `memSnapLb`).
+
+**Why the applier builds the request (not the goroutine, reading under `r.mu`)**: the coordinator's
+first sketch had the goroutine read index/cs/data under `r.mu`. That is wrong for kvreconf:
+`applyOp`/`applyConf` change `r.kv`/`r.applied`/`r.cs` in one critical section and `applyEntry`
+moves `r.index` in a later one, so a reader between them pairs index `i - 1` with entry `i`'s state
+(a wrong snapshot; `kvrSnapRecOk` fails). The applier reads its own state only between entries
+(`maybeSnapshot`'s points), so it builds the request there, as etcd 3.5's apply thread clones the
+store before handing the serialization to a goroutine; the lock invariant is unchanged. Approved by
+the coordinator (option (B)).
+
+**Proof shape**: `snapc` is Perennial's bag channel with `snapReqOk γr id γs q` (`DefsCluster`): the
+frozen entry, the snapshot's validity (registered in `kvrSnapInv` by `request`, `kvr_snap_make`),
+its delivered bound, the conf state (read-only) and the data (owned) unless `data = nil`; the
+compaction point, the frozen log and `nodeAppliedLb compact` unless `compact = 0`. `isReplicaR`
+holds the channel, the `snapDone` handoff and `memSnapLb γs 0` (`newReplica` opens `memSnapNone`).
+`runInv` no longer holds the stored snapshot (`snapIndex` is the latest one asked for or installed,
+`c ≤ snapIndex` kept). Tests: `go test ./kvreconf/ -race` passes; the non-short `TestRounds`
+takes ~300-1400 snapshots and compactions per round.
+

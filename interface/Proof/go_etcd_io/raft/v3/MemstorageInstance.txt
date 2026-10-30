@@ -83,7 +83,7 @@ theorem memStorIface_inj [package_sem : Assumptions] [MemStorReg GF] (ms1 ms2 : 
     ms1 = memStorIface ms2 → ms1 = ms2
 
 def MemStorNamesRec : Type :=
-  GName × GName × GName × GName × GName × GName × GName × GName
+  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
 
 theorem memStorLogI_persist [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k : Nat) (dq
     : DFrac) (es : List EntryM) : memStorLogI st k dq es ⊢ |==> memStorLogI st k DFrac.discard es
@@ -108,4 +108,4 @@ theorem memLogL_agree [package_sem : Assumptions] [MemStorReg GF] (γ : GName) (
     es1 k2 es2⌝
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk)
+  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk, γs.sl, γs.pr)

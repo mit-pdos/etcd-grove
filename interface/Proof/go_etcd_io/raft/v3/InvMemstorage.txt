@@ -30,6 +30,8 @@ structure MemStorNames : Type where
   sx : GName
   lk : GName
   hk : GName
+  sl : GName
+  pr : GName
 
 theorem memStorLock_persistent (ms : Loc) (γs : MemStorNames) : Persistent (memStorLock ms γs)
 
@@ -49,6 +51,12 @@ theorem memLogL_insert (γ : GName) (M : GMap Nat EntryM) (k : Nat) (es : List E
 theorem memLogL_frozen_ne (γ : GName) (k : Nat) (es : List EntryM) (i : Nat) (e : EntryM) : ⊢
     memLogL γ k (DFrac.own 1) es -∗ i ↪[γ]□ e -∗ ⌜i < k ∨ k + es.length ≤ i⌝
 
+theorem memSnapLb_mono [package_sem : Assumptions] (γs : MemStorNames) (i i' : Nat) (h : i' ≤ i) :
+    memSnapLb γs i ⊢ memSnapLb γs i'
+
+theorem memSnapNone_open [package_sem : Assumptions] (γs : MemStorNames) : ⊢ memSnapNone γs ==∗
+    memSnapLb γs 0
+
 def memLogL (γ : GName) (k : Nat) (dq : DFrac) : List EntryM → IProp GF :=
   List.brecOn (motive := fun x => Nat → IProp GF) x✝ (memLogL._f γ dq) k
 
@@ -59,13 +67,15 @@ def memstorageInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
           "Hen" ∷ ghostVar γs.en (Qp.half 1) (uint.nat p.index' + 1 + ents.length) ∗
             "Hcp" ∷ monoNatAuthOwn γs.cp 1 (uint.nat p.index') ∗
               "#Hcj" ∷ memCompJust γs (uint.nat p.index') ∗
-                "Hsx" ∷ ghostVar γs.sx memQ sv ∗
-                  "Hlk" ∷ memKey γs.lk ∗
-                    ("#Hd0" ∷ ∃ e0, uint.nat p.index' ↪[γs.log]□ e0 ∗ ⌜e0.Term' = p.term'⌝) ∗
-                      "#Hsf" ∷
-                          (⌜uint.nat sv.Metadata'.Index' = 0⌝ ∨
-                            ∃ e, uint.nat sv.Metadata'.Index' ↪[γs.log]□ e ∗ ⌜e.Term' = sv.Metadata'.Term'⌝) ∗
-                        "%Hok" ∷ ⌜MemOk p ents M sv⌝)
+                "Hsx" ∷ ghostVar γs.sx (Qp.half 1) sv ∗
+                  "Hsl" ∷ monoNatAuthOwn γs.sl 1 (uint.nat sv.Metadata'.Index') ∗
+                    "#Hsn" ∷ (⌜sv = memSnapEmpty⌝ ∨ monoNatLbOwn γs.pr 1) ∗
+                      "Hlk" ∷ memKey γs.lk ∗
+                        ("#Hd0" ∷ ∃ e0, uint.nat p.index' ↪[γs.log]□ e0 ∗ ⌜e0.Term' = p.term'⌝) ∗
+                          "#Hsf" ∷
+                              (⌜uint.nat sv.Metadata'.Index' = 0⌝ ∨
+                                ∃ e, uint.nat sv.Metadata'.Index' ↪[γs.log]□ e ∗ ⌜e.Term' = sv.Metadata'.Term'⌝) ∗
+                            "%Hok" ∷ ⌜MemOk p ents M sv⌝)
 
 def memJustInv (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : IProp GF :=
   iprop((∃ L, monoListAuthOwn γs.jc 1 L ∗ [∗list] k ∈ L, J.B k) ∗ (memSnapHome ms γs J ∨ memKey γs.lk))
@@ -87,7 +97,14 @@ def MemOk (p : entryID) (ents : List EntryM) (M : GMap Nat EntryM) (sv : Snapsho
 
 theorem memCompacted_persistent (γs : MemStorNames) (c : Nat) : Persistent (memCompacted γs c)
 
+theorem memSnapNone_empty [package_sem : Assumptions] (γs : MemStorNames) (b : Bool) (sv :
+    SnapshotM) : (if b = true then memSnapNone γs else emp) ∗ (⌜sv = memSnapEmpty⌝ ∨ monoNatLbOwn
+    γs.pr 1) ⊢ (if b = true then memSnapNone γs else emp) ∗ ⌜b = true → sv = memSnapEmpty⌝
+
 theorem MemJust.SV_persistent.{u_1} (J : MemJust GF) (sv : SnapshotM) : Persistent (J.SV sv)
+
+def memSnapMade (i t : w64) (c : ConfStateM) (bs : List w8) : SnapshotM :=
+  { Data' := bs, Metadata' := { ConfState' := c, Index' := i, Term' := t } }
 
 theorem memKey_timeless (γ : GName) : Timeless (memKey γ)
 
@@ -114,6 +131,8 @@ theorem memLogL_timeless (γ : GName) (k : Nat) (dq : DFrac) (es : List EntryM) 
 theorem memLog_bound [package_sem : Assumptions] (γs : MemStorNames) (k : Nat) (dq : DFrac) (es :
     List EntryM) : memLog γs k dq es ⊢ ⌜es = [] ∨ k + es.length ≤ 2 ^ 61⌝
 
+theorem memSnapNone_timeless (γs : MemStorNames) : Timeless (memSnapNone γs)
+
 theorem memStorInvP_persistent (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : Persistent
     (memStorInvP ms γs J)
 
@@ -129,9 +148,9 @@ theorem memLog_nil [package_sem : Assumptions] (γs : MemStorNames) (k : Nat) (d
 def memQ : Qp :=
   (Qp.half 1).half
 
-theorem memSnap_update [package_sem : Assumptions] (γs : MemStorNames) (a b c sv' : SnapshotM) : ⊢
-    ghostVar γs.sx (Qp.half 1) a -∗ ghostVar γs.sx memQ b -∗ ghostVar γs.sx memQ c ==∗ ghostVar
-    γs.sx (Qp.half 1) sv' ∗ ghostVar γs.sx memQ sv' ∗ ghostVar γs.sx memQ sv'
+theorem memSnap_update [package_sem : Assumptions] (γs : MemStorNames) (b c sv' : SnapshotM) : ⊢
+    ghostVar γs.sx (Qp.half 1) b -∗ ghostVar γs.sx (Qp.half 1) c ==∗ ghostVar γs.sx (Qp.half 1) sv'
+    ∗ ghostVar γs.sx (Qp.half 1) sv'
 
 theorem memSnap_put [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (E :
     CoPset) (hE : ↑memStorN ⊆ E) : ⊢ memStorInvP ms γs J -∗ memSnapHome ms γs J ={E}=∗ memKey γs.lk
@@ -139,8 +158,14 @@ theorem memSnap_put [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) 
 theorem memLog_persistent (γs : MemStorNames) (k : Nat) (es : List EntryM) : Persistent (memLog γs k
     DFrac.discard es)
 
-def memSnapExact (γs : MemStorNames) (sv : SnapshotM) : IProp GF :=
-  ghostVar γs.sx (Qp.half 1) sv
+def memSnapLb (γs : MemStorNames) (i : Nat) : IProp GF :=
+  iprop(monoNatLbOwn γs.sl i ∗ monoNatLbOwn γs.pr 1)
+
+theorem memSnapNone_lb [package_sem : Assumptions] (γs : MemStorNames) (i : Nat) : memSnapNone γs ∗
+    memSnapLb γs i ⊢ False
+
+def memSnapNone (γs : MemStorNames) : IProp GF :=
+  monoNatAuthOwn γs.pr 1 0
 
 theorem memLogL_delete (γ : GName) (M : GMap Nat EntryM) (k : Nat) (es : List EntryM) : ⊢
     ghostMapAuth γ 1 M -∗ memLogL γ k (DFrac.own 1) es ==∗ ∃ M', ghostMapAuth γ 1 M' ∗ ⌜∀ (i : Nat),
@@ -248,7 +273,7 @@ def memStorFresh (ms : Loc) (γs : MemStorNames) : IProp GF :=
         ∃ sp,
           typedPointsto (structFieldRef MemoryStorage go!"snapshot" ms) sp
               (DFrac.own 1) ∗
-            ownSnapM sp (DFrac.own 1) memSnapEmpty ∗ ghostVar γs.sx memQ memSnapEmpty)
+            ownSnapM sp (DFrac.own 1) memSnapEmpty ∗ ghostVar γs.sx (Qp.half 1) memSnapEmpty)
 
 theorem memEnd_excl [package_sem : Assumptions] (γs : MemStorNames) (e e' : Nat) : memEnd γs e ∗
     memEnd γs e' ⊢ False
@@ -265,17 +290,17 @@ def memSnapHome (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : IProp GF :=
         typedPointsto (structFieldRef MemoryStorage go!"snapshot" ms) sp
             (DFrac.own 1) ∗
           ownSnapM sp (DFrac.own 1) sv ∗
-            ghostVar γs.sx memQ sv ∗ (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')))
+            ghostVar γs.sx (Qp.half 1) sv ∗
+              (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')))
 
 theorem memLogL_persist (γ : GName) (k : Nat) (dq : DFrac) (es : List EntryM) : ⊢ memLogL γ k dq es
     ==∗ memLogL γ k DFrac.discard es
 
-theorem memSnapExact_agree [package_sem : Assumptions] (γs : MemStorNames) (a b : SnapshotM) : ⊢
-    memSnapExact γs a -∗ ghostVar γs.sx memQ b -∗ ⌜a = b⌝
-
 def memSnapCreated (sv0 : SnapshotM) (i t : w64) (oc : Option ConfStateM) (bs : List w8) : SnapshotM
     :=
   { Data' := bs, Metadata' := { ConfState' := oc.getD sv0.Metadata'.ConfState', Index' := i, Term' := t } }
+
+theorem memSnapLb_persistent (γs : MemStorNames) (i : Nat) : Persistent (memSnapLb γs i)
 
 def memStorInvP (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : IProp GF :=
   iprop(memStorLock ms γs ∗ J.B 0 ∗ inv memStorN (memJustInv ms γs J))
@@ -283,8 +308,13 @@ def memStorInvP (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : IProp GF :=
 theorem memCompacted_bound [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust
     GF) (c : Nat) : ⊢ memStorInvP ms γs J -∗ memCompacted γs c ={⊤}=∗ memBnd J c
 
+theorem memSnapLb_timeless (γs : MemStorNames) (i : Nat) : Timeless (memSnapLb γs i)
+
 def memLog (γs : MemStorNames) (k : Nat) (dq : DFrac) (es : List EntryM) : IProp GF :=
   iprop(memLogL γs.log k dq es ∗ ⌜es = [] ∨ k + es.length ≤ 2 ^ 61⌝)
+
+theorem memSnapCreated_some (sv0 : SnapshotM) (i t : w64) (c : ConfStateM) (bs : List w8) :
+    memSnapCreated sv0 i t (some c) bs = memSnapMade i t c bs
 
 theorem memCompJust_register [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust
     GF) (k : Nat) (E : CoPset) (hE : ↑memStorN ⊆ E) : ⊢ memStorInvP ms γs J -∗ J.B k ={E}=∗
