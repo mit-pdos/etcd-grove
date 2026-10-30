@@ -116,7 +116,7 @@ def cfgOk (name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
 def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) : IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.dyn = false ∧
+      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧
         γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 

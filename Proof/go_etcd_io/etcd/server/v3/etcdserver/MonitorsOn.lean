@@ -54,6 +54,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The monitors' permission in the auth mode `on`** (persistent; `srvMonitorPermit`'s): the
 request view in the mode, and the proposal permission in the mode (`reqPropOkM`, with a trivial

@@ -47,6 +47,12 @@ public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Spec.go_etcd_io.raft.v3.node__Ready
 public import Spec.go_etcd_io.raft.v3.node__Tick
+public import Spec.go_etcd_io.raft.v3.node__Stop
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Logger__Info
@@ -214,8 +220,9 @@ theorem NewServer.wp_proofM (on : Bool)
     (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.Advance.spec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) `node.Stop` (until then `node.Advance.dynamicSpec`)
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+      node.Stop.spec (GF := GF) (hG := hG))
     (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ReadIndex.spec (GF := GF) (hG := hG))
@@ -292,8 +299,13 @@ theorem NewServer.wp_proofM (on : Bool)
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG))
-    (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) the fresh `MemoryStorage`'s methods `StartNode`'s `bootStorage` runs
+    -- (`srvMem_bootStorage`; until then `node.ApplyConfChange.dynamicSpec`)
+    (h86d : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (h86e : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (h86f : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (h86g : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (h86h : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
     (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
@@ -307,8 +319,8 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hdec Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
-    Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
   iNamed Hpre
@@ -351,6 +363,9 @@ theorem NewServer.wp_proofM (on : Bool)
     ipureintro; exact ⟨rfl, Herr⟩
   subst Herr
   iNamed Hb
+  -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
+  irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
+    Hmsmeta
   iStructNamed Hbc
   wp_auto
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
@@ -381,36 +396,25 @@ theorem NewServer.wp_proofM (on : Bool)
   (try wp_auto)
   -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
-  have hNS := raftNode_of_StartNode (GF := GF) h8 h9 h10 h10d h11 h12 h87 h88 h89 h78 h86 h86d
+  have hNS := raftNode_of_StartNode (GF := GF) h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
+    h89 h78 h86
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrvs, Hrbok⟩ := Hraft
-  -- (2026-10-27) `StartNode`'s certificates: a dynamic cluster's storage at the cap `1`, a static
-  -- cluster's storage's registry tied to the cluster (`NewMemoryStorage`'s authority)
-  imod storageCertInv_alloc γ.cl srvClusterN γs ⊤ $$ Hcauth with #Hci
-  ihave #Hcert : iprop(if γ.dyn then storCap (memStorIface bv.storage') 1
-      else storageCertLink γ.cl srvClusterN (memStorIface bv.storage')) $$ []
-  · cases hd : γ.dyn
-    · simp only [Bool.false_eq_true, ↓reduceIte]
-      iapply memStorCertLink_intro γ.reg γ.cl srvClusterN bv.storage' γs
-      iframe Hci Hreg
-    · simp only [↓reduceIte]
-      iapply memStorCap_intro bv.storage' γs 1 (by omega) $$ Hreg
   -- (rafthttp stage 6d) the raft loop's key to the transport's `Send` (`srvTrKey`), its name
   -- allocated now: the raft node's environment is built before the transport
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvErM_S $$ Htkok
-  ihave Hnboot' : iprop(if γ.dyn then nodeDynamicBoot γ.cl srvClusterN ps ctxs cv.ID'
-      else nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
+  ihave Hnboot' : iprop(nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrhb Hrvalid Hrlok
     Hrstor Hrinfl Hrdpf Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem
     Hrvs (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
     (by simp [srvErM, HρRaft]))
-    $$ [Hbv Hc Hstor Hpeers Hnboot' Htok]
-    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hinst, Hbv, Htok⟩
-  · iframe Hbv Hc Hstor Hpeers Htok Hnboot'
+    $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot']
+    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta⟩
+  · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot'
     simp only [srvErM]
     iframe #
   (try wp_auto)
@@ -1102,10 +1106,9 @@ theorem NewServer.wp_proofM (on : Bool)
     with #Htie
   -- the mints
   have hργ : ρ.raft.raft = γ := by simp only [ReqNames.raft, HρRaft]
-  imod (srvMintInv_alloc ρ ⊤) $$ [] [] [HrdCred] with #Hmint
+  imod (srvMintInv_alloc ρ ⊤) $$ [] [] with #Hmint
   · iexact Hpmint
   · iexact Hrdctx
-  · rw [hργ]; iexact HrdCred
   -- `lead`, `leadTimeMu`, `bemu`
   imod (inv_alloc srvN ⊤ iprop(∃ v : w64, sync.atomic.ownUint64 (srvLeadAddr s) (DFrac.own 1) v))
     $$ [lead] with #Hlead
@@ -1140,8 +1143,7 @@ theorem NewServer.wp_proofM (on : Bool)
   · iapply (rnEnvOk_of_clusterM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      (fun h => by rw [Hrn1, Hdec] at h; cases h)
-      (by rw [Hrn8, Hcap]; exact Int.le_refl _) id (srvTrKey γn γk)
+      (by rw [Hrn1, Hrule, Hc0]) id (srvTrKey γn γk)
       (by rw [Hrn5, Hrid]))
     iframe Hkvinv Hsrl
     iapply clusterWorkloadOkM_of on ρ E₀
@@ -1167,21 +1169,15 @@ theorem NewServer.wp_proofM (on : Bool)
     iintro !> %m HM
     simp only [srvErM]
     rw [Hγn.1, ← hργ]
-    ihave #Hxo : leaderTransferOff ρ.raft.raft.cl srvClusterN $$ []
-    · ihave #Hsrl' := Hsrl
-      iunfold srvRaftLogInv at Hsrl'
-      icases Hsrl' with ⟨-, #Hcl0, -⟩
-      iunfold srvClusterOk at Hcl0
-      icases Hcl0 with ⟨-, #H, -⟩
-      iexact H
-    iapply (srvMsgNet_bundle _ id m) $$ [Hxo HM]
-    iframe Hxo HM
+    iapply (srvMsgNet_bundle _ id m) $$ [HM]
+    iexact HM
   · iexact Hrtm
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
-  ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Htok]
+  ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Hsnone]
   · iunfold srvBuildGap
     rw [Hrn8]
-    iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn Htok
+    iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn [] Hsnone
+    rw [Hrn1, Hrn5, Hrid]; iexact Hminv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
@@ -1483,7 +1479,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe compactor
     iunfold compactorRun; ileft; ipureintro; rfl
   isplitr
-  · -- `#Hsab`: (D19p) `msgSnapC` never delivers
+  · -- `#Hsab`: `msgSnapC`, a bag of raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed)
     unfold srvApplyAllBuilt
     iexists _
     iframe NHmsc
@@ -1492,8 +1488,6 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hinfl
     iexists γmc, _
     iframe Hmcb
-    iintro !> %mm Hmm
-    iapply rnSnapMsg_false mm $$ Hmm
   isplitr
   · -- `#Hkvi`
     unfold Perennial.named
@@ -1509,10 +1503,12 @@ theorem NewServer.wp_proofM (on : Bool)
         iPkgInit
   isplitr
   · ipureintro
-    refine ⟨?_, rfl, fun _ => ⟨Int.le_refl _, Hrn6, rfl⟩⟩
+    refine ⟨?_, rfl, ⟨Int.le_refl _, Hrn6, rfl⟩⟩
     unfold srvErM
     simp only
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
+  isplitl [Hrunh]
+  · iunfold named; iExactEq Hrunh; rfl
   isplitr
   · ipureintro; rfl
   isplitl [Hsend]
@@ -1538,7 +1534,7 @@ theorem NewServer.wp_proofM (on : Bool)
   isplitl [SnapshotCountS]
   · iexists _; iexact SnapshotCountS
   isplitl [SnapshotCatchUpEntriesS]
-  · iexists _; iframe SnapshotCatchUpEntriesS; ipureintro; exact HrbS
+  · iexists _; iexact SnapshotCatchUpEntriesS
   isplitl [wg]
   · iexact wg
   isplitl [wgMu]
@@ -1596,7 +1592,6 @@ theorem NewServer.wp_proofM (on : Bool)
         rw [hb0]
         iframe Hrbo Hmem HalOn HauthOn HleOn HclBe
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
-      have hdn : γ.dyn = false := Hdec
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
       iunfold srvApRes
       icases Hbh with ⟨%lgh, #Hbhi⟩
@@ -1610,15 +1605,14 @@ theorem NewServer.wp_proofM (on : Bool)
       isplitr
       · ipureintro; exact Hlgcnn
       unfold ccMembRes srvDynLog
-      rw [hργ, hdn]
-      dsimp only
+      rw [hργ]
       iframe Hrc
       isplitl [Htlive]
       · iexists γn, c
         iframe Htlive
         ipureintro; rw [Hcl, Hid]
       ipureintro
-      refine ⟨⟨fun _ f hf hne => ?_, ?_⟩, trivial⟩
+      refine ⟨⟨fun f hf hne => ?_, ?_⟩, ?_⟩
       · apply Hcov f _ (by rw [Hid] at hne; exact hne)
         rw [netRh_member, Hγn.2]
         rw [hργ] at hf
@@ -1627,6 +1621,9 @@ theorem NewServer.wp_proofM (on : Bool)
         exact (Hdirps.1 f).2 hf
       · exact srvMemOk_boot _ _ ps (by rw [HρRaft]) (by rw [hργ]; unfold SrvRaft.cfg; rw [Hrvs])
           Hrnodup (by omega) (by rw [hργ]; exact Hrbok)
+      · unfold SrvRaft.cfg
+        rw [Hrvs, GMap.elem_of_list_to_set, Hid, ← Hrid]
+        exact Hrmem
   iframe Hlr3 Hlr4
   isplitl [Hfcr]
   · iexists fcn
@@ -1883,8 +1880,9 @@ theorem NewServer.wp_proof
     (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.Advance.spec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) `node.Stop` (until then `node.Advance.dynamicSpec`)
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+      node.Stop.spec (GF := GF) (hG := hG))
     (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ReadIndex.spec (GF := GF) (hG := hG))
@@ -1960,8 +1958,13 @@ theorem NewServer.wp_proof
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG))
-    (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) the fresh `MemoryStorage`'s methods `StartNode`'s `bootStorage` runs
+    -- (`srvMem_bootStorage`; until then `node.ApplyConfChange.dynamicSpec`)
+    (h86d : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (h86e : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (h86f : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (h86g : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (h86h : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
     (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
@@ -1978,13 +1981,13 @@ theorem NewServer.wp_proof
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h86d h87 h88 h89 h90 h91 h92 h93 h94
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hdec Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
-    Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok HpU
+    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
   -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in
   -- `srvBuilt`'s `applyBuiltNA` since E2m)
-  have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hdec Hc0 Hch0 Hlog0 Hcok Hlgnn
-    Hcbl Hacr Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok HpU (fun h => absurd h (by decide))
+  have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn
+    Hcbl Hacr Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU (fun h => absurd h (by decide))
   rw [bootKVOf_false] at h'
   -- (the auth plan's E2w) the mode-indexed rows at `false` are today's
   simp only [kvInvM_false, srvErM_false, srvBuiltG_false] at h'

@@ -35,6 +35,7 @@ axiom backend.snapshot.Size.wp_proof
 axiom backend.snapshot.WriteTo.wp_proof
 axiom backend.txDB
 axiom backend.txLive
+axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -45,6 +46,8 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizeEntry.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof

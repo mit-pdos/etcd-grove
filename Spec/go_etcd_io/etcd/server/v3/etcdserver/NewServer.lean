@@ -134,7 +134,11 @@ abbrev NewServer.spec : Prop :=
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
   -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
-  ρ.rd.raft = ⟨γ, [], W64 0⟩ → γ.dyn = false →
+  -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -149,11 +153,8 @@ abbrev NewServer.spec : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  -- (2026-10-19, D21 M3, D21 M0's run bound) at most `SnapshotCatchUpEntries + 1` (`5000`, etcd's
-  -- default, for `0`; `start`'s), so the apply thread, one write token per entry, compacts raft's
-  -- log at index `1` only (`compactRaftLog`), which raft's no-snapshot mode needs
-  receiptBound GF ≤ uint.Z (if cfg.SnapshotCatchUpEntries' = W64 0 then W64 5000
-    else cfg.SnapshotCatchUpEntries') + 1 →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.boot.length ≤ 2 ^ 60 →
@@ -179,8 +180,7 @@ abbrev NewServer.spec : Prop :=
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ (if γ.dyn then nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
-        else nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -188,7 +188,8 @@ abbrev NewServer.spec : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ readCredits γ.cl (2 ^ 48) ∗
+      -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
+      "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
@@ -225,7 +226,6 @@ abbrev NewServer.spec : Prop :=
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
-      "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
@@ -283,7 +283,11 @@ abbrev NewServer.specCompact : Prop :=
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
   -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
-  ρ.rd.raft = ⟨γ, [], W64 0⟩ → γ.dyn = false →
+  -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -297,11 +301,8 @@ abbrev NewServer.specCompact : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  -- (2026-10-19, D21 M3, D21 M0's run bound) at most `SnapshotCatchUpEntries + 1` (`5000`, etcd's
-  -- default, for `0`; `start`'s), so the apply thread, one write token per entry, compacts raft's
-  -- log at index `1` only (`compactRaftLog`), which raft's no-snapshot mode needs
-  receiptBound GF ≤ uint.Z (if cfg.SnapshotCatchUpEntries' = W64 0 then W64 5000
-    else cfg.SnapshotCatchUpEntries') + 1 →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.boot.length ≤ 2 ^ 60 →
@@ -327,8 +328,7 @@ abbrev NewServer.specCompact : Prop :=
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ (if γ.dyn then nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
-        else nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -336,7 +336,8 @@ abbrev NewServer.specCompact : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ readCredits γ.cl (2 ^ 48) ∗
+      -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
+      "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
@@ -373,7 +374,6 @@ abbrev NewServer.specCompact : Prop :=
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
-      "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
@@ -436,7 +436,11 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
   -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
-  ρ.rd.raft = ⟨γ, [], W64 0⟩ → γ.dyn = false →
+  -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -451,11 +455,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  -- (2026-10-19, D21 M3, D21 M0's run bound) at most `SnapshotCatchUpEntries + 1` (`5000`, etcd's
-  -- default, for `0`; `start`'s), so the apply thread, one write token per entry, compacts raft's
-  -- log at index `1` only (`compactRaftLog`), which raft's no-snapshot mode needs
-  receiptBound GF ≤ uint.Z (if cfg.SnapshotCatchUpEntries' = W64 0 then W64 5000
-    else cfg.SnapshotCatchUpEntries') + 1 →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.boot.length ≤ 2 ^ 60 →
@@ -485,8 +486,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ (if γ.dyn then nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
-        else nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -494,7 +494,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ readCredits γ.cl (2 ^ 48) ∗
+      -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
+      "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
@@ -531,7 +532,6 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
-      "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))

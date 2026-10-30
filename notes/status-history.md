@@ -18320,6 +18320,56 @@ etcd's v1 changes), `confStateIs`, `LogEntry.isConfChange`, `NoConfChangeIn`, `C
 placeholders (`node.wp_ApplyConfChange_dynamic`, ...). Nothing uses them yet; the existing statements
 and their proofs are unchanged (`interface/.../NodeApiDraft.txt` regenerated).
 
+## The conf-change decision switch: protocol and node ghost done, API not started (2026-10-28, branch `raft-unified`)
+
+The frozen spec: `notes/spec-first-study/raft-decisions-spec.md`; the reasoning:
+`notes/decisions.md`, "The conf-change decision switch". Scope by the user: raft's own tree only;
+clients are repaired later.
+
+**Done (raft's whole tree builds, `etc/api-check.py etc/api/raft.txt --check` and
+`etc/gen-interface.py etc/api/raft.txt --check --layout` pass, interface regenerated; no `sorry` or
+axiom added; commits `b056769ac1`, `01cf882ad1`):**
+- The protocol over client decision maps: `RaftNames.reDec`, `decLb`, `DynCfg.fold` over a map,
+  `CfgAt γ M`, the records carrying their witnesses, `overlap_adj` over compatible maps.
+- The node's ghost part over the decisions it witnessed (`RGh.decs`, existential `ds` in
+  `ownRawNode`), `ownStepGhost_absorb`, `StepR.mono_dec`, `RInv.mono_dec`, `DynCCPreOp.mono_dec`.
+- Every existing cluster unchanged in behaviour (empty maps); no node-API statement changed, so no
+  client is expected to break (not built: raft's tree only).
+
+**Remaining, in order:**
+1. *Snapshots with decisions* (interim: certificates fold at the empty map): the certificate carries
+   `∃ M, decLb γ M ∗ ⌜D.fold M fp = …⌝` (`raftSnapCert`, `snapAtOk`, `SnapAtPure`,
+   `raftSnapCert_make_dyn`, `ghost_stepCDSM` joins it at a restore, already written for it); a
+   snapshot loan records its decisions (`SnapLoan`), `RNMode.foldCfg` folds over them
+   (`RawNode.Advance`'s post, `runCfgLoan`, `InvAdvance`, `node__Advance`).
+2. *The node loop's intake*: `node.ApplyConfChange.specRaw` and `confcP` (`InvNodeChan`) carry a
+   `decLb γ.raft M` with `DynCCPreOp (effDec dec M)`; `wp_rn_raft_applyConfChange_dyn` absorbs `M`
+   (`ownStepGhost_absorb`, compatibility with the ghost's `ds` by `decLb_compat`); `Advance`'s A1
+   (`RawNode.Advance`, `runCfg`/`runCfgLoan`'s `NoConfIn`) becomes `NoUndecConfIn (effDec dec M)`
+   with its `decLb`, down to `DynHyp`'s `MsgStorageApplyResp` clause (spec §4, N1).
+3. *The API* (`InvNodeRule`, replacing `InvApiRule*`, `ConfRuleDec`, `SnapsMade`'s rule): a cluster
+   in the dynamic mode of the base decoder `fun _ _ => none` with `reDec = some g`;
+   `ownConfDecisions` (the map's authority, at `D.fmap`), `confDecided` (an element with
+   `confDecide`'s facts), `confAt` over the protocol fold at a witnessed map; `cluster_alloc`,
+   `confDecide`, `skippedIn`; `ConfPolicy.lean` (`confPolicy` an invariant over the authority);
+   `RestartNode`/`ApplyConfChange`/`Advance`/`CreateSnapshot` `.unifiedSpec`s re-proved; §5's items
+   removed. Then kv (deferred by the user).
+
+## raft-final: phases 0-1, every statement final, proofs `sorry` (2026-10-29, branch `raft-final`)
+
+The final raft proof, after `notes/raft-unified-plan.md`'s design (the coordinator's gap design and
+its review, amendments A1-A10, K5 back in by the user's decision). Phase 0: tracks A and B merged
+(`raft-unified` + `raft-unified-storage2`), track B's node-level WIP re-applied, U9's deletions (the
+static and dynamic families, `StartNode`'s spec until U10, `InvApiDyn` → `InvApiView`). Phase 1:
+every definition, invariant and spec statement in final form (the leader witness `leadW`, the
+transfer records `NGhost.xw`/`xfW`, `XfOk`'s final form, `isRaftMsg` with the transfer witness,
+`NetMsgOk` internal, the read-credit exchange `rdPool`, `isNode` with its table entry, K5's
+`nodeErrS`, the storage node level, A1-A4); raft's `Link`, `Linked`, `Results`, `Api` and
+`MemstorageApi` build, with 152 `sorry`s in 76 files (listed, with the phase-2 tracks' file map, in
+the plan's "Phase 1 sorries"), each broken proof kept in a `PHASE1-OLD` comment. Phase 2 (the
+proofs, parallel tracks) waits for the review of the statements (`interface/` regenerated). Clients
+(kv, server, examples) broken until later.
+
 ## `lean` merged into the DaemonSet branch: three Perennial pins, and a Goose blocker (2026-10-28, branch `k8s-daemonset-proof`)
 
 `origin/lean` (`d56018bd59`, 429 commits, Perennial `24bef275e` -> `edcadb1e5` through `f73703285`

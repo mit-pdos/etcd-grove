@@ -53,6 +53,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Frames of encodings below `2^63` bytes, one a prefix of the other, are of one encoding.** -/
 theorem msgFrame_prefix_eq {bs bs' : List w8} (hl : bs.length < 2 ^ 63) (hl' : bs'.length < 2 ^ 63)
@@ -144,6 +145,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 set_option hygiene false in

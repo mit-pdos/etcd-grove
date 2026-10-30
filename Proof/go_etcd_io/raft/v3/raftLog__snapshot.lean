@@ -32,9 +32,8 @@ theorem raftLog.snapshot.wp_proof
   wp_start as H
   iNamed H
   iNamed Hlog
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
-  · unfold isStorage; iexact HisStorage
+  ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
+  · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
@@ -44,7 +43,7 @@ theorem raftLog.snapshot.wp_proof
     -- the pending snapshot, read through `l.unstable.snapshot`
     ihave #Hp2 := Hpksn
     iunfold pendKsn at Hp2
-    icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk⟩
+    icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk, -⟩
     ihave #Hsv := ownSnapS_M _ _ _ $$ Hsv
     ihave %Hnn := (show ownSnapM (GF := GF) lv.unstable'.snapshot' DFrac.discard sv ⊢
       ⌜lv.unstable'.snapshot' ≠ null⌝ by iintro H; iNamed H; ipureintro; exact Hnn) $$ Hsv
@@ -60,17 +59,17 @@ theorem raftLog.snapshot.wp_proof
     · ipureintro; rfl
     iexists sv
     iframe Hc
-    isplitr
-    rotate_left
-    · ihave ⟨#Hkc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkcert
-      rw [← Hstor]; iexact Hkc
-    ipureintro
     obtain ⟨Hp, -, Hsid0⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     subst Hp
     rw [← Hsid] at Hsid0 Happlied ⊢
     simp only [snapId] at Hsid0 Happlied ⊢
-    refine ⟨?_, Happlied.1, plogTermAt_base _ _, .inl Hk⟩
-    intro Hz; rw [Hz] at Hsid0; simp at Hsid0
+    isplitr
+    · ipureintro; intro Hz; rw [Hz] at Hsid0; simp at Hsid0
+    ileft
+    isplitr
+    · ipureintro
+      exact ⟨by simp, Hk, Happlied.1, plogTermAt_base _ _⟩
+    iapply ksnCerts_mem _ _ _ Hk $$ Hkcert
   | none =>
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
@@ -103,7 +102,7 @@ theorem raftLog.snapshot.wp_proof
     · ileft; ipureintro; exact Herr
     iright
     icases Hv with ⟨%sv, Hv, %Hsv, Hvc⟩
-    obtain ⟨Hnz', Hwhich⟩ := Hsv
+    have Hnz' := Hsv.1
     obtain ⟨Hp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     -- (stage R8a) the storage is compacted -- its boundary is the log's, or (D19i part 1) the
     -- application compacted it -- so `HSnapshot`'s snapshot is non-empty
@@ -117,35 +116,20 @@ theorem raftLog.snapshot.wp_proof
     iexists sv
     iframe Hv
     isplitr
-    rotate_left
-    · icases Hvc with (%Hz | #Hvc)
-      · exact absurd Hz Hnz
-      · rw [← Hstor]; iexact Hvc
+    · ipureintro; exact Hnz
+    icases Hvc with (%Hz | ⟨#Hvc, %Hdt⟩)
+    · exact absurd Hz Hnz
+    iright
+    iframe Hvc
     ipureintro
-    rcases Hwhich with ⟨Hid, Hal, Hcs, Hdt⟩ | ⟨Hgt, Hge, Hle, Ht⟩
-    · have Hss : σ.ss.index' ≠ W64 0 := by
-        rw [← Hid]; simp only [snapId]; exact Hnz
-      have Hk := Hsksn Hss
-      rw [← Hid, ← Hal, ← Hcs, ← Hdt] at Hk
-      rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
-      · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
-      · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
-        exact ⟨Hnz, Hle, Ht, .inl Hk⟩
-    · -- (D19i part 1) the application's snapshot, at or below the floor: committed, and an
-      -- entry of the log (`termAt_log_below`)
-      obtain ⟨HflE, Hfla, Hflip, Hab, -⟩ := Hfl
-      rw [HflE] at Hle
-      have Hip := Hflip
-      have Hpers := Hpersist Hsn
-      rw [← Hpend.1] at Hpers
-      refine ⟨Hnz, by omega, ?_, .inr Hle⟩
-      have HpZ : uint.Z σ.prev.index' = uint.Z ls.prev.index' := by rw [Hp]
-      rw [← Hp]
-      refine termAt_log_below σ ls.sents ls.uents _ σ.pend ls.stored _ _ Hpers
-        ⟨by omega, by omega⟩ Hge (by omega) (fun e0 He0 => ?_) Ht
-      have := Hab e0 He0
-      rw [HflE] at this
-      omega
+    -- (U8 v2) the term raft certified there: at or below `committed`, the log's
+    obtain ⟨Hdc, Hdt', -⟩ := Hfr.2.2 _ _ Hdt
+    have Hiv : W64 ((uint.nat sv.Metadata'.Index' : Nat) : Int) = sv.Metadata'.Index' := by
+      apply uint_Z_inj.1; word
+    have Hpi : uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index' := by rw [← Hp]; exact Hsv.2.1
+    have Hc := uint_nat_eq sv.Metadata'.Index'
+    refine ⟨rfl, Hpi, by omega, ?_⟩
+    rw [← Hiv]; exact Hdt' (by omega)
 
 end proof
 

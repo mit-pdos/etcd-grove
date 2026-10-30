@@ -45,6 +45,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server's auth store's checks at the latest state** for the family `L` (persistent). -/
 def srvStoreLatest (s : Loc) (E : apply.AEnv GF) (L : List auth.AuthState → IProp GF) : IProp GF :=
@@ -116,6 +117,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The server's uber-applier's KV triples at the latest state** (see the file header). -/

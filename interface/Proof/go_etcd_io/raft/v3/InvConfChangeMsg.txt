@@ -5,6 +5,9 @@
 theorem ccEntsOk_normal (ents : List EntryM) (H : ∀ (e : EntryM), e ∈ ents → e.Type' = W32 0) : ⊢
     ccEntsOk ents (List.map (fun x => none) ents)
 
+theorem ccEntsOk_leaveOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : ccEntsOk ents cs ⊢
+    ⌜CCLeaveOk ents cs⌝
+
 theorem ccEntsOk_types (ents : List EntryM) (cs : List (Option ConfChangeIM)) : ccEntsOk ents cs ⊢
     ⌜CCTypesOk ents cs⌝
 

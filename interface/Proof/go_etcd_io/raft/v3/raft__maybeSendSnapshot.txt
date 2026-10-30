@@ -13,7 +13,7 @@ theorem raft.maybeSendSnapshot.wp_proof [package_sem : Assumptions] (wp_raftLog_
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
     to ≠ id →
       s.progress !! to = some pr →
-        s.gh.ns = false →
+        s.term ≠ W64 0 →
           ⊢
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

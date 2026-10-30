@@ -50,6 +50,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A frozen history is the KV invariant's**: `hs` is the admin states of the KV invariant's log
 `L` (the view and the invariant's halves agree), whose start's consistent index is at most the

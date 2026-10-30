@@ -25046,6 +25046,1060 @@ to be the specs in, e.g., node__Propose.lean."
 `raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
 
+## Stage U0: the configuration switches at appliedSnap (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · taken (stage U0 of the plan; the design the coordinator gave, adjusted where the code
+showed it short)**
+
+**Why.** The fork's `raft37-goose-lean-a2` (`565c2bd`, the fix of
+`issues/raft-snapshot-during-apply-stale-confchange.md`) moves the tracker's rebuild from a snapshot's
+`ConfState` (`MakeProgressTracker`, `confchange.Restore`, `switchToConfig`,
+`assertConfStatesEquivalent`) from `raft.restore` to `raft.appliedSnap`: the node keeps its
+configuration while a restored snapshot is pending.
+
+**The changed statements.**
+- `raft.restore.spec` (`Spec/.../raft__restore.lean`): the post at `c` (`restoreCfg` is gone);
+  `RestoreResult`'s restore case keeps the tracker (`s' = { s with logst := logRestore ... }`). The
+  premises are unchanged (the scope and `s.votes = ∅` are no longer read; they stay so that the
+  statement moves only in its post). `HandleSnapResult`'s restore case likewise;
+  `raft.handleSnapshot.spec` loses its `c'` and `SnapCfgOk` (deleted); `FollowerStepResultC` and
+  `CandidateStepResultC` say `c' = c` for every message.
+- `raft.appliedSnap.spec`: new premises `s.role = .follower`, `s.votes = ∅`, `cl = lists`,
+  `SnapScope sv cl` (what `restore` had; its auto-leave premise is implied by the first and dropped),
+  the snapshot owned (`ownSnapM sp (own 1) sv`: `EnsureConfState` may write `AutoLeave`; `raft.Step`
+  holds its message's snapshot at `1`, `msgIn`); post at `snapCfg sv cl` with the tracker rebuilt
+  (`∃ prs pvs il`). The proof takes `restore`'s old rebuild (helpers moved to `LemmasSnapCfg.lean`).
+- `raft.Step.spec`: the snapshot acknowledgement's premise `(c.autoLeave → role ≠ leader)` becomes
+  `s.role = .follower ∧ SnapAckOk γ id sv` (new: `SnapScope` and, statically, `CfgStatic`/`TrackedOk`
+  of `snapCfg sv cl`); `Hcfg'` is `(MsgStorageAppendResp → sn = none) → c' = c` and `Hlocal` gives
+  `c' = snapCfg sv cl` and the rebuilt tracker after an acknowledgement; `SnapCfgOut` is gone (a
+  `MsgSnap` keeps `c`). `PreCandStep` gains a clause `SnapRoleBack s s'` (a node that is no follower
+  with a snapshot pending afterwards was one before: `hup` checks `promotable`); `TickStep` too.
+- Raft-internal, not in any exported statement: `RNPv` carries `SnapFol s` (a pending snapshot is a
+  follower's); `pendKsn`, `unstable.restore`/`raftLog.restore` (premise), `unstable.nextSnapshot`/
+  `raftLog.nextUnstableSnapshot` (post), `SnapRdy` and `loanCom` carry `∃ x, lists.Has x` (the pending
+  snapshot's `ConfState` names a node: `restore` found the node), which with the snapshot's
+  certificate (`ksn`'s `Hkcert`, `storCertOk`) gives `SnapAckOk` at `RawNode.Advance`.
+- The model: `StepR.snapRestore` no longer sets `cfg` (it still moves `cidx` to the snapshot's index
+  and checks the snapshot's `cs'`); `StepR.applySnap r cs'` (with `Adm r.fp cs'`) sets it. `RInv.cfg`
+  holds only with no snapshot pending (`r.snap = false →`): in between the configuration is the one
+  before the restore, of a log the node no longer has; every rule that reads the configuration is a
+  leader's, a candidate's or a campaign's, which have none (`ownRaftGhostR_env` takes `r.snap =
+  false`; `ghostRest_voters_ne` is now at a leader).
+
+**Found on the way (why the design grew).** `appliedSnap`'s rebuild needs what `restore` had, and
+nothing carried it to the acknowledgement: that the node is a follower (a leader's `switchToConfig`
+would need its peers' `Match` values kept, a candidate's its tally) -- true in Go only because `hup`
+checks `promotable`, so it became an invariant (`SnapFol`, through every step's `SnapRoleBack`); and
+that the acknowledged snapshot names a node and is certified (else the static ghost state could not
+be at its configuration). Both are internal; no exported statement moved.
+
+**Not done (the coordinator's note).** With the fix, a node may apply conf changes from a `Ready`
+handed out before a restore while the snapshot is pending, to the pre-snapshot configuration. The
+model still has `StepR.applyConf`'s `r.snap = false` and `snapRestore` moving `cidx`: allowing the
+former needs the pre-restore prefix in the model (the entries applied are of a log the node no longer
+has). The dynamic mode excludes snapshots at the node API (`reNoSnap`), and the static mode's steps are
+`StepC`'s (no `applyConf`), so no proof needs it in U0; it is U3's (a `RawNode` in one mode).
+
+## Stages U1, U6m: the conf-change decision and the API's vocabulary (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · taken (stages U6m and U1 of the plan, the frozen candidate 12's sections 0-1)**
+
+**Why.** The unified API's application decides each committed conf entry: apply a change, or reject
+the entry without calling `ApplyConfChange` (`ConfRule`'s `none`). The protocol's decoder had only
+"a change" or `none`, and `none` made the fold fail, so a rejection could not be modelled.
+
+**U6m, the changed statements (model; no exported result moved).**
+- `CCDec := List EntryM → EntryM → Option CCDecision` (`Protocol/CfgOverlap.lean`), with
+  `CCDecision := apply (op : CCOp) | reject` and `CCDecision.step` (an applied change's `ccStepB`, a
+  rejection keeps the state, joint ones included); `entStep` takes the decision. `none` is still "no
+  configuration". `entStep_overlap` (so `fold_adjacent` and `DynCfg.ofFold`'s `adj`) gets the
+  rejection's trivial case; `cfgFoldFrom_good` (`SnapConf.lean`) likewise.
+- `NoUndecConfIn dec l lo hi` (`Protocol/StepR.lean`): every conf entry in `[lo, hi)` is rejected at
+  its prefix. `StepR.advance` and `StepR.applyConf` require it in place of `NoConfIn` (one mechanism,
+  no separate reject step: a rejected entry counts as decided); `applyConf`'s decoder premise is
+  `dec … = some (.apply op)`. `NoConfIn.noUndec` turns the old premise into the new one, which is all
+  the code-side proofs needed (`MsgStorageApplyResp`, `InvNodeRun`'s conf-change step).
+  `RInv_advance`/`RInv_applyConf` go through `cfgFold_noUndec` (`StepRInv.lean`). I1/I3 and the
+  campaign guard still count every conf entry, rejected or not (Go's `hasUnappliedConfChanges` and
+  `pendingConfIndex` know no rejection), so they are unchanged.
+- The existing decoders apply everywhere: `decOf` (`InvApiDyn.lean`) maps the client's change to
+  `.apply`; `DynCCPreOp` (`ApiVocab.lean`) reads `some (.apply op')`. Behaviour unchanged.
+
+**U1, the vocabulary (`ConfRule.lean`, importable; nothing uses it yet).** As candidate 12's section
+1 states it, over `InvNode`'s sealed `Membership.Valid`/`applyChange`: `Membership.empty`, `ids`,
+`isJoint`, `WellFormed`; `ccDecode`, `ConfEntryDecodes`; `ConfRule`, `ConfRule.Ok`, `clamp` with
+`clamp_ok` and the pointwise `clamp_eq`, `validated`/`validated_ok`; `Membership.fold` with
+`fold_total`, `fold_nil`, `fold_snoc_normal`, `fold_snoc_conf`; `RaftLeave`; the candidate's
+`opsOf r c0` as **`opsOfRule`** (today's `opsOf`, which `ownCommittedOps` still means, keeps its name
+until U9 switches it) with `opsOfRule_noType2` (stated as `l.filter fun e => !decide e.isFiller`,
+today's `opsOf l` by definition). All proved, no `sorry`.
+The bridge (`ConfRuleDec.lean`, internal: it reads the sealed definitions): `ConfRule.toDec r c0 :
+CCDec` decides by the rule at the membership the prefix folds to (`none` ↦ `reject`, `some o` ↦
+`apply (ccV2Of o)`); `cfgFold_toDec`: from a valid `c0`, `cfgFold (r.toDec c0) (stOf c0) L =
+(Membership.fold r c0 (strip L)).map stOf`, for any rule (a change keeps a membership valid,
+`memApply_valid`), so the dynamic mode of a cluster with rule `r` can be `DynCfg.ofFold (r.toDec c0)`.
+
+## Stages U2, U3: snapshots in the dynamic mode (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · U2 taken; U3 in part (U3a, U3b below: the model and `raft.Step`; the `RawNode` and
+node layers not started)**
+
+**Why.** The unified API certifies a snapshot from a committed prefix (candidate 12's
+`snapshotCert_make`) and reads a certificate back (`snapshotCert_made`), with a client-owned
+registry of the snapshots made (`ownSnapsMade`/`snapMade`, TaDa style). Raft's certificate had a
+dynamic clause nothing created, and nothing a certificate carried through raft (the storage's
+registry, a `MsgSnap`, the receiver's `Ready`) could tell a client that the snapshot was one it
+made, or at which term.
+
+**The changed statements (raft-internal; no exported result moved).**
+- `RaftNames.reSnapReg : Option GName := none` (`Protocol/Ghost.lean`): the registry of the snapshots
+  made, a `mono_list` of `(index, data)` keys. Every allocation sets `none` for now
+  (`ownRaftGhost_alloc_core`'s post says so); U4 allocates one for the unified cluster.
+- `snapDataOk` gains `snapRegOk γ i d` (the key in the registry, when there is one): it travels with
+  the data certificate (`msgDat`, the storage's registry). Not in `raftSnapCert`, which must not read
+  the data (a message's certificate is of `msgSnapTrip`, data `[]`).
+- `raftSnapCert` gains a fourth conjunct `snapAtOk γ k` (registry `none`, or a committed prefix of
+  the snapshot's length and last term, `SnapListsOk k`, and the mode's fold of it is `k.cfgM`); it
+  reads only `sid`, `cl`, `al`. `raftSnapCert_empty`/`raftSnapCert_static`/`snapDataOk_triv` take
+  `reSnapReg = none`. `StaticNames` gains `γ.raft.reSnapReg = none`.
+- The client's `snapshotCert` (`InvApi.lean`) gains `SnapAtPure` (what `snapAtOk` says, of the
+  client's committed log) and `snapRegOk`; `snapshotCert_of_raft` derives the former from raft's
+  `snapAtOk` (the two committed prefixes of one length are one). So `snapshotCert_made` needs no
+  update.
+- New: `Protocol/SnapCertDyn.lean` (`isCommitted_recs`: a committed log is the bootstrap log's
+  prefix or has records; `committedRecs_full`: it is the only full log with records ending at its
+  id; `raftSnapCert_make_dyn`); `SnapsMade.lean` (`RuleNames γ r c0`, `ownSnapsMade`, `snapMade`,
+  `snapMade_elem`, `snapshotCert_make`, `snapshotCert_made`); `ConfRule.lean`: `SnapRec`. All
+  proved, no `sorry`. Nothing allocates `ownSnapsMade` yet (U4: the cluster's allocation with a
+  registry, `ownSnapsMade γ r c0 []`), so the laws have no client until then.
+
+**Departures from candidate 12 (to settle in U9).**
+- The rule and `c0` are explicit arguments (`ownSnapsMade γ r c0 S`); `Cluster` has no `rule`/`c0`
+  yet (U9). `RuleNames γ r c0` (the mode the rule's `ConfRule.toDec`, snapshots on, every data
+  admitted, a registry) stands for "a unified cluster" until then.
+- `snapshotCert_make` is a fancy update inside `N`, not `==∗`: the dynamic clause is about every full
+  log with records, and showing a committed prefix is the only one ending at its id opens raft's
+  commit invariant (`isCommitted_recs`).
+- **`snapshotCert_make` takes `SnapListsOk` of the snapshot** (the design does not): the receiver's
+  `restore` needs the lists' ids nonzero and at most `2^62` entries in the four lists together, and
+  neither follows from `Membership.Valid` (`memValid`: `CfgOk ∧ CCGood`, which bound the distinct
+  ids by `2^62`, not the lists' total, and say nothing of id `0`). A design question for U9: make
+  `Membership.Valid` say both (the candidate's docstring says "ids nonzero"; `ccStepB` would then
+  need the total bound too), or keep the premise in the public law. `uint.Z i < 2^61` (K2) is part
+  of `SnapListsOk`.
+
+**U3: what it needs (not done).** The dynamic `RawNode` still excludes snapshots (`DynNoSnap`,
+`"%Hsnap"`, `md.isDyn = false` at `MsgStorageAppendResp`, `GMode.Pre`'s `s.logst.snap = none` at
+`MsgStorageApplyResp`, `DynNames.reNoSnap = true`). The first piece is the model: conf changes of a
+`Ready` handed out before a restore apply while the snapshot is pending, to the pre-restore
+configuration. The equivalent of the pre-restore prefix: `StepR.snapRestore` keeps `cidx` (it moves
+it today) with a premise that the restored prefix `fp'` agrees with the old full log below the old
+commit index (both committed: the `MsgSnap`'s `.snap` clause has the leader log's committed prefix
+up to the index, `isMessage`), so `RInv.cfg` holds while a snapshot is pending; `applyConf` drops
+`r.snap = false` (its `k < commit` is the old commit, which the restore raised); `applySnap` moves
+`cidx` to the base and installs `cs'`, which the certificate's dynamic clause makes the fold of
+`fp'` (so it includes the changes applied in between). Then the refinement (`ownRaftGhost_stepR`'s
+`snapRestore` case), `raft.Step`'s two storage-response cases in the dynamic mode, the dynamic
+`RawNode` invariant with a pending snapshot (`RNState.cfg/capplied` following `applySnap`), and
+`RawNode.Step` supplying `GMode.SnapDyn` from the message's certificate.
+
+**2026-10-28 · U3a, U3b taken (the model and `raft.Step`; U3c, the `RawNode`, and U3d, the node, not
+started).**
+
+*Decision recorded (the coordinator's, taken before U3).* `snapshotCert_make` keeps `SnapListsOk` as a
+premise (not folded into `Membership.Valid`), with derivation laws for clients: a fold-reachable
+membership has no id `0` (confchange skips `NodeID 0`; `c0` has none), and a membership with fewer than
+`2^60` ids meets the lists' total bound. The laws are not stated yet (their first client is U10's).
+
+*U3a, the model (`Protocol/StepR.lean`, `StepRInv.lean`; no exported result moved).*
+- `StepR.snapRestore` keeps `cidx` (until now it moved to the snapshot's index) and takes a new premise
+  `r.full.take (uint.nat r.p.commit) <+: fp'`: the restored prefix extends the node's full log up to its
+  (old) commit index. So `RInv.cfg` holds with a snapshot pending: **`RInv.cfg` is now unconditional**
+  (`cfgFold dec c0 (r.full.take r.cidx) = some r.cfg`; until now `r.snap = false →`), and
+  `RInv.snap_base` (`snap → cidx = base`) is gone: nothing needed it once `applySnap` sets `cidx`.
+- `StepR.applyConf` and `StepR.advance` drop `r.snap = false`: the conf entries and the applied ones of a
+  `Ready` handed out before a restore are applied and acknowledged with the snapshot pending, against the
+  pre-restore configuration (`k < commit` is checked against the raised commit index; the entries agree
+  below the old one).
+- `StepR.applySnap r j sn cs'` (until now `r cs'`, the pending snapshot only): a snapshot at index `j`
+  at or below the boundary applied -- the pending one, or (Go's `appliedSnap` of an older snapshot a
+  `Ready` handed out before a second restore, which leaves the newer one pending) an older one: premises
+  `r.p.role = .follower`, `applied ≤ j ≤ base`, `sn = false → j = base`, `Adm (r.fp.take j) cs'`;
+  effect `applied := j`, `snap := sn`, `cidx := j`, `cfg := cs'` (until now `cidx` stayed at the base,
+  where the restore had put it). `RInv_applySnap` holds for any prior `cidx` (the configuration is the
+  fold at `j`).
+- The refinement (`RefinementDyn.lean`) is unchanged but for the arities; `ownRaftGhostR_env` no longer
+  takes `r.snap = false`. The new premise of `snapRestore` comes from the message: `isMessage_snap_prefix`
+  (`Refinement.lean`) now also gives `isCommitted γ fp` of the prefix it shows, the node's own committed
+  prefix is committed (`ownRaftGhost_cmt`, moved from `InvRawnode.lean` to `StepGhostMode.lean`), and two
+  committed logs are prefixes one of the other (`isCommitted_agree`): `StepCDS`'s witness takes that
+  comparability (`SnapAgree s g fp'`, `StepLemmasR.lean`), from which `SnapAgree.restore` gives the
+  premise at a restore (the snapshot is past the commit index). `StepCDS.trans_frame` takes that the frame
+  step keeps the log and the commit index.
+- `GMode.Pre`/`DynHyp` at a `MsgStorageApplyResp` no longer require `s.logst.snap = none`.
+
+*U3b, `raft.Step`'s snapshot acknowledgement in the dynamic mode (`Spec/.../raft__Step.lean`).*
+- The `MsgStorageAppendResp` premise `md.isDyn = false ∧ s.role = .follower ∧ SnapAckOk γ id sv` is now
+  `s.role = .follower ∧ ((md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv)`.
+  `SnapAckDyn` (`SnapRoleBack.lean`, `False` statically): `SnapScope` of the snapshot; `applied` below its
+  index; with none pending or the acknowledged one pending, the index the boundary; and a `cs'` with
+  `cfgFold dec c0 (g.fp.take index) = some cs'` and `cs'.cfg = snapCfg sv lists` (the certificate's
+  dynamic clause at the node's prefix, for the caller to supply). The proof's new ghost step
+  `ghost_step_snapack` (`raft__Step/Base.lean`) does `StepR.applySnap` in the dynamic mode.
+- `GMove` (`StepGhostMode.lean`) takes `s` and gains a fourth case: a `MsgStorageAppendResp` that moves
+  `applied` may move the configuration index and the configuration (the full prefix kept). So that a
+  client can still tell an acknowledgement of no snapshot keeps the mode, `LocalStepOk` (raft.Step's
+  `"%Hlocal"`) gains `m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied`;
+  `GMode.StepOut.keep` and `RNMode.stepOut_ca` take that (`keep`: a third argument; its 16 callers pass
+  `fun h => absurd h (by msg_ne)`), and `RawNode.Advance`'s `wp_step_pending` passes it on.
+- The callers (`RawNode.Advance`, `InvRawnode.lean`'s premise list for a network message) take the
+  static disjunct: nothing yet supplies `SnapAckDyn` (U3c).
+
+*U3c, U3d: what is left.* The dynamic `RawNode` still excludes snapshots: `DynNoSnap`
+(`RawNode.Step`'s premise; `node.run`'s `netP`), `"%Hsnap"` (`InvRawnode.lean`, `InvRawnodeReady.lean`:
+`rs.mode.isDyn = true → s.logst.snap = none`), `wp_step_snapack` (`RawNode__Advance.lean`) static only,
+`DynNames.reNoSnap = true`. To lift them: the invariant with a pending snapshot in the dynamic mode (the
+loan machinery, `ackInv`, `loanCom`, `SnapFol`, at a dynamic configuration; `certLink` is already
+mode-independent); `RNState.cfg`/`capplied` following `applySnap` (`capplied := index`, `cfg :=` the
+fold, `delivered` the snapshot's prefix); `SnapAckDyn` at `Advance` from the snapshot's certificate in
+`ksn` (`raftSnapCert`'s dynamic clause at `g.fp.take index`, which needs `FullOk (snapId sv)` of that
+prefix: the pending snapshot is the node's boundary, `snap = some (snapId sv)`) and `applied < index`
+(`SipOk`'s `applying < prev` while not handed out, kept to the acknowledgement); `RawNode.Step` supplying
+`GMode.SnapDyn` from the message's certificate (`snapOkIf_of_cert`'s dynamic case) so `DynNoSnap` goes;
+then `node.run`/`InvNodeRun` (the conf-change step and `readySnap_dynamic`), U4's allocation without
+`reNoSnap`.
+
+
+**2026-10-28 · U3c taken (the dynamic `RawNode` with snapshots); U3d (the node) not started.**
+
+*The changed statements (raft-internal; no exported result moved).*
+- `ownRawNode`'s `"%Hsnap"` (`InvRawnode.lean`, `InvRawnodeReady.lean`'s two Ready predicates) is now
+  `rs.psnap = false ∧ rs.slent = none → s.logst.snap = none` in either mode (the `∨ rs.mode.isDyn` arm
+  is gone). `DynNoSnap` is deleted: `RawNode.Step.spec` and `wp_rn_raft_Step_net` (`InvNodeRun.lean`)
+  take a `MsgSnap` in either mode.
+- `raft.Step.spec`'s `"#Hsnap"` no longer takes `md.SnapDyn` (deleted with `GMode.SnapOk`):
+  `GMode.SnapOkIf`'s dynamic case is the message's certificate itself (`raftSnapCert`), whose dynamic
+  clause is under the lists' naming the node. So the model may not ask a refused snapshot's
+  admissibility: **`StepCDS` takes `hid : Prop`** (the lists' naming the node) and asks `cs'`/`Adm` only
+  under it (a restore's `SnapRestores` has it); its witness keeps the configuration index and the
+  configuration, and all of the ghost part at a pre-candidate. **`GMove`'s `MsgSnap` case** says the
+  same (`g'.cidx = g.cidx ∧ g'.cfg = g.cfg ∧ (s'.role = .preCandidate → g' = g)`), and its
+  acknowledgement case gains `g'.cidx = uint.nat s'.logst.applied`. `raft.Step.spec`'s `Hlocal`
+  snapshot clause gains the dynamic ghost part after the acknowledgement (`md' = .dyn .. ⟨index, cs',
+  g.fp⟩`), from `ghost_step_snapack`.
+- `LoanOk`'s `applying ≤ index` is strict (`SnapRdy` had it); `loanCom` carries `plogLast base0 l.dlv =
+  snapId l.snap` (`ownRawNodeReady_loanLast`, read in `acceptReady`).
+- `advRS`'s snapshot case sets `cfg := rs.mode.foldCfg l.dlv rs.cfg` (`RNMode.foldCfg`: dynamically the
+  fold of the loan's committed log). `RawNode.Advance.spec` takes (dynamically, with a loan) the
+  snapshot's `ConfState` not auto-leave (as `ApplyConfChange` excludes auto-leave until U5), and its
+  post on `ca` is `(slent = none → old bounds) ∧ (slent = some l → isDyn → ca = l.dlv.length) ∧
+  (static → ca = capplied)` (`runCfg_advance` takes the new shape).
+- `wp_step_snapack` (`RawNode__Advance.lean`) is mode-generic: dynamically it reads `SnapAckDyn` off the
+  certificate's dynamic clause at the loan's committed log (the node's full prefix up to the index:
+  `ownStepGhost_deliv`, `FullOk` from the loan's last id), with `applied < index` from `LoanOk`.
+- New lemmas: `RNMode.stepOut_snap`, `RNPv.fp_pc` (`InvRawnode.lean`); `applyCCOkC_frame` gives a
+  follower stays one (for `SnapFol` across a dynamic `ApplyConfChange` with a snapshot pending).
+
+*U3d: what is left.* The node layer still keeps snapshots out of the dynamic mode: `runCfg`'s
+`γ.snapIn = true → reNoSnap = false ∧ γ.mode = .static` (`InvNodeChan.lean:800`) and `readyData`'s
+snapshot arm (`InvNodeChan.lean:640`), `runCfg_advance`'s loan case (static only), `node.run`'s
+`headRest_snapIn`; and `DynNames.reNoSnap = true` (`readySnap_dynamic`, `sentMsg_dynamic_notSnapshot`).
+The dynamic loan's `Advance` moves the configuration (`advRS`'s `cfg`, the index to the snapshot's), but
+the node's configuration is shared with the client through `dghostVar γ.cap` (`runCfg`, half; the other
+half in `nodeConfig`): `node.Advance` would have to take `nodeConfig` back after a snapshot `Ready` (a
+public-spec change, U9's), or the configuration's half be held by the node's run loop. A design question
+for the coordinator before U3d.
+
+*Answered (2026-10-28, the coordinator): follow the frozen design. `node.Advance` takes `nodeConfig` and,
+after a snapshot `Ready`, returns it at the snapshot's index (stage U3d, below).*
+
+## Stage U3d: the node layer with snapshots in the dynamic mode (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · taken (the coordinator's answer to U3c's question: the frozen design's `node.Advance`)**
+
+**Why.** After U3c the dynamic `RawNode` takes, hands out and acknowledges snapshots; the node layer
+(`node.run`, the `advancec` protocol, `node.Advance`) still kept them out of the dynamic mode
+(`runCfg`'s `γ.snapIn = true → γ.raft.reNoSnap = false ∧ γ.mode = .static`).
+
+**How the view moves.** The driver's view of the configuration and `run`'s are the two halves of
+`dghostVar γ.cap`; `node.Advance` returns at the `advancec` rendezvous, before `run`'s
+`RawNode.Advance` installs the snapshot's configuration (`advRS`). So the halves move *at the
+rendezvous*: after a snapshot `Ready` the driver's payload carries its half (`advanceP γ L x`,
+`capPay`), `advance_complete` moves both to `loanCfg γ.mode L x` (dynamically
+`(|l.dlv|, foldCfg l.dlv)`, statically `x`) and `cam`'s authority to `|l.dlv|`, and the driver's
+half comes back (`capAns`): directly when the driver meets `run`, through the `RcvCommit` state when
+`run` meets it. For the second, the driver's request (`NodeNames.req`) now also names the view it
+expects back (`AdvReq := Option Nat × Option (Nat × CCState)`, `loanReq`), so that the half it takes
+from `RcvCommit` is at a value it knows. Between the rendezvous and `RawNode.Advance`, `run` holds
+`runCfgR` (`runCfgLoan` for a dynamic loan: the shared configuration already the snapshot's, A1 at
+the `RawNode`, the snapshot's `ConfState` no auto-leave one), which `runCfg_advance` turns into
+`runCfg (advRS ..)`.
+
+**Found on the way.**
+- *A conf change applied while a snapshot `Ready` is lent.* The driver's `deliveredLogLb` covers the
+  loan's committed log from the receive on (`readyPost`), so `ApplyConfChange` may apply one of its
+  conf entries before `Advance` -- an entry past the `RawNode`'s `delivered`. The model allows it
+  (U3a: `applyConf` with a snapshot pending, `k < commit`). Supported: `wp_applyConf_dyn`
+  (`InvNodeRun.lean`) takes the committed log `D` it applies from (with `|D| ≤ commit`), and
+  `node.run`'s `confc` arm passes `rsDlv rs` (while lent, the loan's: `loanCom`, `LoanOk`); `runCfg`'s
+  bounds are over `rsDlv rs` (`capplied ≤ |rsDlv rs|`, `NoConfIn (rsDlv rs) ca capplied`).
+  `RawNode.ApplyConfChange.spec` (not `node.run`'s path) still reads `rs.delivered`.
+- *The API's `nodeDriver` in a dynamic cluster with snapshots.* Its dynamic clause held only
+  `nodeTabOk` and `hsCommitted` (the hard state bounds the delivered log), and a snapshot `Ready`'s
+  certificate came from the static clause's `storageCertLink`. Now: `hsCommitted` has a third
+  disjunct `γ.raft.reNoSnap = false` (after a snapshot `Ready` the witness bounds the log before
+  the snapshot), and the dynamic clause carries `⌜γ.raft.reNoSnap = true⌝ ∨ storageCertLink`.
+  `nodeDriver_hardStateCommitted` (over `isDynamicCluster`, in the no-snapshot mode) is unchanged;
+  U9's unified driver must say what a client knows of the hard state after a snapshot.
+- `RawNode.Advance` takes, dynamically, the snapshot's `ConfState` not auto-leave (U3c, until U5):
+  the driver supplies it in `advanceP` (`node.Advance`'s raw premise, under `reNoSnap = false`).
+
+**The changed statements.**
+- `node.Advance.dynamicSpec` (`Spec/.../node__Advance.lean`, approved): the post is `nodeDriver ∗
+  match L with | none => nodeConfig v ∗ (the floor) | some l => ∃ m, nodeConfig ⟨index, m⟩ ∗
+  ⌜confStateIs (l's ConfState) m⌝`. Proved by refuting the second case (a dynamic cluster is in the
+  no-snapshot mode, and the raw post says a loan has `reNoSnap = false`). The fold
+  (`Membership.fold γ.rule γ.c0 (strip l.dlv) = some m`) is not stated: a decoder cluster has no
+  public fold; the rule cluster's spec (U4/U9) states it, from the readied snapshot's certificate.
+- Internal: `runCfg`, `readySnapData` (`snapIn → reNoSnap = false`, either mode), `readyDataL_none`
+  and its family (`reNoSnap ∨ ¬snapIn`), `advanceP`/`advInv`/`advRet`, `advance_complete`,
+  `adv_send_au`, `headRest_snapIn`, `runCfg_snap`, `runCfg_confc`, `runCfg_extend`, `runCfg_advance`,
+  `runCfgR_a1` (new), `wp_rn_raft_applyConfChange_dyn`, `node.Advance.specRaw` (the view
+  `loanCfg γ.mode L (ca, cfg)`, `L ≠ none → reNoSnap = false`), `StartNode`/`RestartNode`'s raw
+  `sn = true → reNoSnap = false`; `ApiImpl.nodeDriver`, `hsCommitted`.
+
+## Stage U4a: kv's adequacy over the dynamic half with snapshots (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · the raft side taken; kv's port waits for the user (an exported statement must change)**
+
+**Why.** Stages U2-U3d taught the dynamic half to take snapshots, but every dynamic cluster was
+allocated in the no-snapshot mode (`DynNames.reNoSnap = true`), so none of it was reachable. The
+user wants an adequacy check of that path: examples/kv's `kv_porcupine_safe` re-proved over a
+dynamic cluster with snapshots.
+
+**The cluster (`InvNodeRule.lean`, importable; definitions and proofs in `InvApiRule.lean`,
+`InvApiRuleAlloc.lean`).** A new cluster predicate beside the static and the decoder-dynamic ones:
+`isCluster γ N` (candidate 13's name), raft's dynamic mode of a `ConfRule` from `c0`, snapshots on
+(`RuleNames`, stage U2: the registry `reSnapReg`, every data admitted). The rule is the interim of
+candidate 13's decisions (`notes/spec-first-study/raft-node-unified-candidate-13.md`, section 13), so
+it is confined to the allocation (`cluster_alloc_rule N vs r`) and one predicate, `confPolicy γ r`
+(the stand-in for candidate 13's client-library `confPolicyInv`, with its law `confPolicy_decide`);
+everything else is in candidate 13's shapes: `confAt γ k m` (the membership after the first `k`
+committed entries), `confDecided γ k d` (`ConfDecision.apply o | skip`), the laws `confAt_agree`,
+`confAt_valid`, `confAt_noConf` (candidate 13's `confAt_normal` over a range), `confAt_decided`,
+`snapshotCert_make` over `confAt`, `snapshotCert_made` giving `confAt`, `ownSnapsMade`/`snapMade`
+/`snapMade_elem`. The rule is existential in every predicate (`ModeRule γ r c0`: the snapshot names
+and the nodes' mode the rule's); two rules of one cluster fold every log alike
+(`ModeRule.fold_eq`, from `RuleNames.fold`), which is how the predicates agree.
+- *The allocation* needs a registry in raft's names: `ownRaftGhost_alloc_core_reg` (`Protocol/
+  Facts.lean`) is the core with the caller's `reSnapReg`, `ownRaftGhost_alloc_core` its instance at
+  `none` (its 20 callers unchanged). An empty log, so `ns = false` is allowed; leader transfer on
+  (the no-transfer mode needs a bootstrap log). Its premise `vs.length < 2^62` (strict:
+  `Membership.Valid`'s bound).
+- *`ConfDecision.step`* is candidate 13's without the `Valid` filter (a change keeps a valid
+  membership valid). `CSLists.Is` moved from `SnapsMade.lean` to `ConfRule.lean` (public vocabulary
+  of `snapshotCert_made`); `Membership.fold_valid` is internal (`ConfRuleDec.lean`: it reads
+  `memApply_valid`; the public `Membership.applyChange_valid` takes the Goose instances).
+- `confDecided`'s definition records the rule's decision up to the change's effect (`DecMatch`:
+  `ccV2Of o = ccV2Of o'`), and the membership after the entry defined, so `confAt_decided` needs no
+  premise; `confPolicy_decide` asks that the decision have a result (candidate 13's `confDecide`
+  premise `d.step m = some m'`): no `rule.Ok` premise at allocation.
+
+**The specs (new statements, approved shape pending).** Beside today's, a known exception to one spec
+per function as the dynamic variants (`etc/api/raft-layout.txt`), named `unifiedSpec` (not
+`dynamicSpec`: those are over `isDynamicCluster`):
+- `RestartNode.unifiedSpec` (`Spec/go_etcd_io/raft/v3/RestartNode.lean`): `RestartNode.spec`'s
+  premises with `nodeFounder γ N vs cv.ID'` for `nodeRestartBoot`; post adds `nodeConfig n γ N ⟨0,
+  Membership.simple (listToSet vs)⟩`. The founder's token carries the voters' facts and the node's
+  table; the wrapper turns the allocation's ghost state into the dynamic one at `rinit c0`
+  (`ownRaftGhostR_rinit`), the node takes `MsgSnap`s (`snapIn`), and its `nodeDriver` carries the
+  storage's certificate link in the dynamic clause (stage U3d).
+- `node.ApplyConfChange.unifiedSpec`: `dynamicSpec`'s with `confDecided γ k (.apply o')` for the
+  decoder premise (candidate 13's shape).
+- `node.Advance.unifiedSpec`: `dynamicSpec`'s, the snapshot path **proved** (U3d's statement was
+  vacuous): after a snapshot `Ready` (loan `l`), `∃ m, nodeConfig ⟨index, m⟩ ∗ confAt γ index m ∗
+  ⌜confStateIs (l's ConfState) m⌝`. It takes, for a loan, the snapshot's certificate (the client has
+  it from `readySnap`), `l.dlv.length = index` (likewise) and the `ConfState` no auto-leave one
+  (`RawNode.Advance`'s, until U5). The wrapper reads the raw view at `loanCfg` (the fold of the loan's
+  committed log), and the certificate's committed prefix (`snapshotCert_made`), one length with the
+  loan's committed log (the busy token's `ds = l.dlv`, `busy_dlv`), so the fold is the certificate's
+  membership. **Departure from candidate 12/13:** the A1 premise `NoConfChangeIn st.delivered
+  v.applied st.delivered.length` holds for a snapshot `Ready` too (the raw triple's, over the loan's
+  committed log), where candidate 12 has it only without a snapshot: a client whose snapshot skips
+  conf entries it has not applied must apply them (`ApplyConfChange`, which the loan's
+  `deliveredLogLb` allows, U3d) before `Advance`, which applications do not do. kv meets it (its
+  snapshots' prefixes have no conf entry); lifting it is the raw triple's (A1 at `run`'s
+  `RawNode.Advance`), for U9.
+
+**kv (not started; the user's approval needed).** kv's exported results restate its specs
+(`Results.lean`: `kv_New : kv.New.spec`, `kv_run : kv.KV.run.spec`); `New.spec` names
+`isStaticCluster γr.cluster kvRaftN kvVoters kvSnapOk`, and `run` must hold the node's view of its
+configuration (`nodeConfig`), which neither spec has. The proposed statements (the rest unchanged):
+`New.spec`: `isStaticCluster ...` replaced by `isCluster γr.cluster kvRaftN`, plus `nodeConfig n
+γr.cluster kvRaftN ⟨0, kvMembership⟩` (`kvMembership := Membership.simple (listToSet kvVoters)`);
+`KV.run.spec`: plus the same `nodeConfig`; `isReplica` (kv's predicate under every `KV.*` spec) with
+`isCluster`, `confPolicy γr.cluster kvRule`, `confAt γr.cluster 0 kvMembership` and an invariant of
+the snapshot registry (`ownSnapsMade γ S`, each record's data `encState` of its committed prefix, its
+membership `kvMembership`, its prefix with no conf entry) in place of `isStaticCluster`; `kvSnapOk`
+gone. `kv_porcupine_safe`, `kv_Main`, `kv_Check`, `kv_StartCluster`, `kv_Put`/`Get`/`Append`/`Read`,
+`kv_RemoveMember` (its premise `RmShrink id` kept), `rkvInv_alloc` keep their text. kv's rule:
+`kvRule pre m e := ccDecode e` (the v1 change decoded); a committed conf entry is `RemoveMember`'s
+(`kv_committed_cc`), of a non-voter (`RmShrink`), so every decision keeps `kvMembership`
+(`Membership.applyChange_removeAbsent`, `_nodeZero`) and kv's configuration is `kvMembership` at
+every node and snapshot.
+
+**2026-10-28 · kv's port approved by the user (the two specs as proposed); blocked at `CreateSnapshot`.**
+`MemoryStorage.CreateSnapshot.spec`'s atomic update asks, before the commit, `□ ∀ t, memStorCert γs
+(snapTrip (memSnapCreated σt i t oc bs) ...)`: a certificate at **every** term, because the client does
+not learn which term the storage stamps (its entry's at `i`). A static certificate holds at any term
+(`snapshotCert_static`); a dynamic one fixes the term (`snapAtOk`: a committed prefix of the snapshot's
+length **and last term**, which raft's `restore` needs), so `snapshotCert_make` gives it at one term
+only, and `storageCert_registerAny` cannot be met. kv's run loop takes a snapshot every `snapEvery`
+entries, so its port needs stage U8's `CreateSnapshot` first (the plan: "`CreateSnapshot` of any prefix
+the storage holds (`storHoldsLb`) ..., its term fixed in the post"): the certificate asked only at the
+term the storage stamps, and a storage fact relating that term to the committed log's (the storage
+holds raft's log; its entries up to the applied index are committed). A change to a public raft spec
+(`CreateSnapshot.spec`, used by kv and the other examples that snapshot), so it waits for the user.
+
+**2026-10-28 · the coordinator's decision: a new variant `MemoryStorage.CreateSnapshot.unifiedSpec`
+(candidate 12's K4 triple: today's token, record, mask and keys; the term fixed to the storage's at `i`,
+the certificate asked only there), with a minimal storage fact from `node.Advance.unifiedSpec`'s post,
+valid until the client's next write. Not started (this session's budget); what it takes, found on the way:**
+- The storage's state carries no fact about its entries below the floor: `HistOk` (`InvMemstorage.lean`)
+  orders the floors and numbers the entries, nothing more, and `storFloor`/`memFloorTok` give a history
+  lower bound whose last state's floor is at least `x`. So the fact is new ghost content, on three
+  layers: (1) the storage model (`class StorageModel`, `InvStorage.lean`: a new predicate, e.g.
+  `storTermsAt st l`, "the storage's entries at positions below `|l|` above its boundary are `l`'s, with
+  their terms", exclusive or tied to the snapshot token's view so that the client's next write ends it),
+  proved for `MemoryStorage` (`MemstorageInstance.lean`, the lock invariant `memstorageInv` relating the
+  current state to the owner's sanctioned one) and for kv's wrapper (`KVStorageInstance.lean`);
+  (2) raft's side: `run`'s floor raise at the `advancec` rendezvous (`advInv`, `InvNodeChan.lean`)
+  produces it from raft's own view of the storage (`ownStorage σ` in the `RawNode`, whose entries up to
+  the applied index are the delivered committed log: the `RawNode` invariant's log/storage agreement),
+  and the raw `node.Advance` post carries it with `reqWit`; (3) `CreateSnapshot.unifiedSpec`'s proof
+  reads the term under the lock from the current state, which the fact pins.
+- kv then uses it at its one `CreateSnapshot` call (right after `Advance`, before any write).
+
+**2026-10-28 · step 1's storage half done; the raft half found false as planned (a snapshot restored
+since the `Ready`); kv's port not started.**
+- *The storage's history keeps what its floor covers* (`InvMemstorage.lean`): `HistOk`'s pairwise
+  relation gains `FloorKept a b` (a later state's boundary is at or above the earlier's, and above
+  it the entries within the earlier's floor have its terms). Kept by the three moves of `hist`: an
+  append (its batch starts above the floor, `PendAbove`, `termAt_storApp_below`), a floor raise
+  (same data), `ApplySnapshot` (`memView_set`'s new premises: the new boundary at or above the
+  contents' and the floor; `ApplySnapshot`'s proof has both, `Hcok`/`HcS` and its `fl ≤ index`
+  premise). No spec changed.
+- *The fact* (a new field of `class StorageModel`, `InvStorage.lean`): `storTermsAt st ts`
+  (persistent; the storage's entries at the indices `1..|ts|` above its boundary have the terms
+  `ts`), with its introduction law `storTermsAt_intro` (the owner, nothing pending, `|ts| ≤ σ.fl`,
+  `TermsOn σ ts`). Persistent rather than "until the client's next write": `FloorKept` makes it
+  hold for good (an append never rewrites within the floor; a snapshot applied puts the boundary at
+  or above it, where the fact says nothing). `MemoryStorage`'s: `memTermsAt γs ts` (a lower bound of
+  `hist` at a state with the floor and the terms, `done` lagging by raises only, as `memFloorTok`),
+  `memStorage_terms` (introduction), `memTermsAt_lock` (the lock's contents have the terms: past
+  the record by `FloorKept`, before it by the raises' data). Instances: `memStorageModel`
+  (`memStorTermsI`, `memStorTerms_at`) and kv's (`kvStorTermsAt`, `kvStorTerms_at`); the server
+  uses `memStorageModel`; RaftWitness has its own copy of the storage model, untouched.
+- *`MemoryStorage.CreateSnapshot.unifiedSpec`* (beside `.spec`, proved as `wp_proof_unified`, linked
+  in `Linked.lean` as `MemoryStorage.wp_CreateSnapshot_unified`): `.spec`'s token, record, mask,
+  keys and two continuations, plus `memTermsAt γs ts` and `ts[i-1] = t`; the certificate asked at
+  `t` only, the success continuation at `memStorCreated σt i t`. The proof: in the success branch
+  the contents' boundary is at most the cut, at most the storage's snapshot, below `i`, so
+  `memTermsAt_lock` gives the term the call reads.
+- **The raft half, as planned, is false**: "`run`'s floor raise produces `TermsOn` from raft's view
+  of the storage, whose entries up to `applying` are the delivered log". It holds with no snapshot
+  pending (`LogPersistOk`: the storage agrees with the log up to `offsetInProgress - 1 ≥ applying`;
+  the log's prefix up to `applying` is `delivered`, `readyWithoutAccept`'s `ready_committed_prefix`
+  with `isCommitted_agree`). But the floor is also raised when a snapshot was restored since the
+  `Ready` (`ownRawNode_raise_floor` with `ls.snap = some _`, `StorExtOk`): the storage is then the
+  pre-restore one, and raft keeps only its extent (`sxt`), not its terms against anything. The fact
+  needs a new invariant there: e.g. `StorExtOk` extended with the storage's terms up to `applying`
+  against a ghost copy of the delivered terms (a `LogState` field set at `restore` from the
+  no-snapshot facts, tied to `RNState.delivered` by `ownRawNode`), which touches `LogState`,
+  every `FlOk` site of `ownRaftLog` (about 40) and `restore`. Alternatively stage U8's hold mark.
+  Then `reqOf`/`reqWit` carry the delivered terms, and the raw `node.Advance` and
+  `node.Advance.unifiedSpec` posts gain `storTermsAt st.storage (st.delivered.map LogEntry.term)`.
+  Not done in this session; kv's port (step 2) waits for it.
+
+**2026-10-28 · step A done: raft hands out the storage's terms at the `advancec` floor raise (option
+(a), with a new invariant where the planned argument failed); kv's port next.**
+- *Where the fact lives, and why not beside `ownRaftLog`.* The coordinator asked for the new fact as
+  its own predicate beside `ownRaftLog`/`ownRawNode`, re-proved only where it can change. That does
+  not work for its storage half: the fact relates the storage's view `σ` to a record of terms, and `σ`
+  is existential inside `ownRaftLog` (`∃ lv σ`). A predicate outside cannot name it without exposing it,
+  which would change `ownRaftLog`'s interface at every site. The storage model has no token for a
+  lower bound of raft's view that a separate resource could hold, and no such token can be made: the
+  floor is the only thing that makes the storage keep entries (`storTermsAt_intro` needs `|ts| ≤ fl`,
+  and the floor is below `applying` between `Ready` and `Advance`). So the storage half is in
+  `ownRaftLog`, as a conjunct of its own: `FlOk` gains `StorTermsOk σ ls` (`InvRaftlog.lean`), and
+  `StorExtOk` is untouched. With a snapshot pending and the storage not lent, `StorTermsOk` says: the
+  storage (pending batch absorbed) has after `ls.stb` (at or below its boundary) the terms
+  `ls.sdt` (`TermsFrom`), which reach `sxt` (or `sxt` is at its boundary).
+- *The record* (`LogState.stb`/`sdt`, ghost): set by `logRestore` (`restoreSdt`). When no snapshot was
+  pending, a restore records the log's boundary and its terms up to `applying` (`logTermsTo`), which
+  the storage holds (`storTerms_of_inv`, from `LogPersistOk`). A second restore keeps the record.
+  `logAbsorbSnap` resets it (the snapshot's index, nothing after it). Sites of `FlOk` that changed:
+  about 10. Most append `Hfl.2.2.2.2.2`, which matches by definition. Real proofs were needed at
+  `raftLog.restore`, `ownRaftLog_absorb_snap`, the lent and no-snapshot cases, `newRaft`'s and
+  `newLogWithSize`'s literal states and `stableSnapTo`'s hit. `ownRaftLog_terms` hands out
+  `storTermsAt` for a prefix of any `Df` that agrees with the log (no snapshot pending) or with the
+  record (one pending).
+- *The `RawNode` half* (`SdtTie rs s`, `ownRawNode`'s `Hsdt`, `InvRawnode.lean`): with a snapshot
+  pending, `sdt[k]` is the term of `delivered`'s entry `stb + k + 1`. The tie has to survive every
+  `raft.Step` between the restore and the `Advance`, so the steps must say they keep `stb`/`sdt`.
+  The churn went into framing, not proofs:
+  - `NetFrame`/`LocalFrame`'s `stored` conjunct became `logStoreRec s'.logst = logStoreRec
+    s.logst` (`stored`, `stb`, `sdt`), which is `rfl` at every arm. About 70 consumer edits, each
+    one token (`logStoreRec_stored H`); the same change in `HandleAppResult`,
+    `raftLog.maybeAppend.spec` and `RawNode.Advance`'s loop invariants.
+  - `SnapLogStep` exposes the record a restore makes (`restoreSdt`).
+  - `ownRawNode_intro`, `ownRawNodeIdle` and `ownRawNodeReady` carry `Hsdt`. About 40 sites pass it
+    unchanged; about 15 need `Hsdt.ofRec` (frames), `Hsdt.snap` (`RawNode.Step`'s and the node
+    loop's `MsgSnap`: `delivered`'s terms are the log's, `ownStepGhost_dlv_terms`, from
+    `isCommitted_agree`), `Hsdt.keep` (`acceptReady`: `delivered` grows) or `of_none` (fresh nodes).
+    `RawNode.Advance`'s snapshot path: the receipt's absorption leaves `sdt = []`.
+- *The floor raise* (`ownRawNode_raise_floor`, now taking a prefix `D` of `delivered`) also returns
+  `storTermsAt rs.storage (D.map Term')`. It reads the log with no snapshot pending
+  (`ownStepGhost_dlv_terms`) and the record with one (`SdtTie`). The `advancec` request carries the
+  driver's log (`AdvReq`'s first part `Option (List EntryM)`, `reqOf none ds = some ds`), and
+  `reqWit (some ds)` adds `storTermsAt γ.stor (ds.map Term')`. `node.Advance.unifiedSpec`'s
+  post (no snapshot) adds `storTermsAt st.storage (st.delivered.map LogEntry.term)`. `.spec` and
+  `.dynamicSpec` are unchanged (their proofs drop the new part).
+
+**2026-10-28 · step B done: kv's adequacy over the new cluster (`kv_porcupine_safe` unchanged).**
+- *The statements.* `kvCluster γr` (`Defs.lean`, persistent): `isCluster γr.cluster kvRaftN`,
+  `confPolicy γr.cluster kvRule`, `confAt γr.cluster 0 kvMembership` and `kvSnapInv γr`, an invariant
+  (`kv_snaps`) over raft's registry, `∃ S, ownSnapsMade γ S ∗ [∗list] s ∈ S, kvSnapRecOk γr s`: each
+  record a committed prefix `L` of its index, at `kvMembership`, with no conf entry, its data
+  `kvSnapOk L` (the encoded state; `kvSnapOk` kept as the pure predicate). It replaces
+  `isStaticCluster ... kvVoters kvSnapOk` in `isReplica` and `New.spec`; `New.spec` and `KV.run.spec`
+  take `nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩`. `kvRule pre m e := ccDecode e`.
+- *`run`'s loop invariant* gains the view: `nodeConfig ⟨va, kvMembership⟩`, `confAt γ va kvMembership`,
+  `NoConfChangeIn delivered va |delivered|`, and `reconf = false → NoConfChangeIn delivered 0
+  |delivered|` (a replica takes snapshots only before applying a conf entry, so its snapshots'
+  prefixes have none: what `Advance`'s A1 premise needs after a snapshot `Ready`, whose prefix the
+  view may predate). A conf entry: `kv_committed_conf` (type `1`, `RemoveMember` of `RmShrink id`),
+  `confAt_noConf` to its position, `confPolicy_decide` with `kvRule_decide`, the change keeping
+  `kvMembership` (`kvMembership_rm`: `rmShrink_notVoter`, from `CCShrink` at no learner against
+  `simpleM_cfgState_removeVoter`, then `applyChange_nodeZero`/`_removeAbsent`),
+  `node.ApplyConfChange.unifiedSpec` (its `deliveredLogLb` from `nodeDriver_deliveredLogLb`). Any
+  other entry is no conf change (no committed entry has type `2`). After `Advance` of a snapshot
+  `Ready` the view is at its index with the membership the certificate's (`confAt_agree`).
+- *The match on the loan.* `cases L` inside an `ihave` subgoal (to split `match L with ...` Iris
+  hypotheses) left a proof term with an unknown free variable at the next `wp_apply`; the proof
+  instead does `cases L` once in the main goal before `Advance` and repeats the short continuation of
+  a snapshot `Ready` (no snapshot taken there: it applied nothing).
+- *The registry's later.* `ownSnapsMade` is not timeless (its records carry `snapConfAt`), so each
+  opening of `kvSnapInv` spends a later credit (`wp_apply (lc := 1)` at `GetData` and at
+  `encodeState`). Adding a `Timeless` law to raft's API would have avoided them; not needed.
+  *Superseded (2026-10-28):* `ownSnapsMade` is timeless (`snapConfAt` is an existential over the
+  timeless `isCommittedLogLb`, the registry a `monoListAuthOwn`); raft's API states it
+  (`ownSnapsMade_timeless`, `InvNodeRule.lean`, from `ApiImpl.ownSnapsMadeU_timeless` and
+  `SnapsMade.lean`'s), with `kvSnapRecOk_timeless`, so `kv_snap_read`/`kv_snap_make` open
+  `kvSnapInv` timelessly (`iinv ... with >Hb`) and take no `£ 1`; the two credits are gone.
+- *`CreateSnapshot`* with the token in hand at the known term: `CreateSnapshot.unifiedSpec_tok_of`
+  (`Reconf.lean`), as `MemstorageAU.lean`'s `spec_tok_of` (its `wp_later_frame` is private, copied).
+  The term: the applied log's last (`kv_terms_last`), at `ts = (D0 ++ ce).map term` from
+  `Advance`'s `storTermsAt` (`kvStorTerms_at`).
+- *Linking.* `etc/gen-link.py` links a function's `.spec` only; the kv list names raft's
+  `RaftLink.*_unified` results as `=` terms, and `EXTRA_IMPORTS["--kv"]` imports
+  `Proof.go_etcd_io.raft.v3.Linked`.
+
+## The conf-change decision switch (2026-10-28 · `notes/spec-first-study/raft-decisions-spec.md`, frozen)
+
+**2026-10-28 · steps 1-2 taken (the protocol and the node's ghost state over client decisions);
+the API, the node-loop intake and the snapshot path's decisions not started. Scope: raft's own tree
+(the user: clients left as they are until raft is stable).**
+
+**Why the protocol changes at all.** A fixed pure decoder (`RNMode.dyn dec`, `RaftNames.reDyn`)
+cannot follow decisions the client makes at run time (`confDecide` takes any `d` with a result):
+only a prophecy could fix it at allocation. So the configuration of a committed prefix is folded
+over the decisions some ghost record has *witnessed*, and two records agree because their
+witnesses are lower bounds of one map.
+
+**The representation (step 2).**
+- `RaftNames.reDec : Option GName` (default `none`): the client's decision map, a ghost map
+  `position ↦ Option ConfChangeIM` (`some o` apply `o`, `none` skip) with persistent elements.
+  `decLb γ M` (`Protocol/Ghost.lean`): every binding of `M` recorded; `⌜M = ∅⌝` without a map, so
+  every existing cluster's lower bounds are empty. Laws `decLb_compat` (two lower bounds agree where
+  both are defined, `DecCompat`), `decLb_union`, `decLb_mono`, `decLb_empty`.
+- `DecMap`, `DecCompat` in the new `Protocol/DecMap.lean` (below the ghost files; importable).
+  `effDec dec M` (`CfgOverlap.lean`): the base decoder first, then the recorded decision at the
+  entry's position (`ccDecOf`); `effDec_empty`, `effDec_mono`, `effDec_base`, `DecLe`,
+  `cfgFold_mono`. Base first so that `effDec` is monotone in `M` for any base.
+- `DynCfg.fold : DecMap → List EntryM → Option CfgM` with `mono`; `adj` at one map.
+  `DynCfg.ofFold dec c0 h0` folds `effDec dec M`. `CfgAt γ M P c` takes the map; the records that
+  name a configuration carry `decLb γ M` beside it (`isWinCore`, `cqAt` -- `cqAt_parts`/`cqAt_intro`
+  with the map --, `dynEnv`); `CfgAt.overlap_adj` takes `DecCompat M1 M2` (from `decLb_compat`) and
+  goes through the union. The seven comparison sites (`win_fresh`, `lc_core`, `lc_far_older`,
+  `rqRecOk_confirm_dyn`) get the compatibility from the two records' witnesses. No safety argument
+  changed (the feasibility study's verdict held).
+- `StepR.mono_dec`, `RInv.mono_dec` (step 1): a step or the invariant under some decisions is one
+  under more.
+- The node's ghost part `RGh.decs`: the decisions the node witnessed; `ghostRestM`'s dynamic case
+  is `RInv (effDec dec g.decs)` with `decLb γ g.decs`; `GMode.StepOut` is `StepR` at
+  `effDec dec g'.decs`; `GMove` keeps `decs` except a restore, which may grow it.
+  `ownStepGhost_absorb` (`StepGhostMode.lean`) joins a lower bound to the ghost part. In
+  `ownRawNode` (and `ownRawNodeReady`/`Idle`) the decisions `ds` are existential like `fp`: the
+  client-visible `RNState` is unchanged. The refinement (`ownRaftGhostR_stepR`) takes the base
+  decoder, the map and its `decLb`.
+- `DynHypFor`/`ghost_stepCDM`'s `Hdh` take the invariant at any decoder (`∀ d', RInv d' ...`).
+
+**Interim (to be replaced in the next step).** Snapshot certificates (`raftSnapCert`,
+`snapAtOk`, `SnapAtPure`, `raftSnapCert_make_dyn`) state the fold *at the empty map*: every
+existing cluster's, but the new cluster's snapshots of prefixes holding decided conf entries need
+the certificate to carry its decisions (`∃ M, decLb γ M ∗ ⌜D.fold M fp = …⌝`), the snapshot loan to
+record them (`SnapLoan`), and `RawNode.Advance`'s post (`RNMode.foldCfg`) to fold over them. A first
+attempt carried the map in the certificate; it stopped at `RawNode.Advance`'s post, whose
+configuration is a pure function of client-visible data (`foldCfg l.dlv`), so the map has to be in
+the loan.
+
+**2026-10-28 (later) · items 1-3 done: the switch is complete on raft's side.** (Commits
+`d04d84666b`, `9af12cd773` and the API's.)
+
+*Item 1, snapshots that carry decisions.* `raftSnapCert`'s dynamic clause and `snapAtOk` fold over
+`∃ M, decLb γ M` (`raftSnapCert_decs` reads them at a prefix; `raftSnapCert_make_dyn` takes `M`;
+`SnapAtPure`/`snapshotCert` carry `M` beside the prefix). The configuration a snapshot's
+acknowledgement installs must be fixed before `RawNode.Advance` runs (the node loop shares it with the
+driver at the `advancec` rendezvous, `runCfgLoan`), and as a pure function of client-visible data
+(`advRS`, `loanCfg`). So the **loan records the decisions**: `SnapLoan.decs`, chosen at
+`readyWithoutAccept` from the pending snapshot's certificate (`ksnCerts_of_link` opens the log's
+certificates before the `Ready`'s last `wp` step, `raftSnapCert_decs` at the full prefix below the
+boundary, whose records `ownRaftGhost_cmt` gives), with `loanDec` (`decLb γ l.decs`, the loan's
+committed log folding over them to the snapshot's configuration) in `rdSnapRel` and `loanCom`.
+`RNMode.foldCfg md M L c` folds over `M`. At `RawNode.Advance`, `ownStepGhost_absorbM` joins
+`l.decs` to the ghost part before the acknowledgement, so `wp_step_snapack` needs no certificate in
+the dynamic case (its fold at the ghost's decisions from the loan's, `Hdf`/`Hsub`), and its post is
+the fold at `l.decs`. The driver needs the loan's decisions too (to relate the view to the client's
+certificate, `node.Advance.unifiedSpec`): `readyP` and `nodeDriverBusy` carry `loanDecO γ.raft L`
+(`nodeDriverBusy_loanDec`). A loan field rather than an existential in `RawNode.Advance`'s post: the
+latter would leave the rendezvous's shared value undetermined (two witnessed maps agree only where
+both folds are defined).
+
+*Item 2, the node loop taking decisions in.* A1 is `undecFree γ md D lo hi` (persistent: some
+decisions recorded at which every conf entry in `[lo, hi)` is rejected, `NoUndecConfIn (effDec dec
+M)`, in the dynamic mode), with `_noConf`, `_empty`, `_static`, `_mono`, `_prefix`, `_of_prefix`,
+`_join`, `_trans` (`InvRawnode.lean`); it replaces `NoConfIn` in `RawNode.Advance.spec` (now a
+separating premise), `runCfg`, `runCfgLoan`, `advanceP`, `advRet`, `node.Advance.specRaw`.
+`DynHyp dec`'s storage-apply clause and `GMode.Pre`'s are `NoUndecConfIn` (at `effDec dec g.decs`):
+the protocol's `StepR.advance` already took that. `DynCCPreOp`'s entries between the view and `k` are
+`NoUndecConfIn dec` (`dynCCPreOp_transfer` still finds `k` past `run`'s index: the decoder applies at
+`k`, so `k` is no rejected entry). `confcP` and `node.ApplyConfChange.specRaw` carry `decLb γ.raft M`
+with `DynCCPreOp (effDec dec M)`; `runCfg_confc` joins `M` with `run`'s skipped entries
+(`undecFree_join`), `wp_rn_raft_applyConfChange_dyn` and `RawNode.Advance` absorb into the ghost part
+(`ownStepGhost_absorbM`, now in `InvRawnode`).
+
+*Item 3, the API.* `InvApiDec.lean` (replacing `InvApiRule.lean`; `InvApiDecAlloc.lean` replacing
+`InvApiRuleAlloc.lean`; `DecFold.lean` replacing `ConfRuleDec.lean`; `SnapsMade.lean` reduced to its
+pure lemmas): a cluster of the base decoder that decides nothing (`noDec`) over the decision map
+`reDec = some g` (`ModeDec γ c0 g`, unique: `ModeDec.uniq`). `decFold M c0 l` folds a log over
+recorded decisions (`none` past an undecided conf entry), `cfgFold_decs` is the protocol's fold of it.
+`confAtU`: the fold of some witnessed decisions over a committed prefix (two agree, `fold_agree`:
+compatible witnesses, comparable logs). `confDecidedU γ k d`: the map's element at `k` at a committed
+conf entry, with its step defined at a `confAtU` (what `confAt_decided` needs, so the element alone
+would not do). `ownConfDecisionsU γ D`: the authority at `D.fmap toOpt` and `□ ∀` binding,
+`confDecidedU` (timeless, so a client's invariant can hold it). The snapshot registry's records are
+`confAtU`s. The unified specs: `ApplyConfChange` joins the decision at `k` and `skippedIn`'s skips
+(`skipped_range_decLb`) into one witness, at which the node's decoder applies `o'` at `k` and rejects
+the entries before; `Advance` gives `undecFree` from `skippedIn`, and after a snapshot `Ready` relates
+the loan's fold to the certificate's `confAtU` (`fold_agree`). `ConfPolicy.lean` (importable): the
+library, an invariant over the authority recording each decision as the rule's at its prefix and
+membership; it unseals nothing. §5's items left `ConfRule.lean`.
+
+Spec changes during the stage (the spec file's section): `cluster_alloc` is `cluster_alloc_dec` (the
+name is the static cluster's); `D.insert k d` for `insert k d D`; new instances `confAt_timeless`,
+`confDecided_timeless` (`ConfPolicy`'s invariant), `skippedIn_persistent`; `confPolicy_decide` takes
+the cluster's `N` explicitly.
+
+**Clients that break** (not built, by the user's scope): examples/kv (`cluster_alloc_rule`, raft's
+`confPolicy`, `Membership.fold`, `opsOfRule`, the `unifiedSpec`s' `NoConfChangeIn` premises);
+etcd's server where it states or proves over `DynCCPreOp` (`EtcdServer.applyConfChange`'s spec and
+proof: its fifth clause is `NoUndecConfIn dec`), destructures `readyP`/`nodeDriverBusy`
+(`InvRaftNode.lean`) or builds a `SnapLoan` (`SrvRaftLog.lean`).
+
+## Stage U4: joiners (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken (in the decision cluster, `cluster_alloc_dec`, whose log starts empty)**
+
+**Ghost state for a node added after allocation: allocate every id at once.** Raft's per-node ghost
+names are pure maps fixed at allocation (`RaftNames.reVotes`, `reTerms`, ... nine of them; the commit
+invariant's vote table ranges over `reVotes`), and so is the API's node table (`Cluster.nodeTab`).
+Making them grow would turn about 90 pure lookups (`⌜γ.reVotes !! v = some γv⌝`, compared by rewriting)
+into ghost-map elements compared by agreement, in `Ghost`, `GhostState`, `Facts`, `StepGhost` and
+`LeaderCompleteness`. Instead `cluster_alloc_dec_impl` passes `ownRaftGhost_alloc_core_reg` (generic
+in its id set) **every non-zero id** (`allNodeIds`, `InvApiJoin.lean`: the `2^64 - 1` ids, a finite set
+built by induction, `exists_idsUpTo`, never computed), and allocates the node table for them too. No
+protocol file changed. Each id's part (`joinSlotU`: `ownRaftGhost` at `initPState` and its table entry)
+goes to the join authority (`joinAuthU γ U`: the parts of the ids outside `U`, with the persistent
+`joinBaseU`: the initial membership's voters `reCfg` with the mode, the empty log committed, the
+budget); `joinAuth_join_list` takes out the founders', `joinAuth_join_impl` a newcomer's
+(`nodeJoinU`). `nodeFounderU` is now `nodeJoinU` plus the voters' facts (moved from `InvApiDec.lean`).
+
+**The protocol invariant admits a newcomer as it is.** The cluster's log starts empty, so a founder and
+a newcomer are, to the protocol, the same: a node at `initPState` (term `0`, empty log) whose
+configuration is `c0` (`rinit c0`). Nothing in the dynamic mode needs a node to be one of its
+configuration's voters: raw `RestartNode`'s `γ.reCfg = listToSet csm.Voters'` and `cv.ID' ∈
+csm.Voters'` were used only in the static branch (`ownRawNode_intro_static`, `TrackedOk`); they are
+now `md = .static → ...`. A founder removed by a conf change was already such a node. (Joiners of a
+cluster with a bootstrap log, review 3's B10, stay open with that allocation.)
+
+**A newcomer's `RestartNode`.** `nodeJoin_founder_impl`: with `confAtU γ 0 (simple (listToSet vs))`
+(the membership of no entry, which pins `c0` through `ModeDec.uniq` against `joinBaseU`'s) and
+`vs.Nodup`, a newcomer's token is a founder's of `vs`; the wrapper then runs as for a founder.
+
+**Pre-votes** (the frozen design's E4). `raft.Step` takes, at term `0`, the candidate up to date
+(`plogUpToDate`); `NetMsgOk.raftStep` got it from `1 ≤ term` in a booted cluster
+(`ownStepGhost_boot_term`, from `reBoot ≠ []`), which every node of a cluster started empty lacked.
+Now: every recorded entry has a term of at least `1` in every cluster (`isEntryR_term_one`, a leader's
+term being a campaign's, `CampOk.term_nz`), and a full log's terms are at most the node's
+(`TermsLe`), so at term `0` the full log is empty (`ownLogGhost_term0`, `Protocol/Term0.lean`;
+`ownStepGhost_term0`), and every candidate is up to date (`plogUpToDate_base0`). The pre-vote premise
+left `RawNode.Step.spec`, `netP`, `wp_rn_raft_Step_net` and `stepIn_intro`.
+
+Spec changes: `notes/raft-unified-plan.md`, "Spec changes during U4". Clients that break (not built, by
+the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s premises; `deliver.lean`:
+`stepIn_intro`'s; also its earlier breaks), etcd's server (`InvNet.lean`: `stepIn_intro`'s premise).
+
+## kvreconf-final: Go changes and the storage instance
+
+**2026-10-29 · decided (branch `kvreconf-final`)**
+
+- **`validConf` below `2^61` ids** (was `2^62`): a snapshot of a joint configuration lists its
+  voters twice (incoming and outgoing), and `snapshotValid` bounds the four lists' total by `2^62`;
+  with fewer than `2^61` ids the total is below `2^62`. The store's rule (`ConfOk`) carries the cut.
+  Unreachable in practice (at most 9 replicas); no coverage lost.
+- **`copyMsg` instead of `proto.Clone(*raftpb.Message)`** in `send`/`deliver`: the only `PbType` of
+  `*raftpb.Message` is the server's (`rafthttp/PbMessage.lean`, with a trusted wire decoder); a hand
+  copy (fresh message struct and `Entries` slice, shared read-only field cells, entries and
+  `Context`, the snapshot by `proto.CloneSnapshot`, no `Responses`) needs no wire model, so no
+  trust-base change (approved by the coordinator). `Responses` is empty on every message a `Ready`
+  hands out with synchronous storage writes (`SentMsgShape`). `copyMsg` reads its source at any
+  fraction, so the duplicate is copied from the owned copy and `deliver` keeps its shape.
+- **`step` drops on any `Step` error** (`err != nil`, was `err == context.DeadlineExceeded`): the
+  comparison of two interfaces needs their dynamic type comparable, which `context`'s model does
+  not state of its error values (the server takes it as a premise, `ContextReadErrs`); a target
+  that stopped (`ErrStopped`) has not taken the message either, so counting it as dropped (and a
+  snapshot as failed) is the more faithful report. Tests and `-race` pass.
+- **`Cluster.Read` resolves a prophecy with its answer** (2026-10-30, the user's design,
+  `notes/spec-first-study/kvreconf-read-spec.md`): `primitive.NewProph()` at the call, gokv's
+  `trusted_proph.ResolveBytes(p, []byte(v))` before returning; no effect at run time. It makes
+  `Cluster.Read.spec` logically atomic, `Cluster.Get.spec` word for word, which lintest's
+  `applySpec` needs. New dependency `github.com/mit-pdos/gokv` (`examples/go.mod`), its
+  `trusted_proph` translated with `NewProph`/`ResolveBytes` trusted (Perennial's models);
+  `ResolveBytes.spec` proved here from `ResolveProph` (a candidate Perennial spec,
+  `notes/perennial-changes.md`). The proof: a registry of reads in flight in the store's invariant
+  (`ReadSlot.lean`), each fired by helping at the first change of the store after which the key holds
+  the prophesied answer (in `kvr_propAu`).
+- **kvreconf's `StorageModel` instance is a `def`** (`kvrStorageModel`), activated per file by
+  `attribute [local instance]`: raft's `memStorageModel` is a global instance under `[MemStorReg GF]`,
+  which kvreconf never has in scope; a second global instance would make resolution depend on
+  declaration order (the coordinator's instruction). The proved methods stay generic over
+  `[StorageModel GF]` and are instantiated at it.
+
+## Track C: kvreconf
+
+**2026-10-29 · in progress (track C of the raft-unified effort, branch `raft-unified-kvreconf`)**
+
+`examples/kvreconf`'s proof (`notes/raft-unified-plan.md`, U11) runs beside raft's tracks A and B,
+over the frozen designs (`notes/spec-first-study/raft-node-unified-candidate.md`,
+`raft-decisions-spec.md`) and the coordinator's approved changes (U5: `opsOf` drops empty
+`ConfChangeV2`s; no `autoLeave = false` premises).
+
+- **Go changes, minimal.** Bounds as kv's (`maxIndex`/`fits`, `maxSeq` for operation ids and read
+  sequence numbers: a reused id would be answered with another operation's answer, a reused read
+  sequence number with another read's), and `within` in kv's form (Goose's `range` loop with an early
+  `return` is harder to prove; the answers are the same). No bound on ticks, campaigns or transfers
+  (raft takes its own time receipts, frozen design); no random choice removed.
+- **`stop` waits for the loop** (2026-10-29, coordinator-approved, from track A's U9a analysis):
+  `Replica.stop` closes `stopc`, waits for `run` and `ticker` to return (`runDone`/`tickDone`, one value
+  each), and only then calls `Node.Stop`. The loop then never calls a stopped node, so its proof holds
+  a fraction of `nodeLive` and refutes every stopped answer, and raft needs no triple of a stopped
+  node for it (a stopped `Advance` cannot give the storage facts the loop goes on with: raft's storage
+  tokens stay in its dead run loop). The first idea, `applyConf` returning on a `nil` answer, was
+  dropped for this. Other goroutines (proposers, readers, the network) may still meet a stopped node.
+- **Names.** The pure model is kv's copied under `EtcdGrove.kvreconf` (not shared with kv: kv's proof
+  is being changed on its own track, and `etc/tcb-report.py` runs every `Link.lean` in one Lean
+  process, so the names must differ). The specs are `EtcdGrove.kvreconf.<fn>.spec`.
+- **The conf-change decision** (`Rule.lean`): `kvrRule pre m e` is the entry's decoded change if
+  `ConfOk o m` (`applyChange o m` some valid `m'`), else a rejection; the store's invariant is to hold
+  `confPolicy γ kvrConfN kvrRule` (`ConfPolicy.lean`, allocated from `cluster_alloc_dec`'s
+  `ownConfDecisions γ ∅`), and each replica carries `confAt γ index m` for its own configuration
+  (`confAt_noConf` past normal entries, `confAt_decided` past decided ones, `snapshotCert_made` after a
+  snapshot), which `confPolicy_decide` takes; rejected entries give the `skippedIn` that
+  `ApplyConfChange`/`Advance` take. `validConf.spec` states the Go answer as `ConfOk (.v2 cc) m` for a
+  well-formed `m` the `ConfState` denotes (`nil`: the empty membership, which a stopped node's
+  `ApplyConfChange` leaves in `r.cs`).
+- **What it needs from raft beyond today's API** (sent to the coordinator; not relied on yet):
+  `committed_confDecodes` (kvreconf panics on an undecodable committed conf entry);
+  `Membership.applyChange_asV2` (it validates `cc.AsV2()` and applies `cc`); every node method's
+  stopped answer and `Stop` with `nodeLive` (its `Main` stops nodes while their loops may be
+  mid-`Ready`); and the bootstrap question: its founders started by `StartNode` with peers (a bootstrap
+  log), for which raft has no decision-cluster allocation or `StartNode.unifiedSpec`: the user chose
+  (2026-10-29) that they start like newcomers (`RestartNode` on the bootstrap `ConfState`, as kv), so
+  kvreconf no longer exercises `StartNode`. Plus the frozen design's specs not yet in the API: the
+  proposal registry, `msgCredits_intro`, `SentMsgShape`, no tick/read credits, `transferAllowed`,
+  `storHoldsLb`, the storage-wrapper law, the `confchange`/`tracker` API specs.
+
+## Track B: storage and confchange for clients (2026-10-29 · `notes/raft-unified-plan.md`, branch `raft-unified-storage`)
+
+**Confchange/tracker for clients (U11's §4b).** `ConfchangeApi.lean` (importable): sealed `ownTrackerM`/
+`ownCfgPairM`, the assembly law as a record update, a size law, the apiSpecs of `MakeProgressTracker`,
+`Restore`, `Changer.{Simple,EnterJoint,LeaveJoint}`, derived from the internal specs and linked
+(`RaftLink.*_api`). `Membership.applyChange` is not redefined as Go's `confchange` (the design's H2):
+confAt/ConfDecision rest on it with its `2^62` cut; a sealed `Membership.applyGo` (Go's) with
+`applyChange_eq_applyGo` instead, the Changer specs over it. `Restore` needs `Membership.Restorable`
+(the design's premise was false: `simple {0}`, a staged learner that is a voter); `confAt_restorable`
+gives it from raft's `confAt`. All approved by the coordinator.
+
+**The storage hold (U8), the design.** The frozen design's `storHoldMark` (K1) is a field of the owner's
+view, `StorState.hd`, not a client-held fragment: raft's goroutine may read the storage's snapshot
+(`Storage.Snapshot`, a leader's `maybeSendSnapshot`) while the client handles a `Ready`, so a snapshot
+the client takes mid-`Ready` (above the floor) must be one raft's view can bound by its commit index
+(`SnapOk`): `HSnapshot`'s application-snapshot disjunct moves from `≤ σ.fl` to `≤ σ.hd` (its term over
+`storApp σ σ.pend`). The storage keeps every entry up to the hold (`FloorKept` over `hd`; an append
+starts above it, `HdAbove`; `ApplySnapshot` at or above it), so `storTermsAt` (minted within the hold)
+stays persistent; `storTermsPre` (the owner's word before the append) and the receipt law
+`storTermsAt_receipt` give the client the terms after appending, before `Advance`. `storHoldsLb` is a
+definition over `storTermsAt` (mono for free), not a new `StorageModel` field. Approved by the
+coordinator, with items 1-7 of the plan's "Spec changes during track B".
+
+**The raise and the hand-out window (open).** Raising the hold in `Hhandout` (to the commit index,
+covering the batch's committed entries) breaks raft's natural invariant `hd < offsetInProgress` in the
+window between the hand-out (`ownRawNodeReady_handout`, at `readyc <- rd`) and `acceptUnstable`
+(`logHanded` keeps `inprogress`), and the absorb cannot exclude that window. The way out found: raise the
+hold **after** `acceptApplying` (in `acceptReady`, to the new `applying`), with the batch pending, so that
+raft's invariant is `fl ≤ hd ≤ applying` (the floor's, which `applying < inprogress` and `SipOk` already
+serve). That needs the memory storage to accept raise-only states in `hist` while a batch is pending: the
+owner holds all of `hist`'s authority, the append token a lower bound of `hist` at `H ++ [abs]` (the
+pending state appended), `Append` moving `done` there, raises after it `DataEq` (`RaiseOnly`), which
+`memView`'s idle branch already admits; `Hhandout` raises nothing (its `HdAbove` from `hd ≤ applying <
+inprogress`). The WIP on branch `raft-unified-storage-wip` raised in `Hhandout` (the first attempt);
+`InvStorage`, `InvMemstorage` (FloorKept/HistOk over `hd`, `memHdLb` in `memCutInv`, `memHdLb_view`,
+`hdLb_pending`, `memTermsPre`, `memTermsAt_receipt`), `MemoryStorage.Snapshot` and `InvRaftlog`
+(`HdOk`, `raise_floor` raising `hd`) check there; `InvReadylog`, `MemoryStorage.{Append,ApplySnapshot,
+CreateSnapshot}`, the node chain (`storTermsPre` minted at the `Ready`, `readyData`, `nodeDriver`) remain.
+## Stage U5: automatic leaves (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken but for `committed_emptyV2_joint`: raft's own leave proved, every auto-leave exclusion lifted.**
+
+**The recursion `appliedTo` → `Step`, without a cycle.** `raft.appliedTo` proposes the leave by
+`r.Step(m)` (raft.go:742-763), and `raft.Step`'s `MsgStorageApplyResp` (and `appliedSnap`) call
+`appliedTo`: in the link (one proof per function, the callees' specs as hypotheses, no circular
+hypotheses) `appliedTo` cannot take `Step`'s spec. But the recursion is one level deep: `Step` of a
+local `MsgProp` (term `0`) runs `r.step` (`stepLeader`), which never reaches `appliedTo`. So
+`appliedTo`'s proof takes `Step`'s `MsgProp` branch lemma (`StepProof.wp_Step_MsgProp`, now over the
+four specs it uses -- `traceReceiveMessage`, `stepFollower`, `stepCandidate`, `stepLeader` -- rather
+than `raft.Step.Postulates`, which includes `appliedTo`) and the message getters' specs, and
+`confChangeToMsg`'s. *Rejected*: Löb induction over a joint spec (the link has no form for two
+functions proved together), and unfolding `Step`'s body inside `appliedTo` (the branch lemma is that
+unfolding, already proved).
+
+**Physical in `appliedTo`, ghost in `Step`.** `appliedTo`'s spec stays on the raft struct
+(`ownRaftPhysCVW`), now at `HasLC.hasLC` (the branch lemma's), and its post is `LeaveStep`
+(`AutoLeave.lean`, with `leaveMsgM`/`leaveEntM`/`leaveAbs` and `ccEntsOk_leave`): nothing
+more, or -- a leader at an auto-leave configuration -- the leave's `StepCD` step from the state at the
+new `applied`, the leave's proposal (`leaveAbs`) received when appended, at the bound `B` of its
+entry, with the receipt for it. `raft.Step`'s `MsgStorageApplyResp` composes the advance and the leave
+(`StepCD.trans_leave`: the leave's `DynHyp` from the acknowledgement's, the configuration index moved
+once) and takes one ghost step with the leave received: `isMessage_leave` (the proposal is
+legitimately sent: its entry a filler whose data decodes, `ccDecodeV2_nil`), no ticket
+(`msgTks_leave`). So no ghost resource enters `appliedTo`'s spec, and `appliedSnap` (a follower)
+discharges the leader-only premises vacuously.
+
+**An empty `ConfChangeV2` is a filler again** (the protocol's `Filler`, reversing the 2026-10-27
+narrowing): raft's leave carries no client deposit, so the commit invariant fires the standing
+`noopAu` at it; a client's explicit `ConfChangeV2{}` likewise (`ProposeConfChange`'s `ccPropArg`
+already had the filler case). The API's `opsOf` drops `isFiller` and `isEmptyV2` entries
+(`LogEntry.isFiller` stays the empty normal entry, `isFiller_normal` for etcd's apply loop), so
+`ownCommittedOps` never holds a leave; `opsOf_noType2`.
+
+**The exclusions lifted.** With `raft.Step` taking any configuration, the `RawNode`'s field
+`cf.autoLeave = false` (`ownRawNode`, `ownRawNodeReady`, `ownRawNodeIdle`) had no reader, and with it
+went the facts that only fed it: `DynCCPreOp`'s `cs'.cfg.autoLeave = false` (so
+`node.ApplyConfChange`'s `m'.autoLeave = false`), `RawNode.Advance`'s and `node.Advance`'s lent-snapshot
+`AutoLeave' = false`, the node loop's copies (`advanceP`, `runCfgLoan`, `runCfgR_a1`). The start
+specs' `csm.AutoLeave' = false` stay (U9).
+
+**Left: `committed_emptyV2_joint`** (`l[k]? = some e → e.isEmptyV2 → isCluster γ N ∗ isCommittedLogLb γ
+l ∗ confAt γ k m ⊢ ⌜m.isJoint⌝`). The node invariant already has what the append needs: a leader's
+`propConf` keeps an empty `ConfChangeV2` only at a joint `r.cfg` and with `pci ≤ applied`; `RInv.i3`
+puts every conf entry of the leader's log below `pci`, `applied_cidx` puts `applied ≤ cidx`, and
+`RInv.cfg` folds the log up to `cidx` to `r.cfg`, so the fold of the whole log at the append (the
+entry's prefix) is `r.cfg`, joint. What is missing is the cluster-level record that carries this from
+the append to every committed copy: a per-entry fact in the leader's log record of its term (created
+only by `StepR.propose`/`win`, the sites to touch), the fold of the entry's prefix over the leader's
+witnessed decisions (`decLb`) joint, then `confAt`'s agreement (`fold_agree`, `decLb_compat`) at the
+API. Not started.
+
+Clients that break (not built, by the user's scope): examples/kv (`ProposeConfChange`'s post now
+`opsOf`, `opsOf`'s definition: proofs over `opsOf` of conf entries; the `ApplyConfChange`/`Advance`
+calls pass one premise fewer), etcd's server where it calls `RawNode.Advance`/`raft.Step` with the
+removed premises or destructures `DynCCPreOp`/`ownRawNode` (`InvRaftNode.lean`, `SrvRaftLog.lean`),
+and every client using `LogEntry.isFiller`-based `opsOf` lemmas (`opsOf_snoc_filler`/`_op`,
+`opsOf_eq_self` now take the empty-V2 case too).
+
+## Stage U5: the committed conf-entry laws (2026-10-29 · track A · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · taken: `committed_emptyV2_joint` and `committed_confDecodes` proved.**
+
+**Where the joint fact lives: in the entry's record, with its prefix.** At the append, the leader's
+invariant knows enough: `stepLeader`'s loop keeps an empty `ConfChangeV2` only at a joint
+configuration (the decoded change wants to leave, `CCLeaveOk` from `ccDecodeV2_nil`) with `pci ≤
+applied` and no other conf entry before it in the batch (`PCInv`); every conf entry of the log is below
+`pci` (`RInv.i3`), so below `cidx`, and `RInv.cfg` folds the log up to `cidx` to `r.cfg`: the full log
+before the entry folds to the joint `r.cfg` (`RInv_propose_ev2`). The record carrying it to every
+committed copy: `ev2Rec γ e pt` in `isEntryR`'s leader arm -- the prefix `P` itself, with the *cores*
+of its records (`logRecsC`, over `isEntryC`, the old `isEntryR` body: a record cannot hold its own
+kind), its last term `pt`, its fold over some recorded decisions (`decLb`) joint. Log matching over
+the cores (`logRecsC_agree`, `full_take_eq_pure`, moved to `Ghost.lean`) makes `P` the prefix of any
+full log with records holding the entry (`logRecs_ev2`). Touched: the two sites that create a
+leader's record (`win`'s empty normal entry, vacuous; `ownRaftGhost_step_propose`, taking the fact as
+a premise from the dynamic refinement, vacuous in the static one).
+
+*Rejected:* a per-entry committed prefix plus term-log fragments for the entries after it (needs `pci`
+≥ the campaign log at the leader, an invariant linking `RState` to the ghost term log at every rule);
+an invariant over every node's log (needs log matching at every append); the previous agent's "fact
+in the term-log record" (the term log's value type, read at every `isTermLog_agree`).
+
+**To the client: the commit fires it.** `fire_one` (the commit of each entry) has the committing
+leader's full log with records, so it derives `ev2At` of a committed filler (`logRecs_ev2`) and
+`noopAu`'s commit hands it to the client's update, beside `entDataIs` (whose `CCDecodes` is the
+decoding fact); the adapter keeps both for its log (`cmtFacts`, in `apiInvBody`) and gives them with
+each lower bound (`cmtFactsS` in `isCommittedLogLb`), because the laws are pure entailments and cannot
+open an invariant. A proposal's update (`propAu1`) needs no change: a deposited entry is no filler, so
+its `ev2At` is vacuous (`ev2At_nonfiller`). The guard "no empty `ConfChangeV2` in the bootstrap log"
+(`ev2At`, `logRecs_ev2`) excludes boot records, which no leader made; the decision cluster's is empty
+(`UniNames`).
+
+**The laws** (`InvApiDec.lean`): `committed_confDecodes_impl` reads `CCDecodes`;
+`committed_emptyV2_joint_impl` compares the `ev2At` fold with `confAt`'s (`ModeDec.fold`,
+`decLb_compat`, `fold_agree`). No axiom added (`ccDecodeV2_nil`, approved, now also under
+`stepLeader`'s proof); no `sorry`.
+
+## Stage U7: messages, track A (2026-10-29 · `notes/raft-unified-plan.md`)
+
+**2026-10-29 · in part: raft's own time receipts for `Tick` and a stepped `MsgTimeoutNow`; the
+proposal registry parked (the user reconsidering it); the protocol part designed, not started.**
+
+**Receipts.** A time receipt (`⧗ 1`) is minted by any Go instruction step
+(`wp_go_step_receipt'`), so a method can take its own instead of the caller's. `node.Tick` takes it at
+a `StructFieldRef` (the field read of `n.tickc`), before the select that hands it to `tickc`'s
+invariant. `node.Step` takes it at the `m == nil` comparison (a `GoOp`). The message is not opened yet
+at that point, so the API's `stepIn` is `⌜ml ≠ null⌝ ∗ ∀ γn, ⌜NodeOk⌝ -∗ ⧗ 1 -∗ stepP`, and the raw
+`node.Step` takes the wand. `stepIn_intro` feeds the receipt to `netP`'s tick credit (a
+`MsgTimeoutNow`'s), or `receipt_zero_of` it. *Rejected:* taking it in `run`'s `recvc` arm (`netP`
+loses its credit, about ten constructors of `netP` change).
+
+**Read credits, not done.** A read request needs `rdCred γ 1`. `rdCredInv` bounds the credits handed
+out below `2^64 - 1`, and allocation hands the client `2^64 - 2`. The plan for raft's own receipts:
+an exchange invariant `∃ k, ⧗ k ∗ rdCred γ.raft (2^64 - 2 - k)` holding the allocated credits in the
+decision cluster. `⧗ 1 ∗ ⧗ k` is `⧗ (k+1)` with `k + 1 < receiptBound ≤ 2^64 - 2`, so a credit is
+always there to split off. It would sit in `clusterInv`, about 15 destructuring sites; a pure
+`Cluster` field says the pool is there. `node.ReadIndex`'s raw spec then takes `⧗ 1 ={⊤}=∗ rdCred 1`,
+built by the wrapper from the invariant, and `stepIn`'s wand becomes a `⊤` update minting a
+forwarded `MsgReadIndex`'s credit. `cluster_alloc_dec` then gives no `readCredits` (the frozen
+text).
+
+**SentMsgShape, the transfer request, the transfer choice: the design for the next agent.** Today
+`isRaftMsg` gives `SentMsgOk` only when `reNoXfer` (with `NGhost.bt`, "term past 0 for good", which a
+cluster without a bootstrap log never sets; `XfOk`, `InvRaftPhys.lean:335`). The decision cluster is
+in neither mode.
+1. *Stamped terms past 0 without `bt`.* The stamped sends with the node's term are
+   `maybeSendAppend`/`maybeSendSnapshot`/`sendHeartbeat`/`sendTimeoutNow`/`sendMsgReadIndexResponse`/
+   `appendEntry` (a leader: term ≠ 0 from `ownRaftGhost_term_nz`, already a premise of `stepLeader`'s
+   `MsgProp`/read-index paths), and `handleHeartbeat`/`handleAppendEntries`/`handleSnapshot` (a
+   follower after the term section, at `m.Term = s.term ≠ 0`). Also `raft.Step`'s `m.Term < r.Term`
+   `MsgAppResp` (`r.Term > 0`) and `stepFollower`'s forwarded `MsgTransferLeader` (`lead ≠ 0`, so term
+   ≠ 0 by 2 below). So: `SendOk`'s stamped clauses (b), (c), (c'), (d) take `s.term ≠ W64 0`, which
+   each caller supplies; `XfOk`'s second clause becomes `∀ m ∈ l, SentMsgShape m.st`; `bt` goes.
+   `SentMsgShape` is `SentMsgOk` with `MsgTimeoutNow` (stamped, no entries, no context) and
+   `MsgTransferLeader` (stamped, `From` the transferee, nonzero after `send`'s default, possibly `=
+   To`) added to `sentTypes`, and a `MsgSnap`'s index below `2^61`.
+2. *A re-forwarded `MsgTransferLeader` never reaches `send`'s `Panicf`.* `raft.Step`'s `RestMsgOk`
+   premise is `m.Term ≠ 0 → m.Term = s.term → s.role = follower → s.lead = 0`. To discharge it, add a
+   ghost invariant `lead ≠ 0 → isLeader γ s.lead s.term` (beside `leaderWit` in `ownRaftGhost`,
+   `Protocol/GhostState.lean:2002`). Every rule that sets `lead` either sets `0`, sets the sender of a
+   `fromLeader` message (whose `isMessage` holds `isLeader src term`: `pbecomeFollower m.term m.src`,
+   `padoptLeader`), or sets `id` with the win. A forwarded request records `isLeader γ m.To m.Term` (the
+   follower's `lead` at its term) in `isRaftMsg`. At the receiver `R = m.To` at term `T = m.Term`, a
+   follower with `lead ≠ 0` has `isLeader lead T`, so `lead = R` by `isLeader_unique`, contradicting
+   `LeadOk` (a non-leader's `lead ≠ id`). Count the sites before the edit: `ownRaftGhost_intro` has 33
+   callers and `leaderWit` 41 mentions in `Refinement.lean`. A separate persistent conjunct touches
+   only the rules that move `lead` or `term`.
+3. *(Dropped by the user, 2026-10-29: no transfer mode; `TransferLeadership` takes only `isNode`, so
+   per node `NGhost.xf` is simply `false` in the decision cluster and the queues may hold both
+   transfer messages; what follows was the design.)* *The transfer choice.* `transferChoice γ` is a
+   one-shot; `transferAllowed` and `noTransfer` are its
+   two persistent shots. Per node, the ghost flag `NGhost.xf` (no transferee, no undescribed message)
+   becomes "true until the node steps a transfer request". Turning it off needs `transferAllowed`
+   (`ownRaftPhysC_xf_off` exists). `GMode`'s `s.gh.xf = γ.reNoXfer` (`StepGhostMode.lean:296`) becomes
+   `(reNoXfer → xf) ∧ (xf = false → xfAllowedR γ.raft)`, over a new `RaftNames` ghost name for the
+   one-shot. `isRaftMsg` then gives `transferAllowed` for an undescribed message (from `XfOk.1`'s
+   contrapositive), and `sentMsg_noTransfer` follows. `TransferLeadership` takes `transferAllowed`. A
+   forwarded request's receiver gets it from `sentMsg`, and its own `xf` goes off.
+4. `stepIn_intro` then loses its `NetMsgOk`/`≠ MsgTransferLeader` premises (from `SentMsgShape` and
+   the delivery to `To`). `NetMsgOk` admits a stamped `MsgTransferLeader` (no longer `UnstampedType`
+   when stamped), and `netP` carries 2's `isLeader` fact.
+
+## raft-final phase 2, track P4: the node loop (2026-10-30 · `notes/raft-unified-plan.md`)
+
+- `wp_rn_raft_Step_net` (internal, `InvNodeRun`, used only by `node.run`): premises `Hxt :
+  MsgTransferLeader → γ.reNoXfer = false` and `Hsnp : MsgSnap → γ.reNoSnap = false` dropped; the
+  precondition takes `□ (⌜Type = MsgTransferLeader ∧ Term ≠ 0⌝ -∗ isLeader γ id Term)`, which
+  `node.run` gets from `netP`'s transfer clause. Why: `raft.Step.spec` takes that witness (`"#Hxfer"`)
+  and no longer the transfer mode; its `MsgSnap → s.gh.ns = false` comes from `ownRaftPhys`'s
+  `NsCap` (`ownRaftPhysC_sn`); and `netP`/`runCfg` no longer give the two old premises. (Approved by
+  the coordinator.)
+- `readySnapData` (internal, `InvNodeChan`): a conjunct `raftSnapCertD γ.raft (snapTrip l.snap
+  l.snap.Metadata'.ConfState'.lists)`. Why: P6's `readyRecv_open` makes the client's `snapshotCert`
+  of a snapshot `Ready`'s snapshot, and since U8 v2 the storage's registry (`storageCertLink`) no
+  longer carries it; raft holds it as the pin `ksnCert` of the restored `MsgSnap` (`s.gh.snp`,
+  `LoanOk`), which `certLink` turns into `raftSnapCertD` at the hand-out (`node.run`). (Requested by
+  P6, approved by the coordinator.)
+- `runCfgR_a1`'s conclusion and `runCfg_advance`'s premise (internal, `InvNodeRun`, used only by
+  `node.run`): `□ (⌜rs.slent = none⌝ -∗ undecFree γ.raft rs.mode rs.delivered rs.capplied
+  rs.delivered.length)` (was unguarded). Why: the design's A1 guards `RawNode.Advance.spec`'s
+  `"#HA1"` and removed A1 from `runCfgLoan`, so while a snapshot is lent nothing bounds the
+  configuration index and the unguarded form is false. Phase 1 missed these two, like
+  `wp_rn_raft_Step_net`. (Approved by the coordinator.)
+- `ownRawNodeReady` (internal, `InvRawnodeReady`): a conjunct `"%Hcepre" ∷ ⌜es ≠ [] → ce <+:
+  logCommittedEnts s.logst⌝` (`RawNode.readyWithoutAccept` proves it from `nextCommittedEnts`'
+  prefix; a stale `Ready` sent again, `ownRawNodeIdle_ready`, has no batch, whence the guard: the
+  lead approved the unguarded form, which `ownRawNodeIdle_ready` cannot give, since nothing keeps a
+  stale `Ready`'s committed entries tied to the log). And `readyData` (internal, `InvNodeChan`) a
+  last conjunct `⌜∀ e0, es.head? = some e0 → (∀ j e, es[j]? = some e → uint.nat e.Index' =
+  uint.nat e0.Index' + j) ∧ (∀ j e, ce[j]? = some e → uint.nat e0.Index' ≤ d.length + 1 + j →
+  es[d.length + 1 + j - uint.nat e0.Index']? = some e)⌝`. Why: P6's `readyRest_indices` and
+  `readyRest_ceInBatch` (which kvreconf needs) read it out of `readyRecv_open`. (Approved by the
+  lead.)
+- `advRet`'s A1 (internal, `InvNodeChan`) and `runCfgR_a1`'s A1 premise: `□ (⌜rs.slent = none⌝ -∗
+  undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length)` (was unguarded). Why: `advanceP`'s
+  A1 is guarded at `L = none` (the design's A1), so after a snapshot `Ready` the rendezvous
+  (`advance_complete`) has none to hand back; only `runCfgR_a1`'s `slent = none` case reads it.
+
+## raft-final phase 2, track P6: API, allocation, restart (2026-10-30 · `notes/raft-unified-plan.md`)
+
+Internal statement changes, old → new, why (each approved by the coordinator or the lead):
+- `api_sentSnapCert` gains `(Hns : γ.raft.reNoSnap = false)`; `api_msg`/`api_msgs` gain
+  `(HU : UniNames γ N)` and `rdPool γ N -∗`, and drop the per-message `rdCred`. Why: `sentMsg` now
+  ends with `rdPool ∗ ⌜UniNames⌝`, and `snapshotCert` needs `reNoSnap = false`, which `isRaftMsg` no
+  longer implies; `readyRecv_open` gets both from `isNode`. The forwarded read credit is dropped (§2.9).
+- `readySnapData` (P4) carries the loan snapshot's `raftSnapCertD`: `readySnap`'s `snapshotCert` had
+  no source once `readyOut`'s certificate went (U8 v2).
+- `readySnap none` (InvNode's and `ApiImpl`'s, kept defeq) gains a last pure conjunct: the batch's
+  indices consecutive and the committed entries at or past its first index the batch's, from P4's new
+  `readyData` clause. Why: kvreconf's `readyRest_indices` (new law) and `readyRest_ceInBatch` (A2);
+  neither follows from `appendRight`/`ceFrozen`.
+- `newRaft.spec`'s post gains `s.logst.dtk = 0`, `NewRawNode.spec`'s `⌜s.logst.sn = sn ∧ s.gh.sn =
+  sn⌝`, `rawNodeFresh`'s `%Hlog` `s.logst.dtk = 0` (and `rawNodeFresh_intro_sn`, the intro with
+  `s.gh = { sn := s.gh.sn }`). Why: `RestartNode` needs the fresh node's `SdtTie` and its storage
+  names to be the boot bundle's.
+- `RestartNode.specRaw` (private) takes the node's five configuration names (`dlm cap ccq cam live`)
+  with their initial resources, allocated by the wrapper. Why: the storage contract's `Bnd`/`DL`
+  are read through the node's table entry (`nodeStorNames`), which must exist before `InitialState`
+  returns, and the entry is the whole `cfgNamesOf γn`.
+
 ## E3zc of the auth plan: one client KV stack for both auth modes (2026-10-28 · `notes/auth-plan.md`; E3zb's "What is left", item 1; done but the `*Client` wrappers)
 
 **The problem.** A member with auth on registers the metadata-indexed `On` specs
@@ -25588,3 +26642,35 @@ not `.spec`s:
   `authApplierV3.*.specL`, `applierV3backend.*.fuelSpecX`/`specX`, the check functions' and the
   auth store's variants. Each is consumed only where the on applier is built or on `Txn`'s path.
   Dead code: `apply.Apply.adminSpec` (`ApplyFnAdmin.lean`), `uberApplier.Apply.adminSpec`.
+## kvreconf's snapshots in a goroutine of their own (2026-10-30, kvreconf-snapshot-thread)
+
+**The Go change** (`examples/kvreconf/kv.go`; the user's request, etcd's structure: its apply thread
+takes snapshots and compacts while the raft goroutine appends and installs, `server.go:2102-2108`
+tolerating `ErrSnapOutOfDate`). Each replica has a snapshot goroutine (`snapshotter`, started by
+`newReplica`, waited for by `stop` on `snapDone`, like `run`/`ticker`). `run` no longer calls
+`CreateSnapshot` or `Compact`: at the points where it called `maybeSnapshot`/`maybeCompact` (after an
+entry at random, after `Advance` at random) it calls `request(snapIndex, snap, compact)`, which reads
+`r.index`, `r.cs` and encodes the state under `r.mu`, as `maybeSnapshot` did, and sends a `snapReq`
+`{index, cs, data, compact}` on `snapc` (capacity 1) without waiting (dropped if one is pending).
+`snapshot` calls `CreateSnapshot` (an error other than `ErrSnapOutOfDate` panics: unreachable),
+then compacts to a random index from `FirstIndex` to the least of the request's bound and `known`
+(the stored index as the goroutine knows it: its own snapshots' indices, a `memSnapLb`).
+
+**Why the applier builds the request (not the goroutine, reading under `r.mu`)**: the coordinator's
+first sketch had the goroutine read index/cs/data under `r.mu`. That is wrong for kvreconf:
+`applyOp`/`applyConf` change `r.kv`/`r.applied`/`r.cs` in one critical section and `applyEntry`
+moves `r.index` in a later one, so a reader between them pairs index `i - 1` with entry `i`'s state
+(a wrong snapshot; `kvrSnapRecOk` fails). The applier reads its own state only between entries
+(`maybeSnapshot`'s points), so it builds the request there, as etcd 3.5's apply thread clones the
+store before handing the serialization to a goroutine; the lock invariant is unchanged. Approved by
+the coordinator (option (B)).
+
+**Proof shape**: `snapc` is Perennial's bag channel with `snapReqOk γr id γs q` (`DefsCluster`): the
+frozen entry, the snapshot's validity (registered in `kvrSnapInv` by `request`, `kvr_snap_make`),
+its delivered bound, the conf state (read-only) and the data (owned) unless `data = nil`; the
+compaction point, the frozen log and `nodeAppliedLb compact` unless `compact = 0`. `isReplicaR`
+holds the channel, the `snapDone` handoff and `memSnapLb γs 0` (`newReplica` opens `memSnapNone`).
+`runInv` no longer holds the stored snapshot (`snapIndex` is the latest one asked for or installed,
+`c ≤ snapIndex` kept). Tests: `go test ./kvreconf/ -race` passes; the non-short `TestRounds`
+takes ~300-1400 snapshots and compactions per round.
+

@@ -46,6 +46,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **etcd's `Put` with auth on**: `etcdPutSpec`'s, the caller's update told the put's grant at
 the token of the attempt's metadata when it fires (`v3rpc.kvOpAuOn`, 5a), the reply also with the

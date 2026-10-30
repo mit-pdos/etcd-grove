@@ -16,22 +16,21 @@ theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some MsgType.readIndex
 theorem readyIdx_persistent (γr : RaftNames) (d ce es : List EntryM) : Persistent (readyIdx γr d ce
     es)
 
-def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
-  match L with
+def readyOut (st : Storage) (sn : StorNames) (es : List EntryM) : Option SnapLoan → IProp GF :=
+  match x✝ with
   | none => appendRight st es
   | some l =>
-    iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
-        storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
+    iprop((∃ k old,
+          ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗ storLog st k (DFrac.own 1) old ∗ storEnd st (k + old.length)) ∗
+        storGiven sn (uint.nat l.snap.Metadata'.Index'))
+
+theorem DynCCPreOp.mono_dec {d d' : CCDec} (h : DecLe d d') {D : List EntryM} {ca : Nat} {cfg :
+    CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState} (H : DynCCPreOp d D ca cfg op k e
+    cs') : DynCCPreOp d' D ca cfg op k e cs'
 
 inductive RNMode : Type
   | RNMode.static : RNMode
   | RNMode.dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0) : RNMode
-
-def netStepTypes : List w32 :=
-  [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
-    MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgPreVote, MsgPreVoteResp, MsgSnap]
-
-theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) : st.msg.Type' ≠ MsgTimeoutNow
 
 def sentTypes : List w32 :=
   [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
@@ -43,7 +42,7 @@ def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
         ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
           ∃ Q,
             propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
-              propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
+              □?γ.dup propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 def RespType (t : w32) : Prop :=
   t = MsgAppResp ∨ t = MsgVoteResp ∨ t = MsgPreVoteResp
@@ -58,28 +57,31 @@ def msgAbs (st : MsgSt) (a : Option Msg) : Prop :=
         mtypeOf st.msg.Type' = some MsgType.snap ∧
           st.snap = some sv ∧ a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists)
 
-def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
-  st.msg.Type' ∈ netStepTypes ∧
-    (¬UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
-      (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
-        (st.msg.Type' = MsgApp ∨
-              st.msg.Type' = MsgHeartbeat ∨
-                st.msg.Type' = MsgHeartbeatResp ∨ st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap →
-            st.msg.From' ≠ id) ∧
-          (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-            (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
-              (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧ st.resps = []
-
 def msgDat (γ : RaftNames) (st : MsgSt) : IProp GF :=
   iprop(□ ∀ sv, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗ snapDataOk γ sv.Metadata'.Index' sv.Data')
+
+def propMsgM : MessageM :=
+  have __src := zero_val MessageM;
+  { Type' := MsgProp, To' := __src.To', From' := __src.From', Term' := __src.Term', LogTerm' := __src.LogTerm',
+    Index' := __src.Index', Commit' := __src.Commit', Vote' := __src.Vote', Reject' := __src.Reject',
+    RejectHint' := __src.RejectHint' }
+
+theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.Type' ≠ none) :
+    SentMsgOk st
 
 theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg) (hr : st'.resps
     = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st'
 
 def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
-      ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
-        (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗ msgDat γ st ∗ ⌜st.resps = [] ∧ AppFrom id st⌝)
+  iprop(⌜SentMsgShape st⌝ ∗
+      (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
+        msgDat γ st ∗
+          ⌜AppFrom id st⌝ ∗
+            □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗ isLeader γ st.msg.To' st.msg.Term'))
+
+theorem SentMsgShape.of_msg {st st' : MsgSt} (H : SentMsgShape st) (hm : st'.msg = st.msg) (he :
+    st'.ents = st.ents) (hc : st'.ctx = st.ctx) (hr : st'.resps = []) (hna : st.msg.Type' ≠ MsgApp)
+    : SentMsgShape st'
 
 def RNMode.isDyn : RNMode → Bool :=
   match x✝ with
@@ -94,12 +96,28 @@ structure SnapLoan : Type where
   snap : SnapshotM
   fl : w64
   dlv : List EntryM
+  decs : DecMap
 
 inductive Pending : Type
   | Pending.self (pv : Bool) (t : w64) : Pending
   | Pending.appendAck (term : w64) (base : entryID) (last : Option entryID) (sn : Option SnapshotM)
       : Pending
   | Pending.applyAck (ents : List EntryM) : Pending
+
+def SentMsgShape (st : MsgSt) : Prop :=
+  st.msg.Type' ∈ sentShapeTypes ∧
+    st.msg.From' ≠ W64 0 ∧
+      (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+        (¬(st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgTransferLeader) →
+            st.msg.Term' ≠ W64 0) ∧
+          (st.msg.Type' ≠ MsgReadIndex →
+              st.msg.Type' ≠ MsgVoteResp →
+                st.msg.Type' ≠ MsgPreVoteResp →
+                  st.msg.Type' ≠ MsgTransferLeader →
+                    (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
+            (st.msg.Type' = MsgApp → AppShape st) ∧
+              (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+                st.resps = []
 
 def propEntryM (d : List w8) : EntryM :=
   { Term' := W64 0, Index' := W64 0, Type' := W32 0, Data' := d }
@@ -121,23 +139,12 @@ def bootInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) (bootLog :
   | RNMode.dyn dec c0 h0 h1 =>
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ c0 = cfgState V ∅⌝ ∗ ownRaftGhostR γ dec c0 id (rboot c0 bootLog))
 
-theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.msg.To' = dst) (Hnp :
-    st.msg.Type' ≠ MsgProp) : NetMsgOk dst st
-
 def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
   iprop(ownSnapM l.ptr (DFrac.own (Qp.half 1)) l.snap ∗
-      ∃ σr,
-        ownStorage st σr ∗
-          ⌜σr.prev = snapId l.snap ∧
-              σr.ss = snapId l.snap ∧
-                σr.ents = es ∧
-                  σr.pend = [] ∧
-                    σr.fl = l.fl ∧
-                      σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-                        σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
-
-theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) : st.msg.Type' ≠
-    MsgTransferLeader
+      storCompacted st (uint.nat l.snap.Metadata'.Index') ∗
+        (∃ e, ⌜e.Term' = l.snap.Metadata'.Term'⌝ ∗ storLog st (uint.nat l.snap.Metadata'.Index') DFrac.discard [e]) ∗
+          storLog st (uint.nat l.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
+            storEnd st (uint.nat l.snap.Metadata'.Index' + 1 + es.length))
 
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
   iprop(□
@@ -164,16 +171,16 @@ def AppShape (st : MsgSt) : Prop :=
   st.msg.Vote' = W64 0 ∧
     st.msg.Reject' = false ∧ st.msg.RejectHint' = W64 0 ∧ st.snap = none ∧ st.ctx = [] ∧ st.resps = []
 
-theorem NsCap_persistent (ns : Bool) (st : Storage) : Persistent (NsCap ns st)
-
-def NsCap (ns : Bool) (st : Storage) : IProp GF :=
-  iprop(□ (⌜ns = true⌝ -∗ storCap st 1))
-
 def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :=
   match md with
   | RNMode.static => ownRaftGhost γ id initPState
   | RNMode.dyn dec c0 h0 h1 =>
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ c0 = cfgState V ∅⌝ ∗ ownRaftGhostR γ dec c0 id (rinit c0))
+
+def ceFrozen (st : Storage) (n : Nat) (ce es : List EntryM) : IProp GF :=
+  iprop(∃ m,
+      storLog st (n + 1) DFrac.discard (List.take m ce) ∗
+        ⌜m = ce.length ∨ ∃ e0, es.head? = some e0 ∧ n + 1 + m = uint.nat e0.Index'⌝)
 
 def ConfigValid (cv : Config) : Prop :=
   cv.ID' ≠ W64 0 ∧
@@ -194,9 +201,11 @@ theorem bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog 
 theorem isRaftMsg_dat [package_sem : Assumptions] (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg γ id st ⊢ msgDat γ st
 
-def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF :=
+def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan → IProp GF :=
   match x✝ with
-  | none => appendReceipt st es
+  | none =>
+    iprop(∃ a,
+        appendReceipt st es a ∗ ⌜a ≠ [] → ∀ (e0 : EntryM), es.head? = some e0 → uint.nat e0.Index' - 1 + a.length ≤ n⌝)
   | some l => snapReceipt st l es
 
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F) (hhi : hi ≤ D.length) (h :
@@ -208,6 +217,12 @@ def softStateRO (p : Loc) : IProp GF :=
         typedPointsto (structFieldRef SoftState go!"Lead" p) lead DFrac.discard ∗
           typedPointsto (structFieldRef SoftState go!"RaftState" p) rs
             DFrac.discard)
+
+def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM :=
+  { Term' := W64 0, Index' := W64 0, Type' := confChangeEntryType o, Data' := bs }
+
+theorem ceFrozen_pers (st : Storage) (n : Nat) (ce es : List EntryM) : Persistent (ceFrozen st n ce
+    es)
 
 theorem isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) : Persistent (isRaftMsg γ id st)
 
@@ -221,14 +236,14 @@ def readyDq (st : MsgSt) : DFrac :=
 
 theorem msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat γ st)
 
+def sentShapeTypes : List w32 :=
+  sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
+
 def readyIdx (γr : RaftNames) (d ce es : List EntryM) : IProp GF :=
   iprop(∃ L,
       lastRec γr L ∗
         ⌜L < 2 ^ 64 ∧
             (∀ (e0 : EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ L + 1) ∧ ↑(d ++ ce).length ≤ L⌝)
-
-def UnstampedType (t : w32) : Prop :=
-  t = MsgReadIndex ∨ t = MsgTransferLeader ∨ t = MsgForgetLeader ∨ t = MsgUnreachable ∨ t = MsgSnapStatus
 
 structure RNState : Type where
   delivered : List EntryM
@@ -236,6 +251,7 @@ structure RNState : Type where
   steps : List Pending
   term : w64
   storage : Storage
+  sn : StorNames
   outlb : Nat
   unst : Bool
   clb : w64
@@ -248,14 +264,12 @@ structure RNState : Type where
   slent : Option SnapLoan
   phs : HardStateM
 
-theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = []
-
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp) (k : Nat) (e :
     EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧
     k < D.length ∧
       D[k]? = some e ∧
         IsConfEnt e ∧
-          NoConfIn D ca k ∧
-            (∃ op', dec (List.take k D) e = some op' ∧ ccStepB op' cfg = some cs') ∧
-              ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
+          NoUndecConfIn dec D ca k ∧
+            (∃ op', dec (List.take k D) e = some (CCDecision.apply op') ∧ ccStepB op' cfg = some cs') ∧
+              ccStepB op cfg = some cs'

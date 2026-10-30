@@ -7,9 +7,9 @@ theorem doomed_intro [ReceiptGS GF] (γ : RaftNames) (T t n : w64) (G : List Ent
     γ T t U
 
 theorem rqRecOk_confirm [ReceiptGS GF] (γ : RaftNames) (T : w64) (r : RqRec) (P : List EntryM) (c :
-    CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) : CfgAt γ P c → JQuorum c Q → (∀ (v : w64), v ∈ Q →
-    ∀ (t' : w64) (q : GSet w64), r.snd = some (t', q) → ¬v ∈ q) → ⊢ rqRecOk γ T r -∗ readOk γ
-    r.fst.fst r.fst.snd
+    CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) (M : DecMap) : CfgAt γ M P c → JQuorum c Q → (∀ (v :
+    w64), v ∈ Q → ∀ (t' : w64) (q : GSet w64), r.snd = some (t', q) → ¬v ∈ q) → ⊢ rqRecOk γ T r -∗
+    readOk γ r.fst.fst r.fst.snd
 
 theorem read_collect [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (c : List w8) (Qr : List
     EntryM → IProp GF) (i : w64) (L : List EntryM) : ↑(raftN γ) ⊆ E → uint.Z i ≤ ↑L.length → ⊢
@@ -40,12 +40,12 @@ theorem node_leader [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id2 
 theorem rqRecOk_confirm_dyn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (T L : w64) (r : RqRec) (FL
     F0L : List EntryM) (aL cL : w64) (c : CfgM) (Q : GSet w64) (Hdyn : γ.reDyn ≠ none) (Y : IProp
     GF) (HLw : ∀ (G : List EntryM), ⊢ Y -∗ leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤
-    plogLastIndexZ base0 FL⌝) : CfgAt γ (List.take (uint.Z aL).toNat FL) c → JQuorum c Q → confCount
-    (List.drop (uint.Z aL).toNat FL) ≤ 1 → uint.Z aL ≤ uint.Z cL → PlogWf base0 FL → CampOk T F0L →
-    F0L <+: FL → (∀ (v : w64), v ∈ Q → ∀ (t' : w64) (q : GSet w64), r.snd = some (t', q) → ¬v ∈ q) →
-    ⊢ votesTbl γ -∗ isLeader γ L T -∗ isCamp γ L T F0L -∗ logRecs γ base0 FL -∗ isCommitted γ
-    (List.take (uint.Z aL).toNat FL) -∗ commitIn γ FL cL T -∗ leadFull γ T FL -∗ Y -∗ rqRecOk γ T r
-    -∗ readOk γ r.fst.fst r.fst.snd
+    plogLastIndexZ base0 FL⌝) (ML : DecMap) : CfgAt γ ML (List.take (uint.Z aL).toNat FL) c →
+    JQuorum c Q → confCount (List.drop (uint.Z aL).toNat FL) ≤ 1 → uint.Z aL ≤ uint.Z cL → PlogWf
+    base0 FL → CampOk T F0L → F0L <+: FL → (∀ (v : w64), v ∈ Q → ∀ (t' : w64) (q : GSet w64), r.snd
+    = some (t', q) → ¬v ∈ q) → ⊢ votesTbl γ -∗ isLeader γ L T -∗ isCamp γ L T F0L -∗ logRecs γ base0
+    FL -∗ isCommitted γ (List.take (uint.Z aL).toNat FL) -∗ commitIn γ FL cL T -∗ leadFull γ T FL -∗
+    Y -∗ decLb γ ML -∗ rqRecOk γ T r -∗ readOk γ r.fst.fst r.fst.snd
 
 theorem leaderWit_leader [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (h :
     s.role = Role.leader) : leaderWit γ id s = isLeader γ id s.term

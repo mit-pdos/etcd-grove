@@ -157,11 +157,12 @@ def LcIH [ReceiptGS GF] (γ : RaftNames) (T : w64) : Prop :=
                   isLeader γ c' T' -∗ isCamp γ c' T' F0' -∗ logRecs γ base0 G' -∗ ⌜plogTermAt base0 G' n' = some t'⌝
 
 theorem lc_far_older [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (T t : w64) (F : List EntryM) (a c :
-    w64) (F0 : List EntryM) (kw : w64) (cW : CfgM) (V : GSet w64) (IH : LcIH γ T) : uint.Z t <
-    uint.Z T → CampOk T F0 → ConfI1 F0 (uint.Z kw).toNat → CfgAt γ (List.take (uint.Z kw).toNat F0)
-    cW → JQuorum cW V → confCount (List.take (uint.Z kw).toNat F0) + 2 ≤ confCount (List.take
-    (uint.Z a).toNat F) → γ.reBoot <+: F → ⊢ votesTbl γ -∗ cqDyn γ t F a -∗ isWin γ c T V -∗ isCamp
-    γ c T F0 -∗ logRecs γ base0 F0 -∗ isCommitted γ (List.take (uint.Z kw).toNat F0) -∗ False
+    w64) (F0 : List EntryM) (kw : w64) (cW : CfgM) (V : GSet w64) (MW : DecMap) (IH : LcIH γ T) :
+    uint.Z t < uint.Z T → CampOk T F0 → ConfI1 F0 (uint.Z kw).toNat → CfgAt γ MW (List.take (uint.Z
+    kw).toNat F0) cW → JQuorum cW V → confCount (List.take (uint.Z kw).toNat F0) + 2 ≤ confCount
+    (List.take (uint.Z a).toNat F) → γ.reBoot <+: F → ⊢ votesTbl γ -∗ cqDyn γ t F a -∗ isWin γ c T V
+    -∗ isCamp γ c T F0 -∗ logRecs γ base0 F0 -∗ isCommitted γ (List.take (uint.Z kw).toNat F0) -∗
+    decLb γ MW -∗ False
 
 theorem readsReg_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (e : EntryM) (RR :
     GMap (List w8) (GName × List EntryM)) : ⊢ readsReg γ l RR -∗ ghostVar γ.reRLog (Qp.half 1) (l ++

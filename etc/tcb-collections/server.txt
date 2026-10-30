@@ -33,7 +33,6 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
-axiom EtcdServer.snapshot.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof
@@ -107,6 +106,7 @@ axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
+axiom ccDecodeV2_nil
 axiom clockwork.NewRealClock.wp_proof
 axiom clockwork.clockLb
 axiom clockwork.clockLb_init
@@ -197,6 +197,8 @@ axiom proto.CloneSnapshot.wp_proof
 axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.MarshalPb.wp_proof
 axiom proto.Size.wp_proof
@@ -304,4 +306,14 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry EtcdServer.applyAll.wp_proof
+sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
+sorry EtcdServer.run.wp_proof
+sorry EtcdServer.run.wp_proofOn
+sorry EtcdServer.snapshot.wp_proof
+sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
+sorry isRaftNodeIfc_of_isNode
+sorry raftNode.start.wp_proof
+sorry rnApplyTok_recv
+sorry rn_ready_recv

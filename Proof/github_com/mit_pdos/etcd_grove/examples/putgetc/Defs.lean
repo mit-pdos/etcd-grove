@@ -30,8 +30,8 @@ triple of a function the program calls, D19a's second kind):
   then part of `bootstrap`'s contract's postcondition), which the cluster's allocation takes;
 * the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s): `rnLoggerZapOk`,
   `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`, `rnTickerOk` at every raft
-  environment whose tick resource is `True` (the server's, `srvEr`), `rnStopOkStarted` (`Stop` of
-  a started node);
+  environment whose tick resource is `True` (the server's, `srvEr`) (2026-10-30, the repair:
+  `rnStopOkStarted` gone, the node's `Stop` is proved);
 * `v3rpc.runsNoRequireLeader` (no client stream asks for a leader: a fact of the deployment).
 
 What were package-fact premises until D19r was carried out are gone: `rnRaftStatusOk` and
@@ -125,7 +125,7 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     -- the server port: its peers `[id]`, static, the bootstrap log; at the storage registry they
     -- name), for `Main`'s configuration and URLs (D19r (B), (F)), at the peers' contexts `ctxs`
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.dyn = false ∧
+      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (putgetcDir id)) ∗
     -- (2026-10-27, the server port) `proto.Marshal` of the peers' conf changes returns the bootstrap
@@ -135,7 +135,6 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
-    rnStopOkStarted ∗
     -- the deployment: no client stream asks for a leader
     v3rpc.runsNoRequireLeader)
 

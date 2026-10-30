@@ -23,6 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- `json.Unmarshal(data, cc)` into a `*membership.ConfigChangeContext` `p`, of bytes whose decoding
 the model knows (`membership.ccContextOf data = some (id, prom)`: a JSON object with the

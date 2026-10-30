@@ -180,6 +180,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **An admin step's result without an extra error, in the mode `on γa`** (`AdminReq.result`'s
 four requests but `AuthEnable`, E3a): the authority family `Own` at the history after the outcome
@@ -240,6 +241,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **An admin entry's outcome as the model's admin step** (E3n): `apply.Apply.adminSpecL`'s
 admin outcome with `v3` (`adminOut`), the history `hs` whose latest state is `st`: a refusal at the

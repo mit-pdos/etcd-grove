@@ -64,14 +64,18 @@ sent (`sendSpec`, `sentMsg`); a `ReadState`'s context is its bytes (`rsOk`).
 
 ## The storage
 
-`*kv.Storage` is a raft `Storage` (`KVStorageInstance.lean`): the instance of
-`StorageModel` for the store (`kvStorageModel`), given a registry (`KVStor`: a
-ghost map from a `Storage` struct to its `MemoryStorage` and that storage's ghost names,
-whose authority is in `kvStorInv`) so that a storage's tokens are of its own names.
+`*kv.Storage` is a raft `Storage` (`KvStorage.lean`, `KVStorageInstance.lean`; 2026-10-30, stage F
+of the client repair, from kvreconf's): the instance of `StorageModel` for the store
+(`kvStorageModel`), given a registry (`KVStor`: a ghost map from a `Storage` struct to its
+`MemoryStorage` and that storage's ghost names, whose authority is in `kvStorInv`), so that a
+storage's ranges are of its own names. What the applier holds of it (`runStor`) is persistent:
+the storage's invariant at the API's justifications (`kvJ`), the stored snapshot open for writes
+(`memSnapLb γs 0`), and the voters.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KvStorage
+public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 
 @[expose] public section
@@ -86,126 +90,11 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/-- The store's `Storage` struct (not raft's `Storage` interface). -/
-abbrev RStorage [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kv.Storage
 /-- The store's replica struct, `KV`. -/
 abbrev RKV [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kv.KV
 
-abbrev rStorageTy [GooseExts] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.Storage.ty
 abbrev rKVTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kv.KV.ty
-
-/-! ## The storage registry and the storage model -/
-
-/-- The registry's ghost name: a class, so that the `StorageModel` instance below can be
-an instance. -/
-class KVStor (GF : BundledGFunctors) where
-  kvStorName : GName
-
-abbrev MemStorRec :=
-  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
-
-def memStorRec (ms : Loc) (γs : MemStorNames) : MemStorRec :=
-  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
-
-theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
-    memStorRec ms1 γs1 = memStorRec ms2 γs2 → ms1 = ms2 ∧ γs1 = γs2 := by
-  intro h
-  cases γs1; cases γs2
-  simp only [memStorRec, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
-  exact ⟨rfl, rfl⟩
-
-def kvStorN : Namespace := nroot.@"kv_storage"
-
-section stor
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
-variable [KVStor GF]
-
-/-- The storage `s` is the `MemoryStorage` `ms` with the names `γs` (persistent). -/
-def kvStorRec (s ms : Loc) (γs : MemStorNames) : IProp GF :=
-  iprop(s.[RStorage, go!"MemoryStorage"] ↦□ ms ∗
-    s ↪[KVStor.kvStorName (GF := GF)]□ memStorRec ms γs)
-
-instance kvStorRec_persistent (s ms : Loc) (γs : MemStorNames) :
-    Persistent (kvStorRec (GF := GF) s ms γs) := by
-  unfold kvStorRec; infer_instance
-
-theorem kvStorRec_agree (s ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
-    ⊢ kvStorRec (GF := GF) s ms1 γs1 -∗ kvStorRec s ms2 γs2 -∗ ⌜ms1 = ms2 ∧ γs1 = γs2⌝ := by
-  unfold kvStorRec
-  iintro ⟨-, #H1⟩ ⟨-, #H2⟩
-  icases ghostMapElem_agree $$ H1 H2 with %H
-  ipureintro; exact memStorRec_inj _ _ _ _ H
-
-/-- The raft `Storage` interface value of the store's storage `s`. -/
-def kvStorIface (s : Loc) : Storage :=
-  interface.mkOk (go.GoType.PointerType rStorageTy) #s
-
-def kvOwnStorage (st : Storage) (σ : StorState) : IProp GF :=
-  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    ownMemoryStorage ms γs σ)
-
-def kvAppendTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
-  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memAppendTok ms γs σ p)
-
-def kvAppendedTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
-  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memAppendedTok ms γs σ p)
-
-/-- (D19i part 1) The storage's boundary has reached `n`: its `MemoryStorage`'s. -/
-def kvStorCut (st : Storage) (n : Int) : IProp GF :=
-  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memStorCut γs n)
-
-/-- (D19i part 1) The floor's witness: its `MemoryStorage`'s; (D22 S-r) below `2^61`, as the
-storage's extent is (what a snapshot taken at the floor needs, `SnapListsOk`). -/
-def kvStorFloor (st : Storage) (x : w64) : IProp GF :=
-  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memFloorTok ms γs x ∗ ⌜uint.Z x < 2 ^ 61⌝)
-
-/-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: its `MemoryStorage`'s. -/
-def kvStorCert (st : Storage) (k : SnapTrip) : IProp GF :=
-  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memStorCert γs k)
-
-/-- The store's storage model: every `Storage` is a registered store storage. -/
-instance kvStorageModel : StorageModel GF where
-  ownStorage := kvOwnStorage
-  appendTok := kvAppendTok
-  appendedTok := kvAppendedTok
-  storCut := kvStorCut
-  storCut_persistent := fun st n => by unfold kvStorCut; infer_instance
-  storFloor := kvStorFloor
-  storFloor_persistent := fun st x => by unfold kvStorFloor; infer_instance
-  -- (2026-10-19, D21 M3) the store states no cap
-  storCap := fun _ _ => iprop(False)
-  storCap_persistent := fun _ _ => by infer_instance
-  storCut_cap := fun _ _ _ => by iintro ⟨-, %H⟩; exact H.elim
-  storCert := kvStorCert
-  storCert_persistent := fun st k => by unfold kvStorCert; infer_instance
-
-/-- The registry: each registered storage keeps half of its `MemoryStorage` field here
-(so that a storage is registered once: a new one has the whole field). -/
-def kvStorInvBody : IProp GF :=
-  iprop(∃ M : GMap Loc MemStorRec, ghostMapAuth (KVStor.kvStorName (GF := GF)) 1 M ∗
-    [∗map] s ↦ x ∈ M, s.[RStorage, go!"MemoryStorage"] ↦{DFrac.own (1 : Qp).half} x.1)
-
-def kvStorInv : IProp GF := inv kvStorN kvStorInvBody
-
-instance kvStorInv_persistent : Persistent (kvStorInv (GF := GF)) := by
-  unfold kvStorInv; infer_instance
-
-instance kvStorInvBody_timeless : Timeless (kvStorInvBody (GF := GF)) := by
-  unfold kvStorInvBody; infer_instance
-
-end stor
 
 /-! ## The store's ghost state -/
 
@@ -254,29 +143,16 @@ def MintOk [GooseExts] (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8))
 section ccfg
 variable [GooseExts]
 
-/-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
-id}` (type `1`; no context, no id). -/
-def rmCC (id : w64) : ConfChangeM := { type := W32 1, nodeId := id, context := [], id := W64 0 }
-
 /-- The voters of the store's cluster. -/
 abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
 
-/-- **`RemoveMember(id)`'s change keeps the store's voters** (2026-10-27): it is a `CCShrink` of
-`kvVoters` -- removing `id` drops at most a learner, so `id` is not a voter. The premise
-`KV.RemoveMember` takes, which `node.ApplyConfChange` needs in raft's static cluster (it covers no
-change of the voters); unsatisfiable for a voter, the way the earlier proof's `CCAllowed` premise
-was in the static cluster. -/
-def RmShrink (id : w64) : Prop :=
-  CCShrink (GMap.listToSet kvVoters) (ccV2Of (.v1 (rmCC id))).1 (ccV2Of (.v1 (rmCC id))).2
-
-/-- **The conf changes among the committed requested entries are `RemoveMember`'s** (2026-10-27):
-every entry of `ops` that is not a normal one is a `ConfChange` (type `1`) whose bytes carry
-`rmCC id` for some `id` whose removal keeps the voters (`RmShrink`) -- the only conf change the
-store proposes (`kv_ccAu`). What `run` needs to apply a committed conf-change entry
-(`node.ApplyConfChange`). -/
-def RmReqs (ops : List LogEntry) : Prop :=
-  ∀ e ∈ ops, e.type ≠ W32 0 →
-    e.type = W32 1 ∧ ∃ id, MarshalsConfChange (some (.v1 (rmCC id))) e.data ∧ RmShrink id
+/-- **The committed requested entries are normal** (2026-10-30, stage F: the store proposes no
+configuration change since `RemoveMember` was removed, D4): every entry the store asked for is a
+`Node.Propose`'s (`kv_propAu`), of type `0`. What `run` needs to refute a committed conf entry (with
+`committed_emptyV2_joint` for raft's own empty `ConfChangeV2`, which no simple configuration
+has). Until 2026-10-30 `RmReqs`: `RemoveMember`'s changes of non-voters. -/
+def NormalReqs (ops : List LogEntry) : Prop :=
+  ∀ e ∈ ops, e.type = W32 0
 
 end ccfg
 
@@ -326,8 +202,8 @@ def kvCore (γr : RKVNames) (ops : List LogEntry) (S : GMap w64 w64)
     ⌜MintOk S Mi O U⌝ ∗
     -- every datum committed was minted (only the store's updates move `ops`)
     ⌜∀ d, some d ∈ ops.map odOf → Minted Mi d⌝ ∗
-    -- the conf changes committed are `RemoveMember`'s
-    ⌜RmReqs ops⌝)
+    -- the store proposes no conf change
+    ⌜NormalReqs ops⌝)
 
 instance kvCore_timeless (γr : RKVNames) (ops : List LogEntry) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) (U : GSet (List w8)) :
@@ -416,8 +292,88 @@ def lockInv (γr : RKVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
     "Hwaiters" ∷ ([∗map] s ↦ ch ∈ W, waiterOk γr id s ch) ∗
     "Hrds" ∷ readsOwn γr id r ns)
 
-/-- Replica `id` at `r`, on node `n` of the store's static cluster (`isStaticCluster`, of
-the voters `kvVoters`, admitting snapshots of the store's data, `kvSnapOk`; leader transfer on),
+end ghost
+
+/-! ## The store's cluster (2026-10-28, stage U4a: raft's cluster with snapshots and
+reconfiguration, `InvNodeRule.lean`; 2026-10-30, stage F: the decisions through `confPolicy`)
+
+The store's raft cluster is `isCluster`'s, its conf entries decided by the store's rule `kvRule`
+(each conf entry's change as `proto.Unmarshal` decodes it), recorded by raft's decision authority
+(`confPolicy γ kvConfN kvRule`, `ConfPolicy.lean`), from the voters' membership `kvMembership`.
+The store proposes no conf change (`NormalReqs`), so no committed entry is one and every position
+keeps `kvMembership` (`skippedIn_noConf`, `confAt_skipped`). The snapshots the replicas make are in
+raft's registry (`ownSnapsMade`), which the store keeps in an invariant (`kvSnapInv`), each record
+with what it promises (`kvSnapRecOk`, kvreconf's: until 2026-10-30 also the voters' membership and
+no conf entry in the prefix): the committed prefix it covers, the membership there, its data the
+store's encoded state of that prefix (`kvSnapOk`). -/
+
+section cluster
+variable [GooseExts]
+
+/-- The store's rule: a conf entry's change, decoded (`ccDecode`). -/
+def kvRule : ConfRule := fun _ _ e => ccDecode e
+
+/-- The membership of the store's voters. -/
+abbrev kvMembership : Membership := Membership.simple (GMap.listToSet kvVoters)
+
+end cluster
+
+def kvSnapN : Namespace := nroot.@"kv_snaps"
+
+/-- The namespace of the store's decision authority (`confPolicy`). -/
+def kvConfN : Namespace := nroot.@"kv_conf"
+
+section clusterI
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [KVStor GF]
+
+/-- What a snapshot the store made promises: a committed prefix `L` of its index, the membership
+there, its data the store's encoded state of `L`. -/
+def kvSnapRecOk (γr : RKVNames) (s : SnapRec) : IProp GF :=
+  iprop(∃ L : List LogEntry, isCommittedLogLb γr.cluster L ∗ confAt γr.cluster L.length s.conf ∗
+    ⌜L.length = s.index ∧ kvSnapOk L s.data⌝)
+
+instance kvSnapRecOk_persistent (γr : RKVNames) (s : SnapRec) :
+    Persistent (kvSnapRecOk (GF := GF) γr s) := by
+  unfold kvSnapRecOk; infer_instance
+
+instance kvSnapRecOk_timeless (γr : RKVNames) (s : SnapRec) :
+    Timeless (kvSnapRecOk (GF := GF) γr s) := by
+  unfold kvSnapRecOk; infer_instance
+
+/-- **The store's registry of the snapshots made** (an invariant). -/
+def kvSnapInv (γr : RKVNames) : IProp GF :=
+  inv kvSnapN iprop(∃ S : List SnapRec, ownSnapsMade γr.cluster S ∗
+    [∗list] s ∈ S, kvSnapRecOk γr s)
+
+instance kvSnapInv_persistent (γr : RKVNames) : Persistent (kvSnapInv (GF := GF) γr) := by
+  unfold kvSnapInv; infer_instance
+
+/-- **The store's cluster** (persistent): raft's cluster with snapshots and reconfiguration, its
+conf entries decided by `kvRule`, the membership of no entry the voters', and the store's registry
+of the snapshots made. -/
+def kvCluster (γr : RKVNames) : IProp GF :=
+  iprop(isCluster γr.cluster kvRaftN ∗ confPolicy γr.cluster kvConfN kvRule ∗
+    confAt γr.cluster 0 kvMembership ∗ kvSnapInv γr)
+
+instance kvCluster_persistent (γr : RKVNames) : Persistent (kvCluster (GF := GF) γr) := by
+  unfold kvCluster; infer_instance
+
+end clusterI
+
+section ghost2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [KVStor GF]
+
+/-- Replica `id` at `r`, on node `n` of the store's cluster (`kvCluster`),
 with the storage `st` (persistent). -/
 def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=
   iprop(
@@ -427,8 +383,7 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#Hst" ∷ r.[RKV, go!"storage"] ↦□ st ∗
     "#Hsrec" ∷ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     "#HisNode" ∷ isNode n γr.cluster kvRaftN id ∗
-    "#Hstatic" ∷ isStaticCluster γr.cluster kvRaftN kvVoters kvSnapOk ∗
-    "#Hxfer" ∷ leaderTransferOn γr.cluster kvRaftN ∗
+    "#Hcl" ∷ kvCluster γr ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ rkvInv γr)
 
@@ -485,19 +440,41 @@ def runOwn (γr : RKVNames) (r : Loc) (ap : List LogEntry) : IProp GF :=
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (histOf ods) k⌝ ∗
     "%HA" ∷ ⌜AppliedOk A (histOf ods)⌝)
 
-/-- **What the applier holds of its storage `st`**, at the application's view `σt` of the
-`MemoryStorage`'s snapshot and boundary: the storage's snapshot token (`memSnapTok`: the right to
-install a snapshot, take one and compact), the certificate registry tied to the cluster (to
-register the snapshots it takes, `storageCertInv`), the storage's cap (`NewStorage`'s,
-`2^64`), and the cluster's voters (`Storage.voters`), the configuration of every snapshot it
-takes. The application's snapshot is at its boundary or past it. -/
-def runStor (γr : RKVNames) (st : Loc) (σt : StorState) : IProp GF :=
+/-- **What the applier holds of its storage `st`** (persistent; 2026-10-30, stage F: until then
+the storage's snapshot token at the application's view, its certificate registry and cap):
+the storage's record, its `MemoryStorage`'s invariant at node `id`'s justifications (`kvJ`: what
+`ApplySnapshot`, `CreateSnapshot` and `Compact` take), the stored snapshot open for writes
+(`memSnapLb γs 0`, `memSnapNone_open`; the applier is the storage's only writer, so it needs no
+token), and the cluster's voters (`Storage.voters`), the configuration of every snapshot it takes. -/
+def runStor (γr : RKVNames) (id : w64) (st : Loc) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames) (vsl : GoSlice),
-    kvStorRec st ms γs ∗ memSnapTok ms γs σt ∗ storageCertInv γr.cluster kvRaftN γs ∗
-    st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ kvVoters ∗
-    ⌜γs.cap = 2 ^ 64 ∧ uint.Z σt.prev.index' ≤ uint.Z σt.ss.index'⌝)
+    kvStorRec st ms γs ∗ memStorInvP ms γs (kvJ γr.cluster id) ∗ memSnapLb γs 0 ∗
+    st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ kvVoters)
 
-end ghost
+instance runStor_persistent (γr : RKVNames) (id : w64) (st : Loc) :
+    Persistent (runStor (GF := GF) γr id st) := by
+  unfold runStor; infer_instance
+
+/-- **The applier's view of its node** (kvreconf's, 2026-10-30), the committed log delivered `l`
+applied up to `k` at the membership `m`: the node's configuration view at `m`, every conf entry
+from the view's index to `k` rejected (`skippedIn`; the store's log has none). -/
+def appNode (γr : RKVNames) (n : Loc) (l : List LogEntry) (k : Nat) (m : Membership) : IProp GF :=
+  iprop(∃ v : ConfigView, nodeConfig n γr.cluster kvRaftN v ∗
+      deliveredLogLb n γr.cluster kvRaftN l ∗ skippedIn γr.cluster l v.applied k ∗
+      ⌜v.membership = m ∧ v.applied ≤ k⌝)
+
+/-- **The applier's frozen delivered entries** above the known compaction point `c` (kvreconf's,
+2026-10-30): every delivered entry of `D` past `c` is frozen in the storage, with the delivered
+log's terms. `CreateSnapshot` takes the frozen entry at the applied index, `Compact` the one at
+its target. -/
+def frozenTo (γs : MemStorNames) (c : Nat) (D : List LogEntry) : IProp GF :=
+  memLog γs (c + 1) DFrac.discard ((LogEntry.toEntries D 0).drop c)
+
+instance frozenTo_persistent (γs : MemStorNames) (c : Nat) (D : List LogEntry) :
+    Persistent (frozenTo (GF := GF) γs c D) := by
+  unfold frozenTo; infer_instance
+
+end ghost2
 
 end EtcdGrove
 end Perennial

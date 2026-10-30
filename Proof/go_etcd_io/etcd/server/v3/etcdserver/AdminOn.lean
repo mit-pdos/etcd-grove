@@ -116,6 +116,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **What `raftRequest.specM true` needs besides the request and its permission** (the contract's
 `P`; the permission of an admitted admin request is its client's update of the auth history,

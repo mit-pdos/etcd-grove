@@ -35,17 +35,14 @@ set_option maxHeartbeats 0 in
 theorem bootstrappedRaft.newRaftNode.wp_proof
     (wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       StartNode.spec (GF := GF) (hG := hG))
-    (wp_StartNode_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      StartNode.dynamicSpec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γr b ss wal cl dq bv cv lok γs pre pv ps ctxs
+  intro E γr b ss wal cl dq bv cv lok γs pre pv ps ctxs Q
   letI := srvStor (GF := GF) γr
   intro Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
     Hps Hpsne Hnodup H0 Hpslen Hid Hvs
   wp_start as Hpre
   iNamed Hpre
-  rw [method_unfold (t := go.GoType.PointerType bootstrappedRaft.ty) (m := go!"newRaftNode")]
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
   iStructNamedSuffix Hb "B"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -71,151 +68,64 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     rfl
   rw [Hlen0]
   (try wp_auto)
-  -- `raft.StartNode(b.config, b.peers)`: the node API's, by the cluster's kind
-  cases hd : γr.dyn
-  · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hboot Hcert
-    wp_apply (wp_StartNode γr γr.cl srvClusterN bv.config' cv lok
+  -- `raft.StartNode(b.config, b.peers)`: the node API's unified `StartNode`
+  wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
       ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-      memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
-      (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs Hvalid Hlok Hstor Hinfl
-      Hdpf Hro Hdccv Hsizes Hasync Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl
-      rfl rfl Hps Hpsne Hnodup H0 Hpslen Hid rfl) $$ [Hc Hsto Hboot Hpeers Htok]
-      as %nd ⟨Htok, %n, %Hnd, #Hnode, Hdrv⟩
-    · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ :
-        GoInterfaceOk)) = memStorIface bv.storage' from rfl]
-      rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).ty =
-        go.GoType.PointerType MemoryStorage.ty from rfl]
-      rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).v =
-        #bv.storage' from rfl]
-      rw [method_unfold (t := go.GoType.PointerType MemoryStorage.ty) (m := go!"InitialState")]
-      iframe #; iframe Hc Hsto Hboot Hpeers
-      iintro %Φ %ss' Hs HK
-      iapply Hinit $$ Hs Htok
-      iintro %hp %cs %al Hs Ht Hhs Hcs
-      iapply HK $$ Hs Ht Hhs Hcs
-    subst Hnd
+      (HardStateM.mk (W64 0) (W64 0) (W64 0)) memSnapEmpty.Metadata'.ConfState' Q
+      bv.peers' dq pv Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
+      ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl rfl Hps) $$ [Hc Hbs Hboot Hpeers]
+    as %nd ⟨%n, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, HQ, -⟩
+  · iframe #; iframe Hc Hpeers Hboot
+    iExactEq Hbs; rfl
+  subst Hnd
+  (try wp_auto)
+  -- `raftStatus = n.Status` under `raftStatusMu`
+  iunfold rnRaftStatusOk at Hrs
+  wp_apply sync.Mutex.wp_Lock (globalAddr raftStatusMu)
+    iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f) $$ [] as ⟨Hlocked, ⟨%f0, Hf⟩⟩
+  · iframe #
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock (globalAddr raftStatusMu)
+    iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f) $$ [Hlocked Hf]
+  · iframe #; iframe Hlocked; inext; iexists _; iexact Hf
+  (try wp_auto)
+  -- the `isIDRemoved` closure over `cl.IsIDRemoved`
+  wp_func_lits
+  (try wp_auto)
+  ipersist cl
+  -- `serverstorage.NewStorage(b.lg, wal, ss)`
+  iunfold rnNewStorageOk at Hns
+  wp_apply Hns $$ %bv.lg' %wal %ss [] as %st ⟨#Hst, %Hstss⟩
+  (try wp_auto)
+  -- `newRaftNode(cfg)`
+  wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs
+    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
+      bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
+  · iframe #
+  (try wp_auto)
+  ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
+  · iapply typedPointsto_combine _ _ _ Hbnn
+    simp only [TypedPointsto.typedPointstoDef, named]
+    iframe
+  iapply HΦ
+  iexists n, γw, _, st
+  isplitr
+  · ipureintro
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hγw
+    exact ⟨h1, h2, h3, h4, h5, h6⟩
+  iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg
+  isplitl [Hdrv]
+  · iExactEq Hdrv; rfl
+  isplitr
+  · -- the closure meets `isRNIDRemoved`
+    iunfold isRNIDRemoved
+    iintro !> %id' %Φ' !> - HΦ'
     (try wp_auto)
-    -- `raftStatus = n.Status` under `raftStatusMu`
-    iunfold rnRaftStatusOk at Hrs
-    wp_apply sync.Mutex.wp_Lock (globalAddr raftStatusMu)
-      iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f) $$ [] as ⟨Hlocked, ⟨%f0, Hf⟩⟩
-    · iframe #
-    (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock (globalAddr raftStatusMu)
-      iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f) $$ [Hlocked Hf]
-    · iframe #; iframe Hlocked; inext; iexists _; iexact Hf
-    (try wp_auto)
-    -- the `isIDRemoved` closure over `cl.IsIDRemoved`
-    wp_func_lits
-    (try wp_auto)
-    ipersist cl
-    -- `serverstorage.NewStorage(b.lg, wal, ss)`
-    iunfold rnNewStorageOk at Hns
-    wp_apply Hns $$ %bv.lg' %wal %ss [] as %st ⟨#Hst, %Hstss⟩
-    (try wp_auto)
-    -- `newRaftNode(cfg)`
-    wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs
-      (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-        bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
-    · iframe #
-    (try wp_auto)
-    ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
-    · iapply typedPointsto_combine _ _ _ Hbnn
-      simp only [TypedPointsto.typedPointstoDef, named]
-      iframe
-    iapply HΦ
-    iexists n, γw, _, st
-    isplitr
-    · ipureintro
-      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hγw
-      exact ⟨h1, h2, h3, h4, h5, h6⟩
-    iframe Hnode Hst Hbuilt Hb Htok
-    isplitl [Hdrv]
-    · iExactEq Hdrv; rfl
-    isimp only [hd, Bool.false_eq_true, ↓reduceIte]
-    isplitr
-    · itrivial
-    isplitr
-    · -- the closure meets `isRNIDRemoved`
-      iunfold isRNIDRemoved
-      iintro !> %id' %Φ' !> - HΦ'
-      (try wp_auto)
-      iunfold rnClusterOk at Hcl
-      wp_apply Hcl $$ %id' [] as %bb -
-      iapply HΦ'
-      first | itrivial | (ipureintro; trivial)
-    ipureintro; exact Hstss
-  · isimp only [hd, ↓reduceIte] at Hboot Hcert
-    wp_apply (wp_StartNode_dyn γr γr.cl srvClusterN bv.config' cv lok
-      ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-      memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
-      (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs Hvalid Hlok Hstor Hinfl
-      Hdpf Hro Hdccv Hsizes Hasync Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl
-      rfl rfl Hps Hpsne Hnodup H0 Hpslen Hid rfl) $$ [Hc Hsto Hboot Hpeers Htok]
-      as %nd ⟨Htok, %n, %Hnd, #Hnode, Hdrv, Hncfg⟩
-    · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ :
-        GoInterfaceOk)) = memStorIface bv.storage' from rfl]
-      rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).ty =
-        go.GoType.PointerType MemoryStorage.ty from rfl]
-      rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).v =
-        #bv.storage' from rfl]
-      rw [method_unfold (t := go.GoType.PointerType MemoryStorage.ty) (m := go!"InitialState")]
-      iframe #; iframe Hc Hsto Hboot Hpeers
-      iintro %Φ %ss' Hs HK
-      iapply Hinit $$ Hs Htok
-      iintro %hp %cs %al Hs Ht Hhs Hcs
-      iapply HK $$ Hs Ht Hhs Hcs
-    subst Hnd
-    (try wp_auto)
-    -- `raftStatus = n.Status` under `raftStatusMu`
-    iunfold rnRaftStatusOk at Hrs
-    wp_apply sync.Mutex.wp_Lock (globalAddr raftStatusMu)
-      iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f) $$ [] as ⟨Hlocked, ⟨%f0, Hf⟩⟩
-    · iframe #
-    (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock (globalAddr raftStatusMu)
-      iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f) $$ [Hlocked Hf]
-    · iframe #; iframe Hlocked; inext; iexists _; iexact Hf
-    (try wp_auto)
-    -- the `isIDRemoved` closure over `cl.IsIDRemoved`
-    wp_func_lits
-    (try wp_auto)
-    ipersist cl
-    -- `serverstorage.NewStorage(b.lg, wal, ss)`
-    iunfold rnNewStorageOk at Hns
-    wp_apply Hns $$ %bv.lg' %wal %ss [] as %st ⟨#Hst, %Hstss⟩
-    (try wp_auto)
-    -- `newRaftNode(cfg)`
-    wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs
-      (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-        bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
-    · iframe #
-    (try wp_auto)
-    ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
-    · iapply typedPointsto_combine _ _ _ Hbnn
-      simp only [TypedPointsto.typedPointstoDef, named]
-      iframe
-    iapply HΦ
-    iexists n, γw, _, st
-    isplitr
-    · ipureintro
-      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hγw
-      exact ⟨h1, h2, h3, h4, h5, h6⟩
-    iframe Hnode Hst Hbuilt Hb Htok
-    isplitl [Hdrv]
-    · iExactEq Hdrv; rfl
-    isimp only [hd, ↓reduceIte]
-    iframe Hncfg
-    isplitr
-    · -- the closure meets `isRNIDRemoved`
-      iunfold isRNIDRemoved
-      iintro !> %id' %Φ' !> - HΦ'
-      (try wp_auto)
-      iunfold rnClusterOk at Hcl
-      wp_apply Hcl $$ %id' [] as %bb -
-      iapply HΦ'
-      first | itrivial | (ipureintro; trivial)
-    ipureintro; exact Hstss
+    iunfold rnClusterOk at Hcl
+    wp_apply Hcl $$ %id' [] as %bb -
+    iapply HΦ'
+    first | itrivial | (ipureintro; trivial)
+  ipureintro; exact Hstss
 
 end proof
 

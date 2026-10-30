@@ -33,6 +33,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The apply thread certifies a longer committed log at once** (D22 receiver epochs, S8d, W4):
 from its KV ghost state at the raft log `A` and the KV log `l`, a committed raft log `A'` extending

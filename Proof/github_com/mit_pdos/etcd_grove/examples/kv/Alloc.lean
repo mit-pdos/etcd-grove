@@ -9,13 +9,18 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
   ghost map at the registry's name (allocated first, `ghost_map_alloc_empty`, and made the
   `KVStor` instance).
 * `rkvInv_alloc`: the store's invariant over raft's cluster, from what the cluster's allocation
-  (`cluster_alloc_static`) hands the client -- the committed requested entries (none) and the
+  (`cluster_alloc`) hands the client -- the committed requested entries (none) and the
   read contexts (none used) -- with the client's half of the value (the empty store, `kvEmpty`)
   and the replicas' sequence-number tokens at `S0` (for `New`, each at 0).
+* `kvCluster_alloc` (2026-10-30, stage F of the client repair): the whole cluster -- raft's
+  (`cluster_alloc` of the voters, no boot log, `dup = false`), its decision authority
+  (`confPolicy_alloc` at `kvConfN`), the registry of the snapshots made (`kvSnapInv_alloc`) and the
+  store's invariant (`rkvInv_alloc`) -- with the founders' tokens each node's `RestartNode` takes
+  (`joinAuth` is dropped: the store adds no node).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Reconf
 
 @[expose] public section
 
@@ -39,7 +44,7 @@ variable [KVStor GF]
 
 /-- The storage registry's invariant, with no storage registered yet. -/
 theorem kvStorInv_alloc (E : CoPset) :
-    ⊢ ghostMapAuth (KVStor.kvStorName (GF := GF)) 1 (∅ : GMap Loc MemStorRec) ={E}=∗
+    ⊢ ghostMapAuth (KVStor.kvStorName (GF := GF)) 1 (∅ : GMap Loc KVStorRecT) ={E}=∗
       kvStorInv (GF := GF) := by
   iintro Ha
   unfold kvStorInv
@@ -52,7 +57,7 @@ theorem kvStorInv_alloc (E : CoPset) :
   itrivial
 
 /-- The store's invariant over raft's cluster `γ`, from what its allocation hands the client
-(`cluster_alloc_static`): the committed requested entries, none, and the read contexts, none
+(`cluster_alloc`): the committed requested entries, none, and the read contexts, none
 used; with the client's half of the value and the sequence-number tokens of `S0` (`New` takes
 `id ↪[γr.seq] 0`). -/
 theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
@@ -92,6 +97,38 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
   iexists []
   iframe Hv2
   ipureintro; rfl
+
+/-- **The store's cluster** (see the file header): from the time receipts' bound (`cluster_alloc`'s
+premise), the store's cluster `kvCluster`, its invariant, the client's half at the empty store, the
+sequence-number tokens of `S0`, `γ.dup = false`, and each voter's founder token. -/
+theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
+    ⊢ |={E}=> ∃ γr : RKVNames, ⌜γr.cluster.dup = false⌝ ∗ kvCluster γr ∗ rkvInv γr ∗
+        rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
+        [∗list] id ∈ kvVoters, nodeFounder γr.cluster kvRaftN kvVoters id := by
+  iintro
+  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false E Hrb (by decide) (by decide)
+      (by decide) (by decide) (fun h => absurd rfl h) $$ [] with
+    ⟨%γ, %Hγ, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hrest⟩
+  · iempintro
+  have Hif : (if ([] : List LogEntry) = [] then
+      iprop(joinAuth γ (GMap.listToSet kvVoters) ∗
+        [∗list] id ∈ kvVoters, nodeFounder (GF := GF) γ kvRaftN kvVoters id)
+    else iprop(isCommittedLogLb γ [] ∗ [∗list] id ∈ kvVoters, nodeBoot γ kvRaftN kvVoters [] id)) =
+      iprop(joinAuth γ (GMap.listToSet kvVoters) ∗
+        [∗list] id ∈ kvVoters, nodeFounder (GF := GF) γ kvRaftN kvVoters id) := if_pos rfl
+  rw [Hif]
+  icases Hrest with ⟨-, Hfounders⟩
+  imod confPolicy_alloc γ kvConfN kvRule E $$ Hdec with #Hpol
+  imod rkvInv_alloc (GF := GF) E γ S0 $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hseqs⟩
+  subst Hγr
+  imod kvSnapInv_alloc γr E $$ Hsm with #Hsinv
+  imodintro
+  iexists γr
+  isplitr
+  · ipureintro; exact Hγ.1
+  iframe Hinv Hval Hseqs Hfounders
+  unfold kvCluster
+  iframe Hiscl Hpol Hca0 Hsinv
 
 end alloc
 

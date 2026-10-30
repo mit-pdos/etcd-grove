@@ -103,10 +103,10 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
     have Hvs := Hvotes Hrole
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (fun _ => Hteq ▸ Hterm)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, by rw [Hrole]; decide⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -132,8 +132,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
         (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -162,14 +162,13 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     imod (preceipt_zero (GF := GF)) with #Hrc00
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
-        Hrole
+        Hrole (by intro Hc; exfalso; first | (rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (rcases Hc with Hc | Hc <;> simp_all [MsgBeat, MsgTransferLeader]))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -190,8 +189,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
     simp only [stepFuncOf]
-    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
-    · iapply tsSrc_ne; notsnap_tac
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
         (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

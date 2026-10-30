@@ -78,6 +78,8 @@ abbrev raft.handleHeartbeat.spec : Prop :=
     (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}

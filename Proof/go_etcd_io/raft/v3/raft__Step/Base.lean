@@ -132,19 +132,19 @@ macro "rframe" : tactic =>
 section cfg_eq
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
+/-- `stepFollower` leaves the configuration (since 2026-10-28, stage U0, a `MsgSnap` too). -/
 theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
-  have := H.1; rwa [ite_eq_right h] at this
+  exact H.1
 
-/-- Off a `MsgSnap`, `stepCandidate` leaves the configuration. -/
+/-- `stepCandidate` leaves the configuration (since stage U0, a `MsgSnap` too). -/
 theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
-  have := H.1; rwa [ite_eq_right h] at this
+  exact H.1
 
 end cfg_eq
 
@@ -225,8 +225,9 @@ def stepPostT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s :
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err))) -∗ Φ #err)
 
 /-- (2026-10-20, D22 S-c) `stepPost` for a `MsgSnap` holding the snapshot `sn`: what the spec says of
-a snapshot's step (`SnapStep`, `SnapCfgOut`, `raft.Step.spec`), which `stepPost` does not carry;
-`dispatch_Snap`'s continuation. -/
+a snapshot's step (`SnapStep`, `raft.Step.spec`), which `stepPost` does not carry, and the
+configuration kept (since 2026-10-28, stage U0; until then the snapshot's after a restore,
+`SnapCfgOut`); `dispatch_Snap`'s continuation. -/
 def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : MessageM) (sn : Option SnapshotM) (Φ : val → IProp GF) : IProp GF :=
   iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
@@ -235,7 +236,7 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
      "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut id sn c c' ∧
+     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ c' = c ∧
                    -- (D22 S-d3b) what it did to the log
                    ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
      "%Herr" ∷ ⌜err = interface.nil⌝) -∗ Φ #err)
@@ -244,7 +245,28 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
 invariant: from `raft.Step`'s premises (`GMode.Pre.dynHyp`). -/
 def DynHypFor (md : GMode) (m : MessageM) (s s' : NState) : Prop :=
   ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
-    RInv dec c0 (rOf s g) → DynHyp m s s' g
+    ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g
+
+section u0
+variable [GooseExts]
+
+/-- `PreCandStep` from its pre-candidate clause, the snapshot/role one by `srb_tac` (2026-10-28,
+stage U0). -/
+theorem PreCandStep.mk' {m : MessageM} {s s' : NState}
+    (h1 : s'.role = .preCandidate → s'.term = s.term ∧
+      ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s')))
+    (h2 : SnapRoleBack s s' := by srb_tac) : PreCandStep m s s' := ⟨h1, h2⟩
+
+/-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
+snapshot is pending. -/
+theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
+    {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
+    SnapRoleBack s s' := fun h1 h2 => by
+  rcases h with rfl | ⟨-, -, Hsn, -⟩
+  · exact ⟨h1, h2⟩
+  · exact absurd (by rw [hl]; exact Hsn) h2
+
+end u0
 
 namespace StepProof
 
@@ -256,7 +278,7 @@ theorem keep_frame {m : MessageM} {s s' : NState} (ht : s'.term = s.term)
     (hu : s'.logst.unpersisted = s.logst.unpersisted)
     (hi : s'.logst.inprogress = s.logst.inprogress)
     (hp : s'.logst.prev = s.logst.prev := by rfl)
-    (hst : s'.logst.stored = s.logst.stored := by rfl)
+    (hst : logStoreRec s'.logst = logStoreRec s.logst := by rfl)
     (hsg : s'.logst.storage = s.logst.storage := by rfl)
     (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl)
     (hpc : PreCandStep m s s' := by pc_tac)
@@ -280,7 +302,7 @@ theorem stepdown_frame {m : MessageM} {s s' : NState} (hup : m.Type' ≠ MsgHup)
     (hu : s'.logst.unpersisted = s.logst.unpersisted)
     (hi : s'.logst.inprogress = s.logst.inprogress)
     (hp : s'.logst.prev = s.logst.prev := by rfl)
-    (hst : s'.logst.stored = s.logst.stored := by rfl)
+    (hst : logStoreRec s'.logst = logStoreRec s.logst := by rfl)
     (hsg : s'.logst.storage = s.logst.storage := by rfl)
     (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl)
     (hpc : PreCandStep m s s' := by pc_tac)
@@ -433,13 +455,15 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
   imod rdCred_zero (GF := GF) γ with Hcr
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnl, Hrm, #Hcl⟩
+  icases Hrest with ⟨%Hnl, Hrm, #Hcl, #Hw, #Hx⟩
   ihave %HC : ⌜CfgStatic γ c ∧ TrackedOk γ c id⌝ $$ [Hrm]
   · simp only [ghostRestM]; iexact Hrm
-  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hrc []
-    [Hcr] [] Hlc Hg with Hg
+  ihave #Hnil : ([∗list] x ∈ ([] : List Msg), isMessage (GF := GF) γ x) $$ []
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
+  ihave #Hw' := leadW_stepC γ c id _ (toPState s) [] (toPState s') Hstep $$ Hnil Hw
+  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hrc Hnil
+    [Hcr] [] Hlc Hg with Hg
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
   · iapply msgsTks_nil
   imodintro
@@ -452,7 +476,139 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
-  rw [Hng.2]; iexact Hcl
+  rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+  iframe Hcl Hw' Hx
+
+/-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
+acknowledgement: `appliedSnap` switches to the snapshot's). -/
+theorem ghost_step_static0' (γ : RaftNames) (c c' : CfgM) (id : w64) (m : MessageM) (s s' : NState)
+    (Hstep : StepC c id (plogLastIndexZ (toPState s).base (toPState s).log) (toPState s) []
+      (toPState s'))
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
+    (HC' : CfgStatic γ c' ∧ TrackedOk γ c' id) :
+    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
+      ghostRest γ .static c id s ={⊤}=∗
+      ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c' id s' := by
+  iintro Hlc Hg Hrest
+  imod ghost_step_static0 γ c id m s s' Hstep Hng $$ Hlc Hg Hrest with ⟨%Hout, Hgh⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hout
+  iunfold ownStepGhost at Hgh
+  icases Hgh with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hnl, -, #Hcl⟩
+  unfold ownStepGhost ghostRest
+  iframe Hg Hcl
+  isplitr
+  · ipureintro; exact Hnl
+  simp only [ghostRestM]; ipureintro; exact HC'
+
+
+/-- (2026-10-28, stage U3) The ghost step of a snapshot's acknowledgement (`appliedSnap`), which
+moves nothing the protocol sees, in either mode: statically `ghost_step_static0'` at the snapshot's
+configuration `c'` (`CfgStatic`, `TrackedOk`); dynamically `StepR.applySnap` (`SnapAckDyn`'s facts,
+here at the end state: `applied` moved up to the snapshot's index `j`, no snapshot pending
+afterwards only at `j` the boundary, `c'` the fold's at `j`), the configuration index moved to `j`
+and the configuration to the fold's. -/
+theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM)
+    (s s' : NState) (j : w64) (Hty : m.Type' = MsgStorageAppendResp)
+    (Hps : toPState s' = toPState s) (Hpci : pciR s' = pciR s)
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
+    (Hmode : (md.isDyn = false ∧ CfgStatic γ c' ∧ TrackedOk γ c' id) ∨
+      (∃ dec c0 h0 g, md = .dyn dec c0 h0 g ∧
+        s.role = .follower ∧ s'.logst.applied = j ∧ uint.Z s.logst.applied < uint.Z j ∧
+        uint.Z j ≤ uint.Z s.logst.prev.index' ∧
+        (s'.logst.snap = none → j = s.logst.prev.index') ∧
+        ∃ cs', cfgFold (effDec dec g.decs) c0 (g.fp.take (uint.nat j)) = some cs' ∧ cs'.cfg = c')) :
+    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      ∃ md', ⌜md.StepOut c id m s s' md' ∧
+        (∀ dec c0 h0 g, md = .dyn dec c0 h0 g → ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat j, cs', g.fp, g.decs⟩)⌝ ∗
+        ownStepGhost γ md' c' id s' := by
+  cases md with
+  | static =>
+    have HC' : CfgStatic γ c' ∧ TrackedOk γ c' id := by
+      rcases Hmode with ⟨-, h⟩ | ⟨_, _, _, _, h, -⟩
+      · exact h
+      · cases h
+    iintro Hlc Hg Hrest
+    imod ghost_step_static0' γ c c' id m s s' (by rw [Hps]; exact .refl _) Hng HC'
+      $$ Hlc Hg Hrest with ⟨%Hout, Hgh⟩
+    imodintro
+    iexists GMode.static
+    iframe Hgh
+    ipureintro; exact ⟨Hout, fun _ _ _ _ h => by cases h⟩
+  | dyn dec c0 h0 g =>
+    have Hd : s.role = .follower ∧ s'.logst.applied = j ∧ uint.Z s.logst.applied < uint.Z j ∧
+        uint.Z j ≤ uint.Z s.logst.prev.index' ∧
+        (s'.logst.snap = none → j = s.logst.prev.index') ∧
+        ∃ cs', cfgFold (effDec dec g.decs) c0 (g.fp.take (uint.nat j)) = some cs' ∧ cs'.cfg = c' := by
+      rcases Hmode with ⟨h, -⟩ | ⟨_, _, _, _, h, Hd⟩
+      · simp [GMode.isDyn] at h
+      · cases h; exact Hd
+    obtain ⟨Hrole, Hap, Hlt, Hjb, Hsn, cs', Hfold, Hcs'⟩ := Hd
+    simp only [ghostRest, ghostRestM, ownStepGhost, GMode.isDyn]
+    iintro Hlc Hg ⟨%Hnl, ⟨%Hdc, #HM, #Hfr, #Hc⟩, #Hcl⟩
+    obtain ⟨HD, hc, HI⟩ := Hdc
+    ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
+    imod lastRec_receipt γ _ $$ Hlr with #Hrc
+    imod rdCred_zero (GF := GF) γ with Hcr
+    let g' : RGh := ⟨uint.nat j, cs', g.fp, g.decs⟩
+    have Hb : (rOf s g).p.base = s.logst.prev := rfl
+    have HR : StepR (AdmS (effDec dec g.decs) c0 (fun l => l = g.fp.take (uint.nat j))) (effDec dec g.decs) id
+        (plogLastIndexZ (toPState s).base (toPState s).log) (rOf s g) [] (rOf s' g') := by
+      have e : rOf s' g' = { rOf s g with
+          applied := j
+          snap := s'.logst.snap.isSome
+          cidx := uint.nat j
+          cfg := cs' } := by
+        unfold rOf; rw [Hps, Hap, Hpci]
+      rw [e]
+      refine StepR.applySnap (rOf s g) j _ cs' ?_ (Int.le_of_lt Hlt) (by rw [Hb]; exact Hjb) ?_
+        ⟨Hfold, rfl⟩
+      · show (toPState s).role = _
+        rw [toPState_role, Hrole]; rfl
+      · intro h
+        rw [Hb]
+        exact Hsn (by cases h' : s'.logst.snap <;> simp_all)
+    ihave Hown : ownRaftGhostR γ (effDec dec g.decs) c0 id (rOf s g) $$ [Hg]
+    · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
+      iframe Hg Hfr
+      isplitr
+      · ipureintro; exact HI
+      iintro %hcand; iapply Hc; exact hcand
+    imod ownRaftGhostR_stepR γ dec g.decs c0 h0 HD (fun l => l = g.fp.take (uint.nat j)) id _ HB
+      (rOf s g) [] _ HR $$ Hrc HM [] [] [Hcr] [] Hlc Hown with Hown
+    · imodintro
+      iintro %fp %h
+      subst h
+      iapply logRecs_take $$ Hfr
+    · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+      iempintro
+    · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
+    · iapply msgsTks_nil
+    imodintro
+    iexists GMode.dyn dec c0 h0 g'
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
+    simp only [rOf.proj_p, rOf.proj_fp]
+    isplitr
+    · ipureintro
+      refine ⟨⟨g', .inr (.inr (.inr ⟨Hty, ?_, rfl, rfl, by rw [Hap]⟩)), rfl, _, [],
+        StepR.mono (fun _ _ h => h.1) HR⟩, fun _ _ _ _ h => by cases h; exact ⟨cs', rfl⟩⟩
+      rw [Hap]; intro h; rw [h] at Hlt; omega
+    iframe Hg
+    isplitr
+    · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
+    isplitr
+    · isplitr
+      · ipureintro; exact ⟨HD, Hcs', HI'⟩
+      iframe Hfr' HM
+
+      iintro %hcand; iapply Hc'; exact hcand
+    rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1], Hps, Hng.1]
+    iexact Hcl
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)

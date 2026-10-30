@@ -226,12 +226,13 @@ so that the bytes are a function of the state; the proof needs only that they ar
 of them (`StateEnc`: any list of the bindings, without repeated keys), which `getMap` reads back
 whatever the order.
 
-**The cluster's data certificate** (`kvSnapOk`, the static cluster's `snapOk`, fixed at the
-cluster's allocation): the data of a snapshot at index `i` encodes the replicated state of the
-committed log prefix of length `i` -- `StateEnc` of its client history, the first occurrences of
-its entries' client data (`odOf`, `logHist`). A replica mints it where it
-takes a snapshot (`CreateSnapshot`, of its applied prefix: `runOwn`'s), and the one that installs
-it reads it back at the prefix it is handed (committed prefixes of one length are equal). -/
+**The cluster's data certificate** (`kvSnapOk`, what each record of the store's registry of the
+snapshots made promises of its data: `kvSnapRecOk`, `kvSnapInv`, `Defs.lean`): the data of a
+snapshot at index `i` encodes the replicated state of the committed log prefix of length `i` --
+`StateEnc` of its client history, the first occurrences of its entries' client data (`odOf`,
+`logHist`). A replica records it where it takes a snapshot (`CreateSnapshot`, of its applied
+prefix: `runOwn`'s; `kv_snap_make`), and the one that installs it reads it back at the prefix it
+is handed (`kv_snap_read`; committed prefixes of one length are equal). -/
 
 section snapdata
 variable [GooseExts]
@@ -360,13 +361,14 @@ theorem foldl_histStep_opsOf [GooseExts] (l : List LogEntry) (L : List (List w8)
   | nil => rfl
   | cons e l ih =>
     unfold opsOf at ih ⊢
-    by_cases hf : e.isFiller
-    · simp only [List.filter_cons, hf, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte,
-        List.map_cons, List.foldl_cons, odOf_filler e hf, histStep]
-      exact ih L
-    · simp only [List.filter_cons, hf, decide_false, Bool.not_false, ↓reduceIte, List.map_cons,
-        List.foldl_cons]
-      exact ih _
+    rw [List.filter_cons]
+    split
+    · simp only [List.map_cons, List.foldl_cons]; exact ih _
+    · rename_i hk
+      have hn : odOf e = none := by
+        unfold odOf; rw [ite_eq_right_iff]; rintro ⟨h1, h2⟩
+        simp [LogEntry.isFiller, LogEntry.isEmptyV2, h2] at hk
+      simp only [List.map_cons, List.foldl_cons, hn, histStep]; exact ih L
 
 /-- The history of a log is that of its requested entries (a filler carries no datum). -/
 theorem logHist_opsOf [GooseExts] (l : List LogEntry) :
@@ -462,8 +464,8 @@ def StateEnc (H : List (List w8)) (d : List w8) : Prop :=
     (∀ k, ((kvs.lookup k).getD []) = kvFold H k) ∧
     AnsTab (fun o => ops.lookup o) H
 
-/-- **The key-value cluster's data certificate** (the static cluster's `snapOk`, see the section
-header): the data of a snapshot at the end of the committed prefix `L` encodes the replicated
+/-- **The key-value cluster's data certificate** (what each record of the store's registry of the
+snapshots made promises of its data, `kvSnapRecOk`; see the section header): the data of a snapshot at the end of the committed prefix `L` encodes the replicated
 state of `L`. -/
 def kvSnapOk [GooseExts] (L : List LogEntry) (d : List w8) : Prop :=
   StateEnc (logHist L) d

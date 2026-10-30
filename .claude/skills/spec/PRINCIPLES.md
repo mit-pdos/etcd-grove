@@ -126,6 +126,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
   for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
+- **When only some clients need a resource the library hands back to be duplicable, let the client
+  choose its persistence where it gives it** (a persistent update in, a persistent credit out:
+  `propCredit γ P := if γ.dup then □ P else P`, `dup` chosen at allocation), instead of adding
+  identification state (a registry) that every client threads. (raft's `node.Propose`, 2026-10-29,
+  `notes/spec-first-study/raft-propose-dup-spec.md`)
 - **Know what it rests on**: the axioms a spec depends on (`etc/tcb-report.py --roots`), whether a
   tester covers them, and how much of the pre and post is pure and decidable. The tester is the Test step
   of `notes/spec-first-plan.md`: instrumented Go runs record each call's state, arguments and result,

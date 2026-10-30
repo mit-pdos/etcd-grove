@@ -9,24 +9,25 @@ theorem raft.sendAppend.wp_proof [package_sem : Assumptions] (wp_raft_maybeSendA
     to ≠ id →
       to ∈ s.progress.domSet →
         s.role = PRole.leader →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hphys" ∷ ownRaftPhysCV c c.voters r id s -∗
-                (▷
-                    ∀ ms pvs,
-                      ownRaftPhysCV c c.voters r id
-                            (have __src := sendMsgs s ms;
-                            { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
-                              votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
-                              ticking := __src.ticking, progress := __src.progress, log := __src.log,
-                              logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
-                              rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
-                              sdr := __src.sdr, cq := __src.cq }) ∗
-                          ⌜ReplSends id s ms⌝ ∗ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
-                        Φ (intoVal ())) -∗
-                  WP
-                    ((intoVal
-                        (methods raft.ty.PointerType go!"sendAppend"
-                          (intoVal r)))
-                      (intoVal to))
-                    {{ Φ }}
+          s.term ≠ W64 0 →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hphys" ∷ ownRaftPhysCV c c.voters r id s -∗
+                  (▷
+                      ∀ ms pvs,
+                        ownRaftPhysCV c c.voters r id
+                              (have __src := sendMsgs s ms;
+                              { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                                votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                                ticking := __src.ticking, progress := __src.progress, log := __src.log,
+                                logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                                rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
+                                sdr := __src.sdr, cq := __src.cq }) ∗
+                            ⌜ReplSends id s ms⌝ ∗ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
+                          Φ (intoVal ())) -∗
+                    WP
+                      ((intoVal
+                          (methods raft.ty.PointerType
+                            go!"sendAppend" (intoVal r)))
+                        (intoVal to))
+                      {{ Φ }}

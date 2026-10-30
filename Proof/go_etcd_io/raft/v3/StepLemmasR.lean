@@ -479,13 +479,15 @@ end frame_lemmas
 section code
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable {B : Int}
-
 /-- The ghost part of a node's `RState`: the configuration index, the configuration (with the
-learner flags), the full log's prefix below the compaction boundary. -/
+learner flags), the full log's prefix below the compaction boundary, and (2026-10-28, the decision
+switch) the client's decisions the node has witnessed (a lower bound of the map), which the dynamic mode folds
+over its decoder (`effDec`). -/
 structure RGh where
   cidx : Nat
   cfg : CCState
   fp : List EntryM
+  decs : DecMap
 
 /-- `pendingConfIndex` as the dynamic model reads it: the code's at a leader, `0` elsewhere (see
 the file header). -/
@@ -550,10 +552,12 @@ def PreGuardF (fp : List EntryM) (s : NState) : Prop :=
 
 /-- The dynamic model's premises of a step of `raft.Step` (see the file header). (Until
 2026-10-25, T-M M2b, no pre-candidate: now one with its campaign guard, `PreGuard`.) -/
-def DynHyp (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
+def DynHyp (dec : CCDec) (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
   m.Type' ≠ MsgSnap ∧ PreGuard g.fp s ∧ FullOk (toPState s).base g.fp ∧
+  -- (2026-10-28, the decision switch) A1: no conf entry the decoder `dec` has not rejected (until
+  -- then none at all, `NoConfIn`)
   (m.Type' = MsgStorageApplyResp →
-    s.logst.snap = none ∧ NoConfIn (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
+    NoUndecConfIn dec (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
   -- a proposal the leader drops still moves `pendingConfIndex` (`StepR.propDrop`), whose
   -- indices the model computes without wrapping: the log is short enough for any batch
   -- `raft.Step` takes (below `2^61` entries)
@@ -571,7 +575,7 @@ def StepCD (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState) (recv : L
     (s' : NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
-    DynHyp m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
+    DynHyp dec m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
       StepR Adm dec id B (rOf s g) recv (rOf s' { g with cidx := cidx' })
 
 /-- A frame step of the code is a `StepCD` one. -/
@@ -593,10 +597,10 @@ theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : MessageM} {s : NState}
 /-- A frame step, then a `StepCD` one (2026-10-14, stage B7). -/
 theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : MessageM} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
-    (h2 : StepCD c id B m s1 r2 s') (hd : ∀ g, DynHyp m s s' g → DynHyp m s1 s' g) :
+    (h2 : StepCD c id B m s1 r2 s') (hd : ∀ dec g, DynHyp dec m s s' g → DynHyp dec m s1 s' g) :
     StepCD c id B m s (r1 ++ r2) s' := by
   refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g hc hdy => ?_⟩
-  obtain ⟨cidx', Hcm, H2⟩ := h2.2 Adm dec g hc (hd g hdy)
+  obtain ⟨cidx', Hcm, H2⟩ := h2.2 Adm dec g hc (hd dec g hdy)
   refine ⟨cidx', Hcm, .trans _ _ _ _ _ ?_ H2⟩
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)
@@ -611,66 +615,99 @@ theorem snapCfg_ids {sv : SnapshotM} {scfg : CSLists} {id : w64} (h : scfg.Has i
   · exact GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h)
   · exact GMap.elem_of_union_l _ (GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h))
 
+/-- (2026-10-28, stage U3) A snapshot's prefix `fp'` and the node's committed prefix (its full log
+up to its commit index) are prefixes one of the other: both are committed. A restore, whose
+snapshot is past the commit index, then extends the node's committed prefix (`StepR.snapRestore`'s
+premise, `SnapAgree.restore`). -/
+def SnapAgree (s : NState) (g : RGh) (fp' : List EntryM) : Prop :=
+  (rOf s g).full.take (uint.nat (toPState s).commit) <+: fp' ∨
+    fp' <+: (rOf s g).full.take (uint.nat (toPState s).commit)
+
+theorem SnapAgree.restore {s : NState} {g : RGh} {fp' : List EntryM} (h : SnapAgree s g fp')
+    (hl : uint.nat (toPState s).commit < fp'.length) :
+    (rOf s g).full.take (uint.nat (toPState s).commit) <+: fp' := by
+  rcases h with h | h
+  · exact h
+  · have := h.length_le; rw [List.length_take] at this; omega
+
 /-- What `raft.Step`'s `MsgSnap` branch delivers (2026-10-14, reconfiguration stage B8): the
 `StepC c` witness, and at every ghost part over `c`, for any prefix `fp'` the snapshot `sid` may
 cover (`FullOk`) and any configuration state `cs'` over the configuration `cn` its `ConfState`
 denotes that the dynamic model admits after `fp'` (`Adm`), a `StepR` witness to a ghost part over
 the configuration afterwards `c'` (`cn` after a restore, `c` otherwise). Unlike `StepCD`, the
 ghost part may change wholesale (`StepR.snapRestore`'s configuration index, configuration and
-full prefix). -/
-def StepCDS (c c' cn : CfgM) (id : w64) (B : Int) (sid : entryID) (s : NState) (recv : List Msg)
-    (s' : NState) : Prop :=
+full prefix). (2026-10-28, stage U3c) The configuration state `cs'` and its admissibility only
+under `hid` (the `ConfState` naming the node: a restore's, `SnapRestores`; a refused snapshot's
+certificate says nothing, `raftSnapCert`); the ghost part keeps its configuration index and
+configuration (`StepR.snapRestore` keeps them), and all of it at a pre-candidate (a restore makes a
+follower). -/
+def StepCDS (c c' cn : CfgM) (hid : Prop) (id : w64) (B : Int) (sid : entryID) (s : NState)
+    (recv : List Msg) (s' : NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List EntryM)
-    (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → cs'.cfg = cn →
-    Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' g')
+    (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → SnapAgree s g fp' →
+    (hid → cs'.cfg = cn ∧ Adm fp' cs') →
+    ∃ g', g'.cfg.cfg = c' ∧ g'.cidx = g.cidx ∧ g'.cfg = g.cfg ∧ (s'.role = .preCandidate → g' = g) ∧
+      StepR Adm dec id B (rOf s g) recv (rOf s' g')
 
 /-- A frame step (with no configuration change), as `StepCDS`. -/
-theorem StepCDS.frame {c cn : CfgM} {id : w64} {sid : entryID} {s : NState} {recv : List Msg}
+theorem StepCDS.frame {c cn : CfgM} {hid : Prop} {id : w64} {sid : entryID} {s : NState} {recv : List Msg}
     {s' : NState} (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
-    StepCDS c c cn id B sid s recv s' := by
-  refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ => ⟨g, hc, ?_⟩⟩
+    StepCDS c c cn hid id B sid s recv s' := by
+  refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ => ⟨g, hc, rfl, rfl, fun _ => rfl, ?_⟩⟩
   rw [rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
 /-- A frame step, then a `StepCDS` one. -/
-theorem StepCDS.trans_frame {c c' cn : CfgM} {id : w64} {sid : entryID} {s s1 s' : NState}
+theorem StepCDS.trans_frame {c c' cn : CfgM} {hid : Prop} {id : w64} {sid : entryID} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
-    (h2 : StepCDS c c' cn id B sid s1 r2 s') : StepCDS c c' cn id B sid s (r1 ++ r2) s' := by
-  refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hcs hA => ?_⟩
-  obtain ⟨g', hc', H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hcs hA
-  refine ⟨g', hc', .trans _ _ _ _ _ ?_ H2⟩
+    (hlc : (toPState s1).log = (toPState s).log ∧ (toPState s1).commit = (toPState s).commit)
+    (h2 : StepCDS c c' cn hid id B sid s1 r2 s') : StepCDS c c' cn hid id B sid s (r1 ++ r2) s' := by
+  refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hag hA => ?_⟩
+  have hag1 : SnapAgree s1 g fp' := by
+    have e1 : (rOf s1 g).full = (rOf s g).full := by
+      unfold RState.full rOf; rw [hlc.1]
+    unfold SnapAgree; rw [e1, hlc.2]; exact hag
+  obtain ⟨g', hc', hci, hcf, hpc, H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hag1 hA
+  refine ⟨g', hc', hci, hcf, hpc, .trans _ _ _ _ _ ?_ H2⟩
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
 /-- A restore (`handleSnapshot`'s third exit) as `StepR.snapRestore`: the node takes the
-snapshot's prefix `fp'` and configuration state `cs'`, at the snapshot's index, with the snapshot
-pending (`applied` unchanged, `raftLog.restore`'s unstable snapshot set). -/
+snapshot's prefix `fp'`, at the snapshot's index, with the snapshot pending (`applied` unchanged,
+`raftLog.restore`'s unstable snapshot set), and keeps its configuration (2026-10-28, stage U0:
+until then it took the snapshot's configuration state `cs'`, which the rule still checks) and
+(2026-10-28, stage U3) its configuration index, `fp'` extending its committed prefix. -/
 theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
     (s s' : NState) (g : RGh) (m : Msg) (fp' : List EntryM) (cs' : CCState)
     (h1 : m.ty = .snap) (h2 : m.dst = id) (h3 : m.src ≠ id) (h4 : m.term = (toPState s).term)
     (h5 : s.role ≠ .leader) (h6 : uint.Z (toPState s).commit < uint.Z m.index)
     (h7 : ¬ PlogMatches (toPState s).base (toPState s).log (entryID.mk m.logterm m.index))
-    (h8 : FullOk (entryID.mk m.logterm m.index) fp') (h9 : id ∈ cs'.cfg.ids) (h10 : Adm fp' cs')
+    (h8 : FullOk (entryID.mk m.logterm m.index) fp') (hag : SnapAgree s g fp')
+    (h9 : id ∈ cs'.cfg.ids) (h10 : Adm fp' cs')
     (Hp : toPState s' = psendMsgs
       { padoptLeader (toPState s) m.src with
           base := entryID.mk m.logterm m.index, log := [], commit := m.index }
       [Msg.mk .appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
     (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true)
     (Hl' : s'.role ≠ .leader) :
-    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨uint.nat m.index, cs', fp'⟩) := by
+    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨g.cidx, g.cfg, fp', g.decs⟩) := by
   have Hnl : (rOf s g).p.role ≠ .leader := by
     simp only [rOf, toPState_role]; exact proleRole_not_leader _ h5
-  have H := StepR.snapRestore (dec := dec) (B := B) m (rOf s g) fp' cs' h1 h2 h3 h4 Hnl h6 h7 h8 h9 h10
-  have e : rOf s' ⟨uint.nat m.index, cs', fp'⟩ =
+  have Hag : (rOf s g).full.take (uint.nat (rOf s g).p.commit) <+: fp' := by
+    refine hag.restore ?_
+    have h81 : (fp'.length : Int) = uint.Z m.index := h8.1
+    have := uint_nat_eq (toPState s).commit
+    omega
+  have H := StepR.snapRestore (dec := dec) (B := B) m (rOf s g) fp' cs' h1 h2 h3 h4 Hnl h6 h7 h8 Hag
+    h9 h10
+  have e : rOf s' ⟨g.cidx, g.cfg, fp', g.decs⟩ =
       { rOf s g with
         p := psendMsgs
           { padoptLeader (rOf s g).p m.src with
               base := entryID.mk m.logterm m.index, log := [], commit := m.index }
           [Msg.mk .appResp id m.src (rOf s g).p.term false m.index (W64 0) (W64 0) (W64 0) []]
         snap := true
-        cidx := uint.nat m.index
-        cfg := cs'
         fp := fp' } := by
     unfold rOf pciR
     simp [Hp, Ha, Hsn, h5, Hl']

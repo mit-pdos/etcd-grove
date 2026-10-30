@@ -6,13 +6,18 @@ def pendKsn (p : Loc) (snap : Option entryID) (K : List SnapTrip) : IProp GF :=
   iprop(□
       ∀ sid,
         ⌜snap = some sid⌝ -∗
-          ∃ sv, ownSnapS p DFrac.discard sv ∗ ⌜snapId sv = sid⌝ ∗ ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝)
-
-def initKsnCert (st : Storage) (σ : StorState) : IProp GF :=
-  [∗list] k ∈ initKsn σ, storCert st k
+          ∃ sv,
+            ownSnapS p DFrac.discard sv ∗
+              ⌜snapId sv = sid⌝ ∗
+                ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝ ∗ ⌜∃ x, sv.Metadata'.ConfState'.lists.Has x⌝)
 
 theorem SnpOk.keep {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hk : SnpKeep ls ls') (hsn :
     ls'.snap = ls.snap) (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed) : SnpOk g ls'
+
+theorem StorTermsOk.of_fields {σ σ' : StorState} {ls ls' : LogState} (H : StorTermsOk σ ls) (hp :
+    σ'.prev = σ.prev) (he : storApp σ' σ'.pend = storApp σ σ.pend) (hsn : ls'.snap = ls.snap) (hlt :
+    ls'.lent = ls.lent) (hb : ls'.stb = ls.stb) (hd : ls'.sdt = ls.sdt) (hx : ls'.sxt = ls.sxt) :
+    StorTermsOk σ' ls'
 
 def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   iprop(∃ lv σ,
@@ -27,64 +32,55 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
                       "%Hamx" ∷ ⌜lv.maxApplyingEntsSize' = ls.apmax⌝ ∗
                         "%Hidx" ∷ ⌜LogIndicesOk ls.prev (ls.sents ++ ls.uents)⌝ ∗
                           "%Hnowrap" ∷ ⌜uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length + 1 < 2 ^ 64⌝ ∗
-                            "#HisStorage" ∷ isStorage lv.storage' ∗
-                              "HStorage" ∷ lentStor ls.lent lv.storage' σ ∗
+                            "#HisStorage" ∷ isStorageD ls.sn lv.storage' ∗
+                              "HStorage" ∷ lentStor ls.lent ls.sn lv.storage' σ ∗
                                 "%Hstore" ∷ ⌜LogStoreOk ls.snap σ ls.prev ls.sents ls.uents⌝ ∗
                                   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
-                                    "%Hsksn" ∷
-                                        ⌜σ.ss.index' ≠ W64 0 →
-                                            { sid := σ.ss, cl := σ.scs, al := σ.sal, dat := σ.sdat } ∈ ls.ksn⌝ ∗
-                                      "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
-                                        ("#Hkcert" ∷ [∗list] k ∈ ls.ksn, storCert lv.storage' k) ∗
-                                          "%Hoffset" ∷
-                                              ⌜uint.Z lv.unstable'.offset' =
-                                                  uint.Z ls.prev.index' + ↑ls.sents.length + 1⌝ ∗
-                                            "Huents" ∷ entsRO lv.unstable'.entries' ls.uents ∗
-                                              "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
-                                                "%Happlied" ∷
-                                                    ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
-                                                        uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
-                                                  "%Hpapplied" ∷
-                                                      ⌜ls.snap = none → uint.Z ls.prev.index' ≤ uint.Z ls.applied⌝ ∗
-                                                    "%Hcommitted" ∷
-                                                        ⌜uint.Z ls.committed ≤
-                                                            uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length⌝ ∗
-                                                      "%Hssnap" ∷
-                                                          ⌜ls.snap = none →
-                                                              StoredSnapOk σ ls.committed ls.prev
-                                                                (ls.sents ++ ls.uents)⌝ ∗
-                                                        "#Hl_logger" ∷ isLoggerVal lv.logger' ∗
-                                                          "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger' ∗
-                                                            "%Hipb" ∷
-                                                                ⌜uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧
-                                                                    uint.Z ls.inprogress ≤
-                                                                      uint.Z lv.unstable'.offset' + ↑ls.uents.length⌝ ∗
-                                                              "%Hpersist" ∷
-                                                                  ⌜ls.snap = none →
-                                                                      LogPersistOk σ ls.sents ls.uents
-                                                                        (uint.Z ls.inprogress -
-                                                                          uint.Z lv.unstable'.offset')
-                                                                        ls.unpersisted ls.stored⌝ ∗
-                                                                "%Happlying" ∷
-                                                                    ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
-                                                                        uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
-                                                                  "%Hpaused" ∷
-                                                                      ⌜lv.applyingEntsPaused' = false →
-                                                                          uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
-                                                                    "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
-                                                                      "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
-                                                                        "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
-                                                                          "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
-                                                                            "%Hq" ∷ ⌜ls.sapp = false ∧ ls.aps = false⌝ ∗
-                                                                              "%Hprel" ∷ ⌜SipOk ls lv.unstable'.offset'⌝ ∗
-                                                                                "%Hsat" ∷ ⌜ls.sat = true → SatOk σ ls⌝)
+                                    "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
+                                      "#Hkcert" ∷ ksnCerts ls.sn ls.ksn ∗
+                                        "%Hoffset" ∷
+                                            ⌜uint.Z lv.unstable'.offset' = uint.Z ls.prev.index' + ↑ls.sents.length + 1⌝ ∗
+                                          "Huents" ∷ entsRO lv.unstable'.entries' ls.uents ∗
+                                            "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
+                                              "%Happlied" ∷
+                                                  ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
+                                                      uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
+                                                "%Hpapplied" ∷
+                                                    ⌜ls.snap = none → uint.Z ls.prev.index' ≤ uint.Z ls.applied⌝ ∗
+                                                  "%Hcommitted" ∷
+                                                      ⌜uint.Z ls.committed ≤
+                                                          uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length⌝ ∗
+                                                    "#Hl_logger" ∷ isLoggerVal lv.logger' ∗
+                                                      "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger' ∗
+                                                        "%Hipb" ∷
+                                                            ⌜uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧
+                                                                uint.Z ls.inprogress ≤
+                                                                  uint.Z lv.unstable'.offset' + ↑ls.uents.length⌝ ∗
+                                                          "%Hpersist" ∷
+                                                              ⌜ls.snap = none →
+                                                                  LogPersistOk σ ls.sents ls.uents
+                                                                    (uint.Z ls.inprogress - uint.Z lv.unstable'.offset')
+                                                                    ls.unpersisted ls.stored⌝ ∗
+                                                            "%Happlying" ∷
+                                                                ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
+                                                                    uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
+                                                              "%Hpaused" ∷
+                                                                  ⌜lv.applyingEntsPaused' = false →
+                                                                      uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
+                                                                "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
+                                                                  "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
+                                                                    "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
+                                                                      "%Hfr" ∷ ⌜FrOk σ ls⌝ ∗
+                                                                        "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
+                                                                          "%Hq" ∷ ⌜ls.sapp = false ∧ ls.aps = false⌝ ∗
+                                                                            "%Hprel" ∷ ⌜SipOk ls lv.unstable'.offset'⌝ ∗
+                                                                              "%Hsat" ∷ ⌜ls.sat = true → SatOk σ ls⌝)
 
 def SipOk (ls : LogState) (off : w64) : Prop :=
   (ls.sip = true → LogPersistRel ls.sents ls.uents (uint.Z ls.inprogress - uint.Z off) ls.stored) ∧
     (ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z ls.applying < uint.Z ls.prev.index')
 
-theorem initKsnCert_zero (st : Storage) (σ : StorState) (h : σ.ss.index' = W64 0) : ⊢ initKsnCert st
-    σ
+theorem StorTermsOk.of_none {σ : StorState} {ls : LogState} (h : ls.snap = none) : StorTermsOk σ ls
 
 theorem ownRaftLog_fl [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLog l ls -∗
     ⌜uint.Z ls.fl ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed ∧ uint.Z
@@ -119,14 +115,17 @@ theorem ownRaftLog_setCommitted [package_sem : Assumptions] (l : Loc) (ls : LogS
     uents := ls.uents, committed := n, applied := ls.applied, snap := ls.snap, inprogress :=
     ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored,
     apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip
-    := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt } -∗ Φ
-    (intoVal ())) -∗ WP (intoVal (structFieldRef raftLog go!"committed" l) <-[go.uint64] intoVal n)
-    {{ Φ }}
+    := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb :=
+    ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk } -∗ Φ (intoVal ())) -∗ WP
+    (intoVal (structFieldRef raftLog go!"committed" l) <-[go.uint64] intoVal n) {{ Φ }}
 
 theorem ownRaftLog_quiet [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLog l ls
     -∗ ⌜ls.sapp = false ∧ ls.aps = false⌝ ∗ ownRaftLog l ls
 
 theorem unstableOf.proj_ksn (lv : raftLog) (ls : LogState) : (unstableOf lv ls).ksn = ls.ksn
+
+def SnpSg (g : NGhost) (ls : LogState) : Prop :=
+  ls.lent = true → ∀ (k : SnapTrip), g.snp = some k → ls.sg ≤ uint.nat k.sid.index'
 
 theorem pendKsn_none [package_sem : Assumptions] (p : Loc) (K : List SnapTrip) : ⊢ pendKsn p none K
 
@@ -142,8 +141,8 @@ def snapHit (snap : Option entryID) (i : w64) : Bool :=
   | some sid => decide (sid.index' = i)
   | none => false
 
-theorem lentStor_close {b : Bool} (h : b = false) (st : Storage) (σ : StorState) : ownStorage st σ ⊢
-    lentStor b st σ
+theorem lentStor_close [package_sem : Assumptions] {b : Bool} (h : b = false) (sn : StorNames) (st :
+    Storage) (σ : StorState) : ownStorage sn st σ ⊢ lentStor b sn st σ
 
 theorem raftLog_split_unstable [package_sem : Assumptions] (l : Loc) (lv : raftLog) : ⊢
     typedPointsto l lv (DFrac.own 1) -∗ typedPointsto (structFieldRef raftLog go!"unstable" l)
@@ -166,58 +165,50 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
                       "%Hamx" ∷ ⌜lv.maxApplyingEntsSize' = ls.apmax⌝ ∗
                         "%Hidx" ∷ ⌜LogIndicesOk ls.prev (ls.sents ++ ls.uents)⌝ ∗
                           "%Hnowrap" ∷ ⌜uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length + 1 < 2 ^ 64⌝ ∗
-                            "#HisStorage" ∷ isStorage lv.storage' ∗
-                              "HStorage" ∷ lentStor ls.lent lv.storage' σ ∗
+                            "#HisStorage" ∷ isStorageD ls.sn lv.storage' ∗
+                              "HStorage" ∷ lentStor ls.lent ls.sn lv.storage' σ ∗
                                 "%Hstore" ∷ ⌜LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents⌝ ∗
                                   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
-                                    "%Hsksn" ∷
-                                        ⌜σ.ss.index' ≠ W64 0 →
-                                            { sid := σ.ss, cl := σ.scs, al := σ.sal, dat := σ.sdat } ∈ ls.ksn⌝ ∗
-                                      "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
-                                        ("#Hkcert" ∷ [∗list] k ∈ ls.ksn, storCert lv.storage' k) ∗
-                                          "%Hoffset" ∷
-                                              ⌜uint.Z lv.unstable'.offset' =
-                                                  uint.Z ls.prev.index' + ↑ls.sents.length + 1⌝ ∗
-                                            "Huents" ∷ entsRO lv.unstable'.entries' ls.uents ∗
-                                              "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
-                                                "%Happlied" ∷
-                                                    ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
-                                                        uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
-                                                  "%Hpapplied" ∷
-                                                      ⌜ls.snap = none →
-                                                          ls.aps = false → uint.Z ls.prev.index' ≤ uint.Z ls.applied⌝ ∗
-                                                    "%Hcommitted" ∷
-                                                        ⌜uint.Z ls.committed ≤
-                                                            uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length⌝ ∗
-                                                      "%Hssnap" ∷
-                                                          ⌜snapV ls = none →
-                                                              StoredSnapOk σ ls.committed ls.prev
-                                                                (ls.sents ++ ls.uents)⌝ ∗
-                                                        "#Hl_logger" ∷ isLoggerVal lv.logger' ∗
-                                                          "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger' ∗
-                                                            "%Hipb" ∷
-                                                                ⌜uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧
-                                                                    uint.Z ls.inprogress ≤
-                                                                      uint.Z lv.unstable'.offset' + ↑ls.uents.length⌝ ∗
-                                                              "%Hpersist" ∷
-                                                                  ⌜snapV ls = none →
-                                                                      LogPersistOk σ ls.sents ls.uents
-                                                                        (uint.Z ls.inprogress -
-                                                                          uint.Z lv.unstable'.offset')
-                                                                        ls.unpersisted ls.stored⌝ ∗
-                                                                "%Happlying" ∷
-                                                                    ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
-                                                                        uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
-                                                                  "%Hpaused" ∷
-                                                                      ⌜lv.applyingEntsPaused' = false →
-                                                                          uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
-                                                                    "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
-                                                                      "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
-                                                                        "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
-                                                                          "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
-                                                                            "%Hsappi" ∷ ⌜ls.sapp = true → SappOk σ ls⌝ ∗
-                                                                              "%Hprel" ∷ ⌜SipOk ls lv.unstable'.offset'⌝ ∗
-                                                                                "%Hsat" ∷ ⌜ls.sat = true → SatOk σ ls⌝)
+                                    "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
+                                      "#Hkcert" ∷ ksnCerts ls.sn ls.ksn ∗
+                                        "%Hoffset" ∷
+                                            ⌜uint.Z lv.unstable'.offset' = uint.Z ls.prev.index' + ↑ls.sents.length + 1⌝ ∗
+                                          "Huents" ∷ entsRO lv.unstable'.entries' ls.uents ∗
+                                            "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
+                                              "%Happlied" ∷
+                                                  ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
+                                                      uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
+                                                "%Hpapplied" ∷
+                                                    ⌜ls.snap = none →
+                                                        ls.aps = false → uint.Z ls.prev.index' ≤ uint.Z ls.applied⌝ ∗
+                                                  "%Hcommitted" ∷
+                                                      ⌜uint.Z ls.committed ≤
+                                                          uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length⌝ ∗
+                                                    "#Hl_logger" ∷ isLoggerVal lv.logger' ∗
+                                                      "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger' ∗
+                                                        "%Hipb" ∷
+                                                            ⌜uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧
+                                                                uint.Z ls.inprogress ≤
+                                                                  uint.Z lv.unstable'.offset' + ↑ls.uents.length⌝ ∗
+                                                          "%Hpersist" ∷
+                                                              ⌜snapV ls = none →
+                                                                  LogPersistOk σ ls.sents ls.uents
+                                                                    (uint.Z ls.inprogress - uint.Z lv.unstable'.offset')
+                                                                    ls.unpersisted ls.stored⌝ ∗
+                                                            "%Happlying" ∷
+                                                                ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
+                                                                    uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
+                                                              "%Hpaused" ∷
+                                                                  ⌜lv.applyingEntsPaused' = false →
+                                                                      uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
+                                                                "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
+                                                                  "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
+                                                                    "%Hfl" ∷ ⌜FlOk σ ls⌝ ∗
+                                                                      "%Hfr" ∷ ⌜FrOk σ ls⌝ ∗
+                                                                        "%Hlent" ∷ ⌜ls.lent = true → ls.snap ≠ none⌝ ∗
+                                                                          "%Hsappi" ∷ ⌜ls.sapp = true → SappOk σ ls⌝ ∗
+                                                                            "%Hprel" ∷ ⌜SipOk ls lv.unstable'.offset'⌝ ∗
+                                                                              "%Hsat" ∷ ⌜ls.sat = true → SatOk σ ls⌝)
 
 theorem ownSnap_of_eq_some [package_sem : Assumptions] {p : Loc} {snap : Option entryID} {sid :
     entryID} (Hs : snap = some sid) : ownSnap p snap ⊢ ∃ sv, ownSnapM p DFrac.discard sv ∗
@@ -261,9 +252,6 @@ def SnpExt (g : NGhost) (ls : LogState) : Prop :=
         (ls.snap ≠ none → uint.Z k.sid.index' ≤ uint.Z ls.sxt) ∧
           (ls.snap = none → ls.aps = false → uint.Z k.sid.index' ≤ uint.Z ls.applying)
 
-def StoredSnapOk (σ : StorState) (cm : w64) (prev : entryID) (es : List EntryM) : Prop :=
-  uint.Z σ.ss.index' = 0 ∨ uint.Z σ.ss.index' ≤ uint.Z cm ∧ plogTermAt prev es σ.ss.index' = some σ.ss.term'
-
 theorem LogPersistOk.rel {σ : StorState} {sents uents : List EntryM} {ipo : Int} {pend stored : List
     EntryM} (H : LogPersistOk σ sents uents ipo pend stored) : LogPersistRel sents uents ipo stored
 
@@ -275,13 +263,15 @@ theorem lent_false_of {ls : LogState} (H : ls.lent = true → ls.snap ≠ none) 
 
 theorem snap_some_or_none (snap : Option entryID) : (∃ sid, snap = some sid) ∨ snap = none
 
-theorem ownRaftLog_absorb [package_sem : Assumptions] (l : Loc) (ls : LogState) (σa : StorState) : ⊢
-    ownRaftLog l ls -∗ appendedTok ls.storage σa ls.unpersisted ==∗ ownRaftLog l { prev := ls.prev,
-    sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied, snap :=
-    ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := [], stored :=
-    ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl :=
-    ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt :=
-    ls.sxt }
+theorem ownRaftLog_absorb [package_sem : Assumptions] (l : Loc) (ls : LogState) (a : List EntryM)
+    (Ha : a ≠ [] → ∀ (e0 : EntryM), ls.unpersisted.head? = some e0 → uint.nat e0.Index' - 1 +
+    a.length ≤ uint.nat ls.applying) : ⊢ ownRaftLog l ls -∗ appendReceipt ls.storage ls.unpersisted
+    a ==∗ ownRaftLog l { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed :=
+    ls.committed, applied := ls.applied, snap := ls.snap, inprogress := ls.inprogress, applying :=
+    ls.applying, unpersisted := [], stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax,
+    storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp :=
+    ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt, sn := ls.sn,
+    sg := ls.sg, dtk := ls.dtk }
 
 theorem unstableOf.proj_snap (lv : raftLog) (ls : LogState) : (unstableOf lv ls).snap = ls.snap
 
@@ -294,17 +284,27 @@ theorem SnpKeep.refl (ls : LogState) : SnpKeep ls ls
 
 syntax tacticOpen_unstable_again
 
+def StorTermsOk (σ : StorState) (ls : LogState) : Prop :=
+  ls.snap ≠ none →
+    ls.lent = false →
+      uint.Z ls.stb ≤ uint.Z σ.prev.index' ∧ uint.Z ls.sxt ≤ uint.Z ls.stb + ↑ls.sdt.length ∧ TermsFrom σ ls.stb ls.sdt
+
 def SatOk (σ : StorState) (ls : LogState) : Prop :=
   ls.snap = some ls.prev ∧
     ls.sip = true ∧
-      ls.lent = false ∧ ls.unpersisted = [] ∧ σ.prev = ls.prev ∧ σ.ss = ls.prev ∧ σ.ents = ls.stored ∧ σ.pend = []
-
-def initKsn (σ : StorState) : List SnapTrip :=
-  if σ.ss.index' = W64 0 then [] else [{ sid := σ.ss, cl := σ.scs, al := σ.sal, dat := σ.sdat }]
+      ls.lent = false ∧
+        ls.unpersisted = [] ∧ σ.prev = ls.prev ∧ σ.fr = uint.nat ls.prev.index' ∧ σ.ents = ls.stored ∧ σ.pend = []
 
 theorem SnpOk.of_quiet {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent) (hsn : ls.snap = none)
     (hsip : ls.sip = false) (hsat : ls.sat = false) (hk : ∀ (k : SnapTrip), g.snp = some k → k ∈
-    ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) (hx : SnpExt g ls) : SnpOk g ls
+    ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) (hx : SnpExt g ls) (hsg : SnpSg g ls) :
+    SnpOk g ls
+
+theorem DtOk.empty (ls : LogState) : DtOk ∅ ls
+
+theorem DtOk.of_eq {M : GMap Nat w64} {ls ls' : LogState} (H : DtOk M ls) (hp : ls'.prev = ls.prev)
+    (hl : ls'.sents ++ ls'.uents = ls.sents ++ ls.uents) (hc : ls'.committed = ls.committed) (hk :
+    ls'.dtk = ls.dtk := by rfl) : DtOk M ls'
 
 theorem ownSnap_of_eq_none [package_sem : Assumptions] {p : Loc} {snap : Option entryID} (Hs : snap
     = none) : ownSnap p snap ⊢ ⌜p = null⌝
@@ -323,7 +323,10 @@ def isLoggerVal (x : GoInterface) : IProp GF :=
 theorem ownRaftLogW_quiet [package_sem : Assumptions] (l : Loc) (ls : LogState) (Hq : ls.sapp =
     false ∧ ls.aps = false) : ownRaftLogW l ls ⊢ ownRaftLog l ls
 
-theorem initKsnCert_pers (st : Storage) (σ : StorState) : Persistent (initKsnCert st σ)
+def TermsFrom (σ : StorState) (b : w64) (ts : List w64) : Prop :=
+  ∀ (j t : w64),
+    uint.Z σ.prev.index' < uint.Z j →
+      uint.Z b < uint.Z j → ts[(uint.Z j - uint.Z b - 1).toNat]? = some t → termAt σ.prev (storApp σ σ.pend) j = some t
 
 theorem ownRaftLogW_quietW [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLogW l
     ls -∗ ⌜ls.sapp = false ∧ ls.aps = false⌝ -∗ ownRaftLog l ls
@@ -364,6 +367,13 @@ def unstableOf (lv : raftLog) (ls : LogState) : UnstableSt :=
 theorem logTruncInprogress_lt {ls : LogState} {f : w64} (h : uint.Z (logTruncInprogress ls f) <
     uint.Z ls.inprogress) : logTruncInprogress ls f = f
 
+def FrOk (σ : StorState) (ls : LogState) : Prop :=
+  (ls.lent = false →
+      σ.fr ≤ uint.nat ls.committed ∧
+        σ.fr < uint.nat ls.inprogress ∧
+          ∀ (sid : entryID), ls.snap = some sid → ls.sip = false → σ.fr < uint.nat sid.index') ∧
+    σ.sg = ls.sg ∧ DtOk σ.dt ls
+
 theorem ownRaftLogW_snap_prev [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLogW
     l ls -∗ ⌜∀ (sid : entryID), ls.snap = some sid → sid = ls.prev⌝ ∗ ownRaftLogW l ls
 
@@ -388,7 +398,7 @@ def logTruncateAppend (ls : LogState) (ents : List EntryM) : LogState :=
       committed := ls.committed, applied := ls.applied, snap := ls.snap, inprogress := logTruncInprogress ls e0.Index',
       applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax,
       storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps,
-      sat := ls.sat, sxt := ls.sxt }
+      sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 theorem ownRaftLogW_struct [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLogW l
     ls -∗ ∃ lv, typedPointsto l lv (DFrac.own 1) ∗ ⌜lv.applied' = ls.applied ∧ uint.Z ls.applied ≤
@@ -398,28 +408,27 @@ theorem ownRaftLogW_struct [package_sem : Assumptions] (l : Loc) (ls : LogState)
 
 theorem ownRaftLog_intro [package_sem : Assumptions] (l : Loc) (lv : raftLog) (st : Storage) (σ :
     StorState) (snap : Option entryID) (uents : List EntryM) (ls : LogState) {K : List SnapTrip} {lt
-    : Bool} : lv.storage' = st → lv.committed' = ls.committed → lv.applied' = ls.applied →
-    LogIndicesOk ls.prev (ls.sents ++ ls.uents) → uint.Z ls.prev.index' + ↑ls.sents.length +
-    ↑ls.uents.length + 1 < 2 ^ 64 → LogStoreOk ls.snap σ ls.prev ls.sents ls.uents → uint.Z
-    lv.unstable'.offset' = uint.Z ls.prev.index' + ↑ls.sents.length + 1 → uint.Z ls.prev.index' ≤
-    uint.Z ls.committed ∧ uint.Z ls.applied ≤ uint.Z ls.committed → (ls.snap = none → uint.Z
-    ls.prev.index' ≤ uint.Z ls.applied) → uint.Z ls.committed ≤ uint.Z ls.prev.index' +
-    ↑ls.sents.length + ↑ls.uents.length → (ls.snap = none → StoredSnapOk σ ls.committed ls.prev
-    (ls.sents ++ ls.uents)) → lv.applying' = ls.applying → lv.unstable'.offsetInProgress' =
-    ls.inprogress → uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧ uint.Z ls.inprogress ≤
-    uint.Z lv.unstable'.offset' + ↑ls.uents.length → (ls.snap = none → LogPersistOk σ ls.sents
-    ls.uents (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted ls.stored) → uint.Z
-    ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed →
-    (lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) → lv.applyingEntsSize' =
-    ls.apsize → lv.maxApplyingEntsSize' = ls.apmax → lv.storage' = ls.storage → PendLogOk σ ls →
-    FlOk σ ls → (σ.ss.index' ≠ W64 0 → { sid := σ.ss, cl := σ.scs, al := σ.sal, dat := σ.sdat } ∈
-    ls.ksn) → lv.unstable'.snapshotInProgress' = ls.sip → (ls.snap = none → ls.sip = false) →
-    (ls.lent = true → ls.snap ≠ none) → ls.sapp = false ∧ ls.aps = false → SipOk ls
-    lv.unstable'.offset' → (ls.sat = true → SatOk σ ls) → ls.snap = snap → ls.uents = uents → ls.ksn
-    = K → ls.lent = lt → ⊢ typedPointsto l lv (DFrac.own 1) -∗ isStorage st -∗ lentStor lt st σ -∗
-    ownSnap lv.unstable'.snapshot' snap -∗ pendKsn lv.unstable'.snapshot' snap K -∗ ([∗list] k ∈ K,
-    storCert st k) -∗ entsRO lv.unstable'.entries' uents -∗ ownSliceCap Loc lv.unstable'.entries'
-    (DFrac.own 1) -∗ isLoggerVal lv.logger' -∗ isLoggerVal lv.unstable'.logger' -∗ ownRaftLog l ls
+    : Bool} {sn : StorNames} : lv.storage' = st → lv.committed' = ls.committed → lv.applied' =
+    ls.applied → LogIndicesOk ls.prev (ls.sents ++ ls.uents) → uint.Z ls.prev.index' +
+    ↑ls.sents.length + ↑ls.uents.length + 1 < 2 ^ 64 → LogStoreOk ls.snap σ ls.prev ls.sents
+    ls.uents → uint.Z lv.unstable'.offset' = uint.Z ls.prev.index' + ↑ls.sents.length + 1 → uint.Z
+    ls.prev.index' ≤ uint.Z ls.committed ∧ uint.Z ls.applied ≤ uint.Z ls.committed → (ls.snap = none
+    → uint.Z ls.prev.index' ≤ uint.Z ls.applied) → uint.Z ls.committed ≤ uint.Z ls.prev.index' +
+    ↑ls.sents.length + ↑ls.uents.length → lv.applying' = ls.applying →
+    lv.unstable'.offsetInProgress' = ls.inprogress → uint.Z lv.unstable'.offset' ≤ uint.Z
+    ls.inprogress ∧ uint.Z ls.inprogress ≤ uint.Z lv.unstable'.offset' + ↑ls.uents.length → (ls.snap
+    = none → LogPersistOk σ ls.sents ls.uents (uint.Z ls.inprogress - uint.Z lv.unstable'.offset')
+    ls.unpersisted ls.stored) → uint.Z ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z
+    ls.committed → (lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) →
+    lv.applyingEntsSize' = ls.apsize → lv.maxApplyingEntsSize' = ls.apmax → lv.storage' = ls.storage
+    → PendLogOk σ ls → FlOk σ ls → lv.unstable'.snapshotInProgress' = ls.sip → (ls.snap = none →
+    ls.sip = false) → (ls.lent = true → ls.snap ≠ none) → ls.sapp = false ∧ ls.aps = false → SipOk
+    ls lv.unstable'.offset' → (ls.sat = true → SatOk σ ls) → FrOk σ ls → ls.snap = snap → ls.uents =
+    uents → ls.ksn = K → ls.lent = lt → ls.sn = sn → ⊢ typedPointsto l lv (DFrac.own 1) -∗
+    isStorageD sn st -∗ lentStor lt sn st σ -∗ ownSnap lv.unstable'.snapshot' snap -∗ pendKsn
+    lv.unstable'.snapshot' snap K -∗ ksnCerts sn K -∗ entsRO lv.unstable'.entries' uents -∗
+    ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗ isLoggerVal lv.logger' -∗ isLoggerVal
+    lv.unstable'.logger' -∗ ownRaftLog l ls
 
 def scanClosure (f : GoFunc) (L : List EntryM) (I : List EntryM → IProp GF) (B : GoInterface → IProp
     GF) : IProp GF :=
@@ -467,32 +476,33 @@ theorem unstableOf.proj_sip (lv : raftLog) (ls : LogState) : (unstableOf lv ls).
 def SnpKeep (ls ls' : LogState) : Prop :=
   ls'.lent = ls.lent ∧
     ls'.sip = ls.sip ∧
-      ls'.sat = ls.sat ∧ ls'.ksn = ls.ksn ∧ ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying
+      ls'.sat = ls.sat ∧
+        ls'.ksn = ls.ksn ∧
+          ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying ∧ ls'.sn = ls.sn ∧ ls'.sg = ls.sg
 
 theorem ownRaftLogW_intro [package_sem : Assumptions] (l : Loc) (lv : raftLog) (st : Storage) (σ :
     StorState) (snap : Option entryID) (uents : List EntryM) (ls : LogState) {K : List SnapTrip} {lt
-    : Bool} : lv.storage' = st → lv.committed' = ls.committed → lv.applied' = ls.applied →
-    LogIndicesOk ls.prev (ls.sents ++ ls.uents) → uint.Z ls.prev.index' + ↑ls.sents.length +
-    ↑ls.uents.length + 1 < 2 ^ 64 → LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents → uint.Z
-    lv.unstable'.offset' = uint.Z ls.prev.index' + ↑ls.sents.length + 1 → uint.Z ls.prev.index' ≤
-    uint.Z ls.committed ∧ uint.Z ls.applied ≤ uint.Z ls.committed → (ls.snap = none → ls.aps = false
-    → uint.Z ls.prev.index' ≤ uint.Z ls.applied) → uint.Z ls.committed ≤ uint.Z ls.prev.index' +
-    ↑ls.sents.length + ↑ls.uents.length → (snapV ls = none → StoredSnapOk σ ls.committed ls.prev
-    (ls.sents ++ ls.uents)) → lv.applying' = ls.applying → lv.unstable'.offsetInProgress' =
-    ls.inprogress → uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧ uint.Z ls.inprogress ≤
-    uint.Z lv.unstable'.offset' + ↑ls.uents.length → (snapV ls = none → LogPersistOk σ ls.sents
-    ls.uents (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted ls.stored) → uint.Z
-    ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed →
-    (lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) → lv.applyingEntsSize' =
-    ls.apsize → lv.maxApplyingEntsSize' = ls.apmax → lv.storage' = ls.storage → PendLogOk σ ls →
-    FlOk σ ls → (σ.ss.index' ≠ W64 0 → { sid := σ.ss, cl := σ.scs, al := σ.sal, dat := σ.sdat } ∈
-    ls.ksn) → lv.unstable'.snapshotInProgress' = ls.sip → (ls.snap = none → ls.sip = false) →
-    (ls.lent = true → ls.snap ≠ none) → (ls.sapp = true → SappOk σ ls) → SipOk ls
-    lv.unstable'.offset' → (ls.sat = true → SatOk σ ls) → ls.snap = snap → ls.uents = uents → ls.ksn
-    = K → ls.lent = lt → ⊢ typedPointsto l lv (DFrac.own 1) -∗ isStorage st -∗ lentStor lt st σ -∗
-    ownSnap lv.unstable'.snapshot' snap -∗ pendKsn lv.unstable'.snapshot' snap K -∗ ([∗list] k ∈ K,
-    storCert st k) -∗ entsRO lv.unstable'.entries' uents -∗ ownSliceCap Loc lv.unstable'.entries'
-    (DFrac.own 1) -∗ isLoggerVal lv.logger' -∗ isLoggerVal lv.unstable'.logger' -∗ ownRaftLogW l ls
+    : Bool} {sn : StorNames} : lv.storage' = st → lv.committed' = ls.committed → lv.applied' =
+    ls.applied → LogIndicesOk ls.prev (ls.sents ++ ls.uents) → uint.Z ls.prev.index' +
+    ↑ls.sents.length + ↑ls.uents.length + 1 < 2 ^ 64 → LogStoreOk (snapV ls) σ ls.prev ls.sents
+    ls.uents → uint.Z lv.unstable'.offset' = uint.Z ls.prev.index' + ↑ls.sents.length + 1 → uint.Z
+    ls.prev.index' ≤ uint.Z ls.committed ∧ uint.Z ls.applied ≤ uint.Z ls.committed → (ls.snap = none
+    → ls.aps = false → uint.Z ls.prev.index' ≤ uint.Z ls.applied) → uint.Z ls.committed ≤ uint.Z
+    ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length → lv.applying' = ls.applying →
+    lv.unstable'.offsetInProgress' = ls.inprogress → uint.Z lv.unstable'.offset' ≤ uint.Z
+    ls.inprogress ∧ uint.Z ls.inprogress ≤ uint.Z lv.unstable'.offset' + ↑ls.uents.length → (snapV
+    ls = none → LogPersistOk σ ls.sents ls.uents (uint.Z ls.inprogress - uint.Z
+    lv.unstable'.offset') ls.unpersisted ls.stored) → uint.Z ls.applied ≤ uint.Z ls.applying ∧
+    uint.Z ls.applying ≤ uint.Z ls.committed → (lv.applyingEntsPaused' = false → uint.Z ls.apsize <
+    uint.Z ls.apmax) → lv.applyingEntsSize' = ls.apsize → lv.maxApplyingEntsSize' = ls.apmax →
+    lv.storage' = ls.storage → PendLogOk σ ls → FlOk σ ls → lv.unstable'.snapshotInProgress' =
+    ls.sip → (ls.snap = none → ls.sip = false) → (ls.lent = true → ls.snap ≠ none) → (ls.sapp = true
+    → SappOk σ ls) → SipOk ls lv.unstable'.offset' → (ls.sat = true → SatOk σ ls) → FrOk σ ls →
+    ls.snap = snap → ls.uents = uents → ls.ksn = K → ls.lent = lt → ls.sn = sn → ⊢ typedPointsto l
+    lv (DFrac.own 1) -∗ isStorageD sn st -∗ lentStor lt sn st σ -∗ ownSnap lv.unstable'.snapshot'
+    snap -∗ pendKsn lv.unstable'.snapshot' snap K -∗ ksnCerts sn K -∗ entsRO lv.unstable'.entries'
+    uents -∗ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗ isLoggerVal lv.logger' -∗
+    isLoggerVal lv.unstable'.logger' -∗ ownRaftLogW l ls
 
 theorem ownRaftLog_raise_floor [package_sem : Assumptions] (l : Loc) (ls : LogState) (x : w64) (Hx :
     uint.Z ls.fl ≤ uint.Z x ∧ uint.Z x ≤ uint.Z ls.applying) (Hunp : ls.unpersisted = []) (Hlnt :
@@ -500,12 +510,13 @@ theorem ownRaftLog_raise_floor [package_sem : Assumptions] (l : Loc) (ls : LogSt
     uents := ls.uents, committed := ls.committed, applied := ls.applied, snap := ls.snap, inprogress
     := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored,
     apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := x, sip :=
-    ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt } ∗
-    storFloor ls.storage x
+    ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb :=
+    ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk } ∗ storFloor ls.sn x
 
 def FlOk (σ : StorState) (ls : LogState) : Prop :=
   σ.fl = ls.fl ∧
-    uint.Z ls.fl ≤ uint.Z ls.applying ∧ uint.Z ls.applying < uint.Z ls.inprogress ∧ PendAbove σ σ.pend ∧ StorExtOk σ ls
+    uint.Z ls.fl ≤ uint.Z ls.applying ∧
+      uint.Z ls.applying < uint.Z ls.inprogress ∧ PendAbove σ σ.pend ∧ StorExtOk σ ls ∧ StorTermsOk σ ls
 
 def SnpOk (g : NGhost) (ls : LogState) : Prop :=
   ls.lent = g.slent ∧
@@ -514,10 +525,10 @@ def SnpOk (g : NGhost) (ls : LogState) : Prop :=
           (ls.snap = some k.sid → ls.sip = true ∧ (ls.lent = true ∨ ls.sat = true)) ∧
             k ∈ ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) ∧
       (ls.sip = true ∨ ls.sat = true → g.snp ≠ none) ∧
-        (ls.sip = true ∨ ls.sat = true → ∃ k, g.snp = some k ∧ ls.snap = some k.sid) ∧ SnpExt g ls
+        (ls.sip = true ∨ ls.sat = true → ∃ k, g.snp = some k ∧ ls.snap = some k.sid) ∧ SnpExt g ls ∧ SnpSg g ls
 
-def lentStor (b : Bool) (st : Storage) (σ : StorState) : IProp GF :=
-  if b = true then iprop(True) else ownStorage st σ
+def lentStor (b : Bool) (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
+  if b = true then storAuths sn σ else ownStorage sn st σ
 
 def LogIndicesOk (prev : entryID) (ents : List EntryM) : Prop :=
   ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = uint.Z prev.index' + ↑(k + 1)
@@ -525,11 +536,10 @@ def LogIndicesOk (prev : entryID) (ents : List EntryM) : Prop :=
 theorem unstableOf.proj_offset (lv : raftLog) (ls : LogState) : (unstableOf lv ls).offset =
     lv.unstable'.offset'
 
+theorem TermsFrom.nil (σ : StorState) (b : w64) : TermsFrom σ b []
+
 theorem SnpOk.restore {g : NGhost} {ls : LogState} (k : SnapTrip) (H : SnpOk g ls) (Hgt : uint.Z
     ls.committed < uint.Z k.sid.index') (Haps : ls.aps = false) : SnpOk g (logRestore ls k)
-
-theorem StoredSnapOk_commit (σ : StorState) (cm cm' : w64) (prev : entryID) (es : List EntryM) (Hle
-    : uint.Z cm ≤ uint.Z cm') (H : StoredSnapOk σ cm prev es) : StoredSnapOk σ cm' prev es
 
 def ownSnapDef (p : Loc) (snap : Option entryID) : IProp GF :=
   match snap with
@@ -560,7 +570,14 @@ def logAdopts (ls : LogState) (ents : List EntryM) : Bool :=
       (uint.Z e0.Index' ≤ uint.Z ls.prev.index' + ↑ls.sents.length + 1 ∧
         uint.Z e0.Index' ≠ uint.Z ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length + 1)
 
-theorem lentStor_lent {b : Bool} (h : b = true) (st : Storage) (σ : StorState) : ⊢ lentStor b st σ
+theorem FrOk.of_le {σ : StorState} {ls ls' : LogState} (H : FrOk σ ls) (hl : ls'.lent = ls.lent) (hs
+    : ls'.sg = ls.sg) (hc : uint.Z ls.committed ≤ uint.Z ls'.committed) (hi : uint.Z ls.inprogress ≤
+    uint.Z ls'.inprogress) (hd : DtOk σ.dt ls') (hsn : ∀ (sid : entryID), ls'.snap = some sid →
+    ls'.sip = false → ls.snap = some sid ∧ ls.sip = false := by exact fun _ h1 h2 => ⟨h1, h2⟩) :
+    FrOk σ ls'
+
+theorem lentStor_lent [package_sem : Assumptions] {b : Bool} (h : b = true) (sn : StorNames) (st :
+    Storage) (σ : StorState) : lentStor b sn st σ ⊣⊢ storAuths sn σ
 
 theorem SipOk.applying_lt {ls : LogState} {σ : StorState} {off a : w64} (H : SipOk ls off) (_Hst :
     LogStoreOk ls.snap σ ls.prev ls.sents ls.uents) (_Hoff : uint.Z off = uint.Z ls.prev.index' +
@@ -568,10 +585,24 @@ theorem SipOk.applying_lt {ls : LogState} {σ : StorState} {off a : w64} (H : Si
     uint.Z a < uint.Z ls.prev.index') : ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧
     uint.Z a < uint.Z ls.prev.index'
 
+theorem storTerms_of_inv {σ : StorState} {ls : LogState} {off : w64} (Hsn : ls.snap = none) (Hstore
+    : LogStoreOk ls.snap σ ls.prev ls.sents ls.uents) (Hoff : uint.Z off = uint.Z ls.prev.index' +
+    ↑ls.sents.length + 1) (Hipb : uint.Z off ≤ uint.Z ls.inprogress ∧ uint.Z ls.inprogress ≤ uint.Z
+    off + ↑ls.uents.length) (Hpersist : ls.snap = none → LogPersistOk σ ls.sents ls.uents (uint.Z
+    ls.inprogress - uint.Z off) ls.unpersisted ls.stored) (Hpend : PendLogOk σ ls) (Hfl : FlOk σ ls)
+    (Hpa : uint.Z ls.prev.index' ≤ uint.Z ls.applying) (Hcm : uint.Z ls.applying ≤ uint.Z
+    ls.prev.index' + ↑ls.sents.length + ↑ls.uents.length) : uint.Z ls.applying ≤ uint.Z
+    ls.prev.index' + ↑(logTermsTo ls).length ∧ TermsFrom σ ls.prev.index' (logTermsTo ls)
+
 theorem snapV_of {ls : LogState} (h : ls.sapp = false) : snapV ls = ls.snap
 
-theorem initKsn_mem (σ : StorState) (h : σ.ss.index' ≠ W64 0) : { sid := σ.ss, cl := σ.scs, al :=
-    σ.sal, dat := σ.sdat } ∈ initKsn σ
+def DtOk (M : GMap Nat w64) (ls : LogState) : Prop :=
+  ∀ (i : Nat) (t : w64),
+    M !! i = some t →
+      ↑i ≤ uint.Z ls.committed ∧
+        (uint.Z ls.prev.index' ≤ ↑i → plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 ↑i) = some t) ∧ i ≤ ls.dtk
+
+theorem StorTermsOk.lent {σ : StorState} {ls : LogState} (h : ls.lent = true) : StorTermsOk σ ls
 
 theorem pendFrom_of_logOk (σ : StorState) (ls : LogState) (Hp : PendLogOk σ ls) (Hs : ls.snap =
     none) (n : Int) (Hn : n ≤ uint.Z ls.prev.index' + ↑ls.sents.length + 1) : PendFrom σ n
@@ -583,6 +614,11 @@ theorem ownRaftLog_struct [package_sem : Assumptions] (l : Loc) (ls : LogState) 
     ls.applied⌝ ∗ (typedPointsto l lv (DFrac.own 1) -∗ ownRaftLog l ls)
 
 syntax tacticLend_unstable
+
+theorem lentStor_dt [package_sem : Assumptions] (b : Bool) (sn : StorNames) (st : Storage) (σ :
+    StorState) : lentStor b sn st σ ⊢ ghostMapAuth sn.gd 1 σ.dt ∗ ∀ M, ghostMapAuth sn.gd 1 M -∗
+    lentStor b sn st { prev := σ.prev, ents := σ.ents, pend := σ.pend, fl := σ.fl, fr := σ.fr, sg :=
+    σ.sg, dt := M }
 
 theorem ownSlice_same_ptr_len [package_sem : Assumptions] {V : Type} [ZeroVal V] [TypedPointsto V]
     (s1 s2 : GoSlice) (dq : DFrac) (vs : List V) : vs ≠ [] → s1.ptr = s2.ptr → s1.len = s2.len →
@@ -610,7 +646,7 @@ def PendLogOk (σ : StorState) (ls : LogState) : Prop :=
 theorem SnpOk.of_fields {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hlt : ls'.lent = ls.lent)
     (hsn : ls'.snap = ls.snap) (hsip : ls'.sip = ls.sip) (hsat : ls'.sat = ls.sat) (hk : ls'.ksn =
     ls.ksn) (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed) (hx : SnpExt g ls → SnpExt g ls' :=
-    by exact fun h => h) : SnpOk g ls'
+    by exact fun h => h) (hsg : ls'.sg = ls.sg := by rfl) : SnpOk g ls'
 
 theorem ownRaftLog_toW [package_sem : Assumptions] (l : Loc) (ls : LogState) : ownRaftLog l ls ⊢
     ownRaftLogW l ls
@@ -648,15 +684,26 @@ theorem ownUnstable_reopen [package_sem : Assumptions] (l : Loc) (lv : raftLog) 
     us.snap us.ksn ∗ isLoggerVal uv.logger' ∗ ⌜uv.offset' = us.offset⌝ ∗ ⌜uv.offsetInProgress' =
     us.inprogress⌝ ∗ ⌜uv.snapshotInProgress' = us.sip⌝
 
-theorem lentStor_open {b : Bool} (h : b = false) (st : Storage) (σ : StorState) : lentStor b st σ ⊢
-    ownStorage st σ
+theorem ownRaftLog_certify [package_sem : Assumptions] (l : Loc) (ls : LogState) (i : Nat) (t : w64)
+    (Hi : ls.dtk < i) (Hc : ↑i ≤ uint.Z ls.committed) (Ht : uint.Z ls.prev.index' ≤ ↑i → plogTermAt
+    ls.prev (ls.sents ++ ls.uents) (W64 ↑i) = some t) : ⊢ ownRaftLog l ls ==∗ ownRaftLog l { prev :=
+    ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
+    snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted :=
+    ls.unpersisted, stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage :=
+    ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps :=
+    ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg,
+    dtk := i } ∗ i ↪[ls.sn.gd]□ t
+
+theorem lentStor_open [package_sem : Assumptions] {b : Bool} (h : b = false) (sn : StorNames) (st :
+    Storage) (σ : StorState) : lentStor b sn st σ ⊢ ownStorage sn st σ
 
 theorem ownRaftLog_sapp [package_sem : Assumptions] (l : Loc) (ls : LogState) (Hs : ls.sat = true) :
     ownRaftLog l ls ⊢ ownRaftLogW l { prev := ls.prev, sents := ls.sents, uents := ls.uents,
     committed := ls.committed, applied := ls.applied, snap := ls.snap, inprogress := ls.inprogress,
     applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored, apsize :=
     ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip,
-    lent := ls.lent, sapp := true, aps := ls.aps, sat := ls.sat, sxt := ls.sxt }
+    lent := ls.lent, sapp := true, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt
+    := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 theorem ownRaftLog_ready_wf [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLog l
     ls -∗ ⌜(uint.Z ls.prev.index' + ↑ls.sents.length + 1 ≤ uint.Z ls.inprogress ∧ uint.Z
@@ -664,7 +711,7 @@ theorem ownRaftLog_ready_wf [package_sem : Assumptions] (l : Loc) (ls : LogState
     ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗ ownRaftLog l ls
 
 def SappOk (σ : StorState) (ls : LogState) : Prop :=
-  ls.snap = some ls.prev ∧ ls.sip = true ∧ ls.lent = false ∧ ls.unpersisted = [] ∧ σ.ss = ls.prev
+  ls.snap = some ls.prev ∧ ls.sip = true ∧ ls.lent = false ∧ ls.unpersisted = [] ∧ σ.prev = ls.prev
 
 syntax tacticReseal_raftLogW
 
@@ -679,6 +726,12 @@ theorem raftLog_lend_unstable [package_sem : Assumptions] (l : Loc) (lv : raftLo
     := lv.applied', logger' := lv.logger', maxApplyingEntsSize' := lv.maxApplyingEntsSize',
     applyingEntsSize' := lv.applyingEntsSize', applyingEntsPaused' := lv.applyingEntsPaused' }
     (DFrac.own 1)
+
+theorem DtOk.mono {M : GMap Nat w64} {ls ls' : LogState} (H : DtOk M ls) (hc : uint.Z ls.committed ≤
+    uint.Z ls'.committed) (ht : ∀ (i : Nat), ↑i ≤ uint.Z ls.committed → uint.Z ls'.prev.index' ≤ ↑i
+    → uint.Z ls.prev.index' ≤ ↑i ∧ plogTermAt ls'.prev (ls'.sents ++ ls'.uents) (W64 ↑i) =
+    plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 ↑i)) (hk : ls.dtk ≤ ls'.dtk := by exact
+    Nat.le_refl _) : DtOk M ls'
 
 theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List EntryM) (e0 : EntryM) (i t :
     w64) (H0 : ents[0]? = some e0) (Hlt : uint.Z i < uint.Z e0.Index') (Ht : plogTermAt b es i =

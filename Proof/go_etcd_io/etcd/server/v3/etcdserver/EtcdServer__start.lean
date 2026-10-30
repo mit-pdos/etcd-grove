@@ -116,7 +116,7 @@ theorem EtcdServer.start.wp_proof
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
-  icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
+  icases Hscu with ⟨%scu0, Hscu⟩
   wp_auto
   -- the snapshot defaults
   wp_join iprop(∃ n : w64, srvSnapCountAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hsc s lg]
@@ -125,25 +125,14 @@ theorem EtcdServer.start.wp_proof
     wp_apply hZU as %f2 -
     start_info
     wp_join_done
-  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg ∗
-      ⌜receiptBound GF ≤ uint.Z n + 1⌝) with [Hscu s lg]
-    as ⟨%scu1, Hscu, s, lg, %Hscu1⟩
+  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hscu s lg]
+    as ⟨%scu1, Hscu, s, lg⟩
   · wp_apply hZU as %f1 -
     wp_apply hZU as %f2 -
     start_info
     simp only [DefaultSnapshotCatchUpEntries]
     wp_auto
     wp_join_done
-    iexists _
-    iframe
-    ipureintro
-    simpa using Hscu0
-  · iexists _
-    iframe
-    ipureintro
-    split at Hscu0
-    · simp_all
-    · exact Hscu0
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
@@ -385,8 +374,6 @@ theorem EtcdServer.start.wp_proof
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    isplitr
-    · ipureintro; exact Hscu1
     ipureintro; exact Hlgn
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
@@ -448,10 +435,10 @@ theorem EtcdServer.start.wp_proof
     · iframe HT HP
     (try wp_auto)
     wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
     · iunfold isServerRun
       iframe
       iframe Hrf Hsa Hsrv Hrn
@@ -623,7 +610,7 @@ theorem EtcdServer.start.wp_proofOn
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
-  icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
+  icases Hscu with ⟨%scu0, Hscu⟩
   wp_auto
   -- the snapshot defaults
   wp_join iprop(∃ n : w64, srvSnapCountAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hsc s lg]
@@ -632,25 +619,14 @@ theorem EtcdServer.start.wp_proofOn
     wp_apply hZU as %f2 -
     start_info
     wp_join_done
-  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg ∗
-      ⌜receiptBound GF ≤ uint.Z n + 1⌝) with [Hscu s lg]
-    as ⟨%scu1, Hscu, s, lg, %Hscu1⟩
+  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hscu s lg]
+    as ⟨%scu1, Hscu, s, lg⟩
   · wp_apply hZU as %f1 -
     wp_apply hZU as %f2 -
     start_info
     simp only [DefaultSnapshotCatchUpEntries]
     wp_auto
     wp_join_done
-    iexists _
-    iframe
-    ipureintro
-    simpa using Hscu0
-  · iexists _
-    iframe
-    ipureintro
-    split at Hscu0
-    · simp_all
-    · exact Hscu0
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
@@ -892,8 +868,6 @@ theorem EtcdServer.start.wp_proofOn
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    isplitr
-    · ipureintro; exact Hscu1
     ipureintro; exact Hlgn
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
@@ -984,10 +958,10 @@ theorem EtcdServer.start.wp_proofOn
     · iframe HT HP
     (try wp_auto)
     wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ γa hM hRB
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
     · iunfold isServerRunOn
       iframe
       iframe Hrf Hsa Hsrv Hrn Hlnil

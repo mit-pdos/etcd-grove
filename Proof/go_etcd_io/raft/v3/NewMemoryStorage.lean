@@ -1,4 +1,7 @@
-/- `NewMemoryStorage` (`storage.go:113`), proved 2026-10-10 (Lean-first). -/
+/- `NewMemoryStorage` (`storage.go:113`; U8 v2 step 3): the fields at the dummy alone, the ghost
+state of `MemStorNames` (the map `{0 ↦ e₀}` with the dummy frozen, the end at `1`, the compaction
+point `0` justified, the empty stored snapshot, the keys), the mutex allocated around them, and the
+snapshot `EnsureSnapshot(nil)` makes, the allocation's fuel. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
@@ -17,16 +20,24 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The fields at the empty state, the ghost state at its one state, and the mutex
-allocated around them. -/
+/-- The lock's knowledge at the start: the dummy `0` alone, the map `{0 ↦ e₀}`. -/
+theorem memOk_new :
+    MemOk (entryID.mk (W64 0) (W64 0)) [] ((∅ : GMap Nat EntryM).insert 0 (zero_val EntryM))
+      memSnapEmpty := by
+  refine ⟨by simp, fun i hi => ?_, fun i h1 h2 => ?_, by simp [memSnapEmpty], by simp [memSnapEmpty],
+    fun j e h => by simp at h⟩
+  · simp only [List.length_nil] at hi
+    rw [GMap.lookup_insert_ne _ _ (by simp at hi ⊢; omega)]
+    exact GMap.lookup_empty _
+  · simp at h1 h2; omega
+
 theorem NewMemoryStorage.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG)) :
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
-  intro cap Hcap
   wp_start as #Hinit
   wp_auto
   wp_apply wp_slice_literal_ex (V := Loc)
@@ -48,61 +59,33 @@ theorem NewMemoryStorage.wp_proof
   imod entOwn_freeze $$ He0 with #He0
   wp_auto
   iStructNamed «$r0»
-  -- the lock's half of `hardState` and its counters (2026-10-12)
+  -- the lock's half of `hardState` and its counters
   icases (typedPointsto_half_split _ _ 1).1 $$ hardState with ⟨hardState, HhardState⟩
   iStructNamedPrefix callStats "cs_"
   imod ownSlice_persist $$ Hsl with #Hsl
-  -- the ghost state: `hist` and `done` at the one state, `ep` arbitrary
-  imod mono_list_own_alloc (GF := GF) [memStorEmpty] with ⟨%γh, Hh, #Hhlb⟩
-  imod mono_list_own_alloc (GF := GF) [memStorEmpty] with ⟨%γd, Hd, -⟩
-  icases (monoAuth_halves γd [memStorEmpty]).1 $$ Hd with ⟨Hd1, Hd2⟩
-  imod ghostVar_alloc (GF := GF) (memStorEmpty, ([] : List StorState), ([] : List StorState))
-    with ⟨%γe, He⟩
-  -- (D17d) the snapshot's ghost value, where it is, and the keys
-  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γsw, Hsw⟩
+  -- the ghost state
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := EntryM) with ⟨%γlog, Hlog⟩
+  imod ghost_map_insert_persist 0 (zero_val EntryM) (GMap.lookup_empty _) $$ Hlog with ⟨Hlog, #Hd0⟩
+  imod ghostVar_alloc (GF := GF) (1 : Nat) with ⟨%γen, Hen⟩
+  icases (ghostVar_split_half γen 1 (1 : Nat)).1 $$ Hen with ⟨Hen1, Hen2⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γek, Hek⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γlk, Hlk⟩
-  imod ghostVar_alloc (GF := GF) () with ⟨%γok, Hok⟩
-  imod ghostVar_alloc (GF := GF) () with ⟨%γak, Hak⟩
-  ihave Hlk : memKey (GF := GF) γlk $$ [Hlk]
-  · iunfold memKey; iexact Hlk
-  ihave Hok : memKey (GF := GF) γok $$ [Hok]
-  · iunfold memKey; iexact Hok
-  ihave Hak : memKey (GF := GF) γak $$ [Hak]
-  · iunfold memKey; iexact Hak
-  -- (D19i part 1) the boundary (half the lock's, half the token's) and its counter
-  imod ghostVar_alloc (GF := GF) memStorEmpty.prev with ⟨%γcb, Hcb⟩
-  ihave Hcb : ghostVar γcb ((1 : Qp).half + (1 : Qp).half) memStorEmpty.prev $$ [Hcb]
-  · rw [Qp.half_add_half]; iexact Hcb
-  icases ghostVar_split γcb _ _ _ $$ Hcb with ⟨Hcb1, Hcb2⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γbd, Hbd, -⟩
-  -- (D22 S-b′2) the certificate registry, empty
-  imod mono_list_own_alloc (GF := GF) ([] : List CertKey) with ⟨%γct, Hct, -⟩
-  -- the snapshot's ghost value: home's half, the lock's quarter, the application's
-  imod ghostVar_alloc (GF := GF) (snapPart memStorEmpty) with ⟨%γsn, Hsn⟩
-  ihave Hsn : ghostVar γsn ((1 : Qp).half + (memQ + memQ)) (snapPart memStorEmpty) $$ [Hsn]
-  · rw [Qp.half_add_half, Qp.half_add_half]; iexact Hsn
-  icases ghostVar_split γsn _ _ _ $$ Hsn with ⟨Hsnh, Hsnq⟩
-  icases ghostVar_split γsn _ _ _ $$ Hsnq with ⟨Hsno, Hsna⟩
-  have HokE : HistOk [memStorEmpty] := by
-    refine ⟨List.pairwise_singleton _ _, fun b hb => ?_⟩
-    rw [List.mem_singleton] at hb
-    subst hb
-    refine ⟨by simp [memStorEmpty, EtcdGrove.stLast], rfl, fun k e h => by simp [memStorEmpty] at h⟩
-  imod sync.init_Mutex (memstorageInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap, γct⟩) ⊤
-    («$r0_ptr».[MemoryStorage, go!"Mutex"])
-    $$ Mutex [Hd1 Hlk hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term
-      cs_snapshot Hsl_cap Hcb1 Hbd Hsno] with #Hmu
+  imod ghostVar_alloc (GF := GF) () with ⟨%γhk, Hhk⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcp, Hcp, -⟩
+  imod mono_list_own_alloc (GF := GF) [0] with ⟨%γjc, Hjc, #Hjlb⟩
+  imod ghostVar_alloc (GF := GF) memSnapEmpty with ⟨%γsx, Hsx⟩
+  icases (ghostVar_split_half γsx 1 memSnapEmpty).1 $$ Hsx with ⟨Hsx2, Hsx3⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γsl, Hsl0, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γpr, Hpr, -⟩
+  let γs : MemStorNames := ⟨γlog, γen, γek, γcp, γjc, γsx, γlk, γhk, γsl, γpr⟩
+  imod sync.init_Mutex (memstorageInv «$r0_ptr» γs) ⊤ («$r0_ptr».[MemoryStorage, go!"Mutex"])
+    $$ Mutex [hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term cs_snapshot Hsl_cap
+      Hlog Hen1 Hcp Hsx2 Hsl0 Hlk] with #Hmu
   · inext
     unfold memstorageInv
-    iexists memStorEmpty, memStorEmpty.prev
-    isplitl [Hd1 Hlk]
-    · unfold memInvGhost
-      iexists [memStorEmpty]
-      iframe Hd1 Hhlb
-      isplitr
-      · ipureintro; exact ⟨rfl, HokE⟩
-      iexact Hlk
-    rw [memCut_self]
+    iexists entryID.mk (W64 0) (W64 0), [], (∅ : GMap Nat EntryM).insert 0 (zero_val EntryM),
+      memSnapEmpty
+    simp only [named]
     isplitl [hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term cs_snapshot Hsl_cap]
     · unfold memstorageFields
       iexists null, slice.mk slp (W64 1) (W64 1), zero_val EntryM, _, _, _, _, _
@@ -114,23 +97,36 @@ theorem NewMemoryStorage.wp_proof
         iframe Hsl
         iapply (BigSepL2.bigSepL2_cons).2
         iframe He0
-        rw [show memStorEmpty.ents = [] from rfl]
+        rw [show (memPhys (entryID.mk (W64 0) (W64 0)) []).ents = [] from rfl]
         iapply entsBig_nil
       ipureintro; exact ⟨rfl, rfl⟩
+    have h0 : uint.nat (W64 0) = 0 := rfl
+    simp only [h0, List.length_nil, Nat.zero_add, Nat.add_zero]
+    iframe Hlog
+    isplitl [Hen1]
+    · iexact Hen1
+    isplitl [Hcp]
+    · iexact Hcp
     isplitr
-    · ipureintro; simp only [memStorEmpty, List.length_nil]; word
-    iunfold memCutInv
-    iexists memStorEmpty
-    iframe Hcb1 Hsno
-    isplitl [Hbd]
-    · rw [show (uint.Z memStorEmpty.prev.index').toNat = 0 from rfl]; iexact Hbd
+    · iunfold memCompJust
+      iexists [0]
+      iframe Hjlb
+      ipureintro; simp
+    isplitl [Hsx2]
+    · iexact Hsx2
+    isplitl [Hsl0]
+    · rw [show uint.nat memSnapEmpty.Metadata'.Index' = 0 from rfl]; iexact Hsl0
+    isplitr
+    · ileft; ipureintro; trivial
+    isplitl [Hlk]
+    · iunfold memKey; iexact Hlk
+    isplitr
+    · iexists zero_val EntryM
+      iframe Hd0
+      ipureintro; rfl
     isplitr
     · ileft; ipureintro; rfl
-    isplitr
-    · ipureintro; exact ⟨CutOk.self _, Int.le_refl _⟩
-    isplitr
-    · ipureintro; exact Hcap
-    ileft; ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    ipureintro; exact memOk_new
   iapply wp_fupd
   wp_apply wp_EnsureSnapshot.1 null none $$ [] as %sp ⟨Hsp, -⟩
   · simp only [snapOpt]; ipureintro; trivial
@@ -138,66 +134,32 @@ theorem NewMemoryStorage.wp_proof
   simp only [Option.getD_none]
   ihave Hsp := ownSnapW_E $$ Hsp
   ihave Hsp := ownSnapE_weaken $$ Hsp
-  -- (D17d) the snapshot's invariant, the snapshot at home; the quarters
-  ihave Hsw : ghostVar γsw ((1 : Qp).half + (1 : Qp).half) (0 : Nat) $$ [Hsw]
-  · rw [Qp.half_add_half]; iexact Hsw
-  icases ghostVar_split γsw _ _ _ $$ Hsw with ⟨Hsw1, Hsw2⟩
-  imod inv_alloc memSnapN ⊤ (memSnapInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap, γct⟩)
-    $$ [Hsw1 Hsw2 snapshot Hsp Hsnh] with #Hsinv
-  · inext
-    iunfold memSnapInv
-    iexists (0 : Nat)
-    iframe Hsw1
-    ileft
-    iframe Hsw2
-    isplitr
-    · ipureintro; rfl
-    iunfold memSnapHome
-    iexists memStorEmpty
-    iframe Hsnh
-    isplitl [snapshot Hsp]
-    · iunfold memSnapOwn
-      iexists sp, _
-      iframe snapshot Hsp
-      ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
-    iunfold memSnapCertOk; ileft; ipureintro; rfl
   imodintro
-  iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap, γct⟩ : MemStorNames)
+  iapply HΦ $$ %«$r0_ptr» %γs
   isplitr
-  · ipureintro; rfl
-  isplitr [HhardState cs_initialState Hak Hsna Hcb2 Hct]
-  rotate_left
+  · iunfold memStorLock; iframe Hpkg Hmu
+  isplitr
+  · iunfold memLog
+    simp only [memLogL]
+    iframe Hd0
+    ipureintro; right; simp
+  isplitl [Hen2 Hek]
+  · iunfold memEnd; iunfold memKey; iframe
+  isplitl [Hpr]
+  · iunfold memSnapNone; iexact Hpr
   isplitl [HhardState cs_initialState]
   · unfold memStorMeta
     iexists _, null
     simp only [named]
     iframe Hpkg Hmu HhardState cs_initialState
     iapply hsOpt_null
-  · isplitl [Hak Hsna Hcb2]
-    · unfold memSnapTok
-      simp only [named]
-      iframe Hpkg Hmu Hsinv Hak Hsna Hcb2
-    iunfold memCertAuth; iexact Hct
-  unfold ownMemoryStorage memView memSnapShare
-  simp only [named]
-  iframe Hpkg Hmu
-  isplitl [Hh Hd2 He]
-  · iexists [memStorEmpty]
-    isplitr
-    · ipureintro; exact HokE
-    ileft
-    iframe Hh
-    isplitr
-    · ipureintro; exact ⟨rfl, rfl⟩
-    isplitl [Hd2]
-    · iexists [memStorEmpty]
-      iframe Hd2
-      ipureintro
-      exact ⟨List.prefix_refl _, by simp, by simp [RaiseOnly]⟩
-    iexists _
-    iexact He
-  iframe Hsinv Hok
-  ipureintro; simp only [memStorEmpty, List.length_nil]; word
+  iunfold memStorFresh
+  iframe Hjc
+  isplitl [Hhk]
+  · iunfold memKey; iexact Hhk
+  iexists sp
+  simp only [memSnapEmpty] at *
+  iframe snapshot Hsp Hsx3
 
 end proof
 

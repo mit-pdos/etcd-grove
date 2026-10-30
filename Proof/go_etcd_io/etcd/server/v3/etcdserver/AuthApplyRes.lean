@@ -27,6 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The apply thread's auth resource** of the store `stl` in the mode `M` (the auth plan's E2k,
 2026-10-26; `notes/decisions.md`, "E2l of the auth plan", the apply thread's auth resource): in the
@@ -94,6 +95,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 open Iris.ProofMode in
 /-- `authApplyResAt` forgets its latest state into `authApplyRes`. -/

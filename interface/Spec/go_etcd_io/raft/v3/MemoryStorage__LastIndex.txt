@@ -3,14 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.LastIndex.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
+  ∀ (ms : Loc) (γs : MemStorNames) (e : Nat),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hms" ∷ ownMemoryStorage ms γs σ ∗ ⌜σ.pend = []⌝ -∗
-          (▷
-              ∀ li,
-                ⌜uint.Z li = uint.Z σ.prev.index' + ↑σ.ents.length⌝ ∗ ownMemoryStorage ms γs σ -∗
-                  Φ (intoVal li, intoVal GoInterface.nil)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗ memEnd γs e -∗
+          (▷ ∀ li, memEnd γs e ∗ ⌜uint.nat li + 1 = e⌝ -∗ Φ (intoVal li, intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
                   (methods MemoryStorage.ty.PointerType go!"LastIndex"

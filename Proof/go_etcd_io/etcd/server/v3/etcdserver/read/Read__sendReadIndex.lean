@@ -28,6 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 theorem read.Read.sendReadIndex.wp_proof
@@ -38,7 +39,7 @@ theorem read.Read.sendReadIndex.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
   intro r γr RQ LR NR id n Qr F
-  wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
+  wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr⟩
   iunfold isReadLoopPre at Hpre
   icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -, -⟩
   iunfold isReadServer at Hsrv
@@ -63,8 +64,8 @@ theorem read.Read.sendReadIndex.wp_proof
   wp_apply HRT as %d -
   wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
   · iframe #
-  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr Hcr] as %err ⟨#HerrE, Hrq⟩
-  · iframe #; iframe Hfr Hcr
+  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr] as %err ⟨#HerrE, Hrq⟩
+  · iframe #; iframe Hfr
   (try wp_auto)
   wp_apply Hcancel
   wp_apply read_wp_Is_var hIs err eR HlR as %b -

@@ -172,6 +172,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The raft contract's apply side, for the server** (`E.C`; see the file header): the log
 after `ai₀`, consecutive, each entry's id claimed, meeting the KV's premises from `x₀` at the
@@ -267,7 +269,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
+      entriesStep C.c₀ A C.x₀ x ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
 
@@ -319,11 +321,11 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       ownSnapM sn DFrac.discard sv -∗
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
-      -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and the
-      -- application's snapshot token back; (D22 J4) its boundary at most its snapshot (what the
-      -- shared token's invariant keeps; until J4 at most `ai₀`)
-      epCsOk cs -∗
-      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z σ.ss.index'⌝) -∗
+      -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and
+      -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs, R1) the storage's
+      -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
+      -- empty snapshot; until then the application's snapshot token `memSnapTok`)
+      epCsOk cs -∗ memSnapNone γs -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -403,7 +405,9 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token
+    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗

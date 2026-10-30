@@ -1,15 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Storage).Snapshot()` (kv.go:70): the `MemoryStorage`'s snapshot, but
-`ErrSnapshotTemporarilyUnavailable` for an empty one -- what raft's `Storage` contract asks
-(a non-empty snapshot or that error).
+`(*Storage).Snapshot()` (kv.go): the `MemoryStorage`'s snapshot, but
+`ErrSnapshotTemporarilyUnavailable` for an empty one (a storage that never had one).
 
-raft v3.7 (2026-10-16, stage R6b): the snapshot is a pointer, the fresh clone
-`MemoryStorage.Snapshot` returns, owned (`ownSnapM snap 1 sv`, D4); its emptiness is read through
-the nil-safe getters (`snap.GetMetadata().GetIndex() == 0`). Stated as `isStorage`'s `HSnapshot`
-clause (`InvStorage.lean`) asks of the method, on the storage's owner's view
-(`ownMemoryStorage`), which `kvStorage_isStorage` (`KVStorageInstance.lean`) turns into the
-store's `ownStorage`.
+2026-10-30 (stage F of the client repair, kvreconf's `Storage.Snapshot.spec`):
+`MemoryStorage.Snapshot.spec` at the wrapper (`kvStorRec`), as `isStorage`'s `HSnapshot` clause
+(`InvStorage.lean`) asks of the method: the embedded storage's answer -- a fresh owned clone
+(`ownSnapM`), at or past the known compaction point, empty or valid and delivered (`J.SV`,
+`J.DL`) -- or `ErrSnapshotTemporarilyUnavailable` (`esu`). Until then over the owner's view
+(`ownMemoryStorage`).
 -/
 module
 
@@ -35,27 +34,16 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev Storage.Snapshot.spec : Prop :=
-  ∀ (s ms : Loc) (γs : MemStorNames) (σ : StorState) (esu : GoInterface) (n : Int),
+  ∀ (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
-      s.[RStorage, go!"MemoryStorage"] ↦□ ms ∗ ownMemoryStorage ms γs σ ∗
-      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
-      -- (D19i part 1) what the caller knows of the storage's compaction
-      (⌜n ≤ 0⌝ ∨ memStorCut γs n) }}
+      kvStorRec s ms γs ∗ memStorInvP ms γs J ∗ memCompacted γs c ∗
+      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (s @!! go.GoType.PointerType rStorageTy @!! go!"Snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
-      ownMemoryStorage ms γs σ ∗
-      (⌜err = esu⌝ ∨
-       (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-        -- non-empty; the view's snapshot or (D19i part 1) a newer one, at or below the floor
-        ⌜sv.Metadata'.Index' ≠ W64 0 ∧
-          ((snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-            sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
-           (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
-            uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
-            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
-        -- (D22 S-b′2, 2026-10-20) certified in the registry (`MemoryStorage.Snapshot`'s)
-        memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists))) }}
+      ⌜err = esu⌝ ∨
+      ⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+        ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
+        (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) }}
 
 end spec
 

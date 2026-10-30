@@ -80,14 +80,13 @@ def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
 
 /-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
-configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap` that
-`restore` installs: since 2026-10-14, stage A3, `SnapCfgOk`; since B8 the configuration the
-`ConfState`'s lists `scfg` denote, any). -/
+configuration `c'` the node is at afterwards: `c` (from 2026-10-14, stage A3, to 2026-10-28,
+stage U0, the snapshot's after a `MsgSnap` that `restore` installs, `SnapCfgOk`; now `appliedSnap`
+switches). -/
 def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk id c s sv scfg c'
-   else c' = c) ∧
+  c' = c ∧
   (if m.Type' = MsgVoteResp then
        dropped = false ∧
        (if s.role = .preCandidate then s' = s
@@ -201,9 +200,9 @@ abbrev stepCandidate.spec : Prop :=
       -- response to a heartbeat carries)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, cl, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
-      -- (`handleSnapshot`'s; `tsSrc_ne` for any other type)
-      "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `rcvSrc`) a `MsgSnap`'s snapshot
+      -- certified (`handleSnapshot`'s; `rcvSrc_ne` for any other type)
+      "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗

@@ -41,9 +41,10 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
                                                         ownRawNode γ rn id
                                                           { delivered := rs.delivered, unpersisted := rs.unpersisted,
                                                             steps := rs.steps, term := rs.term, storage := rs.storage,
-                                                            outlb := n, unst := u, clb := c, tc := rs.tc, mode := rs.mode,
-                                                            cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw,
-                                                            psnap := rs.psnap, slent := rs.slent, phs := rs.phs }) ∗
+                                                            sn := rs.sn, outlb := n, unst := u, clb := c, tc := rs.tc,
+                                                            mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied,
+                                                            flw := rs.flw, psnap := rs.psnap, slent := rs.slent,
+                                                            phs := rs.phs }) ∗
                                           "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
                                             "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
                                               "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗

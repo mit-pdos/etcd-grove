@@ -154,13 +154,14 @@ a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the c
 and its campaign record is of its full log at the commit index. The dynamic refinement
 (`RefinementDyn.lean`) supplies it from `RInv`. -/
 def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
-  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64),
+  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64) (M : DecMap),
     ⌜FullOk s.base fpR ∧ ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
-      uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
+      uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ M ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
       (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
       (s.role = .candidate → a = s.commit)⌝ ∗
     logRecs γ base0 fpR ∗
-    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit)))
+    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit) ∗ decLb γ M))
+
 
 instance dynEnv_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) :
     Persistent (dynEnv (GF := GF) γ id c s) := by
@@ -947,12 +948,35 @@ def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
                      uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length⌝,
                  COMM □ Q L }>)
 
+/-- (2026-10-29, stage U5) What raft tells the client of a filler `e` committed after `L`: in the
+dynamic mode, with no empty `ConfChangeV2` in the bootstrap log, an empty `ConfChangeV2` sits at a
+joint configuration of `L`, over some recorded decisions (`ev2Rec`, `logRecs_ev2`). -/
+def ev2At (γ : RaftNames) (L : List EntryM) (e : EntryM) : IProp GF :=
+  iprop(∀ (_ : γ.reDyn ≠ none ∧ (∀ x ∈ γ.reBoot, ¬ IsEmptyV2 x) ∧ IsEmptyV2 e),
+    ∃ (M : DecMap) (c : CfgM), decLb γ M ∗ ⌜CfgAt γ M L c ∧ c.joint = true⌝)
+
+instance ev2At_persistent (γ : RaftNames) (L : List EntryM) (e : EntryM) :
+    Persistent (ev2At (GF := GF) γ L e) := by
+  unfold ev2At; infer_instance
+
+instance ev2At_timeless (γ : RaftNames) (L : List EntryM) (e : EntryM) :
+    Timeless (ev2At (GF := GF) γ L e) := by
+  unfold ev2At; infer_instance
+
+/-- Nothing to tell of an entry that is no filler. -/
+theorem ev2At_nonfiller (γ : RaftNames) (L : List EntryM) (e : EntryM)
+    (h : ¬ Filler e.Type' e.Data') : ⊢ ev2At (GF := GF) γ L e := by
+  unfold ev2At
+  iintro %Hc
+  exfalso
+  exact h ⟨Hc.2.2.1, Or.inr Hc.2.2.2⟩
+
 /-- The standing update for the fillers (see the section header; `entDataIs γ e none` is
 `Filler`, since 2026-10-27): the client gives it at allocation (`ownRaftGhost_alloc_gen`); it lives
-in `raftCommitInv`. -/
+in `raftCommitInv`. (2026-10-29, stage U5: it is told `ev2At`.) -/
 def noopAu (γ : RaftNames) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
-              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗ ev2At γ L e ∗
                    ⌜uint.Z e.Index' = (L.length : Int) + 1 ∧
                      uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length⌝, COMM True }>)
 
@@ -1011,9 +1035,10 @@ theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp G
 theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
     (Hidx : uint.Z e.Index' = (l.length : Int) + 1)
     (Hrb : uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length) :
-    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
+    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ev2At γ l e -∗
+      ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
-  iintro #Hau #He Hv
+  iintro #Hau #He #Hev Hv
   unfold noopAu
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -1027,7 +1052,7 @@ theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
   icases Hclose with ⟨-, Hcomm⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with -
-  · iframe HcL He
+  · iframe HcL He Hev
     ipureintro; exact ⟨Hidx, Hrb⟩
   imodintro
   iexact Hv
@@ -1044,9 +1069,10 @@ instance qRes_persistent (γq : GName) (L : List EntryM) : Persistent (qRes (GF 
 
 /-- A deposit of `d` (2026-10-21), its ticket named `γt`, for the committed log `l`: not fired --
 the update a `Propose` handed in, with the predicate it was registered under -- or fired, its
-ticket spent at an index within `l`. -/
+ticket spent at an index within `l`. (2026-10-29, S1) In a `dup` cluster the update is persistent
+(`□?γ.dup`): firing leaves it in place (`fire_one`). -/
 def depSlot (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List EntryM) : IProp GF :=
-  iprop((∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu1 γ d Q) ∨
+  iprop((∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ □?γ.dup propAu1 γ d Q) ∨
     (∃ i : w64, dghostVar γt DFrac.discard (some i) ∗ ⌜uint.Z i ≤ (l.length : Int)⌝))
 
 /-- The results of `d`'s slot: at every committed occurrence of `d`, the result at the log

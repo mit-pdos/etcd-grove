@@ -279,6 +279,16 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
       ⌜ccLogOk γ.raft B⌝ := by
   iintro #Hinv #Hr #HB
+  -- (2026-10-30, the repair) no empty `ConfChangeV2` committed (`srv_committed_noV2`)
+  ihave #HBc : isCommittedLogLb γ.raft.cl (srvLE γ B) $$ []
+  · iunfold srvRLogLb at HB; icases HB with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 γ (srvLE γ B) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HBc
+  have hnv : ∀ m ∈ B, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
@@ -292,13 +302,16 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
   imodintro
   ipureintro
   -- (2026-10-27) `B`'s entries are the server's log's or fillers
-  exact srv_entry_transfer γ.ai0 B L (fun m => m.typ ≠ W32 0 → ccPolOk γ.raft m.data)
-    (fun m m' he h => by
+  have := srv_entry_transfer γ.ai0 B L
+    (fun m => ¬ (m.typ = W32 2 ∧ m.data = []) → m.typ ≠ W32 0 → ccPolOk γ.raft m.data)
+    (fun m m' he h hn => by
       have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
-      rw [h1, h2]; exact h)
-    (fun m ht _ h => absurd ht h) HBi Hp.2.2 Hcc
+      rw [h1, h2]; rw [h1, h2] at hn; exact h hn)
+    (fun m ht _ _ h => absurd ht h) (fun m ht hd hn => absurd ⟨ht, hd⟩ hn) HBi Hp.2.2
+    (fun m hm _ => Hcc m hm)
+  exact fun m hm => this m hm (hnv m hm)
 
 /-- **The image facts, from the image's certificate** (see the file header): for the receiver at
 the fresh cluster's start (`γr.raft = ⟨γ, [], 0⟩`, the start values of `NewServer.spec`), its
@@ -312,9 +325,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H)
-    -- (merge of D43 M5, 2026-10-27) a static cluster (the image axiom's `ccBootOk` log)
-    (hstat : γ.dyn = false) :
+    (hRO : E.RO = srvRestOwnH d.γB cl H) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
@@ -362,7 +373,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.cfg m.data := by
     rw [hpre0, List.nil_append]
     intro m hm ht
-    exact ccPolOk_static _ _ (by rw [hrr]; exact hstat) (Hcc m hm ht)
+    exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩

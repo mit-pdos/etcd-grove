@@ -3,42 +3,37 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Advance.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
-    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan)
+    (v : ConfigView),
     st.handling = some (es, L) →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              isStaticCluster γ N vs snapOk ∗ nodeDriver n γ N st ∗ advReceipt st.storage es L -∗
-            ▷
-                ((nodeDriver n γ N
-                      { storage := st.storage, delivered := st.delivered, hardState := st.hardState, handling := none } ∗
-                    match L with
-                    | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
-                    | some val => True) -∗
-                  Φ (intoVal ())) -∗
-              WP
-                ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))
-                  (intoVal ()))
-                {{ Φ }}
-
-def node.Advance.dynamicSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder) (st : NodeDriverState)
-    (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
-    st.handling = some (es, L) →
-      NoConfChangeIn st.delivered v.applied st.delivered.length →
+      (∀ (l : SnapLoan), L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
         ⊢
           ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                isDynamicCluster γ N c0 decode ∗ nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v -∗
+            (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                isCluster γ N ∗
+                  isNode n γ N id ∗
+                    nodeDriver n γ N st ∗
+                      advReceipt st.storage st.delivered.length es L ∗
+                        nodeConfig n γ N v ∗
+                          match L with
+                          | none => skippedIn γ st.delivered v.applied st.delivered.length
+                          | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) -∗
               ▷
                   ((nodeDriver n γ N
-                        { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
-                          handling := none } ∗
-                      nodeConfig n γ N v ∗
-                        match L with
-                        | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
-                        | some val => True) -∗
+                          { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
+                            handling := none } ∗
+                        nodeAppliedLb γ id st.delivered.length ∗
+                          match L with
+                          | none => nodeConfig n γ N v
+                          | some l =>
+                            ∃ m,
+                              nodeConfig n γ N { applied := uint.nat l.snap.Metadata'.Index', membership := m } ∗
+                                confAt γ (uint.nat l.snap.Metadata'.Index') m ∗
+                                  ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
+                      nodeStopped n γ N ∗
+                        nodeDriver n γ N
+                          { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
+                            handling := none } -∗
                     Φ (intoVal ())) -∗
                 WP
                   ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))

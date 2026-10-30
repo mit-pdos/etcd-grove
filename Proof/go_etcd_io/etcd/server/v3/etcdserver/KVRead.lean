@@ -29,6 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **What a served read knows of the log it will read** (persistent): the round's read index
 `ci`, a log `L₀` applied through an index at least `ci` that `logR` extends, raft's witness of the
