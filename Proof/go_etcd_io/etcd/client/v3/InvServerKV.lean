@@ -392,26 +392,6 @@ theorem floor0_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iframe HF0
   ipureintro; exact HF02
 
-/-- The server's KV invariants, of the read side (`isServerRead`'s). -/
-theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
-  iintro #Hsrd
-  iunfold isServerRead at Hsrd
-  icases Hsrd with ⟨%v, Hsrd⟩
-  iunfold srvReadFieldsAt at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
-  iexact Hk
-
-/-- The store's size premise of the read path (`storeSmall`, the server's). -/
-theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    isServerRead (GF := GF) s E γr ⊢ storeSmall E.γ := by
-  iintro #Hsrd
-  iunfold isServerRead at Hsrd
-  icases Hsrd with ⟨%v, Hsrd⟩
-  iunfold srvReadFieldsAt at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
-  iexact Hsm
-
 end floor
 
 end client

@@ -260,6 +260,35 @@ def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (t : TxnModel) (
       ⌜irrWireOf (apply.withHeader (irrTxn tw) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
     srvMaybeDeposited ρ (irrTxn tw)))
 
+/-- The server's KV invariants, of the read side (`isServerRead`'s; G2's follow-up, 2026-10-30: the server's law,
+until then the client's). -/
+theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
+  iintro #Hsrd
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAt at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
+  iexact Hk
+
+/-- The store's size premise of the read path (`storeSmall`; G2's follow-up: the server's law, until then
+the client's). -/
+theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ storeSmall E.γ := by
+  iintro #Hsrd
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAt at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
+  iexact Hsm
+
+/-- `storeSmall`'s meaning (G2's follow-up, 2026-10-30: so that a client need not unfold it). -/
+theorem storeSmall_small (γ : mvcc.StoreNames) :
+    storeSmall (GF := GF) γ ⊢ □ ∀ log : mvcc.Log, mvcc.idxSealed γ.idx log -∗ ⌜txn.LogSmall log⌝ := by
+  iintro #H
+  iunfold storeSmall at H
+  iexact H
+
 end defs
 
 section lemmas

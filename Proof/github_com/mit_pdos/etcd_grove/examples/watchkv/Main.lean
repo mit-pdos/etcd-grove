@@ -241,16 +241,13 @@ theorem Main.wp_proof
       rw [sync.rwmutex.actualMaxReaders_unseal]
       omega
     -- the watch server's facts: the members' KV facts (`srvKVFacts`, D47), `io.EOF`
-    ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
+    ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := cert0_of_server pw R $$ Hws
     ihave #Hkf : client.srvKVFacts
         (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) $$ []
-    · iunfold client.srvKVFacts
-      iexists ρ.rd
+    · iapply client.srvKVFacts_of_off _ ρ.rd rfl hlog (by omega)
       iframe Hinvs
-      isplitl
-      · iapply mvcc.idxCert_sealed; iexact H00
-      ipureintro; exact ⟨rfl, hlog, by omega⟩
+      iapply mvcc.idxCert_sealed; iexact H00
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
@@ -281,7 +278,7 @@ theorem Main.wp_proof
   obtain ⟨hRE, Hnr⟩ := HRQ
   -- the watch server's environment is the server's: `E` is `R.E` from here on
   subst hRE
-  ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
+  ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23872" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) Hlg

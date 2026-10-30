@@ -233,6 +233,213 @@ instance authFloorAt_persistent (M : auth.AuthMode) (γr : ReadNames) (c : w64) 
 theorem authFloorAt_off (γr : ReadNames) (c : w64) (m : Nat) :
     authFloorAt (GF := GF) .off γr c m = iprop(True) := rfl
 
+/-- **The server's KV core in the auth mode `on`** (persistent; G2's follow-up, 2026-10-30,
+`notes/decisions.md`, "G2's freeze: `srvKVFacts` in either auth mode"): the KV invariant, the
+certificates', raft's committed log's, and the store's certificates at the KV's names; at `true` the
+mode-`on` invariants from the server's start state `srvAuthSt0`: what a reader of the KV state needs
+to fire an update at a certified log (`srvKVCoreM_fire`). `srvKVInvs` at `false`
+(`srvKVCoreM_false`); a part of `srvKVInvsM on` (`srvKVInvsM_core`), without the apply side's
+conjuncts (the auth history's tie, the uber-applier contracts). -/
+def srvKVCoreM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  match on with
+  | false => srvKVInvs E γr
+  | true => iprop(kvInvOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvOn γr.raft γr.kv srvAuthSt0 ∗
+      srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝)
+
+instance srvKVCoreM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvKVCoreM (GF := GF) on E γr) := by
+  cases on <;> unfold srvKVCoreM <;> infer_instance
+
+theorem srvKVCoreM_false (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVCoreM (GF := GF) false E γr = srvKVInvs E γr := rfl
+
+theorem srvKVCoreM_true (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVCoreM (GF := GF) true E γr =
+      iprop(kvInvOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvOn γr.raft γr.kv srvAuthSt0 ∗
+        srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝) := rfl
+
+/-- `srvKVInvsM true`'s KV invariants (`srvKVInvsM_true`'s, in a section without the package's
+assumptions). -/
+theorem srvKVInvsM_onPart (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) true s E γr ⊢ srvKVInvsOn E γr srvAuthSt0 := by
+  unfold srvKVInvsM; iintro ⟨#H, -⟩; iexact H
+
+/-- `srvKVInvsM`'s KV core. -/
+theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) on s E γr ⊢ srvKVCoreM on E γr := by
+  cases on
+  · unfold srvKVInvsM srvKVCoreM; exact .rfl
+  · rw [srvKVCoreM_true]
+    iintro #H
+    ihave #Hon := srvKVInvsM_onPart s E γr $$ H
+    iunfold srvKVInvsOn at Hon
+    icases Hon with ⟨#Hk, #Hc, #Hr, -, %Hcok⟩
+    isplitl []
+    · iexact Hk
+    isplitl []
+    · iexact Hc
+    isplitl []
+    · iexact Hr
+    ipureintro; exact Hcok
+
+/-- The read view's KV core in its mode (`srvReadFieldsAtM`'s `srvKVInvsM`, `srvKVInvsM_core`). -/
+theorem srvKVCoreM_of_readM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerReadM (GF := GF) on s E γr ⊢ srvKVCoreM on E γr := by
+  iintro #Hsrd
+  iunfold isServerReadM at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAtM at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
+  iapply srvKVInvsM_core on s E γr $$ Hkvi
+
+/-- **A read update fired at a certified log, in either auth mode** (G2's follow-up, 2026-10-30;
+until then `client.watch_fire`, auth off only): with the KV core in the mode `on`, the start log
+sealed (`NewStore`'s `[[], []]`, the KV's start log), and a sealed log `L` the server certified,
+the caller's persistent read update of `γ`'s state (the KV invariant's state variable) fires at the
+committed state, the state of a log `C` that `L` is a prefix of: `L` is the mode's model of a
+committed raft prefix (`kv_cert_read`, `kv_cert_read_on`; `srvRLog_lb`) or has at most two
+revisions (then a prefix of the start log, the sealed logs being in prefix order). -/
+theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool)
+    (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : γ.st = γr.kv.st)
+    (hlog : γr.kv.log0 = [[], []]) (L : mvcc.Log) (Q : KVState → IProp GF) :
+    ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗ mvcc.idxSealed E.γ.idx L -∗
+      mvcc.certOk E.γ L -∗
+      □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ, COMM □ Q σ }>) ={⊤}=∗
+      ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+  cases on
+  · rw [srvKVCoreM_false]
+    have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
+      intro p hp
+      rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
+      rw [Iris.Std.LawfulSet.mem_diff]
+      exact ⟨CoPset.mem_full, hp.2⟩
+    iintro #Hinvs #H0 #HL #Hc #Hau
+    iunfold srvKVInvs at Hinvs
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L $$ HcI Hc with Hcase
+    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
+    · iframe H0 HL
+    iunfold kvInv at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    -- `L` is a prefix of the committed log's model
+    ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗ ⌜L <+: kvModel γr.kv Lf⌝) $$ [HLf Hcase]
+    · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+      · imodintro
+        iframe HLf
+        ipureintro
+        have hb : [[], []] <+: kvModel γr.kv Lf := by
+          have := kvRaftOf_extends γr.kv.c0 γr.kv.ch0 γr.kv.log0 Lf
+          unfold kvModel; rw [← hlog]; exact this
+        rcases Hp0 with h | h
+        · have hl2 : ([[], []] : mvcc.Log).length = L.length := by
+            have := h.length_le; simp at this ⊢; omega
+          rw [← h.eq_of_length hl2]; exact hb
+        · exact h.trans hb
+      · imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+          Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+        ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+        imodintro
+        iframe HLf
+        ipureintro
+        -- (2026-10-27) `A`'s requested entries are a prefix of the server's log's
+        obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+        rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
+        unfold kvModel
+        exact kvRaftOf_prefix _ _ _ A' Lf hA'L
+    imod Hp with ⟨HLf, %HpL⟩
+    -- the update, fired at the committed state
+    imod (fupd_mask_subseteq Hsub) with Hback
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%σ, Hc', Hucl⟩
+    iunfold etcdKV at Hc'
+    ihave Hc2 : ghostVar (GF := GF) γr.kv.st (1 : Qp).half σ $$ [Hc']
+    · rw [← hst]; iexact Hc'
+    ihave %Hag := ghostVar_agree γr.kv.st _ _ _ _ $$ Hσ' Hc2
+    icases Hucl with ⟨-, Hcommit⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+    imod Hcommit $$ [Hc2] with #HQ0
+    · iunfold etcdKV; rw [hst]; iexact Hc2
+    imod Hback with -
+    imod Hclose $$ [HLf Hσ'] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imodintro
+    iexists kvModel γr.kv Lf
+    rw [← kvModelSt_plain γr.kv Lf Hok'.1, Hag]
+    iframe HQ0
+    ipureintro; exact HpL
+  · rw [srvKVCoreM_true]
+    have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
+      intro p hp
+      rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
+      rw [Iris.Std.LawfulSet.mem_diff]
+      exact ⟨CoPset.mem_full, hp.2⟩
+    iintro #Hinvs #H0 #HL #Hc #Hau
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L
+      $$ HcI Hc with Hcase
+    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
+    · iframe H0 HL
+    iunfold kvInvOn at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+    -- `L` is a prefix of the committed log's mode-`on` model
+    ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗
+        ⌜L <+: kvModelOn γr.kv srvAuthSt0 Lf⌝) $$ [HLf Hcase]
+    · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+      · imodintro
+        iframe HLf
+        ipureintro
+        have hb : [[], []] <+: kvModelOn γr.kv srvAuthSt0 Lf := by
+          have := kvRaftOfOn_extends γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) Lf
+          unfold kvModelOn; rw [← hlog]; exact this
+        rcases Hp0 with h | h
+        · have hl2 : ([[], []] : mvcc.Log).length = L.length := by
+            have := h.length_le; simp at this ⊢; omega
+          rw [← h.eq_of_length hl2]; exact hb
+        · exact h.trans hb
+      · imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+          Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+        ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+        imodintro
+        iframe HLf
+        ipureintro
+        obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
+          (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+        rw [← hA]
+        unfold kvModelOn
+        rw [hAL]
+        exact kvRaftOfOn_prefix _ _ _ L' Lf hL'
+    imod Hp with ⟨HLf, %HpL⟩
+    -- the update, fired at the committed state
+    imod (fupd_mask_subseteq Hsub) with Hback
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%σ, Hc', Hucl⟩
+    iunfold etcdKV at Hc'
+    ihave Hc2 : ghostVar (GF := GF) γr.kv.st (1 : Qp).half σ $$ [Hc']
+    · rw [← hst]; iexact Hc'
+    ihave %Hag := ghostVar_agree γr.kv.st _ _ _ _ $$ Hσ' Hc2
+    icases Hucl with ⟨-, Hcommit⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+    imod Hcommit $$ [Hc2] with #HQ0
+    · iunfold etcdKV; rw [hst]; iexact Hc2
+    imod Hback with -
+    imod Hclose $$ [HLf Hσ' Hh] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+    imodintro
+    iexists kvModelOn γr.kv srvAuthSt0 Lf
+    rw [Hag]
+    iframe HQ0
+    ipureintro; exact HpL
+
+
 end defs
 
 section lemmas

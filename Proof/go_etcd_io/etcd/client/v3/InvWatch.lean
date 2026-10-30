@@ -415,16 +415,40 @@ def clientWatchVars : IProp GF :=
 instance clientWatchVars_persistent : Persistent (clientWatchVars (GF := GF)) := by
   unfold clientWatchVars; infer_instance
 
-/-- **A member's KV facts** (persistent; D47): its server's KV invariants (`srvKVInvs`, at read
-names `γr` whose KV state variable is the cluster's, `V.kst`, from the start log `[[], []]`) and
-the start log sealed at its store (`NewStore`'s): what firing a watch's read update at one of its
-watched logs needs (`watch_fire`). -/
+/-- **A member's KV facts** (persistent; D47; G2's follow-up, 2026-10-30: in either auth mode,
+`notes/decisions.md`, "G2's freeze: `srvKVFacts` in either auth mode"): its server's KV core in
+some auth mode (`srvKVCoreM on`: the read view's in its mode, `srvKVCoreM_of_readM`; at read names
+`γr` whose KV state variable is the cluster's, `V.kst`, from the start log `[[], []]`) and the start
+log sealed at its store (`NewStore`'s): what firing a watch's read update at one of its watched logs
+needs (`srvKVCoreM_fire`). The mode is existential: the firing holds in both, the watch reads
+nothing else of it, and a premise with the mode free is weaker than one fixing it to
+`V.R.E.authMode.isOn` (the server's read view also takes its mode apart from `E.authMode`,
+`isServerReadM on`). Until then `srvKVInvs`, the auth-off KV invariants: no auth-on member had it. -/
 def srvKVFacts (V : WEnv GF) : IProp GF :=
-  iprop(∃ γr : ReadNames, srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
+  iprop(∃ (on : Bool) (γr : ReadNames), srvKVCoreM on V.R.E γr ∗
+    mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
     ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝)
 
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
+
+/-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`). -/
+theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
+    (hst : γr.kv.st = V.kst) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    srvKVCoreM on V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
+  iintro ⟨#Hc, #H0⟩
+  iunfold srvKVFacts
+  iexists on, γr
+  iframe Hc H0
+  ipureintro; exact ⟨hst, hlog, hrb⟩
+
+/-- **… with auth off** (`srvKVFacts_intro … false`): from the auth-off read view's KV invariants
+(`srvKVInvs_of_read`). -/
+theorem srvKVFacts_of_off (V : WEnv GF) (γr : ReadNames)
+    (hst : γr.kv.st = V.kst) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
+  rw [← srvKVCoreM_false]
+  exact srvKVFacts_intro V false γr hst hlog hrb
 
 /-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
