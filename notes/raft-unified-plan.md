@@ -1815,3 +1815,9 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   `⌜receiptBound GF ≤ uint.Z (if n = 0 then 5000 else n) + 1⌝` (NewServer has no run-length premise; its only
   consumer, `start` into `isServerApplyAll`, went with P6). `srvBuilt` is in NewServer.spec's post,
   `isServerBuilt` in Results' `isServerBuilt_of_gapM`. Made by S-E.
+- **P11 the schedule package's invariant** (`Proof/go_etcd_io/etcd/pkg/v3/schedule/Defs.lean`, internal): Stage F's
+  T1b gave `fifo.Stop`/`Scheduler.Stop` the last tracked job's `Post` and left both proofs `sorry`, outside
+  the stage-P list (found by the final `tcb-report --check`). The drained worker dropped the final baton
+  when closing `donec`: `donecInv γ F`'s closed case now keeps `∃ L q, monoListAuthOwn γ.jobs q L ∗ (baton L
+  (|L|-1) ∨ monoListAuthOwn γ.jobs (1/4) L)`, and `fifoLockInv`'s stopped branch holds `∃ q,
+  monoListAuthOwn γ.jobs q L` (was the half). No spec changes, no new ghost names.
