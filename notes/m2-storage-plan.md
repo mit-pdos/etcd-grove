@@ -450,5 +450,5 @@ three watching examples; D22's five statements above (the collaborator's). No lo
 ### Checked
 
 `etc/lean-check.py` on the four Draft modules and `InstanceLaws.lean`; `lake build` of the Draft
-modules (targeted), and a full `lake build` (below). `#print axioms` of the new results: no
+modules (targeted), and a full `lake build` of `5c897670ef` (passed, 10960 jobs, no error). `#print axioms` of the new results: no
 `sorryAx`.
