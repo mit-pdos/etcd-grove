@@ -31,7 +31,7 @@ theorem newKey.wp_proof (hNKV : newKV.spec (GF := GF) (hG := hG)) :
   wp_start as ⟨#Hkv, #Hlo, %Hk⟩
   wp_auto
   wp_apply hNKV kv pfx key [] lease lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
-  · ipureintro; exact Hk
+  · ipureintro; exact ⟨Hk.1, Hk.2, by simp⟩
   (try wp_auto)
   iapply HΦ
   icases Hres with (H | H | ⟨%Hne, -⟩)

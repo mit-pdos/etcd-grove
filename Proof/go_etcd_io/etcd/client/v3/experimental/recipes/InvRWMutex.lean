@@ -255,7 +255,7 @@ def isRWMutex (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : G
     IProp GF :=
   iprop(structFieldRef RWMutex go!"s" m ↦□ s ∗
     structFieldRef RWMutex go!"ctx" m ↦□ GoInterface.ok todoCtxVal ∗
-    structFieldRef RWMutex go!"pfx" m ↦□ pfx ∗ ⌜pfx ≠ []⌝ ∗
+    structFieldRef RWMutex go!"pfx" m ↦□ pfx ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 27 + 1⌝ ∗
     isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗ context.isClosedchanInit)
 
 instance isRWMutex_persistent (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64)

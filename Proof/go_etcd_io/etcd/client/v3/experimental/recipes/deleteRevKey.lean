@@ -40,7 +40,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   icases Hkv with ⟨-, #HTxn, -, -⟩
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
-  have hrev0 : rev ≠ W64 0 := by intro h; rw [h] at Hk; exact absurd Hk.2 (by decide)
+  have hrev0 : rev ≠ W64 0 := by intro h; rw [h] at Hk; exact absurd Hk.2.1 (by decide)
   wp_auto
   wp_apply hMR key $$ [$Hcv] as %c0 #Hc0
   (try wp_auto)
@@ -108,7 +108,8 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   ihave HB := txnBuild_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact ⟨deleteRevTxn_under pfx key rev Hk.1, TxnModel.exactGets_of_noGets _ (by simp [deleteRevTxn])
-        (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, op_simps])⟩
+        (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, op_simps]),
+        deleteRevTxn_size rev Hk.2.2⟩
   iunfold txnCommitResultTok at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

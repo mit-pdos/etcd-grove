@@ -40,9 +40,10 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
   wp_start as ⟨#Hcc, #Hq, #Hlo, %Hlo0⟩
   ihave #Hq' := Hq
   iunfold isPriorityQueue at Hq'
-  icases Hq' with ⟨#Hqc, #Hqx, #Hqk, #Hcl⟩
+  icases Hq' with ⟨#Hqc, #Hqx, #Hqk, #Hcl, %Hkl⟩
   obtain ⟨kp, hkp⟩ : ∃ kp, kp = key ++ go!"/" := ⟨_, rfl⟩
   have Hkp : kp ≠ [] := by rw [hkp]; simp
+  have HkpL : kp.length ≤ 2 ^ 28 := by rw [hkp]; simp; omega
   rw [← hkp]
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   ihave #Hkv' := Hkv
@@ -60,7 +61,8 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
   · iframe HRo Hosl Hlo
     ipureintro
     exact ⟨firstKeyOp_not_panics, Ht, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      by simpa using topOp_size (W64 0) (W64 1) [] (optsKeep_nil _ _ _) HkpL⟩
   iunfold kvGetResultR at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, #HgRev, #HRR, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
@@ -195,7 +197,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       wp_apply hWPE client [] kp R _ [evPut] evPut $$ [$Hpkg $Hcc $Hcl $HslT]
         as %ev %werr Hwr
       · ipureintro
-        exact ⟨rfl, List.nil_prefix, by omega⟩
+        exact ⟨rfl, List.nil_prefix, by omega, HkpL⟩
       icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
       rotate_left
       · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

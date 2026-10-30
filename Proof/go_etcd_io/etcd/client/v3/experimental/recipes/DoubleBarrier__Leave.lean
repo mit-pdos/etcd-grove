@@ -123,7 +123,9 @@ theorem DoubleBarrier.Leave.wp_proof
   wp_start as ⟨#Hb, Hmk, #Hlo, %Hst⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
-  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %Hcount, #Hsess, #Hcl, #Hclosed⟩
+  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
+  have Hcount := HcountB.1
+  have Hkl := HcountB.2
   ihave ⟨%kv, #HKVf, #Hkvc⟩ := isEtcdRecipesClient_kv client (key ++ go!"/") $$ Hcl
   ihave #Hcp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency $$ []
   · iPkgInit
@@ -168,7 +170,8 @@ theorem DoubleBarrier.Leave.wp_proof
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      leaveOp_size (by simp; omega)⟩
   iclear HG HKV
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM] = leaveOp (key ++ go!"/waiters") := rfl
   rw [Hop]
@@ -332,7 +335,8 @@ theorem DoubleBarrier.Leave.wp_proof
       wp_apply HDel $$ %(key ++ go!"/ready") %slice.nil %([] : List (OpFull → OpFull)) %lo
         [$Hnilo $Hlo] as %dresp %derr #Hdres
       · ipureintro
-        refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl⟩
+        refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl,
+          deleteOp_size (by simp; omega)⟩
         rw [hdk, hde]; exact concurrency.keyRangeUnder_key _ _ hpr
       iunfold deleteResult at Hdres
       icases Hdres with (%Hdne | ⟨%Hdnil, -⟩)

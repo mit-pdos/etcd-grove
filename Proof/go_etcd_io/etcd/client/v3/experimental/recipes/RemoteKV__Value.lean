@@ -27,10 +27,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem RemoteKV.Value.wp_proof : RemoteKV.Value.spec (GF := GF) (hG := hG) := by
   intro rk st
   unfold ownRemoteKV RemoteKVSt.val'
-  wp_start as Hrk
+  wp_start as ⟨Hrk, %Hkl⟩
   wp_auto
   iapply HΦ
   iframe
+  ipureintro; exact Hkl
 
 end proof
 
