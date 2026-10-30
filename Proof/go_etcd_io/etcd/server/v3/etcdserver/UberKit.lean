@@ -30,6 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **What `NewServer` takes to build the uber-applier's contracts, in the auth mode `on`**: `True`
 off; on, the uber-applier's latest-state triples and the base applier's interface-method specs
