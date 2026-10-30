@@ -707,6 +707,8 @@ theorem EtcdServer.applyConfChange.wp_proof
     (hBool : zap.Bool.spec (GF := GF) (hG := hG))
     (hZErr : zap.Error.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s cc ep m cs v3 ci ua E γs Pre Q Post Adv i t γB cl rs d al st lp dv ds vw k mb e
     lg bh ix lgh tl lid prs lgc cid Hok HRO Hkb HγB Hdv Hdyn Hpeer Hloc Hsz Hmem Hrem
   wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
@@ -932,6 +934,7 @@ theorem EtcdServer.applyConfChange.wp_proof
             have := (Hdyn γn h).2
             unfold membership.ccRaftEff at this; rw [if_neg hv] at this; exact this
         raft_cc ({ m with nodeId := W64 0 }) with hraft0 hdyn0 then fail_tail
+-/
 
 end proof
 

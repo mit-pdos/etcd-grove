@@ -36,16 +36,16 @@ corollaries), kept (`snapshot` takes only the part both rows share, `srvApplyKVC
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (γp : GName) (w : Nat)
+    (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
     (sa : auth.AuthState),
   loopOk γ st ai →
-  1 ≤ γs.cap →
   -- (D22 J5) the applied index at most the write tokens taken (no snapshot installed)
   uint.Z ai ≤ w →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
-      -- (D19i part 1) the storage's floor past the applied index (`raftAdvancedC`'s)
-      memFloorAtLeast ms γs (uint.Z ai) ∗
+      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
+      -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))

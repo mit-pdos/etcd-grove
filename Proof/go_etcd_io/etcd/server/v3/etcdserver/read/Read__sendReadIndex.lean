@@ -38,6 +38,8 @@ theorem read.Read.sendReadIndex.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro r γr RQ LR NR id n Qr F
   wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
   iunfold isReadLoopPre at Hpre
@@ -98,6 +100,7 @@ theorem read.Read.sendReadIndex.wp_proof
   · wp_auto
     iapply HΦ
     iframe HLR HerrE Hrq
+-/
 
 end proof
 
