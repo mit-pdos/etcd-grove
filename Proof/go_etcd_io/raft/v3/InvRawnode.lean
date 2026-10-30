@@ -530,17 +530,13 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     -- (raft-final, 2026-10-29, U9: until then also a transfer request only with leader transfer
     -- on, `hx`)
     RestMsgOk s st.msg st.ents st.ctx := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   obtain ⟨-, -, Hun, -, -, -, Htl, -⟩ := h
   refine ⟨fun h' => Hun ?_ ?_, ht, fun h' => Htl h'⟩
   · rcases h' with h' | h' | h'
     · exact .inr (.inr (.inl h'))
     · exact .inr (.inr (.inr (.inl h')))
     · exact .inr (.inr (.inr (.inr h')))
-  · rcases h' with h' | h' | h' <;> rw [h'] <;> decide
-  -/
+  · rcases h' with h' | h' | h' <;> rw [h'] <;> simp [MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTransferLeader]
 
 -- (2026-10-28, stage U3c) `DynNoSnap` (the dynamic mode took no snapshot message, from 2026-10-14,
 -- stage B7 part 2) is gone: `RawNode.Step` takes a `MsgSnap` in either mode.
@@ -796,12 +792,9 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
       (m.Type' = MsgReadIndexResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
         m.From' ≠ id) →
       RestMsgOk s m ents ctx → X) : X := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   have Hok0 := Hok
   simp only [NetMsgOk] at Hok0
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf, -⟩ := Hok0
+  obtain ⟨Hty, Hnri, Hri, -, Hself, Hrej, -, Hpvf, -⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
       m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
     fun h ht => Hnri (h ▸ ht)
@@ -823,7 +816,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
     -- (2026-10-20, D22 S-c) a leader's snapshot, from another node
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr (.inr h))))⟩)
-    (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h))
+    (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h) (by rw [h]; simp [MsgReadIndex, MsgTransferLeader]))
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr (.inl h))))⟩)
     (Hok.restMsgOk (st := ⟨m, ents, sn, ctx, rsp⟩) (fun h => by
@@ -831,8 +824,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
       have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
       have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       simp only at h ⊢
-      exact ⟨by omega, by omega, Hfla⟩) Hxo)
-  -/
+      exact ⟨by omega, by omega, Hfla⟩))
 
 /-- The mode's guard from the guard in the dynamic mode. -/
 theorem RNMode.guard_of {mode : RNMode} {fp : List EntryM} {s : NState}
