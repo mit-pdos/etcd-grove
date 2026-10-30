@@ -52,9 +52,6 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     {{ (err : GoInterface) (t : w64), RET #err;
         ownRawNode γ rn id { rs with term := t } ∗
         ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   subst Hst
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hm, Hlc1⟩ HΦ
   unfold hupSt
@@ -66,6 +63,7 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have Hnw : uint.Z s.term + 1 < 2 ^ 64 := by have : uint.Z s.gh.tc < 2 ^ 64 := by word
                                               omega
   imod rdCred_zero_upd (GF := GF) γ with Hcr
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hsn0, Hphys⟩
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
   wp_apply wp_raft_Step cf _ γ _ id s ml ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
@@ -80,6 +78,10 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     simp only [hP, ↓reduceIte, named]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by msg_ne)
     isplitl [Hm]
     · iframe Hm
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -93,20 +95,23 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     iintro %Hc
     simp [MsgSnap] at Hc
   simp only [hP]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, -, -⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, -⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hcc (by msg_ne); subst c'
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
   obtain ⟨Ht1, Ht2, -, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht2' := Ht2 rfl
+  icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
+  have Hstor' : rs.storage = s'.logst.storage ∧ rs.sn = s'.logst.sn :=
+    ⟨by rw [Hsg]; exact Hstor.1, by rw [Hsn1.2, Hgh, ← Hsn0.2]; exact Hstor.2⟩
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   iapply HΦ $$ %err %s'.term
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
       Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-      (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor)
+      (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl Hstor'
       (Hpvoff.step rfl rfl Hpre Hgh (by have := Ht2 rfl; omega) Hpcs (fun _ => Htc1))
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
       (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
@@ -114,7 +119,6 @@ theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   ipureintro
   rw [Htrm]
   exact ⟨Ht1, Ht2'⟩
-  -/
 
 end proof
 
