@@ -1170,6 +1170,13 @@ Phase 2 (internal statement changes):
   `l` is out, else `delivered.length` (was `delivered.length` always, false after a snapshot `Ready`:
   the hand-out certifies `l.dlv`'s keys); `SdtTie.of_none`; `keep`/`ofRec`/`snap` keep the loan.
 
+- P3a (internal): `outboxRelP_isRaftMsg`/`_isRaftMsgs`/`self_pending` take `(s : NState)`, XfOk's
+  clauses 1-3 and `xfW γ s` (was `Hsent`/`Hrs`); `rdyLs`/`rdyLog_true`/`readyNstate` take `dk`
+  (`rdyLog_true` was false with a loan: `lendLog` also sets `sg`); private lemmas `ownRaftLog_kcert`
+  (`InvRawnodeReady`), `ghostRest_xfW` (`LemmasReadyR`).
+- Requested by the coordinator for kvreconf (assigned to P6): `readyRest_indices` (`InvNode`), with a
+  pure indices conjunct added to `readySnap none`'s body.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
@@ -1178,5 +1185,4 @@ Phase 2 (internal statement changes):
   P2a = `InvRaftPhys`, `raft__send`, `raft__sendTimeoutNow`, `raft__become{Candidate,Leader}`,
   `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
   P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
-  P5 together with P7. Done: P5+P7, P2a. Wave 2: P6 and P4 started (P2b, P3a still running);
-  P3b is to start once P2b lands raft.Step's `%Hframe` transfer clause. Then phase 3.
+  P5 together with P7. Done: P5+P7, P2a, P2b, P3a. Wave 2: P6, P4, P3b running. Then phase 3.
