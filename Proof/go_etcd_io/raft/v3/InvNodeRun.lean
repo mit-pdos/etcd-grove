@@ -791,9 +791,6 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hty Hfr Hrs ⊢
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Htk, Hlc⟩ HΦ
@@ -805,6 +802,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
   obtain ⟨Hterm, Hne, Hlen⟩ := Hpm
   ihave #Hed : iprop([∗list] e ∈ ents, propData γ e) $$ []
@@ -829,6 +827,10 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     $$ [$Hphys $Hghost $Hlc Hmin Htk Hcr]
   · rw [Hty]
     simp only [ite_true]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by simp [MsgProp, MsgTransferLeader])
     isplitl [Hmin Htk]
     · simp only [named]
       isplitl [Hmin]
@@ -859,7 +861,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     · imodintro
       iintro %Hc
       simp [MsgProp, MsgSnap] at Hc
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %Htm, %_, -, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %Htm, %_, -, -, Herr⟩
+  icases ownRaftPhysC_sn _ rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   ihave #Hstep : stepErr err $$ [Herr]
   · unfold stepErr
     icases Herr with (%Hnil | ⟨-, #Hpd⟩)
@@ -887,7 +890,9 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (by rw [Hfr'.2.2.2.1]; exact Hsnap)
     (stepsOk_mono s s' _ Hfr'.1 ⟨Hfr'.2.2.2.2.1, (logStoreRec_stored Hfr'.2.2.2.2.2.1)⟩ Hc Hap'
       (tc_le_of_gh Hfr'.2.2.2.2.2.2.2.2.1) Hstok)
-    (by rw [Hfr'.1]; exact Htrm) (by rw [Hfr'.2.2.2.2.2.2.1]; exact Hstor)
+    (by rw [Hfr'.1]; exact Htrm)
+    (by rw [Hfr'.2.2.2.2.2.2.1]
+        exact ⟨Hstor.1, by rw [Hsn1.2, Hfr'.2.2.2.2.2.2.2.2.1, ← Hns0.2]; exact Hstor.2⟩)
     (Hpvoff.keep rfl rfl Hfr'.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.1 Hfr'.2.2.2.2.2.2.2.2.2.1
       Hfr'.2.2.2.1 (PreGuardF.step (Htm (by msg_ne'))))
     (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
@@ -896,7 +901,6 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (Hloan.keep Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1)
       Hfr'.2.2.1 Hap' Hc)
     (Hsdt.ofRec Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.1) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
-  -/
 
 end step
 
@@ -1663,16 +1667,11 @@ theorem headRest_snapIn (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoC
     ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗
       ⌜rs.mode = γ.mode⌝ ∗
       headRest γ nv rs ac rc rd := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H
   unfold headRest
   icases H with ⟨#Hlb, %Hst, Hcfg, H⟩
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hcfg⟩
-  isplitr
-  · ipureintro; exact Hm0.2.2.2.2.1
   isplitr
   · ipureintro; exact Hm0.1
   iframe Hlb H
@@ -1681,7 +1680,6 @@ theorem headRest_snapIn (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoC
   iunfold runCfg
   iframe Hcfg
   ipureintro; exact Hm0
-  -/
 
 /-- A step changes only the node's term and (2026-10-17) the term ceiling, which the budget
 covers. -/
@@ -1704,9 +1702,6 @@ theorem headRest_step (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoCha
     (t tc : w64) (b : Bool) :
     ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗ termLB γ.bud tc -∗
       headRest γ nv { { rs with tc := tc } with term := t, psnap := rs.psnap || b } ac rc rd := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H #Hlb
   unfold headRest
   icases H with ⟨-, %Hst, Hcfg, H⟩
@@ -1714,25 +1709,12 @@ theorem headRest_step (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoCha
   isplitr
   · ipureintro; exact Hst
   isplitl [Hcfg]
-  · iunfold runCfg at Hcfg
-    icases Hcfg with ⟨%Hm0, Hdlm, Hcfg⟩
+  · -- (raft-final phase 2) `runCfg` no longer reads `psnap`
+    iunfold runCfg at Hcfg
     iunfold runCfg
-    isplitr
-    · ipureintro
-      obtain ⟨H1, H2, H3, H4, H5, H6⟩ := Hm0
-      refine ⟨H1, H2, H3, fun h => ?_, H5, H6⟩
-      have hb : b = false := by
-        cases hb : b
-        · rfl
-        · rw [Hb hb] at h; cases h
-      simp only [hb, Bool.or_false]
-      exact H4 h
-    isplitl [Hdlm]
-    · iExactEq Hdlm; rfl
     iExactEq Hcfg; rfl
   iExactEq H
   rfl
-  -/
 
 /-- With no `Ready` handed out (`ac` nil). -/
 theorem headRest_nil (γ : NodeNames) (nv : node) (rs : RNState) (rc : GoChan) (rd : Ready)
@@ -2127,12 +2109,9 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
         ⌜DynCCPreOp (effDec dec M') (rsDlv rs) rs.capplied rs.cfg op k e cs'⌝) ∗
       |==> (runCfg γ { rs with cfg := cs', capplied := k + 1 } ∗
         dghostVar γ.cap (DFrac.own (1 : Qp).half) (k + 1, cs') ∗ monoNatLbOwn γ.cam (k + 1)) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hcfg #Hlb #HM Hcap
   iunfold runCfg at Hcfg
-  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+  icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hcap
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
@@ -2152,15 +2131,16 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   iunfold runCfg
   isplitr
   · ipureintro
-    exact ⟨Hm0.1, by show k + 1 ≤ (rsDlv rs).length; omega, Hm0.2.2.1, Hm0.2.2.2.1, Hm0.2.2.2.2.1, Hm0.2.2.2.2.2⟩
+    exact ⟨Hm0.1, by show k + 1 ≤ (rsDlv rs).length; omega, Hm0.2.2.1, Hm0.2.2.2.1, Hm0.2.2.2.2⟩
   isplitl [Hdlm]
   · iExactEq Hdlm; rfl
+  isplitr
+  · iExactEq Hdk; rfl
   iexists k + 1
   iframe Hcap_r Hcam
   isplitr
   · ipureintro; exact Nat.le_refl _
   iapply undecFree_empty
-  -/
 
 /-- The `readyc` arm: the committed log handed out grows by the `Ready`'s committed entries
 (the configuration and its index unchanged); a lower bound of it for the driver. (D22 S-d4,
@@ -2179,14 +2159,12 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
     ⊢ dlvKeysAt (GF := GF) γ.sn rs.delivered.length X -∗ runCfg γ rs ==∗
       runCfg γ rs' ∗ monoListLbOwn γ.dlm (dlvAfter rs.delivered ce L) ∗
       dlvKeys γ.sn (dlvAfter rs.delivered ce L) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro #HX' Hcfg
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-  obtain ⟨Hmd, Hcp, Hflw, Hsn, Hsi, -, Hsnm⟩ := Hm0
-  rw [rsDlv_none Hsl0] at Hdk
+  obtain ⟨Hmd, Hcp, Hflw, -, Hsnm⟩ := Hm0
+  ihave #Hdk : dlvKeys γ.sn rs.delivered $$ [Hdk]
+  · iExactEq Hdk; rw [rsDlv_none Hsl0]
   rw [rsDlv_none Hsl0]
   rw [rsDlv_none Hsl0] at Hcp
   have Hext : rs.delivered <+: dlvAfter rs.delivered ce L := by
@@ -2206,12 +2184,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
     | none => exact Hd
     | some l => rfl
   iunfold runCfg
-  rw [Hrs', Hd, Hm, Hc, Hca, Hps, Hsl]
+  rw [Hrs', Hd, Hm, Hc, Hca, Hsl]
   iframe Hdlm Hdk'
   isplitr
   · ipureintro
-    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, fun h => ⟨rfl, HpL (Hsn h).1⟩, Hsi, ?_,
-      by rw [Hsn']; exact Hsnm⟩
+    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, ?_, by rw [Hsn']; exact Hsnm⟩
     · exact Nat.le_trans Hcp Hext.length_le
     · intro l hl
       obtain ⟨rfl, Hp⟩ := HL l hl
@@ -2222,7 +2199,6 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
   · ipureintro; exact Hinv
   iapply undecFree_prefix γ.raft γ.mode Hext Hcp
   iexact Hinv2
-  -/
 
 /-- (D22 S-d4) What `runCfg` says of snapshots: none pending or lent at a node that takes none,
 and one that takes them is outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the
@@ -2234,18 +2210,14 @@ theorem runCfg_snap (γ : NodeNames) (rs : RNState) :
       -- `NodeNames.snapIn`)
       ⌜rs.mode = γ.mode⌝ ∗
       runCfg γ rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hcfg
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, Hrest⟩
   isplitr
-  · ipureintro; exact ⟨Hm0.2.2.2.1, Hm0.2.2.2.2.1, Hm0.1⟩
+  · ipureintro; exact Hm0.1
   iunfold runCfg
   iframe Hdlm Hrest
   ipureintro; exact Hm0
-  -/
 
 /-- The `advancec` arm, before `Advance`: the driver's A1 (no conf entry of the committed log
 handed out past its configuration index, a lower bound of `run`'s) is A1 at the `RawNode`. -/
@@ -2254,12 +2226,9 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
       undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length -∗
       undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
       runCfg γ rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hcfg #Hlb #HA
   iunfold runCfg at Hcfg
-  icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+  icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
   ihave %Hle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hlb
   isplitr
   · rw [Hm0.1]
@@ -2267,13 +2236,12 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
       (by have := Hle.2; omega) (Nat.le_refl _)
     iexact HA
   iunfold runCfg
-  iframe Hdlm
+  iframe Hdlm Hdk
   isplitr
   · ipureintro; exact Hm0
   iexists ca_r
   iframe Hcap_r Hcam Hinv2
   ipureintro; exact Hinv
-  -/
 
 /-- (2026-10-28, stage U3d) The `advancec` arm, before `Advance`, from `run`'s side after the
 rendezvous (`runCfgR`): A1 at the `RawNode` (`runCfg_a1`, or the loan's `runCfgLoan`), and,
@@ -2281,38 +2249,24 @@ dynamically after a snapshot `Ready`, its `ConfState` no auto-leave one. -/
 theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
     ⊢ runCfgR (GF := GF) γ rs -∗ monoNatLbOwn γ.cam ca_d -∗
       undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length -∗
-      undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
+      -- (raft-final phase 2: the design's A1, as `RawNode.Advance.spec`'s `"#HA1"`; until then
+      -- unguarded, from `runCfgLoan`'s A1 after a snapshot `Ready`)
+      □ (⌜rs.slent = none⌝ -∗
+        undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
       runCfgR γ rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hcfg #Hlb #HA
-  by_cases hc : rs.slent = none ∨ rs.mode.isDyn = false
-  · ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs hc).1 $$ Hcfg
+  by_cases hc : rs.slent = none
+  · ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hc)).1 $$ Hcfg
     icases runCfg_a1 γ { rs with flw := false } ca_d $$ Hcfg Hlb HA with ⟨#HA1, Hcfg⟩
-    ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs hc).2 $$ Hcfg
-    isplitr
-    · iexact HA1
-    iexact Hcfg
-  · have hl : ∃ l, rs.slent = some l := by
-      cases h : rs.slent with
-      | none => exact absurd (.inl h) hc
-      | some l => exact ⟨l, rfl⟩
-    obtain ⟨l, hl⟩ := hl
-    have hd : rs.mode.isDyn = true := by
-      cases h : rs.mode.isDyn
-      · exact absurd (.inr h) hc
-      · rfl
-    ihave Hcfg := (runCfgR_loan (GF := GF) γ rs l hl hd).1 $$ Hcfg
-    iunfold runCfgLoan at Hcfg
-    icases Hcfg with ⟨%Hm, #HA1, Hrest⟩
-    isplitr
-    · iexact HA1
-    iapply (runCfgR_loan (GF := GF) γ rs l hl hd).2
-    iunfold runCfgLoan
-    iframe Hrest HA1
-    ipureintro; exact Hm
-  -/
+    ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hc)).2 $$ Hcfg
+    iframe Hcfg
+    imodintro
+    iintro -
+    iexact HA1
+  · iframe Hcfg
+    imodintro
+    iintro %h
+    exact absurd h hc
 
 /-- The `advancec` arm, after `Advance`: the configuration index moved up to at most the
 committed log handed out, over no conf entry (A1), not at all in the static mode. (D22 S-d4,
@@ -2325,19 +2279,18 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
       (rs.mode = .static → ca = rs.capplied))
     :
-    ⊢ undecFree (GF := GF) γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length -∗
+    -- (raft-final phase 2: guarded, as `RawNode.Advance.spec`'s `"#HA1"`)
+    ⊢ □ (⌜rs.slent = none⌝ -∗
+        undecFree (GF := GF) γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length) -∗
       runCfgR γ rs -∗ runCfg γ (advRS rs t ca) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro #HA1 Hcfg
   cases hsl : rs.slent with
   | none =>
     ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hsl)).1 $$ Hcfg
     iunfold runCfg at Hcfg
-    icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-    obtain ⟨Hmd, Hcp, -, Hsn, Hsi, Hpre⟩ := Hm0
-    simp only [rsDlv, hsl] at Hmd Hcp Hsn Hsi Hpre Hinv ⊢
+    icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+    obtain ⟨Hmd, Hcp, -, -, Hsnm⟩ := Hm0
+    simp only [rsDlv, hsl] at Hmd Hcp Hsnm Hinv ⊢
     rw [advRS_none t ca hsl]
     have Hcases : ca = rs.capplied ∨ (rs.mode.isDyn = true ∧ ca ≤ rs.delivered.length) := by
       cases hm : rs.mode with
@@ -2348,14 +2301,15 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     iunfold runCfg
     isplitr
     · ipureintro
-      refine ⟨Hmd, ?_, rfl, fun h => by simpa [hsl] using Hsn h, Hsi,
-        fun l h => by simp [hsl] at h⟩
+      refine ⟨Hmd, ?_, rfl, fun l h => by simp [hsl] at h, Hsnm⟩
       simp only [rsDlv, hsl]
       rcases Hcases with h | ⟨-, h⟩
       · rw [h]; exact Hcp
       · exact h
     isplitl [Hdlm]
     · iExactEq Hdlm; simp only [rsDlv, hsl]
+    isplitr
+    · iExactEq Hdk; simp only [rsDlv, hsl]
     iexists ca_r
     iframe Hcap_r Hcam
     simp only [rsDlv, hsl]
@@ -2369,7 +2323,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       iframe Hinv2
       rw [← Hmd]
       iapply undecFree_mono γ.raft rs.mode (Nat.le_refl _) h
-      iexact HA1
+      iapply HA1 $$ %(by simp)
   | some l =>
     have Hadv : advRS rs t ca =
         { rs with
@@ -2383,9 +2337,9 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       -- statically the index and the configuration do not move
       ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inr hd)).1 $$ Hcfg
       iunfold runCfg at Hcfg
-      icases Hcfg with ⟨%Hm0, Hdlm, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-      obtain ⟨Hmd, Hcp, -, Hsn, Hsi, Hpre⟩ := Hm0
-      simp only [rsDlv, hsl] at Hmd Hcp Hsn Hsi Hpre Hinv
+      icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+      obtain ⟨Hmd, Hcp, -, -, Hsnm⟩ := Hm0
+      simp only [rsDlv, hsl] at Hmd Hcp Hsnm Hinv
       have Hst : rs.mode = .static := by
         cases hm : rs.mode with
         | static => rfl
@@ -2395,15 +2349,12 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       iunfold runCfg
       isplitr
       · ipureintro
-        have Hsin : γ.snapIn = true := by
-          cases h : γ.snapIn
-          · have := (Hsn h).2; simp at this
-          · rfl
-        refine ⟨Hmd, ?_, rfl, fun h => absurd (h.symm.trans Hsin) Bool.false_ne_true, Hsi,
-          fun l' h => by simp at h⟩
+        refine ⟨Hmd, ?_, rfl, fun l' h => by simp at h, Hsnm⟩
         simp only [rsDlv]; rw [Hca0]; exact Hcp
       isplitl [Hdlm]
       · iExactEq Hdlm; simp only [rsDlv, hsl]
+      isplitr
+      · iExactEq Hdk; simp only [rsDlv, hsl]
       iexists ca_r
       iframe Hcap_r Hcam
       simp only [rsDlv]
@@ -2415,17 +2366,18 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       -- dynamically at the snapshot's index and configuration, which the rendezvous shared
       ihave Hcfg := (runCfgR_loan (GF := GF) γ rs l hsl hd).1 $$ Hcfg
       iunfold runCfgLoan at Hcfg
-      icases Hcfg with ⟨%Hm, -, Hdlm, Hcap_r, Hcam⟩
-      obtain ⟨Hmd, Hsin, Hns, -⟩ := Hm
+      icases Hcfg with ⟨%Hm, Hdlm, #Hdk, Hcap_r, Hcam⟩
+      obtain ⟨Hmd, -, Hsnm⟩ := Hm
       have Hca0 : ca = l.dlv.length := Hca.2.1 l hsl hd
       iunfold runCfg
       isplitr
       · ipureintro
-        refine ⟨Hmd, ?_, rfl, fun h => absurd (h.symm.trans Hsin) Bool.false_ne_true,
-          fun _ => Hns, fun l' h => by simp at h⟩
+        refine ⟨Hmd, ?_, rfl, fun l' h => by simp at h, Hsnm⟩
         simp only [rsDlv]; rw [Hca0]; exact Nat.le_refl _
       isplitl [Hdlm]
       · iExactEq Hdlm; simp only [rsDlv]
+      isplitr
+      · iExactEq Hdk; simp only [rsDlv]
       iexists l.dlv.length
       iframe Hcap_r Hcam
       simp only [rsDlv]
@@ -2433,7 +2385,6 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       isplitr
       · ipureintro; exact Nat.le_refl _
       iapply undecFree_empty
-  -/
 
 end cfgshare
 

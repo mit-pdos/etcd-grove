@@ -25675,3 +25675,9 @@ in neither mode.
   longer carries it; raft holds it as the pin `ksnCert` of the restored `MsgSnap` (`s.gh.snp`,
   `LoanOk`), which `certLink` turns into `raftSnapCertD` at the hand-out (`node.run`). (Requested by
   P6, approved by the coordinator.)
+- `runCfgR_a1`'s conclusion and `runCfg_advance`'s premise (internal, `InvNodeRun`, used only by
+  `node.run`): `□ (⌜rs.slent = none⌝ -∗ undecFree γ.raft rs.mode rs.delivered rs.capplied
+  rs.delivered.length)` (was unguarded). Why: the design's A1 guards `RawNode.Advance.spec`'s
+  `"#HA1"` and removed A1 from `runCfgLoan`, so while a snapshot is lent nothing bounds the
+  configuration index and the unguarded form is false. Phase 1 missed these two, like
+  `wp_rn_raft_Step_net`. (Approved by the coordinator.)
