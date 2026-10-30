@@ -30,6 +30,7 @@ require (
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/gokv v0.1.1
 	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/cache/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0

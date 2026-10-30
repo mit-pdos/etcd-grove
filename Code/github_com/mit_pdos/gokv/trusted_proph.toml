@@ -1,0 +1,12 @@
+# gokv's prophecy helpers (github.com/mit-pdos/gokv v0.1.1, examples/go.mod), translated with the
+# kvreconf project, whose Cluster.Read resolves a prophecy with its answer (ResolveBytes). Both
+# functions have Perennial's trusted models (Perennial/TrustedCode/github_com/mit_pdos/gokv/
+# trusted_proph.lean, re-exported by TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean):
+# NewProph is primitive's, and ResolveBytes (a no-op in Go) resolves the prophecy with the bytes as
+# a string.
+translate = ["!*"]
+imports = ["github.com/goose-lang/primitive"]
+trusted = ["NewProph", "ResolveBytes"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

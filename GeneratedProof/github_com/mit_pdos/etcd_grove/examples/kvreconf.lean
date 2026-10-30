@@ -8,6 +8,7 @@ public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lintest
+public import GeneratedProof.github_com.mit_pdos.gokv.trusted_proph
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.confchange
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb

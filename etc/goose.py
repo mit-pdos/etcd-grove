@@ -460,10 +460,13 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "kvreconf"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
-                    "github.com/anishathalye/porcupine="],
-        # the store; not its command (cmd/kvreconfcheck), which only runs it
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvreconf")],
+                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+        # the store; not its command (cmd/kvreconfcheck), which only runs it; and gokv's
+        # trusted_proph (examples/go.mod's gokv), whose ResolveBytes `Cluster.Read` resolves its
+        # prophecy with (trusted: Code/github_com/mit_pdos/gokv/trusted_proph.toml)
+        packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvreconf"),
+               os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
     ),
     Project(
         name="common",

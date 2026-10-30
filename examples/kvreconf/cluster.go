@@ -7,8 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/goose-lang/primitive"
+	"github.com/mit-pdos/gokv/trusted_proph"
 	"go.etcd.io/raft/v3"
-	pb "go.etcd.io/raft/v3/raftpb"
+	pb"go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -360,10 +362,14 @@ func (c *Cluster) Get(key string) string {
 }
 
 // Read returns key's value by a read index at a random member, retried at another until one
-// answers (a read has no effect: each attempt is a fresh one).
+// answers (a read has no effect: each attempt is a fresh one). The prophecy p, resolved with the
+// answer, is for the proof only (it tells the proof, at each change of the store, whether the
+// key's value then is the answer: the read's linearization point); it has no effect.
 func (c *Cluster) Read(key string) string {
+	p := primitive.NewProph()
 	for {
 		if v, ok := c.randomMember().read(key, opTimeout); ok {
+			trusted_proph.ResolveBytes(p, []byte(v))
 			return v
 		}
 		c.Stats.add(&c.Stats.Retries)
