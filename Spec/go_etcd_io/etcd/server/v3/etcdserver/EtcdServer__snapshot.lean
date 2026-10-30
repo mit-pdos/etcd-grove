@@ -62,7 +62,11 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗
+  -- (2026-10-30, the repair, PENDING D2) the stored snapshot's lower bound `sl` unchanged: this
+  -- trust-boundary axiom claims nothing of the storage (until then the token's snapshot index at
+  -- `ai`; with the server's registry empty for good, D2(i), a stored snapshot past `0` would be
+  -- refutable, so the axiom must not give `memSnapLb ai`)
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai sl ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
       ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
