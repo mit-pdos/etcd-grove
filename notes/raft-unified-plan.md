@@ -1583,8 +1583,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `srv_readySnap_none`'s), `srv_readySnap_none`, `srvLogInv_alloc`. Also owns `InvCfgView.lean`
    (`srvRule_keeps` *fresh* (done), `dvView_cc`).
 2. **S-C the raft loop** (Ready hand-out, Append, Advance, `raftAdvancedC`, the running halves):
-   `InvRaftNode.lean` (`rn_ready_recv`), `InvRaftLoop.lean` (`rnCfgAt_normal1`, `rnCfgAt_back_true`,
-   `rnApR_dv`, `rnApGive_dv`, `srvRaftNodeCC_of_isRaftNode`), `NodeBridge.lean`
+   `InvRaftNode.lean` (`rn_ready_recv`), `InvRaftLoop.lean` (`rnCfgAt_normal1` (done), `rnCfgAt_back_true` (done),
+   `rnApR_dv` (done), `rnApGive_dv` (done), `srvRaftNodeCC_of_isRaftNode` (done)), `NodeBridge.lean`
    (`isRNMemStor_of_memstorage`, `raftPropose_of_isNode` (done), `raftApplyCC_of_isNode`,
    `isRaftNodeIfc_of_isNode`, `rnStepIfc_of_isNode` (done)), `raftNode__start.lean`,
    `raftNode__onStop.lean`, `raftNode__stop.lean`, `raftNode__tick.lean`, `newRaftNode.lean`
@@ -1594,14 +1594,14 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `wp_proofOn`), `EtcdServer__applyEntries.lean` (both), `EtcdServer__apply.lean` (both),
    `EtcdServer__applyConfChange.lean`, `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean`,
    `EtcdServer__compactRaftLog.lean`, `ModeSpecs.lean` (`spec_off`, `spec_on`), `InvApplyAll.lean`
-   (`srvSnapState_sl_le` (done)), `InvApRes.lean` (`srvApRes_normal`, `srvApRes_cc`), the KV model's
+   (`srvSnapState_sl_le` (done)), `InvApRes.lean` (`srvApRes_normal` (done), `srvApRes_cc` (done)), the KV model's
    V2-entry cases: `KVApply.lean` (`kv_log_plain` (done)), `KVAuthModel.lean` (`kvRaftOfOn_ops` (done),
    `admStep_ops` (done), `kvRaftOfOn_of_lb` (done), `detLogOn_transfer` (done), `kv_log_plain_on` (done)), `KVLemmas.lean`
    (`kvRaftSt_ops` (done)), `KVReadOn.lean` (`kv_cert_floor_on` (done)); and `SnapTake.lean`/`SnapTakeProof.lean`/
    `EtcdServer__snapshot` once D2 is answered.
 4. **S-E allocation, boot and the NewServer composition**: `NodeStart.lean` (`rnToks_of_start`,
    `srvMem_bootStorage`, `raftNode_of_StartNode`), `bootstrappedRaft__newRaftNode.lean`,
-   `NewServerAlloc.lean` (`srvClusterBoot_alloc`), `NewServerAllocOn.lean`
+   `NewServerAlloc.lean` (`srvClusterBoot_alloc` (done)), `NewServerAllocOn.lean`
    (`srvClusterBootOn_alloc`), `BuildGap.lean` (`entryClaims_transfer`, `clusterWorkloadOk_of`,
    `rnEnvOk_of_cluster`, `isServerBuilt_of_gap`), `StartOn.lean` (`isServerBuilt_of_gapOn`),
    `ServerOn.lean` (`clusterWorkloadOkOn_of`, `rnEnvOk_of_clusterOn`, `rnEnvOk_of_clusterM`),
