@@ -647,36 +647,28 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       (∃ (es' A' : List EntryModel) (p' : HardStateM) (l : SnapLoan),
         rnReadySnap E γ rd L es' A' p p' l ∗ rnBusyS γ L A' es' p' l ∗
         ⌜srvIdxOkW E.γr.raft.ai0 A'⌝) := by
-  -- SNAPSHOT-SORRY (the `some l` case): `rnReadySnap` from `readySnap (some l)` and the
-  -- messages, `rnBusyS` from the driver; the `none` case is the REPAIR-OLD body's
-  sorry
-/- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
   simp only [committedEntriesAt, rnDrvSt]
   iintro #Henv #Hbr Hcfg #Hce #Hcom ⟨%sts, #Hrs, #Hrsok⟩ Hrest Hdrv
   ihave #Henv' := Henv
   iunfold rnEnvOk at Henv'
-  icases Henv' with ⟨-, %Hn, %Hmode, -, #Hinv, #HM, #HC, -, -⟩
+  icases Henv' with ⟨-, %Hn, -, #Hinv, #HM, #HC, -, -⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
   ihave #Hcl : srvClusterOk E.γr.raft $$ []
   · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
   cases Lo with
   | some l =>
-    iexfalso
-    simp only [readyRest]
-    icases Hrest with ⟨%ms, -, -, -, -, -, -, Hsn⟩
-    iapply srv_readySnap_none E.γr.raft rd ⟨memStorIface γ.ms, srvLE γ.srv L, p, none⟩ ce es l
-      $$ [Hcl Hsn]
-    rw [Hraft]
-    iframe Hcl Hsn
+    -- SNAPSHOT-SORRY: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from
+    -- the driver
+    sorry
   | none =>
   ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
-  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, #H, -⟩; rw [Hraft]; iexact H
+  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
   icases readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ⟩⟩
+  icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, -, -⟩⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
@@ -689,7 +681,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     rw [Hdel]; simpa [rnDrvSt] using Hdl
   have hfit : (γ.pre.length : Int) + L.length + ce'.length < 2 ^ 64 := by
     have : (srvLE γ.srv (L ++ ce')).length = γ.pre.length + L.length + ce'.length := by
-      simp [srvLE, RNNames.srv]; omega
+      simp [srvLE]; omega
     omega
   icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
   icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
@@ -720,7 +712,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         omega
       rw [Hai0]
       word
-  imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (L ++ ce') HLi' $$ Hinv Hcom'
+  imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) (L ++ ce') HLi' $$ Hinv Hcom'
     with #HLb
   ihave %HLiW := srvRLogLb_idx E.γr.raft _ $$ HLb
   imod HC $$ %(L ++ ce') HLb [] with #HEC
@@ -732,6 +724,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     omega
   ihave ⟨Hdrv, #Hdlb⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
   imodintro
+  ileft
   iexists ce', es.map EntryModel.ofM, phsNext p h
   isplitl [Happ Hmok]
   · iunfold rnReadyData
@@ -779,7 +772,6 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     rw [EntryModel.map_toM_ofM, Hdel]
     iexact Hdrv
   · rw [Hdel]; iframe Hdlb; ipureintro; exact HLiW
--/
 
 /-! ## The other components -/
 
