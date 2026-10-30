@@ -1389,3 +1389,32 @@ raft-unified train.
   axioms of untranslated types are the same as before. `etc/tcb-report.py --collection … --check
   --update` is not run: it needs the whole repository built, and the clients are broken until the
   repair phase. Run it, with the user's go-ahead, once they build.
+
+### Spec changes during the repair, raft (Stage R: R2, R3, R5; 2026-10-30, branch `repair`)
+
+The approved items, as built (statements shown to the coordinator first,
+`stageR-raft-statements.md`):
+- **R2** `readyFits_intro : receiptBound GF + γ.bootLen ≤ 2^61 → ⊢ readyFits γ N` (`InvNode`), and
+  `cluster_alloc`'s post gives `γ.bootLen = boot.length`. Deviation from "cluster_alloc gives
+  readyFits": not unconditionally, since kvreconf allocates under `receiptBound ≤ 2^63` (its adequacy).
+- **R3** `nodeConfig_confAt : nodeConfig n γ N v ⊢ nodeConfig n γ N v ∗ confAt γ v.applied v.membership`.
+  `nodeConfig`'s sealed definition moved from `InvNode` to `InvNodeRule` and now holds `confAt` (the
+  module cycle otherwise: `confAt` is defined after `InvNode`). No spec statement changed;
+  `node.ApplyConfChange`'s proof derives `confAt (k+1) m'` over a new law, **`confAt_skipped`**
+  (`isCommittedLogLb γ l ∗ confAt γ a m ∗ skippedIn γ l a b ⊢ confAt γ b m`, `a ≤ b ≤ |l|`), an
+  addition beyond the approved list (pure consequence of `confAt_noConf`/`confAt_decided`).
+- **R5** One `cluster_alloc N vs ctxs boot dup E` for both forms: premise `boot ≠ [] → BootLog vs ctxs
+  boot`, taking `if boot = [] then emp else bootMarshal …`; the post's last conjunct
+  `if boot = [] then joinAuth ∗ [∗] nodeFounder else isCommittedLogLb γ boot ∗ [∗] nodeBoot γ N vs ctxs
+  id`; `ownCommittedOps γ boot`. New sealed `nodeBoot` (`InvApiBoot.lean`). The boot conf entries are
+  not decided at allocation (the client decides them with `confDecide`; each `AddNode` of a voter is a
+  no-op at the voters' membership). New `StartNode.spec` (importable), over `RestartNode`'s
+  `bootStorage` at the empty conf state, `peersCtx`, `nodeBoot`; post as `RestartNode`'s plus the
+  peers' slice. Internally `setupNode.spec` restored (raw) over the proved `RawNode.Bootstrap`.
+  **Deviation (logged, coordinator informed):** the boot form gives no `joinAuth`: raft's protocol
+  keeps the bootstrap log a prefix of every node's log (`Protocol/Ghost.lean`, `isCampK`,
+  `isLeader_boot`), which a newcomer's `RestartNode` on an empty storage breaks; supporting joiners
+  there needs that protocol invariant weakened.
+- Internal: `allocOut` carries `isCommittedLogLb γ boot`; `cluster_alloc_dec_impl`'s post gives
+  `reBoot.length = 0`. kvreconf's `StartCluster` call adapted (4 lines).
+- `#print axioms wp_StartNode`: exactly `wp_RestartNode`'s; no `sorry`.

@@ -491,6 +491,17 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## Stage R, raft side: StartNode, readyFits, nodeConfig ⊢ confAt (2026-10-30, branch `repair`)
+
+R2, R3, R5 of the repair design (`notes/raft-unified-plan.md`, "Spec changes during the repair,
+raft"): one `cluster_alloc` with or without a bootstrap log (per-voter `nodeBoot` tokens with one),
+`StartNode.spec` proved (`setupNode` restored over `RawNode.Bootstrap`), `readyFits_intro` (with
+`γ.bootLen` from the allocation), `nodeConfig_confAt` (`nodeConfig` moved to `InvNodeRule`),
+`confAt_skipped`. Raft's `Results` build with no `sorry`; `wp_StartNode`'s axioms are
+`wp_RestartNode`'s. Interfaces regenerated, `api-check` and `--layout` clean. The boot form gives no
+`joinAuth` (protocol limitation, logged). The server's new-cluster path can now be repaired over
+`StartNode.spec`.
+
 ## backend-cmp: Probe repairs (2026-10-30, branch `backend-cmp`)
 
 The user's decisions after the Probe (`notes/spec-first-study/backend-probe.md`;
