@@ -511,3 +511,19 @@ from `"\x00"` (the user's, 2026-10-30, on `g2-freeze`): every authkv key is non-
 (over the others and G2's frozen `watcher.Watch.spec`). Still open, not statements: F-C1 (`ClientOn`'s
 second `Put` spec, temporary), round 2's item 8 (`ctxErrClientAll`'s law, the thread bound).
 
+
+## Proving the stubs (2026-10-30, branch `authkv-hist`)
+
+Proved: `akHist_writeAu`, `akHist_readAu`, `newUserClient.wp_proof`. `Work.wp_proof`, in layers:
+
+1. **The principal of an attempt** (`WorkAuth.lean`): from `clientTokAt cl [addr] (akTokP γa who)`'s
+   `attemptTokOk`, `reqCtx`'s context facts (no outgoing token; `bad`'s `badtoken`) and the TLS
+   refutation, a header or auth info bound to an attempt's token (`hdrBoundT`, `infoBoundT`) has the
+   user `""` or, for `u`/`v`, `who`.
+2. **Refusals at `setupSt`**: a write's grant (`clientGrant` at `Lset`, through `akAuthFixed_write`)
+   or a read's check (`rangeAuthed`, `txnAuthOn`, `watchCheckOk`, through `akAuthFixed`'s read row)
+   for such a principal covers only keys `permittedK who`; the write's update is
+   `akHist_writeAu` with `Q` the permission (so a refused write's reply cannot exist).
+3. **The `*Client` methods with auth on** (`ClientOn.lean`): `Get`, `Delete`, `Txn`'s builder, a
+   `Put` told its grant (F-C1's second `Put` spec), the `Watcher` field.
+4. **`Work` itself**, one call at a time.
