@@ -1935,3 +1935,14 @@ the plan not fixing the text:
 - `OpenBackend`'s re-review (`notes/axiom-review/openbackend-post.md`, branch
   `axiom/openbackend-post`): the new post survives; `openMmapOk`'s bound was bbolt's, not the address
   space's. Fixed (`e9acadfc27`): `q + q/10 ≤ 2^46`, and `dbOpensOk` documents the address space.
+
+**After Probe (2026-10-30, the user's answers; `notes/spec-first-study/backend-probe.md`).**
+- **P1, P2: fix now.** `store.Compact`, `updateCompactRev` and `compactLockfree` return `hookIs` in
+  every branch; `mvcc_NewStore_backend_cmp` exports `retiredAt γ 1`. (`writeView.Put`/`DeleteRange`'s
+  same drop is left for later.)
+- **P4: for M2, compaction mode keeps the no-snapshot bound as a premise**; the multi-member gap (a
+  follower installing a snapshot while compaction runs) is a stated scope limit. Lifting it is a later
+  joint design with the collaborator (D22).
+- **P3** (the server builds the store through `New`/`newWatchableStore`, which freezes the compaction
+  revision) and the rest of the M2 list stay M2's.
+- **The 19 missing laws** behind the cross-package unfolds: added on `backend-cmp` before the merge.
