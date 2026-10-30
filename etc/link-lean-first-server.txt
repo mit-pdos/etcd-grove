@@ -391,7 +391,11 @@ EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
 # methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18:
 # `msgSnapC` never delivers in a one-member cluster.)
 backend_VerifyBackendConsistency:
-EtcdServer__snapshot:
+# (2026-10-30, the repair) `snapshot` proved (lean's `specFull`; its proof a SNAPSHOT-SORRY until
+# rewired), no longer the trust boundary
+MemoryStorage__CreateSnapshot: @
+verifyConsistentIndexIsLatest: verify_Verify SnapshotMetadata__GetIndex
+EtcdServer__snapshot: EtcdServer__Logger EtcdServer__MemberID types_ID__String EtcdServer__KV MemoryStorage__CreateSnapshot errors_Is consistentIndex__ConsistentIndex verifyConsistentIndexIsLatest storage_storage__Release SnapshotMetadata__GetIndex zap_Logger__Info zap_Uint64 zap_String zap_Bool
 # (2026-10-26) translated and proved: the compaction over raft's `MemoryStorage.Compact` (linked
 # in raft's Link)
 MemoryStorage__Compact: @

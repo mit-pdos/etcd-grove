@@ -528,6 +528,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revisio
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision__Stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newRevision
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.verifyConsistentIndexIsLatest
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
 public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
@@ -2171,9 +2172,17 @@ theorem EtcdServer.wp_shouldSnapshotToMemory :
     EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG) :=
   EtcdServer.shouldSnapshotToMemory.wp_proof
 
+theorem wp_verifyConsistentIndexIsLatest :
+    verifyConsistentIndexIsLatest.spec (GF := GF) (hG := hG) :=
+  verifyConsistentIndexIsLatest.wp_proof verify.wp_Verify raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem storage.storage.wp_Release :
+    storage.storage.Release.spec (GF := GF) (hG := hG) :=
+  storage.storage.Release.wp_proof
+
 theorem EtcdServer.wp_snapshot :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdServer.snapshot.wp_proof
+  EtcdServer.snapshot.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String EtcdServer.wp_KV MemoryStorage.wp_CreateSnapshot errors.wp_Is consistentIndex.wp_ConsistentIndex wp_verifyConsistentIndexIsLatest storage.storage.wp_Release raftpb.SnapshotMetadata.wp_GetIndex zap.Logger.wp_Info zap.wp_Uint64 zap.wp_String zap.wp_Bool
 
 theorem EtcdServer.wp_compactRaftLog :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) :=
@@ -2742,10 +2751,6 @@ theorem storage.wp_OpenBackend :
 theorem storage.wp_OpenSnapshotBackend :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) :=
   storage.OpenSnapshotBackend.wp_proof raftpb.SnapshotMetadata.wp_GetIndex snap.Snapshotter.wp_DBFilePath fmt.wp_Errorf os.wp_Rename config.ServerConfig.wp_BackendPath storage.wp_OpenBackend
-
-theorem storage.storage.wp_Release :
-    storage.storage.Release.spec (GF := GF) (hG := hG) :=
-  storage.storage.Release.wp_proof
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=
