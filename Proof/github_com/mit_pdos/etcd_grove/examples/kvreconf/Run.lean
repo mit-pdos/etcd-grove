@@ -175,47 +175,52 @@ theorem Run.wp_proof
     · -- `apply`
       unfold lintest.applySpec
       iintro %i
-      iintro !> %Φ' %Hin HAU
+      iintro !> %Φ' ⟨%Hin, Htt⟩ HAU
       obtain ⟨x, rfl, Hk, Hv⟩ := Hin
       wp_auto
       wp_if_destruct
       · -- Put
         replace Hif : x.Kind' = opPutB := Hif
         ihave HAU' := kvrAu_of_run γr γd x (fun s => kvUpd s x.Key' x.Val') (fun _ => [])
-          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
+          _
           (fun s => by unfold inStep; rw [ite_eq_left Hif])
           (fun s => by unfold inOut; rw [ite_eq_left Hif]) $$ Hinv HAU
         wp_apply wp_Put γr _ c x.Key' x.Val'
-          iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS []) -∗ Φ' #(boxS []))
+          _
           Hk Hv $$ [$Hcl $HAU'] as HΨ
         try wp_auto
         iapply HΨ
+        iframe Htt
         ipureintro; exact ⟨⟨x, rfl⟩, [], rfl⟩
       replace Hnp : ¬ x.Kind' = opPutB := Hif
       wp_if_destruct
       · -- Get
         replace Hif : x.Kind' = opGetB := Hif
         ihave HAU' := kvrAu_of_run γr γd x (fun s => s) (fun s => s x.Key')
-          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
+          _
           (fun s => by unfold inStep; rw [ite_eq_right Hnp])
           (fun s => by unfold inOut; rw [ite_eq_right Hnp]) $$ Hinv HAU
         wp_apply wp_Get γr _ c x.Key'
-          (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) -∗ Φ' #(boxS v)))
+          (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) ∗
+            @threadTok GF GooseGlobalGS.gooseAllG _ -∗ Φ' #(boxS v)))
           Hk $$ [$Hcl $HAU'] as %v HΨ
         try wp_auto
         iapply HΨ
+        iframe Htt
         ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
       · -- Read
         replace Hng : ¬ x.Kind' = opGetB := Hif
         ihave HAU' := kvrAu_of_run γr γd x (fun s => s) (fun s => s x.Key')
-          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
+          _
           (fun s => by unfold inStep; rw [ite_eq_right Hnp])
           (fun s => by unfold inOut; rw [ite_eq_right Hnp]) $$ Hinv HAU
         wp_apply wp_Read γr _ c x.Key'
-          (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) -∗ Φ' #(boxS v)))
+          (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) ∗
+            @threadTok GF GooseGlobalGS.gooseAllG _ -∗ Φ' #(boxS v)))
           Hk $$ [$Hcl $HAU'] as %v HΨ
         try wp_auto
         iapply HΨ
+        iframe Htt
         ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
     isplitr
     · -- `gen`

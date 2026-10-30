@@ -37,6 +37,7 @@ theorem Cluster.replica.wp_proof : Cluster.replica.spec (GF := GF) (hG := hG) :=
   wp_start as ⟨Hc, Hk⟩
   iunfold isClusterC at Hc
   iNamed Hc
+  wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto

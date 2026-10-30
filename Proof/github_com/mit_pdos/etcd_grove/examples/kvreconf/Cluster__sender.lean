@@ -41,7 +41,6 @@ theorem Cluster.sender.wp_proof
   try wp_auto
   ipersist c
   ipersist «from»
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   unfold sendSpec

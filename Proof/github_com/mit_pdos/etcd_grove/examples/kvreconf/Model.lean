@@ -53,6 +53,7 @@ theorem Model.wp_proof
     isplitr
     · iexact Hl
     ipureintro; exact Hs'
+  wp_auto
   wp_func_lits
   wp_auto
   iapply HΦ

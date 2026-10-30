@@ -71,6 +71,7 @@ theorem Cluster.startNew.wp_proof
   iNamed Hc'
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
+  wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto

@@ -35,8 +35,8 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   inext
   iintro HR
   wp_auto
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ $$ %l %(W64 0 + W64 1)
   iframe HR
   isplitr

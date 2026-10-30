@@ -40,8 +40,8 @@ theorem Cluster.config.wp_proof : Cluster.config.spec (GF := GF) (hG := hG) := b
   simp only [TypedPointsto.typedPointstoDef]
   icases Hos with ⟨#oV, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
   wp_auto
-  wp_alloc p as Hp
-  try wp_auto
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   iapply HΦ
   iexists _
   iframe Hp

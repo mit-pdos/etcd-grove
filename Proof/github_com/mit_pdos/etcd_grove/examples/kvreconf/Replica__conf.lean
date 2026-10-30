@@ -40,6 +40,7 @@ theorem Replica.conf.wp_proof : Replica.conf.spec (GF := GF) (hG := hG) := by
   iclear Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
+  wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto
