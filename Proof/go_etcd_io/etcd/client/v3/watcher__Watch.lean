@@ -41,7 +41,7 @@ theorem watcher.Watch.wp_proof
     watcher.Watch.spec (GF := GF) (hG := hG) := by
   intro w V γ ctx cs key sl gs rev Q n
   wp_start as ⟨#Hw, %Hkst, #Hctx, #Hopts, %Hreq, #Hbound, #Hau⟩
-  obtain ⟨Hrw, Hnp, Hrev1, -⟩ := Hreq
+  obtain ⟨Hrw, Hnp, Hrev1⟩ := Hreq
   have Hrev : 0 ≤ sint.Z rev := by omega
   -- (D47) a first firing of the read update (at the start log), for the responses that report nothing
   ihave #Hw0 := Hw

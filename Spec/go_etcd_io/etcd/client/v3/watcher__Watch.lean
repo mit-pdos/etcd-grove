@@ -28,9 +28,9 @@ to `"\x00"` (`v3rpc/watch.go:266-269`), so the events are of the watch's range w
 normalized (`OpFull.watchNorm`; a non-empty key's range unchanged, `OpFull.watchNorm_of_ne`), not
 of the range from `""`, which also contains the empty key (the KV model does not say that no
 stored key is empty). The row is of the request's own key and range end, as the server checked
-them. **Not the empty key alone** (`notes/decisions.md`, "G2's freeze: `Watch` excludes the empty
-key's single-key watch"): `Watch(ctx, "")` with no options is excluded by a premise, kept from
-before the normalization.
+them. With the normalization, `Watch(ctx, "")` with no options is the single key `"\x00"`: the
+premise that excluded it (`notes/decisions.md`, "G2's freeze: `Watch` excludes the empty key's
+single-key watch") was dropped once unused (2026-10-30).
 -/
 module
 
@@ -69,8 +69,7 @@ abbrev watcher.Watch.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
       context.isContext ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
-        1 ≤ sint.Z rev ∧
-        ((opWatchModel key opts).key = [] → (opWatchModel key opts).base.rangeEnd ≠ [])⌝ ∗
+        1 ≤ sint.Z rev⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ, COMM □ Q σ }>) }}

@@ -630,7 +630,7 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     · ipureintro; exact Hkst
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by omega, fun h => absurd (hkey.symm.trans h) hp⟩
+      refine ⟨?_, hnp, by omega⟩
       unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
       exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
     isplitr

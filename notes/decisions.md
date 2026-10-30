@@ -26716,6 +26716,10 @@ Perennial pin brings `wp_slice_literal_nonnull` (branch `slice-literal-nonnull`)
 at the boundary inputs" against the server's normalization of the request: the three review rounds
 checked from-key ranges (F5) but not the empty key's rewrite.
 
+**Superseded (2026-10-30, the user's request):** the premise is dropped. With `Watch.spec`'s range
+normalized (`OpFull.watchNorm`, "G2's freeze: `Watch`'s range from `""` starts at `"\x00"`"),
+`Watch(ctx, "")` is the single key `"\x00"`, which the spec now states correctly; the proof no longer
+used the premise.
 
 ## G2's freeze: `upOk` keeps a create's bound (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
 
