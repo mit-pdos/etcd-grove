@@ -80,6 +80,34 @@ theorem opHistOk_put_a (who n v : GoString) (hw : writerK (keyOfK go!"a" go!"u" 
   obtain ⟨rfl, hr⟩ := akOpGranted_put who _ v (keyOfK_ne_nil _ _ _ (by decide)) h
   exact opHistOk_putKey _ _ (Or.inl (by rw [hw]; exact ⟨rfl, hr⟩))
 
+/-- **A range reply's keys are in its range** (`srvRangeOk`: the state's range, cut, sorted and
+read). -/
+theorem srvRangeOk_keys (o : OpFull) (st kvs : List EtcdKv) (more : Bool)
+    (h : txn.srvRangeOk o st kvs more) :
+    ∀ kv ∈ kvs, inRange o.key o.base.rangeEnd kv.key = true := by
+  obtain ⟨l, ⟨hperm, -⟩, -, rfl⟩ := h
+  intro kv hkv
+  obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hkv
+  have hvl : v ∈ l := by
+    unfold txn.srvTrunc at hv
+    split at hv
+    · exact List.mem_of_mem_take hv
+    · exact hv
+  have hvp := hperm.mem_iff.1 hvl
+  unfold txn.srvPre at hvp
+  split at hvp
+  · simp at hvp
+  obtain ⟨hvm, -⟩ := List.mem_filter.1 hvp
+  obtain ⟨w, hw, rfl⟩ := List.mem_map.1 hvm
+  have hw' : w ∈ rangeIn st o := by
+    unfold mvcc.takeLimit at hw
+    split at hw
+    · exact List.mem_of_mem_take hw
+    · exact hw
+  have hk := (List.mem_filter.1 hw').2
+  unfold txn.respKv txn.kvRead
+  split <;> split <;> simpa using hk
+
 end pure
 
 section calls
@@ -220,6 +248,81 @@ theorem work_delete (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
   · ihave %Hq := deleteReplied_Q _ _ _ _ _ _ _ _ $$ Hr
     ipureintro; intro _; exact Hq
   · ipureintro; intro h; exact absurd h Herr.1
+
+/-- **`cli.Get(ctx, key, opts...)` of `who`'s** (no sort, no panic): a reply with no error was
+granted at `setupSt` to a user of `who`'s, for the request's range (`akRead_granted`), and its
+keys are in that range (`srvRangeOk_keys`). -/
+theorem work_get (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+    (gs : List (OpFull → OpFull)) (hγa : E.authMode = .on γa)
+    (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
+    (hg : ¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1)
+    (hs : (opGetModel key gs).base.sortSet = false) :
+    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
+        optsAt sl gs }}
+      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        ⌜err ≠ GoInterface.nil⌝ ∨
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
+          ⌜(∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
+              akUser who info.Username' ∧
+              apply.authEndOf (rangeWireOf (opGetModel key gs)).base.rangeEnd e ∧
+              auth.granted (setupSt r) (auth.authInfoM info) (rangeWireOf (opGetModel key gs)).key
+                e .read) ∧
+            ∀ kv ∈ m.kvs, inRange (rangeWireOf (opGetModel key gs)).key
+              (rangeWireOf (opGetModel key gs)).base.rangeEnd kv.key = true⌝) }} := by
+  iintro %Φ ⟨#Henv, #Hctx, #Hce, #Hopts⟩ HΦ
+  iunfold akCallEnv at Henv
+  icases Henv with ⟨#Pc, #Hkvf, #Hobj, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
+  iunfold akKVOn at Hkv
+  icases Hkv with ⟨-, #Hrange, -, -⟩
+  ihave #Hpub : auth.authPubLbM E.authMode n $$ []
+  · rw [hγa]
+    iunfold akAuthFixed at Hf
+    icases Hf with ⟨#Hp, -⟩
+    unfold auth.authPubLbM
+    iexact Hp
+  imod (monoNatLbOwn_0 (GF := GF) ρ.rd.committed) with #H0
+  ihave #Hc0 : committedAtLeast ρ.rd (W64 0) $$ []
+  · unfold committedAtLeast
+    rw [show uint.nat (W64 0) = 0 from rfl]
+    iexact H0
+  ihave Hres := optsAt_res sl gs iprop(True) $$ Hopts
+  iapply wp_fupd
+  wp_apply (client_Get_on cl api conn _ s E ρ.rd cid mid (W64 0) n ci cd key sl gs iprop(True)
+      (fun _ => iprop(True)) []) $$ [Hres] as %resp %err Hout
+  · iframe #
+    isplitl []
+    · itrivial
+    rw [hs]
+    isplitl []
+    · unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    isplitl []
+    · ipureintro; exact hg
+    iintro !>
+    ileft
+    ipureintro; rfl
+  icases Hout with ⟨-, (⟨%Herr, %m, #Hm, #Hok, %md, %Hmd, #Hauth⟩ | ⟨%Herr, -⟩)⟩
+  · ihave #Hseen := akTokSeen_attempt γa who conn md (by rw [← hout]; exact Hmd) $$ Hat
+    imod (akRead_granted s E γa ρ ρ.rd Lset n who (W64 0) _ _ hγa) $$ [] Hauth with %Hg
+    · iframe #
+    imodintro
+    iapply HΦ
+    iunfold rangeReplyOk at Hok
+    icases Hok with ⟨%log, -, -, %Hl, -⟩
+    iright
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m
+    iframe Hm
+    ipureintro
+    exact ⟨Hg, srvRangeOk_keys _ _ _ _ Hl.2.2.2.2.2.2.2.1⟩
+  · imodintro
+    iapply HΦ
+    ileft
+    ipureintro; exact Herr.1
 
 end calls
 
