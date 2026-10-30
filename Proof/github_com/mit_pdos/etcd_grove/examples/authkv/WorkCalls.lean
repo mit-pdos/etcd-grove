@@ -108,6 +108,72 @@ theorem srvRangeOk_keys (o : OpFull) (st kvs : List EtcdKv) (more : Bool)
   unfold txn.respKv txn.kvRead
   split <;> split <;> simpa using hk
 
+/-! ### `Work`'s three ranges -/
+
+/-- A key in `[a, b)` is `u`'s to read. -/
+theorem permitted_of_inRange_ab (k : GoString) (h : inRange lo hi k = true) :
+    permittedK go!"u" k := by
+  unfold inRange at h
+  rw [if_neg (by decide), if_neg (by decide)] at h
+  simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not,
+    decide_eq_true_eq] at h
+  refine ⟨rfl, ?_, h.2⟩
+  by_cases hl : go.GoStringLt lo k
+  · exact Or.inr hl
+  · exact Or.inl (go.goStringLt_eq_of_not_lt hl h.1)
+
+/-- `Get(lo, WithRange(hi))`: the range `[a, b)`, sent as is. -/
+theorem get_ab_ok : (¬ opGetPanics [withRangeM hi] ∧ (opGetModel lo [withRangeM hi]).t = W64 1) ∧
+    (opGetModel lo [withRangeM hi]).base.sortSet = false ∧
+    (rangeWireOf (opGetModel lo [withRangeM hi])).key = lo ∧
+    (rangeWireOf (opGetModel lo [withRangeM hi])).base.rangeEnd = hi :=
+  ⟨⟨by simp [opGetPanics, opFold, withRangeM, OpFull.newOp], rfl⟩, rfl, rfl, rfl⟩
+
+/-- `Get("c/", WithPrefix())`: the range `[c/, c0)`. -/
+theorem get_c_ok : (¬ opGetPanics [withPrefixM] ∧ (opGetModel go!"c/" [withPrefixM]).t = W64 1) ∧
+    (opGetModel go!"c/" [withPrefixM]).base.sortSet = false ∧
+    (rangeWireOf (opGetModel go!"c/" [withPrefixM])).key = go!"c/" ∧
+    (rangeWireOf (opGetModel go!"c/" [withPrefixM])).base.rangeEnd = go!"c0" :=
+  ⟨⟨by simp [opGetPanics, opFold, withPrefixM, OpFull.newOp], rfl⟩, rfl, rfl, by decide⟩
+
+/-- `Get(lo, WithRange("d"))`: the range `[a, d)`. -/
+theorem get_past_ok :
+    (¬ opGetPanics [withRangeM go!"d"] ∧ (opGetModel lo [withRangeM go!"d"]).t = W64 1) ∧
+    (opGetModel lo [withRangeM go!"d"]).base.sortSet = false ∧
+    (rangeWireOf (opGetModel lo [withRangeM go!"d"])).key = lo ∧
+    (rangeWireOf (opGetModel lo [withRangeM go!"d"])).base.rangeEnd = go!"d" :=
+  ⟨⟨by simp [opGetPanics, opFold, withRangeM, OpFull.newOp], rfl⟩, rfl, rfl, rfl⟩
+
+/-- **A read of `[a, b)` granted at `setupSt` to a user of `who`'s is `u`'s.** -/
+theorem read_ab_u (who : GoString)
+    (h : ∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
+      akUser who info.Username' ∧ apply.authEndOf hi e ∧
+      auth.granted (setupSt r) (auth.authInfoM info) lo e .read) : who = go!"u" := by
+  obtain ⟨r, info, e, hu, he, hg⟩ := h
+  rcases he with rfl | ⟨-, h0⟩
+  · exact granted_ab_u r who _ _ hu hg
+  · exact absurd h0 (by decide)
+
+/-- **No read of `[c/, c0)` is granted at `setupSt` to a user of `who`'s.** -/
+theorem read_c_refused (who : GoString)
+    (h : ∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
+      akUser who info.Username' ∧ apply.authEndOf go!"c0" e ∧
+      auth.granted (setupSt r) (auth.authInfoM info) go!"c/" e .read) : False := by
+  obtain ⟨r, info, e, hu, he, hg⟩ := h
+  rcases he with rfl | ⟨-, h0⟩
+  · exact not_granted_c r who _ _ hu hg
+  · exact absurd h0 (by decide)
+
+/-- **No read of `[a, d)` is granted at `setupSt` to a user of `who`'s.** -/
+theorem read_past_refused (who : GoString)
+    (h : ∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
+      akUser who info.Username' ∧ apply.authEndOf go!"d" e ∧
+      auth.granted (setupSt r) (auth.authInfoM info) lo e .read) : False := by
+  obtain ⟨r, info, e, hu, he, hg⟩ := h
+  rcases he with rfl | ⟨-, h0⟩
+  · exact not_granted_past r who _ _ hu hg
+  · exact absurd h0 (by decide)
+
 end pure
 
 section calls
