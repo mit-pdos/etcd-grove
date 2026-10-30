@@ -485,9 +485,14 @@ specs: raft's own `sorry`s (raft-final's proofs are being finished: e.g. `readyR
 `notes/perennial-changes.md`). Go changes (each in `notes/decisions.md`, "kvreconf-final"):
 `validConf` below `2^61` ids, `copyMsg` instead of `proto.Clone` of a message, `step` drops on any
 error. Raft API gaps found and fixed on raft's side: `Membership.Valid.snapListsOk'`,
-`readyRest_indices`, `ownSnapM_combine` importable. In progress: `RandomOptions`, `RandomConfig`,
-`Run`, `Main`, `Link.lean` (`etc/gen-link.py --kvreconf`), `Adequacy`, `Results`
-(`kvreconf_porcupine_safe`). The plan's "kvreconf-final" section has the structure.
+`readyRest_indices`, `ownSnapM_combine` importable. Also proved: `RandomOptions`, `RandomConfig`, `Run`, `Main`
+(allocating the storage registry), `Adequacy` (`kvreconf_adequate_of`). Generated/written, waiting on
+raft's `Link` to build (raft-final's `raft__tickElection` at 64e7e7b9a3): `Link.lean`
+(`etc/gen-link.py --kvreconf`), `AdequacyLinked`, `Results` (`kvreconf_porcupine_safe`). The one
+`sorry` of kvreconf's chain: `run_apply_read` (`ReadAtomic.lean`), a logically atomic `Cluster.Read`
+in `Get`'s shape, which lintest's client closure needs; the user chose to prove it by prophecy,
+its spec to be designed and signed off first (the plan's "the read path" section). The plan's
+"kvreconf-final" section has the structure.
 
 ## `examples/kvreconf`'s proof, track C: the leaf layer (2026-10-29, branch `raft-unified-kvreconf`)
 
