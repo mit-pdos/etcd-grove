@@ -1177,6 +1177,10 @@ Phase 2 (internal statement changes):
 - Requested by the coordinator for kvreconf (assigned to P6): `readyRest_indices` (`InvNode`), with a
   pure indices conjunct added to `readySnap none`'s body.
 
+- Moved to the importable `InvPb` (the coordinator's request, for kvreconf): `csPts_combine_open`,
+  `csOptA_combine`, `smPts_combine`, `smOpt_combine`, `ownSnapM_combine`, `snapOpt_combine` (were in
+  the internal `InvRawnodeReady`); `msgOwn_combine` stays.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
