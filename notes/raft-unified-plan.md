@@ -1716,4 +1716,11 @@ and k8s's apiserver storage. Done items are marked in the sorry list above as th
 
 ## Repair: Stage P changes (2026-10-30)
 
-Internal invariant/statement changes decided during stage P (none yet).
+Internal invariant/statement changes decided during stage P (by the stage P lead; none is exported).
+
+- **P1 `dvView_cc`** (`InvCfgView`, internal): its premise `Hdyn` gains `∀ x, ¬ RemovedIn (γs.pre ++ L) x`.
+  Why: after T1d dropped `srvDynPol`, `srvCfgOk V D v` admits a view `W ⊊ V` (voters removed by a
+  `RemoveNode` in `D`), and an `AddNode` of `x ∈ V \ W` then needs a raft law for adding a non-voter
+  (the sealed API has `_addVoter`, `_nodeZero`, `_removeVoter`, `_removeAbsent` only). Under D3 no
+  `RemoveNode` is ever committed: callers discharge it with the new `srv_noRemovedIn` (`srvRaftLogInv`
+  and a committed bound). Affects only `EtcdServer__apply.lean`'s two calls (S-D).
