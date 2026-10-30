@@ -1832,3 +1832,93 @@ prints).
   sorries): no new axiom, no new `sorry`. No Perennial change, no generated file edited.
 - `notes/STATUS.md` not edited on this branch (to keep the merge with `m2-storage` trivial): at the
   merge, item 32 moves to switched and item 33 to dropped.
+
+## The restore chain, mvcc part (2026-10-30)
+
+On `m2-storage` after the merge of `m2-index` (`3fb21d0515`), in parallel with `m2-backend` (the
+backend package, `BackendBridge.lean`, `StoreBackend.lean`, the records clause, the view widening),
+whose files were not touched. No `axiom`, no `sorry`, no Perennial change, no generated file edited
+(`Link.lean`'s `store.restore` line follows `etc/link-lean-first-mvcc.txt`; `etc/gen-link.py --mvcc`
+gives the same file but for the two `raftAsm` variable lines `b1542227ac` added by hand).
+`notes/decisions.md`: "`store.restore` over a compacted image, switched", "`SetScheduledCompact` by
+the hook's state", "B2, the receipt bound as a premise of `NewServer.specCompact`".
+
+### Item 18 proved and switched (internal)
+
+- **`store.restore.spec` is the drafted `specR`** (`Spec/.../mvcc/store__restore.lean`), proved
+  (`store__restore.lean`, 840 lines: the found record's lock round with `compactMainRev` written whole,
+  the scheduled record, the chunk loop over the image's entries, `currentRev` raised to the two records,
+  the index published at the restored level, the resumed compaction through `resumeK`, the logging on
+  either error). Changes from the draft (decisions entry): the records' resource is a parameter `NC`
+  (`kbRecs` stays the backend's); the lock's ghost part at the level is `idxLockGAt γ n r.crev` in place
+  of `idxLockG ∗ crevLb`; `∀ x, r.fin = some x → dqc • dql = DFrac.own 1`. New callees: `zap.String`,
+  `zap.Error`, `zap.Logger.Warn`.
+- **Pure** (`RestoreCut.lean`): `bucketOfEnts` (moved) and its lookup over a sublist of the log's
+  entries, the range from a revision (`bucketRange_fromE`), the next chunk (`entsFromE_next`),
+  `restoreOk_sublist`, and **`restoreCur_cut`**: the rebuild's answer raised to the finished, then
+  the scheduled record is the log's last revision (the last revision's entries survive, or they were
+  deleted and the restored revision, a record, is at it). `CmpRecs.crev_ge`.
+- **The index** (`IdxPriv.lean`): `idxLockGAt`, `idxLockG_at`, `idxCmpOwn_nil`, **`idx_publishAt`**
+  (over `idxRestore_cut`).
+- **Item 27's vocabulary** (`RestoreRecs.lean`, moved from the Draft): beside today's, not in its place
+  (the bridge's vocabulary is the backend side's); `restoreViewR` over `NC`; `revFinW`,
+  `restoreDone` (over `NC`), `resumeK`.
+- **Today's users unchanged**: `store.restore.specNC` (`RestoreNC.lean`) is the old text,
+  `specNC_of_spec` derives it; `NewStore` and `store.Restore` convert in one line.
+- **Hypotheses from the backend side: none** for `store.restore` itself (it is generic over the
+  backend contract `isKeyBackendGR … NC r` and the clean read `keyCleanReadR`). Its caller in
+  compaction mode (`store.Restore.specM`, item 15) needs, as before: `keyCleanRead_of_backendC`
+  (the records' clean read, `mvcc.keyCleanRead_of_backendC_stmt`, over the backend's records clause,
+  item 29/30) and `kbView_widen` (item 37).
+
+### Item 31: `SetScheduledCompact` switched; the store's chain waits on the bridge
+
+- **`SetScheduledCompact.spec` by the hook's state** (`lockArmS`, `LockArm.lean`; `lockNilSpec` moved
+  there), proved for both arms; `updateCompactRev` passes `some f`.
+- **Not switched**: `lockCtxM`/`lockBackM`, `updateCompactRev.specR`/`compactLockfree.specR`,
+  `resumeHookM` (Chain and Restore Drafts). The `none` arm needs `lockNilSpec` for the store's batch
+  transaction, which only the backend contract can give: `batchTxSpecG`'s new clause `lockNilSpec bt RT
+  WT W P (kbHookNil kb) Locked`, proved by the bridge (`isKeyBackendG_of_backendC`, `BackendBridge.lean`,
+  `m2-backend`'s) with `bt_lockInNil` (proved, Draft). After it lands: add the clause, switch the chain
+  (its proofs are today's at `some f`, plus the `none` arm through `SetScheduledCompact`'s).
+
+### B2 drafted (`etcdserver/M2StorageDraftB2.lean`; for the user)
+
+- **The premise** (of `NewServer.specCompact` only, beside `receiptBound GF ≤ 2 ^ 48`):
+
+      srvChBound ρ.rd.raft ρ.rd.kv srvAuthSt0
+      -- srvChBound γ γk st₀ := □ ∀ L, srvReqLogLb γ L -∗ ⌜logCh (kvModelOn γk st₀ L) < receiptBound GF⌝
+
+  the KV model of every prefix of the cluster's log of requested entries has fewer changes than the
+  receipts' bound. Off mode needs none (whole-bucket images; the rebuild refills the writer).
+- **Glue (proved)**: `srvChBound_committed` (a committed log's model, through `srvReqLogLb_of_rlogLb`
+  and `kvRaftOfOn_eqv`), `restoreBoundM_of_chBound` (what `restoreBoundM` gave `Restore.specM`, for the
+  image of the snapshot's committed entries), `srvChBound_small` (`< receiptBound` and, with
+  `receiptBound GF ≤ 2 ^ 48`, `< 2 ^ 48`: `soleWriter_small'`'s conclusion), and the mvcc side's
+  `mvcc.idxWriterNR_seal` (a seal with the caller's bound in place of the writer's receipts: the sealed
+  log is today's `idxSealed`, so `idxSealed_small` and `soleWriter_small'` are unchanged).
+- **Open (for the user)**: the premise is an Iris fact about the cluster's future history; the closed
+  theorems' hypotheses are pure, and `putgetc`'s `Main` (`specCompact`, one member) cannot establish
+  it. Options: (i) a pure form, a bound on the cluster's committed history from a workload descriptor
+  (each change of the KV log comes from a put of a request, `≤ MaxTxnOps` per entry, a delete
+  deleting earlier puts' keys, so `logCh ≤ 2 · MaxTxnOps · |committed entries|`, with a bound on the
+  committed entries as the configuration premise); (ii) a gate excluding it where no image is
+  installed (a one-member cluster that never adds members); (iii) as drafted, the examples' top-level
+  theorems taking it as a premise in Iris form (not possible with today's adequacy).
+- `restoreBoundM` (item 36) stays in `Restore.specM`'s Draft until the user picks; with B2 its source
+  is `restoreBoundM_of_chBound`.
+
+### Not done
+
+- Item 15/16 (`store.Restore.specM`, D22's): waits on 30 (the backend's records clause), 37 (the view
+  widening), the chain's switch (item 31's rest), B2's source; the restored writer's handle in
+  compaction mode (`idxWriterNR` with `idxWriterNR_seal`) is its part.
+
+### Checked
+
+- `etc/lean-check.py -a` on every changed or new file.
+- Targeted `lake build` of mvcc's `Results`, the mvcc and etcdserver Drafts (4351 jobs, no error).
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11211 jobs, no error.
+- `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries); all 43
+  `etc/tcb-collections/*.txt` `--check` match.
+- `notes/STATUS.md` not edited on this branch (to keep the merge with `m2-backend` trivial).

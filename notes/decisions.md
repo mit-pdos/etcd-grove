@@ -26841,3 +26841,67 @@ key; `KeyOnceAt` is gone (item 33), with its apply-side obligation.
 The switch (item 32) is internal: `idxLockInv`'s `HL` is `IdxCRepN`; `idx_publish` still takes the
 private index's `IdxCRep (-1)` (a compaction-free rebuild) and converts it. No exported statement
 changed.
+
+## M2's storage side: `store.restore` over a compacted image, switched (2026-10-30, item 18; with item 27)
+
+**2026-10-30 · accepted (internal statement, decided at the switch); switched on branch `m2-storage`**
+
+`store.restore.spec` is the drafted `specR` (approved design, item 18), with three changes found by the
+proof, all internal:
+- **The records' resource is a parameter `NC`**, not `kbRecs γ.kb γ.bucket r`: `restore()` only
+  lends it to the read transaction's meta clause and gives it back, and `kbRecs` names the backend's
+  merged compaction-key ghost (item 29's backend part, the backend side's). `restoreViewR` (item 27)
+  takes `NC` likewise. The caller (`store.Restore` in compaction mode) instantiates it with `kbRecs`;
+  `kbMW` from it is the caller's (`kbRecs_MW`, `kbNoCmp_MW`).
+- **The index's lock at the restored level is one predicate**, `idxLockGAt γ n c` (`IdxPriv.lean`):
+  `idxLockG`'s, with the compaction revision's lower bound at `c`, a lower bound of the committed log
+  past `c`, and the compactor's state at `c` (`idxLockG_at`: at `-1` it is `idxLockG`). The draft's
+  `idxLockG ∗ crevLb γ r.crev` was not enough: the lock invariant also needs `c < |log₀|` and the
+  compactor's revision `≥ c` (`idxCmpOwn`). Publishing at `c`: `idx_publishAt`, with
+  `idxRestore_cut` as its input.
+- **The found record's write needs the whole `compactMainRev`**: the premise `∀ x, r.fin = some x →
+  dqc • dql = DFrac.own 1` (restore's part and the first lock round's).
+
+Item 27's vocabulary (`keyReadLockedR`, `keyReadSnapR`, `keyReadSnapCR`, `keyCleanReadR`,
+`isKeyBackendGR`, `restoreViewR`) is switched **beside** today's (`RestoreRecs.lean`), with the `_empty`
+equations, not in their place as the approval list's "with `r` a parameter of default `empty`" says:
+today's are the backend bridge's vocabulary (`BackendBridge.lean`), which the backend side changes on
+its own branch; replacing them is a rename once both land.
+
+One spec per function: today's text is kept as a derived statement, `store.restore.specNC`
+(`RestoreNC.lean`), with `specNC_of_spec`; `NewStore` and `store.Restore` take the spec and convert it
+in one line, so their statements and proofs are otherwise unchanged.
+
+## M2's storage side: `SetScheduledCompact` by the hook's state (2026-10-30, item 31, in part)
+
+**2026-10-30 · accepted (internal statement); switched on branch `m2-storage`**
+
+`SetScheduledCompact.spec` takes the hook's state `hk : Option val` and the critical section's context
+`lockArmS` (`LockArm.lean`): `some f`, today's (`HF f`, the hook's triple, `Q ∗ W ={⊤}=∗ P ∗ W ∗
+Post`); `none`, the unset hook `HN` with `lockNilSpec` (moved from the Draft) and `Pre ∗ HN ={⊤}=∗
+Post` (`P` passes from `LockInsideApply` to `Unlock`). The nil arm takes `lockNilSpec` in its own
+pre rather than from `batchTxSpecG`: `SetScheduledCompact` is generic over the batch transaction, and
+`lockNilSpec` is all it needs. The store's chain (`lockCtxM`, `updateCompactRev`/`compactLockfree`
+by the hook's state, `resumeHookM`) is **not** switched: at the store, `lockNilSpec` for the store's
+batch transaction can only come from its backend contract, i.e. `batchTxSpecG`'s new clause, whose
+proof is the backend bridge's (`isKeyBackendG_of_backendC`, `BackendBridge.lean`, the backend side's
+branch; its one new step is `bt_lockInNil`, proved). It waits for that.
+
+## M2's storage side: B2, the receipt bound as a premise of `NewServer.specCompact` (2026-10-30, drafted)
+
+**2026-10-30 · drafted for the user (trusted statement)**
+
+The user's B2 (Q8 (b)) supersedes Q8 (a) (`restoreBoundM` from the apply side; "M2's storage side"
+entries above that assume it). Drafted (`etcdserver/M2StorageDraftB2.lean`): `srvChBound γ γk st₀ :=
+□ ∀ L, srvReqLogLb γ L -∗ ⌜logCh (kvModelOn γk st₀ L) < receiptBound GF⌝`, a premise of
+`NewServer.specCompact` only, at `ρ.rd.raft ρ.rd.kv srvAuthSt0`. Why over the request log's prefixes:
+they are the server's view of the cluster's committed history (`srvReqLogLb_of_rlogLb`: every committed
+log is equivalent to one, `kvRaftOfOn_eqv`), so one statement covers both the images a member installs
+(the leader's logs) and every log its own store reaches after one. Why compaction mode only: off, every
+image is a whole bucket and the rebuild's receipts refill the writer (today's). Glue proved:
+`restoreBoundM_of_chBound`, `srvChBound_small` (`< receiptBound` and `< 2^48`), and the mvcc side's
+seal with the caller's bound (`mvcc.idxWriterNR_seal`: the sealed log is today's `idxSealed`).
+**Open:** the premise is an Iris fact about the future history; the closed theorems take pure
+hypotheses, and `putgetc`'s `Main` (the one compacting example, one member) has no way to establish it.
+A pure form needs a bound on the cluster's committed history in terms of the workload; or a gate that
+drops it where no image is ever installed. For the user.
