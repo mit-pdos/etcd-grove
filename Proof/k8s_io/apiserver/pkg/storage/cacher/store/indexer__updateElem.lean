@@ -69,42 +69,53 @@ theorem indexer.updateElem.wp_proof
     iintro %i %name %f ⟨%Hname, %Hf⟩ HP
     iNamed HP
     (try wp_auto)
-    wp_if_destruct
-    -- `old` is `nil`: `oldIndexValues[:0]`
-    ihave %Hl := ownSlice_len s1 (DFrac.own 1) v1 $$ Hs1
-    ihave %Hw := ownSlice_wf s1 (DFrac.own 1) v1 $$ Hs1
-    icases (ownSlice_slice (V := GoString) (W64 0) (W64 0) s1 (DFrac.own 1) v1
-      ⟨by word, by word, by word⟩).1 $$ Hs1 with ⟨-, Hs1, -⟩
-    have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧
-        sint.Z (W64 0) ≤ sint.Z s1.cap := ⟨by word, by word, by word⟩
-    simp only [hb, and_self, ↓reduceIte]
-    (try wp_auto)
-    rotate_left
-    -- otherwise, the index function's values
-    icases Hold with (%Hon | #Hel)
-    · exfalso; simp_all
-    ihave #Hfi := BigSepM.bigSepM_lookup (Φ := fun _ f => isIndexFn (GF := GF) f) Hf $$ Hfs
-    iunfold isIndexFn at Hfi
-    iclear Hs1
-    (try wp_auto)
-    wp_apply Hfi $$ [] as %sl %vs Hs1
-    · iexact Hel
-    (try wp_auto)
-    iclear Hfi Hel
-    rotate_left
-    all_goals (
-      wp_if_destruct
-      -- `new` is `nil`: `indexValues[:0]`
+    rename_i fi
+    -- `if oldObj != nil { … } else { … }`, joined: the rest of the body is proved once
+    wp_join (iprop(∃ (s : GoSlice) (vs : List GoString), "oldIndexValues" ∷ oldIndexValues_ptr ↦ s ∗
+        "Hs1" ∷ s ↦* vs ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗ "oldObj" ∷ oldObj_ptr ↦ old ∗
+        "indexFunc" ∷ indexFunc_ptr ↦ fi)) with [oldIndexValues Hs1 err oldObj indexFunc]
+        as ⟨%os, %ovs, oldIndexValues, Hs1, err, oldObj, indexFunc⟩
+    · -- `old` is `nil`: `oldIndexValues[:0]`
+      ihave %Hl := ownSlice_len s1 (DFrac.own 1) v1 $$ Hs1
+      ihave %Hw := ownSlice_wf s1 (DFrac.own 1) v1 $$ Hs1
+      icases (ownSlice_slice (V := GoString) (W64 0) (W64 0) s1 (DFrac.own 1) v1
+        ⟨by word, by word, by word⟩).1 $$ Hs1 with ⟨-, Hs1, -⟩
+      have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧
+          sint.Z (W64 0) ≤ sint.Z s1.cap := ⟨by word, by word, by word⟩
+      simp only [hb, _root_.and_self, ↓reduceIte]
+      (try wp_auto)
+      try wp_join_done
+      try (iexists _, _; simp only [named]; iframe)
+    · -- otherwise, the index function's values
+      icases Hold with (%Hon | #Hel)
+      · exfalso; simp_all
+      ihave #Hfi := BigSepM.bigSepM_lookup (Φ := fun _ f => isIndexFn (GF := GF) f) Hf $$ Hfs
+      iunfold isIndexFn at Hfi
+      iclear Hs1
+      (try wp_auto)
+      wp_apply Hfi $$ [] as %sl %vs Hs1
+      · iexact Hel
+      (try wp_auto)
+      iclear Hfi Hel
+      try wp_join_done
+      try (iexists _, _; simp only [named]; iframe)
+    -- `if newObj != nil { … } else { … }`, joined
+    wp_join (iprop(∃ (s : GoSlice) (vs : List GoString), "indexValues" ∷ indexValues_ptr ↦ s ∗
+        "Hs2" ∷ s ↦* vs ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗ "newObj" ∷ newObj_ptr ↦ new ∗
+        "indexFunc" ∷ indexFunc_ptr ↦ fi)) with [indexValues Hs2 err newObj indexFunc]
+        as ⟨%ns, %nvs, indexValues, Hs2, err, newObj, indexFunc⟩
+    · -- `new` is `nil`: `indexValues[:0]`
       ihave %Hl := ownSlice_len s2 (DFrac.own 1) v2 $$ Hs2
       ihave %Hw := ownSlice_wf s2 (DFrac.own 1) v2 $$ Hs2
       icases (ownSlice_slice (V := GoString) (W64 0) (W64 0) s2 (DFrac.own 1) v2
         ⟨by word, by word, by word⟩).1 $$ Hs2 with ⟨-, Hs2, -⟩
       have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧
           sint.Z (W64 0) ≤ sint.Z s2.cap := ⟨by word, by word, by word⟩
-      simp only [hb, and_self, ↓reduceIte]
+      simp only [hb, _root_.and_self, ↓reduceIte]
       (try wp_auto)
-      rotate_left
-      -- otherwise, the index function's values
+      try wp_join_done
+      try (iexists _, _; simp only [named]; iframe)
+    · -- otherwise, the index function's values
       icases Hnew with (%Hon | #Hel)
       · exfalso; simp_all
       ihave #Hfi := BigSepM.bigSepM_lookup (Φ := fun _ f => isIndexFn (GF := GF) f) Hf $$ Hfs
@@ -115,16 +126,8 @@ theorem indexer.updateElem.wp_proof
       · iexact Hel
       (try wp_auto)
       iclear Hfi Hel
-      rotate_left)
-    all_goals (
-      ihave Hov : (∃ (s : GoSlice) (vs : List GoString), oldIndexValues_ptr ↦ s ∗ s ↦* vs)
-        $$ [oldIndexValues Hs1]
-      · iexists _, _; iframe
-      ihave Hnv : (∃ (s : GoSlice) (vs : List GoString), indexValues_ptr ↦ s ∗ s ↦* vs)
-        $$ [indexValues Hs2]
-      · iexists _, _; iframe
-      icases Hov with ⟨%os, %ovs, oldIndexValues, Hs1⟩
-      icases Hnv with ⟨%ns, %nvs, indexValues, Hs2⟩)
+      try wp_join_done
+      try (iexists _, _; simp only [named]; iframe)
     all_goals (
       iunfold ownIndices at Hind
       icases Hind with ⟨%m1, Hm1, Hixm⟩
