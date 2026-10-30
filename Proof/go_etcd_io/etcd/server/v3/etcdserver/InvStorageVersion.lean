@@ -60,6 +60,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The storage-version monitor's resources but its write budget** (see the file header): a
 reader slot of `s.bemu` at the current backend's ghost variable `E.γbe`, and one of `s.lgMu`. -/

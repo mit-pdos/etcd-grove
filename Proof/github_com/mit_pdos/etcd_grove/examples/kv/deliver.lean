@@ -62,7 +62,7 @@ set_option hygiene false in
 /-- The tail of an iteration that steps the wire's copy of the message `q` into its node `n`:
 the copy's struct built from `m`'s fields' loads (`iNamed`), the appended entries slice and
 (D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `stepIn`
-(`stepIn_intro`, `deliverable_step`), `Node.Step`. Expects the tick credit `Htc`, the
+(`stepIn_intro`), `Node.Step`. Expects the
 message's credits `Hc1`, `Hmok`, `HisNode`, and the loop's `Hk1`. -/
 local macro "deliver_tail " snc:term : tactic =>
   `(tactic| (
@@ -86,13 +86,9 @@ local macro "deliver_tail " snc:term : tactic =>
       iapply ownSlice_nil
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-    have Hsteps := deliverable_step q.st.msg.To' q.st Hd rfl
-    imod stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st
-      (fun h => ⟨(Hsteps.2.1 h).1, (Hsteps.2.1 h).2.2⟩) Hsteps.2.2 rfl
-      $$ [Hmok Hmc Hc1 Htc] with Hstep
-    · isplitr
-      · ileft; ipureintro; exact deliverable_not_prevote q.st Hd
-      iframe Hmok Hmc Hc1 Htc
+    imod stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st rfl
+      $$ [Hmok Hmc Hc1] with Hstep
+    · iframe Hmok Hmc Hc1
     wp_apply +noauto wp_node_Step n γ kvRaftN q.st.msg.To' «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
@@ -168,7 +164,6 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       rw [Hk1]
       iframe
       ipureintro; constructor <;> word
-    have Hd := Hb rfl
     wp_auto
     -- `peers[m.GetTo()]`
     wp_apply wp_GetTo.1 q.loc (readyDq q.st) DFrac.discard false q.st $$ [$Hmq] as Hmq
@@ -193,11 +188,11 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       wp_auto
       -- `m.GetType() == pb.MsgTimeoutNow && !tr.take()`
       wp_apply wp_GetType.1 q.loc (readyDq q.st) DFrac.discard false q.st $$ [$Hmq] as Hmq
-      -- a `MsgTimeoutNow`: a tick credit from the transfer budget, or dropped
+      -- a `MsgTimeoutNow`: stepped only if the transfer budget allows it, or dropped
       by_cases Htn : q.st.msg.Type' = W32 14
       · rw [decide_eq_true Htn]
         wp_auto
-        wp_apply wp_take γ tr $$ [$Htr] as %b Hb
+        wp_apply wp_take γ tr $$ [$Htr] as %b -
         cases b
         · wp_auto
           wp_for_post
@@ -207,11 +202,6 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           iframe
           ipureintro; constructor <;> word
         wp_auto
-        ihave Htc : tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
-        · have Htn' : q.st.msg.Type' = MsgTimeoutNow := Htn
-          rw [ite_eq_left Htn']
-          simp only [↓reduceIte]
-          iexact Hb
         deliver_pre
         by_cases Hsq : q.st.snap = none
         · ihave %Hpn := snapOpt_none_null ps _ q.st.snap Hsq $$ Hsn
@@ -231,11 +221,6 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           deliver_tail snc
       · rw [decide_eq_false Htn]
         wp_auto
-        imod tickCredit_zero (GF := GF) γ with Htc0
-        ihave Htc : tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
-        · have Htn' : ¬ q.st.msg.Type' = MsgTimeoutNow := Htn
-          rw [ite_eq_right Htn']
-          iexact Htc0
         deliver_pre
         by_cases Hsq : q.st.snap = none
         · ihave %Hpn := snapOpt_none_null ps _ q.st.snap Hsq $$ Hsn

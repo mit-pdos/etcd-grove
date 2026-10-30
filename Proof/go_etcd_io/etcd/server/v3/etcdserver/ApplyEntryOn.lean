@@ -72,6 +72,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The certificates a KV entry's latest-state outcomes need, in the mode `on`** (see the file
 header): for a plain KV request of the entry `m` above `c₀`, at the start chain with auth on and

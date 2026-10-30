@@ -4,11 +4,8 @@
 
 theorem raft.restore.wp_proof [package_sem : Assumptions] (wp_raftLog_matchTerm :
     raftLog.matchTerm.spec) (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec) (wp_raftLog_commitTo
-    : raftLog.commitTo.spec) (wp_raftLog_lastIndex : raftLog.lastIndex.spec) (wp_raftLog_restore :
-    raftLog.restore.spec) (wp_MakeProgressTracker : tracker.MakeProgressTracker.spec)
-    (wp_confchange_Restore : confchange.Restore.spec) (wp_raft_switchToConfig :
-    raft.switchToConfig.spec) (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec)
-    (wp_EnsureConfState : raftpb.EnsureConfState.spec) : raft.restore.spec
+    : raftLog.commitTo.spec) (wp_raftLog_restore : raftLog.restore.spec) (wp_EnsureConfState :
+    raftpb.EnsureConfState.spec) : raft.restore.spec
   -- `Perennial.EtcdGrove.raft.restore.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
     s.role = PRole.follower →
@@ -21,10 +18,10 @@ theorem raft.restore.wp_proof [package_sem : Assumptions] (wp_raftLog_matchTerm 
                   isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                         "Hsnap" ∷ ownSnapS sp (DFrac.own 1) sv ∗
-                          "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
+                          "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) -∗
                     (▷
                         ∀ b s',
-                          ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
+                          ownRaftPhysCV c c.voters r id s' ∗
                               ownSnapE sp (DFrac.own 1) sv ∗ ⌜RestoreResult id s sv cl b s'⌝ -∗
                             Φ (intoVal b)) -∗
                       WP

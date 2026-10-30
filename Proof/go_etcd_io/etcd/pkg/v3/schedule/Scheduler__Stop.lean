@@ -38,10 +38,10 @@ theorem schedule.Scheduler.Stop.wp_proof
   cases fi
   simp only [interface.mkOk, GoInterface.ok.injEq] at Hfi
   obtain ⟨rfl, rfl⟩ := Hfi
-  wp_apply wp_fifo_Stop l γ F Ps $$ [Htok Hq]
+  wp_apply wp_fifo_Stop l γ F Ps $$ [Htok Hq] as HP
   · iframe; iframe #
   iapply HΦ
-  itrivial
+  iexact HP
 
 end proof
 

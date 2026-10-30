@@ -11,7 +11,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.Base
 public import Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import Proof.go_etcd_io.raft.v3.LemmasEnts
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom

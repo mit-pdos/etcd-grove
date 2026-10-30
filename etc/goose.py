@@ -9,9 +9,9 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, durable, durablekv, putget, putgetc, putget3, linkvtxn, porcupine, bridge,
-               lintest, raft-witness, kvwitness, k8s-apiserver or k8s-daemonset; repeatable;
-               default: all).
+  --project    only this project (raft, etcd, kv, kvreconf, durable, durablekv, putget, putgetc, putget3,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
+               k8s-daemonset; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -120,11 +120,13 @@ PROJECTS = [
         # (issues/raft-readindex-singleton-stale.md) and the probe-to-replicate shortcut taken
         # only when `pr.Next == pr.Match+1` (issues/raft-stale-term-appresp-index-zero-ack.md;
         # D21 M3): branch raft37-goose-lean-a1 of the etcd fork (raft37-goose-lean, 509271dac,
-        # plus the second fix). (The raft proof was ported to it in a parallel tree, the module root Raft37,
+        # plus the second fix); and (2026-10-28) a third, the configuration switched to a
+        # snapshot's when it is applied, not restored (issues/raft-snapshot-during-apply-stale-confchange.md):
+        # branch raft37-goose-lean-a2, 565c2bd on a1. (The raft proof was ported to it in a parallel tree, the module root Raft37,
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="c8217eb91ae5948182c1035ff0464b1e54b8f1d0",
+        rev="565c2bda9e6dd2c41fa0dcc598bdbc52f2d64885",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],
@@ -457,6 +459,23 @@ PROJECTS = [
         # the store; not its command (cmd/kvcheck), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kv")],
+    ),
+    Project(
+        name="kvreconf",
+        # The key-value store on raft that reconfigures and snapshots (`examples/kvreconf`: every
+        # choice the application may make is random; notes/raft-unified-plan.md, U11), with its
+        # randomized linearizability test (check.go). A package of the examples' Go module, as kv.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "kvreconf"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+        # the store; not its command (cmd/kvreconfcheck), which only runs it; and gokv's
+        # trusted_proph (examples/go.mod's gokv), whose ResolveBytes `Cluster.Read` resolves its
+        # prophecy with (trusted: Code/github_com/mit_pdos/gokv/trusted_proph.toml)
+        packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvreconf"),
+               os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
     ),
     Project(
         name="durable",

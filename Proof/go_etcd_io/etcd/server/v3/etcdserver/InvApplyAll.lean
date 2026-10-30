@@ -23,7 +23,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
-public import Proof.go_etcd_io.raft.v3.MemstorageAU
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 
 @[expose] public section
@@ -54,6 +55,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- `s.bemu`'s lock invariant at fraction `q`: `s.be` at half the fraction, holding the real
 backend `d`, the current backend's ghost variable `γbe` at `d` at half the fraction, and
@@ -95,17 +97,16 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (wt : GoInterface) (msc : Loc) (sc : w64),
     srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt (appliedAtLeast γr) ∗
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      -- (D19p, 2026-10-18) it never delivers: raft sends no `MsgSnap` (D21 M3: in its
-      -- no-snapshot mode; until then of a one-member cluster)
-      □ (∀ m : Loc, P m -∗ False)) ∗
+    -- (2026-10-30, the repair: snapshots allowed) a bag of raft's `MsgSnap`s (`rnSnapMsg`, the
+    -- raft loop's `processMessages`); until then it never delivered (D19p: `□ (∀ m, P m -∗ False)`)
+    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
     (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg) ∗
-    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads, past the
-    -- receipts' bound (`NewServer.spec`'s run bound): every compaction is at index `1`
-    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu ∗
-      ⌜receiptBound GF ≤ uint.Z scu + 1⌝) ∗
+    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads (2026-10-30, the
+    -- repair: no bound; until then past the receipts' bound, `NewServer.spec`'s run bound, so
+    -- that every compaction was at index `1`)
+    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
     -- `sendMergedSnap` writes
     srvInflight s ∗
@@ -118,75 +119,58 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
-/-- (D22 J4) The namespace of the storage's shared snapshot token (`srvSnapState`), disjoint from
-the storage's own (`memSnapN`). -/
-def srvStorTokN : Namespace := nroot .@ "etcdserver_stor_tok"
-
-theorem srvStorTokN_disj : (↑srvStorTokN : CoPset) ## ↑memSnapN := by
-  intro p ⟨hp, h⟩
-  exact ndot_ne_disjoint nroot (by decide : "etcdserver_stor_tok" ≠ "raft_memsnap") p ⟨hp, h⟩
+/-- (2026-10-30, the repair) **What `CreateSnapshot` at the applied index `ai` of term
+`at'` takes of the cluster and the storage** (persistent): the storage's invariant at the node
+`nid`'s justifications, the node's delivered log past `ai` (`J.DL`), raft's committed log at the
+server (its registry, `srvClusterOk`) and a committed log `A` of length `ai` whose last term is
+`at'` (`snapshotCert_make`'s). -/
+def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid : w64) (ai at' : w64) :
+    IProp GF :=
+  letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
+  iprop(memStorInv ms γs γr.raft.raft.cl nid ∗ storDL γr.raft.raft.cl nid (uint.nat ai) ∗
+    srvRaftLogInv γr.raft ∗
+    ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜uint.Z ai = A.length ∧ lastTermIs A at'⌝)
 
 /-- **The apply thread's snapshot state** (see the file header) at the applied index `ai`: the
-snapshot indices at most `ai`; and (D19i part 1, 2026-10-18) the raft wrapper's `MemoryStorage`
-`ms` and the application's snapshot token, its snapshot index at least `sl` (`snapshot` raises it
-to `ai`, which `compactRaftLog` then compacts below).
+snapshot indices at most `ai`, the raft wrapper's `MemoryStorage` `ms`, and (2026-10-30, the
+repair: raft's two-writer `MemoryStorage` specs, R1) the storage's stored snapshot index at least
+`sl` (`memSnapLb`, persistent: `CreateSnapshot` gives it at `ai`, which `compactRaftLog` then
+compacts below). Until the repair: the application's shared snapshot token (`memSnapRO`,
+`memKey`, the counter `γss` in `srvStorTokN`'s invariant, D22 J4).
 
-(D22 J4, 2026-10-26; decided by the orchestrator while the user was away (J5/J4), J0's item 2) **The
-token shared**: the token's ghost part (`memSnapTokG`, the storage's snapshot and boundary) is in
-an invariant (`srvStorTokN`, `memTokShared`: with the storage's snapshot index counted by `γss`,
-the boundary at or below the snapshot), which raft's goroutine shares for its `ApplySnapshot`
-(J6b) while the apply job runs `CreateSnapshot`/`Compact` (the FIFO scheduler does not wait,
-`notes/j3-overlap-test/`); the apply thread keeps the storage's persistent part (`memSnapRO`),
-the application's key (`memKey γs.ak`, `CreateSnapshot`'s for its critical section) and a lower
-bound `sl` of the snapshot counter. Until J4 the whole token (`memSnapTok`) was the apply
-thread's, with its boundary at most `ai` (false once raft's goroutine installs a snapshot past
-`ai`; `CreateSnapshot`'s `prev ≤ i` now comes from `prev ≤ ss < i`). J0's ceiling `γsc` (the
-storage's snapshot index at most raft's delivered log, which refutes `ApplySnapshot`'s out-of-date
-branch) is J6b's, which calls `ApplySnapshot`: it adds the ceiling's lower bound to the invariant. -/
+(2026-10-30, the repair: snapshots allowed) The in-memory snapshot (every `memorySnapshotCount =
+100` entries) and the disk one reach `CreateSnapshot`, its `snapshotValid` from the cluster's
+registry (`srvSnapStor`, `srvClusterOk`); the frozen entry at the applied index is
+`srvSnapFrozen`'s (P8: its own predicate). -/
 def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
     srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
-    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-    memSnapRO ms γs ∗ memKey γs.ak ∗
-    ∃ γss : GName, inv srvStorTokN (memTokShared γs γss) ∗ monoNatLbOwn γss (uint.nat sl))
+    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl))
 
-/-- (D22 J4) **The shared token, allocated** (`run`, right after its `Snapshot()`, the token's last
-user in hand): from the whole token with its boundary at or below its snapshot, the invariant and
-a lower bound of the counter at the snapshot's index. -/
-theorem srvStorTok_alloc (ms : Loc) (γs : MemStorNames) (σ : StorState) (Ec : CoPset)
-    (h : uint.Z σ.prev.index' ≤ uint.Z σ.ss.index') :
-    ⊢ memSnapTok (GF := GF) ms γs σ ={Ec}=∗ memSnapRO ms γs ∗ memKey γs.ak ∗
-      ∃ γss : GName, inv srvStorTokN (memTokShared γs γss) ∗
-        monoNatLbOwn γss (uint.nat σ.ss.index') := by
-  iintro Htok
-  icases (memSnapTok_split ms γs σ).1 $$ Htok with ⟨#Hro, Hak, Htg⟩
-  imod mono_nat_own_alloc (GF := GF) (uint.nat σ.ss.index') with ⟨%γss, Ha, #Hlb⟩
-  imod inv_alloc srvStorTokN Ec (memTokShared γs γss) $$ [Htg Ha] with #Hinv
-  · inext
-    iunfold memTokShared
-    iexists σ
-    iframe Htg Ha
-    ipureintro; exact h
-  imodintro
-  iframe Hro Hak
-  iexists γss
-  iframe Hinv Hlb
+/-- (2026-10-30, stage P's P8) **The storage's entries frozen through the applied index `ai`**
+(persistent): the entry at `ai` frozen (`CreateSnapshot`'s), every entry below it frozen or
+compacted (`Compact`'s). Taken by the snapshot-only statements (`snapshot.spec`,
+`snapshotIfNeededAndCompactRaftLog.specFull`); until P8 a part of `srvSnapState`. -/
+def srvSnapFrozen (γs : MemStorNames) (ai : Nat) : IProp GF :=
+  iprop(srvFrozenAt γs ai ∗ srvFrozenBelow γs ai)
 
-/-- A lower bound of the counter is one of every smaller index. -/
+instance srvSnapFrozen_persistent (γs : MemStorNames) (ai : Nat) :
+    Persistent (srvSnapFrozen (GF := GF) γs ai) := by
+  unfold srvSnapFrozen srvFrozenAt srvFrozenBelow; infer_instance
+
+/-- A lower bound of the stored snapshot index is one of every smaller index. -/
 theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)
     (h : uint.Z sl' ≤ uint.Z sl) :
     srvSnapState (GF := GF) s ep ms γs ai sl ⊢ srvSnapState s ep ms γs ai sl' := by
   iintro H
   iunfold srvSnapState at H
-  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hro, Hak, %γss, #Hinv, #Hlb⟩
+  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hlb⟩
   iunfold srvSnapState
   iexists d, m, f
-  iframe Hd Hm Hf Hms Hro Hak
+  iframe Hd Hm Hf Hms
   isplitr
   · ipureintro; exact Hdm
-  iexists γss
-  iframe Hinv
-  iapply monoNatLbOwn_le (uint.nat sl') (by word) $$ Hlb
+  iapply memSnapLb_mono γs (uint.nat sl) (uint.nat sl') (by word) $$ Hlb
 
 /-! ## The apply thread's backend, per batch (D22 receiver epochs, S7f) -/
 

@@ -597,7 +597,8 @@ theorem kbViewC_halves (kb : Option KBReal) (γb : GName) (m : Bucket) :
 /-- **The view `restore` reads**, from a clean view of the restored log's bucket and the backend's
 clean-view `ReadTx` (the empty bucket's, for `NewStore`'s log). -/
 theorem restoreView_of (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log) :
-    bucketViewC (GF := GF) γ q (bucketMap ([[], []] ++ R)) ∗ keyCleanRead b (bucketViewC γ) RT ⊢
+    bucketViewC (GF := GF) γ q (bucketMap ([[], []] ++ R)) ∗
+      keyCleanRead b (bucketViewC γ) RT (kbNoCmp γ.kb γ.bucket) ⊢
       restoreView b γ RT q R := by
   unfold restoreView restoreViewOut
   by_cases hR : R = []

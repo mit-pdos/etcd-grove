@@ -24,43 +24,46 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
                           m.Type' = MsgTransferLeader ∨
                             m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus →
       (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
-        (m.Type' = MsgProp → (m.From' = W64 0 ∨ m.From' = id) ∧ m.Term' = W64 0 ∧ s.lead ≠ id) →
-          (m.Type' = MsgApp →
-              PlogWf { term' := m.LogTerm', index' := m.Index' } ents ∧
-                uint.Z m.Index' + ↑ents.length + 1 < 2 ^ 64 ∧
-                  (have ls := s.logst;
-                    have es := ls.sents ++ ls.uents;
-                    uint.Z ls.committed ≤ uint.Z m.Index' →
-                      PlogMatches ls.prev es { term' := m.LogTerm', index' := m.Index' } →
-                        plogFindConflict ls.prev es ents = W64 0 ∨
-                          uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
-                    m.From' ≠ id ∧ s.role ≠ PRole.leader) →
-            (m.Type' = MsgHeartbeat →
-                uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧ m.From' ≠ id) →
-              (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
-                  (m.Type' = MsgTransferLeader →
-                      (s.lead = W64 0 ∨ m.Term' = W64 0 ∧ s.lead ≠ id) ∧ ents = [] ∧ cl = [] ∧ s.gh.xf = false) ∧
-                    (m.Type' = MsgTimeoutNow →
-                      uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧ uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
-                (m.Type' = MsgSnap →
-                    sn = some sv ∧
-                      scfg = sv.Metadata'.ConfState'.lists ∧
-                        SnapScopeIf id sv scfg ∧ s.role = PRole.follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧ s.gh.ns = false) →
-                  (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
-                    ⊢
-                      ∀ Φ,
-                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                            "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                              "Hm" ∷
-                                  msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-                                    { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
-                                "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn -∗
-                          (▷
-                              ∀ err s' dropped c',
-                                (ownRaftPhysCV c' c'.voters r id s' ∗
-                                    ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
-                                      if dropped = true then
-                                        typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
-                                      else ⌜err = GoInterface.nil⌝) -∗
-                                  Φ (intoVal err)) -∗
-                            WP (((intoVal (functions stepFollower [])) (intoVal r)) (intoVal ml)) {{ Φ }}
+        (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap → s.term ≠ W64 0) →
+          (m.Type' = MsgProp → (m.From' = W64 0 ∨ m.From' = id) ∧ m.Term' = W64 0 ∧ s.lead ≠ id) →
+            (m.Type' = MsgApp →
+                PlogWf { term' := m.LogTerm', index' := m.Index' } ents ∧
+                  uint.Z m.Index' + ↑ents.length + 1 < 2 ^ 64 ∧
+                    (have ls := s.logst;
+                      have es := ls.sents ++ ls.uents;
+                      uint.Z ls.committed ≤ uint.Z m.Index' →
+                        PlogMatches ls.prev es { term' := m.LogTerm', index' := m.Index' } →
+                          plogFindConflict ls.prev es ents = W64 0 ∨
+                            uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+                      m.From' ≠ id ∧ s.role ≠ PRole.leader) →
+              (m.Type' = MsgHeartbeat →
+                  uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧ m.From' ≠ id) →
+                (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
+                    (m.Type' = MsgTransferLeader →
+                        (s.lead = W64 0 ∨ m.Term' = W64 0 ∧ s.lead ≠ id) ∧
+                          ents = [] ∧ cl = [] ∧ (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome = true)) ∧
+                      (m.Type' = MsgTimeoutNow →
+                        uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧ uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
+                  (m.Type' = MsgSnap →
+                      sn = some sv ∧
+                        scfg = sv.Metadata'.ConfState'.lists ∧
+                          SnapScopeIf id sv scfg ∧
+                            s.role = PRole.follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧ s.gh.ns = false) →
+                    (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
+                      ⊢
+                        ∀ Φ,
+                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                              "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                                "Hm" ∷
+                                    msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                                      { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
+                                  "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn -∗
+                            (▷
+                                ∀ err s' dropped c',
+                                  (ownRaftPhysCV c' c'.voters r id s' ∗
+                                      ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
+                                        if dropped = true then
+                                          typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
+                                        else ⌜err = GoInterface.nil⌝) -∗
+                                    Φ (intoVal err)) -∗
+                              WP (((intoVal (functions stepFollower [])) (intoVal r)) (intoVal ml)) {{ Φ }}

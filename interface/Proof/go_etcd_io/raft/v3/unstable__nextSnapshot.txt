@@ -16,7 +16,10 @@ theorem unstable.nextSnapshot.wp_proof [package_sem : Assumptions] (wp_proto_Clo
                       (⌜p = null⌝ ∨
                         ∃ sid sv,
                           ⌜us.snap = some sid ∧
-                                us.sip = false ∧ snapId sv = sid ∧ snapTrip sv sv.Metadata'.ConfState'.lists ∈ us.ksn⌝ ∗
+                                us.sip = false ∧
+                                  snapId sv = sid ∧
+                                    snapTrip sv sv.Metadata'.ConfState'.lists ∈ us.ksn ∧
+                                      ∃ x, sv.Metadata'.ConfState'.lists.Has x⌝ ∗
                             ownSnapS p (DFrac.own 1) sv) -∗
                   Φ (intoVal p)) -∗
             WP

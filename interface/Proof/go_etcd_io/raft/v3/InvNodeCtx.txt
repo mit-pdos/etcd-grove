@@ -36,6 +36,9 @@ theorem propErr_of_stepErr [package_sem : Assumptions] (cd : context.ContextDesc
 theorem propErr_of_nodeErr [package_sem : Assumptions] (cd : context.ContextDesc (IProp GF)) (err :
     GoInterface) : nodeErr cd err ⊢ propErr cd err
 
+theorem nodeErr_stopped [package_sem : Assumptions] (cd : context.ContextDesc (IProp GF)) (err :
+    GoInterface) : errStopped err ⊢ nodeErr cd err
+
 theorem nodeCtx_Done [package_sem : Assumptions] (ctx : GoInterfaceOk) (cd : context.ContextDesc
     (IProp GF)) : ⊢ ∀ Φ, nodeCtx ctx cd -∗ (▷ ∀ ch, nodeDone ctx cd ch -∗ Φ (intoVal ch)) -∗ WP
     ((intoVal (methods ctx.ty go!"Done" ctx.v)) (intoVal ())) {{ Φ }}
@@ -44,6 +47,10 @@ theorem nodeErr_nil [package_sem : Assumptions] (cd : context.ContextDesc (IProp
     GoInterface.nil
 
 theorem doneNilCtx_background [package_sem : Assumptions] : ⊢ doneNilCtx context.backgroundCtxVal
+
+theorem waitErr_stopped [package_sem : Assumptions] (cd : context.ContextDesc (IProp GF)) (err :
+    GoInterface) (wait : Bool) : errStopped err ⊢ if wait = true then propErr cd err else nodeErr cd
+    err
 
 theorem nodeErr_ctx [package_sem : Assumptions] (cd : context.ContextDesc (IProp GF)) (err :
     GoInterface) : ctxErr cd err ⊢ nodeErr cd err

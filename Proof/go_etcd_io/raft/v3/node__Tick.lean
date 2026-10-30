@@ -2,6 +2,7 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__Tick
+public import Proof.ReceiptTactics
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
@@ -10,7 +11,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -31,7 +32,8 @@ What the proof over raft's internals shows, from which the wrapper (below) deriv
 
 ## `node.Tick()` (node.go:458)
 
-A tick, for one credit of the term budget (`tickCred`, `InvNode.lean`): the credit goes
+A tick, for one credit of the term budget (`tickCred`, `InvNode.lean`; since 2026-10-29, stage U7,
+a time receipt of one of `Tick`'s own Go steps, not the caller's): the credit goes
 into the buffered `tickc` with the tick, or is dropped with it when the channel is full
 (the `default` branch, which warns through the raft struct's logger). Callable from any
 goroutine.
@@ -49,8 +51,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 private abbrev node.Tick.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
-      tickCred γ.bud 1 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
   {{ RET #(); True }}
 
@@ -69,9 +70,19 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `default` branch's warning reads the raft struct's shared fields (`isNodeChan`). -/
 private theorem node.Tick.wp_raw : node.Tick.specRaw (GF := GF) (hG := hG) := by
   intro γ id n
-  wp_start as ⟨#Hnode, Hcred⟩
+  wp_start as #Hnode
   ihave #Hnode' := Hnode
   open_node Hnode'
+  -- (2026-10-29, stage U7) the tick's credit, a time receipt of a Go step of its own
+  repeat (
+    fail_if_success wp_bind (App (Val (GoInstruction (StructFieldRef _ _))) (Val _))
+    first | wp_pure | wp_load | wp_store | wp_alloc_auto)
+  wp_bind (App (Val (GoInstruction (StructFieldRef _ _))) (Val _))
+  iapply wp_go_step_receipt'
+  case hv => exact isPanic_intoVal _
+  inext
+  iintro Hcred -
+  iapply wp_value'
   wp_auto_lc 2
   wp_apply_core chan.wp_select_nonblocking
   isplit
@@ -105,7 +116,8 @@ private theorem node.Tick.wp_raw : node.Tick.specRaw (GF := GF) (hG := hG) := by
           iframe Hoc
           simp only [List.length_append, List.length_singleton]
           iapply (tickCred_split γ.bud l.length 1).2
-          iframe Hcr Hcred
+          iframe Hcr
+          unfold tickCred; iexact Hcred
         imodintro
         wp_auto
         iapply HΦ
@@ -113,15 +125,19 @@ private theorem node.Tick.wp_raw : node.Tick.specRaw (GF := GF) (hG := hG) := by
       · itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
-    · -- `<-n.done`: never
+    · -- `<-n.done` (2026-10-29, stage U9a): the node stopped, the tick is dropped
       simp only [chan.nonblockingClausePre]
       iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
       iapply blocking_rcv_implies_nonblocking
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro -
+      wp_auto
+      iapply HΦ
+      itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- `default`: the warning, through the raft struct's logger
@@ -152,14 +168,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Tick_impl
     (hT : EtcdGrove.node.Tick.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Tick.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Tick.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.tickCredit
+  unfold EtcdGrove.node.Tick.spec EtcdGrove.Cluster EtcdGrove.isNode
   intro n γ N id
-  iintro %Φ ⟨#Hinit, #Hnode, Hcr⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hT γn id n) $$ [Hcr]
+  iapply (hT γn id n) $$ []
   · iframe Hinit Hrn
-    unfold tickCredit tickCred; iexact Hcr
   iexact HΦ
 
 end wrap

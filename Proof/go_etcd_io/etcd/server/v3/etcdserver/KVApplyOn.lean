@@ -183,6 +183,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The mode-`on` model after `L ++ [e]` is the step of `e` from the model after `L`. -/
 theorem kvModelOn_snoc (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
@@ -240,6 +241,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The certificates' map `C` in the mode `on` (`certMapOk`'s, with the mode-`on` model from the
 start's auth state `st₀`). -/
@@ -309,6 +311,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The apply thread certifies the mode-`on` model's log after the next committed entry**
 (`kv_cert_step`'s counterpart). -/

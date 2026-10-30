@@ -1,9 +1,5 @@
 # `storage.OpenBackend`: refuted as documented (premise gap, 2026-10-29)
 
-**On `lean`** the axiom keeps its earlier post (the wand `⌜noCmpData D⌝ -∗ bkNoCmp γ`; the restatement
-reviewed here is `backend-cmp`'s). The premise gap and its fix (`openMmapOk cfg` in `openPre`) are the
-same on both.
-
 **Reviewed.**
 - The axiom `storage.OpenBackend.wp_proof`, its triple in
   `Spec/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`, and the premise it shares with

@@ -44,6 +44,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A store log's certificate, read at the server, in the mode `on`** (`kv_cert_read`'s): the
 log has at most two revisions, or it is the mode-`on` model of a committed raft log. -/
@@ -118,7 +119,7 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
       ihave %HAi := srvRLogLb_idx γ A $$ HA
       imodintro; iframe HL; ipureintro
       obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γ γk.c0 γk.ch0 (st₀, γk.log0) A L Hok'.2.2.2.1
-        HAi Hp.1 Hp.2.1 Hp.2.2
+        HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
       have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) L' L hL').length_le
       unfold kvModelOn at hA ⊢; rw [← hA, hAL]; exact this
   imod Hp with ⟨HL, %Hle⟩
@@ -141,6 +142,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The mode-`on` KV invariant's pure facts, one committed entry on** (`kvInv_facts_snoc`'s):
 the entry meets the committer's obligation (`commitOkOn`: admitted and determinate at the model's

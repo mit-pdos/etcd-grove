@@ -18,7 +18,7 @@ putget's, D19a's second kind):
   sets (`cfgOk`) and the member's URLs (`urlsOk`), at the URL directory `dir3` (each member's one
   peer URL, the records `bootstrap` makes name it);
 * `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`, 2026-10-27);
-* putget's others: the raft wrapper's trust-boundary contracts, `rnStopOkStarted`,
+* putget's others: the raft wrapper's trust-boundary contracts (2026-10-30: no `rnStopOkStarted`),
   `v3rpc.runsNoRequireLeader`.
 -/
 module
@@ -124,7 +124,7 @@ cluster's map `Main`'s), at the peers' contexts `ctxs`, the bound `N` and the di
 def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) : IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.dyn = false ∧
+      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧
         γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
@@ -135,12 +135,12 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
   unfold bootPremise; infer_instance
 
 /-- **The premises shared by the members** (putget's, but `bootstrap`'s contract): the raft
-wrapper's trust-boundary contracts, `Stop` of a started node, and the deployment's
+wrapper's trust-boundary contracts and the deployment's
 `runsNoRequireLeader`. -/
 def commonPremises : IProp GF :=
   iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
-    rnStopOkStarted ∗ v3rpc.runsNoRequireLeader)
+    v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance

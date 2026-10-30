@@ -28,7 +28,10 @@ else `lg.Panic`) and then `done`. -/
 abbrev raftNode.onStop.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ rnDoneTok γ r ∗
-      E.ST }}
+      E.ST ∗
+      -- (2026-10-30, the repair) the node's whole running token (the loop's half and the apply
+      -- side's, `stopped`'s), which `node.Stop` takes
+      (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN 1) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"onStop")) (Val #()))
   {{ RET #(); True }}
 

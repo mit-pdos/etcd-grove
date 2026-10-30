@@ -142,13 +142,12 @@ def srvRunBuilt (s : Loc) (v : RunFields) : IProp GF :=
 instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBuilt (GF := GF) s v) := by
   unfold srvRunBuilt; infer_instance
 
-/-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, which never
-delivers (D19p, 2026-10-18: raft sends no `MsgSnap`; since D21 M3 in its no-snapshot mode,
-until then of a one-member cluster). -/
+/-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, a bag of
+raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed; until then it never delivered, D19p:
+raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      □ (∀ m : Loc, P m -∗ False)) ∗
+    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s)
 
@@ -226,7 +225,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token
+    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
@@ -248,10 +249,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    -- (2026-10-19, D21 M3) the receipts' bound at most the value `start` sets (`5000`, etcd's
-    -- default, for `0`) plus one: `NewServer.spec`'s run bound
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
-      ⌜receiptBound GF ≤ uint.Z (if n = W64 0 then W64 5000 else n) + 1⌝) ∗
+    -- (2026-10-30, the repair, P10: no run-length premise; until then the receipts' bound at most
+    -- the value `start` sets, `5000` for `0`, plus one)
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     -- the ghost state `start` hands on

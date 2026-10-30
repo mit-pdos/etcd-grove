@@ -35,7 +35,13 @@ critical-section contract of the batch lock (`csContract`:
   6a: the caller's `NoDelPutAt`, as `store.Compact`'s);
 * `rev ≤ c`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`); nothing changed, `Pre` back;
-* `rev` above the committed log's last revision: `ErrFutureRev`, a `nil` channel; `Pre` back. -/
+* `rev` above the committed log's last revision: `ErrFutureRev`, a `nil` channel; `Pre` back.
+
+The store's reader token `storeRT γ` is lent and given back in every case (question 5's core stage,
+parts (2)-(4), decided by the agent: `SetScheduledCompact`'s `LockInsideApply` and the
+`ForceCommit` after it take it; the caller's, `compactLockfree`'s and `store.Compact`'s). Their
+write-back tokens come from the store's supply (`physCmp`'s `kbWTSupply`) and the receipts of its own
+steps. The caller's `hookIs γ P f` is given back in every case (Probe P1, 2026-10-30). -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log),
@@ -43,10 +49,11 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
-      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeRT γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
-      (⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 c ∧ c < sint.Z rev⌝ ∗
+      mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
+      ((⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 c ∧ c < sint.Z rev⌝ ∗
         mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRight γ (sint.Z rev) ∗ Post ∗
         mvcc.compactJobPre s γ rev) ∨
       (⌜sint.Z rev ≤ c ∧ prev = W64 0⌝ ∗
@@ -55,7 +62,7 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
       (⌜c < sint.Z rev ∧ ch = chan.nil ∧ prev = W64 0⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre) }}
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre)) }}
 
 end spec
 

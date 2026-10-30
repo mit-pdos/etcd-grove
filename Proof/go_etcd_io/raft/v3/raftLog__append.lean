@@ -185,18 +185,6 @@ theorem raftLog.append.wp_proof
         exact ⟨Hp, (List.take_prefix _ _).trans Hstored, fun h => by simp at h⟩
       · obtain ⟨Hp, Hs, Hsid⟩ := Hstore
         exact ⟨Hp, by rw [Hs]; simp, Hsid⟩
-    -- the storage's snapshot is at or below `committed`, so below the batch: its term
-    -- survives the truncation
-    have Hss2 : ls.snap = none → StoredSnapOk σ ls.committed ls.prev
-        (ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat ++
-          (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
-              - (ls.sents.length : Int)).toNat ++ e0 :: ents')) := by
-      intro Hs
-      rcases Hssnap Hs with H | ⟨Hsle, Hst⟩
-      · exact .inl H
-      · refine .inr ⟨Hsle, ?_⟩
-        rw [Hsplit]
-        exact plogTermAt_truncateAppend_below _ _ _ e0 _ _ He0 (by omega) Hst
     have Hls' : ((ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat).length
           : Int)
         = min (uint.Z e0.Index' - uint.Z ls.prev.index' - 1) (ls.sents.length : Int) := by
@@ -233,7 +221,7 @@ theorem raftLog.append.wp_proof
           (uint.Z (logTruncInprogress ls e0.Index') - uint.Z uv'.offset').toNat
             = (uint.Z ls.inprogress - uint.Z lv.unstable'.offset').toNat) := by
       -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
-      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
+      clear Hm Hlens' Hidx' Hst2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       repeat' split
       all_goals omega
@@ -242,7 +230,7 @@ theorem raftLog.append.wp_proof
           + ((ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
               - (ls.sents.length : Int)).toNat ++ e0 :: ents').length : Int) := by
       -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
-      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
+      clear Hm Hlens' Hidx' Hst2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       simp only [List.length_append, List.length_take, List.length_cons]
       repeat' split
@@ -270,14 +258,14 @@ theorem raftLog.append.wp_proof
     -- `offsetInProgress`
     have Hcmlt : uint.Z ls.committed < uint.Z e0.Index' := by word
     have Hfl2 : FlOk σ (logTruncateAppend ls (e0 :: ents')) := by
-      refine ⟨Hfl.1, Hfl.2.1, ?_, Hfl.2.2.2.1, Hfl.2.2.2.2⟩
+      refine ⟨Hfl.1, Hfl.2.1, ?_, Hfl.2.2.2.1, Hfl.2.2.2.2.1, Hfl.2.2.2.2.2⟩
       have := Hfl.2.2.1
       have := Hfl.2.1
       have := Happlied.2
       simp only [logTruncateAppend, ← Hip2]
       rw [Hip2]
       -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
-      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
+      clear Hm Hlens' Hidx' Hst2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       repeat' split
       all_goals omega
@@ -298,12 +286,43 @@ theorem raftLog.append.wp_proof
         show logTruncInprogress ls e0.Index' = uv'.offset'
         apply uint_Z_inj.1
         omega
+    -- (U8 v2) the terms raft certified, at or below `committed`, so below the batch
+    have Hdt2 : DtOk σ.dt (logTruncateAppend ls (e0 :: ents')) := fun i t h => by
+      obtain ⟨h1, h2, h3⟩ := Hfr.2.2 i t h
+      refine ⟨h1, fun hp => ?_, h3⟩
+      show plogTermAt ls.prev (ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat ++
+          (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
+            - (ls.sents.length : Int)).toNat ++ e0 :: ents')) (W64 (i : Int)) = some t
+      rw [Hsplit]
+      have Hi : uint.Z (W64 (i : Int)) = (i : Int) := by
+        have := word.unsigned_range ls.committed; word
+      exact plogTermAt_truncateAppend_below _ _ _ e0 _ t rfl (by rw [Hi]; omega) (h2 hp)
+    -- (U8 v2 step 4) the frozen end is at most `committed`, below the batch: below the truncation
+    have Hfr2 : FrOk σ (logTruncateAppend ls (e0 :: ents')) := by
+      refine ⟨fun hl => ?_, Hfr.2.1, Hdt2⟩
+      obtain ⟨f1, f2, f3⟩ := Hfr.1 hl
+      have e1 := uint_nat_eq ls.committed; have e2 := uint_nat_eq ls.inprogress
+      have e3 := uint_nat_eq e0.Index'
+      have e4 := uint_nat_eq (logTruncInprogress ls e0.Index')
+      have Hti : uint.Z ls.inprogress ≤ uint.Z (logTruncInprogress ls e0.Index') ∨
+          logTruncInprogress ls e0.Index' = e0.Index' := by
+        unfold logTruncInprogress
+        split
+        · split
+          · exact .inr rfl
+          · exact .inl (Int.le_refl _)
+        · exact .inl (Int.le_refl _)
+      refine ⟨f1, ?_, f3⟩
+      show σ.fr < uint.nat (logTruncInprogress ls e0.Index')
+      rcases Hti with h | h
+      · omega
+      · rw [h]; omega
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
-    · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
+    · iapply ownRaftLog_intro (sn := ls.sn) l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
-          Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 Hfl2 Hsksn Hsipm Hsipn Hlent Hq Hprel2 Hsat ?_ ?_ ?_ ?_
+          Happlied Hpapplied Hcm2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
+          Hstor Hpend2 Hfl2 Hsipm Hsipn Hlent Hq Hprel2 Hsat Hfr2 ?_ ?_ ?_ ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩

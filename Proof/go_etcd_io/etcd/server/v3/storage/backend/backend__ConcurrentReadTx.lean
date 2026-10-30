@@ -26,30 +26,31 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- The read buffer a new `ConcurrentReadTx` copies: read-only for good, version 0, reading as
-the readers' state `rv` (over its committed data). -/
-def backend.crtBuf (P : BParams) (rv : RView) (bufp : Loc) : IProp GF :=
+/-- The read buffer a new `ConcurrentReadTx` copies: read-only for good, version 0, reading thin of
+the logical view `L` (over the readers' committed data `rv.1`; until the thin-view Draft round:
+exactly as the readers' state `rv`). -/
+def backend.crtBuf (γ : BNames) (P : BParams) (rv : RView) (L : VData) (bufp : Loc) : IProp GF :=
   iprop(∃ (c : txReadBuffer) (Pc : BksPhys) (bks : GMap w64 (List Ent)),
     bufp ↦□ c ∗ bksAt c.txBuffer'.buckets' DFrac.discard Pc bks ∗
-    ⌜c.bufVersion' = W64 0 ∧ (⟨bks, W64 0⟩ : RBuf).Wf ∧ idsOk P bks ∧
-      vData P (rv.1, ⟨bks, W64 0⟩) = vData P rv⌝)
+    ⌜c.bufVersion' = W64 0 ∧ (⟨bks, W64 0⟩ : RBuf).Wf ∧ idsOk P bks⌝ ∗
+    thinV γ (vData P (rv.1, ⟨bks, W64 0⟩)) L)
 
-instance backend.crtBuf_persistent (P : BParams) (rv : RView) (bufp : Loc) :
-    Persistent (crtBuf (GF := GF) P rv bufp) := by
+instance backend.crtBuf_persistent (γ : BNames) (P : BParams) (rv : RView) (L : VData) (bufp : Loc) :
+    Persistent (crtBuf (GF := GF) γ P rv L bufp) := by
   unfold crtBuf; infer_instance
 
 /-- The new transaction's copy, ready: a fresh copy made read-only for good and marked in the
 cache, or the cache's own copy (of a state up to the current one, valid by `cacheValid`). -/
 theorem backend.crtBuf_ready (γ : BNames) (P : BParams) (rv : RView) (idx : Nat) (win : Bool) (q : Qp)
-    (vd : VData) (bufp : Loc) (hwf : rv.2.Wf ∧ idsOk P rv.2.bks) :
+    (vd L : VData) (bufp : Loc) (hwf : rv.2.Wf ∧ idsOk P rv.2.bks) :
     cacheInv (GF := GF) γ ∗ ghostVar γ.cur sync.rfrac.half ((rv.2.ver, idx), win) ∗
-      bView γ q vd ∗ histAt γ rv.2.ver idx rv ∗ cacheValid γ P rv idx ∗
+      bView γ q vd ∗ histAt γ rv.2.ver idx rv ∗ cacheValid γ P rv idx L ∗ thinV γ (vData P rv) L ∗
       ((∃ (c : txReadBuffer) (Pc : BksPhys), bufp ↦ c ∗
           bksAt c.txBuffer'.buckets' (DFrac.own 1) Pc rv.2.bks ∗ ⌜c.bufVersion' = W64 0⌝) ∨
         cacheEnt γ P bufp rv.2.ver) ⊢
-    |={⊤}=> (crtBuf P rv bufp ∗ cacheEnt γ P bufp rv.2.ver ∗
+    |={⊤}=> (crtBuf γ P rv L bufp ∗ cacheEnt γ P bufp rv.2.ver ∗
       ghostVar γ.cur sync.rfrac.half ((rv.2.ver, idx), win) ∗ bView γ q vd) := by
-  iintro ⟨#Hci, Hcur, Hbv, #Hha, #Hcv, Hnew⟩
+  iintro ⟨#Hci, Hcur, Hbv, #Hha, #Hcv, #Hth, Hnew⟩
   icases Hnew with (⟨%c, %Pc, Hbp, Hbks, %Hc0⟩ | #Hce)
   · ipersist Hbp
     imod bksAt_persist _ _ _ $$ Hbks with #Hbks
@@ -61,8 +62,11 @@ theorem backend.crtBuf_ready (γ : BNames) (P : BParams) (rv : RView) (idx : Nat
     · unfold crtBuf
       iexists c, Pc, rv.2.bks
       iframe #
-      ipureintro
-      exact ⟨Hc0, fun id es h => hwf.1 id es h, hwf.2, rfl⟩
+      isplitr
+      · ipureintro
+        exact ⟨Hc0, fun id es h => hwf.1 id es h, hwf.2⟩
+      rw [show vData P (rv.1, (⟨rv.2.bks, W64 0⟩ : RBuf)) = vData P rv from rfl]
+      iexact Hth
     unfold cacheEnt
     iexists c, Pc, idx, rv
     iframe #
@@ -72,15 +76,18 @@ theorem backend.crtBuf_ready (γ : BNames) (P : BParams) (rv : RView) (idx : Nat
     icases Hce' with ⟨%c, %Pc, %i, %rvc, #Hbp, #Hbks, #Hh, #Hm, %Hfc⟩
     imod cache_lookup γ sync.rfrac.half rv.2.ver idx i win $$ [$Hci $Hcur $Hm] with ⟨Hcur, %Hi⟩
     iunfold cacheValid at Hcv
-    ihave %Hval := Hcv $$ %i %rvc %Hi Hh Hm
+    ihave #Hval := Hcv $$ %i %rvc %Hi Hh Hm
     imodintro
     iframe
     iframe #
     unfold crtBuf
     iexists c, Pc, rvc.2.bks
     iframe #
-    ipureintro
-    exact ⟨Hfc.2.2, fun id es h => Hfc.1 id es h, Hfc.2.1, Hval⟩
+    isplitr
+    · ipureintro
+      exact ⟨Hfc.2.2, fun id es h => Hfc.1 id es h, Hfc.2.1⟩
+    rw [show vData P (rv.1, (⟨rvc.2.bks, W64 0⟩ : RBuf)) = vData P (rv.1, rvc.2) from rfl]
+    iexact Hval
 
 theorem backend.backend.ConcurrentReadTx.wp_proof
     (hcopy : backend.txReadBuffer.unsafeCopy.spec (GF := GF) (hG := hG)) :
@@ -105,8 +112,10 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hrl, HP⟩
   wp_pure
   unfold rtRes rtResAt rtRest rtCore rtIntv
-  icases HP with ⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcmf, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist,
-    Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+  icases HP with ⟨%rd, %rv, %H, %L, %m, %Pb, %cm, Hrb, %Hok, Hcmf, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist,
+    Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
+  iunfold viewQ at Hview
+  icases Hview with ⟨Hview, #Hth⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩
@@ -184,8 +193,8 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
       isplitl []
       · iright; iexact HCe
       unfold rbAt; iframe
-  imod crtBuf_ready γ P rv rd.idx rd.win q vd bufp ⟨Hf.1, Hf.2.1⟩
-    $$ [$Hci $Hcur $Hbv $Hha $Hcv $Hnew] with ⟨#Hcrt, #Hce, Hcur, Hbv⟩
+  imod crtBuf_ready γ P rv rd.idx rd.win q vd L bufp ⟨Hf.1, Hf.2.1⟩
+    $$ [$Hci $Hcur $Hbv $Hha $Hcv $Hth $Hnew] with ⟨#Hcrt, #Hce, Hcur, Hbv⟩
   -- the cache updated, if no one changed it meanwhile
   wp_join iprop(∃ (bpc : Loc) (vc : w64), cbufOf b ↦ bpc ∗ cverOf b ↦ vc ∗
       (⌜bpc = Loc.null⌝ ∨ cacheEnt γ P bpc vc) ∗ b_ptr ↦ b ∗ buf_ptr ↦ bufp)
@@ -204,7 +213,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   · iexists bpc', vc'; iframe
   -- the new transaction
   iunfold crtBuf at Hcrt
-  icases Hcrt with ⟨%c, %Pc, %bks, #Hbp, #Hbks, %Hcf⟩
+  icases Hcrt with ⟨%c, %Pc, %bks, #Hbp, #Hbks, %Hcf, #Hthc⟩
   wp_auto
   wp_alloc crt as Hcrt
   -- the transaction's fields, read-only for good
@@ -228,13 +237,15 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hrb Hcmf Hview Hrd Hrvs Hcur Hcln Hhist Hrtxf Hwgf Hpo
       Hlive Hwo Htk] as Hmu
   · inext
-    iexists rd, rv, H, m, Pb, cm
+    iexists rd, rv, H, L, m, Pb, cm
     rw [hl]
     simp only [↓reduceIte]
+    unfold viewQ
     unfold rbAt at *
     iframe; iframe #
     ipureintro; exact ⟨Hok, Hf⟩
-  obtain ⟨Hc0, Hbwf, Hbids, Hbv'⟩ := Hcf
+  obtain ⟨Hc0, Hbwf, Hbids⟩ := Hcf
+  have hLvd : L = vd := Hvd.symm
   iapply HΦ
   iframe Hopen
   isplitl [Hown Hsh]
@@ -245,7 +256,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
     iframe; iframe #
     ipureintro; exact ⟨Hbwf, Hbids, HPwf⟩
   isplitr
-  · ipureintro; rw [Hbv']; exact Hvd.symm
+  · rw [← hLvd]; iexact Hthc
   isplitl [Hmu]
   · iintro Hcr
     iexists rt

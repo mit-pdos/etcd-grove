@@ -134,13 +134,15 @@ theorem raft.tickHeartbeat.wp_proof
           (by simp [StepMsg, stepMsgTypes, MsgCheckQuorum])
           (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
           (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-          (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+          (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
           (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
           (GMode.Pre.of_other (by msg_ne) Hpc (by msg_ne) (by msg_ne))
           (fun h => absurd h (by msg_ne))
         $$ [$Hphys $Hghost $Hlc2 Hcr Hmsg]
       · simp only [hP, ↓reduceIte, named]
         ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+        isplitr
+        · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
         isplitl [Hmsg]
         · iframe Hmsg
           repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -154,9 +156,9 @@ theorem raft.tickHeartbeat.wp_proof
         iintro %Hc
         simp [MsgSnap] at Hc
       simp only [hP]
-      iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
+      iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
       have Hcm0 := Href.commit_mono
-      have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+      have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
       have e2 := Hcc (by msg_ne); subst c'
       -- the step keeps the term and the log's frame: a tick from `s0` is one from `s`
       have Htr0 : ∀ s', TickStep s0 s' → TickStep s s' := by
@@ -167,11 +169,12 @@ theorem raft.tickHeartbeat.wp_proof
         have h0 : 0 ≤ uint.Z s.term := by word
         rw [Int.max_eq_left h0] at Ht3
         have Hi := Hi (by msg_ne)
-        have Hf := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+        have Hf := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
         have Heq : s0.term = s.term := by word
-        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg'⟩
+        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg', Hs'⟩
         exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
-          fun fp hg => Hg' fp (PreGuardF.step (Htm (by msg_ne)) hg)⟩
+          fun fp hg => Hg' fp (PreGuardF.step (Htm (by msg_ne)) hg),
+          fun h1 h2 => (Htm (by msg_ne)).2.2.2.2.2.2 (Hs' h1 h2).1 (Hs' h1 h2).2⟩
       icases Herr with (%Herr | ⟨%Hc', -⟩)
       rotate_left
       · exfalso; revert Hc'; msg_ne
@@ -277,7 +280,7 @@ theorem raft.tickHeartbeat.wp_proof
         (by simp [StepMsg, stepMsgTypes, MsgBeat])
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
         (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf1
         (GMode.Pre.of_other (by msg_ne) (GMode.Guard.of_nonpre (fun _ => by rw [Hrole]; decide))
           (by msg_ne) (by msg_ne))
@@ -285,6 +288,8 @@ theorem raft.tickHeartbeat.wp_proof
       $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
     · simp only [hP, ↓reduceIte, named]
       ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+      isplitr
+      · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
       isplitl [Hmsg]
       · iframe Hmsg
         repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
@@ -298,9 +303,9 @@ theorem raft.tickHeartbeat.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
     simp only [hP]
-    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
+    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
     have Hcm := Href.commit_mono
-    have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+    have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
     have e2 := Hcc (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc', -⟩)
     · subst Herr
@@ -312,10 +317,11 @@ theorem raft.tickHeartbeat.wp_proof
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
       simp only [H0] at Ht3
-      exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
+      exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
-        Hi (by msg_ne), fun h => (Hpc' h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg⟩⟩
+        Hi (by msg_ne), fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg,
+        Hpc'.2⟩⟩
     · exfalso; revert Hc'; msg_ne
   · rw [decide_eq_false Hhb]
     wp_auto

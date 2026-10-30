@@ -42,7 +42,7 @@ That the triple can be total is a fact about the body (`raftLog.term.impl`,
 `Code/go_etcd_io/raft/v3.lean`): it returns `(0, ErrCompacted)` for
 `i+1 < firstIndex` and `(0, ErrUnavailable)` for `i > lastIndex`, and inside the range
 it asks `unstable.maybeTerm` and then `Storage.Term`, whose error path -- the only
-`panic` in the function -- is excluded by `isStorage`'s `HTerm`. Both `firstIndex` and
+`panic` in the function -- is excluded by `isStorageD`'s `HTerm`. Both `firstIndex` and
 `lastIndex` are called on the log itself, which is why both are postulates of this
 collection along with `unstable.maybeTerm`.
 
@@ -67,7 +67,7 @@ but not stated; nothing needs it.
 `plogTermAt prev (sents ++ uents) i` (`Plog.lean`), the term of the log the protocol
 model sees. Log replication needs it -- `matchTerm`, and through it `findConflict`,
 `maybeAppend` and `maybeCommit`, compare it. In the unstable window it comes from
-`unstable.maybeTerm`'s widened spec, below it from `isStorage`'s `HTerm`
+`unstable.maybeTerm`'s widened spec, below it from `isStorageD`'s `HTerm`
 (`termAt prev stored i`), which agrees with `plogTermAt` on the visible stable prefix
 `sents` (`Proof/raftLog__term.lean`). Until then the term was unspecified and nothing
 on the election path read it.

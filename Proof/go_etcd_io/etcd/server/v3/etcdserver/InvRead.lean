@@ -74,6 +74,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The store stays small** (persistent; a theorem since D19b, `storeSmall_of_receipts`,
 until then a premise of `NewServer.spec`): every sealed log (`mvcc.idxSealed`: every
@@ -266,6 +267,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A read call's auth reader resource, lent out (2026-10-14, unit A2). -/
 theorem srvRdCall_rd (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :

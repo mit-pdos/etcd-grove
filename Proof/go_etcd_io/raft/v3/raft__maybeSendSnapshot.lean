@@ -43,7 +43,7 @@ private theorem ownRaftPhys_nosend (c : CfgM) (r : Loc) (id : w64) (s : NState) 
   iintro H
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ H
 
-/-- Three exits, and the two `panic`s are both killed by `isStorage`'s
+/-- Three exits, and the two `panic`s are both killed by `isStorageD`'s
 `HSnapshot` (`InvStorage.lean`), whose postcondition is the disjunction
 "`ErrSnapshotTemporarilyUnavailable`, or a snapshot with
 `Metadata.Index ≠ 0`":
@@ -98,9 +98,13 @@ theorem raft.maybeSendSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s to pr Hto Hprto Hns
+  intro c r id s to pr Hto Hprto Htz
   wp_start as H
   iNamed H
+  -- (U8 v2) the no-snapshot mode is off at raft's level, and the log's storage names are the ghost
+  -- state's (`ownRaftPhysC_sn`)
+  icases ownRaftPhysC_sn c r id s $$ Hphys with ⟨%Hnsn, Hphys⟩
+  have Hns := Hnsn.1
   -- `isInitialized_access` hands the globals out; the `raftLog.snapshot` call below
   -- consumes `ErrSnapUnavail`'s points-to, and the
   -- `err == ErrSnapshotTemporarilyUnavailable` test afterwards needs it again: it is
@@ -139,7 +143,7 @@ theorem raft.maybeSendSnapshot.wp_proof
   -- (stage R8a) the commit index is within the log: `BecomeSnapshot`'s index is at most it
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   ihave Hphys := Hlogback $$ Hlog
-  icases Herr with (%Herr | ⟨%Herr, %sv, Hsnap, %Hsv, #Hcert⟩)
+  icases Herr with (%Herr | ⟨%Herr, %sv, Hsnap, %Hnz, Hsrcs⟩)
   · -- `ErrSnapshotTemporarilyUnavailable`: log and return `false`. The
     -- `panic(err)` that follows the inner `if` is never reached.
     subst Herr
@@ -153,7 +157,20 @@ theorem raft.maybeSendSnapshot.wp_proof
     ipureintro
     exact ⟨fun _ h => (nomatch h), rfl⟩
   · -- a real snapshot: `Metadata.Index ≠ 0` kills `IsEmptySnap`'s panic
-    obtain ⟨Hnz, Hsle, Hsterm, Hksn⟩ := Hsv
+    -- (U8 v2) at or below the commit index and an entry id of the log, from `raftLog.snapshot`
+    -- (a pending snapshot is the log's base; a stored one has its term certified at a committed
+    -- index, `raftDL`); its certificate as the node holds it (`ksnCert`, `svCert`)
+    ihave ⟨%Hsle, %Hsterm, #Hcert⟩ : ⌜uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed⌝ ∗
+        ⌜plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) sv.Metadata'.Index'
+          = some sv.Metadata'.Term'⌝ ∗
+        (∀ ty, tsSrc (GF := GF) s.gh.sn ty (some sv)) $$ [Hsrcs]
+    · icases Hsrcs with (⟨%Hp, #Hk⟩ | ⟨%Hp, #Hk⟩)
+      · isplitr; · ipureintro; exact Hp.2.2.1
+        isplitr; · ipureintro; exact Hp.2.2.2
+        iintro %ty; iapply tsSrc_ksn; rw [← Hnsn.2]; iexact Hk
+      · isplitr; · ipureintro; exact Hp.2.2.1
+        isplitr; · ipureintro; exact Hp.2.2.2
+        iintro %ty; iapply tsSrc_snap; rw [← Hnsn.2]; iexact Hk
     subst Herr
     wp_auto
     wp_apply wp_IsEmptySnap snap (DFrac.own 1) (some sv) $$ [Hsnap] as %b ⟨%Hb, Hsnap⟩
@@ -230,12 +247,12 @@ theorem raft.maybeSendSnapshot.wp_proof
       iapply BigSepL2.bigSepL2_nil.2; itrivial
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
-      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns⟩)))
+      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns, Htz⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
     · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`
-      iapply tsSrc_snap; iexact Hcert
+      iapply Hcert
     iapply HΦ $$ %true %([absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] : List Msg)
       %(<[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals)
     isplitl [Hphys]

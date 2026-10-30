@@ -9,6 +9,11 @@ how). Each step of `main.go` transcribes one axiom by hand; keep them in step wi
     go run . -old-wbkt               # wBkt without a generation, as before 2026-10-27 (false)
     go run . -old-info               # DB.Info_kv as before audit B4b (false)
     go run . -old-cursor-kvw         # Bucket.Cursor_kvw as before audit B4b (false)
+    go run . -old-delete             # Bucket.Delete_kv before backend-cmp F3: an owned key only
+    go run . -focus delete -nkeys 12 -vmax 1500
+                                     # weighted toward Deletes of the transaction's own cursor
+                                     # slices (txBytes), large enough buckets to read keys
+                                     # from the memory map
     go run . -mutant seek-gt         # deliberately wrong specs, see -help
 
 `-seed N -runs 1` replays one run; `-v` prints every run's calls. Exit status 1 on a refutation.

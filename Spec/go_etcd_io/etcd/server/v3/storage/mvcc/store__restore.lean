@@ -53,20 +53,22 @@ some).
   private memory, `PlainRWMutex.lean`; `store.Restore`: the lock in restoring mode, the restore
   plan's R5e).
 * **No compaction** is found (`kbNoCmp`, the backend records none, consumed: its reads of the
-  compaction keys find nothing, `kbNoCmp_metaNone`, the trust boundary): `compactMainRev` stays
+  compaction keys find nothing, the read transaction's clause under it, `keyReadLocked_meta`; until
+  the backend-compaction stage, 2026-10-29, the axiom `kbNoCmp_metaNone`): `compactMainRev` stays
   `-1` and no compaction is resumed.
 * **No lease** is attached (`keyToLease` stays empty: no entry has a lease). -/
 abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
     (dqb dqi : DFrac)
     (R : mvcc.Log) (RevP RevK RevQ : IProp GF) (dqc : DFrac) (q1 q2 : Qp),
   mvcc.restoreLogOk R → q1 + q2 = 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
-      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) ∗
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT (mvcc.kbNoCmp γ.kb γ.bucket) PutOk (mvcc.delKey γ) W Wi Dep
+        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) ∗
       RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗ mvcc.restoreView b γ RT q R ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
@@ -83,7 +85,7 @@ abbrev mvcc.store.restore.spec : Prop :=
             mvcc.idxReader ti γ.idx) ∗
           ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; RT ∗
+  {{ RET #GoInterface.nil; RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗

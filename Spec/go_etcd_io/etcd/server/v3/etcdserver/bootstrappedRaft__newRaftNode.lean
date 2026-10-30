@@ -59,7 +59,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pre : List EntryModel)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : IProp GF),
   letI := srvStor (GF := GF) γr
   -- `newRaftNode`'s premises: a logger, a heartbeat
   bv.lg' ≠ null →
@@ -84,33 +84,15 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   γr.vs = ps →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
-      -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,
-      -- `memStorage_isStorage`, over the registry the composition holds)
-      "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
-      "Hsto" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
-      -- `StartNode`'s: a dynamic cluster's storage never compacted past index `1`, a static
-      -- cluster's certificates the cluster's
-      "#Hcert" ∷ (if γr.dyn then storCap (memStorIface bv.storage') 1
-        else storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
-      -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
-      "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
-           ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
-           memSnapTok bv.storage' γs memStorEmpty -∗
-           (∀ (hp cs : Loc) (al : Bool),
-            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
-            memSnapTok bv.storage' γs memStorEmpty -∗
-            hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
-             (Val #())) {{ Φ }}) ∗
-      -- (D17d, 2026-10-18) the application's snapshot token, which `InitialState` borrows
-      "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
+      -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
+      -- `StartNode` boots it (`bootStorage` at the zero hard state and the empty conf state, with
+      -- the frame `Q` its `InitialState`'s update gives: for the server `srvMem_bootStorage`'s)
+      "Hbs" ∷ bootStorage γr.cl cv.ID' (memStorIface bv.storage')
+        (HardStateM.mk (W64 0) (W64 0) (W64 0)) memSnapEmpty.Metadata'.ConfState' Q ∗
       -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
       -- this node's boot token (the cluster's allocation's)
-      "Hboot" ∷ (if γr.dyn then nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
-        else nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
+      "Hboot" ∷ nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗
       -- the contracts (`InvNodeStart.lean`)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
@@ -124,8 +106,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- the node API's node
         isNode n γr.cl srvClusterN cv.ID' ∗
         nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage')) ∗
-        (if γr.dyn then nodeConfig n γr.cl srvClusterN
-          ⟨0, Membership.simple (GMap.listToSet ps)⟩ else iprop(True)) ∗
+        nodeConfig n γr.cl srvClusterN ⟨0, Membership.simple (GMap.listToSet ps)⟩ ∗
+        -- (2026-10-30, the repair) the node's whole running token (`StartNode`'s)
+        nodeRunning n γr.cl srvClusterN 1 ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
         -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
@@ -136,8 +119,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- (2026-10-27) the peers' slice not back: the node API's `StartNode` keeps it (proposed:
         -- give it back, it only reads it)
         b ↦{dq} bv ∗
-        -- (D17d) the snapshot token back (`InitialState` ran before the node's goroutine)
-        memSnapTok bv.storage' γs memStorEmpty }}
+        -- (2026-10-30, the repair) the storage's frame (`InitialState` ran before the node's
+        -- goroutine)
+        Q }}
 
 end spec
 

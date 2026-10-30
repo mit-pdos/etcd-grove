@@ -71,6 +71,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   spec is proved, and the outgoing-metadata fact a law over grpc's key.
 - **Status.** Open.
 
+### Sync: locking a fresh mutex at any invariant (2026-10-30, kvreconf-final)
+
+`sync.init_Mutex` takes `▷ R`, the lock invariant, when the mutex is made. A goroutine that allocates
+a mutex and locks it before the invariant holds cannot use it: kvreconf's `StartCluster` locks
+`c.mu` and then inserts the founders, and `clusterLockInv` holds only at the `Unlock`. The lock is
+needed because the replicas' `run` goroutines, started inside the loop, call `c.replica`. The
+workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/MutexFresh.lean`.
+It is proved, with no axiom, from Perennial's exported unsealing equations and `lock.lock`'s code:
+`Lock` of a wholly owned mutex at `false` gives `isMutex m R ∗ ownMutex m` for any `R`, and the
+first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
+`Proof/sync/Base.lean`, after which the local copy goes. Status: not yet proposed.
+
 ### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
 
 - **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
@@ -1264,6 +1276,43 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
 
+### `wp_apply` of a hypothesis triple with no binders in its post drops the continuation
+
+- **Found** (2026-10-29, U8 v2 step 4, `newLogWithSize` over the boot bundle,
+  `notes/u8v2/step4-boot-newLogWithSize.patch`): `wp_apply H $$ [$HR]`, with `H` a hypothesis
+  triple whose postcondition binds nothing (`{{ P }} e {{ RET v; Q }}`), silently loses the
+  continuation: the goal after it is not the rest of the program.
+- **Workaround here.** `wp_apply_raw H $$ [$HR]; inext; iintro HR`.
+- **Proposed change.** `wp_apply` handles a post with no binders like one with binders
+  (investigate where the continuation is dropped; a regression test with such a hypothesis).
+
+### `word` on fully concrete goals fails the kernel's check
+
+- **Found** (2026-10-29, same proof): `word` closes a goal with no variables (concrete `w64`
+  arithmetic) at elaboration, but the proof term fails the kernel's check.
+- **Workaround here.** `rfl` or `simp` on those goals.
+- **Proposed change.** Find which `word` step produces the ill-typed term on closed goals (or
+  have `word` try `decide`/`rfl` first on them); add a test.
+
+### gokv's `trusted_proph` has a trusted model but no spec, and no translation in Perennial
+
+- **Found** (2026-10-30, kvreconf-final, the atomic `Cluster.Read`): Perennial has the trusted
+  model of `github.com/mit-pdos/gokv/trusted_proph`
+  (`Perennial/TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean`: `NewProph`,
+  `ResolveBytes := ResolveProph p (Convert []byte→string b)`), but no Goose translation of the
+  package and no spec of `ResolveBytes`.
+- **Workaround here.** The kvreconf project translates the package (`etc/goose.py`,
+  `Code/github_com/mit_pdos/gokv/trusted_proph.toml`, both functions trusted;
+  `TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean` re-exports Perennial's model), and the
+  spec is proved here from `wp_bytes_to_string` and `wp_resolve_proph`
+  (`Spec/github_com/mit_pdos/gokv/trusted_proph/ResolveBytes.lean`,
+  `Proof/.../trusted_proph/ResolveBytes.lean`):
+  `{proph p pvs ∗ sl ↦*{dq} s} ResolveBytes(p, sl) {∃ pvs', ⌜pvs = #s :: pvs'⌝ ∗ proph p pvs' ∗ sl ↦*{dq} s}`.
+- **Proposed change.** Translate `trusted_proph` in Perennial (as `primitive`, a `.toml` with the
+  two trusted functions), and add this spec and its proof (`Perennial/Spec/.../trusted_proph/`,
+  `Perennial/Proof/.../trusted_proph/`, with a `Link`), as for `primitive`'s
+  `ProphId.ResolveU64`. Then this repository drops its translation and its copy of the spec.
+
 ## `WithCancel`'s `Value` delegates to its parent (2026-10-28, M2)
 
 Perennial's `context.WithCancel` spec gives `isContext` of the child, whose `Value` is specified only
@@ -1281,3 +1330,13 @@ supplies more. It is a fact of Iris's atomic updates (the Rocq `atomic_update_mo
 here by `greatest_fixpoint_coiter` and `aupd_aacc` (`Proof/.../etcdserver/InvRequest.lean`, step 5
 of the auth-mode merge). Proposed change: the lemma in Perennial's/Iris's atomic-update library,
 next to `aupd_aacc`.
+
+## A bag channel's non-blocking send (2026-10-30, kvreconf-snapshot-thread)
+
+Perennial's bag idiom (`Chan/Idioms/Bag.lean`) has the blocking send's atomic update
+(`bag_send_au`) but not the non-blocking one a `select` with a `default` needs. kvreconf's `request`
+sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : £ 1 -∗ isChanBag γ ch
+P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
+(`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
+the lemma in `Bag.lean`, next to `bag_send_au`.
+

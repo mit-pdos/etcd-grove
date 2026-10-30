@@ -92,7 +92,11 @@ theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryMode
   have key : ∀ (k : Nat) (m : EntryModel), A[k]? = some m →
       iprop(□ [∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ entryClaim γi m := by
     intro k m hk
-    rcases srv_entry_src ai₀ A L hA h m (List.mem_of_getElem? hk) with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    rcases srv_entry_src ai₀ A L hA h m (List.mem_of_getElem? hk) with
+      ⟨-, hd⟩ | ⟨-, hd⟩ | ⟨m', hm', he⟩
+    · iintro -
+      iunfold entryClaim
+      ileft; ipureintro; exact .inr hd
     · iintro -
       iunfold entryClaim
       ileft; ipureintro; exact .inr hd
@@ -119,6 +123,16 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOk
   iintro !> %L #HL
+  -- (2026-10-30, the repair) no empty `ConfChangeV2` committed (`srv_committed_noV2`)
+  ihave #HLc : isCommittedLogLb ρ.raft.raft.cl (srvLE ρ.raft L) $$ []
+  · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 ρ.raft (srvLE ρ.raft L) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HLc
+  have hnv : ∀ m ∈ L, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
   icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
@@ -133,8 +147,9 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have hshL : logShape L := by
     intro m hm
-    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
     · have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
@@ -143,8 +158,9 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
       rw [← h1, ← h2]; exact this
   have hcclL : ccLogOk ρ.raft.raft L := by
     intro m hm
-    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · intro h; exact absurd ht h
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
     · have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
@@ -157,7 +173,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (the cluster the server's, the start log and index the
-server's), in a dynamic cluster at the server's decoder, the storage's cap at least `1`: the tick's
+server's), the cluster at the server's rule: the tick's
 resource and the read registrations by `srvEr`'s definition, every message the node sends
 admitted with its bundle (`srvMsgNet`, D21 stage M1) and no snapshot (`srv_sentMsg_notSnap`), a
 committed log's `E.C` from the KV invariant's indices (a committed log's requested entries are a
@@ -168,10 +184,9 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (x₀ : apply.ApplyKV) (γw : RNNames)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    -- (D43 M3, 2026-10-25) in a dynamic cluster at the server's decoder
-    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
-    -- (D21 M3) the storage's cap at least `1`
-    (hcap : 1 ≤ γw.γs.cap)
+    -- (D43 M3, 2026-10-25) the cluster at the server's rule (2026-10-30, the repair: in every
+    -- cluster, and no storage cap; until then in a dynamic cluster, its decoder)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
     -- `Send`'s borrow
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
@@ -187,16 +202,10 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact hdec
   isplitr
-  · ipureintro; exact hcap
-  isplitr
   · iexact Hr
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc⟩
-    ihave #Hcl : srvClusterOk ρ.raft $$ []
-    · iunfold srvRaftLogInv at Hr; icases Hr with ⟨-, #H, -⟩; iexact H
+  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
     rw [hraft, hid] at *
-    ihave %Hns := srv_sentMsg_notSnap ρ.raft id st $$ [Hcl Hrm]
-    · iframe Hcl Hrm
     isplitl [Hc]
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
@@ -239,13 +248,13 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
   iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
-  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh
   isplitr
   · unfold srvFieldsBuiltNA
     iexists v

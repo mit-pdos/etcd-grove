@@ -35,7 +35,8 @@ theorem raftLog.maybeAppend.wp_proof [package_sem : Assumptions] (wp_raftLog_mat
                                               ls'.applying = ls.applying ∧
                                                 ls'.snap = ls.snap ∧
                                                   ls'.unpersisted = ls.unpersisted ∧
-                                                    ls'.stored = ls.stored ∧ ls'.storage = ls.storage ∧ ls'.fl = ls.fl⌝ ∗
+                                                    logStoreRec ls' = logStoreRec ls ∧
+                                                      ls'.storage = ls.storage ∧ ls'.fl = ls.fl⌝ ∗
                               ⌜ls'.snap = ls.snap ∧
                                   (nextUnstable ls ≠ [] → nextUnstable ls' ≠ []) ∧
                                     SnpKeep ls ls' ∧

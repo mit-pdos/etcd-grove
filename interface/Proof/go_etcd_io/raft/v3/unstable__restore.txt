@@ -8,16 +8,17 @@ theorem unstable.restore.wp_proof [package_sem : Assumptions] (wp_Snapshot_GetMe
     unstable.restore.spec
   -- `Perennial.EtcdGrove.unstable.restore.spec`, unfolded:
   ∀ (u : Loc) (us : UnstableSt) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hun" ∷ ownUnstable u us ∗ "Hsnap" ∷ ownSnapS sp dq sv -∗
-          ▷
-              (ownSnapS sp dq sv ∗
-                  ownUnstable u
-                    { ents := [], offset := sv.Metadata'.Index' + W64 1, inprogress := sv.Metadata'.Index' + W64 1,
-                      snap := some (snapId sv), ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists] } -∗
-                Φ (intoVal ())) -∗
-            WP
-              ((intoVal (methods unstable.ty.PointerType go!"restore" (intoVal u)))
-                (intoVal sp))
-              {{ Φ }}
+    (∃ x, sv.Metadata'.ConfState'.lists.Has x) →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hun" ∷ ownUnstable u us ∗ "Hsnap" ∷ ownSnapS sp dq sv -∗
+            ▷
+                (ownSnapS sp dq sv ∗
+                    ownUnstable u
+                      { ents := [], offset := sv.Metadata'.Index' + W64 1, inprogress := sv.Metadata'.Index' + W64 1,
+                        snap := some (snapId sv), ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists] } -∗
+                  Φ (intoVal ())) -∗
+              WP
+                ((intoVal (methods unstable.ty.PointerType go!"restore" (intoVal u)))
+                  (intoVal sp))
+                {{ Φ }}

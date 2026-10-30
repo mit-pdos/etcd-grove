@@ -307,6 +307,7 @@ theorem wp_stepLeader_prop
          else ⌜err = interface.nil⌝) }} := by
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
+  ihave %Hlv := ccEntsOk_leaveOk ents cs $$ Hcc
   have Hcslen : cs.length = ents.length := (List.Forall₂.length_eq Hct).symm
   iunfold ccEntsOk at Hcc
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -348,7 +349,7 @@ theorem wp_stepLeader_prop
     · iintro %Hd; exact absurd Hd (by decide)
     isplitr
     · ipureintro
-      exact ⟨cs, Hct, by simp⟩
+      exact ⟨cs, Hct, Hlv, by simp⟩
     simp only [↓reduceIte]
     iexact ErrPropDropped
   | some pr =>
@@ -378,7 +379,7 @@ theorem wp_stepLeader_prop
     · iintro %Hd; exact absurd Hd (by decide)
     isplitr
     · ipureintro
-      exact ⟨cs, Hct, by simp⟩
+      exact ⟨cs, Hct, Hlv, by simp⟩
     simp only [↓reduceIte]
     iexact ErrPropDropped
   rw [decide_eq_true Hlt]
@@ -642,11 +643,11 @@ theorem wp_stepLeader_prop
       · iintro %Hd; exact absurd Hd (by decide)
       isplitr
       · ipureintro
-        exact ⟨cs, Hct, by simp⟩
+        exact ⟨cs, Hct, Hlv, by simp⟩
       simp only [↓reduceIte]
       iexact ErrPropDropped
     · wp_auto
-      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
+      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys
@@ -658,7 +659,7 @@ theorem wp_stepLeader_prop
         iexact Hrc1
       isplitr
       · ipureintro
-        refine ⟨cs, Hct, ?_⟩
+        refine ⟨cs, Hct, Hlv, ?_⟩
         simp only [Bool.false_eq_true, ↓reduceIte]
         exact ⟨ms, pvs, rfl, Hms, Hmm⟩
       simp only [Bool.false_eq_true, ↓reduceIte]

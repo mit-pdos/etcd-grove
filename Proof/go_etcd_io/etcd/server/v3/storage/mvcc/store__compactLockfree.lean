@@ -35,14 +35,14 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post log hcmp
-  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs⟩
+  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs, HRTok⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (h0 s γ hcmp) $$ [] as %pcc -
+  wp_apply (h0 s γ hcmp) $$ [$HRTok] as %pcc HRTok
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
@@ -57,6 +57,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     wp_apply (h3 s γ t rev prev pcc true Ht) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, -⟩
     (try wp_auto)
     iapply HΦ
+    iframe HRTok Hhook
     ileft
     iframe Hmu HPost Hch'
     isplitr
@@ -69,6 +70,7 @@ theorem mvcc.store.compactLockfree.wp_proof
   · subst Herr
     (try wp_auto)
     iapply HΦ
+    iframe HRTok Hhook
     iright; ileft
     iframe Hmu Hright HPre Hch
     isplitr
@@ -77,6 +79,7 @@ theorem mvcc.store.compactLockfree.wp_proof
   · subst Herr Hch
     (try wp_auto)
     iapply HΦ
+    iframe HRTok Hhook
     iright; iright
     iframe Hmu Hright HPre
     isplitr

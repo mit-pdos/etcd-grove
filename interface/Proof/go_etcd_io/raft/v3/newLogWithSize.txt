@@ -4,27 +4,47 @@
 
 theorem newLogWithSize.wp_proof [package_sem : Assumptions] : newLogWithSize.spec
   -- `Perennial.EtcdGrove.newLogWithSize.spec`, unfolded:
-  ∀ (st : Storage) (lg : Logger) (maxSize : w64) (σ : StorState) (lok : GoInterfaceOk),
-    LogIndicesOk σ.prev σ.ents →
-      uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev →
-        σ.pend = [] →
-          lg = GoInterface.ok lok →
-            0 < uint.Z maxSize →
-              σ.fl = W64 0 →
-                ⊢
-                  ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                        isStorage st ∗ ownStorage st σ ∗ isLogger lok ∗ initKsnCert st σ -∗
-                      (▷
-                          ∀ l ip,
-                            ⌜uint.Z ip = uint.Z σ.prev.index' + ↑σ.ents.length + 1⌝ ∗
-                                ownStorage st σ ∗
-                                  (ownStorage st σ -∗
-                                    ownRaftLog l
-                                      { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
-                                        applied := σ.prev.index', snap := none, inprogress := ip,
-                                        applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-                                        apmax := maxSize, storage := st, ksn := initKsn σ }) -∗
-                              Φ (intoVal l)) -∗
-                        WP ((((intoVal (functions newLogWithSize [])) (intoVal st)) (intoVal lg)) (intoVal maxSize))
-                          {{ Φ }}
+  ∀ (si : GoInterfaceOk) (lg : Logger) (maxSize : w64) (sn : StorNames) (lok : GoInterfaceOk) (R : IProp GF),
+    lg = GoInterface.ok lok →
+      0 < uint.Z maxSize →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                R ∗
+                  (□
+                      ∀ Φ,
+                        R -∗
+                          ▷ (R -∗ Φ (intoVal (W64 1), intoVal GoInterface.nil)) -∗
+                            WP
+                              ((intoVal
+                                  (methods si.ty go!"FirstIndex"
+                                    si.v))
+                                (intoVal ()))
+                              {{ Φ }}) ∗
+                    (□
+                        ∀ Φ,
+                          R -∗
+                            ▷ (R -∗ Φ (intoVal (W64 0), intoVal GoInterface.nil)) -∗
+                              WP
+                                ((intoVal
+                                    (methods si.ty go!"LastIndex" si.v))
+                                  (intoVal ()))
+                                {{ Φ }}) ∗
+                      isLogger lok -∗
+              (▷
+                  ∀ l ip,
+                    R ∗
+                        ⌜uint.Z ip = 1⌝ ∗
+                          (isStorageD sn (GoInterface.ok si) -∗
+                            ownStorage sn (GoInterface.ok si)
+                                { prev := { term' := W64 0, index' := W64 0 }, ents := [], pend := [] } -∗
+                              ownRaftLog l
+                                { prev := { term' := W64 0, index' := W64 0 }, sents := [], uents := [],
+                                  committed := W64 0, applied := W64 0, snap := none, inprogress := ip, applying := W64 0,
+                                  unpersisted := [], stored := [], apsize := W64 0, apmax := maxSize,
+                                  storage := GoInterface.ok si, ksn := [], sn := sn }) -∗
+                      Φ (intoVal l)) -∗
+                WP
+                  ((((intoVal (functions newLogWithSize [])) (intoVal (GoInterface.ok si))) (intoVal lg))
+                    (intoVal maxSize))
+                  {{ Φ }}

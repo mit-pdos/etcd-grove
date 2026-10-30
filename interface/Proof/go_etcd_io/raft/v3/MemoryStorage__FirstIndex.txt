@@ -5,15 +5,13 @@
 theorem MemoryStorage.FirstIndex.wp_proof [package_sem : Assumptions] (wp_MemoryStorage_firstIndex :
     MemoryStorage.firstIndex.spec) : MemoryStorage.FirstIndex.spec
   -- `Perennial.EtcdGrove.MemoryStorage.FirstIndex.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
+  ∀ (ms : Loc) (γs : MemStorNames) (c : Nat),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hms" ∷ ownMemoryStorage ms γs σ -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗ memCompacted γs c -∗
           (▷
               ∀ fi,
-                ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z fi ∧ uint.Z fi ≤ max (uint.Z σ.prev.index') (uint.Z σ.fl) + 1⌝ ∗
-                    (⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∨ memStorCut γs (uint.Z fi - 1)) ∗ ownMemoryStorage ms γs σ -∗
-                  Φ (intoVal fi, intoVal GoInterface.nil)) -∗
+                ⌜c + 1 ≤ uint.nat fi⌝ ∗ memCompacted γs (uint.nat fi - 1) -∗ Φ (intoVal fi, intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
                   (methods MemoryStorage.ty.PointerType

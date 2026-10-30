@@ -45,7 +45,7 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' Happ0 Hsz Hcand Hli2
+  intro c r id s cc ccm dq c' Happ0 Hsz Hltz Hcand Hli2
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
@@ -103,7 +103,7 @@ theorem raft.applyConfChange.wp_proof
         %(Hok.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
     wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
-        (fun _ _ => Hmk) Hcand
+        (fun _ _ => Hmk) Hltz Hcand
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
           exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
@@ -164,7 +164,7 @@ theorem raft.applyConfChange.wp_proof
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
         wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
-            (fun _ _ => Hmk) Hcand
+            (fun _ _ => Hmk) Hltz Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
@@ -212,7 +212,7 @@ theorem raft.applyConfChange.wp_proof
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
         wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
-            (fun _ _ => Hmk) Hcand
+            (fun _ _ => Hmk) Hltz Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))

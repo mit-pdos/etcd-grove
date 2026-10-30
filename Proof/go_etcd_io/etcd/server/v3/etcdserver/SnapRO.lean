@@ -57,6 +57,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
 (`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/

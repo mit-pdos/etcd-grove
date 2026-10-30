@@ -6,16 +6,15 @@ theorem MemoryStorage.InitialState.wp_proof [package_sem : Assumptions] (wp_GetM
     raftpb.Snapshot.GetMetadata.spec) (wp_GetConfState : raftpb.SnapshotMetadata.GetConfState.spec)
     (wp_EnsureConfState : raftpb.EnsureConfState.spec) : MemoryStorage.InitialState.spec
   -- `Perennial.EtcdGrove.MemoryStorage.InitialState.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (hs : HardStateM),
+  ∀ (ms : Loc) (γs : MemStorNames) (hs : HardStateM),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hms" ∷ ownMemoryStorage ms γs σ ∗ "Hmeta" ∷ memStorMeta ms γs hs ∗ "Htok" ∷ memSnapTok ms γs σt -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs -∗
           (▷
               ∀ hp cs,
                 hsOpt hp hs ∗
                     memStorMeta ms γs hs ∗
-                      ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt ∗ csPts cs DFrac.discard (storCS σt) true -∗
+                      memStorFresh ms γs ∗ csPts cs DFrac.discard memSnapEmpty.Metadata'.ConfState' true -∗
                   Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
             WP
               ((intoVal

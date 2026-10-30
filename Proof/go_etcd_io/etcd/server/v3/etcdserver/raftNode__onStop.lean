@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as ⟨#Hr, Hdone, HST⟩
+  wp_start as ⟨#Hr, Hdone, HST, Hrun⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HTick, #HStop, #HRI, -⟩
+  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, -, #HStop, -⟩
   subst Hnieq
   iunfold isRNTicker at Htki
   icases Htki with ⟨%c, #Hc, #Hcc, #HtkStop⟩
@@ -51,7 +51,7 @@ theorem raftNode.onStop.wp_proof :
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Stop")]
   wp_auto
-  wp_apply HStop
+  wp_apply HStop $$ [$Hrun] as -
   wp_apply HtkStop
   wp_apply HTrStop $$ [$HST]
   wp_apply HClose

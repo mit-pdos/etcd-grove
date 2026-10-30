@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -62,8 +63,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs⟩
-  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, -⟩
+  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs, HRTok⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, HwFrag⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -76,7 +77,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
   try simp only
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  (try wp_auto)
+  -- (question 5's core stage) a receipt from `s.revMu.Lock`'s resolution, for `ForceCommit`'s
+  -- write-back token
+  wp_take_receipt as Hr2
   ipersist s
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨Hwl, HR⟩
   wp_auto_lc 2
@@ -154,6 +157,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
         ipureintro; exact ⟨Hne, Hbudget, Hc⟩
       (try wp_auto)
       iapply HΦ
+      iframe HRTok
+      isplitl [HwFrag]
+      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
       iright; ileft
       isplitr
       · ipureintro; exact ⟨by word, rfl⟩
@@ -194,6 +200,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
         ipureintro; exact ⟨Hne, Hbudget, Hc⟩
       (try wp_auto)
       iapply HΦ
+      iframe HRTok
+      isplitl [HwFrag]
+      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
       iright; iright
       isplitr
       · ipureintro; exact ⟨Hgt, rfl, rfl⟩
@@ -234,8 +243,12 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe Hpre
         iapply HP0P
         iexact HP0
-      -- `SetScheduledCompact(s.b.BatchTx(), rev)`
-      ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
+      -- `SetScheduledCompact(s.b.BatchTx(), rev)`, over the store's contract with its compaction on
+      -- (question 5's core stage, parts (2)-(4): its tokens, lock resource and write right)
+      have hcM := mvcc.storeCmp_cmpM γ hcmp
+      ihave #Hbk' := mvcc.isKeyBackendG_cmpOn b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
+      ihave #Hsw := mvcc.mwSwap_of_physOk s γ hcM $$ HmwP
+      icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg, #Hsup⟩
       iunfold mvcc.isKeyBackendG at Hbk'
       icases Hbk' with ⟨%bi, %Hbi, -, -, #HB, #HForce, -⟩
       subst Hbi
@@ -245,6 +258,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
       · itrivial
       inext
       iintro %bt #Hbt
+      -- a write-back token for the session, from the supply and a step's receipt
+      wp_take_receipt as Hr1
+      imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr1] with Hwt1
       (try wp_auto)
       iunfold mvcc.isBatchTxG at Hbt
       icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
@@ -253,24 +269,27 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- `sorry`: bind and apply)
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
         (Val #(GoInterface.ok bt))) (Val #rev))
-      iapply (h3 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph (mvcc.hookFn γ) f rev Pre Q
-          Post hrev0) $$ [HPre Hupd]
+      -- (question 5's core stage) the store's swap of its lock's resource for the right
+      iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
+          (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
+          (mvcc.kbMW γ.kb γ.bucket) f rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
       · iframe #
-        iframe HPre
-        isplitr
-        · iunfold mvcc.batchTxSpec; iexact Hbt
+        iframe HPre HRTok Hwt1
         iintro ⟨HQ, HW⟩
         imod Hupd $$ HQ with ⟨HP, HPost⟩
         ihave HP0 := HPP0 $$ HP
+        ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
         iunfold mvcc.writerRes at HW
         icases HW with ⟨%ilog, HW⟩
         iNamed HW
         iunfold mvcc.compactRes at Hcres
-        icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn⟩
+        icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn, Hmk⟩
         iunfold mvcc.metaCompact at Hmeta
         imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
         imodintro
         iframe HP0 HPost
+        iapply mvcc.storeW_put s γ
+        iframe Hreg
         iunfold mvcc.writerRes
         iexists ilog
         simp only [named]
@@ -284,17 +303,17 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe
         ipureintro; exact Hn
       inext
-      iintro HPost
+      iintro ⟨HRTok, HPost⟩
+      -- `s.b.ForceCommit()`, with a write-back token from the supply
+      imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2
       (try wp_auto)
-      -- `s.b.ForceCommit()`
       wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      iapply HForce $$ %iprop(True) %iprop(True) [] [-]
-      · isplitr; · itrivial
+      iapply HForce $$ %iprop(True) %iprop(True) [HRTok Hwt2] [-]
+      · iframe HRTok Hwt2
         isplitr; · itrivial
-        isplitr; · itrivial
-        iintro !> -; itrivial
+        iapply mvcc.storeReq_true
       inext
-      iintro -
+      iintro ⟨HRTok, -⟩
       (try wp_auto)
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
@@ -308,6 +327,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
         ipureintro; exact ⟨Hne, Hbudget, by omega, by omega⟩
       (try wp_auto)
       iapply HΦ
+      iframe HRTok
+      isplitl [HwFrag]
+      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
       ileft
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, Hgt⟩

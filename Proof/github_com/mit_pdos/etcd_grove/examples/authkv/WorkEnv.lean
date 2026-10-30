@@ -46,6 +46,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The tokens principal `who`'s client sends** (round 1, F-W5: `Work` takes
 `clientTokAt cl [addr] (akTokP γa who)`, what `Main` holds): `u`'s and `v`'s clients were built

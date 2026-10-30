@@ -45,6 +45,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The KV state of the committed log `L` in the auth mode `on`**: the mode-`on` model's, from
 the start's auth state `st₀` (`kvInvOn`'s ghost state). -/

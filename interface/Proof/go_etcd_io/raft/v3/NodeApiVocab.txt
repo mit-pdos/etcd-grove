@@ -14,7 +14,7 @@ structure LogEntry : Type where
   data : List w8
 
 def opsOf (l : List LogEntry) : List LogEntry :=
-  List.filter (fun e => !decide e.isFiller) l
+  List.filter (fun e => !decide e.isFiller && !decide e.isEmptyV2) l
 
 def instDecidableIsFiller (e : LogEntry) : Decidable e.isFiller :=
   id inferInstance
@@ -31,6 +31,9 @@ def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Pro
                   e.type = W32 1 ∧
                     MarshalsConfChange
                       (some (ConfChangeIM.v1 { type := W32 0, nodeId := id, context := ctx, id := W64 0 })) e.data
+
+def instDecidableIsEmptyV2_1 (e : LogEntry) : Decidable e.isEmptyV2 :=
+  id inferInstance
 
 def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
   List.mapIdx (fun i e => LogEntry.toEntryM (W64 (↑base + ↑i + 1)) e) l
@@ -50,8 +53,14 @@ structure NodeDriverState : Type where
 def NoConfChangeIn (l : List LogEntry) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬e.isConfChange
 
+theorem opsOf_noType2 (l : List LogEntry) (h : ∀ (e : LogEntry), e ∈ l → e.type ≠ W32 2) : opsOf l =
+    List.filter (fun e => !decide e.isFiller) l
+
 def LogEntry.ofEntryM (e : EntryM) : LogEntry :=
   { term := e.Term', type := e.Type', data := e.Data' }
+
+def LogEntry.isEmptyV2 (e : LogEntry) : Prop :=
+  e.data = [] ∧ e.type = W32 2
 
 def Membership.simple (vs : GSet w64) : Membership :=
   { voters := vs, votersOutgoing := ∅, learners := ∅, learnersNext := ∅, autoLeave := false }
@@ -73,6 +82,9 @@ structure Membership : Type where
   learnersNext : GSet w64
   autoLeave : Bool
 
+def Membership.ids (m : Membership) : GSet w64 :=
+  m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
+
 def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
   cs.Voters'.Perm (elements m.voters) ∧
     cs.VotersOutgoing'.Perm (elements m.votersOutgoing) ∧
@@ -80,9 +92,6 @@ def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
         cs.LearnersNext'.Perm (elements m.learnersNext) ∧ cs.AutoLeave' = m.autoLeave
 
 theorem LogEntry.isFiller_normal (e : LogEntry) (h : e.isFiller) : e.type = W32 0
-
-def ConfChangeDecoder : Type :=
-  List LogEntry → LogEntry → Option ConfChangeIM
 
 def LogEntry.toEntryM (idx : w64) (e : LogEntry) : EntryM :=
   { Term' := e.term, Index' := idx, Type' := e.type, Data' := e.data }

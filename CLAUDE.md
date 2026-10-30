@@ -109,6 +109,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
   `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
   --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
+- `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
+  reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
 ## Modules
 
@@ -250,10 +252,12 @@ generated: never edit the `.lean` files by hand.
 
 - `{Code,GeneratedProof}/go_etcd_io/raft/`: raft v3.7.0 (etcd-io/raft `b867cf13`, the raft
   etcd's `go.mod` pins; protobuf-go v2 raftpb: messages, entries and snapshots are pointers
-  read through getters) plus two fixes, the single-voter read-index shortcut
-  (`issues/raft-readindex-singleton-stale.md`) and the probe-to-replicate shortcut only at
-  `pr.Next == pr.Match+1` (`issues/raft-stale-term-appresp-index-zero-ack.md`): branch
-  `raft37-goose-lean-a1` of the fork `upamanyus/etcd` (commit `c8217eb9`), project `raft` of
+  read through getters) plus three fixes, the single-voter read-index shortcut
+  (`issues/raft-readindex-singleton-stale.md`), the probe-to-replicate shortcut only at
+  `pr.Next == pr.Match+1` (`issues/raft-stale-term-appresp-index-zero-ack.md`), and the
+  configuration switched to a snapshot's when it is applied, not restored
+  (`issues/raft-snapshot-during-apply-stale-confchange.md`): branch `raft37-goose-lean-a2` of the
+  fork `upamanyus/etcd` (commit `565c2bd`, on `raft37-goose-lean-a1`), project `raft` of
   `etc/goose.py`; the same packages
   as before (`.`, `confchange`, `quorum`, `raftpb`, `tracker`), raftpb all but its protobuf
   plumbing (`ProtoReflect`, `Descriptor`, the file descriptor, ...); modules

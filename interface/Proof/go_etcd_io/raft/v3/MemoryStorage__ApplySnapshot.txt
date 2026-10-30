@@ -7,36 +7,31 @@ theorem MemoryStorage.ApplySnapshot.wp_proof [package_sem : Assumptions] (wp_Ens
     raftpb.SnapshotMetadata.GetIndex.spec) (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec)
     (wp_CloneSnapshot : proto.CloneSnapshot.spec) : MemoryStorage.ApplySnapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.ApplySnapshot.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac) (eood : GoInterface),
-    σ.pend = [] →
-      uint.Z sv.Metadata'.Index' < 2 ^ 61 →
-        uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
-          uint.Z sv.Metadata'.Index' ≤ γs.cap →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                    ownMemoryStorage ms γs σ ∗
-                      snapArg sp dq sv ∗
-                        memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
-                          typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
-                  (|={⊤ \ ↑memSnapN,∅}=>
-                      ∃ σt,
-                        memSnapTokG γs σt ∗
-                          (⌜σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index'⌝ -∗
-                              memSnapTokG γs σt ={∅,⊤ \ ↑memSnapN}=∗
-                                ownSnapM sp dq sv -∗ ownMemoryStorage ms γs σ -∗ Φ (intoVal eood)) ∧
-                            (⌜¬(σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index')⌝ -∗
-                              memSnapTokG γs (memStorApplied sv) ={∅,⊤ \ ↑memSnapN}=∗
-                                ownSnapM sp dq sv -∗
-                                  ownMemoryStorage ms γs
-                                      (have __src := memStorApplied sv;
-                                      { prev := __src.prev, ents := __src.ents, ss := __src.ss, pend := __src.pend,
-                                        scs := __src.scs, sal := __src.sal, sdat := __src.sdat, fl := σ.fl }) -∗
-                                    Φ (intoVal GoInterface.nil))) -∗
-                    WP
-                      ((intoVal
-                          (methods MemoryStorage.ty.PointerType
-                            go!"ApplySnapshot"
-                            (intoVal ms)))
-                        (intoVal sp))
-                      {{ Φ }}
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM)
+    (eood : GoInterface),
+    j ≤ uint.nat sv.Metadata'.Index' →
+      uint.nat sv.Metadata'.Index' < 2 ^ 61 →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                memStorInvP ms γs J ∗
+                  memLog γs j (DFrac.own 1) old ∗
+                    memEnd γs (j + old.length) ∗
+                      J.B (uint.nat sv.Metadata'.Index') ∗
+                        J.SV sv ∗
+                          J.DL (uint.nat sv.Metadata'.Index') ∗
+                            snapArg sp dq sv ∗
+                              memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+              ▷
+                  (ownSnapM sp dq sv ∗
+                      memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+                        memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') -∗
+                    Φ (intoVal GoInterface.nil)) -∗
+                WP
+                  ((intoVal
+                      (methods MemoryStorage.ty.PointerType
+                        go!"ApplySnapshot"
+                        (intoVal ms)))
+                    (intoVal sp))
+                  {{ Φ }}

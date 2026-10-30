@@ -123,7 +123,7 @@ def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
     IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = bootLog⌝ -∗
+      ⌜cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
@@ -140,7 +140,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
     (cfgOk' : go_etcd_io.etcd.server.v3.config.ServerConfig → Prop) (Uok' : BootURLs → Prop)
     (Hc : ∀ cfg, cfgOk token name cfg → cfgOk' cfg) (Hu : ∀ U, Uok U → Uok' U) :
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk' cfg ∧ Uok' U ∧ γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = bootLog⌝ -∗
+      ⌜cfgOk' cfg ∧ Uok' U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir) ⊢
       bootPremise (GF := GF) N ps bootLog ctxs dir token name Uok id := by
   iintro #H
@@ -156,7 +156,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
 def commonPremises : IProp GF :=
   iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
-    rnStopOkStarted ∗ v3rpc.runsNoRequireLeader)
+    v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance
@@ -177,7 +177,7 @@ premises'. -/
 def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
     IProp GF :=
-  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ γ.dyn = false ∧
+  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
@@ -186,7 +186,7 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
+    idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
@@ -289,14 +289,14 @@ enabled and the KV invariant in the mode `on` from the auth store's start state 
 def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
     IProp GF :=
-  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ γ.dyn = false ∧
+  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
     nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
+    idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗

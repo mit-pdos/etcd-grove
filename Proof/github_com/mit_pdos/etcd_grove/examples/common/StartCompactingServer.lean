@@ -39,7 +39,7 @@ theorem StartCompactingServer.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartCompactingServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client retention lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
-    hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hret Hck Haf Hbuq Hdbo
+    hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hret Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -73,7 +73,7 @@ theorem StartCompactingServer.wp_proof
       lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
-      hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Hlg (by omega) Hck Haf Hbuq
+      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Hlg (by omega) Hck Haf Hbuq
       Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)

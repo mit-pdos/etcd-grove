@@ -27,7 +27,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev raftNode.stop.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
-      E.ST }}
+      E.ST ∗
+      -- (2026-10-30, the repair) the apply side's half of the node's running token, which
+      -- `stopped` carries to the loop (`rnStopBag`)
+      (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 

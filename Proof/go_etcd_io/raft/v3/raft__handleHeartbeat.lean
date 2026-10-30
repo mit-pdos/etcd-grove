@@ -39,7 +39,7 @@ theorem raft.handleHeartbeat.wp_proof
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom
+  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz
   wp_start as H
   iNamed H
   wp_auto
@@ -67,10 +67,10 @@ theorem raft.handleHeartbeat.wp_proof
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     msg_nulls
-  have Hok : ∀ s' : NState, SendOk id s' ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ [] cl
-      [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] := fun s' =>
-    Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, rfl⟩)
-  wp_apply wp_raft_send c r id _ «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) (Hok _)
+  have Hok : ∀ s' : NState, s'.term ≠ W64 0 → SendOk id s' ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ [] cl
+      [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] := fun s' hs' =>
+    Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, hs', rfl⟩)
+  wp_apply wp_raft_send c r id _ «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) (Hok _ (by first | exact Htz | simpa using Htz | simp_all))
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
   · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))

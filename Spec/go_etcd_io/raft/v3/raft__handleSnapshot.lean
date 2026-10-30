@@ -64,30 +64,20 @@ def HandleSnapResult (id : w64) (s : NState) (m : MessageM)
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧ cl.Has id ∧
    ¬ PlogMatches ls.prev es sid ∧
-   ∃ prs pvs il,
-     s' = sendMsgs { s with progress := prs, prvals := pvs,
-                            logst := logRestore ls (snapTrip sv cl), isLearner := il }
-            [appResp id s dst false sid.index' (W64 0) (W64 0)])
+   s' = sendMsgs { s with logst := logRestore ls (snapTrip sv cl) }
+          [appResp id s dst false sid.index' (W64 0) (W64 0)])
 
 /-- (2026-10-19, D21 M3) `handleSnapshot` keeps the no-snapshot mode (`NGhost.ns`). -/
 theorem HandleSnapResult.ns {id : w64} {s : NState} {m : MessageM} {sv : SnapshotM} {cl : CSLists}
     {s' : NState} (H : HandleSnapResult id s m sv cl s') : s'.gh = s.gh := by
   unfold HandleSnapResult at H
-  rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, _, _, _, rfl⟩ <;> rfl
+  rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, rfl⟩ <;> rfl
 
 /-- Whether `restore` restored the snapshot (its third exit): newer than the commit index, (D22
 S-b) naming the node `id`, and its last entry not in the log. -/
 def SnapRestores (id : w64) (s : NState) (sv : SnapshotM) (cl : CSLists) : Prop :=
   uint.Z s.logst.committed < uint.Z (snapId sv).index' ∧ cl.Has id ∧
   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv)
-
-/-- The configuration after `handleSnapshot` (2026-10-14, reconfiguration stage A3; any
-`ConfState`'s since B8): the one the snapshot's `ConfState` denotes after a restore, the old one
-`c` otherwise. -/
-def SnapCfgOk (id : w64) (c : CfgM) (s : NState) (sv : SnapshotM) (cl : CSLists) (c' : CfgM) :
-    Prop :=
-  (SnapRestores id s sv cl ∧ c' = snapCfg sv cl) ∨
-  (¬ SnapRestores id s sv cl ∧ c' = c)
 
 end results
 
@@ -101,8 +91,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. At any configuration since 2026-10-14 (reconfiguration stage A3): the
 struct at any `c`; since B8 the snapshot's `ConfState` any well-formed one, joint included, with
 (since D22 S-b) naming the node or not (`restore`'s spec); afterwards the node is at the
-configuration `c'`
-(`SnapCfgOk`). (The statement with the node's own voters, `specS`, had no caller and is gone.) -/
+configuration `c'` (`SnapCfgOk`: the snapshot's after a restore) -- since 2026-10-28, stage U0, at
+`c` in every case (`restore` keeps it; `appliedSnap` installs the snapshot's). (The statement with
+the node's own voters, `specS`, had no caller and is gone.) -/
 abbrev raft.handleSnapshot.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -116,15 +107,16 @@ abbrev raft.handleSnapshot.spec : Prop :=
   m.From' ≠ id →
   -- (2026-10-19, D21 M3) outside the no-snapshot mode (`raft.restore`'s premise)
   s.gh.ns = false →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
-      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry (`restore`'s)
-      "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+      -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `ksnCert`) the snapshot certified (`restore`'s)
+      "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #ml))
-  {{ (s' : NState) (c' : CfgM), RET #();
-      ownRaftPhysCV c' c'.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ ∗
-      ⌜SnapCfgOk id c s sv cl c'⌝ }}
+  {{ (s' : NState), RET #();
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ }}
 
 end spec
 

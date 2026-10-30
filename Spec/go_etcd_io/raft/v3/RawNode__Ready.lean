@@ -114,8 +114,14 @@ abbrev RawNode.Ready.spec : Prop :=
       -- after the `Ready` (`phsNext`)
       "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
       -- the right to append `es` to the node's storage (2026-10-10); (D22 S-d3a) with a snapshot,
-      -- the storage itself (`readyOut`)
-      "Happ" ∷ readyOut rs.storage es L }}
+      -- the storage itself (`readyOut`); (U8 v2, raft-final phase 1) over the ranges: the log from
+      -- the batch on, or after a snapshot from an index at most it with the snapshot handed out
+      "Happ" ∷ readyOut rs.storage rs.sn es L ∗
+      -- (U8 v2) the committed entries below the batch, frozen, and raft's certified terms of the
+      -- committed log handed out (`ownRawNodeReady_handout`)
+      "#Hfrz" ∷ (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
+      "#Hdk" ∷ dlvKeysAt rs.sn rs.delivered.length
+        ((dlvAfter rs.delivered ce L).drop rs.delivered.length) }}
 
 end spec
 

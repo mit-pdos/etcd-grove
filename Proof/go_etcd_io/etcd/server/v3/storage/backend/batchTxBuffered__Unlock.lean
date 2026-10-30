@@ -39,7 +39,7 @@ freedom), then the postcondition (the four free outcomes: nothing pending, or wr
 without a commit, with or without a view to update). -/
 local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
     wp_apply (hBU γ P W Pk b t)
-      $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd HWv HPk]
+      $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
       unfold batchFree batchPhys batchGhostAt
       ileft
@@ -49,7 +49,7 @@ local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
       · iexists hk
         iframe
         iframe #
-      isplitl [Hv Hrvs Ha Hmo Hus Hopn Hhkd]
+      isplitl [Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
       · iframe Hv
         iexists _, _, u0
         iframe
@@ -64,13 +64,13 @@ local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
   ))
 
 set_option hygiene false in
-/-- `commit` of the written-back batch (`vw`: whether a view update is owed, `pf` its part of the
-precondition), up to its outcome `Hpost` (both commit tests, with or without the view). -/
-local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
-    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0 iprop(True) iprop(True)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd HPk] as ⟨-, HPk, -, Hpost⟩
+/-- `commit` of the written-back batch (`vw`: whether a view update is owed, `L` the logical view
+it comes back at; `Hpc` the commit's thinness premise), up to its outcome `Hpost` (both commit tests, with or without the view). -/
+local macro "bu_commit" vw:term:max L:term:max : tactic => `(tactic| (
+    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0 iprop(True) iprop(True) $L) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc] as ⟨-, HPk, -, Hpost⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
-      isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd]
+      isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
       · iexists t, db
         try simp only [wbSt_C, wbSt_S, wbSt_R, wbSt_W, wbSt_pend, wbSt_ndel, wbSt_tx]
         iframe Ht Hown
@@ -78,7 +78,7 @@ local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
         · iexists hk
           iframe
           iframe #
-        isplitl [Hv Hrvs Ha Hmo Hus Hopn Hhkd]
+        isplitl [Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
         · iframe Hv
           iexists n - 1, w + 1, u0
           iframe
@@ -89,7 +89,9 @@ local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
       iframe HPk
       isplitr
       · ipureintro
-        exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i, $pf⟩
+        exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i⟩
+      isplitl [Hpc]
+      · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hpc
       unfold payIn
       rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
       isplitr
@@ -134,37 +136,35 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
     ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   ihave Hl := batchLocked_W γ P b st $$ Hl
   unfold batchLockedW batchGhostW
-  icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, %Hbg⟩,
-    %Hwf⟩
+  icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
+    %Hbg⟩, %Hwf⟩
   icombine Ht Ht1 gives %Heq1
   subst Heq1
   unfold batchPhys
   icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
   wp_auto
   by_cases hp0 : st.pend = W64 0
-  · icases Hcase with (⟨%Hvs, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
+  · icases Hcase with (⟨#Hth, %Hnw, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
     · rw [decide_eq_true hp0]
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0 Hhw
       bu_free st hbg hfo
-    · unfold bView bViewC
-      icases Hbv with ⟨%c, Hbv1, Hcvw, Hcl⟩
-      icombine Hv Hbv1 gives % ⟨_, Hvd⟩
+    · -- nothing written: the logical view is `relog`'s (`relog_same`)
+      ihave ⟨Hv, Hbv, #Hthvd⟩ := batchViewQ_bView γ P st 1 vd $$ [$Hv $Hbv]
+      iunfold thinV at Hthvd
+      icases Hthvd with ⟨%Hsub, -⟩
       rw [decide_eq_true hp0]
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0 Hhw
       have hvf := vData_free P st Hwf hfo.2.2.1 hfo.2.2.2.1
-      ihave Hbv : iprop(ghostVar γ.view (1 : Qp).half (sData P st.S) ∗ ghostVar γ.cvw (1 : Qp).half ())
-        $$ [Hbv1 Hcvw]
-      · rw [← hvf, Hvd]
-        iframe
-      ihave Hbv : iprop(∃ c, ghostVar γ.view (1 : Qp).half (sData P st.S) ∗
-          ghostVar γ.cvw (1 : Qp).half () ∗ ghostVar γ.cln (1 : Qp).half c) $$ [Hbv Hcl]
-      · iexists c; icases Hbv with ⟨H1, H2⟩; iframe
+      ihave Hbv : bView γ 1 (relog P vd st) $$ [Hbv]
+      · rw [relog_same P vd st hvf.symm Hsub]; iexact Hbv
       icases HQw $$ Hbv with ⟨HWv, HQ⟩
       bu_free st hbg hfo
-  · icases Hcase with (⟨%Hvs, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
-    · rw [decide_eq_false hp0]
+  · icases Hcase with (⟨#Hth, %Hnw, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
+    · -- a deleting session: the write-back leaves the readers' view; the commit's new physical
+      -- view is thin of the old
+      rw [decide_eq_false hp0]
       wp_auto
       wp_apply (hRLock γ P rt) $$ [$Hrg] as ⟨Hwl, Hrr⟩
       unfold wbTok
@@ -182,22 +182,25 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
-      have hsame := vData_writeback_same P st.C st.W st.R Hvs.2
-      have hvs' : vData P ((wbSt P st).C, (wbSt P st).R) = sData P (wbSt P st).S := by
-        rw [wbSt_C, wbSt_R, wbSt_S, hsame]
-        exact Hvs.1
+      icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRv_of (fkOk_wb f w h)) $$ Hfkh
+        with ⟨Hfkh, #Hfkr⟩
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOk_wb $$ Hfkh
+      have hsame := vData_writeback_same P st.C st.W st.R Hnw
       imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe
-        (rbClean_writeback Hvs.2)) $$ [$Hci $Hwb $HRB $Hrvs]
+        (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr]
         with ⟨Hrr, Hrvs⟩
-      ihave Hv : ghostVar γ.view (1 : Qp).half.half (vData P (st.C, writebackR st.W st.R)) $$ [Hv]
-      · rw [hsame]; iexact Hv
+      ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
+      · unfold batchViewQ; rw [wbSt_C, wbSt_R, hsame]; iexact Hv
       wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
-      · wp_if_destruct
-        · bu_commit false (fun _ => hvs')
+      · ihave Hpc : thinV γ (sData P (wbSt P st).S) (vData P ((wbSt P st).C, (wbSt P st).R)) $$ []
+        · rw [wbSt_S, wbSt_C, wbSt_R, hsame]
+          iexact Hth
+        wp_if_destruct
+        · bu_commit false (vData P (st.C, st.R))
           bu_release
         wp_if_destruct
-        · bu_commit false (fun _ => hvs')
+        · bu_commit false (vData P (st.C, st.R))
           bu_release
         exfalso
         rcases hcond with h | h
@@ -209,7 +212,10 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
         have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
         bu_free (wbSt P st) hbg' hfo'
-    · rw [decide_eq_false hp0]
+    · -- a put session: back at `relog P vd st`
+      ihave ⟨Hv, Hbv, #Hthvd⟩ := batchViewQ_bView γ P st 1 vd $$ [$Hv $Hbv]
+      ihave #Hrel := thinV_relog γ P vd st $$ Hthvd
+      rw [decide_eq_false hp0]
       wp_auto
       wp_apply (hRLock γ P rt) $$ [$Hrg] as ⟨Hwl, Hrr⟩
       unfold wbTok
@@ -227,39 +233,49 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
       have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
+      icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRv_of (fkOk_wb f w h)) $$ Hfkh
+        with ⟨Hfkh, #Hfkr⟩
+      ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOk_wb $$ Hfkh
+      unfold batchViewQ
+      icases Hv with ⟨%L0, Hv⟩
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
-      · imod (rtRes_wb_close γ P rt st.W st.C st.R vd true Hwf.2.2.1 hver hsafe) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv]
-          with ⟨Hrr, Hrvs, Hv, -⟩
+      · -- committed: the window opens at the exact new physical view, the commit's close moves it
+        -- to `relog` (R11-2)
+        imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) true Hwf.2.2.1 hver hsafe)
+          $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr] with ⟨Hrr, Hrvs, Hv, -⟩
+        · simp only [↓reduceIte]; itrivial
+        ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
+        · unfold batchViewQ; rw [wbSt_C, wbSt_R]; iexists _; iexact Hv
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
+        ihave Hpc : thinV γ (sData P (wbSt P st).S) (relog P vd st) $$ []
+        · rw [wbSt_S]; iexact Hrel
         wp_if_destruct
-        · bu_commit true (fun h => absurd h (by decide))
-          ihave Hbv2 : bView γ 1 (sData P st.S) $$ [Hbv2]
-          · rw [← Hfin.2.1]
-            iexact Hbv2
+        · bu_commit true (relog P vd st)
           icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         wp_if_destruct
-        · bu_commit true (fun h => absurd h (by decide))
-          ihave Hbv2 : bView γ 1 (sData P st.S) $$ [Hbv2]
-          · rw [← Hfin.2.1]
-            iexact Hbv2
+        · bu_commit true (relog P vd st)
           icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         exfalso
         rcases hcond with h | h
         · omega
         · exact Hif (by have : sint.Z (W64 0) = 0 := rfl; omega)
-      · imod (rtRes_wb_close γ P rt st.W st.C st.R vd false Hwf.2.2.1 hver hsafe) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv]
-          with ⟨Hrr, Hrvs, Hv, Hbvw⟩
+      · -- not committed: the write-back's close moves the view to `relog`
+        have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
+        have hvf : vData P (st.C, writebackR st.W st.R) = sData P st.S := by
+          rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2.1, wbSt_C, wbSt_R]
+        imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) false Hwf.2.2.1 hver hsafe)
+          $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr] with ⟨Hrr, Hrvs, Hv, Hbvw⟩
+        · simp only [Bool.false_eq_true, ↓reduceIte]; rw [hvf]; iexact Hrel
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
+        · unfold batchViewQ; rw [wbSt_C, wbSt_R]; iexists _; iexact Hv
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
         wp_if_destruct
         · exfalso; exact hcond (Or.inl (by omega))
         wp_if_destruct
         · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
-        have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
-        ihave Hbvw : bView γ 1 (sData P st.S) $$ [Hbvw]
-        · rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2.1, wbSt_C, wbSt_R]
-          iexact Hbvw
         icases HQw $$ Hbvw with ⟨HWv, HQ⟩
         bu_free (wbSt P st) hbg' hfo'
 

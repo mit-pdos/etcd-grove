@@ -86,7 +86,7 @@ theorem schedule.NewFIFOScheduler.wp_proof
   let F : FifoNames := ⟨w, st, rc, dc, dr, rch, γr, dch, γd, ctx, γc, cf, cnd, lg⟩
   imod inv_alloc resumeN ⊤ (resumeInv (GF := GF) F) $$ [Hroc] with #Hrinv
   · inext; iunfold resumeInv; iexists []; ileft; iexact Hroc
-  imod inv_alloc donecN ⊤ (donecInv (GF := GF) F) $$ [Hdoc] with #Hdinv
+  imod inv_alloc donecN ⊤ (donecInv (GF := GF) γ F) $$ [Hdoc] with #Hdinv
   · inext; iunfold donecInv; ileft; iexact Hdoc
   imod sync.init_Mutex (fifoLockInv «$r0_ptr» γ F) ⊤ (fifoMu «$r0_ptr») $$ mu
     [pendings scheduled finished cancel Hw1 Hq1 Hst] with #Hmu

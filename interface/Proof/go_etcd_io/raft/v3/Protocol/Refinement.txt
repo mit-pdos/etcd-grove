@@ -286,7 +286,7 @@ theorem ownRaftGhost_step_app_resp [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : R
 
 theorem isMessage_snap_prefix [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (m : Msg) (Hty : m.ty =
     MsgType.snap) : ⊢ isMessage γ m -∗ ∃ fp, ⌜FullOk { term' := m.logterm, index' := m.index } fp⌝ ∗
-    logRecs γ base0 fp
+    logRecs γ base0 fp ∗ isCommitted γ fp
 
 theorem ownRaftGhost_inv_md [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (s :
     PState) : ⊢ ownRaftGhost γ id s md -∗ raftCommitInv γ
@@ -411,7 +411,10 @@ theorem ownRaftGhost_step_heartbeat [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : 
 theorem ownRaftGhost_step_propose [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (ents : List EntryM) (n : Nat) : s.role = Role.leader → plogLastIndexZ s.base s.log
     + ↑ents.length < 2 ^ 64 → plogLastIndexZ s.base s.log + ↑ents.length ≤ ↑n + ↑γ.reBoot.length → ⊢
-    ⧖n -∗ ([∗list] e ∈ ents, propData γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗ ownRaftGhost γ id s
+    ⧖n -∗ ([∗list] e ∈ ents, propData γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗ (□ ∀ fp' k x, ⌜FullOk
+    s.base fp' ∧ (List.mapIdx (stamp s.term (plastIndex s)) ents)[k]? = some x ∧ γ.reDyn ≠ none ∧
+    IsEmptyV2 x⌝ -∗ logRecs γ base0 fp' -∗ ∃ M c, decLb γ M ∗ ⌜CfgAt γ M (fp' ++ s.log ++ List.take
+    k (List.mapIdx (stamp s.term (plastIndex s)) ents)) c ∧ c.joint = true⌝) -∗ ownRaftGhost γ id s
     md ==∗ ownRaftGhost γ id (psendMsgs (pappend s (List.mapIdx (stamp s.term (plastIndex s)) ents))
     [pselfAck id (pappend s (List.mapIdx (stamp s.term (plastIndex s)) ents))]) md
 
@@ -465,14 +468,14 @@ theorem lastRec_receipt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (L : Int) : �
     ⧖(L.toNat - γ.reBoot.length)
 
 theorem rdOwn_ack [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
-    (recs0 : List RqRec) (P : List EntryM) (c : CfgM) (X : IProp GF) (Hconf : ∀ (Q : GSet w64) (r :
-    RqRec), JQuorum c Q → (∀ (v : w64), v ∈ Q → ∀ (t' : w64) (qq : GSet w64), r.snd = some (t', qq)
-    → ¬v ∈ qq) → ⊢ X -∗ rqRecOk γ s.term r -∗ readOk γ r.fst.fst r.fst.snd) : s.role = Role.leader →
-    CfgAt γ P c → JQuorumAcked c (fun v => ((readonlyRecvAck s.rd.ro src (u64Le q)).acks !! v).getD
-    (W64 0)) N → HbAckOk src (uint.nat q) recs0 → ⊢ X -∗ rdOwn γ id s -∗ rqLb γ id s.term recs0 -∗ X
-    ∗ rdOwn γ id { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
-    outbox := s.outbox, base := s.base, log := s.log, commit := s.commit, matched := s.matched, rd
-    :=
+    (recs0 : List RqRec) (P : List EntryM) (c : CfgM) (X : IProp GF) {M : DecMap} (Hconf : ∀ (Q :
+    GSet w64) (r : RqRec), JQuorum c Q → (∀ (v : w64), v ∈ Q → ∀ (t' : w64) (qq : GSet w64), r.snd =
+    some (t', qq) → ¬v ∈ qq) → ⊢ X -∗ rqRecOk γ s.term r -∗ readOk γ r.fst.fst r.fst.snd) : s.role =
+    Role.leader → CfgAt γ M P c → JQuorumAcked c (fun v => ((readonlyRecvAck s.rd.ro src (u64Le
+    q)).acks !! v).getD (W64 0)) N → HbAckOk src (uint.nat q) recs0 → ⊢ X -∗ rdOwn γ id s -∗ rqLb γ
+    id s.term recs0 -∗ X ∗ rdOwn γ id { term := s.term, vote := s.vote, lead := s.lead, role :=
+    s.role, votes := s.votes, outbox := s.outbox, base := s.base, log := s.log, commit := s.commit,
+    matched := s.matched, rd :=
                             have __src := s.rd;
                             { states := __src.states,
                               ro := (readonlyAdvance (readonlyRecvAck s.rd.ro src (u64Le q)) N).fst,

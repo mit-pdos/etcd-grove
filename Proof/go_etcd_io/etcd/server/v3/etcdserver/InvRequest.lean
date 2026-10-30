@@ -120,6 +120,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The KV ghost state's names and the start state the model is folded from: the state's ghost
 variable (`st`, halves: `etcdKV`'s and the KV invariant's), the consistent index `c0`, the chain
@@ -519,6 +520,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- Raft's `ReadState` (v3.7) is countable (a channel's element type: the raft wrapper's
 `readStateC`, the read loop's `ReadState()`; moved here from `InvRaftNode.lean`, 2026-10-13, for
@@ -753,6 +755,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The request path's ghost names: the raft contract's, the ids', the wait's registered
 ids' (`isWait`'s `γw`), and (2026-10-14, unit C2a) the read names the apply thread's answers are
@@ -1063,10 +1066,8 @@ the verified `node.Propose`'s statement over the server's ghost names (see the f
 its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStopped`,
 `ErrProposalDropped`, `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`;
 2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`).
-**`ApplyConfChange(c)`** (audit phase B3, 2026-10-18; `applyConfChange`'s call): of a v1 change,
-read-only, that leaves raft's configuration as it is (`ccRaftOk`, raft's static mode's
-`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`); (D43 M3,
-2026-10-25) in raft's static mode (`reDyn = none`): the dynamic mode's is `raftApplyCCDyn`. -/
+(2026-10-30, the repair: one mode; `ApplyConfChange` is `raftApplyCC`'s, `InvCfgView.lean`; until
+then, in raft's static mode, here: of a v1 change that leaves raft's configuration as it is.) -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
@@ -1077,11 +1078,7 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
       {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q ∗ £ 1 }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
-      {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}) ∗
-    □ (∀ (c : GoInterface) (cm : ConfChangeM), ⌜γ.raft.dyn = false⌝ -∗ ⌜ccRaftOk γ.raft.cfg cm⌝ -∗
-      {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) }}
-        (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
-      {{ (csp : Loc), RET #csp; ∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true }}))
+      {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}))
 
 instance raftPropose_persistent (γ : ServerRaftNames) (n : GoInterface) :
     Persistent (raftPropose (GF := GF) γ n) := by
@@ -1112,6 +1109,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server `s`'s raft node** (persistent): `s.r`'s `Node` is fixed and meets the raft
 contract. -/
@@ -1129,6 +1127,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The server's atomics' invariants' namespace (moved here from `InvApplier.lean`, 2026-10-13). -/
 abbrev srvN : Namespace := nroot.@"server"
@@ -1523,6 +1522,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The read loop's lock resource** at fraction `q` (`r.mux`, a `sync.RWMutex`; 2026-10-13, the
 request path's unit 4a): `r.notifier` (at `q`) and the ghost variable of the current notifier and
