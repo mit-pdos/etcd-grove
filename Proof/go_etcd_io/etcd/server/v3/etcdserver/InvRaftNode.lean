@@ -311,7 +311,7 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     ⌜γ.node.rule = srvRule E.γr.kv.c0 γ.node.boot⌝ ∗
     srvRaftLogInv E.γr.raft ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗
-        sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st -∗
+        sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ -∗
         E.M m) ∗
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
         ⌜uint.Z E.γr.raft.ai0 + 1 + L.length < 2 ^ 64⌝ ={⊤}=∗ □ E.C L) ∗
@@ -493,7 +493,7 @@ server's clusters send no `MsgSnap`, `srv_sentMsg_notSnap`). -/
 theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
       ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗
-          sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st -∗
+          sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ -∗
           E.M m) -∗ srvClusterOk E.γr.raft -∗ ⌜E.γr.raft.raft = γ.node⌝ -∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗
           sentMsg γ.node.cl srvClusterN γ.id q.st ∗ msgCredits γ.node.cl srvClusterN q.st)
@@ -539,6 +539,7 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
     · ipureintro; exact hsn
     iapply HM $$ %q.loc %q.st
     iframe Hm Hsm Hc
+    ipureintro; exact hsn
 
 /-- The read states a `Ready` hands out, each answering the server's registrations (through
 the bridge). -/
