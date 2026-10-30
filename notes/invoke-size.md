@@ -79,6 +79,19 @@ the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `S
 
      The draft's section 7 does not list these two servers.
 
+     **Plan for concurrency (not started).** It does not build: 14 proofs broken since pass 2
+     (`Mutex__{Unlock,TryLock,Lock,tryAcquire}`, `Election__{Leader,Resign,Proclaim,Campaign,observe}`,
+     `waitDelete`, `waitDeletes`, `stm__commit`, `stm__fetch`, `stmSerializable__commit`). Bounds:
+     - `NewMutex`/`NewElection`/`ResumeElection` take a prefix of `2 ^ 27` bytes or less, kept in
+       `isMutex`/the election's predicate. `tryAcquire`'s transaction carries the key three times
+       and the prefix's range four times: 7 · 2^27 plus slack is under `2 ^ 30`.
+     - The held key (`pfx ++` the lease in hex, or `ResumeElection`'s `key`) needs a length bound
+       in the mutex's and election's state, for `Unlock`/`Resign`/`Proclaim`.
+     - `Campaign`/`Proclaim` take a value of `2 ^ 28` bytes or less.
+     - STM: per-call key and value bounds (Q6).
+     The receive-size fact gives the servers `< 2 ^ 27` for each field (`grpcRecvBytesOk.lt`), which
+     meets all of these.
+
      **Decided (2026-10-30): (a)**, stated in code ("Receive-size fact" below); the servers' proofs
      use it once `concurrency` takes its bounds.
 2. **leasing**: each KV operation of the leasing KV gains the client's predicate. Its own
