@@ -54,6 +54,22 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
+set_option hygiene false in
+/-- `run`'s exit: the loop's `nodeRunning 1` sent on `runDone`, then `return`. -/
+local macro "run_exit" : tactic => `(tactic| (
+    try wp_auto
+    wp_apply wp_handoff_send ρ.rd ρ.rdc (fun _ => nodeRunning n γr.cluster kvrRaftN 1) iprop(True)
+      iprop(False) () $$ [$(frameH `HrdH) $(frameH `Hprod) Hrun] as -
+    · isplitl [Hrun]
+      · iexact Hrun
+      · itrivial
+    try wp_auto
+    wp_for_post
+    try wp_auto
+    iapply HΦ
+    itrivial
+  ))
+
 theorem Replica.run.wp_proof
     (wp_applyEntry : Replica.applyEntry.spec (GF := GF) (hG := hG))
     (wp_install : Replica.install.spec (GF := GF) (hG := hG))
@@ -105,7 +121,27 @@ theorem Replica.run.wp_proof
     iapply Hau $$ [$Hlc1 $Hlc2]
     inext
     iintro %rdv ⟨%ce, %es, %h, %L, #Hce, #Hcomm, Hrs, Hrest, Hdrv⟩
-    sorry
+    ihave ⟨%Hidx, Hrest⟩ := kvr_readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
+    try wp_auto
+    cases L with
+    | none =>
+      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ $$ Hrest
+      iunfold readyRest at Hrest
+      icases Hrest with ⟨%msl, #Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      iunfold readySnap at Hsnap
+      icases Hsnap with ⟨%Hnull, Happ, #Hcef⟩
+      wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
+      cases b
+      · run_exit
+      have Hfit' := Hfit rfl
+      try wp_auto
+      wp_apply wp_IsEmptySnap rdv.Snapshot' DFrac.discard none $$ [$Hraft] as %b2 ⟨%Hb2, -⟩
+      · unfold snapOpt; ipureintro; exact Hnull
+      subst Hb2
+      try wp_auto
+      sorry
+    | some l =>
+      sorry
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `stopc` closed: `nodeRunning 1` sent on `runDone`
@@ -117,17 +153,7 @@ theorem Replica.run.wp_proof
     · iapply ownBroadcastChan_is_chan $$ HstopB
     iapply broadcast_chan_receive _ _ _ _ _ $$ HstopB
     iintro ⟨-, -⟩
-    try wp_auto
-    wp_apply wp_handoff_send ρ.rd ρ.rdc (fun _ => nodeRunning n γr.cluster kvrRaftN 1) iprop(True)
-      iprop(False) () $$ [$HrdH $Hprod Hrun] as -
-    · isplitl [Hrun]
-      · iexact Hrun
-      · itrivial
-    try wp_auto
-    wp_for_post
-    try wp_auto
-    iapply HΦ
-    itrivial
+    run_exit
   iapply BigAndL.bigAndL_nil.2
   itrivial
 
