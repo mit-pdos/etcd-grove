@@ -29,6 +29,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Writer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.CollectPlan
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.StateResp
 public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
@@ -361,19 +362,25 @@ theorem Main.wp_proof
   ihave #Hau := wk_read_au ρ.rd.kv γc (trs.map pairOf) $$ Hwk
   iunfold kvReadAu at Hau
   iunfold kvAu at Hau
-  wp_apply (wp_Watch w ρ.rd.kv wctx
+  -- (G2) the watcher's environment explicit, no auth bound (`n = 0`)
+  wp_apply (wp_Watch w _ ρ.rd.kv wctx
       ({ Values := ∅, Deadline := none, Done_gn := γctx, PDone := iprop(True) } :
         context.ContextDesc (IProp GF))
       wkPfx optsSl
       ([withPrefixM, withRevM (W64 1), withProgressNotifyM, withCreatedNotifyM] :
         List (OpFull → OpFull))
-      (W64 1) (wkReadQ γc (trs.map pairOf))) $$ [] as %wch %γw ⟨#Hsp, Hcons, Hcur⟩
+      (W64 1) (wkReadQ γc (trs.map pairOf)) 0) $$ [] as %wch %γw ⟨#Hsp, Hcons, Hcur⟩
   · iframe #
-    ipureintro
-    refine ⟨?_, hnp, by decide, by rw [hkey]; decide, by rw [hkey, hend], by rw [hkey]; decide⟩
-    unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
-    exact ⟨ht, hr, hpv, hfr, hfp, hfd⟩
-  ihave #Hwch := common.isRespChan_of_state wch γw _ (wkReadQ γc (trs.map pairOf)) $$ Hsp
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro
+      refine ⟨?_, hnp, by decide⟩
+      unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
+      exact ⟨ht, hr, hpv, hfr, hfp, hfd⟩
+    iintro !> %h
+    exact absurd h.2 (Nat.lt_irrefl 0)
+  ihave #Hwch := common.isRespChan_of_state wch γw _ (wkReadQ γc (trs.map pairOf)) _ $$ Hsp
   (try wp_auto)
   -- the log of the successful Puts under its mutex (`wsInvF` at `okFactW`)
   icases typedPointsto_split _ _ _ $$ «$r0» with Hr0
@@ -500,7 +507,7 @@ theorem Main.wp_proof
     rw [← h10]
     iframe Hcons Hcur
     ipureintro; rfl
-  wp_apply (wp_Collect (common.stateOk (opWatchModel wkPfx [withPrefixM, withRevM (W64 1), withProgressNotifyM, withCreatedNotifyM]) (wkReadQ γc (trs.map pairOf)))
+  wp_apply (common.wp_Collect_plan wp_Collect (common.stateOk (opWatchModel wkPfx [withPrefixM, withRevM (W64 1), withProgressNotifyM, withCreatedNotifyM]) (wkReadQ γc (trs.map pairOf)))
       (wkRevAt γc) iprop(True) (trs.map pairOf) wch γw m (fun _ _ _ _ => inferInstance)
       (fun c c' v r => common.stateOk_closeErr _ _ c c' v r)
       (fun n c c' v r hne hcur => by

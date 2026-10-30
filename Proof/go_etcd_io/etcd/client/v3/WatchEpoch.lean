@@ -31,22 +31,23 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`run`'s current epoch** (its gRPC stream `γs`, from `respc`'s position `b`, W3b: at the
-member `i`): the epochs' authority, the earlier ones ended at or below `b` (their counts'
+member `i`; G2: the stream's token `tok`): the epochs' authority, the earlier ones ended at or below `b` (their counts'
 authorities). -/
-def epochSt (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) : IProp GF :=
+def epochSt (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) (tok : Option GoString) : IProp GF :=
   iprop(∃ (eps : List EpInfo) (γc : GName),
-    monoListAuthOwn G.γep 1 (eps ++ [((γs, b, γc, i) : EpInfo)]) ∗
+    monoListAuthOwn G.γep 1 (eps ++ [((γs, b, γc, i, tok) : EpInfo)]) ∗
     [∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2.1 1 n ∗ ⌜n ≤ b⌝)
 
 /-- **A response taken from `respc` in the current epoch is its stream's**: at a position `k` past
 the epoch's first, its tag is the current epoch (an earlier one's count ended at or below `b`). -/
-theorem respcE_at (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b k i : Nat) (p : Loc)
+theorem respcE_at (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b k i : Nat)
+    (tok : Option GoString) (p : Loc)
     (hk : b ≤ k) (hi : V.mem i = (V.addr, V.R)) :
-    epochSt G γs b i ∗ respcE V G.γep (k : Int) p ⊢
-      epochSt G γs b i ∗
-        respcElem γs (v3rpc.watchDn γs V.R.γ V.R.cid V.R.mid) ((k - b : Nat) : Int) p := by
+    epochSt G γs b i tok ∗ respcE V G.γep (k : Int) p ⊢
+      epochSt G γs b i tok ∗
+        respcElem γs (v3rpc.watchDn γs V.R.γ V.R.s tok V.R.cid V.R.mid) ((k - b : Nat) : Int) p := by
   unfold epochSt respcE
-  iintro ⟨⟨%eps, %γc, Ha, Hend⟩, ⟨%e, %b', %γs', %γc', %i', #Hi, #Hlb, %Hb', Hel⟩⟩
+  iintro ⟨⟨%eps, %γc, Ha, Hend⟩, ⟨%e, %b', %γs', %γc', %i', %tok', #Hi, #Hlb, %Hb', Hel⟩⟩
   ihave %Hl := mono_list_auth_idx_lookup _ _ _ _ _ $$ Ha Hi
   simp only [Int.toNat_natCast] at Hb' ⊢
   by_cases he : e < eps.length
@@ -60,15 +61,17 @@ theorem respcE_at (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b k i : Nat
     subst he'
     rw [List.getElem?_append_right (Nat.le_refl _)] at Hl
     simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at Hl
-    obtain ⟨rfl, rfl, rfl, rfl⟩ := Hl
+    obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := Hl
     rw [hi]
     iframe Hel
     iexists eps, γc
     iframe
 
 /-- **The epoch at `run`'s start** (`b = 0`, no earlier epoch). -/
-theorem epochSt_first (G : WgsPrm GF) (γs : StreamNames) (γc : GName) (i : Nat) :
-    monoListAuthOwn (GF := GF) G.γep 1 ([] ++ [((γs, 0, γc, i) : EpInfo)]) ⊢ epochSt G γs 0 i := by
+theorem epochSt_first (G : WgsPrm GF) (γs : StreamNames) (γc : GName) (i : Nat)
+    (tok : Option GoString) :
+    monoListAuthOwn (GF := GF) G.γep 1 ([] ++ [((γs, 0, γc, i, tok) : EpInfo)]) ⊢
+      epochSt G γs 0 i tok := by
   iintro Ha
   unfold epochSt
   iexists [], γc
@@ -80,9 +83,10 @@ theorem epochSt_first (G : WgsPrm GF) (γs : StreamNames) (γc : GName) (i : Nat
 the producer side handed back (`prodBack`), at a count `k` at or above the current epoch's start,
 every epoch so far has ended at or below `k` (the handed-back one is the current one: an earlier
 one's authority is `run`'s). -/
-theorem epochSt_close (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) (e b0 : Nat)
-    (γs0 : StreamNames) (γc0 : GName) (i0 : Nat) (k : Nat) (hb : b ≤ k) :
-    epochSt G γs b i ∗ monoListIdxOwn G.γep e ((γs0, b0, γc0, i0) : EpInfo) ∗
+theorem epochSt_close (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) (tok : Option GoString)
+    (e b0 : Nat) (γs0 : StreamNames) (γc0 : GName) (i0 : Nat) (tok0 : Option GoString) (k : Nat)
+    (hb : b ≤ k) :
+    epochSt G γs b i tok ∗ monoListIdxOwn G.γep e ((γs0, b0, γc0, i0, tok0) : EpInfo) ∗
       monoNatAuthOwn γc0 1 k ⊢
       ∃ eps : List EpInfo, monoListAuthOwn G.γep 1 eps ∗
         [∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2.1 1 n ∗ ⌜n ≤ k⌝ := by
@@ -100,8 +104,8 @@ theorem epochSt_close (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) (e b0 : Na
     subst he'
     rw [List.getElem?_append_right (Nat.le_refl _)] at Hl
     simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at Hl
-    obtain ⟨rfl, rfl, rfl, rfl⟩ := Hl
-    iexists eps ++ [((γs, b, γc, i) : EpInfo)]
+    obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := Hl
+    iexists eps ++ [((γs, b, γc, i, tok) : EpInfo)]
     iframe Ha
     iapply BigSepL.bigSepL_snoc.2
     isplitl [Hend]
@@ -116,9 +120,9 @@ theorem epochSt_close (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) (e b0 : Na
 
 /-- **The next epoch** (D25): from `respc`'s position `k`, every earlier epoch ended at or below it. -/
 theorem epochSt_open (G : WgsPrm GF) (γs : StreamNames) (k : Nat) (γc : GName) (i : Nat)
-    (eps : List EpInfo) :
-    monoListAuthOwn (GF := GF) G.γep 1 (eps ++ [((γs, k, γc, i) : EpInfo)]) ∗
-      ([∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2.1 1 n ∗ ⌜n ≤ k⌝) ⊢ epochSt G γs k i := by
+    (tok : Option GoString) (eps : List EpInfo) :
+    monoListAuthOwn (GF := GF) G.γep 1 (eps ++ [((γs, k, γc, i, tok) : EpInfo)]) ∗
+      ([∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2.1 1 n ∗ ⌜n ≤ k⌝) ⊢ epochSt G γs k i tok := by
   iintro ⟨Ha, Hend⟩
   unfold epochSt
   iexists eps, γc

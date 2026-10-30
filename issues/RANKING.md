@@ -283,6 +283,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-watch-stream-key-collision](etcd-watch-stream-key-collision.md)** (2026-10-29): the
+  client keys its watch streams by `%+v` of the outgoing metadata, which collides, so a watch can
+  go out with another context's metadata (its token). Needs a metadata value with a space; etcd's
+  tokens have none. A small fix (an injective key); no test yet.
 - **[etcd-cluster-version-stale-proposal-downgrade](etcd-cluster-version-stale-proposal-downgrade.md)**
   (2026-10-30): two `ClusterVersionSet` proposals in flight (the monitor proposes from goroutines,
   from its own read of the version) can apply out of order, regressing the cluster version and

@@ -65,7 +65,10 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
   iexists r, σ, c2, c2'
   simp only [Int.toNat_natCast]
   iframe Hev Hh H1 H2 HQ Hs
-  ipureintro; exact hf
+  isplitr
+  · ipureintro; exact hf
+  iintro !> -
+  itrivial
 
 /-- A created response without events keeps the server-level contract's position. -/
 theorem rawRespOk_created (γst : mvcc.StoreNames) (o : OpFull) (c c' : w64)

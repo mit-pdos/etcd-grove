@@ -189,9 +189,9 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     -- (W2 of `notes/watch-cut-plan.md`, 2026-10-21) the member's watch server, its `Watch` stream
     -- served at the client address
     (∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
-        (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn)) ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+        (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝)
 
@@ -229,14 +229,15 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
   · iapply Hf $$ %name %mh %srv %ics %S Hs
   · iexact Hm
 
-/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`. -/
+/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`
+(metadata-indexed, G2). -/
 theorem isGrpcStream_forwards {Req Rep : StreamMsg GF} (a b name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
-    forwards (GF := GF) a b ∗ isGrpcStream b name Up Spec ⊢ isGrpcStream a name Up Spec := by
+    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
+    forwards (GF := GF) a b ∗ isGrpcStreamMd b name Up Spec ⊢ isGrpcStreamMd a name Up Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
   icases Hf with ⟨-, -, #Hf⟩
-  unfold isGrpcStream
+  unfold isGrpcStreamMd
   icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
   iexists mh, srv, ics, S
   isplitl
@@ -286,9 +287,9 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
     ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
-    isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
-      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
-      (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn) ∗
+    isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
+      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+      (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗
     ⌜(∃ reg : GName, ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩) ∧ ρ.rd.kv.c0 = W64 0 ∧
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []]⌝)
 

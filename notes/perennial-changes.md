@@ -17,6 +17,60 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Slices: an empty slice literal is not nil (2026-10-29, authkv G2)
+
+- **Limitation.** `wp_slice_literal` gives an arbitrary pointer for an empty literal, so a proof
+  cannot show that `[]byte{}` is not `nil` (in Go it is not; `testCompareSliceToNil` shows it at the
+  semantics level). etcd's watch server sends a from-key watch's range end as `[]byte{}`
+  (`recvLoop`), so `createRangeOk` has two readings for the end `"\x00"`: "from the key on" or "the
+  key alone" (`v3rpc/InvWatchStream.lean`; `notes/status-history.md`, the watch slice).
+- **Needed by.** `watcher.Watch.spec`'s from-key watches (its premise `rangeEnd ≠ [W8 0]` excludes
+  them today): authkv's root watch of every key (`Watch("", WithPrefix())`, G2,
+  `notes/authkv-main-plan.md`).
+- **Workaround here.** None; the user chose to wait for the general fix (2026-10-29).
+- **Proposed.** `wp_slice_literal_nonnull` (`Perennial/Golang/Theory/Slice.lean`): the literal's
+  pointer is non-null, from the backing array's typed points-to (`typedPointsto_not_null`, which
+  holds at length zero too); `wp_slice_literal` unchanged, its corollary. A proof, not a semantics
+  change: no trusted-base delta.
+- **Status.** On Perennial branch `slice-literal-nonnull` (`6da88b280`, off `origin/lean`
+  `8df4f63d3`; worktree `/shared/perennial-slicelit`), built (`Perennial.Golang.Theory.Slice`;
+  `#print axioms`: Lean's three only). Not landed: Perennial's `etc/land.sh` (prepare, review, push)
+  is the user's. The pin then moves to it.
+
+### Context model: `WithCancel` keeps its parent's values (2026-10-30, authkv G2)
+
+- **Limitation.** Perennial's `WithCancel` specs say nothing of the new context's `Value`: a
+  `*cancelCtx` answers every key but its own `&cancelCtxKey` with its parent's value
+  (`context.go`, `cancelCtx.Value`), so grpc's outgoing metadata (key `mdOutgoingKey{}`) is the
+  parent's. The model cannot state it (`isContext`'s `Values` are unused, the entry below).
+- **Needed by.** G2's watch (`notes/g2-watch-auth.md`, row (h)): the watcher's stream runs on
+  `WithCancel(&valCtx{inctx})`, and the stream's metadata must be `inctx`'s.
+- **Workaround here.** The local trust-boundary axiom `context.WithCancelValCtx.wp_proof`, strengthened
+  in place with `⌜metadata.outgoingOf ctx' = metadata.outgoingOf inctx⌝` (the user's choice,
+  2026-10-30).
+- **Proposed.** A `Value` contract for `WithCancel`/`WithTimeout`/`WithDeadline` (delegation to the
+  parent at every key but the context's own), on a Perennial branch by its own workflow, together
+  with the `Values` clause below. (h) is retired when it lands.
+- **Status.** Open.
+
+### Context model: a descriptor's `Values` constrain nothing (2026-10-29, authkv round 1)
+
+- **Limitation.** `isContext c d` never reads `d.Values` (its docstring: "unused"), so
+  `isContext c d ⊢ isContext c { d with Values := ∅ }` and a spec's "no values" says nothing of what
+  `c.Value(k)` returns. A law "a context with no values has no value at grpc's metadata key" is then
+  false of every context; it was inconsistent with `AppendToOutgoingContext`'s axiom
+  (`notes/axiom-review/outgoingOf-noValues.md`, branch `axiom/outgoingOf-noValues`).
+- **Needed by.** authkv's `reqCtx` (its `anon` principal sends no token: `WithTimeout(Background())`
+  has no outgoing grpc metadata); the same gap as the `WithCancel` entry below (the trace key).
+- **Workaround here.** The trust-boundary axiom `context.WithTimeoutBackgroundMd.wp_proof`
+  (`WithTimeoutBackground`'s post with `metadata.outgoingOf (ok ctx') = none`), for authkv's callers
+  only; `WithTimeoutBackground.wp_proof` stays proved.
+- **Proposed.** `isContext`'s `Value` clause at every key: `c.Value(k)` returns `d.Values !! k` (or
+  nil), with the derived contexts' specs saying their `Values` (a `cancelCtx`/`timerCtx` the
+  parent's, a `valueCtx` the parent's with one more). Then "no values" is meaningful, the `Md`
+  spec is proved, and the outgoing-metadata fact a law over grpc's key.
+- **Status.** Open.
+
 ### Sync: locking a fresh mutex at any invariant (2026-10-30, kvreconf-final)
 
 `sync.init_Mutex` takes `▷ R`, the lock invariant, when the mutex is made. A goroutine that allocates

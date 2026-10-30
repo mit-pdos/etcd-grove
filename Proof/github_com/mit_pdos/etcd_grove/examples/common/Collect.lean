@@ -31,7 +31,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 
 theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     Collect.spec (GF := GF) (hG := hG) := by
-  intro CS Ok R A P wch γ upTo hP Hce Hresp
+  intro CS Ok I F A wch γ upTo hI0 hP Hce Hresp
   haveI : ∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
     Persistent (Ok c c' v r) := hP
   wp_start as ⟨#Hw, Hcons, #HA⟩
@@ -44,19 +44,16 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     iexists []
     isplitr
     · iapply ownSlice_nil
-    iunfold collectOk
     isplitr
-    · ipureintro; refine ⟨Or.inl rfl, by simp, fun i e h => by simp at h⟩
+    · ipureintro; simp
     iintro !> %i %e %h
     simp at h
   (try wp_auto)
   ihave IH : (∃ (evs0 : List wev) (sl : GoSlice) (lv : w64) (m : Nat) (c : w64),
       "evs" ∷ evs_ptr ↦ sl ∗ "last" ∷ last_ptr ↦ lv ∗ "Hs" ∷ sl ↦* evs0 ∗
       "Hcap" ∷ ownSliceCap wev sl (DFrac.own 1) ∗ "Hcons" ∷ etcdWatchConsumer γ m c ∗
-      "%Hc" ∷ ⌜Cur evs0.length c ∧ (evs0 ≠ [] → sint.Z lv = 1 + evs0.length) ∧
-        ∀ (i : Nat) (e : wev), evs0[i]? = some e →
-          e.Put' = true ∧ sint.Z e.Rev' = 2 + i ∧ (e.Key', e.Val') ∈ P⌝ ∗
-      "#Hrevs" ∷ □ ∀ (i : Nat) (e : wev), ⌜evs0[i]? = some e⌝ -∗ R (2 + i) e.Key' e.Val' :
+      "%Hc" ∷ ⌜I evs0.length c ∧ ∀ e, evs0.getLast? = some e → lv = e.Rev'⌝ ∗
+      "#Hrevs" ∷ □ ∀ (i : Nat) (e : wev), ⌜evs0[i]? = some e⌝ -∗ F i e :
       IProp GF) $$ [evs last Hcons]
   · iexists [], slice.nil, _, 0, W64 0
     iframe
@@ -65,7 +62,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     isplitr
     · iapply ownSliceCap_nil
     isplitr
-    · ipureintro; refine ⟨Cur_zero, fun h => absurd rfl h, fun i e h => by simp at h⟩
+    · ipureintro; refine ⟨hI0, fun e h => by simp at h⟩
     iintro !> %i %e %h
     simp at h
   wp_for IH
@@ -109,16 +106,14 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
       "i" ∷ i_ptr ↦ j ∗ "e" ∷ e_ptr ↦ e0 ∗ "evs" ∷ evs_ptr ↦ sl' ∗ "last" ∷ last_ptr ↦ lv' ∗
       "Hs" ∷ sl' ↦* (evs0 ++ ws) ∗ "Hcap" ∷ ownSliceCap wev sl' (DFrac.own 1) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z v.Events'.len ∧ ws.length = sint.nat j ∧
-        (evs0 ++ ws ≠ [] → sint.Z lv' = 1 + (evs0 ++ ws).length) ∧
-        ∀ (i : Nat) (w : wev), ws[i]? = some w →
-          w.Put' = true ∧ sint.Z w.Rev' = 2 + evs0.length + i ∧ (w.Key', w.Val') ∈ P⌝ ∗
-      "#Hws" ∷ □ ∀ (i : Nat) (w : wev), ⌜ws[i]? = some w⌝ -∗
-        R (2 + evs0.length + i) w.Key' w.Val' : IProp GF) $$ [i e evs last Hs Hcap]
+        ∀ e, (evs0 ++ ws).getLast? = some e → lv' = e.Rev'⌝ ∗
+      "#Hws" ∷ □ ∀ (i : Nat) (w : wev), ⌜ws[i]? = some w⌝ -∗ F (evs0.length + i) w :
+      IProp GF) $$ [i e evs last Hs Hcap]
   · iexists W64 0, _, sl, lv, []
     simp only [List.append_nil]
     iframe
     isplitr
-    · ipureintro; refine ⟨by word, by word, rfl, Hc.2.1, fun i w h => by simp at h⟩
+    · ipureintro; refine ⟨by word, by word, rfl, Hc.2⟩
     iintro !> %i %w %h
     simp at h
   wp_for IJ
@@ -137,8 +132,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     ihave #Hf := Hevf $$ %(sint.nat j) %e %he
     iunfold eventAt at Hea
     icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
-    iunfold evFactR at Hf
-    icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
+    icases Hf with ⟨%kvv, #Hkvv, #Hra⟩
     iunfold kvValAt at Hkvv
     icases Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
     (try wp_auto)
@@ -156,30 +150,20 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply wp_slice_append $$ [$Hs $Hcap $Hl1] as %sl2 ⟨Hs, Hcap, -⟩
     (try wp_auto)
-    obtain ⟨hlen', hl', hws⟩ := Hj.2.2
+    obtain ⟨hlen', hl'⟩ := Hj.2.2
     have hjn : sint.nat j = ws.length := hlen'.symm
-    rw [Hfe.1]
-    simp only [_root_.decide_true]
     wp_for_post
     iframe
-    iexists j + W64 1, _, sl2, e.rev,
-      ws ++ [{ Rev' := e.rev, Key' := e.key, Val' := kvv.value, Put' := true }]
+    iexists j + W64 1, _, sl2, e.rev, ws ++ [evWev e kvv.value]
     rw [List.append_assoc]
     iframe
     isplitr
     · ipureintro
-      refine ⟨by word, by word, by simp; word, fun _ => ?_, ?_⟩
-      · simp only [List.length_append, List.length_singleton]; rw [Hfe.2]; push_cast; omega
-      · intro i w hw
-        rcases Nat.lt_or_ge i ws.length with hi | hi
-        · rw [List.getElem?_append_left hi] at hw; exact hws i w hw
-        · rw [List.getElem?_append_right hi] at hw
-          have : i - ws.length = 0 := by
-            have := (List.getElem?_eq_some_iff.mp hw).1; simp at this; omega
-          rw [this] at hw; simp at hw; subst hw
-          refine ⟨rfl, ?_, ?_⟩
-          · rw [Hfe.2]; omega
-          · rw [Hval.1]; exact Hval.2
+      refine ⟨by word, by word, by simp; word, fun e' he' => ?_⟩
+      rw [← List.append_assoc, List.getLast?_append] at he'
+      simp at he'
+      subst he'
+      rfl
     iintro !> %i %w %hw
     rcases Nat.lt_or_ge i ws.length with hi | hi
     · rw [List.getElem?_append_left hi] at hw; iapply Hws $$ %i %w %hw
@@ -188,15 +172,22 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
         have := (List.getElem?_eq_some_iff.mp hw).1; simp at this; omega
       rw [this] at hw; simp at hw; subst hw
       have hi' : i = sint.nat j := by omega
-      simp only
-      rw [hi', ← Hval.1]
+      rw [hi']
       iexact Hra
   · -- the response's events appended
     rename_i Hif
     have Hif' : ¬ sint.Z j < sint.Z v.Events'.len := fun h => Hif (decide_eq_true h)
-    obtain ⟨hj0, hjl, hlen', hl', hws⟩ := Hj
+    obtain ⟨hj0, hjl, hlen', hl'⟩ := Hj
     have hwsl : ws.length = r.events.length := by rw [hlen', ← Hlen]; have := Hlsl.1; word
     ihave %Hsl2 := ownSlice_len $$ Hs
+    ihave #Hall : □ ∀ (i : Nat) (w : wev), ⌜(evs0 ++ ws)[i]? = some w⌝ -∗ F i w $$ []
+    · iintro !> %i %w %hw
+      rcases Nat.lt_or_ge i evs0.length with hi | hi
+      · rw [List.getElem?_append_left hi] at hw; iapply Hrevs $$ %i %w %hw
+      · rw [List.getElem?_append_right hi] at hw
+        ihave H := Hws $$ %(i - evs0.length) %w %hw
+        rw [show evs0.length + (i - evs0.length) = i by omega]
+        iexact H
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
@@ -208,26 +199,15 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
         iintro -
         iexists evs0 ++ ws
         iframe
-        iunfold collectOk
         have hne : evs0 ++ ws ≠ [] := by
           intro h; rw [h] at Hsl2; simp at Hsl2; word
-        have hlv := hl' hne
+        obtain ⟨e, he⟩ : ∃ e, (evs0 ++ ws).getLast? = some e :=
+          ⟨_, List.getLast?_eq_some_getLast hne⟩
         isplitr
         · ipureintro
-          refine ⟨Or.inr (by omega), by word, ?_⟩
-          intro i w hw
-          rcases Nat.lt_or_ge i evs0.length with hi | hi
-          · rw [List.getElem?_append_left hi] at hw; exact Hc.2.2 i w hw
-          · rw [List.getElem?_append_right hi] at hw
-            obtain ⟨h1, h2, h3⟩ := hws _ w hw
-            refine ⟨h1, by rw [h2]; push_cast; omega, h3⟩
-        iintro !> %i %w %hw
-        rcases Nat.lt_or_ge i evs0.length with hi | hi
-        · rw [List.getElem?_append_left hi] at hw; iapply Hrevs $$ %i %w %hw
-        · rw [List.getElem?_append_right hi] at hw
-          ihave H := Hws $$ %(i - evs0.length) %w %hw
-          rw [show 2 + evs0.length + (i - evs0.length) = 2 + i by omega]
-          iexact H
+          refine Or.inr ⟨e, he, ?_⟩
+          rw [← hl' e he]; word
+        iexact Hall
       · (try wp_auto)
         wp_for_post
         iframe
@@ -235,20 +215,8 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
         iframe
         isplitr
         · ipureintro
-          refine ⟨by rw [List.length_append, hwsl]; exact Hcur', hl', ?_⟩
-          intro i w hw
-          rcases Nat.lt_or_ge i evs0.length with hi | hi
-          · rw [List.getElem?_append_left hi] at hw; exact Hc.2.2 i w hw
-          · rw [List.getElem?_append_right hi] at hw
-            obtain ⟨h1, h2, h3⟩ := hws _ w hw
-            refine ⟨h1, by rw [h2]; push_cast; omega, h3⟩
-        iintro !> %i %w %hw
-        rcases Nat.lt_or_ge i evs0.length with hi | hi
-        · rw [List.getElem?_append_left hi] at hw; iapply Hrevs $$ %i %w %hw
-        · rw [List.getElem?_append_right hi] at hw
-          ihave H := Hws $$ %(i - evs0.length) %w %hw
-          rw [show 2 + evs0.length + (i - evs0.length) = 2 + i by omega]
-          iexact H
+          exact ⟨by rw [List.length_append, hwsl]; exact Hcur', hl'⟩
+        iexact Hall
     · (try wp_auto)
       wp_for_post
       iframe
@@ -256,20 +224,8 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
       iframe
       isplitr
       · ipureintro
-        refine ⟨by rw [List.length_append, hwsl]; exact Hcur', hl', ?_⟩
-        intro i w hw
-        rcases Nat.lt_or_ge i evs0.length with hi | hi
-        · rw [List.getElem?_append_left hi] at hw; exact Hc.2.2 i w hw
-        · rw [List.getElem?_append_right hi] at hw
-          obtain ⟨h1, h2, h3⟩ := hws _ w hw
-          refine ⟨h1, by rw [h2]; push_cast; omega, h3⟩
-      iintro !> %i %w %hw
-      rcases Nat.lt_or_ge i evs0.length with hi | hi
-      · rw [List.getElem?_append_left hi] at hw; iapply Hrevs $$ %i %w %hw
-      · rw [List.getElem?_append_right hi] at hw
-        ihave H := Hws $$ %(i - evs0.length) %w %hw
-        rw [show 2 + evs0.length + (i - evs0.length) = 2 + i by omega]
-        iexact H
+        exact ⟨by rw [List.length_append, hwsl]; exact Hcur', hl'⟩
+      iexact Hall
 
 end proof
 

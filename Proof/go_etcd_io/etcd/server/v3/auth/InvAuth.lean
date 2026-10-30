@@ -615,6 +615,21 @@ instance infoBound_persistent (M : AuthMode) (token : GoString) (a : Loc) :
     Persistent (infoBound (GF := GF) M token a) := by
   unfold infoBound; infer_instance
 
+/-- **The token a call's metadata carries** (`ctxTokenOf`'s, over the metadata itself: what a
+metadata-indexed gRPC spec sees of the attempt; moved from `client/v3/InvKVConn.lean` in G2,
+2026-10-30, so that the server's watch registration can name it). -/
+def mdTokenOf (md : Option (GoString → Option (List GoString))) : Option GoString :=
+  match md with
+  | none => none
+  | some md =>
+    match md go!"token" with
+    | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+    | some [] => none
+    | none =>
+      match md go!"authorization" with
+      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+      | _ => none
+
 /-- **The token a request's context carries** (the auth plan's E2c, 2026-10-25): what
 `AuthInfoFromCtx` reads of the context's incoming metadata (`metadata.incomingOf`): the first value
 of the key `token` (`rpctypes.TokenFieldNameGRPC`), else of `authorization`
@@ -631,6 +646,10 @@ def ctxTokenOf (ctx : GoInterface) : Option GoString :=
       match md go!"authorization" with
       | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
       | _ => none
+
+/-- A context's token is its incoming metadata's (moved from `client/v3/KVServiceOn.lean`, G2). -/
+theorem ctxTokenOf_md (ctx : GoInterface) : ctxTokenOf ctx = mdTokenOf (metadata.incomingOf ctx) :=
+  rfl
 
 /-- **The auth info the request context `ctx` gives** in the mode `M` (persistent; S5): `nil`, or
 one bound to the context's own token (`ctxTokenOf`, the auth plan's E2c, 2026-10-25; until then

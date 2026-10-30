@@ -22,7 +22,7 @@ context_WithTimeoutBackground:
 context_WithTimeoutBackgroundMd:
 context_ErrAny: @
 metadata_AppendToOutgoingContext:
-authkv_reqCtx: context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
+authkv_reqCtx: context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext
 # (the auth plan's E2h) `SetUp`: the puts with a persistent update (`client_Put_any`), the
 # admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) at etcd's
 # Auth specs (`setupAuthServed`), in a context with no outgoing metadata (5b)
@@ -32,5 +32,9 @@ v3_authClient__RoleAdd: @
 v3_authClient__RoleGrantPermission: @
 v3_authClient__AuthEnable: @
 authkv_SetUp: context_WithTimeoutBackgroundMd context_ErrAny authkv_Principals authkv_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
-# `Main`: not proved yet (a `sorry`; Main.lean lists what its proof needs)
-authkv_Main:
+# the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
+client_v3_New: @
+authkv_newUserClient: client_v3_New
+authkv_Work: authkv_keyOf authkv_reqCtx authkv_refused authkv_checkKVs authkv_checkTxnReads authkv_Permitted context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
+# `Main`: its proof over the stubs (notes/authkv-main-plan.md)
+authkv_Main: authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn

@@ -150,7 +150,7 @@ theorem Client.dial.wp_proof
   have Hpre := sprintf_scheme_prefix go!"etcd-endpoints" _ tgt Hout
   have Hdok0 : dialOk ([GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
-    refine ⟨?_, ?_, by simp⟩
+    refine ⟨?_, ?_, by simp, si, by simp⟩
     · intro si' h
       simp at h
       rw [h]; exact Hsi

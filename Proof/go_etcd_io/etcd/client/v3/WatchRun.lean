@@ -517,7 +517,8 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm
     wgsF G.wgs go!"resuming" ↦ s ∗ sliceOwn s S.l ∗
     wgsF G.wgs go!"closeErr" ↦ e ∗ statusErrOk e ∗
     cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ sspscConsumer G.γr rcv ∗
-    ⌜rcv.length = b + S.Dm.length⌝ ∗ epochSt G γs b i ∗ v3rpc.downLbW γs S.Dm ∗ ⌜gOk S U⌝ ∗
+    ⌜rcv.length = b + S.Dm.length⌝ ∗ (∃ tok, epochSt G γs b i tok) ∗ v3rpc.downLbW γs S.Dm ∗
+    ⌜gOk S U⌝ ∗
     ([∗list] i ∈ S.ansd, ansH γs i) ∗ ([∗list] X ∈ S.regs, idH γs X) ∗
     (□ [∗list] m ∈ S.Dm, respInfo m) ∗
     ghostMapAuth G.γws 1 U ∗ ([∗map] ws ↦ _u ∈ U, wsElem V G n γs S ws) ∗

@@ -369,10 +369,17 @@ theorem newClient.wp_proof
     isplitl []
     · iapply attemptTokOk_of
       iexact Hctok
-    iexists ap
-    iframe Auth
-    iapply authObjAtC_of
-    iframe HapS Hconn
+    isplitl []
+    · iexists ap
+      iframe Auth
+      iapply authObjAtC_of
+      iframe HapS Hconn
+    -- (G2's F-W3) its `Watcher`, over the same connection
+    iexists w
+    subst Hwi
+    iframe Watcher
+    ihave #Hwc := watcherConnAt_of_core (GF := GF) _ w $$ Hcw
+    iexact Hwc
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>
