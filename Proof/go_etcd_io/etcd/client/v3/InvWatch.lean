@@ -616,11 +616,22 @@ abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
 /-- **The request is one of the contract's** (pure): a range watch from `rev ≥ 0`
 (`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's, its key as
 the server reads it (G2, 2026-10-30: `P.o` is the range the watch's events are of,
-`OpFull.watchNorm`, an empty request key read as `"\x00"`). -/
+`OpFull.watchNorm`, an empty request key read as `"\x00"`), its key and range end fitting a gRPC
+message (2026-10-30: the creates `run` sends, `cliStreamIs`; from `watcher.Watch`'s `opSizeOk`). -/
 def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
   P.o.isRangeWatch P.rev = true ∧ ¬ P.o.watchPanics ∧ 0 ≤ sint.Z P.rev ∧
     (if P.key = [] then [W8 0] else P.key) = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧
-    P.cn = P.o.base.createdNotify ∧ P.pn = P.o.base.progressNotify
+    P.cn = P.o.base.createdNotify ∧ P.pn = P.o.base.progressNotify ∧
+    P.key.length + P.ed.length ≤ 2 ^ 30
+
+/-- **A watch's creates fit a gRPC message** (2026-10-30): the create `toPB` builds from the
+watch's request, at any start revision (a resume's), below `grpcMsgMax`. -/
+theorem wsReqOk_wire {pfx : GoString} {P : WsPrm GF} (h : wsReqOk pfx P) (rv : w64) (pn sr : Bool)
+    (bd : Nat) :
+    v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd)) < grpcMsgMax := by
+  obtain ⟨-, -, -, -, -, -, -, h⟩ := h
+  simp only [v3rpc.watchReqWireLen, createOf, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
 
 /-- **The row of a watch's responses with events** (persistent; G2, 2026-10-30): with one member,
 the server's check of the watch's create (`watchCheckOk` of `WatchCheck.lean`, unfolded: this file
@@ -958,6 +969,14 @@ theorem wsIs_bd (V : WEnv GF) (P : WsPrm GF) :
   icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
   iapply wsBdOk_cur V P
   iframe Hc Hb
+
+/-- **A watch's creates fit a gRPC message** (`wsReqOk_wire`). -/
+theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : Nat) :
+    wsIs V P ⊢ ⌜v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd)) < grpcMsgMax⌝ := by
+  iintro #H
+  iunfold wsIs at H
+  icases H with ⟨-, -, -, -, -, -, %Hok, -⟩
+  ipureintro; exact wsReqOk_wire Hok.2.1 rv pn sr bd
 
 /-- **A watch's row from its create's check** (G2; `wsRow_of_authed`), at the watch's key and
 range end as its request has them. -/

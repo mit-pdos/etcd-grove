@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `addr` (`authObjAt`): `auth.remote.Authenticate(ctx, &pb.AuthenticateRequest{Name: name, Password:
 password}, auth.callOpts...)`, the error through `ContextError`: the call's answer (`authnCallOut`:
 the reply's token `t` with `Q t`), for a spec `Spec` the server registered for the method and the
-caller's persistent `□ ▷ Spec (name, password) Q`. -/
+caller's persistent `□ ▷ Spec (name, password) Q`. The strings it sends total at most `2 ^ 30`
+bytes (`strsSizeOk`; 2026-10-30: the request's encoding is below `grpcMsgMax`). -/
 abbrev authClient.Authenticate.spec : Prop :=
   ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (name pw : GoString)
@@ -34,7 +35,8 @@ abbrev authClient.Authenticate.spec : Prop :=
     (Q : GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcs addr authnMethod Spec ∗
-      □ ▷ Spec (name, pw) Q }}
+      □ ▷ Spec (name, pw) Q ∗
+      ⌜strsSizeOk [name, pw]⌝ }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!!
       go!"Authenticate")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #pw))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authnCallOut Q resp err }}

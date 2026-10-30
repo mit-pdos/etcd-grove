@@ -30,7 +30,7 @@ covers no other: `WithFromKey`'s), with the caller's atomic update of
 writes may be delivered more than once (`□?dup`); the error through `ContextError`: `nil` and the reply's message `m` with
 `Q σ` for the state `σ` the update fired at, the reply's count, previous key-values and revision as
 `σ`'s, `σ` and the state after the delete well-formed small logs' states (`kvLogOk`, D48); or a client error (`kvErr`) and no
-reply. -/
+reply. The request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
 abbrev kv.Delete.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
@@ -40,7 +40,8 @@ abbrev kv.Delete.spec : Prop :=
       ⌜¬ opDeletePanics key opts ∧ (opDeleteModel key opts).t = W64 3 ∧
         (deleteWireOf (opDeleteModel key opts)).base.rangeEnd ≠ [W8 0]⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf (opDeleteModel key opts))) σ), COMM Q σ }>) }}
+        <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf (opDeleteModel key opts))) σ), COMM Q σ }>) ∗
+      ⌜opSizeOk (opDeleteModel key opts)⌝ }}
     (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Delete")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

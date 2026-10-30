@@ -222,6 +222,339 @@ theorem leafWire_txnOpOf (o : OpFull) (op : TxnOp) (h : txnOpOf o = some op) :
       · rw [if_pos h3, Option.some.injEq] at h; subst h; simp [opWire]
       · rw [if_neg h3] at h; cases h
 
+/-- The builder's puts ignoring the value carry none (`txnOpOf`: etcd rejects such a put with a
+value; 2026-10-30, `reqOpAt`'s put case). -/
+theorem txnOpOf_put_val {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op) :
+    o.t = W64 2 → o.ignoreValue = true → o.val = [] := by
+  intro h2 hv
+  unfold txnOpOf at h
+  have h1 : o.t ≠ W64 1 := by rw [h2]; decide
+  rw [if_neg h1, if_pos h2] at h
+  by_cases hz : o.val = []
+  · exact hz
+  · simp [hv, hz] at h
+
+/-! ## The encoded size of the client's requests (2026-10-30)
+
+The bounds the request instances' `wireLen` are (`ProtoMsg.wireLen`: grpc marshals before it checks
+a size, `grpcInvokerOk`), and the predicates the client's API asks of its callers
+(`notes/decisions.md`, "Invoke's send side: an encoded-size premise"). -/
+
+/-- **A bound on the encoding of the request an `OpFull` stands for** (a `PutRequest`,
+`RangeRequest` or `DeleteRangeRequest`, alone or in a `RequestOp`): its key, range end and value,
+and the fixed part. -/
+def opWireLen (o : OpFull) : Nat := o.key.length + o.base.rangeEnd.length + o.val.length + wireSlack
+
+/-- A comparison's (`*pb.Compare`): key, range end, value operand. -/
+def cmpWireLen (c : CmpModel) : Nat := c.key.length + c.rangeEnd.length + c.val.length + wireSlack
+
+/-- A transaction operation's (its `RequestOp`), a nested transaction's recursively (each
+reference counted: a shared request is encoded at each). -/
+def TxnOp.wireLen : TxnOp → Nat
+  | .get o => opWireLen o
+  | .delete o => opWireLen o
+  | .put k v _ => k.length + v.length + wireSlack
+  | .putKeep k v => k.length + v.length + wireSlack
+  | .putIgnVal k _ => k.length + wireSlack
+  | .txn cs ts es => (cs.map cmpWireLen).sum + (ts.map TxnOp.wireLen).sum +
+      (es.map TxnOp.wireLen).sum + wireSlack
+
+/-- **A bound on a `*pb.TxnRequest`'s encoding**, from its model. -/
+def txnWireLen (t : TxnModel) : Nat :=
+  (t.cmps.map cmpWireLen).sum + (t.thenOps.map TxnOp.wireLen).sum +
+    (t.elseOps.map TxnOp.wireLen).sum
+
+/-- **A request's payload fits a gRPC message** (client API): the key, range end and value an
+`OpFull` sends total at most `2 ^ 30` bytes (`opSizeOk.wire_lt`: its encoding is below
+`grpcMsgMax`). A scope restriction: the code sends up to `2 ^ 32` bytes less the fixed part. -/
+def opSizeOk (o : OpFull) : Prop := o.key.length + o.base.rangeEnd.length + o.val.length ≤ 2 ^ 30
+
+/-- **A watch's request fits a gRPC message**: its key and range end at most `2 ^ 30` bytes (a watch
+sends no value: `v3rpc.watchReqWireLen`). -/
+def watchSizeOk (o : OpFull) : Prop := o.key.length + o.base.rangeEnd.length ≤ 2 ^ 30
+
+instance (o : OpFull) : Decidable (watchSizeOk o) := by unfold watchSizeOk; infer_instance
+
+/-- **A transaction's request fits a gRPC message**: its encoding's bound (`txnWireLen`) at most
+`2 ^ 30` (`txnSizeOk.wire_lt`: below `grpcMsgMax`). -/
+def txnSizeOk (t : TxnModel) : Prop := txnWireLen t ≤ 2 ^ 30
+
+/-- **The strings a request carries total at most `2 ^ 30` bytes** (the Auth API's). -/
+def strsSizeOk (ss : List GoString) : Prop := (ss.map List.length).sum ≤ 2 ^ 30
+
+instance (o : OpFull) : Decidable (opSizeOk o) := by unfold opSizeOk; infer_instance
+instance (t : TxnModel) : Decidable (txnSizeOk t) := by unfold txnSizeOk; infer_instance
+instance (ss : List GoString) : Decidable (strsSizeOk ss) := by unfold strsSizeOk; infer_instance
+
+/-- A nested transaction's bound, each branch's operations summed. -/
+theorem TxnOp.wireLen_txn (cs : List CmpModel) (ts es : List TxnOp) :
+    (TxnOp.txn cs ts es).wireLen = (cs.map cmpWireLen).sum + (ts.map TxnOp.wireLen).sum +
+      (es.map TxnOp.wireLen).sum + wireSlack := by
+  rw [TxnOp.wireLen]
+
+theorem opSizeOk.wire_lt {o : OpFull} (h : opSizeOk o) : opWireLen o < grpcMsgMax := by
+  unfold opSizeOk at h; unfold opWireLen wireSlack grpcMsgMax; omega
+
+theorem txnSizeOk.wire_lt {t : TxnModel} (h : txnSizeOk t) : txnWireLen t < grpcMsgMax := by
+  unfold txnSizeOk at h; unfold grpcMsgMax; omega
+
+/-- A put's wire model keeps the key and the value, and has no range end. -/
+theorem opSizeOk_putWireOf {o : OpFull} (h : opSizeOk o) : opSizeOk (putWireOf o) := by
+  unfold opSizeOk at h ⊢
+  simp only [putWireOf, txn.putOpOf, OpModel.zero, List.length_nil]
+  omega
+
+/-- A get's wire model keeps the key and the range end, and has no value. -/
+theorem opSizeOk_rangeWireOf {o : OpFull} (h : opSizeOk o) : opSizeOk (rangeWireOf o) := by
+  unfold opSizeOk at h ⊢
+  simp only [rangeWireOf, txn.rangeOpOf, OpFull.newOp, List.length_nil]
+  omega
+
+/-- A delete's wire model keeps the key and the range end, and has no value. -/
+theorem opSizeOk_deleteWireOf {o : OpFull} (h : opSizeOk o) : opSizeOk (deleteWireOf o) := by
+  unfold opSizeOk at h ⊢
+  simp only [deleteWireOf, txn.deleteOpOf, OpFull.newOp, List.length_nil]
+  omega
+
+/-- The wire model of an operation drops a get's and a delete's value: its bound does not grow. -/
+theorem TxnOp.wireLen_opWire : ∀ op : TxnOp, (opWire op).wireLen ≤ op.wireLen
+  | .get o => by
+    simp only [opWire, TxnOp.wireLen, opWireLen, rangeWireOf, txn.rangeOpOf, OpFull.newOp,
+      List.length_nil]
+    omega
+  | .delete o => by
+    simp only [opWire, TxnOp.wireLen, opWireLen, deleteWireOf, txn.deleteOpOf, OpFull.newOp,
+      List.length_nil]
+    omega
+  | .put _ _ _ => by simp only [opWire, Nat.le_refl]
+  | .putKeep _ _ => by simp only [opWire, Nat.le_refl]
+  | .putIgnVal _ _ => by simp only [opWire, Nat.le_refl]
+  | .txn cs ts es => by
+    have e : ∀ l : List TxnOp,
+        (l.attach.map fun x => match x with | ⟨t, _⟩ => opWire t) = l.map opWire := by
+      intro l; simp
+    have hs : ∀ (l : List TxnOp), (∀ t ∈ l, (opWire t).wireLen ≤ t.wireLen) →
+        ((l.map opWire).map TxnOp.wireLen).sum ≤ (l.map TxnOp.wireLen).sum := by
+      intro l hl
+      induction l with
+      | nil => simp
+      | cons a l ih =>
+        simp only [List.map_cons, List.sum_cons]
+        have ha := hl a (List.mem_cons_self ..)
+        have ih' := ih (fun t ht => hl t (List.mem_cons_of_mem _ ht))
+        omega
+    have h1 := hs ts (fun t ht => TxnOp.wireLen_opWire t)
+    have h2 := hs es (fun t ht => TxnOp.wireLen_opWire t)
+    simp only [opWire, TxnOp.wireLen_txn, e]
+    omega
+
+/-- The put request `kv.Do` sends for an `Op` whose payload fits (its key and value): below
+`grpcMsgMax`. -/
+theorem opSizeOk.put_lt {o : OpFull} (h : opSizeOk o) (req : etcdserverpb.PutRequest) :
+    opWireLen (putReqOp req o.key o.val) < grpcMsgMax := by
+  unfold opSizeOk at h
+  simp only [opWireLen, putReqOp, txn.putOpOf, OpModel.zero, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
+
+/-- The range request `kv.Do` sends (its key and range end): below `grpcMsgMax`. -/
+theorem opSizeOk.range_lt {o : OpFull} (h : opSizeOk o) (req : etcdserverpb.RangeRequest) :
+    opWireLen (rangeReqOp req o.key o.base.rangeEnd) < grpcMsgMax := by
+  unfold opSizeOk at h
+  simp only [opWireLen, rangeReqOp, txn.rangeOpOf, OpFull.newOp, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
+
+/-- The delete request `kv.Do` sends (its key and range end): below `grpcMsgMax`. -/
+theorem opSizeOk.delete_lt {o : OpFull} (h : opSizeOk o) (req : etcdserverpb.DeleteRangeRequest) :
+    opWireLen (deleteReqOp req o.key o.base.rangeEnd) < grpcMsgMax := by
+  unfold opSizeOk at h
+  simp only [opWireLen, deleteReqOp, txn.deleteOpOf, OpFull.newOp, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
+
+/-- One string's request (the fixed part besides), below `grpcMsgMax`. -/
+theorem strsSizeOk.lt_1 {a : GoString} (h : strsSizeOk [a]) : a.length + wireSlack < grpcMsgMax := by
+  unfold strsSizeOk at h; simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  unfold wireSlack grpcMsgMax; omega
+
+/-- Two strings' request, below `grpcMsgMax`. -/
+theorem strsSizeOk.lt_2 {a b : GoString} (h : strsSizeOk [a, b]) :
+    a.length + b.length + wireSlack < grpcMsgMax := by
+  unfold strsSizeOk at h; simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  unfold wireSlack grpcMsgMax; omega
+
+/-- Three strings' request, below `grpcMsgMax`. -/
+theorem strsSizeOk.lt_3 {a b c : GoString} (h : strsSizeOk [a, b, c]) :
+    a.length + b.length + c.length + wireSlack < grpcMsgMax := by
+  unfold strsSizeOk at h; simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  unfold wireSlack grpcMsgMax; omega
+
+/-! ### The payload of an `Op` built with options (2026-10-30) -/
+
+theorem length_dropWhile_le {α : Type} (f : α → Bool) :
+    ∀ l : List α, (l.dropWhile f).length ≤ l.length
+  | [] => by simp
+  | a :: l => by
+    simp only [List.dropWhile_cons]
+    split
+    · have := length_dropWhile_le f l
+      simp only [List.length_cons]; omega
+    · simp
+
+/-- A prefix's range end is no longer than the prefix (one byte for a prefix of `0xff`s). -/
+theorem prefixRangeEnd_length_le (p : GoString) : (prefixRangeEnd p).length ≤ max p.length 1 := by
+  unfold prefixRangeEnd
+  have h := length_dropWhile_le (fun b => b == W8 255) p.reverse
+  rw [List.length_reverse] at h
+  split
+  · simp only [List.length_cons, List.length_nil]; omega
+  · rename_i b r hr
+    rw [hr] at h
+    simp only [List.length_append, List.length_reverse, List.length_cons, List.length_nil] at h ⊢
+    omega
+
+/-- **An `Op`'s payload within bounds**: its key at most `K` bytes, its range end at most `E`, its
+value at most `V`. -/
+def OpShape (K E V : Nat) (o : OpFull) : Prop :=
+  o.key.length ≤ K ∧ o.base.rangeEnd.length ≤ E ∧ o.val.length ≤ V
+
+/-- **Options keeping an `Op`'s payload within bounds** (`OpShape K E V`): what `OpGet`, `OpPut`,
+`OpDelete` and `OpWatch` with them build stays within them (`opSizeOk_opGetModel`, ...). Every
+scalar option keeps any bounds (`optKeep_*`); `WithPrefix` and `WithFromKey` keep them when the
+range end may be as long as the key and the key a byte (`withPrefixM_keep`, `withFromKeyM_keep`);
+`WithRange(e)` when `e` is within `E` (`withRangeM_keep`). -/
+def optsKeep (K E V : Nat) (gs : List (OpFull → OpFull)) : Prop :=
+  ∀ g ∈ gs, ∀ o, OpShape K E V o → OpShape K E V (g o)
+
+theorem optsKeep_nil (K E V : Nat) : optsKeep K E V [] := by
+  intro g hg; cases hg
+
+theorem optsKeep_cons {K E V : Nat} {g : OpFull → OpFull} {gs : List (OpFull → OpFull)}
+    (hg : ∀ o, OpShape K E V o → OpShape K E V (g o)) (hgs : optsKeep K E V gs) :
+    optsKeep K E V (g :: gs) := by
+  intro g' hg'
+  rcases List.mem_cons.1 hg' with h | h
+  · subst h; exact hg
+  · exact hgs g' h
+
+theorem optsKeep_append {K E V : Nat} {gs hs : List (OpFull → OpFull)}
+    (h1 : optsKeep K E V gs) (h2 : optsKeep K E V hs) : optsKeep K E V (gs ++ hs) := by
+  intro g hg
+  rcases List.mem_append.1 hg with h | h
+  · exact h1 g h
+  · exact h2 g h
+
+/-- An option that changes neither the key, nor the range end, nor the value keeps any bounds. -/
+theorem optKeep_of_eq {K E V : Nat} (g : OpFull → OpFull)
+    (h : ∀ o, (g o).key = o.key ∧ (g o).base.rangeEnd = o.base.rangeEnd ∧ (g o).val = o.val) :
+    ∀ o, OpShape K E V o → OpShape K E V (g o) := by
+  intro o ho
+  obtain ⟨h1, h2, h3⟩ := h o
+  unfold OpShape at ho ⊢
+  rw [h1, h2, h3]; exact ho
+
+theorem withPrefixM_keep {K E V : Nat} (hK : 1 ≤ K) (hKE : K ≤ E) :
+    ∀ o, OpShape K E V o → OpShape K E V (withPrefixM o) := by
+  intro o ho
+  unfold OpShape at ho ⊢
+  unfold withPrefixM
+  split
+  · simp only [List.length_cons, List.length_nil]; omega
+  · have := prefixRangeEnd_length_le o.key
+    refine ⟨ho.1, ?_, ho.2.2⟩
+    show (prefixRangeEnd o.key).length ≤ E
+    omega
+
+theorem withFromKeyM_keep {K E V : Nat} (hK : 1 ≤ K) (hE : 1 ≤ E) :
+    ∀ o, OpShape K E V o → OpShape K E V (withFromKeyM o) := by
+  intro o ho
+  unfold OpShape at ho ⊢
+  unfold withFromKeyM
+  refine ⟨?_, by simp only [List.length_cons, List.length_nil]; omega, ho.2.2⟩
+  show (if o.key = [] then [W8 0] else o.key).length ≤ K
+  split
+  · simp only [List.length_cons, List.length_nil]; omega
+  · exact ho.1
+
+theorem withRangeM_keep {K E V : Nat} {e : GoString} (he : e.length ≤ E) :
+    ∀ o, OpShape K E V o → OpShape K E V (withRangeM e o) := by
+  intro o ho
+  unfold OpShape at ho ⊢
+  exact ⟨ho.1, he, ho.2.2⟩
+
+theorem opShape_opFold {K E V : Nat} {gs : List (OpFull → OpFull)} (hg : optsKeep K E V gs)
+    {o : OpFull} (ho : OpShape K E V o) : OpShape K E V (opFold gs o) := by
+  unfold opFold
+  induction gs generalizing o with
+  | nil => exact ho
+  | cons g gs ih =>
+    simp only [List.foldl_cons]
+    exact ih (fun g' h => hg g' (List.mem_cons_of_mem _ h)) (hg g (List.mem_cons_self ..) o ho)
+
+theorem opSizeOk_of_shape {K E V : Nat} {o : OpFull} (h : OpShape K E V o)
+    (hs : K + E + V ≤ 2 ^ 30) : opSizeOk o := by
+  unfold OpShape at h; unfold opSizeOk; omega
+
+/-- **`OpGet(key, opts...)`'s payload fits** when the options keep bounds within `2 ^ 30` that
+the key is within. -/
+theorem opSizeOk_opGetModel {K E V : Nat} {key : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hs : K + E + V ≤ 2 ^ 30) :
+    opSizeOk (opGetModel key gs) :=
+  opSizeOk_of_shape (opShape_opFold hg ⟨hk, by simp [OpFull.getInit, OpFull.newOp, OpModel.zero],
+    by simp [OpFull.getInit, OpFull.newOp]⟩) hs
+
+/-- `OpWatch(key, opts...)`'s (`watchSizeOk`: no value). -/
+theorem watchSizeOk_opWatchModel {K E V : Nat} {key : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hs : K + E ≤ 2 ^ 30) :
+    watchSizeOk (opWatchModel key gs) := by
+  have h := opShape_opFold hg (o := OpFull.getInit key) ⟨hk,
+    by simp [OpFull.getInit, OpFull.newOp, OpModel.zero], Nat.zero_le _⟩
+  unfold OpShape at h; unfold watchSizeOk opWatchModel; omega
+
+/-- `OpPut(key, val, opts...)`'s: the value within `V` too. -/
+theorem opSizeOk_opPutModel {K E V : Nat} {key val : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hv : val.length ≤ V)
+    (hs : K + E + V ≤ 2 ^ 30) : opSizeOk (opPutModel key val gs) :=
+  opSizeOk_of_shape (opShape_opFold hg ⟨hk, by simp [OpFull.putInit, OpFull.newOp, OpModel.zero],
+    by simpa [OpFull.putInit, OpFull.newOp] using hv⟩) hs
+
+/-- `OpDelete(key, opts...)`'s. -/
+theorem opSizeOk_opDeleteModel {K E V : Nat} {key : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hs : K + E + V ≤ 2 ^ 30) :
+    opSizeOk (opDeleteModel key gs) :=
+  opSizeOk_of_shape (opShape_opFold hg ⟨hk, by simp [OpFull.deleteInit, OpFull.newOp, OpModel.zero],
+    by simp [OpFull.deleteInit, OpFull.newOp]⟩) hs
+
+/-- `strsSizeOk` of strings each within `N`, at most `M` of them, `M * N ≤ 2 ^ 30`. -/
+theorem strsSizeOk_of_le {ss : List GoString} {N : Nat} (h : ∀ s ∈ ss, s.length ≤ N)
+    (hM : ss.length * N ≤ 2 ^ 30) : strsSizeOk ss := by
+  unfold strsSizeOk
+  have : (ss.map List.length).sum ≤ ss.length * N := by
+    induction ss with
+    | nil => simp
+    | cons a l ih =>
+      simp only [List.map_cons, List.sum_cons, List.length_cons]
+      have h1 := h a (List.mem_cons_self ..)
+      have h2 := ih (fun s hs => h s (List.mem_cons_of_mem _ hs)) (by
+        have : l.length * N ≤ (l.length + 1) * N := Nat.mul_le_mul_right _ (Nat.le_succ _)
+        simp only [List.length_cons] at hM; omega)
+      rw [Nat.add_mul, Nat.one_mul]; omega
+  omega
+
+/-- The transaction's wire model (`txnWireOf`) keeps its bound. -/
+theorem txnSizeOk_wireOf {t : TxnModel} (h : txnSizeOk t) : txnSizeOk (txnWireOf t) := by
+  unfold txnSizeOk txnWireLen at h ⊢
+  have hs : ∀ (l : List TxnOp), ((l.map opWire).map TxnOp.wireLen).sum ≤ (l.map TxnOp.wireLen).sum := by
+    intro l
+    induction l with
+    | nil => simp
+    | cons a l ih =>
+      simp only [List.map_cons, List.sum_cons]
+      have := TxnOp.wireLen_opWire a
+      omega
+  have h1 := hs t.thenOps
+  have h2 := hs t.elseOps
+  simp only [txnWireOf]
+  omega
+
 end model
 
 section defs
@@ -402,7 +735,9 @@ def deleteReqAt (d : Loc) (o : OpFull) : IProp GF :=
 
 /-- **The `*pb.RequestOp` `p` of the client's memory holds the operation `op`** (its wire
 model; read-only): a get, a put or a delete (`Op.toRequestOp`'s); a nested transaction is not
-covered (`False`: the builder's operations are plain). -/
+covered (`False`: the builder's operations are plain). A put that ignores the value carries none
+(2026-10-30: `putTxnOp` forgets it, and the request's bound, `TxnOp.wireLen`, reads the model;
+etcd rejects such a put with a value, and the builder makes none, `txnOpOf`). -/
 def reqOpAt (p : Loc) (op : TxnOp) : IProp GF :=
   match op with
   | .get o => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
@@ -423,7 +758,7 @@ def reqOpAt (p : Loc) (op : TxnOp) : IProp GF :=
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
           GoInterface) ∗
       structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
-      putReqAt r o ∗ ⌜op = txn.putTxnOp o⌝)
+      putReqAt r o ∗ ⌜op = txn.putTxnOp o ∧ (o.ignoreValue = true → o.val = [])⌝)
 
 /-- The `*pb.RequestOp`s `ps` hold, in order, the operations `ops`. -/
 def reqOpsAt (ps : List Loc) (ops : List TxnOp) : IProp GF :=
@@ -464,8 +799,10 @@ instance txnReqAt_persistent (req : etcdserverpb.TxnRequest) (t : TxnModel) :
     Persistent (txnReqAt (GF := GF) req t) := by
   unfold txnReqAt; infer_instance
 
-/-- A put's `*pb.RequestOp` (`reqOpAt` of the server's put `txn.putTxnOp o`). -/
-theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
+/-- A put's `*pb.RequestOp` (`reqOpAt` of the server's put `txn.putTxnOp o`), of no value if it
+ignores the value (2026-10-30: `putTxnOp` then forgets the value, which the request's bound,
+`TxnOp.wireLen`, must not). -/
+theorem reqOpAt_put (p w r : Loc) (o : OpFull) (hv : o.ignoreValue = true → o.val = []) :
     ⌜p ≠ null⌝ ∗
       structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
@@ -480,7 +817,7 @@ theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
           (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
             GoInterface) ∗
         structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
-        putReqAt r o' ∗ ⌜op = txn.putTxnOp o'⌝) := by
+        putReqAt r o' ∗ ⌜op = txn.putTxnOp o' ∧ (o'.ignoreValue = true → o'.val = [])⌝) := by
     intro op h1 h2 h3 _
     unfold reqOpAt
     cases op with
@@ -495,7 +832,7 @@ theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
   · ipureintro; exact Hp
   iexists w, r, o
   iframe #
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, hv⟩
 
 /-- The deletes of a transaction's operations, at every depth (`v3rpc.delCount`'s, over the
 transaction model). -/
@@ -615,7 +952,8 @@ def pbPutRequest : ProtoMsg GF where
   ty := etcdserverpb.PutRequest.ty
   M := OpFull
   send inp o := iprop(∃ (req : etcdserverpb.PutRequest) (k v : GoString), inp ↦ req ∗
-    req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗ ⌜o = putReqOp req k v⌝)
+    req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗ ⌜o = putReqOp req k v ∧ req.unknownFields' = slice.nil⌝)
+  wireLen := opWireLen
   recv r o := txn.putRequestIs r o
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.PutRequest))
@@ -627,7 +965,8 @@ def pbRangeRequest : ProtoMsg GF where
   ty := etcdserverpb.RangeRequest.ty
   M := OpFull
   send inp o := iprop(∃ (req : etcdserverpb.RangeRequest) (k e : GoString), inp ↦ req ∗
-    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = rangeReqOp req k e⌝)
+    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = rangeReqOp req k e ∧ req.unknownFields' = slice.nil⌝)
+  wireLen := opWireLen
   recv r o := txn.rangeRequestIs r o
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.RangeRequest))
@@ -662,7 +1001,9 @@ def pbDeleteRangeRequest : ProtoMsg GF where
   ty := etcdserverpb.DeleteRangeRequest.ty
   M := OpFull
   send inp o := iprop(∃ (req : etcdserverpb.DeleteRangeRequest) (k e : GoString), inp ↦ req ∗
-    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = deleteReqOp req k e⌝)
+    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+    ⌜o = deleteReqOp req k e ∧ req.unknownFields' = slice.nil⌝)
+  wireLen := opWireLen
   recv r o := txn.deleteRangeRequestIs r o
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.DeleteRangeRequest))
@@ -691,7 +1032,9 @@ of the message). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty
   M := TxnModel
-  send inp t := iprop(∃ req : etcdserverpb.TxnRequest, inp ↦ req ∗ txnReqAt req t)
+  send inp t := iprop(∃ req : etcdserverpb.TxnRequest, inp ↦ req ∗ txnReqAt req t ∗
+    ⌜req.unknownFields' = slice.nil⌝)
+  wireLen := txnWireLen
   recv r t := iprop(txn.txnRequestIs r t ∗ txnWireOk r t)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.TxnRequest))
@@ -812,7 +1155,8 @@ connection to `addr` (`grpcConn`, any interceptors) with an invoker making one a
 request `inp` (`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
 (`callOptsOk`) and the caller's `□ ▷ attemptPre conn ctx Spec m Φ` (persistent: the request may be
 delivered several times, the attempts; at every metadata an attempt may deliver, `clientAttemptMd`),
-it returns
+for a request whose encoding is below `grpcMsgMax` (`Req.wireLen`, since 2026-10-30: the attempt
+contract's premise, `grpcInvokerOk`), it returns
 * `nil`: an attempt succeeded, the last one (the loop returns at the first `nil`), and `out` holds
   its reply's copy of a response (`Rep.recv out m'`) with its run's `Φ m'`; other attempts may
   have run the handler: an attempt that failed with a gRPC `Canceled` or `DeadlineExceeded` while
@@ -827,7 +1171,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
-        opts ↦*□ vs ∗ callOptsOk vs }}
+        opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
@@ -869,7 +1213,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
-        Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+        Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
@@ -901,7 +1245,7 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
     iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
-      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
     iapply H0 $$ [Hsend Hblank] HΨ
     unfold modePre
     iframe #

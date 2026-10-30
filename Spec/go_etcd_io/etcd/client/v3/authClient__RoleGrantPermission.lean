@@ -28,14 +28,16 @@ perm}, auth.callOpts...)` of a new permission `perm` holding `permType`, `[]byte
 `[]byte(rangeEnd)` (a key shorter than a slice's bound, as the auth store's permission predicate
 records, `auth.ownPermW`), the error through `ContextError`: the call's answer (`authCallOut`), for
 a spec `Spec` the server registered for the method and the caller's persistent
-`□ ▷ attemptPre conn (GoInterface.ok ci) Spec m Q` at the request's model `m`. -/
+`□ ▷ attemptPre conn (GoInterface.ok ci) Spec m Q` at the request's model `m`. The strings it sends total at most `2 ^ 30`
+bytes (`strsSizeOk`; 2026-10-30: the request's encoding is below `grpcMsgMax`). -/
 abbrev authClient.RoleGrantPermission.spec : Prop :=
   ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (name key rangeEnd : GoString) (permType : w32)
     (Spec : GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse) (Q : Unit → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜key.length < 2 ^ 63 - 1⌝ ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ci) Spec (name, (⟨permType, key, rangeEnd⟩ : auth.PermW)) Q }}
+      □ ▷ attemptPre conn (GoInterface.ok ci) Spec (name, (⟨permType, key, rangeEnd⟩ : auth.PermW)) Q ∗
+      ⌜strsSizeOk [name, key, rangeEnd]⌝ }}
     (App (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleGrantPermission")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #key)) (Val #rangeEnd)) (Val #permType))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCallOut Q resp err }}
 

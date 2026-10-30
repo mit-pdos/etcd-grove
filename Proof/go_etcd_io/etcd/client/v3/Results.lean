@@ -1813,7 +1813,7 @@ caller's updates, one per member, persistent or on a client that sends a write a
 and the reply with `putReplied` of some member, or an error. -/
 theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAt api (ms.map SrvAt.addr) ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx F) ∗
@@ -1841,6 +1841,8 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     · ipureintro; exact Hpm
     isplitl []
     · iunfold floorsAt; iframe #
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     unfold kvReqPre putUpd
     icases Hau with (#Hau | ⟨#Ho, Hau⟩)
     · ileft
@@ -1878,7 +1880,8 @@ list]`: a read may be answered by any member); `R` back, and `nil` with the repl
 `rangeReplyOk` of some member, or an error. -/
 theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAt api (ms.map SrvAt.addr) ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F) ∗
@@ -1903,6 +1906,8 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
     · ipureintro; exact Hg
     isplitl []
     · iunfold knownAt; iframe #
+    isplitl []; rotate_left
+    · ipureintro; exact hsz
     iunfold rangeUpd
     iexact Hdq
   inext
@@ -1927,7 +1932,7 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
 `kv.Delete.spec` with no options). -/
 theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAt api (ms.map SrvAt.addr) ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx F) ∗
@@ -1953,6 +1958,8 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
       · simp [op_simps, deleteWireOf, txn.deleteOpOf]
     isplitl []
     · iunfold floorsAt; iframe #
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     unfold kvReqPre delUpd
     icases Hau with (#Hau | ⟨#Ho, Hau⟩)
     · ileft
@@ -1991,7 +1998,8 @@ error. -/
 theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (Q : KVState → IProp GF) (F : mvcc.Log)
-    (hp : TxnModel.plain b.model) (hin : txnModelIn (txnWireOf b.model)) :
+    (hp : TxnModel.plain b.model) (hin : txnModelIn (txnWireOf b.model))
+    (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp (ms.map SrvAt.addr) ci cd b ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F) ∗
@@ -2014,6 +2022,8 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
     · ipureintro; exact ⟨hp, hin⟩
     isplitl []
     · iunfold knownAt; iframe #
+    isplitl [Hnp]; rotate_left
+    · ipureintro; exact hsz
     unfold txnReqPre txnUpd
     icases Hnp with (#Hu | ⟨Ho, Hu⟩)
     · ileft
@@ -2090,7 +2100,7 @@ context's (`ctxErrClient`), the package's. `client_put_any` at one server's memb
 (`srvsAt addr E γr cid mid`), its update persistent. -/
 theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
-    (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
@@ -2109,7 +2119,7 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
     (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F) (fun _ _ => .rfl) $$ HF
   ihave #Hus := srvsAt_box addr E γr cid mid (kvOpAu1 γr.kv (.put (putKeyOp key val)) Q)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) (fun _ _ => .rfl) $$ Hau
-  iapply (client_put_any api (srvsAt addr E γr cid mid) ci cd key val sl Q F) $$ []
+  iapply (client_put_any api (srvsAt addr E γr cid mid) ci cd key val sl Q F hsz) $$ []
   · rw [srvsAt_addr]
     iframe #
   inext
@@ -2138,7 +2148,7 @@ members (`srvsAt addr E γr cid mid`). -/
 theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
@@ -2164,7 +2174,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
     (fun x : SrvAt GF => iprop(⌜Q = fun _ => iprop(True)⌝ ∨
       (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q)))
     (fun _ _ => .rfl) $$ Hdq
-  iapply (client_range_any api (srvsAt addr E γr cid mid) c ci cd key sl gs R Q F)
+  iapply (client_range_any api (srvsAt addr E γr cid mid) c ci cd key sl gs R Q F hsz)
     $$ [Hopts HR Hsn]
   · rw [srvsAt_addr]
     iframe #
@@ -2195,7 +2205,8 @@ through an index at least `c`); or an error and no reply. `client_range_end_to_e
 options. -/
 theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
@@ -2209,7 +2220,7 @@ theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #Hc0, #Hdq, #HF⟩ HΦ
   ihave #Hopts' := optsAt_res sl [] iprop(True) $$ Hopts
-  iapply (client_range_end_to_end api addr E γr c cid mid ci cd key sl [] iprop(True) Q F) $$ []
+  iapply (client_range_end_to_end api addr E γr c cid mid ci cd key sl [] iprop(True) Q F hsz) $$ []
   · iframe #
     isplitl []
     · rw [show (opGetModel key []).base.sortSet = false from rfl]
@@ -2244,7 +2255,8 @@ context a client call takes (`ctxOk`: `Background()` too). `client_delete_any` a
 members (`srvsAt addr E γr cid mid`), its update persistent. -/
 theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
@@ -2265,7 +2277,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
     (kvOpAu1 γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q)
     (fun _ _ => .rfl) $$ Hau
-  iapply (client_delete_any api (srvsAt addr E γr cid mid) ci cd key sl Q F) $$ []
+  iapply (client_delete_any api (srvsAt addr E γr cid mid) ci cd key sl Q F hsz) $$ []
   · rw [srvsAt_addr]
     iframe #
   inext
@@ -2300,7 +2312,7 @@ path's and read loop's being the same, `ρ.rd = γr`), its update persistent. -/
 theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (F : mvcc.Log) (Q : KVState → IProp GF) (hp : TxnModel.plain b.model)
-    (hin : txnModelIn (txnWireOf b.model)) :
+    (hin : txnModelIn (txnWireOf b.model)) (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗
@@ -2335,7 +2347,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
   · iframe #
   ihave #Hus := srvsAt_box addr E γr cid mid (txnUpdAt γr γr (txnWireOf b.model) Q)
     (fun x : SrvAt GF => txnUpdAt x.γr x.γr (txnWireOf b.model) Q) (fun _ _ => .rfl) $$ Hu
-  iapply (client_txn_any tp (srvsAt addr E γr cid mid) c ci cd b Q F hp hin)
+  iapply (client_txn_any tp (srvsAt addr E γr cid mid) c ci cd b Q F hp hin hsz)
     $$ [Hobj]
   · rw [srvsAt_addr]
     iframe Hobj
@@ -2365,7 +2377,8 @@ The get is linearizable: it asks the read index at the put's committed index (`a
 `i` (`readLogOk`), which extends the put's (`appliedMono`). -/
 theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM) :
+    (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM)
+    (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
@@ -2384,7 +2397,7 @@ theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv 
   have hx' := put_applied_log (putKeyOp key val) hm x x' lp skip Hpp.1
   iapply wp_fupd
   iapply (client_get_end_to_end api addr E γr i cid mid ci cd key sl (fun _ => iprop(True))
-    x'.log) $$ []
+    x'.log hsz) $$ []
   · iframe #
     ileft; ipureintro; rfl
   inext

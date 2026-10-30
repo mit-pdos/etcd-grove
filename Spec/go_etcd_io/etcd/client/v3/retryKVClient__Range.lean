@@ -32,7 +32,8 @@ abbrev retryKVClient.Range.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Spec ∗
       □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (rangeReqOp req k e) Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
-      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs }}
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil ∧ (pbRangeRequest (GF := GF)).wireLen (rangeReqOp req k e) < grpcMsgMax⌝ }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"Range")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

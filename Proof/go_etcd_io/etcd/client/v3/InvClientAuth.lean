@@ -68,7 +68,8 @@ def pbAuthenticateRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateRequest.ty
   M := GoString × GoString
   send inp m := iprop(∃ req : etcdserverpb.AuthenticateRequest, inp ↦ req ∗
-    ⌜req.Name' = m.1 ∧ req.Password' = m.2⌝)
+    ⌜req.Name' = m.1 ∧ req.Password' = m.2 ∧ req.unknownFields' = slice.nil⌝)
+  wireLen m := m.1.length + m.2.length + wireSlack
   recv r m := iprop(⌜r ≠ null⌝ ∗
     structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ m.1)
   recv_persistent _ _ := inferInstance
@@ -113,7 +114,7 @@ instance authTokReg_persistent (eps : List GoString) (u pw : GoString) (P : GoSt
 /-! ## What the token fetch needs -/
 
 /-- **What `getToken` reads of the `*Client` `c` and relies on** (persistent; see the file
-header). -/
+header; since 2026-10-30 the credentials fit a gRPC message, `strsSizeOk`, from `clientAuthPre`). -/
 def clientAuthAt (c : Loc) (eps : List GoString) (P : GoString → IProp GF) : IProp GF :=
   iprop(∃ (u pw tok : GoString) (atb : GoInterface),
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"Username" c ↦□ u ∗
@@ -122,7 +123,8 @@ def clientAuthAt (c : Loc) (eps : List GoString) (P : GoString → IProp GF) : I
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" c ↦□ atb ∗
     (⌜atb = GoInterface.nil⌝ ∨ tokenBundleInv atb P) ∗ (⌜tok = go!""⌝ ∨ □ P tok) ∗
     (⌜u = go!"" ∨ pw = go!""⌝ ∨
-      ⌜atb ≠ GoInterface.nil⌝ ∗ client.ctxErrClientAll ∗ authTokReg eps u pw P))
+      ⌜atb ≠ GoInterface.nil⌝ ∗ client.ctxErrClientAll ∗ authTokReg eps u pw P ∗
+      ⌜strsSizeOk [u, pw]⌝))
 
 instance clientAuthAt_persistent (c : Loc) (eps : List GoString) (P : GoString → IProp GF) :
     Persistent (clientAuthAt c eps P) := by
@@ -497,12 +499,13 @@ theorem quiet_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.E
 `Authenticate` registered at the endpoints with the reply to them a token meeting `P`, the bound
 on the credentials' readers (`authTokReg`, `credTokInv`), and every context's `Err()` returning
 client errors (`client.ctxErrClientAll`: `Authenticate`'s `ContextError`; a top-level result
-discharges it by `ctxErrClientAllW_of`; C1's review, F5). -/
+discharges it by `ctxErrClientAllW_of`; C1's review, F5), and the credentials fitting a gRPC
+message (`strsSizeOk`, 2026-10-30: `Authenticate`'s request, `grpcInvokerOk`). -/
 def clientAuthPre (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
     (P : GoString → IProp GF) : IProp GF :=
   iprop(⌜cfg.Username' = go!"" ∨ cfg.Password' = go!""⌝ ∨
     ⌜threadBound GF ≤ 2 ^ 30⌝ ∗ client.ctxErrClientAll ∗
-      authTokReg eps cfg.Username' cfg.Password' P)
+      authTokReg eps cfg.Username' cfg.Password' P ∗ ⌜strsSizeOk [cfg.Username', cfg.Password']⌝)
 
 instance clientAuthPre_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString)
     (P : GoString → IProp GF) : Persistent (clientAuthPre cfg eps P) := by

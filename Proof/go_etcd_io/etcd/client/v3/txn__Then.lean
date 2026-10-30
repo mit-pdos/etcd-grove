@@ -31,7 +31,7 @@ local macro "then_tail" : tactic => `(tactic| (
     (try wp_method_call)
     wp_auto
     wp_apply wp_toRequestOp v o $$ [] as %p #Hp
-    · iframe #; ipureintro; exact Ht123
+    · iframe #; ipureintro; exact ⟨Ht123, txnOpOf_put_val Hto⟩
     wp_apply wp_slice_literal (V := Loc) [p]
     isplitr
     · ipureintro; rfl

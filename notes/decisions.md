@@ -26873,3 +26873,40 @@ the client's positional destructurings of the server's read view, `srvKVInvs_of_
 approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFacts V` into
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
+
+## The encoded-size bound at grpc's send side (2026-10-30 · accepted, the user's approval Q1-Q6 · `notes/invoke-size.md`)
+
+**Why:** the axiom review `axiom/txn-nested-wire` refuted `grpc.ClientConn.Invoke.wp_proof`. Its
+`Attack.lean` builds a read-only Txn of `2^18 + 1` copies of one get of a `2^30`-byte key. grpc
+v1.84's `codecV2.Marshal` allocates `proto.Size` bytes (counting a shared submessage at each
+reference) before any size check, and `make` panics above `maxAlloc`. A message of two `bytes`
+fields sharing one slice does the same, so the defect is generic, not the Txn's alone.
+
+**Decision:**
+
+- **The bound.** `grpcMsgMax = 2 ^ 32`, the size at and above which grpc refuses a message with
+  an error (`encode`'s `MaxUint32` check), on 64-bit Go. A message below it neither panics nor
+  is refused for its size, so the premise excludes no possible success.
+- **The axioms and the wire models.**
+  - `grpcInvokerOk`'s pre, and the stream `SendMsg`/`Send` of `NewStream`'s post, take `⌜Req.wireLen
+    m < grpcMsgMax⌝`. The axioms are weaker, with the same names.
+  - `wireLen` is a new field of the trusted message classes (`ProtoMsg`, `StreamMsg`): an upper
+    bound on the encoding of what `send` holds. Its default, `grpcMsgMax`, means "cannot be sent".
+  - Each request instance defines its `wireLen`: payload strings plus `wireSlack = 256`.
+  - The whole-struct sends pin `unknownFields' = slice.nil`. The unknown fields of messages held
+    field by field are a stated scope, to be pinned later (Q5).
+- **The client API.** The client asks for payload bounds: `opSizeOk`, `watchSizeOk`, `txnSizeOk`
+  and `strsSizeOk`, each `≤ 2 ^ 30`. This is a scope restriction (the code sends up to `2^32`
+  less the fixed part), chosen so that a sum of a few bounded parts stays below the axiom's
+  bound with room to spare (Q2).
+- **STM (Q6).** Each Get's and Put's key and value are bounded, as are their count per run of
+  `apply` and the `WithPrefetch` keys.
+- **The server side (Q4).** `grpc.serve`'s replies take the same `prepareMsg` path, so the
+  server's handlers' contracts are known-false in the same way. This is recorded in
+  `notes/audit.md` and fixed separately.
+
+**Alternatives rejected:**
+
+- A Txn-only premise: the amplification is generic.
+- A bound in the stubs' specs only: the axiom itself was false.
+- `2 ^ 31`: no failure happens below `2 ^ 32` on the model's platform.

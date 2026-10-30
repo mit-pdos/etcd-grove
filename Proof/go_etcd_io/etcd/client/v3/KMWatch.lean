@@ -605,7 +605,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 prefix-watch condition): the channel `Watch` returns, its elements etcd's
 (`etcdWatchElem_of_km`). -/
 theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx ≠ [])
-    (hff : prefixRangeEnd pfx ≠ [W8 0]) :
+    (hff : prefixRangeEnd pfx ≠ [W8 0]) (hpl : pfx.length ≤ 2 ^ 28) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isKvWatcher w γ.kv ∗ kmInv γ ⊢
@@ -630,9 +630,11 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     · ipureintro; exact Hkst
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by omega⟩
-      unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
-      exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      refine ⟨?_, hnp, by omega, ?_⟩
+      · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
+        exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      · have := prefixRangeEnd_length_le pfx
+        unfold watchSizeOk; rw [hkey, hend]; omega
     isplitr
     · iintro !> %h
       exact absurd h.2 (Nat.lt_irrefl 0)

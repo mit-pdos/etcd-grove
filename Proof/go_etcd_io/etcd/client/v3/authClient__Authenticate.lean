@@ -28,7 +28,7 @@ theorem authClient.Authenticate.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.Authenticate.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd name pw Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
+  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre, %Hsz⟩
   iunfold authObjAt at Hapi
   icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
@@ -36,13 +36,14 @@ theorem authClient.Authenticate.wp_proof
   · simp only [pbAuthenticateRequest]
     iexists _
     iframe «$a1»
-    ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
   wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» ⟨name, pw⟩ sl vs $$ [Hsend]
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
+    try (ipureintro; exact strsSizeOk.lt_2 Hsz)
   iunfold authnCallOut at Hres
   icases Hres with (⟨%Herr, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr

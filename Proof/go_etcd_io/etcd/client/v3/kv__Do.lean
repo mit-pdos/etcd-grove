@@ -38,7 +38,7 @@ theorem kv.Do.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci cd opv o Sp Qp Sr Qr Sd Qd
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
   iunfold kvObjAtC at Hkv
   icases Hkv with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
@@ -87,13 +87,16 @@ theorem kv.Do.wp_generic
     wp_auto
     wp_apply wp_toRangeRequest opv o $$ [] as %r ⟨%req, Hr, #Hk, #He, %Hreq⟩
     · iframe #; ipureintro; exact Ht
+    obtain ⟨Hreq, Hunk⟩ := Hreq
     ihave #Hrun' : □ ▷ attemptPre conn (GoInterface.ok ci) Sr (rangeReqOp req o.key o.base.rangeEnd) Qr $$ []
     · rw [Hreq]; iexact Hrun
     wp_apply wp_retry_Range rkv conn addr Sr Qr ci cd r req o.key o.base.rangeEnd sl vs $$ [Hr]
       as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
-      ipureintro; exact Hcap
+      isplitl []
+      · ipureintro; exact Hcap
+      ipureintro; exact ⟨Hunk, Hsz.range_lt req⟩
     iunfold rangeCallOut at Hres
     icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
     · subst Herr
@@ -145,6 +148,7 @@ theorem kv.Do.wp_generic
     · iframe #
       iframe
       try (simp only []; iframe #)
+      try (ipureintro; exact ⟨trivial, Hsz.put_lt _⟩)
     iunfold putCallOut at Hres
     icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
     · subst Herr
@@ -195,6 +199,7 @@ theorem kv.Do.wp_generic
     · iframe #
       iframe
       try (simp only []; iframe #)
+      try (ipureintro; exact ⟨trivial, Hsz.delete_lt _⟩)
     iunfold deleteCallOut at Hres
     icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
     · subst Herr
@@ -237,7 +242,7 @@ theorem kv.Do.wp_members
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd opv o c F Q
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
@@ -249,6 +254,8 @@ theorem kv.Do.wp_members
     (GrpcSpec.md (kvDeleteSpec ms)) (delAns ms F (deleteWireOf o) Q)) $$ [Hat Hrun] HΦ
   iframe #
   iframe Hat
+  isplitl [Hrun]; rotate_left
+  · ipureintro; exact Hsz
   iunfold doRunM at Hrun
   unfold doRunGen
   icases Hrun with (⟨%Ht, #Hsn, #Hk, #Hu⟩ | ⟨%Hp, #HF, Hu⟩ | ⟨%Hd, #HF, Hu⟩)
@@ -315,7 +322,7 @@ theorem kv.Do.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd opv o Q
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
   ihave ⟨%Hk, Hrun⟩ := doRunOk_kind γ dup o Q $$ Hrun
   have hdz : o.t ≠ W64 1 → o.t ≠ W64 2 → (deleteWireOf o).base.rangeEnd ≠ [W8 0] :=
     fun h1 h2 => by
@@ -336,6 +343,8 @@ theorem kv.Do.wp_proof
     iframe Hat
     isplitl []
     · iunfold isKV; iframe #
+    isplitl [Hrun]; rotate_left
+    · ipureintro; exact Hsz
     iunfold doRunOk at Hrun
     unfold doRunM
     icases Hrun with (⟨%Ht, #Hsn, #Hu⟩ | ⟨%Hp, Hu⟩ | ⟨%Hd, Hu⟩)
