@@ -25479,6 +25479,16 @@ the user's scope): examples/kv (`StartCluster.lean`: `RestartNode.unifiedSpec`'s
   not state of its error values (the server takes it as a premise, `ContextReadErrs`); a target
   that stopped (`ErrStopped`) has not taken the message either, so counting it as dropped (and a
   snapshot as failed) is the more faithful report. Tests and `-race` pass.
+- **`Cluster.Read` resolves a prophecy with its answer** (2026-10-30, the user's design,
+  `notes/spec-first-study/kvreconf-read-spec.md`): `primitive.NewProph()` at the call, gokv's
+  `trusted_proph.ResolveBytes(p, []byte(v))` before returning; no effect at run time. It makes
+  `Cluster.Read.spec` logically atomic, `Cluster.Get.spec` word for word, which lintest's
+  `applySpec` needs. New dependency `github.com/mit-pdos/gokv` (`examples/go.mod`), its
+  `trusted_proph` translated with `NewProph`/`ResolveBytes` trusted (Perennial's models);
+  `ResolveBytes.spec` proved here from `ResolveProph` (a candidate Perennial spec,
+  `notes/perennial-changes.md`). The proof: a registry of reads in flight in the store's invariant
+  (`ReadSlot.lean`), each fired by helping at the first change of the store after which the key holds
+  the prophesied answer (in `kvr_propAu`).
 - **kvreconf's `StorageModel` instance is a `def`** (`kvrStorageModel`), activated per file by
   `attribute [local instance]`: raft's `memStorageModel` is a global instance under `[MemStorReg GF]`,
   which kvreconf never has in scope; a second global instance would make resolution depend on

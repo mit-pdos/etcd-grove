@@ -10,7 +10,7 @@ import (
 	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/gokv/trusted_proph"
 	"go.etcd.io/raft/v3"
-	pb"go.etcd.io/raft/v3/raftpb"
+	pb "go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"
 )
 
