@@ -189,6 +189,9 @@ abbrev NewServer.specD : Prop :=
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
       -- whose standing update `noopAu` it gives, `srvRaftBoot_alloc`)
+      -- (M2, the apply side, Draft; review round 4's R4-1) in the member's mode: at the switch
+      -- `kvInv ρ.rd.raft ρ.rd.kv` with the premise `ρ.rd.kv.cmp = E₀.cmp` (the post's ties,
+      -- item 19, need it; the interim `NewServer.spec`/`specCompact`/`specM` take it too)
       "#Hkvinv" ∷ kvInvD ρ.rd.raft ρ.rd.kv E₀.cmp ∗
       -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,

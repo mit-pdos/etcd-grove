@@ -386,21 +386,23 @@ log plain in the mode (`plainLogM`), its compactions' claims (`cmpLogOk`), its w
 def kvInvD (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLogM cmp L ∧ cmpLogOk γk cmp L ∧
-      srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkD γ.raft γk L)
+    ⌜plainLogM cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk cmp L⌝ ∗
+      kvWorkD γ.raft γk L)
 
 instance kvInvD_persistent (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) :
     Persistent (kvInvD (GF := GF) γ γk cmp) := by
   unfold kvInvD; infer_instance
 
-theorem kvInvD_off_pure (γk : KVNames) (L : List EntryModel) (Q : Prop) :
-    (plainLogM false L ∧ cmpLogOk γk false L ∧ Q) ↔ (plainLog L ∧ Q) := by
+/-- (The claims last, review round 4: the proofs that read today's conjuncts by position keep
+their indices.) -/
+theorem kvInvD_off_pure (γk : KVNames) (L : List EntryModel) (A B C D : Prop) :
+    (plainLogM false L ∧ A ∧ B ∧ C ∧ D ∧ cmpLogOk γk false L) ↔ (plainLog L ∧ A ∧ B ∧ C ∧ D) := by
   rw [plainLogM_false]
   constructor
-  · rintro ⟨h1, -, h4⟩; exact ⟨h1, h4⟩
-  · rintro ⟨h1, h4⟩
-    exact ⟨h1, cmpLogOk_plain γk false L h1, h4⟩
+  · rintro ⟨h1, ha, hb, hc, hd, -⟩; exact ⟨h1, ha, hb, hc, hd⟩
+  · rintro ⟨h1, ha, hb, hc, hd⟩
+    exact ⟨h1, ha, hb, hc, hd, cmpLogOk_plain γk false L h1⟩
 
 /-- **At the mode off it is today's** (the off law: a plain log has no compaction, so its shapes
 read as today's; every compaction-off statement over it means what it meant). -/

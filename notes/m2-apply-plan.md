@@ -10,9 +10,8 @@ review round 3 (R3-1/R3-2), round 2 repaired, round 1 repaired. Nothing switched
    round 1 (`notes/spec-first-study/m2-apply-review-1.md`); targeted build passes. The `NoDelPutAt`
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
-2. *Next step: review round 4* (a fresh `spec-reviewer`, against rounds 1-3's reports and the
-   consolidated item list in "The switch in place"), then its repair; the rounds end when one has
-   nothing in the first tier.
+2. *Next step: review round 5* (a fresh `spec-reviewer`, on the consolidated item list as
+   restated after round 4), expected to close the rounds (round 4 had one small first-tier finding).
 3. *Then* the user's approval batch: Q5 (the consolidated items of "The switch in place"),
    dropping `NoDelPutAt` from mvcc/server specs (`store.Compact.spec`, `compactLockfree`,
    `updateCompactRev`, `crevSafe`/`delKey`/`compactJobPre`, `CompactMode`'s clause, `irrNoDelPut`;
@@ -470,33 +469,62 @@ they differ; "in place" = the unsuffixed name redefined to the drafted text):
    `cmpAdmitRev`, `cmpAdmit`, `cmpRight`, `cmpOwn`, `cmpRespOk`, `cmpAnswerIs`; no `NoDelPutAt`.
 4. A1's record: `ApplyKV.crev`, `applyKV`'s `cmpOwn E x.crev`, `applyStep`'s crev clause,
    `kvApplied(On)`'s `x.crev = crevOf γk A` (S-5: positional `ApplyKV`s name the field).
-5. `KVNames.cmp` (new field); `kvInv γ γk` := `kvInvD γ γk γk.cmp` in place (`plainLogM`,
-   `cmpLogOk`, no `NoDelPutAt`); off law `kvInvD_off`.
-6. `reqPropOk`'s compaction form (`reqPropOkD`: today's forms, or in compaction mode a compaction
-   in scope at a reached revision, `cmpReach`); `specCompact` goes at the switch.
+5. `KVNames.cmp` (new field); `kvInv γ γk` := `kvInvD γ γk γk.cmp` in place (`plainLogM`, the
+   claims `cmpLogOk` last, no `NoDelPutAt`); `CompactMode.lean`'s family goes (`kvInvC`, `kvWorkC`,
+   `compactClaims`, `isServerReqC`, `srvReqFieldsAtC`, `reqPropOkC`, `dispatchOkC`, `rqShapeC`,
+   `entryShapeC`, `logShapeC`, `plainEntryC`, `plainLogC`). **The fact lost** (round 4): `plainLog`
+   of the committed log; `kv_log_plain` gives `plainLogM γk.cmp`, and its users
+   (`applyEntryNormal`, `KVApply`, `SnapRecvFacts`) and the model lemmas over `plainLog`
+   (`kvModelSt_plain`, `kv_fire_reads`, the invariant's step, `KVModelRestore`) get `plainLogM`
+   versions (true: a compaction leaves the model; mechanical). **The laws callers need after the
+   switch** (in place of `kvInvD_off`, whose right side then no longer exists): `kv_log_plain_off`
+   (`γk.cmp = false` gives `plainLog`), the ties (item 19) giving `γk.cmp = false` from
+   `E.cmp = false`, and the allocation of `kvInv` at any mode.
+6. `reqPropOk` in place: its body today renamed (`reqPropOkW`, the write forms), and `reqPropOk γk
+   rq Qr := reqPropOkW γk rq Qr ∨ (compaction form at `γk.cmp = true`)` (`reqPropOkD` with `cmp :=
+   γk.cmp`); `specCompact` goes at the switch.
 7. `crevOf` (new, internal).
-8. `clusterWorkloadOk(M)`: `⌜cmpLogOk ρ.kv E.cmp L⌝` for every committed `L` (G1; or none, if
-   S3-3 holds).
+8. **Dropped if S3-3 works** (round 4's recommendation): `applyEntryNormal`'s proof derives the
+   entry's claim from what it holds (`srvRLogLb (A ++ [m])` and the KV invariant's `cmpLogOk`), so
+   no spec carries `cmpLogOk`. To try first, in the Probe. Fallback: `srvC(M)` (what `run` reads)
+   carries `cmpLogOk` of the committed log, and `clusterWorkloadOk(M)` with it (G1).
 9. `applierTriples` gains `cmpTriple` (over `cmpAdmitRev`, `store.Compact.specD`).
 10. `applierV3backend.Compaction.specD` (new).
 11. `uberApplier.dispatch.specD`, `uberApplier.Apply.specD` (`cmpAdmit`, `cmpOwn` in and out).
-12. `applyEntryNormal.spec`: `⌜cmpEntryOk γr.kv E.cmp A m⌝` added (both modes; off, a caller
-    discharges it by `cmpLogOk_plain`); premise `entryOkM` unchanged in text.
-13. `applyEntries.spec`, `applyAll.spec`, **`EtcdServer.apply.spec`** (R3-1: missing before):
-    `⌜cmpLogOk …⌝` of the batch each; `run.spec` unchanged if `srvC` or `clusterWorkloadOk`
-    carries `cmpLogOk` (item 8). Superseded if S3-3's in-proof derivation works.
-14. `NewServer.specD` (deferred by Q4): the merged statement; its post read under items 5/19.
+12. `applyEntryNormal.spec`: unchanged in text if S3-3 works (item 8); fallback, `⌜cmpEntryOk γr.kv
+    E.cmp A m⌝` added (both modes; off, a caller discharges it by `cmpLogOk_plain`). Premise
+    `entryOkM` unchanged in text.
+13. `applyEntries.spec`, `applyAll.spec`, **`EtcdServer.apply.spec`** (R3-1: missing before),
+    `run.spec`: unchanged in text if S3-3 works; fallback, `⌜cmpLogOk …⌝` of the batch in the first
+    three, and `run.spec` through `srvC` (round 4: `run` reads `srvC`, not `clusterWorkloadOk`).
+14. `NewServer.specD` (deferred by Q4): the merged statement; its post read under items 5/19; its
+    `#Hkvinv` is `kvInv` with the premise `ρ.rd.kv.cmp = E₀.cmp`. **14' (round 4's R4-1, not
+    deferred): the interim texts** `NewServer.spec` (`ρ.rd.kv.cmp = false`), `specCompact`
+    (`ρ.rd.kv.cmp = true`, and its post's closer `srvKVCloserM`) and `specM` (`ρ.rd.kv.cmp = false`)
+    take the premise, since their posts' `srvKVInvs` carries item 19's tie; the examples allocate
+    `kvInv` at the chosen mode (`common/Alloc.lean`).
 15. `EtcdServer.Compact.specD`: over `isServerReq`/`isServerRead` with `⌜E.cmp = true⌝` (S-6:
     a client compaction at a compaction-off server stays outside the model).
 16. withdrawn (Q2).
 17. the snapshot track's (the collaborator's): `restorePre_of_applyM` over `srvKVCloserW` and
-    `apply.cmpOwn`; the install's `x'.crev` re-tie.
+    `apply.cmpOwn`; the install's `x'.crev` re-tie; its uses of `plainLog` (`SnapRecvFacts`,
+    `KVModelRestore`) over `plainLogM` (item 5).
 18. mvcc: `store.updateCompactRev`, `store.Compact`, `store.compactLockfree` without the
     `ErrFutureRev` arm (and the docstrings naming it), with the `NoDelPutAt` removal.
-19. The ties: `srvReqFieldsAt` and `srvKVInvs` gain `⌜…kv.cmp = E.cmp⌝` beside their `kvInv`
-    (`srvReqFieldsAtD`, `srvKVInvsD`); `NewServer` makes them from `ρ.rd.kv.cmp = E₀.cmp`.
+19. The ties: `srvReqFieldsAt`, **`srvReqFieldsAtM`** (the merged request path's, round 4: Put,
+    Range, Txn are written over it; the tie breaks two `rfl` laws used 14 times, restated as
+    equations with the tie) and `srvKVInvs` gain `⌜…kv.cmp = E.cmp⌝` beside their `kvInv`
+    (`srvReqFieldsAtD`, `srvKVInvsD`); `NewServer` makes them from `ρ.rd.kv.cmp = E₀.cmp` (14').
+    `srvKVInvs` gets projection laws (`client/v3` and `v3rpc` unfold it by position). **Scope**:
+    the tie puts every member of a cluster in one compaction mode (`KVNames.cmp` is the
+    cluster's); Go allows members with different settings, which stay outside the model.
 20. `srvKVCloserW` and `srvKVCloserM_split` (S-4: over a sealed mvcc `wsCloserW` at the switch).
 21. `apply.Apply.specRec`: the compaction arm (`specRecD`).
+Review round 4 (`notes/spec-first-study/m2-apply-review-4.md`): R3-1/R3-2/S3-1 resolved; one
+first-tier finding, R4-1 (the tie unestablished: item 14'), repaired in the list and in
+`NewServer.specD`'s comment; second tier: `cmpLogOk` moved last in `kvInvD` (done), item texts
+5, 6, 8, 12, 13, 17, 19 restated above. Nothing in the apply Draft.
+
 Still open, second tier: S-5/round 1's S-6 (the `kbCmpM E.γ.kb ↔ E.cmp` law to export), S-2'
 (G2 through `store.Read`'s `certOk`), S3-3 (`cmpEntryOk` derived in `applyEntryNormal`'s proof).
 

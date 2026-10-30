@@ -537,7 +537,9 @@ more first-tier findings of the same kind (R3-1, R3-2: other carriers of the off
 the user's Q6: (a), the switch stated in place (`dispatchOk`, `kvInv` redefined, carriers'
 texts kept; the ties `srvReqFieldsAtD`/`srvKVInvsD`; off laws `kvInvD_off` ⊣⊢,
 `logShapeD_plain`); Drafts restated and built; consolidated item list in `m2-apply-plan.md`,
-"The switch in place". Next: review round 4.
+"The switch in place". Review round 4: one first-tier finding (R4-1, the mode tie needs
+`ρ.rd.kv.cmp = E₀.cmp` in the interim `NewServer` texts: item 14'), repaired in the list; next:
+review round 5.
 
 ## The delete-then-put fix in the fork: what is left (2026-10-30, branch `etcd-ndp-fix`)
 
