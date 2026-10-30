@@ -540,7 +540,7 @@ theorem srvReqFieldsAtD_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : R
 /-- **The tie by the auth mode** (review round 6's R6-1, item 19): the KV names' compaction mode
 the server's with auth off; nothing with auth on (auth-on servers keep retention `0` and the auth
 mode's own vocabulary excludes a compaction, so no consumer reads it there, and `start.specOn`
-has no producer for it). `srvReqFieldsAtM on` carries `kvTieM on γk E` (both `rfl` laws kept; no
+has no producer for it). `srvReqFieldsAtM on` carries `kvTieM on ρ.kv.cmp E` (both `rfl` laws kept; no
 auth-on text touched). `cmp` stands for `KVNames.cmp` until the switch adds the field. -/
 def kvTieM (on : Bool) (cmp : Bool) (E : apply.AEnv GF) : Prop :=
   match on with
