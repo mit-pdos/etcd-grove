@@ -841,6 +841,32 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     · ipureintro; intro h; exact absurd h Herr.1
     ileft; ipureintro; exact Herr.1
 
+/-- **T4, a nested transaction putting outside `[a, b)`, is refused** (`sorry`, until the client's
+builder and `Commit` specs cover nested transactions: branch `txn-nested`, the plan's T4):
+`t.Then(OpTxn(nil, [OpPut(c/who/t3, "vt")], nil))` returns the builder, whose `Commit` replies
+with an error (no principal may write `c/...`: `not_permitted_c`; etcd checks a nested
+transaction's operations, `checkTxnReqsPermission`). Today's `txn.Then.spec` takes only plain
+operations (`txnOpOf` of a transaction is `none`), and `reqOpAt` of one is `False`. -/
+theorem then_commit_nested_refused (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat)
+    (who : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl tsl : GoSlice)
+    (op : go_etcd_io.etcd.client.v3.Op) (hγa : E.authMode = .on γa)
+    (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who) :
+    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗
+        txnObjAt tp [go!"127.0.0.1:23916"] ci cd TxnBuild.empty ∗ txnKvIs tp api ∗
+        sl ↦*□ [op] ∗ opFullAt op OpFull.txnInit ∗ cmpsAt op.cmps' [] ∗
+        ⌜op.thenOps' = tsl ∧ op.elseOps' = slice.nil⌝ ∗
+        opsAt tsl [opPutModel (keyOfK go!"c" who go!"t3") go!"vt" []] }}
+      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Then"))
+        (Val #sl))
+    {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp :
+          GoInterface);
+        ∀ Φ, (∀ (resp : Loc) (err : GoInterface), ⌜err ≠ GoInterface.nil⌝ -∗
+            Φ (PairV #resp #err)) -∗
+          WP (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!!
+            go!"Commit")) (Val #())) {{ Φ }} }} := by
+  sorry
+
 /-- **One option** (a `Get(k, opt)`'s variadic slice). -/
 theorem optsAt_one (sl : GoSlice) (f : GoFunc) (g : OpFull → OpFull) :
     sl ↦*□ [f] ∗ optSpec (GF := GF) f g ⊢ optsAt sl [g] := by
@@ -888,6 +914,18 @@ theorem opsAt_two (sl : GoSlice) (vs : List go_etcd_io.etcd.client.v3.Op)
   · cases Hv; cases Ho; iexact H1
   · cases Hv; cases Ho; iexact H2
   · simp at Hv
+
+/-- No comparisons: the nil slice. -/
+theorem cmpsAt_nil' : ⊢ cmpsAt (GF := GF) slice.nil [] := by
+  unfold cmpsAt
+  iexists ([] : List go_etcd_io.etcd.client.v3.Cmp)
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · ipureintro; rfl
+  imodintro
+  iintro %i %c %m %Hc %Hm
+  simp at Hc
 
 /-- **One comparison** (an `If(c)`'s variadic slice). -/
 theorem cmpsAt_one (sl : GoSlice) (c : go_etcd_io.etcd.client.v3.Cmp) (m : CmpModel) :
