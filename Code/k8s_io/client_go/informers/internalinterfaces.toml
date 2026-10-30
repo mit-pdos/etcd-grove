@@ -1,0 +1,6 @@
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the
+# factory's interfaces and the informers' options (types only).
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

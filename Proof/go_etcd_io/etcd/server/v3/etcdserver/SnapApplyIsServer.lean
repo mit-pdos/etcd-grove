@@ -46,7 +46,7 @@ Brief for the prover. Unfold `isServer`; take the old one's parts apart (`⌜ρ.
 theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (γB : backend.BNames)
     (P : backend.BParams) (d' : mvcc.KBReal) (p' : mvcc.PhysNames) (g : GoFunc)
-    (al ast lp cl : Loc) (hγB : d'.γB = γB) (hkb' : p'.kb = some d') :
+    (al ast lp cl : Loc) (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hcm' : d'.cm = false) :
     isServer s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
       isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ⊢
     isServer s (snapγ γ π0 γB) ci (metaTM γB P)
@@ -61,7 +61,7 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   have hok : srvEnvOk s (snapγ γ π0 γB) ci
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster d'.be) v.cluster :=
     ⟨Henv.1, rfl, γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hγB,
-      rfl⟩
+      rfl, hcm'⟩
   rw [srvAtomics_snapE, srvGenAt_snapE]
   isplitr
   · ipureintro; exact Hrd

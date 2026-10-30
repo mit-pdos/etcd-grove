@@ -1,6 +1,7 @@
 /-
 **The members' lemmas of the `*kv`'s calls, linked** (D44, 2026-10-25): `kv.Do.wp_members`,
-`kv.Put.wp_members`, ... (`KVMembers.lean`'s statements, proved in the functions' `Proof` files)
+`kv.Put.wp_members`, ... (`KVMembers.lean`'s statements; since 2026-10-28, the auth plan's E3zc, with
+the generic `kv.Do.wp_generic`, `kv.Put.wp_generic`, ... their callees, proved in the functions' `Proof` files)
 instantiated with their callees' results (`Link.lean`'s), as `etc/gen-link.py` does for the
 functions' specs. What the results about the server's own model use (`ServerKV*.lean`,
 `Results.lean`'s `client_*_any`): a member's reply, with what it says of its server. Lean-first
@@ -27,6 +28,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+theorem v3.kv.wp_DoG :
+    EtcdGrove.kv.Do.specG (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Do.wp_generic v3.Op.wp_IsSortOptionValid v3.Op.wp_toRangeRequest
+    v3.retryKVClient.wp_Range v3.retryKVClient.wp_Put v3.retryKVClient.wp_DeleteRange
+    v3.wp_ContextError
+
+theorem v3.kv.wp_DeleteG :
+    EtcdGrove.kv.Delete.specG (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Delete.wp_generic v3.wp_OpDelete v3.kv.wp_DoG v3.wp_ContextError
+
+theorem v3.kv.wp_GetG :
+    EtcdGrove.kv.Get.specG (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Get.wp_generic v3.wp_NewOp v3.kv.wp_DoG v3.wp_ContextError
+
+theorem v3.kv.wp_PutG :
+    EtcdGrove.kv.Put.specG (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Put.wp_generic v3.wp_OpPut v3.kv.wp_DoG v3.wp_ContextError
+
+theorem v3.txn.wp_CommitG :
+    EtcdGrove.txn.Commit.specG (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.Commit.wp_generic v3.retryKVClient.wp_Txn v3.wp_ContextError
+
 theorem v3.kv.wp_DoM :
     EtcdGrove.kv.Do.specM (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Do.wp_members v3.Op.wp_IsSortOptionValid v3.Op.wp_toRangeRequest
@@ -35,15 +58,15 @@ theorem v3.kv.wp_DoM :
 
 theorem v3.kv.wp_DeleteM :
     EtcdGrove.kv.Delete.specM (GF := GF) (hG := hG) :=
-  EtcdGrove.kv.Delete.wp_members v3.wp_OpDelete v3.kv.wp_DoM v3.wp_ContextError
+  EtcdGrove.kv.Delete.wp_members v3.kv.wp_DeleteG
 
 theorem v3.kv.wp_GetM :
     EtcdGrove.kv.Get.specM (GF := GF) (hG := hG) :=
-  EtcdGrove.kv.Get.wp_members v3.wp_NewOp v3.kv.wp_DoM v3.wp_ContextError
+  EtcdGrove.kv.Get.wp_members v3.kv.wp_GetG
 
 theorem v3.kv.wp_PutM :
     EtcdGrove.kv.Put.specM (GF := GF) (hG := hG) :=
-  EtcdGrove.kv.Put.wp_members v3.wp_OpPut v3.kv.wp_DoM v3.wp_ContextError
+  EtcdGrove.kv.Put.wp_members v3.kv.wp_PutG
 
 theorem v3.txn.wp_CommitM :
     EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG) :=

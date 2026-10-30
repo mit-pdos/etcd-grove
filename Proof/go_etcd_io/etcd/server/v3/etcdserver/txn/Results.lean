@@ -221,10 +221,10 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
         (Val #kv)) (Val #r)) (Val #withTotal))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
         mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
-        ∃ (log : mvcc.Log) (rev : w64), mvcc.idxCert γ.idx log ∗
+        ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗
           ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
             rev = W64 ((log.length : Int) - 1)⌝ ∗
-          rangeResultClient resp err log rev o withTotal }} := by
+          rangeResultClient resp err log rev crev o withTotal }} := by
   wp_start_folded as ⟨#Hkv, Hrd, Ht, #Hc, #Hr, #Hctx, #Hct, Hto, %Hlg, %Hpre⟩
   ihave %Hset := rangeRequestIs_sortSet r o $$ Hr
   iapply (wp_Range ctx cd false lg kv s γ r o withTotal m log₀ ot te) $$ [Hrd Ht Hto]
@@ -238,16 +238,16 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     iintro !> %log' %h -
     ipureintro; exact Hpre.2.2 log' h.1 h.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, -, -, %log, %rev, #Hcert, -, %Hp, #Hres, -, -⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, -, -, %log, %rev, %crev, #Hcert, -, -, %Hp, #Hres, -, -⟩
   iapply HΦ
   iframe Hrd Ht
   isplitr
   · ipureintro; exact Htr
-  iexists log, rev
+  iexists log, rev, crev
   iframe Hcert
   isplitr
-  · ipureintro; exact Hp
-  iapply rangeResult_client resp err log rev o withTotal Hset Hpre.2.1 $$ Hres
+  · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1⟩
+  iapply rangeResult_client resp err log rev crev o withTotal Hset Hpre.2.1 $$ Hres
 
 /-- **`Range` at the sole writer** reads its log exactly (`soleWriter_pins_read`): the response
 is `rangeResult` at `log`'s last revision. -/
@@ -265,14 +265,16 @@ theorem range_soleWriter (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
         mvcc.storeReader s γ ∗ soleWriter γ log ∗ ⌜trace ≠ null⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-        rangeResult resp err log (W64 ((log.length : Int) - 1)) o withTotal ∗
+        ∃ crev : Int, rangeResult resp err log (W64 ((log.length : Int) - 1)) crev o withTotal ∗
         ⌜nd = true → err = GoInterface.nil ∨
-          sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev⌝ }} :=
+          sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev ∨
+          sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev⌝ }} :=
   range_soleWriter_of wp_Range log hlen ctx cd nd lg kv s γ r o withTotal ot te
 
 /-- **`Count` at the sole writer**: the number of keys of the client's range (`rangeIn` of the
 count-only request `countOp`) in the state at the revision read, at the sole writer's log; or
-`ErrFutureRev` and `0` for a revision past it. (2026-10-14, unit A2: the key shorter than
+`ErrFutureRev` and `0` for a revision past it; or (M2, `notes/m2-plan.md`, S1) `ErrCompacted` and
+`0` below the compaction revision the read observed. (2026-10-14, unit A2: the key shorter than
 `2 ^ 63 - 1`, as `Count`'s spec.) -/
 theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (kv : GoInterface)
@@ -285,13 +287,17 @@ theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
       (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        mvcc.storeReader s γ ∗ soleWriter γ log ∗
+        mvcc.storeReader s γ ∗ soleWriter γ log ∗ ∃ crev : Int,
         ((⌜err = GoInterface.nil ∧ sint.Z revision ≤ (log.length : Int) - 1 ∧
             n = W64 ((rangeIn (mvcc.stateAt log
               (sint.nat (mvcc.rangeRev (W64 ((log.length : Int) - 1)) revision)))
               (countOp k (rangeEndOf rangeEnd e) revision)).length : Int)⌝) ∨
          (⌜(log.length : Int) - 1 < sint.Z revision ∧ n = W64 0⌝ ∗ ∃ ef : GoInterfaceOk,
-            globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝)) }} := by
+            globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
+         (⌜sint.Z revision ≤ (log.length : Int) - 1 ∧
+            sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) revision) < crev ∧ n = W64 0⌝ ∗
+            ∃ ec : GoInterfaceOk,
+            globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝)) }} := by
   wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩
@@ -299,10 +305,10 @@ theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     $$ [Hrd Ht Hto]
   · iframe # ∗; ipureintro; exact ⟨Hlg, Hklen⟩
   inext
-  iintro %n %err ⟨Hrd, Ht, %log', %rev, -, %Hp, Hres⟩
+  iintro %n %err ⟨Hrd, Ht, %log', %rev, %crev, -, -, %Hp, Hres⟩
   have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
   subst heq
-  obtain ⟨-, -, hne, hrev⟩ := Hp
+  obtain ⟨-, -, hne, hrev, -⟩ := Hp
   have hz : sint.Z rev = (log'.length : Int) - 1 := by
     rw [hrev]; exact lastRev_sint _ (List.length_pos_iff.2 hne) (by omega)
   subst hrev
@@ -310,9 +316,11 @@ theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
   iframe Hrd
   isplitl [Ht]
   · iunfold soleWriter; iframe Hc Ht; ipureintro; exact Hl2
-  icases Hres with (%H | ⟨%H, Hf⟩)
+  iexists crev
+  icases Hres with (%H | ⟨%H, Hf⟩ | ⟨%H, Hc⟩)
   · ileft; ipureintro; rw [hz] at H; exact H
-  · iright; iframe Hf; ipureintro; rw [hz] at H; exact H
+  · iright; ileft; iframe Hf; ipureintro; rw [hz] at H; exact H
+  · iright; iright; iframe Hc; ipureintro; rw [hz] at H; exact H
 
 end unit2
 

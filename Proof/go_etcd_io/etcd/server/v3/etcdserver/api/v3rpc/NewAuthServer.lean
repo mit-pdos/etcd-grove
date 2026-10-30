@@ -31,12 +31,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.NewAuthServer.wp_proof : v3rpc.NewAuthServer.spec (GF := GF) (hG := hG) := by
   intro s
   wp_start
+  iapply wp_fupd
   wp_auto
-  wp_alloc p as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
   iStructNamed Hp
   ipersist authenticator
-  wp_auto
+  imodintro
   iapply HΦ
   iunfold v3rpc.authServerIs
   iframe #

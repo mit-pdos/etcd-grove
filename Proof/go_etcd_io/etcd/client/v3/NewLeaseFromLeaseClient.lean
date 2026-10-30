@@ -33,8 +33,8 @@ theorem NewLeaseFromLeaseClient.wp_proof
     (wp_WithRequireLeader : WithRequireLeader.spec (GF := GF) (hG := hG))
     (wp_GetLogger : Client.GetLogger.spec (GF := GF) (hG := hG)) :
     NewLeaseFromLeaseClient.spec (GF := GF) (hG := hG) := by
-  intro rlc conn c addr d
-  wp_start as ⟨#Hrlc, #Hconn, %Hcnn, #Hlgc, %sl, #Hco, #Hcopts⟩
+  intro rlc conn c d
+  wp_start as ⟨#Hrlc, %Hcnn, #Hlgc, %sl, #Hco, #Hcopts⟩
   wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %dc %γd ⟨#Hdcc, %_, Hdoc⟩
   imod alloc_broadcast_chan iprop(True) γd dc $$ Hdcc Hdoc with Hdpend
@@ -85,14 +85,10 @@ theorem NewLeaseFromLeaseClient.wp_proof
     iexists «$r0_ptr»
     isplitr
     · ipureintro; rfl
-    unfold lessorAt
-    iexists dc, γd, sctx, _, lg, _, γr
+    unfold lessorAtS
+    iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
-    unfold lessorRemoteAt
-    iexists rlc, conn, sl
-    iframe #
+    ipureintro; exact Hlgnn
   · (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
@@ -132,14 +128,10 @@ theorem NewLeaseFromLeaseClient.wp_proof
     iexists «$r0_ptr»
     isplitr
     · ipureintro; rfl
-    unfold lessorAt
-    iexists dc, γd, sctx, _, lg, _, γr
+    unfold lessorAtS
+    iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
-    unfold lessorRemoteAt
-    iexists rlc, conn, sl
-    iframe #
+    ipureintro; exact Hlgnn
 
 end proof
 

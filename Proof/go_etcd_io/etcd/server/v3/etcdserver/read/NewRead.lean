@@ -32,13 +32,15 @@ theorem read.NewRead.wp_proof
     read.NewRead.spec (GF := GF) (hG := hG) := by
   intro srv rf γr x F
   wp_start as ⟨#Hd, #Hcci, Hgx⟩
+  iapply wp_fupd
   wp_auto
   wp_apply chan.wp_make2 (V := Unit) (W64 1) as %wc %γw ⟨#Hwc, -, Hwo⟩
   · ipureintro; word
   ihave #Hwc' := Hwc
   imod start_bag (V := Unit) (fun _ => iprop(True)) _ wc γw (by trivial) $$ Hwc' Hwo with #Hbag
   wp_apply hNN γr as %nc ⟨%γn, #Hnis, Hown, Hauth, Hlist⟩
-  wp_alloc r as Hr
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r at *
   iStructNamed Hr
   ipersist server
   ipersist raft
@@ -65,7 +67,7 @@ theorem read.NewRead.wp_proof
   · iunfold isReadPre
     iexists srv, wc, γw
     iframe server waitC Hbag Hrd Hd
-  wp_auto
+  imodintro
   iapply HΦ
   isplitr
   · iunfold isReadNotify

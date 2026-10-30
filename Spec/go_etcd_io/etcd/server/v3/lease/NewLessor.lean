@@ -85,7 +85,11 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   lease or `nil`; a lease's `ID` is never written after `NewLease`, its `TTL()` and `Keys()` take the
   lease's own lock and return. The proved `lessor.Lookup.spec` takes a reader slot of `mu` (the
   model's `RWMutex` bounds its readers by the slots); the Go `RWMutex` panics only beyond `2 ^ 30`
-  concurrent readers, which no etcd process reaches: the clause takes no slot.
+  concurrent readers, which no etcd process reaches: the clause takes no slot. (The auth plan's
+  E3zb, 2026-10-28) A lease it returns has the grant guard `GA` of its id: every lease of the map
+  was granted (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke` and `Recover`, which empties
+  the map), and the lock's acquisition is the step that strips the guard's agreement's later (a
+  server whose guard is `False`, `srvGrantGuard`, finds no lease: `lookupNil_of_guard`).
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
   2026-10-17: the store's and the apply thread's lease owner each hold one). -/
 abbrev lease.NewLessor.spec : Prop :=
@@ -109,7 +113,7 @@ abbrev lease.NewLessor.spec : Prop :=
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}) }}
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ GA id) }}) }}
 
 end spec
 

@@ -41,20 +41,21 @@ theorem apply.uberAuthStepsL_of_base
     (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (ua : GoInterface) (E : apply.AEnv GF) (au le : GoInterface)
     (X : List auth.AuthState → IProp GF) (W : IProp GF) (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.uberBaseAuth ua E au le ∗ apply.isAuthStoreL au E.RD E.authMode L ∗
-      apply.isAuthStepsX au E.P E.f E.authMode X W ⊢
+      apply.isAuthStepsX au E.P E.f E.authMode X W E.RD ⊢
       apply.uberAuthStepsL ua E W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) L := by
   iintro ⟨#Hpkg, #Hb, #HsL, #Hsteps⟩
   iunfold apply.uberBaseAuth at Hb
   icases Hb with ⟨%p, %opts, %Hpo, #Hu⟩
   obtain ⟨Hua, Hau, Hle⟩ := Hpo
   subst Hau Hle
-  ihave ⟨%base, #Hbf, #Had⟩ := apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE E X W p opts $$
+  ihave ⟨%base, #Hbf, #Had⟩ := apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE hAu E X W p opts $$
     [Hpkg Hu Hsteps]
   · iframe #
   ihave #Hu' := Hu

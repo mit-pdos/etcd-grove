@@ -24,11 +24,10 @@ theorem tracker.NewInflights.wp_proof : tracker.NewInflights.spec (GF := GF) (hG
   intro size maxBytes Hsz
   wp_start as _
   wp_auto
-  -- `wp_auto` does not step a `GoAlloc` sitting in `return:` position -- the goal is
-  -- still `WP exceptionDo (return: GoAlloc tracker.Inflights #{…})`. Allocate
-  -- explicitly. The literal leaves `buffer' := slice.nil`, so the buffer is the empty
-  -- slice.
-  wp_apply wp_alloc as %l Hl
+  -- `wp_auto` allocated the returned `Inflights` (`«$r0»`). The literal leaves
+  -- `buffer' := slice.nil`, so the buffer is the empty slice.
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   have Habs : inflightsNew size maxBytes =
       inflightsAbs

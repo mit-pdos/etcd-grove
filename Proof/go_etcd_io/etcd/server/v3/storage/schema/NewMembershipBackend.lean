@@ -26,12 +26,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.NewMembershipBackend.wp_proof : schema.NewMembershipBackend.spec (GF := GF) (hG := hG) := by
   intro lg be
   wp_start
+  iapply wp_fupd
   wp_auto
-  wp_alloc l as Hl
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iStructNamed Hl
   ipersist lg
   ipersist be
-  wp_auto
+  imodintro
   iapply HΦ
   iframe #
 

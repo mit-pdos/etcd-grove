@@ -6,12 +6,19 @@ takes over 10 s). The trust boundary (D22 S-f, 2026-10-19; an axiom in
 `Proof/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`: the goroutine can panic, see
 `InvOpen.lean`'s `dbOpensOk`). Lean-first (no Rocq counterpart).
 
-The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`). The post: what
+The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`; since 2026-10-29 with
+`openMmapOk cfg`, a quota whose mmap size bbolt can map: `newBackend` panics otherwise,
+`notes/axiom-review/openbackend.md`). The post: what
 `backend.New` gives (`newPostK`: D22 receiver epochs, S8a, 2026-10-24, the creator's batch-lock
 step trades the fresh backend's payment rights `bFresh` for `K`, as `New`'s spec now says; until
-then `newPost`, which is `K := bFresh`), as a `Backend`, and, if `D` records no compaction
-(`mvcc.noCmpData`), the backend's token of it (`mvcc.bkNoCmp`, what the store's `restore` consumes:
-D22 S-g). Stated at `HasLC.hasLC` (`newPost` is).
+then `newPost`, which is `K := bFresh`), as a `Backend`; `newPostK` holds `backend.fkCl γ P D`:
+the client's half of the compaction keys' flag (`backend.fkOwn`, at `0` if `D` records no
+compaction: then it is the backend's no-compaction token `mvcc.bkNoCmp`, what the store's `restore`
+consumes, `mvcc.bkNoCmp_of_fkCl`) and the bit `backend.fkV` (at `true` if `D`'s compaction keys hold
+well-formed values, `mvcc.fkV_of_fkCl`, `mvcc.fkCl_wf`; both computed by `New`'s proof from `D`, so
+this axiom claims nothing more of the file); the backend-compaction stage, 2026-10-29: until then a
+separate wand
+`⌜noCmpData D⌝ -∗ bkNoCmp γ`, an opaque token, D22 S-g). Stated at `HasLC.hasLC` (`newPost` is).
 -/
 module
 
@@ -34,8 +41,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
-/-- `OpenBackend(cfg, hooks)` of the file holding `D`: the backend `backend.New` makes, with its
-no-compaction token if `D` has neither compaction key. -/
+/-- `OpenBackend(cfg, hooks)` of the file holding `D`: the backend `backend.New` makes. -/
 abbrev storage.OpenBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF),
@@ -44,7 +50,7 @@ abbrev storage.OpenBackend.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenBackend)) (Val #cfg)) (Val #h))
   {{ (b : Loc) (γ : BNames),
       RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b);
-      newPostK γ P W Pk K b D ∗ (⌜mvcc.noCmpData D⌝ -∗ mvcc.bkNoCmp γ) }}
+      newPostK γ P W Pk K b D }}
 
 end spec
 

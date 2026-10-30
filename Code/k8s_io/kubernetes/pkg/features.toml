@@ -1,0 +1,12 @@
+# With bodies (project k8s-daemonset; notes/k8s-daemonset-goose.md): the DaemonSet controller's
+# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8sdaemonset/go.mod).
+# Names only: the package's initialization (gap C7 of notes/k8s-clientgo-goose.md): its `init`
+# (registers the tables with the component-base gate, makes client-go's gates an adapter over
+# it) and the tables it registers (`defaultVersionedKubernetesFeatureGates`, a ~1150-entry map
+# literal of `version.MustParse` calls; `defaultKubernetesFeatureGateDependencies`), and the
+# `var _ I = &T{}` assertions (`!_`). The feature names (constants) and the adapter have bodies.
+translate = ["*", "!_", "!init.*", "!defaultVersionedKubernetesFeatureGates",
+  "!defaultKubernetesFeatureGateDependencies"]
+imports = ["*"]
+
+translate_types = true

@@ -61,6 +61,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   ihave #Hsce := Hall $$ %sc %scd Hscc
   ihave #Hsce' := Hsce
   iunfold ctxErrClient at Hsce'
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   ipersist l

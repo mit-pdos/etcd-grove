@@ -59,14 +59,14 @@ theorem apply.applierV3backend.Authenticate.wp_proof
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Hhk, Hfin⟩
   iunfold apply.ciSplit at HSplit
-  icases HSplit $$ HPre with ⟨%C, %HC, HC, HCb⟩
-  ihave #HCIC := HCI $$ %C
+  icases HSplit $$ HPre with ⟨%C, %ci, %HC, HC, HCb⟩
+  ihave #HCIC := HCI $$ %C %ci
   ihave #HCIC := HCIC $$ []
   · ipureintro; exact HC
   wp_bind (App (Val #(methods cii.ty go!"ConsistentIndex" cii.v)) (Val #()))
   iapply HCIC $$ HC
   inext
-  iintro %ci HC
+  iintro HC
   (try wp_auto)
   ihave HPre := HCb $$ HC
   ihave Hcs : mvcc.csContract E.P E.f Pre Q Post $$ [HPre Hfin]

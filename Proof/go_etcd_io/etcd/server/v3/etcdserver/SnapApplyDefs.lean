@@ -63,10 +63,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem kbP_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
+    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
       mvcc.KBReal).P = d.P := rfl
 theorem kbgx_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
+    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
       mvcc.KBReal).gx = g := rfl
 
 theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :
@@ -81,7 +81,8 @@ theorem kbRT_some (d : mvcc.KBReal) : mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx
 
 /-- **What `applySnapshot`'s code leaves** (S8d's walk, `applySnapshot_walk`): the server's
 resources at the snapshot's backend (`d'`, opened at the snapshot's index `sv.Metadata'.Index'`),
-from which `applySnapshot.spec`'s postcondition is assembled. -/
+from which `applySnapshot.spec`'s postcondition is assembled. (Question 5's core stage, part (1),
+review round 16's M1) The new backend's instance does not compact (`d'.cm = false`). -/
 def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A : List EntryModel)
     (x : apply.ApplyKV) (R : mvcc.Log) (ss hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
@@ -91,7 +92,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
       (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
       (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
-    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
+    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ d'.cm = false ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
       p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧ g ≠ func.nil ∧
       opts'.Logger' = lg ∧
@@ -113,7 +114,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
         (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))) ∗
     (∀ γ1, ⌜γ1.bucket = E.γ.bucket ∧ γ1.kb = some d'⌝ →
       mvcc.keyCleanRead (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
-        (mvcc.bucketViewC γ1) (mvcc.storeRT γ1)) ∗
+        (mvcc.bucketViewC γ1) (mvcc.storeRT γ1) (mvcc.kbNoCmp γ1.kb γ1.bucket)) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
       (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 γB))) ∗
     isServerCI s (γ.withPh (futPhys π0 γB)) ci ∗
@@ -168,14 +169,16 @@ log `[[], []] ++ R`, the rest buckets at the snapshot's entries `A'`), and what 
 takes again at the new backend: its stop channels and the constructors' half of its open token
 (W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the snapshot file's path
 (now the backend's), the transport's live state (W8: with every other member re-added, `L`) and the
-alarm store's resource `Tal`. The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). -/
+alarm store's resource `Tal`. The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). The new
+backend's instance does not compact (`d'.cm = false`: question 5's core stage, part (1), review round
+16's M1), as the next snapshot's `store.Restore` needs. -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (A' : List EntryModel)
     (ss : Loc) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64)
     (lp al ast cl : Loc) (Tal : IProp GF) : IProp GF :=
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
-    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.P = d.P ∧
+    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = false ∧ d'.P = d.P ∧
       E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
       loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
       x'.log = [[], []] ++ R ∧ (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗

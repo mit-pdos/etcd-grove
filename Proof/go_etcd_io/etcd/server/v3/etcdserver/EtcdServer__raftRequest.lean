@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
@@ -44,15 +45,17 @@ local macro "rr_ok" : tactic => `(tactic| (
   iexists hm, rq', L
   isplitr
   · ipureintro; exact Hwire
-  iframe HL HpAf
+  iframe HL HpAf Hhb
   isplitr [HQL]
   · iunfold appliedOkM
     iexists y, y', o, skip
     iframe Hcert HMint Hwit Hok
     isplitr
     · ipureintro; exact ⟨Hstep.1, Hstep.2.1, Hstep.2.2.1, Hstep.2.2.2, Hadm⟩
-    rw [← hve]
-    iexact Hans
+    isplitl [Hans]
+    · rw [← hve]
+      iexact Hans
+    iexact Hau'
   iexact HQL))
 
 set_option maxRecDepth 20000 in
@@ -76,11 +79,11 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   wp_apply hP s E ρ ctx cd p rq Qh F Hid0 $$ [Hrd Hard Hcred Hhdr Hok] as %res %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hhdr Hok
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %L, #HL, Hri, #HpAf, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %L, #HL, Hri, #HpAf, HQL, #Hhb⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -106,6 +109,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         · rw [← hve]; iexact HerrIs
         ileft
         iexists hm, rq'
+        iframe Hhb
         isplitr
         · ipureintro; exact Hwire
         iunfold appliedErr
@@ -139,6 +143,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         · rw [← hve]; iexact HerrIs
         ileft
         iexists hm, rq'
+        iframe Hhb
         isplitr
         · ipureintro; exact Hwire
         iunfold appliedErr
@@ -163,6 +168,8 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         iexact HerrIs
       · -- (E3x) no error: an admin request's step succeeded
         ihave %Hadm := adminDoneM_of_tie on ρ.kv rq' L res o skip v hve $$ HtM Hv
+        -- (C1's A3) an `Authenticate`'s response
+        ihave Hau' := authnAnsM_of_ar on E res rq' o skip v hve $$ Hau Hv
         (try wp_auto)
         wp_apply hV ctx _ cd rfl $$ [] as %val %Hval
         · iframe #
@@ -218,51 +225,6 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
       iright; iexact Hdep
     · exact absurd rfl Hne
 
-/-- **`processInternalRaftRequestOnce`'s mode-off `specM`, from its `spec`** (a constant result;
-the success post's model fact `kvModel L = y.log`). -/
-theorem EtcdServer.processInternalRaftRequestOnce.specM_false_of_spec
-    (hP : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG)) :
-    EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) false := by
-  intro s E ρ ctx cd p rq Qh F Hid0
-  iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-  iunfold reqPropOkM at Hok
-  icases Hok with ⟨%Qr, Hok, %HQh⟩
-  subst HQh
-  rw [isServerReqM_false]
-  iapply (hP s E ρ ctx cd p rq Qr F Hid0) $$ [Ha Hb Hc Hd He Hf Hg Hok Hi Hj] [HΦ]
-  · iframe Ha Hb Hc Hd He Hf Hg Hok Hi Hj
-  iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
-  iapply HΦ
-  iframe Hrd Hard
-  icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %lb, Hri, %L, #HL, %Hlb, #HQ⟩ | Herr)
-  · ileft
-    isplitr
-    · ipureintro; exact He
-    iexists hm, rq'
-    iframe HTr
-    isplitr
-    · ipureintro; exact Hw
-    iexists L
-    iframe HL HQ
-    isplitl [Hri]; rotate_left
-    · unfold pubAfterM; itrivial
-    iunfold resultIsW at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
-    iunfold resPostM
-    isplitr
-    · ipureintro; exact Hnn
-    iexists y, y', out
-    iframe Hr1 Hr2 Hr3 Hr4 Hr5
-    isplitr
-    · ipureintro
-      refine ⟨Hst.1, Hst.2.1, Hst.2.2.2, ?_⟩
-      show kvModel ρ.kv L = y.log
-      rw [Hst.2.2.1]; exact Hlb
-    simp only [adminTieM]
-    itrivial
-  · iright; iexact Herr
-
 theorem EtcdServer.raftRequest.wp_proof
     (hP : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG))
     (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
@@ -272,36 +234,9 @@ theorem EtcdServer.raftRequest.wp_proof
     (hIS : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
     (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qr F Hid0
-  iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
-  ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok
-  rw [← isServerReqM_false]
-  iapply (EtcdServer.raftRequest.wp_proofM false
-    (EtcdServer.processInternalRaftRequestOnce.specM_false_of_spec hP) hSp hV hGS hSS hIS hLL
-    s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Ha Hb Hc Hd He Hf Hg Hok' Hi Hj] [HΦ]
-  · iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
-  iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
-  iapply HΦ
-  iframe Hrd Hard
-  icases Hpost with (⟨%He, %hm, %rq', %L, %Hw, #HL, Hok, -, #HQ⟩ | Herr)
-  · ileft
-    isplitr
-    · ipureintro; exact He
-    iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5⟩
-    iexists hm, rq', x.log
-    isplitr
-    · ipureintro; exact Hw
-    isplitl [Ha1 Ha2 Ha3 Ha4 Ha5]
-    · iunfold appliedOk
-      iexists x, x', o, skip
-      iframe Ha1 Ha2 Ha3 Ha4 Ha5
-      ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
-    iexists L
-    iframe HL HQ
-    ipureintro; exact Hst.2.2.2.1
-  · iright; iexact Herr
+  intro s E ρ
+  exact EtcdServer.raftRequest.wp_proofM E.authOn
+    (EtcdServer.processInternalRaftRequestOnce.spec_M hP _) hSp hV hGS hSS hIS hLL s E ρ
 
 end proof
 

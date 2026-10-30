@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.compareToPath.wp_proof
     (hCmps : txn.applyCompares.spec (GF := GF) (hG := hG)) :
     txn.compareToPath.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev rt t
+  intro trace mw s γ log rev rt t crev
   iloeb as IH generalizing %rt %t
   wp_start as ⟨Htx, #Ht⟩
   iunfold txn.txnRequestIs at Ht
@@ -72,7 +72,7 @@ theorem txn.compareToPath.wp_proof
   ihave IHl : (∃ (n : w64) (pv : Loc) (cur : GoSlice), "i" ∷ i_ptr ↦ n ∗ "op" ∷ op_ptr ↦ pv ∗
       "txnPath" ∷ txnPath_ptr ↦ cur ∗
       "Hsl" ∷ cur ↦* (ok :: txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat n))) ∗
-      "Hcap" ∷ ownSliceCap Bool cur (DFrac.own 1) ∗ "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev ∗
+      "Hcap" ∷ ownSliceCap Bool cur (DFrac.own 1) ∗ "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev crev ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z osl.len⌝ : IProp GF) $$ [i op txnPath Hsl Hcap Htx]
   · iexists W64 0, _, sl
     iframe

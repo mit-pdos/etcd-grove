@@ -32,7 +32,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
   intro γ P W Pk b rt rtx rv p qo bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
   wp_start as ⟨#Hb, #Hrt, Hh, Hopen, #Hbk, Hk, He⟩
   unfold rtHeldF
-  icases Hh with ⟨%rt', %rd, %H, #Hrt', Hrl, HR, %Hrtx, Hcr⟩
+  icases Hh with ⟨%rt', %rd, %H, %L, #Hrt', Hrl, HR, %Hrtx, Hcr⟩
   icombine Hrt Hrt' gives %Heq
   subst Heq
   subst Hrtx
@@ -49,7 +49,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
   subst Heq
   unfold rtResAt rtRest rtCore rtIntv
   icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist, Hrtxf, Hwg, %Hfacts,
-    #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+    #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩

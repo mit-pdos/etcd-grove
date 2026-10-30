@@ -3,6 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__UserGrantRole.le
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGrantRole
 
 @[expose] public section
@@ -102,14 +103,15 @@ theorem EtcdServer.UserGrantRole.wp_proof : EtcdServer.UserGrantRole.spec (GF :=
 theorem EtcdServer.UserGrantRole.wp_proofOn
     (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
     EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r user role F
+  intro s E ρ ctx cd Qa r user role F
+  let Hh := adminHistAu (GF := GF) s E ρ ctx (irrUserGrantRole user role) Qa
   wp_start_folded as ⟨#Hreq, %Hn, HP⟩
-  ihave #Hc : authRaftOk s ctx (irrUserGrantRole user role) etcdserverpb.AuthUserGrantRoleResponse.ty (adminPreOn s E ρ ctx cd F)
-      (adminOutOn s E ρ (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role)) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
-  · iapply authRaftOk_on hRR s E ρ ctx cd (irrUserGrantRole user role) F _ _ rfl rfl (adminPropOk_userGrantRole user role Hn)
-      (irrNoZeroEnd_admin _ rfl rfl rfl) (fun _ _ => .rfl)
-  wp_apply EtcdServer.UserGrantRole.wp_proof s ctx r user role (adminPreOn s E ρ ctx cd F)
-      (adminOutOn s E ρ (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role)) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ [HP] as %resp %err H
+  ihave #Hc : authRaftOk s ctx (irrUserGrantRole user role) etcdserverpb.AuthUserGrantRoleResponse.ty (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd (irrUserGrantRole user role) F _ _ Qa _ rfl rfl (adminPropOk_userGrantRole user role Hn)
+      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
+  wp_apply EtcdServer.UserGrantRole.wp_proof s ctx r user role (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ [HP] as %resp %err H
   · iframe # HP
   iapply HΦ
   iexact H

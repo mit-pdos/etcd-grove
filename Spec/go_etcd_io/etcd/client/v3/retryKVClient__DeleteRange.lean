@@ -24,13 +24,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `rkv.DeleteRange(ctx, in, opts...)` on a `*retryKVClient` over a stub on a connection to `addr`:
 `rkv.kc.DeleteRange(ctx, in, opts...)`: the call's answer (`deleteCallOut`). -/
 abbrev retryKVClient.DeleteRange.spec : Prop :=
-  ∀ (rkv conn : Loc) (addr : List GoString) (Spec : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
+  ∀ (rkv conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Q : DelRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.DeleteRangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
-      reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (Spec (deleteReqOp req k e) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
+      reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (deleteReqOp req k e) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"DeleteRange")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

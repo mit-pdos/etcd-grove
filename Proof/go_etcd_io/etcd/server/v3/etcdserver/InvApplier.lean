@@ -459,23 +459,26 @@ def srvFS (s : Loc) : IProp GF :=
 /-- **The resources the consistent index reads under** (D14i): the apply protocol's state, not
 pending and loaded (`stLoaded γ st = st`: `ConsistentIndex` gives it back unchanged; D22 receiver
 epochs, S8d, 2026-10-26: until then any state, false after a snapshot, whose `γ.m0.1` is not 0),
-with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them; the environment's
-`E.ciC`. -/
-def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
+with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them, and the value it
+returns there (`ciEff γ st.k`; C1's A2, 2026-10-28); the environment's `E.ciC`. -/
+def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) (x : w64) : Prop :=
   ∃ (st : ApplyState) (b : GoInterface),
-    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st
+    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st ∧
+      x = ciEff γ st.k
 
 /-- The apply environment's threaded resources are the server's (D14i); (D22, 2026-10-23) its rest
 buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memory members, its
 write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver epochs, S7c,
 2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
 alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
-(`srvObjsOn`). -/
+(`srvObjsOn`). (Question 5's core stage, part (1), the user's Q5-4 and review round 16's M1,
+2026-10-29) The store's backend does not compact (`d.cm = false`: no restore in compaction mode,
+`store.Restore`'s premise; M2 turns the server's compaction on). -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
-        H = srvObjsOn al st lp cl d.be
+        H = srvObjsOn al st lp cl d.be ∧ d.cm = false
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its

@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
@@ -55,6 +56,16 @@ variable [sem : go.Semantics]
 abbrev authBucketsAfter (r : GMap GoString backend.BktData) : GMap GoString backend.BktData :=
   ((r.insert go!"auth" authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅
 
+/-- **The cap of the auth store's history, at the start, in the mode `M`** (H5, 2026-10-29): in
+`on γa`, the cap's authority at the start's history `[bootState, bump bootState]`, with the store's
+invariant (which keeps the history below the cap, `auth.authStateAt_capped`), for the server to put
+in its tie of the history to the log (`authHistTie`); `True` in the other modes. -/
+def authCapM (M : auth.AuthMode) (stl : Loc) : IProp GF :=
+  match M with
+  | .on γa => iprop(auth.capAuth γa [auth.bootState, auth.bump auth.bootState] ∗
+      ∃ R : IProp GF, auth.authInv stl R (.on γa))
+  | _ => iprop(True)
+
 /-- **The auth store's construction in the mode `M`** with the token provider `tp` (see the file
 header): `NewAuthStore`'s axiom's triple, the apply contract in the mode `M`, at a resource `K`
 the kit holds (`True` in the mode `off`; the admin side's authority, the batch lock's half and the
@@ -80,14 +91,17 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
         isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
         authPublishM M stl ∗
-        authApplyResPre M stl (auth.bump auth.bootState) d ∗
+        -- (E3zb) with auth on, the request side bound to the request context's token
+        □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
+        authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
-`M.isOn = on` and the auth store's construction in it. -/
+`M.isOn = on` (with auth on, `.on γa` for some auth names: the auth plan's E3zb, 2026-10-28) and the
+auth store's construction in it. -/
 abbrev authSrvTP (on : Bool) : Prop :=
   ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
@@ -96,7 +110,8 @@ abbrev authSrvTP (on : Bool) : Prop :=
       (Val #opts)) (Val #iw)) (Val #ttl))
   {{ (tp err : GoInterface), RET (PairV #tp #err);
       ⌜err = GoInterface.nil → tp ≠ GoInterface.nil⌝ ∗
-      (⌜err = GoInterface.nil⌝ -∗ |==> ∃ M : auth.AuthMode, ⌜M.isOn = on⌝ ∗ authStoreKit M tp) }}
+      (⌜err = GoInterface.nil⌝ -∗ |==> ∃ M : auth.AuthMode,
+        ⌜M.isOn = on ∧ (on = true → ∃ γa, M = .on γa)⌝ ∗ authStoreKit M tp) }}
 
 /-- **What only D22 can prove at the server** (a named premise of the server in the mode `on`;
 see the file header; the server's form of `auth.authSchemaBoot`): for any auth names, given the
@@ -180,8 +195,12 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · unfold authPublishM; itrivial
   isplitr
+  · iintro !> %h; exact absurd h (by decide)
+  isplitr
   · unfold authApplyResPre
     itrivial
+  isplitr
+  · unfold authCapM; itrivial
   iintro !> -
   iexact HauR
 
@@ -201,14 +220,14 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   imodintro
   iexists .off
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, fun h => absurd h (by decide)⟩
   iapply (authStoreKit_off h30 tp)
 
 set_option maxRecDepth 16384 in
 /-- **The kit in the mode `on γa`** (see the file header): the store's proof in the mode `on γa`
 at the boot state, over D22's named premise, with the admin side's authority, the batch lock's
-half and the other half of the latest state's variable at the boot state, and the provider's
-contract with its admin resource `A`. -/
+half and the other half of the latest state's variable at the boot state, the provider's
+contract with its admin resource `A`, and the token rights' empty authority (C1's A1). -/
 theorem authStoreKit_on
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Int : zap.Int'.spec (GF := GF) (hG := hG))
@@ -233,17 +252,23 @@ theorem authStoreKit_on
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
-      auth.authStoreInit γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ⊢
+      auth.authStoreInit γa [auth.bootState] auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ∗
+      ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit) ∗
+      auth.capAuth γa [auth.bootState, auth.bump auth.bootState] ∗
+      auth.capNext (.on γa) [auth.bootState] (auth.bump auth.bootState) ⊢
       authStoreKit (GF := GF) (.on γa) tp := by
-  iintro ⟨#HtpA, HA, Hown, Hcur, HI⟩
+  iintro ⟨#HtpA, HA, Hown, Hcur, HI, Hfr, Hcap, #Hcn⟩
   iunfold authStoreKit
-  iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗ auth.authStoreInit γa auth.bootState ∗
-    auth.authLockI (.on γa) auth.bootState)
-  iframe HA Hown Hcur HI
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI⟩, #Hpkg, %Hlg, %Htp,
+  iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
+    auth.authStoreInit γa [auth.bootState] auth.bootState ∗
+    auth.authLockI (.on γa) auth.bootState ∗ ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit) ∗
+    auth.capAuth γa [auth.bootState, auth.bump auth.bootState])
+  iframe HA Hown Hcur HI Hfr Hcap
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI, Hfr, Hcap⟩, #Hpkg, %Hlg, %Htp,
     %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, %Hr⟩ HΦ
   ihave #HD := hD22
   -- (E2k) the fuel at the history the store starts at (`[bootState, bump bootState]`)
@@ -261,7 +286,7 @@ theorem authStoreKit_on
       (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
         #abl) γa R P f T A Pre Q Post [auth.bootState] auth.bootState rfl auth.bootState_permsFit
       ⟨auth.bootState, List.mem_singleton_self _, rfl⟩)
-    $$ [$Hpkg $Hrdok $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur]
+    $$ [$Hpkg $Hrdok $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
@@ -289,6 +314,8 @@ theorem authStoreKit_on
     iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
+  -- (E3zb) the request side bound to the request context's token, of its invariant
+  ihave #HbB := isReqAuthBound_of_authInv hCtx stp R (.on γa) $$ [$Hpkg $Hinv]
   subst hhs'
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
@@ -299,11 +326,11 @@ theorem authStoreKit_on
   · iframe Hown' Hen Hca
   -- (E3l) the store's admin steps, keeping its backend, at the server's admin resource; (E3n) at
   -- whichever post-lock hook the server freezes
-  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d $$ [Hown' Hfu HT' HX HtpAd]
+  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d (auth.authRd stp R (.on γa)) $$ [Hown' Hfu HT' HX HtpAd Hfr]
   · unfold authApplyResPre
     iexists [auth.bootState, auth.bump auth.bootState], P, f, T, (authBkIface abl)
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HT' HX HtpAd Hwok
+    iframe Hown' Hfu HT' HX HtpAd Hwok Hfr
     isplitr
     · ipureintro; rfl
     iunfold authStepsAtHook
@@ -316,7 +343,7 @@ theorem authStoreKit_on
       ipureintro; exact Hf'
     iunfold adminW
     iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-      hRoleGrantPermissionB stp R (.on γa) Pk' #f' T (beOn d.be) $$ [$Hpkg $Hinv]
+      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' #f' T (beOn d.be) $$ [$Hpkg $Hinv]
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp
@@ -334,6 +361,13 @@ theorem authStoreKit_on
     · iframe Hslots HRs
     iapply (replicate_mono _ (auth.authRd stp R (.on γa)) _
       (by iintro ⟨⟨He, Hc, Hb⟩, HR⟩; unfold auth.authRd; iframe He Hc Hb HR)) $$ Hsl
+  isplitr
+  · iintro !> -; iexact HbB
+  isplitl [Hcap]
+  · unfold authCapM
+    isplitl [Hcap]
+    · iexact Hcap
+    iexists R; iexact Hinv
   -- (D22 J1a) the mode is `on`: no `Recover` clause
   iintro !> %Hm
   exfalso; cases Hm
@@ -367,6 +401,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     authSrvTP (GF := GF) true := by
   intro lg opts iw ttl
@@ -379,23 +414,23 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact Htp
   iintro %Herr
-  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, -, #Hok, HA, -⟩)
+  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, -, #Hok, HA, Hfr⟩)
   · exfalso; rcases Hno with h | h
     · exact h hopts
     · omega
   obtain ⟨-, rfl⟩ := Hp
-  imod (auth.authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI⟩
+  imod (auth.authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn⟩
   obtain ⟨hγt, hγf⟩ := Hγ
   subst hγt hγf
   ihave #HtpA := auth.tokenSimple_okA_run hValid h_Debug h_String p γa $$ [$Hpkg $Hok]
   imodintro
   iexists (.on γa)
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-    hRoleGrantPermissionB hD22 _ γa (auth.simpleAdmin p))
-    $$ [$HtpA $HA $Hown $Hcur $HI]
+    hRoleGrantPermissionB hAuthnB hD22 _ γa (auth.simpleAdmin p))
+    $$ [$HtpA $HA $Hown $Hcur $HI $Hfr $Hcap $Hcn]
 
 end proof
 

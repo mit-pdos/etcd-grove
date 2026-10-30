@@ -4,6 +4,7 @@ counterpart; the auth plan's E2x, 2026-10-26).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserAdd
 public import Spec.golang_org.x.crypto.bcrypt.GenerateFromPassword
 
@@ -343,23 +344,30 @@ theorem EtcdServer.UserAdd.wp_proofOn
     (h_gen : bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG))
     (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
     EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd ast r name pw hpw o b F
+  intro s E ρ ctx cd Qa ast r name pw hpw o b F
   wp_start_folded as ⟨#Hast, #Hcost, %Hrnn, #HN, Hpw, Hhpw, #Ho, #Hopts, %Hn, HP⟩
   ihave #Hc : □ (∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
       authRaftOk s ctx (irrUserAdd m) etcdserverpb.AuthUserAddResponse.ty
-        (adminPreOn s E ρ ctx cd F) (userAddOutOn s E ρ F name b)) $$ []
+        (adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
+        (userAddOutOn s E ρ ctx F name b Qa)) $$ []
   · imodintro
     iintro %m %Hm
     obtain ⟨Hmn, Hmb, Hms⟩ := Hm
-    iapply authRaftOk_on hRR s E ρ ctx cd (irrUserAdd m) F _ _ rfl rfl
-      (adminPropOk_userAdd m (Hmn ▸ Hn) Hms) (irrNoZeroEnd_admin _ rfl rfl rfl)
+    iapply authRaftOk_on hRR s E ρ ctx cd (irrUserAdd m) F _ _ Qa _ rfl rfl
+      (adminPropOk_userAdd m (Hmn ▸ Hn) Hms) (irrNoZeroEnd_admin _ rfl rfl rfl) rfl
+      (by
+        unfold userAddHistAu
+        iintro #Hu
+        iapply Hu
+        ipureintro; exact ⟨Hmn, Hmb, Hms⟩)
     iintro %l %err H
     iunfold userAddOutOn
     iexists m
     iframe H
     ipureintro; exact ⟨Hmn, Hmb, Hms⟩
-  wp_apply EtcdServer.UserAdd.wp_proof h_gen s ctx ast r name pw hpw o b (adminPreOn s E ρ ctx cd F)
-      (userAddOutOn s E ρ F name b) $$ [Hpw Hhpw HP] as %resp %err H
+  wp_apply EtcdServer.UserAdd.wp_proof h_gen s ctx ast r name pw hpw o b
+      (adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
+      (userAddOutOn s E ρ ctx F name b Qa) $$ [Hpw Hhpw HP] as %resp %err H
   · iframe # Hpw Hhpw HP
     ipureintro; exact Hrnn
   iapply HΦ

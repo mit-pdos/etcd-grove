@@ -1537,6 +1537,10 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hvcb" ∷ isChanBag (V := Unit) γv vc (fun _ => iprop(True)) ∗
     "#Hstopc" ∷ s.[watchableStore, go!"stopc"] ↦□ stc ∗
     "#Hstop" ∷ isStopChan stc ∗
+    -- (M2, `notes/m2-plan.md`, S1) the inner store never compacted, as `newWatchableStore` makes
+    -- it (`crevFrozen_alloc`): what `syncWatchers`' snapshot (`rangeEvents`) needs, which until M2
+    -- the store's reader carried
+    "#Hfrz" ∷ crevFrozen γ.st ∗
     "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
 /-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**
@@ -1630,12 +1634,12 @@ sole writer's certificate, tokens but the transaction's and notified-log half. T
 read-only (Go never writes it after `Write`; unit N4, D14a: the txn package's functions take the
 wrapper as an interface value over `mw`, `KVView.lean`'s `twWrap`). -/
 def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) (ld : Bool := false) : IProp GF :=
+    (puts deletes putSize : w64) (crev : Int) (ld : Bool := false) : IProp GF :=
   iprop(∃ mw : Loc,
     "#Htw" ∷ tw ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                       s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
-    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize (ld := ld) ∗
+    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize crev (ld := ld) ∗
     "#Hcert" ∷ idxCert γ.st.idx ilog ∗
     "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
     "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
@@ -1645,19 +1649,19 @@ def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (p
 `Lease` bucket, with the store's right to write the tracked buckets; the transaction is then one
 whose lock token only `Unlock` takes (`ld`), which `watchableStoreTxnWrite.End` takes. -/
 theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
-    (pend : List Change) (puts deletes putSize : w64) :
-    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ⊢
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) :
+    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize crev ⊢
       ∃ bt : GoInterfaceOk, storeBt γ.st bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
           (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
         globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
         storeRb γ.st r -∗
-        ▷ (isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize true -∗ key ↦*{dq} k -∗
+        ▷ (isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize crev true -∗ key ↦*{dq} k -∗
           storeRb γ.st (rbDel r leaseName k) -∗ Φ #()) -∗
         WP (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key)) {{ Φ }} := by
   iintro H
   iunfold isWatchTxnWrite at H
   iNamed H
-  icases isTxnWrite_leaseDel mw st γ.st trace ilog pend puts deletes putSize _ _ $$ Htx
+  icases isTxnWrite_leaseDel mw st γ.st trace ilog pend puts deletes putSize crev _ $$ Htx
     with ⟨%bt, #HbtB, Hd⟩
   iexists bt
   isplitr
@@ -1676,9 +1680,9 @@ theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (i
 /-- **The watchable write transaction's batch transaction is the backend's** (`storeBt`),
 keeping the transaction (leases T3: `Revoke` calls the lessor's `le.b.BatchTx()` with it). -/
 theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
-    (pend : List Change) (puts deletes putSize : w64) (ld : Bool) :
-    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ld ⊢
-      isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ld ∗
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (ld : Bool) :
+    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize crev ld ⊢
+      isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize crev ld ∗
         ∃ bt : GoInterfaceOk, storeBt γ.st bt := by
   iintro H
   iunfold isWatchTxnWrite at H
@@ -1720,7 +1724,8 @@ def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
         hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
       (App (Val #rd) (Val #()))
     {{ (tw trace : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-        isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) ∗ Q ∗ hookIs γ.st P f }}))
+        (∃ crev : Int, isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗ Q ∗
+        hookIs γ.st P f }}))
 
 instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
     Persistent (rdIs (GF := GF) rd s st γ) := by

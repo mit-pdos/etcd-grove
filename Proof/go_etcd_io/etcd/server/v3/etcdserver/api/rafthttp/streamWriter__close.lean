@@ -36,6 +36,7 @@ theorem rafthttp.streamWriter.close.wp_proof
     -, -, #Hmu, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.Mutex.wp_Lock _ (swLockInv Rh ty lid pid cw) $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold swLockInv at Hinv

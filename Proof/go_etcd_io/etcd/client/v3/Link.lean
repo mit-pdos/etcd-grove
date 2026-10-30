@@ -67,10 +67,16 @@ public import Proof.context.WithCancelValCtx
 public import Proof.context.WithValue
 public import Proof.go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle
 public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__UpdateAuthToken
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__GetRequestMetadata
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__RequireTransportSecurity
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__UpdateAuthToken
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
+public import Proof.errors.Is
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__AuthEnable
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__Authenticate
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleAdd
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleGrantPermission
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__UserAdd
@@ -123,6 +129,7 @@ public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolv
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver__SetEndpoints
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.New
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__AuthEnable
+public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__Authenticate
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__RoleAdd
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__RoleGrantPermission
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__UserAdd
@@ -156,6 +163,7 @@ public import Proof.go_etcd_io.etcd.client.v3.NewKV
 public import Proof.go_etcd_io.etcd.client.v3.NewLease
 public import Proof.go_etcd_io.etcd.client.v3.NewMaintenance
 public import Proof.go_etcd_io.etcd.client.v3.authClient__AuthEnable
+public import Proof.go_etcd_io.etcd.client.v3.authClient__Authenticate
 public import Proof.go_etcd_io.etcd.client.v3.authClient__RoleAdd
 public import Proof.go_etcd_io.etcd.client.v3.authClient__RoleGrantPermission
 public import Proof.go_etcd_io.etcd.client.v3.authClient__UserAdd
@@ -288,10 +296,6 @@ theorem fmt.wp_SprintfClientPtr :
     EtcdGrove.fmt.SprintfClientPtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fmt.SprintfClientPtr.wp_proof
 
-theorem credentials.perRPCCredentialBundle.wp_PerRPCCredentials :
-    EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
-
 theorem proto.wp_Clone :
     EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
   EtcdGrove.proto.Clone.wp_proof
@@ -364,9 +368,9 @@ theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
 
-theorem credentials.wp_NewPerRPCCredentialBundle :
-    EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.credentials.NewPerRPCCredentialBundle.wp_proof
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
 
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
@@ -479,9 +483,41 @@ theorem v3.Client.wp_shouldRefreshToken :
     EtcdGrove.Client.shouldRefreshToken.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.shouldRefreshToken.wp_proof rpctypes.wp_Error errors.wp_IsStatusErr
 
+theorem grpc.wp_StaticMethod :
+    EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.StaticMethod.wp_proof
+
+theorem grpc.ClientConn.wp_Invoke :
+    EtcdGrove.grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+
+theorem etcdserverpb.authClient.wp_Authenticate :
+    EtcdGrove.etcdserverpb.authClient.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb.authClient.Authenticate.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem v3.retryAuthClient.wp_Authenticate :
+    EtcdGrove.retryAuthClient.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryAuthClient.Authenticate.wp_proof etcdserverpb.authClient.wp_Authenticate
+
+theorem v3.wp_ContextError :
+    EtcdGrove.ContextError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ContextError.wp_proof rpctypes.wp_Error status.wp_FromError
+
+theorem v3.authClient.wp_Authenticate :
+    EtcdGrove.authClient.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authClient.Authenticate.wp_proof v3.retryAuthClient.wp_Authenticate v3.wp_ContextError
+
+theorem credentials.perRPCCredential.wp_UpdateAuthToken :
+    EtcdGrove.credentials.perRPCCredential.UpdateAuthToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredential.UpdateAuthToken.wp_proof
+
+theorem credentials.perRPCCredentialBundle.wp_UpdateAuthToken :
+    EtcdGrove.credentials.perRPCCredentialBundle.UpdateAuthToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredentialBundle.UpdateAuthToken.wp_proof credentials.perRPCCredential.wp_UpdateAuthToken
+
 theorem v3.Client.wp_getToken :
     EtcdGrove.Client.getToken.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.getToken.wp_proof
+  EtcdGrove.Client.getToken.wp_proof v3.authClient.wp_Authenticate credentials.perRPCCredentialBundle.wp_UpdateAuthToken errors.wp_IsStatusErr
 
 theorem v3.Client.wp_refreshToken :
     EtcdGrove.Client.refreshToken.spec (GF := GF) (hG := hG) :=
@@ -543,6 +579,18 @@ theorem grpc.wp_NewClient :
     EtcdGrove.grpc.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.NewClient.wp_proof
 
+theorem credentials.perRPCCredential.wp_GetRequestMetadata :
+    EtcdGrove.credentials.perRPCCredential.GetRequestMetadata.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredential.GetRequestMetadata.wp_proof
+
+theorem credentials.perRPCCredential.wp_RequireTransportSecurity :
+    EtcdGrove.credentials.perRPCCredential.RequireTransportSecurity.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredential.RequireTransportSecurity.wp_proof
+
+theorem credentials.perRPCCredentialBundle.wp_PerRPCCredentials :
+    EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof credentials.perRPCCredential.wp_GetRequestMetadata credentials.perRPCCredential.wp_RequireTransportSecurity
+
 theorem grpc.wp_WithPerRPCCredentials :
     EtcdGrove.grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.WithPerRPCCredentials.wp_proof
@@ -558,10 +606,6 @@ theorem grpc.wp_WithResolvers :
 theorem v3.Client.wp_dialWithBalancer [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.Client.dialWithBalancer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.dialWithBalancer.wp_proof v3.Client.wp_Endpoints v3.Client.wp_credentialsForEndpoint grpc.wp_WithResolvers v3.Client.wp_dial
-
-theorem v3.wp_ContextError :
-    EtcdGrove.ContextError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.ContextError.wp_proof rpctypes.wp_Error status.wp_FromError
 
 theorem LeaseGrantResponse.wp_GetHeader :
     EtcdGrove.LeaseGrantResponse.GetHeader.spec (GF := GF) (hG := hG) :=
@@ -671,6 +715,10 @@ theorem v3.wp_NewMaintenance :
     EtcdGrove.NewMaintenance.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewMaintenance.wp_proof
 
+theorem credentials.wp_NewPerRPCCredentialBundle :
+    EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.NewPerRPCCredentialBundle.wp_proof
+
 theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync v3.Client.wp_Close credentials.wp_NewPerRPCCredentialBundle
@@ -694,14 +742,6 @@ theorem context.wp_WithValue :
 theorem v3.wp_ensureWatchHeader [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.ensureWatchHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ensureWatchHeader.wp_proof
-
-theorem grpc.wp_StaticMethod :
-    EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.StaticMethod.wp_proof
-
-theorem grpc.ClientConn.wp_Invoke :
-    EtcdGrove.grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.ClientConn.Invoke.wp_proof
 
 theorem etcdserverpb.authClient.wp_AuthEnable :
     EtcdGrove.etcdserverpb.authClient.AuthEnable.spec (GF := GF) (hG := hG) :=

@@ -85,6 +85,14 @@ instance k8s_io_apimachinery_pkg_runtime_schema_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime.schema :=
   build_get_is_pkg_init_wf
 
+-- (logr: names only, the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
+instance github_com_go_logr_logr_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.github_com.go_logr.logr :=
+  define_is_pkg_init iprop(True)
+instance github_com_go_logr_logr_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.go_logr.logr :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_klog_v2_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.klog.v2 :=
   define_is_pkg_init iprop(True)

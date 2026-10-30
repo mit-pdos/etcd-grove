@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     (h0 : mvcc.BytesToRev.spec (GF := GF) (hG := hG)) :
     mvcc.UnsafeReadFinishedCompact.spec (GF := GF) (hG := hG) := by
-  intro rt nc
-  wp_start as #Hrd
+  intro rt nc Rd Tok
+  wp_start as ⟨#Hrd, #Hcap, Htok⟩
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -46,13 +46,13 @@ theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     (Val #(W64 0)))
   ihave #Hrd' := Hrd $$ %bM %skn %mvcc.finKeyBytes %DFrac.discard []
   · ipureintro; exact Or.inr rfl
-  iapply Hrd' $$ []
-  · iframe HMetaG
+  iapply Hrd' $$ [Htok]
+  · iframe HMetaG Htok
     unfold mvcc.finKeyBytes
     iexact Hsknv
   inext
-  iintro %ks %vs ⟨-, Hr⟩
-  icases Hr with (⟨#Hks, #Hvs⟩ | ⟨%ksl, %vsl, %v, %Hnc, #Hks, #Hksl, #Hvs, #Hvsl, %Hv⟩)
+  iintro %ks %vs ⟨Htok, -, Hr⟩
+  icases Hr with (⟨#Hks, #Hvs⟩ | ⟨%ksl, %vsl, %v, %Hnc, #Hks, -, #Hvs, Hvsl, %Hv⟩)
   · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
     (try wp_auto)
     obtain ⟨h1, h2⟩ := Hlen
@@ -62,12 +62,15 @@ theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     all_goals try (exfalso; exact Hif hl0)
     (try wp_auto)
     iapply HΦ
+    iframe Htok
     ipureintro
     simp
   · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
     obtain ⟨x, hx0, rfl⟩ := Hv
-    ihave #Hvsl' : vsl ↦*□ (mvcc.revBytes ⟨x, W64 0⟩ false ++ []) $$ []
-    · rw [List.append_nil]; iexact Hvsl
+    iunfold mvcc.rdCap at Hcap
+    icases Hcap $$ %vsl %(mvcc.revBytes ⟨x, W64 0⟩ false) Hvsl Htok with ⟨%dqv, Hvb, Hback⟩
+    ihave Hvsl' : vsl ↦*{dqv} (mvcc.revBytes ⟨x, W64 0⟩ false ++ []) $$ [Hvb]
+    · rw [List.append_nil]; iexact Hvb
     (try wp_auto)
     obtain ⟨h1, h2⟩ := Hlen
     have hl1 : vs.len ≠ W64 0 := by
@@ -84,9 +87,13 @@ theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     simp only [Hb0, _root_.and_self, ite_true]
     wp_apply wp_load_slice_index vs (sint.Z (W64 0)) _ DFrac.discard vsl (by decide) $$ [$Hvs] as -
     · ipureintro; rfl
-    wp_apply (h0 vsl ⟨x, W64 0⟩ [] DFrac.discard (by simp) hx0 (show (0 : Int) ≤ sint.Z (W64 0) by decide)) $$ [$Hvsl'] as -
+    wp_apply (h0 vsl ⟨x, W64 0⟩ [] dqv (by simp) hx0 (show (0 : Int) ≤ sint.Z (W64 0) by decide)) $$ [$Hvsl'] as Hvsl'
     (try wp_auto)
     iapply HΦ
+    isplitl [Hvsl' Hback]
+    · iapply Hback
+      rw [List.append_nil] at *
+      iexact Hvsl'
     ipureintro
     try simp only [mvcc.revVal_main]
     refine ⟨fun _ => hx0, (fun h => by cases h), fun h => ?_⟩

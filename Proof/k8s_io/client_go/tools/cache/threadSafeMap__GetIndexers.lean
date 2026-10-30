@@ -1,0 +1,39 @@
+/-
+Proof of `Spec/k8s_io/client_go/tools/cache/threadSafeMap__GetIndexers.lean`. Lean-first.
+-/
+module
+
+public import Spec.k8s_io.client_go.tools.cache.threadSafeMap__GetIndexers
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace cache
+
+open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+
+theorem threadSafeMap.GetIndexers.wp_proof : threadSafeMap.GetIndexers.spec (GF := GF) (hG := hG) := by
+  intro c γ OK Fam
+  wp_start as #Hc
+  iunfold isTS at Hc
+  icases Hc with ⟨%mp, %g, #Hidx, #Him, -⟩
+  wp_auto
+  iapply HΦ; itrivial
+
+end proof
+
+end cache
+end EtcdGrove
+end Perennial

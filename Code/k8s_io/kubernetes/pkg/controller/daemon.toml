@@ -1,0 +1,10 @@
+# With bodies (project k8s-daemonset; notes/k8s-daemonset-goose.md): the DaemonSet controller's
+# closure at k8s.io/kubernetes 878cfa6c4cc7 (examples/k8sdaemonset/go.mod).
+#
+# Names only: `syncDaemonSet`, which counts a stale-cache requeue
+# (`metrics.DaemonsetRequeueSkips.WithLabelValues(...).Inc()`): the counter's interface,
+# component-base's `metrics.CounterMetric`, is of a package the file does not import, and Goose
+# names it through the imported package of the same name, the controller's own `daemon/metrics`
+# (gap D2, G3 of notes/k8s-etcd3-goose.md).
+translate = ["*", "!DaemonSetsController.syncDaemonSet"]
+imports = ["*"]

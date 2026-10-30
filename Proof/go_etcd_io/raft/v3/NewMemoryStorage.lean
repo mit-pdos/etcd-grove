@@ -39,6 +39,7 @@ theorem NewMemoryStorage.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG)) :
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
   wp_start as #Hinit
+  wp_auto
   wp_apply wp_slice_literal_ex (V := Loc)
   wp_alloc l0 as Hl0
   wp_auto

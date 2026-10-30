@@ -35,8 +35,8 @@ them.
 revision `crev` (`s.compactMainRev`, read under both locks, `firstRev`; fixed until `End`, since
 `Compact` updates it holding `s.mu` exclusively), at or above the caller's lower bound `c` (with
 `store.Compact`'s `crevLb` after a compaction at `rev`: `rev ≤ crev`), a revision of `log` (or
-`-1`); the reader's tag `Z` (persistent) is carried to `End`. The frozen statement (a store
-never compacted, `storeReader`: `crev = -1`) is `specFrozen`, a corollary (`spec_frozen`, `FrozenSpecs.lean`). A caller lending a fraction of the committed log's authority
+`-1`); the reader's tag `Z` (persistent) is carried to `End`. The readers' statement (a store
+never compacted, `storeReader`: `crev = -1`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). A caller lending a fraction of the committed log's authority
 (`logLent`, unit W-K) learns the log read is the one it names. -/
 abbrev mvcc.store.Read.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)

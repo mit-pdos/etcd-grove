@@ -72,23 +72,32 @@ abbrev EtcdServer.UserAdd.spec : Prop :=
 /-- **What a mode-`on` `UserAdd` of `name` answers** (`adminOutOn` for the request the handler
 proposed, some model `m` of it with the name `name`, the password choice `b` and a password choice
 that cannot fail). -/
-def userAddOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (name : GoString)
-    (b : Bool) (l : Loc) (err : GoInterface) : IProp GF :=
+def userAddOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk) (F : mvcc.Log)
+    (name : GoString)
+    (b : Bool) (Q : List auth.AuthState → IProp GF) (l : Loc) (err : GoInterface) : IProp GF :=
   iprop(∃ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ ∗
-    adminOutOn s E ρ (irrUserAdd m) F (adminQh ρ.kv (irrUserAdd m))
+    adminOutOn s E ρ ctx (irrUserAdd m) F (adminQh ρ.kv (irrUserAdd m) Q)
       etcdserverpb.AuthUserAddResponse.ty l err)
+
+/-- **A mode-`on` `UserAdd`'s client update of the auth history** (5b): `histAu` for every model of
+the request the handler may propose (the name `name`, the password choice `b`, sure). -/
+def userAddHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (name : GoString) (b : Bool) (Q : List auth.AuthState → IProp GF) : IProp GF :=
+  iprop(∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
+    adminHistAu s E ρ ctx (irrUserAdd m) Q)
 
 /-- **`s.UserAdd(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
 with its contract `raftRequest.specM true`'s (`authRaftOk_on`), the request admitted (`adminPropOk`,
 for a name of at most `maxKeySize` bytes, its password choice sure by `spec`); the outcome: the
 hashing's error before any proposal (`applyErrIs`, `adminPreOn` back), or `authEntryOut` of `userAddOutOn`: on
 success, the request applied at the committed prefix `L` before its entry (`appliedOkM true`), the
-auth state after it published (`pubAfterM true`) and its step determinate there (`adminQh`); else
-the apply thread's error, or the request perhaps proposed. -/
+auth state after it published (`pubAfterM true`) and its step determinate there (`adminQh`), with
+(5b) the result `Q` of its client's update of the auth history (`userAddHistAu`) if its entry is
+recorded; else the apply thread's error, or the request perhaps proposed. -/
 abbrev EtcdServer.UserAdd.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (ast : GoInterfaceOk) (r : Loc) (name pw hpw : GoString)
-    (o : Loc) (b : Bool) (F : mvcc.Log),
+    (cd : context.ContextDesc (IProp GF)) (Q : List auth.AuthState → IProp GF) (ast : GoInterfaceOk)
+    (r : Loc) (name pw hpw : GoString) (o : Loc) (b : Bool) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
       bcryptCostOk ast ∗
@@ -96,12 +105,14 @@ abbrev EtcdServer.UserAdd.specOn : Prop :=
       structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ pw ∗
       structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ hpw ∗
       structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ auth.userOptsAt o b ∗
-      ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F }}
+      ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserAdd"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ adminPreOn s E ρ ctx cd F) ∨
-      (applyErrIs err ∗ authEntryOut (userAddOutOn s E ρ F name b) resp err) }}
+      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+        adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Q)) ∨
+      (applyErrIs err ∗ authEntryOut (userAddOutOn s E ρ ctx F name b Q) resp err) }}
 
 end spec
 

@@ -37,7 +37,7 @@ theorem Client.dialWithBalancer.wp_proof
     (wp_WithResolvers : grpc.WithResolvers.spec (GF := GF) (hG := hG))
     (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
     Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
-  intro c cfg cr r esl eps atb
+  intro c cfg cr r esl eps atb P
   wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
@@ -76,7 +76,7 @@ theorem Client.dialWithBalancer.wp_proof
   ipersist Ho2
   (try wp_auto)
   ihave Hrb := etcdResolver_grpc (GF := GF) r (ep :: rest) Hplain $$ Hro
-  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl (ep :: rest) atb
+  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl (ep :: rest) atb P
     $$ [$Hc $Hcfg $Hdo $Hatb $Htb $Heps $Hesl $Hrb]
     as %conn %err Hres
   · isplitr

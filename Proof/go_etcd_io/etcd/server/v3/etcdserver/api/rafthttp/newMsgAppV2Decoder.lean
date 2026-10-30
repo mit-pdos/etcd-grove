@@ -28,6 +28,7 @@ theorem rafthttp.newMsgAppV2Decoder.wp_proof :
     rafthttp.newMsgAppV2Decoder.spec (GF := GF) (hG := hG) := by
   intro r lcl rmt
   wp_start as -
+  iapply wp_fupd
   wp_auto
   wp_apply (wp_make_bytes_abs (W64 1048576) (by decide)) as %buf ⟨%zs, Hbufs, Hbufc, %Hbl⟩
   ihave %Hbl2 := ownSlice_len _ _ _ $$ Hbufs
@@ -36,11 +37,12 @@ theorem rafthttp.newMsgAppV2Decoder.wp_proof :
   wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %s1 ⟨Hs1s, Hs1c⟩
   · ipureintro; decide
   (try wp_auto)
-  wp_alloc d as Hd
+  irename «$r0» => Hd
+  generalize «$r0_ptr» = d at *
   iStructNamedSuffix Hd "_d"
   ipersist r_d; ipersist local'_d; ipersist remote_d; ipersist buf_d; ipersist uint64buf_d
   ipersist uint8buf_d
-  wp_auto
+  imodintro
   iapply HΦ
   iunfold v2DecOwn
   iexists buf, s8, s1, zs, _, _

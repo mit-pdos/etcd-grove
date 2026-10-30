@@ -64,7 +64,7 @@ theorem lease.lessor.shouldPersistCheckpoints.wp_proof
         github_com.Masterminds.semver.v3.Version.ty) _ _ _) $$ cv as cv
       wp_apply hGE as %r -
       iapply HΦ; itrivial
-  · wp_pures; iapply HΦ; itrivial
+  · wp_auto; iapply HΦ; itrivial
 
 end proof
 

@@ -29,6 +29,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem NewDefaultLeaseManagerConfig.wp_proof : NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   iapply HΦ
   itrivial
 

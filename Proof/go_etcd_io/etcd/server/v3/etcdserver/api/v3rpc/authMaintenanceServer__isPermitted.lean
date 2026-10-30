@@ -40,7 +40,7 @@ theorem v3rpc.authMaintenanceServer.isPermitted.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe HRD
-  iexact Hout
+  iapply adminOut_of_adminOutB _ _ _ _ $$ Hout
 
 end proof
 

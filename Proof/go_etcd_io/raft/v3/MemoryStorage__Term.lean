@@ -34,6 +34,7 @@ theorem MemoryStorage.Term.wp_proof
   wp_start as ⟨#Hlock, Hlogr, %Hrange, #Hec⟩
   iunfold memStorLock at Hlock
   icases Hlock with ⟨#Hinit, #Hmu⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

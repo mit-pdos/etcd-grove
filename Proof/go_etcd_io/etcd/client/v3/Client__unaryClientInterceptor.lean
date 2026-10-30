@@ -94,8 +94,13 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_store
   ipersist intOpts
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
+  -- (the auth plan's C1, 2026-10-28) once the client is ready, by Löb induction: the refresh path's
+  -- `getToken` calls `Authenticate` through this interceptor
+  unfold etcdInterceptorOkG
+  iclear «$res0»
+  iloeb as IH
+  iintro !> %cconn %ceps #Hready #Hcg
   -- (D29) both modes: any precondition persistent, or an ordinary one for a write on a
   -- refusal-free connection
   iapply etcdInterceptorOkM_split
@@ -105,7 +110,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
   -- (D29) a write's ordinary precondition, never retried (`.write`), or a persistent one (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
-  ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) ∗
+  ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (attemptPre conn (GoInterface.ok ctx) Spec m Φ') else iprop(□ laterHid (attemptPre conn (GoInterface.ok ctx) Spec m Φ'))) ∗
       ⌜md = AttemptMode.write → kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]
   · subst hon
     cases md
@@ -118,8 +123,9 @@ theorem Client.unaryClientInterceptor.wp_proof
       iframe Hpre; ipureintro; intro _; exact Hw
   ihave Hout := Rep.blank_own out $$ Hblank
   (try wp_auto)
-  wp_apply wp_withVersion ctx cd $$ [$Hctx] as %c' ⟨%ci, %vsv, %Hc', #Hctx'⟩
+  wp_apply wp_withVersion ctx cd $$ [$Hctx] as %c' ⟨%ci, %vsv, %Hc', #Hctx', %Hver⟩
   subst Hc'
+  obtain ⟨vver, Hver⟩ := Hver
   (try wp_auto)
   wp_apply wp_filter opts vs $$ [$Hopts $Hok] as %g %r ⟨%gs, %ros', Hg, Hgc, %Hgs, Hr, #Hros', %Hnone⟩
   (try wp_auto)
@@ -164,10 +170,13 @@ theorem Client.unaryClientInterceptor.wp_proof
   (try wp_auto)
   wp_if_destruct
   · -- `callOpts.max == 0`: one attempt
-    ihave Hsp : ▷ Spec m Φ' $$ [Hpre]
+    ihave Hsp : ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ' $$ [Hpre]
     · cases once
       · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
       · simp only [↓reduceIte, laterHid]; iexact Hpre
+    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ')
+      $$ [Hsp]
+    · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
     wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
@@ -190,7 +199,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       "Hout" ∷ Rep.own out ∗ "Hpb" ∷ grpcPeerBuf p_ptr ∗
       "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le ∗ errCellOk le)) ∗
       -- (D21 M6) the request's precondition: the first attempt's if ordinary
-      "Hp" ∷ (if once then iprop(⌜a = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
+      "Hp" ∷ (if once then iprop(⌜a = W64 0⌝ -∗ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ') else iprop(□ laterHid (attemptPre conn (GoInterface.ok ctx) Spec m Φ'))))
     $$ [attempt lastErr Hsend Hout Hpb Hpre]
   · iexists W64 0, GoInterface.nil
     simp only [named]
@@ -244,8 +253,8 @@ theorem Client.unaryClientInterceptor.wp_proof
         cases md with
         | any => exact absurd h (by decide)
         | write => exact Hwa rfl
-      ihave ⟨Hsp, Hp⟩ : iprop(▷ Spec m Φ' ∗
-          (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
+      ihave ⟨Hsp, Hp⟩ : iprop(▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ' ∗
+          (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ') else iprop(□ laterHid (attemptPre conn (GoInterface.ok ctx) Spec m Φ'))))
           $$ [Hp]
       · cases once
         · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -257,6 +266,9 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitl [Hp]
           · iapply Hp; ipureintro; exact Ha0
           · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
+      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ')
+        $$ [Hsp]
+      · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
       wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
           %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
@@ -377,7 +389,18 @@ theorem Client.unaryClientInterceptor.wp_proof
       rotate_left
       · -- refresh the token
         (try wp_auto)
-        wp_apply wp_refresh c ci { cd with Values := vsv } $$ [$Hc $Hctx'] as %gt #Hgt
+        -- (C1) the client's connection, under the induction hypothesis
+        ihave #Hcc : iprop(▷ isEtcdConn cconn ceps) $$ []
+        · inext
+          iapply isEtcdConnG_ready
+          iframe Hready
+          unfold isEtcdConnG
+          iexists _
+          iframe Hcg
+          unfold etcdInterceptorOkG
+          iexact IH
+        wp_apply wp_refresh c cconn ceps ci { cd with Values := vsv } $$ [$Hc $Hready $Hcc $Hctx']
+          as %gt #Hgt
         cases gt with
         | ok gti =>
           (try wp_auto)

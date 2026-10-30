@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.auth.Fuel
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
+public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 
 @[expose] public section
 
@@ -68,6 +69,24 @@ def srvAuthApplyResAt (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) : IPro
   iprop(∃ stl : Loc, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"authStore" s ↦□
     (auth.authIface stl) ∗ authApplyResAt E.authMode stl st)
 
+/-- **The apply thread's rights to issue tokens, at the consistent index `k`** (C1's A1,
+2026-10-28; `notes/c1-plan.md`, "A1's design"): with auth on, the rights' authority whose minted
+tokens are of an index below one at most `k` (`auth.freshBelow`), so that an `Authenticate` entry,
+which issues `<prefix>.<k>` with the consistent index `k` before it, can mint its right; nothing
+in the other modes. Carried beside the apply thread's state at `k = ciEff γ st.k`, which only
+grows. -/
+def srvTokRights (E : apply.AEnv GF) (k : w64) : IProp GF :=
+  match E.authMode with
+  | .on γa => iprop(∃ n : Int, auth.freshBelow γa.fresh n ∗ ⌜n ≤ uint.Z k⌝)
+  | _ => iprop(True)
+
+/-- **The rights' empty authority** in the mode `M` (A1): with auth on, `NewTokenProvider`'s, which
+the store's construction hands to the server's (`authApplyResPre`); `True` in the other modes. -/
+def authFreshInit (M : auth.AuthMode) : IProp GF :=
+  match M with
+  | .on γa => iprop(ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit))
+  | _ => iprop(True)
+
 end defs
 
 section lemmas
@@ -98,6 +117,61 @@ theorem srvAuthApplyRes_of_At (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState
   iexists stl
   iframe Hf
   iapply authApplyRes_of_At $$ H
+
+open Iris.ProofMode in
+theorem srvTokRights_mono (E : apply.AEnv GF) (k k' : w64) (h : uint.Z k ≤ uint.Z k') :
+    srvTokRights (GF := GF) E k ⊢ srvTokRights E k' := by
+  unfold srvTokRights
+  split
+  · iintro ⟨%n, H, %Hn⟩
+    iexists n
+    iframe H
+    ipureintro; omega
+  · iintro H; iexact H
+
+theorem srvTokRights_congr (E E' : apply.AEnv GF) (k : w64) (h : E.authMode = E'.authMode) :
+    srvTokRights (GF := GF) E k ⊢ srvTokRights E' k := by
+  unfold srvTokRights
+  rw [h]
+
+open Iris.ProofMode in
+/-- **The rights at the entry after `x`** (C1's A2): at an index `k` above `x`, either kept (an
+entry that issues nothing) or, with auth on, after the right to the token `<pre>.<x>` is minted
+(an `Authenticate` entry: `x` is the consistent index it reads); the two alternatives of one
+resource (`∧`). -/
+theorem srvTokRights_next (E : apply.AEnv GF) (x k : w64) (h : uint.Z x < uint.Z k) :
+    srvTokRights (GF := GF) E x ⊢ srvTokRights E k ∧
+      ∀ (γa : auth.AuthNames) (pre : GoString), ⌜E.authMode = .on γa⌝ -∗
+        |==> (srvTokRights E k ∗ auth.tokFresh γa (auth.simpleTok pre x)) := by
+  iintro H
+  isplit
+  · iapply srvTokRights_mono E x k (Int.le_of_lt h) $$ H
+  iintro %γa %pre %hM
+  unfold srvTokRights
+  rw [hM]
+  simp only
+  icases H with ⟨%n, Hf, %hn⟩
+  imod auth.freshBelow_mint γa.fresh n x pre hn $$ Hf with ⟨Hf, Ht⟩
+  imodintro
+  isplitl [Hf]
+  · iexists (uint.Z x + 1)
+    iframe Hf
+    ipureintro; omega
+  iunfold auth.tokFresh
+  iexact Ht
+
+open Iris.ProofMode in
+/-- The rights at the boot, of the provider's empty authority. -/
+theorem srvTokRights_init (E : apply.AEnv GF) (k : w64) :
+    authFreshInit (GF := GF) E.authMode ⊢ srvTokRights E k := by
+  unfold authFreshInit srvTokRights
+  split
+  · iintro H
+    iexists 0
+    isplitl [H]
+    · iapply auth.freshBelow_init $$ H
+    · ipureintro; word
+  · iintro -; itrivial
 
 end lemmas
 

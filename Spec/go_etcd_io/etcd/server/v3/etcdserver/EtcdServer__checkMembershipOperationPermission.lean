@@ -6,6 +6,7 @@ counterpart); the auth plan's A2 (2026-10-23), vocabulary `AuthGuard.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 
 @[expose] public section
 
@@ -31,14 +32,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `IsAdminPermitted` on its answer (`nil` or not: `srvAdminNilOk`, the premise `AuthGuard.lean`
 describes); the outcome `adminOut`: on `nil` the token `adminRes` for the request's auth info.
 (The `s.authStore == nil` branch is for tests: the server's store is an interface value,
-`isReqAuth`.) -/
+`isReqAuth`.) With auth on (the store's request side then bound, `srvAuthAt`'s row), a passed check's auth
+info is moreover bound to the request's token or came from the TLS fallback (`adminOutB`, gated by
+the mode; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec). -/
 abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOut E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}
 
 end spec
 

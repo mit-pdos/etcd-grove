@@ -56,7 +56,7 @@ set_option hygiene false in
 stream's producer at its sends). -/
 macro "recv_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ HRD HR sws
+  iframe HΦ HRD HR sws «$res0»
   iexists _, _
   iframe Hrt Hprod Hpool))
 
@@ -448,7 +448,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        wp_apply hStart tr r.ci r.cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -⟩
+        wp_apply hStart tr r.ci r.cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -⟩
         · iframe #
           iunfold mvcc.txnCtx
           iright; iexact Hctxis
@@ -575,7 +575,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               -- the registration's authorization (the auth plan's A4): the passed check's class
               isplitr
               · iunfold v3rpc.watchAuthed
-                ihave ⟨%info, #Hcl⟩ := Hcls $$ %rfl
+                ihave ⟨%info, #Hcl, -⟩ := Hcls $$ %rfl
                 iexists r.srv.E.authMode, info
                 iframe Htag
                 isplitl

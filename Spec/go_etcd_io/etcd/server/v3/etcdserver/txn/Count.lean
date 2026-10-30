@@ -45,14 +45,17 @@ abbrev txn.Count.spec : Prop :=
       (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗
-      ∃ (log : mvcc.Log) (rev : w64), mvcc.idxCert γ.idx log ∗
+      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.crevLb γ.idx crev ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
-          rev = W64 ((log.length : Int) - 1)⌝ ∗
+          rev = W64 ((log.length : Int) - 1) ∧ -1 ≤ crev ∧ crev ≤ sint.Z rev⌝ ∗
         ((⌜err = GoInterface.nil ∧ sint.Z revision ≤ sint.Z rev ∧
             n = W64 ((rangeIn (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev revision)))
               (txn.countOp k (txn.rangeEndOf rangeEnd e) revision)).length : Int)⌝) ∨
          (⌜sint.Z rev < sint.Z revision ∧ n = W64 0⌝ ∗ ∃ ef : GoInterfaceOk,
-            globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝)) }}
+            globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
+         (⌜sint.Z revision ≤ sint.Z rev ∧ sint.Z (mvcc.rangeRev rev revision) < crev ∧ n = W64 0⌝ ∗
+            ∃ ec : GoInterfaceOk,
+            globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝)) }}
 
 end spec
 

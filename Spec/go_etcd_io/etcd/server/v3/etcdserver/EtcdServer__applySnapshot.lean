@@ -58,9 +58,12 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.γ.kb = some d)
+    -- (question 5's core stage, part (1); Q5-4, review round 16's M1) the store's backend does not
+    -- compact: no restore in compaction mode (`srvEnvOk`'s conjunct gives it)
+    (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null)
+    (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')

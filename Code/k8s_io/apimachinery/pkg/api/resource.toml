@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-clientgo-goose.md): `Quantity`, which the core API types' resource lists hold.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

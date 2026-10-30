@@ -30,7 +30,7 @@ theorem v3compactor.Revision.Stop.wp_proof :
   intro rc E ret
   wp_start as #Hcp
   iunfold isRevision at Hcp
-  icases Hcp with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt, #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hmu⟩
+  icases Hcp with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hmu⟩
   wp_auto
   -- `cancel()`: the context's cancel function (`context.cancelSpec`, unfolded: Perennial has no law
   -- for calling it yet, `notes/perennial-changes.md`)

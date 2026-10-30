@@ -1,0 +1,18 @@
+# The model API server (examples/k8sdaemonset/apimodel, notes/k8s-daemonset-plan.md phase 3;
+# trusted Go, D50: its specs are an internal layer of the DaemonSet controller's proof): every
+# linked result of Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s-apimodel.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link\.lean$
+axiom apierrors.NewConflict.wp_proof
+axiom apierrors.NewInternalError.wp_proof
+axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
+axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
+axiom corev1.Node.DeepCopyObject.wp_proof
+axiom corev1.Pod.DeepCopyObject.wp_proof
+axiom rand.Int63n.wp_proof
+axiom schema.GroupResource.String_ptr.wp_proof
+axiom strconv.FormatUint.wp_proof

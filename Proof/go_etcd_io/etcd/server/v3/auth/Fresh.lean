@@ -202,7 +202,7 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
     have hstl : stl' = stl := by rw [hl] at Hl'; exact (Option.some.inj Hl'.1).symm
     -- the atomic is the latest state's revision (the latest state's ghost variable's halves agree)
     iunfold revCur at Hc
-    icases Hc with ⟨%stc, Hcur, %Hrc⟩
+    icases Hc with ⟨%stc, Hcur, %Hrc, Hrq⟩
     iunfold authOwn at Hown
     icases Hown with ⟨Hhh, %stl'', %Hl'', Hcur'⟩
     iunfold authCurHalf at Hcur
@@ -213,13 +213,13 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
     -- the published index raised to the latest one
     iunfold authPubAuth at Hp
     imod (mono_nat_own_update (γ := γa.pub) (hs.length - 1) Hl'.2) $$ Hp with ⟨Hp, #Hlb⟩
-    imod Hclose $$ [Hr Hv Hcur Hp Hq0 Hcq0] with -
+    imod Hclose $$ [Hr Hv Hcur Hrq Hp Hq0 Hcq0] with -
     · inext
       iunfold revInv
       iexists r
       iframe Hr Hv
-      isplitl [Hcur]
-      · iunfold revCur; iexists stc; iunfold authCurHalf; iframe Hcur; ipureintro; exact Hrc
+      isplitl [Hcur Hrq]
+      · iunfold revCur; iexists stc; iunfold authCurHalf; iframe Hcur Hrq; ipureintro; exact Hrc
       iunfold revFresh
       iexists hs.length - 1
       isplitl [Hp]
@@ -284,7 +284,7 @@ theorem authStore.Revision.wp_lb : authStore.Revision.specLb (GF := GF) := by
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, #Hrev, -⟩
   wp_auto
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ «$res0»]
   · iexact Hatomic
   iinv Hrev with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -322,6 +322,7 @@ theorem authStore.IsAuthEnabled.wp_lb : authStore.IsAuthEnabled.specLb (GF := GF
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold enabledRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩

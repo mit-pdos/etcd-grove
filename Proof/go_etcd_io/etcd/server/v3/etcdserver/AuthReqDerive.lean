@@ -15,6 +15,8 @@ uses the `enabledMu` slot, `auth.enabledRd st`), so that one resource serves bot
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
@@ -47,6 +49,32 @@ theorem authInfoRO_authInfoOpt (a : Loc) : auth.authInfoRO (GF := GF) a ⊢ auth
     iunfold authInfoIs
     iframe Hu Hr
     ipureintro; exact Hnn
+
+/-- **The TLS fallback is on** at the server `s` (persistent): its config's
+`ClientCertAuthEnabled` is `true`. -/
+def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ true)
+
+instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
+  unfold srvTLSId; infer_instance
+
+open Iris.ProofMode in
+/-- The TLS fallback is off at a server whose config says so (a law for clients of `hdrBoundM`). -/
+theorem srvTLSId_false (s : Loc) :
+    srvTLSId (GF := GF) s ∗ srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ false ⊢ False := by
+  unfold srvTLSId
+  iintro ⟨#H1, #H2⟩
+  icombine H1 H2 gives %h
+  cases h
+
+/-- **The server's auth info `a` for the request context `ctx` is bound** in the mode `M`
+(persistent): bound to the context's own token (`auth.ctxBound`, which includes `nil`; the auth
+plan's E2c), or the server's TLS fallback is on. -/
+def ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc) : IProp GF :=
+  iprop(auth.ctxBound M ctx a ∨ srvTLSId s)
+
+instance ctxBoundOrTLS_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc) :
+    Persistent (ctxBoundOrTLS (GF := GF) s M ctx a) := by
+  unfold ctxBoundOrTLS; infer_instance
 
 end defs
 
@@ -90,23 +118,6 @@ theorem isReqAuth_of_authInv
     iintro !> %a #Ha
     iapply HΦ
     iapply authInfoRO_authInfoOpt a $$ Ha
-
-/-- **The request side with the token binding** (persistent; the auth plan's S5, 2026-10-24):
-`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's own token in
-the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carries, the auth plan's
-E2c; in `on γa`, its user is one the token was issued to). Stated beside
-`isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it. -/
-def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
-  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ RD }}
-        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
-      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          applyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
-
-instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
-    Persistent (isReqAuthBound (GF := GF) st RD M) := by
-  unfold isReqAuthBound; infer_instance
 
 /-- **The request side with the binding, of the real store** at `st` (`auth.authInv st R M`). -/
 theorem isReqAuthBound_of_authInv
@@ -152,6 +163,43 @@ theorem isReqAuthBound_ctx (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode
   iintro !> %a %err ⟨HRD, Ha, Herr, -⟩
   iapply HΦ
   iframe HRD Ha Herr
+
+/-- **The store's `AuthInfoFromCtx` in the mode `M`**: `isReqAuth`'s, and with auth on, over the
+bound request side (`isReqAuthBound`), the auth info bound to the context's token (`auth.ctxBound`). -/
+theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (ai : GoInterfaceOk)
+    (hai : st = GoInterface.ok ai) :
+    isReqAuth (GF := GF) st RD ∗ □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ⊢
+      □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+        {{ mvcc.txnCtx ctx cd ∗ RD }}
+          (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+        {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+            applyErrIs err ∗ □ (⌜M.isOn = true⌝ → auth.ctxBound M (GoInterface.ok ctx) a) }}) := by
+  iintro ⟨#Ha, #Hb⟩
+  cases hon : M.isOn
+  · iunfold isReqAuth at Ha
+    icases Ha with ⟨%ai1, %Hai1, #H, -⟩
+    have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
+    subst h1
+    iintro !> %ctx %cd %Φ !> Hpre HΦ
+    iapply H $$ %ctx %cd [$Hpre]
+    iintro !> %a %err ⟨HRD, Hai, Herr⟩
+    iapply HΦ
+    iframe HRD Hai Herr
+    iintro !> %h
+    cases h
+  · ihave #Hb' : isReqAuthBound st RD M $$ []
+    · iapply Hb; ipureintro; rfl
+    iunfold isReqAuthBound at Hb'
+    icases Hb' with ⟨%ai1, %Hai1, #H⟩
+    have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
+    subst h1
+    iintro !> %ctx %cd %Φ !> Hpre HΦ
+    iapply H $$ %ctx %cd [$Hpre]
+    iintro !> %a %err ⟨HRD, Hai, Herr, #Hbd⟩
+    iapply HΦ
+    iframe HRD Hai Herr
+    iintro !> -
+    iexact Hbd
 
 end proof
 

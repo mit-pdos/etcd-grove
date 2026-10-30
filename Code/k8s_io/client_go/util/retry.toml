@@ -1,0 +1,6 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): `OnError`, `RetryOnConflict`
+# and the default backoffs.
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

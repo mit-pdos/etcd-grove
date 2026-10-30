@@ -82,10 +82,10 @@ theorem adminOutX_authApplyErrIs (M : auth.AuthMode) (Own : List auth.AuthState 
 /-- **An admin request's result's error** (`apply.AdminReq.result`) is one of the auth package's
 (kept). -/
 theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthState → IProp GF)
-    (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (err : GoInterface)
-    (ad : apply.AdminReq) :
+    (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (resp : Loc)
+    (err : GoInterface) (ad : apply.AdminReq) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢
-      ad.result Own γa M hs err -∗ ad.result Own γa M hs err ∗ authApplyErrIs err := by
+      ad.result Own γa M hs resp err -∗ ad.result Own γa M hs resp err ∗ authApplyErrIs err := by
   iintro #Hpkg H
   cases ad with
   | userAdd n => iapply adminOutX_authApplyErrIs $$ Hpkg H
@@ -99,6 +99,19 @@ theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthSt
     isplitl [H]
     · iexists en; iframe Hev H
     · iexact HA
+  | authenticate n pre =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨Ho, Hout⟩
+    iunfold apply.authnOut at Hout
+    icases Hout with (⟨%h, %e, #He⟩ | ⟨%h, Hrest⟩)
+    · ihave #HA := apply.authErrOf_authApplyErrIs e err $$ [$Hpkg $He]
+      iframe Ho HA
+      iunfold apply.authnOut; ileft; iframe He; ipureintro; exact h
+    · subst h
+      iframe Ho
+      isplitl [Hrest]
+      · iunfold apply.authnOut; iright; iframe Hrest; ipureintro; rfl
+      iapply authApplyErrIs_nil
 
 variable [errors_sem : _root_.Perennial.errors.Assumptions]
 
@@ -139,11 +152,11 @@ theorem applyResultIs_notNoSpaceAdmin (Own : auth.AuthNames → List auth.AuthSt
     iapply authErrVarIs_notNoSpace v.Err' $$ Hap HV
   | dispatched o skip =>
     simp only [apply.adminOut, apply.adminDone, ↓reduceIte]
-    icases Hout with ⟨%v, %ad, %had, #Hvv, Hres⟩
-    ihave ⟨Hres, #HA⟩ := adminReqResult_authApplyErrIs Own γa M hs v.Err' ad $$ Hpkg Hres
+    icases Hout with ⟨%v, %ad, %resp, %had, #Hvv, Hres⟩
+    ihave ⟨Hres, #HA⟩ := adminReqResult_authApplyErrIs Own γa M hs resp v.Err' ad $$ Hpkg Hres
     iframe H
     isplitl [Hres]
-    · iexists v, ad; iframe Hvv Hres; ipureintro; exact had
+    · iexists v, ad, resp; iframe Hvv Hres; ipureintro; exact had
     iright
     iexists v.Err'
     iunfold authApplyErrIs at HA

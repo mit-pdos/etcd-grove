@@ -41,7 +41,6 @@ theorem WithFirstKey.wp_proof (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG :=
   (try wp_auto)
   ipersist target
   wp_apply wp_WithLimit as %f2 #H2
-  simp only [recv_eq_func_mk]
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl

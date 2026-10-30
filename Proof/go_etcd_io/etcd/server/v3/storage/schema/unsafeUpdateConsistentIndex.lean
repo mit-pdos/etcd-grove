@@ -58,7 +58,7 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       · iframe
       iintro ⟨index, tx, HTM⟩
       wp_auto
-      wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx]
+      wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx «$res0» «$res1»]
       · iframe Hpkg Hrd
       unfold readCIAUA readAU
       imodintro

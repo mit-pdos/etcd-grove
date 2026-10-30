@@ -12,9 +12,10 @@ server's store and lessor (`srvUberBase`, `srvUberRowM true`, from `NewUberAppli
   (`isAuthStoreL`); the real store meets it from its invariant (`apply.isAuthStoreL_of_authInv`)
   when the environment's reader resource is the store's (`auth.authRd`), its family
   `auth.latestRes`; the server's rows do not yet carry the store's invariant, so it is a premise;
-- `srvLessorNil s`: its lessor finds no lease (`apply.lookupNil`), a named premise: the server's
-  lessor is the real one (`lease.NewLessor`), whose lookups find a lease once one is granted; a
-  workload granting none (`examples/authkv`) is where it holds.
+- `srvLessorNil s`: its lessor finds no lease (`apply.lookupNil`): the server's lessor is the real
+  one (`lease.NewLessor`), whose lookups find only leases granted under its grant guard, which the
+  server makes `False` (`srvGrantGuard`, D45), so `NewServer`'s post gives it (the auth plan's
+  E3zb, 2026-10-28: `lookupNil_of_guard`; until then a named premise).
 
 The admin side (`srv_uberAuthStepsL_on`, E3n): the built part's store fact and the apply thread's
 auth row (`srvAuthApplyResB`, whose admin steps are at the environment's hook since E3n) give the
@@ -59,6 +60,61 @@ def srvLessorNil (s : Loc) : IProp GF :=
 
 instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
   unfold srvLessorNil; infer_instance
+
+/-- **The lessor finds no lease, in the mode `on` only** (the auth-mode merge's step 1,
+2026-10-29): `True` off. -/
+def srvLessorNilM (on : Bool) (s : Loc) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => srvLessorNil s
+
+instance srvLessorNilM_persistent (on : Bool) (s : Loc) : Persistent (srvLessorNilM (GF := GF) on s) := by
+  cases on <;> unfold srvLessorNilM <;> infer_instance
+
+theorem srvLessorNilM_false (s : Loc) : srvLessorNilM (GF := GF) false s = iprop(True) := rfl
+
+theorem srvLessorNilM_true (s : Loc) : srvLessorNilM (GF := GF) true s = srvLessorNil s := rfl
+
+/-- **The lessor finds no lease when its grant guard is `False`** (the auth plan's E3zb,
+2026-10-28): `NewLessor`'s `Lookup` clause at the guard `srvGrantGuard` (D45) is `lookupNil`'s. -/
+theorem lookupNil_of_guard (lp : Loc) :
+    □ (∀ id : w64,
+        {{ True }} (App (Val (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ srvGrantGuard id) }}) ⊢
+      apply.lookupNil (GF := GF) (lease.lessorIface lp) := by
+  iintro #HL
+  iunfold apply.lookupNil
+  iexists (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty) #lp)
+  isplitr
+  · ipureintro; rfl
+  iintro !> %id %Φ !> - HΦ
+  ispecialize HL $$ %id
+  iapply HL
+  · itrivial
+  iintro !> %l (%Hn | ⟨-, #Hg⟩)
+  · iapply HΦ; ipureintro; exact Hn
+  · iexfalso; iunfold srvGrantGuard at Hg; iexact Hg
+
+/-- **The weaker `Lookup` clause** (`isApplyLessor`'s, `lessorLookupOk`'s): a non-nil result is the
+lease of its id. -/
+theorem lookupOk_of_guard (lp : Loc) (GA : w64 → IProp GF) :
+    □ (∀ id : w64,
+        {{ True }} (App (Val (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ GA id) }}) ⊢
+    □ (∀ id : w64,
+        {{ True }} (App (Val (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}) := by
+  iintro #HL
+  iintro !> %id %Φ !> - HΦ
+  ispecialize HL $$ %id
+  iapply HL
+  · itrivial
+  iintro !> %l (%Hn | ⟨Hl, -⟩)
+  · iapply HΦ; ileft; ipureintro; exact Hn
+  · iapply HΦ; iright; iexact Hl
 
 end defs
 
@@ -109,7 +165,7 @@ theorem srv_uberKVL_on
         apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, #Hln⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
@@ -126,7 +182,7 @@ theorem srv_uberKVL_on
     iexists stl
     isplitr
     · ipureintro; rfl
-    iframe HPub
+    iframe HPub HbB
     rw [hL]; iexact HL
   iunfold srvStoreLatest
   iexists (auth.authIface stl)
@@ -143,6 +199,7 @@ theorem srv_uberAuthStepsL_on
     (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames) (st : auth.AuthState)
@@ -156,15 +213,15 @@ theorem srv_uberAuthStepsL_on
           (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, HR⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
   iunfold srvAuthApplyResB at HR
   icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens, #Hro⟩
   icombine Hauf Hf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
   subst Hst'
-  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f =
-      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f := by rw [hM]
+  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f E.RD := by rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
@@ -183,7 +240,7 @@ theorem srv_uberAuthStepsL_on
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
     rw [hM]; rfl
-  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hApplyL hApply ua E (auth.authIface stl)
+  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
     le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) E.P E.f T) (auth.latestRes stl (.on γa)))
   iframe Hpkg Hub
   isplitr

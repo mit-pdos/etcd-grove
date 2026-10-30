@@ -109,6 +109,7 @@ theorem Main.wp_proof
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Herr
@@ -140,6 +141,7 @@ theorem Main.wp_proof
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hserr
@@ -150,12 +152,13 @@ theorem Main.wp_proof
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null default) Hlg
       (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
-  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
     | nil => exact absurd rfl Hcerr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr

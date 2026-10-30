@@ -272,12 +272,14 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
         (Val #ctx)) (Val #token)) (Val #rev)) {{ Φ }} := by
   iintro ⟨#Hpkg, #Hok, #HP, HΦ⟩
   wp_method_call; wp_call
+  iapply wp_fupd
   (try wp_auto)
   wp_apply hValid $$ [] as %b -
   · iframe #
   (try wp_auto)
   cases b
   · (try wp_auto)
+    imodintro
     iapply HΦ
     isplitr
     · iunfold authInfoRO; ileft; ipureintro; rfl
@@ -316,14 +318,15 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
     ipureintro; exact ⟨Hkks, Httlpos⟩
   (try wp_auto)
-  wp_alloc a as Ha
+  irename «$r0» => Ha
+  generalize «$r0_ptr» = a at *
   ihave %Hann := typedPointsto_not_null _ _ _ $$ Ha
   ihave Haf := typedPointsto_split _ _ _ $$ Ha
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Haf
   ipersist Username
   ipersist Revision
-  (try wp_auto)
+  imodintro
   iapply HΦ
   isplitr
   · iunfold authInfoRO; iright
@@ -435,17 +438,18 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
       (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"assign" #p))
         (Val #ctx)) (Val #user)) (Val #rev))
     {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ tokOk (.on γa) t user }} := by
+        (⌜err = GoInterface.nil⌝ ∗ tokOk (.on γa) t user) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }} := by
   wp_start as ⟨#Hok, Hctx⟩
   iunfold authnCtx at Hctx
-  icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HV, Hfr⟩
+  icases Hctx with ⟨%ci, %idx, %pre, %Hci, #HVi, #HVp, Hfr⟩
   subst Hci
   (try wp_auto)
-  wp_apply HV as %v1 %Hv1
-  obtain rfl := Hv1.1 _ rfl
+  wp_apply HVi as %v1 %Hv1
+  subst Hv1
   (try wp_auto)
-  wp_apply HV as %v2 %Hv2
-  obtain rfl := Hv2.2 _ rfl
+  wp_apply HVp as %v2 %Hv2
+  subst Hv2
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr
@@ -469,7 +473,9 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
   · iframe #; iunfold freshOk at Hfr; iexact Hfr
   (try wp_auto)
   iapply HΦ
-  iright
+  ileft
+  isplitr
+  · ipureintro; rfl
   iunfold tokOk; iexact Hiss
 
 end proof

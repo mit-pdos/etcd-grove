@@ -102,7 +102,7 @@ theorem lessor.KeepAlive.wp_proof
     (try wp_auto)
     wp_apply (wp_WithValue ctx ⟨go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty,
         #(zero_val go_etcd_io.etcd.client.v3.keepAliveCtxKey)⟩ _) $$ []
-      as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, #Hic, -, -⟩
+      as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, -, #Hic, -, -⟩
     · iframe #; ipureintro; right; right; right; right; rfl
     subst Hc
     ihave #Hctx' := Hic $$ %cd Hctx

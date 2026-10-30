@@ -41,7 +41,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserChangePassword.specT (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r name b0 sc0
-  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Htpa, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
   simp only [AuthErr.var]
@@ -62,6 +62,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply HBatch as %tx Htx
@@ -213,8 +214,10 @@ theorem auth.authStore.UserChangePassword.wp_tie
         simp [userChangePasswordF, Hur.1]
       obtain ⟨Hrevfit, Hfit⟩ := Hstep
       have Hfit' := Hfit _ _ rfl hstep
+      ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
+        (by rw [hstep]; try simp_all) $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk st0 Post hs st0)
-        $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+        $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
         intro hM; subst hM; exact Hl0
@@ -256,7 +259,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
@@ -324,8 +328,10 @@ theorem auth.authStore.UserChangePassword.wp_tie
       simp [userChangePasswordF, Hur.1]
     obtain ⟨Hrevfit, Hfit⟩ := Hstep
     have Hfit' := Hfit _ _ rfl hstep
+    ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
+      (by rw [hstep]; try simp_all) $$ Hcap
     wp_apply (h_commitRevision st R M P f T ti Lk st0 Post hs st0)
-      $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+      $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
     · ipureintro
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
       intro hM; subst hM; exact Hl0
@@ -367,7 +373,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
     wp_apply h_Info
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_alloc resp as Hresp
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = resp at *
     icases typedPointsto_split _ _ _ $$ Hresp with Hresp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hresp

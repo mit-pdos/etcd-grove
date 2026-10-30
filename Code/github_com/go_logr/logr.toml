@@ -1,0 +1,8 @@
+# Types and names only (project k8s-apiserver; notes/k8s-clientgo-goose.md): `logr.Logger`, the
+# target of klog's alias `klog.Logger`, which client-go's workqueue stores and passes (an
+# axiomatized alias is declared under another name than its uses refer to, gap C3).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

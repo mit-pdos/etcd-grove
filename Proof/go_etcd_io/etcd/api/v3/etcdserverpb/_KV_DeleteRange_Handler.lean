@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- The generated handler of `KV.DeleteRange`: decode a `*DeleteRangeRequest`, call `srv.DeleteRange` (directly or
 through the interceptor chain, with `info.FullMethod = "/etcdserverpb.KV/DeleteRange"`), as every
-generated unary handler (`wp_unaryHandler`; the build checks that this handler's body is
+generated unary handler (`wp_unaryHandlerMd`; the build checks that this handler's body is
 `unaryHandlerImpl` at these arguments). -/
 theorem etcdserverpb._KV_DeleteRange_Handler.wp_proof :
     etcdserverpb._KV_DeleteRange_Handler.spec (GF := GF) (hG := hG) :=
-  wp_unaryHandler etcdserverpb._KV_DeleteRange_Handler etcdserverpb.KVServer.ty
+  wp_unaryHandlerMd etcdserverpb._KV_DeleteRange_Handler etcdserverpb.KVServer.ty
     etcdserverpb.DeleteRangeRequest.ty etcdserverpb.DeleteRangeResponse.ty go!"DeleteRange" go!"/etcdserverpb.KV/DeleteRange"
 
 end proof

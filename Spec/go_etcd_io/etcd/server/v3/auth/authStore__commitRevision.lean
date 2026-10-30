@@ -37,7 +37,7 @@ abbrev auth.authStore.commitRevision.spec : Prop :=
     (ti : GoInterfaceOk) (Lk : AuthState → IProp GF → IProp GF) (sta : AuthState) (X : IProp GF)
     (hs : List AuthState) (st0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authBatchTxLk ti M P f T Lk ∗ Lk sta X ∗ authOwnF M hs ∗
+      authBatchTxLk ti M P f T Lk ∗ Lk sta X ∗ authOwnF M hs ∗ capNext M hs (bump sta) ∗
       ⌜histLast M hs st0 ∧ sta.revision = st0.revision ∧ sta.revision + 1 < 2 ^ 64 ∧
         (M.isOn = true → M ≠ .any → permKeysOk sta) ∧ (M = .off → sta.enabled = false)⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"commitRevision"))

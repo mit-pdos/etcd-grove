@@ -228,13 +228,14 @@ theorem mvcc.watchableStore.Restore.wp_proof
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ b' d' γb' P' L R hLR hR
-  wp_start as ⟨#Hws, %Hkb, Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, Hrr, Hrts⟩
+  wp_start as ⟨#Hws, %Hkb, %Hcm', Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, Hrr, Hrts⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HP⟩
@@ -270,6 +271,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hkb
+    isplitr
+    · ipureintro; exact Hcm'
     isplitl [Hwsd]
     · iunfold mvcc.wsDep; iexact Hwsd
     iunfold mvcc.logQ

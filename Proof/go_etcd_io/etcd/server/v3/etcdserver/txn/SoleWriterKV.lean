@@ -407,9 +407,10 @@ theorem range_soleWriter_of (hRange : Range.spec (GF := GF) (hG := hG)) (log : m
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
         mvcc.storeReader s γ ∗ soleWriter γ log ∗ ⌜trace ≠ null⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-        rangeResult resp err log (W64 ((log.length : Int) - 1)) o withTotal ∗
+        ∃ crev : Int, rangeResult resp err log (W64 ((log.length : Int) - 1)) crev o withTotal ∗
         ⌜nd = true → err = GoInterface.nil ∨
-          sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev⌝ }} := by
+          sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev ∨
+          sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev⌝ }} := by
   wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hpre⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩
@@ -424,16 +425,23 @@ theorem range_soleWriter_of (hRange : Range.spec (GF := GF) (hG := hG)) (log : m
     rw [soleWriter_pins_read log log' hlen ⟨h.1, h.2⟩]
     exact Hpre.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, Htrc, %Hteq, %log', %rev, -, -, %Hp, #Hres, -, %Hnd'⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, Htrc, %Hteq, %log', %rev, %crev, -, -, -, %Hp, #Hres, -,
+    %Hnd'⟩
   have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
   subst heq
-  obtain ⟨-, -, -, hrev⟩ := Hp
+  obtain ⟨-, -, -, hrev, -⟩ := Hp
   subst hrev
   iapply HΦ
-  iframe Hrd Hres Htrc
+  iframe Hrd Htrc
   isplitl [Ht]
   · iunfold soleWriter; iframe Hc Ht; ipureintro; exact Hl2
-  · ipureintro; exact ⟨Htr, Hteq, Hnd'⟩
+  isplitr
+  · ipureintro; exact Htr
+  isplitr
+  · ipureintro; exact Hteq
+  iexists crev
+  iframe Hres
+  ipureintro; exact Hnd'
 
 end sole
 

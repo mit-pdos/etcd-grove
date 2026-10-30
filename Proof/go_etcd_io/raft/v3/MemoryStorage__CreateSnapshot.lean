@@ -51,6 +51,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   icases Hlock with ⟨#Hinit, #Hmu⟩
   iunfold memLog at Hei
   icases Hei with ⟨#Hei, -⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

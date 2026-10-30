@@ -531,17 +531,18 @@ instance isSnapshotServer_persistent (ss : GoInterface) (FS : IProp GF) :
     Persistent (isSnapshotServer (GF := GF) ss FS) := by
   unfold isSnapshotServer; infer_instance
 
-/-- **The `cindex.ConsistentIndexer` `ci`**: `ConsistentIndex` returns (the authenticate
-request's token index), under any resource `C` of the kind `K` (D14i, 2026-10-17: the server's
+/-- **The `cindex.ConsistentIndexer` `ci`**: `ConsistentIndex` returns `x` (the authenticate
+request's token index), under any resource `C` with `K C x` (D14i, 2026-10-17: the server's
 consistent index reads its backend field with the owner's share and may load the index, so its
-caller lends the apply thread's resources, given back). -/
-def isConsistentIndexer (ci : GoInterface) (K : IProp GF → Prop) : IProp GF :=
+caller lends the apply thread's resources, given back; C1's A2, 2026-10-28: the value it returns,
+which until then the contract left free). -/
+def isConsistentIndexer (ci : GoInterface) (K : IProp GF → w64 → Prop) : IProp GF :=
   iprop(∃ cii : GoInterfaceOk, ⌜ci = GoInterface.ok cii⌝ ∗
-    □ (∀ C : IProp GF, ⌜K C⌝ -∗
+    □ (∀ (C : IProp GF) (x : w64), ⌜K C x⌝ -∗
       {{ C }} (App (Val #(methods cii.ty go!"ConsistentIndex" cii.v)) (Val #()))
-      {{ (x : w64), RET #x; C }}))
+      {{ RET #x; C }}))
 
-instance isConsistentIndexer_persistent (ci : GoInterface) (K : IProp GF → Prop) :
+instance isConsistentIndexer_persistent (ci : GoInterface) (K : IProp GF → w64 → Prop) :
     Persistent (isConsistentIndexer (GF := GF) ci K) := by
   unfold isConsistentIndexer; infer_instance
 

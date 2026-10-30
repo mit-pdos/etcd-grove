@@ -27,8 +27,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 theorem storage.NewBackendHooks.wp_proof : storage.NewBackendHooks.spec (GF := GF) (hG := hG) := by
   intro lg ix
   wp_start
+  iapply wp_fupd
   wp_auto
-  wp_alloc bh as Hbh
+  irename «$r0» => Hbh
+  generalize «$r0_ptr» = bh at *
   iStructNamed Hbh
   ipersist indexer
   ipersist lg
@@ -38,7 +40,7 @@ theorem storage.NewBackendHooks.wp_proof : storage.NewBackendHooks.spec (GF := G
     iunfold csInv
     iexists null, false
     iframe confState confStateDirty
-  wp_auto
+  imodintro
   iapply HΦ
   iunfold isBackendHooks
   iframe indexer lg Hmu

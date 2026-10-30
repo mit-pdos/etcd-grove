@@ -4,7 +4,7 @@ Rocq counterpart); the watch slice's unit W-S (2026-10-14: `GetProgressReportInt
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
+public import Proof.math.rand.Base
 
 @[expose] public section
 

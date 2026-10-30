@@ -5,6 +5,7 @@ The hypotheses are the callees' specs, in the order of `etc/link-lean-first-mvcc
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
 public import Proof.go_etcd_io.raft.v3.FrameH
 
@@ -80,7 +81,8 @@ local macro "dc_walk" : tactic => `(tactic| (
   ))
 
 theorem mvcc.keyIndex.doCompact.wp_proof
-    (h0 : mvcc.generation.walk.spec (GF := GF) (hG := hG)) :
+    (h0 : mvcc.generation.walk.spec (GF := GF) (hG := hG))
+    (hRe : mvcc.generation.isRecreatedAt.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) := by
   intro p gs ki dq atRev m A Hok
   wp_start as ⟨Hki, Hm⟩
@@ -93,12 +95,13 @@ theorem mvcc.keyIndex.doCompact.wp_proof
   wp_auto
   simp only [Hb0, _root_.and_self, ↓reduceIte]
   wp_auto
-  -- the scan of the generations: those before `gi` end below `atRev`
+  -- the scan of the generations: those before `gi` are ones `doCompact` steps past (`genAdv`)
   ihave IH : iprop(∃ gi : w64,
       "genIdx" ∷ genIdx_ptr ↦ gi ∗
       "g" ∷ g_ptr ↦ sliceIndexRef generation (sint.Z gi) gs ∗
       "%Hgi" ∷ ⌜0 ≤ sint.Z gi ∧ sint.Z gi < ki.gens.length ∧
-        ∀ j, j < (sint.Z gi).toNat → mvcc.tombZ (ki.gens.getD j mvcc.Gen.empty) < sint.Z atRev⌝)
+        ∀ j, j < (sint.Z gi).toNat →
+          mvcc.genAdv atRev (ki.gens.getD j mvcc.Gen.empty) (ki.gens.getD (j + 1) mvcc.Gen.empty) = true⌝)
       $$ [genIdx g]
   · iexists W64 0
     iframe genIdx g
@@ -147,28 +150,88 @@ theorem mvcc.keyIndex.doCompact.wp_proof
     ispecialize Hback $$ %gv0 %gm0 Hel Hg
     rw [mvcc.set_same Hgm0]
     irename Hback => Hgens
+    have Htomb : mvcc.tombZ (ki.gens.getD (sint.Z gi).toNat mvcc.Gen.empty) =
+        sint.Z (gm0.revs.getLastD mvcc.Rev.zero).main := by unfold mvcc.tombZ; rw [Hgd0]
     wp_if_destruct
-    · -- its tombstone is at or above `atRev`: this generation
+    · -- its tombstone is above `atRev`: this generation
       wp_for_post
       have HcgI : mvcc.compactGenIdx atRev ki.gens = (sint.Z gi).toNat :=
         mvcc.compactGenIdx_eq atRev ki.gens _ (by omega) Hgi.2.2
-          (Or.inr (by unfold mvcc.tombZ; rw [Hgd0]; omega))
+          (Or.inr (mvcc.genAdv_ge _ (by rw [Htomb]; omega)))
       dc_walk
-    · -- below `atRev`: the next generation
-      have Hb1 : 0 ≤ sint.Z (gi + W64 1) ∧ sint.Z (gi + W64 1) < sint.Z gs.len := by word
-      simp only [Hb1, _root_.and_self, ↓reduceIte]
-      wp_auto
-      wp_for_post
-      iframe
-      iexists gi + W64 1
-      iframe
-      ipureintro
-      refine ⟨by word, by word, ?_⟩
-      intro j hj
-      rw [show (sint.Z (gi + W64 1)).toNat = (sint.Z gi).toNat + 1 by word] at hj
-      rcases Nat.lt_or_eq_of_le (Nat.le_of_lt_succ hj) with hj | rfl
-      · exact Hgi.2.2 j hj
-      · unfold mvcc.tombZ; rw [Hgd0]; omega
+    · -- at or below `atRev`: at it, unless the next generation was re-created in `atRev`
+      -- (the fork's fix of etcd-io/etcd#22377), this generation
+      have Hle := Hif
+      obtain ⟨gm1, Hgm1⟩ : ∃ gm, ki.gens[(sint.Z gi).toNat + 1]? = some gm :=
+        ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      have Hgd1 : ki.gens.getD ((sint.Z gi).toNat + 1) mvcc.Gen.empty = gm1 := by
+        simp [List.getD_eq_getElem?_getD, Hgm1]
+      wp_if_destruct
+      · -- the tombstone at `atRev`: is the next generation re-created there?
+        have Hb1 : 0 ≤ sint.Z (gi + W64 1) ∧ sint.Z (gi + W64 1) < sint.Z gs.len := by word
+        simp only [Hb1, _root_.and_self, ↓reduceIte]
+        have Hgm1' : ki.gens[(sint.Z (gi + W64 1)).toNat]? = some gm1 := by
+          rw [show (sint.Z (gi + W64 1)).toNat = (sint.Z gi).toNat + 1 by word]; exact Hgm1
+        icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z (gi + W64 1)) gm1 Hb1.1 Hgm1' $$ Hgens
+          with ⟨%gv1, Hel1, Hg1, Hback1⟩
+        ihave ⟨Hel1, %Hnn1⟩ := typedPointsto_not_null_dup _ _ _ $$ Hel1
+        wp_auto
+        wp_apply hRe _ gv1 gm1 dq _ $$ [$Hel1 $Hg1] as ⟨Hel1, Hg1⟩
+        · ipureintro; exact Hnn1
+        ispecialize Hback1 $$ %gv1 %gm1 Hel1 Hg1
+        rw [mvcc.set_same Hgm1']
+        irename Hback1 => Hgens
+        -- (`wp_if_destruct` substituted `atRev` by the tombstone's main: the name back)
+        generalize hat : (gm0.revs.getLastD mvcc.Rev.zero).main = atRev at Htomb Hgi ⊢
+        generalize hrb : mvcc.genRecreatedAt _ gm1 = rb
+        cases rb
+        · -- not re-created: this generation
+          simp only [Bool.not_false]
+          wp_auto
+          wp_for_post
+          have HcgI : mvcc.compactGenIdx atRev ki.gens = (sint.Z gi).toNat := by
+            apply mvcc.compactGenIdx_eq atRev ki.gens _ (by omega) Hgi.2.2
+            right
+            unfold mvcc.genAdv; rw [Htomb, Hgd1, hrb]; simp
+          dc_walk
+        · -- re-created in `atRev`: the next generation
+          simp only [Bool.not_true]
+          wp_auto
+          have HadvT : mvcc.genAdv atRev (ki.gens.getD (sint.Z gi).toNat mvcc.Gen.empty)
+              (ki.gens.getD ((sint.Z gi).toNat + 1) mvcc.Gen.empty) = true := by
+            unfold mvcc.genAdv; rw [Htomb, Hgd1, hrb]; simp
+          have Hb1 : 0 ≤ sint.Z (gi + W64 1) ∧ sint.Z (gi + W64 1) < sint.Z gs.len := by word
+          simp only [Hb1, _root_.and_self, ↓reduceIte]
+          wp_auto
+          wp_for_post
+          iframe
+          iexists gi + W64 1
+          iframe
+          ipureintro
+          refine ⟨by word, by word, ?_⟩
+          intro j hj
+          rw [show (sint.Z (gi + W64 1)).toNat = (sint.Z gi).toNat + 1 by word] at hj
+          rcases Nat.lt_or_eq_of_le (Nat.le_of_lt_succ hj) with hj | rfl
+          · exact Hgi.2.2 j hj
+          · exact HadvT
+      · -- below `atRev`: the next generation
+        have HadvT : mvcc.genAdv atRev (ki.gens.getD (sint.Z gi).toNat mvcc.Gen.empty)
+            (ki.gens.getD ((sint.Z gi).toNat + 1) mvcc.Gen.empty) = true :=
+          mvcc.genAdv_of_lt _ (by rw [Htomb]; word)
+        have Hb1 : 0 ≤ sint.Z (gi + W64 1) ∧ sint.Z (gi + W64 1) < sint.Z gs.len := by word
+        simp only [Hb1, _root_.and_self, ↓reduceIte]
+        wp_auto
+        wp_for_post
+        iframe
+        iexists gi + W64 1
+        iframe
+        ipureintro
+        refine ⟨by word, by word, ?_⟩
+        intro j hj
+        rw [show (sint.Z (gi + W64 1)).toNat = (sint.Z gi).toNat + 1 by word] at hj
+        rcases Nat.lt_or_eq_of_le (Nat.le_of_lt_succ hj) with hj | rfl
+        · exact Hgi.2.2 j hj
+        · exact HadvT
   · -- the last generation
     have Hgi' : sint.Z gi = (ki.gens.length : Int) - 1 := by word
     have HcgI : mvcc.compactGenIdx atRev ki.gens = (sint.Z gi).toNat :=

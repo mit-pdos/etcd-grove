@@ -24,10 +24,20 @@ counterpart).
   outgoing metadata, over the trust-boundary spec of grpc's `AppendToOutgoingContext`, contract
   C3); and **`authkv_bad_unbound`** (`ClientAuth.lean`'s `badCtx_unbound`): a handler context
   delivering such metadata (C2, C4) gives no auth info in the mode `on γa`.
+* **`authkv_startServer`** (the auth plan's E3zb; linked here, not in `Link.lean`, which links
+  only `.spec`s): `startServer` starts the member with auth on (`memberUpOn`), from
+  `server_new_auth_on` (its named premises: `isValidSimpleToken`'s spec, D22's `authSchemaSrv`) and
+  `server_Start_on`.
+* **`authkv_SetUp`** (`Link.lean`'s `authkv.wp_SetUp`; E2h, the auth-mode merge's 5b): `SetUp`,
+  through a client with no user, at etcd's Auth specs, from the client's view of the auth history:
+  on success the history frozen at a log whose auth state is `setupSt r`, published.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.startServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 
 @[expose] public section
 
@@ -72,8 +82,9 @@ theorem authkv_checkTxnReads : authkv.checkTxnReads.spec (GF := GF) (hG := hG) :
 theorem authkv_reqCtx : authkv.reqCtx.spec (GF := GF) (hG := hG) :=
   authkv.wp_reqCtx
 
-/-- **The set-up** (`Link.lean`'s `authkv.wp_SetUp`; E2h): the puts, then the admin calls
-through the client's Auth API over the Auth service's premise `setupAuthOk`. -/
+/-- **The set-up** (`Link.lean`'s `authkv.wp_SetUp`; E2h, 5b): the puts, then the admin calls
+through the client's Auth API at etcd's Auth specs (`setupAuthServed`); on success the auth
+history frozen at `setupSt r`, published. -/
 theorem authkv_SetUp : authkv.SetUp.spec (GF := GF) (hG := hG) :=
   authkv.wp_SetUp
 
@@ -84,6 +95,14 @@ theorem authkv_bad_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
     (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [authkv.badToken]) :
     auth.ctxBound (GF := GF) (.on γa) h a ⊢ ⌜a = null⌝ :=
   authkv.badCtx_unbound γa c h a hd ht
+
+/-- **The member started with auth on** (`startServer.lean`; E3zb): `NewServer.specM true`
+(`server_new_auth_on`, with its named premises) and `Start.specOn` (`server_Start_on`). -/
+theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
+    (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+    authkv.startServer.spec (GF := GF) (hG := hG) :=
+  authkv.startServer.wp_proof common.features.wp_NewDefaultServerFeatureGate
+    (server_new_auth_on hValid hD22) server_Start_on
 
 end results
 
@@ -120,6 +139,7 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
 #print axioms authkv_reqCtx
 #print axioms authkv_SetUp
 #print axioms authkv_bad_unbound
+#print axioms authkv_startServer
 
 end EtcdGrove
 end Perennial

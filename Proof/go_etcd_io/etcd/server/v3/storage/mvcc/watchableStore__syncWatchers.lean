@@ -110,8 +110,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · iPkgInit
   iunfold mvcc.watchReader at HR
   icases HR with ⟨Hsr0, Hmur⟩
-  iunfold mvcc.storeReader at Hsr0
+  iunfold mvcc.storeReader at Hsr0; iunfold mvcc.storeReaderC at Hsr0
   iNamedSuffix Hsr0 "R"
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HP⟩
@@ -136,10 +137,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iapply HΦ
     iunfold mvcc.watchReader
     iframe Hmur
-    iunfold mvcc.storeReader
+    iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
     simp only [named]
     iframe
-    iframe #
   ihave #Hs0 : mvcc.isStore st γ.st $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -176,7 +176,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
-  imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ HfrzR HcrevQ with ⟨HcrevQ, %HcQ1⟩
+  -- the store's compaction revision is `-1`: the watchable store's store is never compacted
+  -- (`isWatchableStore`'s `crevFrozen`; until M2, `notes/m2-plan.md`, the reader's)
+  imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ Hfrz HcrevQ with ⟨HcrevQ, %HcQ1⟩
   subst HcQ1
   icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$HlogQ $Hcert]
     with ⟨%HpC, HlogQ, -⟩
@@ -300,7 +302,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
   ihave #HfrzP : mvcc.crevFrozen (γ.st.withPhys p) $$ []
-  · rw [mvcc.crevFrozen_withPhys]; iexact HfrzR
+  · rw [mvcc.crevFrozen_withPhys]; iexact Hfrz
   ihave #HcertP : mvcc.idxCert (γ.st.withPhys p).idx C $$ []
   · rw [mvcc.idxCert_withPhys]; iexact HcertQ
   ihave #HbkS := mvcc.isKeyBackendG_wand $$ HbkS
@@ -1174,10 +1176,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iapply HΦ
   iunfold mvcc.watchReader
   iframe Hmur
-  iunfold mvcc.storeReader
+  iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
   simp only [named]
   iframe
-  iframe #
 
 end proof
 end EtcdGrove

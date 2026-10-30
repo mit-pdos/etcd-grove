@@ -29,7 +29,7 @@ again (`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a), and so i
 token if no revision was made (`pend = []`). `Unlock` takes the batch lock's invariant `P` (the
 store's, `hookIs`) back; the writer's fragment is given back (D22 receiver epochs, S5b). A commit takes the outer quarter of the committed log's authority and
 gives it back at the committed log (`logQPre`/`logQPost`, unit W-K). The lock token may be the
-one the lessor's delete from `Lease` left (`ld`, leases T3, 2026-10-25). The frozen statement (`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+one the lessor's delete from `Lease` left (`ld`, leases T3, 2026-10-25). The readers' statement (`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.storeTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)

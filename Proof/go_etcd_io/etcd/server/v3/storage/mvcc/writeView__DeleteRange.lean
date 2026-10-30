@@ -8,7 +8,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -34,8 +34,8 @@ theorem mvcc.writeView.DeleteRange.wp_proof
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) := by
-  have hWrite := mvcc.store.Write.spec_frozen hWrite
-  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
+  have hWrite := mvcc.store.Write.spec_R hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
   intro wv s γ P Pre Q Post f key endk k e L I
   wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hend, Hown, #HI, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
@@ -44,12 +44,13 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   -- `wv.kv.Write(t)`
-  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ, Hhook⟩
+  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
   · ipureintro; exact Ht
   -- the writer's hook back: its facts kept (D22 receiver epochs, S5b)
   icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩
@@ -67,9 +68,9 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   rw [List.nil_append]
   ihave Htx' : mvcc.isTxn mw s γ t (.write ilog
       ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) (W64 0)
-      (W64 0 + W64 1) (W64 0)) $$ [Htx]
+      (W64 0 + W64 1) (W64 0)) crev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev $$ Htx'
   -- the caller's update: the lock's invariant back for `Unlock`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   wp_apply (hEnd t mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert, -⟩

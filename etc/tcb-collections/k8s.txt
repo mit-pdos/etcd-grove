@@ -10,7 +10,6 @@ roots ^Proof/go_etcd_io/etcd/client/v3/kubernetes/Link\.lean$
 roots ^Proof/k8s_io/apiserver/pkg/storage/etcd3/Link\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom NewCluster.wp_proof
@@ -21,6 +20,8 @@ axiom attribute.String.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom conversion.EnforcePtr.wp_proof
+axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
+axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn

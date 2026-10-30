@@ -62,8 +62,7 @@ theorem isReadServer_of_serverM (on : Bool)
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
         (idCred ρ.ids 1) := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
-  iunfold isServerReqM at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨#Hgenf, #Hgen, -, -, -, -, -, -, -, #Het, #Htm, -, -, #Hdonef, #Hdone, -, -, -, -, -, -,
     #Hm, -, %Hcfg⟩
@@ -73,7 +72,7 @@ theorem isReadServer_of_serverM (on : Bool)
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, #Hainv, -, -, #Hawf, #Haw,
-    #Hlcf, #Hfcf, #Hstf, #Hst⟩
+    #Hlcf, #Hfcf, #Hstf, #Hst, -⟩
   iunfold isReadServer
   -- `Done()`
   isplitr

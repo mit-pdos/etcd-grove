@@ -44,12 +44,12 @@ theorem mvcc.New.wp_proof
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hwts, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
   wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hwts $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
     as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Hww, Htw, Hok, Hreaders,
     ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hret, Hwg⟩
   (try wp_auto)
@@ -65,8 +65,11 @@ theorem mvcc.New.wp_proof
     iexists W32 2, 0 + 2
     iframe Hctr Hauth
     ipureintro; decide
-  have hN : 2 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  have hN : 2 ≤ Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb := by
+    have h3 : 3 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+      rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+    have := mvcc.nJobRd_le kb
+    omega
   icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩
   (try wp_auto)
   wp_apply wp_fork $$ [Hr1 Hd1]

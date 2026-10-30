@@ -46,6 +46,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
   subst Ht'
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

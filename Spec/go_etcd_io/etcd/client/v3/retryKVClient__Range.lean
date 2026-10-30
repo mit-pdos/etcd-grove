@@ -25,13 +25,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `rkv.kc.Range(ctx, in, append(opts, withRepeatablePolicy())...)` (the options' slice full,
 `len = cap`: the `append` reallocates): the call's answer (`rangeCallOut`). -/
 abbrev retryKVClient.Range.spec : Prop :=
-  ∀ (rkv conn : Loc) (addr : List GoString) (Spec : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse)
+  ∀ (rkv conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse)
     (Q : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" Spec ∗
-      □ ▷ Spec (rangeReqOp req k e) Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (rangeReqOp req k e) Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"Range")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

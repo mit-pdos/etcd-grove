@@ -26,7 +26,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -214,8 +214,9 @@ theorem soleWriter_Read_floor (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG
         idxCert γ.idx F }}
       (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-        ∃ rev : w64, mvcc.isTxnRead mw s γ trace log rev ∗ soleWriter γ log ∗ ⌜F <+: log⌝ }} := by
-  have hRead := mvcc.store.Read.spec_frozen hRead
+        ∃ (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev ∗ crevLb γ.idx crev ∗
+          soleWriter γ log ∗ ⌜F <+: log⌝ }} := by
+  have hRead := mvcc.store.Read.spec_R hRead
   wp_start_folded as ⟨#Hs, Hrd, Hsw, Htrc, #HF⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩
@@ -233,12 +234,12 @@ theorem soleWriter_Read_floor (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG
   · iframe # ∗
     ipureintro; exact htr
   inext
-  iintro %mw ⟨%log', %rev, Htx, Ht, -, %Hp'⟩
+  iintro %mw ⟨%log', %rev, %crev, Htx, #Hlb, Ht, -, %Hp'⟩
   have heq := soleWriter_pins_read log log' hlen ⟨hl.trans Hp'.1, Hp'.2⟩
   subst heq
   iapply HΦ
-  iexists rev
-  iframe Htx
+  iexists rev, crev
+  iframe Htx Hlb
   isplitl [Ht]
   · iunfold soleWriter
     iframe Ht Hc

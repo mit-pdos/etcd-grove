@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.api.«meta»
 
@@ -131,44 +132,6 @@ noncomputable instance FirstHitRESTMapper_access_store_MultiRESTMapper (l : Loc)
 
 end def_
 end FirstHitRESTMapper
-
-namespace List'
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
-
-noncomputable instance List'_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».List' :=
-  sorry -- axiomatized type
-
-noncomputable instance List'_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».List' k8s_io.apimachinery.pkg.api.«meta».List'.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end List'
-
-namespace Type'
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
-
-noncomputable instance Type'_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».Type' :=
-  sorry -- axiomatized type
-
-noncomputable instance Type'_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».Type' k8s_io.apimachinery.pkg.api.«meta».Type'.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Type'
 
 namespace MetadataAccessor
 section def_

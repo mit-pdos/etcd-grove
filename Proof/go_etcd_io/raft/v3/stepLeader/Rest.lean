@@ -595,8 +595,10 @@ theorem wp_stepLeader_transfer
   wp_join (Q := fun v => iprop(
       (⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ pr_ptr ↦ pr ∗
         msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ leadTransferee_ptr ↦ m.From' ∗
-        lastLeadTransferee_ptr ↦ s.lt ∗ ownRaftPhysCV c c.voters r id { s with lt := W64 0 }) ∨
-      (⌜v = returnVal #interface.nil⌝ ∗ ownRaftPhysCV c c.voters r id s))) at next with [-HΦ]
+        lastLeadTransferee_ptr ↦ s.lt ∗ «$res0_ptr» ↦ interface.nil ∗
+        ownRaftPhysCV c c.voters r id { s with lt := W64 0 }) ∨
+      (⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ interface.nil ∗ ownRaftPhysCV c c.voters r id s)))
+      at next with [-HΦ]
   · by_cases Hlt0 : s.lt = W64 0
     · -- none in progress
       rw [decide_eq_true Hlt0]
@@ -626,7 +628,8 @@ theorem wp_stepLeader_transfer
     ileft
     iframe
     ipureintro; rfl
-  iintro (⟨%Hv, r, pr, Hm, leadTransferee, lastLeadTransferee, Hphys⟩ | ⟨%Hv, Hphys⟩)
+  iintro (⟨%Hv, r, pr, Hm, leadTransferee, lastLeadTransferee, «$res0», Hphys⟩ |
+    ⟨%Hv, «$res0», Hphys⟩)
   rotate_left
   · -- the same transferee: `nil`, the state unchanged
     subst Hv

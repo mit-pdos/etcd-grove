@@ -184,7 +184,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
     · -- no excluded voter: `continue`, the half as it was
       wp_for_post
       simp only [named]
-      iframe HΦ Hsubf
+      iframe HΦ Hsubf «$res0»
       iexists W64 0 + W64 1, W64 0, r0, cb, arr
       iframe i ii set changed Hrs Htrk p result Hpm
       iright; ileft
@@ -238,7 +238,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
       wp_auto
       wp_for_post
       simp only [named]
-      iframe HΦ Hsubf
+      iframe HΦ Hsubf «$res0»
       iexists W64 0 + W64 1, W64 0, r0, cb, arr
       iframe i ii set changed Hrs Htrk p result Hpm
       iright; ileft
@@ -370,7 +370,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
     · -- nothing to swap: `continue`
       wp_for_post
       simp only [named]
-      iframe HΦ Hsubf
+      iframe HΦ Hsubf «$res0»
       iexists W64 0 + W64 1, W64 0, r0, cb, arr
       iframe i ii set changed Hrs Htrk p result Hpm
       iright; ileft
@@ -568,7 +568,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
         · rw [if_neg h0]; exact Or.inr h
     wp_for_post
     simp only [named]
-    iframe HΦ Hsubf
+    iframe HΦ Hsubf «$res0»
     iexists W64 0 + W64 1, W64 0, r0, true,
       array.mk 2 (arr.arr.set (sint.Z (W64 0)).toNat (tracker.ReplicationSet.mk em.rs0.wit x mref))
     ihave Hrs := Hrsback $$ %(tracker.ReplicationSet.mk em.rs0.wit x mref) Hel
@@ -604,7 +604,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
     · -- no excluded voter: `continue`, the half as it was
       wp_for_post
       simp only [named]
-      iframe HΦ Hsubf
+      iframe HΦ Hsubf «$res0»
       iexists W64 1 + W64 1, W64 1, r1, cb, arr
       iframe i ii set changed Hrs Htrk p result Hpm
       iright; iright
@@ -660,7 +660,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
       wp_auto
       wp_for_post
       simp only [named]
-      iframe HΦ Hsubf
+      iframe HΦ Hsubf «$res0»
       iexists W64 1 + W64 1, W64 1, r1, cb, arr
       iframe i ii set changed Hrs Htrk p result Hpm
       iright; iright
@@ -794,7 +794,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
     · -- nothing to swap: `continue`
       wp_for_post
       simp only [named]
-      iframe HΦ Hsubf
+      iframe HΦ Hsubf «$res0»
       iexists W64 1 + W64 1, W64 1, r1, cb, arr
       iframe i ii set changed Hrs Htrk p result Hpm
       iright; iright
@@ -994,7 +994,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
         · rw [if_neg h0]; exact Or.inr h
     wp_for_post
     simp only [named]
-    iframe HΦ Hsubf
+    iframe HΦ Hsubf «$res0»
     iexists W64 1 + W64 1, W64 1, r1, true,
       array.mk 2 (arr.arr.set (sint.Z (W64 1)).toNat (tracker.ReplicationSet.mk em.rs1.wit x mref))
     ihave Hrs := Hrsback $$ %(tracker.ReplicationSet.mk em.rs1.wit x mref) Hel

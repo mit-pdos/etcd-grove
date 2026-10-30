@@ -32,12 +32,12 @@ theorem NewLease.wp_proof
     (wp_RetryLeaseClient : RetryLeaseClient.spec (GF := GF) (hG := hG))
     (wp_NewLeaseFromLeaseClient : NewLeaseFromLeaseClient.spec (GF := GF) (hG := hG)) :
     NewLease.spec (GF := GF) (hG := hG) := by
-  intro c addr
+  intro c conn
   wp_start as ⟨#Hcore, #Hkv⟩
   iunfold clientCoreAt at Hcore
   icases Hcore with ⟨%Hcnn, #Hlg, -, -, %cfg, #Hcfg⟩
-  iunfold clientKVAt at Hkv
-  icases Hkv with ⟨-, %conn, %sl, #Hconn, #Hecon, #Hco, #Hcopts⟩
+  iunfold clientKVAtS at Hkv
+  icases Hkv with ⟨-, %sl, #Hconn, #Hco, #Hcopts⟩
   wp_auto
   wp_apply wp_RetryLeaseClient c conn $$ [] as %v ⟨%rlc, %Hv, #Hrlc⟩
   · iframe #
@@ -45,7 +45,7 @@ theorem NewLease.wp_proof
   ihave #Hcfg2 := Hcfg
   iStructNamed Hcfg2
   (try wp_auto)
-  wp_apply wp_NewLeaseFromLeaseClient rlc conn c addr _ $$ [] as %vl Hres
+  wp_apply wp_NewLeaseFromLeaseClient rlc conn c _ $$ [] as %vl Hres
   · iframe #
     ipureintro; exact Hcnn
   iapply HΦ

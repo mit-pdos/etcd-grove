@@ -400,6 +400,8 @@ theorem EtcdServer.start.wp_proof
   iunfold applyBuilt at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hao,
     #Hlog, Hkr, Hfs⟩
+  -- (the auth-mode merge) auth off: the reader view's gated row holds trivially
+  imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hAuthOff, Hkv, Hkr⟩
   ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr]
   · iunfold applyStart
     iexists st₀, a, t, f
@@ -429,12 +431,21 @@ theorem EtcdServer.start.wp_proof
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`); nil until the pilot's glue (`compactorOk`)
-  ihave #Hcpo' := Hcpo
-  iunfold compactorOk at Hcpo'
-  wp_join at next with [s]
-  · icases Hcpo' with %Hcpn
-    rw [Hcpn]
+  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
+  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
+  subst Hcreq
+  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
+  · iunfold compactorRun at Hcr
+    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
+    rw [Hci]
+    (try wp_auto)
+    wp_apply HRun $$ [HT HP]
+    · iframe HT HP
     (try wp_auto)
     wp_join_done
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
@@ -457,6 +468,8 @@ theorem EtcdServer.start.wp_proof
     #Q15, #Q16, #Q17, #Q18, %Q19⟩
   ihave #Hreq : isServerReq s E { ρ with wait := γw } $$ []
   · iunfold isServerReq
+    isplitl; rotate_left
+    · ipureintro; exact hAuthOff
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAt
     iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
@@ -492,9 +505,13 @@ theorem EtcdServer.start.wp_proof
     iframe R15 R14 R13 R12 R11 R9 R8 R7 R6 R5 R4 R3 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' Hkvi Hai
     isplitr
     · ipureintro; exact R10
-    iunfold stopChan
-    iexists γsg
-    iexact HsgU
+    isplitl
+    · iunfold stopChan
+      iexists γsg
+      iexact HsgU
+    iintro !> %h
+    have h' : E.authOn = true := h
+    rw [hAuthOff] at h'; cases h'
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_server hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
@@ -950,12 +967,21 @@ theorem EtcdServer.start.wp_proofOn
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`); nil until the pilot's glue (`compactorOk`)
-  ihave #Hcpo' := Hcpo
-  iunfold compactorOk at Hcpo'
-  wp_join at next with [s]
-  · icases Hcpo' with %Hcpn
-    rw [Hcpn]
+  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
+  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
+  subst Hcreq
+  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
+  · iunfold compactorRun at Hcr
+    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
+    rw [Hci]
+    (try wp_auto)
+    wp_apply HRun $$ [HT HP]
+    · iframe HT HP
     (try wp_auto)
     wp_join_done
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
@@ -978,6 +1004,12 @@ theorem EtcdServer.start.wp_proofOn
     #Q15, #Q16, #Q17, #Q18, %Q19⟩
   ihave #Hreq : isServerReqM true s E { ρ with wait := γw } $$ []
   · iunfold isServerReqM
+    -- (E3zb) the store's bound request side, from the built part's store fact
+    isplitr
+    rotate_left
+    · isplitl
+      · iapply srvAuthBound_of_uberBase s ua E (by rw [hM]; rfl) $$ HuB
+      ipureintro; rw [apply.AEnv.authOn_eq, hM]; rfl
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAtM
     iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
@@ -1013,9 +1045,19 @@ theorem EtcdServer.start.wp_proofOn
     iframe R15 R14 R13 R12 R11 R9 R8 R7 R6 R5 R4 R3 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' Hkvi Hai
     isplitr
     · ipureintro; exact R10
-    iunfold stopChan
-    iexists γsg
-    iexact HsgU
+    isplitl
+    · iunfold stopChan
+      iexists γsg
+      iexact HsgU
+    -- (the auth-mode merge) with auth on, the store's bound request side (`srvUberBase`'s)
+    iintro !> %h
+    ihave #HuB2 := HuB
+    iunfold srvUberBase at HuB2
+    icases HuB2 with ⟨%au, %le, #Hau, -, -, -, %stl, -, -, -, #HbB⟩
+    icombine R7 Hau gives %Heqa
+    ihave #Hx : isReqAuthBound vd.auth E.RD E.authMode $$ []
+    · rw [Heqa]; iapply HbB; ipureintro; exact h
+    iexact Hx
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_serverM true hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
@@ -1023,7 +1065,8 @@ theorem EtcdServer.start.wp_proofOn
   ihave #Hmint : readCtxMinted (GF := GF) γr $$ []
   · ihave #Hkvi3 := Hkvi
     iunfold srvKVInvsM at Hkvi3
-    icases Hkvi3 with ⟨-, -, #Hli, -⟩
+    iunfold srvKVInvsOn at Hkvi3
+    icases Hkvi3 with ⟨-, -, #Hli, -, -⟩
     ihave #Hq17 := Q17
     iunfold srvMintInv at Hq17
     icases Hq17 with ⟨-, #Hrf⟩

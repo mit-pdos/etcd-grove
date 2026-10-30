@@ -1,0 +1,8 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-clientgo-goose.md): `GetNameFromCallsite`, which client-go's feature gates and
+# `tools/cache` call for a name in messages.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

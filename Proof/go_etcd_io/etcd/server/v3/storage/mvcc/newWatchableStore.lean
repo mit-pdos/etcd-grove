@@ -39,7 +39,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hwts, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -49,14 +49,14 @@ theorem mvcc.newWatchableStore.wp_proof
     · ipureintro; rfl
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hwts $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
       Hwsd, Hfrag, Hright, Hret⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's
   -- half of the revision's authority given up, the readers those of a never-compacted store (the
   -- closer, with the scheduler's stop token, goes to the caller: D19m (C))
   imod mvcc.crevFrozen_alloc γs ⊤ $$ Hright with #Hfrz
-  ihave Hreaders := mvcc.storeReaders_of st γs _ $$ [$Hfrz $Hreaders]
+  ihave Hreaders := mvcc.storeReaders_of st γs _ $$ Hreaders
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide
   wp_apply hNewWG as %gu Hgu
@@ -152,7 +152,7 @@ theorem mvcc.newWatchableStore.wp_proof
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv
     simp only [named]
-    iframe store Hst HRV kv Hmug victimc Hvcb stopc
+    iframe store Hst HRV kv Hmug victimc Hvcb stopc Hfrz
     isplitr
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0
@@ -182,11 +182,13 @@ theorem mvcc.newWatchableStore.wp_proof
     wp_auto
     wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
     wp_apply (hWrite «$r0_ptr» st γ tr L Pw Pre Q fw true)
-      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw ⟨Htw, HQ, Hh'⟩
+      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw %crev ⟨Htw, HQ, Hh'⟩
     · iframe #
       ipureintro; exact ⟨Hlen, Htrnn⟩
     iapply HΦ'
-    iframe Htw HQ Hh'
+    iframe HQ Hh'
+    iexists crev
+    iexact Htw
   iframe HhookP Hsclose wg Hfrag Hret
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter
@@ -198,7 +200,10 @@ theorem mvcc.newWatchableStore.wp_proof
   isplitl [Hok]
   · iexact Hok
   isplitr [Hstop]
-  · iapply mvcc.watchReaders_of «$r0_ptr» st γ
+  · have hjr : mvcc.nJobRd kb ≤ Int.toNat sync.rwmutex.actualMaxReaders :=
+      Nat.le_trans (mvcc.nJobRd_le kb) (Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos))
+    icases mvcc.rep_sub _ (mvcc.nJobRd kb) _ hjr $$ Hmus with ⟨Hmus, -⟩
+    iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus
   iexists stc
   iframe stopc

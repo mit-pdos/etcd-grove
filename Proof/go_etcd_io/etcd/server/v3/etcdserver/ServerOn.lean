@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 
 @[expose] public section
 
@@ -299,15 +300,17 @@ instance srvReqBuiltM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ :
 theorem srvReqBuiltM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     srvReqBuiltM (GF := GF) false s E ρ v = srvReqBuilt s E ρ v := rfl
 
-/-- **The apply thread's KV invariants in the auth mode `on`** (`srvKVInvs` with the mode's KV
-and certificates' invariants, from `srvAuthSt0`; at `on = true` `srvKVInvsOn`'s rows). -/
+/-- **The apply thread's KV invariants in the auth mode `on`**: `srvKVInvs`, or at `on = true`
+`srvKVInvsOn` from `srvAuthSt0` (the mode's KV and certificates' invariants, and the auth history's
+tie to the log, `authHistTie`). -/
 def srvKVInvsM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(kvInvM on γr.raft γr.kv srvAuthSt0 ∗ kvCertInvM on γr.raft γr.kv srvAuthSt0 ∗
-    srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝)
+  match on with
+  | false => srvKVInvs E γr
+  | true => srvKVInvsOn E γr srvAuthSt0
 
 instance srvKVInvsM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvsM (GF := GF) on E γr) := by
-  unfold srvKVInvsM; infer_instance
+  cases on <;> unfold srvKVInvsM <;> infer_instance
 
 theorem srvKVInvsM_false (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) false E γr = srvKVInvs E γr := rfl
@@ -318,7 +321,8 @@ theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
 resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
 store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
-model's from the start (`applyBuiltOn`). -/
+model's from the start (`applyBuiltOn`); and (C1's A1) the rights to issue tokens at the
+consistent index (`srvTokRights`). -/
 def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
@@ -326,7 +330,7 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
 /-- **`applyBuiltNA` in the auth mode `on`**: `applyBuiltNA` at `on = false` (by definition),
 `applyBuiltNAOn` at `on = true`. -/
@@ -341,12 +345,15 @@ its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberB
 apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
 checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
 store's invariant), its range check at a reader's lower bound (`authStoreLbM`, E3s) and publication
-(`authPublishM`, E3t). -/
+(`authPublishM`, E3t), and (E3zb) with auth on, its request side bound to the request context's token
+(`isReqAuthBound`, of the store's invariant: the header a request is stamped with names its
+context's principal). -/
 def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
     apply.uberBaseAuth ua E au le ∗ authStoreLbM E.authMode au E.RD ∗
     ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authPublishM E.authMode stl ∗
-      authStoreLatestM E.authMode au E.RD stl)
+      authStoreLatestM E.authMode au E.RD stl ∗
+      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound au E.RD E.authMode))
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by
@@ -371,6 +378,8 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuiltM on s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
+    -- (M2, S4) the compactor's run, once (`start` spends it)
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     "#Hai" ∷ srvAppliedInvM on s E γr ∗
     "#Hkvi" ∷ srvKVInvsM on E γr ∗
@@ -450,7 +459,7 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
     applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
   cases on
   · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
-    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs⟩
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs, -⟩
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hap Hfs
     isplitr
@@ -626,12 +635,12 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   iintro !> %L #HL
   iunfold kvInvOn at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L', HL', Hσ, Hh, %Hok, #Hw⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
   ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ] with -
-  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL' Hσ Hh] with -
+  · inext; iexists L'; iframe HL' Hσ Hh Hw; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl⟩ := Hsh
@@ -789,12 +798,15 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
     (hlog : γk.log0 ≠ []) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
-      ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ={E}=∗
+      ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
+      monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
       kvInvOn γs γk st₀ ∗
-        etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) := by
+        etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ∗
+        authHistView γk [st₀] := by
   generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
-  iintro HL Hv
+  iintro HL Hv Hh
   icases onGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
+  icases authHist_split γk [st₀] $$ Hh with ⟨Hhv, Hh⟩
   have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
       uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data ∧
         ccIdOf m.data = W64 0 := by
@@ -858,13 +870,16 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
   iunfold kvInvOn
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
+      monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
-    $$ [HL Hv1] with #Hinv
+    $$ [HL Hv1 Hh] with #Hinv
   · inext
     iexists bootEntries bootLog
     iframe Hv1
+    rw [admStates_conf γk st₀ _ (fun m hm h0 => by rw [hty m hm] at h0; exact absurd h0 (by decide))]
+    iframe Hh
     isplitl [HL]
     · iexact HL
     isplitr
@@ -873,7 +888,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     iframe Hcl
     ipureintro; exact ⟨hshape, hccl⟩
   imodintro
-  iframe Hinv
+  iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2
 
 end lemmas

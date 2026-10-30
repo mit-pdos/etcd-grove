@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__parseProposeCtxErr
 public import Spec.errors.IsCtxErr
 public import Spec.time.Time__After
@@ -79,8 +80,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proofM (on : Bool)
     EtcdServer.parseProposeCtxErr.specM (GF := GF) (hG := hG) on := by
   intro s E ρ err start Herr
   wp_start as ⟨#Hsrv, Hrd, #Herrv⟩
-  iunfold isServerReqM at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr,
     #Hpeers, -, -, -, -⟩
@@ -159,8 +159,9 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
     (hQ : isConnectedToQuorumSince.spec (GF := GF) (hG := hG))
     (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
-    EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdServer.parseProposeCtxErr.wp_proofM false hIs hAfter hGL hMid hMem hQ hC
+    EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) := by
+  intro s E ρ
+  exact EtcdServer.parseProposeCtxErr.wp_proofM E.authOn hIs hAfter hGL hMid hMem hQ hC s E ρ
 
 end proof
 

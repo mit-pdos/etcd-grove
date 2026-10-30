@@ -73,8 +73,10 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   icases Hcl with ⟨%wsl, #Hkvf, Hcl⟩
   iunfold mvcc.wsCloser at Hcl
   icases Hcl with ⟨%stc, #Hstc, Hstcl, Hwsw, Hcl⟩
-  ihave #Hfrz : mvcc.crevFrozen E.γ $$ [Hrd]
-  · iunfold mvcc.storeReader at Hrd; iNamed Hrd; iexact Hfrz
+  -- (M2, `notes/m2-plan.md`, S1 step 5) the reader no longer carries the frozen fact: `Restore`
+  -- from the compaction right, S1 step 5
+  ihave #Hfrz : mvcc.crevFrozen E.γ $$ []
+  · sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/etcdserver/RestorePre.lean
   iexists ws, γw
   iunfold mvcc.watchWriter
   rw [hγw]

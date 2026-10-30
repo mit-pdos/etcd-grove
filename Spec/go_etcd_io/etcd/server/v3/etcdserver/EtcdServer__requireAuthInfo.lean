@@ -6,6 +6,7 @@ counterpart); the auth plan's A2 (2026-10-23), vocabulary `AuthGuard.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 
 @[expose] public section
 
@@ -30,14 +31,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.requireAuthInfo(ctx)`: `nil` unless auth is enabled and the request carries no auth info
 (`AuthInfoFromCtx` returned `nil`: `auth.ErrUserEmpty`) or `AuthInfoFromCtx` failed (its error);
 the outcome `authedOut` (`AuthGuard.lean`): never an error with auth off, on `nil` the token
-`authedRes`, on an error auth enabled at a recorded state. -/
+`authedRes`, on an error auth enabled at a recorded state. With auth on (the store's request side then bound, `srvAuthAt`'s row), a passed check's auth
+info is moreover bound (`authedOutB`, gated by the mode; the auth-mode merge, 2026-10-29: `spec` and
+`boundSpec` one spec). -/
 abbrev EtcdServer.requireAuthInfo.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOut E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
 
 end spec
 

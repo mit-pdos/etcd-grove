@@ -9,6 +9,7 @@ error.)
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -28,12 +29,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.getToken(ctx)` on a client `clientv3.New` built (`retryClientOk`: a bundle whenever a
-token) returns `nil` or a client error grpc's `status` accepts (`clientErrOk`: `Authenticate`'s,
+token), ready (`clientReady`: its `Auth` over the connection `conn` to `eps`; the bundle's tokens
+`""` or meeting some `P`, and `Authenticate`'s reply to its user name and password a token meeting
+`P`: the token it stores keeps the bundle's invariant, `clientAuthAt`) returns `nil` or a client error grpc's `status` accepts (`clientErrOk`: `Authenticate`'s,
 through the client's retry interceptor). -/
 abbrev Client.getToken.spec : Prop :=
-  ∀ (c : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (c conn : Loc) (eps : List GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
-      ctxOk ctx cd }}
+      -- (the auth plan's C1, 2026-10-28) the client ready (`c.Auth` over `conn`, the token's
+      -- facts), its connection (later: the retry interceptor's refresh path calls this under its
+      -- own induction hypothesis)
+      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; clientErrOk err ∗

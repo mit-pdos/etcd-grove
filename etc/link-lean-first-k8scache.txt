@@ -1,0 +1,199 @@
+# The functions linked in `Proof/k8s_io/client_go/tools/cache/Link.lean` (all Lean-first), read
+# by `etc/gen-link.py --k8scache`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# client-go's local cache (`k8s.io/client-go/tools/cache`, notes/k8s-daemonset-plan.md phase 2):
+# the store keys and the thread-safe store; the results are in the namespace `k8scache`.
+#
+# the trust boundary: names-only functions (axioms)
+strconv_ParseInt:
+time_Duration__Seconds:
+trace_New:
+trace_Trace__LogIfLong:
+schema_GroupVersionResource__Empty_ptr:
+runtime_HandleCrashWithLogger:
+#
+# k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the indices use)
+Set__Insert:
+Set__Delete:
+#
+# the store keys (`object-names.go`, `store.go`)
+ObjectName__String:
+SplitMetaNamespaceKey:
+#
+# the indices (`thread_safe_store.go`'s `storeIndex`)
+storeIndex__addKeyToIndex: Set__Insert
+storeIndex__deleteKeyFromIndex: Set__Delete
+storeIndex__updateSingleIndex: storeIndex__addKeyToIndex storeIndex__deleteKeyFromIndex
+storeIndex__updateIndices: storeIndex__updateSingleIndex
+storeIndex__getKeysByIndex:
+storeIndex__reset:
+#
+# the store's metrics (`informer_metrics.go`, `reflector_metrics.go`, `identity.go`)
+noopMetric__Set:
+InformerNameAndResource__Reserved:
+newStoreMetrics: noopMetric__Set InformerNameAndResource__Reserved
+#
+# the thread-safe store (`thread_safe_store.go`'s `threadSafeMap`)
+rvFromObject:
+parseRVForMetricsWithTruncation: strconv_ParseInt
+threadSafeMap__updateLocked: storeIndex__updateIndices
+threadSafeMap__deleteLocked: storeIndex__updateIndices
+threadSafeMap__Update: rvFromObject parseRVForMetricsWithTruncation threadSafeMap__updateLocked
+threadSafeMap__Add: threadSafeMap__Update
+threadSafeMap__DeleteWithObject: rvFromObject parseRVForMetricsWithTruncation threadSafeMap__deleteLocked
+threadSafeMap__Delete: threadSafeMap__DeleteWithObject
+threadSafeMap__Bookmark: parseRVForMetricsWithTruncation
+threadSafeMap__Replace: parseRVForMetricsWithTruncation storeIndex__reset storeIndex__updateIndices
+threadSafeMap__Get:
+threadSafeMap__List:
+threadSafeMap__ListKeys:
+threadSafeMap__ByIndex: storeIndex__getKeysByIndex
+threadSafeMap__Resync:
+NewThreadSafeStore: newStoreMetrics
+#
+# the store over the thread-safe store (`store.go`'s `cache`; DaemonSet plan phase 4)
+cache__Add: threadSafeMap__Add
+cache__Update: threadSafeMap__Update
+cache__Delete: threadSafeMap__DeleteWithObject
+cache__Bookmark: threadSafeMap__Bookmark
+cache__Resync:
+cache__List: threadSafeMap__List
+cache__ListKeys: threadSafeMap__ListKeys
+cache__ByIndex: threadSafeMap__ByIndex
+cache__GetByKey: threadSafeMap__Get
+cache__Get: cache__GetByKey
+cache__Replace: threadSafeMap__Replace
+storeIndex__getKeysFromIndex: Set__Insert
+threadSafeMap__Index: storeIndex__getKeysFromIndex
+cache__Index: threadSafeMap__Index
+threadSafeMap__LastStoreSyncResourceVersion:
+cache__LastStoreSyncResourceVersion: threadSafeMap__LastStoreSyncResourceVersion
+#
+# the informers' FIFO (`the_real_fifo.go`'s `RealFIFO`, atomic events; DaemonSet plan phase 4)
+RealFIFO__Close:
+RealFIFO__IsClosed:
+RealFIFO__hasSynced_locked:
+RealFIFO__HasSynced: RealFIFO__hasSynced_locked
+RealFIFO__Bookmark:
+RealFIFO__keyOf:
+RealFIFO__checkSynced_locked:
+RealFIFO__addToItems_locked: RealFIFO__keyOf
+RealFIFO__Add: RealFIFO__checkSynced_locked RealFIFO__addToItems_locked
+RealFIFO__Update: RealFIFO__checkSynced_locked RealFIFO__addToItems_locked
+RealFIFO__Delete: RealFIFO__checkSynced_locked RealFIFO__addToItems_locked
+RealFIFO__addReplaceToItemsLocked:
+RealFIFO__Replace: RealFIFO__checkSynced_locked RealFIFO__addReplaceToItemsLocked
+InformerNameAndResource__Name_ptr:
+InformerNameAndResource__GroupVersionResource_ptr:
+RealFIFO__whileProcessing_locked: time_Duration__Seconds
+RealFIFO__Pop: RealFIFO__checkSynced_locked RealFIFO__hasSynced_locked RealFIFO__keyOf InformerNameAndResource__Name_ptr InformerNameAndResource__GroupVersionResource_ptr schema_GroupVersionResource__Empty_ptr trace_New trace_Trace__LogIfLong RealFIFO__whileProcessing_locked
+#
+# the indexers' additions (thread_safe_store.go's AddIndexers, GetIndexers; DaemonSet plan
+# phase 4), over sets' KeySet, List, HasAny, Intersection (and Perennial's slices.Sort, cmp.Less)
+Set__Has:
+Set__Len:
+KeySet: Set__Insert
+Set__HasAny: Set__Has
+Set__UnsortedList:
+sets_List: Set__UnsortedList =_root_.Perennial.slices.wp_Sort =_root_.Perennial.cmp.wp_Less
+sets_New: Set__Insert
+Set__Intersection: sets_New Set__Len Set__Has Set__Insert
+storeIndex__addIndexers: KeySet sets_List Set__HasAny Set__Intersection
+threadSafeMap__AddIndexers: storeIndex__addIndexers storeIndex__updateSingleIndex
+threadSafeMap__GetIndexers:
+cache__AddIndexers: threadSafeMap__AddIndexers
+cache__GetIndexers: threadSafeMap__GetIndexers
+#
+# the listers' paths through the store (listers.go; DaemonSet plan phase 4)
+ListAll: cache__List
+ListAllByNamespace: ListAll cache__Index
+#
+# the informer's processing of a popped delta (controller.go's processDeltas; DaemonSet plan
+# phase 4), the store held by its exclusive writer
+reconcileReplacement: cache__ListKeys cache__GetByKey Set__Insert Set__Has
+processReplacedAllInfo: reconcileReplacement cache__Get cache__Replace
+processDeltas: processReplacedAllInfo cache__Get cache__Add cache__Update cache__Delete cache__Bookmark
+sharedIndexInformer__handleDeltas: processDeltas
+#
+# the batch path (InOrderInformersBatchProcess, on by default and in Main; DaemonSet plan phase 4,
+# fourth round): the names-only RealFIFO.PopBatch (gap D3) and threadSafeMap.Transaction (gap C4)
+# are specified as what the code does and pending (named hypotheses); errors.Join a boundary axiom
+threadSafeMap__Transaction: ?
+RealFIFO__PopBatch: ?
+errors_Join:
+cache__Transaction: threadSafeMap__Transaction
+processDeltasInBatch: cache__GetByKey cache__Transaction errors_Join
+sharedIndexInformer__handleBatchDeltas: processDeltasInBatch
+controller__processLoop: RealFIFO__Pop RealFIFO__PopBatch
+#
+# the shared informer's listeners (shared_informer.go's processorListener; DaemonSet plan phase 4,
+# third round), over synctrack's tracker and k8s.io/utils/buffer's ring (specified, pending)
+SingleFileTracker__Start:
+SingleFileTracker__Finished:
+TypedRingGrowing__ReadOne: ?
+TypedRingGrowing__WriteOne: ?
+processorListener__add: SingleFileTracker__Start
+processorListener__pop: TypedRingGrowing__ReadOne TypedRingGrowing__WriteOne runtime_HandleCrashWithLogger
+processorListener__run: SingleFileTracker__Finished trace_New trace_Trace__LogIfLong runtime_HandleCrashWithLogger
+# the processor and the informer as its own handler (shared_informer.go; DaemonSet plan phase 4,
+# third round): handleDeltas' premise handlerOk discharged in Results.lean
+sharedProcessor__distribute: processorListener__add
+sharedIndexInformer__OnAdd: sharedProcessor__distribute
+sharedIndexInformer__OnUpdate: sharedProcessor__distribute
+sharedIndexInformer__OnDelete: sharedProcessor__distribute
+#
+# the reflector (reflector.go; DaemonSet plan phase 4, fourth round): its last synced version and
+# flag (the reflector goroutine's), the relist/re-watch versions, the list's Replace
+Reflector__LastSyncResourceVersion:
+Reflector__setLastSyncResourceVersion:
+Reflector__setIsLastSyncResourceVersionUnavailable:
+Reflector__relistResourceVersion:
+Reflector__rewatchResourceVersion:
+Reflector__syncWith: RealFIFO__Replace
+#
+# the reflector's list-watch (reflector.go, DaemonSet plan phase 4, fifth round). Named hypotheses
+# (`?`, no axioms this round): outside client-go, names-only: klog's FromContext, logr's V/Info,
+# utilnet.IsConnectionRefused, rand.Float64, RealClock.After, wait.Group.Start; boundary pending
+# approval: the apierrors predicates, meta.ListAccessor/ExtractListWithAlloc/LenList, Trace.Step;
+# gaps: handleAnyWatch (D4), retryWithDeadlineImpl.After (Perennial's time lacks Time.IsZero);
+# not proved this round: isTooLargeResourceVersionError
+v2_FromContext: ?
+logr_Logger__V_ptr: ?
+logr_Logger__Info: ?
+logr_Logger__Info_ptr: ?
+errors_IsResourceExpired: ?
+errors_IsGone: ?
+errors_IsTooManyRequests: ?
+errors_IsInternalError: ?
+net_IsConnectionRefused: ?
+rand_Float64: ?
+clock_RealClock__After: ?
+wait_Group__Start: ?
+meta_ListAccessor: ?
+meta_ExtractListWithAlloc: ?
+meta_LenList: ?
+trace_Trace__Step: ?
+handleAnyWatch: ?
+retryWithDeadlineImpl__After: ?
+isTooLargeResourceVersionError: ?
+# the trust boundary (existing axioms)
+clock_RealClock__Now:
+time_Duration__Seconds_ptr:
+fmt_Errorf: @
+# proved
+handleWatch: handleAnyWatch
+isExpiredError: errors_IsResourceExpired errors_IsGone
+isWatchErrorRetriable: net_IsConnectionRefused errors_IsTooManyRequests
+isUnsupportedTableListObject:
+NewRetryWithDeadline:
+retryWithDeadlineImpl__reset:
+retryWithDeadlineImpl__ShouldRetry: retryWithDeadlineImpl__reset clock_RealClock__Now =_root_.Perennial.time.Time.wp_Sub
+pager_New:
+pager_SimplePageFunc:
+pager_ListPager__list: meta_ListAccessor errors_IsResourceExpired
+pager_ListPager__ListWithAlloc: pager_ListPager__list
+Reflector__resyncChan:
+Reflector__startResync: Reflector__resyncChan v2_FromContext
+Reflector__watch: handleWatch Reflector__LastSyncResourceVersion Reflector__setLastSyncResourceVersion NewRetryWithDeadline retryWithDeadlineImpl__After retryWithDeadlineImpl__ShouldRetry isExpiredError isWatchErrorRetriable v2_FromContext logr_Logger__V_ptr logr_Logger__Info logr_Logger__Info_ptr clock_RealClock__Now clock_RealClock__After rand_Float64 time_Duration__Seconds_ptr errors_IsTooManyRequests errors_IsInternalError
+Reflector__list: Reflector__relistResourceVersion Reflector__setIsLastSyncResourceVersionUnavailable Reflector__setLastSyncResourceVersion Reflector__syncWith isExpiredError isTooLargeResourceVersionError isUnsupportedTableListObject pager_New pager_SimplePageFunc pager_ListPager__ListWithAlloc meta_ListAccessor meta_ExtractListWithAlloc meta_LenList trace_New trace_Trace__LogIfLong trace_Trace__Step fmt_Errorf
+Reflector__watchWithResync: Reflector__watch Reflector__startResync wait_Group__Start
+Reflector__ListAndWatchWithContext: Reflector__list Reflector__watchWithResync v2_FromContext logr_Logger__V_ptr logr_Logger__Info

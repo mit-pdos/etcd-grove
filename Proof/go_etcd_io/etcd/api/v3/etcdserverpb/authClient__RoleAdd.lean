@@ -48,11 +48,11 @@ theorem etcdserverpb.authClient.RoleAdd.wp_proof
   ihave Hblank : pbAuthRoleAddResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthRoleAddResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleAdd" pbAuthRoleAddRequest pbAuthRoleAddResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleAdd" pbAuthRoleAddRequest pbAuthRoleAddResponse Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbAuthRoleAddRequest (GF := GF)).ty = etcdserverpb.AuthRoleAddRequest.ty from rfl,
     show (pbAuthRoleAddResponse (GF := GF)).ty = etcdserverpb.AuthRoleAddResponse.ty from rfl] at hI
-  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/RoleAdd" addr ([sm] ++ vs) (Spec m Q) $$ []
+  ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/RoleAdd" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []
   · iapply reqPre_box; iexact Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #

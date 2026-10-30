@@ -4,17 +4,15 @@
 
 S5 stated the request side with the binding (`isReqAuthBound`, `AuthReqDerive.lean`: the auth info
 `AuthInfoFromCtx` returns is `nil` or one bound to the request's token, `auth.ctxBound`) and derived
-it of the real store (`isReqAuthBound_of_authInv`). The server's store comes from `NewAuthStore`'s
-axiom, whose post names only the unbound `isReqAuth`, so the server cannot derive the binding of
-its own store yet. This file states the guards' bound variants over the bound contract as a
-premise (`srvAuthBound`), so that, once `NewAuthStore` is proved, the guards' principals are bound
-without restating the guards again:
+it of the real store (`isReqAuthBound_of_authInv`). The guards' specs state the binding gated by the
+mode (the auth-mode merge, 2026-10-29; `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the
+binding gated by the mode"): with auth off the server's store comes from `NewAuthStore`'s axiom,
+which gives only the unbound `isReqAuth`. This file has the vocabulary of their posts:
 
-* `EtcdServer.AuthInfoFromCtx`'s auth info is bound to the request's token, or came from the
-  client's TLS certificate (`AuthInfoFromTLS`, only with `ClientCertAuthEnabled`: the server falls
-  back to it when the token path gives no auth info), `ctxBoundOrTLS`;
-* `checkMembershipOperationPermission` (A2's admin guard of the member operations): on `nil`, the
-  admin token of an auth info that is bound (`principalBound`), `adminOutB`.
+* `srvAuthBound`: the server's store has the bound request side;
+* `principalBound`: an auth info's user is bound to the request's token, or came from the client's
+  TLS certificate (`AuthInfoFromTLS`, only with `ClientCertAuthEnabled`);
+* `adminOutB`, `authedOutB`: the guards' outcomes, whose auth info is bound with auth on.
 
 TLS client certificates as identity are out of the plan's scope (D-AU6): the TLS path is the
 disjunct the statement names, not a binding.
@@ -22,10 +20,7 @@ disjunct the statement names, not a binding.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkMembershipOperationPermission
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStore
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -56,23 +51,6 @@ instance srvAuthBound_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvAuthBound s E) := by
   unfold srvAuthBound; infer_instance
 
-/-- **The TLS fallback is on** at the server `s` (persistent): its config's
-`ClientCertAuthEnabled` is `true`. -/
-def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ true)
-
-instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
-  unfold srvTLSId; infer_instance
-
-/-- **The server's auth info `a` for the request context `ctx` is bound** in the mode `M`
-(persistent): bound to the context's own token (`auth.ctxBound`, which includes `nil`; the auth
-plan's E2c), or the server's TLS fallback is on. -/
-def ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc) : IProp GF :=
-  iprop(auth.ctxBound M ctx a ∨ srvTLSId s)
-
-instance ctxBoundOrTLS_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc) :
-    Persistent (ctxBoundOrTLS (GF := GF) s M ctx a) := by
-  unfold ctxBoundOrTLS; infer_instance
-
 /-- **A checked principal of the request context `ctx` is bound** in the mode `M` (persistent):
 `nil`, or the user to whom the context's own token was issued (`auth.ctxTokenOf ctx`, the auth
 plan's E2c; `auth.tokOk`: in `on γa`, `tokIssued`), or the server's TLS fallback is on. -/
@@ -89,11 +67,12 @@ instance principalBound_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterf
   unfold principalBound; cases ai <;> infer_instance
 
 /-- **An admin check's outcome with the binding**: `adminOut`, whose auth info is moreover
-bound (`principalBound`). -/
+bound (`principalBound`) with auth on (the gate: the auth-mode merge, 2026-10-29; with auth off the
+server's store has only the unbound request side, `NewAuthStore`'s axiom). -/
 def adminOutB (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) : IProp GF :=
   iprop(applyErrIs err ∗
     (∀ _ : err = GoInterface.nil, ∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      adminRes M ai ∗ principalBound s M ctx ai))
+      adminRes M ai ∗ □ (⌜M.isOn = true⌝ → principalBound s M ctx ai)))
 
 instance adminOutB_persistent (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) :
     Persistent (adminOutB (GF := GF) s M ctx err) := by
@@ -116,11 +95,11 @@ instance authInfoIs_persistent' (a : Loc) (user : GoString) (rev : w64) :
   unfold authInfoIs; infer_instance
 
 /-- **An authenticated-user check's outcome with the binding**: `authedOut`, whose auth info is
-moreover bound (`principalBound`). -/
+moreover bound (`principalBound`) with auth on (gated as `adminOutB`). -/
 def authedOutB (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) : IProp GF :=
   iprop(applyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
     (∀ _ : err = GoInterface.nil, ∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      authedRes M ai ∗ principalBound s M ctx ai) ∗
+      authedRes M ai ∗ □ (⌜M.isOn = true⌝ → principalBound s M ctx ai)) ∗
     (∀ _ : err ≠ GoInterface.nil, auth.enabledVerdict M true))
 
 instance authedOutB_persistent (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) :
@@ -168,6 +147,46 @@ theorem principalBound_of_ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (ctx : GoI
       iexact Htok
   · iright; iexact Ht
 
+/-- **The server's bound request side under the mode's gate**: a server whose store has the
+bound request side with auth on (`srvAuthBound`), its store `st` (`authStore`'s field), has the bound
+request side of `st` with auth on. -/
+theorem srvAuthBound_gate (s : Loc) (E : apply.AEnv GF) (st : GoInterface) :
+    structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ □ (⌜E.authOn = true⌝ → srvAuthBound s E) ⊢
+      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) := by
+  iintro ⟨#Has, #Hbd⟩
+  iintro !> %h
+  ihave #Hbd' : srvAuthBound s E $$ []
+  · iapply Hbd; ipureintro; exact h
+  iunfold srvAuthBound at Hbd'
+  icases Hbd' with ⟨%st3, #Has3, #Hreqb⟩
+  icombine Has Has3 gives %Heq3
+  subst Heq3
+  iexact Hreqb
+
+/-- `principalBound_of_ctxBoundOrTLS` under the mode's gate. -/
+theorem principalBound_of_ctxBoundOrTLS_gate (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
+    (a : Loc) (user : GoString) (rev : w64) :
+    □ (⌜M.isOn = true⌝ → ctxBoundOrTLS (GF := GF) s M ctx a) ∗ authInfoIs a user rev ⊢
+      □ (⌜M.isOn = true⌝ → principalBound s M ctx (some ({ Username' := user, Revision' := rev } :
+        go_etcd_io.etcd.server.v3.auth.AuthInfo))) := by
+  iintro ⟨#Hb, #Hai⟩
+  iintro !> %h
+  iapply principalBound_of_ctxBoundOrTLS s M ctx a user rev
+  isplitr
+  · iapply Hb; ipureintro; exact h
+  · iexact Hai
+
+/-- **A checked principal, the anonymous one allowed** (persistent): the empty user (the check's
+`&auth.AuthInfo{}` when the request carried none), or a bound one (`principalBound`). The empty user is the zero string (`zeroValDef`). -/
+def principalBoundI (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨ principalBound s M ctx (some info))
+
+instance principalBoundI_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (principalBoundI (GF := GF) s M ctx info) := by
+  unfold principalBoundI; infer_instance
+
 end defs
 
 section proof
@@ -176,259 +195,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **`EtcdServer.AuthInfoFromCtx` with the binding**: `EtcdServer.AuthInfoFromCtx.spec`, over a
-store with the bound request side too, whose auth info is moreover bound to the request's token or
-came from the TLS fallback (`ctxBoundOrTLS`). -/
-abbrev EtcdServer.AuthInfoFromCtx.boundSpec : Prop :=
-  ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
-      isReqAuthBound st RD M ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ RD }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
-      (Val #(GoInterface.ok ctx)))
-  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ applyErrIs err ∗
-      ctxBoundOrTLS s M (GoInterface.ok ctx) a }}
-
-theorem EtcdServer.AuthInfoFromCtx_bound
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG) := by
-  intro s st RD M cca ctx cd
-  wp_start as ⟨#Hst, #Hauth, #Hbound, #Hcca, #Hctx, Hrd⟩
-  ihave #Hauth' := Hauth
-  iunfold isReqAuth at Hauth'
-  icases Hauth' with ⟨%ai, %Hai, -, #HFromTLS⟩
-  iunfold isReqAuthBound at Hbound
-  icases Hbound with ⟨%ai2, %Hai2, #HFromCtx⟩
-  have Hai2' : ai = ai2 := GoInterface.ok.inj (Hai.symm.trans Hai2)
-  subst Hai2'
-  wp_auto
-  wp_apply hAS s st $$ []
-  · iframe #
-  subst Hai
-  wp_auto
-  wp_apply HFromCtx $$ %ctx %cd [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb⟩
-  · iframe; iframe #
-  wp_if_destruct
-  · cases err with
-    | ok ei =>
-      wp_auto
-      iapply HΦ; iframe Hrd Ha Herr
-      iunfold ctxBoundOrTLS; ileft; iexact Hb
-    | nil =>
-      wp_auto
-      cases cca
-      · wp_auto
-        iapply HΦ; iframe Hrd; isplitr
-        · iunfold authInfoOpt; ileft; ipureintro; rfl
-        isplitr
-        · iapply applyErrIs_nil
-        iunfold ctxBoundOrTLS; ileft
-        iunfold auth.ctxBound; ileft; ipureintro; rfl
-      · wp_auto
-        wp_apply hAS s _ $$ []
-        · iframe #
-        iintro -
-        wp_auto
-        wp_apply HFromTLS $$ %ctx %cd [] as %a' Ha'
-        · iframe #
-        iapply HΦ; iframe Hrd Ha'; isplitr
-        · iapply applyErrIs_nil
-        iunfold ctxBoundOrTLS
-        iunfold srvTLSId; iright; iexact Hcca
-  · iapply HΦ; iframe Hrd Ha Herr
-    iunfold ctxBoundOrTLS; ileft; iexact Hb
-
-/-- **`checkMembershipOperationPermission` with the binding** (A2's admin guard of the member
-operations): its spec, over a server whose store has the bound request side too
-(`srvAuthBound`), whose admin token's auth info is moreover bound (`adminOutB`). -/
-abbrev EtcdServer.checkMembershipOperationPermission.boundSpec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ srvAuthBound s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
-      go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}
-
-theorem EtcdServer.checkMembershipOperationPermission_bound
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    EtcdServer.checkMembershipOperationPermission.boundSpec (GF := GF) (hG := hG) := by
-  intro s E ctx cd
-  wp_start as ⟨#Hau, #Hbd, #Hnil, #Hctx, HRD⟩
-  iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hcca, #Hast⟩
-  iunfold srvAuthBound at Hbd
-  icases Hbd with ⟨%st3, #Has3, #Hreqb⟩
-  icombine Has Has3 gives %Heq3
-  subst Heq3
-  iunfold srvAdminNilOk at Hnil
-  icases Hnil with ⟨%st2, #Has2, #Hnil⟩
-  icombine Has Has2 gives %Heq
-  subst Heq
-  iunfold apply.isAuthStore at Hast
-  icases Hast with ⟨%ai, %Hai, -, -, -, #HAdm, -⟩
-  iunfold adminNilOk at Hnil
-  icases Hnil with ⟨%ai2, %Hai2, #HAdmNil⟩
-  have Hai2' : ai = ai2 := GoInterface.ok.inj (Hai.symm.trans Hai2)
-  subst Hai2'
-  subst Hai
-  (try wp_auto)
-  wp_apply (EtcdServer.AuthInfoFromCtx_bound hAS s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
-  · iframe #
-  (try wp_auto)
-  rcases err with ei | _
-  · (try wp_auto)
-    iapply HΦ
-    iframe HRD
-    iunfold adminOutB
-    iframe #
-    iintro %h; cases h
-  · (try wp_auto)
-    wp_apply (hAS s (GoInterface.ok ai))
-    · iframe #
-    (try wp_auto)
-    iunfold authInfoOpt at Ha
-    icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
-    · subst Han
-      (try wp_auto)
-      wp_apply HAdmNil $$ [$HRD] as %err2 ⟨HRD, #Herr2, %Hoff, #Hv⟩
-      (try wp_auto)
-      iapply HΦ
-      iframe HRD
-      iunfold adminOutB
-      iframe #
-      iintro %h
-      subst h
-      iexists none
-      isplitl
-      · iapply (adminRes_of_adminVerdict _ _) $$ Hv
-      iunfold principalBound; itrivial
-    · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-      ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
-      iunfold authInfoIs at Hau
-      icases Hau with ⟨%Hann, -, -⟩
-      (try wp_auto)
-      wp_apply HAdm $$ [$Hap $HRD] as %err2 ⟨-, HRD, #Herr2, %Hoff, #Hv⟩
-      (try wp_auto)
-      iapply HΦ
-      iframe HRD
-      iunfold adminOutB
-      iframe #
-      iintro %h
-      subst h
-      iexists (some _)
-      isplitl
-      · iapply (adminRes_of_adminVerdict _ _) $$ Hv
-      iexact Hpb
-
-/-- **`requireAuthInfo` with the binding** (A2's authenticated-user guard of the server's entry
-points): its spec, over a server whose store has the bound request side too, whose passed check's
-auth info is moreover bound (`authedOutB`). -/
-abbrev EtcdServer.requireAuthInfo.boundSpec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ srvAuthBound s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
-      (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
-
-theorem EtcdServer.requireAuthInfo_bound
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    EtcdServer.requireAuthInfo.boundSpec (GF := GF) (hG := hG) := by
-  intro s E ctx cd
-  wp_start as ⟨#Hau, #Hbd, #Hctx, HRD⟩
-  iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hcca, #Hast⟩
-  iunfold srvAuthBound at Hbd
-  icases Hbd with ⟨%st3, #Has3, #Hreqb⟩
-  icombine Has Has3 gives %Heq3
-  subst Heq3
-  iunfold apply.isAuthStore at Hast
-  icases Hast with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
-  subst Hai
-  (try wp_auto)
-  wp_apply HEn $$ [$HRD] as %b ⟨HRD, #Hb⟩
-  (try wp_auto)
-  cases b
-  · (try wp_auto)
-    iapply HΦ
-    iframe HRD
-    iunfold authedOutB
-    isplitr
-    · iapply applyErrIs_nil
-    isplitr
-    · ipureintro; intro _; rfl
-    isplitr
-    · iintro %_
-      iexists none
-      isplitl
-      · iapply (authedRes_of_disabled E.authMode none) $$ Hb
-      iunfold principalBound; itrivial
-    · iintro %h; exact absurd rfl h
-  · (try wp_auto)
-    ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
-    wp_apply (EtcdServer.AuthInfoFromCtx_bound hAS s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hbnd⟩
-    · iframe #
-    (try wp_auto)
-    rcases err with ei | _
-    · (try wp_auto)
-      iapply HΦ
-      iframe HRD
-      iunfold authedOutB
-      isplitr
-      · iexact Herr
-      isplitr
-      · ipureintro; intro h; rw [h] at Hon; cases Hon
-      isplitr
-      · iintro %h; cases h
-      · iintro %_; iexact Hb
-    · (try wp_auto)
-      iunfold authInfoOpt at Ha
-      icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
-      · subst Han
-        (try wp_auto)
-        ihave #Hpauth : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
-        · iPkgInit
-        ihave #Hainit : go_etcd_io.etcd.server.v3.auth.authInit (GF := GF) $$ []
-        · iapply isPkgInit_access $$ Hpauth
-        icases Hainit with ⟨#HUE, -⟩
-        ihave #HUEl := errVarLeaf_authErrVar _ $$ HUE
-        ihave ⟨%eUE, #HeUE, #HaUE⟩ := errVarLeaf_get _ $$ HUEl
-        (try wp_auto)
-        iapply HΦ
-        iframe HRD
-        iunfold authedOutB
-        isplitr
-        · iexact HaUE
-        isplitr
-        · ipureintro; intro h; rw [h] at Hon; cases Hon
-        isplitr
-        · iintro %h; cases h
-        · iintro %_; iexact Hb
-      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hbnd $Hau]
-        iunfold authInfoIs at Hau
-        icases Hau with ⟨%Hann, -, -⟩
-        (try wp_auto)
-        rw [_root_.decide_eq_false Hann]
-        (try wp_auto)
-        iapply HΦ
-        iframe HRD
-        iunfold authedOutB
-        isplitr
-        · iapply applyErrIs_nil
-        isplitr
-        · ipureintro; intro _; rfl
-        isplitr
-        · iintro %_
-          iexists (some { Username' := user, Revision' := rev })
-          isplitl
-          · iapply authedRes_some
-          iexact Hpb
-        · iintro %h; exact absurd rfl h
 
 /-- **`srvAuthBound` of the real store** (the auth plan's E2e, 2026-10-25): a server whose
 `authStore` field holds a store with the store's invariant in the server's mode, its reader

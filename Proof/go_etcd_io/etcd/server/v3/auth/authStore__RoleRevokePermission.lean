@@ -127,7 +127,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r role key rangeEnd b0 sc0
-  wp_start as ⟨#Hinv, #Hr, %Hrolelen, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hrolelen, Hown, HWR, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   icases authErrVar_of_init .permissionNotGranted $$ Hpkg with ⟨%ePNG, #HePNG⟩
   simp only [AuthErr.var]
@@ -144,6 +144,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply HBatch as %tx Htx
@@ -425,8 +426,9 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     right; rw [hps'eq]
   obtain ⟨Hrevfit, Hfit⟩ := Hok st0 Hl0
   have Hfit' := Hfit _ _ hstep rfl
+  ihave #Hcn := capNextM_use M hs _ st0 (bump (putRole st0 role ps')) Hl0 hstep $$ Hcap
   wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 role ps') Post hs st0)
-    $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+    $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putRole _ _ _ (Hpk st0 Hl0 h1 h2)
       (fun p hp => Hpk st0 Hl0 h1 h2 role ps Hlook p (by rw [hps'eq] at hp; exact (List.mem_filter.mp hp).1)), ?_⟩
@@ -470,7 +472,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   wp_apply h_Info
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_alloc resp as Hresp
+  irename «$r0» => Hresp
+  generalize «$r0_ptr» = resp at *
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp

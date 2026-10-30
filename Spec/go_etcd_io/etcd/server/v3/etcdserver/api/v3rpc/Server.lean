@@ -6,6 +6,7 @@ gRPC server etcd serves its services with. Lean-first (no Rocq counterpart); the
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 
 @[expose] public section
 
@@ -34,7 +35,8 @@ read-only) returns a `*grpc.Server` being built (`grpcSrvNew`) with etcd's unary
 stream chain `[ims, is]` (grpc-prometheus's, `newStreamInterceptor(s)`'s), all transparent, and
 etcd's services registered: among them the KV service's `Put`, `Range`, `DeleteRange`, `Txn` on
 the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` stream on the
-`*watchServer` `pw` (`watchSReg`), given the service values' method sets (`ServerMethodSets`, Go's
+`*watchServer` `pw` (`watchSReg`), and the Auth service's five admin methods on the `*AuthServer`
+`pa` over the server (`authRegs`, `authServerIs`), given the service values' method sets (`ServerMethodSets`, Go's
 type checker's facts). The server's resources come back (the progress interval
 written by `NewWatchServer`). -/
 abbrev v3rpc.Server.spec : Prop :=
@@ -47,11 +49,13 @@ abbrev v3rpc.Server.spec : Prop :=
       gsl ↦*□ gvs ∗ ⌜∀ v ∈ gvs, grpcSrvOpt v .neutral⌝ }}
     (App (App (App (App (Val (@! v3rpc.Server)) (Val #s)) (Val #(null : Loc)))
       (Val #(func.nil : GoFunc))) (Val #gsl))
-  {{ (gs : Loc), RET #gs; ∃ (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
+  {{ (gs : Loc), RET #gs; ∃ (q p pw pa : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
       (regs sregs : List (GoString × val × GoInterface)) (cid mid : w64) (R : v3rpc.WSrv GF)
       (d' : w64),
       grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
-      ⌜(∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs⌝ ∗
+      ⌜(∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
+        (∀ x ∈ v3rpc.authRegs pa, x ∈ regs)⌝ ∗
+      v3rpc.authServerIs pa s ∗
       v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType v3rpc.kvServer.ty, #p⟩ s ∗
       v3rpc.kvServerIs p s C.A cid mid C.n ∗
       v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗

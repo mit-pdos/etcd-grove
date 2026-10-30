@@ -32,7 +32,6 @@ theorem FromKey.wp_proof :
   wp_auto
   ipersist start
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   isplitr
   · ipureintro; intro h; cases h

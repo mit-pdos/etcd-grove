@@ -672,24 +672,86 @@ theorem v3rpc.checkIntervals.wp_proof
       · have he : e ≠ [] := by
           intro h; subst h; apply Hif; simp at Hel; unfold sint.nat at Hel; word
         have hesl : esl ≠ slice.nil := by intro h; subst h; apply Hif; rfl
-        have hdel : v3rpc.delIvl o = (k, e) := by
-          subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl, he]
-        wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
-        wp_apply wp_bytes_to_string esl e DFrac.discard $$ [$He] as -
-        wp_apply hIvl
-        wp_apply hIns $$ [$Htl] as Htl
-        · ipureintro; exact ci_ins_bound hu HL Hdc
-        wp_for_post
-        iframe
-        iexists n + W64 1, p, _
-        iframe
-        ipureintro
-        refine ⟨by constructor <;> word, ?_⟩
-        rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-          v3rpc.ci_levelDels_append]
-        simp only [v3rpc.levelDels]
-        rw [hdel]
-        exact v3rpc.ci_insert_perm _ _ _ HL
+        -- (the fork's fix of etcd-io/etcd#22395) `if len(rangeEnd) == 1 && rangeEnd[0] == 0`: a
+        -- from-key delete's interval is `[k, +∞)`
+        wp_if_destruct
+        · -- `len(rangeEnd) == 1`: the one byte
+          have h1 : e.length = 1 := by rw [Hel.1, Hif]; rfl
+          obtain ⟨b, rfl⟩ : ∃ b, e = [b] := by
+            match e, h1 with
+            | [b], _ => exact ⟨b, rfl⟩
+          have hb : 0 ≤ sint.Z (W64 0 : w64) ∧ sint.Z (W64 0 : w64) < sint.Z esl.len := by
+            rw [Hif]; decide
+          simp only [hb, _root_.and_self, ↓reduceIte]
+          wp_apply wp_load_slice_index esl (sint.Z (W64 0 : w64)) [b] DFrac.discard b (by decide)
+            $$ [$He] as -
+          · ipureintro; rfl
+          (try wp_auto)
+          wp_if_destruct
+          · -- `[0]`: the range end `nil`, the interval `[k, +∞)`
+            have hdel : v3rpc.delIvl o = (k, []) := by
+              subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl]
+            wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
+            wp_apply wp_bytes_to_string slice.nil ([] : List w8) DFrac.discard $$ [] as -
+            · iapply ownSlice_nil
+            wp_apply hIvl
+            wp_apply hIns $$ [$Htl] as Htl
+            · ipureintro; exact ci_ins_bound hu HL Hdc
+            wp_for_post
+            iframe
+            iexists n + W64 1, p, _
+            iframe
+            ipureintro
+            refine ⟨by constructor <;> word, ?_⟩
+            rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
+              v3rpc.ci_levelDels_append]
+            simp only [v3rpc.levelDels]
+            rw [hdel]
+            exact v3rpc.ci_insert_perm _ _ _ HL
+          · -- another byte: the range end as it is
+            have hne : [b] ≠ [W8 0] := fun h => Hif (by simpa using h)
+            have hdel : v3rpc.delIvl o = (k, [b]) := by
+              subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl]; exact Hif
+            wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
+            wp_apply wp_bytes_to_string esl [b] DFrac.discard $$ [$He] as -
+            wp_apply hIvl
+            wp_apply hIns $$ [$Htl] as Htl
+            · ipureintro; exact ci_ins_bound hu HL Hdc
+            wp_for_post
+            iframe
+            iexists n + W64 1, p, _
+            iframe
+            ipureintro
+            refine ⟨by constructor <;> word, ?_⟩
+            rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
+              v3rpc.ci_levelDels_append]
+            simp only [v3rpc.levelDels]
+            rw [hdel]
+            exact v3rpc.ci_insert_perm _ _ _ HL
+        · -- another length: the range end as it is
+          have hne : e ≠ [W8 0] := by
+            intro h; subst h; apply Hif
+            have h2 := mvcc.W64_sint_nat esl.len Hel.2
+            rw [← Hel.1] at h2
+            rw [← h2]; rfl
+          have hdel : v3rpc.delIvl o = (k, e) := by
+            subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl, he]; exact hne
+          wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
+          wp_apply wp_bytes_to_string esl e DFrac.discard $$ [$He] as -
+          wp_apply hIvl
+          wp_apply hIns $$ [$Htl] as Htl
+          · ipureintro; exact ci_ins_bound hu HL Hdc
+          wp_for_post
+          iframe
+          iexists n + W64 1, p, _
+          iframe
+          ipureintro
+          refine ⟨by constructor <;> word, ?_⟩
+          rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
+            v3rpc.ci_levelDels_append]
+          simp only [v3rpc.levelDels]
+          rw [hdel]
+          exact v3rpc.ci_insert_perm _ _ _ HL
     | txn _ _ _ | empty | range _ | put _ =>
       iunfold v3rpc.reqOpIs at Hp
       -- `empty` without the operation's `w` and `r`
@@ -792,7 +854,9 @@ theorem v3rpc.checkIntervals.wp_proof
             wp_bind (App (App (Val (map.forRange _ _)) _) _)
             iapply wp_map_for_range (K := GoString) (V := Unit) (fun (keys : List GoString) (j : Int) =>
                 iprop(∃ (M' : GMap GoString Unit) (kv : GoString),
-                "HΦ" ∷ v3rpc.ciPost us Φ ∗ "k" ∷ k_ptr ↦ kv ∗ "Hmp" ∷ mp ↦$ M' ∗
+                "HΦ" ∷ v3rpc.ciPost us Φ ∗ "«$res0»" ∷ «$res0_ptr» ↦ zero_val GoMap ∗
+                "«$res1»" ∷ «$res1_ptr» ↦ GoInterface.nil ∗ "«$res2»" ∷ «$res2_ptr» ↦ GoInterface.nil ∗
+                "k" ∷ k_ptr ↦ kv ∗ "Hmp" ∷ mp ↦$ M' ∗
                 "Htl" ∷ adt.ownIvt tl L 1 ∗ "dels" ∷ dels_ptr ↦
                   (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl :
                     GoInterface) ∗
@@ -801,10 +865,10 @@ theorem v3rpc.checkIntervals.wp_proof
                 "%Hok" ∷ ⌜∀ x ∈ keys.take j.toNat, (decide (x ∈ pts) || v3rpc.hits ds x) = false⌝))
               $$ HmT
             iintro %keysT ⟨%HkT, %HklT, %HkndT⟩
-            isplitl [HΦ k Hmp Htl dels puts]
+            isplitl [HΦ «$res0» «$res1» «$res2» k Hmp Htl dels puts]
             · iexists M, _
               simp only [named]
-              iframe k Hmp Htl dels puts
+              iframe «$res0» «$res1» «$res2» k Hmp Htl dels puts
               isplitl [HΦ]
               · iunfold v3rpc.ciPost; iexact HΦ
               ipureintro
@@ -907,7 +971,9 @@ theorem v3rpc.checkIntervals.wp_proof
             wp_bind (App (App (Val (map.forRange _ _)) _) _)
             iapply wp_map_for_range (K := GoString) (V := Unit) (fun (keys : List GoString) (j : Int) =>
                 iprop(∃ (M' : GMap GoString Unit) (kv : GoString),
-                "HΦ" ∷ v3rpc.ciPost us Φ ∗ "k" ∷ k_ptr ↦ kv ∗ "Hmp" ∷ mp ↦$ M' ∗
+                "HΦ" ∷ v3rpc.ciPost us Φ ∗ "«$res0»" ∷ «$res0_ptr» ↦ zero_val GoMap ∗
+                "«$res1»" ∷ «$res1_ptr» ↦ GoInterface.nil ∗ "«$res2»" ∷ «$res2_ptr» ↦ GoInterface.nil ∗
+                "k" ∷ k_ptr ↦ kv ∗ "Hmp" ∷ mp ↦$ M' ∗
                 "Htl" ∷ adt.ownIvt tl L 1 ∗ "dels" ∷ dels_ptr ↦
                   (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl :
                     GoInterface) ∗
@@ -918,7 +984,7 @@ theorem v3rpc.checkIntervals.wp_proof
                   (decide (x ∈ pts ++ pT ∧ x ∉ pT) || v3rpc.hits ds x) = false⌝))
               $$ HmE
             iintro %keysE ⟨%HkE, %HklE, %HkndE⟩
-            isplitl [HΦ k Hmp Htl dels puts HmT putsThen]
+            isplitl [HΦ «$res0» «$res1» «$res2» k Hmp Htl dels puts HmT putsThen]
             · iexists M', _
               simp only [named]
               iframe
@@ -1054,7 +1120,10 @@ theorem v3rpc.checkIntervals.wp_proof
       clear HM
       wp_for HI
       wp_if_destruct
-      · obtain ⟨p, hp⟩ : ∃ p, ps[(sint.Z n).toNat]? = some p :=
+      -- (the loop's condition stays `#(decide _) = #true` here; peel it)
+      · replace Hif : sint.Z n < sint.Z sl.len :=
+          Decidable.byContradiction fun h => by simp [h] at Hif
+        obtain ⟨p, hp⟩ : ∃ p, ps[(sint.Z n).toNat]? = some p :=
           ⟨_, List.getElem?_eq_getElem (by unfold sint.nat at Hsll; word)⟩
         obtain ⟨u, hu⟩ : ∃ u, us[(sint.Z n).toNat]? = some u :=
           ⟨_, List.getElem?_eq_getElem (by unfold sint.nat at Hsll; rw [← Hlen]; word)⟩
@@ -1130,7 +1199,8 @@ theorem v3rpc.checkIntervals.wp_proof
           rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word,
             v3rpc.ci_put_other hu (by intro _ h; cases h)]
           exact Hpre
-      · iapply HΦ
+      · replace Hif : ¬ sint.Z n < sint.Z sl.len := fun h => Hif (by simp [h])
+        iapply HΦ
         have hn : (sint.Z n).toNat = us.length := by
           rw [← Hlen, Hsll.1]; unfold sint.nat; word
         rw [hn, List.take_length] at Hpre

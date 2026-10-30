@@ -54,7 +54,7 @@ theorem kVClient.Put.wp_proof
   ihave Hblank : pbPutResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbPutResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequest pbPutResponse Spec (putReqOp req k v) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequest pbPutResponse Spec (putReqOp req k v) Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbPutRequest (GF := GF)).ty = etcdserverpb.PutRequest.ty from rfl,
     show (pbPutResponse (GF := GF)).ty = etcdserverpb.PutResponse.ty from rfl] at hI

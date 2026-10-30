@@ -1,0 +1,57 @@
+# The functions linked in `Proof/k8s_io/client_go/informers/Link.lean` (all Lean-first), read by
+# `etc/gen-link.py --k8sinformers`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# client-go's informers above the store (`k8s.io/client-go/listers`, `informers`;
+# notes/k8s-daemonset-plan.md phase 4); the results are in the namespace `k8sinformers`.
+#
+# the store's results (linked in Proof/k8s_io/client_go/tools/cache/Link.lean)
+cache__GetByKey: @
+ListAllByNamespace: @
+#
+# the trust boundary: names-only functions (axioms)
+schema_GroupResource__String_ptr:
+#
+# apimachinery's errors (with bodies)
+NewNotFound: schema_GroupResource__String_ptr
+#
+# the generic lister (`listers/generic_helpers.go`)
+ResourceIndexer__Get: cache__GetByKey NewNotFound
+ResourceIndexer__List: ListAllByNamespace
+#
+# the trust boundary: k8s.io/api's names-only `Resource` (apps/v1, core/v1)
+apps_v1_Resource:
+core_v1_Resource:
+#
+# the generic lister's constructors (`listers/generic_helpers.go`)
+listers_New:
+NewNamespaced:
+#
+# the DaemonSet lister (`listers/apps/v1/daemonset.go`), its namespace lister's promoted methods
+NewDaemonSetLister: apps_v1_Resource listers_New
+daemonSetLister__DaemonSets: NewNamespaced
+daemonSetNamespaceLister__Get: ResourceIndexer__Get
+daemonSetNamespaceLister__List: ResourceIndexer__List
+#
+# the ControllerRevision lister (`listers/apps/v1/controllerrevision.go`)
+NewControllerRevisionLister: apps_v1_Resource listers_New
+controllerRevisionLister__ControllerRevisions: NewNamespaced
+controllerRevisionNamespaceLister__Get: ResourceIndexer__Get
+controllerRevisionNamespaceLister__List: ResourceIndexer__List
+#
+# the Pod and Node listers (`listers/core/v1/pod.go`, `node.go`; Node's not namespaced)
+NewPodLister: core_v1_Resource listers_New
+podLister__Pods: NewNamespaced
+podNamespaceLister__Get: ResourceIndexer__Get
+podNamespaceLister__List: ResourceIndexer__List
+NewNodeLister: core_v1_Resource listers_New
+nodeLister__Get: ResourceIndexer__Get
+nodeLister__List: ResourceIndexer__List
+#
+# the label selectors' trust boundary (apimachinery's `labels.Everything`, `metav1.
+# LabelSelectorAsSelector`; names-only functions, axioms: notes/k8s-daemonset-goose.md)
+labels_Everything:
+v1_LabelSelectorAsSelector:
+#
+# the DaemonSet lister's expansion (`listers/apps/v1/daemonset_expansion.go`): the DaemonSets
+# selecting a pod or a ControllerRevision
+daemonSetLister__GetPodDaemonSets: daemonSetLister__DaemonSets daemonSetNamespaceLister__List labels_Everything v1_LabelSelectorAsSelector
+daemonSetLister__GetHistoryDaemonSets: daemonSetLister__DaemonSets daemonSetNamespaceLister__List labels_Everything v1_LabelSelectorAsSelector

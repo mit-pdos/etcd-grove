@@ -51,7 +51,7 @@ theorem apply.applierV3backend.Range.wp_proof
   obtain ⟨hr, hk, hlen, hsort, hok⟩ := Hrq
   wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd true opts.Logger'
       opts.KV' E.s E.γ r o true none false) $$ [$Hrd $Hsw]
-    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Htrc, -, Hout, %Hnd⟩
+    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Htrc, -, %crev, Hout, %Hnd⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
@@ -73,9 +73,9 @@ theorem apply.applierV3backend.Range.wp_proof
     unfold apply.chainStep apply.backendStep
     rw [hk]
   simp only [apply.rangeOutcomeIs, apply.Outcome.logAfter]
-  iframe Hres Hout
-  isplitr
-  · ipureintro; exact Hnd rfl
+  iframe Hres
+  isplitl [Hout]
+  · iexists crev; iframe Hout; ipureintro; exact Hnd rfl
   iunfold apply.kvOwn
   iframe
   iunfold txn.kvWriter

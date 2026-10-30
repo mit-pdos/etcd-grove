@@ -5,7 +5,15 @@
 # (translate_types skips a type naming a package that is not imported).
 # The status constants `apierrors.NewTimeoutError` and `storage.NewTooLargeResourceVersionError`
 # build their errors with (KEP-6404): a names-only constant is a value of unknown shape.
-translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVersionTooLarge"]
+# With bodies (the model API server, examples/k8sdaemonset/apimodel; notes/k8s-apimodel-goose.md):
+# `ObjectMeta`'s accessors (the `metav1.Object` methods the model and client-go's informers call
+# through the API types' promoted methods), `Now` and `Time.Equal`.
+translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVersionTooLarge",
+  "ObjectMeta.Get*", "ObjectMeta.Set*", "Now", "Time.Equal", "StatusReason*",
+  # (DaemonSet plan phase 4) `ListAllByNamespace` compares the namespace with it
+  "NamespaceAll",
+  # (DaemonSet plan phase 5) the daemon pods' node affinity and `GetTargetNodeName` use it
+  "ObjectNameField"]
 imports = ["!*", "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/runtime",
   "k8s.io/apimachinery/pkg/runtime/schema", "time"]
 

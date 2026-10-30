@@ -44,6 +44,12 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   which the translation imports, as in Perennial's `Perennial/TrustedCode`; each docstring says
   why the model is faithful. Part of the trust base. `ManualProof/<pkg>.lean` is the (empty)
   module the generated proof of such a package imports;
+- `GooseLang/Ext/<Name>/{Impl,Specs}.lean`, `Proof/<Name>Prelude.lean`: this repository's own
+  GooseLang extensions, as Perennial's (`Perennial/GooseLang/Ext/`): `Impl` the trusted semantics
+  (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
+  and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
+  operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
+  `durableExt` (`examples/durable`, whole-file durable state) is the first;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);
@@ -163,10 +169,11 @@ report.
 
 ## Feedback on specs
 
-When the user critiques a spec (yours, a reviewer's, or a candidate), make the repository
-learn from it, minimally: an entry in `.claude/skills/spec-repair/LESSONS.md` (date, target,
-what the user said, the rule it became) and the smallest change to that skill's `SKILL.md`
-(or its `evals/`) that would have avoided the mistake; a fix to the spec itself is not enough.
+The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what makes a good spec:
+`PRINCIPLES.md`, and `examples/` of specs the user reviewed. When the user critiques a spec
+(yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
+principle; and when the user approves a spec, an example (its first version, each critique with
+what it changed, the approved spec). A fix to the spec itself is not enough.
 
 ## Trust base
 
@@ -375,6 +382,11 @@ fresh, 53s after the edit (0.4s of it tactics, 18s the kernel), 24s with `--fast
 `watchGRPCStream.run` (3368 lines) 230s fresh with `--fast`, 100s after the edit, 54s with
 `--split`. A short proof re-checks in under a second.
 An edit early in a proof re-runs everything after it, so check from the top of what you changed.
+
+To find what a changed statement breaks, do not run a full `lake build` and read the failures:
+`etc/importers.py --uses NAME FILE` lists the modules importing `FILE` (directly or not) that mention
+`NAME`, `--files` as paths for `etc/lean-check.py`, `--leaves` as the short target list for `lake
+build`, `--count` how much a change rebuilds (`notes/spec-first-plan.md`, "The build budget").
 
 When a file an open file imports changes (its content: `touch` does not count), the next check
 reopens the file: the server rebuilds the changed imports with Lake, then elaborates the file in

@@ -30,18 +30,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- The batch lock's share of the free state after a commit from `st` (the hook ran into
 `st'`), paid by `payIn`: the new committed data `C'`, write transaction `tx'`. -/
 theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (tx' : Loc)
-    (m u n w u0 : Nat)
+    (m u n w u0 : Nat) (L : VData)
     (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
-    (hb' : bgOk P st' false n w u0) :
+    (hb' : bgOk P st' false n w u0) (hC' : C' = st'.S ∨ C' = st'.C) :
     payIn (GF := GF) γ st false m u ∗ ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-      ghostVar γ.view (1 : Qp).half.half (vData P (C', st'.R.reset)) ∗
+      viewQ γ (1 : Qp).half.half (vData P (C', st'.R.reset)) L ∗
       ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ∗
-      trkHalf γ P st'.S ⊢
+      trkHalf γ P st'.S ∗ fkHalf γ P st' ⊢
     |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
       payOut γ false m := by
-  iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk⟩
+  iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk, Hfk⟩
   have hR := hs.2.1
   have hcnt := hs.2.2.2.2.2.2.2.2.2
   have hb'0 := hb'
@@ -61,10 +61,13 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
-    isplitl [Hv Hr Ha Hm Hu Ho Hk]
-    · unfold batchGhostAt
+    isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
+    · unfold batchGhostAt batchViewQ
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOk_commit hC') $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
-      iframe Hv Hk
+      iframe Hk Hfk
+      isplitl [Hv]
+      · iexists L; iexact Hv
       iexists n - 1, w, u0
       iframe Hr Ha Hm Hu Ho
       ipureintro
@@ -85,10 +88,13 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
-    isplitl [Hv Hr Ha Hm Hu Ho Hk]
-    · unfold batchGhostAt
+    isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
+    · unfold batchGhostAt batchViewQ
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOk_commit hC') $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
-      iframe Hv Hk
+      iframe Hk Hfk
+      isplitl [Hv]
+      · iexists L; iexact Hv
       iexists n, w, w
       iframe Hr Ha Hm Hu Ho
       ipureintro
@@ -106,10 +112,13 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
-    isplitl [Hv Hr Ha Hm Hu Ho Hk]
-    · unfold batchGhostAt
+    isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
+    · unfold batchGhostAt batchViewQ
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOk_commit hC') $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
-      iframe Hv Hk
+      iframe Hk Hfk
+      isplitl [Hv]
+      · iexists L; iexact Hv
       iexists n, w, u0
       iframe Hr Ha Hm Hu Ho
       ipureintro
@@ -125,14 +134,15 @@ theorem payIn_setHw (γ : BNames) (st : BSess) (x stop : Bool) (m u : Nat) :
 /-- The commit opens the hook's window on the batch lock's state (`BSess.setHw`). -/
 theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
     batchLockedW (GF := GF) γ P b st false ⊢ batchLocked γ P b (st.setHw true) := by
-  unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, %Hok⟩, %Hwf⟩
+  unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW batchViewQ
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
   iexists t, db
   rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
   simp only [setHw_C, setHw_R, setHw_S]
   iframe Ht Hown Hph Hv
-  isplitl [Hr Ha Hm Hu Ho Hk]
+  isplitl [Hr Ha Hm Hu Ho Hk Hfk]
   · iexists n, w, u
+    ihave Hfk := fkHalf_mono γ P (st' := st.setHw true) (fkOk_setHw true) $$ Hfk
     iframe
     ipureintro
     exact bgOk_setHw true Hok

@@ -28,10 +28,10 @@ theorem authClient.AuthEnable.wp_proof
     (wp_retry : retryAuthClient.AuthEnable.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.AuthEnable.spec (GF := GF) (hG := hG) := by
-  intro api addr ci cd Spec Q
+  intro api conn addr ci cd Spec Q
   wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
-  iunfold authObjAt at Hapi
-  icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
+  iunfold authObjAtC at Hapi
+  icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   ihave Hsend : (pbAuthEnableRequest (GF := GF)).send «$a1_ptr» () $$ [«$a1»]
   · simp only [pbAuthEnableRequest]

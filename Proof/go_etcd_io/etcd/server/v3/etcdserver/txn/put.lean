@@ -111,7 +111,7 @@ theorem txn.put.wp_proof
     (hPutM : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
-  intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L tyX vX
+  intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L tyX vX crev
   wp_start as ⟨#Hctx, #Hct, Htx, #Hwrap, #Hp, Hprev, %Hneed, #Hlok, Hown⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit

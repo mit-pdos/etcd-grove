@@ -31,6 +31,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   wp_start as ⟨Hix, #Hkey⟩
   iunfold mvcc.ownIdxPriv at Hix
   icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

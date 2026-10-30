@@ -28,23 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **What `kv.Do` needs of its `Op`, for specs `Sp`, `Sr`, `Sd` registered at the connection**
-(the transport's terms, as the retry client's specs take them; `kv.Do.wp_proof` instantiates
-them with the members' specs, `kvPutSpec`, ...): a range, the method registered with `Sr` and the
-caller's `□ ▷ Sr (rangeWireOf o) Qr`; a put or a delete, `Sp`'s or `Sd`'s request precondition
-(`kvReqPre`). -/
-def doRunGen (api : Loc) (addr : List GoString) (o : OpFull)
-    (Sp : GrpcSpec (GF := GF) pbPutRequest pbPutResponse) (Qp : PutRespM → IProp GF)
-    (Sr : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)
-    (Sd : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
-    (Qd : DelRespM → IProp GF) : IProp GF :=
-  iprop((⌜o.t = W64 1⌝ ∗ sortNamesIf o.base.sortSet ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" Sr ∗
-      □ ▷ Sr (rangeWireOf o) Qr) ∨
-    (⌜o.t = W64 2⌝ ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Sp ∗
-      kvReqPre api addr (Sp (putWireOf o) Qp)) ∨
-    (⌜o.t = W64 3⌝ ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
-      kvReqPre api addr (Sd (deleteWireOf o) Qd)))
-
 /-- `kv.Do` for any specs registered at the connection (`doRunGen`): `doOut`. -/
 theorem kv.Do.wp_generic
     (wp_IsSortOptionValid : Op.IsSortOptionValid.spec (GF := GF) (hG := hG))
@@ -53,23 +36,11 @@ theorem kv.Do.wp_generic
     (wp_retry_Put : retryKVClient.Put.spec (GF := GF) (hG := hG))
     (wp_retry_DeleteRange : retryKVClient.DeleteRange.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
-    ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
-      (Sp : GrpcSpec (GF := GF) pbPutRequest pbPutResponse) (Qp : PutRespM → IProp GF)
-      (Sr : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)
-      (Sd : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
-      (Qd : DelRespM → IProp GF),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗
-        doRunGen api addr o Sp Qp Sr Qr Sd Qd }}
-      (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
-        (Val #(GoInterface.ok ci))) (Val #opv))
-    {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-        doOut o Qp Qr Qd r err }} := by
-  intro api addr ci cd opv o Sp Qp Sr Qr Sd Qd
+    kv.Do.specG (GF := GF) (hG := hG) := by
+  intro api conn addr ci cd opv o Sp Qp Sr Qr Sd Qd
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun⟩
-  iunfold kvObjAt at Hkv
-  icases Hkv with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
+  iunfold kvObjAtC at Hkv
+  icases Hkv with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, %Hsc⟩
   ihave Hat' := Hat
@@ -116,7 +87,7 @@ theorem kv.Do.wp_generic
     wp_auto
     wp_apply wp_toRangeRequest opv o $$ [] as %r ⟨%req, Hr, #Hk, #He, %Hreq⟩
     · iframe #; ipureintro; exact Ht
-    ihave #Hrun' : □ ▷ Sr (rangeReqOp req o.key o.base.rangeEnd) Qr $$ []
+    ihave #Hrun' : □ ▷ attemptPre conn (GoInterface.ok ci) Sr (rangeReqOp req o.key o.base.rangeEnd) Qr $$ []
     · rw [Hreq]; iexact Hrun
     wp_apply wp_retry_Range rkv conn addr Sr Qr ci cd r req o.key o.base.rangeEnd sl vs $$ [Hr]
       as %resp %err ⟨-, Hres⟩
@@ -161,7 +132,7 @@ theorem kv.Do.wp_generic
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
     obtain ⟨-, -, -, -, hlease, hiv, hil, -⟩ := Hf2
-    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Put" addr vs (Sp (putReqOp
+    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn (GoInterface.ok ci) Sp (putReqOp
         { state' := zeroValDef, Key' := opv.key', Value' := opv.val', Lease' := opv.leaseID',
           PrevKv' := opv.prevKV', IgnoreValue' := opv.ignoreValue',
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
@@ -212,7 +183,7 @@ theorem kv.Do.wp_generic
     icases Hat0 with ⟨%Hf, #Hend⟩
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
-    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (Sd (deleteReqOp
+    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn (GoInterface.ok ci) Sd (deleteReqOp
         { state' := zeroValDef, Key' := opv.key', RangeEnd' := opv.end', PrevKv' := opv.prevKV',
           unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.base.rangeEnd) Qd) $$ [Hrun]
@@ -269,10 +240,13 @@ theorem kv.Do.wp_members
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun⟩ HΦ
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
+  icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
+  -- the plain specs at every metadata (`GrpcSpec.md`)
   iapply (kv.Do.wp_generic wp_IsSortOptionValid wp_toRangeRequest wp_retry_Range wp_retry_Put
-    wp_retry_DeleteRange wp_ContextError api (ms.map SrvAt.addr) ci cd opv o (kvPutSpec ms)
-    (putAns ms F (putWireOf o) Q) (kvRangeSpec ms) (rangeAns ms c F (rangeWireOf o) Q)
-    (kvDeleteSpec ms) (delAns ms F (deleteWireOf o) Q)) $$ [Hat Hrun] HΦ
+    wp_retry_DeleteRange wp_ContextError api conn (ms.map SrvAt.addr) ci cd opv o
+    (GrpcSpec.md (kvPutSpec ms)) (putAns ms F (putWireOf o) Q)
+    (GrpcSpec.md (kvRangeSpec ms)) (rangeAns ms c F (rangeWireOf o) Q)
+    (GrpcSpec.md (kvDeleteSpec ms)) (delAns ms F (deleteWireOf o) Q)) $$ [Hat Hrun] HΦ
   iframe #
   iframe Hat
   iunfold doRunM at Hrun
@@ -283,9 +257,11 @@ theorem kv.Do.wp_members
     · ipureintro; exact Ht
     iframe Hsn
     isplitl []
-    · iapply (kvRegs_rpcRange ms) $$ Hregs
+    · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcRange ms) $$ Hregs
     imodintro
     inext
+    iapply (attemptPre_md conn (GoInterface.ok ci) (kvRangeSpec ms) (rangeWireOf o)
+      (rangeAns ms c F (rangeWireOf o) Q))
     iapply (rangeSpec_of ms c F (rangeWireOf o) Q)
     iframe Hk Hu
   · iright
@@ -293,18 +269,20 @@ theorem kv.Do.wp_members
     isplitl []
     · ipureintro; exact Hp.1
     isplitl []
-    · iapply (kvRegs_rpcPut ms) $$ Hregs
+    · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcPut ms) $$ Hregs
     iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
-      (putSpec_of ms F (putWireOf o) Q Hp.2))
+      ((putSpec_of ms F (putWireOf o) Q Hp.2).trans
+        (attemptPre_md conn (GoInterface.ok ci) (kvPutSpec ms) _ _)))
     iframe HF Hu
   · iright
     iright
     isplitl []
     · ipureintro; exact Hd.1
     isplitl []
-    · iapply (kvRegs_rpcDelete ms) $$ Hregs
+    · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcDelete ms) $$ Hregs
     iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
-      (deleteSpec_of ms F (deleteWireOf o) Q Hd.2))
+      ((deleteSpec_of ms F (deleteWireOf o) Q Hd.2).trans
+        (attemptPre_md conn (GoInterface.ok ci) (kvDeleteSpec ms) _ _)))
     iframe HF Hu
 
 /-- What `kv.Do`'s precondition says of the operation's kind. -/

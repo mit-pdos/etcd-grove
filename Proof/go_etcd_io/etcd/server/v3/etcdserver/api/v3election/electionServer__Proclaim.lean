@@ -94,7 +94,8 @@ theorem electionServer.Proclaim.wp_proof
     (try wp_auto)
     wp_apply hEH e s { key := key, rev := rev, sess := s, hdr := hdr } $$ [$Hcpkg $Hest] as Hest
     (try wp_auto)
-    wp_alloc r0 as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r0 at *
     (try wp_auto)
     iapply HΦ
     iright; ileft

@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 
 @[expose] public section
@@ -164,8 +165,10 @@ theorem EtcdServer.applyAll.wp_proof
   ihave #Hfl' : memFloorAtLeast mst γs (uint.Z ai') $$ []
   · rw [hai']; iexact Hflb
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs γp
-      (w + (unapplied ai ms).length) hok' hcap (by push_cast; omega)
+  imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x' _ $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
+  wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off hSINC s E ρ.wait γ ci b γr ep st'
+      ai' at' cs' a' t' x' mst γs γp (w + (unapplied ai ms).length) Hoff hok' hcap
+      (by push_cast; omega)
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe
@@ -239,12 +242,12 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
-    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG)) :
+    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w γa sa hM hRB
     Hms Hai1 Hok hEok hcap hdv haw
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, HtokR⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -, -⟩
@@ -272,8 +275,8 @@ theorem EtcdServer.applyAll.wp_proofOn
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB
     Hms Hai1 Hok hEok hdv
-    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR]
-    as ⟨Hfs, Hdv, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
+    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR HtokR]
+    as ⟨Hfs, Hdv, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
       ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   · iframe #; iframe
   iunfold srvFS at Hfs
@@ -337,7 +340,7 @@ theorem EtcdServer.applyAll.wp_proofOn
       iframe Hsrv
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr HAR
+      iframe Hai Hat Hcs Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -363,8 +366,9 @@ theorem EtcdServer.applyAll.wp_proofOn
   ihave #Hfl' : memFloorAtLeast mst γs (uint.Z ai') $$ []
   · rw [hai']; iexact Hflb
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs γp
-      (w + (unapplied ai ms).length) sa' hok' hcap (by push_cast; omega)
+  wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on hSINC s E ρ.wait γ ci b γr ep st'
+      ai' at' cs' a' t' x' mst γs γp (w + (unapplied ai ms).length) sa'
+      (by rw [apply.AEnv.authOn_eq, hM]; rfl) hok' hcap (by push_cast; omega)
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe
@@ -414,12 +418,14 @@ theorem EtcdServer.applyAll.wp_proofOn
     (try wp_auto)
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
+    ihave HtokR : srvTokRights E (ciEff γ st''.k) $$ [HtokR]
+    · rw [Hst''.2]; iexact HtokR
     iapply HΦ
     iexists γ, TM, E, b, st'', ai', at', a', t', cs'
     iframe Hsrv
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr HAR
+    iframe Hai Hat Hcs Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR
     isplitl [Hao]
     · iexact Hao
     isplitr

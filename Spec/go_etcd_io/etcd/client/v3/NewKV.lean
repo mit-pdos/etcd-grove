@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -21,15 +21,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewKV(c)` on a `*Client` with a connection to `addr` (`clientKVAt`): a new `*kv` over a
-`*retryKVClient` on that connection, with the client's call options (`kvObjAt`), as a `KV`. -/
+/-- `NewKV(c)` on a `*Client` with the connection `conn` (`clientKVAtS`): a new `*kv` over a
+`*retryKVClient` on that connection, with the client's call options (`kvObjS`), as a `KV` (the auth plan's C1, 2026-10-28: without the connection's fact, which `newClient` attaches once
+the client is ready, `InvClientAuth.lean`). -/
 abbrev NewKV.spec : Prop :=
-  ∀ (cl : Loc) (addr : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAt cl addr }}
+  ∀ (cl conn : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAtS cl conn }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewKV)) (Val #cl))
   {{ (v : GoInterface), RET #v; ∃ api : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api⌝ ∗
-      kvObjAt api addr }}
+      kvObjS api conn }}
 
 end spec
 

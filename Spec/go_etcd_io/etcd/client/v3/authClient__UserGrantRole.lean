@@ -23,17 +23,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `auth.UserGrantRole(ctx, ...)` on the client's `*authClient` over a connection to `addr`
-(`authObjAt`): `auth.remote.UserGrantRole(ctx, &pb.AuthUserGrantRoleRequest{User: user, Role: role},
+(`authObjAtC`): `auth.remote.UserGrantRole(ctx, &pb.AuthUserGrantRoleRequest{User: user, Role: role},
 auth.callOpts...)`, the error through `ContextError`: the call's answer (`authCallOut`), for
 a spec `Spec` the server registered for the method and the caller's persistent
-`□ ▷ Spec m Q` at the request's model `m`. -/
+`□ ▷ attemptPre conn (GoInterface.ok ci) Spec m Q` at the request's model `m`. -/
 abbrev authClient.UserGrantRole.spec : Prop :=
-  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (user role : GoString)
-    (Spec : GrpcSpec (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Q : Unit → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAt api addr ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcs addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗
-      □ ▷ Spec (user, role) Q }}
+    (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Q : Unit → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ci) Spec (user, role) Q }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"UserGrantRole")) (Val #(GoInterface.ok ci))) (Val #user)) (Val #role))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCallOut Q resp err }}
 

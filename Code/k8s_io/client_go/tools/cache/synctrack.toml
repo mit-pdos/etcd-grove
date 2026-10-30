@@ -1,0 +1,6 @@
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the shared informer's per-handler
+# sync tracking.
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

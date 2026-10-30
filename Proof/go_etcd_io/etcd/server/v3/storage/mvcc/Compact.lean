@@ -63,14 +63,28 @@ theorem crevN_neg : crevN (-1) = 0 := rfl
 
 /-! ### The key index (`key_index.go`) -/
 
-/-- `doCompact`'s generation: from the oldest, the first that is the last one or whose
-tombstone (last revision) has a main at or above `atRev`. -/
+/-- The main of a generation's last revision (its tombstone, for one that is not the last). -/
+def tombZ (g : Gen) : Int := sint.Z (g.revs.getLastD Rev.zero).main
+
+/-- `generation.isRecreatedAt(rev)`: not empty, its first revision's main is `rev`. -/
+def genRecreatedAt (atRev : w64) (g : Gen) : Bool :=
+  match g.revs with
+  | [] => false
+  | r :: _ => decide (sint.Z r.main = sint.Z atRev)
+
+/-- **`doCompact` steps past `g`** (followed by `g'`): its tombstone is below `atRev`, or at `atRev`
+with `g'` re-created in that revision (the key deleted and put again in it: the put, at a higher
+sub revision, supersedes the tombstone; etcd-io/etcd#22377, the fork's `goose-lean-compactfix`,
+M2, 2026-10-28; until then `doCompact` stopped at a tombstone at `atRev`). -/
+def genAdv (atRev : w64) (g g' : Gen) : Bool :=
+  decide (tombZ g < sint.Z atRev) || (decide (tombZ g = sint.Z atRev) && genRecreatedAt atRev g')
+
+/-- `doCompact`'s generation: from the oldest, the first that is the last one or that `doCompact`
+does not step past (`genAdv`). -/
 def compactGenIdx (atRev : w64) : List Gen → Nat
   | [] => 0
   | [_] => 0
-  | g :: g' :: gs =>
-    if sint.Z (g.revs.getLastD Rev.zero).main < sint.Z atRev then compactGenIdx atRev (g' :: gs) + 1
-    else 0
+  | g :: g' :: gs => if genAdv atRev g g' then compactGenIdx atRev (g' :: gs) + 1 else 0
 
 /-- `doCompact`'s revision index in its generation: the last revision with main at or below
 `atRev` (`walk` with `get`'s predicate), `-1` if none. -/
@@ -115,9 +129,6 @@ theorem kiCompact_modified (c : w64) (ki : KeyIndex) : (kiCompact c ki).modified
 
 /-! ### Helpers -/
 
-/-- The main of a generation's last revision (its tombstone, for one that is not the last). -/
-def tombZ (g : Gen) : Int := sint.Z (g.revs.getLastD Rev.zero).main
-
 theorem compactGenIdx_lt (atRev : w64) : ∀ (G : List Gen), G ≠ [] → compactGenIdx atRev G < G.length
   | [], h => absurd rfl h
   | [_], _ => by simp [compactGenIdx]
@@ -127,8 +138,54 @@ theorem compactGenIdx_lt (atRev : w64) : ∀ (G : List Gen), G ≠ [] → compac
     · have := compactGenIdx_lt atRev (g' :: gs) (by simp); simp at this ⊢; omega
     · simp
 
+theorem genAdv_le {atRev : w64} {g g' : Gen} (h : genAdv atRev g g' = true) :
+    tombZ g ≤ sint.Z atRev := by
+  unfold genAdv at h; simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h; omega
+
+theorem genAdv_of_lt {atRev : w64} {g : Gen} (g' : Gen) (h : tombZ g < sint.Z atRev) :
+    genAdv atRev g g' = true := by
+  unfold genAdv; simp [h]
+
+theorem genAdv_ge {atRev : w64} {g : Gen} (g' : Gen) (h : sint.Z atRev < tombZ g) :
+    genAdv atRev g g' = false := by
+  unfold genAdv; simp only [Bool.or_eq_false_iff, Bool.and_eq_false_iff, decide_eq_false_iff_not]; omega
+
+theorem genAdv_mono {c c' : w64} {g g' : Gen} (hcc : sint.Z c ≤ sint.Z c')
+    (h : genAdv c g g' = true) : genAdv c' g g' = true := by
+  unfold genAdv at h ⊢
+  simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h ⊢
+  rcases h with h | ⟨h1, h2⟩
+  · left; omega
+  · by_cases he : sint.Z c = sint.Z c'
+    · right; refine ⟨by omega, ?_⟩
+      unfold genRecreatedAt at h2 ⊢; split at h2 <;> simp_all
+    · left; omega
+
+theorem genAdv_tomb {atRev : w64} {g1 g2 : Gen} (g' : Gen) (h : tombZ g1 = tombZ g2) :
+    genAdv atRev g1 g' = genAdv atRev g2 g' := by
+  unfold genAdv; rw [h]
+
+/-- The next generation of a put above `atRev`: re-created at `atRev` as before (a put adds a
+revision at the end, or is the first revision, whose main is above `atRev`). -/
+theorem genRecreatedAt_genPut (atRev : w64) (g : Gen) (rev : Rev)
+    (hc : sint.Z atRev < sint.Z rev.main) :
+    genRecreatedAt atRev (genPut g rev) = genRecreatedAt atRev g := by
+  unfold genRecreatedAt; rw [genPut_revs]
+  cases h : g.revs with
+  | nil => simp; omega
+  | cons r rs => simp
+
+theorem genAdv_genPut (atRev : w64) (g g' : Gen) (rev : Rev) (hc : sint.Z atRev < sint.Z rev.main) :
+    genAdv atRev g (genPut g' rev) = genAdv atRev g g' := by
+  unfold genAdv; rw [genRecreatedAt_genPut atRev g' rev hc]
+
+/-- An empty generation is not re-created. -/
+theorem genAdv_empty (atRev : w64) (g : Gen) :
+    genAdv atRev g Gen.empty = decide (tombZ g < sint.Z atRev) := by
+  unfold genAdv genRecreatedAt; simp [Gen.empty]
+
 theorem compactGenIdx_before (atRev : w64) : ∀ (G : List Gen) (j : Nat), j < compactGenIdx atRev G →
-    tombZ (G.getD j Gen.empty) < sint.Z atRev
+    genAdv atRev (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty) = true
   | [], j, h => by simp [compactGenIdx] at h
   | [_], j, h => by simp [compactGenIdx] at h
   | g :: g' :: gs, j, h => by
@@ -136,14 +193,21 @@ theorem compactGenIdx_before (atRev : w64) : ∀ (G : List Gen) (j : Nat), j < c
     split at h
     · rename_i hlt
       cases j with
-      | zero => simp only [List.getD_cons_zero]; exact hlt
+      | zero => simp only [List.getD_cons_zero, List.getD_cons_succ]; exact hlt
       | succ j =>
         have := compactGenIdx_before atRev (g' :: gs) j (by omega)
         simp only [List.getD_cons_succ]; exact this
     · simp at h
 
+/-- Before the compacted generation, the tombstones are at or below `atRev`. -/
+theorem compactGenIdx_before_le (atRev : w64) (G : List Gen) (j : Nat) (h : j < compactGenIdx atRev G) :
+    tombZ (G.getD j Gen.empty) ≤ sint.Z atRev :=
+  genAdv_le (compactGenIdx_before atRev G j h)
+
 theorem compactGenIdx_stop (atRev : w64) : ∀ (G : List Gen), G ≠ [] →
-    compactGenIdx atRev G + 1 = G.length ∨ ¬ tombZ (G.getD (compactGenIdx atRev G) Gen.empty) < sint.Z atRev
+    compactGenIdx atRev G + 1 = G.length ∨
+      genAdv atRev (G.getD (compactGenIdx atRev G) Gen.empty)
+        (G.getD (compactGenIdx atRev G + 1) Gen.empty) = false
   | [], h => absurd rfl h
   | [_], _ => by simp [compactGenIdx]
   | g :: g' :: gs, _ => by
@@ -152,11 +216,11 @@ theorem compactGenIdx_stop (atRev : w64) : ∀ (G : List Gen), G ≠ [] →
     · rcases compactGenIdx_stop atRev (g' :: gs) (by simp) with h | h
       · left; simp at h ⊢; omega
       · right; simp only [List.getD_cons_succ]; exact h
-    · rename_i hlt; right; simp only [List.getD_cons_zero]; exact hlt
+    · rename_i hlt; right; simp only [List.getD_cons_zero, List.getD_cons_succ]; simpa using hlt
 
 theorem compactGenIdx_eq (atRev : w64) : ∀ (G : List Gen) (gi : Nat), gi < G.length →
-    (∀ j, j < gi → tombZ (G.getD j Gen.empty) < sint.Z atRev) →
-    (gi + 1 = G.length ∨ ¬ tombZ (G.getD gi Gen.empty) < sint.Z atRev) →
+    (∀ j, j < gi → genAdv atRev (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty) = true) →
+    (gi + 1 = G.length ∨ genAdv atRev (G.getD gi Gen.empty) (G.getD (gi + 1) Gen.empty) = false) →
     compactGenIdx atRev G = gi
   | [], gi, h, _, _ => by simp at h
   | [_], gi, h, _, _ => by simp at h; simp [compactGenIdx]; omega
@@ -166,10 +230,10 @@ theorem compactGenIdx_eq (atRev : w64) : ∀ (G : List Gen) (gi : Nat), gi < G.l
     | zero =>
       rcases hs with hs | hs
       · simp at hs
-      · simp only [List.getD_cons_zero] at hs; simp only [tombZ] at hs; simp only [hs, ↓reduceIte]
+      · simp only [List.getD_cons_zero, List.getD_cons_succ] at hs; simp only [hs]; rfl
     | succ gi =>
       have h0 := hb 0 (by omega)
-      simp only [List.getD_cons_zero, tombZ] at h0
+      simp only [List.getD_cons_zero, List.getD_cons_succ] at h0
       simp only [h0, ↓reduceIte, Nat.add_right_cancel_iff]
       apply compactGenIdx_eq atRev (g' :: gs) gi (by simp at h ⊢; omega)
       · intro j hj; have := hb (j + 1) (by omega); simp only [List.getD_cons_succ] at this; exact this
@@ -639,7 +703,7 @@ theorem findAux_below_none {ki : KeyIndex} (hwf : KiWf ki) (c a : w64) (hca : si
   cases h : compactGenIdx c ki.gens with
   | zero => rfl
   | succ m =>
-    have hb := compactGenIdx_before c ki.gens m (by omega)
+    have hb := compactGenIdx_before_le c ki.gens m (by omega)
     apply kiFindGenAux_tomb
     · exact hwf.nonlast m (by omega)
     · omega
@@ -771,6 +835,7 @@ theorem compactGenIdx_neg {ki : KeyIndex} (hs : KiS ki) : compactGenIdx (W64 (-1
   have hpos := List.length_pos_iff.2 hs.wf.ne
   apply compactGenIdx_eq _ _ 0 hpos (fun j hj => absurd hj (Nat.not_lt_zero _))
   right
+  apply genAdv_ge
   unfold tombZ
   have hm1 : sint.Z (W64 (-1)) = -1 := by decide
   rw [hm1]
@@ -817,7 +882,8 @@ theorem compactGenIdx_compact_ge {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64)
     intro hcon
     rcases compactGenIdx_stop c' ki.gens hne with h | h
     · omega
-    · exact h (by have := compactGenIdx_before c ki.gens (compactGenIdx c' ki.gens) (by omega); omega)
+    · have := compactGenIdx_before c ki.gens (compactGenIdx c' ki.gens) (by omega)
+      rw [genAdv_mono hcc this] at h; cases h
   refine ⟨hge, ?_⟩
   generalize hgi : compactGenIdx c ki.gens = gi at *
   generalize hm : compactGenIdx c' ki.gens = m at *
@@ -829,19 +895,23 @@ theorem compactGenIdx_compact_ge {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64)
   · intro j hj
     cases j with
     | zero =>
-      rw [dropSet_getD0 _ _ _ _ hlt, cutGen_tombZ]
+      rw [dropSet_getD0 _ _ _ _ hlt, dropSet_getDs _ _ 0, genAdv_tomb _ (cutGen_tombZ c _)]
       exact compactGenIdx_before c' ki.gens gi (by omega)
     | succ j =>
-      rw [dropSet_getDs]
+      rw [dropSet_getDs, dropSet_getDs, show gi + (j + 1) + 1 = gi + j + 1 + 1 by omega]
       exact compactGenIdx_before c' ki.gens (gi + j + 1) (by omega)
   · rcases compactGenIdx_stop c' ki.gens hne with h | h
     · left; rw [dropSet_length]; omega
     · right
       rw [hm] at h
       rcases Nat.lt_or_eq_of_le hge with hgt | heq
-      · rw [show m - gi = (m - gi - 1) + 1 by omega, dropSet_getDs,
-          show gi + (m - gi - 1) + 1 = m by omega]; exact h
-      · subst heq; rw [Nat.sub_self, dropSet_getD0 _ _ _ _ hlt, cutGen_tombZ]; exact h
+      · rw [show m - gi = (m - gi - 1) + 1 by omega, dropSet_getDs, dropSet_getDs,
+          show gi + (m - gi - 1) + 1 = m by omega, show gi + (m - gi - 1 + 1) + 1 = m + 1 by omega]
+        exact h
+      · subst heq
+        rw [Nat.sub_self, dropSet_getD0 _ _ _ _ hlt, dropSet_getDs _ _ 0,
+          genAdv_tomb _ (cutGen_tombZ c _)]
+        exact h
 
 theorem cutGen_cutGen (c c' : w64) (hcc : sint.Z c ≤ sint.Z c') (g : Gen) :
     cutGen c' (cutGen c g) = cutGen c' g := by
@@ -953,7 +1023,32 @@ theorem cutGen_genPut (c : w64) (g : Gen) (rev : Rev) (hc : sint.Z c < sint.Z re
       intro h; have := congrArg List.length h; simp at this; omega
     simp only [hne, hd, ↓reduceIte, List.drop_append_of_le_length (Nat.le_of_lt hj)]
 
-theorem compactGenIdx_put {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev) :
+/-- Appending the default changes no `getD` of it. -/
+theorem getD_append_default {α : Type} (l : List α) (d : α) (i : Nat) :
+    (l ++ [d]).getD i d = l.getD i d := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD]
+  rcases Nat.lt_or_ge i l.length with h | h
+  · rw [List.getElem?_append_left h]
+  · rw [List.getElem?_append_right h, List.getElem?_eq_none h]
+    rcases Nat.lt_or_ge (i - l.length) 1 with h1 | h1
+    · rw [show i - l.length = 0 by omega]; simp
+    · rw [List.getElem?_eq_none (by simp; omega)]
+
+/-- A put above `c` into the last generation leaves `doCompact`'s step past each generation as it
+was (the last's first revision changes only if it was empty, to one above `c`). -/
+theorem genAdv_put_pair {G : List Gen} (hne : G ≠ []) (c : w64) (rev : Rev)
+    (hc : sint.Z c < sint.Z rev.main) (j : Nat) (hj : j + 1 < G.length) :
+    genAdv c ((G.dropLast ++ [genPut (G.getLastD Gen.empty) rev]).getD j Gen.empty)
+      ((G.dropLast ++ [genPut (G.getLastD Gen.empty) rev]).getD (j + 1) Gen.empty) =
+    genAdv c (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty) := by
+  rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+  by_cases hl : j + 1 < G.length - 1
+  · rw [getD_dropLast_append_lt _ _ _ _ hl]
+  · have he : j + 1 = G.length - 1 := by omega
+    rw [he, getD_dropLast_append_last _ _ _ hne, genAdv_genPut c _ _ rev hc, getLastD_eq_getD _ _ hne]
+
+theorem compactGenIdx_put {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
+    (hc : sint.Z c < sint.Z rev.main) :
     compactGenIdx c (ki.gens.dropLast ++ [genPut (ki.gens.getLastD Gen.empty) rev]) =
       compactGenIdx c ki.gens := by
   have hne := hwf.ne
@@ -962,12 +1057,12 @@ theorem compactGenIdx_put {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev) 
   apply compactGenIdx_eq
   · omega
   · intro j hj
-    rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+    rw [genAdv_put_pair hne c rev hc j (by omega)]
     exact compactGenIdx_before c ki.gens j hj
   · by_cases hl : compactGenIdx c ki.gens + 1 = ki.gens.length
     · left; omega
     · right
-      rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+      rw [genAdv_put_pair hne c rev hc _ (by omega)]
       rcases compactGenIdx_stop c ki.gens hne with h | h
       · omega
       · exact h
@@ -994,7 +1089,7 @@ theorem kiCompact_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
   have hne' : (kiCompact c ki).gens ≠ [] := by
     intro h; have := congrArg List.length h; rw [hG, dropSet_length] at this; simp at this; omega
   refine KeyIndex.ext' rfl ?_
-  rw [kiCompact_gens c (kiPut ki rev), kiPut_gens_of_ne hne, compactGenIdx_put hwf, kiPut_gens_of_ne hne',
+  rw [kiCompact_gens c (kiPut ki rev), kiPut_gens_of_ne hne, compactGenIdx_put hwf c rev hc, kiPut_gens_of_ne hne',
     kiCompact_getLastD hwf, hG]
   generalize hgi : compactGenIdx c ki.gens = gi at *
   split
@@ -1020,13 +1115,16 @@ theorem kiCompact_appendEmpty {ki : KeyIndex} (hne : ki.gens ≠ []) (c : w64)
     apply compactGenIdx_eq
     · simp; omega
     · intro j hj
-      rw [getD_append_lt _ _ _ _ (by omega)]
+      rw [getD_append_default, getD_append_default]
       exact compactGenIdx_before c ki.gens j hj
     · right
-      rw [getD_append_lt _ _ _ _ hlt]
+      rw [getD_append_default, getD_append_default]
       rcases compactGenIdx_stop c ki.gens hne with h | h
       · rw [getLastD_eq_getD _ _ hne, show ki.gens.length - 1 = compactGenIdx c ki.gens by omega] at hlast
-        exact hlast
+        have hend : ∀ (L : List Gen), L.getD L.length Gen.empty = Gen.empty := fun L => by
+          rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+        rw [h, hend, genAdv_empty]
+        simpa using hlast
       · exact h
   refine KeyIndex.ext' rfl ?_
   show (kiCompact c { ki with gens := ki.gens ++ [Gen.empty] }).gens = (kiCompact c ki).gens ++ [Gen.empty]
@@ -1162,13 +1260,16 @@ theorem compactGenIdx_appendEmpty {G : List Gen} (hne : G ≠ []) (c : w64)
   apply compactGenIdx_eq
   · simp; omega
   · intro j hj
-    rw [getD_append_lt _ _ _ _ (by omega)]
+    rw [getD_append_default, getD_append_default]
     exact compactGenIdx_before c G j hj
   · right
-    rw [getD_append_lt _ _ _ _ hlt]
+    rw [getD_append_default, getD_append_default]
     rcases compactGenIdx_stop c G hne with h | h
     · rw [getLastD_eq_getD _ _ hne, show G.length - 1 = compactGenIdx c G by omega] at hlast
-      exact hlast
+      have hend : ∀ (L : List Gen), L.getD L.length Gen.empty = Gen.empty := fun L => by
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+      rw [h, hend, genAdv_empty]
+      simpa using hlast
     · exact h
 
 theorem kiAvail_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
@@ -1177,7 +1278,7 @@ theorem kiAvail_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
   have hlt := compactGenIdx_lt c ki.gens hne
   unfold kiAvail
   simp only []
-  rw [kiPut_gens_of_ne hne, compactGenIdx_put hwf]
+  rw [kiPut_gens_of_ne hne, compactGenIdx_put hwf c rev hc]
   by_cases hl : compactGenIdx c ki.gens + 1 = ki.gens.length
   · rw [show compactGenIdx c ki.gens = ki.gens.length - 1 by omega, getD_dropLast_append_last _ _ _ hne,
       genPut_revs, genWalk_append_true _ _ _ (by simp [pAbove]; omega), getLastD_eq_getD _ _ hne]
@@ -1605,6 +1706,7 @@ theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc :
       have hne' : (ki.gens.getD j' Gen.empty).revs ≠ [] := hs.wf.nonlast j' (by omega)
       have htm := getLastD_mem _ Rev.zero hne'
       have hlt := hs.cross hj' hgxlt htm hrmem
+      apply genAdv_of_lt
       unfold tombZ
       rw [hcw]
       have hle := Rev.lt_main_le hlt
@@ -1654,6 +1756,7 @@ theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc :
       · exact Or.inl hl
       · right
         rw [hg]
+        apply genAdv_ge
         unfold tombZ
         rw [hcw]
         have : ¬ sint.Z (g.revs.getLastD Rev.zero).main ≤ sint.Z atRev := fun h' => hnot ⟨by omega, h'⟩

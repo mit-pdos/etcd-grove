@@ -1,0 +1,6 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): the generic `Set[T]`, the
+# workqueue's dirty and processing sets.
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

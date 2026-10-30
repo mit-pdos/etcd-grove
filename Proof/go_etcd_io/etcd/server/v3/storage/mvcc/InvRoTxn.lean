@@ -33,10 +33,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- The `txnReadWrite` at `trw` wraps a read transaction of `log` at `rev`, at the compaction
-revision `crev` with the reader's tag `Z` (by default the frozen transaction: `isTxnRead`'s
-defaults; 2026-10-13, unit 6a), stepping the trace `trace`. -/
+revision `crev` with the reader's tag `Z` (by default `True`: `isTxnRead`'s; 2026-10-13, unit 6a;
+M2, S1), stepping the trace `trace`. -/
 def isRoTxnWrite (trw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log) (rev : w64)
-    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
+    (crev : Int) (Z : IProp GF := iprop(True)) : IProp GF :=
   iprop(∃ mw : Loc,
     trw.[txnReadWrite, go!"TxnRead"] ↦
       (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface) ∗
@@ -54,14 +54,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 open Iris.ProofMode in
 /-- The wrapped read transaction's trace, borrowed (`isTxnRead_trace_acc`). -/
 theorem isRoTxnWrite_trace_acc (trw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log)
-    (rev : w64) :
-    isRoTxnWrite (GF := GF) trw s γ trace log rev ⊢
+    (rev : w64) (crev : Int) :
+    isRoTxnWrite (GF := GF) trw s γ trace log rev crev ⊢
       (∃ te, traceutil.ownTrace trace te) ∗
-        ((∃ te, traceutil.ownTrace trace te) -∗ isRoTxnWrite trw s γ trace log rev) := by
+        ((∃ te, traceutil.ownTrace trace te) -∗ isRoTxnWrite trw s γ trace log rev crev) := by
   iintro H
   iunfold isRoTxnWrite at H
   icases H with ⟨%mw, Hf, Htx⟩
-  icases isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨Htrc, Hback⟩
+  icases isTxnRead_trace_acc mw s γ trace log rev crev $$ Htx with ⟨Htrc, Hback⟩
   iframe Htrc
   iintro Htrc
   iunfold isRoTxnWrite

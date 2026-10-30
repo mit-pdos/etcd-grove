@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Perennial.Proof.context
 public import Perennial.Ghost.Token
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
 
 @[expose] public section
 
@@ -270,18 +271,33 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
 
-/-- **The compactor** (`s.compactor`): nil, until the spec-first pilot's glue
-(`notes/compactor-pilot-plan.md`) replaces this contract with the compactor's own
-(`v3compactor.compactorOk`, whose `Run` takes the environment's contracts): `NewServer`'s premise
-`AutoCompactionRetention = 0` makes it nil, and a non-nil contract here would have to assume of the
-real compactor what it does not do (a `Run` with no precondition; the pilot's fourth review). Since
-the fork's fix, `start()` runs it (`issues/etcd-compactor-started-before-start.md`), `run` pauses and
-resumes it. -/
+/-- **The compactor** (`s.compactor`, persistent: what `run` uses): nil (the compactor off,
+`AutoCompactionRetention = 0`), or a compactor with the frozen contract of the spec-first pilot
+(`v3compactor.compactorOk`: its `Stop`, `Pause`, `Resume`, and its `Run` from a run token and a
+run precondition; M2, `notes/m2-plan.md`, S4). `run` pauses and resumes it (persistent triples);
+`start` runs it once (`compactorRun`). -/
 def compactorOk (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝)
+  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ (T P : IProp GF), v3compactor.compactorOk c T P)
 
 instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF := GF) c) := by
   unfold compactorOk; infer_instance
+
+/-- **The compactor's run, once** (M2, S4; not persistent): what `start`'s `s.compactor.Run()`
+spends: nil, or the compactor's contract with its run token `T` and its run precondition `P`
+(`NewServer` makes them: the run token from `v3compactor.New`, `P` the environment's contracts,
+`v3compactor.runPre`). -/
+def compactorRun (c : GoInterface) : IProp GF :=
+  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ (T P : IProp GF), v3compactor.compactorOk c T P ∗ T ∗ P)
+
+/-- The run's contract is the compactor's. -/
+theorem compactorRun_ok (c : GoInterface) :
+    compactorRun (GF := GF) c ⊢ compactorOk c := by
+  iintro H
+  iunfold compactorRun at H
+  iunfold compactorOk
+  icases H with (%H | ⟨%T, %P, #Hc, -, -⟩)
+  · ileft; ipureintro; exact H
+  · iright; iexists T, P; iexact Hc
 
 /-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`; not persistent: the
 snapshot changes once the server takes one; since D17d, 2026-10-18, proved by `NewServer` from the

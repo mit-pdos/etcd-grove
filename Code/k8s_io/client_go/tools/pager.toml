@@ -1,0 +1,5 @@
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the reflector's paginated list.
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

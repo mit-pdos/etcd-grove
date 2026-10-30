@@ -47,7 +47,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r user rn b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hbound, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hbound, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   simp only [AuthErr.var]
@@ -64,6 +64,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply HBatch as %tx Htx
@@ -233,7 +234,8 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         wp_apply h_Warn
         · ipureintro; exact Hlgnn
         (try wp_auto)
-        wp_alloc resp as Hresp
+        irename «$r0» => Hresp
+        generalize «$r0_ptr» = resp at *
         icases typedPointsto_split _ _ _ $$ Hresp with Hresp
         simp only [TypedPointsto.typedPointstoDef]
         iNamed Hresp
@@ -325,8 +327,9 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       · iExactEq HL; rw [Hurn]
       obtain ⟨Hrevfit, Hfit⟩ := Hstep
       have Hfit' := Hfit _ _ hstepR rfl
+      ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstepR $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 user xs') Post hs st0)
-        $$ [$Hinv $HLk $HL $Hown] as ⟨%rev, %Hrev, HL, Hown⟩
+        $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
@@ -371,7 +374,8 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp

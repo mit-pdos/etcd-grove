@@ -196,14 +196,14 @@ store's names at the physical names `p` (`mvcc.StoreNames.withPhys`), the batch 
 write right `RW` of that backend; every other field (the store's logical names, `RD`, `γrev`,
 `authOn`, `FS`, `γbe`, `s`) kept. What `applySnapshot`'s `NewUberApplier` takes after the swap. -/
 def apply.AEnv.onBe (E : apply.AEnv GF) (p : mvcc.PhysNames) (P : IProp GF) (f : val)
-    (ciC : IProp GF → Prop) (RO : apply.RestM → IProp GF) (RW : IProp GF) : apply.AEnv GF :=
+    (ciC : IProp GF → w64 → Prop) (RO : apply.RestM → IProp GF) (RW : IProp GF) : apply.AEnv GF :=
   { E with γ := E.γ.withPhys p, P := P, f := f, ciC := ciC, RO := RO, RW := RW }
 
 /-- **The apply thread's backend after a batch** (D22 receiver epochs, S7f): the protocol's names
 `γ'` are `γ`'s at some physical names, the environment `E'` is `E` on some backend
 (`AEnv.onBe`). `applyAll` keeps its backend but `applySnapshot` moves it (S8). -/
 def beSucc (γ : ApplyNames) (E : apply.AEnv GF) (γ' : ApplyNames) (E' : apply.AEnv GF) : Prop :=
-  γ' = γ.withPh γ'.ph ∧ ∃ (p : mvcc.PhysNames) (P : IProp GF) (f : val) (ciC : IProp GF → Prop)
+  γ' = γ.withPh γ'.ph ∧ ∃ (p : mvcc.PhysNames) (P : IProp GF) (f : val) (ciC : IProp GF → w64 → Prop)
     (RO : apply.RestM → IProp GF) (RW : IProp GF), E' = E.onBe p P f ciC RO RW
 
 theorem beSucc_refl (γ : ApplyNames) (E : apply.AEnv GF) : beSucc γ E γ E :=

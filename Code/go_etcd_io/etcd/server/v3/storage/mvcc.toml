@@ -15,7 +15,7 @@ translate = ["!*",
   # key_index.go
   "ErrRevisionNotFound", "keyIndex.put", "keyIndex.tombstone", "keyIndex.get",
   "keyIndex.isEmpty", "keyIndex.findGeneration", "keyIndex.Less",
-  "generation.isEmpty", "generation.walk", "keyIndex.compact", "keyIndex.keep",
+  "generation.isEmpty", "generation.isRecreatedAt", "generation.walk", "keyIndex.compact", "keyIndex.keep",
   "keyIndex.doCompact", "keyIndex.restore", "keyIndex.restoreTombstone",
   # index.go
   "newTreeIndex", "treeIndex.Put", "treeIndex.Get", "treeIndex.unsafeGet",

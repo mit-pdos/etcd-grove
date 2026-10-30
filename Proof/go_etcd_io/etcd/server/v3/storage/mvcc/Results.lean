@@ -12,7 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -220,12 +220,14 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
     (Del : GoString → IProp GF) (Cmp : Prop) (hC : ¬ Cmp) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend γ P W Pk b ∗ mvcc.keySized γ P b ⊢
+      backend.isBackend γ P W Pk b ∗ mvcc.keySized γ P b ∗ backend.dlNoDel γ ⊢
       mvcc.isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk Del W W iprop(True) Cmp
+        (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk Del W W
+        iprop(True) Cmp
         Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b)
-        (fun r => iprop(backend.rbOwn γ r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) :=
+        (fun r => iprop(backend.rbOwn γ r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b)
+        (MW := iprop(∃ f : Nat, backend.fkOwn γ f)) :=
   mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
     backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
     backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
@@ -253,15 +255,21 @@ proof and the backend's results). -/
 theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
-    (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
+        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
+        -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)
+        backend.dlInit d.γB ∗
+        -- (question 5's core stage, part (4)) in compaction mode, the compaction keys' values tracked
+        -- (the backend's constructor's `fkCl`)
+        □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -281,30 +289,127 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
             (interface.mkOk (go.GoType.PointerType
               go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty) #wv : GoInterface) ∗
           mvcc.isWriteView wv s γ) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} :=
-  mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
-    backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
-    backend.backend.wp_Size backend.backend.wp_SizeInUse
-    backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
-    backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
-    backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
-    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
-    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-    backend.batchTxBuffered.wp_UnsafeCreateBucket
-    backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb
+        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
+  iintro %Φ H HΦ
+  iapply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
+      backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+      backend.backend.wp_Size backend.backend.wp_SizeInUse
+      backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+      backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+      backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+      backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+      backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+      backend.batchTxBuffered.wp_UnsafeCreateBucket
+      backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
+      schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
+      backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
+      lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb) $$ %Φ [H]
+  · iexact H
+  inext
+  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -⟩
+  iapply HΦ
+  iexists γ
+  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr
+  ipureintro; exact Hγ
+
+/-- **`NewStore` over a compacting real backend, linked** (question 5's stage 6, the close):
+`mvcc_NewStore_backend` at a backend record in compaction mode (`hcm : d.cm = true`; the
+compaction keys' values tracked, `fkV d.γB true`), its store ready for the compaction's results.
+The store supports the compaction (`storeCmp γ`, `mvcc_store_Compact`'s premise), and the right to
+close it is given up for the compaction right at `-1` (`compactRight_of_closer`), with `storeStop`.
+So `store.Compact.spec`'s premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`,
+`storeStop`, `compactRight γ (-1)`, `idxCert γ.idx [[], []]`, `hookIs`) are this post's; the caller
+brings the rest (the critical-section contract, the trace, and the reader's token `storeRT γ`). One
+reader of the pool is kept back for the compaction job (`nJobRd`), and the pool's retired count is
+at `1` (`retiredAt γ 1`, the creator's half, Probe P2, 2026-10-30): the caller makes its reader's
+token by retiring one of the post's readers (`storeReader_retire`, with £1, `isStore`, the pin
+`curAt γ DFrac.discard o` that `storeStop_open` gives, the reader through `storeReader_of`, and
+`retiredAt γ 1`, giving `storeRT γ` and `retiredAt γ 2`). -/
+theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
+    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (γb γl : GName)
+    (Pk : IProp GF) (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc)
+    (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') (hrb : receiptBound GF ≤ 2 ^ 48) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        mvcc.keySized d.γB d.P d.be ∗ backend.dlInit d.γB ∗ backend.fkV d.γB true ∗
+        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          mvcc.bkRTx d.γB d.P d.be) ∗
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
+        (Val #(interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
+        (Val #le)) (Val #cfg))
+    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
+        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = false ∧ mvcc.storeCmp γ⌝ ∗
+        mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
+        (∃ rv wv : Loc,
+          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦
+            (interface.mkOk (go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty) #rv : GoInterface) ∗
+          mvcc.isReadView rv s γ ∗
+          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"WriteView"] ↦
+            (interface.mkOk (go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty) #wv : GoInterface) ∗
+          mvcc.isWriteView wv s γ) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
+          mvcc.storeReaderC s γ) ∗
+        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
+        mvcc.compactRight γ (-1) ∗ mvcc.storeStop s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
+        mvcc.retiredAt γ 1 }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
+    Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  iapply wp_fupd
+  wp_apply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
+        backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+        backend.backend.wp_Size backend.backend.wp_SizeInUse
+        backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+        backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+        backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+        backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+        backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+        backend.batchTxBuffered.wp_UnsafeCreateBucket
+        backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
+        schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
+        backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
+        lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
+      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro]
+    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret⟩
+  · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro
+    iintro !> %_; itrivial
+  have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
+  rw [hj]
+  imod mvcc.compactRight_of_closer s γ $$ [Hcl Hright] with ⟨Hcr, #Hstop⟩
+  · iframe Hcl Hright
+  imodintro
+  iapply HΦ
+  iexists γ
+  isplitr
+  · ipureintro
+    refine ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2, ?_⟩
+    show mvcc.kbCmpM γ.kb
+    rw [Hγ.2.2.1]; exact hcm
+  iframe Hrd Hcok Hhk' Hviews Hrds Htoks Hcr Hfs Hret
+  iframe #
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
 the backend's results): every store of the instance `d` (unit N4, D14b: before the post-lock hook
-is installed; its `LockInsideApply` runs the hook frozen at the call). -/
-theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (Pk : IProp GF)
-    (γb : GName) :
+is installed; its `LockInsideApply` runs the hook frozen at the call), which does not compact
+(`hcm`: question 5's core stage, part (4); a compacting store's contract is
+`storeBackend_of_backendC`'s, over the registration `NewStore_backend` makes). -/
+theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P)
+    (hcm : d.cm = false) (Pk : IProp GF) (γb : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
+      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        backend.dlNoDel d.γB ⊢
       ∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         mvcc.storeBackend
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -319,7 +424,7 @@ theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket
     backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket d hP Pk γb
+    schema.bucket.wp_IsSafeRangeBucket d hP hcm Pk γb
 
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
@@ -332,7 +437,8 @@ theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBRe
         go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
-        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
+        (∃ (ilog : mvcc.Log) (crev : Int),
+          mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev) ∗ Q }} :=
   mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te
 
 end store
@@ -342,6 +448,7 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.mvcc_backend_bridge
 #print axioms Perennial.EtcdGrove.mvcc_NewStore_backend
+#print axioms Perennial.EtcdGrove.mvcc_NewStore_backend_cmp
 #print axioms Perennial.EtcdGrove.mvcc_storeBackend_of_backend
 #print axioms Perennial.EtcdGrove.mvcc_store_Write_backend
 #print axioms Perennial.EtcdGrove.schema.bucket.wp_ID
@@ -420,9 +527,9 @@ The store's readers hold of a store whose compaction revision moves: a reader is
 `ErrCompacted` below it (`mvcc_rangeOutcomeC_lt`), the uncompacted outcome at or above it
 (`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted, because the
 one who compacts asserts `NoDelPutAt` at its revision (`store.Compact`'s premise, carried by the
-keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The statements of
-a store never compacted (the readers of the packages above mvcc, `storeReader`, `rangeOutcome`)
-are corollaries (`spec_frozen`), printed here linked. -/
+keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The readers' statements (the packages above mvcc: `storeReader`, the
+transactions at the tag `True`, the observed `crev` exposed; `ReaderSpecs.lean`) are corollaries
+(`spec_R`), printed here linked. -/
 
 noncomputable section
 
@@ -514,30 +621,31 @@ theorem mvcc_readView_Range : mvcc.readView.Range.spec (GF := GF) (hG := hG) :=
 theorem mvcc_readView_FirstRev : mvcc.readView.FirstRev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.wp_FirstRev
 
-/-! The frozen statements (a store never compacted: the readers of the packages above mvcc),
-corollaries of the linked results. -/
-theorem mvcc_store_Read_frozen : mvcc.store.Read.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.store.Read.spec_frozen mvcc.store.wp_Read
-theorem mvcc_store_Write_frozen : mvcc.store.Write.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.store.Write.spec_frozen mvcc.store.wp_Write
+/-! The readers' statements (the packages above mvcc; `ReaderSpecs.lean`), corollaries of the
+linked results. Their names are those of the frozen statements they replaced (M2,
+`notes/m2-plan.md`, S1: until then of a store never compacted, the compaction revision `-1`). -/
+theorem mvcc_store_Read_frozen : mvcc.store.Read.specR (GF := GF) (hG := hG) :=
+  mvcc.store.Read.spec_R mvcc.store.wp_Read
+theorem mvcc_store_Write_frozen : mvcc.store.Write.specR (GF := GF) (hG := hG) :=
+  mvcc.store.Write.spec_R mvcc.store.wp_Write
 theorem mvcc_storeTxnCommon_Range_frozen :
-    mvcc.storeTxnCommon.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.Range.spec_frozen mvcc.storeTxnCommon.wp_Range
+    mvcc.storeTxnCommon.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.Range.spec_R mvcc.storeTxnCommon.wp_Range
 theorem mvcc_storeTxnWrite_Range_frozen :
-    mvcc.storeTxnWrite.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.Range.spec_frozen mvcc.storeTxnWrite.wp_Range
+    mvcc.storeTxnWrite.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Range.spec_R mvcc.storeTxnWrite.wp_Range
 theorem mvcc_metricsTxnWrite_Range_frozen :
-    mvcc.metricsTxnWrite.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.metricsTxnWrite.Range.spec_frozen mvcc.metricsTxnWrite.wp_Range
+    mvcc.metricsTxnWrite.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.Range.spec_R mvcc.metricsTxnWrite.wp_Range
 theorem mvcc_metricsTxnWrite_End_frozen :
-    mvcc.metricsTxnWrite.End.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.metricsTxnWrite.End.spec_frozen mvcc.metricsTxnWrite.wp_End
-theorem mvcc_readView_Range_frozen : mvcc.readView.Range.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.readView.Range.spec_frozen mvcc.readView.wp_Range
-theorem mvcc_readView_FirstRev_frozen : mvcc.readView.FirstRev.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.readView.FirstRev.spec_frozen mvcc.readView.wp_FirstRev
-theorem mvcc_store_Rev_frozen : mvcc.store.Rev.specFrozen (GF := GF) (hG := hG) :=
-  mvcc.store.Rev.spec_frozen mvcc.store.wp_Rev
+    mvcc.metricsTxnWrite.End.specR (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.End.spec_R mvcc.metricsTxnWrite.wp_End
+theorem mvcc_readView_Range_frozen : mvcc.readView.Range.specR (GF := GF) (hG := hG) :=
+  mvcc.readView.Range.spec_R mvcc.readView.wp_Range
+theorem mvcc_readView_FirstRev_frozen : mvcc.readView.FirstRev.specR (GF := GF) (hG := hG) :=
+  mvcc.readView.FirstRev.spec_R mvcc.readView.wp_FirstRev
+theorem mvcc_store_Rev_frozen : mvcc.store.Rev.specR (GF := GF) (hG := hG) :=
+  mvcc.store.Rev.spec_R mvcc.store.wp_Rev
 
 end readers
 

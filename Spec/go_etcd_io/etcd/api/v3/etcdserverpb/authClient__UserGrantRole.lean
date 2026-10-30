@@ -23,16 +23,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.UserGrantRole(ctx, in, opts...)` on a stub on a connection to the server at `addr` (`authStubAt`),
-for a spec `Spec` the server registered for the method and the caller's persistent `□ ▷ Spec m Φ`:
+for a metadata-indexed spec `Spec` the server registered for the method (since the auth-mode
+merge's 5b, 2026-10-29) and the caller's persistent `Φ` at every metadata an attempt may deliver
+(`□ ▷ attemptPre`):
 `Invoke` of `"/etcdserverpb.Auth/UserGrantRole"` with `grpc.StaticMethod()` before the options, into a new
 response: the call's answer (`authCallOut`, the run's `Φ`); the request comes back. -/
 abbrev etcdserverpb.authClient.UserGrantRole.spec : Prop :=
   ∀ (ac conn : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthUserGrantRoleRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (ac @!! go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.authClient.ty @!! go!"UserGrantRole"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

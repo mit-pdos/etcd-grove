@@ -53,7 +53,6 @@ theorem store.getCurrentState.wp_proof
   ipersist key
   ipersist verb
   ipersist ctx
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   iunfold getStateOk

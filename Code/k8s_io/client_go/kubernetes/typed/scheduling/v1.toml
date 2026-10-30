@@ -1,0 +1,6 @@
+# Names only (project k8s-apiserver; notes/k8s-apimodel-goose.md): its group interface is named by
+# `kubernetes.Interface`, which the model API server's clientset embeds
+# (examples/k8sdaemonset/apimodel); the interface's type is concrete only if every type its methods
+# name is translated. Nothing here is called.
+translate = ["!*"]
+imports = ["!*"]

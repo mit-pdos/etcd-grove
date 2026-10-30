@@ -34,6 +34,7 @@ theorem txn.If.wp_proof (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG))
   icases Htx with ⟨%Htpn, %api, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #Hkvf, #Hkv, #Hctxf,
     #Hctx, #Hce, #Hmu, Hcif, Hcthen, Hcelse, Hiw, Hcmps, Hcsl, Hccap, #Hcpa, Hsus, Hssl, Hscap,
     #Hspa, Hfas, Hfsl, Hfcap, #Hfpa, #Hcof, #Hco⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

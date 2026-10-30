@@ -35,6 +35,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.net.InvNet
 public import Spec.google_golang_org.grpc.Server__Serve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Base
 
 @[expose] public section
@@ -166,7 +168,7 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
     γ := { idx := idx, bucket := 0, clog := 0, leases := 0, revs := 0, hook := 0, hookFn := 0,
            kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0⟩, cok := cok, watchQ := false },
     P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authMode := .off,
-    FS := iprop(True), ciC := fun _ => True, RO := fun _ => iprop(True), RW := iprop(True),
+    FS := iprop(True), ciC := fun _ _ => True, RO := fun _ => iprop(True), RW := iprop(True),
     γbe := 0 }
 
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
@@ -270,6 +272,77 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.kvServerIs p s C.A cid mid C.n ∗
+    v3rpc.isWatchServer pw R ∗
+    (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
+    (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
+    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+    srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
+    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
+    netListenerAt lis addr)
+
+/-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
+E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
+enabled and the KV invariant in the mode `on` from the auth store's start state (`kvInvM true`, at
+`srvAuthSt0`). -/
+def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
+    (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
+    IProp GF :=
+  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ γ.dyn = false ∧
+      ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
+      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
+    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+    srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+    idShare ρ.ids ∗ readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
+    mvcc.idxFresh E₀.γ.idx ∗
+    ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+    ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
+    srvReadNamesFreshNK ρ.rd ∗ kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
+    ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
+    ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
+
+/-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
+`NewServer.specM true` and `Start.specOn`): at an apply environment in the mode `.on γa`, the
+request and read views in the mode (`isServerReqM true`, `isServerReadM true`) and the store's range
+check at a reader's lower bound (`srvAuthLb`), what `Serve.specOn` takes; otherwise as `memberUp`. -/
+def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (γa : auth.AuthNames) : IProp GF :=
+  iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+    ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+      cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+    isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
+    srvGoRes s ∗ srvLgReader s ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      srvReadReader s ρ.rd) ∗
+    srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
+    srvBemuReader s ∗
+    ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
+    ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
+    ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+
+/-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
+the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on
+the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`). -/
+def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
+    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
+  iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
+      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) (d' : w64),
+    ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
+      (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
+      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
+    v3rpc.grpcCfgOk s C ∗
+    grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
+    v3rpc.quotaKVServerAt q
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+    v3rpc.kvServerIs p s C.A cid mid C.n ∗
+    v3rpc.authServerIs pa s ∗
     v3rpc.isWatchServer pw R ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗

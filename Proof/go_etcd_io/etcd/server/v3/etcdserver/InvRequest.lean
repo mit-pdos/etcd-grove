@@ -88,6 +88,7 @@ public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.Token
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -138,6 +139,9 @@ structure KVNames where
   cok : GName
   hi : GName
   ids : IdNames
+  /-- The auth history's mono-list (the auth-mode merge's 5b: `kvInvOn`'s half and a client's
+  view, `authHistView`; unused with auth off). -/
+  hist : GName := 0
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -267,6 +271,52 @@ def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
 /-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
   kvAu1 γk (kvOpStep op) Q
+
+/-- **A client's update by `f`, fired at most once, told `G σ` when it fires** (the auth-mode
+merge's step 5, 2026-10-29): `kvAu1`'s, whose atomic postcondition, which the server supplies at the
+commit, carries `G σ` too (with auth on, the write's grant, `writeGrantG`). -/
+def kvAu1G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γk (f σ) ∗ G σ, COMM Q σ }>)
+
+open Iris.ProofMode in
+/-- An atomic update whose committer supplies more (`β' ⊢ β`) (a fact of Iris's atomic updates;
+`notes/perennial-changes.md`). -/
+theorem aupd_post_mono {PROP : Type _} [BI PROP] [BIFUpdate PROP] {TA TB : Std.Tele}
+    {Eo Ei : CoPset} {α : TA.Arg → PROP} {β β' Φ : TA.Arg → TB.Arg → PROP}
+    (h : ∀ x y, β' x y ⊢ β x y) :
+    atomic_update Eo Ei α β Φ ⊢ atomic_update Eo Ei α β' Φ := by
+  change atomic_update Eo Ei α β Φ ⊢ bi_greatest_fixpoint (atomic_update_pre Eo Ei α β' Φ) ()
+  iintro HAU
+  iapply greatest_fixpoint_coiter (atomic_update_pre Eo Ei α β' Φ)
+    (fun _ => atomic_update Eo Ei α β Φ) $$ [] HAU
+  iintro !> %_ H
+  unfold atomic_update_pre
+  ihave Hacc := aupd_aacc $$ H
+  unfold atomic_acc
+  imod Hacc with ⟨%x, Hα, Hclose⟩
+  imodintro
+  iexists x
+  iframe Hα
+  isplit
+  · icases Hclose with ⟨Hc, -⟩; iexact Hc
+  · iintro %y Hβ
+    icases Hclose with ⟨-, Hc⟩
+    iapply Hc
+    iapply h $$ Hβ
+
+/-- An update told more is one told less (`G' ⊢ G`). -/
+theorem kvAu1G_mono (γk : KVNames) (f : KVState → KVState) (G G' Q : KVState → IProp GF)
+    (h : ∀ σ, G' σ ⊢ G σ) :
+    kvAu1G (GF := GF) γk f G Q ⊢ kvAu1G γk f G' Q := by
+  unfold kvAu1G
+  exact aupd_post_mono (fun x _ => sep_mono_right (h _))
+
+/-- A client's update not told anything is one told `G` (the grant ignored). -/
+theorem kvAu1_G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) :
+    kvAu1 (GF := GF) γk f Q ⊢ kvAu1G γk f G Q := by
+  unfold kvAu1 kvAu1G
+  exact aupd_post_mono (fun _ _ => sep_elim_left)
 
 open Iris.ProofMode in
 /-- A persistent update fires once, its result persistent. -/
@@ -1541,6 +1591,25 @@ def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
 instance isReqAuth_persistent (st : GoInterface) (RD : IProp GF) :
     Persistent (isReqAuth (GF := GF) st RD) := by
   unfold isReqAuth; infer_instance
+
+/-- **The request side with the token binding** (persistent; the auth plan's S5, 2026-10-24):
+`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's own token in
+the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carries, the auth plan's
+E2c; in `on γa`, its user is one the token was issued to). Stated beside
+`isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it; with
+auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
+`isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). -/
+def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
+  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+      {{ mvcc.txnCtx ctx cd ∗ RD }}
+        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+          applyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
+
+instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
+    Persistent (isReqAuthBound (GF := GF) st RD M) := by
+  unfold isReqAuthBound; infer_instance
 
 end read
 

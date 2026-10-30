@@ -397,8 +397,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       D.lookup go!"members" = some ∅ ∧ D.lookup go!"members_removed" = some ∅ ∧
       D.lookup go!"cluster" = some ∅⌝ ∗
     -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
-    -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s)
-    "Hncmp" ∷ mvcc.bkNoCmp d.γB ∗
+    -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s); (the
+    -- backend-compaction stage, 2026-10-29, the user's decision: until then the token
+    -- `mvcc.bkNoCmp d.γB` beside `Hnew`, which now holds it: `bootBackend_of_newPost`) a fact of `D`
+    "%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝ ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
