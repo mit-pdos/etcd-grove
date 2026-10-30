@@ -1181,6 +1181,12 @@ Phase 2 (internal statement changes):
   `csOptA_combine`, `smPts_combine`, `smOpt_combine`, `ownSnapM_combine`, `snapOpt_combine` (were in
   the internal `InvRawnodeReady`); `msgOwn_combine` stays.
 
+- `readySnap none` (public, InvNode and ApiImpl): a trailing pure conjunct, the batch's indices
+  consecutive from its head and the committed entries at or past the batch's head the batch's
+  (`readyRest_indices`, new, and `readyRest_ceInBatch` are its projections). Its sources (internal,
+  P4): `readyData` (InvNodeChan) gets the same fact as its last conjunct, and `ownRawNodeReady` gets
+  `"%Hcepre" ∷ ⌜ce <+: logCommittedEnts s.logst⌝` (from `readyWithoutAccept`'s `Hce`).
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
