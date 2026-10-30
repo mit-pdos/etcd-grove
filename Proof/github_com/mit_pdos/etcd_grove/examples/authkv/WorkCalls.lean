@@ -324,6 +324,64 @@ theorem opHistOk_txn_put_get (k v : GoString) (og : OpFull) (h : permittedK (wri
     exact opHistOk_putKey k v (Or.inl h) σ r hr ev hev
   · rw [revEvents_after σ r hr] at hev; cases hev
 
+/-- An event of one revision is of one of its changes' keys. -/
+theorem evsOfRevM_key (m : Nat) :
+    ∀ (cs : List mvcc.Change) (b : List EtcdKv), b.Pairwise etcdKvLess →
+      ∀ ev ∈ mvcc.evsOfRevM m b cs, ∃ c ∈ cs, ev.kv.key = c.key
+  | [], _, _ => by intro ev hev; rw [mvcc.evsOfRevM_nil] at hev; cases hev
+  | c :: cs, b, hb => by
+    intro ev hev
+    rw [v3rpc.evsOfRevM_cons m b hb c cs, List.mem_cons] at hev
+    rcases hev with rfl | hev
+    · refine ⟨c, List.mem_cons_self .., ?_⟩
+      unfold mvcc.evOfKv; split <;> simp [v3rpc.chKv_key]
+    · obtain ⟨c', hc', hk⟩ := evsOfRevM_key m cs _ (mvcc.applyChange_sorted hb _ c) ev hev
+      exact ⟨c', List.mem_cons_of_mem _ hc', hk⟩
+
+/-- **The events after a state, in its commit of `cs`, are of `cs`'s keys.** -/
+theorem revEvents_commit_key (σ : KVState) (cs : List mvcc.Change) (r : Nat) (hr : σ.rev < r) :
+    ∀ ev ∈ (σ.commit cs).revEvents r, ∃ c ∈ cs, ev.kv.key = c.key := by
+  intro ev hev
+  unfold KVState.revEvents at hev
+  have hch : (σ.commit cs).changesAt r = [] ∨ (σ.commit cs).changesAt r = cs := by
+    unfold KVState.rev at hr
+    by_cases hcs : cs = []
+    · left
+      subst hcs
+      rw [KVState.commit_nil]
+      unfold KVState.changesAt
+      split
+      · rfl
+      · rw [List.getElem?_eq_none (by omega)]; rfl
+    · unfold KVState.changesAt KVState.commit
+      rw [if_neg hcs]
+      simp only
+      split
+      · left; rfl
+      · by_cases he : r - σ.compacted - 1 = σ.changes.length
+        · right; rw [he, List.getElem?_append_right (Nat.le_refl _)]; simp
+        · left; rw [List.getElem?_eq_none (by simp; omega)]; rfl
+  rcases hch with h | h
+  · rw [h, mvcc.evsOfRevM_nil] at hev; cases hev
+  · rw [h] at hev
+    exact evsOfRevM_key r cs _ (KVStore.kvs_sorted _) ev hev
+
+/-- **A point delete of a key its writer may write keeps the history.** -/
+theorem opHistOk_delete_point (k : GoString) (h : permittedK (writerK k) k) :
+    opHistOk (.deleteRange (txn.deleteOpOf k [] false)) := by
+  intro σ r hr ev hev
+  simp only [kvOpStep] at hev
+  obtain ⟨c, hc, hk⟩ := revEvents_commit_key σ _ r hr ev hev
+  unfold txn.delChanges at hc
+  obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hc
+  have hvk := (List.mem_filter.1 hv).2
+  simp [inRange, txn.deleteOpOf] at hvk
+  unfold evHistOk
+  left
+  rw [hk]
+  simp only [mvcc.Change.key]
+  rw [hvk]; exact h
+
 /-! ### `Work`'s three ranges -/
 
 /-- A key in `[a, b)` is `u`'s to read. -/
