@@ -42,9 +42,6 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     (L : Option SnapLoan) (x : Nat × CCState) :
     ⊢ dlvLb (GF := GF) γ ds -∗ advDep γ rn id -∗ advanceP γ L x ==∗
       advRet γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro #Hlb Hdep HP
   iunfold advDep at Hdep
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
@@ -61,7 +58,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hlb with ⟨#Hlb, -⟩
   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
   ihave %Hcle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hcamlb
-  obtain ⟨Hmd, Hcap, Hflw, Hsn, Hsi, Hpre⟩ := Hm0
+  obtain ⟨Hmd, Hcap, Hflw, Hpre, Hsnm⟩ := Hm0
   cases L with
   | none =>
     have Hsl : rs.slent = none := HL
@@ -69,7 +66,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     · iunfold runCfg
       iframe Hdlm Hdk
       isplitr
-      · ipureintro; exact ⟨Hmd, Hcap, Hflw, Hsn, Hsi, Hpre⟩
+      · ipureintro; exact ⟨Hmd, Hcap, Hflw, Hpre, Hsnm⟩
       iexists ca_r
       iframe Hcap_r Hcam Hinv2
       ipureintro; exact Hinv
@@ -104,7 +101,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       · simp only [loanRet, Hsl]; iempintro
       isplitr
       · ipureintro; exact ⟨Hstor.1, Hunst, fun _ => rfl⟩
-      simp only; rw [Hdel]; iexact HA
+      ihave #HA0 := HA $$ %trivial
+      imodintro
+      iintro -
+      simp only; rw [Hdel]; iexact HA0
     isplitr
     · iexists x
       isplitr
@@ -116,22 +116,16 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     itrivial
   | some l =>
     have Hsl : rs.slent = some l := HL
-    have Hsin : γ.snapIn = true := by
-      cases h : γ.snapIn
-      · rw [(Hsn h).2] at Hsl; cases Hsl
-      · rfl
-    have Hns := Hsi Hsin
     have Hdp := Hpre l Hsl
     rw [Hsl]
     simp only [rsDlv, Hsl] at Hpfx Hcap Hinv ⊢
     simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_some, capAns, capPay]
     ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hpay
     subst Hx
-    -- A1 at the `RawNode`'s committed log, from the driver's over the loan's
-    ihave #HA' : undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length $$ []
-    · iapply undecFree_of_prefix γ.raft γ.mode Hdp (Nat.le_refl _)
-      iapply undecFree_mono γ.raft γ.mode (Nat.le_refl _) Hdp.length_le
-      iexact HA
+    -- (raft-final phase 2: the design's A1) no A1 after a snapshot `Ready`
+    ihave #HA' : □ (⌜rs.slent = none⌝ -∗
+        undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length) $$ []
+    · imodintro; iintro %h; rw [Hsl] at h; cases h
     cases hd : γ.mode.isDyn with
     | false =>
       have Hst : rs.mode.isDyn = false := by rw [Hmd, hd]
@@ -141,7 +135,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         simp only [rsDlv, Hsl]
         iframe Hdlm Hdk
         isplitr
-        · ipureintro; exact ⟨Hmd, Hcap, Hflw, by rw [← Hsl]; exact Hsn, Hsi, by rw [← Hsl]; exact Hpre⟩
+        · ipureintro; exact ⟨Hmd, Hcap, Hflw, by rw [← Hsl]; exact Hpre, Hsnm⟩
         iexists ca_r
         iframe Hcap_r Hcam Hinv2
         ipureintro; exact Hinv
@@ -168,7 +162,6 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       isplitr
       · itrivial
       iframe Hpay Hcl
-      ipureintro; exact Hns
     | true =>
       have Hdy : rs.mode.isDyn = true := by rw [Hmd, hd]
       have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv Hcap
@@ -189,11 +182,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
           iunfold runCfgLoan
           try rw [show rsDlv rs = l.dlv by simp only [rsDlv, Hsl]]
           iframe Hdlm Hdk Hcap_r Hcam
-          isplitr
-          · ipureintro; exact ⟨Hmd, Hsin, Hns, Hdp⟩
-          rw [Hmd]
-          iapply undecFree_mono γ.raft γ.mode (Nat.le_trans Hcle.2 Hinv) (Nat.le_refl _)
-          iexact HA'
+          ipureintro; exact ⟨Hmd, Hdp, Hsnm⟩
         isplitl [Hdlv]
         · simp only [rsDlv, Hsl]; iexact Hdlv
         isplitl [Hrof Hrof']
@@ -207,8 +196,6 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       isplitr
       · itrivial
       iframe Hpay Hcl
-      ipureintro; exact Hns
-  -/
 
 /-- **`run`'s receive on `advancec`**, with its node at the rendezvous (`advDep`): back with
 the node after it (`advRet`). -/

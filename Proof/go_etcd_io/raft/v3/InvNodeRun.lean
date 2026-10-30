@@ -2262,7 +2262,8 @@ rendezvous (`runCfgR`): A1 at the `RawNode` (`runCfg_a1`, or the loan's `runCfgL
 dynamically after a snapshot `Ready`, its `ConfState` no auto-leave one. -/
 theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
     ⊢ runCfgR (GF := GF) γ rs -∗ monoNatLbOwn γ.cam ca_d -∗
-      undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length -∗
+      -- (raft-final phase 2: guarded, as `advRet`'s)
+      □ (⌜rs.slent = none⌝ -∗ undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length) -∗
       -- (raft-final phase 2: the design's A1, as `RawNode.Advance.spec`'s `"#HA1"`; until then
       -- unguarded, from `runCfgLoan`'s A1 after a snapshot `Ready`)
       □ (⌜rs.slent = none⌝ -∗
@@ -2271,7 +2272,8 @@ theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
   iintro Hcfg #Hlb #HA
   by_cases hc : rs.slent = none
   · ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hc)).1 $$ Hcfg
-    icases runCfg_a1 γ { rs with flw := false } ca_d $$ Hcfg Hlb HA with ⟨#HA1, Hcfg⟩
+    ihave #HA0 := HA $$ %hc
+    icases runCfg_a1 γ { rs with flw := false } ca_d $$ Hcfg Hlb HA0 with ⟨#HA1, Hcfg⟩
     ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hc)).2 $$ Hcfg
     iframe Hcfg
     imodintro

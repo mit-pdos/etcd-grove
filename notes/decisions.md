@@ -25691,3 +25691,7 @@ in neither mode.
   es[d.length + 1 + j - uint.nat e0.Index']? = some e)⌝`. Why: P6's `readyRest_indices` and
   `readyRest_ceInBatch` (which kvreconf needs) read it out of `readyRecv_open`. (Approved by the
   lead.)
+- `advRet`'s A1 (internal, `InvNodeChan`) and `runCfgR_a1`'s A1 premise: `□ (⌜rs.slent = none⌝ -∗
+  undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length)` (was unguarded). Why: `advanceP`'s
+  A1 is guarded at `L = none` (the design's A1), so after a snapshot `Ready` the rendezvous
+  (`advance_complete`) has none to hand back; only `runCfgR_a1`'s `slent = none` case reads it.

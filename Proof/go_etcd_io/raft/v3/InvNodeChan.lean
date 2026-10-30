@@ -975,7 +975,9 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
-    undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length)
+    -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
+    -- until then unguarded)
+    □ (⌜rs.slent = none⌝ -∗ undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length))
 
 /-- The `advancec` protocol (see above). (D22 S-d4) The driver's payload for its `Ready`'s loan
 `L`, its request `reqOf L ds`, `run`'s answer `reqWit`. -/
