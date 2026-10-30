@@ -1207,12 +1207,10 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
       AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ.raft.cl ops }>
           @ ⊤ \ ↑srvClusterN, ∅
          <{ ∀∀ (t : w64), ownCommittedOps γ.raft.cl (ops ++ [⟨t, W32 0, d⟩]), COMM True }> := by
-  sorry
-/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro #Hinv #Hp #HQ Htk Hlc Hau
   iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨#Hli, #Hcl, #Hlb0, %Hai0⟩
+  icases Hinv with ⟨#Hli, #Hcl, #Hlb0, %Hai0, %Hpre⟩
   iauintro
   unfold atomic_acc
   iunfold srvLogInv at Hli
@@ -1239,7 +1237,7 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
   · -- commit: the requested entry `⟨t, normal, d⟩`
     iintro %t Hown
     imod Hmask with -
-    obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+    obtain ⟨Hidx, Hnf, Hfired, HRle, Hcc⟩ := Hfacts
     imod lc_fupd_elim_later $$ Hlc Hregs with Hregs
     iunfold srvLogRegs at Hregs
     icases Hregs with ⟨HFr, HRr⟩
@@ -1260,7 +1258,7 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
     ihave ⟨Hown, %l, #Hl, %Hlops⟩ := ownCommittedOps_get_lb γ.raft.cl _ $$ Hown
     ihave #Hcl' := Hcl
     iunfold srvClusterOk at Hcl'
-    icases Hcl' with ⟨-, -, #Hfits, -⟩
+    icases Hcl' with ⟨-, -, -, #Hfits, -⟩
     ihave %Hllen := isCommittedLogLb_length γ.raft.cl srvClusterN l $$ [Hfits Hl]
     · iframe Hfits Hl
     iunfold srvRLogLb at Hlb0
@@ -1300,7 +1298,8 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
     imod Hback with -
     -- the registries
     imod ghost_map_insert d Lf HFd $$ HF with ⟨HF, -⟩
-    have Hnfe : ¬ e.toLE.isFiller := fun h => hd h.1
+    have Hnfe : ¬ e.toLE.isFiller ∧ ¬ e.toLE.isEmptyV2 :=
+      ⟨fun h => hd h.1, fun h => by have := h.2; simp [e, EntryModel.toLE] at this⟩
     imod Hclose $$ [Hown Hlog HP HF HR Hfrs HFr HRr Htk] with -
     · inext
       iexists Lf ++ [e], P, F.insert d Lf, R
@@ -1318,7 +1317,11 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
           rcases List.mem_append.1 hm with hm | hm
           · exact Hnf m hm
           · rw [List.mem_singleton.1 hm]; exact Hnfe
-        · intro r hr; have := HRle r hr; simp; omega
+        · refine ⟨fun r hr => by have := HRle r hr; simp; omega, ?_⟩
+          intro m hm ht
+          rcases List.mem_append.1 hm with hm | hm
+          · exact Hcc m hm ht
+          · rw [List.mem_singleton.1 hm] at ht; simp [e] at ht
       iunfold srvLogRegs
       iframe HRr
       iapply (BigSepM.bigSepM_insert (Φ := fun d Lb => iprop(∃ (γQ γt : GName)
@@ -1329,7 +1332,6 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
       iframe Hp HQ HQL Htk
     imodintro
     itrivial
--/
 
 /-- Where a committed requested entry sits in the server's log. -/
 theorem srv_pos (L Lf : List EntryModel) (m : Nat) (e : EntryModel) (hm : L[m]? = some e)
@@ -1371,8 +1373,6 @@ theorem srv_pos (L Lf : List EntryModel) (m : Nat) (e : EntryModel) (hm : L[m]? 
 /-- **The proposals' witnesses, from the server's registry** (2026-10-27; until then from raft's,
 `prop_collect`). -/
 theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropWits γ := by
-  sorry
-/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro #Hinv
   iunfold srvRaftLogInv at Hinv
@@ -1390,10 +1390,12 @@ theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ 
   iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
   iunfold srvLogCore at Hcore
   icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
-  obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+  obtain ⟨Hidx, Hnf, Hfired, HRle, Hcc⟩ := Hfacts
   ihave %Hp := ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HL]
   · iframe Hown HL
-  have Hnfe : ¬ e.toLE.isFiller := fun h => Hne (Hed ▸ h.1)
+  have Hnfe : ¬ e.toLE.isFiller ∧ ¬ e.toLE.isEmptyV2 :=
+    ⟨fun h => Hne (Hed ▸ h.1), fun h => by
+      have := h.2; simp only [EntryModel.toLE] at this; rw [Het] at this; simp at this⟩
   obtain ⟨m', Hm', Hme, Htk⟩ := srv_pos L Lf m e Hlk Hnfe (srv_ops_prefix γ L Lf Hnf Hp)
   generalize hj : (opsOf ((L.take m).map EntryModel.toLE)).length = j at Hm' Htk
   have Hm'd : m'.data = d ∧ m'.typ = W32 0 := by
@@ -1422,7 +1424,7 @@ theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ 
     iunfold srvLogCore
     iunfold srvLogRegs
     iframe Hown Hlog HP HF HR Hfrs HFr HRr
-    ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle⟩
+    ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle, Hcc⟩
   ihave HQL : iprop(▷ □ Q (Lf.take j)) $$ []
   · inext
     ihave #Hiff := internalEq_iff _ _ $$ Hsag
@@ -1441,7 +1443,6 @@ theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ 
   imod lc_fupd_elim_later $$ Hlc3 HQm with #HQm
   imodintro
   iexact HQm
--/
 
 /-- **What a read context's update records** (persistent), at the requested entries `ops` the
 read took effect at: the read registered, at the server's log `Lk` whose requested entries those
@@ -1464,8 +1465,6 @@ theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ.raft.cl ops }>
           @ ⊤ \ ↑srvClusterN, ∅
          <{ ownCommittedOps γ.raft.cl ops, COMM □ srvReadQ γ Qr ops }> := by
-  sorry
-/- REPAIR-OLD
   iintro #Hinv #Hra
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -⟩
@@ -1494,7 +1493,7 @@ theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
     itrivial
   · iintro Hown
     imod Hmask with -
-    obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+    obtain ⟨Hidx, Hnf, Hfired, HRle, Hcc⟩ := Hfacts
     -- the read's update, at the server's log
     imod (fupd_mask_subseteq (PROP := IProp GF) srv_mask_inner) with Hback
     ihave #Hra' := Hra
@@ -1529,7 +1528,7 @@ theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
       iframe Hown Hlog HP HF HR Hfrs HFr
       isplitr
       · ipureintro
-        refine ⟨Hidx, Hnf, Hfired, ?_⟩
+        refine ⟨Hidx, Hnf, Hfired, ?_, Hcc⟩
         intro r hr
         rcases List.mem_append.1 hr with hr | hr
         · exact HRle r hr
@@ -1549,7 +1548,6 @@ theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
     iexists γQ, R.length, Lf
     iframe Hlb Hix HQ
     ipureintro; rfl
--/
 
 /-- **A read's witness, from a read state** (2026-10-27; until then from raft's, `read_collect`):
 the read state of a context committed to the server's read (`srvReadQ`). -/
@@ -1557,12 +1555,10 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
     (i : w64) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ readStateOk γ.raft.cl srvClusterN c i -∗
       isReadCtx γ.raft.cl srvClusterN c (srvReadQ γ Qr) -∗ srvReadWit γ Qr i := by
-  sorry
-/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro #Hinv #Hst #Hctx
   iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨#Hli, -, -, %Hai0⟩
+  icases Hinv with ⟨#Hli, -, -, %Hai0, -⟩
   iunfold srvReadWit
   iintro !> %L #HL %Hi Hlc
   iunfold srvRLogLb at HL
@@ -1594,13 +1590,14 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
   iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
   iunfold srvLogCore at Hcore
   icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
-  obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+  obtain ⟨Hidx, Hnf, Hfired, HRle, Hcc⟩ := Hfacts
   ihave %Hp := ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HL]
   · iframe Hown HL
   ihave %HLkp := mono_list_auth_lb_valid γ.raft.log _ Lf Lk $$ Hlog HLk
   ihave %HRk := mono_list_auth_idx_lookup γ.raft.pend 1 R k _ $$ HR Hix
   have HLops := srv_ops_prefix γ L Lf Hnf Hp
-  have HLknf : ∀ m ∈ Lk, ¬ m.toLE.isFiller := fun m hm => Hnf m (HLkp.2.subset hm)
+  have HLknf : ∀ m ∈ Lk, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2 :=
+    fun m hm => Hnf m (HLkp.2.subset hm)
   -- the read was registered before `L`'s requested entries
   have HLkle : Lk.length ≤ (opsOf (L.map EntryModel.toLE)).length := by
     rw [← HLkops, srvLE_ops_nofill γ Lk HLknf, srvLE_ops γ L] at HlL
@@ -1633,7 +1630,7 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
     iunfold srvLogCore
     iunfold srvLogRegs
     iframe Hown Hlog HP HF HR Hfrs HFr HRr
-    ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle⟩
+    ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle, Hcc⟩
   imod HQinv $$ %_ %L %Heqv HQL with HQL'
   ihave HQr : iprop(▷ □ Qr L) $$ [HQL']
   · inext
@@ -1645,7 +1642,6 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
   imod lc_fupd_elim_later $$ Hlc4 HQr with #HQr
   imodintro
   iexact HQr
--/
 
 /- (2026-10-30, the repair: the server registers its snapshots) `srv_snapMade_false`, `srv_snapshotCert_false` and
 `srv_snapshotValid_false` (D2(i)'s, the registry empty for good) are gone: the server registers its
@@ -1656,55 +1652,6 @@ snapshots. -/
 send a `MsgSnap` and hand out a `Ready` snapshot; their paths are the SNAPSHOT-SORRYs
 (`notes/raft-unified-plan.md`, "Repair: snapshot sorries"). -/
 
-/- REPAIR-OLD
-/-- **The server's cluster sends no `MsgSnap`** (2026-10-27): a dynamic cluster sends none, a static
-one vouches for no snapshot's data. -/
-theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) :
-    srvClusterOk (GF := GF) γ ∗ sentMsg γ.raft.cl srvClusterN src st ⊢
-      ⌜st.msg.Type' ≠ MsgSnap⌝ := by
-  letI := srvAnyStor (GF := GF)
-  iintro ⟨#Hcl, #Hs⟩
-  iunfold srvClusterOk at Hcl
-  cases hd : γ.raft.dyn
-  · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -, -⟩
-    by_cases hsn : st.msg.Type' = MsgSnap
-    · iexfalso
-      icases sentMsg_snapshot γ.raft.cl srvClusterN src st hsn $$ Hs with ⟨%sv, -, #Hc⟩
-      icases snapshotCert_data γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False) _
-        $$ [Hk Hc] with ⟨%l, -, %Hf⟩
-      · iframe Hk Hc
-      exact Hf.2.elim
-    · ipureintro; exact hsn
-  · isimp only [hd, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -, -⟩
-    iapply sentMsg_dynamic_notSnapshot $$ [Hk Hs]
-    iframe Hk Hs
-
-/-- **The server's cluster's `Ready`s carry no snapshot** (2026-10-27), at the server's storage
-model: a dynamic cluster's carry none, a static one vouches for no snapshot's data. -/
-theorem srv_readySnap_none (γ : ServerRaftNames) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) :
-    srvClusterOk (GF := GF) γ ∗
-      (letI := srvStor (GF := GF) γ.raft
-       readySnap γ.raft.cl srvClusterN rd st ce es (some l)) ⊢ False := by
-  letI := srvStor (GF := GF) γ.raft
-  iintro ⟨#Hcl, Hs⟩
-  iunfold srvClusterOk at Hcl
-  cases hd : γ.raft.dyn
-  · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -, -⟩
-    simp only [readySnap]
-    icases Hs with ⟨-, -, -, #Hc, -⟩
-    icases snapshotCert_data γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False) _
-      $$ [Hk Hc] with ⟨%l', -, %Hf⟩
-    · iframe Hk Hc
-    exact Hf.2.elim
-  · isimp only [hd, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -, -⟩
-    iapply readySnap_dynamic $$ [Hk Hs]
-    iframe Hk Hs
--/
 
 
 end bridges
@@ -2102,8 +2049,6 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
         srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
         ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
         ghostMapAuth γr.rdFresh 1 (∅ : GMap (List w8) Unit) := by
-  sorry
-/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro Hown
   imod mono_list_own_alloc (GF := GF) Lf0 with ⟨%γlog, Hlog, -⟩
@@ -2137,7 +2082,7 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
     · isplitr
       · iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2; itrivial
       ipureintro
-      refine ⟨hidx, hnf, ?_, by simp⟩
+      refine ⟨hidx, hnf, ?_, by simp, fun m hm ht => ccPolOk_of_boot γr _ (hcc m hm ht)⟩
       intro j m hm ht
       exact absurd ht (hnn m (List.mem_of_getElem? hm))
     isplitr
@@ -2157,7 +2102,6 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
   rw [Hn]
   iframe Hnil
   ipureintro; intro n m hm; simp at hm
--/
 
 end alloc
 
