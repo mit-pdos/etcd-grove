@@ -125,6 +125,70 @@ theorem srvChBound_small (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
   ipureintro
   exact ⟨h, by omega⟩
 
+/-! ## B2 in the user's form (2026-10-30): a bound on the committed entries
+
+The user's answer: a pure premise on the configuration or the run, "the cluster commits at most `N`
+entries", with `2·MaxTxnOps·N` below the receipt bound, through `logCh ≤ 2·MaxTxnOps·|entries|`.
+Split as the glue needs it:
+
+- **the model half** (pure, a fact of the KV model): the model of a log of `n` entries has at most
+  `B n` changes (`kvChLe`). The user's `B n = 2·MaxTxnOps·n` is **not** a fact of the model: the
+  apply side checks no `--max-txn-ops` (the model applies whatever an entry decodes to: one entry
+  can put any number of keys), `checkTxnRequest`'s budget is per level so a nested transaction
+  exceeds it (`issues/nonissues/etcd-max-txn-ops-nested.md`), and the start log's changes count
+  (`kvModelOn_nil`). What does hold of the cluster's entries (an argument, not proved here): every
+  change is a put or a delete, a delete removes a key an earlier put (or the start log) made live,
+  so `logCh ≤ 2·logCh log₀ + 2·(puts of the entries)`, and a proposal's data is at most
+  `MaxRequestBytes` (`processInternalRaftRequestOnce`'s `ErrRequestTooLarge`), so a per-entry put
+  bound `K` exists, from the request's size, not from `MaxTxnOps`; it is a fact of the request log
+  (the entries the server proposed), not of every log the model takes;
+- **the run half**: every prefix of the request log has at most `N` entries (`srvLogLe`). A
+  property of the run: in Iris, a persistent fact like `srvChBound` itself; pure only as a premise
+  about the program (the closed theorem's), which needs the run's steps to bound the proposals.
+
+`srvChBound_of_len` (proved) is the glue from the two halves to the drafted Iris form, hence to
+`restoreBoundM_of_chBound`. -/
+
+/-- **The model half** (pure): the KV model (from `st₀` and the start log) of every log of `n`
+entries has at most `B n` changes. -/
+def kvChLe (γk : KVNames) (st₀ : auth.AuthState) (B : Nat → Nat) : Prop :=
+  ∀ L : List EntryModel, mvcc.logCh (kvModelOn γk st₀ L) ≤ B L.length
+
+/-- **The run half**: every prefix of the cluster's request log has at most `N` entries. -/
+def srvLogLe (γ : ServerRaftNames) (N : Nat) : IProp GF :=
+  iprop(□ ∀ L : List EntryModel, srvReqLogLb γ L -∗ ⌜L.length ≤ N⌝)
+
+instance srvLogLe_persistent (γ : ServerRaftNames) (N : Nat) :
+    Persistent (srvLogLe (GF := GF) γ N) := by
+  unfold srvLogLe; infer_instance
+
+/-- **B2's glue** (proved): a monotone model bound `B` with `B N` below the receipt bound and the
+run bound `N` give `srvChBound`. At the user's `B n = 2·MaxTxnOps·n` the premise is
+`2·MaxTxnOps·N < receiptBound GF`, which a closed theorem takes like `receiptBound GF ≤ 2 ^ 48`;
+the model half at that `B` does not hold (see above). -/
+theorem srvChBound_of_len (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (B : Nat → Nat) (hB : kvChLe γk st₀ B) (hmono : ∀ a b, a ≤ b → B a ≤ B b) (N : Nat)
+    (hN : B N < receiptBound GF) :
+    srvLogLe (GF := GF) γ N ⊢ srvChBound γ γk st₀ := by
+  iintro #Hl
+  iunfold srvChBound
+  iintro !> %L #HL
+  iunfold srvLogLe at Hl
+  ihave %hlen := Hl $$ %L HL
+  ipureintro
+  exact Nat.lt_of_le_of_lt (Nat.le_trans (hB L) (hmono _ _ hlen)) hN
+
+/-- And so `Restore.specM`'s `restoreBoundM`, for the walk's image (`restoreBoundM_of_chBound`). -/
+theorem restoreBoundM_of_len (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (E : CoPset) (hE : ↑srvRaftN ⊆ E) (A : List EntryModel) (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0)
+    (d' : mvcc.KBReal) (B : Nat → Nat) (hB : kvChLe γk st₀ B) (hmono : ∀ a b, a ≤ b → B a ≤ B b)
+    (N : Nat) (hN : B N < receiptBound GF) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvLogLe γ N -∗ srvRLogLb γ A ={E}=∗
+      ⌜mvcc.restoreBoundM (GF := GF) d' (kvModelOn γk st₀ A)⌝ := by
+  iintro #Hinv #Hl #HA
+  ihave #Hb := srvChBound_of_len γ γk st₀ B hB hmono N hN $$ Hl
+  iapply restoreBoundM_of_chBound γ γk st₀ E hE A hc d' $$ Hinv Hb HA
+
 /-! ## The mvcc side: a seal with the caller's bound (drafted)
 
 After a compacted restore the writer's handle cannot hold a receipt per change of its log
