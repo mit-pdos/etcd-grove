@@ -1586,7 +1586,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `InvRaftNode.lean` (`rn_ready_recv`), `InvRaftLoop.lean` (`rnCfgAt_normal1` (done), `rnCfgAt_back_true` (done),
    `rnApR_dv` (done), `rnApGive_dv` (done), `srvRaftNodeCC_of_isRaftNode` (done)), `NodeBridge.lean`
    (`isRNMemStor_of_memstorage`, `raftPropose_of_isNode` (done), `raftApplyCC_of_isNode` (done),
-   `isRaftNodeIfc_of_isNode`, `rnStepIfc_of_isNode` (done)), `raftNode__start.lean`,
+   `isRaftNodeIfc_of_isNode` (done), `rnStepIfc_of_isNode` (done)), `raftNode__start.lean`,
    `raftNode__onStop.lean` (done), `raftNode__stop.lean` (done), `raftNode__tick.lean` (done), `newRaftNode.lean` (done)
    (`rnApP_cum` (done), `newRaftNode.wp_proof`).
 3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
