@@ -452,3 +452,90 @@ three watching examples; D22's five statements above (the collaborator's). No lo
 `etc/lean-check.py` on the four Draft modules and `InstanceLaws.lean`; `lake build` of the Draft
 modules (targeted), and a full `lake build` of `5c897670ef` (passed, 10960 jobs, no error). `#print axioms` of the new results: no
 `sorryAx`.
+
+## After review round 2 (2026-10-30; stopped early)
+
+The report: `notes/spec-first-study/m2-storage-review-2.md` (on `e6ed00dee8`; N1, S1'-S6'),
+committed on its own (`725f70d2f0`). **Stopped early at the coordinator's request**: `lean` moved
+by 622 commits (NewServer, applyAll, the D22 predicates), so the round was cut at a checked point,
+without the full build; the coordinator merges `lean` and re-checks the Drafts. What is done and
+what is not:
+
+### Done (checked: targeted `lake build` of the five Draft modules, no error; no `axiom`, no `sorry`)
+
+- **S4', fixed.** `mvcc.noCompactor γs` (`mvcc/M2StorageDraft.lean`), `@[no_expose]`, body
+  `crevFrozen γs`; laws `noCompactor_persistent`, `noCompactor_frozen` / `noCompactor_of_frozen`
+  (mvcc's and the server's own proofs), `isWatchableStoreD_noCompactor (h : ¬ kbCmpM γ.st.kb)`,
+  `noCompactor_of_new` (was `crevFrozen_of_new`, S5). The client-facing statements now name it:
+  `storeWatchParamsD.T := watchTok γ ∗ noCompactor γ.st`; v3rpc's `upOkD`/`watchUpD` create arm
+  `mvcc.watchTok γ ∗ mvcc.noCompactor γ.st`; the client's facts. `wsWatchFrozen` stays over
+  `crevFrozen` (internal; `watch` converts with `noCompactor_frozen`).
+- **N1, the law and the client glue.** v3rpc (`api/v3rpc/M2StorageDraft.lean`): `watchSrvOkD`,
+  `isWatchServerD` (Draft-only copies over `isWatchableStoreD`: at the switch `isWatchableStore` is
+  redefined in place and their texts are unchanged), and the laws
+  `v3rpc.isWatchServerD_noCompactor (h : ¬ mvcc.kbCmpM R.γ.st.kb) : isWatchServerD p R ⊢
+  mvcc.noCompactor R.γ.st` (the reviewer's law), `isWatchServerD_link` (`⌜R.γ.st = R.E.γ⌝`, a v3rpc
+  law in place of the client's unfold) and `isWatchServerD_noCompactor_env` (the mode at `R.E.γ.kb`).
+  Client (`client/v3/M2StorageDraft.lean`): `watchMemberFactsD_of_server (h : ¬ kbCmpM V.R.E.γ.kb) :
+  watchMemberFacts V ∗ isWatchServerD p V.R ⊢ watchMemberFactsD V` (what each watching site does,
+  `watchkv/Served.lean:98`, `cache/v3/Results.lean:269`, `linkv3p/WatchEnv.lean:82`: one `ihave`
+  more, plus the hypothesis `h`); `watchMemberFactsD_of`.
+- **S3', fixed.** The new conjunct appended last in `watchMemberFactsD` and `watchAddrFactsD`, and a
+  projection `watchMemberFactsD_noCompactor` (used by `watchUpD_create`). Sites that destructure by
+  position anyway (for the switch's cost): `client/InvWatch.lean:469` (`⟨-, -, %Hst, -⟩`: unaffected
+  when appended last), `client/watcher__Watch.lean:54-55` (`⟨-, -, -, -, #Hkf0⟩`: breaks, `#Hkf0`
+  would bind the pair: use a projection), `client/InvClientNewResult.lean:112` (unfolds),
+  `examples/linkv3p/WatchEnv.lean:89` (unfolds); `watchAddrFacts`'s destructuring sites not yet
+  counted.
+- **S6', in part.** `mvcc.storeWatchParamsD_T`/`_R` dropped; `v3rpc.createArm_T` kept, marked
+  Draft-only (dropped at the switch).
+
+### N1: the route to the examples (decided, not yet drafted)
+
+**Why not `memberBuilt`'s text**: the watching examples hold `memberBuilt`/`memberUp`, whose `E` is
+existential and whose parameters (`s ρ E₀ lg γn id N served`) carry no mode; both
+`newServer.spec` and `newServer.specCompact` return `memberBuilt`. So the server's mode can reach
+the examples only through a parameter they already pass: the stand-in `E₀`, through `envAgree E E₀`
+(a pure conjunct `memberBuilt`/`memberUp`/`NewServer.spec`'s post already carry). This is the
+`m2` branch's route (its `apply.AEnv.cmp`, `envAgree … ∧ E.cmp = E'.cmp`, `memberBoot … (cmp :=
+false)`, `memberBoot_cmp`, linkv3p's `memberWatch` `⌜… ∧ E.cmp = false⌝`): `memberBuilt` and
+`memberUp` keep their texts. The drafted statements (exact text; not yet in a Draft module):
+- `apply.AEnv` (`apply/Chain.lean`) gains the field `cmp : Bool := false` (the `m2` branch's).
+- `envAgree E E' := E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧
+  (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)` (the last conjunct: the server's own mode is its store's,
+  one reading, S5'; the field is truthful on the server's environment too).
+- `NewServer.spec`: a premise `E₀.cmp = false →` beside `cfg.AutoCompactionRetention' = 0 →`
+  (exported; the post's text unchanged, its `envAgree E E₀` now gives `¬ kbCmpM E.γ.kb`);
+  `NewServer.specCompact`: `E₀.cmp = true →`; the merged spec: `(E₀.cmp = true ↔
+  cfg.AutoCompactionRetention' ≠ 0) →`.
+- `common.memberBoot … (cmp : Bool := false)` with `E₀.cmp = cmp` appended to its pure facts;
+  `StartCompactingServer.spec` at `memberBoot … true`; `alloc1`/`alloc3` (and linkv3p's alloc)
+  `(cmp := false)` defaults; a law `memberBoot_cmp` to read it before `NewServer` takes the bundle.
+- `etcd_cache_served` (`cache/v3/Results.lean`, exported) and `watchkv`'s `wk_served` gain
+  `(hoff : ¬ mvcc.kbCmpM V.R.E.γ.kb)`; linkv3p's `memberWatch`/`memberAt` gain `¬ mvcc.kbCmpM
+  E.γ.kb` in their pure facts (appended), from `envAgree` in `startCluster`.
+- Costs at the switch: NewServer's anonymous `AEnv` constructor (`NewServer.lean:1032`, one more
+  component) and its `envAgree` proof (`⟨…, rfl⟩` gains `rfl` and the mode); `srvC_agree`
+  (`InvBuild.lean:386`) and `srvCM_agree` (`ServerOn.lean:565`) destructure `⟨hi, hc, hr⟩`
+  (become `⟨hi, hc, hr, -⟩`); `newServer.lean`'s two `memberBoot` destructurings; the call sites
+  passing the new premise. Not drafted: `envAgreeD`, `memberBootD`, `envAgreeD_of_new`,
+  `envAgreeD_off`, and the examples' glue; all to redo against the merged `lean` (NewServer moved).
+
+### Not done
+
+- **S1'** (`kbWTSupplyM_of_srvBeOwnD`'s needless mode premise), **S2'** (`srvBeFracOf`),
+  **S5'** (`srvBeFrac`'s docstring: the store's `γ.st.kb` and `E.γ.kb` agree, `γ.st = E.γ` from
+  `srvWatchBuilt`/`watchSrvOk`; D22's install keeps both off), **S6'**'s remaining unfolds
+  (`backend.wbTok`: use `wbToks_split`; `txn.storeWTs`: a law `storeWTs_some`) and the
+  `applySnapshot`/`srv_be_swap` question for the collaborator in STATUS: all agreed, not yet made.
+  They touch D22's drafted predicates, which `lean` has moved.
+- The consolidated "Statements for the user's approval (Q2)" list: not written (it depends on the
+  merged `lean`'s NewServer and D22 texts). Its known members so far: `New.spec`,
+  `newWatchableStore.spec` (`crevRightM`, the supply moved out), `NewStore.spec`,
+  `store.Compact.spec`, `mvcc_store_Compact`, `mvcc_NewStore_backend(_cmp)` (Q1 (a)); the in-place
+  `isWatchableStore`, `watchStoreInv`, `storeWatchParams` (`noCompactor` in `T`); v3rpc's
+  `upOk`/`watchUp`; the client's `watchMemberFacts`/`watchConnFacts`/`watchAddrFacts`;
+  `NewServer.spec`/`specCompact` (the `E₀.cmp` premise), `envAgree`, `apply.AEnv.cmp`;
+  `etcd_cache_served`; D22's (the collaborator's): `srvBeOwn`, `srvBeOwn_frag`, `srv_be_swap`, the
+  snapshot state's rebuild, `NewServer`'s allocation of `E.γbe`.
+- No full build (the coordinator's instruction).

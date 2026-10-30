@@ -13,14 +13,15 @@ nothing is switched, nothing assumed (no `axiom`, no `sorry`).
   the compaction right's half of the revision's authority handed to the caller in compaction mode
   (`crevRightM`, the mode read from the names, as `wsFrozenM`), beside the closer: the caller makes
   the right (`compactRight_of_wsCloser`) only after its last error return (Go's deferred
-  `kv.Close()`, `server.go:376-381`), or freezes the store (`crevFrozen_of_new`, any mode) if it
+  `kv.Close()`, `server.go:376-381`), or gives up compacting (`noCompactor_of_new`, any mode) if it
   will watch instead. `newWatchableStore`'s proof needs two changes for it: `crevRight_split` in
   place of `crevFrozen_alloc`, and `isWatchableStoreD` built with its result.
 - **No watchers in compaction mode** (M2's round 1; review round 1's F1, the user's decision: a
-  client-side premise). The "no compactor" fact is `crevFrozen γ.st` itself (persistent; there is
-  none in compaction mode, where the authority's other half is the compaction right's). It travels
+  client-side premise). The "no compactor" fact is `noCompactor γ.st` (review round 2's S4': a
+  sealed name for clients; its body is mvcc's `crevFrozen γ.st`, persistent; there is none in
+  compaction mode, where the authority's other half is the compaction right's). It travels
   in the client's content of each create request: the store's watch parameters' per-watch token
-  becomes `watchTok γ ∗ crevFrozen γ.st` (`storeWatchParamsD`), so `watch` registers a watcher only
+  becomes `watchTok γ ∗ noCompactor γ.st` (`storeWatchParamsD`), so `watch` registers a watcher only
   with it, and the watch-store invariant holds `wsWatchFrozen` (no watcher, or the fact), where
   `syncWatchers`' non-empty branch, the only user of `Hfrz`, finds it. gRPC's stream model carries
   a client's contribution to the handler only per request (`Up`), not at the stream's opening, so
@@ -29,8 +30,10 @@ nothing is switched, nothing assumed (no `axiom`, no `sorry`).
 - **What reads differently at `cm = false`** (review round 1's S4: the round's header said every
   statement reads as today; false). Today's statements over the redefined `isWatchableStore` and
   `storeWatchParams` read as today's in off mode but for the create token: `watchStream.Watch`'s
-  `P.T`, v3rpc's `upOk`/`watchUp` and the client's watch facts gain `crevFrozen` in every mode, so a
-  watch client of an off server must present it (from `NewServer.spec`'s post, which gains it). The
+  `P.T`, v3rpc's `upOk`/`watchUp` and the client's watch facts gain `noCompactor` in every mode, so
+  a watch client of an off server must present it (from the watch server's state, v3rpc's
+  `isWatchServerD_noCompactor`, given the server's mode: review round 2's N1, the route in the
+  examples' Draft `examples/common/M2StorageDraft.lean`). The
   rest (`New`, `newWatchableStore`, `wsFrozenM`, `crevRightM`) reads as today at `cm = false`
   (`wsFrozenM_off`, `crevRightM_off`).
 -/
@@ -73,7 +76,7 @@ compact (`¬ kbCmpM γs.kb`: today's servers, `cm = false`) is frozen (`crevFroz
 one is not. The mode is the logical names' (`γs.kb`, the boot backend's): no restore in compaction
 mode, so it never changes. A store over mvcc's assumed backend (`kb = none`) counts as compacting
 here (`kbCmpM none`): its creator gets the authority's half (`crevRightM`) and chooses, by
-`crevFrozen_of_new`, to freeze it and watch (review round 1's S5; `kbCmpM`'s docstring says so at
+`noCompactor_of_new`, to freeze it and watch (review round 1's S5; `kbCmpM`'s docstring says so at
 the switch). -/
 def mvcc.wsFrozenM (γs : mvcc.StoreNames) : IProp GF :=
   if mvcc.kbCmpM γs.kb then iprop(True) else mvcc.crevFrozen γs
@@ -85,7 +88,7 @@ instance mvcc.wsFrozenM_persistent (γs : mvcc.StoreNames) :
 /-- **The compaction right's half of the revision's authority, by the mode** (draft; a new conjunct
 of `newWatchableStore`'s and `New`'s posts; the mode read from the names, as `wsFrozenM`: review
 round 1's S3): in compaction mode the caller gets it (and makes the compaction right of it with
-the closer, `compactRight_of_wsCloser`, or freezes the store, `crevFrozen_of_new`); otherwise
+the closer, `compactRight_of_wsCloser`, or freezes the store, `noCompactor_of_new`); otherwise
 nothing, the store being frozen. -/
 def mvcc.crevRightM (γs : mvcc.StoreNames) : IProp GF :=
   if mvcc.kbCmpM γs.kb then mvcc.crevUB γs.idx (1 : Qp).half (-1) else iprop(True)
@@ -136,10 +139,9 @@ instance mvcc.isWatchableStoreD_persistent (s st : Loc) (γ : mvcc.WsNames) :
     Persistent (mvcc.isWatchableStoreD (GF := GF) s st γ) := by
   unfold mvcc.isWatchableStoreD; simp only [named]; infer_instance
 
-/-- **The "no compactor" fact of an off store** (persistent): its store is frozen. A law, so that
-the server does not unfold `isWatchableStoreD`: what `NewServer`'s off post hands its watch
-clients (`crevFrozen E.γ`, the v3rpc/client Drafts), and what `RestorePre`'s `sorry` on
-`crevFrozen E.γ` needs (at `cm = false`; D22's). -/
+/-- **The frozen fact of an off store** (persistent; internal: clients use
+`isWatchableStoreD_noCompactor`). A law, so that the server does not unfold `isWatchableStoreD`:
+what `RestorePre`'s `sorry` on `crevFrozen E.γ` needs (at `cm = false`; D22's). -/
 theorem mvcc.isWatchableStoreD_frozen (s st : Loc) (γ : mvcc.WsNames) (h : ¬ mvcc.kbCmpM γ.st.kb) :
     mvcc.isWatchableStoreD (GF := GF) s st γ ⊢ mvcc.crevFrozen γ.st := by
   unfold mvcc.isWatchableStoreD
@@ -172,24 +174,57 @@ theorem mvcc.isWatchableStoreD_readView (s st : Loc) (γ : mvcc.WsNames) :
   iframe Hrvkv Hs
   iunfold mvcc.kvOver; iright; iexists s; iframe Hst; ipureintro; rfl
 
+/-- **No compactor** (review round 2's S4': the client-facing name of the fact a watch client
+presents with each create request; sealed: mvcc's internal `crevFrozen`, the compaction right at
+`-1` given up for good into an invariant, is its body; clients use the laws below). An off store
+has it (`isWatchableStoreD_noCompactor`); a compacting store's creator can make it by giving up
+compacting (`noCompactor_of_new`); a compacting store whose creator made the compaction right
+never has it (the authority's other half is the right's). -/
+@[no_expose] def mvcc.noCompactor (γs : mvcc.StoreNames) : IProp GF := mvcc.crevFrozen γs
+
+instance mvcc.noCompactor_persistent (γs : mvcc.StoreNames) :
+    Persistent (mvcc.noCompactor (GF := GF) γs) := by
+  unfold mvcc.noCompactor; infer_instance
+
+/-- What mvcc's own proofs read of it (`watch`, which re-establishes `wsWatchFrozen` with it;
+`syncWatchers`' non-empty branch through `wsWatchFrozen`). -/
+theorem mvcc.noCompactor_frozen (γs : mvcc.StoreNames) :
+    mvcc.noCompactor (GF := GF) γs ⊢ mvcc.crevFrozen γs := by
+  unfold mvcc.noCompactor; exact .rfl
+
+/-- The converse, for mvcc's and the server's own sources of the frozen fact (D22's
+`RestorePre`, which has `crevFrozen`). -/
+theorem mvcc.noCompactor_of_frozen (γs : mvcc.StoreNames) :
+    mvcc.crevFrozen (GF := GF) γs ⊢ mvcc.noCompactor γs := by
+  unfold mvcc.noCompactor; exact .rfl
+
+/-- **An off store has no compactor** (persistent; the law the watch server's exports, v3rpc's
+`isWatchServerD_noCompactor`). -/
+theorem mvcc.isWatchableStoreD_noCompactor (s st : Loc) (γ : mvcc.WsNames)
+    (h : ¬ mvcc.kbCmpM γ.st.kb) :
+    mvcc.isWatchableStoreD (GF := GF) s st γ ⊢ mvcc.noCompactor γ.st :=
+  (mvcc.isWatchableStoreD_frozen s st γ h).trans (mvcc.noCompactor_of_frozen γ.st)
+
 /-- **A creator that will not compact freezes the store** (review round 1's S5; any mode): with the
 authority's half it was handed (`crevRightM`, in compaction mode, mvcc's assumed backend's
 included) or the frozen fact the store already has (off), the "no compactor" fact, so that it can
 watch (the create token's, `storeWatchParamsD`). In compaction mode it spends the half: such a
 creator gives up compacting. -/
-theorem mvcc.crevFrozen_of_new (s st : Loc) (γ : mvcc.WsNames) (E : CoPset) :
-    mvcc.isWatchableStoreD (GF := GF) s st γ ∗ mvcc.crevRightM γ.st ={E}=∗ mvcc.crevFrozen γ.st := by
+theorem mvcc.noCompactor_of_new (s st : Loc) (γ : mvcc.WsNames) (E : CoPset) :
+    mvcc.isWatchableStoreD (GF := GF) s st γ ∗ mvcc.crevRightM γ.st ={E}=∗ mvcc.noCompactor γ.st := by
   iintro ⟨#Hws, Hcr⟩
   by_cases h : mvcc.kbCmpM γ.st.kb
   · unfold mvcc.crevRightM
     simp only [h, ↓reduceIte]
-    iapply mvcc.crevFrozen_alloc γ.st E $$ Hcr
+    imod mvcc.crevFrozen_alloc γ.st E $$ Hcr with #Hf
+    imodintro
+    iapply mvcc.noCompactor_of_frozen $$ Hf
   · imodintro
-    iapply mvcc.isWatchableStoreD_frozen s st γ h $$ Hws
+    iapply mvcc.isWatchableStoreD_noCompactor s st γ h $$ Hws
 
 /-- **The watch-store invariant's new clause** (draft; a conjunct of `watchStoreInv` at the switch):
 no watcher is registered, or the store is frozen. `watch` (registration) has the fact from the
-create token (`storeWatchParamsD`'s `T`); `syncWatchers`' non-empty branch (`Wu ≠ ∅`, so `M ≠ ∅`:
+create token (`storeWatchParamsD`'s `T`, through `noCompactor_frozen`); `syncWatchers`' non-empty branch (`Wu ≠ ∅`, so `M ≠ ∅`:
 `wsOk_M_ne_of_Wu`) takes it here instead of from `isWatchableStore`; every other step keeps `M`
 empty or the fact. -/
 def mvcc.wsWatchFrozen (γ : mvcc.WsNames) (σ : mvcc.WsState) : IProp GF :=
@@ -255,7 +290,7 @@ def mvcc.storeWatchParamsD (s st : Loc) (γ : mvcc.WsNames) : mvcc.WatchParams G
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv mvcc.watchN (mvcc.watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := mvcc.watchReader s st γ
-  T := iprop(mvcc.watchTok γ ∗ mvcc.crevFrozen γ.st)
+  T := iprop(mvcc.watchTok γ ∗ mvcc.noCompactor γ.st)
   IWF := mvcc.watcherIs γ
   OC w γc := iprop(∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   WS w := iprop(∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw)
@@ -266,14 +301,6 @@ def mvcc.storeWatchParamsD (s st : Loc) (γ : mvcc.WsNames) : mvcc.WatchParams G
   IWF_pers _ _ _ _ := by infer_instance
   OC_pers _ _ := by infer_instance
   WS_pers _ := by infer_instance
-
-/-- Only the per-watch token changed. -/
-theorem mvcc.storeWatchParamsD_T (s st : Loc) (γ : mvcc.WsNames) :
-    (mvcc.storeWatchParamsD (GF := GF) s st γ).T = iprop(mvcc.watchTok γ ∗ mvcc.crevFrozen γ.st) :=
-  rfl
-
-theorem mvcc.storeWatchParamsD_R (s st : Loc) (γ : mvcc.WsNames) :
-    (mvcc.storeWatchParamsD (GF := GF) s st γ).R = (mvcc.storeWatchParams s st γ).R := rfl
 
 /-! ## The drafted specs -/
 

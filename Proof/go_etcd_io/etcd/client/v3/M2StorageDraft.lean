@@ -4,14 +4,15 @@
 "no watchers in compaction mode" is a premise of the Watch stream's client-facing contract).
 Imported by nothing; no `axiom`, no `sorry`.
 
-A watch client presents the "no compactor" fact of each member it watches (`mvcc.crevFrozen` at the
+A watch client presents the "no compactor" fact of each member it watches (`mvcc.noCompactor` at the
 member's store names): one more conjunct of the member's facts (`watchMemberFactsD`, in
 `watchConnFactsD`, and in `watchAddrFactsD` for `NewWatcher`'s client), which its create requests
 carry with their watch token (`v3rpc.watchUpD`, `watchUpD_create`). A client that never watches
 (`putgetc`'s: `client.New` without `isNewClient_watcher`) owes nothing. The examples whose clients
-watch (`watchkv`, `linkv3p`, `cachekv`) take the fact from `NewServer.spec`'s post, which gains
-`mvcc.crevFrozen E.γ` (from `mvcc.isWatchableStoreD_frozen` at `cm = false`; the plan has the
-text); a compacting server's post has none to give.
+watch (`watchkv`, `linkv3p`, `cachekv`) take the fact from the watch server they already hold
+(`v3rpc.isWatchServerD_noCompactor_env`, review round 2's N1), given the server's mode
+(`¬ kbCmpM R.E.γ.kb`, which reaches them through `envAgree E E₀` and the stand-in's mode: the plan,
+"After review round 2"); a compacting server's watch server gives none.
 -/
 module
 
@@ -42,8 +43,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **Draft of `client.watchMemberFacts`** (F1): a member's facts gain its store's "no compactor"
 fact, which the client's create requests carry. The rest as today. -/
 def client.watchMemberFactsD (V : WEnv GF) : IProp GF :=
-  iprop(mvcc.watchTokPool V.R.γ ∗ mvcc.crevFrozen V.R.γ.st ∗ srvLogsSmall V.R ∗
-    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V)
+  iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗
+    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.noCompactor V.R.γ.st)
 
 instance client.watchMemberFactsD_persistent (V : WEnv GF) :
     Persistent (client.watchMemberFactsD V) := by
@@ -66,11 +67,41 @@ the server's "no compactor" fact beside its watch-token pool, and the registered
 def watchAddrFactsD (V : WEnv GF) : IProp GF :=
   iprop(isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUpD V.R.γ) (v3rpc.watchSpec V.R) ∗
-    mvcc.watchTokPool V.R.γ ∗ mvcc.crevFrozen V.R.γ.st ∗
+    mvcc.watchTokPool V.R.γ ∗
     srvLogsSmall V.R ∗
     eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ ∗
     watchLaws V ∗
-    srvKVFacts V)
+    srvKVFacts V ∗ mvcc.noCompactor V.R.γ.st)
+
+/-- **The member's "no compactor" fact** (review round 2's S3': a projection, so no site
+destructures the facts by position). -/
+theorem client.watchMemberFactsD_noCompactor (V : WEnv GF) :
+    client.watchMemberFactsD V ⊢ mvcc.noCompactor V.R.γ.st := by
+  iintro #H
+  iunfold client.watchMemberFactsD at H
+  icases H with ⟨-, -, -, -, -, #Hf⟩
+  iexact Hf
+
+/-- **Today's member facts and the fact are the drafted ones** (S3': the conjunct appended last;
+the sites that build `watchMemberFacts`, `linkv3p/WatchEnv.lean`'s `memberWatch_facts`, add it). -/
+theorem client.watchMemberFactsD_of (V : WEnv GF) :
+    client.watchMemberFacts V ∗ mvcc.noCompactor V.R.γ.st ⊢ client.watchMemberFactsD V := by
+  iintro ⟨#H, #Hf⟩
+  iunfold client.watchMemberFacts at H
+  icases H with ⟨#H1, #H2, #H3, #H4, #H5⟩
+  iunfold client.watchMemberFactsD
+  iframe #
+
+/-- **The member's facts from its watch server, at an off server** (N1, what each watching site
+does: `watchkv/Served.lean`, `cache/v3/Results.lean`'s `etcd_cache_served`, linkv3p's
+`memberWatch_facts`): the fact from `isWatchServerD` at the server's mode. -/
+theorem client.watchMemberFactsD_of_server (V : WEnv GF) (p : Loc)
+    (h : ¬ mvcc.kbCmpM V.R.E.γ.kb) :
+    client.watchMemberFacts V ∗ v3rpc.isWatchServerD p V.R ⊢ client.watchMemberFactsD V := by
+  iintro ⟨#H, #Hw⟩
+  ihave #Hf := v3rpc.isWatchServerD_noCompactor_env p V.R h $$ Hw
+  iapply client.watchMemberFactsD_of V $$ [H Hf]
+  iframe #
 
 /-- **A create request's content, from the member's facts** (F1; the client's three create sites in
 `watchGRPCStream.run`, each with a token from the pool): a restricted create with a watch token is
@@ -79,8 +110,7 @@ theorem client.watchUpD_create (V : WEnv GF) (i : Nat) (c : v3rpc.CreateReqM)
     (h : v3rpc.watchReqOk (.create c)) :
     client.watchMemberFactsD V ∗ mvcc.watchTok V.R.γ ⊢ v3rpc.watchUpD V.R.γ i (.create c) := by
   iintro ⟨#Hm, Ht⟩
-  iunfold client.watchMemberFactsD at Hm
-  icases Hm with ⟨-, #Hf, -⟩
+  ihave #Hf := client.watchMemberFactsD_noCompactor V $$ Hm
   unfold v3rpc.watchUpD
   dsimp only
   iframe Ht Hf
