@@ -1760,3 +1760,6 @@ file edited.
 - Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11204 jobs, no error.
 - `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries); all 43
   `etc/tcb-collections/*.txt` `--check` match.
+
+**The user approved `watchableStore.Close.spec`'s text (2026-10-30)**, written at the switch (item 23's
+"alike"): `∀ … (c : Int)`, pre `mvcc.wsCloserM s st γ.st c` in place of `mvcc.wsCloser s st γ.st`.
