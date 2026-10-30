@@ -79,6 +79,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The auth layer's verdict is the model's** (`authTie st rq out`): an application of the KV
 request `rq` dispatched to the outcome `o` was rejected by the auth layer exactly when the model's
@@ -765,6 +766,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **What a put of `op` needs in the mode `on`** (`putPermit`'s, and a key not empty: the
 permission cache decides the put's check, `kvShapeAll`; the gRPC layer refuses an empty key,

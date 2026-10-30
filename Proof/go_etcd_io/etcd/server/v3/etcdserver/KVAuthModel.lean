@@ -738,6 +738,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The KV model of the committed log `L` in the mode `on`**, from the start's auth state `st₀`
 (the store's state at the server's start) and the start's log. -/
@@ -898,6 +899,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The mode-`on` KV invariant's start chain has the auth layer on** (`kvInv_ch0_off`'s
 counterpart): unlike `kvInv`, it agrees with `NewServer.specM true`'s premise on the start chain. -/

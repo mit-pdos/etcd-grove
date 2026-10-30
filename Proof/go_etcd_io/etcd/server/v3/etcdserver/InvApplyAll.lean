@@ -54,6 +54,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- `s.bemu`'s lock invariant at fraction `q`: `s.be` at half the fraction, holding the real
 backend `d`, the current backend's ghost variable `γbe` at `d` at half the fraction, and

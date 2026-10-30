@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Spec.go_etcd_io.raft.v3.Api
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
+public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
 
@@ -65,17 +66,28 @@ theorem srvLogN_sub : (↑srvLogN : CoPset) ⊆ ↑srvRaftN := nclose_subseteq _
 @[simp] theorem srvLogN_clusterN : (↑srvLogN : CoPset) ⊆ ⊤ \ ↑srvClusterN :=
   mask_ndot_ne' srvRaftN "log" "cluster" (by decide)
 
-/-- **The cluster, as the server sees it** (2026-10-27): the node API's cluster, the voters it
-started with (`vs`), whether it is dynamic (raft's dynamic mode, its conf changes applied with the
-decoder `dec`) or static, and the server's ghost names: the requested entries' log (`log`, a mono
-list), the proposals' fresh tokens (`fresh`), their registry (`props`: data ↦ result predicate and
-one-shot token), the fired proposals (`fired`: data ↦ the log before its entry), the read
-contexts' fresh tokens (`rdFresh`) and the reads to fire again (`pend`). -/
+/-- (2026-10-30, the repair) **The cluster's conf-change policy's namespace** (`confPolicy`'s `N'`):
+outside `srvRaftN`, so that the apply thread decides a conf entry under any mask the server's
+updates leave. -/
+def srvConfN : Namespace := nroot .@ "server_conf"
+
+/-- (2026-10-30, the repair; D2(i)) **The namespace of the cluster's snapshot registry**, which the
+server holds empty for good (`srvClusterOk`): outside `srvRaftN`, so that a snapshot fact is refuted
+under any mask the server's updates leave. -/
+def srvSnapsN : Namespace := nroot .@ "server_snaps"
+
+/-- **The cluster, as the server sees it** (2026-10-27; 2026-10-30, the repair: one mode): the node
+API's cluster, the voters it started with (`vs`), the rule its conf entries are decided by (`rule`,
+the cluster's `confPolicy`: `srvRule`, `InvCfgView.lean`, tied by `rnEnvOk`; until the repair a
+static or dynamic mode, `dyn`, and the dynamic mode's decoder `dec`), and the server's ghost names:
+the requested entries' log (`log`, a mono list), the proposals' fresh tokens (`fresh`), their
+registry (`props`: data ↦ result predicate and one-shot token), the fired proposals (`fired`: data ↦
+the log before its entry), the read contexts' fresh tokens (`rdFresh`) and the reads to fire again
+(`pend`). -/
 structure SrvRaft [GooseExts] where
   cl : Cluster
   vs : List w64
-  dyn : Bool
-  dec : ConfChangeDecoder
+  rule : ConfRule
   /-- the bootstrap log, as raft's records (raft's `reBoot` until 2026-10-27): the members'
   `ConfChange`s the cluster started with, which the server's membership model folds -/
   boot : List EntryM
@@ -201,12 +213,13 @@ theorem opsOf_append (a b : List LogEntry) :
     opsOf (a ++ b) = opsOf a ++ opsOf b := by
   simp only [opsOf, List.filter_append]
 
-theorem opsOf_nofill (a : List LogEntry) (h : ∀ e ∈ a, ¬ e.isFiller) :
+/-- (2026-10-30, the repair: raft's `opsOf` also drops empty `ConfChangeV2`s, `isEmptyV2`) -/
+theorem opsOf_nofill (a : List LogEntry) (h : ∀ e ∈ a, ¬ e.isFiller ∧ ¬ e.isEmptyV2) :
     opsOf a = a := by
   unfold opsOf
   rw [List.filter_eq_self]
   intro e he
-  simp [h e he]
+  simp [(h e he).1, (h e he).2]
 
 theorem opsOf_length_le (a : List LogEntry) : (opsOf a).length ≤ a.length := by
   unfold opsOf; exact List.length_filter_le _ _
@@ -286,11 +299,13 @@ variable [GooseExts]
 
 /-- **Facts of the server's log, on a committed log with its requested entries** (2026-10-27): an
 entry-wise fact that reads only an entry's term, type and data, and holds of an empty normal
-entry, holds of every entry of a committed log `A` whose requested entries are a prefix of the
-server's log `L`'s, when it holds of `L`'s (`A`'s fillers are empty normal entries: `srvIdxOkW`). -/
+entry and of an empty `ConfChangeV2` (2026-10-30, the repair: raft's `opsOf` drops both), holds of
+every entry of a committed log `A` whose requested entries are a prefix of the server's log `L`'s,
+when it holds of `L`'s (`A`'s fillers are empty normal entries: `srvIdxOkW`). -/
 theorem srv_entry_transfer (ai₀ : w64) (A L : List EntryModel) (P : EntryModel → Prop)
     (hP : ∀ m m', m.toLE = m'.toLE → P m' → P m)
     (hfill : ∀ m : EntryModel, m.typ = W32 0 → m.data = [] → P m)
+    (hv2 : ∀ m : EntryModel, m.typ = W32 2 → m.data = [] → P m)
     (hA : srvIdxOkW ai₀ A) (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE)
     (hL : ∀ m ∈ L, P m) : ∀ m ∈ A, P m := by
   intro m hm
@@ -298,41 +313,52 @@ theorem srv_entry_transfer (ai₀ : w64) (A L : List EntryModel) (P : EntryModel
   · obtain ⟨hd, hty⟩ := hf
     simp only [EntryModel.toLE] at hd hty
     exact hfill m hty hd
+  by_cases hv : m.toLE.isEmptyV2
+  · obtain ⟨hd, hty⟩ := hv
+    simp only [EntryModel.toLE] at hd hty
+    exact hv2 m hty hd
   · have hin : m.toLE ∈ opsOf (A.map EntryModel.toLE) := by
       unfold opsOf
       rw [List.mem_filter]
-      exact ⟨List.mem_map_of_mem hm, by simp [hf]⟩
+      exact ⟨List.mem_map_of_mem hm, by simp [hf, hv]⟩
     obtain ⟨m', hm', he⟩ := List.mem_map.1 (h.subset hin)
     exact hP m m' he.symm (hL m' hm')
 
 /-- **Where a committed log's entry comes from** (2026-10-27): an entry of a committed log `A`
-whose requested entries are a prefix of the server's log `L`'s is an empty normal entry (a filler)
-or has the term, type and data of one of `L`'s. -/
+whose requested entries are a prefix of the server's log `L`'s is an empty normal entry (a filler),
+an empty `ConfChangeV2` (2026-10-30, the repair: raft commits one to leave a joint configuration,
+`committed_emptyV2_joint`, which the server's static membership never has) or has the term, type
+and data of one of `L`'s. -/
 theorem srv_entry_src (ai₀ : w64) (A L : List EntryModel) (hA : srvIdxOkW ai₀ A)
     (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
-    ∀ m ∈ A, (m.typ = W32 0 ∧ m.data = []) ∨ ∃ m' ∈ L, m'.toLE = m.toLE := by
+    ∀ m ∈ A, (m.typ = W32 0 ∧ m.data = []) ∨ (m.typ = W32 2 ∧ m.data = []) ∨
+      ∃ m' ∈ L, m'.toLE = m.toLE := by
   intro m hm
   by_cases hf : m.toLE.isFiller
   · obtain ⟨hd, hty⟩ := hf
     simp only [EntryModel.toLE] at hd hty
     exact .inl ⟨hty, hd⟩
+  by_cases hv : m.toLE.isEmptyV2
+  · obtain ⟨hd, hty⟩ := hv
+    simp only [EntryModel.toLE] at hd hty
+    exact .inr (.inl ⟨hty, hd⟩)
   · have hin : m.toLE ∈ opsOf (A.map EntryModel.toLE) := by
       unfold opsOf
       rw [List.mem_filter]
-      exact ⟨List.mem_map_of_mem hm, by simp [hf]⟩
+      exact ⟨List.mem_map_of_mem hm, by simp [hf, hv]⟩
     obtain ⟨m', hm', he⟩ := List.mem_map.1 (h.subset hin)
-    exact .inr ⟨m', hm', he⟩
+    exact .inr (.inr ⟨m', hm', he⟩)
 
 /-- **A committed log's equivalent prefix of the server's log** (2026-10-27): the prefix of `L`
 holding a committed log `A`'s requested entries, with the same requested entries. -/
 theorem srv_eqv_prefix (γ : ServerRaftNames) (A L : List EntryModel) (hA : srvIdxOkW γ.ai0 A)
-    (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
+    (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2)
     (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
     ∃ A', A' <+: L ∧ srvEqv γ A A' := by
   refine ⟨L.take (opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, hA,
     srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _), ?_⟩
   have hnf' : ∀ x ∈ (L.take (opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE,
-      ¬ x.isFiller := fun x hx => by
+      ¬ x.isFiller ∧ ¬ x.isEmptyV2 := fun x hx => by
     obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
     exact hnf y (List.mem_of_mem_take hy)
   rw [opsOf_nofill _ hnf', List.map_take]
@@ -347,6 +373,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server's half of its log of requested entries** `L` (exclusive; the KV invariant's).
 (2026-10-27: until then raft's `rLog`, the client's half of the whole committed log.) -/
@@ -427,11 +454,11 @@ member, not a promotion. -/
 def ccApplyOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
   m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false)
 
-/-- **A conf change `applyConfChange` takes, in the cluster's mode** (D43 M5d/M5e): `ccApplyOk`,
-and in a dynamic cluster also a `RemoveNode` of a member of the configuration. (2026-10-27: of the
-server's `SrvRaft`, `cfg` and `dyn`; until then of raft's names, `reCfg` and `reDyn`.) -/
+/-- **A conf change `applyConfChange` takes** (D43 M5d/M5e; 2026-10-30, the repair, D3: static
+membership after boot, so `ccApplyOk` only; until then, in a dynamic cluster, also a `RemoveNode` of
+a member of the configuration). (2026-10-27: of the server's `SrvRaft`'s `cfg`.) -/
 def ccApplyOkR (γ : SrvRaft) (m : ConfChangeM) : Prop :=
-  ccApplyOk γ.cfg m ∨ (γ.dyn = true ∧ m.type = W32 1 ∧ m.nodeId ∈ γ.cfg)
+  ccApplyOk γ.cfg m
 
 /-- `ccApplyOkR` at the server's raft. -/
 abbrev ccApplyOkM (γs : ServerRaftNames) (m : ConfChangeM) : Prop := ccApplyOkR γs.raft m
@@ -440,26 +467,34 @@ abbrev ccApplyOkM (γs : ServerRaftNames) (m : ConfChangeM) : Prop := ccApplyOkR
 def ccBootOk (cfg : GSet w64) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOk cfg m
 
-/-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes, in the
-cluster's mode** (D43 M5d). -/
+/-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes** (D43 M5d). -/
 def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m
 
 theorem ccPolOk_of_boot (γ : SrvRaft) (d : List w8) (h : ccBootOk γ.cfg d) : ccPolOk γ d :=
-  fun m hm => .inl (h m hm)
+  fun m hm => h m hm
 
-/-- In a static cluster `ccPolOk` is `ccBootOk`. -/
-theorem ccPolOk_static (γ : SrvRaft) (d : List w8) (hs : γ.dyn = false) (h : ccPolOk γ d) :
-    ccBootOk γ.cfg d := by
-  intro m hm
-  rcases h m hm with h | ⟨h, -⟩
-  · exact h
-  · rw [hs] at h; cases h
+/-- `ccPolOk` is `ccBootOk` (2026-10-30, the repair: one mode; until then in a static cluster). -/
+theorem ccPolOk_static (γ : SrvRaft) (d : List w8) (h : ccPolOk γ d) :
+    ccBootOk γ.cfg d :=
+  fun m hm => h m hm
 
 /-- **A v1 change raft's node applies without changing its configuration `cfg`** (raft's static
 mode admits only such changes, `CCShrink`): an `AddNode` of a voter, or of the node `0`. -/
 def ccRaftOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
   m.type = W32 0 ∧ ∃ k, k ∈ cfg ∧ (m.nodeId = k ∨ m.nodeId = W64 0)
+
+/-- (2026-10-30, the repair; D3, static membership after boot) **The rule keeps the voters'
+membership** `simple cfg`: a v1 conf entry whose bytes decode to changes the server takes
+(`ccBootOk`: an `AddNode` of a voter) is decided a change that leaves it as it is (the change, or
+it with `NodeId` `0` when it does not validate: `Membership.applyChange_addVoter`/`_nodeZero`), and
+every other entry (an empty `ConfChangeV2`, raft's; the server proposes none) is skipped. What the
+cluster's `confPolicy` rule satisfies (`srvClusterOk`; `srvRule_keeps`, `InvCfgView.lean`). -/
+def srvRuleKeeps (r : ConfRule) (cfg : GSet w64) : Prop :=
+  ∀ (pre : List LogEntry) (e : LogEntry),
+    (e.type = W32 1 → ccBootOk cfg e.data → ∀ o, r pre (Membership.simple cfg) e = some o →
+      Membership.applyChange o (Membership.simple cfg) = some (Membership.simple cfg)) ∧
+    (e.type ≠ W32 1 → r pre (Membership.simple cfg) e = none)
 
 end policy
 
@@ -470,6 +505,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A proposal's one-shot token** (exclusive): it fires once. -/
 def srvPropTk (γt : GName) : IProp GF := dghostVar γt (DFrac.own 1) ()
@@ -580,8 +616,6 @@ instance srvReadWit_persistent (γ : ServerRaftNames) (Qr : List EntryModel → 
     (i : w64) : Persistent (srvReadWit (GF := GF) γ Qr i) := by
   unfold srvReadWit; infer_instance
 
-/-- **A read credit** for one `ReadIndex` (the node API's). -/
-def srvRdCred (γ : ServerRaftNames) : IProp GF := readCredit γ.raft.cl
 
 /-- **The fresh token of a read context** `c` (the server mints it from its id generator). -/
 def srvRdFresh (γ : ServerRaftNames) (c : List w8) : IProp GF := c ↪[γ.raft.rdFresh] ()
@@ -600,10 +634,12 @@ def srvLogCore (γ : ServerRaftNames) (Lf : List EntryModel) (P : GMap (List w8)
     ghostMapAuth γ.raft.props 1 P ∗ ghostMapAuth γ.raft.fired 1 F ∗
     monoListAuthOwn γ.raft.pend 1 R ∗
     ([∗map] d ↦ _x ∈ P, d ↪[γ.raft.fresh] ()) ∗
-    ⌜srvIdxOkW γ.ai0 Lf ∧ (∀ m ∈ Lf, ¬ m.toLE.isFiller) ∧
+    ⌜srvIdxOkW γ.ai0 Lf ∧ (∀ m ∈ Lf, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2) ∧
       (∀ (j : Nat) (m : EntryModel), Lf[j]? = some m → m.typ = W32 0 →
         F.lookup m.data = some (Lf.take j)) ∧
-      (∀ r ∈ R, r.2 ≤ Lf.length)⌝)
+      (∀ r ∈ R, r.2 ≤ Lf.length) ∧
+      -- (2026-10-30, the repair; D3) its conf entries changes the server takes (the boot log's)
+      (∀ m ∈ Lf, m.typ = W32 1 → ccPolOk γ.raft m.data)⌝)
 
 instance srvLogCore_timeless (γ : ServerRaftNames) (Lf : List EntryModel)
     (P : GMap (List w8) (GName × GName)) (F : GMap (List w8) (List EntryModel))
@@ -637,26 +673,32 @@ def srvLogInv (γ : ServerRaftNames) : IProp GF :=
 instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF := GF) γ) := by
   unfold srvLogInv; infer_instance
 
-/-- **The cluster's kind** (persistent): static or dynamic (`γ.raft.dyn`) at the voters it started
-with, no snapshot (a static cluster vouches for no snapshot's data: `snapOk` false), leader
-transfer off, the `Ready`s' entries within `MemoryStorage.Append`'s bound. (2026-10-27: no
-`noConfChangeV2` any more: every filler is an empty normal entry, `LogEntry.isFiller_normal`.) -/
+/-- **The cluster** (persistent; 2026-10-30, the repair: one kind of cluster, raft's unified API):
+the node API's cluster at the server's storage model (`srvStor`); its conf entries decided by the
+server's rule (`confPolicy` at `γ.raft.rule`; `rnEnvOk` ties it to `srvRule`); the voters it started
+with (`confAt 0`); the `Ready`s' entries within `MemoryStorage.Append`'s bound (`readyFits`);
+proposals not duplicated (`dup = false`); and (D2(i), the user's decision 2026-10-30) the cluster's
+snapshot registry held empty for good (`ownSnapsMade cl []` in an invariant): the server makes no
+snapshot, so every snapshot certificate, snapshot validity, `MsgSnap` and `Ready` snapshot is
+refuted (`srv_snapMade_false`). Until the repair: a static or dynamic cluster
+(`isStaticCluster`/`isDynamicCluster`), leader transfer off, `bootedCluster`. -/
 def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
-  iprop((if γ.raft.dyn then
-      isDynamicCluster γ.raft.cl srvClusterN (Membership.simple γ.raft.cfg) γ.raft.dec
-    else isStaticCluster γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False)) ∗
-    leaderTransferOff γ.raft.cl srvClusterN ∗ readyFits γ.raft.cl srvClusterN ∗
-    -- (2026-10-27) started from a bootstrap log: its nodes step a pre-vote request
-    bootedCluster γ.raft.cl)
+  letI := srvStor (GF := GF) γ.raft
+  iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
+    confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
+    ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (ownSnapsMade γ.raft.cl []) ∗
+    ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
-  unfold srvClusterOk; split <;> infer_instance
+  unfold srvClusterOk; infer_instance
 
 /-- **Raft's committed log, at the server** (persistent; the contract's ghost interface): the
-server's log invariant, the cluster's kind, the start log committed and the start index its
-length. (2026-10-27: until then raft's commit invariant and the conf-change policy.) -/
+server's log invariant, the cluster, the start log committed and the start index its length; and
+(2026-10-30, the repair: one mode, the old dynamic mode's fresh start) the start log empty, so the
+start index `0`. (2026-10-27: until then raft's commit invariant and the conf-change policy.) -/
 def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
-  iprop(srvLogInv γ ∗ srvClusterOk γ ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 = γ.pre.length⌝)
+  iprop(srvLogInv γ ∗ srvClusterOk γ ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 = γ.pre.length⌝ ∗
+    ⌜γ.pre = []⌝)
 
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
@@ -665,7 +707,7 @@ instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by
   unfold srvRaftLogInv
-  iintro ⟨-, -, -, %H⟩
+  iintro ⟨-, -, -, %H, -⟩
   ipureintro; exact H
 
 end regs
@@ -676,7 +718,7 @@ section purefacts
 variable [GooseExts]
 
 theorem srvLE_ops_nofill (γ : ServerRaftNames) (L : List EntryModel)
-    (h : ∀ m ∈ L, ¬ m.toLE.isFiller) :
+    (h : ∀ m ∈ L, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2) :
     opsOf (srvLE γ L) = opsOf (srvLE γ []) ++ L.map EntryModel.toLE := by
   have : srvLE γ L = srvLE γ [] ++ L.map EntryModel.toLE := by
     rw [← srvLE_append]; rfl
@@ -693,7 +735,7 @@ theorem srvLE_ops (γ : ServerRaftNames) (A : List EntryModel) :
 
 /-- A committed log's requested entries, as a prefix of the server's log's. -/
 theorem srv_ops_prefix (γ : ServerRaftNames) (A Lf : List EntryModel)
-    (hnf : ∀ m ∈ Lf, ¬ m.toLE.isFiller)
+    (hnf : ∀ m ∈ Lf, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2)
     (h : opsOf (srvLE γ A) <+: opsOf (srvLE γ Lf)) :
     opsOf (A.map EntryModel.toLE) <+: Lf.map EntryModel.toLE := by
   rw [srvLE_ops, srvLE_ops_nofill γ Lf hnf] at h
@@ -702,7 +744,7 @@ theorem srv_ops_prefix (γ : ServerRaftNames) (A Lf : List EntryModel)
 /-- The server's log after one more requested entry has a next index that fits: the committed
 log `l` holding its requested entries extends the start log. -/
 theorem srv_next_bound (γ : ServerRaftNames) (Lf : List EntryModel) (l : List LogEntry)
-    (x : LogEntry) (hnf : ∀ m ∈ Lf, ¬ m.toLE.isFiller)
+    (x : LogEntry) (hnf : ∀ m ∈ Lf, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2)
     (hops : opsOf l = opsOf (srvLE γ Lf) ++ [x])
     (hag : srvLE γ [] <+: l ∨ l <+: srvLE γ []) :
     γ.pre.length + Lf.length + 1 ≤ l.length := by
@@ -727,6 +769,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server's half bounds every prefix of the committed log**, by their requested entries:
 a committed log's requested entries are those of a prefix of the server's log (2026-10-27: until
@@ -734,7 +777,7 @@ then the committed log itself was a prefix of the server's, which held raft's fi
 theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
     (L A : List EntryModel) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRLog γ L -∗ srvRLogLb γ A ={E}=∗
-      srvRLog γ L ∗ ⌜srvIdxOkW γ.ai0 L ∧ (∀ m ∈ L, ¬ m.toLE.isFiller) ∧
+      srvRLog γ L ∗ ⌜srvIdxOkW γ.ai0 L ∧ (∀ m ∈ L, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2) ∧
         opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE⌝ := by
   have hE : (↑srvLogN : CoPset) ⊆ E := fun p hp => hE0 p (srvLogN_sub p hp)
   iintro #Hinv HL #HA
@@ -763,15 +806,39 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
   ipureintro
   exact ⟨Hfacts.1, Hfacts.2.1, srv_ops_prefix γ A Lf Hfacts.2.1 Hp⟩
 
+/-- (2026-10-30, the repair; D3) **The cluster's membership is the voters' at every index of a
+committed log**: each conf entry of it is one of the server's log's (`srv_entry_src`: the boot
+log's, whose changes the server takes, the log invariant's `ccPolOk`) or an empty `ConfChangeV2`
+(raft's, to leave a joint configuration), each decided by the cluster's rule (`confPolicy_decide`),
+which keeps `simple cfg` (`srvRuleKeeps`), from the voters' at `0` (`srvClusterOk`). -/
+theorem srv_confAt_simple (γ : ServerRaftNames) (l : List LogEntry) (k : Nat) (hk : k ≤ l.length)
+    (E : CoPset) (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ⊢
+      |={E}=> (letI := srvStor (GF := GF) γ.raft
+        confAt γ.raft.cl k (Membership.simple γ.raft.cfg)) := by
+  sorry
+
+/-- (2026-10-30, the repair; D3) **No empty `ConfChangeV2` is committed**: raft commits one only at
+a joint configuration (`committed_emptyV2_joint`), which the voters' simple one is not
+(`srv_confAt_simple`). So every committed entry is a normal entry or a v1 conf change. -/
+theorem srv_committed_noV2 (γ : ServerRaftNames) (l : List LogEntry)
+    (E : CoPset) (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ⊢
+      |={E}=> ⌜∀ e ∈ l, ¬ e.isEmptyV2⌝ := by
+  sorry
 /-- **A committed log, as the server's** (2026-10-27): a committed log after the start log whose
 indices are consecutive is a `srvRLogLb`: its entries are normal or v1 conf changes, its requested
 entries being the server's (whose are), its fillers empty normal entries
-(`LogEntry.isFiller_normal`). -/
+(`LogEntry.isFiller_normal`); (2026-10-30, the repair) none an empty `ConfChangeV2`
+(`srv_committed_noV2`). -/
 theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
+    (hC : ↑srvConfN ⊆ E)
     (L : List EntryModel)
     (hidx : ∀ (n : Nat) (m : EntryModel), L[n]? = some m → uint.Z m.index = uint.Z γ.ai0 + 1 + n) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ isCommittedLogLb γ.raft.cl (srvLE γ L) ={E}=∗
       srvRLogLb γ L := by
+  sorry
+/- REPAIR-OLD
   iintro #Hinv #HL
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -⟩
@@ -812,6 +879,7 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
     have h2 := congrArg LogEntry.data he
     simp only [EntryModel.toLE] at h1 h2
     rw [← h1, ← h2]; exact ht
+-/
 
 
 /-- **A prefix of the server's log of requested entries** (persistent; the auth-mode merge's step 5,
@@ -1025,6 +1093,8 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
       AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ.raft.cl ops }>
           @ ⊤ \ ↑srvClusterN, ∅
          <{ ∀∀ (t : w64), ownCommittedOps γ.raft.cl (ops ++ [⟨t, W32 0, d⟩]), COMM True }> := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro #Hinv #Hp #HQ Htk Hlc Hau
   iunfold srvRaftLogInv at Hinv
@@ -1145,10 +1215,11 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
       iframe Hp HQ HQL Htk
     imodintro
     itrivial
+-/
 
 /-- Where a committed requested entry sits in the server's log. -/
 theorem srv_pos (L Lf : List EntryModel) (m : Nat) (e : EntryModel) (hm : L[m]? = some e)
-    (hnf : ¬ e.toLE.isFiller)
+    (hnf : ¬ e.toLE.isFiller ∧ ¬ e.toLE.isEmptyV2)
     (h : opsOf (L.map EntryModel.toLE) <+: Lf.map EntryModel.toLE) :
     ∃ m', Lf[(opsOf ((L.take m).map EntryModel.toLE)).length]? = some m' ∧
       m'.toLE = e.toLE ∧
@@ -1186,6 +1257,8 @@ theorem srv_pos (L Lf : List EntryModel) (m : Nat) (e : EntryModel) (hm : L[m]? 
 /-- **The proposals' witnesses, from the server's registry** (2026-10-27; until then from raft's,
 `prop_collect`). -/
 theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropWits γ := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro #Hinv
   iunfold srvRaftLogInv at Hinv
@@ -1254,6 +1327,7 @@ theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ 
   imod lc_fupd_elim_later $$ Hlc3 HQm with #HQm
   imodintro
   iexact HQm
+-/
 
 /-- **What a read context's update records** (persistent), at the requested entries `ops` the
 read took effect at: the read registered, at the server's log `Lk` whose requested entries those
@@ -1276,6 +1350,8 @@ theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ.raft.cl ops }>
           @ ⊤ \ ↑srvClusterN, ∅
          <{ ownCommittedOps γ.raft.cl ops, COMM □ srvReadQ γ Qr ops }> := by
+  sorry
+/- REPAIR-OLD
   iintro #Hinv #Hra
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -⟩
@@ -1359,6 +1435,7 @@ theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
     iexists γQ, R.length, Lf
     iframe Hlb Hix HQ
     ipureintro; rfl
+-/
 
 /-- **A read's witness, from a read state** (2026-10-27; until then from raft's, `read_collect`):
 the read state of a context committed to the server's read (`srvReadQ`). -/
@@ -1366,6 +1443,8 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
     (i : w64) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ readStateOk γ.raft.cl srvClusterN c i -∗
       isReadCtx γ.raft.cl srvClusterN c (srvReadQ γ Qr) -∗ srvReadWit γ Qr i := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro #Hinv #Hst #Hctx
   iunfold srvRaftLogInv at Hinv
@@ -1452,7 +1531,57 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
   imod lc_fupd_elim_later $$ Hlc4 HQr with #HQr
   imodintro
   iexact HQr
+-/
 
+/-- **No snapshot is made in the server's cluster** (2026-10-30, the repair; D2(i), the user's
+decision): the cluster's snapshot registry is empty for good (`srvClusterOk`'s invariant), so a
+made snapshot is refuted (`snapMade_elem`). The masks the server's updates leave contain
+`srvSnapsN`. -/
+theorem srv_snapMade_false (γ : ServerRaftNames) (s : SnapRec) (E : CoPset)
+    (hE : ↑srvSnapsN ⊆ E) :
+    srvClusterOk (GF := GF) γ ∗ (letI := srvStor (GF := GF) γ.raft; snapMade γ.raft.cl s) ⊢
+      |={E}=> False := by
+  sorry
+
+/-- **No snapshot certificate in the server's cluster** (D2(i)): `snapshotCert_made`, then
+`srv_snapMade_false`. -/
+theorem srv_snapshotCert_false (γ : ServerRaftNames) (k : SnapTrip) (E : CoPset)
+    (hE : ↑srvSnapsN ⊆ E) :
+    srvClusterOk (GF := GF) γ ∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN k) ⊢
+      |={E}=> False := by
+  sorry
+
+/-- **No valid snapshot in the server's cluster** (D2(i)): what the storage's `Snapshot()` answers
+of a non-empty snapshot (`isStorage`'s `snapshotValid`) is refuted. -/
+theorem srv_snapshotValid_false (γ : ServerRaftNames) (sv : SnapshotM) (E : CoPset)
+    (hE : ↑srvSnapsN ⊆ E) :
+    srvClusterOk (GF := GF) γ ∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotValid γ.raft.cl sv) ⊢
+      |={E}=> False := by
+  sorry
+
+/-- **The server's cluster sends no `MsgSnap`** (2026-10-27; 2026-10-30, the repair, D2(i): a
+`MsgSnap` carries a snapshot certificate, `sentMsg_snapshot`, refuted by
+`srv_snapshotCert_false`; until then a dynamic cluster sent none and a static one vouched for no
+snapshot's data). -/
+theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) (E : CoPset)
+    (hE : ↑srvSnapsN ⊆ E) :
+    srvClusterOk (GF := GF) γ ∗
+      (letI := srvStor (GF := GF) γ.raft; sentMsg γ.raft.cl srvClusterN src st) ⊢
+      |={E}=> ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+  sorry
+
+/-- **The server's cluster's `Ready`s carry no snapshot** (2026-10-27; 2026-10-30, the repair,
+D2(i): a `Ready`'s snapshot comes with its certificate, `readySnap`, refuted by
+`srv_snapshotCert_false`), at the server's storage model. -/
+theorem srv_readySnap_none (γ : ServerRaftNames) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) (E : CoPset) (hE : ↑srvSnapsN ⊆ E) :
+    srvClusterOk (GF := GF) γ ∗
+      (letI := srvStor (GF := GF) γ.raft
+       readySnap γ.raft.cl srvClusterN id rd st ce es (some l)) ⊢ |={E}=> False := by
+  sorry
+/- REPAIR-OLD
 /-- **The server's cluster sends no `MsgSnap`** (2026-10-27): a dynamic cluster sends none, a static
 one vouches for no snapshot's data. -/
 theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) :
@@ -1500,6 +1629,7 @@ theorem srv_readySnap_none (γ : ServerRaftNames) (rd : Ready) (st : NodeDriverS
     icases Hcl with ⟨#Hk, -, -, -⟩
     iapply readySnap_dynamic $$ [Hk Hs]
     iframe Hk Hs
+-/
 
 end bridges
 
@@ -1512,6 +1642,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 
 /-- The big-endian bytes of `id` (`binary.BigEndian.PutUint64`, `read.uint64ToBigEndianBytes`):
@@ -1636,8 +1767,9 @@ per id (`sendReadIndex`) is paid by the id budget the server already assumes (`i
 premise on the number of linearizable reads is added at the gRPC layer. (Until M4 the member held
 raft's whole budget and the contexts' authority.) -/
 def srvRdFreshInv (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
-  iprop(inv srvRdFreshN iprop(∃ U : List w64,
-    readCredits γ.raft.cl (2 ^ 48 - U.length) ∗ ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idSlot γi id) ∗
+  -- (2026-10-30, the repair) raft's read credits are gone (`ReadIndex` takes none): the minted ids
+  -- (their slots) are kept, no credit with them
+  iprop(inv srvRdFreshN iprop(∃ U : List w64, ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idSlot γi id) ∗
     srvRdCtxInv γ γi.issued)
 
 instance srvRdFreshInv_persistent (γ : ServerRaftNames) (γi : IdNames) :
@@ -1669,18 +1801,17 @@ theorem srvRdCtxInv_alloc (γ : ServerRaftNames) (issued : GName) (E : CoPset) :
   · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   ipureintro; intro c; simp [GMap.not_elem_of_empty]
 
-/-- **The mint's allocation**: from the member's share of raft's read budget (`2 ^ 48` credits) and
-the cluster's read contexts. -/
+/-- **The mint's allocation**: from the cluster's read contexts. (2026-10-30, the repair: no read
+credits, raft's `ReadIndex` takes none; until then the member's share of raft's read budget,
+`2 ^ 48` credits.) -/
 theorem srvRdFreshInv_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
-    ⊢ srvRdCtxInv γ γi.issued -∗ readCredits γ.raft.cl (2 ^ 48) ={E}=∗ srvRdFreshInv (GF := GF) γ γi := by
-  iintro #Hctx Hc
+    ⊢ srvRdCtxInv γ γi.issued ={E}=∗ srvRdFreshInv (GF := GF) γ γi := by
+  iintro #Hctx
   unfold srvRdFreshInv
   iframe Hctx
   iapply inv_alloc srvRdFreshN E
   inext
   iexists []
-  simp only [List.length_nil, Nat.sub_zero]
-  iframe Hc
   isplitr
   · ipureintro; exact List.nodup_nil
   iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
@@ -1716,7 +1847,7 @@ generator (their slots), fewer than `2 ^ 48` (its invariant's time receipts unde
 theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
     (Φ : w64 → List w8 → GName → IProp GF) (id : w64) :
     ⊢ idGen γi g Φ -∗ idCred γi 1 -∗ srvRdFreshInv (GF := GF) γ γi -∗ idFresh γi id ={⊤}=∗
-      srvRdFresh γ (beBytes id) ∗ srvRdCred γ := by
+      srvRdFresh γ (beBytes id) := by
   letI := srvAnyStor (GF := GF)
   iintro #Hg #Hb #Hinv Hf
   iunfold idCred at Hb
@@ -1725,7 +1856,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   icases Hinv with ⟨#Hinv, #Hctx⟩
   iunfold idFresh at Hf
   icases Hf with ⟨Hun, Hsl, -⟩
-  iinv Hinv with ⟨%U, >Hc, >%Hnd, >Hus⟩ Hclose
+  iinv Hinv with ⟨%U, >%Hnd, >Hus⟩ Hclose
   -- `id ∉ U`: its slot is exclusive
   by_cases hin : id ∈ U
   · iexfalso
@@ -1773,24 +1904,16 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
     iapply BigSepL.bigSepL_cons.2
     iunfold idUnclaimed at Hun
     iframe Hun HVs
-  -- the credit
-  ihave Hc' : iprop(readCredits γ.raft.cl ((2 ^ 48 - (U.length + 1)) + 1)) $$ [Hc]
-  · rw [show (2 ^ 48 - (U.length + 1)) + 1 = 2 ^ 48 - U.length by omega]
-    iexact Hc
-  icases (readCredits_split γ.raft.cl _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
-  imod Hclose $$ [Hc Hus Hsl] with -
+  imod Hclose $$ [Hus Hsl] with -
   · inext
     iexists (id :: U)
-    simp only [List.length_cons]
-    iframe Hc
     isplitr
     · ipureintro; exact List.nodup_cons.2 ⟨hin, Hnd⟩
     iapply BigSepL.bigSepL_cons.2
     iframe Hsl Hus
   imodintro
-  unfold srvRdFresh srvRdCred
-  iframe Hfr
-  iapply (readCredit_eq γ.raft.cl).2 $$ Hc1
+  unfold srvRdFresh
+  iexact Hfr
 
 
 /-- **The context `c` was committed with raft** (persistent): a read state of it (what a
@@ -1889,18 +2012,20 @@ the requested entries committed so far (the bootstrap log's `Lf0`: consecutive f
 filler, no normal entry), the server's start at index `0`: the server's names (the cluster's kind
 as given), the log invariant, the KV invariant's half of `Lf0`, and the authorities of the
 proposals' and the read contexts' fresh tokens (for the mints). -/
-theorem srvLogInv_alloc (cl : Cluster) (vs : List w64) (dyn : Bool)
-    (dec : ConfChangeDecoder) (boot : List EntryM) (reg : GName) (snapLoc : w64 → Option GName)
+theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
+    (rule : ConfRule) (boot : List EntryM) (reg : GName) (snapLoc : w64 → Option GName)
     (Lf0 : List EntryModel) (E : CoPset)
-    (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller)
+    (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2)
     (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0) :
     ⊢ ownCommittedOps (GF := GF) cl (Lf0.map EntryModel.toLE) ={E}=∗
-      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.dyn = dyn ∧ γr.dec = dec ∧ γr.boot = boot ∧ γr.reg = reg ∧
+      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.rule = rule ∧ γr.boot = boot ∧ γr.reg = reg ∧
         γr.snapLoc = snapLoc⌝ ∗
         srvLogInv (⟨γr, [], W64 0⟩ : ServerRaftNames) ∗ srvRLog ⟨γr, [], W64 0⟩ Lf0 ∗
         srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
         ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
         ghostMapAuth γr.rdFresh 1 (∅ : GMap (List w8) Unit) := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   iintro Hown
   imod mono_list_own_alloc (GF := GF) Lf0 with ⟨%γlog, Hlog, -⟩
@@ -1909,7 +2034,7 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64) (dyn : Bool)
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := List EntryModel) with ⟨%γfired, HF⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrd, Hrd⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (GName × Nat)) with ⟨%γpend, HR, -⟩
-  let γr : SrvRaft := ⟨cl, vs, dyn, dec, boot, reg, snapLoc, γlog, γfresh, γprops, γfired, γrd, γpend⟩
+  let γr : SrvRaft := ⟨cl, vs, rule, boot, reg, snapLoc, γlog, γfresh, γprops, γfired, γrd, γpend⟩
   icases ((monoListAuthOwn_fractional (GF := GF) γlog Lf0).fractional
       (1 : Qp).half (1 : Qp).half).1 $$ [Hlog] with ⟨Hlog, HL⟩
   · rw [Qp.half_add_half]; iexact Hlog
@@ -1944,7 +2069,7 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64) (dyn : Bool)
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   iunfold srvLogInv
   iframe Hli Hfresh Hrd
   iunfold srvRLog
@@ -1954,6 +2079,7 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64) (dyn : Bool)
   rw [Hn]
   iframe Hnil
   ipureintro; intro n m hm; simp at hm
+-/
 
 end alloc
 

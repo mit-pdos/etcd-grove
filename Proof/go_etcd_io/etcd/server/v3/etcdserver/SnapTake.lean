@@ -39,6 +39,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The registry's namespace. -/
 def srvCertN : Namespace := nroot .@ "etcdserver_cert_reg"
@@ -105,6 +106,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A Texan triple's later continuation used across the call's step (`MemstorageAU.lean`'s). -/
 theorem wp_later_frame_srv {e : Expr} {Φ : val → IProp GF} {R : IProp GF}

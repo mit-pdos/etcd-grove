@@ -44,6 +44,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A store log's certificate, read at the server, in the mode `on`** (`kv_cert_read`'s): the
 log has at most two revisions, or it is the mode-`on` model of a committed raft log. -/
@@ -141,6 +142,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The mode-`on` KV invariant's pure facts, one committed entry on** (`kvInv_facts_snoc`'s):
 the entry meets the committer's obligation (`commitOkOn`: admitted and determinate at the model's

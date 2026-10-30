@@ -128,6 +128,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **At the empty log the model's auth state is the start's** (E3r): `StartOn`'s `kvRunOn []` hides
 an auth state the model reaches, which at `[]` is `srvAuthSt0` (`kvRaftOfOn` of the empty log). -/

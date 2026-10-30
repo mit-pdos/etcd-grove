@@ -35,6 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The watch store `NewServer` builds** (persistent; see the file header). -/
 def srvWatchBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
