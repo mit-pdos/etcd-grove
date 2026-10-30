@@ -35,7 +35,8 @@ attribute [local instance] kvrStorageModel
 abbrev newReplica.spec : Prop :=
   ∀ (γr : RNames) (vs : List w64) (id : w64) (n st sts cs0 : Loc) (tick : time.Duration)
     (f : GoFunc) (ms : Loc) (γs : MemStorNames) (hs : HardStateM),
-  0 < sint.Z tick → confStateIs (bootCS vs) (Membership.simple (GMap.listToSet vs)) →
+  0 < sint.Z tick → vs.Nodup → (vs.length : Int) < 2 ^ 61 →
+  confStateIs (bootCS vs) (Membership.simple (GMap.listToSet vs)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf ∗
       context.isClosedchanInit ∗ kvrCluster γr vs ∗ isStats sts ∗ isNode n γr.cluster kvrRaftN id ∗
       nodeDriver n γr.cluster kvrRaftN (NodeDriverState.init (kvrStorIface st)) ∗
