@@ -597,5 +597,4 @@ sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
 sorry rnApplyTok_recv
 sorry rn_ready_recv
-sorry watchGRPCStream.run.wp_proof
 sorry watcher.Watch.wp_proof

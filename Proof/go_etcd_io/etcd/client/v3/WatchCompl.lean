@@ -108,6 +108,36 @@ theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
     simp [hlt]
   · simp [hk0, hkey, h0]
 
+/-- **A point watch of a non-empty key is registered exactly** (G2, 2026-10-30). -/
+theorem rangeExact_point (key : GoString) (hkey : key ≠ []) : rangeExact key [] := by
+  intro c id r hck hce hc k
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [hck, if_neg hkey] at hk
+  rw [hce, if_pos rfl] at he
+  unfold WatchRange.covers inRange
+  rw [he, hk]
+  simp
+
+/-- **A proper range of a non-empty key is registered exactly** (G2, 2026-10-30): its range end
+neither empty nor `[0]` (a prefix watch's, `prefixRangeEnd`, of a key not all `0xff`, included). -/
+theorem rangeExact_proper (key ed : GoString) (hkey : key ≠ []) (h0 : ed ≠ [])
+    (h1 : ed ≠ [W8 0]) : rangeExact key ed := by
+  intro c id r hck hce hc k
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [hck, if_neg hkey] at hk
+  rw [hce, if_neg h0, if_neg h1] at he
+  unfold WatchRange.covers inRange
+  rw [he, if_neg h0, if_neg h1, hk]
+  simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+    decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
+  by_cases hk0 : k = go!""
+  · subst hk0
+    have hlt : go.GoStringLt [] key := by
+      obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hkey
+      rw [ht]; exact go.goStringLt_nil_cons a t
+    simp [hlt]
+  · simp [hk0, hkey, h0]
+
 /-! ## The second cursor's steps (pure) -/
 
 /-- A registered range covering exactly the watch's range: its watch events are the watch's

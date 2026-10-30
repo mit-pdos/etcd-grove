@@ -428,3 +428,51 @@ abbrev watcher.Watch.spec : Prop :=
   `authPubLb γa n` with `n > 0` has a source.
 - Layer 2, (g), (i), (l), (o) are the merge session's files: proposed to `etcd-grove-56`, not
   edited here.
+
+## Proof of run (2026-10-30, branch `g2p-run`)
+
+`watchGRPCStream.run` is proved again over the frozen G2 statements. The row `Watch.spec` asks of a
+response with events (the gated `watchCheckOk`) is derived in `run`, when the created response of
+the watch's create arrives: the server's `ctrlWatcher` gives `watchAuthed` at the create's token,
+bound, key and range end; the epoch's token is the md of an attempt of the stream (`runCore`); the
+stream is the one of the watch's context's stream key (`reqP`, `watcherMu`, `wsElem`); with one
+member, the member is `V.mem 0` (`watchConnFacts_one`) and the create's bound is the caller's `n`
+(`wsBdOk`). The row is kept in `regFacts` and goes, through `recvElem`, `serveSubstream`'s
+`publish_elem`, to `outcElem`. Nothing frozen changed; no cross-package unfold.
+
+The client's internal vocabulary changed (all in `client/v3`, none exported):
+
+- `createOf` takes the create's `bound` (`toPB`'s spec: `∀ … bd`, `createOf … bd`); `createOfP`,
+  `createOfB` pass `P.bd`.
+- `WsPrm` gains `n` (the caller's bound) and `bd` (the creates' bound).
+- `cplCond` asks `rangeExact o.key o.base.rangeEnd` (every range `createRangeOk` allows for the
+  request covers exactly `inRange key rangeEnd`) in place of the prefix shape; `cplCond_iff`.
+  `rangeExact_point`, `rangeExact_proper` (`WatchCompl.lean`): a single key `≠ []` and a proper
+  range (end `≠ []`, `≠ [0]`). A from-key range (end `[0]`) becomes `rangeExact` once
+  `createRangeOk` says `some []` for it (the pending tightening). The root watch (key `[]`, end
+  `[0]`) needs that and more: `createRangeOk` maps key `[]` to `[0]`, so the server's range misses
+  the empty key, and `rangeExact` then needs that no stored key is empty, which the model
+  (`LogWf'`) does not say; no such fact is in the internals.
+- `wsRow V P` (new, `InvWatch.lean`): `watchCheckOk`'s body unfolded (`WatchCheck.lean` imports
+  `InvWatch`), at `(V.mem 0).2`, `P.ctx`, `P.n`, `P.o`; `Watch`'s proof needs `wsRow_eq … := rfl`
+  in a file importing `WatchCheck`.
+- `wsBdOk V P` (new): every member's `authPubLbM … P.bd` (what `watchUp` asks of a create), and
+  `V.nm = 1 → P.bd = P.n`. Laws `watchConnFacts_one`, `wsBdOk_cur`, `wsIs_bd`, `wsRow_of_authed`,
+  `wsIs_row`.
+- `outcElem γ o Q Au`, `retcP V o rev sr Q Au outc`: the row `Au` (`watchStateElem`'s), `wsRow V P`
+  in `wsIs` and `reqP`. `WatchApiLemmas`' `outcElem_canceled`, `closeChRes`, `watch_spsc_alloc`,
+  `watch_post` take `Au`.
+- `recvElem`/`recvLive`, not-created branch: `□ (⌜r.events ≠ []⌝ → wsRow V P)`.
+- `wsIs`: `wsRow` in `outcElem`/`retcP`, and `wsBdOk V P` at the end.
+- `reqP V k`: the stream key `k` the request is for (`streamKeyOf (outgoingOf P.ctx) = k`) and
+  `wsBdOk`; `isWGS`'s request bag is at `G.ctx`'s key; `watcherMu`'s map records each stream's key.
+- `wsElem`, `wsElemC`, `wsElemT` (`WatchRun`, `WatchRecon`): the watch's stream key is `G.ctx`'s.
+- `runCore`: the epoch's token is `auth.mdTokenOf md` of an attempt `md` of `G.ctx`'s stream
+  (`clientAttemptMd V.conn G.ctx md`).
+- `regFacts`: `wsRow V P`; `recvElem_of` takes the row; `cpl_facts` gives `rangeExact`'s coverage.
+- `serveSubstream`: `publish_elem` takes the row; `recv_row` (new).
+
+For `watcher.Watch` (still `sorry`): its fresh-stream branch gets `reqP`'s key from
+`newWatcherGRPCStream` (`start_bag` at `cx`'s key) and the reuse branch from `watcherMu`'s key;
+`wsBdOk` from its `n` and the members' `authPubLbM` (`authPubLbM_zero` when `n = 0`); and
+`cplCond` from `rangeExact_point`/`_proper` (from-key once `createRangeOk` is tightened).
