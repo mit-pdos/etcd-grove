@@ -6,7 +6,6 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__isWatchPermitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStore
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__recvLoopLemmas
 
 @[expose] public section
 
@@ -63,7 +62,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   icases Has2 with ⟨%ai, %Hai, -, #HIRP, -⟩
   subst Hai
   -- the store's range check, with auth on at the bound `n` (`srvAuthLb`)
-  ihave #HRC := v3rpc.srvRangeCheckFrom r.srv.s r.srv.E ai n $$ [$Has $HaLb $Hpub $HIRP]
+  ihave #HRC := srvAuthLb_rangeCheck r.srv.s r.srv.E ai n $$ [$Has $HaLb $Hpub $HIRP]
   (try wp_auto)
   rw [Hsi]
   (try wp_auto)

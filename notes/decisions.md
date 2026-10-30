@@ -26674,3 +26674,32 @@ holds the channel, the `snapDone` handoff and `memSnapLb γs 0` (`newReplica` op
 `c ≤ snapIndex` kept). Tests: `go test ./kvreconf/ -race` passes; the non-short `TestRounds`
 takes ~300-1400 snapshots and compactions per round.
 
+
+## G2's freeze: `upOk` keeps a create's bound (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** G2's `watchUp` (`v3rpc/InvWatch.lean`) gives a create's `□ auth.authPubLbM R.E.authMode
+c.bound`, but the server's view of the client's content, `upOk γ Up` (the same file, held by
+`swsIs` and taken by `watchServer.Watch.spec`), kept only `⌜watchReqOk m⌝ ∗ mvcc.watchTok γ` for a
+create, and `upOk_watchUp` dropped the bound. `serverWatchStream.recvLoop` sees the request content
+only through `swsIs`'s `upOk`, so it could not call `isWatchPermitted` at `n := c.bound` and with
+auth on could not give `ctrlWatcher`'s `watchAuthed γ s tok c.bound c.key c.rangeEnd` for a
+registered create (`watchReqOk` does not bound `c.bound`; `authPubLbM_zero` gives only `0`): its
+frozen statement was unprovable.
+
+**Decision** (the user's, 2026-10-30): `upOk γ M Up` takes the server's auth mode `M` and a
+create keeps `□ auth.authPubLbM M c.bound`; `swsIs` holds `upOk r.srv.γ r.srv.E.authMode r.Up`,
+`watchServer.Watch.spec` takes `upOk R.γ R.E.authMode Up`, and `upOk_watchUp` is
+`⊢ upOk R.γ R.E.authMode (watchUp R)` (by definition: `upOk`'s create content is `watchUp`'s).
+Nothing else frozen moved. With it `recvLoop` is proved (`hPerm` at `c.bound`, the store check from
+`watchSrvOk`'s `srvAuthLb`). The steps that needed other packages' definitions are laws in their
+packages (`auth.permVerdictFrom_on_nil`; `apply.classResFrom_not_on`,
+`apply.classResFrom_on_singleton`, `apply.watchKey_eq`, `apply.watchClassFrom_of_classResFrom`,
+`apply.classResFrom_of_permVerdictFrom`, `apply.rangeCheckFrom_of_isAuthStoreRangeLb`,
+`apply.rangeCheckFrom_of_permCheck3`; `srvAuthLb_rangeCheck` in `ReadOn.lean`,
+`infoBoundT_of_principalBoundI` in `AuthBound.lean`, where `principalBoundI` is visible).
+
+**Review criterion that should have caught it.** The freeze's caller-glue check (every caller's
+glue proves) could not see it: `recvLoop` was a stub, so `swsIs`'s consumer of the request content
+was unwritten. The note's claim that `recvLoop`'s stubbed statement was final ("`srvAuthLb` in
+`watchSrvOk`") was checked against what `isWatchPermitted` takes of the server (`srvAuthLb`), not
+against what it takes of the request (the bound), which reaches `recvLoop` only through `upOk`.

@@ -113,6 +113,20 @@ theorem permVerdictFrom_verdict (M : AuthMode) (n : Nat)
     · iapply (recordedV_intro γa a b c d v.flag v.rev v.user v.cache) $$ Ha Hb Hc Hd
     · ipureintro; exact Hv
 
+omit package_sem in
+/-- **A passed check no older than `n`, in the mode `on γa`** (G2's freeze, 2026-10-30): a state
+recorded at an index at least `n` permitted it. -/
+theorem permVerdictFrom_on_nil (γa : AuthNames) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : PermType) :
+    permVerdictFrom (GF := GF) (.on γa) n info key rangeEnd op GoInterface.nil ⊢
+      ∃ (i : Nat) (st : AuthState), authStateAt γa i st ∗
+        ⌜n ≤ i ∧ permitted st (authInfoM info) key rangeEnd op⌝ := by
+  simp only [permVerdictFrom]
+  iintro ⟨⟨%i, %st, #H1, %Hp⟩, -⟩
+  iexists i, st
+  iframe H1
+  ipureintro; exact ⟨Hp.1, by simpa using Hp.2⟩
+
 /-- **`isRangeOpPermitted`'s verdict no older than the index `n`** in the mode `M` (persistent): in
 `on γa`, the verdict at the cache's state (`cacheVerdictP`) of a state recorded at an index at least
 `n`; otherwise nothing. -/

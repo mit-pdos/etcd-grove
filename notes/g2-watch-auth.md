@@ -57,8 +57,11 @@ trusted change:
   its token, and `newWatcherGRPCStream`'s post the stream context's `outgoingOf` and key.
 - **`srvAuthLb` in `watchSrvOk`** (after etcd-grove-56's review, 2026-10-30): the server's
   contract for the watch path carries the auth store at a reader's lower bound, so `recvLoop` has
-  what `isWatchPermitted` takes, and `recvLoop`'s stubbed statement is final. The off-mode builders
-  get it from `srvAuthLb_off`, the on-mode one (`grpcCfgOk_of_started_on_w`) from `Start.specOn`.
+  what `isWatchPermitted` takes of the server. The off-mode builders get it from
+  `srvAuthLb_off`, the on-mode one (`grpcCfgOk_of_started_on_w`) from `Start.specOn`. `recvLoop`'s stubbed statement was **not** final:
+  the create's bound reached it only through `swsIs`'s `upOk`, which dropped it; `upOk` now takes
+  the server's mode and keeps `□ authPubLbM M c.bound` (the user's fix, 2026-10-30;
+  `notes/decisions.md`, "G2's freeze: `upOk` keeps a create's bound").
 - **Bound 0 today**: the verified client builds its creates with `bound := 0` (`createOf`,
   `client/v3/InvWatch.lean`), so `c.bound ≤ i` in `watch_registered_authorized` is trivially true of
   every create the verified client sends until `Watch` and `run` are re-proved with `n`.

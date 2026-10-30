@@ -188,6 +188,14 @@ instance principalBoundI_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInter
     Persistent (principalBoundI (GF := GF) s M ctx info) := by
   unfold principalBoundI; infer_instance
 
+/-- A checked principal, bound to the context `ctx`, is bound to its token (`infoBoundT`; G2's
+freeze, 2026-10-30). -/
+theorem infoBoundT_of_principalBoundI (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    principalBoundI (GF := GF) s M ctx info ⊢ v3rpc.infoBoundT s M (auth.ctxTokenOf ctx) info := by
+  unfold principalBoundI v3rpc.infoBoundT principalBound
+  iintro H; iexact H
+
 end defs
 
 section proof
