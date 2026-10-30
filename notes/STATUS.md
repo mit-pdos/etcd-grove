@@ -398,7 +398,8 @@ store's `GetList` is still names-only.
 - `m2-storage-plan.md`: M2's storage side (the backend-cmp Probe's P3, S1-S3): compaction mode in
   the watchable store's construction, the boot's budgets, `writerOwn`'s count. **Draft** written
   (branch `m2-storage`); Q1 (R2-7's timing) answered (a), the supply per compaction, and drafted;
-  Q2 (the drafted statements) open; step 2 (restore in compaction mode) drafted, Q4-Q6 open.
+  Q2 (the drafted statements) open; step 2 (restore in compaction mode) drafted, Q4-Q6 answered;
+  review round 3 repaired (the Q2 list at 26 items; Q7 open: Q5 (a) fails in a `Compact(0)` corner).
 
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
   auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
@@ -568,6 +569,21 @@ exported or trusted switched:
   - `srvWTPool`, `srvWTStock`, `srvWTPool_alloc`, the take laws (a later credit each) and
     `srv_be_swap` (`srvWTPoolR`, `srvWTStockInv`).
   - `store.Restore.spec`/`watchableStore.Restore.spec` (`.specM`).
+
+- **Review round 3 repaired** (2026-10-30; the plan's "After review round 3"; step 1 converged,
+  step 2's first round): F1, the image's compaction records (`mvcc.CmpRecs` with `restore()`'s
+  revision, `backend.fkOpenD`, `mvcc.kbRecs` (the records with the compaction-key write right),
+  `metaReadSpecR`, `keyImageM`), `restoreImageM`/`Restore.specM` at the records with the resumed
+  compaction's hook contract, and the generalized `store.restore` (`specR`; internal and proved, not
+  an axiom); F2, the scheduler's payload (`pkg/v3/schedule/M2StorageDraft.lean`: `SchedNames.pay`,
+  the job contract's `□ (cd.PDone -∗ schedPay γ)`, `NewFIFOScheduler`'s `Pay`, `Stop` taking it and
+  returning the run token; mvcc's payload `stopPayD`; `run`'s jobs unchanged through
+  `jobFnSpecD_of`); the second tier (the jobs' share pinned at its objects, `store.Close.specM`,
+  `kbWTSupplyM_of_poolR`, a logical mode field in `StoreNames` decided for the switch, laws in place
+  of unfolds, sealed bodies). **Q7 for the user**: Q5 (a)'s `c ≤ c'` is false when a member applied
+  a client's `Compact(0)` and installs an image with that compaction unfinished; Go issue
+  `issues/etcd-restore-scheduled-compact-zero.md` (reproduced). Full `lake build` passed (11209
+  jobs).
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 

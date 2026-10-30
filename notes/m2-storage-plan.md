@@ -1,6 +1,9 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **step 2 drafted** ("Step 2: restore in compaction mode", the last section:
+Status (2026-10-30): **review round 3 repaired** ("After review round 3", the last section: the
+image's compaction records and the generalized `store.restore`, the scheduler's payload, the second
+tier; the Q2 list complete at 26 items; Q7 for the user: Q5 (a) fails in a `Compact(0)` corner). Before:
+**step 2 drafted** ("Step 2: restore in compaction mode", the last section:
 the restorable compaction right, `Restore.specM` by the mode with off-mode laws, the supply as one
 stock per backend, D22's statements drafted for the collaborator, Q4-Q6 for the user, a Go liveness
 bug recorded). **Step 1 on the merged `lean` done** ("Step 1 on the merged lean": Supply repaired,
@@ -1034,3 +1037,287 @@ R2-7's receipt counter (as drafted). Q5 (a): the compaction revision stays logic
 with the premise `c ≤ c'`; the apply side models the compaction revision of the committed log. Q6:
 the `schedule` spec changes approved (`Stop` returns the run token and takes the "stop channel
 closed" fact; `updateCompactRev`'s barrier a tracked job).
+
+## After review round 3 (2026-10-30)
+
+The report: `notes/spec-first-study/m2-storage-review-3.md` (on `8d3a172a18`; F1, F2, S1-S7),
+committed on its own (`9a510498fd`). Step 1's statements had no first-tier finding (their third
+round: converged); step 2's had their first round. Commits: `9a510498fd` (the report), `e327d85393`
+(a Go issue, below), `baf2e671ca` (the Drafts), `214ba8a864` (S4), and this notes commit. Nothing
+exported, trusted or D22's switched; no `axiom`, no `sorry`; no Perennial change; no generated
+file edited.
+
+### F1: the image's compaction records (fixed in the Draft; Q5 (a) has a reachable corner: Q7)
+
+**Go** (`kvstore.go:330-342`, `:389-411`, `store.go:30-36`): `restore()` sets `compactMainRev` to
+the finished record (or leaves `-1`), reads the scheduled one as `0` when absent (the found flag is
+dropped), and resumes it when it is not `0` and past the finished one (`compactLockfree`, which then
+succeeds: `currentRev` was raised to it). So the restored revision is
+```lean
+def mvcc.CmpRecs.crev (r : mvcc.CmpRecs) : Int := if r.resumes then r.schedRev else r.finRev
+-- finRev = fin or -1; schedRev = sched or 0; resumes = (schedRev ≠ 0 ∧ finRev < schedRev)
+```
+(`mvcc/M2StorageDraftRestore.lean`, "The compaction records"; `CmpRecs` is the pair of `Option w64`
+records). A scheduled record of `0` is never resumed.
+
+**The records vocabulary (Draft, the minimal one).** The backend's flag (`fkOwn`, `fkInit D` is 0/1)
+tracks only absence; values need one more fact, fixed at the open:
+- `backend.fkOpenD γ n v` (persistent): the client's flag stood at `n` when the backend was opened
+  over data whose compaction keys hold `v`. At the switch, `OpenBackend`/`New` over bbolt's `D` give
+  it at `(fkInit D, (dget D meta fin, dget D meta sched))` beside `fkCl`, on the ghost `γ.fkv`
+  already discarded at the open (`fkV γ w` becomes `∃ n v, …` of it: no new name in `BNames`); a put
+  of a compaction key raises the flag strictly (`fkPut`: `f` to `f + 1`); `fkOk` gains
+  `f = n → the state's keys are v`. So while the client's half stays at `n`, every read returns `v`.
+- `mvcc.kbRecs kb γb r := if r = empty then kbNoCmp kb γb else ∃ n, fkOwn d.γB n ∗ fkOpenD d.γB n
+  (recBytes r.fin, recBytes r.sched)` (only `empty` over mvcc's assumed backend). Laws, proved:
+  `kbRecs_empty` (`= kbNoCmp`), `kbRecs_MW` (it is the compaction-key write right `kbMW`: F1's
+  second half, the right the resumed `updateCompactRev` writes through).
+- `mvcc.metaReadSpecR rt r Rd Tok`: `metaReadSpec`'s generalization (a read of a compaction key
+  returns its record exactly; today's `metaReadSpec rt true` is its value at `empty`). At the switch
+  `keyReadLocked`'s meta clause reads `□ (NC -∗ NC ∗ □ metaReadSpecR rt r Rd Tok)` for a new
+  parameter `r` (default `empty`), `keyCleanRead` passes it, and the two `UnsafeRead…Compact` specs
+  return the record.
+- `mvcc.recsOk L r` (each record a revision of `L`, `≥ 0` and `< |L|`); `mvcc.keyImageM cm L r D`
+  (D22's image premise by the mode: off, today's `keyImage L D ∧ r = empty`; on, the `Key` bucket
+  thinned at `r.crev`, the `Meta` keys holding `recBytes r.fin`/`recBytes r.sched`, `recsOk`,
+  `r.crev < |L|`, `NoDelPutAt L r.crev`). S2.5's `imageAt` is renamed `bucketThinnedAt` (S7).
+- Not an axiom: the records law is proved in the backend over bbolt's data `D` as `fkCl` already is
+  (`Open_kv`, `isDB`, ...: the same axioms). If the backend's re-proof needs a new bbolt-level fact,
+  that fact is an axiom and goes through the `axiom` skill before Freeze.
+
+**`restoreImageM` and `Restore.specM`, repaired** (exact text in the Draft):
+- `restoreImageM d' γb' L r` (the records `r` in place of `c'`): on,
+  `∃ m, kbViewC (some d') γb' 1 m ∗ kbRecs (some d') γb' r ∗ fkV d'.γB true ∗ ⌜recsOk L r ∧
+  bucketThinnedAt L r.crev m ∧ r.crev < L.length ∧ NoDelPutAt L r.crev⌝`; off, today's view,
+  `kbNoCmp` and `⌜r = empty⌝`. The client's half of the flag (`kbRecs`) is now in the on mode's pre:
+  the walk has it from `OpenBackend`'s `fkCl`.
+- `store.Restore.specM`, `watchableStore.Restore.specM`: parameters `(c : Int) (r : CmpRecs)
+  (f : val) (Pre Q Post : IProp GF)` in place of `(c c' : Int)`; premise `c ≤ r.crev`; the clean
+  read's `NC` is `kbRecs (γ.withPhys p).kb (γ.withPhys p).bucket r` (off: `kbNoCmp`;
+  `restoreNCM`, whose on mode `True` would have had the clean read promise "no record" of an image
+  with records, is gone); new in the pre `mvcc.resumeCsM d' γb' r P' f Pre Q Post` (on and resuming:
+  the new backend's hook `kbHookIs (some d') γb' f` and the caller's `csContract P' f Pre Q Post`
+  for the resumed `SetScheduledCompact`, as `store.Compact`'s caller gives; else `Pre`); the post's
+  right at `r.crev` and `mvcc.resumePostM d' r Pre Post`. The off-mode laws re-proved
+  (`spec_of_specM`, at `r = empty`, `Pre = True`).
+
+**`store.restore`, generalized (item 18).** It is **internal and proved** (`store__restore.lean`,
+linked in `mvcc/Link.lean`; not in `etc/tcb-baseline.txt`): its Spec header's "the trust boundary
+… not yet proved" is stale (fix at the switch). Drafted as `mvcc.store.restore.specR`: today's text
+with `kbRecs γ.kb γ.bucket r` in place of `kbNoCmp` (the resource and `isKeyBackendG`'s `NC`),
+`recsOk L' r`, the finished record's lock round (`mvcc.revFinW s dql r.fin RevP0 RevP`: `Lock`
+lends the lock's part of `compactMainRev`, `Unlock` takes it at the record), and the post `Fin`,
+reached through the caller's `mvcc.resumeK s r (restoreDone …) Fin` (resuming: a WP of
+`s.compactLockfree(sched)` from `restoreDone`, today's post with `compactMainRev` at the finished
+record, to `Fin`; else `restoreDone -∗ Fin`). `store.Restore`'s proof provides `resumeK` from
+`compactLockfree.spec`, with the store's invariant re-made at the new names first (today
+`physOk` is re-made after `restore` returns, `store__Restore.lean:311`).
+
+**Proof risk (recorded, not a statement change).** With Q5 (a) the logical revision stays at
+`c ≥` the old one; when the image resumes a compaction while `c > fin` (a follower that applied
+`Compact(5)` installing an image with `fin = 3`, `sched = 5`), `restore()` goes through
+`compactMainRev = 3` with the logical revision at 5. No reader sees it (`Restore` holds `s.mu`
+exclusively), but `compactLockfree.spec` asks for the lock's normal invariant (`muInvAt`), so
+`Restore`'s proof needs a restoring-mode variant of `updateCompactRev`'s step. Internal.
+
+**Q5 (a) checked at SNAPSHOT-SORRY #8: false in a reachable corner (Q7 below; not changed).** With
+`c'` what Go computes, `c ≤ c'` fails exactly when `c = 0` and `c' = -1`: a member applied a
+client's `Compact(0)` (accepted on a fresh cluster: `0 > -1`; the RPC passes any revision,
+`key.go:139`) and the image's compaction at `0` was scheduled but not finished (a leader's snapshot
+mid-job, or a leader that restarted in that window and so never finishes it). Then `restore()`
+leaves `-1`. Reproduced at the pin (`issues/etcd-restore-scheduled-compact-zero.md`, with
+`repro_test.go`: after `Restore`, `compactMainRev = -1` and a re-issued `Compact(0)` succeeds where
+the member that applied it answers `ErrCompacted`). No other corner: a scheduled record `≠ 0` past
+the finished one is resumed, and every member that applied `Compact(r)` holds `sched ≥ r` in its
+image (written with `ForceCommit` in the apply). It is not a soundness problem of the drafted
+statement (a false premise), but the caller at #8 cannot meet it, and the store's logical revision
+cannot follow Go (it would go from `0` to `-1`). Per the brief this piece is stopped and asked (Q7).
+
+### F2: the scheduler's payload (drafted: `pkg/v3/schedule/M2StorageDraft.lean`, new)
+
+The least change that carries Q6's "stop channel closed" fact to a job:
+- **`SchedNames` gains `pay : GName`** (drafted as `schedule.SchedNamesD`): the name of a saved
+  proposition the creator fixes. `schedule.schedPayIs γ P := savedProp γ.pay P` (persistent; which
+  payload), `schedule.schedPay γ := ∃ P, savedProp γ.pay P ∗ □ P` (persistent; it holds). Laws,
+  proved: `schedPay_of`, `schedPay_true`, `schedPay_elim` (`schedPayIs γ P ∗ schedPay γ ⊢ ▷ □ P`).
+- **`jobDoSpec`/`jobFnSpec`** (drafted `jobDoSpecD`, `jobFnSpecD`, `jobIsD`): the pre gains
+  `□ (cd.PDone -∗ schedule.schedPay γ)` for the context the job is given. Laws, proved:
+  `jobFnSpecD_of`, `jobIsD_of` (a job proved against today's contract is one).
+- **`NewFIFOScheduler.spec`** (`specD`): `∀ (lg : Loc) (Pay : IProp GF)`, post gains
+  `schedule.schedPayIs γ Pay`.
+- **`Scheduler.Stop.spec`** (`specD`): pre gains `schedule.schedPay γ`; post gains
+  `schedule.schedDoneD γ.toSchedNames` (moved here from mvcc's Draft, with `schedDoneD_excl`).
+- **`NewJob.spec`, `Scheduler.Schedule.spec`** (`specD`): today's texts over `jobFnSpecD`/`jobIsD`.
+- Internal to `schedule` at the switch: `fifoCtxDesc`'s `PDone := stopped F ∗ schedPay γ`
+  (`NewFIFOScheduler`'s `WithCancel`), `fifo.Stop` cancels with it, `executeJob` gives the job the
+  implication, the worker gives `dghostVar γ.run 1 ()` to `donecCarry` at exit (`Stop` takes it).
+
+**Its users** (found by grep of the specs' and predicates' names over `Proof/`, `Spec/`):
+- mvcc's store: `NewStore`, `store.Restore` make the scheduler with `Pay = mvcc.stopPayD γx`
+  (drafted: `∃ c, dghostVar γx □ c ∗ ∃ γc, ownBroadcastChan c γc True .Done`, through an agreement
+  name allocated before `NewFIFOScheduler`, since `stopc` is made after the scheduler,
+  `kvstore.go:309-310`); `store.Restore`, `store.Close` close `stopc` before `Stop`, so they have
+  `schedPay`; `compactBarrier`'s cancelled branch learns `stopc` is `Done`, and Perennial's
+  nonblocking receive on a `Done` broadcast needs no proof of the not-ready branch
+  (`ownBroadcastChan_nonblocking_receive`): the re-schedule branch is dead, `schedLive` goes
+  (`compactBarrier.spec`, `compact.spec`'s job, `updateCompactRev`'s barrier, now tracked through
+  the right's queue).
+- The server's `run` (`EtcdServer__run.lean`, both proofs: `:531`, `:1052` the `hFifo` call gains
+  `iprop(True)`; the snapshot/apply job closures `:863`, `:1384` through `jobFnSpecD_of` or one more
+  `-` in their `iintro`; `Stop` is never reached, `run` never returns).
+- `etcdserver.scheduler_fifo` (exported, `Results.lean:2252`): text unchanged, over the redefined
+  `jobIs`.
+
+### The second tier
+
+- **S1 (`c`'s source at #8), agreed, deferred to Q7.** `keyImageM` is now defined (above), with the
+  records `r` as `specSnap`'s parameter and `c' := r.crev`. The KV model's compaction revision
+  (`crevOf A`, the closer held at it in `run`'s state, `hcc` as `crevOf_mono`) depends on how Q7
+  treats a compaction at `0`; not defined until then.
+- **S2.1, fixed** (Q2 item 17's text): `store.Compact.spec`'s pre `mvcc.storeStop s γ ∗
+  mvcc.compactRight γ c` becomes `mvcc.compactRightR s γ c` (and the three post disjuncts'
+  `compactRight` → `compactRightR`); `updateCompactRev`/`compactLockfree` alike; `compactJobPre`'s
+  `storeStop s γ ∗ schedLive γ.sch` becomes `∃ o, storeStopR s γ o`.
+- **S2.2, fixed** (Q2 item 24): `mvcc_NewStore_backend_cmp`'s post `mvcc.compactRight γ (-1) ∗
+  mvcc.storeStop s γ` becomes `mvcc.compactRightR s γ (-1)`; its docstring's route to the reader's
+  token becomes the `fieldShare` quarter's own `curAt`.
+- **S2.3, fixed**: the job contract (F2), Q2 item 19.
+- **S2.4, agreed**: `store.Close.specM` drafted (`isStore s γ ∗ restoreRightPostM s γ c`; off law
+  `Close.spec_of_specM` for a store that does not compact). Q3 does **not** dissolve: unreachable
+  today (`run` never returns), and when a shutdown is modelled `Cleanup` closes with the closer by
+  the mode. `watchableStore.Close.spec` follows (`wsCloser` → `wsCloserR … c` on). Q2 item 23.
+- **S2.5 (the `rfl` break) and the logical mode, decided: a logical mode field.** `StoreNames` gains
+  `cm : Bool` (set by `NewStore` to `decide (kbCmpM kb)`, kept by `withPhys`, tied to the backend
+  by `physOk`'s `⌜kbCmpM γ.kb ↔ γ.cm = true⌝`); the logical gated predicates read it
+  (`wsFrozenM`, `crevRightM`, `restoreRightM`, `restoreRightPostM`, `envAgree`'s clause
+  `E.γ.cm = E.cmp`); the backend-keyed ones stay on `kb` (`physCmp`, `nJobRd`, `kbSRM`,
+  `kbWTSupplyM`, `compactJobResM`: they describe the backend's budgets). Reasons: every `withPhys`
+  law stays `rfl` (`isWatchableStore_withPhys`, so D22's two walk sites need nothing); the mode then
+  never moves on restore by construction, which ends the churn class the round names (S5' for good:
+  one reading); `d'.cm = d.cm` is needed only where `Restore` re-ties `physOk`. Cost: one field and
+  one `physOk` conjunct (internal), the `StoreNames` constructors (`NewStore`, the Drafts). Not
+  written in Lean (the Drafts read `γ.kb`, equal under `Restore.specM`'s `d'.cm = d.cm`); a switch
+  item (Q2 item 26). `notes/decisions.md` entry to add at the switch.
+- **S2.6, fixed**: `compactRight_of_wsCloser` dropped from step 1's Draft and from item 6;
+  docstrings point to `wsCloserR_of_wsCloser`.
+- **S3, the corner: Q7** (and the issue file).
+- **S4, fixed by construction** (`214ba8a864`): `storeStopR s γ o` holds the eighth at **fixed**
+  objects `o` (`compactRightR := crevUB ∗ queue ∗ ∃ o, storeCloserR s γ o ∗ storeStopR s γ o`;
+  `compactJobPre` carries `∃ o, storeStopR s γ o`). While the eighth is in the invariant no one can
+  write the fields, and `Restore` reclaims it only after `Stop`, then moves to fresh names; so every
+  read by a job is at the same `o`, as today's discarded `curAt` gives it. `fieldShare_reclaim` no
+  longer needs `curAt_agree`. The remaining risk of re-proving `scheduleCompaction` over it is the
+  per-read invariant opening (an atomic load each, the job holding the run token): mechanical.
+- **S5, agreed and fixed.** `srvWTPoolR` changes the off server's statements too: all eight take
+  sites need `£ 1` (item 21 now says so: "not read as today"). The compaction arm's law drafted and
+  proved: `kbWTSupplyM_of_poolR : srvWTPoolR E γp -∗ srvBeOwn s E -∗ £ 1 ={⊤}=∗ srvBeOwn s E ∗
+  mvcc.kbWTSupplyM E.γ.kb` (etcdserver Draft); item 14's source.
+- **S6, fixed in the Drafts**: `wsFrozenM`'s docstring (the mode by `d'.cm = d.cm`, the logical
+  field at the switch), `crevRightM`'s and `New.specD`'s references, the etcdserver Draft's header,
+  `store.Compact.specD`'s supply paragraph (now `kbWTSupplyM_of_poolR`). Left for the switch (an
+  edit to `InvStore.lean`'s docstrings rebuilds its importers): `writerOwn`/`writerOwn_off`'s "never
+  in compaction mode", `kbCmpM`'s and `KBReal.cm`'s "no restore in compaction mode", `physCmp`'s "a
+  compacting store is never restored", `compactRight_of_closer`'s and `storeStop`'s "never
+  restored", `store__restore.lean`'s "trust boundary" header.
+- **S7, fixed**: `restorePre_of_applyM` uses the law `mvcc.isWatchableStore_frozen` (new, today's
+  predicate; `isWatchableStoreD_frozen` at the switch) in place of the unfold; `storeStopR`,
+  `storeCloserR`, `compactRightR`, `wsCloserR` sealed (`@[no_expose]`; the server uses only
+  `wsCloserR_split/_join`, `restoreRightM_on/_off`, `restoreRightPostM_on/_off`); `mvcc.imageAt`
+  renamed `bucketThinnedAt`.
+
+### Statements for the user's approval (Q2), complete after round 3
+
+Each: the statement; the drafted text (module, or here); step; D22's (the collaborator's) or not;
+axiom-backed or not. "mvcc D" = `mvcc/M2StorageDraft.lean`, "Supply" = `mvcc/M2StorageDraftSupply.lean`,
+"mvcc R" = `mvcc/M2StorageDraftRestore.lean`, "srv R" = `etcdserver/M2StorageDraftRestore.lean`,
+"sched" = `pkg/v3/schedule/M2StorageDraft.lean`. None is axiom-backed unless said.
+
+1. `mvcc.New.spec` (linked): `New.specD`, mvcc D. Step 1. Not D22.
+2. `mvcc.newWatchableStore.spec`: `newWatchableStore.specD`, mvcc D. Step 1.
+3. `mvcc.NewStore.spec`: `NewStore.specD`, Supply. Step 1.
+4. `mvcc.store.Compact.spec` / export `mvcc_store_Compact`: `store.Compact.specD`, Supply (step 1:
+   the supply line), with item 17's change (step 2).
+5. Exports `mvcc_NewStore_backend`, `mvcc_NewStore_backend_cmp` (pre): Supply. Step 1.
+6. mvcc in place: `isWatchableStore` (`wsFrozenM`, at the switch over the logical mode, item 26),
+   `watchStoreInv` (`wsWatchFrozen`), `storeWatchParams` (`T` with `noCompactor`); new exported names
+   `noCompactor` (sealed) and its laws, `wsFrozenM`, `crevRightM`, `noCompactor_of_new`,
+   `isWatchableStore_frozen`. mvcc D. Step 1. (`compactRight_of_wsCloser` dropped.)
+7. v3rpc in place: `upOk`/`watchUp` create arm; laws `isWatchServer_noCompactor(_env)`,
+   `isWatchServer_link`. `api/v3rpc/M2StorageDraft.lean`. Step 1.
+8. client in place: `watchMemberFacts`, `watchAddrFacts` (`noCompactor` appended), `watchConnFacts`.
+   `client/v3/M2StorageDraft.lean`. Step 1.
+9. `apply.AEnv`: field `cmp`. etcdserver `M2StorageDraft.lean`. Step 1.
+10. `envAgree`: `envAgreeD` (the mode clause; at the switch `E.γ.cm = E.cmp`, item 26). Step 1.
+11. `NewServer.spec`/`specM` (`E₀.cmp = false →`), `specCompact` (`E₀.cmp = true →`; trusted until
+    proved: its proof is `sorry`). Text in "Step 1 on the merged lean". Step 1.
+12. examples/common `env₀`, `memberBoot` (`cmp`), `newServer.specCompact`,
+    `StartCompactingServer.spec`, `memberBootOn`: `examples/common/M2StorageDraft.lean`. Step 1.
+13. `etcd_cache_served` (exported), watchkv's `wk_served`, linkv3p's `memberWatch`/`memberAt`:
+    their Drafts. Step 1.
+14. The supply's server source: `kbWTSupplyM_of_poolR`, srv R (over `srvWTPoolR`, D22's). Step 2.
+15. `mvcc.store.Restore.spec`: `store.Restore.specM`, mvcc R. Step 2. **D22's.** Rests on
+    `store.restore` (proved), `Stop` (proved).
+16. `mvcc.watchableStore.Restore.spec`: `watchableStore.Restore.specM`, mvcc R. Step 2. **D22's.**
+17. `mvcc.store.Compact.spec` / `mvcc_store_Compact`: pre `storeStop s γ ∗ compactRight γ c` →
+    `compactRightR s γ c`, post's `compactRight` → `compactRightR` (text above, S2.1); internal
+    `updateCompactRev`, `compactLockfree`, `compactJobPre`, `compactBarrier`. Step 2. Not D22.
+18. `mvcc.store.restore.spec` (internal, proved; not the trust boundary): `store.restore.specR`, mvcc
+    R; the switch-internal `keyReadLocked`/`keyCleanRead` (`r`), `UnsafeRead…Compact`, and the
+    backend's `fkOpenD`/strict `fkPut`/`fkOk` (backend's, proved over bbolt's existing axioms). Step
+    2. Not D22.
+19. `schedule`: `SchedNames.pay`, `jobDoSpec`/`jobIs`/`jobFnSpec`, `NewJob.spec`,
+    `Scheduler.Schedule.spec`, `NewFIFOScheduler.spec`, `Scheduler.Stop.spec`: sched (all proved
+    today, linked; not axiom-backed). Knock-on: `run`'s two proofs, mvcc's `NewStore`, `Restore`,
+    `Close`, the compaction chain; exported `etcdserver.scheduler_fifo` (text unchanged). Step 2.
+20. Step 1's drafts revised: `compactRight_of_wsCloser` → `wsCloserR_of_wsCloser` (mvcc R). Step 2.
+21. **D22's** (the collaborator's; items 1-9 of "D22's statements that change", with):
+    `applySnapshot.specSnap`'s parameters `(c : Int) (r : mvcc.CmpRecs)`, `hcc : c ≤ r.crev`,
+    `hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D` (mvcc R); the walk builds `restoreImageM` from
+    `hkI`, `fkCl` and the backend's `fkOpenD`, the clean read at `kbRecs … r`, and `resumeCsM` from
+    the server's hook contract; `srvWTPoolR` changes the off server's statements (each take law and
+    its eight sites need `£ 1`: not read as today). Step 2.
+22. `NewServer.spec`/`specCompact`: post's `srvKVCloser` → `srvKVCloserM s E (-1)` (srv R). Step 2.
+    D22's predicate (S-g).
+23. `mvcc.store.Close.spec`: `store.Close.specM`, mvcc R; `watchableStore.Close.spec` alike. Step 2.
+    Not D22.
+24. Export `mvcc_NewStore_backend_cmp`'s post: `compactRightR s γ (-1)` (S2.2). Step 2.
+25. `mvcc.isWatchableStore_withPhys` (D22's, `RestorePre.lean:101`): stays `rfl` with item 26 (no
+    change); without item 26 it would need `kbCmpM p.kb ↔ kbCmpM γ.st.kb`. Step 2. **D22's.**
+26. `mvcc.StoreNames`: the logical mode field `cm` (internal definition; `withPhys` keeps it;
+    `physOk`'s tie). Step 2. Read by D22's `withPhys` laws.
+
+26 items; D22's: 15, 16, 21, 22, 25 (and 14 over D22's pool). Axiom-backed: none (18's backend part
+would be, if its re-proof needed a new bbolt fact).
+
+### Questions for the user
+
+- **Q7, Q5 (a) in the `Compact(0)` corner** (found by the round's S3, reproduced): with `c'` what
+  `restore()` computes, `c ≤ c'` is false when a member applied a client's `Compact(0)` and the image
+  it installs holds that compaction scheduled but unfinished (`c = 0`, `c' = -1`); after the install
+  Go's revision is `-1`. Options:
+  - (a) **keep Q5 (a), exclude the corner by a premise of M2's scope**: the apply's compaction arm
+    assumes `rev ≠ 0` (M2's compactor, `v3compactor`, never issues `0`: `revision.go:82` skips
+    `rev <= 0`, the periodic one takes `≥ 1`); a client's `Compact(0)` RPC is then out of scope (a
+    stated limit, as P4 was). Cheapest; the issue file records why.
+  - (b) **keep Q5 (a), identify `0` with `-1` in the model**: the KV model's and the store's
+    compaction revision count a compaction at `0` as none (they delete nothing; reads at `≤ 0` mean
+    "current"); the store's tie becomes `compactMainRev ∈ {c} ∪ {0 | c = -1}`, and `store.Compact`'s
+    spec at `rev = 0` allows both answers (`ErrCompacted` or success). Exact, but changes the store's
+    invariant and an exported spec.
+  - (c) **Q5 (b) after all**: the compaction revision physical (`IdxNames.crev` into `PhysNames`),
+    a fresh authority at `r.crev` on restore, no premise; the spec then says nothing of the revision
+    across an install.
+  - (d) fix etcd (the issue's fix: resume a *found* scheduled record past the finished one) and bump
+    the pin; then Q5 (a) holds as drafted.
+
+  Recommended: (a) now (M2's programs never compact at `0`), (d) as the upstream report.
+
+### Checked
+
+- `etc/lean-check.py -a` on every changed Draft (`schedule`, mvcc's three, etcdserver's two).
+- Targeted `lake build` of the twelve Draft modules (7145 jobs, no error), then of the two Restore
+  Drafts after S4 (4342 jobs, no error).
+- `#print axioms` of `kbWTSupplyM_of_poolR`, both `Restore.spec_of_specM`, `Close.spec_of_specM`,
+  `kbRecs_MW`, `jobIsD_of`, `jobFnSpecD_of`, `schedPay_elim`, `restorePre_of_applyM`: no `sorryAx`.
+- Full `lake build` of `214ba8a864` passed (11209 jobs, no error).
+- Go: `issues/etcd-restore-scheduled-compact-zero/repro_test.go` fails at the pin as the issue says.
