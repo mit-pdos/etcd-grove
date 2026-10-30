@@ -105,9 +105,9 @@ theorem mvcc.treeIndex.Put.wp_proof
       { rev := ⟨W64 ilog.length, W64 pend.length⟩, change := .put k v l } := rfl
   have hwf'' : mvcc.IdxWf ilog (pend ++ [.put k v l]) :=
     ⟨Hwf', Hlen, by simp; omega, Hcs⟩
-  have hidxnew : mvcc.IdxCRep cmax (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]]))
+  have hidxnew : mvcc.IdxCRepN cmax (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]]))
       (mvcc.idxPut (mvcc.idxOfEntries L) k ⟨W64 ilog.length, W64 pend.length⟩) := by
-    have := mvcc.IdxCRep.step ilog pend (.put k v l) hwf''.logB hcmax HLL.1
+    have := mvcc.IdxCRepN.step ilog pend (.put k v l) hwf''.logB hcmax HLL.1
     rw [hev] at this
     exact this
   have hcount : (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]])).length =
@@ -222,7 +222,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     rw [hf] at Hidx
     simp only [Option.map_some] at Hidx
     obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
-    obtain ⟨cz, -, -, hz, -⟩ := mvcc.IdxCRep.get_some HLL.1 Hidx
+    have hz := (mvcc.IdxCRepN.get_facts HLL.1 Hidx).2.1
     (try wp_auto)
     -- `okeyi.put(ti.lg, rev.Main, rev.Sub)` on the key's index, borrowed from the tree
     icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hi |>.1 $$ Hkis
@@ -232,7 +232,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     simp only at Hiw
     rw [Hiw]
     have Hlt : mvcc.Rev.lt z.2.2.modified ⟨rev.Main', rev.Sub'⟩ := by
-      rw [hrevm, hrevs, hz, mvcc.kiCompact_modified, mvcc.kiOfKey_eq_kiFold]
+      rw [hrevm, hrevs, hz, mvcc.kiOfKey_eq_kiFold]
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
     wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr

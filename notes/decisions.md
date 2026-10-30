@@ -26750,3 +26750,48 @@ tracked jobs' baton (`compactQueue`'s `Q`/`R`: every barrier is tracked under th
 each job holds it for its run and `Stop` returns the last `Post` with it); (b) a third state of the
 invariant, "leased to the running job", with a lease token the job keeps, so no other holder can
 swap the eighth back while it runs.
+
+## M2's storage side: the index invariant at a full revision (2026-10-30, the user's decision B1; item 32)
+
+**2026-10-30 · accepted (B1); switched on branch `m2-index`**
+
+Round 4 repaired the index invariant for `restore()` over a compacted bucket by comparing key indexes up
+to an unread header (`kiNorm`) but kept the per-key level a *main* revision, which forced a premise on
+the image (`KeyOnceAt`: each key changed once per revision up to the compaction), justified as an etcd
+guarantee. Round 5 (B1) showed it is not one (`issues/etcd-txn-check-intervals-sibling.md`: sibling
+transactions put and delete a key in one revision) and that a compaction job's batch can stop between
+two sub-revisions of one revision; the rebuilt key index then starts at the key's first surviving
+sub-revision, which no compaction at a main revision gives (`M2StorageDraftIndex.lean`:
+`cx3_not_compacted`, and the reviewer's log checked, `cxr_not_compacted`).
+
+**Decision (B1):** the per-key level is a full revision. Representation (`InvIndexCut.lean`): a key
+index cut at a *position* `(gi, j)` (generation `gi`, its `j`-th revision; a position names exactly
+one revision of the key), `kiCutAt`, with `CutLe c ki gi j`: at or before the position compaction at
+`c` cuts at. `IdxCRepN cmax evs idx`: every key's tree index is, up to `kiNorm`, the log's key index
+cut at a `CutLe` position for some `c ∈ [-1, cmax]` (absent if the cut is empty). Why a position and
+not a `Rev` value with "drop the revisions below it": compaction is literally a cut at the position
+`doCompact` picks (`kiCompact_eq_cutAt`, `rfl` up to `cutGen`), so every compaction lemma's proof
+carried over by replacing `cutGen c` with `genDrop j` (compaction above the cut erases it, reads,
+`kiAvail`, `kiKeep` cannot tell it, the writer's step commutes with it); a value-based cut would need
+sortedness to locate the revision and a separate "a compaction is such a cut" proof, and a level past
+every revision for the empty case. `CutLe` is stated against `c`, not as `ℓ ≤ avail`, so the levels
+of compacted keys (`c' ≥ cmax`) are the old ones unchanged (`IdxCRepN_of`).
+
+`kiNorm` kept (the restored tombstone-only generation's header `{created 0, ver 1}` differs from the
+log's), now defined over `dropLast`/`getLast?` rather than `mapIdx` (the step lemmas rewrite
+`kiPut`/`kiTombstone`'s `dropLast ++ [_]` shape), with "`f (kiNorm ki) = f ki`" laws for every
+reader (`kiGet`, `kiAvail`, `kiKeep`, `kiLastEmpty`, `kiIsEmpty`, `gensOk`) and "`kiNorm ∘ F ∘ kiNorm =
+kiNorm ∘ F`" for every writer (`kiPut`, `kiTombstone`, `kiCompact`), so the invariant's lemmas
+transport through it without a general congruence.
+
+The rebuild theorem (`InvIndexRestore.lean`, `idxRestore_cut`): over `entsCutAt L c ents`, the
+rebuilt index is `IdxCRepN c (evsOf L)`, by induction over the log's changes with a per-key invariant
+(`KeyCut`: nothing rebuilt and no surviving revision so far, or the cut at the first surviving one,
+every earlier revision dropped), the first surviving put's `restore` matched to its generation through
+`rev_step`'s `KvMatch` (the key-value's create revision and version), and the level `c` from the
+dropped revisions' deletability (`cutLe_of_dropped`). No premise on how often a revision changes a
+key; `KeyOnceAt` is gone (item 33), with its apply-side obligation.
+
+The switch (item 32) is internal: `idxLockInv`'s `HL` is `IdxCRepN`; `idx_publish` still takes the
+private index's `IdxCRep (-1)` (a compaction-free rebuild) and converts it. No exported statement
+changed.
