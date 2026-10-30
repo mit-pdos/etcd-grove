@@ -1,17 +1,17 @@
 /-
-`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to `SetUp`**, the rest a
-`sorry` (2026-10-30). Lean-first (no Rocq counterpart).
+`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to the user clients**, the
+rest a `sorry` (2026-10-30). Lean-first (no Rocq counterpart).
 
 Proved: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
-(`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.specOn`) with the ghost
-step `ak_served_kv` (`MainServe.lean`: the KV methods with auth on, the Auth service's admin methods
-and `Authenticate`); `NewClient` (no user name, no token); `SetUp` (its puts under the history
-invariant, `akHist_setupAu`; the TLS fallback off and the auth store's cost from `memberUpOn`), and
-every error's return of `Failed`. `ak_served_watch` gives the watch server's facts (`watchAddrFacts`) at the clients' watcher
-environment `akV R`, for the workloads and the watches. Not yet: the user clients (`newUserClient`,
-over `Authenticate`'s registration `ak_served_kv` gives), the workloads, root's last write and the
-two watches. `notes/authkv-main-plan.md`,
-"Main: what blocks it".
+(`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.specOn`) with the
+ghost step `ak_served_kv` (`MainServe.lean`: the KV methods with auth on, the Auth service's admin
+methods and `Authenticate`); `NewClient` (no user name, no token); `SetUp` (its puts under the
+history invariant, `akHist_setupAu`; the TLS fallback off and the auth store's cost from
+`memberUpOn`), and every error's return of `Failed`. `ak_served_watch` gives the watch server's
+facts (`watchAddrFacts`) at the clients' watcher environment `akV R`, for the workloads and the
+watches. Then the user clients (`newUserClient` for root, u and v, over the registration of
+`Authenticate` that `ak_served_kv` gives: `authTokReg_of`). Not yet: the workloads, root's last
+write and the two watches (`notes/authkv-main-plan.md`, "Main: what blocks it").
 
 What the proof needs, as the auth plan put it (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth plan"):
 - **the server in the mode `on γa`** (E2e's next step, E2g): `NewServer.spec` generic in the auth
@@ -49,6 +49,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.startServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Spec.go_uber_org.zap.NewNop
+public import Spec.context.ErrAny
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.MainAlloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.MainServe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Hist
@@ -83,6 +85,7 @@ theorem Main.wp_proof
     (wp_ServeOn : common.Serve.specOn (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_SetUp : SetUp.spec (GF := GF) (hG := hG))
     (wp_newUserClient : newUserClient.spec (GF := GF) (hG := hG))
     (wp_Work : Work.spec (GF := GF) (hG := hG))
@@ -240,8 +243,63 @@ theorem Main.wp_proof
   cases ok
   · wp_auto
     iapply HΦ; ipureintro; right; left; rfl
-  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): the user clients, the
-  -- workloads (the watch facts with auth on), root's last write and the two watches
+  -- `newUserClient` for root, u and v: clients that authenticate as their user at the member's
+  -- `Authenticate` (`authTokReg_of`), sending the tokens issued to it
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #Hall : client.ctxErrClientAll (GF := GF) $$ []
+  · ihave #Hw := client.ctxErrClientAllW_of wp_ErrAny hAs $$ Pctx
+    iunfold client.ctxErrClientAllW at Hw
+    iunfold client.ctxErrClientAll
+    iexact Hw
+  wp_auto
+  wp_apply (wp_newUserClient go!"root" _ lg (akV R) (fun t => auth.tokIssued γa t go!"root") Hlg
+      (by omega)) as %rcl %rerr Hrc
+  · iframe #
+    iapply (client.authTokReg_of _ _ _ γa)
+    iexact HAu
+  icases Hrc with (⟨%Hrerr, #Hrnc, Hrtk⟩ | %Hrfail)
+  rotate_left
+  · obtain ⟨Hrerr, -⟩ := Hrfail
+    cases rerr with
+    | nil => exact absurd rfl Hrerr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; left; rfl
+  subst Hrerr
+  wp_auto
+  wp_apply (wp_newUserClient go!"u" _ lg (akV R) (fun t => auth.tokIssued γa t go!"u") Hlg
+      (by omega)) as %ucl %uerr Huc
+  · iframe #
+    iapply (client.authTokReg_of _ _ _ γa)
+    iexact HAu
+  icases Huc with (⟨%Huerr, #Hunc, Hutk⟩ | %Hufail)
+  rotate_left
+  · obtain ⟨Huerr, -⟩ := Hufail
+    cases uerr with
+    | nil => exact absurd rfl Huerr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; left; rfl
+  subst Huerr
+  wp_auto
+  wp_apply (wp_newUserClient go!"v" _ lg (akV R) (fun t => auth.tokIssued γa t go!"v") Hlg
+      (by omega)) as %vcl %verr Hvc
+  · iframe #
+    iapply (client.authTokReg_of _ _ _ γa)
+    iexact HAu
+  icases Hvc with (⟨%Hverr, #Hvnc, Hvtk⟩ | %Hvfail)
+  rotate_left
+  · obtain ⟨Hverr, -⟩ := Hvfail
+    cases verr with
+    | nil => exact absurd rfl Hverr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; left; rfl
+  subst Hverr
+  wp_auto
+  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): the workloads, root's last
+  -- write and the two watches
   sorry
 
 end proof
