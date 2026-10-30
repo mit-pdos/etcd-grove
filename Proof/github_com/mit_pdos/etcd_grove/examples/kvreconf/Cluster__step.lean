@@ -5,7 +5,8 @@ Rocq counterpart).
 The message's type and target are read first; then it is made the target's `stepIn`
 (`stepIn_intro`: `To` is the target's id) and stepped under a timeout context
 (`context.WithTimeoutBackground`, `nodeCtx`); its fate is reported to the sender's node, which
-takes only `isNode`.
+takes only `isNode`. Any error (`nodeErrS`: timed out, or the target stopped) is a drop: the
+comparison is with `nil`, which never panics.
 -/
 module
 
@@ -41,25 +42,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumpt
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
-
-/-- **The gap** (`sorry`, the one of this file): `err == context.DeadlineExceeded` (`cluster.go`'s
-`step`) does not panic when `err` and `DeadlineExceeded`'s value `e2` have the same dynamic type
-(the other cases, `err` `nil` or of another type, are `false` and proved below). `err` is what
-`Node.Step` returns (`nodeErrS`: `nil`, raft's `ErrStopped`, or the done context's `Err()`, the
-value of `context.Canceled` or of `DeadlineExceeded`). Go's `==` on two interfaces of the same
-dynamic type compares their values, which panics for an incomparable type (`CheckComparable`);
-`context`'s package fact (`context.isInit`) keeps only that `Canceled`'s and `DeadlineExceeded`'s
-values are typed errors, not their dynamic types (Go's `*errorString` and `deadlineExceededError`,
-both comparable), so with `err = e2` the check cannot be discharged. Either the comparison becomes
-`err != nil` (a Go change) or kvreconf takes the read package's premise
-`EtcdGrove.ContextReadErrs` (which states `DeadlineExceeded`'s value a `SafeMapKey`). -/
-theorem step_errCmp (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
-    (e1 e2 : GoInterfaceOk) (Φ : val → IProp GF) (_h : e1.ty = e2.ty) :
-    (nodeErrS n γ N cd (GoInterface.ok e1) ∗
-      globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e2 ∗
-      (∀ b : Bool, Φ #b) : IProp GF) ⊢
-    WP gl(CheckComparable e1.ty ;; GoOp GoEquals e1.ty glv((e1.v, e2.v))) {{ Φ }} := by
-  sorry
 
 theorem Cluster.step.wp_proof
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))
@@ -112,17 +94,10 @@ theorem Cluster.step.wp_proof
     $$ [$Hraftinit $HDisNode $Hnc $Hin] as %err #Herr
   try wp_auto
   wp_apply Hcancel
-  ihave Hci : (context.isInit : IProp GF) $$ []
-  · iapply context.isInit_access $$ Hctxinit
-  iNamed Hci
-  icases HDeadlineExceeded with ⟨%eD, #HeD, %HeDt⟩
-  obtain ⟨e2, rfl⟩ : ∃ e2, eD = GoInterface.ok e2 := by
-    cases eD with
-    | nil => exact absurd HeDt (by simp [context.isTypedErr])
-    | ok e2 => exact ⟨e2, rfl⟩
   try wp_auto
   cases err with
   | nil =>
+    -- taken
     try wp_auto
     wp_if_destruct
     · wp_apply wp_add _ _ $$ [$Hpkg $HctrS]
@@ -138,56 +113,19 @@ theorem Cluster.step.wp_proof
       iapply HΦ
       itrivial
   | ok e1 =>
-    by_cases hty : e1.ty = e2.ty
-    · simp only [ite_eq_left_of_eq_true _ _ (eq_true hty)]
-      wp_bind gl(CheckComparable e1.ty ;; GoOp GoEquals e1.ty glv((e1.v, e2.v)))
-      iapply step_errCmp dn γr.cluster kvrRaftN cd e1 e2 _ hty
-      iframe Herr HeD
-      iintro %b
-      cases b
-      · -- not the timeout
-        try wp_auto
-        wp_if_destruct
-        · wp_apply wp_add _ _ $$ [$Hpkg $HctrS]
-          wp_apply wp_oneIn (W64 8) (by decide) $$ [$Hpkg] as %b8 -
-          cases b8
-          all_goals
-            try wp_auto
-            wp_apply wp_ReportSnapshot n γr.cluster kvrRaftN sid st.msg.To' _ $$ [$Hraftinit $HSisNode]
-            try wp_auto
-            iapply HΦ
-            itrivial
-        · try wp_auto
-          iapply HΦ
-          itrivial
-      · -- the timeout: dropped
-        try wp_auto
-        wp_apply wp_add _ _ $$ [$Hpkg $HctrD]
-        wp_apply wp_ReportUnreachable n γr.cluster kvrRaftN sid st.msg.To' $$ [$Hraftinit $HSisNode]
-        try wp_auto
-        wp_if_destruct
-        · wp_apply wp_ReportSnapshot n γr.cluster kvrRaftN sid st.msg.To' _ $$ [$Hraftinit $HSisNode]
-          try wp_auto
-          iapply HΦ
-          itrivial
-        · try wp_auto
-          iapply HΦ
-          itrivial
-    · simp only [hty, ↓reduceIte]
+    -- not taken (timed out, or the target stopped): dropped
+    try wp_auto
+    wp_apply wp_add _ _ $$ [$Hpkg $HctrD]
+    wp_apply wp_ReportUnreachable n γr.cluster kvrRaftN sid st.msg.To' $$ [$Hraftinit $HSisNode]
+    try wp_auto
+    wp_if_destruct
+    · wp_apply wp_ReportSnapshot n γr.cluster kvrRaftN sid st.msg.To' _ $$ [$Hraftinit $HSisNode]
       try wp_auto
-      wp_if_destruct
-      · wp_apply wp_add _ _ $$ [$Hpkg $HctrS]
-        wp_apply wp_oneIn (W64 8) (by decide) $$ [$Hpkg] as %b8 -
-        cases b8
-        all_goals
-          try wp_auto
-          wp_apply wp_ReportSnapshot n γr.cluster kvrRaftN sid st.msg.To' _ $$ [$Hraftinit $HSisNode]
-          try wp_auto
-          iapply HΦ
-          itrivial
-      · try wp_auto
-        iapply HΦ
-        itrivial
+      iapply HΦ
+      itrivial
+    · try wp_auto
+      iapply HΦ
+      itrivial
 
 end proof
 
