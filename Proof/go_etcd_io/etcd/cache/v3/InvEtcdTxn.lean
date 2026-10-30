@@ -190,6 +190,139 @@ theorem TxnOp.wireLen_txn (cs : List CmpModel) (ts es : List TxnOp) :
       (es.map TxnOp.wireLen).sum + wireSlack := by
   rw [TxnOp.wireLen]
 
+/-! ### Bounding a transaction's size by its shape (L-s4)
+
+A transaction whose every key, range end, operand and value is at most `N` bytes (`bytesLe N`), with
+at most `M` comparisons and operations at every depth (`nodes`), has a request of at most
+`M * (3 * N + 256)` bytes (`txnSizeOk_of_bounds`). -/
+
+/-- A comparison's key, range end and operand at most `N` bytes. -/
+def CmpModel.bytesLe (N : Nat) (c : CmpModel) : Prop :=
+  c.key.length ≤ N ∧ c.rangeEnd.length ≤ N ∧ c.val.length ≤ N
+
+/-- An operation's key, range end and value at most `N` bytes, a nested transaction's at every
+depth. -/
+def TxnOp.bytesLe (N : Nat) : TxnOp → Prop
+  | .get o => o.key.length ≤ N ∧ o.base.rangeEnd.length ≤ N ∧ o.val.length ≤ N
+  | .delete o => o.key.length ≤ N ∧ o.base.rangeEnd.length ≤ N ∧ o.val.length ≤ N
+  | .put k v _ => k.length ≤ N ∧ v.length ≤ N
+  | .putKeep k v => k.length ≤ N ∧ v.length ≤ N
+  | .putIgnVal k _ => k.length ≤ N
+  | .txn cs ts es => (∀ c ∈ cs, c.bytesLe N) ∧ (∀ o ∈ ts.attach, TxnOp.bytesLe N o.1) ∧
+      (∀ o ∈ es.attach, TxnOp.bytesLe N o.1)
+decreasing_by
+  all_goals (have := List.sizeOf_lt_of_mem o.2; simp only [TxnOp.txn.sizeOf_spec]; omega)
+
+/-- The number of comparisons and operations of an operation: one, a nested transaction itself
+and its comparisons and operations at every depth. -/
+def TxnOp.nodes : TxnOp → Nat
+  | .txn cs ts es => 1 + cs.length + (ts.map TxnOp.nodes).sum + (es.map TxnOp.nodes).sum
+  | _ => 1
+
+/-- **A transaction's bytes at most `N`**: its comparisons' and operations', at every depth. -/
+def TxnModel.bytesLe (N : Nat) (t : TxnModel) : Prop :=
+  (∀ c ∈ t.cmps, c.bytesLe N) ∧ (∀ o ∈ t.thenOps, o.bytesLe N) ∧ (∀ o ∈ t.elseOps, o.bytesLe N)
+
+/-- **A transaction's comparisons and operations**, at every depth. -/
+def TxnModel.nodes (t : TxnModel) : Nat :=
+  t.cmps.length + (t.thenOps.map TxnOp.nodes).sum + (t.elseOps.map TxnOp.nodes).sum
+
+theorem TxnOp.bytesLe_txn (N : Nat) (cs : List CmpModel) (ts es : List TxnOp) :
+    (TxnOp.txn cs ts es).bytesLe N ↔
+      (∀ c ∈ cs, c.bytesLe N) ∧ (∀ o ∈ ts, o.bytesLe N) ∧ (∀ o ∈ es, o.bytesLe N) := by
+  rw [TxnOp.bytesLe]
+  constructor
+  · rintro ⟨hc, ht, he⟩
+    exact ⟨hc, fun o ho => ht ⟨o, ho⟩ (List.mem_attach _ _),
+      fun o ho => he ⟨o, ho⟩ (List.mem_attach _ _)⟩
+  · rintro ⟨hc, ht, he⟩
+    exact ⟨hc, fun o _ => ht o.1 o.2, fun o _ => he o.1 o.2⟩
+
+theorem TxnOp.nodes_txn (cs : List CmpModel) (ts es : List TxnOp) :
+    (TxnOp.txn cs ts es).nodes = 1 + cs.length + (ts.map TxnOp.nodes).sum +
+      (es.map TxnOp.nodes).sum := by
+  rw [TxnOp.nodes]
+
+theorem cmpWireLen_le {N : Nat} {c : CmpModel} (h : c.bytesLe N) : cmpWireLen c ≤ 3 * N + 256 := by
+  obtain ⟨h1, h2, h3⟩ := h; unfold cmpWireLen wireSlack; omega
+
+theorem cmpWireLen_sum_le {N : Nat} :
+    ∀ cs : List CmpModel, (∀ c ∈ cs, c.bytesLe N) →
+      (cs.map cmpWireLen).sum ≤ cs.length * (3 * N + 256)
+  | [], _ => by simp
+  | c :: cs, h => by
+    have h1 := cmpWireLen_le (h c (List.mem_cons_self ..))
+    have h2 := cmpWireLen_sum_le cs (fun c hc => h c (List.mem_cons_of_mem _ hc))
+    simp only [List.map_cons, List.sum_cons, List.length_cons]
+    rw [Nat.succ_mul]; omega
+
+theorem TxnOp.wireLen_sum_le_of {N : Nat} :
+    ∀ os : List TxnOp, (∀ o ∈ os, o.wireLen ≤ o.nodes * (3 * N + 256)) →
+      (os.map TxnOp.wireLen).sum ≤ (os.map TxnOp.nodes).sum * (3 * N + 256)
+  | [], _ => by simp
+  | o :: os, h => by
+    have h1 := h o (List.mem_cons_self ..)
+    have h2 := TxnOp.wireLen_sum_le_of os (fun o ho => h o (List.mem_cons_of_mem _ ho))
+    simp only [List.map_cons, List.sum_cons]
+    rw [Nat.add_mul]; omega
+
+/-- An operation's bound by its shape. -/
+theorem TxnOp.wireLen_le (N : Nat) : ∀ o : TxnOp, o.bytesLe N → o.wireLen ≤ o.nodes * (3 * N + 256)
+  | .get o, h | .delete o, h => by
+    rw [TxnOp.bytesLe] at h; obtain ⟨h1, h2, h3⟩ := h; simp only [TxnOp.wireLen, TxnOp.nodes, opWireLen, wireSlack]; omega
+  | .put k v _, h | .putKeep k v, h => by
+    rw [TxnOp.bytesLe] at h; obtain ⟨h1, h2⟩ := h; simp only [TxnOp.wireLen, TxnOp.nodes, wireSlack]; omega
+  | .putIgnVal k _, h => by
+    rw [TxnOp.bytesLe] at h; simp only [TxnOp.wireLen, TxnOp.nodes, wireSlack]; omega
+  | .txn cs ts es, h => by
+    obtain ⟨hc, ht, he⟩ := (TxnOp.bytesLe_txn N cs ts es).1 h
+    have h1 := cmpWireLen_sum_le cs hc
+    have h2 := TxnOp.wireLen_sum_le_of ts (fun o ho =>
+      have : sizeOf o < 1 + sizeOf cs + sizeOf ts := by
+        have := List.sizeOf_lt_of_mem ho; omega
+      TxnOp.wireLen_le N o (ht o ho))
+    have h3 := TxnOp.wireLen_sum_le_of es (fun o ho =>
+      have : sizeOf o < 1 + sizeOf cs + sizeOf ts + sizeOf es := by
+        have := List.sizeOf_lt_of_mem ho; omega
+      TxnOp.wireLen_le N o (he o ho))
+    rw [TxnOp.wireLen_txn, TxnOp.nodes_txn]
+    simp only [Nat.add_mul, Nat.one_mul, wireSlack]
+    omega
+
+/-- **A transaction's size by its shape** (L-s4): every byte string at most `N`, at most `M`
+comparisons and operations. -/
+theorem txnSizeOk_of_bounds {t : TxnModel} {N M : Nat} (hN : t.bytesLe N) (hM : t.nodes ≤ M)
+    (h : M * (3 * N + 256) ≤ 2 ^ 30) : txnSizeOk t := by
+  obtain ⟨hc, ht, he⟩ := hN
+  have h1 := cmpWireLen_sum_le t.cmps hc
+  have h2 := TxnOp.wireLen_sum_le_of t.thenOps (fun o ho => TxnOp.wireLen_le N o (ht o ho))
+  have h3 := TxnOp.wireLen_sum_le_of t.elseOps (fun o ho => TxnOp.wireLen_le N o (he o ho))
+  have h4 : t.nodes * (3 * N + 256) ≤ M * (3 * N + 256) := Nat.mul_le_mul_right _ hM
+  unfold txnSizeOk txnWireLen
+  unfold TxnModel.nodes at h4
+  simp only [Nat.add_mul] at h4
+  omega
+
+theorem TxnModel.bytesLe_empty (N : Nat) : TxnModel.empty.bytesLe N := by
+  simp [TxnModel.bytesLe, TxnModel.empty]
+
+theorem TxnModel.nodes_empty : TxnModel.empty.nodes = 0 := by
+  simp [TxnModel.nodes, TxnModel.empty]
+
+/-- The builder's steps (`If`, `Then`, `Else`: appending comparisons or operations). -/
+theorem TxnModel.bytesLe_append {N : Nat} {t : TxnModel} {cs : List CmpModel} {ts es : List TxnOp}
+    (h : t.bytesLe N) (hc : ∀ c ∈ cs, c.bytesLe N) (ht : ∀ o ∈ ts, o.bytesLe N)
+    (he : ∀ o ∈ es, o.bytesLe N) :
+    ({ cmps := t.cmps ++ cs, thenOps := t.thenOps ++ ts, elseOps := t.elseOps ++ es } :
+      TxnModel).bytesLe N := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨?_, ?_, ?_⟩ <;> intro x hx <;> simp only [List.mem_append] at hx <;> grind
+
+theorem TxnModel.nodes_append (t : TxnModel) (cs : List CmpModel) (ts es : List TxnOp) :
+    ({ cmps := t.cmps ++ cs, thenOps := t.thenOps ++ ts, elseOps := t.elseOps ++ es } :
+      TxnModel).nodes = t.nodes + cs.length + (ts.map TxnOp.nodes).sum + (es.map TxnOp.nodes).sum := by
+  simp only [TxnModel.nodes, List.length_append, List.map_append, List.sum_append]; omega
+
 
 /-- The result of an operation: a get's selected key-values (in key order) and the number of keys
 in its range; a put; a delete's number of deleted keys; a nested transaction's outcome (whether its
@@ -218,6 +351,13 @@ def txnOpOf (o : OpFull) : Option TxnOp :=
      else none)
   else if o.t = W64 3 then some (.delete o)
   else none
+
+/-- A plain operation's request is at most its `Op`'s (`txnOpOf` keeps or drops its strings). -/
+theorem txnOpOf_wireLen_le {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op) :
+    op.wireLen ≤ opWireLen o := by
+  unfold txnOpOf at h
+  repeat' (first | (split at h) | (simp only [Option.some.injEq, reduceCtorEq] at h))
+  all_goals (subst h; simp only [TxnOp.wireLen, opWireLen]; omega)
 
 attribute [op_simps] txnOpOf
 
@@ -1251,6 +1391,12 @@ theorem keyWatch_opts (key : GoString) (rev : w64) :
       (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
   simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isRangeWatch]
+
+/-- `Watch(key, WithRev(rev))`'s request fits a gRPC message when the key does. -/
+theorem keyWatch_size (key : GoString) (rev : w64) (h : key.length ≤ 2 ^ 30) :
+    watchSizeOk (opWatchModel key [withRevM rev]) := by
+  obtain ⟨-, -, h3, h4⟩ := keyWatch_opts key rev
+  unfold watchSizeOk; rw [h3, h4]; simpa using h
 
 section pointwise
 variable {GF : BundledGFunctors}

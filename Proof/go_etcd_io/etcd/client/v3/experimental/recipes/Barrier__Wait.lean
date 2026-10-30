@@ -33,7 +33,7 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
   intro b client key lo
   wp_start as ⟨#Hcc, #Hb, #Hlo, %Hlo0⟩
   iunfold isBarrier at Hb
-  icases Hb with ⟨#Hbc, #Hbx, #Hbk, #Hcl⟩
+  icases Hb with ⟨#Hbc, #Hbx, #Hbk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   iunfold isRecipesKV at Hkv
   icases Hkv with ⟨#HGet, -, -, -⟩
@@ -46,7 +46,8 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
   · iframe Hopts Hlo
     ipureintro
     exact ⟨keyOp_not_panics, (keyOp_t key).1, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      getOp_size (by omega)⟩
   iunfold kvGetResultR at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, #HgRev, #HRR, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
@@ -105,7 +106,7 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
     wp_apply hWE client key key (R + W64 1) _ [evDelete] evDelete $$ [$Hpkg $Hcc $Hcl $HslT]
       as %ev %werr Hwr
     · ipureintro
-      refine ⟨rfl, List.prefix_refl key, ?_⟩
+      refine ⟨rfl, List.prefix_refl key, ?_, by omega⟩
       have := HRle.2; word
     icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
     rotate_left

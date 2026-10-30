@@ -30,7 +30,7 @@ has the recipes' contracts at `prefix ++ "/"`: the mutex on `prefix ++ "/"` (its
 abbrev NewRWMutex.spec : Prop :=
   ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗
-      isEtcdRecipesClient client (pfx ++ go!"/") ∗ context.isClosedchanInit }}
+      isEtcdRecipesClient client (pfx ++ go!"/") ∗ context.isClosedchanInit ∗ ⌜pfx.length ≤ 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewRWMutex)) (Val #s))
       (Val #pfx))
   {{ (m : Loc), RET #m; isRWMutex m s γ client id (pfx ++ go!"/") ∗ rwMyKey m (pfx ++ go!"/") none }}

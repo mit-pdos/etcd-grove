@@ -105,7 +105,16 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
         (W64 0) $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hopv $H0]
       as %resp %err ⟨Hrd, -⟩
     · ipureintro
-      simp [op_simps]
+      -- BLOCKED (2026-10-30, `notes/invoke-size-b.md`): `v.key` is a key etcd returned; only the
+      -- key-length bound on etcd's state (every key at most `2 ^ 27`, `etcdKeyMax`, being designed
+      -- as a law of `EtcdModel`) bounds it. The goal left is `v.key.length ≤ 2 ^ 27`.
+      have Hk : v.key.length ≤ 2 ^ 27 := by
+        skip
+      have Ht : (strings.trimPrefix v.key pfx).length ≤ 2 ^ 27 := by
+        unfold strings.trimPrefix; split <;> (try simp only [List.length_drop]) <;> omega
+      refine ⟨by simp [op_simps], Ht, ?_⟩
+      simp only [OpShape]
+      refine ⟨by simpa [op_simps] using Ht, by simp [op_simps], by simp [op_simps]⟩
     rcases err with e | _
     · wp_auto
       wp_for_post

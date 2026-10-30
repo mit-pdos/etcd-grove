@@ -68,7 +68,7 @@ theorem leasingKV.get.wp_proof
   · -- the session is not ready: the client's `Do`
     wp_auto
     wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
-    · ipureintro; exact Ho
+    · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
@@ -90,7 +90,7 @@ theorem leasingKV.get.wp_proof
     subst Hret Hok
     wp_auto
     wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
-    · ipureintro; exact Ho
+    · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
@@ -117,7 +117,7 @@ theorem leasingKV.get.wp_proof
       cases mb
       · wp_auto
         wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
-        · ipureintro; exact Ho
+        · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
         try wp_auto
         wp_apply hRG $$ [$Hcv $resp] as resp
         try wp_auto
@@ -134,7 +134,8 @@ theorem leasingKV.get.wp_proof
         obtain ⟨-, hkk, hke, -, -⟩ := keyGet_fields o.key
         wp_apply hAcq lkv γ pfx ctx cs o.key opK (opGetModel o.key []) lo
           $$ [$Hpkg $Hlkv $Hrd $Hctx $HopK $Hlo] as %resp %err ⟨Hrd, Hacq⟩
-        · ipureintro; exact ⟨keyGet_txnOpOf _, hkk, hke⟩
+        · ipureintro
+          refine ⟨keyGet_txnOpOf _, hkk, hke, ?_, ?_, ?_⟩ <;> simp [op_simps, Ho.2.1]
         icases Hacq with (⟨%Hne, %Hresp⟩ | ⟨%Heq, Hacq⟩)
         · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
             cases err with
@@ -232,7 +233,7 @@ theorem leasingKV.get.wp_proof
           wp_apply wp_with_defer as %defer defer
           try wp_auto
           wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hslot $Hsr $Hctx]
-          · ipureintro; rw [Hrev]; constructor <;> omega
+          · ipureintro; rw [Hrev]; refine ⟨?_, ?_, Ho.2.1⟩ <;> omega
           try wp_auto
           wp_apply wp_leasingWg_Done lkv γ $$ [$Hsync $Hwg $Hwginv $Hrun] as Htok
           try wp_auto
@@ -254,7 +255,7 @@ theorem leasingKV.get.wp_proof
         exact ⟨he0.2.symm, Hrev.symm, Hlo_r⟩
     · wp_auto
       wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
-      · ipureintro; exact Ho
+      · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
       try wp_auto
       wp_apply hRG $$ [$Hcv $r] as r
       try wp_auto

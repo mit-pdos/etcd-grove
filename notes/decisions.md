@@ -26993,3 +26993,38 @@ sizes in terms of the commit, which the user cannot see); a byte budget instead 
 but every call's premise then needs the sum of its keys' lengths); counting distinct keys rather than
 calls (a key read and written is two entries of the commit, so the bound per key would be `5N`, over
 `2 ^ 30` at these constants).
+
+## Leasing's sizes (2026-10-30 · accepted, the user's approval · `notes/invoke-size-b.md`)
+
+**Context.** The encoded-size bound ("The encoded-size bound at grpc's send side") gives each KV
+operation of a client the client's predicate on its arguments (`opSizeOk`, `txnSizeOk`). The
+leasing KV cannot pass that premise on: each request it sends carries the user's operation and the
+prefixed key several times. `acquire` sends `pfx+key` three times, the key once more and the user's
+get twice; `revoke` and `tryModifyOp` the prefixed key with the user's operation; `serverTxn` the
+user's transaction nested, and for each of its write operations up to three guards and a fallback
+get on the operation's key and range end, prefixed or not.
+
+**Decision** (the user approved the proposal):
+
+- `NewKV` takes `pfx.length ≤ 2 ^ 26`, kept in `isLeasingKV`.
+- `Get`, `Put`, `Delete` and `Do` (its get, put and delete) take `OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28)`
+  of their operation, the vocabulary of `InvOp`, instead of `opSizeOk`.
+- `txnLeasing.Commit`, and `Do`'s transaction, take a leasing-specific bound built on L-s4's node
+  count: `LTxnBuild.sizeOk pfx b`, every comparison's and operation's string at most `N` bytes and
+  `(5 * n + 1) * (3 * (|pfx| + N) + 256) ≤ 2 ^ 30`, `n` the number of comparisons and operations.
+  `serverTxn_sizeOk` bounds the server transaction by `txnSizeOk_of_bounds` (L-s4, written in
+  `cache/v3/InvEtcdTxn.lean` beside `txnSizeOk`) at `|pfx| + N` bytes and `5 * n + 1` nodes.
+  `guardKeys`, `guardRanges`, `guard` and `fallback` return their strings' bounds (`guardOf`) and
+  counts, which the proof needs.
+- Each internal function takes the bounds of what it sends (`rescind`, `waitRescind`,
+  `monitorLease`, `revoke`: the key at most `2 ^ 27`; `acquire`: `OpShape (2 ^ 27) 0 0`, Go's
+  `OpGet(key)`; `deleteRangeRPC`, `revokeRange`: key and range end at most `2 ^ 27`).
+- The lease cache's keys need no bound of their own: every request on a cached key gets its key
+  from the user's operation. (The proposal had the cache keep it; nothing uses it.)
+- `revokeLeaseKvs` revokes keys etcd returned. Their bound waits for the key-length bound on etcd's
+  state (every key at most `2 ^ 27`), designed separately as a law of the clients' model.
+
+**Alternatives rejected:** passing the client's `opSizeOk`/`txnSizeOk` through (false of the
+requests leasing builds); a bound on the user's `txnWireLen` with a separate node count (two
+premises where `bytesLe` and `nodes` give one, and the guards' size depends on the strings, not on
+the total).

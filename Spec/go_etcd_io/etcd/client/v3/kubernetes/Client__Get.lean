@@ -52,7 +52,7 @@ abbrev Client.Get.spec : Prop :=
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (Q : w64 → w64 → KVState → IProp GF),
-  opts.Revision' = W64 0 →
+  opts.Revision' = W64 0 → key.length ≤ 2 ^ 27 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗

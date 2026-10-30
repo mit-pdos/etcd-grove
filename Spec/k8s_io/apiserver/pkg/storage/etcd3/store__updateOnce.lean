@@ -46,10 +46,10 @@ abbrev store.updateOnce.spec : Prop :=
     (o0 : Obj) (rv0 : GoString) (st : Loc) (s : OState Obj) (x : GoInterface) (dsl : GoSlice)
     (σ0 : KVState) (kv0 : EtcdKv) (v : _root_.Perennial.reflect.Value) (p : Loc) (z : Obj)
     (f : Obj → Nat → Except E Obj) (o' : Obj) (W : IProp GF) (Φ : KVState → IProp GF),
-  c.pfx <+: key →
+  c.pfx <+: key → key.length ≤ 2 ^ 27 →
   mvcc.findKey key σ0.kvs = some kv0 →
   stOfKv c kv0 s →
-  f s.o (uint.nat s.rev) = .ok o' →
+  f s.o (uint.nat s.rev) = .ok o' → c.S.storedSizeOk o' →
   (!s.stale && decide (c.S.encode o' = s.data)) = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜span ≠ null⌝ ∗ ownStateX c st s x ∗

@@ -46,6 +46,7 @@ abbrev store.Delete.spec : Prop :=
     (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) [Timeless W]
     (Φ : KVState → IProp GF) (k : GoString),
   prepareKeyM c.resourcePrefix key false = some k →
+  (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
   opts.ExpectTransformOrDecodeError' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗ W ∗

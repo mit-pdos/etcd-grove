@@ -40,7 +40,8 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   wp_start as ⟨#Hcc, #Hq, #Hlo, %Hlo0⟩
   ihave #Hq' := Hq
   iunfold isQueue at Hq'
-  icases Hq' with ⟨#Hqc, #Hqx, #Hqk, %Hkp, #Hcl⟩
+  icases Hq' with ⟨#Hqc, #Hqx, #Hqk, %HkpB, #Hcl⟩
+  have Hkp := HkpB.1
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   ihave #Hkv' := Hkv
   iunfold isRecipesKV at Hkv'
@@ -58,7 +59,8 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   · iframe Hopts Hlo
     ipureintro
     exact ⟨firstRevOp_not_panics, Ht, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      by simpa using topOp_size (W64 3) (W64 1) [] (optsKeep_nil _ _ _) (by omega)⟩
   iunfold kvGetResultR at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, #HgRev, #HRR, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
@@ -191,7 +193,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       wp_apply hWPE client kp kp R _ [evPut] evPut $$ [$Hpkg $Hcc $Hcl $HslT]
         as %ev %werr Hwr
       · ipureintro
-        exact ⟨rfl, List.prefix_refl kp, by omega⟩
+        exact ⟨rfl, List.prefix_refl kp, by omega, by omega⟩
       icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
       rotate_left
       · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
