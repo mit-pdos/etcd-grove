@@ -99,7 +99,6 @@ axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
-sorry v3rpc.serverWatchStream.isWatchPermitted.wp_proof
 sorry v3rpc.serverWatchStream.recvLoop.wp_proof
 sorry watchGRPCStream.newWatchClient.wp_proof
 sorry watchGRPCStream.run.wp_proof
