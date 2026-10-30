@@ -807,6 +807,97 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
   ipureintro
   exact ⟨Hfacts.1, Hfacts.2.1, srv_ops_prefix γ A Lf Hfacts.2.1 Hp⟩
 
+/-- (2026-10-30, the repair; D3) **A committed log's v1 conf entries are the server's**: each is a
+requested entry (not a filler, not an empty `ConfChangeV2`), so one of the server's log's (the
+start log is empty), whose changes the server takes (`ccPolOk`). -/
+theorem srv_committed_ccBoot (γ : ServerRaftNames) (l : List LogEntry) (E : CoPset)
+    (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ⊢
+      |={E}=> ⌜∀ e ∈ l, e.type = W32 1 → ccBootOk γ.raft.cfg e.data⌝ := by
+  iintro ⟨#Hinv, #Hl⟩
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, -, -, -, %Hpre⟩
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfr, %Hfacts⟩
+  ihave %Hp := ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown Hl]
+  · iframe Hown Hl
+  imod Hclose $$ [Hown Hlog HP HF HR Hfr Hregs] with -
+  · inext
+    iexists Lf, P, F, R
+    iunfold srvLogCore
+    iframe Hown Hlog HP HF HR Hfr Hregs
+    ipureintro; exact Hfacts
+  imodintro
+  ipureintro
+  intro e he ht
+  have hops : opsOf (srvLE γ Lf) = Lf.map EntryModel.toLE := by
+    rw [srvLE_ops_nofill γ Lf Hfacts.2.1]
+    simp [srvLE, Hpre, opsOf]
+  have hin : e ∈ opsOf l := by
+    unfold opsOf
+    rw [List.mem_filter]
+    refine ⟨he, ?_⟩
+    have h1 : ¬ e.isFiller := fun h => by
+      have := LogEntry.isFiller_normal e h; rw [ht] at this; simp at this
+    have h2 : ¬ e.isEmptyV2 := fun h => by
+      have := h.2; rw [ht] at this; simp at this
+    simp [h1, h2]
+  have := Hp.subset hin
+  rw [hops] at this
+  obtain ⟨m, hm, rfl⟩ := List.mem_map.1 this
+  exact ccPolOk_static γ.raft _ (Hfacts.2.2.2.2 m hm ht)
+
+/-- One more index of a committed log at the voters' membership (`srv_confAt_simple`'s step). -/
+theorem srv_confAt_simple_ind (γ : ServerRaftNames) (l : List LogEntry) (E : CoPset)
+    (hC : ↑srvConfN ⊆ E)
+    (hall : ∀ e ∈ l, e.type = W32 1 → ccBootOk γ.raft.cfg e.data)
+    (hkeep : srvRuleKeeps γ.raft.rule γ.raft.cfg) :
+    ∀ k, k ≤ l.length → (letI := srvStor (GF := GF) γ.raft
+      isCluster (GF := GF) γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
+        isCommittedLogLb γ.raft.cl l ∗ confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ⊢
+      |={E}=> confAt γ.raft.cl k (Membership.simple γ.raft.cfg)) := by
+  letI := srvStor (GF := GF) γ.raft
+  intro k
+  induction k with
+  | zero =>
+    intro _
+    iintro ⟨-, -, -, #H⟩
+    imodintro; iexact H
+  | succ k ih =>
+    intro hk
+    iintro #H
+    imod ih (by omega) $$ H with #Hk
+    icases H with ⟨#Hc, #Hp, #Hl, -⟩
+    have hlt : k < l.length := by omega
+    obtain ⟨e, he⟩ : ∃ e, l[k]? = some e := ⟨_, List.getElem?_eq_getElem hlt⟩
+    by_cases hcc : e.isConfChange
+    · have hstep : (ConfDecision.ofRule (γ.raft.rule (l.take k) (Membership.simple γ.raft.cfg) e)).step
+          (Membership.simple γ.raft.cfg) = some (Membership.simple γ.raft.cfg) := by
+        by_cases ht : e.type = W32 1
+        · have hb := hall e (List.mem_of_getElem? he) ht
+          cases hr : γ.raft.rule (l.take k) (Membership.simple γ.raft.cfg) e with
+          | none => rfl
+          | some o => exact (hkeep (l.take k) e).1 ht hb o hr
+        · rw [(hkeep (l.take k) e).2 ht]; rfl
+      imod confPolicy_decide γ.raft.cl srvClusterN srvConfN E γ.raft.rule l k e _ _ he hcc hC hstep
+        $$ [$Hc $Hp $Hl $Hk] with #Hd
+      imodintro
+      ihave H := confAt_decided γ.raft.cl k _ _ $$ [$Hk $Hd]
+      icases H with ⟨%m'', %h'', #H''⟩
+      rw [hstep] at h''
+      cases h''
+      iexact H''
+    · have hnc : NoConfChangeIn l k (k + 1) := by
+        intro j e' hj1 hj2 hj
+        have : j = k := by omega
+        subst this
+        rw [he] at hj; cases hj; exact hcc
+      imodintro
+      iapply confAt_noConf γ.raft.cl l k (k + 1) _ hnc (by omega) (by omega)
+      iframe Hl Hk
+
 /-- (2026-10-30, the repair; D3) **The cluster's membership is the voters' at every index of a
 committed log**: each conf entry of it is one of the server's log's (`srv_entry_src`: the boot
 log's, whose changes the server takes, the log invariant's `ccPolOk`) or an empty `ConfChangeV2`
@@ -817,7 +908,15 @@ theorem srv_confAt_simple (γ : ServerRaftNames) (l : List LogEntry) (k : Nat) (
     srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ⊢
       |={E}=> (letI := srvStor (GF := GF) γ.raft
         confAt γ.raft.cl k (Membership.simple γ.raft.cfg)) := by
-  sorry
+  letI := srvStor (GF := GF) γ.raft
+  iintro ⟨#Hinv, #Hl⟩
+  imod srv_committed_ccBoot γ l E hL $$ [$Hinv $Hl] with %Hall
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, #Hp, #H0, -, -, -, %Hkeep⟩
+  iapply srv_confAt_simple_ind γ l E hC Hall Hkeep k hk
+  iframe Hc Hp Hl H0
 
 /-- (2026-10-30, the repair; D3) **No empty `ConfChangeV2` is committed**: raft commits one only at
 a joint configuration (`committed_emptyV2_joint`), which the voters' simple one is not
@@ -826,7 +925,22 @@ theorem srv_committed_noV2 (γ : ServerRaftNames) (l : List LogEntry)
     (E : CoPset) (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
     srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ⊢
       |={E}=> ⌜∀ e ∈ l, ¬ e.isEmptyV2⌝ := by
-  sorry
+  letI := srvStor (GF := GF) γ.raft
+  by_cases hno : ∀ e ∈ l, ¬ e.isEmptyV2
+  · iintro -; imodintro; ipureintro; exact hno
+  obtain ⟨e, hel, hv⟩ : ∃ e ∈ l, e.isEmptyV2 := by
+    refine Classical.byContradiction fun h => hno fun e he hv => h ⟨e, he, hv⟩
+  obtain ⟨k, hk⟩ := List.getElem?_of_mem hel
+  have hlt : k ≤ l.length := Nat.le_of_lt (List.getElem?_eq_some_iff.1 hk).1
+  iintro ⟨#Hinv, #Hl⟩
+  imod srv_confAt_simple γ l k hlt E hC hL $$ [$Hinv $Hl] with #Hk
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave %Hj := committed_emptyV2_joint γ.raft.cl srvClusterN l k e _ hk hv $$ [$Hc $Hl $Hk]
+  exfalso
+  exact Hj rfl
 /-- **A committed log, as the server's** (2026-10-27): a committed log after the start log whose
 indices are consecutive is a `srvRLogLb`: its entries are normal or v1 conf changes, its requested
 entries being the server's (whose are), its fillers empty normal entries
@@ -838,9 +952,8 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
     (hidx : ∀ (n : Nat) (m : EntryModel), L[n]? = some m → uint.Z m.index = uint.Z γ.ai0 + 1 + n) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ isCommittedLogLb γ.raft.cl (srvLE γ L) ={E}=∗
       srvRLogLb γ L := by
-  sorry
-/- REPAIR-OLD
   iintro #Hinv #HL
+  imod srv_committed_noV2 γ (srvLE γ L) E hC hE $$ [$Hinv $HL] with %Hnv2
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -⟩
   iunfold srvLogInv at Hli
@@ -862,17 +975,18 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
   obtain ⟨Hidx, Hnf, -, -⟩ := Hfacts
   have Hops := srv_ops_prefix γ L Lf Hnf Hp
   intro n m hm
+  have hmem : m.toLE ∈ srvLE γ L := by
+    unfold srvLE; rw [List.map_append]
+    exact List.mem_append_right _ (List.mem_map_of_mem (List.mem_of_getElem? hm))
   refine ⟨hidx n m hm, ?_⟩
   by_cases hf : m.toLE.isFiller
-  · have : m.toLE ∈ srvLE γ L := by
-      unfold srvLE; rw [List.map_append]
-      exact List.mem_append_right _ (List.mem_map_of_mem (List.mem_of_getElem? hm))
-    exact .inl (LogEntry.isFiller_normal _ hf)
+  · exact .inl (LogEntry.isFiller_normal _ hf)
   · -- a requested entry: one of the server's
+    have hv : ¬ m.toLE.isEmptyV2 := Hnv2 _ hmem
     have hin : m.toLE ∈ opsOf (L.map EntryModel.toLE) := by
       unfold opsOf
       rw [List.mem_filter]
-      exact ⟨List.mem_map_of_mem (List.mem_of_getElem? hm), by simp [hf]⟩
+      exact ⟨List.mem_map_of_mem (List.mem_of_getElem? hm), by simp [hf, hv]⟩
     obtain ⟨m', hm', he⟩ := List.mem_map.1 (Hops.subset hin)
     obtain ⟨j, hj⟩ := List.getElem?_of_mem hm'
     have ht := (Hidx j m' hj).2
@@ -880,7 +994,6 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
     have h2 := congrArg LogEntry.data he
     simp only [EntryModel.toLE] at h1 h2
     rw [← h1, ← h2]; exact ht
--/
 
 
 /-- **A prefix of the server's log of requested entries** (persistent; the auth-mode merge's step 5,

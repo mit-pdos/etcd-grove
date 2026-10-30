@@ -85,7 +85,21 @@ def srvRule (c0 : w64) (boot : List EntryM) : ConfRule := fun pre _m e =>
 it is (`Membership.applyChange_addVoter`/`_nodeZero`). -/
 theorem srvRule_keeps (c0 : w64) (boot : List EntryM) (cfg : GSet w64)
     (hv : (Membership.simple cfg).Valid) : srvRuleKeeps (srvRule c0 boot) cfg := by
-  sorry
+  intro pre e
+  refine ⟨fun ht hok o ho => ?_, fun ht => by unfold srvRule; simp only [ht, ↓reduceIte]⟩
+  unfold srvRule at ho
+  simp only [ht, ↓reduceIte] at ho
+  cases hd : ccDecodeV1 e.data with
+  | none => rw [hd] at ho; cases ho
+  | some m =>
+    rw [hd] at ho
+    simp only [Option.map_some, Option.some.injEq] at ho
+    subst ho
+    obtain ⟨hty, hin, -⟩ := hok m hd
+    unfold membership.ccRaftEff
+    split
+    · exact Membership.applyChange_addVoter cfg m hty hin hv
+    · exact Membership.applyChange_nodeZero cfg _ rfl hv
 
 /-- The log `D` has a `RemoveNode` of `x` (a `ConfChange` entry). -/
 def RemovedIn (D : List EntryModel) (x : w64) : Prop :=
