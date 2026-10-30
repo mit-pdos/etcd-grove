@@ -1447,3 +1447,176 @@ The approved items, as built (statements shown to the coordinator first,
   Users adapted by one weakening (`ownSnapW_E`, `ownSnapE_weaken`): `MemstorageInstance`,
   kvreconf's and kv's `Storage.Snapshot` proofs. Raft's `Results`, kvreconf's and kv's `Results`
   rebuilt; `interface/` regenerated (`MemoryStorage__Snapshot`, `Linked`).
+
+## Repair: Stage F statements (2026-10-30, branch `repair`)
+
+Stage F of the client repair (the design: `repair-design.md` §2-§5, the user's decisions D1-D5 of
+2026-10-30): every statement the server's and kv's repair needs, in final form over raft's unified
+API, proofs `sorry` where they broke (old bodies kept in `/- REPAIR-OLD … -/` right below). Built:
+the server's `Results`/`Link`, kv's `Results`/`Link`/`AdequacyLinked`, raft's `Results`, kvreconf's
+`Results`. **One open decision (D2, with the user):** etcd takes an in-memory snapshot every
+`memorySnapshotCount = 100` applied entries (`shouldSnapshotToMemory`, `server.go:1248`) and on
+`ForceSnapshot`, so `CreateSnapshot` is reachable under D2(i)'s `receiptBound ≤ SnapshotCount`, and
+its `J.SV` needs a registered snapshot (`snapMade`), which D2(i)'s empty-for-good registry refutes.
+The snapshot/compaction statements below are the D2-agnostic placeholders, marked PENDING in the
+files; the `EtcdServer.snapshot` axiom was made to claim nothing of the storage (so that it stays
+sound against the empty registry) until the answer.
+
+### Public and trusted statement changes vs origin/lean
+
+The server (`Proof/`/`Spec/go_etcd_io/etcd/server/v3/etcdserver/`), as clients and the exported
+results see them:
+- **`SrvRaft`**: `dyn`, `dec` gone; `rule : ConfRule` (the cluster's `confPolicy` rule, tied by
+  `rnEnvOk` to **`srvRule c0 boot`**, `InvCfgView`: the old `srvDec` retyped).
+- **`srvClusterOk`**: `isCluster ∗ confPolicy cl srvConfN rule ∗ confAt cl 0 (simple cfg) ∗ readyFits
+  ∗ ⌜dup = false⌝ ∗ inv srvSnapsN (ownSnapsMade cl []) ∗ ⌜srvRuleKeeps rule cfg⌝` (was
+  static/dynamic cluster, `leaderTransferOff`, `bootedCluster`). New namespaces `srvConfN`,
+  `srvSnapsN` (outside `srvRaftN`). New pure `srvRuleKeeps` (D3: the rule keeps `simple cfg`).
+- **`srvRaftLogInv`** += `⌜γ.pre = []⌝` (one mode: the old dynamic mode's fresh start).
+- **`srvLogCore`** (the log invariant): requested entries `¬ isFiller ∧ ¬ isEmptyV2` (raft's `opsOf`
+  drops empty `ConfChangeV2`s), += their conf entries `ccPolOk` (D3).
+- Snapshot refutations are updates now, at `↑srvSnapsN ⊆ E`: `srv_snapMade_false`,
+  `srv_snapshotCert_false`, `srv_snapshotValid_false`, `srv_sentMsg_notSnap`, `srv_readySnap_none`.
+  New: `srv_confAt_simple`, `srv_committed_noV2` (no empty V2 committed: `committed_emptyV2_joint`);
+  `srvRLogLb_intro` += `↑srvConfN ⊆ E`. `srv_entry_transfer` += `hv2`, `srv_entry_src` += the
+  empty-V2 alternative, `opsOf_nofill`'s hypothesis `¬ isFiller ∧ ¬ isEmptyV2`.
+- **Read credits gone** (D5): `srvRdCred`, `rnReadCred`, `readCredits_members` deleted;
+  `srvRdFreshInv` without credits; `srvRdFresh_mint`'s post without one; `srvRdFreshInv_alloc`,
+  `srvMintInv_alloc` without the `2^48` credits; `isReadServer`'s `NextRequestID`, `isReadRaft`'s
+  and `raftNode.ReadIndex`'s/`read.Read.sendReadIndex`'s pre without `srvRdCred`.
+- **`ccApplyOkR`**: `ccApplyOk cfg` only (D3; no `RemoveNode`); `ccPolOk_static` without `dyn`.
+- **`raftPropose`**: its `ApplyConfChange` clause gone (now `raftApplyCC`).
+- **Conf changes** (`InvCfgView`): `raftApplyCCDyn` → **`raftApplyCC`** (`node.ApplyConfChange.spec`
+  at `srvCCPre rule`, the caller lends `nodeRunning n … q`, post `csPts ∗ confStateIs cs m' ∗
+  nodeConfig ⟨k+1, m'⟩ ∗ nodeRunning q`); `srvDynCCPre` → `srvCCPre` (the rule at the log before
+  and the view's membership); `srvRaftNodeDyn` → `srvRaftNodeCC`; new **`dvRun`** (the apply side's
+  half of the running token, for a batch with a view) in `dvCCPre`/`dvCCPost` and `dvView_cc`;
+  `dvOk` without `dyn` (rule = `srvRule`).
+- **The node contract** (`isRaftNodeIfc`, exported via `node_contract_ifc`): `raftApplyCC`
+  unconditional; `Advance` takes `rnRunHalf γ` and gives `nodeAppliedLb cl id |pre ++ d ++ ce|` (was
+  `memFloorAtLeast`); `Tick` `{{True}}` (was `⧗ 1`); `Stop` `{{ nodeRunning 1 }} … {{ nodeStopped }}`
+  (was the premise `rnStopOk`); `ReadIndex` without the credit. **`node_contract_ifc`** loses the
+  premise `rnStopOk γ.nl`; `isRaftNodeIfc_of_isNode` takes `node.Stop.spec`, `node.ApplyConfChange.spec`
+  (the dynamic specs gone). **`node_contract_propose`**: `raftPropose_of_isNode` without
+  `ApplyConfChange`. `rnStopOk`/`rnStopOkStarted` deleted.
+- **The running token** (deviation from the design, logged; the coordinator agreed): the loop's half
+  `rnRunHalf γ` in `rnLoopTokP`; the apply side's half in `isServerBuilt`/`isServerStarted`/
+  `isServerRun` (and the `On` variants: `"Hrunh"`), lent to `applyAll`/`applyEntries`/`apply` as
+  `dvRun` (pre and post), given back to the loop by `raftNode.stop` (`rnStopBag`'s payload `E.ST ∗
+  rnRunHalf γ`); `raftNode.onStop` takes `nodeRunning 1`. The design's "the loop's fraction refutes
+  the stopped answers" missed that the apply thread calls `ApplyConfChange` concurrently.
+- **Storage** (`isRNMemStor`, exported via `node_contract_memstor`): `rnAppendRight` over raft's
+  `appendRight`, `rnAppendReceipt γ es := appendReceipt st es []` (nothing frozen; enough for
+  `advReceipt` under D2(i); to revisit if D2 registers snapshots). `memFloorAtLeast` deleted.
+- **`NodeStartSpec`** (exported `server_raft_node_start`): pre: the fresh storage as
+  `NewMemoryStorage` leaves it (`memStorLock`, `memStorFresh`, `memStorMeta ⟨0,0,0⟩`, `memLog 0 □
+  [zero]`, `memEnd 1`), `nodeBoot` (R5); gone: `isStorage`/`ownStorage`/`storCap`/
+  `storageCertLink`, the trusted `InitialState` closure, `memSnapTok`, `rnStopOkStarted`. Post: +
+  `rnRunHalf γw` (the apply side's half), `memStorInv … cl id ∗ memStorMeta` (was `memSnapTok`).
+  `raftNode_of_StartNode` takes the `MemoryStorage` boot methods' specs and `node.Stop` (the dynamic
+  specs gone). New **`srvMem_bootStorage`** (a fresh `MemoryStorage` gives `bootStorage` at the empty
+  conf state, `Q := memStorInv ∗ memStorMeta`). `bootstrappedRaft.newRaftNode.spec` over
+  `bootStorage … Q`, `nodeBoot`; post + `nodeConfig`, `nodeRunning 1`, `Q`.
+- **`bootOk`** (in `bootstrapContract`, trusted): the fresh storage's `memStorLock`, `memLog 0`,
+  `memEnd 1`, `memSnapNone`, `memStorMeta`, `memStorFresh` (was `isStorage`, `ownStorage`, the
+  `InitialState` closure, `memSnapTok`, `memCertAuth`, `γs.cap = 1`). `rnSnapOnce` gives
+  `memSnapNone` back (was `memSnapTok`); `rnSnapOnce_of_tok` proved (over the strengthened
+  `MemoryStorage.Snapshot.spec`, "Spec changes during the repair, raft").
+- **`NewServer.spec`/`specCompact`/`specM`** (×3; exported `server_new_auth_on` and the composites):
+  `γ.dyn = false` gone; `receiptBound ≤ SnapshotCatchUpEntries + 1` → **`receiptBound ≤ SnapshotCount`**
+  (D2(i), PENDING); `Hnboot` is `nodeBoot`; `HrdCred` and `#Hstop` gone; `memStorRegAuth ∅` kept.
+  `NewServer.wp_proof(M)`'s callees: `node.Stop.spec` and `MemoryStorage.{InitialState, LastIndex,
+  FirstIndex, Term, Entries}.spec` in place of the dynamic `Advance`/`ApplyConfChange` (Link
+  regenerated; `NodeApiLink`: `srvApi_wp_Stop`, `srvApi_wp_Mem*`; the `_dyn` ones gone).
+- **`server_cluster_alloc_on`** (and `srvClusterBoot_alloc`): `γ.rule = srvRule 0 boot` (was
+  `γ.dyn = false`), no per-member `readCredits (2^48)`.
+- **Specs**: `EtcdServer.applyConfChange.spec` (`dv ≠ none`, `srvCCPre rule`);
+  `applyAll`/`applyEntries`/`apply` (`dvRun` pre/post; `applyAll`: `rnAdvChan … nodeAppliedLb cl nid`,
+  `1 ≤ γs.cap` gone, new `nid`); `compactRaftLog.spec` (over `Compact.spec`: `memStorInv`,
+  `nodeAppliedLb cl id snapi`, `memSnapLb snapi`, the entry at `compactIdx snapi scu` frozen or
+  compacted; cap/token/floor gone); `snapshotIfNeededAndCompactRaftLog.spec` and `ModeSpecs`
+  (`nodeAppliedLb` for the floor, `nid`, no cap); **the `EtcdServer.snapshot` axiom** (`nodeAppliedLb`
+  for the floor, post leaves `srvSnapState`'s lower bound as it was: PENDING D2); `raftNode.onStop`
+  (`nodeRunning 1`), `raftNode.stop` (`rnRunHalf`); `srvSnapState` over `memSnapLb` (PENDING D2).
+- **Membership** (D3): `ccMembRes` the static resource; `srvPeersCover` unconditional;
+  `srvDynLog` the positional policy unconditionally. `srvNet`'s `dup` by `msgCredits_intro`;
+  `srvMsgNet_bundle` without `leaderTransferOff`; `rnEnvOk`: `rule = srvRule` (no cap);
+  `rnEnvOk_of_cluster(On/M)` likewise.
+- **Instance arguments**: sections that lacked a package assumption got raft's
+  (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
+  server's predicates are over raft's storage model now. One exported section of `Results.lean`
+  (`server_applied_predeposit_on`'s) takes the server's `Assumptions`.
+
+kv: `/home/ubuntu/.claude-E/jobs/c8379647/tmp/stageF-kv-notes.md`, summarized: `KV.RemoveMember`
+removed (D4: Go, test, translation, spec, proof, link; it can return with kvreconf's `validConf`
+guard); `kv_porcupine_safe` byte-identical; `kv_Read` without `readCredit`; `kv_New`/`kv_run`
+without `leaderTransferOn`, with `runStor γr id st` and `nodeRunning 1`; `kv_NewStorage`'s post
+`NewMemoryStorage`'s; `kv_storage_isStorage` at `memStorInvP ms γs (kvJ γ id)` giving `isStorage γ
+id`; `kv_bootStorage` (proved) replaces `kv_storage_initialState`; `kvStorInv_alloc`'s map type
+`GMap Loc KVStorRecT`; `kvCluster` over `confPolicy γ kvConfN kvRule`; `kvSnapRecOk` kvreconf's
+weaker record; `kvCore`'s `RmReqs` → `NormalReqs`; `transfers.take`'s post `True`.
+
+### Findings (reported to the coordinator)
+
+1. D2(i) as decided is false of the Go (the in-memory snapshot trigger and `ForceSnapshot`); open.
+2. The design's running-token argument (the loop's fraction) misses the apply thread's concurrent
+   `ApplyConfChange`: fixed by the halves above.
+3. `MemoryStorage.Snapshot.spec` admitted `ErrSnapshotTemporarilyUnavailable` and an `ownSnapM`
+   clone, on which `run` panics or faults: strengthened (raft, coordinator's decision).
+4. Raft commits empty `ConfChangeV2`s (`opsOf`'s `isEmptyV2`) and etcd's `apply` panics on a V2
+   entry: the server now refutes them by D3's static membership (`srv_committed_noV2`).
+
+## Repair: Stage F sorries (2026-10-30)
+
+Every `sorry` Stage F leaves (each with its old body in `REPAIR-OLD` below it unless marked
+*fresh*), grouped by stage P's track. Tracks are file-disjoint and **ordered by how likely each is
+to force an invariant or statement tweak** (the user's order: start the first four first).
+Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a path is given.
+
+1. **S-0 the server's raft log core** (`SrvRaftLog.lean`; highest risk: every server invariant
+   rests on it, and the D3 static-membership facts are new): `srv_confAt_simple` *fresh*,
+   `srv_committed_noV2` *fresh*, `srvRLogLb_intro`, `srvPropAu_api`, `srvPropWits_of`,
+   `srvReadAu_api`, `srvReadWit_of`, `srv_snapMade_false` *fresh*, `srv_snapshotCert_false`
+   *fresh*, `srv_snapshotValid_false` *fresh*, `srv_sentMsg_notSnap` *fresh* (old body with
+   `srv_readySnap_none`'s), `srv_readySnap_none`, `srvLogInv_alloc`. Also owns `InvCfgView.lean`
+   (`srvRule_keeps` *fresh*, `dvView_cc`).
+2. **S-C the raft loop** (Ready hand-out, Append, Advance, `raftAdvancedC`, the running halves):
+   `InvRaftNode.lean` (`rn_ready_recv`), `InvRaftLoop.lean` (`rnCfgAt_normal1`, `rnCfgAt_back_true`,
+   `rnApR_dv`, `rnApGive_dv`, `srvRaftNodeCC_of_isRaftNode`), `NodeBridge.lean`
+   (`isRNMemStor_of_memstorage`, `raftPropose_of_isNode`, `raftApplyCC_of_isNode`,
+   `isRaftNodeIfc_of_isNode`, `rnStepIfc_of_isNode`), `raftNode__start.lean`,
+   `raftNode__onStop.lean`, `raftNode__stop.lean`, `raftNode__tick.lean`, `newRaftNode.lean`
+   (`rnApP_cum`, `newRaftNode.wp_proof`).
+3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
+   `srvSnapState`, `SnapTake*`, the `snapshot` axiom): `EtcdServer__applyAll.lean` (`wp_proof`,
+   `wp_proofOn`), `EtcdServer__applyEntries.lean` (both), `EtcdServer__apply.lean` (both),
+   `EtcdServer__applyConfChange.lean`, `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean`,
+   `EtcdServer__compactRaftLog.lean`, `ModeSpecs.lean` (`spec_off`, `spec_on`), `InvApplyAll.lean`
+   (`srvSnapState_sl_le`), `InvApRes.lean` (`srvApRes_normal`, `srvApRes_cc`), the KV model's
+   V2-entry cases: `KVApply.lean` (`kv_log_plain`), `KVAuthModel.lean` (`kvRaftOfOn_ops`,
+   `admStep_ops`, `kvRaftOfOn_of_lb`, `detLogOn_transfer`, `kv_log_plain_on`), `KVLemmas.lean`
+   (`kvRaftSt_ops`), `KVReadOn.lean` (`kv_cert_floor_on`); and `SnapTake.lean`/`SnapTakeProof.lean`/
+   `EtcdServer__snapshot` once D2 is answered.
+4. **S-E allocation, boot and the NewServer composition**: `NodeStart.lean` (`rnToks_of_start`,
+   `srvMem_bootStorage`, `raftNode_of_StartNode`), `bootstrappedRaft__newRaftNode.lean`,
+   `NewServerAlloc.lean` (`srvClusterBoot_alloc`), `NewServerAllocOn.lean`
+   (`srvClusterBootOn_alloc`), `BuildGap.lean` (`entryClaims_transfer`, `clusterWorkloadOk_of`,
+   `rnEnvOk_of_cluster`, `isServerBuilt_of_gap`), `StartOn.lean` (`isServerBuilt_of_gapOn`),
+   `ServerOn.lean` (`clusterWorkloadOkOn_of`, `rnEnvOk_of_clusterOn`, `rnEnvOk_of_clusterM`),
+   `InvBuild.lean` (`srvMsgNet_bundle`), `EtcdServer__start.lean` (both), `EtcdServer__run.lean`
+   (`run_job_body`, `run_job_bodyOn`, `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
+   `wp_proof`; `wp_proofCompact` was already `sorry`).
+5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (`KV.run.wp_proof`), new
+   `KvRun*` lemma modules, `SnapData.lean`.
+6. **S-A net, read, errors** (leaf): `InvNet.lean` (`stepIn_of_recv`), `ReadRaft.lean`
+   (`isReadRaft_of_raftNode`), `ReadServer.lean` (`isReadServer_of_serverM`), `raftNode__ReadIndex.lean`,
+   `read/Read__requestCurrentIndex.lean`, `read/Read__sendReadIndex.lean`,
+   `EtcdServer__processInternalRaftRequestOnce.lean` (`wp_proofM`).
+7. **K-a kv transport** (low): `examples/kv/deliver.lean` (`deliver.wp_proof`).
+8. **K-c kv start and link** (low): `examples/kv/StartCluster.lean` (`StartCluster.wp_proof`), then
+   kv's `Link`/`Results` only if a callee list changes.
+
+Not stage P's: `rnSnapOnce_of_tok` (proved in stage F). After stage P (or at the integrator's full
+build): `etc/tcb-report.py --check --update` for the sorries and the changed `snapshot` axiom
+statement, `etc/tcb-collections/kv.txt`; the downstream server examples (`examples/common` and the
+eight server-based ones) are repaired after, as planned.
