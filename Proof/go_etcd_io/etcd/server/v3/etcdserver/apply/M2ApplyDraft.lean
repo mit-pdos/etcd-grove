@@ -1,11 +1,16 @@
 /-
 **M2, the apply side: the apply package's compaction arm (Draft)** (`notes/m2-apply-plan.md`).
 Imported by nothing but the server's apply-side Draft; no `axiom`, no `sorry`; nothing switched.
-Each `…D` is the draft of the unsuffixed statement it names, to replace it in place at the switch.
+Each `…D` is the draft of the unsuffixed statement it names, to replace it in place at the switch
+(the user's Q6 (a), 2026-10-30: the switch is stated in place; a definition that only carries a
+redefined one, `rqShape`, `logShape`, `entryOk`, ..., keeps its text and is read under the
+redefinition).
 
-- **The premise on the request's kind** (`dispatchOkD`): `dispatchOk` without its compaction
-  conjunct; by the mode (`dispatchOkM cmp`, review round 1's S-1: `dispatchOk` itself stays, so the
-  off texts read as today, `dispatchOkM_false`).
+- **The premise on the request's kind** (`dispatchOkD`, item 1): `dispatchOk` without its
+  compaction conjunct, redefined in place (so `rqShape`, `logShape`, `kvWork`, `entryOk`, `srvC`,
+  `clusterWorkloadOk` admit a compaction textually unchanged); the gate is the KV invariant's
+  `plainLogM` and the entry's claim (`cmpEntryOk`: compaction mode only). Off, nothing changes for
+  a request that is no compaction (`dispatchOkD_iff`).
 - **The compaction revision** the apply thread holds the right at: `cmpRevAfter` (the store's
   `updateCompactRev`: raised to `rev` when above), `chainCompacts` (the chains whose `Compaction`
   reaches the backend: every wrapper but the corrupt applier passes it on, `corrupt.go`),
@@ -29,7 +34,7 @@ Each `…D` is the draft of the unsuffixed statement it names, to replace it in 
 - **Glue, proved**: `cmp_store_pre` (the backend's `Compaction` can meet `store.Compact.spec`'s
   precondition from its own: the right and the supply from `cmpOwn`, the certificate and the
   writer's fragment from `kvOwn`, the reader's token lent by `writerOwn`, the hook's facts from the
-  options), `dispatchOkD_of`, `dispatchOkM_false`, `dispatchOkM_of`, `cmpRevAfter_ge`/
+  options), `dispatchOkD_of`, `dispatchOkD_iff`, `cmpRevAfter_ge`/
   `dispatchCrev_ge` (the revision never goes down), `dispatchCrev_nonCmp`, `cmpAdmit_nonCmp`,
   `dispatchAnswerD_nonCmp`, `cmp_not_future` (F-1's argument: the store's committed log extends a
   caller's certificate, so `rev < log.length` excludes `ErrFutureRev`).
@@ -59,31 +64,20 @@ namespace apply
 
 /-! ## The pure part -/
 
-/-- **`dispatchOk` in compaction mode** (`InvUber.lean`'s, which stays as it is: review round 1's
-S-1; the mode-indexed `dispatchOkM` picks it on): some field set,
-`AuthEnable` only with auth on; a compaction is admitted (M2: compaction in the model). -/
+/-- **Draft of `dispatchOk`** (`InvUber.lean`), redefined in place at the switch (item 1, the
+user's Q6 (a)): some field set, `AuthEnable` only with auth on; a compaction is admitted (M2:
+compaction in the model; the gate is the KV invariant's `plainLogM` by the cluster's mode). -/
 def dispatchOkD (on : Bool) (rq : IRRModel) : Prop :=
   dispatchKind rq ≠ .none ∧ (dispatchKind rq = .authEnable → on = true)
 
 theorem dispatchOkD_of (on : Bool) (rq : IRRModel) (h : dispatchOk on rq) : dispatchOkD on rq :=
   ⟨h.2.1, h.2.2⟩
 
-/-- **The premise on the request's kind, by the cluster's compaction mode** (review round 1's S-1,
-in place of redefining `dispatchOk`): today's `dispatchOk` off, `dispatchOkD` (a compaction
-admitted) on. Used where the mode is known: the server's shapes (`rqShapeD cmp`, so `kvWorkD`
-and the invariant), the apply thread's premise (`entryOkMD on cmp`), the uber's specs at `E.cmp`. -/
-def dispatchOkM (cmp on : Bool) (rq : IRRModel) : Prop :=
-  if cmp then dispatchOkD on rq else dispatchOk on rq
-
-/-- **Off, today's** (by definition: every compaction-off text reads as today). -/
-theorem dispatchOkM_false (on : Bool) (rq : IRRModel) : dispatchOkM false on rq = dispatchOk on rq :=
-  rfl
-
-theorem dispatchOkM_of (cmp on : Bool) (rq : IRRModel) (h : dispatchOk on rq) :
-    dispatchOkM cmp on rq := by
-  unfold dispatchOkM; split
-  · exact dispatchOkD_of on rq h
-  · exact h
+/-- **For a request that is no compaction, today's** (the off law: a compaction-off server's
+requests are none, `plainLog`, so every text over `dispatchOk` means what it meant). -/
+theorem dispatchOkD_iff (on : Bool) (rq : IRRModel) (h : dispatchKind rq ≠ .compaction) :
+    dispatchOkD on rq ↔ dispatchOk on rq :=
+  ⟨fun h' => ⟨h, h'.1, h'.2⟩, dispatchOkD_of on rq⟩
 
 /-- **The chains whose `Compaction` reaches the backend**: the auth, quota and capped wrappers pass
 it on (they do not override it), the corrupt applier answers `ErrCorrupt` (`corrupt.go`). -/
@@ -428,8 +422,8 @@ abbrev apply.applierV3backend.Compaction.specD : Prop :=
       apply.kvOwn E log ∗ (Post ∨ Pre) ∗ apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
       apply.cmpAnswerIs .backend log crev rev resp ch trace err }}
 
-/-- **Draft of `uberApplier.dispatch.spec`**: today's, with the compaction arm: `dispatchOkM E.cmp`
-(a compaction admitted in compaction mode only; off, today's `dispatchOk`), the compaction's facts
+/-- **Draft of `uberApplier.dispatch.spec`**: today's, with the compaction arm: `dispatchOkD`
+(item 1's redefinition), the compaction's facts
 (`cmpAdmit`), the apply thread's compaction resources at `crev` in, at `dispatchCrev c rq v3 crev`
 out, and the compaction's answer (`dispatchResultD`; at the switch `dispatchAnswer` itself gains the
 case and the trace). `dispatchStep`
@@ -443,7 +437,7 @@ abbrev apply.uberApplier.dispatch.specD : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.chainRes c a info ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk log rq ∧ apply.dispatchOkM E.cmp E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
+      ⌜apply.rqOk log rq ∧ apply.dispatchOkD E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
       ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
@@ -458,7 +452,7 @@ abbrev apply.uberApplier.dispatch.specD : Prop :=
         apply.resTrace ar ∗ apply.dispatchResultD rq v3 log skip ar o }}
 
 /-- **Draft of `uberApplier.Apply.spec`**: today's, with the compaction arm threaded as in
-`dispatch.specD` (`dispatchOkM E.cmp`, `cmpAdmit`, `cmpOwn` in at `crev` and out at
+`dispatch.specD` (`dispatchOkD`, `cmpAdmit`, `cmpOwn` in at `crev` and out at
 `applyCrev rq v3 x.chain crev out`, `applyResultIsD`). `apply.Apply.spec` is parametric in its method's contract and
 does not change. -/
 abbrev apply.uberApplier.Apply.specD : Prop :=
@@ -469,7 +463,7 @@ abbrev apply.uberApplier.Apply.specD : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.certPreV v3 E x.chain rq x.log ∗
       mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk x.log rq ∧ apply.dispatchOkM E.cmp E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
+      ⌜apply.rqOk x.log rq ∧ apply.dispatchOkD E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
@@ -483,7 +477,7 @@ abbrev apply.uberApplier.Apply.specD : Prop :=
 
 /-- **Draft of `apply.Apply.specRec`** (`ApplyRec.lean`; review round 1's S-1: `applyEntryNormal`'s
 proof calls `Apply` through it): today's, with the compaction arm threaded as in
-`uberApplier.Apply.specD` (`dispatchOkM E.cmp`, `cmpAdmit`, `cmpOwn` in at `crev` and out at
+`uberApplier.Apply.specD` (`dispatchOkD`, `cmpAdmit`, `cmpOwn` in at `crev` and out at
 `applyCrev`, `applyResultIsD`; at the switch the revision is `x.crev` and `cmpOwn` part of
 `applyKV`, A1). -/
 abbrev apply.Apply.specRecD : Prop :=
@@ -498,7 +492,7 @@ abbrev apply.Apply.specRecD : Prop :=
        else iprop(True)) ∗ Pre ∗
       apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOkM E.cmp E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
+        apply.dispatchOkD E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
       mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))

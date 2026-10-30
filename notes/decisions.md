@@ -27224,3 +27224,16 @@ the client's positional destructurings of the server's read view, `srvKVInvs_of_
 approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFacts V` into
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
+
+## M2 apply side: the switch stated in place (2026-10-30, the user's Q6 (a) · `notes/m2-apply-plan.md`, "The switch in place")
+
+Review rounds 1-3 showed that mode-indexed copies of the shape vocabulary (`dispatchOkM`,
+`rqShapeD cmp`, ...) and of the KV invariant's carriers do not converge: each round found more
+carriers of the compaction-off `logShape` or `kvInv` (`srvC`, `clusterWorkloadOk`, `srvKVInvs`,
+`isServerRead`, the apply-loop premises). Decided: `dispatchOk` and `kvInv` (with `KVNames.cmp`)
+are redefined in place, their carriers keep their text, and a compaction is gated by the
+invariant's `plainLogM` and the entry's claim, not by the shapes. Given up: compaction-off texts
+reading as today by `rfl` (round 1's S-1); in its place, the off laws (`kvInvD_off`, an
+equivalence; `logShapeD_plain`; `dispatchOkD_iff`). Supersedes the round-1 repair of S-1 (the
+`dispatchOkM` family).
+

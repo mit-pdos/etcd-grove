@@ -3,17 +3,18 @@
 nothing; no `axiom`, no `sorry`; nothing switched. Generated from today's texts
 (`NewServer.lean`, `EtcdServer__Compact.lean`), each change marked `(M2, the apply side, Draft)`:
 
-- `NewServer.specD` (deferred by Q4): to be read with item 5's in-place redefinition, `kvInv γ γk :=
-  kvInvD γ γk γk.cmp`, and item 19's tie: its post's `srvBuilt` holds today's off `kvInv` (through
-  `srvReqBuilt`, `srvKVInvs`), which with compaction on cannot hold beside `kvInvD … true` (review
-  round 2's N-2). The Draft does not restate `srvBuilt`; the switch does it by the redefinition.
-  `NewServer.spec` merged with `NewServer.specCompact` (one statement, the mode
+The switch is stated in place (the user's Q6 (a), 2026-10-30): these texts name the definitions
+the switch keeps (`isServerReq`, `isServerRead`, `srvBuilt`, ...) and are read under the redefined
+ones (item 1's `dispatchOk`, item 5's `kvInv γ γk := kvInvD γ γk γk.cmp`, item 19's ties
+`srvReqFieldsAtD`/`srvKVInvsD`), as at the switch.
+
+- `NewServer.specD` (deferred by Q4): `NewServer.spec` merged with `NewServer.specCompact` (one statement, the mode
   the configuration's: `E₀.cmp = decide (retention ≠ 0)`), the KV invariant in the cluster's mode
   (`kvInvD`), the KV's closer by the mode (`srvKVCloserM … (-1)`, the storage side's draft, with
   the inner store's right: `start` splits it, `srvKVCloserM_split`).
-- `EtcdServer.Compact.specD`: over the general request path's view in the server's mode
-  (`isServerReqD`, review round 1's F-3; the compaction family's `isServerReqC` gone) in compaction
-  mode.
+- `EtcdServer.Compact.specD`: over the general `isServerReq` and `isServerRead` (the compaction
+  family's `isServerReqC` gone) in compaction mode; their KV invariants are the mode's through
+  item 19's ties.
 - **The closer without the right** (`srvKVCloserW`, review round 1's F-6): what `start` keeps for
   the snapshot path once the right has gone to the apply thread (A2), the one the snapshot track's
   `restorePre_of_applyM` takes; `srvKVCloserM_split` (proved): the closer by the mode at `c` is
@@ -267,15 +268,14 @@ abbrev EtcdServer.Compact.specD : Prop :=
   -- item 35) a revision past `0`
   1 ≤ r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- (M2, the apply side, Draft: one family) the general request path's server, its KV
-      -- invariant in the server's mode (`isServerReqD`: review rounds 1-2's F-3/N-2; at the
-      -- switch `isServerReq`, whose `srvReqFieldsAt` ties `ρ.kv.cmp = E.cmp`), in compaction
-      -- mode: M2's scope (review round 2's S-6). Go serves a client's `Compact` RPC with the
+      -- (M2, the apply side, Draft: one family) the general request path's server (its KV
+      -- invariant the server's mode's: item 19's tie in `srvReqFieldsAt`, review rounds 1-3's
+      -- F-3/N-2/R3-2), in compaction mode: M2's scope (review round 2's S-6). Go serves a client's `Compact` RPC with the
       -- auto-compactor off too; such a server's invariant admits no compaction entry, so a client
       -- compaction at an off server stays outside the model (the compactor pilot's scope: other
       -- compactions are not in the workload) until a later stage puts every server in compaction
       -- mode
-      isServerReqD s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
+      isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ srvRevLb E.γ r ∗
       compactReqIs p r }}
