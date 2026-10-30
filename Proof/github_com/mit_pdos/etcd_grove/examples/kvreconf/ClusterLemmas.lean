@@ -84,6 +84,29 @@ theorem freshIds_cons (k : Nat) (hk : k < 10) :
         simp [h0, h1]
   exact this 10 (by omega) hk
 
+section cs
+variable [GooseExts]
+
+theorem life_perm_elements_listToSet (l : List w64) (h : l.Nodup) :
+    l ≡ₚ GMap.elements (GMap.listToSet l) := by
+  refine (List.perm_ext_iff_of_nodup h (GMap.NoDup_elements _)).2 ?_
+  intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
+
+theorem life_perm_elements_empty : ([] : List w64) ≡ₚ GMap.elements (∅ : GSet w64) := by
+  refine (List.perm_ext_iff_of_nodup List.nodup_nil (GMap.NoDup_elements _)).2 ?_
+  intro k
+  rw [GMap.elem_of_elements]
+  simp only [List.not_mem_nil, false_iff]
+  exact GMap.not_elem_of_empty _
+
+/-- The bootstrap conf state reports the voters' simple membership. -/
+theorem bootCS_is (vs : List w64) (h : vs.Nodup) :
+    confStateIs (bootCS vs) (Membership.simple (GMap.listToSet vs)) :=
+  ⟨life_perm_elements_listToSet _ h, life_perm_elements_empty, life_perm_elements_empty,
+    life_perm_elements_empty, rfl⟩
+
+end cs
+
 end kvreconf
 end EtcdGrove
 end Perennial
