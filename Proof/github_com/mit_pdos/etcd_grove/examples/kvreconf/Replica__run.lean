@@ -6,6 +6,15 @@ The loop keeps `runInv` (`RunInv.lean`). Each iteration `select`s on the node's 
 (`isReadyChan_recvAu`) and `stopc` (the broadcast). On `stopc`'s close it sends the loop's
 `nodeRunning 1` on `runDone` (the handoff's producer) and returns; it does the same when a `Ready`'s
 entries do not fit (`fits`).
+
+A `Ready` without a snapshot: its entries appended with its committed ones frozen (`RunAppend.lean`),
+its committed entries applied in order (`applyEntry` needs the log below `2^61`: `frozenTo_len`,
+`RunApply.lean`), with `maybeSnapshot` at random, then `answer`, `Advance` (its stopped answer
+refuted by the loop's `nodeRunning`), `maybeSnapshot` and `maybeCompact`. A snapshot `Ready`
+(`RunSnap.lean`): its data decodes (the registry's record, `kvr_snap_recv`), the storage and the
+replicated state take it (`ApplySnapshot`, `install`), the entries after it are appended
+(`snapReceipt`), and `Advance` gives the node's configuration at it: the invariant at the snapshot's
+log, compacted at its index.
 -/
 module
 
