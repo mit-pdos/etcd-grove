@@ -5,8 +5,10 @@
 `wk_served` without the watch: from `v3rpc.Server`'s postcondition (`grpcUpOn`), the member's
 started facts (`memberUpOn`'s `srvBcryptField`), the listener and the run slots, the right to serve,
 etcd's KV methods with auth on at the address (`akKVOn`), the five Auth admin methods
-(`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_onA`). The watch half waits on the
-mode-generic `srvKVFacts` (`notes/authkv-main-plan.md`, "Main: what blocks it", item 1).
+(`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_onA`). `ak_served_watch`: its watch
+half, from the stream server `ak_served_kv` returns, the watch server and its run slots: the watch
+server's facts at the address (`watchAddrFacts`) and its mode (`modeTag`, `Work`'s), the members' KV facts from the auth-on read view
+(`srvKVCoreM_of_readM`, G2's mode-generic `srvKVFacts`).
 
 `bcryptCostOk_of_field`: the auth store's `BcryptCost()` returns, from its read-only field
 (`authStore.BcryptCost.spec`).
@@ -18,6 +20,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__BcryptCost
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.WorkEnv
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.SetUp
+public import Proof.go_etcd_io.etcd.client.v3.WatchLawsHist
+public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 
 @[expose] public section
 
@@ -108,6 +112,53 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
     iframe #
   unfold setupAuthServed
   iframe #
+
+
+/-- **etcd's server, started for authkv: its watch service** (see the file header): watchkv's
+`wk_served`'s watch half, with the members' KV facts from the read view with auth on. -/
+theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (V : client.WEnv GF) (addr : GoString) (pw s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
+    (ims is : GoFunc) (sregs : List (GoString × val × GoInterface)) (nw : Nat)
+    (hV : V.addr = addr) (hE : V.R.E = E) (hp : V.pfx ≠ []) (hst : γr.kv.st = V.kst)
+    (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hset : go.typeSetContains
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
+    (hwreg : (go!"/etcdserverpb.Watch/Watch",
+      (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
+      interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isServerReadM true s E γr ∗ v3rpc.isWatchServer pw V.R ∗
+        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+        grpcStreamServerAt addr [ims, is] sregs ∗
+        ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗ client.eofOk ⊢
+      |={⊤}=> watchAddrFacts V ∗ auth.modeTag V.R.γ.tag E.authMode := by
+  iintro ⟨#Ppb, #Pv, #Hrd, #Hws, #Hims, #His, Hss, Hwslots, #Heof⟩
+  ihave #Htag : auth.modeTag V.R.γ.tag E.authMode $$ []
+  · iunfold v3rpc.isWatchServer at Hws
+    icases Hws with ⟨-, -, -, -, -, -, -, -, #Hok⟩
+    iunfold v3rpc.watchSrvOk at Hok
+    icases Hok with ⟨-, -, -, -, -, -, #Ht, -⟩
+    rw [← hE]; iexact Ht
+  imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
+    with #Hst
+  · iframe; iframe #
+  ihave ⟨%Hlink, #H0⟩ := client.isWatchServer_start pw V.R $$ Hws
+  ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
+  ihave #Hsm := client.srvLogsSmall_of_receipts V.R Hlink hrb
+  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
+  ihave #Hcore := srvKVCoreM_of_readM true s E γr $$ Hrd
+  ihave #Hkf := client.srvKVFacts_intro V true γr hst hlog hrb $$ [Hcore H0]
+  · rw [← Hlink, hE]; iframe #
+  imodintro
+  iframe Htag
+  unfold watchAddrFacts
+  rw [hV]
+  iframe #
+  ipureintro; exact ⟨Hlink, hp⟩
 
 end served
 

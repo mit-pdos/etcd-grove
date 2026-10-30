@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart).
 `ak_alloc`: `common.alloc1`'s allocation (the member's names, its storage registry, the raft
 network with the directory `akDir id`) with the mode-`on` cluster and member
 (`srvClusterBootOn_alloc`, `srvMemberBootOn_alloc`): what `startServer` takes (`memberBootOn`),
-the client's `etcdKV` at the boot state (and its first consistent index `0`, `SetUp`'s), which the history invariant is allocated at (`akHist_alloc`:
+the client's `etcdKV` at the boot state (its first consistent index `0`, `SetUp`'s, and start log `[[], []]`, the watch's), which the history invariant is allocated at (`akHist_alloc`:
 the boot state is admitted, `stateHistOk_boot`), and the client's view of the auth history at the
 start (`authHistView … [srvAuthSt0]`, what `SetUp` takes).
 -/
@@ -47,7 +47,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (σ₀ : KVState),
       ⌜γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir = akDir id ∧
-        stateHistOk σ₀ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗
+        stateHistOk σ₀ ∧ ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.log0 = [[], []]⌝ ∗
       common.memberBootOn γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv σ₀ ∗ authHistView ρ.rd.kv [srvAuthSt0] := by
   iintro #Hmarsh
@@ -77,7 +77,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   iframe Hnet
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, hσ, by rw [hc0', hc0]⟩
+    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, hσ, by rw [hc0', hc0], by rw [hlog', hlog]⟩
   isplitr [Hetcd Hview]
   · iunfold common.memberBootOn
     simp only [common.env₀]

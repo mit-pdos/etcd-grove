@@ -553,8 +553,10 @@ cluster and member allocations. The serve step (`wk_served`'s analog) needs four
    (G2's follow-up, on `lean` `8a4cba9dc6`): `srvKVFacts V = ∃ on γr, srvKVCoreM on V.R.E γr ∗ …`
    (`client/v3/InvWatch.lean`), from `memberUpOn`'s `isServerReadM true` by `srvKVCoreM_of_readM`
    (`etcdserver/ReadOn.lean`), `srvKVFacts_intro`; `watchAddrFacts`' `srvLogsSmall` by
-   `srvLogsSmall_of_receipts` (`ServerWatcher.lean`, any mode). Left: assembling `watchAddrFacts`
-   from `grpcUpOn` (the watch half of the serve step).
+   `srvLogsSmall_of_receipts` (`ServerWatcher.lean`, any mode). The watch half of the serve step is
+   proved (`ak_served_watch`, `MainServe.lean`: `watchAddrFacts` and the watch server's `modeTag`)
+   and in `Main.wp_proof`, at the clients' watcher environment `akV R` (`srvWEnv` with the
+   prefix `"a"`: `watchAddrFacts` asks a non-empty one, nothing reads it).
 2. **`Authenticate`'s registration** in `grpcUpOn`: `v3rpc.authRegs` holds the five admin methods,
    not `Authenticate` (C1's A5, "Q9"); `etcd_kv_auth_served_onA` takes it as `hreg`.
 3. **The auth store's `BcryptCost()`** (`bcryptCostOk`, a premise of `etcd_kv_auth_served_on(A)`):

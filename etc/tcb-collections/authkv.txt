@@ -138,6 +138,9 @@ axiom grpc.GenericClientStream.CloseSend.wp_proof
 axiom grpc.GenericClientStream.Context.wp_proof
 axiom grpc.GenericClientStream.Recv.wp_proof
 axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.GenericServerStream.Context.wp_proof
+axiom grpc.GenericServerStream.Recv.wp_proof
+axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
@@ -155,6 +158,7 @@ axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
+axiom grpc.serveStream
 axiom grpc.start
 axiom grpcConn
 axiom grpcConn_persistent
@@ -220,6 +224,7 @@ axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
@@ -265,6 +270,7 @@ axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
+axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -330,6 +336,7 @@ axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
+axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof

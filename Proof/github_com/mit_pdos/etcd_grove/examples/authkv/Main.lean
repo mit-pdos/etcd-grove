@@ -7,9 +7,10 @@ Proved: the logger; the member's ghost state with auth on (`ak_alloc`) and the h
 step `ak_served_kv` (`MainServe.lean`: the KV methods with auth on, the Auth service's admin methods
 and `Authenticate`); `NewClient` (no user name, no token); `SetUp` (its puts under the history
 invariant, `akHist_setupAu`; the TLS fallback off and the auth store's cost from `memberUpOn`), and
-every error's return of `Failed`. Not yet: the user clients (`newUserClient`, over `Authenticate`'s
-registration `ak_served_kv` gives), the workloads (`watchAddrFacts` with auth on, from G2's
-mode-generic `srvKVFacts`), root's last write and the two watches. `notes/authkv-main-plan.md`,
+every error's return of `Failed`. `ak_served_watch` gives the watch server's facts (`watchAddrFacts`) at the clients' watcher
+environment `akV R`, for the workloads and the watches. Not yet: the user clients (`newUserClient`,
+over `Authenticate`'s registration `ak_served_kv` gives), the workloads, root's last write and the
+two watches. `notes/authkv-main-plan.md`,
 "Main: what blocks it".
 
 What the proof needs, as the auth plan put it (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth plan"):
@@ -102,6 +103,12 @@ theorem Main.wp_proof
   ihave #Pv3 : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
   · iPkgInit
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
+  -- `io.EOF` (the watch client's), from its package's fact
+  ihave #Heo : client.eofOk (GF := GF) $$ []
+  · iapply (client.eofOk_of_init hAs)
+    iPkgInit
   (try wp_auto)
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
@@ -110,7 +117,7 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (ak_alloc id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %σ₀, %Hal, Hmb, #Hnet, Hetcd, Hview⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hσ₀, hc0⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hσ₀, hc0, hlog⟩ := Hal
   imod (akHist_alloc ρ.rd.kv σ₀ hσ₀) $$ Hetcd with #Hhist
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
@@ -136,42 +143,65 @@ theorem Main.wp_proof
   icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, #Htls, #HBF⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
-  -- `Serve(s, clientAddr)`, with the ghost step `ak_served_kv`: the KV methods with auth on, the
-  -- Auth service's admin methods and `Authenticate` at the address
+  -- `Serve(s, clientAddr)`, with the ghost steps `ak_served_kv` (the KV methods with auth on, the
+  -- Auth service's admin methods and `Authenticate` at the address) and `ak_served_watch` (the
+  -- watch server's facts there, for the clients' watcher environment `akV R`)
   haveI := Hms
+  let akV : v3rpc.WSrv GF → client.WEnv GF := fun R =>
+    client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv.st
   wp_apply (wp_ServeOn srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg γa
-      (fun cid mid _ => iprop(akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
+      (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
+        akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
         setupAuthServed go!"127.0.0.1:23916" srv E { ρ with wait := γw } ∗
-        isGrpcRpc go!"127.0.0.1:23916" authnMethod (client.etcdAuthenticateSpec γa)))
+        isGrpcRpc go!"127.0.0.1:23916" authnMethod (client.etcdAuthenticateSpec γa) ∗
+        watchAddrFacts (akV R) ∗ auth.modeTag R.γ.tag E.authMode))
       HEo (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
     $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iunfold common.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d',
-      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, -,
+      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, HWRs,
       Hlis⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
     icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
+    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
     ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
         (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
         (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
         $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
     · iframe
+    -- one watch run slot: two of the watchable store's readers, one of the request path's (the
+    -- runs share a pool, `grpc.serveStream`)
+    ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
+    · rw [hRw, hRγ, hRE]
+      iframe HWRs
+      isplitl [Hrd1]
+      · simp only [List.replicate]
+        iapply BigSepL.bigSepL_cons.2
+        iframe Hrd1
+        iapply BigSepL.bigSepL_nil.2; itrivial
+      ipureintro
+      rw [sync.rwmutex.actualMaxReaders_unseal]
+      omega
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     imod (ak_served_kv go!"127.0.0.1:23916" gs q p pa srv lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs 1 γa HEo Hregs1 HregsA wp_BcryptCost)
-      $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HKV, #HSA, #HAu⟩
+      $$ [Hgsn Hlis Hslots] with ⟨Hserv, Hss, #HKV, #HSA, #HAu⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
+    imod (ak_served_watch (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
+        (by simp) rfl hlog (by omega) Hms.watch_impl Hregs2 rfl rfl)
+      $$ [Hss Hwslots] with ⟨#HWF, #Htag⟩
+    · iframe; iframe #
     imodintro
-    iframe Hserv HKV HSA HAu
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #HKV, #HSA, #HAu⟩)
+    iframe Hserv HKV HSA HAu HWF Htag
+    ipureintro; exact ⟨hRE, hRs⟩
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag⟩⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -181,7 +211,7 @@ theorem Main.wp_proof
   wp_auto
   -- `NewClient(clientAddr, lg)`: the client with no user name
   wp_apply (wp_NewClient go!"127.0.0.1:23916" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23916" [] null null [] null ρ.rd.kv.st) Hlg
+      (akV R) Hlg
       (by unfold plainEndpoint; decide) Htb31) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, Hctk⟩ | %Hcfail)
   rotate_left
@@ -202,7 +232,7 @@ theorem Main.wp_proof
   iunfold akKVOn at HKV
   icases HKV with ⟨#Hput, -, -, -⟩
   wp_apply (wp_SetUp cl go!"127.0.0.1:23916"
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23916" [] null null [] null ρ.rd.kv.st) srv E
+      (akV R) srv E
       { ρ with wait := γw } cid mid γa HEo
       (by show uint.Z ρ.rd.kv.c0 ≤ uint.Z ρ.rd.raft.ai0; rw [hc0]; word) hAs)
     $$ [Hctk Hview] as %ok Hok
