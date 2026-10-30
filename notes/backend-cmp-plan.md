@@ -1923,3 +1923,10 @@ the plan not fixing the text:
   any store. A proof by linking: `wp_apply mvcc_NewStore_backend`, then `compactRight_of_closer`.
 - **`WiringDraft.lean` deleted**: imported by nothing, none of its names used elsewhere.
 - **No API list** for mvcc or storage (`etc/api/` has raft only), so no interface to regenerate.
+
+**The user's answers after stage 6 (2026-10-30).**
+- `mvcc_NewStore_backend_cmp` (`fd76a98c9d`) accepted as stated: a compacting store is compacted
+  (`compactRight`, `storeStop`), never closed or restored (Q5-3/Q5-4).
+- `OpenBackend`'s re-review (`notes/axiom-review/openbackend-post.md`, branch
+  `axiom/openbackend-post`): the new post survives; `openMmapOk`'s bound was bbolt's, not the address
+  space's. Fixed (`e9acadfc27`): `q + q/10 ≤ 2^46`, and `dbOpensOk` documents the address space.
