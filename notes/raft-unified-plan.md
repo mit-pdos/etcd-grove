@@ -1732,6 +1732,8 @@ and k8s's apiserver storage. Done items are marked in the sorry list above as th
 - S-C done (22a212d8d6; #1, #2, #3, #6 kept, #4/#5 proved). S-A done (48f1423c83). K-a done (3e5661b9d8).
   P7 made (fe1e67eef3). `run` (both) done (bd38df4399, #8 kept). Wave 3: K-c (with K-a's helper), D (the
   downstream server examples and k8s's apiserver storage) started. Left: S-D `applyAll`; S-E P6, `NewServer`.
+- K-c done (8ff30c9ee0): **examples/kv has no sorry left**; kv's `Results`/`Link`/`AdequacyLinked` built
+  (no `sorryAx` printed), `kv_porcupine_safe` byte-identical to origin/lean's; kv's Link unchanged.
 
 ## Repair: Stage P changes (2026-10-30)
 
