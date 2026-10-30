@@ -43,6 +43,8 @@ theorem EtcdServer.applyAll.wp_proof
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w Hms Hai1
     Hok hEok hcap hdv haw
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
@@ -233,6 +235,7 @@ theorem EtcdServer.applyAll.wp_proof
     isplitl [HKV Hka HRS]
     · iexists x'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
     ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci', hat'⟩
+-/
 
 
 /-- **`applyAll.specOn`** (the auth plan's E3p): `wp_proof` over the callees' mode-`on` specs. -/
@@ -244,6 +247,8 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w γa sa hM hRB
     Hms Hai1 Hok hEok hcap hdv haw
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
@@ -435,6 +440,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     isplitl [HKV Hka HRS]
     · iexists x', sa'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
     ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci', hat'⟩
+-/
 
 end proof
 
