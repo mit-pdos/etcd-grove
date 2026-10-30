@@ -503,6 +503,24 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## M2, the apply side (branch `m2-apply`)
+
+**Draft** (2026-10-30, `0a88a357f8`; plan and statements: `notes/m2-apply-plan.md`). Three Draft
+modules, imported by nothing (no `axiom`, no `sorry`, nothing switched):
+`etcdserver/apply/M2ApplyDraft.lean` (the apply package's compaction arm: `dispatchOkD`,
+`cmpOwn`, the chain's `Compaction` triple, `applierV3backend.Compaction.specD`,
+`uberApplier.dispatch.specD`/`Apply.specD`; glue `cmp_store_pre`, the backend's `Compaction` meeting
+`store.Compact.spec`'s precondition), `etcdserver/M2ApplyDraft.lean` (the one KV invariant `kvInvD`
+in the cluster's mode, `kvInvD_off` today's at `cmp = false`; `reqPropOkD`; the compaction revision
+of the committed log `crevOf`, monotone, `-1` or `≥ 1`, its apply step `crevOf_step`),
+`etcdserver/M2ApplyDraftSpecs.lean` (`NewServer.specD`: `spec` merged with `specCompact`;
+`EtcdServer.Compact.specD` over the general `isServerReq`). Agent's decisions A1-A7 (the revision a
+field of `ApplyKV`, the right in the apply state, `NoDelPutAt` from the admitted writes until the
+fork fix, ...); gaps G1-G5; `applyAll`/`run`: `run` unchanged, `applyAll`/`applyEntries`/
+`applyEntryNormal` one pure conjunct each; the 3-member `putgetc` scoped. For the user: Q1-Q5 (one
+batch). Next: review round 1 (`spec-reviewer`) on the Drafts. Checked: full `lake build` of the base
+(11247 jobs), `lean-check -a` and a targeted build (3816 jobs) of the Drafts.
+
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 
 **Merged with G2's freeze** (`lean` `51b0f7adad`): v3rpc's `upOk γ M Up`/`watchUp R` create arm is `mvcc.watchTok ∗ □ auth.authPubLbM … c.bound ∗ mvcc.noCompactor ….st` (G2's bound, then step 1's conjunct; text in `notes/m2-storage-plan.md`, "Merge of lean at 51b0f7adad"); `recvLoop` and `watchGRPCStream.run` repaired for it.
