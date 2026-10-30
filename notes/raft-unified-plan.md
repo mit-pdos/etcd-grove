@@ -1604,8 +1604,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `raftNode__onStop.lean` (done), `raftNode__stop.lean` (done), `raftNode__tick.lean` (done), `newRaftNode.lean` (done)
    (`rnApP_cum` (done), `newRaftNode.wp_proof`).
 3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
-   `srvSnapState`, `SnapTake*`, the `snapshot` axiom): `EtcdServer__applyAll.lean` (`wp_proof`,
-   `wp_proofOn`), `EtcdServer__applyEntries.lean` (both), `EtcdServer__apply.lean` (done) (both),
+   `srvSnapState`, `SnapTake*`, the `snapshot` axiom): `EtcdServer__applyAll.lean` (done) (`wp_proof`,
+   `wp_proofOn`), `EtcdServer__applyEntries.lean` (done) (both), `EtcdServer__apply.lean` (done) (both),
    `EtcdServer__applyConfChange.lean` (done), `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean` (done),
    `EtcdServer__compactRaftLog.lean` (done), `ModeSpecs.lean` (done) (`spec_off`, `spec_on`), `InvApplyAll.lean`
    (`srvSnapState_sl_le` (done)), `InvApRes.lean` (`srvApRes_normal` (done), `srvApRes_cc` (done)), the KV model's
