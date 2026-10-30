@@ -27,7 +27,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.KvrStorageApi
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunInv
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunAppend
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunApply
 public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.raft.v3.FrameH
 
@@ -140,18 +140,14 @@ theorem Replica.run.wp_proof
       simp only [Option.elim]
       try wp_auto
       wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$Hraft $Hhs]
-      ihave Hmeta : iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs') $$ [Hmeta]
-      · iexists hs; iexact Hmeta
       try wp_auto
-      try wp_if_destruct
-      all_goals try (icases Hmeta with ⟨%hs0, Hmeta⟩
-                     wp_apply Storage.wp_SetHardState wp_SetHardState st ρ.ms ρ.γs hs0 rdv.HardState' h
-                       $$ [$HstRec $Hraft $Hmeta $Hhs] as Hmeta
-                     ihave Hmeta : iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs') $$ [Hmeta]
-                     · iexists h; iexact Hmeta
-                     try wp_auto)
-      all_goals
-        icases append_none_pre st ρ.ms ρ.γs es $$ HstRec Happ with ⟨%k, %old, ⟨%Hk, %Hk0⟩, Hrange⟩
+      wp_join iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs' ∗ r_ptr ↦ r ∗ rd_ptr ↦ rdv)
+        with [Hmeta r rd] as ⟨%hs0, Hmeta, r, rd⟩
+      · try wp_auto
+        wp_apply Storage.wp_SetHardState wp_SetHardState st ρ.ms ρ.γs hs rdv.HardState' h
+          $$ [$HstRec $Hraft $Hmeta $Hhs] as Hmeta
+        wp_join_done
+      · icases append_none_pre st ρ.ms ρ.γs es $$ HstRec Happ with ⟨%k, %old, ⟨%Hk, %Hk0⟩, Hrange⟩
         have h1 : ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j := by
           intro j e hj
           cases hes : es with
@@ -174,7 +170,164 @@ theorem Replica.run.wp_proof
           $$ [$HstRec $Hraft $Hlock $Hrange $Hes] as ⟨-, Hb⟩
         imod append_none_post st ρ.ms ρ.γs c D ce es k Hsi.2.2 (Hin) Hidx Hk
           $$ HstRec Hfz Hcef Hb with ⟨#Hfz', Hrcpt⟩
-        sorry
+        -- `send(rd.Messages)`
+        try wp_auto
+        wp_bind (App (Val #f) _)
+        iunfold sendSpec at Hsend
+        iapply Hsend $$ [Hmsl Hmsok]
+        · iframe; iexact Hpkg
+        iintro !> -
+        try wp_auto
+        -- the read states, noted
+        icases Hrs with ⟨%rsts, #Hsts, #Hstsok⟩
+        ihave Hvs := kvr_readStatesPts_rsOk γr.cluster rdv.ReadStates' rsts $$ [Hsts Hstsok]
+        · iframe Hsts Hstsok
+        icases Hvs with ⟨%vls, #Hvls, #Hvlsok⟩
+        wp_apply wp_slice_append $$ [$Hpv $Hpcap $Hvls] as %pv' ⟨Hpv, Hpcap, -⟩
+        ihave #Hps' : iprop([∗list] v ∈ ps ++ vls, rsOk γr.cluster v) $$ []
+        · iapply (BigSepL.bigSepL_append (Φ := fun _ v => rsOk (GF := GF) γr.cluster v)).2
+          iframe Hps Hvlsok
+        iclear Hps
+        -- applying the committed entries, in order
+        iunfold committedEntriesAt at Hce
+        icases entsPts_elim _ _ _ $$ Hce with ⟨%cls, #Hcel, #Hceb⟩
+        ihave %Hcelen := ownSlice_len $$ Hcel
+        ihave %Hcebl := entsBig_length $$ Hceb
+        rw [kvr_toEntries_length] at Hcebl
+        ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
+        ihave %Hlen61 := frozenTo_len _ _ _ $$ Hfz'
+        ihave Hview := appNode_extend γr n D (D ++ ce) D.length m (List.prefix_append _ _)
+          (Nat.le_refl _) $$ [Hview Hdl]
+        · iframe Hview Hdl
+        ihave IH : iprop(∃ (k : w64) (ev : Loc) (si : w64) (sv : SnapshotM) (csp' : Loc)
+            (m' : Membership) (A' : GMap (List w8) (List w8)),
+            "i" ∷ i_ptr ↦ k ∗ "e" ∷ e_ptr ↦ ev ∗ "r" ∷ r_ptr ↦ r ∗ "snapIndex" ∷ snapIndex_ptr ↦ si ∗
+            "Hown" ∷ repOwn γr r (D ++ ce.take (sint.nat k)) (W64 (D ++ ce.take (sint.nat k)).length)
+              csp' m' mA A' ∗
+            "Hview" ∷ appNode γr n (D ++ ce) (D ++ ce.take (sint.nat k)).length m' ∗
+            "Hsx" ∷ memSnapExact ρ.γs sv ∗ "Hrun" ∷ nodeRunning n γr.cluster kvrRaftN 1 ∗
+            "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ce.length : Int) ∧ sv.Metadata'.Index' = si ∧
+              c ≤ uint.nat si⌝)
+          $$ [i e r snapIndex Hown Hview Hsx Hrun]
+        · iexists W64 0, _, snapIndex, sv0, csp, m, A
+          simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.append_nil]
+          iframe
+          ipureintro
+          exact ⟨by word, by word, Hsi.1, Hsi.2.1⟩
+        wp_for IH
+        wp_if_destruct
+        · have Hlt : sint.nat k < ce.length := run_lt k _ _ _ Hif Hcelen.1 Hcebl Hk.1
+          obtain ⟨en, Hen⟩ : ∃ en, ce[sint.nat k]? = some en := ⟨_, List.getElem?_eq_getElem Hlt⟩
+          have Hplen : (D ++ ce.take (sint.nat k)).length = D.length + sint.nat k := by
+            rw [List.length_append, List.length_take_of_le (by omega)]
+          have Hget : (LogEntry.toEntries ce D.length)[sint.nat k]? =
+              some (en.toEntryM (W64 ((D ++ ce.take (sint.nat k)).length + 1))) := by
+            rw [kvr_toEntries_get _ _ _ _ Hen, Hplen]; push_cast; rfl
+          ihave ⟨%ln, %Hln, #Hent⟩ := entsBig_lookup cls _ (sint.nat k) _ Hget $$ Hceb
+          simp only [show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z rdv.CommittedEntries'.len from ⟨Hk.1, Hif⟩,
+            _root_.and_self, ↓reduceIte]
+          wp_apply wp_load_slice_index rdv.CommittedEntries' (sint.Z k) _ DFrac.discard ln Hk.1 $$ [Hcel] as -
+          · iframe Hcel; ipureintro; rw [show (sint.Z k).toNat = sint.nat k by word]; exact Hln
+          have Htk : ce.take (sint.nat k + 1) = ce.take (sint.nat k) ++ [en] := by
+            rw [List.take_add_one, Hen]; rfl
+          have Hpre : (D ++ ce.take (sint.nat k)) ++ [en] <+: D ++ ce := by
+            rw [List.append_assoc, ← Htk]
+            exact (List.prefix_append_right_inj _).mpr (List.take_prefix _ _)
+          have Hb61 : ((D ++ ce.take (sint.nat k)).length : Int) + 1 < 2 ^ 61 := by
+            have := Hlen61 (by rw [List.length_append]; omega)
+            rw [Hplen]; simp only [List.length_append] at this; omega
+          wp_apply wp_applyEntry γr vs id r n st sts 1 (D ++ ce.take (sint.nat k)) _ csp' m' mA A'
+              (D ++ ce) en ln Hpre Hb61
+            $$ [$Hrep $Hown $Hview $Hent $Hcomm $Hrun] as ⟨%csp2, %m2, %A2, Hown, Hview, Hrun⟩
+          have Hl1 : ((D ++ ce.take (sint.nat k + 1)).length : Int) =
+              ((D ++ ce.take (sint.nat k)).length : Int) + 1 := by
+            rw [Htk]; simp only [List.length_append, List.length_singleton]; omega
+          have Hl1n : (D ++ ce.take (sint.nat k + 1)).length = (D ++ ce.take (sint.nat k)).length + 1 := by
+            rw [Htk]; simp only [List.length_append, List.length_singleton]; omega
+          have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by
+            have := Hb61; rw [Hplen] at this; word
+          rw [← Hl1, ← Hl1n, List.append_assoc, ← Htk]
+          wp_apply wp_oneIn (W64 8) (by decide) $$ [$Hpkg] as %b -
+          wp_if_destruct
+          · wp_for_post
+            iframe
+            iexists k + W64 1, ln, si, sv, csp2, m2, A2
+            rw [Hk1]
+            iframe
+            ipureintro
+            exact ⟨by word, by word, Hk.2.2.1, Hk.2.2.2⟩
+          · wp_apply wp_maybeSnapshot γr vs id r n st sts ρ (D ++ ce.take (sint.nat k + 1)) csp2 m2 mA A2
+                (D ++ ce) c sv si ((List.prefix_append_right_inj _).mpr (List.take_prefix _ _))
+                Hk.2.2.2 Hk.2.2.1
+              $$ [$Hrr $Hown $Hsx $Hfz' $Hdl] as %ret ⟨%sv1, Hown, Hsx, %Hsv1⟩
+            wp_for_post
+            iframe
+            iexists k + W64 1, ln, ret, sv1, csp2, m2, A2
+            rw [Hk1]
+            iframe
+            ipureintro
+            refine ⟨by word, by word, Hsv1.1, ?_⟩
+            rcases Hsv1.2 with h | ⟨h, h'⟩
+            · rw [h]; exact Hk.2.2.2
+            · rw [h]; have := Hk.2.2.2; have : uint.nat (W64 ((D ++ ce.take (sint.nat k + 1)).length : Int)) =
+                (D ++ ce.take (sint.nat k + 1)).length := by rw [Hl1n, Hplen] at *; word
+              omega
+        · have Hfull : sint.nat k = ce.length := run_eq k _ _ _ Hif Hcelen.1 Hcebl Hk.2.1
+          rw [Hfull, List.take_of_length_le (Nat.le_refl _)]
+          have H64 : (D ++ ce).length < 2 ^ 64 := run_len64 c _ si Hlen61 Hk.2.2.2
+          wp_apply wp_answer γr vs id r n st sts (D ++ ce) _ csp' m' mA A' pv' (ps ++ vls) (DFrac.own 1)
+              (by word) $$ [$Hrep $Hown $Hpv $Hps'] as %rest ⟨Hown, %ps', Hrest, Hcap2, #Hps2⟩
+          -- `r.node.Advance()`
+          ihave #Hcl' := Hcl
+          iunfold kvrCluster at Hcl'
+          icases Hcl' with ⟨#Hic, -⟩
+          icases appNode_open γr n (D ++ ce) (D ++ ce).length m' $$ Hview with ⟨%v, Hcfg, #Hsk, Hback⟩
+          wp_apply wp_Advance n γr.cluster kvrRaftN id _ es none v rfl (fun _ h => by cases h)
+            $$ [$Hraft $Hic $HisNode $Hdrv $Hrcpt $Hcfg $Hsk] as Hadv
+          icases Hadv with (⟨Hdrv, #Hal', Hcfg⟩ | ⟨#Hstop, -⟩)
+          · ihave Hview := Hback $$ Hcfg
+            -- `if oneIn(4) { snapIndex = r.maybeSnapshot(snapIndex) }`
+            wp_apply wp_oneIn (W64 4) (by decide) $$ [$Hpkg] as %b -
+            wp_join iprop(∃ (si' : w64) (sv' : SnapshotM), snapIndex_ptr ↦ si' ∗ memSnapExact ρ.γs sv' ∗
+                repOwn γr r (D ++ ce) (W64 (D ++ ce).length) csp' m' mA A' ∗ r_ptr ↦ r ∗
+                ⌜sv'.Metadata'.Index' = si' ∧ c ≤ uint.nat si'⌝)
+              with [snapIndex Hsx Hown r] as ⟨%si2, %sv2, snapIndex, Hsx, Hown, r, %Hsv2⟩
+            · iexists si, sv
+              iframe
+              ipureintro; exact ⟨Hk.2.2.1, Hk.2.2.2⟩
+            · wp_apply wp_maybeSnapshot γr vs id r n st sts ρ (D ++ ce) csp' m' mA A'
+                  (D ++ ce) c sv si (List.prefix_refl _) Hk.2.2.2 Hk.2.2.1
+                $$ [$Hrr $Hown $Hsx $Hfz' $Hdl] as %ret ⟨%sv1, Hown, Hsx, %Hsv1⟩
+              wp_join_done
+              iexists ret, sv1
+              iframe
+              ipureintro
+              refine ⟨Hsv1.1, ?_⟩
+              rcases Hsv1.2 with h' | ⟨h', h''⟩
+              · rw [h']; exact Hk.2.2.2
+              · rw [h']; have := Hk.2.2.2
+                have : uint.nat (W64 ((D ++ ce).length : Int)) = (D ++ ce).length := by word
+                omega
+            -- `if oneIn(4) { r.maybeCompact(snapIndex) }`
+            wp_apply wp_oneIn (W64 4) (by decide) $$ [$Hpkg] as %b -
+            wp_join iprop(snapIndex_ptr ↦ si2 ∗ memSnapExact ρ.γs sv2 ∗
+                repOwn γr r (D ++ ce) (W64 (D ++ ce).length) csp' m' mA A' ∗ r_ptr ↦ r)
+              with [snapIndex Hsx Hown r] as ⟨snapIndex, Hsx, Hown, r⟩
+            · wp_apply wp_maybeCompact γr vs id r n st sts ρ (D ++ ce) csp' m' mA A' c sv2 si2 Hsv2.1
+                $$ [$Hrr $Hown $Hsx $Hcp $Hfz' $Hal'] as ⟨Hown, Hsx⟩
+              wp_join_done
+            -- the loop's invariant, at `D ++ ce`
+            wp_for_post
+            iframe
+            unfold runInv
+            iexists D ++ ce, phsNext hd h, hs0, csp', mA, m', A', sv2, si2, c, rest, ps'
+            iframe
+            iframe Hcp Hfz' Hal' Hps2
+            ipureintro
+            exact ⟨Hsv2.1, Hsv2.2, by rw [List.length_append]; omega⟩
+          · iexfalso
+            iapply nodeRunning_stopped n γr.cluster kvrRaftN 1
+            iframe Hrun Hstop
     | some l =>
       sorry
   iapply BigAndL.bigAndL_cons.2
