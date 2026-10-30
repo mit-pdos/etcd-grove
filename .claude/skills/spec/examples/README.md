@@ -10,6 +10,7 @@ principles match your target.
 | [range.md](range.md) | a read, linearizable or stale (persistent atomic update) | the result predicate carries the facts; a stale read fires at the current state; compare whole specs; no disjunction of alternative specs |
 | [authinfo.md](authinfo.md) | two specs of one function (plain and bound) merged into one | a mode gate as a named margin, not two specs; know the margin |
 | [admin-history.md](admin-history.md) | requests that change shared state, and a client that concludes the state stays put (the auth history, `SetUp`) | say who may change shared state (an exclusive view, the update a resource); the atomic precondition the resource alone, the admission in the post; the client's post the abstract state |
+| [watch-auth.md](watch-auth.md) | a proved spec that must gain a fact only axioms give (the watch with auth on) | strengthen axioms in place when one proof forbids a split, listing collections; the gate over a named environment; check what an axiom admits before strengthening it |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

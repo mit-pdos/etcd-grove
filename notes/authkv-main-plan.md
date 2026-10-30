@@ -471,3 +471,10 @@ metadata through the existing local axiom `context.WithCancelValCtx` (its post g
 ctx' = outgoingOf inctx`), with the general fix (a `Value` contract for `WithCancel`) proposed to
 Perennial; `streamKeyFromCtx` takes `context.isContext`. Candidate 3 went to round 3, the last
 with first-tier findings allowed.
+
+Round 3 (2026-10-30) left two first-tier findings, both repaired with the user's approval: the
+server's stream-interceptor contract keeps the run's context (grpc-prometheus's interceptor axiom
+strengthened with it), and `dialOk` requires an etcd stream interceptor. The user then approved
+the whole trusted table (candidate 4, `notes/g2-watch-auth.md`). Next: the statements in code
+over named stubs (client, grpc and context here; v3rpc and auth proposed to the merge session),
+the `axiom` skill on each strengthened axiom, then the freeze.
