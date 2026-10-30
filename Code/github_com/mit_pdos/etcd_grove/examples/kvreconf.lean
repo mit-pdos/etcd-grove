@@ -1495,7 +1495,7 @@ noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Stats.ty) go!"add"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"Stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #())))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.context.DeadlineExceeded))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1531,7 +1531,7 @@ noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dropped tells the sender of a dropped message so.
 
-    go: cluster.go:317:19 -/
+    go: cluster.go:320:19 -/
 noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -1562,7 +1562,7 @@ noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
 /-- do runs one operation through the log: it gives it a fresh id and proposes it at a random
     member until one answers (the same encoding each time: it takes effect once).
 
-    go: cluster.go:330:19 -/
+    go: cluster.go:333:19 -/
 noncomputable def Cluster.«do».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "kind"
@@ -1635,7 +1635,7 @@ noncomputable def Cluster.«do».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Put sets key's value to val.
 
-    go: cluster.go:350:19 -/
+    go: cluster.go:353:19 -/
 noncomputable def Cluster.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1655,7 +1655,7 @@ noncomputable def Cluster.Put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Get returns key's value ("" for a key never set), through the log.
 
-    go: cluster.go:355:19 -/
+    go: cluster.go:358:19 -/
 noncomputable def Cluster.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1671,7 +1671,7 @@ noncomputable def Cluster.Get.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Read returns key's value by a read index at a random member, retried at another until one
     answers (a read has no effect: each attempt is a fresh one).
 
-    go: cluster.go:361:19 -/
+    go: cluster.go:364:19 -/
 noncomputable def Cluster.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1709,7 +1709,7 @@ noncomputable def Cluster.Read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Stop stops every replica.
 
-    go: cluster.go:371:19 -/
+    go: cluster.go:374:19 -/
 noncomputable def Cluster.Stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1736,7 +1736,7 @@ noncomputable def Cluster.Stop.impl [GooseExts] [GoGlobalContext] : val :=
     applied the most to agree with it: the same applied index, the same configuration and the
     same store contents. It returns an error describing the disagreement otherwise.
 
-    go: cluster.go:380:19 -/
+    go: cluster.go:383:19 -/
 noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "timeout"
@@ -1771,7 +1771,7 @@ noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- agree is Converged's check, once.
 
-    go: cluster.go:392:19 -/
+    go: cluster.go:395:19 -/
 noncomputable def Cluster.agree.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1950,7 +1950,7 @@ noncomputable def Cluster.agree.impl [GooseExts] [GoGlobalContext] : val :=
     commit and applied indices, configuration, log's first and last indices and latest
     snapshot, and, for a leader, its followers' progress.
 
-    go: cluster.go:426:19 -/
+    go: cluster.go:429:19 -/
 noncomputable def Cluster.Dump.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon

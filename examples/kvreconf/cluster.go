@@ -295,7 +295,10 @@ func (c *Cluster) step(src, dst *Replica, m *pb.Message) {
 	ctx, cancel := context.WithTimeout(context.Background(), stepTimeout)
 	err := dst.node.Step(ctx, m)
 	cancel()
-	if err == context.DeadlineExceeded {
+	// not taken (timed out, or the target stopped): dropped. (Not `err == context.DeadlineExceeded`:
+	// comparing two interfaces needs their dynamic type comparable, which the proof cannot see of
+	// context's error values; and a stopped target has not taken the message either.)
+	if err != nil {
 		c.Stats.add(&c.Stats.Dropped)
 		src.node.ReportUnreachable(to)
 		if typ == pb.MsgSnap {
