@@ -1,7 +1,9 @@
 /- `MemoryStorage.Snapshot` (`storage.go:207`).
 
 U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
-`notes/raft-unified-plan.md`, "U8 v2"). The contract's `Snapshot` triple at the justifications `J` (step 4: the API's). -/
+`notes/raft-unified-plan.md`, "U8 v2"). The contract's `Snapshot` triple at the justifications `J` (step 4: the API's), `b = false`; with `b = true`, given `memSnapNone` (no snapshot stored yet: etcd's `run` at boot, which panics on anything else), the answer is exactly the empty snapshot.
+
+kvreconf-snapshot-thread (2026-10-30, R1 of the repair design): `b` and `memSnapNone` added. -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
@@ -26,15 +28,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 compacted, empty or valid with its delivered bound. (`ErrSnapshotTemporarilyUnavailable` is
 never returned; the disjunct is the contract's.) -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (esu : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (b : Bool) (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
-      memCompacted γs c ∗ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
+      memCompacted γs c ∗ (if b then memSnapNone γs else emp) ∗
+      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
-      ⌜err = esu⌝ ∨
-      (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-        ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
-        (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) }}
+      (if b then memSnapNone γs else emp) ∗
+      (⌜err = esu⌝ ∨
+       (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+         ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
+         (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')))) }}
 
 end spec
 
