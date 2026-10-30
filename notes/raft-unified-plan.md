@@ -1709,7 +1709,7 @@ place); (5) K-b kv's run; (6) S-A net/read/errors; (7) K-a; (8) K-c; then the sn
 ## Repair: Stage P progress (2026-10-30)
 
 Stage P runs the tracks of "Repair: Stage F sorries" in this worktree, file-disjoint, at most four
-helpers at a time (common brief: `/home/ubuntu/.claude-E/jobs/c8379647/tmp/stageP-brief.md`; helpers
+helpers at a time (common brief: `notes/repair-stageP-brief.md`; helpers
 commit only their own files and push `origin/repair`; the coordinator keeps notes/). Wave 1 (started
 2026-10-30): S-0, S-C, S-D, S-E. Queued: K-b, S-A, K-a, K-c; then the downstream server examples
 and k8s's apiserver storage. Done items are marked in the sorry list above as they land.
