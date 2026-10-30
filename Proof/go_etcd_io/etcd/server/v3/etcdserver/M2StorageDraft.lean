@@ -12,7 +12,7 @@ proved against them before any proof is switched:
   safe-range slot in either mode (`mvcc.kbSRM_some`). Its post: the store at `kb = some d`,
   `actualMaxReaders - nJobRd (some d) - 2` watch readers, `retiredAt γ (nJobRd (some d))`, the
   closer and `crevRightM γw.st` (the right made after `NewServer`'s last error return,
-  `mvcc.compactRight_of_wsCloser` with `mvcc.kbCmpM_some`; the round's wrapper
+  `mvcc.wsCloserR_of_wsCloser` with `mvcc.kbCmpM_some`, step 2's, the closer kept: `srvKVCloserM_of_new`; the round's wrapper
   `newServer_compactRight` dropped, S2). It gives `watchWriter`/`writerFrag` in place of today's
   `txn.isKV`/`txn.kvWriter`, which are defined over today's `isWatchableStore` (a Draft artifact:
   at the switch the predicate is redefined in place and they follow as today).

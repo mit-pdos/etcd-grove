@@ -128,6 +128,35 @@ theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal)
     iapply srvWTStock_take E γp d $$ Hp Hs Hr
   · itrivial
 
+/-- **The compaction arm's supply** (review round 3's S5: the law the apply loop's compaction arm
+uses, `store.Compact.specD`'s `kbWTSupplyM γ.kb`): the apply thread's part of the backend's name
+(`srvBeOwn`, which it holds) agrees with the pool's, whose stock fact (under the pool's `▷`: a
+later credit) gives the current backend's supply. -/
+theorem kbWTSupplyM_of_poolR (s : Loc) (E : apply.AEnv GF) (γp : GName) :
+    ⊢ srvWTPoolR (GF := GF) E γp -∗ srvBeOwn s E -∗ £ 1 ={⊤}=∗
+      srvBeOwn s E ∗ mvcc.kbWTSupplyM E.γ.kb := by
+  iintro #Hp Hbo Hlc
+  iunfold srvBeOwn at Hbo
+  icases Hbo with ⟨%d, %Hd, Hbe, Hg⟩
+  ihave #Hp' := Hp
+  iunfold srvWTPoolR at Hp'
+  iinv Hp' with ⟨%a, %d0, >Ha, >Hg0, #Hs0, >Hc, Hrt⟩ Hclose
+  ihave %Hdd := dghostVar_agree E.γbe d _ d0 _ $$ Hg Hg0
+  subst Hdd
+  imod lc_fupd_elim_later (E := ⊤ \ ↑srvWTN) $$ Hlc Hs0 with #Hs1
+  imod Hclose $$ [Ha Hg0 Hc Hrt] with -
+  · inext
+    iexists a, d
+    iframe Ha Hg0 Hs0 Hc Hrt
+  imodintro
+  isplitl [Hbe Hg]
+  · iunfold srvBeOwn
+    iexists d
+    iframe Hbe Hg
+    ipureintro; exact Hd
+  rw [Hd]
+  iapply kbWTSupplyM_of_stock E γp d $$ [$Hp $Hs1]
+
 /-- **A backend's stock from its fresh tokens** (draft; the walk's step after `OpenSnapshotBackend`,
 before `Restore`, and `start`'s at the boot backend): as many as the pool's today. -/
 theorem srvWTStock_alloc (γp : GName) (d : mvcc.KBReal) (n : Nat) (h : receiptBound GF ≤ n + 1)
@@ -274,7 +303,7 @@ theorem srvKVCloserM_off (s : Loc) (E : apply.AEnv GF) (c : Int) (h : ¬ mvcc.kb
   unfold srvKVCloserM; simp only [h, ↓reduceIte]; exact .rfl
 
 /-- **`NewServer`'s step, on** (draft; after its last error return, in place of
-`compactRight_of_wsCloser`): the kept closer and the authority's half make the closer by the mode
+step 1's discarding `compactRight_of_wsCloser`, dropped): the kept closer and the authority's half make the closer by the mode
 at `-1`. -/
 theorem srvKVCloserM_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.kb) :
     ⊢ srvKVCloser (GF := GF) s E -∗ mvcc.crevRightM E.γ ={⊤}=∗ srvKVCloserM s E (-1) := by
@@ -293,8 +322,8 @@ theorem srvKVCloserM_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.
 /-- **Draft of `restorePre_of_apply`** (D22's, `RestorePre.lean:54`, whose `crevFrozen` is a `sorry`
 today), in either mode: from the apply thread's KV resources and the closer by the mode, the store's
 restore right by the mode (`restoreRightM`, `watchableStore.Restore.specM`'s), the rest as today.
-Off, the frozen fact is the watchable store's own (`isWatchableStore`'s `Hfrz`: at the switch, its
-mode-gated `wsFrozenM`, `isWatchableStoreD_frozen`); on, there is none: the compaction right is
+Off, the frozen fact is the watchable store's own, by a law (`isWatchableStore_frozen`: at the
+switch `isWatchableStoreD_frozen`, its `wsFrozenM` mode-gated; review round 3's S7, no unfold); on, there is none: the compaction right is
 taken instead. No `sorry`. -/
 theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c : Int)
     (hwq : E.γ.watchQ = true) :
@@ -335,10 +364,8 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
       iunfold mvcc.wsCloser at Hcl
       icases Hcl with ⟨%stc, #Hstc, Hstcl, Hwsw, Hcl⟩
       ihave #Hfrz : mvcc.crevFrozen E.γ $$ []
-      · iunfold mvcc.isWatchableStore at Hws
-        iNamed Hws
-        rw [← hγw]
-        iexact Hfrz
+      · rw [← hγw]
+        iapply mvcc.isWatchableStore_frozen ws E.s γw $$ Hws
       isplitl [Hcl]
       · iapply (mvcc.restoreRightM_off E.s E.γ c h).2
         iframe Hcl Hfrz

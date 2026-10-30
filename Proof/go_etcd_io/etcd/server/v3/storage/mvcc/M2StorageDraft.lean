@@ -12,7 +12,7 @@ nothing is switched, nothing assumed (no `axiom`, no `sorry`).
   `Hfrz`). Drafted: the frozen fact by the mode (`wsFrozenM`, `True` when the store compacts), and
   the compaction right's half of the revision's authority handed to the caller in compaction mode
   (`crevRightM`, the mode read from the names, as `wsFrozenM`), beside the closer: the caller makes
-  the right (`compactRight_of_wsCloser`) only after its last error return (Go's deferred
+  the right (`wsCloserR_of_wsCloser`, step 2's: the closer kept, not discarded) only after its last error return (Go's deferred
   `kv.Close()`, `server.go:376-381`), or gives up compacting (`noCompactor_of_new`, any mode) if it
   will watch instead. `newWatchableStore`'s proof needs two changes for it: `crevRight_split` in
   place of `crevFrozen_alloc`, and `isWatchableStoreD` built with its result.
@@ -73,8 +73,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The frozen fact, by the mode** (draft of `isWatchableStore`'s `Hfrz`): a store that does not
 compact (`¬ kbCmpM γs.kb`: today's servers, `cm = false`) is frozen (`crevFrozen`); a compacting
-one is not. The mode is the logical names' (`γs.kb`, the boot backend's): no restore in compaction
-mode, so it never changes. A store over mvcc's assumed backend (`kb = none`) counts as compacting
+one is not. The mode is read from `γs.kb`, which `withPhys` sets (a restore installs a new backend),
+and stays put because `store.Restore.specM` keeps the mode (`d'.cm = d.cm`); at the switch it is
+read from the logical mode field `γs.cm` instead (review round 3's S2.5, decided: `withPhys` keeps
+it, so `isWatchableStore_withPhys` stays `rfl`). A store over mvcc's assumed backend (`kb = none`) counts as compacting
 here (`kbCmpM none`): its creator gets the authority's half (`crevRightM`) and chooses, by
 `noCompactor_of_new`, to freeze it and watch (review round 1's S5; `kbCmpM`'s docstring says so at
 the switch). -/
@@ -88,7 +90,8 @@ instance mvcc.wsFrozenM_persistent (γs : mvcc.StoreNames) :
 /-- **The compaction right's half of the revision's authority, by the mode** (draft; a new conjunct
 of `newWatchableStore`'s and `New`'s posts; the mode read from the names, as `wsFrozenM`: review
 round 1's S3): in compaction mode the caller gets it (and makes the compaction right of it with
-the closer, `compactRight_of_wsCloser`, or freezes the store, `noCompactor_of_new`); otherwise
+the closer, `wsCloserR_of_wsCloser` (step 2: the closer kept, so the store can still be restored
+and closed), or freezes the store, `noCompactor_of_new`); otherwise
 nothing, the store being frozen. -/
 def mvcc.crevRightM (γs : mvcc.StoreNames) : IProp GF :=
   if mvcc.kbCmpM γs.kb then mvcc.crevUB γs.idx (1 : Qp).half (-1) else iprop(True)
@@ -138,6 +141,16 @@ def mvcc.isWatchableStoreD (s st : Loc) (γ : mvcc.WsNames) : IProp GF :=
 instance mvcc.isWatchableStoreD_persistent (s st : Loc) (γ : mvcc.WsNames) :
     Persistent (mvcc.isWatchableStoreD (GF := GF) s st γ) := by
   unfold mvcc.isWatchableStoreD; simp only [named]; infer_instance
+
+/-- **The frozen fact of today's watchable store** (review round 3's S7: the law `RestorePre`'s
+draft uses in place of an unfold of `isWatchableStore`; today every watchable store is frozen). At
+the switch it is `isWatchableStoreD_frozen`, whose mode premise the server has from `srvEnvOk`. -/
+theorem mvcc.isWatchableStore_frozen (s st : Loc) (γ : mvcc.WsNames) :
+    mvcc.isWatchableStore (GF := GF) s st γ ⊢ mvcc.crevFrozen γ.st := by
+  unfold mvcc.isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iexact Hfrz
 
 /-- **The frozen fact of an off store** (persistent; internal: clients use
 `isWatchableStoreD_noCompactor`). A law, so that the server does not unfold `isWatchableStoreD`:
@@ -269,21 +282,6 @@ theorem mvcc.storeDlReg_fix (γB : backend.BNames) (γi : mvcc.IdxNames) :
 
 /-! ## The closer and the compaction right -/
 
-/-- **The compaction right from the watchable store's closer** (the glue after the caller's last
-error return): in compaction mode, the closer's inner `storeCloser` and the authority's half
-(`crevRightM`) make the right at `-1` and the fields for good (`compactRight_of_closer`); the
-watchable store's own stop channel and waiter are given up with it (a compacting store is never
-closed: `Close` would close the inner store). -/
-theorem mvcc.compactRight_of_wsCloser (s st : Loc) (γs : mvcc.StoreNames) (h : mvcc.kbCmpM γs.kb) :
-    mvcc.wsCloser (GF := GF) s st γs ∗ mvcc.crevRightM γs ==∗
-      mvcc.compactRight γs (-1) ∗ mvcc.storeStop st γs := by
-  unfold mvcc.crevRightM
-  simp only [h, ↓reduceIte]
-  iintro ⟨Hcl, Hcr⟩
-  iunfold mvcc.wsCloser at Hcl
-  icases Hcl with ⟨%stc, -, -, -, Hcl⟩
-  iapply mvcc.compactRight_of_closer st γs $$ [$Hcl $Hcr]
-
 /-! ## The watch parameters, drafted (F1) -/
 
 /-- **Draft of `storeWatchParams`** (review round 1's F1, the user's: no watchers in compaction mode
@@ -347,7 +345,7 @@ abbrev mvcc.newWatchableStore.specD : Prop :=
 
 /-- **Draft of `New.spec`** (P3): as `newWatchableStore.specD`, the post's `isWatchableStoreD` and
 `crevRightM γ.st` beside the closer (`wsCloser`, kept: the caller makes the compaction right
-only after its last error return, `compactRight_of_wsCloser`); and (Q1 (a)) the pre loses
+only after its last error return, `wsCloserR_of_wsCloser`); and (Q1 (a)) the pre loses
 `kbWTSupplyM kb`. -/
 abbrev mvcc.New.specD : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)

@@ -188,8 +188,8 @@ writer's fragment `writerFrag`) is given back in every case, so the caller can s
 
 **The write-back supply** (Q1 (a), 2026-10-30; review round 1's S9): the caller gives the
 compaction's supply `kbWTSupplyM γ.kb` (persistent: it pays nothing per call; the server's from
-`srvWTPool` and the apply thread's frozen part of the backend's name, `kbWTSupplyM_of_srvBeOwnD`,
-R2-7; another creator's from a stock of its own, `kbWTSupplyM_alloc`), which the store no longer
+its write budget, R2-7: the current backend's stock, `kbWTSupplyM_of_poolR`, Q4 (a),
+`etcdserver/M2StorageDraftRestore.lean`; another creator's from a stock of its own, `kbWTSupplyM_alloc`), which the store no longer
 keeps; the job gets it in its premise. Under `storeCmp γ` the gate is always on, so it is the
 supply itself; the `M` form is kept because both sources produce it.
 -/
