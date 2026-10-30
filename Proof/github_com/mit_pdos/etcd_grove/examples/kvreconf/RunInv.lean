@@ -9,8 +9,8 @@ At the top of the loop, for the delivered log `D` (`kvreconf-gap-design.md` §2.
 - `runDone`'s producer token;
 - the replicated state at `D` (`repOwn`) and the node's view (`appNode`);
 - the storage's hard state (`memStorMeta`);
-- the stored snapshot at `snapIndex` (`memSnapExact`);
-- a known compaction point `c ≤ snapIndex` with `D` frozen above it (`frozenTo`);
+- a known compaction point `c ≤ snapIndex` (`snapIndex`: the latest snapshot asked for or installed)
+  with `D` frozen above it (`frozenTo`);
 - the node's applied index (`nodeAppliedLb`, `Advance`'s, what `Compact` needs);
 - the pending read states (`rsOk` of each).
 -/
@@ -44,7 +44,7 @@ attribute [local instance] kvrStorageModel
 /-- **`run`'s loop invariant** (see the file header), `pp` and `sp` its `pending` and `snapIndex`. -/
 def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc) : IProp GF :=
   iprop(∃ (D : List LogEntry) (hd hs : HardStateM) (csp mA : Loc) (m : Membership)
-      (A : GMap (List w8) (List w8)) (sv0 : SnapshotM) (snapIndex : w64) (c : Nat)
+      (A : GMap (List w8) (List w8)) (snapIndex : w64) (c : Nat)
       (pv : GoSlice) (ps : List ReadState),
     "Hdrv" ∷ nodeDriver n γr.cluster kvrRaftN
       { storage := kvrStorIface st, delivered := D, hardState := hd, handling := none } ∗
@@ -53,11 +53,10 @@ def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc
     "Hown" ∷ repOwn γr r D (W64 D.length) csp m mA A ∗
     "Hview" ∷ appNode γr n D D.length m ∗
     "Hmeta" ∷ memStorMeta ρ.ms ρ.γs hs ∗
-    "Hsx" ∷ memSnapExact ρ.γs sv0 ∗
     "snapIndex" ∷ sp ↦ snapIndex ∗
     "#Hcp" ∷ memCompacted ρ.γs c ∗
     "#Hfz" ∷ frozenTo ρ.γs c D ∗
-    "%Hsi" ∷ ⌜sv0.Metadata'.Index' = snapIndex ∧ c ≤ uint.nat snapIndex ∧ c ≤ D.length⌝ ∗
+    "%Hsi" ∷ ⌜c ≤ uint.nat snapIndex ∧ c ≤ D.length⌝ ∗
     "#Hal" ∷ nodeAppliedLb γr.cluster id D.length ∗
     "pending" ∷ pp ↦ pv ∗
     "Hpv" ∷ pv ↦* ps ∗
@@ -71,13 +70,13 @@ theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ
       runInv γr id r n st ρ pp sp := by
   iintro ⟨Hs, Hpp, Hsp⟩
   iunfold runStart at Hs
-  icases Hs with ⟨%csp, %mA, %hs, Hdrv, Hrun, Hcfg, Hown, Hprod, Hmeta, Hsx⟩
+  icases Hs with ⟨%csp, %mA, %hs, Hdrv, Hrun, Hcfg, Hown, Hprod, Hmeta⟩
   ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
   unfold runInv
-  iexists [], hsZero, hs, csp, mA, Membership.simple (GMap.listToSet vs), ∅, memSnapEmpty, W64 0, 0,
+  iexists [], hsZero, hs, csp, mA, Membership.simple (GMap.listToSet vs), ∅, W64 0, 0,
     slice.nil, []
   unfold NodeDriverState.init
-  iframe Hdrv Hrun Hprod Hown Hmeta Hsx Hsp Hpp
+  iframe Hdrv Hrun Hprod Hown Hmeta Hsp Hpp
   isplitl [Hcfg]
   · unfold appNode
     iexists ⟨0, Membership.simple (GMap.listToSet vs)⟩
@@ -91,7 +90,7 @@ theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ
   · unfold frozenTo LogEntry.toEntries; simp only [List.mapIdx_nil, List.drop_nil]
     iapply memLog_nil
   isplitl []
-  · ipureintro; exact ⟨rfl, Nat.zero_le _, Nat.le_refl _⟩
+  · ipureintro; exact ⟨Nat.zero_le _, Nat.le_refl _⟩
   isplitl []
   · iapply nodeAppliedLb_zero
   isplitl []

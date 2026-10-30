@@ -2,9 +2,10 @@
 
 `newReplica(id, node, storage, cs0, tick, stats, send)` (kv.go): replica `id` on the node just started
 (`RestartNode`'s post: its driver, running token and configuration view at the bootstrap voters
-`vs`) and its registered storage (`kvrStorRec`, its `MemoryStorage`'s invariant, hard state and empty
-snapshot), at the bootstrap conf state `cs0` (read-only), ticked every `tick`; `send` its transport.
-It starts the loop (`run`) and the clock (`ticker`) and returns the running replica with the
+`vs`) and its registered storage (`kvrStorRec`, its `MemoryStorage`'s invariant, hard state and no
+snapshot stored yet, `memSnapNone`, which it opens for the two writers), at the bootstrap conf state
+`cs0` (read-only), ticked every `tick`; `send` its transport. It starts the loop (`run`), the clock
+(`ticker`) and the snapshot goroutine (`snapshotter`; kvreconf-snapshot-thread, 2026-10-30) and returns the running replica with the
 stopper's share of it (`repStop`).
 -/
 module
@@ -43,7 +44,7 @@ abbrev newReplica.spec : Prop :=
       nodeRunning n γr.cluster kvrRaftN 1 ∗
       nodeConfig n γr.cluster kvrRaftN ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
       kvrStorRec st ms γs ∗ memStorInvP ms γs (kvrJ γr.cluster id) ∗ memStorMeta ms γs hs ∗
-      memSnapExact γs memSnapEmpty ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
+      memSnapNone γs ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
       id ↪[γr.rseq] W64 0 }}
     (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvreconf.newReplica))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #cs0))

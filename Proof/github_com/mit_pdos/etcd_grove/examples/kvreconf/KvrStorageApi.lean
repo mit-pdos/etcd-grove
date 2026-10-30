@@ -161,25 +161,25 @@ theorem Storage.wp_Append (wp : MemoryStorage.Append.spec (GF := GF) (hG := hG))
 
 theorem Storage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc)
-    (dq : DFrac) (sv sv0 : SnapshotM) (eood : GoInterface)
+    (dq : DFrac) (sv : SnapshotM) (eood : GoInterface)
     (h1 : j ≤ uint.nat sv.Metadata'.Index')
     (h2 : uint.nat sv.Metadata'.Index' < 2^61) :
   {{ kvrStorRec (GF := GF) s ms γs ∗
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
       memLog γs j (DFrac.own 1) old ∗ memEnd γs (j + old.length) ∗
       J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index') ∗
-      snapArg sp dq sv ∗ memSnapExact γs sv0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood) }}
+      snapArg sp dq sv ∗ memSnapLb γs 0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood) }}
     (App (Val (s @!! go.GoType.PointerType
       github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty @!! go!"ApplySnapshot")) (Val #sp))
   {{ RET #interface.nil; ownSnapM sp dq sv ∗
       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
       memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
-      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapExact γs sv }} := by
+      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') }} := by
   wp_start as ⟨#Hrec, HP⟩
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J j old sp dq sv sv0 eood h1 h2 $$ [HP] as  HQ
+  wp_apply wp ms γs J j old sp dq sv eood h1 h2 $$ [HP] as  HQ
   · iexact HP
   iapply HΦ
   iexact HQ
@@ -203,48 +203,43 @@ theorem Storage.wp_SetHardState (wp : MemoryStorage.SetHardState.spec (GF := GF)
 
 theorem Storage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (i : w64) (e : EntryM) (cs : Loc)
-    (dq : DFrac) (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (sv0 : SnapshotM)
-    (eood : GoInterface) :
+    (dq : DFrac) (c : ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface) :
   {{ kvrStorRec (GF := GF) s ms γs ∗
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
       memLog γs (uint.nat i) DFrac.discard [e] ∗
-      J.SV (memSnapCreated sv0 i e.Term' oc bs) ∗ J.DL (uint.nat i) ∗
-      memSnapExact γs sv0 ∗ memCsArg cs dq oc ∗ data ↦* bs ∗
+      J.SV (memSnapMade i e.Term' c bs) ∗ J.DL (uint.nat i) ∗
+      memSnapLb γs 0 ∗ ownCSM cs dq c ∗ data ↦* bs ∗
       globalAddr ErrSnapOutOfDate ↦□ eood) }}
     (App (App (App (Val (s @!! go.GoType.PointerType
       github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty @!! go!"CreateSnapshot")) (Val #i)) (Val #cs)) (Val #data))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
-      memCsArg cs dq oc ∗
-      ((⌜err = interface.nil⌝ ∗ memSnapExact γs (memSnapCreated sv0 i e.Term' oc bs) ∗
-         ownSnapM snap (DFrac.own 1) (memSnapCreated sv0 i e.Term' oc bs)) ∨
-       (⌜snap = null ∧ err = eood ∧ uint.nat i ≤ uint.nat sv0.Metadata'.Index'⌝ ∗
-         memSnapExact γs sv0 ∗ data ↦* bs)) }} := by
+      ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
+      ((⌜err = interface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
+       (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs)) }} := by
   wp_start as ⟨#Hrec, HP⟩
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J i e cs dq oc data bs sv0 eood  $$ [HP] as %snap %err HQ
+  wp_apply wp ms γs J i e cs dq c data bs eood  $$ [HP] as %snap %err HQ
   · iexact HP
   iapply HΦ
   iexact HQ
 
 theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (sv0 : SnapshotM)
-    (ecomp : GoInterface)
-    (h1 : uint.nat x ≤ uint.nat sv0.Metadata'.Index') :
+    (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface) :
   {{ kvrStorRec (GF := GF) s ms γs ∗
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorInvP ms γs J ∗
       ((∃ (e : EntryM), memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
-      J.B (uint.nat x) ∗ memSnapExact γs sv0 ∗ globalAddr ErrCompacted ↦□ ecomp) }}
+      J.B (uint.nat x) ∗ memSnapLb γs (uint.nat x) ∗ globalAddr ErrCompacted ↦□ ecomp) }}
     (App (Val (s @!! go.GoType.PointerType
       github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty @!! go!"Compact")) (Val #x))
   {{ (err : GoInterface), RET #err;
-      ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) ∗ memSnapExact γs sv0 }} := by
+      ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) }} := by
   wp_start as ⟨#Hrec, HP⟩
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J x sv0 ecomp h1 $$ [HP] as %err HQ
+  wp_apply wp ms γs J x ecomp $$ [HP] as %err HQ
   · iexact HP
   iapply HΦ
   iexact HQ

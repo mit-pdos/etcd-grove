@@ -37,7 +37,7 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
   intro γr vs r
   wp_start as Hs
   iunfold repStop at Hs
-  icases Hs with ⟨%id, %n, %st, %sts, %ρ, #HR, Hpend, Hrd, Htd⟩
+  icases Hs with ⟨%id, %n, %st, %sts, %ρ, #HR, Hpend, Hrd, Htd, Hsd⟩
   ihave #HR' := HR
   iunfold isReplicaR at HR'
   iNamed HR'
@@ -64,6 +64,9 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
   try wp_auto
   wp_apply wp_handoff_receive ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) false
     $$ [$HtdH $Htd] as %u' %ok' -
+  try wp_auto
+  wp_apply wp_handoff_receive ρ.sd ρ.sdc (fun _ => iprop(True)) iprop(True) iprop(False) false
+    $$ [$HsdH $Hsd] as %u'' %ok'' -
   try wp_auto
   wp_apply wp_Stop n γr.cluster kvrRaftN id $$ [$Hraft $HisNode $Hrun] as -
   iapply HΦ

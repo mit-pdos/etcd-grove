@@ -20,14 +20,28 @@ can refer to them:
   is the stopper's;
 - `runDone` carries the loop's `nodeRunning n γ N 1` to `stop`, a handoff (cache's `Handoff.lean`).
   The producer's token belongs to `run`, the consumer's to the stopper;
-- `tickDone` is the same with `True`, the producer being `ticker`.
+- `tickDone` is the same with `True`, the producer being `ticker`;
+- `snapDone` is the same with `True`, the producer being `snapshotter`;
+- `snapc` carries `run`'s requests to `snapshotter` (Perennial's bag idiom), each with what its
+  storage calls need (`snapReqOk`, below); and the stored snapshot is open for writes
+  (`memSnapLb γs 0`: `newReplica` opens it).
 
 `isRep γr vs id r` hides the node, storage, stats and names (persistent). `repStop γr vs r` is
 `isReplicaR` together with the stopper's three tokens (exclusive): what `Replica.stop` takes.
 `runStart` is what `run` starts with. The replica's own resources are its node's driver, running
 token and configuration view, the replicated state at the empty prefix, the producer's token of
 `runDone`, and the `MemoryStorage`'s hard state (`memStorMeta`, what `RestartNode`'s boot bundle
-returns as its frame `Q`) and stored snapshot (`memSnapExact`, the empty one).
+returns as its frame `Q`).
+
+## The snapshot goroutine's requests (`snapReqOk`)
+
+(kvreconf-snapshot-thread, 2026-10-30) A request `q` asks for a snapshot at `q.index` unless
+`q.data` is `nil`: then the frozen entry there, the snapshot's validity (certified in the registry
+with the applied state, `kvr_snap_make`) and delivered bound, the configuration (read-only) and the
+encoded state (owned) travel with it; and for a compaction up to `q.compact` unless it is `0`: then
+a known compaction point `c` with the delivered log `D` frozen above it, reaching `q.compact`, and
+the node's applied index there (`Advance`'s). All but the data are persistent: the goroutine
+needs nothing of `run`'s.
 
 ## The applier's storage (`frozenTo`)
 
@@ -60,6 +74,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.KvrStorage
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.context.Base
 
@@ -114,6 +129,21 @@ structure RepNames where
   tdc : Loc
   /-- `tickDone`'s handoff names -/
   td : HandoffNames
+  /-- `snapc` -/
+  snc : Loc
+  /-- `snapc`'s channel names (bag) -/
+  sn : ChanNames
+  /-- `snapDone` -/
+  sdc : Loc
+  /-- `snapDone`'s handoff names -/
+  sd : HandoffNames
+
+/-- The snapshot goroutine's request struct. -/
+abbrev RSnapReq [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvreconf.snapReq
+
+instance RSnapReq.countable [GooseExts] : Pos.Countable RSnapReq :=
+  countableOfLeftInverse (fun q : RSnapReq => (q.index', q.cs', q.data', q.compact'))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -133,6 +163,17 @@ instance frozenTo_persistent (γs : MemStorNames) (c : Nat) (D : List LogEntry) 
     Persistent (frozenTo (GF := GF) γs c D) := by
   unfold frozenTo; infer_instance
 
+/-- **What a request to the snapshot goroutine carries** (see the file header). -/
+def snapReqOk (γr : RNames) (id : w64) (γs : MemStorNames) (q : RSnapReq) : IProp GF :=
+  iprop((⌜q.data' = slice.nil⌝ ∨ ∃ (e : EntryM) (c : ConfStateM) (bs : List w8),
+      memLog γs (uint.nat q.index') DFrac.discard [e] ∗
+      (kvrJ γr.cluster id).SV (memSnapMade q.index' e.Term' c bs) ∗
+      (kvrJ γr.cluster id).DL (uint.nat q.index') ∗
+      ownCSM q.cs' DFrac.discard c ∗ q.data' ↦* bs) ∗
+    (⌜q.compact' = W64 0⌝ ∨ ∃ (c : Nat) (D : List LogEntry),
+      memCompacted γs c ∗ frozenTo γs c D ∗ ⌜uint.nat q.compact' ≤ D.length⌝ ∗
+      nodeAppliedLb γr.cluster id (uint.nat q.compact')))
+
 /-- **Replica `id` at `r`, running** (persistent; see the file header). -/
 def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames) :
     IProp GF :=
@@ -147,6 +188,11 @@ def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ 
     "#HrdH" ∷ isHandoff (V := Unit) ρ.rd ρ.rdc (fun _ => nodeRunning n γr.cluster kvrRaftN 1)
       iprop(True) iprop(False) ∗
     "#HtdH" ∷ isHandoff (V := Unit) ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
+    "#Hsnc" ∷ r.[RReplica, go!"snapc"] ↦□ ρ.snc ∗
+    "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γr id ρ.γs) ∗
+    "#Hsdc" ∷ r.[RReplica, go!"snapDone"] ↦□ ρ.sdc ∗
+    "#HsdH" ∷ isHandoff (V := Unit) ρ.sd ρ.sdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
+    "#HsnLb" ∷ memSnapLb ρ.γs 0 ∗
     "#HstRec" ∷ kvrStorRec st ρ.ms ρ.γs ∗
     "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kvrJ γr.cluster id))
 
@@ -169,7 +215,7 @@ def repStop (γr : RNames) (vs : List w64) (r : Loc) : IProp GF :=
   iprop(∃ (id : w64) (n st sts : Loc) (ρ : RepNames),
     isReplicaR γr vs id r n st sts ρ ∗
     ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Pending ∗
-    handoffConsumer ρ.rd false ∗ handoffConsumer ρ.td false)
+    handoffConsumer ρ.rd false ∗ handoffConsumer ρ.td false ∗ handoffConsumer ρ.sd false)
 
 /-- **What `run` starts with** (see the file header). -/
 def runStart (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ : RepNames) : IProp GF :=
@@ -179,7 +225,7 @@ def runStart (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ : RepN
     nodeConfig n γr.cluster kvrRaftN ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
     repOwn γr r [] (W64 0) csp (Membership.simple (GMap.listToSet vs)) mA ∅ ∗
     handoffProducer ρ.rd false ∗
-    memStorMeta ρ.ms ρ.γs hs ∗ memSnapExact ρ.γs memSnapEmpty)
+    memStorMeta ρ.ms ρ.γs hs)
 
 /-- **`f` is replica `id`'s transport** (persistent; see the file header). -/
 def sendSpec (γr : RNames) (id : w64) (f : GoFunc) : IProp GF :=

@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `r.stop()` (kv.go): closes `stopc`, waits for the loop (which hands back `nodeRunning 1` on
-`runDone`) and the clock, and stops the node. It takes the stopper's share of the replica
+`runDone`), the clock and the snapshot goroutine, and stops the node. It takes the stopper's share of the replica
 (`repStop`): `stopc` is closed once.
 -/
 module
