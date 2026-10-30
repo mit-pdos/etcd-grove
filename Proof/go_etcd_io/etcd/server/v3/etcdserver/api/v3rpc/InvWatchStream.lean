@@ -185,14 +185,12 @@ def ctrlAnswers (req : WatchReqM) (m : WatchRespM) : Prop :=
 
 /-- **The range `r` a create request `c` registers** with the watch id `id` (`recvLoop`'s
 normalization): an empty key is `"\x00"` (the smallest key); an empty range end is a single key
-(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, the end
-`some []`), or, in the model only, a single key: Perennial's `wp_slice_literal` does not say that
-the empty literal `[]byte{}` is not `nil` (in Go it is not; `notes/STATUS.md`, "W-M"); any other
-range end is kept. -/
+(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, not
+`nil`: the end `some []`); any other range end is kept. -/
 def createRangeOk (c : CreateReqM) (id : w64) (r : mvcc.WatchRange) : Prop :=
   r.key = (if c.key = [] then [W8 0] else c.key) ∧ r.startRev = c.startRev ∧ r.id = id ∧
   (if c.rangeEnd = [] then r.end? = none
-   else if c.rangeEnd = [W8 0] then r.end? = some [] ∨ r.end? = none
+   else if c.rangeEnd = [W8 0] then r.end? = some []
    else r.end? = some c.rangeEnd)
 
 /-- **The response the send loop makes of the mvcc response `r`** with the header `h` (its
