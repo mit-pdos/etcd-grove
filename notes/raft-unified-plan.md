@@ -1309,3 +1309,35 @@ Phase 2 (internal statement changes):
   `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
   P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
   P5 together with P7. Done: P5+P7, P2a, P2b, P3a. Wave 2: P6, P4, P3b running. Then phase 3.
+
+### kvreconf-final: the read path, for the logically atomic `Cluster.Read` (2026-10-30)
+
+The user chose a logically atomic `Cluster.Read` spec (by prophecy), its spec to be designed and
+signed off first; until then `Run`'s `opRead` branch is the single `sorry` of kvreconf's chain
+(isolated in its own lemma in `Run.lean`). What the read path is today:
+
+- **Go.** `Cluster.Read(key)` (cluster.go) loops `c.randomMember().read(key, opTimeout)` until one
+  answers. `Replica.read` (kv.go) takes `r.mu`, bumps `r.nextRead` (stops at `maxSeq`), registers a
+  buffered channel at `r.reads[seq]`, unlocks, calls `node.ReadIndex(ctx, readCtx(r.id, seq, key))`
+  under a `WithTimeout` context, and waits on the channel or the timeout (then deletes its entry and
+  tries the channel once more). The applier's `answer` (kv.go), after each Ready's committed entries,
+  answers every pending `ReadState` whose `Index ≤ r.index` and whose context decodes to this
+  replica: `ch <- r.kv[key]` (the store's map at the applied prefix `ap`).
+- **Today's specs.** `Replica.read.spec`/`Cluster.Read.spec` (frozen, proved): from `kvLb γr L0` the
+  answer is `kvFold L key` with `L0 <+: L` and `kvLb γr L`. Proof: `kvr_mint_read`
+  (`ClientLemmas.lean`) mints the context at `(id, seq)` and registers it with raft by
+  `readCtx_commit_after` with the trivial `Q` (`kvr_readAu`), giving `isReadCtx … c (fun _ => True)`
+  and `readCtxAfter … c l0` (`l0` committed when the read starts). `answer` sends `readAns γr c v`
+  (`Defs.lean`: a read state of `c` at `i`, a committed `ap` with `i ≤ |ap|`, `v = kvFold (logHist ap)
+  key`), and `kvr_readAns_ok` turns `readCtxAfter ∗ readAns` into the lower-bound post.
+- **Why it is not logically atomic as is.** The answer is the state at the moment the history was
+  exactly `logHist ap`, which lies between the call and the return: the history grows one datum at a
+  time (each commit appends at most one), from the history at the call (`|·| ≤ i ≤ |ap|`, `i` the
+  read index, fixed after the call) to the history at the return (`ap` committed). But that moment is
+  known only once the applier answers, after it: firing the client's AU needs a prophecy of `|logHist
+  ap|` (or of the answer), resolved by the reader when the answer arrives (`primitive.NewProph` /
+  `ResolveProph`: a Go change in `Replica.read`, or a ghost-only prophecy if the port has one), with
+  the store invariant firing the pending read's AU at the commit that makes the history that long (or
+  at once if it already is). Raft's `isReadCtx`'s `Q` (fired at raft's own read point, when the
+  leader's commit index is fixed) is not the read's linearization point here: the applier answers at
+  `r.index ≥ i`, possibly later.
