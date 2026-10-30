@@ -39,7 +39,7 @@ the apply thread's state as the old `spec` said; the storage's stored snapshot p
   sender has it, `SnapSendBranch.lean`) and its `RC`, `RC'` after;
 * `CreateSnapshot`'s premises (2026-10-30, the repair): the storage's invariant, the node's
   delivered log past `ai`, the cluster's registry and a committed log of length `ai` ending at
-  `at'` (`srvSnapStor`), the frozen entry at `ai` (`srvSnapState`'s);
+  `at'` (`srvSnapStor`), the frozen entry at `ai` (`srvSnapFrozen`, P8);
 * `verifyConsistentIndexIsLatest`'s check: the consistent index at least `ai`;
 * with `toDisk`, the disk's storage (`srvSnapDisk`: `SaveSnap`, and `Release`'s directory at a
   removal fact the applied index past `j` gives) with the applied index at least `ai`, and
@@ -54,7 +54,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
-      srvSnapState s ep ms γs ai sl ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
+      srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
       srvSnapStor ms γs γr nid ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ (if toDisk then RC else iprop(True)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
@@ -62,7 +62,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       srvApplyKVCore s E γw x ua }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
       (if toDisk then RC' else iprop(True)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗

@@ -44,7 +44,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -⟩
   iunfold srvSnapState at HSS
-  icases HSS with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hslb, #Hfa, #Hfb⟩
+  icases HSS with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hslb⟩
   (try wp_auto)
   wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, -⟩
   · iframe #; iframe
@@ -59,7 +59,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     iexists st
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
     isplitl [Hd Hm Hf]
-    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb Hfa Hfb
+    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
       ipureintro; exact Hdm
     ipureintro; exact ⟨hok, rfl⟩
   all_goals sorry -- SNAPSHOT-SORRY #11: snapshot is due (snapshot + compactRaftLog)
@@ -72,7 +72,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' sa hok haw hci hrel
-  wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, Hcok, HRC, #Hss, #Hsa, #HWP, #HWA, HSS, #Hapl, Hai, Hat,
+  wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, Hcok, HRC, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hapl, Hai, Hat,
     Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
@@ -82,7 +82,10 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
   iunfold srvSnapStor at Hss'
   icases Hss' with ⟨#Hmsi, -⟩
   iunfold srvSnapState at HSS
-  icases HSS with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hslb, #Hfa, #Hfb⟩
+  icases HSS with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hslb⟩
+  ihave #Hfz' := Hfz
+  iunfold srvSnapFrozen at Hfz'
+  icases Hfz' with ⟨#Hfa, #Hfb⟩
   (try wp_auto)
   wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, %Hr1⟩
   · iframe #; iframe
@@ -99,11 +102,11 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     isplitl [HRC]
     · ileft; iexact HRC
     isplitl [Hd Hm Hf]
-    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hfa Hfb
+    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
       isplitr
       · ipureintro; exact Hdm
       iapply memSnapLb_mono γs _ _ (by simp) $$ Hslb
-    ipureintro; exact ⟨hok, rfl⟩
+    iframe Hfz; ipureintro; exact ⟨hok, rfl⟩
   all_goals (
     -- (D19i part 1) the trigger fires only past index `0`
     have Hai1 : 1 ≤ uint.Z ai := by
@@ -120,43 +123,43 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     first
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nid (W64 0) kv RC RC' ua
             hok hci hrel $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV HRC Hcok]
-          as ⟨%st', HSS, HRC, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
+          as ⟨%st', HSS, -, HRC, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
          · iframe #
            iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok
            simp only [↓reduceIte]
            iframe HRC
-           iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb Hfa Hfb
+           iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm
          simp only [↓reduceIte] at *
          ihave HRC : iprop(RC ∨ RC') $$ [HRC]
          · iright; iexact HRC)
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nid (W64 0) kv RC RC' ua
             hok hci hrel $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok]
-          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
+          as ⟨%st', HSS, -, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
          · iframe #
            iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok
            simp only [Bool.false_eq_true, ↓reduceIte]
            isplitl [Hd Hm Hf]
-           · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb Hfa Hfb
+           · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
              ipureintro; exact Hdm
            itrivial
          ihave HRC : iprop(RC ∨ RC') $$ [HRC]
          · ileft; iexact HRC)
     iunfold srvSnapState at HSS
-    icases HSS with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, #Hslb', #Hfa', #Hfb'⟩
+    icases HSS with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, #Hslb'⟩
     (try wp_auto)
     have hcI : 1 ≤ compactIdx ai scu ∧ compactIdx ai scu ≤ uint.nat ai := by
       unfold compactIdx; split <;> constructor <;> word
-    ihave #Hfr := srvFrozen_get γs (uint.nat ai) (compactIdx ai scu) hcI.1 hcI.2 $$ [$Hfa' $Hfb']
+    ihave #Hfr := srvFrozen_get γs (uint.nat ai) (compactIdx ai scu) hcI.1 hcI.2 $$ [$Hfa $Hfb]
     wp_apply hC s ai ms γs γr.raft.raft nid scu lg Hai1 $$ [Hlr] as Hlr
     · iframe #; iframe Hlr; ipureintro; exact Hlgn
     (try wp_auto)
     ihave HKV := HKVk $$ HKV
     iapply HΦ
     iexists st'
-    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV HRC
+    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV HRC Hfz
     isplitl [Hd Hm Hf]
-    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms Hfa' Hfb'
+    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms
       isplitr
       · ipureintro; exact Hdm'
       iapply memSnapLb_mono γs _ _ (by simp) $$ Hslb'

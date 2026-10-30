@@ -748,15 +748,7 @@ theorem EtcdServer.run.wp_proof
       · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
       isplitr
       · iexact Hms
-      isplitr
-      · iExactEq Hslb0; rfl
-      rw [Hc0a.2.2]
-      isplitr
-      · iunfold srvFrozenAt; ileft; ipureintro; rfl
-      iunfold srvFrozenBelow
-      rw [show uint.nat (W64 0) = 0 from rfl, List.range_zero]
-      iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
-      itrivial
+      iExactEq Hslb0; rfl
     iframe Hlog0
     isplitr
     · iexists uint.nat ai₀
@@ -1277,15 +1269,7 @@ theorem EtcdServer.run.wp_proofOn
       · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
       isplitr
       · iexact Hms
-      isplitr
-      · iExactEq Hslb0; rfl
-      rw [Hc0a.2.2]
-      isplitr
-      · iunfold srvFrozenAt; ileft; ipureintro; rfl
-      iunfold srvFrozenBelow
-      rw [show uint.nat (W64 0) = 0 from rfl, List.range_zero]
-      iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
-      itrivial
+      iExactEq Hslb0; rfl
     iframe Hlog0
     isplitr
     · iexists uint.nat ai₀

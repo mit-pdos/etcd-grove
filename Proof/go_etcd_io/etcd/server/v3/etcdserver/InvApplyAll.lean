@@ -141,14 +141,22 @@ compacts below). Until the repair: the application's shared snapshot token (`mem
 (2026-10-30, the repair: snapshots allowed) The in-memory snapshot (every `memorySnapshotCount =
 100` entries) and the disk one reach `CreateSnapshot`, its `snapshotValid` from the cluster's
 registry (`srvSnapStor`, `srvClusterOk`); the frozen entry at the applied index is
-`srvFrozenAt`. -/
+`srvSnapFrozen`'s (P8: its own predicate). -/
 def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
     srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
-    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl) ∗
-    -- (2026-10-30, the repair) the storage's entry at the applied index frozen (`CreateSnapshot`'s),
-    -- every entry below it frozen or compacted (`Compact`'s)
-    srvFrozenAt γs (uint.nat ai) ∗ srvFrozenBelow γs (uint.nat ai))
+    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl))
+
+/-- (2026-10-30, stage P's P8) **The storage's entries frozen through the applied index `ai`**
+(persistent): the entry at `ai` frozen (`CreateSnapshot`'s), every entry below it frozen or
+compacted (`Compact`'s). Taken by the snapshot-only statements (`snapshot.spec`,
+`snapshotIfNeededAndCompactRaftLog.specFull`); until P8 a part of `srvSnapState`. -/
+def srvSnapFrozen (γs : MemStorNames) (ai : Nat) : IProp GF :=
+  iprop(srvFrozenAt γs ai ∗ srvFrozenBelow γs ai)
+
+instance srvSnapFrozen_persistent (γs : MemStorNames) (ai : Nat) :
+    Persistent (srvSnapFrozen (GF := GF) γs ai) := by
+  unfold srvSnapFrozen srvFrozenAt srvFrozenBelow; infer_instance
 
 /-- A lower bound of the stored snapshot index is one of every smaller index. -/
 theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)
@@ -156,10 +164,10 @@ theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64
     srvSnapState (GF := GF) s ep ms γs ai sl ⊢ srvSnapState s ep ms γs ai sl' := by
   iintro H
   iunfold srvSnapState at H
-  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hlb, Hfa, Hfb⟩
+  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hlb⟩
   iunfold srvSnapState
   iexists d, m, f
-  iframe Hd Hm Hf Hms Hfa Hfb
+  iframe Hd Hm Hf Hms
   isplitr
   · ipureintro; exact Hdm
   iapply memSnapLb_mono γs (uint.nat sl) (uint.nat sl') (by word) $$ Hlb
