@@ -81,6 +81,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+instance srvFrozenAt_persistent (γs : MemStorNames) (i : Nat) :
+    Persistent (srvFrozenAt (GF := GF) γs i) := by
+  unfold srvFrozenAt; infer_instance
+
+instance srvFrozenRange_persistent (γs : MemStorNames) (lo hi : Nat) :
+    Persistent (srvFrozenRange (GF := GF) γs lo hi) := by
+  unfold srvFrozenRange; infer_instance
+
 /-- A range from its two parts. -/
 theorem srv_memLog_take_drop (γs : MemStorNames) (k : Nat) (dq : DFrac) (l : List EntryM)
     (m : Nat) (hm : m ≤ l.length) :
@@ -264,6 +272,17 @@ theorem rn_freeze_receipt [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (n : N
     have := Ha.1 hne
     rw [Hk e0 he0] at this
     exact this
+
+/-- The node's running token from its two halves (the loop's and the apply side's, which
+`stopped` brings back: `raftNode.onStop` takes the whole). -/
+theorem rnRun_join [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) :
+    nodeRunning (GF := GF) n γ N (1 : Qp).half ∗ nodeRunning n γ N (1 : Qp).half ⊢
+      nodeRunning n γ N 1 := by
+  iintro ⟨H1, H2⟩
+  have h := ((nodeRunning_fractional (GF := GF) n γ N).fractional (1 : Qp).half (1 : Qp).half).2
+  rw [Qp.half_add_half] at h
+  iapply h
+  iframe H1 H2
 
 end ghost
 
