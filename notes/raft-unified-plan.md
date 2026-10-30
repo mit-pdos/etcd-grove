@@ -1202,6 +1202,14 @@ Phase 2 (internal statement changes):
 - Client repair note: `readySnap none`'s new trailing conjunct needs a binding in the server's and
   kv's destructurings (`InvRaftNode`, `SrvRaftLog`, `KV__run`).
 
+- P3b (internal): `ownRawNode_static_open` also returns `leadW ∗ xfW`, `ownRawNode_intro_static` and
+  `rawNode_applyCC_reseal` take them; `RawNode.Bootstrap.spec` takes `γ.reNoSnap = false` and posts `sn :=
+  s.gh.sn`; new last conjunct of `SnpOk`, `SnpSg g ls := ls.lent = true → ∀ k, g.snp = some k → ls.sg ≤
+  uint.nat k.sid.index'` (`SnpKeep` keeps `sg`; `of_fields` take `hsg := rfl`), for `RawNode.Advance`'s
+  `ownRaftLog_absorb_snap`; `lendLog`/`lendView` set `sg := uint.nat prev.index'` (was `max sg …`, the
+  same value: `ownStorage_sg`); `LemmasP3bXw.lean` (cleanup candidate, overlaps P4's `step_xw`).
+- Phase 2 done at `9491b601ab`: raft's Link/Linked/Results/Api/MemstorageApi build, 0 live `sorry`s.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
@@ -1210,4 +1218,4 @@ Phase 2 (internal statement changes):
   P2a = `InvRaftPhys`, `raft__send`, `raft__sendTimeoutNow`, `raft__become{Candidate,Leader}`,
   `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
   P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
-  P5 together with P7. Done: P5+P7, P2a, P2b, P3a, P4, P6. P3b running. Then phase 3.
+  P5 together with P7. All tracks done (phase 2 complete at `9491b601ab`); phase 3 next. Then phase 3.
