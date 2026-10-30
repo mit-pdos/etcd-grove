@@ -286,3 +286,17 @@ repository) and authkv's session checked it against its history invariant S1. Th
 `noOtherRefusalAt`/`otherRefusalDescs` in `InvGrpc`, the axiom in `NoRefusal.lean`; unused until
 the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
   axiom); `etcd_noRefusal` then becomes a theorem.
+  **Part 2 parked (user, 2026-10-30).** Spec-first, one review round (candidate and review kept
+  outside the repository). `etcd_noRefusal` cannot become a theorem locally: nothing links a
+  handler's error to the client (on an error `grpcInvokerOk` says nothing; `noRefusalAt` is opaque,
+  introduced only by the axiom), and the KV path's specs give errors by structure only (`srvErrIs`,
+  `togRPCError.spec`). Even the reviewer's smaller design (keep `grpc.serve`; keep `noRefusalAt` as
+  a definition, `noOtherRefusalAt ∧` a no-auth-description fact; the refusal fact `False` with auth
+  off only) changes the grpc client contract (and `perRPCCredsOk`: a credentials error with a status
+  reaches the client unchanged, `http2_client.go:695-705`), the `toGRPCErrorMap`/`rpctypes`
+  initializer axioms, the stream interceptor contract, and ~15 server specs, and needs a no-TLS
+  premise: the auth-off claim is false of etcd with client-cert auth
+  (`issues/etcd-auth-old-revision-auth-disabled.md`). The axiom stays (true of the model, which has
+  no TLS). The auth-on payoff (an auth-refused attempt's update given back) also needs the proposer
+  to keep the update for a write refused at commit (`ProposeOn.lean:230-233`).
+
