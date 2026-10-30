@@ -1558,6 +1558,8 @@ results see them:
   ("Repair: Stage P changes").
 - **`NewServer.spec`/`specCompact`/`specM`** (stage P, P9; trusted premise replacing the old γ.dyn = false (given by the allocation's post); coordinator-approved while the user was away, for the user's review): += `γ.rule = srvRule (W64 0) γ.boot`
   ("Repair: Stage P changes").
+- **`srvBuilt`/`isServerBuilt` (+`On`)** (stage P, P10; exported post weakened by the run-length bound that follows the approved premise removal; coordinator-approved while the user was away, for the user's review): the receipts' bound past
+  `SnapshotCatchUpEntries` dropped ("Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1808,3 +1810,8 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   `γ.dyn = false →` stood. Why: `rnEnvOk` (the node's install) needs the cluster's rule to be `srvRule`; Stage F
   dropped `γ.dyn = false` without a replacement, and `srvClusterOk` gives only `confPolicy`/`srvRuleKeeps`.
   The allocation's post (`srvClusterBoot_alloc`/`On`) gives it; `Results.lean`'s composites pass it.
+- **P10 `srvBuilt`, `isServerBuilt` and their `On` variants** (`InvBuild`, `InvStart`, `StartOn`, `ServerOn`; **exported post weakened by the run-length bound that follows the approved premise removal; coordinator-approved while the user was away, for the user's review**):
+  the `SnapshotCatchUpEntries` clause keeps `∃ n, srvSnapCatchUpAddr s ↦ n` and drops
+  `⌜receiptBound GF ≤ uint.Z (if n = 0 then 5000 else n) + 1⌝` (NewServer has no run-length premise; its only
+  consumer, `start` into `isServerApplyAll`, went with P6). `srvBuilt` is in NewServer.spec's post,
+  `isServerBuilt` in Results' `isServerBuilt_of_gapM`. Made by S-E.
