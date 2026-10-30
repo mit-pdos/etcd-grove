@@ -1903,3 +1903,23 @@ thread's `store.Compact`, what M2 needs).
 round-14 text; `server_kv_*` keep their text), and `mvcc_storeBackend_of_backend`'s `(hcm : d.cm =
 false)` (the old bridge serves non-compacting stores, Q5-1; a compacting store's contract is
 `storeBackend_of_backendC`'s).
+
+### Stage 6, the close (2026-10-29)
+
+Done, but for the `axiom` skill on `storage.OpenBackend` (another agent's). Decided by the agent,
+the plan not fixing the text:
+- **`mvcc_NewStore_backend_cmp`** (`mvcc/Results.lean`, for the user's review): `mvcc_NewStore_backend`
+  at `(hcm : d.cm = true)`. Its pre is `mvcc_NewStore_backend`'s with the guarded fkV unguarded
+  (`backend.fkV d.γB true`, round 14's text). Its post is `mvcc_NewStore_backend`'s with:
+  - `mvcc.storeCmp γ` among the pure facts;
+  - `mvcc.compactRight γ (-1) ∗ mvcc.storeStop s γ` in place of
+    `mvcc.storeCloser s γ ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1)`, through `compactRight_of_closer`
+    (a compacting store is never closed or restored: `store.Compact` needs `storeStop`);
+  - the readers' count `Int.toNat sync.rwmutex.actualMaxReaders - 1` (`nJobRd (some d) = 1`).
+
+  So `store.Compact.spec`'s premises on the store hold of its post, and `mvcc_store_Compact` (text
+  unchanged) applies to a store over a compacting real backend. The caller brings the reader's token
+  `storeRT γ` (retiring one of its readers), the critical-section contract and the trace, as for
+  any store. A proof by linking: `wp_apply mvcc_NewStore_backend`, then `compactRight_of_closer`.
+- **`WiringDraft.lean` deleted**: imported by nothing, none of its names used elsewhere.
+- **No API list** for mvcc or storage (`etc/api/` has raft only), so no interface to regenerate.

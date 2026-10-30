@@ -490,6 +490,23 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## Question 5: stage 6, the close (2026-10-29, branch `backend-cmp`)
+
+`notes/backend-cmp-plan.md`, "Stage 6, the close". Done, but for the `axiom` skill's check of
+`storage.OpenBackend` (another agent's):
+- **New export `mvcc_NewStore_backend_cmp`** (`mvcc/Results.lean`; its text for the user's review):
+  `mvcc_NewStore_backend` at `hcm : d.cm = true`, the pre's guarded `fkV` given as
+  `backend.fkV d.γB true`; the post adds `storeCmp γ` and gives the compaction right at `-1` with
+  `storeStop` (`compactRight_of_closer`) in place of `storeCloser`/`crevUB`, the readers'
+  count `nReaders - 1`. So `mvcc_store_Compact`'s premises on the store are its post's: the
+  compaction's results hold of a store built over a compacting real backend. Proved by linking (no
+  new lemma); `#print axioms` the same 1157 as `mvcc_NewStore_backend`'s, no `sorryAx`.
+- **`WiringDraft.lean` deleted**: nothing imported it, and none of its names is used elsewhere
+  (its statements are superseded by their homes in `InvStore`/`ContractLaws`/`BackendBridge`;
+  docstrings still say "the Draft's X" for the history).
+- No package API list covers mvcc or storage (`etc/api/` has raft only): no interface to regenerate.
+- Next: Test and Probe (the user's order), then Freeze and stage 5.
+
 ## Question 5's core stage, parts (2)-(4) (2026-10-29, branch `backend-cmp`)
 
 `notes/backend-cmp-plan.md`, "Core stage, parts (2)-(4)". **The flip is done:** `kbCmp kb := kbCmpM
