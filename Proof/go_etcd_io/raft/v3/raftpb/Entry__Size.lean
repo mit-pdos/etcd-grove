@@ -33,7 +33,7 @@ theorem raftpb.Entry.Size.wp_proof
   wp_if_destruct
   · wp_end
   iStructNamed He
-  try wp_auto
+  wp_auto
   wp_apply wp_sovRaft with %n1 _
   wp_apply wp_sovRaft with %n2 _
   wp_apply wp_sovRaft with %n3 _

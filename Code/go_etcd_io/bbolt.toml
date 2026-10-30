@@ -1,3 +1,6 @@
-# With bodies: bbolt is verified (notes/bbolt-unsafe.md).
-translate = ["*"]
-imports = ["*"]
+# Types and names only: function and method bodies are axiomatized.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

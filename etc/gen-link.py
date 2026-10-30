@@ -23,9 +23,6 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
-       etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/internal/common/Link.lean
-       etc/gen-link.py --bbolt-root > Proof/go_etcd_io/bbolt/Link.lean
-       etc/gen-link.py --bbolt-freelist > Proof/go_etcd_io/bbolt/internal/freelist/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -40,10 +37,6 @@ concurrency package's assumptions. Its results are in the namespace `concurrency
 function's with the prefix `v3.` (`concurrency.v3.wp_OpPut`), and the specs are referred to by
 their full names below `EtcdGrove`: the cache's Link links some of the same clientv3 functions
 (under the cache's assumptions), and concurrency's `WithLease` shares its name with clientv3's.
-`--bbolt` links bbolt's proofs (`internal/common` so far), from etc/link-lean-first-bbolt.txt,
-in the namespace `bbolt` (their specs' namespace). `--bbolt-root` links those of bbolt's root
-package (and the axioms of the file and memory-map model, `Proof/os/FileModel.lean`, which
-they call), from etc/link-lean-first-bbolt-root.txt.
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -78,35 +71,9 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
                    "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
                    "The register example's proofs (`examples/register`)", [""]),
-    # bbolt (go.etcd.io/bbolt): its proofs, in namespace `bbolt`
-    "--bbolt": ("link-lean-first-bbolt.txt", "go_etcd_io.bbolt.internal.common",
-                "go_etcd_io.bbolt.internal.common.Assumptions", "bbolt's proofs", [""]),
-    "--bbolt-root": ("link-lean-first-bbolt-root.txt", "go_etcd_io.bbolt",
-                     "go_etcd_io.bbolt.Assumptions",
-                     "bbolt's root package's proofs and the file model's axioms", [""]),
-    "--bbolt-freelist": ("link-lean-first-bbolt-freelist.txt", "go_etcd_io.bbolt.internal.freelist",
-                         "go_etcd_io.bbolt.internal.freelist.Assumptions",
-                         "bbolt's internal/freelist proofs", [""]),
 }
-# bbolt reaches `hash` only through `hash/fnv`, so its `Assumptions` lack `hash`'s, which the
-# meta checksum's specs (`Meta.Sum64`, ...) take: a Goose gap, an instance hypothesis until fixed
-BBOLT_HASH = """-- `hash.Hash64`'s type: bbolt's `Assumptions` do not include `hash`'s (it reaches `hash` only
--- through `hash/fnv`)
-variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
--- the ghost state of the database's predicates (`DBPred.lean`)
-variable [AllG GF]
-"""
-# the root package's proofs also take `os.FileInfo`'s assumptions (an alias Perennial's `os`
-# keeps opaque, `Proof/os/FileInfoAlias.lean`)
-BBOLT_ROOT = """variable [os_fi : OsFileInfoAssumptions (GF := GF)]
--- the platform (`Proof/runtime/GOOS.lean`)
-variable [linux : GOOSLinux]
--- integer/float64 conversions, which Perennial does not model yet (`FloatConv.lean`)
-variable [float_sem : go.FloatConvSemantics]
-"""
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt",
-              "--bbolt-freelist": "bbolt"}
+NAMESPACED = {"--concurrency": "concurrency"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -175,17 +142,9 @@ with open(os.path.join(here, mode[0] if cache else "link-lean-first.txt")) as f:
 fns.sort()
 
 spec = {}
-# a second spec of a function (`<T>.<M>.wspec`, proved by `<T>.<M>.wp_wproof`: the writer's
-# view of a function a reader also calls) is linked as `<T>.wp_<M>_w`; likewise any variant
-# `<T>.<M>.<x>spec` proved by `<T>.<M>.wp_<x>proof` (bbolt: `s`, the writer with its shape,
-# `WriteTxShape.lean`; `l`, the database lost after a failed remap) as `<T>.wp_<M>_<x>`
-variant = {}
 for fn in fns:
     src = open(spec_file(fn)).read()
     m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
-    if m is None:
-        m = re.search(r"^abbrev ([\w.«»']+)\.([a-z])spec\b", src, re.M)
-        variant[fn] = m.group(2)
     # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
@@ -209,8 +168,7 @@ def result(fn):
             parts = parts[1:]
         elif where[fn].split(".")[:-1] == ["go_etcd_io", "etcd", "client", "v3"]:
             parts = ["v3"] + parts
-    suffix = f"_{variant[fn]}" if fn in variant else ""
-    return ".".join(parts[:-1] + [f"wp_{last}{suffix}"])
+    return ".".join(parts[:-1] + [f"wp_{last}"])
 
 
 def specref(fn):
@@ -244,8 +202,6 @@ hand.
 `#print axioms` on a result is its trust base.
 -/""", "module", ""]
     out.extend(f"public import {proof_module(fn)}" for fn in fns if fn not in external)
-    if sys.argv[1] == "--bbolt-root":
-        out.append("public import Proof.go_etcd_io.bbolt.FloatConv")
     out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
                        for fn in external}))
     out.append(f"""
@@ -264,22 +220,16 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""" + (BBOLT_HASH if sys.argv[1] in ("--bbolt", "--bbolt-root", "--bbolt-freelist") else "")
-      + (BBOLT_ROOT if sys.argv[1] == "--bbolt-root" else ""))
+""")
     def emit_cache(fn):
-        # qualified in a namespaced mode: in `theorem DB.wp_munmap`, a bare `wp_munmap` would be
-        # `DB.wp_munmap` itself
-        args = " ".join((f"EtcdGrove.{nsd}.{result(c)}" if nsd else result(c))
-                        for c in callees[fn])
-        v = variant.get(fn, "")
-        sp, pf = (f"{v}spec", f"wp_{v}proof") if v else ("spec", "wp_proof")
-        body = f"{specref(fn)}.{pf}" + (f" {args}" if args else "")
+        args = " ".join(result(c) for c in callees[fn])
+        body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
         allg = " [AllG GF]" if "[AllG GF]" in src else ""
         # the register's specs take its storage registry
         allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
-        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.{sp} (GF := GF) (hG := hG) :=\n"
+        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
     generic = [fn for fn in order if fn not in haslc and fn not in external]
