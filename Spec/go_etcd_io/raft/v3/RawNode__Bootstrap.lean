@@ -61,6 +61,9 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
+  -- (raft-final phase 2) outside the cluster's no-snapshot mode (dropped at raft's level: a node's
+  -- `NGhost.ns` is off, `NsCap`)
+  γ.reNoSnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
       rawNodeFresh rn id si ∅ sdr pre s ∗
@@ -78,7 +81,7 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       ⌜err = interface.nil⌝ ∗
       ownRawNode γ rn id
         { delivered := [], unpersisted := [], steps := [], term := W64 1,
-          storage := interface.ok si, mode := md,
+          storage := interface.ok si, sn := s.gh.sn, mode := md,
           cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 } ∗
       peers ↦*{dq} pv }}
 

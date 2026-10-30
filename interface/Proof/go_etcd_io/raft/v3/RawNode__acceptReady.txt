@@ -2,11 +2,11 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem readyNstate.proj_outbox (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).outbox = []
+theorem readyNstate.proj_outbox (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk
+    : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).outbox = []
 
-theorem readyNstate.proj_votes (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).votes = s.votes
+theorem readyNstate.proj_votes (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk
+    : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).votes = s.votes
 
 def readySteps (s : NState) (L : Option SnapLoan) (selfs : List Pending) (ce : List EntryM) : List
     Pending :=
@@ -18,14 +18,15 @@ def readySteps (s : NState) (L : Option SnapLoan) (selfs : List Pending) (ce : L
             (Option.map SnapLoan.snap L)]) ++
     if ce = [] then [] else [Pending.applyAck ce]
 
-theorem readyNstate.proj_rd (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).rd = have __src := s.rd; { ro := __src.ro, pend := __src.pend }
+theorem readyNstate.proj_rd (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).rd = have __src := s.rd; { ro := __src.ro, pend
+    := __src.pend }
 
-theorem readyNstate.proj_ticking (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).ticking = s.ticking
+theorem readyNstate.proj_ticking (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
+    (dk : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).ticking = s.ticking
 
-theorem readyNstate.proj_cq (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).cq = s.cq
+theorem readyNstate.proj_cq (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).cq = s.cq
 
 theorem ready_stepsOk (s' : NState) (t : w64) (b : entryID) (last : Option entryID) (sn : Option
     SnapshotM) (ce : List EntryM) (u : Prop) [Decidable u] (Ht : uint.Z t ≤ uint.Z s'.term) (Hl : ¬u
@@ -34,39 +35,40 @@ theorem ready_stepsOk (s' : NState) (t : w64) (b : entryID) (last : Option entry
     uint.Z s'.logst.applying) : StepsOk s' ((if u then [] else [Pending.appendAck t b last sn]) ++
     if ce = [] then [] else [Pending.applyAck ce])
 
-theorem readyNstate.proj_pci (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).pci = s.pci
+theorem readyNstate.proj_pci (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).pci = s.pci
 
 theorem stepsOk_selfs (s : NState) (selfs rest : List Pending) (Hs : ∀ (p : Pending), p ∈ selfs → (∃
     pv t, p = Pending.self pv t) ∧ PendingOk s p) (Hr : StepsOk s rest) : StepsOk s (selfs ++ rest)
 
 theorem readyNstate_guard {fp : List EntryM} {s : NState} {L : Option SnapLoan} {ce : List EntryM}
-    {sz : w64} (h : PreGuardF fp s) : PreGuardF fp (readyNstate s L ce sz)
+    {sz : w64} {dk : Nat} (h : PreGuardF fp s) : PreGuardF fp (readyNstate s L ce sz dk)
 
-theorem readyNstate.proj_role (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).role = s.role
+theorem readyNstate.proj_role (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).role = s.role
 
-theorem toPState_ready (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) : toPState
-    (readyNstate s L ce sz) = have __src := toPState s; { term := __src.term, vote := __src.vote,
-    lead := __src.lead, role := __src.role, votes := __src.votes, outbox := [], base := __src.base,
-    log := __src.log, commit := __src.commit, matched := __src.matched, rd :=
+theorem toPState_ready (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) {dk : Nat} :
+    toPState (readyNstate s L ce sz dk) = have __src := toPState s; { term := __src.term, vote :=
+    __src.vote, lead := __src.lead, role := __src.role, votes := __src.votes, outbox := [], base :=
+    __src.base, log := __src.log, commit := __src.commit, matched := __src.matched, rd :=
         have __src := (toPState s).rd;
         { ro := __src.ro, pend := __src.pend } }
 
-theorem readyNstate.proj_stepfn (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).stepfn = s.stepfn
+theorem readyNstate.proj_stepfn (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk
+    : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).stepfn = s.stepfn
 
-theorem readyNstate.proj_log (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).log = s.log
+theorem readyNstate.proj_log (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).log = s.log
 
 def loanTrip (L : Option SnapLoan) : Option SnapTrip :=
   Option.map (fun l => snapTrip l.snap l.snap.Metadata'.ConfState'.lists) L
 
-theorem readyNstate.proj_sdr (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).sdr = s.sdr
+theorem readyNstate.proj_sdr (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).sdr = s.sdr
 
-theorem readyNstate.proj_logst (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).logst = logAcceptApplying (logAcceptUnstable (rdyLs L s.logst)) ce sz
+theorem readyNstate.proj_logst (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk
+    : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).logst = logAcceptApplying (logAcceptUnstable
+    (rdyLs L s.logst dk)) ce sz
 
 theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHardState :
     IsEmptyHardState.spec) (wp_needStorageApplyRespMsg : needStorageApplyRespMsg.spec)
@@ -98,32 +100,33 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
                 (intoVal rd))
               {{ Φ }}
 
-theorem readyNstate.proj_vote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).vote = s.vote
+theorem readyNstate.proj_vote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).vote = s.vote
 
-theorem readyNstate.proj_progress (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).progress = s.progress
+theorem readyNstate.proj_progress (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
+    (dk : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).progress = s.progress
 
-theorem readyNstate.proj_lt (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).lt = s.lt
+theorem readyNstate.proj_lt (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).lt = s.lt
 
 theorem readyNstate.proj_isLearner (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
-    : (readyNstate s L ce sz).isLearner = s.isLearner
+    (dk : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).isLearner = s.isLearner
 
-theorem readyNstate.proj_gh (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).gh = have __src := s.gh; { tc := __src.tc, ns := __src.ns, xw :=
-    __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn }
+theorem readyNstate.proj_gh (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).gh = have __src := s.gh; { tc := __src.tc, ns
+    := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn }
 
-theorem readyNstate.proj_prevote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).prevote = s.prevote
+theorem readyNstate.proj_prevote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
+    (dk : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).prevote = s.prevote
 
-theorem readyNstate.proj_term (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).term = s.term
+theorem readyNstate.proj_term (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).term = s.term
 
-def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) : NState :=
+def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk : Nat :=
+    s.logst.dtk) : NState :=
   { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes, outbox := [], stepfn := s.stepfn,
     ticking := s.ticking, progress := s.progress, log := s.log,
-    logst := logAcceptApplying (logAcceptUnstable (rdyLs L s.logst)) ce sz, prvals := s.prvals, prevote := s.prevote,
+    logst := logAcceptApplying (logAcceptUnstable (rdyLs L s.logst dk)) ce sz, prvals := s.prvals, prevote := s.prevote,
     gh :=
       have __src := s.gh;
       { tc := __src.tc, ns := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn },
@@ -132,23 +135,29 @@ def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
       { ro := __src.ro, pend := __src.pend },
     lt := s.lt, pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
 
-theorem readyNstate.proj_prvals (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).prvals = s.prvals
+theorem readyNstate.proj_prvals (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk
+    : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).prvals = s.prvals
 
-def rdyLs (L : Option SnapLoan) (ls : LogState) : LogState :=
+def rdyLs (L : Option SnapLoan) (ls : LogState) (dk : Nat := ls.dtk) : LogState :=
   if L.isSome = true then
+    lendLog
+      { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
+        snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
+        stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
+        sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+        sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := dk }
+  else
     { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
       snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
       stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
-      sip := ls.sip, lent := true, sapp := ls.sapp, aps := ls.aps, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt,
-      sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
-  else ls
+      sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+      sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := dk }
 
-theorem readyNstate.proj_lead (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) :
-    (readyNstate s L ce sz).lead = s.lead
+theorem readyNstate.proj_lead (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
+    Nat := s.logst.dtk) : (readyNstate s L ce sz dk).lead = s.lead
 
-theorem rdyLog_true (L : Option SnapLoan) (ls : LogState) : rdyLog true L.isSome ls = logHanded
-    (rdyLs L ls)
+theorem rdyLog_true (L : Option SnapLoan) (ls : LogState) (dk : Nat := ls.dtk) : rdyLog true
+    L.isSome ls dk = logHanded (rdyLs L ls dk)
 
 theorem accept_fields (ls : LogState) (ce : List EntryM) (sz : w64) : (logAcceptApplying
     (logAcceptUnstable ls) ce sz).prev = ls.prev ∧ (logAcceptApplying (logAcceptUnstable ls) ce

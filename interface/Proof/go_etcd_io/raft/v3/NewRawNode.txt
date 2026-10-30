@@ -101,6 +101,7 @@ theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.sp
                                                                       ∃ s,
                                                                         rawNodeFresh rn cv.ID' si (listToSet csm.Voters')
                                                                             cv.StepDownOnRemoval' cv.PreVote' s ∗
-                                                                          ⌜err = GoInterface.nil⌝) -∗
+                                                                          ⌜err = GoInterface.nil⌝ ∗
+                                                                            ⌜s.logst.sn = sn ∧ s.gh.sn = sn⌝) -∗
                                                                     Φ (intoVal rn, intoVal err)) -∗
                                                               WP ((intoVal (functions NewRawNode [])) (intoVal c)) {{ Φ }}

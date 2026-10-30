@@ -154,8 +154,10 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                                                                                       s.sdr =
                                                                                                                           cv.StepDownOnRemoval' ∧
                                                                                                                         s.progress.domSet =
-                                                                                                                          listToSet
-                                                                                                                            csm.Voters'⌝ -∗
+                                                                                                                            listToSet
+                                                                                                                              csm.Voters' ∧
+                                                                                                                          s.logst.dtk =
+                                                                                                                            0⌝ -∗
                                                                   Φ (intoVal r)) -∗
                                                             WP ((intoVal (functions newRaft [])) (intoVal c)) {{ Φ }}
 

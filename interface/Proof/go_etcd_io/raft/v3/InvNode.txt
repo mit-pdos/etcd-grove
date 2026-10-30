@@ -110,6 +110,12 @@ def (sealed) deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (l : List L
 
 def (sealed) committedAtTerm (γ : Cluster) (N : Namespace) (t c : w64) : IProp GF
 
+theorem readyRest_indices [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
+    Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L :
+    Option SnapLoan) : readyRest γ N id rd st ce es h L ⊢ ⌜∀ (e0 : EntryM), es.head? = some e0 → ∀
+    (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗
+    readyRest γ N id rd st ce es h L
+
 def (sealed) ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF
 
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState) (ce :
@@ -302,7 +308,14 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
   | none =>
     iprop(⌜rd.Snapshot' = null⌝ ∗
         appendRight st.storage es ∗
-          ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es)
+          ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es ∗
+            ⌜∀ (e0 : EntryM),
+                es.head? = some e0 →
+                  (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+                    ∀ (j : Nat) (e : LogEntry),
+                      ce[j]? = some e →
+                        uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
+                          Option.map LogEntry.ofEntryM es[st.delivered.length + 1 + j - uint.nat e0.Index']? = some e⌝)
   | some l =>
     iprop(⌜l.dlv = LogEntry.toEntries (strip l.dlv) 0 ∧
             l.ptr = rd.Snapshot' ∧

@@ -564,9 +564,9 @@ theorem SnpOk.stableSnap {g : NGhost} {ls : LogState} (i : w64) (H : SnpOk g ls)
     SnpOk g (logStableSnap ls i) := by
   unfold logStableSnap
   split
-  · obtain ⟨H1, H2, -, -, -⟩ := H
+  · obtain ⟨H1, H2, -, -, -, H6⟩ := H
     refine ⟨H1, fun k hk => ?_, fun h => by simp at h, fun h => by simp at h,
-      fun k hk hl => ⟨fun h => by simp at h, fun _ h => by simp at h⟩⟩
+      fun k hk hl => ⟨fun h => by simp at h, fun _ h => by simp at h⟩, H6⟩
     obtain ⟨-, Hb, Hc⟩ := H2 k hk
     exact ⟨fun h => by simp at h, Hb, Hc⟩
   · exact H
@@ -626,13 +626,30 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (U8 v2) The log once a snapshot `Ready` lent its ranges (before the batch's hand-out). -/
+/-- (U8 v2) The log once a snapshot `Ready` lent its ranges (before the batch's hand-out). (raft-final
+phase 2, 2026-10-30: the snapshot handed out is the lent one, `sg := prev.index`; until then
+`max sg prev.index`, the same, since `sg` is below the frozen end, below the pending snapshot, but
+not recorded: `SnpSg`.) -/
 def lendLog (ls : LogState) : LogState :=
-  { ls with lent := true, sat := false, sg := max ls.sg (uint.nat ls.prev.index') }
+  { ls with lent := true, sat := false, sg := uint.nat ls.prev.index' }
 
 /-- (U8 v2) Raft's view once a snapshot `Ready` lent its ranges. -/
 def lendView (σ : StorState) (ls : LogState) : StorState :=
-  { σ with pend := nextUnstable ls, sg := max σ.sg (uint.nat ls.prev.index') }
+  { σ with pend := nextUnstable ls, sg := uint.nat ls.prev.index' }
+
+/-- (raft-final phase 2, 2026-10-30) The view's snapshot handed out at most its boundary, which is at
+most its frozen end (`ownStorage`'s pure part), kept with the view. -/
+private theorem ownStorage_sg (sn : StorNames) (st : Storage) (σ : StorState) :
+    ownStorage (GF := GF) sn st σ ⊢
+      ⌜σ.sg ≤ uint.nat σ.prev.index' ∧ uint.nat σ.prev.index' ≤ σ.fr⌝ ∗ ownStorage sn st σ := by
+  unfold ownStorage
+  iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, Hau, %Hw⟩
+  isplitr
+  · ipureintro; exact ⟨Hw.2.2.2.2, Hw.2.1⟩
+  iexists e0
+  iframe Hcomp HFr HO Hend Hau
+  ipureintro; exact Hw
+
 
 /-- (D22 S-d1b; U8 v2) **The ranges lent** with a snapshot `Ready`: with a snapshot pending at
 `s`, nothing unpersisted and nothing lent yet, the application gets every range above raft's frozen
@@ -657,6 +674,9 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
     have := (Hfr.1 Hlt0).2.2 sid Hs Hsip0
     rw [Hpv]; omega
   ihave HStorage := lentStor_open Hlt0 _ _ _ $$ HStorage
+  -- (raft-final phase 2) the snapshot last handed out below the lent one
+  icases ownStorage_sg _ _ _ $$ HStorage with ⟨%Hsg0, HStorage⟩
+  have Hsgle : σ.sg ≤ uint.nat ls.prev.index' := by omega
   have Hcontig : ∀ (k : Nat) (e : EntryM), ls.uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
     intro k e Hk
@@ -698,12 +718,12 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
   have Hfr' : FrOk (lendView σ ls)
       (logHanded (lendLog ls)) :=
     ⟨fun h => by simp [logHanded, lendLog] at h,
-      show max σ.sg (uint.nat ls.prev.index') = max ls.sg (uint.nat ls.prev.index') by rw [Hfr.2.1],
+      show uint.nat ls.prev.index' = uint.nat ls.prev.index' from rfl,
       DtOk.of_eq Hfr.2.2 rfl rfl rfl⟩
   have Hprel' : SipOk (logHanded (lendLog ls)) lv.unstable'.offset' :=
     ⟨fun _ => LogPersistRel_full _ _ _, Hprel.2⟩
-  imod ownStorage_lend ls.sn lv.storage' σ (max σ.sg (uint.nat ls.prev.index'))
-    (Hpend.1.trans Hunp0) (Nat.le_max_left _ _) $$ HStorage with ⟨Hau, HO, Hend, #Hgiv⟩
+  imod ownStorage_lend ls.sn lv.storage' σ (uint.nat ls.prev.index')
+    (Hpend.1.trans Hunp0) Hsgle $$ HStorage with ⟨Hau, HO, Hend, #Hgiv⟩
   imodintro
   isplitl [Hl Hau Huents Huents_cap]
   · iapply ownRaftLog_intro (K := ls.ksn) (sn := ls.sn) l lv lv.storage'
@@ -714,7 +734,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
       Hfr' rfl rfl rfl rfl rfl
       $$ Hl HisStorage [Hau] Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
     iapply (lentStor_lent (b := (logHanded (lendLog ls)).lent) rfl _ _ _).2
-    iapply (storAuths_eq ls.sn { σ with sg := max σ.sg (uint.nat ls.prev.index') } (lendView σ ls) rfl rfl)
+    iapply (storAuths_eq ls.sn { σ with sg := uint.nat ls.prev.index' } (lendView σ ls) rfl rfl)
     iexact Hau
   isplitl [HO Hend]
   · iexists σ.fr + 1, σ.ents.drop (σ.fr - uint.nat σ.prev.index')
@@ -722,7 +742,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
     iframe HO Hend
     ipureintro; exact Hk
   unfold storGiven
-  iapply (monoNatLbOwn_le (uint.nat ls.prev.index') (Nat.le_max_right _ _))
+  iapply (monoNatLbOwn_le (uint.nat ls.prev.index') (Nat.le_refl _))
   iexact Hgiv
 
 /-- (D22 S-d3a, 2026-10-21) A pending snapshot not yet handed out: the log starts at it, with no

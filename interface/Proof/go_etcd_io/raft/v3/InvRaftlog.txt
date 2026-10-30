@@ -124,6 +124,9 @@ theorem ownRaftLog_quiet [package_sem : Assumptions] (l : Loc) (ls : LogState) :
 
 theorem unstableOf.proj_ksn (lv : raftLog) (ls : LogState) : (unstableOf lv ls).ksn = ls.ksn
 
+def SnpSg (g : NGhost) (ls : LogState) : Prop :=
+  ls.lent = true → ∀ (k : SnapTrip), g.snp = some k → ls.sg ≤ uint.nat k.sid.index'
+
 theorem pendKsn_none [package_sem : Assumptions] (p : Loc) (K : List SnapTrip) : ⊢ pendKsn p none K
 
 syntax tacticOpen_unstable
@@ -294,7 +297,8 @@ def SatOk (σ : StorState) (ls : LogState) : Prop :=
 
 theorem SnpOk.of_quiet {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent) (hsn : ls.snap = none)
     (hsip : ls.sip = false) (hsat : ls.sat = false) (hk : ∀ (k : SnapTrip), g.snp = some k → k ∈
-    ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) (hx : SnpExt g ls) : SnpOk g ls
+    ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) (hx : SnpExt g ls) (hsg : SnpSg g ls) :
+    SnpOk g ls
 
 theorem DtOk.empty (ls : LogState) : DtOk ∅ ls
 
@@ -473,7 +477,8 @@ def SnpKeep (ls ls' : LogState) : Prop :=
   ls'.lent = ls.lent ∧
     ls'.sip = ls.sip ∧
       ls'.sat = ls.sat ∧
-        ls'.ksn = ls.ksn ∧ ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying ∧ ls'.sn = ls.sn
+        ls'.ksn = ls.ksn ∧
+          ls'.sxt = ls.sxt ∧ ls'.aps = ls.aps ∧ ls'.applying = ls.applying ∧ ls'.sn = ls.sn ∧ ls'.sg = ls.sg
 
 theorem ownRaftLogW_intro [package_sem : Assumptions] (l : Loc) (lv : raftLog) (st : Storage) (σ :
     StorState) (snap : Option entryID) (uents : List EntryM) (ls : LogState) {K : List SnapTrip} {lt
@@ -520,7 +525,7 @@ def SnpOk (g : NGhost) (ls : LogState) : Prop :=
           (ls.snap = some k.sid → ls.sip = true ∧ (ls.lent = true ∨ ls.sat = true)) ∧
             k ∈ ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) ∧
       (ls.sip = true ∨ ls.sat = true → g.snp ≠ none) ∧
-        (ls.sip = true ∨ ls.sat = true → ∃ k, g.snp = some k ∧ ls.snap = some k.sid) ∧ SnpExt g ls
+        (ls.sip = true ∨ ls.sat = true → ∃ k, g.snp = some k ∧ ls.snap = some k.sid) ∧ SnpExt g ls ∧ SnpSg g ls
 
 def lentStor (b : Bool) (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
   if b = true then storAuths sn σ else ownStorage sn st σ
@@ -641,7 +646,7 @@ def PendLogOk (σ : StorState) (ls : LogState) : Prop :=
 theorem SnpOk.of_fields {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hlt : ls'.lent = ls.lent)
     (hsn : ls'.snap = ls.snap) (hsip : ls'.sip = ls.sip) (hsat : ls'.sat = ls.sat) (hk : ls'.ksn =
     ls.ksn) (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed) (hx : SnpExt g ls → SnpExt g ls' :=
-    by exact fun h => h) : SnpOk g ls'
+    by exact fun h => h) (hsg : ls'.sg = ls.sg := by rfl) : SnpOk g ls'
 
 theorem ownRaftLog_toW [package_sem : Assumptions] (l : Loc) (ls : LogState) : ownRaftLog l ls ⊢
     ownRaftLogW l ls

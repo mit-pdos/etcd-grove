@@ -749,9 +749,11 @@ theorem LogGhOk.of_fields {s : NState} {ls' : LogState} (H : LogGhOk s s.logst)
     (hsat : ls'.sat = s.logst.sat := by rfl) (hk : ls'.ksn = s.logst.ksn := by rfl)
     -- (D22 S-d4 item 3) and those `SnpExt` reads
     (hx : SnpExt s.gh s.logst → SnpExt s.gh ls' := by exact fun h => h)
-    (hsm : ls'.sn = s.logst.sn := by rfl) :
+    (hsm : ls'.sn = s.logst.sn := by rfl)
+    -- (raft-final phase 2) and the snapshot last handed out (`SnpSg`)
+    (hsg : ls'.sg = s.logst.sg := by rfl) :
     LogGhOk s ls' := by
-  refine ⟨⟨?_, H.1.2.1.of_fields hlt hsn hsip hsat hk hcm hx, hsm.trans H.1.2.2⟩,
+  refine ⟨⟨?_, H.1.2.1.of_fields hlt hsn hsip hsat hk hcm hx hsg, hsm.trans H.1.2.2⟩,
     fun _ => ⟨hpv, hsn, hst, hcm⟩, hst⟩
   have H := H.1.1
   unfold nextUnstable logOffset at *

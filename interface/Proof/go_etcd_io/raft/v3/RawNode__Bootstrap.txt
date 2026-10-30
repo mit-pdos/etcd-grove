@@ -19,27 +19,28 @@ theorem RawNode.Bootstrap.wp_proof [package_sem : Assumptions] (wp_raft_becomeFo
                 γ.reCfg = listToSet ps →
                   γ.reBoot = bootLog →
                     BootLogOk ps bootLog →
-                      ⊢
-                        ∀ Φ,
-                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                              rawNodeFresh rn id si ∅ sdr pre s ∗
-                                ownSlice peers pv dq ∗
-                                  peersCtx pv ctxs ∗
-                                    bootMarshal ps ctxs bootLog ∗
-                                      bootInit γ md id (listToSet ps) bootLog ∗
-                                        isCommitted γ bootLog ∗ certLink γ s.gh.sn -∗
-                            (▷
-                                ∀ err,
-                                  ⌜err = GoInterface.nil⌝ ∗
-                                      ownRawNode γ rn id
-                                          { delivered := [], unpersisted := [], steps := [], term := W64 1,
-                                            storage := GoInterface.ok si, tc := W64 1, mode := md,
-                                            cfg := cfgState (listToSet ps) ∅ } ∗
-                                        ownSlice peers pv dq -∗
-                                    Φ (intoVal err)) -∗
-                              WP
-                                ((intoVal
-                                    (methods RawNode.ty.PointerType
-                                      go!"Bootstrap" (intoVal rn)))
-                                  (intoVal peers))
-                                {{ Φ }}
+                      γ.reNoSnap = false →
+                        ⊢
+                          ∀ Φ,
+                            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                rawNodeFresh rn id si ∅ sdr pre s ∗
+                                  ownSlice peers pv dq ∗
+                                    peersCtx pv ctxs ∗
+                                      bootMarshal ps ctxs bootLog ∗
+                                        bootInit γ md id (listToSet ps) bootLog ∗
+                                          isCommitted γ bootLog ∗ certLink γ s.gh.sn -∗
+                              (▷
+                                  ∀ err,
+                                    ⌜err = GoInterface.nil⌝ ∗
+                                        ownRawNode γ rn id
+                                            { delivered := [], unpersisted := [], steps := [], term := W64 1,
+                                              storage := GoInterface.ok si, sn := s.gh.sn, tc := W64 1, mode := md,
+                                              cfg := cfgState (listToSet ps) ∅ } ∗
+                                          ownSlice peers pv dq -∗
+                                      Φ (intoVal err)) -∗
+                                WP
+                                  ((intoVal
+                                      (methods RawNode.ty.PointerType
+                                        go!"Bootstrap" (intoVal rn)))
+                                    (intoVal peers))
+                                  {{ Φ }}

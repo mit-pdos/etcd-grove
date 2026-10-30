@@ -156,6 +156,9 @@ theorem csOptA_nn [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfSt
     c ⊢ csOptA p dq c ∗ ⌜p = null ∧ c = { Voters' := [], Learners' := [], VotersOutgoing' := [],
     LearnersNext' := [], AutoLeave' := false } ∨ p ≠ null⌝
 
+theorem ownSnapM_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (sn : SnapshotM) :
+    ownSnapM p dq1 sn ∗ ownSnapM p dq2 sn ⊢ ownSnapM p (dq1 • dq2) sn
+
 structure MsgSt : Type where
   msg : MessageM
   ents : List EntryM
@@ -313,6 +316,9 @@ theorem hsRO_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.HardSta
     cellRO v.Term' hs.Term' ∗ cellRO v.Vote' hs.Vote' ∗ cellRO v.Commit' hs.Commit' ⊢ |={E}=> hsRO p
     hs
 
+theorem smPts_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (md :
+    SnapshotMetadataM) : smPts p dq1 md ∗ smPts p dq2 md ⊢ smPts p (dq1 • dq2) md
+
 theorem ownConfChangeV2_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChangeV2) (m
     : ConfChangeV2M) (ls : List Loc) (E : CoPset) (Hu : v.unknownFields' = slice.nil) :
     typedPointsto p v (DFrac.own 1) ∗ cellRO v.Transition' m.transition ∗ ownSlice v.Changes' ls
@@ -364,6 +370,9 @@ def smOpt (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
 
 theorem w64_eq_of_le_le {a b : w64} (h1 : uint.Z a ≤ uint.Z b) (h2 : uint.Z b ≤ uint.Z a) : a = b
 
+theorem csOptA_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
+    csOptA p dq1 c ∗ csOptA p dq2 c ⊢ csOptA p (dq1 • dq2) c
+
 theorem csPts_persistent (p : Loc) (c : ConfStateM) (al : Bool) : Persistent (csPts p DFrac.discard
     c al)
 
@@ -371,6 +380,12 @@ theorem cellRO_alloc {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) 
     (DFrac.own 1) ⊢ |==> cellRO p v
 
 theorem entRO_persistent (l : Loc) (e : EntryM) : Persistent (entRO l e)
+
+theorem snapOpt_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (o : Option
+    SnapshotM) : snapOpt p dq1 o ∗ snapOpt p dq2 o ⊢ snapOpt p (dq1 • dq2) o
+
+theorem csPts_combine_open [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM)
+    (al1 al2 : Bool) : csPts p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c false
 
 def needsCap (m : MessageM) : Bool :=
   decide (m.Type' = MsgApp)
@@ -385,6 +400,9 @@ theorem msgOwn_split [package_sem : Assumptions] (l : Loc) (dq1 dq2 : DFrac) (ms
 
 theorem ownSnapM_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (sn : SnapshotM) :
     ownSnapM p (dq1 • dq2) sn ⊢ ownSnapM p dq1 sn ∗ ownSnapM p dq2 sn
+
+theorem smOpt_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (md :
+    SnapshotMetadataM) : smOpt p dq1 md ∗ smOpt p dq2 md ⊢ smOpt p (dq1 • dq2) md
 
 theorem ccsRO_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChangeSingle) (c :
     ConfChangeSingleM) (E : CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto p v

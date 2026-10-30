@@ -997,10 +997,10 @@ theorem RawNode.Advance.wp_proof
         have e2 := uint_nat_eq (snapId l.snap).index'
         have : uint.Z (snapId l.snap).index' < uint.Z s2.index' := hlt
         constructor <;> omega
-    -- BLOCKED (P3b's report): the snapshot index last handed out (`LogState.sg`, set to the lent
-    -- snapshot's by `ownRaftLog_lend`) at most the lent snapshot's: no invariant records it
-    have Hsg : s.logst.sg ≤ uint.nat (snapId l.snap).index' := by
-      sorry
+    -- (raft-final phase 2) the snapshot index last handed out (`LogState.sg`, set to the lent
+    -- snapshot's by `ownRaftLog_lend`) at most the lent snapshot's (`SnpSg`)
+    have Hsg : s.logst.sg ≤ uint.nat (snapId l.snap).index' :=
+      Hgh0.1.2.1.2.2.2.2.2 Hlt _ Hsnp
     have Hst' : rs.storage = s.logst.storage := Hstor.1
     have Hstd : rs.unpersisted = s.logst.stored := by rw [Hunp, Hstu]
     ihave Hlog := ownRaftLog_absorb_snap s.log s.logst (snapId l.snap) eR Hlt HeR Hsg
@@ -1013,7 +1013,7 @@ theorem RawNode.Advance.wp_proof
         (logAbsorbSnap s.logst (snapId l.snap)) := by
       refine ⟨⟨fun _ => .inr Hsnn, ⟨rfl,
           fun k hk => ?_, fun _ => by show s.gh.snp ≠ none; rw [Hsnp]; simp, fun h => ?_,
-          fun k hk _ => ⟨fun _ => ?_, fun h => absurd h Hsnn⟩⟩, Hgh0.1.2.2⟩,
+          fun k hk _ => ⟨fun _ => ?_, fun h => absurd h Hsnn⟩, fun h _ _ => absurd h (by simp [logAbsorbSnap])⟩, Hgh0.1.2.2⟩,
         fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
       rotate_right
       · -- (D22 S-d4 item 3) the storage at the snapshot handed out (`sxt`)
@@ -1275,7 +1275,7 @@ theorem RawNode.Advance.wp_proof
             (by rw [Hpv1]; exact Int.le_refl _)
             (fun x hx _ => by rw [← (Hpok.2 x hx).1, ← Hpv1]; exact Hsok)
             (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
-            (fun hs hl => (Hgh1.1.2.1.2.2.2.2 _ Hsnp1 hl).1 hs)
+            (fun hs hl => (Hgh1.1.2.1.2.2.2.2.1 _ Hsnp1 hl).1 hs)
             (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
             (fun hd => ⟨Happ1, fun _ => by rw [Hpv1]; rfl, Hdlen', Hdlast, Hcm1⟩)
@@ -1423,7 +1423,7 @@ theorem RawNode.Advance.wp_proof
             (by rw [Hpv1]; exact Int.le_of_lt Hl2)
             (fun x hx ht => by rw [Hak]; exact fun h => absurd h (Hnh x hx ht))
             (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
-            (fun hs hl => (Hgh1.1.2.1.2.2.2.2 _ Hsnp1 hl).1 hs)
+            (fun hs hl => (Hgh1.1.2.1.2.2.2.2.1 _ Hsnp1 hl).1 hs)
             (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
             (fun hd => ⟨Happ1, Hsnb1, Hdlen', Hdlast, Hcm1⟩)

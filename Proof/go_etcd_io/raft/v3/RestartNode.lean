@@ -280,12 +280,16 @@ private theorem RestartNode.wp_raw
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           (by unfold NsLink; rw [Hgh, Hns0])
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] [] []
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · rw [Hgsn]; iexact Hcl
       · rw [Hsn]; iapply snapLocOk_none
+      · -- (raft-final phase 2) a fresh node: no leader, no transfer record
+        iapply leadW_none γ cv.ID' _ (by rw [Hrel.1]; rfl)
+      · unfold xfW; rw [Hgh]
+        iapply BigSepM.bigSepM_empty.2; iempintro
     | dyn dec c0 h0 h1 =>
       iunfold rnInit at Hghost
       icases Hghost with ⟨%HD, Hgr⟩
