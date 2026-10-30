@@ -1188,6 +1188,10 @@ Phase 2 (internal statement changes):
   `"%Hcepre" ∷ ⌜es ≠ [] → ce <+: logCommittedEnts s.logst⌝` (from `readyWithoutAccept`'s `Hce`;
   guarded: `ownRawNodeIdle_ready` re-sends a stale `Ready` with `es = []`).
 
+- `newRaft.spec` (internal): post gains `s.logst.dtk = 0`; `NewRawNode.spec` (internal): post gains
+  `s.logst.sn = sn ∧ s.gh.sn = sn`; `rawNodeFresh`'s `%Hlog` gains `s.logst.dtk = 0`. Why: `RestartNode`
+  needs `SdtTie` of the fresh node and the boot bundle's storage names, which the posts left out.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
