@@ -390,9 +390,12 @@ store's `GetList` is still names-only.
   test (gated: green over seeds, no early returns, mutation score, coverage, pure premises only,
   the checker's soundness), then inventory, the protocol design (the permissioned state machine),
   the spec skeleton to a freeze, the trust frontier's gates, parallel proofs, close; every user
-  decision of the stages so far replaced by a gate or an adjudication. **Proposed**; nothing built.
-  It notes the open `rnStopOkStarted` premise (the server theorems vacuous) as the no-Iris-premise
-  gate's first case.
+  decision of the stages so far replaced by a gate or an adjudication with a mechanical witness.
+  Revised after four reviews (soundness, feasibility, history, methodology): the trusted surface
+  and the run's invariants (an immutable set, gates against the base commit, allowed binders, a final
+  audit from a clean clone), partial correctness stated, three deliverables, tiers, a termination
+  ledger, a minimal first version. **Proposed**; nothing built. It notes the open `rnStopOkStarted`
+  premise (the server theorems vacuous) as the binder check's first case.
 
 - `k8s-daemonset-plan.md`: the Kubernetes DaemonSet controller (`pkg/controller/daemon`): prove
   `MaxOnePodPerNode` (kubernetes/kubernetes#139657's robustness test) of the real controller over a
