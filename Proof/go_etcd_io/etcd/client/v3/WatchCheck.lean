@@ -68,8 +68,7 @@ theorem watchCheckOk_tok (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface) 
   obtain ⟨hk, ha⟩ := hka
   unfold attemptTokOk
   ihave #Htk := Ht $$ %m %md %ha
-  unfold v3rpc.watchAuthed
-  icases Ha with ⟨%M, %info, #Htag, #Hcl, #Hb, -⟩
+  icases v3rpc.watchAuthed_elim _ _ _ _ _ _ $$ Ha with ⟨%M, %info, #Htag, #Hcl, #Hb, -⟩
   iexists m, auth.mdTokenOf md, M, info
   iframe Htag Hcl Hb Htk
   ipureintro; exact hk

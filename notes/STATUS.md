@@ -511,8 +511,9 @@ flaws, latent (no proof read the bad cases), repaired with the user's approval: 
 `host` (gRFC A41), which `grpcAttemptMd` promised ((a), (b), and the unary `grpcInvokerOk`): `host` is
 now a `grpcReservedKey`; `metadata.lowerKey` excluded only ASCII `A`-`Z` where grpc lower-cases all of
 Unicode (`AppendToOutgoingContext` false, `streamKeyOf_single` refuted with it): `lowerKey` now
-requires ASCII; Go prints `[]` and `[""]` alike: `streamKeyOf_single` takes `v ≠ ""`. Next:
-etcd-grove-56's OK, the freeze, then the proofs.
+requires ASCII; Go prints `[]` and `[""]` alike: `streamKeyOf_single` takes `v ≠ ""`. Landed
+with `authkv-main-skel` (etcd-grove-56's OK). **Frozen** 2026-10-30 (`notes/g2-watch-auth.md`, "The
+freeze"); next: the stubs' proofs.
 
 ## authkv's `Main`: a skeleton of statements (2026-10-29, branch `authkv-main-skel`)
 

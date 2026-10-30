@@ -496,6 +496,19 @@ instance watchAuthed_persistent (γ : mvcc.WsNames) (s : Loc) (tok : Option GoSt
     Persistent (watchAuthed (GF := GF) γ s tok n key rangeEnd) := by
   unfold watchAuthed; infer_instance
 
+/-- **What a passed check gives** (G2's freeze, 2026-10-30): the mode `M` and the auth info `info`
+the check classed, the mode's tag, the class at the bound `n`, with auth on `info` bound to the
+token, and the request's shape (for a client of `watchAuthed`, e.g. `client.watchCheckOk_tok`, in
+place of unfolding it). -/
+theorem watchAuthed_elim (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString) (n : Nat)
+    (key rangeEnd : GoString) :
+    watchAuthed (GF := GF) γ s tok n key rangeEnd ⊢
+      ∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        auth.modeTag γ.tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
+        □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+        ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
+  unfold watchAuthed; iintro H; iexact H
+
 /-- **The watcher a created response names** (the watch slice's units W-M and W-C): for a
 create request `c` answered by a registered (not canceled) response `m`, the mvcc watcher `w`
 the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, the request's

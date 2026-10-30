@@ -1,5 +1,25 @@
 <!-- The approved G2 design (candidate 4, approved by the user 2026-10-30, after three spec-review rounds). Statements go in code over named stubs; no proofs before the freeze. -->
 
+**The freeze (2026-10-30, branch `g2-freeze` off `lean` `c669f06cda`; the user's go-ahead after G2 landed).** Frozen: the
+statements G2 put in code (below, "In code"; the lists "Trusted statements changed"): the six
+strengthened axioms as repaired by the `axiom` skill's reviews (`notes/axiom-review/g2-*.md`),
+`streamKeyOf`'s two laws, `watcher.Watch.spec` with `watchCheckOk`, the md-indexed stream
+vocabulary (`isGrpcStreamMd`, `grpcStreamHandlerOk`, `clientAttemptMd`), the watch registration's
+server specs (`watchStreamSpec`, `watchSrvOk` with `srvAuthLb`, `watchAuthed`,
+`ctrlWatcher_authorized`), the client's `clientTokAt`/`attemptTokOk`/`watcher_of_clientTokAt`, and
+the five stubs' specs. A change to one needs a `notes/decisions.md` entry with its cause and the
+review criterion that should have caught it, or "none". Its checks:
+- every caller's glue proves: the full build of the merge with `lean` (Stage P), the stubs'
+  callers (KMWatch, watchkv, linkv3p, cachekv, authkv, the server's `Watch`) included;
+- cross-package unfolds in G2's changes: one new, `client.watchCheckOk_tok` unfolding
+  `v3rpc.watchAuthed`, replaced by the law `v3rpc.watchAuthed_elim` (`InvWatchStream.lean`); two
+  older ones moved by G2 but not added (`linkv3p/Defs` unfolding grpc's `isGrpcStreamMd`, as
+  `isGrpcStream` before; `watchkv/Main` and `KMWatch` unfolding `OpFull.isRangeWatch`), left as
+  they were;
+- the trust base: 766 axioms, 25 `sorry`s, the five stubs among them (`etc/tcb-baseline.txt`).
+Next: the proofs of the stubs, `watcher.Watch`, `watchGRPCStream.run`, `newWatchClient`,
+`serverWatchStream.recvLoop`, `isWatchPermitted`, and the law `attemptTokOk_of_watcher`.
+
 **In code (2026-10-30, branch `g2-stmts`).** The statements below are in code over named stubs
 (`sorry -- G2: re-prove after freeze`). Three departures from the approved text, none of them a
 trusted change:
