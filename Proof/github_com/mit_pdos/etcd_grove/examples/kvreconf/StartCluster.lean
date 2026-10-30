@@ -186,6 +186,41 @@ theorem StartCluster.wp_proof
     iframe #
     ipureintro
     exact ⟨Hdup, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+  try wp_auto
+  have HVv : uint.nat o.Voters' ≤ 9 := by omega
+  have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
+  -- the founders' tokens with their read-sequence elements, and the fresh ids' elements
+  ihave Hrseqs : iprop([∗list] id ∈ bootVoters (uint.nat o.Voters') ++ freshIds (uint.nat o.Voters' + 1),
+      id ↪[γr.rseq] W64 0) $$ [Hrseqs]
+  · rw [allIds_split _ HVv]; iexact Hrseqs
+  icases (BigSepL.bigSepL_append (Φ := fun _ id => iprop(id ↪[γr.rseq] W64 0))).1 $$ Hrseqs
+    with ⟨Hrs1, Hrseq⟩
+  ihave Htodo := (BigSepL.bigSepL_sep_eqv
+    (Φ := fun _ id => nodeFounder (GF := GF) γr.cluster kvrRaftN (bootVoters (uint.nat o.Voters')) id)
+    (Ψ := fun _ id => (id ↪[γr.rseq] W64 0 : IProp GF)) (l := bootVoters (uint.nat o.Voters'))).2
+    $$ [Hfounders Hrs1]
+  · iframe Hfounders Hrs1
+  ihave IH : iprop(∃ (k : w64) (R : GMap w64 Loc),
+      "id" ∷ id_ptr ↦ k ∗ "HR" ∷ mR ↦$ R ∗
+      "%Hk" ∷ ⌜1 ≤ uint.nat k ∧ uint.nat k ≤ uint.nat o.Voters' + 1 ∧
+        ∀ i, (R !! i).isSome ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat k⌝ ∗
+      "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γr (bootVoters (uint.nat o.Voters')) id r) ∗
+      "Htoks" ∷ ([∗map] _id ↦ r ∈ R, repStop γr (bootVoters (uint.nat o.Voters')) r) ∗
+      "Htodo" ∷ ([∗list] id ∈ (bootVoters (uint.nat o.Voters')).drop (uint.nat k - 1),
+        nodeFounder γr.cluster kvrRaftN (bootVoters (uint.nat o.Voters')) id ∗ id ↪[γr.rseq] W64 0))
+    $$ [id HR Htodo]
+  · iexists W64 1, ∅
+    iframe id HR
+    simp only [named, show uint.nat (W64 1) - 1 = 0 from rfl, List.drop_zero]
+    iframe Htodo
+    isplitr
+    · ipureintro; refine ⟨by word, by word, fun i => ?_⟩; simp; word
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    iapply BigSepM.bigSepM_empty.2; itrivial
+  wp_for IH
+  wp_if_destruct
+  · sorry
   sorry
 
 end proof
