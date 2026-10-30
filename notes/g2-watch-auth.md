@@ -46,7 +46,7 @@ trusted change:
   `metadata/Outgoing.lean`, the stopgap until Perennial's `Value` contract
   (`notes/perennial-changes.md`, "Context model: `WithCancel` keeps its parent's values").
 - **Stubs** (`sorry -- G2: re-prove after freeze`, each with the commit of the proof before G2):
-  `watcher.Watch`, `watchGRPCStream.newWatchClient`, `serverWatchStream.recvLoop`,
+  `watcher.Watch`, `watchGRPCStream.run`, `watchGRPCStream.newWatchClient`, `serverWatchStream.recvLoop`,
   `serverWatchStream.isWatchPermitted` (the
   bound's reasoning at the store), and the law `attemptTokOk_of_watcher` (field agreement). The
   rest of the restated proofs are adapted.
