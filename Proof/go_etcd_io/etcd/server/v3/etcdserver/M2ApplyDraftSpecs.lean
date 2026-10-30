@@ -265,7 +265,7 @@ abbrev NewServer.specD : Prop :=
 
 /-- **Draft of `EtcdServer.Compact.spec`** over the one family (see the file header). -/
 abbrev EtcdServer.Compact.specD : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
   -- (M2, the storage side, 2026-10-30: M2's scope restriction, the user's Q7 (a), the approval's
   -- item 35) a revision past `0`
@@ -278,7 +278,10 @@ abbrev EtcdServer.Compact.specD : Prop :=
       -- compaction at an off server stays outside the model (the compactor pilot's scope: other
       -- compactions are not in the workload) until a later stage puts every server in compaction
       -- mode
-      isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
+      isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ -- (review round 5's F5-2) the readers' names the request path's (`ρ.rd`: the proposal's
+      -- `cmpReach ρ.kv r` from the certificates `isServerRead` reaches; `start`'s `isServer`
+      -- gives both at the same names)
+      isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ srvRevLb E.γ r ∗
       compactReqIs p r }}

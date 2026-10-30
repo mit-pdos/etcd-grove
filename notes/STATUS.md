@@ -538,8 +538,10 @@ the user's Q6: (a), the switch stated in place (`dispatchOk`, `kvInv` redefined,
 texts kept; the ties `srvReqFieldsAtD`/`srvKVInvsD`; off laws `kvInvD_off` ⊣⊢,
 `logShapeD_plain`); Drafts restated and built; consolidated item list in `m2-apply-plan.md`,
 "The switch in place". Review round 4: one first-tier finding (R4-1, the mode tie needs
-`ρ.rd.kv.cmp = E₀.cmp` in the interim `NewServer` texts: item 14'), repaired in the list; next:
-review round 5.
+`ρ.rd.kv.cmp = E₀.cmp` in the interim `NewServer` texts: item 14'), repaired in the list. Round 5: F5-1 (the
+commit step needs `kvCertInv` in the request path's view) and F5-2 (`Compact.specD` at `ρ.rd`),
+repaired; items 8/12/13 unchanged in text (the claim derived in `applyEntryNormal`'s proof). Next:
+review round 6.
 
 ## The delete-then-put fix in the fork: what is left (2026-10-30, branch `etcd-ndp-fix`)
 
