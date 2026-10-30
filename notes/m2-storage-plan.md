@@ -1321,3 +1321,11 @@ would be, if its re-proof needed a new bbolt fact).
   `kbRecs_MW`, `jobIsD_of`, `jobFnSpecD_of`, `schedPay_elim`, `restorePre_of_applyM`: no `sorryAx`.
 - Full `lake build` of `214ba8a864` passed (11209 jobs, no error).
 - Go: `issues/etcd-restore-scheduled-compact-zero/repro_test.go` fails at the pin as the issue says.
+
+**The user's answers after round 3's repair (2026-10-30).**
+- **Q7 (a):** keep Q5 (a) (`c ≤ c'` across a restore) and make "no compaction at revision 0" a stated
+  scope limit of M2 (M2's auto-compactor never issues 0; a client's `Compact(0)` RPC is out of scope).
+  `issues/etcd-restore-scheduled-compact-zero.md` goes upstream separately. To draft: where the premise
+  sits (the compaction arm's request, or the apply model) and how #8 discharges `c ≤ c'` from it.
+- **The snapshot track's statements** (Q2 items 15, 16, 21, 22, 25) stay drafts: the collaborator
+  switches them, ideally when proving SNAPSHOT-SORRY #8. Everything else M2 switches itself once approved.
