@@ -75,6 +75,11 @@ noncomputable def Replica.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Replica.ty
 
+noncomputable def snapReq.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.snapReq" [])
+
+attribute [irreducible] snapReq.ty
+
 @[reducible] noncomputable def maxReplicas [GooseExts] [GoGlobalContext] : val :=
   #(9 : Int)
 
@@ -3467,7 +3472,7 @@ noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newReplica is replica id on node, a node just started on storage at the configuration cs0, ticked
     every tick; send delivers the node's messages. It starts the replica's loop and its node's clock.
 
-    go: kv.go:314:6 -/
+    go: kv.go:318:6 -/
 noncomputable def newReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "node"
@@ -3491,21 +3496,25 @@ noncomputable def newReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (Var "stats"))
   (Let "$v4" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "tick"))
   (Let "$v5" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
-  (Let "$v6" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #(W64 1)))
+  (Let "$v6" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv snapReq.ty)]))) (Val #())) (Val #(W64 1)))
   (Let "$v7" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #(W64 1)))
-  (Let "$v8" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs0")))
+  (Let "$v8" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #(W64 1)))
+  (Let "$v9" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #(W64 1)))
+  (Let "$v10" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs0")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))
-  (Let "$v9" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string go.string)]))) (Val #())) (Val #()))
-  (Let "$v10" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string go.string)]))) (Val #())) (Val #()))
-  (Let "$v11" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.ChannelType go.ChanDir.sendrecv go.string))]))) (Val #())) (Val #()))
-  (Let "$v12" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Replica.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"node")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.Node.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"storage")) (ElementExpression (go.GoType.PointerType Storage.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"stats")) (ElementExpression (go.GoType.PointerType Stats.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"tick")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"stopc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v5"))), (KeyedElement (some (KeyField go!"runDone")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v6"))), (KeyedElement (some (KeyField go!"tickDone")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v7"))), (KeyedElement (some (KeyField go!"cs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v8"))), (KeyedElement (some (KeyField go!"kv")) (ElementExpression (go.GoType.MapType go.string go.string) (Var "$v9"))), (KeyedElement (some (KeyField go!"applied")) (ElementExpression (go.GoType.MapType go.string go.string) (Var "$v10"))), (KeyedElement (some (KeyField go!"waiters")) (ElementExpression (go.GoType.MapType go.string (go.GoType.ChannelType go.ChanDir.sendrecv go.string)) (Var "$v11"))), (KeyedElement (some (KeyField go!"reads")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)) (Var "$v12")))]))))))))))))))))
+  (Let "$v11" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string go.string)]))) (Val #())) (Val #()))
+  (Let "$v12" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string go.string)]))) (Val #())) (Val #()))
+  (Let "$v13" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.ChannelType go.ChanDir.sendrecv go.string))]))) (Val #())) (Val #()))
+  (Let "$v14" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Replica.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"node")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.Node.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"storage")) (ElementExpression (go.GoType.PointerType Storage.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"stats")) (ElementExpression (go.GoType.PointerType Stats.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"tick")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"stopc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v5"))), (KeyedElement (some (KeyField go!"snapc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv snapReq.ty) (Var "$v6"))), (KeyedElement (some (KeyField go!"runDone")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v7"))), (KeyedElement (some (KeyField go!"tickDone")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v8"))), (KeyedElement (some (KeyField go!"snapDone")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v9"))), (KeyedElement (some (KeyField go!"cs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v10"))), (KeyedElement (some (KeyField go!"kv")) (ElementExpression (go.GoType.MapType go.string go.string) (Var "$v11"))), (KeyedElement (some (KeyField go!"applied")) (ElementExpression (go.GoType.MapType go.string go.string) (Var "$v12"))), (KeyedElement (some (KeyField go!"waiters")) (ElementExpression (go.GoType.MapType go.string (go.GoType.ChannelType go.ChanDir.sendrecv go.string)) (Var "$v13"))), (KeyedElement (some (KeyField go!"reads")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)) (Var "$v14")))]))))))))))))))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Replica.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))))) (Var "send"))
   (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"run"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"ticker"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"snapshotter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3518,6 +3527,9 @@ noncomputable def newReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
   (Fork
+  (App (Var "$go") (Val #()))))))))
+  (App (Val doExecute)
+  (Fork
   (App (Var "$go") (Var "$a0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Replica.ty)))) (Pair (Var "r") (Var "$r0")))))))))))))))
@@ -3525,7 +3537,7 @@ noncomputable def newReplica.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ticker drives the node's clock until the replica stops.
 
-    go: kv.go:326:19 -/
+    go: kv.go:332:19 -/
 noncomputable def Replica.ticker.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3559,12 +3571,12 @@ noncomputable def Replica.ticker.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Pair (Var "tk") (Var "$r0")))))))))
   (Val #()))))
 
-/-- stop stops the replica for good: its loop, its clock and its node. It stops the node only once
-    the loop and the clock have returned, so that the loop never meets a stopped node: every call it
+/-- stop stops the replica for good: its loop, its clock, its snapshot goroutine and its node. It
+    stops the node only once the loop and the clock have returned, so that the loop never meets a stopped node: every call it
     makes (the Ready, ApplyConfChange, Advance) is on a running one. (Other goroutines -- proposers,
     readers, the network's Step -- may still call a stopped node; they handle its answers.)
 
-    go: kv.go:344:19 -/
+    go: kv.go:350:19 -/
 noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3573,8 +3585,11 @@ noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Val #())))))
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"snapDone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))))))))
   (App (Val doExecute)
   (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"tickDone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))))))))
   (App (Val doExecute)
@@ -3591,14 +3606,14 @@ noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
     it); answer the reads whose index is applied; Advance. A Ready whose entries would take the
     log past maxIndex stops the loop (it does not happen).
 
-    Snapshots and compaction are the application's to choose: after any entry it applies and
-    after any Advance, the replica may take a snapshot (maybeSnapshot), and after any Advance it
-    may compact its log to any index from its first one to the least of its latest snapshot's
-    (compacting past it, the leader would have no snapshot to send a follower that needs the
-    compacted entries: issues/raft-compact-past-snapshot.md) and its applied index as raft knows
-    it (the bound MemoryStorage.Compact documents: what it applied before the last Advance).
+    Snapshots and compaction are the application's to choose, and done in a goroutine of their own
+    (snapshotter), as etcd's apply thread takes its snapshots beside the raft goroutine that appends
+    and installs them: after any entry it applies and after any Advance, the loop may ask for a
+    snapshot of its replicated state, and after any Advance for a compaction up to its applied
+    index as raft knows it (the bound MemoryStorage.Compact documents: what it applied before the
+    last Advance), without waiting (request).
 
-    go: kv.go:364:19 -/
+    go: kv.go:371:19 -/
 noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -3625,22 +3640,14 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"answer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (Let "$a0" (Val #(W64 4))
-  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"maybeCompact"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #())))))
-  (If (Let "$a0" (Val #(W64 4))
-  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"maybeSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))
+  (Let "$a1" (Let "$a0" (Val #(W64 4))
+  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
+  (Let "$a2" (Let "$a0" (Val #(W64 4))
+  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapIndex") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapIndex") (Var "$r0")))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Val #()))))))
   (App (Val doExecute)
@@ -3656,7 +3663,9 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (If (Let "$a0" (Val #(W64 8))
   (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"maybeSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))
+  (Let "$a1" (Val #true)
+  (Let "$a2" (Val #false)
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapIndex") (Var "$r0")))))
   (App (Val doExecute)
@@ -3759,17 +3768,23 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Val #()))))
 
-/-- maybeSnapshot takes a snapshot of the replicated state at the applied index, with the
-    configuration there, unless the latest snapshot is already that recent (or no configuration
-    is applied yet: a new replica's, before it catches up); it returns the latest snapshot's index.
+/-- request asks the snapshot goroutine, without waiting, for a snapshot of the replicated state at
+    the applied index if snap (unless the latest one asked for is already that recent, or no
+    configuration is applied yet: a new replica's, before it catches up), and for a compaction up to
+    the applied index if compact (run calls it so only after an Advance); a request is dropped if the
+    goroutine has one pending. It returns the index of the latest snapshot asked for.
 
-    go: kv.go:415:19 -/
-noncomputable def Replica.maybeSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
+    go: kv.go:429:19 -/
+noncomputable def Replica.request.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snapIndex"
+  (Lam "snap"
+  (Lam "compact"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "r"))
+  (Let "compact" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "compact"))
+  (Let "snap" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "snap"))
   (Let "snapIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapIndex"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
@@ -3781,48 +3796,34 @@ noncomputable def Replica.maybeSnapshot.impl [GooseExts] [GoGlobalContext] : val
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (App (Val (GoInstruction (CompositeLiteral snapReq.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"index")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"cs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2")))])))))
+  (Let "req" (App (Val (GoInstruction (GoAlloc snapReq.ty))) (App (Val (GoInstruction (GoZeroVal snapReq.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetVotersOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (StructFieldRef Stats.ty go!"SnapshotsTakenJoint"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Stats.ty) go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (StructFieldRef Stats.ty go!"SnapshotsTaken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Stats.ty) go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Storage.ty) go!"CreateSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv snapReq.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"snapc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad snapReq.ty))) (Var "req"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (SendCase snapReq.ty (Var "$ch0") (Var "$v0")) (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"kvreconf: CreateSnapshot: ")) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))))
+  (Val #()))))])))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"compact"))) (Var "req"))) (Val #(W64 0)))) (Val #false)))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -3831,9 +3832,17 @@ noncomputable def Replica.maybeSnapshot.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "compact"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"compact"))) (Var "req")) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore snapReq.ty))) (Pair (Var "req") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex")))) (Val #false)))
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "snap")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Val UntypedNil))))) (Val #false)) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex")))) (Val #false))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
   (App (App (App (Val (GoInstruction (FuncResolve encodeState []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -3846,19 +3855,73 @@ noncomputable def Replica.maybeSnapshot.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #())))))))
-  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))))
 
-/-- maybeCompact compacts the log to a random index allowed after an Advance (run), if there is
-    one past the first.
+/-- snapshotter takes the snapshots and makes the compactions run asks for, until the replica
+    stops; known is the least index the stored snapshot is known to have reached.
 
-    go: kv.go:439:19 -/
-noncomputable def Replica.maybeCompact.impl [GooseExts] [GoGlobalContext] : val :=
+    go: kv.go:457:19 -/
+noncomputable def Replica.snapshotter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
-  (Lam "snapIndex"
+  (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "r"))
-  (Let "snapIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapIndex"))
+  (Let "known" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv snapReq.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"snapc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase snapReq.ty (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "req" (App (Val (GoInstruction (GoAlloc snapReq.ty))) (App (Val (GoInstruction (GoZeroVal snapReq.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad snapReq.ty))) (Var "req"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "known"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"snapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "known") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore snapReq.ty))) (Pair (Var "req") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"snapDone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
+  (Let "$v" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val (chan.send (go.GoType.StructType []))) (Var "$chan")) (Var "$v"))))))))]))))))
+  (Lam BAnon
+  (Val #()))))))
+  (Val #()))))
+
+/-- snapshot does what req asks: it takes the snapshot, which may be out of date
+    (ErrSnapOutOfDate: the storage holds one at least as recent, which run installed), as etcd's
+    apply thread allows; and it compacts the log to a random index from its first one to the least
+    of the requested bound and the stored snapshot's index as known (compacting past the stored
+    snapshot, the leader would have no snapshot to send a follower that needs the compacted
+    entries: issues/raft-compact-past-snapshot.md), if there is one. It returns what is known of the
+    stored snapshot's index after it.
+
+    go: kv.go:477:19 -/
+noncomputable def Replica.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "req"
+  (Lam "known"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "r"))
+  (Let "known" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "known"))
+  (Let "req" (App (Val (GoInstruction (GoAlloc snapReq.ty))) (Var "req"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "known"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"compact"))) (Var "req"))) (Val #(W64 0))))))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Storage.ty) go!"FirstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -3867,13 +3930,11 @@ noncomputable def Replica.maybeCompact.impl [GooseExts] [GoGlobalContext] : val 
   (Let "first" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"compact"))) (Var "req")))
   (Let "hi" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hi")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hi")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))) (Val #(W64 1))))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Storage.ty) go!"Compact"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")))
@@ -3886,35 +3947,73 @@ noncomputable def Replica.maybeCompact.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hi")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))))
-  (App (Val doReturn)
-  (Val #()))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hi")))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIndex"))
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "known")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hi")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "known"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "hi") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "hi") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "first") (Var "$r0"))))))))))))))
-  (Val #()))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "first") (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"data"))) (Var "req"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"index"))) (Var "req")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"cs"))) (Var "req")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"data"))) (Var "req")))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Storage.ty) go!"CreateSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "known")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"index"))) (Var "req"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"index"))) (Var "req")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "known") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetVotersOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef snapReq.ty go!"cs"))) (Var "req")))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (StructFieldRef Stats.ty go!"SnapshotsTakenJoint"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Stats.ty) go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (StructFieldRef Stats.ty go!"SnapshotsTaken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Stats.ty) go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.raft.v3.ErrSnapOutOfDate))) (Val #())))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"kvreconf: CreateSnapshot: ")) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))))
 
 /-- install replaces the replicated state by a snapshot's (its metadata and its data, decoded),
     and answers each operation waiting here that the snapshot covers -- whose entry this replica
     does not apply -- with the answer the snapshot records.
 
-    go: kv.go:458:19 -/
+    go: kv.go:510:19 -/
 noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "md"
@@ -4015,7 +4114,7 @@ noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- applyEntry applies one committed entry and moves the applied index to it.
 
-    go: kv.go:482:19 -/
+    go: kv.go:534:19 -/
 noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -4086,7 +4185,7 @@ noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
     before it); every replica applies the same entries from the same configuration, so they all
     decide the same.
 
-    go: kv.go:510:19 -/
+    go: kv.go:562:19 -/
 noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cc"
@@ -4166,7 +4265,7 @@ noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
     operations applied records. An operation already applied (retried, so committed more than
     once) does not take effect again: it is answered with its recorded answer.
 
-    go: kv.go:533:19 -/
+    go: kv.go:585:19 -/
 noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "data"
@@ -4285,7 +4384,7 @@ noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
 /-- answer answers the pending reads whose index is applied with the current value of the key
     they read, and returns the others. A read nobody waits for any more (timed out) is dropped.
 
-    go: kv.go:560:19 -/
+    go: kv.go:612:19 -/
 noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "pending"
@@ -4392,7 +4491,7 @@ noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
     is false if none came. A proposal raft drops (no leader known) is proposed again until the
     timeout. If the operation was already applied here, its answer is the recorded one.
 
-    go: kv.go:584:19 -/
+    go: kv.go:636:19 -/
 noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "op"
@@ -4548,7 +4647,7 @@ noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
 /-- read reads key by a read index here, waiting up to timeout; ok is false if no answer came (or
     the replica's read sequence numbers are used up: maxSeq).
 
-    go: kv.go:620:19 -/
+    go: kv.go:672:19 -/
 noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -4688,7 +4787,7 @@ noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- conf is the replica's configuration (nil before any) and its applied index.
 
-    go: kv.go:652:19 -/
+    go: kv.go:704:19 -/
 noncomputable def Replica.conf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4721,7 +4820,7 @@ noncomputable def Replica.conf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- contents is a copy of the store's contents and its applied index.
 
-    go: kv.go:659:19 -/
+    go: kv.go:711:19 -/
 noncomputable def Replica.contents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5846,8 +5945,10 @@ structure Replica [GooseExts] where
   stats' : Loc
   tick' : _root_.Perennial.time.Duration
   stopc' : GoChan
+  snapc' : GoChan
   runDone' : GoChan
   tickDone' : GoChan
+  snapDone' : GoChan
   mu' : _root_.Perennial.sync.Mutex
   kv' : GoMap
   applied' : GoMap
@@ -5858,7 +5959,7 @@ structure Replica [GooseExts] where
   reads' : GoMap
 
 noncomputable instance Replica.zero_val [GooseExts] : ZeroVal Replica :=
-  ⟨Replica.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Replica.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Replica.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.uint64),
@@ -5867,8 +5968,10 @@ noncomputable instance Replica.zero_val [GooseExts] : ZeroVal Replica :=
 (go.field_decl.FieldDecl go!"stats" (go.GoType.PointerType Stats.ty)),
 (go.field_decl.FieldDecl go!"tick" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"snapc" (go.GoType.ChannelType go.ChanDir.sendrecv snapReq.ty)),
 (go.field_decl.FieldDecl go!"runDone" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"tickDone" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"snapDone" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"kv" (go.GoType.MapType go.string go.string)),
 (go.field_decl.FieldDecl go!"applied" (go.GoType.MapType go.string go.string)),
@@ -5903,10 +6006,14 @@ class Replica.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_tick : ∀ (x : Replica) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"tick") (PairV #x #y) (Val #(({ x with tick' := y } : Replica)))
   get_stopc : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : Replica)))
+  get_snapc : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"snapc") #x (Val #(x.snapc'))
+  set_snapc : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"snapc") (PairV #x #y) (Val #(({ x with snapc' := y } : Replica)))
   get_runDone : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"runDone") #x (Val #(x.runDone'))
   set_runDone : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"runDone") (PairV #x #y) (Val #(({ x with runDone' := y } : Replica)))
   get_tickDone : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"tickDone") #x (Val #(x.tickDone'))
   set_tickDone : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"tickDone") (PairV #x #y) (Val #(({ x with tickDone' := y } : Replica)))
+  get_snapDone : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"snapDone") #x (Val #(x.snapDone'))
+  set_snapDone : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"snapDone") (PairV #x #y) (Val #(({ x with snapDone' := y } : Replica)))
   get_mu : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Replica)))
   get_kv : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"kv") #x (Val #(x.kv'))
@@ -5924,7 +6031,7 @@ class Replica.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   get_reads : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"reads") #x (Val #(x.reads'))
   set_reads : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"reads") (PairV #x #y) (Val #(({ x with reads' := y } : Replica)))
   method_set : go.MethodSetIs Replica.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Replica.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.answer", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.applyConf", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.applyEntry", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.applyOp", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.conf", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.contents", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string), go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.install", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty), (go.GoType.MapType go.string go.string), (go.GoType.MapType go.string go.string)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.maybeCompact", (some (go.signature.Signature [go.uint64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.maybeSnapshot", (some (go.signature.Signature [go.uint64] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.propose", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.time.Duration.ty] false [go.string, go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.read", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false [go.string, go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.run", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.stop", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.ticker", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Replica.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.answer", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.applyConf", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.applyEntry", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.applyOp", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.conf", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.contents", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string), go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.install", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty), (go.GoType.MapType go.string go.string), (go.GoType.MapType go.string go.string)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.propose", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.time.Duration.ty] false [go.string, go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.read", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false [go.string, go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.request", (some (go.signature.Signature [go.uint64, go.bool, go.bool] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.run", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.snapshot", (some (go.signature.Signature [snapReq.ty, go.uint64] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.snapshotter", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.stop", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/kvreconf.ticker", (some (go.signature.Signature [] false [])))]
   ptr_answer_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"answer" Replica.answer.impl
   ptr_applyConf_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"applyConf" Replica.applyConf.impl
   ptr_applyEntry_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"applyEntry" Replica.applyEntry.impl
@@ -5932,11 +6039,12 @@ class Replica.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   ptr_conf_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"conf" Replica.conf.impl
   ptr_contents_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"contents" Replica.contents.impl
   ptr_install_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"install" Replica.install.impl
-  ptr_maybeCompact_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"maybeCompact" Replica.maybeCompact.impl
-  ptr_maybeSnapshot_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"maybeSnapshot" Replica.maybeSnapshot.impl
   ptr_propose_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"propose" Replica.propose.impl
   ptr_read_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"read" Replica.read.impl
+  ptr_request_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"request" Replica.request.impl
   ptr_run_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"run" Replica.run.impl
+  ptr_snapshot_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"snapshot" Replica.snapshot.impl
+  ptr_snapshotter_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"snapshotter" Replica.snapshotter.impl
   ptr_stop_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"stop" Replica.stop.impl
   ptr_ticker_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ticker" Replica.ticker.impl
 
@@ -5954,10 +6062,14 @@ attribute [instance] Replica.TypeAssumptions.type_repr
   Replica.TypeAssumptions.set_tick
   Replica.TypeAssumptions.get_stopc
   Replica.TypeAssumptions.set_stopc
+  Replica.TypeAssumptions.get_snapc
+  Replica.TypeAssumptions.set_snapc
   Replica.TypeAssumptions.get_runDone
   Replica.TypeAssumptions.set_runDone
   Replica.TypeAssumptions.get_tickDone
   Replica.TypeAssumptions.set_tickDone
+  Replica.TypeAssumptions.get_snapDone
+  Replica.TypeAssumptions.set_snapDone
   Replica.TypeAssumptions.get_mu
   Replica.TypeAssumptions.set_mu
   Replica.TypeAssumptions.get_kv
@@ -5983,13 +6095,67 @@ attribute [instance] Replica.TypeAssumptions.type_repr
   Replica.TypeAssumptions.ptr_conf_unfold
   Replica.TypeAssumptions.ptr_contents_unfold
   Replica.TypeAssumptions.ptr_install_unfold
-  Replica.TypeAssumptions.ptr_maybeCompact_unfold
-  Replica.TypeAssumptions.ptr_maybeSnapshot_unfold
   Replica.TypeAssumptions.ptr_propose_unfold
   Replica.TypeAssumptions.ptr_read_unfold
+  Replica.TypeAssumptions.ptr_request_unfold
   Replica.TypeAssumptions.ptr_run_unfold
+  Replica.TypeAssumptions.ptr_snapshot_unfold
+  Replica.TypeAssumptions.ptr_snapshotter_unfold
   Replica.TypeAssumptions.ptr_stop_unfold
   Replica.TypeAssumptions.ptr_ticker_unfold
+
+structure snapReq [GooseExts] where
+  mk ::
+  index' : w64
+  cs' : Loc
+  data' : GoSlice
+  compact' : w64
+
+noncomputable instance snapReq.zero_val [GooseExts] : ZeroVal snapReq :=
+  ⟨snapReq.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def snapReq.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"index" go.uint64),
+(go.field_decl.FieldDecl go!"cs" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)),
+(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"compact" go.uint64)]
+
+@[irreducible] noncomputable def snapReq.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  snapReq.fieldsUnsealed
+
+noncomputable instance equals_unfold_snapReq [GooseExts] [GoGlobalContext] :
+    EqualsUnfold snapReq.fields snapReq.fieldsUnsealed :=
+  ⟨by unfold snapReq.fields; rfl⟩
+
+@[reducible] noncomputable def snapReq.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType snapReq.fields)
+
+class snapReq.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying snapReq.underlying snapReq
+  underlying : go.UnderlyingDirectedEq snapReq.ty snapReq.underlying
+  get_index : ∀ (x : snapReq), go.IsGoStepPureDetTagged under (StructFieldGet snapReq.underlying go!"index") #x (Val #(x.index'))
+  set_index : ∀ (x : snapReq) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapReq.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : snapReq)))
+  get_cs : ∀ (x : snapReq), go.IsGoStepPureDetTagged under (StructFieldGet snapReq.underlying go!"cs") #x (Val #(x.cs'))
+  set_cs : ∀ (x : snapReq) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapReq.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : snapReq)))
+  get_data : ∀ (x : snapReq), go.IsGoStepPureDetTagged under (StructFieldGet snapReq.underlying go!"data") #x (Val #(x.data'))
+  set_data : ∀ (x : snapReq) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet snapReq.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : snapReq)))
+  get_compact : ∀ (x : snapReq), go.IsGoStepPureDetTagged under (StructFieldGet snapReq.underlying go!"compact") #x (Val #(x.compact'))
+  set_compact : ∀ (x : snapReq) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapReq.underlying go!"compact") (PairV #x #y) (Val #(({ x with compact' := y } : snapReq)))
+  method_set : go.MethodSetIs snapReq.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapReq.ty) []
+
+attribute [instance] snapReq.TypeAssumptions.type_repr
+  snapReq.TypeAssumptions.underlying
+  snapReq.TypeAssumptions.get_index
+  snapReq.TypeAssumptions.set_index
+  snapReq.TypeAssumptions.get_cs
+  snapReq.TypeAssumptions.set_cs
+  snapReq.TypeAssumptions.get_data
+  snapReq.TypeAssumptions.set_data
+  snapReq.TypeAssumptions.get_compact
+  snapReq.TypeAssumptions.set_compact
+  snapReq.TypeAssumptions.method_set
+  snapReq.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Input_instance : Input.TypeAssumptions
@@ -6000,6 +6166,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Cluster_instance : Cluster.TypeAssumptions
   Storage_instance : Storage.TypeAssumptions
   Replica_instance : Replica.TypeAssumptions
+  snapReq_instance : snapReq.TypeAssumptions
   copyMap_unfold : FuncUnfold copyMap [] copyMap.impl
   within_unfold : FuncUnfold within [] within.impl
   hashString_unfold : FuncUnfold hashString [] hashString.impl
@@ -6056,6 +6223,7 @@ attribute [instance] Assumptions.Input_instance
   Assumptions.Cluster_instance
   Assumptions.Storage_instance
   Assumptions.Replica_instance
+  Assumptions.snapReq_instance
   Assumptions.copyMap_unfold
   Assumptions.within_unfold
   Assumptions.hashString_unfold

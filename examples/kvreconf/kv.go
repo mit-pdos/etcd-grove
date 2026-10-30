@@ -295,9 +295,13 @@ type Replica struct {
 	stats   *Stats
 	tick    time.Duration
 	stopc   chan struct{}
-	// runDone and tickDone each get one value, when run and ticker return (stop waits for them)
+	// snapc carries run's requests to the snapshot goroutine (snapshotter), one at most at a time
+	snapc chan snapReq
+	// runDone, tickDone and snapDone each get one value, when run, ticker and snapshotter return
+	// (stop waits for them)
 	runDone  chan struct{}
 	tickDone chan struct{}
+	snapDone chan struct{}
 
 	mu       sync.Mutex
 	kv       map[string]string
@@ -313,12 +317,14 @@ type Replica struct {
 // every tick; send delivers the node's messages. It starts the replica's loop and its node's clock.
 func newReplica(id uint64, node raft.Node, storage *Storage, cs0 *pb.ConfState, tick time.Duration, stats *Stats, send func([]*pb.Message)) *Replica {
 	r := &Replica{id: id, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
-		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1),
+		snapc:   make(chan snapReq, 1),
+		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1), snapDone: make(chan struct{}, 1),
 		cs: proto.Clone(cs0).(*pb.ConfState),
 		kv: make(map[string]string), applied: make(map[string]string),
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send)
 	go r.ticker()
+	go r.snapshotter()
 	return r
 }
 
@@ -337,14 +343,15 @@ func (r *Replica) ticker() {
 	}
 }
 
-// stop stops the replica for good: its loop, its clock and its node. It stops the node only once
-// the loop and the clock have returned, so that the loop never meets a stopped node: every call it
+// stop stops the replica for good: its loop, its clock, its snapshot goroutine and its node. It
+// stops the node only once the loop and the clock have returned, so that the loop never meets a stopped node: every call it
 // makes (the Ready, ApplyConfChange, Advance) is on a running one. (Other goroutines -- proposers,
 // readers, the network's Step -- may still call a stopped node; they handle its answers.)
 func (r *Replica) stop() {
 	close(r.stopc)
 	<-r.runDone
 	<-r.tickDone
+	<-r.snapDone
 	r.node.Stop()
 }
 
@@ -355,12 +362,12 @@ func (r *Replica) stop() {
 // it); answer the reads whose index is applied; Advance. A Ready whose entries would take the
 // log past maxIndex stops the loop (it does not happen).
 //
-// Snapshots and compaction are the application's to choose: after any entry it applies and
-// after any Advance, the replica may take a snapshot (maybeSnapshot), and after any Advance it
-// may compact its log to any index from its first one to the least of its latest snapshot's
-// (compacting past it, the leader would have no snapshot to send a follower that needs the
-// compacted entries: issues/raft-compact-past-snapshot.md) and its applied index as raft knows
-// it (the bound MemoryStorage.Compact documents: what it applied before the last Advance).
+// Snapshots and compaction are the application's to choose, and done in a goroutine of their own
+// (snapshotter), as etcd's apply thread takes its snapshots beside the raft goroutine that appends
+// and installs them: after any entry it applies and after any Advance, the loop may ask for a
+// snapshot of its replicated state, and after any Advance for a compaction up to its applied
+// index as raft knows it (the bound MemoryStorage.Compact documents: what it applied before the
+// last Advance), without waiting (request).
 func (r *Replica) run(send func([]*pb.Message)) {
 	var pending []raft.ReadState
 	var snapIndex uint64
@@ -395,61 +402,106 @@ func (r *Replica) run(send func([]*pb.Message)) {
 		for _, e := range rd.CommittedEntries {
 			r.applyEntry(e)
 			if oneIn(8) {
-				snapIndex = r.maybeSnapshot(snapIndex)
+				snapIndex = r.request(snapIndex, true, false)
 			}
 		}
 		pending = r.answer(pending)
 		r.node.Advance()
-		if oneIn(4) {
-			snapIndex = r.maybeSnapshot(snapIndex)
-		}
-		if oneIn(4) {
-			r.maybeCompact(snapIndex)
-		}
+		snapIndex = r.request(snapIndex, oneIn(4), oneIn(4))
 	}
 }
 
-// maybeSnapshot takes a snapshot of the replicated state at the applied index, with the
-// configuration there, unless the latest snapshot is already that recent (or no configuration
-// is applied yet: a new replica's, before it catches up); it returns the latest snapshot's index.
-func (r *Replica) maybeSnapshot(snapIndex uint64) uint64 {
+// snapReq is a request of run to the snapshot goroutine: a snapshot at index of the configuration
+// cs and the encoded replicated state data, unless data is nil; a compaction up to compact, unless
+// it is 0.
+type snapReq struct {
+	index   uint64
+	cs      *pb.ConfState
+	data    []byte
+	compact uint64
+}
+
+// request asks the snapshot goroutine, without waiting, for a snapshot of the replicated state at
+// the applied index if snap (unless the latest one asked for is already that recent, or no
+// configuration is applied yet: a new replica's, before it catches up), and for a compaction up to
+// the applied index if compact (run calls it so only after an Advance); a request is dropped if the
+// goroutine has one pending. It returns the index of the latest snapshot asked for.
+func (r *Replica) request(snapIndex uint64, snap bool, compact bool) uint64 {
 	r.mu.Lock()
 	index := r.index
 	cs := r.cs
 	var data []byte
-	if cs != nil && index > snapIndex {
+	if snap && cs != nil && index > snapIndex {
 		data = encodeState(r.kv, r.applied)
 	}
 	r.mu.Unlock()
-	if data == nil {
+	req := snapReq{index: index, cs: cs, data: data}
+	if compact {
+		req.compact = index
+	}
+	if data == nil && req.compact == 0 {
 		return snapIndex
 	}
-	if _, err := r.storage.CreateSnapshot(index, cs, data); err != nil {
-		panic("kvreconf: CreateSnapshot: " + err.Error())
+	select {
+	case r.snapc <- req:
+		if data != nil {
+			return index
+		}
+	default:
 	}
-	r.stats.add(&r.stats.SnapshotsTaken)
-	if len(cs.GetVotersOutgoing()) != 0 {
-		r.stats.add(&r.stats.SnapshotsTakenJoint)
-	}
-	return index
+	return snapIndex
 }
 
-// maybeCompact compacts the log to a random index allowed after an Advance (run), if there is
-// one past the first.
-func (r *Replica) maybeCompact(snapIndex uint64) {
-	first, _ := r.storage.FirstIndex()
-	r.mu.Lock()
-	hi := r.index
-	r.mu.Unlock()
-	if snapIndex < hi {
-		hi = snapIndex
+// snapshotter takes the snapshots and makes the compactions run asks for, until the replica
+// stops; known is the least index the stored snapshot is known to have reached.
+func (r *Replica) snapshotter() {
+	var known uint64
+	for {
+		select {
+		case req := <-r.snapc:
+			known = r.snapshot(req, known)
+		case <-r.stopc:
+			r.snapDone <- struct{}{}
+			return
+		}
 	}
-	if hi < first {
-		return
+}
+
+// snapshot does what req asks: it takes the snapshot, which may be out of date
+// (ErrSnapOutOfDate: the storage holds one at least as recent, which run installed), as etcd's
+// apply thread allows; and it compacts the log to a random index from its first one to the least
+// of the requested bound and the stored snapshot's index as known (compacting past the stored
+// snapshot, the leader would have no snapshot to send a follower that needs the compacted
+// entries: issues/raft-compact-past-snapshot.md), if there is one. It returns what is known of the
+// stored snapshot's index after it.
+func (r *Replica) snapshot(req snapReq, known uint64) uint64 {
+	if req.data != nil {
+		_, err := r.storage.CreateSnapshot(req.index, req.cs, req.data)
+		if err == nil {
+			r.stats.add(&r.stats.SnapshotsTaken)
+			if len(req.cs.GetVotersOutgoing()) != 0 {
+				r.stats.add(&r.stats.SnapshotsTakenJoint)
+			}
+		} else if err != raft.ErrSnapOutOfDate {
+			panic("kvreconf: CreateSnapshot: " + err.Error())
+		}
+		if known < req.index {
+			known = req.index
+		}
 	}
-	if err := r.storage.Compact(first + below(hi-first+1)); err == nil {
-		r.stats.add(&r.stats.Compactions)
+	if req.compact != 0 {
+		first, _ := r.storage.FirstIndex()
+		hi := req.compact
+		if known < hi {
+			hi = known
+		}
+		if hi >= first {
+			if err := r.storage.Compact(first + below(hi-first+1)); err == nil {
+				r.stats.add(&r.stats.Compactions)
+			}
+		}
 	}
+	return known
 }
 
 // install replaces the replicated state by a snapshot's (its metadata and its data, decoded),
