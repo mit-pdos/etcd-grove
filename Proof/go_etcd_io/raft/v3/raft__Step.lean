@@ -662,9 +662,6 @@ theorem raft.Step.wp_proof
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.Step.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
@@ -680,7 +677,7 @@ theorem raft.Step.wp_proof
      wp_Message_GetIndex, wp_Message_GetReject, wp_Message_GetContext, wp_MessageType_Enum⟩
   intro c md γ r id s ml m ents ctx sn rs Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, Hcred, Hlc, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hxfer, Hm, Hcred, Hlc, #Hsnap⟩ HΦ
   -- (2026-10-14, stage B7) the ghost state in its mode: `ownRaftGhost` (what the protocol facts
   -- below read) and the rest
   iunfold ownStepGhost at Hghost
@@ -765,7 +762,9 @@ theorem raft.Step.wp_proof
           fun h => absurd h (by rw [Hty]; w32_ne)⟩,
         fun h => absurd h (by rw [Hty]; w32_ne)⟩
     isplitr
-    · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+    · ipureintro; exact fun _ _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+    isplitr
+    · ipureintro; exact fun h => absurd h (by rw [Hty]; w32_ne)
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
     isplitr
@@ -815,7 +814,9 @@ theorem raft.Step.wp_proof
           fun _ => Happ0⟩,
           fun _ sv h => absurd (Hsn.symm.trans h) (by simp)⟩
       isplitr
-      · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+      · ipureintro; exact fun _ _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+      isplitr
+      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
       isplitr
       · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
       isplitr
@@ -888,7 +889,9 @@ theorem raft.Step.wp_proof
         exact ⟨fun h => absurd (h HtyA) (by simp),
           fun _ sv' h => by cases h; exact ⟨rfl, ⟨prs, pvs, il, rfl⟩, Hmd'⟩⟩
       isplitr
-      · ipureintro; exact fun _ _ h => absurd (h HtyA) (by simp)
+      · ipureintro; exact fun _ _ _ h => absurd (h HtyA) (by simp)
+      isplitr
+      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
       isplitr
       · ipureintro
         obtain ⟨Hk1, Hk2⟩ := ackSnapLog_keep s.logst m s.term sv
@@ -961,6 +964,8 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ h => absurd HtyB h
     isplitr
+    · ipureintro; exact fun h => absurd h (by rw [HtyB]; w32_ne)
+    isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
     isplitr
     · ipureintro; exact RespStep.of_type (by rw [HtyB]; w32_ne) (by rw [HtyB]; w32_ne)
@@ -988,7 +993,8 @@ theorem raft.Step.wp_proof
       exact ⟨Hwf', Href, fun _ => Hsf.2.1,
         ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
          fun h => absurd h (by rw [Hns]; w32_ne)⟩,
-        fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => ⟨Hsf.1, Hsf.2.2⟩,
+        fun h => absurd Hns h, fun h => absurd h (by rw [Hns]; w32_ne), fun h => absurd Hns h, Hresp',
+        fun _ => ⟨Hsf.1, Hsf.2.2⟩,
         fun h => absurd h (by rw [Hns]; w32_ne)⟩
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hm', #Hdat⟩
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
@@ -1011,11 +1017,94 @@ theorem raft.Step.wp_proof
       ipureintro
       exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
           fun h => absurd h HtyA⟩,
-        fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun _ => Htr⟩
+        fun h _ _ _ => Hfr' h, fun h => absurd h (by rw [HtyApp]; w32_ne), Htm', Hresp',
+        fun h => absurd h Hns, fun _ => Htr⟩
     ihave #Hm' := Hmsg0 $$ %MsgType.app %(by rw [HtyApp]; exact mtypeOf_MsgApp) %(by decide)
     rw [isMessage_absMsg_ctx γ .app m ents ctx (And.intro (by decide) (by decide))]
     iapply dispatch_App P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf HtyApp (Happ HtyApp)
       $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦa
+  -- (raft-final phase 2, 2026-10-29) leader transfer: a request. Before the conversion to
+  -- `stepPost`: a follower with a leader records it and its term in `NGhost.xw` (the forward's
+  -- witness, `ownStepGhost_xw_record`), which `NetFrame` does not allow (`"%Hxwframe"`).
+  by_cases HtyX : m.Type' = MsgTransferLeader
+  · obtain ⟨Hent, Hctx0⟩ := Hrest.2.2 HtyX
+    have Hdh1 : ∀ (X : GSet (w64 × w64)) s', DynHypFor md m { s with gh := { s.gh with xw := X } } s' :=
+      fun X _ _ _ _ _ hmd _ HI =>
+        GMode.Pre.dynHyp (s := { s with gh := { s.gh with xw := X } }) Hpre Hns (fun h => absurd h HtyB) hmd HI
+    ihave #Hsd := isMessage_stepdown (GF := GF) γ id m
+    ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
+    have Hlok : s.role = .follower → s.lead ≠ id := by
+      intro Hf
+      rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
+      apply Hlok0
+      rw [toPState_role, Hf]; decide
+    -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
+    have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+        ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
+      iintro Hg
+      by_cases hl : s.role = .leader
+      · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+          (by rw [toPState_role, hl]; decide) $$ Hg
+        ipureintro; exact fun _ => H
+      · ipureintro; exact fun h => absurd h hl
+    ihave %HLT := HLT_lem $$ Hghost
+    ihave Hg : ownStepGhost γ md c id s $$ [Hghost Hrest]
+    · iunfold ownStepGhost; iframe
+    -- the stamped request's refutation, from its witness
+    ihave ⟨%Htr, Hg⟩ : ⌜m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower →
+        s.lead = W64 0⌝ ∗ ownStepGhost γ md c id s $$ [Hg]
+    · by_cases Hz : m.Term' = W64 0
+      · iframe Hg; ipureintro; intro h; exact absurd Hz h
+      · ihave #Hxl := Hxfer $$ %(And.intro HtyX Hz)
+        icases ownStepGhost_xferRefute γ md c id s m.Term' $$ [Hg Hxl] with ⟨%H, Hg⟩
+        · iframe Hg Hxl
+        iframe Hg; ipureintro; exact fun _ => H
+    -- the record, at a follower with a leader
+    ihave ⟨%X, %HX, %Hxo, Hg, Hphys⟩ : ∃ X : GSet (w64 × w64), ⌜∀ p, p ∈ s.gh.xw → p ∈ X⌝ ∗
+        ⌜s.role = .follower → s.lead ≠ W64 0 → (X !! (s.lead, s.term)).isSome⌝ ∗
+        ownStepGhost γ md c id { s with gh := { s.gh with xw := X } } ∗
+        ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xw := X } } $$ [Hg Hphys]
+    · by_cases Hrec : s.role = .follower ∧ s.lead ≠ W64 0
+      · iexists insert (s.lead, s.term) s.gh.xw
+        isplitr
+        · ipureintro; intro p hp; exact (GMap.elem_of_insert_set _ _ _).2 (.inr hp)
+        isplitr
+        · ipureintro; intro _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
+        isplitl [Hg]
+        · iapply ownStepGhost_xw_record γ md c id s Hrec.2 (by rw [Hrec.1]; decide) $$ Hg
+        iapply ownRaftPhysC_xw_record (c := c) (V := c.voters) r id s (s.lead, s.term) $$ Hphys
+      · iexists s.gh.xw
+        rw [show ({ s with gh := { s.gh with xw := s.gh.xw } } : NState) = s from rfl]
+        iframe Hg Hphys
+        ipureintro; exact ⟨fun _ h => h, fun h1 h2 => absurd ⟨h1, h2⟩ Hrec⟩
+    iunfold ownStepGhost at Hg
+    icases Hg with ⟨Hghost, Hrest⟩
+    ihave HΦ : ▷ stepPost γ md c r id { s with gh := { s.gh with xw := X } } m Φ $$ [HΦ Hlc]
+    · inext
+      unfold stepPost
+      iframe Hlc
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hfr', %Htm', %Hresp', Herr⟩
+      iapply HΦ $$ %err %s' %c' %md'
+      iframe Hphys Hghost Herr
+      ipureintro
+      have hg : s'.gh = ({ s with gh := { s.gh with xw := X } } : NState).gh := (Hfr' Hns).2.2.2.2.2.2.2.1
+      exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+          fun h => absurd h HtyA⟩,
+        fun _ _ h _ => absurd HtyX h,
+        fun _ => ⟨by
+            obtain ⟨a1, a2, a3, a4, a5, a6, a7, -, a9, a10⟩ := Hfr' Hns
+            exact ⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩,
+          by rw [hg], fun p hp => by rw [hg]; exact HX p hp⟩,
+        Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
+    wp_apply (wp_Step_MsgTransferLeader P PB c r id { s with gh := { s.gh with xw := X } } ml m ents sn ctx rs HtyX Hent Hctx0 Hxo Htr
+      Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT) $$ [$Hphys $Hmi]
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+    obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+    iapply finish_branch γ md c r id { s with gh := { s.gh with xw := X } } s' m _ recv err Φ (Hdh1 X s') Hwf' Hrecv Hstep
+      (fun _ => Hfr) (fun _ => Htm)
+      (RespStep.of_type (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne)) Hfr.nsst
+      (by simp [stepdownMsg, Msg.plain]) (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hrest Hphys [] HΦ
+    ileft; ipureintro; exact Herr
   ihave HΦ : ▷ stepPost γ md c r id s m Φ $$ [HΦ Hlc]
   · inext
     unfold stepPost
@@ -1027,7 +1116,8 @@ theorem raft.Step.wp_proof
     -- `LocalStepOk` is about the three types handled above, `SnapStep` about the snapshot
     exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
         fun h => absurd h HtyA⟩,
-      fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
+      fun h _ _ _ => Hfr' h, fun h => absurd h HtyX, Htm', Hresp', fun h => absurd h Hns,
+      fun h => absurd h HtyApp⟩
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`
   have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd _ HI =>
@@ -1156,33 +1246,6 @@ theorem raft.Step.wp_proof
       (fun _ => Hfr) (fun _ => Htm) (RespStep.of_type Hn.1 Hn.2.1 Hn.2.2) Hfr.nsst
       (by simp [stepdownMsg, Msg.plain]) (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hrest Hphys [] HΦ
     ileft; ipureintro; exact Herr
-  by_cases Hty : m.Type' = MsgTransferLeader
-  · -- leader transfer: a request
-    obtain ⟨Hent, Hctx0, Htr, Hxo⟩ := Htl Hty
-    ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
-    have Hlok : s.role = .follower → s.lead ≠ id := by
-      intro Hf
-      rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
-      apply Hlok0
-      rw [toPState_role, Hf]; decide
-    -- (2026-10-29, stage U7) a leader's term past `0`, for `send`'s stamp (`stepLeader`'s premise)
-    have HLT_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
-        ⌜s.role = .leader → s.term ≠ W64 0⌝ := by
-      iintro Hg
-      by_cases hl : s.role = .leader
-      · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
-          (by rw [toPState_role, hl]; decide) $$ Hg
-        ipureintro; exact fun _ => H
-      · ipureintro; exact fun h => absurd h hl
-    ihave %HLT := HLT_lem $$ Hghost
-    wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Hxo Htr Hlok Hwf
-      (Hnors (.inr (.inr Hty))) HLT) $$ [$Hphys $Hmi]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
-    obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-    iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
-      (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst
-      (by simp [stepdownMsg, Msg.plain]) (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hrest Hphys [] HΦ
-    ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgTimeoutNow
   · -- leader transfer: the transferee campaigns
     obtain ⟨Hnw, Hnwm, Hfla⟩ := Htn Hty
@@ -1198,7 +1261,6 @@ theorem raft.Step.wp_proof
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
   rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h |
     h | h <;> first | contradiction | exact HtyL (by simp [h])
-  -/
 
 end dispatch
 

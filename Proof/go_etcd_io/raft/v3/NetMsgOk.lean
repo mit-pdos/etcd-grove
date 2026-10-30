@@ -91,7 +91,18 @@ a forwarded proposal (`fwdP`). (Until then `NetMsgOk.of_sent`, from the no-trans
 `SentMsgOk`, D21g (A).) -/
 theorem NetMsgOk.of_shape {dst : w64} {st : MsgSt} (H : SentMsgShape st) (Hto : st.msg.To' = dst)
     (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
-  sorry
+  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft, -, Hxe, Hrs⟩ := H
+  subst Hto
+  unfold NetMsgOk UnstampedType
+  simp only [sentShapeTypes, sentTypes, List.mem_append, List.mem_cons, List.not_mem_nil,
+    _root_.or_false] at Hty
+  rcases Hty with (h | h | h | h | h | h | h | h | h | h | h | h) | h | h <;>
+    rw [h] at Ht0 Ht1 Hft Hnp Hxe ⊢ <;>
+    simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+      MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
+      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap]
+      at Ht0 Ht1 Hft Hnp Hxe ⊢ <;>
+    simp_all
 
 end
 

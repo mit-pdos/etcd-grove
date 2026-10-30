@@ -746,8 +746,13 @@ abbrev raft.Step.spec : Prop :=
                         ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp, g.decs⟩))⌝ ∗
       -- for every other message but a snapshot (and its acknowledgement), what is kept of the
       -- log (2026-10-09)
-      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →
+      -- (raft-final phase 2, 2026-10-29) but a transfer request, which may record the node's
+      -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
                    (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
+      -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
+      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

@@ -530,17 +530,13 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     -- (raft-final, 2026-10-29, U9: until then also a transfer request only with leader transfer
     -- on, `hx`)
     RestMsgOk s st.msg st.ents st.ctx := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   obtain ⟨-, -, Hun, -, -, -, Htl, -⟩ := h
   refine ⟨fun h' => Hun ?_ ?_, ht, fun h' => Htl h'⟩
   · rcases h' with h' | h' | h'
     · exact .inr (.inr (.inl h'))
     · exact .inr (.inr (.inr (.inl h')))
     · exact .inr (.inr (.inr (.inr h')))
-  · rcases h' with h' | h' | h' <;> rw [h'] <;> decide
-  -/
+  · rcases h' with h' | h' | h' <;> rw [h'] <;> simp [MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTransferLeader]
 
 -- (2026-10-28, stage U3c) `DynNoSnap` (the dynamic mode took no snapshot message, from 2026-10-14,
 -- stage B7 part 2) is gone: `RawNode.Step` takes a `MsgSnap` in either mode.
@@ -796,12 +792,9 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
       (m.Type' = MsgReadIndexResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
         m.From' ≠ id) →
       RestMsgOk s m ents ctx → X) : X := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   have Hok0 := Hok
   simp only [NetMsgOk] at Hok0
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf, -⟩ := Hok0
+  obtain ⟨Hty, Hnri, Hri, -, Hself, Hrej, -, Hpvf, -⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
       m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
     fun h ht => Hnri (h ▸ ht)
@@ -823,7 +816,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
     -- (2026-10-20, D22 S-c) a leader's snapshot, from another node
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr (.inr h))))⟩)
-    (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h))
+    (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h) (by rw [h]; simp [MsgReadIndex, MsgTransferLeader]))
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr (.inl h))))⟩)
     (Hok.restMsgOk (st := ⟨m, ents, sn, ctx, rsp⟩) (fun h => by
@@ -831,8 +824,7 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
       have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
       have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       simp only at h ⊢
-      exact ⟨by omega, by omega, Hfla⟩) Hxo)
-  -/
+      exact ⟨by omega, by omega, Hfla⟩))
 
 /-- The mode's guard from the guard in the dynamic mode. -/
 theorem RNMode.guard_of {mode : RNMode} {fp : List EntryM} {s : NState}
@@ -927,31 +919,50 @@ def LoanOk (rs : RNState) (s : NState) : Prop :=
 to `delivered`) **Raft certified the terms of the committed log handed out, and no more**: the
 log's certified height (`LogState.dtk`, every key of `sn.gd` at most it) is `delivered`'s length.
 So a `Ready` certifies its committed entries' terms afresh (`ownRaftLog_certify`), which the driver
-keeps with the committed log delivered (the API's `deliveredLogLb`, the storage contract's `DL`). -/
-def SdtTie (rs : RNState) (s : NState) : Prop :=
-  s.logst.dtk = rs.delivered.length
+keeps with the committed log delivered (the API's `deliveredLogLb`, the storage contract's `DL`).
+(Phase 2, 2026-10-29) While a snapshot's loan is out, the snapshot's committed log (`l.dlv`, which
+its `Ready` certified and its `Advance` delivers): `sdtLen`; until then `delivered`'s length always,
+which a snapshot `Ready` breaks. -/
+def sdtLen (rs : RNState) : Nat :=
+  match rs.slent with
+  | some l => l.dlv.length
+  | none => rs.delivered.length
 
-/-- `SdtTie` across a step that keeps the certified height and `delivered`'s length. -/
+def SdtTie (rs : RNState) (s : NState) : Prop :=
+  s.logst.dtk = sdtLen rs
+
+/-- `SdtTie` without a loan. -/
+theorem SdtTie.of_none {rs : RNState} {s : NState}
+    (h : s.logst.dtk = rs.delivered.length) (hsl : rs.slent = none := by rfl) : SdtTie rs s := by
+  unfold SdtTie sdtLen; rw [hsl]; exact h
+
+/-- `SdtTie` across a step that keeps the certified height, `delivered`'s length and the loan. -/
 theorem SdtTie.keep {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
     (hk : s'.logst.dtk = s.logst.dtk)
-    (hdl : rs'.delivered.length = rs.delivered.length) : SdtTie rs' s' := by
-  unfold SdtTie at H ⊢; rw [hk, hdl]; exact H
+    (hdl : rs'.delivered.length = rs.delivered.length)
+    (hsl : rs'.slent = rs.slent := by rfl) : SdtTie rs' s' := by
+  unfold SdtTie sdtLen at H ⊢; rw [hk, hsl]
+  cases h : rs.slent with
+  | none => rw [h] at H; rw [hdl]; exact H
+  | some l => rw [h] at H; exact H
 
 /-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the record kept, `delivered`
 unchanged). -/
 theorem SdtTie.ofRec {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
     (_hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
-    (hdl : rs'.delivered = rs.delivered := by rfl) : SdtTie rs' s' :=
-  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl])
+    (hdl : rs'.delivered = rs.delivered := by rfl) (hsl : rs'.slent = rs.slent := by rfl) :
+    SdtTie rs' s' :=
+  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl]) hsl
 
 /-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`: the certified height kept). -/
 theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : MessageM}
     (H : SdtTie rs s)
     (_Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
       (rs.delivered.map (·.Term'))[uint.nat s.logst.prev.index' + k]? = some t)
-    (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl) :
+    (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl)
+    (hsl : rs'.slent = rs.slent := by rfl) :
     SdtTie rs' s' := by
-  apply SdtTie.keep H _ (by rw [hdl])
+  apply SdtTie.keep H _ (by rw [hdl]) hsl
   rcases Hsl with h | h
   · exact h.2.2.2.2.2.2
   · exact h.2.2.2.2.2.2.2.2
@@ -2248,13 +2259,10 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       ⌜NsLink γ s⌝ ∗
       -- (D22 S-b′3) the storage's certificate link
       certLink γ s.gh.sn := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl⟩
+  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl, -, -⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
@@ -2264,7 +2272,6 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       (by rw [Hlrn]; rfl) HC.2
   iframe Hcl
   ipureintro; exact Hnl
-  -/
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -2381,22 +2388,15 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownStepGhost γ md c id s -∗
       ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝ ∗ ownRaftPhysCV c V r id s ∗
         ownStepGhost γ md c id s := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro Hphys Hghost
-  icases ownRaftPhysC_ns c r id s $$ Hphys with ⟨%Hnsl, -, Hphys⟩
-  iunfold ownStepGhost at Hghost
-  icases Hghost with ⟨Hg, Hr⟩
-  icases ghostRest_nsLink γ md c id s $$ Hr with ⟨%Hnl, Hr⟩
-  iframe Hphys
-  isplitr
-  · ipureintro
-    intro h
-    exact (Hnsl (by rw [Hnl.1]; exact h)).2.2.2
-  iunfold ownStepGhost
-  iframe Hg Hr
-  -/
+  icases ownRaftPhysC_sn c r id s $$ Hphys with ⟨%Hsn, Hphys⟩
+  icases ownStepGhost_nsLink γ md c id s $$ Hghost with ⟨%Hnl, Hghost⟩
+  iframe Hphys Hghost
+  ipureintro
+  intro h
+  unfold NsLink at Hnl
+  rw [Hsn.1, h] at Hnl
+  cases Hnl
 
 /-- (2026-10-20, D22 S-c) A node with nothing committed is of a cluster with no bootstrap log
 (`ownLogGhost_boot`), so not in the no-transfer mode (`RaftNames.reNoXfer_ok`): what
@@ -2475,9 +2475,6 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
 theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗
       ⌜uint.Z rs.term ≤ uint.Z rs.tc⌝ ∗ ownRawNode γ rn id rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   iintro H
   iNamed H
   isplitr
@@ -2485,7 +2482,6 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
-  -/
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of

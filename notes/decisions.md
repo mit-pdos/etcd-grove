@@ -25724,3 +25724,19 @@ in neither mode.
 4. `stepIn_intro` then loses its `NetMsgOk`/`≠ MsgTransferLeader` premises (from `SentMsgShape` and
    the delivery to `To`). `NetMsgOk` admits a stamped `MsgTransferLeader` (no longer `UnstampedType`
    when stamped), and `netP` carries 2's `isLeader` fact.
+
+## raft-final phase 2, track P4: the node loop (2026-10-30 · `notes/raft-unified-plan.md`)
+
+- `wp_rn_raft_Step_net` (internal, `InvNodeRun`, used only by `node.run`): premises `Hxt :
+  MsgTransferLeader → γ.reNoXfer = false` and `Hsnp : MsgSnap → γ.reNoSnap = false` dropped; the
+  precondition takes `□ (⌜Type = MsgTransferLeader ∧ Term ≠ 0⌝ -∗ isLeader γ id Term)`, which
+  `node.run` gets from `netP`'s transfer clause. Why: `raft.Step.spec` takes that witness (`"#Hxfer"`)
+  and no longer the transfer mode; its `MsgSnap → s.gh.ns = false` comes from `ownRaftPhys`'s
+  `NsCap` (`ownRaftPhysC_sn`); and `netP`/`runCfg` no longer give the two old premises. (Approved by
+  the coordinator.)
+- `readySnapData` (internal, `InvNodeChan`): a conjunct `raftSnapCertD γ.raft (snapTrip l.snap
+  l.snap.Metadata'.ConfState'.lists)`. Why: P6's `readyRecv_open` makes the client's `snapshotCert`
+  of a snapshot `Ready`'s snapshot, and since U8 v2 the storage's registry (`storageCertLink`) no
+  longer carries it; raft holds it as the pin `ksnCert` of the restored `MsgSnap` (`s.gh.snp`,
+  `LoanOk`), which `certLink` turns into `raftSnapCertD` at the hand-out (`node.run`). (Requested by
+  P6, approved by the coordinator.)
