@@ -51,6 +51,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A range's result over committed logs under the deposit, at the mode-`on` model's state
 (`rangeDepQ`'s; `kvDep`'s form at `kvStM true`). -/
