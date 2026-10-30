@@ -491,31 +491,72 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
-## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`)
+## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 
-Every stage-P `sorry` of etcd's server and examples/kv is proved, each once. The `sorry`s left are
-the SNAPSHOT-SORRY list (#1-#3, #6-#11; #4/#5 turned out provable, #11 added) and those already on
-origin/lean. The downstream server examples (common, putget, putget3, putgetc, linkvtxn, linkv3p,
-authkv, watchkv, cachekv, k8setcd3) are repaired; k8sdaemonset and k8s's apiserver storage needed
-no change. `kv_porcupine_safe` is byte-identical. The statement changes made during the proofs,
-P1-P10 (several trusted, coordinator-approved while the user was away, for the user's review), and
-the open problems for the post-merge snapshot track: `notes/raft-unified-plan.md`, "Repair: Stage P
-changes", "Repair: Stage P progress", "Repair: sorries inherited from lean". The common brief:
-`notes/repair-stageP-brief.md`.
+**Verified.** Over raft's unified API, every `sorry` Stage F left in etcd's server and examples/kv is
+proved, each once (tracks S-0, S-C, S-D, S-E, S-A, K-a/b/c), and the two `schedule` `Stop` proofs Stage
+F's T1b left outside the list. examples/kv: no `sorry`; `kv_porcupine_safe` byte-identical to
+origin/lean's. The downstream server examples (common, putget, putget3, putgetc, linkvtxn, linkv3p,
+authkv, watchkv, cachekv, k8setcd3) repaired; k8sdaemonset and k8s's apiserver storage unchanged.
+Full `lake build` green; `api-check`/`gen-interface --check --layout` for raft clean (0 new).
 
-Checked at the end (2026-10-30): full `lake build` green; `etc/tcb-report.py --check` against the old
-baseline differed by exactly +`ccDecodeV2_nil`, −the `EtcdServer.snapshot` axiom, + the SNAPSHOT-SORRY
-roots (baseline updated; collections `raft`, `kv`, `server-raft` updated, `kvreconf` added; kv's
-results reach no `sorry`); `api-check` and `gen-interface --check --layout` for raft (0 new).
-Which SNAPSHOT-SORRY reaches which exported result of the server's `Results.lean` (12 of its 164
-roots reach a `sorry`, all of them snapshot ones):
-- `node_contract_ifc`, `server_raft_node_start`, `server_new_auth_on` (and its composites): #6
-  (`isRaftNodeIfc_of_isNode`, the snapshot `Advance` clause).
-- `applyAll_model`, `server_apply_all_on`: #7 (`applyAll`'s msgSnapC merge), #9 (`snapshot`), #11
-  (`snapshotIfNeeded…`'s due branch).
-- `server_run(_on)`, `server_start(_on)`, `server_Start(_on)`, `start_gives_views`: #1 (`rn_ready_recv`),
-  #2 (`rnApplyTok_recv`), #3 (`raftNode.start`), #7, #8 (`run`), #9, #11.
-(#10, `SnapTakeProof`, reaches no root.)
+**The SNAPSHOT-SORRY list** (the user's "snapshot branches sorry"; `notes/raft-unified-plan.md`,
+"Repair: snapshot sorries"): #1 `rn_ready_recv` (snapshot `Ready`), #2 `rnApplyTok_recv` (snapshot
+payload), #3 `raftNode.start` (the `Ready`-snapshot branch), #6 `isRaftNodeIfc_of_isNode` (the snapshot
+`Advance` clause), #7 `applyAll` (msgSnapC merge, both modes), #8 `run` (the snapshot payload's job, both
+modes), #9 `EtcdServer.snapshot`, #10 `SnapTakeProof` (reaches no root), #11 (new in stage P, P7)
+`snapshotIfNeededAndCompactRaftLog`'s snapshot-due branch. #4/#5 (`processMessages`' `MsgSnap` side) were
+proved. What each reaches among the server's exported results (12 of its `Results.lean`'s 164 roots
+reach a `sorry`, all of them snapshot ones):
+- `node_contract_ifc`, `server_raft_node_start`, `server_new_auth_on` (and the composites): #6.
+- `applyAll_model`, `server_apply_all_on`: #7, #9, #11.
+- `server_run(_on)`, `server_start(_on)`, `server_Start(_on)`, `start_gives_views`: #1, #2, #3, #7, #8,
+  #9, #11.
+The downstream examples' collections reach the same through `server_new_auth_on`/`run`.
+
+**Inherited `sorry`s** (already on origin/lean; "Repair: sorries inherited from lean"):
+`NewServer.wp_proofCompact`, `EtcdServer.processInternalRaftRequestOnce.wp_proofCompact`,
+`restorePre_of_apply`'s compaction case (no root), `Type'_into_val_typed`, `Type'_typed_pointsto`,
+`authkv.Main.wp_proof`, `k8setcd3.client_ctx_field`, `k8setcd3.revRoom`, `kubernetes.kvIs_ne_null`.
+
+**Trust base.** `etc/tcb-report.py --check` vs the old baseline: exactly +`ccDecodeV2_nil` (user-approved),
+−the `EtcdServer.snapshot` axiom (a theorem now), + the SNAPSHOT-SORRY roots; baseline updated.
+Collections: `raft`, `kv`, `server-raft` updated with those items only; `kvreconf` added (18 axioms, no
+`sorry`). **Coordinator-approved while the user was away, for the user's review:** 13 collections also
+gained axioms already in the global baseline: `authkv`, `cachekv`, `k8setcd3`, `linkv3p`, `linkvtxn`,
+`putget`, `putget3`, `watchkv` gained `proto.MarshalConfChange.wp_proof`,
+`proto.MarshalConfChangeV2.wp_proof` (raft's linked node path, `ApplyConfChange`/`Propose`, in place of
+the removed dynamic specs) and `storage.storage.Release.wp_proof` (`EtcdServer.snapshot`'s linked
+callees: a theorem now, its callees' axioms count though its proof is #9); `server`, `snapshot` the two
+`MarshalConfChange` ones; `m2` `proto.CloneSnapshot.wp_proof` and `storage.storage.Release.wp_proof`
+(the snapshot theorem's callees).
+
+**Statement changes during the proofs** (P1-P11, `notes/raft-unified-plan.md`, "Repair: Stage P changes";
+the trusted ones coordinator-approved while the user was away, for the user's review): P1 `dvView_cc`'s
+no-`RemoveNode` premise (internal); P2 `rnEnvOk`'s message clause assumes not `MsgSnap` (trusted premise
+weakened); P3 `rnReadyData` += `rnCeFrozen` (internal); P4 `node_contract_memstor` += `memStorLock`
+(trusted premise strengthened); P5 `rnAppendRight` += `rnConsec` (trusted conclusion's precondition); P6
+`isServerApplyAll` drops the never-delivering msgSnapC clause and the run-length bound (trusted
+precondition weakened); P7 `snapshotIfNeeded…`/ModeSpecs to the no-snapshot path, SNAPSHOT-SORRY #11, the
+strong forms kept as `specFull*`; P8 `srvSnapState`'s frozen parts moved to `srvSnapFrozen` (exported
+`applyAll_model` equal to lean's there); P9 `NewServer` += `γ.rule = srvRule (W64 0) γ.boot` (replacing
+`γ.dyn = false`); P10 `srvBuilt`/`isServerBuilt` drop the run-length bound; P11 the schedule package's
+`donecInv` carries the last job's `Post` (`donecCarry`, internal). Downstream examples:
+`γ.dyn = false` → `γ.rule = srvRule (W64 0) <boot>` in their premises and common's specs,
+`rnStopOkStarted`/read credits dropped. Missing raft `Assumptions` instances added outside the
+server's Results closure (Stage F's pattern): `ServerKVOn`, `AuthService`, `AuthTieRead`, `txn/Results`,
+client/v3's `WatchFire`, `KVServiceOn`, `InvServerKV`, `AuthServiceOn`, `ResultsOn`, authkv's
+`SetupInv`/`ClientOn` (the exported results of `txn/Results` and client/v3's `ResultsOn` take the
+instance argument, implied by the server's `Assumptions`). `SnapRecvFacts.snapRecv_image` lost
+`hstat : γ.dyn = false` (the field gone; nothing imports it).
+
+**Remaining work: snapshot verification after the merge into `lean`.** Prove the SNAPSHOT-SORRY list
+(#9/#10 first: lean's `SnapTakeProof`, rewired over `srvSnapStor`/`srvSnapFrozen`), with the open
+problems recorded in the plan (P8, "Repair: Stage P progress"): `applyAll`'s stopping arm needs an "or
+stopping" form of the frozen state (in `run`'s `InvRun` too); entry 0's frozenness at `ai = 0` (from
+`NewMemoryStorage`'s `memLog 0 □ [zero]`); `specFull`'s `storage.releaseOk` and `ai ≤ ciEff` at
+`applyAll`'s call (nothing gives `releaseOk`; `run`'s `ciJ` gives the opposite direction). Then the merge of
+`repair` into `lean`.
 
 ## Repair, Stage F: the clients' statements (2026-10-30, branch `repair`)
 

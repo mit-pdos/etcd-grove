@@ -1824,3 +1824,10 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   As built (29dda0fb3f): the carried fact framed as `donecCarry γ F` (`baton L (|L|-1)` or, once `Stop`
   took it, `dghostVar F.st (own ½) true`: `Stop` persists only half of the `stopped` flag, so a second
   taker is refuted; the proposed `monoListAuthOwn ¼` could not refute it).
+- **Collections** (coordinator-approved while the user was away, for the user's review): besides the
+  approved items, 13 collections gained axioms already in the global baseline: `authkv`, `cachekv`,
+  `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`, `putget3`, `watchkv`: `proto.MarshalConfChange.wp_proof`,
+  `proto.MarshalConfChangeV2.wp_proof` (raft's linked node path in place of the removed dynamic specs),
+  `storage.storage.Release.wp_proof` (`EtcdServer.snapshot` a theorem now: its linked callees count);
+  `server`, `snapshot`: the two `MarshalConfChange`; `m2`: `proto.CloneSnapshot.wp_proof`,
+  `storage.storage.Release.wp_proof`. Updated with `--update`; `kvreconf` collection added.
