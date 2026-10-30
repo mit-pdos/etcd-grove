@@ -385,8 +385,6 @@ theorem EtcdServer.start.wp_proof
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    isplitr
-    · ipureintro; exact Hscu1
     ipureintro; exact Hlgn
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
@@ -892,8 +890,6 @@ theorem EtcdServer.start.wp_proofOn
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    isplitr
-    · ipureintro; exact Hscu1
     ipureintro; exact Hlgn
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr

@@ -97,17 +97,16 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (wt : GoInterface) (msc : Loc) (sc : w64),
     srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt (appliedAtLeast γr) ∗
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      -- (D19p, 2026-10-18) it never delivers: raft sends no `MsgSnap` (D21 M3: in its
-      -- no-snapshot mode; until then of a one-member cluster)
-      □ (∀ m : Loc, P m -∗ False)) ∗
+    -- (2026-10-30, the repair: snapshots allowed) a bag of raft's `MsgSnap`s (`rnSnapMsg`, the
+    -- raft loop's `processMessages`); until then it never delivered (D19p: `□ (∀ m, P m -∗ False)`)
+    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
     (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg) ∗
-    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads, past the
-    -- receipts' bound (`NewServer.spec`'s run bound): every compaction is at index `1`
-    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu ∗
-      ⌜receiptBound GF ≤ uint.Z scu + 1⌝) ∗
+    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads (2026-10-30, the
+    -- repair: no bound; until then past the receipts' bound, `NewServer.spec`'s run bound, so
+    -- that every compaction was at index `1`)
+    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
     -- `sendMergedSnap` writes
     srvInflight s ∗

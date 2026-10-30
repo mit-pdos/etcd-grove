@@ -142,13 +142,12 @@ def srvRunBuilt (s : Loc) (v : RunFields) : IProp GF :=
 instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBuilt (GF := GF) s v) := by
   unfold srvRunBuilt; infer_instance
 
-/-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, which never
-delivers (D19p, 2026-10-18: raft sends no `MsgSnap`; since D21 M3 in its no-snapshot mode,
-until then of a one-member cluster). -/
+/-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, a bag of
+raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed; until then it never delivered, D19p:
+raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      □ (∀ m : Loc, P m -∗ False)) ∗
+    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s)
 
