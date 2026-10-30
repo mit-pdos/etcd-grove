@@ -1587,8 +1587,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `rnApR_dv` (done), `rnApGive_dv` (done), `srvRaftNodeCC_of_isRaftNode` (done)), `NodeBridge.lean`
    (`isRNMemStor_of_memstorage`, `raftPropose_of_isNode` (done), `raftApplyCC_of_isNode`,
    `isRaftNodeIfc_of_isNode`, `rnStepIfc_of_isNode` (done)), `raftNode__start.lean`,
-   `raftNode__onStop.lean` (done), `raftNode__stop.lean` (done), `raftNode__tick.lean` (done), `newRaftNode.lean`
-   (`rnApP_cum`, `newRaftNode.wp_proof`).
+   `raftNode__onStop.lean` (done), `raftNode__stop.lean` (done), `raftNode__tick.lean` (done), `newRaftNode.lean` (done)
+   (`rnApP_cum` (done), `newRaftNode.wp_proof`).
 3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
    `srvSnapState`, `SnapTake*`, the `snapshot` axiom): `EtcdServer__applyAll.lean` (`wp_proof`,
    `wp_proofOn`), `EtcdServer__applyEntries.lean` (both), `EtcdServer__apply.lean` (both),
