@@ -185,12 +185,18 @@ node API's `readyRest_fits`). -/
 def rnFits (es : List EntryModel) : Prop :=
   ∀ e0, es.head? = some e0 → uint.Z e0.index + (es.length : Int) ≤ 2 ^ 61
 
+/-- (2026-10-30, the repair, stage P) The batch's indices consecutive from its first
+(`MemoryStorage.Append`'s premise; the node API's `readySnap none` states it). -/
+def rnConsec (es : List EntryModel) : Prop :=
+  ∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : EntryModel), es[j]? = some e →
+    uint.nat e.index = uint.nat e0.index + j
+
 /-- The right to append `es` to the `MemoryStorage` (from a `Ready`): raft's storage API's
 `appendRight` at the storage (the range from the batch's first index owned), and the indices'
 bound. -/
 def rnAppendRight (γ : RNNames) (es : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(appendRight (memStorIface γ.ms) (es.map EntryModel.toM) ∗ ⌜rnFits es⌝)
+  iprop(appendRight (memStorIface γ.ms) (es.map EntryModel.toM) ∗ ⌜rnFits es ∧ rnConsec es⌝)
 
 /-- The receipt of the append of `es` (for `Advance`): raft's storage API's `appendReceipt`, with
 nothing frozen (2026-10-30, the repair: `appendReceipt`'s frozen prefix `a` is `[]`, which
@@ -231,6 +237,27 @@ all of it; a half refutes the stopped answers of `Advance` and `ApplyConfChange`
 the loop with `raftNode.stop` (`rnStopBag`'s payload) once the scheduler is drained: etcd stops
 raft after the scheduler. -/
 
+/-- (2026-10-30, the repair, stage P) **A `Ready`'s committed entries `ce` after the log `d`, as the
+node API freezes them** (raft's `readySnap none`): the first ones frozen in the storage
+(`ceFrozen`), the batch `es` consecutive, the rest of `ce` the batch's first entries. The raft loop
+freezes the latter after `Append` (`rn_freeze_receipt`) for `raftAdvancedC`'s frozen range. -/
+def rnCeFrozen (γ : RNNames) (d ce es : List EntryModel) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(ceFrozen (memStorIface γ.ms) (srvLE γ.srv d).length
+      (LogEntry.toEntries (ce.map EntryModel.toLE) (srvLE γ.srv d).length)
+      (es.map EntryModel.toM) ∗
+    ⌜∀ e0, (es.map EntryModel.toM).head? = some e0 →
+      (∀ (j : Nat) (e : EntryM), (es.map EntryModel.toM)[j]? = some e →
+        uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+      ∀ (j : Nat) (e : LogEntry), (ce.map EntryModel.toLE)[j]? = some e →
+        uint.nat e0.Index' ≤ (srvLE γ.srv d).length + 1 + j →
+        Option.map LogEntry.ofEntryM
+          (es.map EntryModel.toM)[(srvLE γ.srv d).length + 1 + j - uint.nat e0.Index']? = some e⌝)
+
+instance rnCeFrozen_persistent (γ : RNNames) (d ce es : List EntryModel) :
+    Persistent (rnCeFrozen (GF := GF) γ d ce es) := by
+  unfold rnCeFrozen; infer_instance
+
 /-- A `Ready`'s `SoftState`: nil, or read-only fields (raft's `softStateRO`). -/
 def softStateAt (p : Loc) : IProp GF := softStateRO p
 
@@ -252,7 +279,9 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗
     ⌜p' = phsNext p hs.toM⌝ ∗
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs) ∗
-    ⌜rd.Snapshot' = null⌝)
+    ⌜rd.Snapshot' = null⌝ ∗
+    -- (2026-10-30, the repair, stage P) the committed entries as the node API freezes them
+    rnCeFrozen γ d ce es)
 
 /-- **The driver's view of the configuration after the committed log `L`** (D43 M3; 2026-10-30,
 the repair: raft's one mode, the old dynamic one's): the view after `pre ++ L`, every conf entry of
@@ -669,7 +698,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, -, -⟩⟩
+  icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
@@ -741,16 +770,29 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       rw [EntryModel.map_toM_ofM]
       iframe Happ
       ipureintro
-      intro e0 He0
-      rw [List.head?_map] at He0
-      cases Hh : es.head? with
-      | none => rw [Hh] at He0; cases He0
-      | some x =>
-        rw [Hh] at He0; cases He0
-        have := Hfit61 x Hh
-        simp only [List.length_map]
-        show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 61
-        omega
+      constructor
+      · intro e0 He0
+        rw [List.head?_map] at He0
+        cases Hh : es.head? with
+        | none => rw [Hh] at He0; cases He0
+        | some x =>
+          rw [Hh] at He0; cases He0
+          have := Hfit61 x Hh
+          simp only [List.length_map]
+          show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 61
+          omega
+      · intro e0 He0 j e He
+        rw [List.head?_map] at He0
+        rw [List.getElem?_map] at He
+        cases Hh : es.head? with
+        | none => rw [Hh] at He0; cases He0
+        | some x =>
+          rw [Hh] at He0; cases He0
+          cases Hj : es[j]? with
+          | none => rw [Hj] at He; cases He
+          | some y =>
+            rw [Hj] at He; cases He
+            exact (Hidx x Hh).1 j y Hj
     isplitr
     · iunfold softStateAt; iexact Hss
     isplitr
@@ -765,7 +807,12 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       iexists vs
       iframe Hvs
       iapply rnReadStates_of_api E γ vs sts $$ Hbr Hrs2 Hrsok
-    ipureintro; exact Hsnap
+    isplitr
+    · ipureintro; exact Hsnap
+    iunfold rnCeFrozen
+    rw [EntryModel.map_toM_ofM, Hce'LE]
+    iframe Hcf
+    ipureintro; exact Hidx
   isplitl [Hcfg Hdrv]
   · iunfold rnBusy
     iframe Hcfg
