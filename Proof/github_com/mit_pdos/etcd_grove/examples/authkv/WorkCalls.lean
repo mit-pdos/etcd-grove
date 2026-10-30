@@ -448,6 +448,85 @@ theorem read_past_refused (who : GoString)
   · exact not_granted_past r who _ _ hu hg
   · exact absurd h0 (by decide)
 
+/-- A response's range key-values are in `[a, b)` (the other kinds hold none). -/
+def respInAB : OpRespM → Prop
+  | .range _ kvs _ _ => ∀ kv ∈ kvs, inRange lo hi kv.key = true
+  | _ => True
+
+/-- A range reply's key-values are of the selected ones (sorted, cut, keys only). -/
+theorem rangeKvsOk_keys (o : OpFull) (sel kvs : List EtcdKv) (h : rangeKvsOk o sel kvs) :
+    ∀ kv ∈ kvs, ∃ v ∈ sel, v.key = kv.key := by
+  obtain ⟨l, hperm, -, -, -, rfl⟩ := h
+  intro kv hkv
+  split at hkv
+  · simp at hkv
+  obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hkv
+  have hvl : v ∈ l := by
+    split at hv
+    · exact List.mem_of_mem_take hv
+    · exact hv
+  refine ⟨v, hperm.mem_iff.1 hvl, ?_⟩
+  split <;> rfl
+
+/-- Each response is related to an operation of the branch and its result. -/
+theorem opRespsRel_mem (skip : Bool) (ops : List TxnOp) :
+    ∀ (rs : List TxnOpResult) (ms : List OpRespM), opRespsRel skip ops rs ms →
+      ∀ x ∈ ms, ∃ op ∈ ops, ∃ res ∈ rs, opRespRel skip op res x := by
+  induction ops with
+  | nil =>
+    intro rs ms h
+    cases rs <;> cases ms <;> simp [opRespsRel] at h ⊢
+  | cons op ops ih =>
+    intro rs ms h
+    cases rs with
+    | nil => cases ms <;> simp [opRespsRel] at h
+    | cons res rs =>
+      cases ms with
+      | nil => simp [opRespsRel] at h
+      | cons m ms =>
+        obtain ⟨h1, h2⟩ := h
+        intro x hx
+        rcases List.mem_cons.1 hx with rfl | hx
+        · exact ⟨op, List.mem_cons_self .., res, List.mem_cons_self .., h1⟩
+        · obtain ⟨op', hop', res', hres', h'⟩ := ih rs ms h2 x hx
+          exact ⟨op', List.mem_cons_of_mem _ hop', res', List.mem_cons_of_mem _ hres', h'⟩
+
+/-- **T1's reply reads only `[a, b)`**: its comparisons are none, so its then branch ran; its get's
+response holds key-values of the state's range `[a, b)`. -/
+theorem t1_reads (k v : GoString) (r : w64) (s : List EtcdKv) (skip : Bool) (m : TxnRespM)
+    (hs : m.succeeded = (txn.srvRunTxn r s (txnWireOf (t1M k v))).1)
+    (hr : opRespsRel skip ((txnWireOf (t1M k v)).branch m.succeeded)
+      (txn.srvRunTxn r s (txnWireOf (t1M k v))).2.2 m.resps) :
+    ∀ x ∈ m.resps, respInAB x := by
+  have hok : (txn.srvRunTxn r s (txnWireOf (t1M k v))).1 = true := by
+    simp [txn.srvRunTxn, t1M, txnWireOf]
+  rw [hs, hok] at hr
+  simp [txn.srvRunTxn, t1M, txnWireOf, TxnModel.branch, txn.srvOps_cons, txn.srvOps_nil,
+    txn.srvOp, opWire] at hr
+  intro x hx
+  obtain ⟨op, hop, res, hres, h⟩ := opRespsRel_mem skip _ _ _ hr x hx
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hop hres
+  cases x with
+  | range rev kvs more count =>
+    simp only [respInAB]
+    rcases hop with rfl | rfl
+    · rcases hres with rfl | rfl <;> simp [opRespRel] at h
+    rcases hres with rfl | rfl
+    · simp [opRespRel] at h
+    unfold opRespRel at h
+    split at h
+    · intro kv hkv; simp_all
+    obtain ⟨-, kvs', hk, rfl⟩ := h
+    intro kv hkv
+    obtain ⟨w, hw, rfl⟩ := List.mem_map.1 hkv
+    obtain ⟨u, hu, hue⟩ := rangeKvsOk_keys _ _ _ hk w hw
+    have hin := (List.mem_filter.1 (List.mem_filter.1 hu).1).2
+    rw [get_ab_ok.2.2.1, get_ab_ok.2.2.2] at hin
+    have : (txn.leaseZ (txn.fastKeysOnly (rangeWireOf (opGetModel lo [withRangeM hi]))) w).key =
+        w.key := by unfold txn.leaseZ; split <;> rfl
+    rw [this, ← hue]; exact hin
+  | _ => trivial
+
 end pure
 
 section calls
@@ -675,6 +754,25 @@ theorem txnReplied_Q (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mv
   icases H with ⟨%_, %_, %_, %_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
   ipureintro; exact HP
 
+/-- **A writing transaction's reply, read as itself** (no range end `[0]`, `irrNoZeroEnd_txn`): its
+update's result, and its responses those of its branch run on some state. -/
+theorem txnReplied_facts (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (t : TxnModel) (P : Prop) (cid mid : w64) (m : TxnRespM) (hro : txn.txnReadonly t = false)
+    (hz : txnNoZeroEnd t) :
+    txnReplied E γw γr c F t (fun _ => iprop(⌜P⌝)) cid mid m ⊢
+      ⌜P ∧ ∃ (r : w64) (s0 : List EtcdKv) (skip : Bool), m.succeeded = (txn.srvRunTxn r s0 t).1 ∧
+        opRespsRel skip (t.branch m.succeeded) (txn.srvRunTxn r s0 t).2.2 m.resps⌝ := by
+  iintro H
+  unfold txnReplied
+  rw [hro]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases H with ⟨%tw, %_, %_, %t', %x, %_, %_, %skip, %Hp, -, -, -, -, %HP⟩
+  obtain ⟨htw, -, -, hzt, -, -, -, -, -, -, -, hsucc, hrel, -⟩ := Hp
+  have ht : t' = t := hzt (irrNoZeroEnd_txn tw t htw hz)
+  subst ht
+  ipureintro
+  exact ⟨HP, _, _, skip, hsucc, hrel⟩
+
 /-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
 permission cache decides): a reply with no error was granted to `who` (`hop`: a granted
 transaction keeps the history). -/
@@ -692,7 +790,12 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        ⌜err = GoInterface.nil → akOpGranted who (.txn (txnWireOf b.model))⌝ }} := by
+        ⌜err = GoInterface.nil → akOpGranted who (.txn (txnWireOf b.model))⌝ ∗
+        (⌜err ≠ GoInterface.nil⌝ ∨ ∃ m : TxnRespM, txnRespMsg resp m ∗
+          ⌜∃ (r : w64) (s0 : List EtcdKv) (skip : Bool),
+            m.succeeded = (txn.srvRunTxn r s0 (txnWireOf b.model)).1 ∧
+            opRespsRel skip ((txnWireOf b.model).branch m.succeeded)
+              (txn.srvRunTxn r s0 (txnWireOf b.model)).2.2 m.resps⌝) }} := by
   iintro %Φ ⟨#Henv, Hobj, #Hkt⟩ HΦ
   iunfold akCallEnv at Henv
   icases Henv with ⟨#Pc, #Hkvf, #Hobjc, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
@@ -726,10 +829,80 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     · ipureintro; exact ⟨hro, hpl⟩
     iexact Hau
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, -, Hr, -⟩ | ⟨%Herr, -⟩)
-  · ihave %Hq := txnReplied_Q _ _ _ _ _ _ _ _ _ _ hro $$ Hr
-    ipureintro; intro _; exact Hq
-  · ipureintro; intro h; exact absurd h Herr.1
+  icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)
+  · ihave %Hq := txnReplied_facts _ _ _ _ _ _ _ _ _ _ hro hpl.2 $$ Hr
+    isplitl []
+    · ipureintro; intro _; exact Hq.1
+    iright
+    iexists m
+    iframe Hm
+    ipureintro; exact Hq.2
+  · isplitl []
+    · ipureintro; intro h; exact absurd h Herr.1
+    ileft; ipureintro; exact Herr.1
+
+/-- **One option** (a `Get(k, opt)`'s variadic slice). -/
+theorem optsAt_one (sl : GoSlice) (f : GoFunc) (g : OpFull → OpFull) :
+    sl ↦*□ [f] ∗ optSpec (GF := GF) f g ⊢ optsAt sl [g] := by
+  iintro ⟨#Hsl, #Hf⟩
+  iunfold optsAt
+  iexists [f]
+  iframe Hsl
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %f' %g' %Hf' %Hg'
+  rcases i with _ | i
+  · cases Hf'; cases Hg'; iexact Hf
+  · simp at Hf'
+
+/-- **One operation** (a `Then(op)`'s variadic slice). -/
+theorem opsAt_one (sl : GoSlice) (v1 : go_etcd_io.etcd.client.v3.Op) (o1 : OpFull) :
+    sl ↦*□ [v1] ∗ opFullAt (GF := GF) v1 o1 ⊢ opsAt sl [o1] := by
+  iintro ⟨#Hsl, #H1⟩
+  iunfold opsAt
+  iexists [v1]
+  iframe Hsl
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %v %o %Hv %Ho
+  rcases i with _ | i
+  · cases Hv; cases Ho; iexact H1
+  · simp at Hv
+
+/-- **Two operations** (a `Then(op1, op2)`'s variadic slice). -/
+theorem opsAt_two (sl : GoSlice) (vs : List go_etcd_io.etcd.client.v3.Op)
+    (v1 v2 : go_etcd_io.etcd.client.v3.Op) (o1 o2 : OpFull) (hvs : vs = [v1, v2]) :
+    sl ↦*□ vs ∗ opFullAt (GF := GF) v1 o1 ∗ opFullAt v2 o2 ⊢ opsAt sl [o1, o2] := by
+  subst hvs
+  iintro ⟨#Hsl, #H1, #H2⟩
+  iunfold opsAt
+  iexists [v1, v2]
+  iframe Hsl
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %v %o %Hv %Ho
+  rcases i with _ | _ | i
+  · cases Hv; cases Ho; iexact H1
+  · cases Hv; cases Ho; iexact H2
+  · simp at Hv
+
+/-- **One comparison** (an `If(c)`'s variadic slice). -/
+theorem cmpsAt_one (sl : GoSlice) (c : go_etcd_io.etcd.client.v3.Cmp) (m : CmpModel) :
+    sl ↦*□ [c] ∗ cmpAt (GF := GF) c m ⊢ cmpsAt sl [m] := by
+  iintro ⟨#Hsl, #H1⟩
+  iunfold cmpsAt
+  iexists [c]
+  iframe Hsl
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %c' %m' %Hc %Hm
+  rcases i with _ | i
+  · cases Hc; cases Hm; iexact H1
+  · simp at Hc
 
 end calls
 

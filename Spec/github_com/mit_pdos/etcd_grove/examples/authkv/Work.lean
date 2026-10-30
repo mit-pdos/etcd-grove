@@ -53,6 +53,7 @@ abbrev Work.spec : Prop :=
   who ∈ principals → E.authMode = .on γa →
   V.addr = go!"127.0.0.1:23916" ∧ V.mem = (fun _ => (V.addr, V.R)) ∧ V.nm = 1 ∧ V.R.s = s ∧
     V.R.E = E ∧ V.kst = ρ.kv.st →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       isNewClient cl [go!"127.0.0.1:23916"] V ∗ watchAddrFacts V ∗
       clientTokAt cl [go!"127.0.0.1:23916"] (akTokP γa who) ∗
