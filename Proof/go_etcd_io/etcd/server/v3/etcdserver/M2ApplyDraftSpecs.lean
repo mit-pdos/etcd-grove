@@ -3,7 +3,11 @@
 nothing; no `axiom`, no `sorry`; nothing switched. Generated from today's texts
 (`NewServer.lean`, `EtcdServer__Compact.lean`), each change marked `(M2, the apply side, Draft)`:
 
-- `NewServer.specD`: `NewServer.spec` merged with `NewServer.specCompact` (one statement, the mode
+- `NewServer.specD` (deferred by Q4): to be read with item 5's in-place redefinition, `kvInv γ γk :=
+  kvInvD γ γk γk.cmp`, and item 19's tie: its post's `srvBuilt` holds today's off `kvInv` (through
+  `srvReqBuilt`, `srvKVInvs`), which with compaction on cannot hold beside `kvInvD … true` (review
+  round 2's N-2). The Draft does not restate `srvBuilt`; the switch does it by the redefinition.
+  `NewServer.spec` merged with `NewServer.specCompact` (one statement, the mode
   the configuration's: `E₀.cmp = decide (retention ≠ 0)`), the KV invariant in the cluster's mode
   (`kvInvD`), the KV's closer by the mode (`srvKVCloserM … (-1)`, the storage side's draft, with
   the inner store's right: `start` splits it, `srvKVCloserM_split`).
@@ -264,8 +268,13 @@ abbrev EtcdServer.Compact.specD : Prop :=
   1 ≤ r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- (M2, the apply side, Draft: one family) the general request path's server, its KV
-      -- invariant in the server's mode (`isServerReqD`: review round 1's F-3; at the switch
-      -- `isServerReq`, whose `srvReqFieldsAt` ties `ρ.kv.cmp = E.cmp`), in compaction mode
+      -- invariant in the server's mode (`isServerReqD`: review rounds 1-2's F-3/N-2; at the
+      -- switch `isServerReq`, whose `srvReqFieldsAt` ties `ρ.kv.cmp = E.cmp`), in compaction
+      -- mode: M2's scope (review round 2's S-6). Go serves a client's `Compact` RPC with the
+      -- auto-compactor off too; such a server's invariant admits no compaction entry, so a client
+      -- compaction at an off server stays outside the model (the compactor pilot's scope: other
+      -- compactions are not in the workload) until a later stage puts every server in compaction
+      -- mode
       isServerReqD s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ srvRevLb E.γ r ∗

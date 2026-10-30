@@ -59,7 +59,8 @@ namespace apply
 
 /-! ## The pure part -/
 
-/-- **Draft of `dispatchOk`** (`InvUber.lean`), redefined in place at the switch: some field set,
+/-- **`dispatchOk` in compaction mode** (`InvUber.lean`'s, which stays as it is: review round 1's
+S-1; the mode-indexed `dispatchOkM` picks it on): some field set,
 `AuthEnable` only with auth on; a compaction is admitted (M2: compaction in the model). -/
 def dispatchOkD (on : Bool) (rq : IRRModel) : Prop :=
   dispatchKind rq ≠ .none ∧ (dispatchKind rq = .authEnable → on = true)
@@ -69,8 +70,8 @@ theorem dispatchOkD_of (on : Bool) (rq : IRRModel) (h : dispatchOk on rq) : disp
 
 /-- **The premise on the request's kind, by the cluster's compaction mode** (review round 1's S-1,
 in place of redefining `dispatchOk`): today's `dispatchOk` off, `dispatchOkD` (a compaction
-admitted) on. Used where the mode is known (`entryOkM`, `rqShape` through `logShapeM`, the uber's
-specs at `E.cmp`). -/
+admitted) on. Used where the mode is known: the server's shapes (`rqShapeD cmp`, so `kvWorkD`
+and the invariant), the apply thread's premise (`entryOkMD on cmp`), the uber's specs at `E.cmp`. -/
 def dispatchOkM (cmp on : Bool) (rq : IRRModel) : Prop :=
   if cmp then dispatchOkD on rq else dispatchOk on rq
 

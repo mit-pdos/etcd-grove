@@ -1,8 +1,8 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
-Status (2026-10-30): **review round 1 repaired** ("Review round 1: the repair", the last
-section): the six first-tier findings and the second tier's S-1, S-2 (reformulated), S-6/S-8 in
-the Drafts, checked and built; nothing switched; nothing running.
+Status (2026-10-30): **review round 2 repaired** ("Review round 2: the repair", the last
+section: N-1, the shapes by the mode; N-2, the request path's view drafted as the switch's text).
+Before: review round 1 repaired ("Review round 1: the repair"). Nothing switched.
 
 **Resume here.**
 1. *Done so far.* Draft modules `etcdserver/apply/M2ApplyDraft.lean`, `etcdserver/M2ApplyDraft.lean`,
@@ -10,8 +10,8 @@ the Drafts, checked and built; nothing switched; nothing running.
    round 1 (`notes/spec-first-study/m2-apply-review-1.md`); targeted build passes. The `NoDelPutAt`
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
-2. *Next step: review round 2* (a fresh `spec-reviewer`, on this branch's Drafts and the repair
-   section below, against round 1's report), then its repair.
+2. *Next step: review round 3* (a fresh `spec-reviewer`, against rounds 1-2's reports and the
+   repair sections), then its repair; the rounds end when one has nothing in the first tier.
 3. *Then* the user's approval batch: Q5 (items 1-16 as repaired, and the new items 18-21 below),
    dropping `NoDelPutAt` from mvcc/server specs (`store.Compact.spec`, `compactLockfree`,
    `updateCompactRev`, `crevSafe`/`delKey`/`compactJobPre`, `CompactMode`'s clause, `irrNoDelPut`;
@@ -382,4 +382,22 @@ New items for Q5: **18** (`store.updateCompactRev`/`store.Compact` without `ErrF
 **19** (`srvReqFieldsAt`'s `ρ.kv.cmp = E.cmp`), **20** (`srvKVCloserW`), **21** (`Apply.specRec`'s
 compaction arm). Items 1 (now `dispatchOkM`), 2 (the trace), 3 (no `NoDelPutAt`, `cmpAdmitRev`), 5,
 6, 9, 10, 12 (F-4's claim) changed as above; 16 withdrawn (Q2).
+
+## Review round 2: the repair (2026-10-30)
+
+The report: `notes/spec-first-study/m2-apply-review-2.md` (two first-tier findings, both caused by
+round 1's repairs; F-1, F-2, F-4, F-6, S-8 confirmed fixed; no Go bug). Checked (`lean-check -a`)
+and built (3825 jobs, no error); no `axiom`, no `sorry`, nothing switched.
+
+| finding | repair |
+|---|---|
+| **N-1** (from S-1's repair) the shape chain still excludes compaction: `kvWork` → `logShape` → `entryShape` → `rqShape` → `dispatchOk`, and `applyEntryNormal`'s `entryOk`/`entryOkOn` read `dispatchOk` | the mode in the shape vocabulary: `rqShapeD cmp` (over `dispatchOkM cmp`), `entryShapeD cmp`, `logShapeD cmp`, `kvWorkD cmp`, and the apply thread's `entryOkD cmp`/`entryOkOnD cmp`/`entryOkMD on cmp`; each today's at `cmp = false` by definition (`rqShapeD_false`, `entryShapeD_false`, `logShapeD_false`, `kvWorkD_false`: `rfl`; `entryOkMD_false`). `kvInvD` takes `kvWorkD cmp`; `reqPropOkD`'s compaction form `rqShapeD true`. **Item 1 grows** (the shapes, `kvWork`); **item 12**'s premise is `entryOkMD E.authOn E.cmp x m`. Glue still to write: `entryOkD` from `entryShapeD` (as `entryOk_of_shape`), and G1's transfer of `logShapeD` (as `clusterWorkloadOk_of`'s of `logShape`). |
+| **N-2** `isServerReqD`'s second copy of the KV invariant cannot be allocated (each copy owns half of `srvRLog`), and the off copy's `plainLog` forbids the entry | the switch's text drafted: `srvReqFieldsAtD` (today's with `kvInvD ρ.raft ρ.kv E.cmp` in place of `kvInv`), `isServerReqD` over it, `srvReqFieldsAtD_off`/`isServerReqD_off` (equations), `isServerReqD_kvInv`. `NewServer.specD`'s post (`srvBuilt`, which holds the off `kvInv` through `srvReqBuilt`/`srvKVInvs`) is to be read with item 5's in-place redefinition; the Draft says so (item 14 is deferred by Q4 anyway). |
+| S-1' items 12/13 do not read as today off | true of `cmpEntryOk`'s conjunct: off it holds of every plain log (`cmpLogOk_plain`), so a caller discharges it, but the text changes; item 12/13 state it. |
+| S-2' a cheaper G2: `store.Read` gives `certOk` of its log | recorded for the Probe (to check against `store.Rev`'s proof and the 3-member names). |
+| S-3 item 18 misses `compactLockfree`'s `ErrFutureRev` arm | item 18 covers `compactLockfree` and the two docstrings naming the arm. |
+| S-4 `srvKVCloserW` spells out mvcc internals | for the switch: mvcc exports a sealed `wsCloserW` (no right) with `wsCloserR_split`; the server's predicate over it. |
+| S-5 the mode in two places (`E.cmp`, `kbCmpM E.γ.kb`) | the tying law (`srvEnvOkD_mode_step`'s second half at the start) to export with item 14 (as S-6 of round 1). |
+| S-6 `Compact.specD`'s `E.cmp = true` undocumented | documented in the spec: a client `Compact` at a server with the auto-compactor off stays outside the model. |
+| S-7 the header's revision fact unread | kept (the gRPC caller's `compactOk` needs a header; true of Go). |
 
