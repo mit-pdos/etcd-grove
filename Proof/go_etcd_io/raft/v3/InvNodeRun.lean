@@ -395,6 +395,27 @@ theorem ownRawNodeReady_loanCert (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
   imodintro
   iframe Hc H
 
+/-- (raft-final phase 2) `runCfg`'s storage names are the node's. -/
+theorem runCfg_sn (γ : NodeNames) (rs : RNState) :
+    runCfg (GF := GF) γ rs ⊢ ⌜rs.sn = γ.sn⌝ ∗ runCfg γ rs := by
+  iintro Hcfg
+  iunfold runCfg at Hcfg
+  icases Hcfg with ⟨%Hm0, Hrest⟩
+  isplitr
+  · ipureintro; exact Hm0.2.2.2.2
+  iunfold runCfg
+  iframe Hrest
+  ipureintro; exact Hm0
+
+/-- (raft-final phase 2) A send's atomic update may first take a step of ghost state (a `⊤` update). -/
+theorem sendAu_fupd {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (γc : ChanNames) (v : V) (Φ : IProp GF) :
+    (|={⊤}=> sendAu γc v Φ) ⊢ sendAu γc v Φ := by
+  unfold sendAu
+  iintro H
+  imod H
+  iexact H
+
 /-! ## Abandoning a `Ready`, keeping it armed -/
 
 /-- `ownRawNodeReady_abandon`, also giving back what of the `Ready` `ownRawNodeIdle_ready`
