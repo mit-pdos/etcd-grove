@@ -182,11 +182,9 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
-  sorry
-/- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
-  iintro ⟨⟨Hdrv, Hcfg⟩, Hprod, Hcons, Hcum, Hcum0⟩
-  isplitl [Hdrv Hcfg Hprod Hcum]
+  iintro ⟨⟨Hdrv, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0⟩
+  isplitl [Hdrv Hcfg Hrun Hprod Hcum]
   · iunfold rnLoopTok
     iexists hsZero
     iunfold rnLoopTokP
@@ -197,17 +195,13 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
       iframe Hdrv
-      unfold rnCfgAt
-      cases hd : γ.node.dyn
-      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-      · simp only [↓reduceIte, eq_self_iff_true, if_true]
-        unfold srvCfgView
-        iexists ⟨0, Membership.simple γ.node.cfg⟩
-        iframe Hcfg
-        ipureintro
-        rw [hpre]
-        exact hcfg hd
-    iframe Hprod Hcum
+      unfold rnCfgAt srvCfgView
+      iexists ⟨0, Membership.simple γ.node.cfg⟩
+      iframe Hcfg
+      ipureintro
+      simp only [RNNames.srv, hpre, List.append_nil]
+      exact hcfg
+    iframe Hrun Hprod Hcum
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
     ipureintro
@@ -216,7 +210,6 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     iexists []
     iframe Hcons
     iexact Hcum0
--/
 
 /-- **A fresh `MemoryStorage` boots a node** (2026-10-30, the repair: `StartNode.spec`'s
 `bootStorage`, at the empty conf state and hard state, over raft's two-writer `MemoryStorage`
@@ -243,30 +236,62 @@ theorem srvMem_bootStorage
         memSnapEmpty.Metadata'.ConfState'
         iprop(memStorInv ms γs γr.cl id ∗
           memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0))) := by
-  sorry
-/- REPAIR-OLD
-/-- **A registered `MemoryStorage` whose certificate registry is tied to the cluster**
-(`storageCertInv`, from `NewMemoryStorage`'s `memCertAuth`) **has the cluster's certificates**
-(`storageCertLink`, what `StartNode` takes of a static cluster's storage; 2026-10-27, as kv's
-`kvStorCertLink_intro`). -/
-theorem memStorCertLink_intro (reg : GName) (γ : Cluster) (N : Namespace) (ms : Loc)
-    (γs : MemStorNames) :
-    letI : MemStorReg GF := ⟨reg⟩
-    storageCertInv (GF := GF) γ N γs ∗ memStorReg ms γs ⊢
-      storageCertLink γ N (memStorIface ms) := by
-  letI : MemStorReg GF := ⟨reg⟩
-  iintro ⟨#Hinv, #Hreg⟩
-  iapply storageCertLink_intro γ N (memStorIface ms)
-  isplit
-  · iintro !> %k %E %hE #Hc
-    ihave #Hc := memStorCert_at ms γs k $$ Hreg Hc
-    iapply storageCert_read γ N γs k E hE $$ Hinv Hc
-  · iintro !> %k %E %hE #Hk
-    imod storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
-    imodintro
-    iapply memStorCert_intro ms γs k $$ Hreg Hc
-
--/
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  letI := srvStor (GF := GF) γr
+  iintro ⟨#Hreg, #Hl, Hfresh, Hmeta, #Hlog, He⟩
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold bootStorage
+  iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
+  iexists iprop(memStorFresh ms γs ∗
+    memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1)
+  isplitr
+  · ipureintro; rfl
+  isplitl [Hfresh Hmeta He]
+  · iframe Hfresh Hmeta He
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+    wp_apply wp_FirstIndex ms γs 0 $$ [$Hinit $Hl]
+      as %fi ⟨%Hfi, #Hc⟩
+    · iapply memCompacted_zero
+    icases memStorFresh_compacted ms γs _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 1 := by word
+    subst Hfi1
+    iapply HΦ
+    iframe Hfresh Hmeta He
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+    wp_apply wp_LastIndex ms γs 1 $$ [$Hinit $Hl $He]
+      as %li ⟨He, %Hli⟩
+    have Hli0 : li = W64 0 := by word
+    subst Hli0
+    iapply HΦ
+    iframe Hfresh Hmeta He
+  iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+  wp_apply wp_InitialState ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0))
+    $$ [$Hinit $Hmeta $Hfresh]
+    as %hp %cs ⟨#Hhs, Hmeta, Hfresh, Hcs⟩
+  iapply HΦ $$ %hp %cs %true
+  isplitr
+  · iexact Hhs
+  isplitl [Hcs]
+  · have hce : memSnapEmpty.Metadata'.ConfState' = ConfStateM.mk [] [] [] [] false := rfl
+    rw [hce]
+    iexact Hcs
+  imod memStorInv_alloc ms γs γr.cl id ⊤ $$ Hl Hfresh with #Hinv
+  imodintro
+  iframe Hinv
+  isplitr
+  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl id $$ Hinv Hreg
+  isplitr [Hmeta]
+  · iexists (zero_val EntryM)
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply memStorLog_of ms γs 0 DFrac.discard [zero_val EntryM] $$ Hreg Hlog
+    iapply memStorEnd_of ms γs 1 $$ Hreg He
+  iexact Hmeta
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
 server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
 config `cv` with `StartNode.spec`'s premises on it, the peers, the server's names
@@ -389,21 +414,25 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  sorry
-/- REPAIR-OLD
   intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hfit HEγ HEpre HEai
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
-  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs Hlg Hhb Hvalid Hlok
-    Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 (by omega) Hid Hvs)
-    $$ [Hb Hc Hsto Hpeers Hboot Htok]
+  ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+      wp_Entries γr bv.storage' γs cv.ID' $$ [Hfresh Hmeta Hend]
+  · iframe Hreg Hlock Hfresh Hmeta Hlog0 Hend
+  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs
+    iprop(memStorInv bv.storage' γs γr.cl cv.ID' ∗
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))
+    Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
+    (by omega) Hid Hvs)
+    $$ [Hb Hc Hbs Hpeers Hboot]
     as %r Hpost
-  · iframe #; iframe Hb Hc Hsto Hpeers Hboot Htok
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, %Hstss,
-    Hbuilt, Hb, Htok⟩
+  · iframe #; iframe Hb Hc Hbs Hpeers Hboot
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, Hrun, #Hidri, #Hsti, %Hstss,
+    Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
@@ -421,18 +450,22 @@ theorem raftNode_of_StartNode
     iexact Hreg'
   ihave #Hisnode : rnIsNode γw $$ []
   · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
+  -- the running token's halves
+  icases ((nodeRunning_fractional n γr.cl srvClusterN).fractional (1 : Qp).half
+      (1 : Qp).half).1 $$ [Hrun] with ⟨Hrun1, Hrun2⟩
+  · rw [Qp.half_add_half]; iexact Hrun
   -- the tokens
   ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre
-      (fun h => by
-        rw [Hwnode] at h ⊢
+      (by
+        rw [Hwnode]
         unfold SrvRaft.cfg
         rw [Hvs]
         refine srvCfgOk_nil _ (fun h0 => H0 ((GMap.elem_of_list_to_set _ _).1 h0)) ?_
         rw [GMap.size_list_to_set ps Hnodup]
         omega)
-    $$ [Hdrv Hncfg Hprod Hcons Hcum Hcum0]
+    $$ [Hdrv Hncfg Hrun1 Hprod Hcons Hcum Hcum0]
   · rw [Hwnode, Hwnl, Hwms]
-    iframe Hdrv Hprod Hcons Hcum Hcum0
+    iframe Hdrv Hrun1 Hprod Hcons Hcum Hcum0
     unfold SrvRaft.cfg
     rw [Hvs]
     iexact Hncfg
@@ -442,24 +475,24 @@ theorem raftNode_of_StartNode
   · ipureintro
     refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hb Htok
+  iframe Hr Hmu Hloop Happly Hb Hminv Hmeta
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node)
     iframe Hpkg Hisnode
+  isplitl [Hrun2]
+  · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
   iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
   · iapply isRaftNodeIfc_of_isNode E γw s issued (wp_Ready γw.node) (wp_Advance γw.node)
-      (wp_Advance_dyn γw.node) (wp_Tick γw.node) (wp_ReadIndex γw.node)
-      (wp_ApplyConfChange_dyn γw.node)
+      (wp_Tick γw.node) (wp_Stop γw.node) (wp_ReadIndex γw.node)
+      (wp_ApplyConfChange γw.node)
     iframe Hpkg Henv' Hisnode Hcommi Hreg' Hrdi
-    iunfold rnStopOkStarted at Hstop
-    iapply Hstop $$ Hisnode
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
-  · iapply raftPropose_of_isNode E γw (wp_Propose γw.node) (wp_ApplyConfChange γw.node)
+  · iapply raftPropose_of_isNode E γw (wp_Propose γw.node)
     iframe Hpkg Henv' Hisnode Hlinv
   ihave #Hfix' : rnFixed a
       { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
@@ -491,7 +524,6 @@ theorem raftNode_of_StartNode
     simp only [Hrvcfg, rnNodeIface, Hwnl]
   rw [hn]
   iexact Hnodef
--/
 
 end compose
 
