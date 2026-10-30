@@ -271,7 +271,7 @@ instance streamErr_persistent (err : GoInterface) : Persistent (streamErr (GF :=
   unfold streamErr; infer_instance
 
 /-- **An error of the client's end** (persistent): a non-nil stream error that is a client error
-(`clientErr`: a leaf, not an `EtcdError`) grpc's `status` accepts (`statusErrOk`): a gRPC status
+(`clientErr`: a leaf, possibly an `EtcdError`) grpc's `status` accepts (`statusErrOk`): a gRPC status
 error, a context error, or `io.EOF` (a `SendMsg` on a stream the server ended), as the unary
 attempt's errors (`grpcInvokerOk`). -/
 def cliStreamErr (err : GoInterface) : IProp GF :=

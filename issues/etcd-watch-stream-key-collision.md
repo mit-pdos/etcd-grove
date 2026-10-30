@@ -28,7 +28,11 @@ fmt.Sprintf("%+v", a) == fmt.Sprintf("%+v", b) // true: both "map[token:[a b]]"
 A watch whose context carries `b`'s metadata, made after one carrying `a`'s on the same client,
 joins `a`'s stream and is created with `a`'s metadata: the server checks its permission for `a`'s
 principal. A value with a space (or keys and values containing `:`, `[`, `]`) is needed; etcd's own
-tokens contain none, so with etcd's credentials alone it is not reached.
+tokens contain none, so with etcd's credentials alone it is not reached. Or an empty value: `%v`
+prints `[]string{}` (and `nil`) and `[]string{""}` alike, so `{"k": {}}` (a literal `MD` given to
+`NewOutgoingContext`) and `AppendToOutgoingContext(ctx, "k", "")` both key as `map[k:[]]`, no space
+needed (found by the `axiom` review of the key's laws, `notes/axiom-review/g2-streamkey.md`,
+2026-10-30; `examples/axiomcx/g2streamkey`, `TestEmptyValue`).
 
 **Expected**: a watch is sent with its own context's metadata (`WithRequireLeader` and per-call
 tokens are documented per context).

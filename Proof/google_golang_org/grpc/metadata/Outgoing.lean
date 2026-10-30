@@ -63,8 +63,10 @@ def mdNorm (md : Option (GoString → Option (List GoString))) :
     | some [] => none
     | v => v
 
-/-- A key with no upper-case ASCII letter (grpc lower-cases the keys it is given). -/
-def lowerKey (k : GoString) : Prop := ∀ b ∈ k, ¬ (W8 65 ≤ b ∧ b ≤ W8 90)
+/-- A key of ASCII bytes with no upper-case letter: one grpc's `strings.ToLower` leaves unchanged.
+(Excluding only `A`-`Z` was not enough: `ToLower` lower-cases all of Unicode, `É` to `é`, and
+replaces invalid UTF-8; G2's axiom review, `notes/axiom-review/g2-streamkey.md`.) -/
+def lowerKey (k : GoString) : Prop := ∀ b ∈ k, b < W8 128 ∧ ¬ (W8 65 ≤ b ∧ b ≤ W8 90)
 
 end metadata
 end EtcdGrove

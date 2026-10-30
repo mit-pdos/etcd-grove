@@ -880,10 +880,13 @@ opaque noOtherRefusalAt : GoString → Prop
 def mdGet (md : GrpcMd) (k : GoString) : Option (List GoString) := md.bind fun m => m k
 
 /-- **A key grpc sets itself** (the auth plan's C1): a pseudo-header (`:authority`, ...), a
-`grpc-` key, `content-type`, `user-agent` (grpc's, before the caller's), `te`. What an attempt
-delivers at such a key is not stated. -/
+`grpc-` key, `content-type`, `user-agent` (grpc's, before the caller's), `te`, and `host`, which
+grpc's server deletes whenever `:authority` is present (gRFC A41; `http2_server.go:518-522`), as it
+always is from grpc's client (`http2_client.go:595`): found by G2's axiom reviews,
+`notes/axiom-review/g2-newstream.md`. What an attempt delivers at such a key is not stated. -/
 def grpcReservedKey (k : GoString) : Prop :=
-  go!":" <+: k ∨ go!"grpc-" <+: k ∨ k = go!"content-type" ∨ k = go!"user-agent" ∨ k = go!"te"
+  go!":" <+: k ∨ go!"grpc-" <+: k ∨ k = go!"content-type" ∨ k = go!"user-agent" ∨ k = go!"te" ∨
+    k = go!"host"
 
 /-- **The per-RPC credentials of the connection `conn` returned the metadata `cm` to an attempt**
 (opaque; the auth plan's C1, 2026-10-28): `none` if it has none or they returned none; what is
@@ -914,7 +917,7 @@ attempt's handler may see (`grpcAttemptMd`; since 2026-10-28, the auth plan's E3
 metadata-indexed, `GrpcSpecMd`: a plain spec is `GrpcSpec.md`), returns
 * `nil`: a run of the handler served for the method at one of `addrs` on a copy of the request
   answered, and `out` holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
-* an error: a client error (`clientErr`: a leaf error, not an `EtcdError`; a gRPC status error)
+* an error: a client error (`clientErr`: a leaf error, possibly an `EtcdError`; a gRPC status error)
   that grpc's `status` accepts (`statusErrOk`), and `out` back (`Rep.own`); nothing about whether
   the handler ran.
 

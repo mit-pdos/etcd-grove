@@ -30,12 +30,14 @@ prints as `map[...]`, which is not `""`. -/
 axiom streamKeyOf_none [GooseExts] (m : GrpcMd) : streamKeyOf m = streamKeyOf none → m = none
 
 /-- **A one-entry map's key determines its entry's values** (trusted; G2's (c)), for a lower-case
-key `k` and a key and value free of ` `, `:`, `[` and `]`: the printed `map[k:[v]]` has no
+key `k`, a non-empty value `v` (Go prints `[]` and `[""]` alike) and a key and value free of ` `,
+`:`, `[` and `]`: the printed `map[k:[v]]` has no
 space, so the other map has one entry with one value (Go joins entries and values with spaces), and
 its key and value are then read back from the only `:` and brackets (checked against `%+v`'s
-format in G2's review round 3; the `axiom` skill reviews it). -/
+format in G2's review round 3; the `axiom` skill's review, `notes/axiom-review/g2-streamkey.md`,
+added `v ≠ ""` and made `lowerKey` ASCII). -/
 axiom streamKeyOf_single [GooseExts] (m : GrpcMd) (k v : GoString) (hk : metadata.lowerKey k)
-    (hs : ∀ b ∈ k ++ v, b ∉ [W8 32, W8 58, W8 91, W8 93]) :
+    (hs : ∀ b ∈ k ++ v, b ∉ [W8 32, W8 58, W8 91, W8 93]) (hv : v ≠ go!"") :
     streamKeyOf m = streamKeyOf (metadata.mdAdd none k v) → metadata.mdVals m k = [v]
 
 end EtcdGrove
