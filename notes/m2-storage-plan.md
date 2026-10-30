@@ -2244,3 +2244,5 @@ Draft (used by `idxWriterP_seal`).
 ### Checked
 
 - `etc/lean-check.py -a` on both Drafts; targeted `lake build` of both (3646 jobs).
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11212 jobs, no error.
+- `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries).
