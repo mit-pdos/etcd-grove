@@ -1795,6 +1795,40 @@ theorem bt_lockIn (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF)
   iframe Hrd
   iexact Ho
 
+/-- **`LockInsideApply()` with no hook set** (M2, the storage side, item 31; moved from the restore
+Draft, 2026-10-30): `batchTxSpecG`'s nil-hook clause (`lockNilSpec`), from the backend spec's nil arm
+as `bt_lockIn` from its hook arm, with the client's half of the unset hook lent. -/
+theorem bt_lockInNil (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b t : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      lockNilSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩
+        (bkRTx γ P b) (wbTok γ) W Pk (plHook γ func.nil) (bkLocked γ P b) := by
+  iintro ⟨#Hpkg, #Hb, #Ht⟩
+  iunfold lockNilSpec
+  iintro !> %Pre %Φ !> ⟨Hpre, Hrt, Hwb, Hhk⟩ HΦ
+  iunfold bkRTx at Hrt
+  icases Hrt with ⟨Hrd, Ho⟩
+  wp_apply (hLI γ P W Pk b t rdOpen (DFrac.own (1 : Qp).half) func.nil Pre iprop(Pk ∗ Pre))
+      $$ [$Hb $Ht $Ho $Hhk $Hpre]
+    as ⟨%st, Hl, %Hfree, HW, HQ, Ho, Hhk⟩
+  · ileft
+    isplitr
+    · ipureintro; rfl
+    iintro H; iexact H
+  iapply HΦ
+  icases HQ with ⟨HPk, Hpre⟩
+  iframe HW HPk Hpre Hhk
+  isplitl [Hl Hwb]
+  · iunfold bkLocked
+    iexists st
+    iunfold bkLockedAt
+    iframe
+    ipureintro; exact sessPuts_free hP Hfree
+  iunfold bkRTx
+  iframe Hrd
+  iexact Ho
+
 /-- The batch transaction's `UnsafeSeqPut(schema.Key, k, v)`, as mvcc's contract states it. -/
 theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
@@ -3054,7 +3088,8 @@ theorem isKeyBackendG_of_backendC
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk (bkDel γ) W W iprop(True) Cmp Pk
         (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (backend.srSlot b) (backend.srHeld b) iprop(∃ f : Nat, fkOwn γ f) := by
+        (bkBt b) (backend.srSlot b) (backend.srHeld b) iprop(∃ f : Nat, fkOwn γ f)
+        (plHook γ func.nil) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hfv⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -3102,7 +3137,9 @@ theorem isKeyBackendG_of_backendC
         iapply bt_metaPut (hUP hc) hUL hID hName hSafe hP (hHK hc) (fun v h => (hFV hc v).2 h)
           γ W Pk b t
           $$ [$Hpkg $Hsch $Hb $Ht]
-      iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+      isplitr
+      · iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+      iapply bt_lockInNil hLI hP γ W Pk b t $$ [$Hpkg $Hb $Ht]
     isplitr
     · iunfold batchTxInitSpec
       isplitr
@@ -3233,7 +3270,7 @@ theorem isKeyBackendG_of_backend
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk Del W W iprop(True) Cmp Pk
         (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (MW := iprop(∃ f : Nat, fkOwn γ f)) := by
+        (bkBt b) (MW := iprop(∃ f : Nat, fkOwn γ f)) (HN := plHook γ func.nil) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩
   ihave #HC := isKeyBackendG_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
     hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe False False.elim False.elim False.elim hP
@@ -3310,10 +3347,11 @@ theorem storeBackendT_of_backend
     unfold storeBt kbBt; rw [hk]
   iunfold storeBackendT
   rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hk]
-  simp only [kbWi, kbNoCmp, kbMW, kbSR, kbSRh]
+  simp only [kbWi, kbNoCmp, kbMW, kbSR, kbSRh, kbHookNil]
   -- (question 5's core stage) the slots of a store that does not compact are anything
   iapply isKeyBackendG_weaken (Del := delKey γ) (Del' := delKey γ) (Cmp := False)
-    (SR := iprop(True)) (SRh := iprop(True)) (MW := iprop(∃ f : Nat, fkOwn d.γB f)) (hC := hc)
+    (SR := iprop(True)) (SRh := iprop(True)) (MW := iprop(∃ f : Nat, fkOwn d.γB f))
+    (HN := plHook d.γB func.nil) (hC := hc)
   isplitl
   · iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
       hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) False id $$ H
@@ -3444,8 +3482,9 @@ theorem storeBackendT_of_backendC
   have hmw : kbMW (GF := GF) γ.kb γ.bucket = iprop(∃ f : Nat, fkOwn d.γB f) := by unfold kbMW; rw [hk]
   have hnc : kbNoCmp (GF := GF) γ.kb γ.bucket = bkNoCmp d.γB := by unfold kbNoCmp; rw [hk]
   have hwi : kbWi (GF := GF) γ.kb = lateW d.gx := by unfold kbWi; rw [hk]
+  have hhn : kbHookNil (GF := GF) γ.kb = plHook d.γB func.nil := by unfold kbHookNil; rw [hk]
   iunfold storeBackendT
-  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hsr, hsrh, hmw, hnc, hwi]
+  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hsr, hsrh, hmw, hnc, hwi, hhn]
   -- the new bridge at the store's compaction condition, over the backend's deletable keys
   ihave #HC := isKeyBackendG_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
     hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe (storeCmp γ) (fun _ => hLSR) (fun _ => hUSR)

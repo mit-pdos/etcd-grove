@@ -34,8 +34,8 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h2 : traceutil.TODO.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c P f Pre Q Post log hcmp
-  wp_start as ⟨#Hs, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs, HRTok, #HsupM⟩
+  intro s γ rev c P hk Pre Q Post log hcmp
+  wp_start as ⟨#Hs, Hmu, Hright, #HcertC, %HndC, Hctx, HRTok, #HsupM⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
@@ -45,7 +45,7 @@ theorem mvcc.store.compactLockfree.wp_proof
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
+  wp_apply (h1 s γ rev c P hk Pre Q Post log hcmp) $$ [$Hmu $Hright $Hctx $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |

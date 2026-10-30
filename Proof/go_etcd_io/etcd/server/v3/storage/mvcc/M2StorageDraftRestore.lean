@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecs
 
 @[expose] public section
 
@@ -209,7 +210,7 @@ def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : 
   mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
     (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ)
     (mvcc.kbWi γ.kb) iprop(True) (mvcc.storeCmp γ) P (mvcc.hookFn γ) (mvcc.storeReq γ) (mvcc.storeRb γ)
-    (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMW γ.kb γ.bucket)
+    (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbHookNil γ.kb)
 
 theorem mvcc.storeBackendTR_empty (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) :
     mvcc.storeBackendTR (GF := GF) b s γ P mvcc.CmpRecs.empty = mvcc.storeBackendT b s γ P := by
@@ -218,16 +219,22 @@ theorem mvcc.storeBackendTR_empty (b : GoInterface) (s : Loc) (γ : mvcc.StoreNa
 
 /- (`bucketOfEnts` and `restoreViewR` are switched: `RestoreCut.lean`, `RestoreRecs.lean`.) -/
 
-set_option linter.unusedVariables false in
+/-- At a real instance the records' resource is the backend's (`bkRecs`, `BackendRecs.lean`; the
+Draft's `fkOpenD` of the records' bytes is `fkOpen … (recsVals r)` by definition). -/
+theorem mvcc.kbRecs_some (d : mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) :
+    mvcc.kbRecs (GF := GF) (some d) γb r = mvcc.bkRecs d.γB r := by
+  unfold mvcc.kbRecs mvcc.bkRecs
+  split
+  · rfl
+  · rfl
+
 /-- **The records' clean read of a compacting real backend** (the statement of the bridge law the
-walk needs, A1 (a); **not proved**): `keyCleanRead_of_backend`'s, over the deletable keys' registration
-in place of `dlNoDel` (`storeDlReg`, as `storeBackendT_of_backendC`; the new backend's job has not
-started, so nothing is deleted while `restore()` reads), the clean read at the records `r` its
-client's flag stands at since the open (`kbRecs`'s `fkOpenD`). Missing for its proof (backend-internal,
-over bbolt's data at the open as `fkCl` already is: no new axiom expected; if the re-proof needs a
-new bbolt fact, it is an axiom, for the `axiom` skill): the backend's `fkOk` clause
-`f = n → the state's compaction keys are v` (`fkOpenD`), kept by every operation but a compaction-key
-put, which raises the flag. -/
+walk needs, A1 (a); restated after the plan's item 30 repairs and **proved**, 2026-10-30:
+`mvcc.keyCleanRead_of_backendC`, `BackendRecs.lean`): `keyCleanRead_of_backend`'s, with the new
+backend's registration not yet fixed (`dlInit`, lent with the reader's token: D1, the read's
+exactness from `dlInit_noDel`; until then over `storeDlReg`, refutable) and the records being
+revisions (`recsSign`, from `restoreImageM`'s `recsOk`: D2), the clean read at the records `r` its
+client's flag stands at since the open (`kbRecs`). -/
 def mvcc.keyCleanRead_of_backendC_stmt : Prop :=
   ∀ (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
@@ -236,16 +243,55 @@ def mvcc.keyCleanRead_of_backendC_stmt : Prop :=
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (Pk : IProp GF) (γb : GName) (γi : mvcc.IdxNames)
-    (r : mvcc.CmpRecs),
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (Pk : IProp GF) (γb : GName)
+    (r : mvcc.CmpRecs), mvcc.recsSign r →
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
-        mvcc.storeDlReg d.γB γi ⊢
-      ∀ (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
+      ∀ (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         mvcc.keyCleanReadR
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-            #d.be) (mvcc.bucketViewC γ) (mvcc.storeRT γ) (mvcc.kbRecs γ.kb γ.bucket r) r
+            #d.be) (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ backend.dlInit d.γB)
+          (mvcc.kbRecs γ.kb γ.bucket r) r
+
+theorem mvcc.keyCleanRead_of_backendC_holds :
+    mvcc.keyCleanRead_of_backendC_stmt (GF := GF) (hG := hG) := by
+  intro hRT hrRL hrRU hrUR hID hName hSafe d hP Pk γb r hpos
+  iintro H %γ %hγ
+  rw [hγ.2, mvcc.kbRecs_some]
+  iapply mvcc.keyCleanRead_of_backendC hRT hrRL hrRU hrUR hID hName hSafe d hP Pk γb r hpos $$ H
+  ipureintro; exact hγ
+
+/-- **The new backend's deletable keys, unfixed, by the mode** (item 30's D1 repair, drafted
+2026-10-30): on, the creator's registration not yet fixed (`dlInit`, as `NewStore` takes it):
+`Restore` lends it to `restore()`'s clean read (with the reader's token), then fixes it to the
+store's deletable keys (`storeDlReg`, `dlReg_fix`) for the contract; off, nothing (the caller fixed
+`dlNoDel`, today's). -/
+def mvcc.restoreRegM (d' : mvcc.KBReal) : IProp GF :=
+  if d'.cm = true then backend.dlInit d'.γB else iprop(True)
+
+/-- What the contract of the new backend needs fixed, by the mode: on, the store's deletable keys
+registered (`storeDlReg`, at the new names' index); off, nothing. -/
+def mvcc.restoreFixM (d' : mvcc.KBReal) (γ : mvcc.StoreNames) : IProp GF :=
+  if d'.cm = true then mvcc.storeDlReg d'.γB γ.idx else iprop(True)
+
+theorem mvcc.restoreRegM_off (d' : mvcc.KBReal) (h : d'.cm = false) :
+    mvcc.restoreRegM (GF := GF) d' = iprop(True) := by
+  unfold mvcc.restoreRegM; simp [h]
+
+/-- On, the registration fixed gives what the contract needs. -/
+theorem mvcc.restoreRegM_fix (d' : mvcc.KBReal) (γ : mvcc.StoreNames) :
+    mvcc.restoreRegM (GF := GF) d' ⊢ |==> □ mvcc.restoreFixM d' γ := by
+  unfold mvcc.restoreRegM mvcc.restoreFixM
+  cases d'.cm with
+  | false => simp only [Bool.false_eq_true, ↓reduceIte]; iintro -; imodintro; iintro !>; itrivial
+  | true =>
+    simp only [↓reduceIte]
+    iintro H
+    imod mvcc.storeDlReg_fix d'.γB γ.idx $$ H with #Hr
+    imodintro
+    iintro !>
+    iexact Hr
 
 /-- **A received image's `Key` entries and compaction records, by the mode** (draft of
 `keyImage`'s use in `specSnap`, D22's `hkI`; review round 4): off, today's `keyImage` (the whole
@@ -316,62 +362,11 @@ back: no contract with the server's apply is needed, the batch lock's invariant 
 the critical section unchanged (`lockNilSpec`: `LockInsideApply` gives `P` itself, which the
 `Unlock` takes back). -/
 
-/-- **The new backend's post-lock hook, unset** (draft): the client's half of the real backend's
-hook variable at `nil` (what `SetTxPostLockInsideApplyHook` later takes); none over mvcc's assumed
-backend, which `restore()` never resumes over. -/
-def mvcc.kbHookNil (kb : Option mvcc.KBReal) : IProp GF :=
-  match kb with
-  | none => iprop(False)
-  | some d => backend.plHook d.γB func.nil
+/- (`kbHookNil` (`InvStore.lean`), `lockNilSpec` as `batchTxSpecG`'s clause with `HN := kbHookNil kb`
+(`InvStore.lean`), and `bt_lockInNil` (`BackendBridge.lean`, the bridge's proof of the clause) are
+switched, item 31's rest, 2026-10-30.) -/
 
-/- (`lockNilSpec` is switched with `SetScheduledCompact.spec`'s nil-hook arm, item 31, 2026-10-30:
-`LockArm.lean`. Its place as `batchTxSpecG`'s clause, with `HN := kbHookNil kb`, waits on the backend
-bridge's re-proof, `BackendBridge.lean`, branch `m2-backend`: `bt_lockInNil` below is that proof's
-one new step.) -/
-
-/-- **The real backend gives it** (proved, from the backend spec's nil arm, as `bt_lockIn` from its
-hook arm): the bridge's instance of `lockNilSpec`, the store's `batchTxSpecG` clause at the switch
-(`isKeyBackendG_of_backendC` passes it through). -/
-theorem mvcc.bt_lockInNil (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
-    {P : backend.BParams} (hP : mvcc.bridgeParams P) (γ : backend.BNames) (W Pk : IProp GF) (b t : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ⊢
-      mvcc.lockNilSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩
-        (mvcc.bkRTx γ P b) (backend.wbTok γ) W Pk (backend.plHook γ func.nil) (mvcc.bkLocked γ P b) := by
-  iintro ⟨#Hpkg, #Hb, #Ht⟩
-  iunfold mvcc.lockNilSpec
-  iintro !> %Pre %Φ !> ⟨Hpre, Hrt, Hwb, Hhk⟩ HΦ
-  iunfold mvcc.bkRTx at Hrt
-  icases Hrt with ⟨Hrd, Ho⟩
-  wp_apply (hLI γ P W Pk b t backend.rdOpen (DFrac.own (1 : Qp).half) func.nil Pre iprop(Pk ∗ Pre))
-      $$ [$Hb $Ht $Ho $Hhk $Hpre]
-    as ⟨%st, Hl, %Hfree, HW, HQ, Ho, Hhk⟩
-  · ileft
-    isplitr
-    · ipureintro; rfl
-    iintro H; iexact H
-  iapply HΦ
-  icases HQ with ⟨HPk, Hpre⟩
-  iframe HW HPk Hpre Hhk
-  isplitl [Hl Hwb]
-  · iunfold mvcc.bkLocked
-    iexists st
-    iunfold mvcc.bkLockedAt
-    iframe
-    ipureintro; exact mvcc.sessPuts_free hP Hfree
-  iunfold mvcc.bkRTx
-  iframe Hrd
-  iexact Ho
-
-/-- **What `Restore` lends for the compaction `restore()` resumes** (draft, in place of round 3's
-`resumeCsM`, A2): on, when the records resume a compaction, the new backend's unset hook (lent,
-given back: `Restore.specM`'s post has it again); else nothing. -/
-def mvcc.resumeHookM (d' : mvcc.KBReal) (r : mvcc.CmpRecs) : IProp GF :=
-  if d'.cm = true ∧ r.resumes = true then mvcc.kbHookNil (some d') else iprop(True)
-
-theorem mvcc.resumeHookM_no (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (h : r.resumes = false) :
-    mvcc.resumeHookM (GF := GF) d' r = iprop(True) := by
-  unfold mvcc.resumeHookM; simp [h]
+/- (`resumeHookM` is switched, item 31's rest, 2026-10-30: `RestoreRecs.lean`.) -/
 
 /-- A real backend's mode is its record's. -/
 theorem mvcc.kbCmpM_some_iff (d : mvcc.KBReal) : mvcc.kbCmpM (some d) ↔ d.cm = true := Iff.rfl
@@ -395,6 +390,11 @@ and 4). Today's text but for the marked changes:
 * new in the pre, all `True` off: the new job's slot `kbSRM (some d')`, the write-back supply of
   the new backend `kbWTSupplyM (some d')`, and, when the records resume a compaction, the new
   backend's unset hook (`resumeHookM`, A2: lent, given back);
+* (item 30's repairs, 2026-10-30) on, the new backend's registration unfixed (`restoreRegM`:
+  `dlInit`), lent to the clean read with the reader's token (its exactness: D1), which `Restore`
+  then fixes to the store's deletable keys (`restoreFixM`: `storeDlReg`, `restoreRegM_fix`), from
+  which the contract follows (`restoreFixM … -∗ storeBackendTR …`); the clean read is proved
+  (`keyCleanRead_of_backendC_holds`, its records' sign from `recsOk`: D2);
 * the post: `storeCloserM s γ' r.crev` in place of `storeCloser s γ'`, the unset hook back
   (`resumeHookM`), the old job's budgets `compactJobResM γ.kb` (for the old backend's `Close`: a
   reader's token and the safe-range slot), and the old pool's readers `nReaders - 1 - nJobRd γ.kb`
@@ -412,12 +412,13 @@ abbrev mvcc.store.Restore.specM : Prop :=
       (if γ.watchQ then mvcc.logQ γ L else iprop(True)) ∗
       mvcc.certOk γ ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
-        mvcc.storeBackendTR b' s (γ.withPhys p) P' r) ∗
+        mvcc.restoreFixM d' (γ.withPhys p) -∗ mvcc.storeBackendTR b' s (γ.withPhys p) P' r) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
-        mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.withPhys p)) (mvcc.storeRT (γ.withPhys p))
+        mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.withPhys p))
+          iprop(mvcc.storeRT (γ.withPhys p) ∗ mvcc.restoreRegM d')
           (mvcc.kbRecs (γ.withPhys p).kb (γ.withPhys p).bucket r) r) ∗
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbRegRight (some d') ∗
-      mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
+      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
@@ -468,19 +469,21 @@ theorem mvcc.store.Restore.spec_of_specM (h : mvcc.store.Restore.specM (GF := GF
     · iapply (mvcc.restoreRightM_off s γ (-1) hoffγ).2
       iframe Hcl Hfrz; ipureintro; rfl
     isplitl [Hbk]
-    · iintro %p %hp
+    · iintro %p %hp -
       ihave Hk := Hbk $$ %p %hp
       rw [mvcc.storeBackendTR_empty]
       iexact Hk
     isplitl [Hkc]
     · iintro %p %hp
       ihave Hk := Hkc $$ %p %hp
-      rw [mvcc.kbRecs_empty, mvcc.keyCleanReadR_empty]
+      rw [mvcc.kbRecs_empty]
+      iapply mvcc.keyCleanReadR_frame
+      rw [mvcc.keyCleanReadR_empty]
       iexact Hk
     isplitl [Hv Hnc]
     · iapply (mvcc.restoreImageM_off d' γb' _ mvcc.CmpRecs.empty Hd').2
       iframe Hv Hnc; ipureintro; rfl
-    rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty]
+    rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty, mvcc.restoreRegM_off d' Hd']
     isplitr <;> try isplitr
     all_goals itrivial
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl
@@ -513,12 +516,13 @@ abbrev mvcc.watchableStore.Restore.specM : Prop :=
       mvcc.watchWriter γ L ∗
       mvcc.certOk γ.st ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
-        mvcc.storeBackendTR b' st (γ.st.withPhys p) P' r) ∗
+        mvcc.restoreFixM d' (γ.st.withPhys p) -∗ mvcc.storeBackendTR b' st (γ.st.withPhys p) P' r) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
-        mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.st.withPhys p)) (mvcc.storeRT (γ.st.withPhys p))
+        mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.st.withPhys p))
+          iprop(mvcc.storeRT (γ.st.withPhys p) ∗ mvcc.restoreRegM d')
           (mvcc.kbRecs (γ.st.withPhys p).kb (γ.st.withPhys p).bucket r) r) ∗
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbRegRight (some d') ∗
-      mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
+      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
@@ -554,19 +558,21 @@ theorem mvcc.watchableStore.Restore.spec_of_specM
     · iapply (mvcc.restoreRightM_off st γ.st (-1) hoffγ).2
       iframe Hcl Hfrz; ipureintro; rfl
     isplitl [Hbk]
-    · iintro %p %hp
+    · iintro %p %hp -
       ihave Hk := Hbk $$ %p %hp
       rw [mvcc.storeBackendTR_empty]
       iexact Hk
     isplitl [Hkc]
     · iintro %p %hp
       ihave Hk := Hkc $$ %p %hp
-      rw [mvcc.kbRecs_empty, mvcc.keyCleanReadR_empty]
+      rw [mvcc.kbRecs_empty]
+      iapply mvcc.keyCleanReadR_frame
+      rw [mvcc.keyCleanReadR_empty]
       iexact Hk
     isplitl [Hv Hnc]
     · iapply (mvcc.restoreImageM_off d' γb' _ mvcc.CmpRecs.empty Hd').2
       iframe Hv Hnc; ipureintro; rfl
-    rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty]
+    rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty, mvcc.restoreRegM_off d' Hd']
     isplitr <;> try isplitr
     all_goals itrivial
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl

@@ -64,6 +64,14 @@ def recsOk (L : Log) (r : CmpRecs) : Prop :=
   (∀ x, r.fin = some x → 0 ≤ sint.Z x ∧ sint.Z x < L.length) ∧
   (∀ x, r.sched = some x → 0 ≤ sint.Z x ∧ sint.Z x < L.length)
 
+/-- **The records' sign** (M2's restore chain, item 30's D2): each record a revision (`≥ 0`), as
+`metaReadSpecR … (some r)` states of what it reads; `recsOk` gives it. -/
+def recsSign (r : CmpRecs) : Prop :=
+  (∀ x, r.fin = some x → 0 ≤ sint.Z x) ∧ (∀ x, r.sched = some x → 0 ≤ sint.Z x)
+
+theorem recsOk_sign (L : Log) (r : CmpRecs) (h : recsOk L r) : recsSign r :=
+  ⟨fun x hx => (h.1 x hx).1, fun x hx => (h.2 x hx).1⟩
+
 /-- The restored revision is a revision of the log (or `-1`). -/
 theorem recsOk_crev_lt (L : Log) (r : CmpRecs) (h : recsOk L r) (hL : 2 ≤ L.length) :
     r.crev < L.length := by
@@ -112,6 +120,14 @@ theorem CmpRecs.at_fin (r : CmpRecs) : r.at finKeyBytes = r.fin := by
 
 theorem CmpRecs.at_sched (r : CmpRecs) : r.at schedKeyBytes = r.sched := by
   unfold CmpRecs.at; simp [finKeyBytes, schedKeyBytes]
+
+/-- The records' sign, key by key. -/
+theorem recsSign_at (r : CmpRecs) (h : recsSign r) (kn : GoString) (x : w64)
+    (hx : r.at kn = some x) : 0 ≤ sint.Z x := by
+  unfold CmpRecs.at at hx
+  split at hx
+  · exact h.1 x hx
+  · exact h.2 x hx
 
 end pure
 

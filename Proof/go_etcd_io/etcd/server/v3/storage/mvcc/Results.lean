@@ -228,8 +228,11 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
         iprop(True) Cmp
         Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b)
         (fun r => iprop(backend.rbOwn γ r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b)
-        (MW := iprop(∃ f : Nat, backend.fkOwn γ f)) :=
-  mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
+        (MW := iprop(∃ f : Nat, backend.fkOwn γ f)) := by
+  -- (M2, item 31) the bridge's nil-hook clause dropped (`isKeyBackendG_noNil`)
+  iintro H
+  iapply mvcc.isKeyBackendG_noNil
+  iapply (mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
     backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
     backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
     backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange
@@ -239,7 +242,7 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
     backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
     backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket
-    hP γ W Pk b Del Cmp hC
+    hP γ W Pk b Del Cmp hC) $$ H
 
 end bridge
 

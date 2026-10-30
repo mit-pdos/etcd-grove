@@ -64,6 +64,7 @@ instance keyReadLockedR_persistent (RT NC : IProp GF) (r : CmpRecs) (rng : Bool)
     (cl : Bool) : Persistent (keyReadLockedR RT NC r rng rt m Rd Tok cl) := by
   unfold keyReadLockedR; cases rng <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 
+omit package_sem in
 theorem keyReadLockedR_empty (RT NC : IProp GF) (rng : Bool) (rt : GoInterfaceOk)
     (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool) :
     keyReadLockedR RT NC CmpRecs.empty rng rt m Rd Tok cl =
@@ -172,7 +173,8 @@ def isKeyBackendGR (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT 
     (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
     (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True))
-    (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) : IProp GF :=
+    (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) (HN : IProp GF := iprop(False)) :
+    IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
       {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
@@ -184,7 +186,7 @@ def isKeyBackendGR (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT 
           ∃ L : IProp GF, L ∗ keyReadSnapR View RT NC r Del true rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
-          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW }}) ∗
+          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN }}) ∗
     □ (∀ (X Y : IProp GF),
       {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
       {{ RET #(); RT ∗ Y }}) ∗
@@ -205,8 +207,8 @@ instance isKeyBackendGR_persistent (b : GoInterface) (View : Qp → Bucket → I
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW : IProp GF) :
-    Persistent (isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW) := by
+    (SR SRh MW HN : IProp GF) :
+    Persistent (isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN) := by
   unfold isKeyBackendGR; infer_instance
 
 theorem isKeyBackendGR_empty (b : GoInterface) (View : Qp → Bucket → IProp GF)
@@ -214,10 +216,44 @@ theorem isKeyBackendGR_empty (b : GoInterface) (View : Qp → Bucket → IProp G
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW : IProp GF) :
-    isKeyBackendGR b View RT WT NC CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW =
-      isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW := by
+    (SR SRh MW HN : IProp GF) :
+    isKeyBackendGR b View RT WT NC CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN =
+      isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN := by
   unfold isKeyBackendGR isKeyBackendG; simp only [keyReadSnapR_empty]
+
+/-- `isKeyBackendGR` without its nil-hook clause (`HN := False`; `isKeyBackendG_noNil`). -/
+theorem isKeyBackendGR_noNil (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT NC : IProp GF) (r : CmpRecs) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
+    (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
+    (SR SRh MW HN : IProp GF) :
+    isKeyBackendGR (GF := GF) b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
+    isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW := by
+  iintro #H
+  iunfold isKeyBackendGR at H
+  iunfold isKeyBackendGR
+  icases H with ⟨%bi, %Hbi, #Hcrt, #Hrt, #Hbt, #Hfc, #Hsz, #Hszu, #Hcmp⟩
+  iexists bi
+  iframe Hcrt Hrt Hfc Hsz Hszu Hcmp
+  isplitr
+  · ipureintro; exact Hbi
+  iintro !> %Φ !> Hpre HΦ
+  iapply Hbt $$ Hpre
+  inext
+  iintro %bt #Hb'
+  iapply HΦ
+  iapply isBatchTxG_noNil $$ Hb'
+
+/-- **What `Restore` lends for the compaction `restore()` resumes** (item 31, switched 2026-10-30; the
+restore Draft's A2, in place of round 3's `resumeCsM`): on, when the records resume a compaction, the new backend's unset hook (lent,
+given back: `Restore.specM`'s post has it again); else nothing. -/
+def resumeHookM (d' : KBReal) (r : CmpRecs) : IProp GF :=
+  if d'.cm = true ∧ r.resumes = true then kbHookNil (some d') else iprop(True)
+
+theorem resumeHookM_no (d' : KBReal) (r : CmpRecs) (h : r.resumes = false) :
+    resumeHookM (GF := GF) d' r = iprop(True) := by
+  unfold resumeHookM; simp [h]
 
 /-- **The view `restore()` reads, over the image's bucket `m` and records `r`** (item 27's
 `restoreViewR`, over the records' resource `NC`): `NewStore`'s empty bucket (no record), or the
@@ -291,6 +327,210 @@ def resumeK (s : Loc) (r : CmpRecs) (Done Fin : IProp GF) : IProp GF :=
   else iprop(Done -∗ Fin)
 
 end vocab
+
+section frame
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-! ### A token lent through the reader (item 30's D1, 2026-10-30)
+
+A resource `X` lent with the reader's budget token (`RT ∗ X`) rides on its lock token (`Tok ∗ X`)
+until `RUnlock` gives it back: what lends the new backend's unfixed registration (`dlInit`) to
+`restore()`'s clean read. -/
+
+theorem rdCap_frame (Rd : GoSlice → GoString → IProp GF) (Tok X : IProp GF) :
+    rdCap (GF := GF) Rd Tok ⊢ rdCap Rd iprop(Tok ∗ X) := by
+  iintro #H
+  iunfold rdCap at H
+  iunfold rdCap
+  iintro !> %s %bs HRd ⟨HT, HX⟩
+  icases H $$ %s %bs HRd HT with ⟨%dq, Hs, Hb⟩
+  iexists dq
+  iframe Hs
+  iintro Hs
+  ihave HT := Hb $$ Hs
+  iframe HT HX
+
+theorem keyRangeSpec_frame (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok X : IProp GF) :
+    □ keyRangeSpec (GF := GF) rt m Rd Tok ⊢ □ keyRangeSpec rt m Rd iprop(Tok ∗ X) := by
+  iintro #H
+  iunfold keyRangeSpec at H
+  iunfold keyRangeSpec
+  iintro !> %b %key %k %dq !> %Φ ⟨#HK, ⟨HT, HX⟩, Hkey⟩ HΦ
+  iapply H $$ %b %key %k %dq [HT Hkey]
+  · iframe HK HT Hkey
+  inext
+  iintro %ks %vs ⟨HT, Hkey, #Hkv⟩
+  iapply HΦ
+  iframe HT HX Hkey Hkv
+
+theorem keyRangeReadSpec_frame (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok X : IProp GF) :
+    □ keyRangeReadSpec (GF := GF) rt m Rd Tok ⊢ □ keyRangeReadSpec rt m Rd iprop(Tok ∗ X) := by
+  iintro #H
+  iunfold keyRangeReadSpec at H
+  iunfold keyRangeReadSpec
+  iintro !> %b %lo %hi %klo %khi %dqlo %dqhi !> %Φ ⟨#HK, ⟨HT, HX⟩, Hlo, Hhi, %Hne⟩ HΦ
+  iapply H $$ %b %lo %hi %klo %khi %dqlo %dqhi [HT Hlo Hhi]
+  · iframe HK HT Hlo Hhi; ipureintro; exact Hne
+  inext
+  iintro %ks %vs ⟨HT, Hlo, Hhi, #Hr⟩
+  iapply HΦ
+  iframe HT HX Hlo Hhi Hr
+
+theorem keyRangeLimSpec_frame (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok X : IProp GF) (cl : Bool) :
+    □ keyRangeLimSpec (GF := GF) rt m Rd Tok cl ⊢ □ keyRangeLimSpec rt m Rd iprop(Tok ∗ X) cl := by
+  iintro #H
+  iunfold keyRangeLimSpec at H
+  iunfold keyRangeLimSpec
+  iintro !> %b %lo %hi %klo %khi %dqlo %dqhi %lim !> %Φ ⟨#HK, ⟨HT, HX⟩, Hlo, Hhi, %Hne⟩ HΦ
+  iapply H $$ %b %lo %hi %klo %khi %dqlo %dqhi %lim [HT Hlo Hhi]
+  · iframe HK HT Hlo Hhi; ipureintro; exact Hne
+  inext
+  iintro %ks %vs ⟨HT, Hlo, Hhi, Hr⟩
+  iapply HΦ
+  iframe HT HX Hlo Hhi Hr
+
+theorem rdSplit_frame (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok X : IProp GF) (cl : Bool) :
+    rdSplit (GF := GF) rt m Rd Tok cl ⊢ rdSplit rt m Rd iprop(Tok ∗ X) cl := by
+  iintro H
+  iunfold rdSplit at H
+  iunfold rdSplit
+  iintro ⟨HT, HX⟩
+  icases H $$ HT with ⟨%TA, %TB, HA, HB, #HcA, #HcB, #Hlim, Hj⟩
+  iexists TA, iprop(TB ∗ X)
+  iframe HA HB HX HcA Hlim
+  isplitr
+  · iapply rdCap_frame $$ HcB
+  iintro HA ⟨HB, HX⟩
+  ihave HT := Hj $$ HA HB
+  iframe HT HX
+
+theorem metaReadSpecR_frame (rt : GoInterfaceOk) (rs : Option CmpRecs)
+    (Rd : GoSlice → GoString → IProp GF) (Tok X : IProp GF) :
+    metaReadSpecR (GF := GF) rt rs Rd Tok ⊢ metaReadSpecR rt rs Rd iprop(Tok ∗ X) := by
+  have hplain : ∀ nc : Bool, metaReadSpec (GF := GF) rt nc Rd Tok ⊢
+      metaReadSpec rt nc Rd iprop(Tok ∗ X) := by
+    intro nc
+    iintro #H
+    iunfold metaReadSpec at H
+    iunfold metaReadSpec
+    iintro %b %key %kn %dq %hk !> %Φ ⟨#HM, ⟨HT, HX⟩, Hkey⟩ HΦ
+    iapply H $$ %b %key %kn %dq %hk [HT Hkey]
+    · iframe HM HT Hkey
+    inext
+    iintro %ks %vs ⟨HT, Hkey, Hr⟩
+    iapply HΦ
+    iframe HT HX Hkey Hr
+  cases rs with
+  | none => exact hplain false
+  | some r =>
+    by_cases he : r = CmpRecs.empty
+    · subst he
+      rw [metaReadSpecR_empty, metaReadSpecR_empty]
+      exact hplain true
+    · unfold metaReadSpecR
+      simp only [he, ↓reduceIte]
+      iintro #H
+      iintro %b %key %kn %dq %hk !> %Φ ⟨#HM, ⟨HT, HX⟩, Hkey⟩ HΦ
+      iapply H $$ %b %key %kn %dq %hk [HT Hkey]
+      · iframe HM HT Hkey
+      inext
+      iintro %ks %vs ⟨HT, Hkey, Hr⟩
+      iapply HΦ
+      iframe HT HX Hkey Hr
+
+/-- **The reader with a token lent through it.** -/
+theorem keyReadLockedR_frame (RT NC : IProp GF) (r : CmpRecs) (rng : Bool) (rt : GoInterfaceOk)
+    (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok X : IProp GF) (cl : Bool) :
+    keyReadLockedR (GF := GF) RT NC r rng rt m Rd Tok cl ⊢
+      keyReadLockedR iprop(RT ∗ X) NC r rng rt m Rd iprop(Tok ∗ X) cl := by
+  iintro #H
+  iunfold keyReadLockedR at H
+  iunfold keyReadLockedR
+  icases H with ⟨#HU, #HK, Hr, #Hc⟩
+  isplitr
+  · iintro !> %Φ !> ⟨HT, HX⟩ HΦ
+    iapply HU $$ HT
+    inext
+    iintro HRT
+    iapply HΦ
+    iframe HRT HX
+  isplitr
+  · iapply keyRangeSpec_frame $$ HK
+  isplitl [Hr]
+  · cases rng with
+    | false => simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    | true =>
+      simp only [↓reduceIte] at *
+      icases Hr with ⟨#HR, #HL, #HS, #HN⟩
+      isplitr
+      · iapply keyRangeReadSpec_frame $$ HR
+      isplitr
+      · iapply keyRangeLimSpec_frame $$ HL
+      isplitr
+      · iintro !>; iapply rdSplit_frame $$ HS
+      iintro !> Hnc
+      icases HN $$ Hnc with ⟨Hnc, #Hm⟩
+      iframe Hnc
+      iintro !>
+      iapply metaReadSpecR_frame $$ Hm
+  iapply rdCap_frame $$ Hc
+
+/-- **A reader with the records' meta clause** (item 30): `keyReadLocked`'s clauses but its meta
+clause, with the records' (`metaReadSpecR … (some r)` under `NC`). -/
+theorem keyReadLockedR_of_locked (RT NC NC' : IProp GF) (r : CmpRecs) (rt : GoInterfaceOk)
+    (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool) :
+    keyReadLocked (GF := GF) RT NC' true rt m Rd Tok cl ∗
+      □ (NC -∗ NC ∗ □ metaReadSpecR rt (some r) Rd Tok) ⊢
+      keyReadLockedR RT NC r true rt m Rd Tok cl := by
+  iintro ⟨#H, #Hm⟩
+  iunfold keyReadLocked at H
+  simp only [↓reduceIte] at *
+  iunfold keyReadLockedR
+  simp only [↓reduceIte]
+  icases H with ⟨#HU, #HK, ⟨#HR, #HL, #HS, -⟩, #Hc⟩
+  iframe HU HK HR HL HS Hc Hm
+
+/-- **The clean read with a token lent through it** (`RT ∗ X`, given back at `RUnlock`). -/
+theorem keyCleanReadR_frame (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT NC : IProp GF)
+    (r : CmpRecs) (X : IProp GF) :
+    keyCleanReadR (GF := GF) b View RT NC r ⊢ keyCleanReadR b View iprop(RT ∗ X) NC r := by
+  iintro #H
+  iunfold keyCleanReadR at H
+  iunfold keyCleanReadR
+  icases H with ⟨%bi, %Hbi, #HR⟩
+  iexists bi
+  isplitr
+  · ipureintro; exact Hbi
+  iintro !> %q %m %Φ !> ⟨Hv, HT, HX⟩ HΦ
+  iapply HR $$ %q %m [Hv HT]
+  · iframe Hv HT
+  inext
+  iintro %rt ⟨Hv, %L, HL, #Hs⟩
+  iapply HΦ
+  iframe Hv
+  iexists iprop(L ∗ X)
+  iframe HL HX
+  iunfold keyReadSnapCR at Hs
+  iunfold keyReadSnapCR
+  iintro !> %q' %Ψ !> ⟨⟨HL, HX⟩, Hv⟩ HΨ
+  iapply Hs $$ %q' [HL Hv]
+  · iframe HL Hv
+  inext
+  iintro ⟨Hv, %Rd, %Tok, HT, #Hk⟩
+  iapply HΨ
+  iframe Hv
+  iexists Rd, iprop(Tok ∗ X)
+  iframe HT HX
+  iapply keyReadLockedR_frame $$ Hk
+
+end frame
 
 end mvcc
 end EtcdGrove

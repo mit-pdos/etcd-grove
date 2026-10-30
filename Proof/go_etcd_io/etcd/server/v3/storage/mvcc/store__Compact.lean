@@ -83,8 +83,10 @@ theorem mvcc.store.Compact.wp_of_le
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW $HRTok] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
-  · iframe #; ipureintro; exact HndC
+  wp_apply (h1 s γ rev c' P (some f) Pre Q Post log hcmp) $$ [$Hmu1 $Hright $HRTok Hcs HhookW] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
+  · rw [mvcc.lockCtxM_some]
+    iframe #; iframe Hcs HhookW; ipureintro; exact HndC
+  rw [mvcc.lockBackM_some]
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
   · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
