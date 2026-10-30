@@ -60,7 +60,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         rnApGive γ A ce ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
-           nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A ++ ce).length) ∗
+           iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A ++ ce).length ∗
+            srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1))) ∗
         committedLast E.γr ce) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
@@ -72,7 +73,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
-           nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length) ∗
+           iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length)) ∗
         committedAtLeast E.γr sv.Metadata'.Index') := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
