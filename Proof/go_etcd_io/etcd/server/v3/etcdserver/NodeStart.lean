@@ -446,8 +446,8 @@ theorem raftNode_of_StartNode
   · iPkgInit
   ihave #Hmsi : isRNMemStor γw γw.ms $$ []
   · iapply isRNMemStor_of_memstorage γw
-    iframe Hpraft
-    iexact Hreg'
+    iframe Hpraft Hreg'
+    rw [Hwms, Hwγs]; iexact Hlock
   ihave #Hisnode : rnIsNode γw $$ []
   · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
   -- the running token's halves

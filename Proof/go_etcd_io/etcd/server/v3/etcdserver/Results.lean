@@ -276,10 +276,12 @@ theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
       raftPropose E.γr.raft (rnNodeIface γ) :=
   raftPropose_of_isNode E γ (srvApi_wp_Propose γ.node)
 
-/-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10): raft's
-`memStorage_Append` (over the linked `MemoryStorage.wp_Append`), for a registered storage. -/
+/-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10; 2026-10-30, the
+repair: over the linked `MemoryStorage.wp_Append`, under the storage's lock invariant), for a
+registered storage. -/
 theorem node_contract_memstor (γ : RNNames) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnMemStorReg γ ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnMemStorReg γ ∗
+      memStorLock γ.ms γ.γs ⊢
       isRNMemStor γ γ.ms :=
   isRNMemStor_of_memstorage γ
 
