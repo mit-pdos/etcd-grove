@@ -1946,3 +1946,25 @@ the plan not fixing the text:
 - **P3** (the server builds the store through `New`/`newWatchableStore`, which freezes the compaction
   revision) and the rest of the M2 list stay M2's.
 - **The 19 missing laws** behind the cross-package unfolds: added on `backend-cmp` before the merge.
+
+**Probe repairs (2026-10-30, carried out).** P1 and P2 as decided (`notes/STATUS.md`, "backend-cmp:
+Probe repairs"). The laws (internal, the agent's), by the report's site numbers:
+- backend, `backend/ClientLaws.lean`: `fkCl_parts` (`fkCl γ P D ⊣⊢ fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D)`,
+  sites 1-4), `fkWInit_of_wf` (`fkWfD P D → fkWInit P D = true`, 2-4), `fkKey_iff` (the tracked
+  keys: `meta`'s `scheduledCompactRev`/`finishedCompactRev`, 5-6), `kvsOutRd_nil` and
+  `kvsOutRd_single` (an empty / one-entry read's output slices, read-only, with their `rdB`, 7-8),
+  `fkPut_of_fk` (`fkKey n k → fkPut γ n k = ∃ f, fkOwn γ f`, 9, 12), `sData_lookup` (the writer's
+  view at a key: `none` on a hook's bucket, else the data's, 10), `thinV_intro` (the converse of
+  `thinV_sub`/`thinV_dl`, 11), `rdB_iff` (`rdB rtx s b ⊣⊢ s ↦*□ b ∨ txBytes rtx s b`, 12),
+  `hkPut_of_not_HK` (`P.HK n k = false → ⊢ hkPut γ P n k S`, 9, 12), `dlReg_dlIs`
+  (`dlReg γ Φ ∗ dlIs γ nk ⊢ ▷ Φ nk`, 13), `dlIs_of_dlReg` (`dlReg γ Φ ∗ □ Φ nk ⊢ dlIs γ nk`, 13),
+  `newPost_named`/`newPostK_named` (the constructor's posts with named conjuncts, for `iNamed`: a new
+  conjunct breaks no client, 16-17). Site 14 needed no law: backend's `dlReg_persistent` instance
+  was there.
+- mvcc, `mvcc/InstanceLaws.lean` (simp): `kbView_some`, `kbNoCmp_some`, `kbRegRight_some`,
+  `kbWT_some`, `kbRT_some` (the instance's resources at `some d`, sites 18-20).
+- Left, as the report justifies: 15 (schema's constants; `key_not_fk`'s `decide` also evaluates
+  `schema.keyName`), 21 (`KBReal`'s record), 22 (Perennial's `actualMaxReaders`). Older unfolds of
+  the same backend definitions outside this stage's diff (`BackendBridge`'s `sData` and `rdB`,
+  `Image`'s `sData`; `BootBackend`'s `bView`) remain; the new laws cover them.
+

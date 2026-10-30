@@ -491,6 +491,27 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## backend-cmp: Probe repairs (2026-10-30, branch `backend-cmp`)
+
+The user's decisions after the Probe (`notes/spec-first-study/backend-probe.md`;
+`notes/backend-cmp-plan.md`, "After Probe"), carried out:
+- **P1**: `store.Compact.spec`, `store.updateCompactRev.spec` and `store.compactLockfree.spec` give
+  back `mvcc.hookIs γ P f` in every case (in the post's common part, after `storeRT γ`);
+  `updateCompactRev`'s proof keeps the writer's fragment instead of dropping it. No other caller.
+  (`writeView.Put`/`DeleteRange`'s same drop is left for later.)
+- **P2**: `mvcc_NewStore_backend_cmp` exports `mvcc.retiredAt γ 1` (its client retires a reader for
+  its `storeRT γ`: `storeReader_retire` with `storeStop_open`'s pin); the internal
+  `mvcc.NewStore_backend` now keeps `NewStore.spec`'s `retiredAt γ (nJobRd (some d))`;
+  `mvcc_NewStore_backend`'s statement is unchanged (its proof drops it).
+- **The 19 laws** behind the Probe's cross-package unfold sites 1-14 and 16-20 (list in the plan):
+  14 in backend (`backend/ClientLaws.lean`), 5 in mvcc (`mvcc/InstanceLaws.lean`), each a module
+  of its own so the packages' other modules did not change. Sites 15, 21, 22 stay, as the report
+  justifies them (schema's constants, `KBReal`'s record structure, Perennial's `actualMaxReaders`).
+- **For the collaborator (D22)**: `SnapApplyWalk.applySnapshot_walk` now takes the constructor's
+  post through `backend.newPostK_named` (`iNamed`; `Hdl`/`Hncmp` renamed `HnDl`/`HnFk`) and
+  `kbNoCmp` through `mvcc.kbNoCmp_some`; no D22 statement changed. `SnapApplyDefs`' own
+  `kbRT_some` (a `rfl` about mvcc's `kbRT`) duplicates the new `mvcc.kbRT_some`: it can go.
+
 ## Question 5: stage 6, the close (2026-10-29, branch `backend-cmp`)
 
 `notes/backend-cmp-plan.md`, "Stage 6, the close". Done, but for the `axiom` skill's check of

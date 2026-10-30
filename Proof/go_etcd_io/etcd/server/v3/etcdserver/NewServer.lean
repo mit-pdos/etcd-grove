@@ -1174,8 +1174,8 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hllk Hlcfg Hlinv Hlspkg
     isplitl []
     · unfold mvcc.storeWT mvcc.storeRT
-      rw [Hγw.2.2.1, show mvcc.kbWT (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) = backend.wbTok d.γB from rfl,
-        show mvcc.kbRT (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) = mvcc.bkRTx d.γB d.P d.be from rfl]
+      rw [Hγw.2.2.1]
+      simp only [mvcc.kbWT_some, mvcc.kbRT_some, mvcc.KBReal.P_withCm]
       iunfold lessorApplyOk at Hlbe
       iapply Hlbe $$ %d %(mvcc.lateW d.gx) %(batchLockInv γA (metaTM d.γB d.P)) %hook
         %(lease.lessorBeOn lp d.be) HB Hhook [] []
@@ -1612,8 +1612,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hwts HγbW
     ihave HrtSV : mvcc.kbRT (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ [HrtSV]
     · rw [← Hγw.2.2.1]; iexact HrtSV
-    unfold mvcc.bkRTx
-    iunfold mvcc.kbRT at HrtSV
+    rw [mvcc.kbRT_some]
     iexact HrtSV
   -- the lifetime premises (D17): `storeSmall` at the store's names (`E₀`'s index names), the id
   -- supply from the time-receipt bound (D19b), the thread bound; `ClusterVersion()` from the cluster's

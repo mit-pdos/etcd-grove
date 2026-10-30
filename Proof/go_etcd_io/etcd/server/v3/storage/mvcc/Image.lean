@@ -64,20 +64,20 @@ omit package_sem in
 (`newPostK`'s `fkCl γ P D`) is at `0`. -/
 theorem bkNoCmp_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ bkNoCmp γ := by
-  unfold fkCl
+  iintro H
+  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨H, -⟩
   rw [fkInit_of_abs (fkAbsD_of_noCmp h)]
   unfold bkNoCmp
-  iintro ⟨H, -⟩; iexact H
+  iexact H
 
 omit package_sem in
 /-- The same data's compaction keys are well formed: the bit at `true` (question 4, 2026-10-29). -/
 theorem fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ fkV γ true := by
-  unfold fkCl
-  have hw : fkWInit P D = true := by
-    unfold fkWInit; simpa using fkWfD_of_abs P (fkAbsD_of_noCmp h)
-  rw [hw]
-  iintro ⟨-, H⟩; iexact H
+  iintro H
+  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨-, H⟩
+  rw [fkWInit_of_wf (fkWfD_of_abs P (fkAbsD_of_noCmp h))]
+  iexact H
 
 omit package_sem in
 /-- **Both from one creation resource** (review round 10, R10-1: the wiring needs the token and the
@@ -85,12 +85,10 @@ bit from the same `fkCl`): over data with no compaction recorded, the no-compact
 bit at `true`. -/
 theorem bkNoCmp_fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ bkNoCmp γ ∗ fkV γ true := by
-  unfold fkCl
-  have hw : fkWInit P D = true := by
-    unfold fkWInit; simpa using fkWfD_of_abs P (fkAbsD_of_noCmp h)
-  rw [fkInit_of_abs (fkAbsD_of_noCmp h), hw]
+  iintro H
+  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨H, Hv⟩
+  rw [fkInit_of_abs (fkAbsD_of_noCmp h), fkWInit_of_wf (fkWfD_of_abs P (fkAbsD_of_noCmp h))]
   unfold bkNoCmp
-  iintro ⟨H, Hv⟩
   iframe H Hv
 
 omit package_sem in
@@ -98,10 +96,10 @@ omit package_sem in
 records a compaction): the client's half of the flag at `fkInit D` and the bit at `true`. -/
 theorem fkCl_wf (γ : BNames) (P : BParams) {D : Data} (h : fkWfD P D) :
     fkCl (GF := GF) γ P D ⊢ fkOwn γ (fkInit D) ∗ fkV γ true := by
-  unfold fkCl
-  have hw : fkWInit P D = true := by
-    unfold fkWInit; simpa using h
-  rw [hw]
+  iintro H
+  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨H, Hv⟩
+  rw [fkWInit_of_wf h]
+  iframe H Hv
 
 /-- A key image records no compaction. -/
 theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2

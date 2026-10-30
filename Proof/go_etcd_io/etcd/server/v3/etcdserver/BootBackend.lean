@@ -14,6 +14,7 @@ budget's `N + 7` write-backs and a read token with an open share per reader slot
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
@@ -90,24 +91,25 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
       backend.dlInit γ ∗ mvcc.bkNoCmp γ ∗
       -- (question 5's core stage, part (1)) the safe-range slot, for a compacting store (M2's)
       backend.srSlot b := by
-  unfold backend.newPost
-  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd, Hdl, Hfk, Hsr⟩
-  iframe Hb Hsc Hh Hrb Hdl Hsr
-  ihave Hnc := mvcc.bkNoCmp_of_fkCl γ _ hnc $$ Hfk
+  iintro Hnew
+  ihave Hnew := backend.newPost_named γ P W Pk b D $$ Hnew
+  iNamed Hnew
+  iframe HnB HnSC HnH HnRB HnDl HnSr
+  ihave Hnc := mvcc.bkNoCmp_of_fkCl γ _ hnc $$ HnFk
   iframe Hnc
-  icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
-  ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]
+  icases (backend.bOpen_one_shares γ).1 $$ HnOpen with ⟨Ho, Hos⟩
+  ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$HnRT $Hos]
   iframe Hrts Ho
-  isplitl [Hv]
+  isplitl [HnV]
   · unfold mvcc.bkView
     iexists _
-    isplitl [Hv]
-    · unfold backend.bView; iexists true; iexact Hv
+    isplitl [HnV]
+    · unfold backend.bView; iexists true; iexact HnV
     ipureintro; exact hD
   obtain ⟨k, hk⟩ : ∃ k, backend.wbInit = k + (N + 7) :=
     ⟨backend.wbInit - (N + 7), (Nat.sub_add_cancel hN).symm⟩
   rw [hk]
-  icases (ownToks_add (N + 7) k γ.wb).1 $$ Hw with ⟨-, Hw⟩
+  icases (ownToks_add (N + 7) k γ.wb).1 $$ HnWb with ⟨-, Hw⟩
   iexact Hw
 
 end boot

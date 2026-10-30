@@ -6,6 +6,8 @@ premises to `snapWalkPost` (`SnapApplyDefs.lean`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 
 @[expose] public section
 
@@ -278,12 +280,12 @@ theorem applySnapshot_walk
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
   subst Herr Hbe
-  iunfold backend.newPostK at Hnew
+  ihave Hnew := backend.newPostK_named _ _ _ _ _ _ _ $$ Hnew
   simp only
   -- (the backend-compaction stage) the new backend never compacts (no compaction with a restore):
   -- its creator fixes nothing deletable
-  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, HnRT, Hdl, Hncmp, -⟩
-  imod backend.dlNoDel_fix _ $$ Hdl with #Hnd
+  iNamed Hnew
+  imod backend.dlNoDel_fix _ $$ HnDl with #Hnd
   -- (question 5's core stage, part (1)) the new backend's instance does not compact (no restore in
   -- compaction mode: Q5-3)
   obtain ⟨d', hγ', hbe', hgx', hP', hcm'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧
@@ -392,9 +394,9 @@ theorem applySnapshot_walk
     iexists _; iframe HnV
     ipureintro; exact mvcc.keyView_of_keyImage hbr hkI
   ihave HnNC : mvcc.kbNoCmp (GF := GF) (some d') E.γ.bucket
-      $$ [Hncmp]
-  · simp only [mvcc.kbNoCmp, hγ']
-    iapply mvcc.bkNoCmp_of_fkCl γB _ (mvcc.keyImage_noCmp hkI) $$ Hncmp
+      $$ [HnFk]
+  · rw [mvcc.kbNoCmp_some, hγ']
+    iapply mvcc.bkNoCmp_of_fkCl γB _ (mvcc.keyImage_noCmp hkI) $$ HnFk
   wp_apply hRst ws E.s γw _ d' E.γ.bucket
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) x.log R hpre hRok
     $$ [Hscl Hfrag HwOwn HwW HnView HnNC HlateR HnRTx]

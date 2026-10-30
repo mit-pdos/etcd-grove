@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
@@ -731,13 +732,13 @@ theorem rt_keyRange (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
 /-- No key of the `Key` bucket is a compaction key. -/
 theorem key_not_fk (k : GoString) : ¬ fkKey keyBI.name k := by
   intro h
-  unfold fkKey keyBI go_etcd_io.etcd.server.v3.storage.schema.keyName at h
+  rw [fkKey_iff] at h
   exact absurd h.1 (by decide)
 
 /-- A compaction key of the `Meta` bucket is one the backend tracks. -/
 theorem fkKey_meta {kn : GoString} (h : metaCompactKey kn) : fkKey metaBI.name kn := by
   unfold metaCompactKey schedKeyBytes finKeyBytes at h
-  unfold fkKey metaBI go_etcd_io.etcd.server.v3.storage.schema.metaName
+  rw [fkKey_iff]
   exact ⟨rfl, h⟩
 
 /-- **The held shared read transaction's reads of the `Meta` bucket's compaction keys**, with
@@ -774,14 +775,7 @@ theorem rt_metaNone (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   irevert Hout
   rw [rtRange_fkAbs (W64 0) Habs hP.2.1 (fkKey_meta Hkn)]
   iintro Hout
-  iunfold kvsOutRd at Hout
-  icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
-  ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
-  ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
-  simp only [List.map_nil, List.length_nil, List.length_eq_zero_iff] at Hlk Hlv
-  subst Hlk Hlv
-  imod ownSlice_persist $$ Hk with #Hk
-  imod ownSlice_persist $$ Hv with #Hv
+  imod kvsOutRd_nil _ rtx ks vs $$ Hout with ⟨#Hk, #Hv⟩
   imodintro
   iapply HΦ
   iframe Hkey
@@ -825,14 +819,7 @@ theorem rt_metaWf (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
   | none =>
     dsimp only
     iintro Hout
-    iunfold kvsOutRd at Hout
-    icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
-    ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
-    ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
-    simp only [List.map_nil, List.length_nil, List.length_eq_zero_iff] at Hlk Hlv
-    subst Hlk Hlv
-    imod ownSlice_persist $$ Hk with #Hk
-    imod ownSlice_persist $$ Hv with #Hv
+    imod kvsOutRd_nil _ rtx ks vs $$ Hout with ⟨#Hk, #Hv⟩
     imodintro
     iapply HΦ
     iframe Hkey
@@ -844,23 +831,7 @@ theorem rt_metaWf (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     have hv : metaRevVal v := hFV v (fkWfRv_vOf Hwfv hP.2.1 (fkKey_meta Hkn) hvo)
     dsimp only
     iintro Hout
-    iunfold kvsOutRd at Hout
-    icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
-    ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
-    ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
-    simp only [List.map_cons, List.map_nil, List.length_cons, List.length_nil] at Hlk Hlv
-    obtain ⟨ksl, rfl⟩ := List.length_eq_one_iff.1 Hlk
-    obtain ⟨vsl, rfl⟩ := List.length_eq_one_iff.1 Hlv
-    iunfold rdSlices at Hrk Hrv
-    icases Hrk with ⟨-, #Hrk⟩
-    icases Hrv with ⟨-, #Hrv⟩
-    irevert Hrk Hrv
-    simp only [List.map_cons, List.map_nil, List.zip_cons_cons, List.zip_nil_left]
-    iintro #Hrk #Hrv
-    ihave #Hrk1 := BigSepL.bigSepL_singleton.1 $$ Hrk
-    ihave #Hrv1 := BigSepL.bigSepL_singleton.1 $$ Hrv
-    imod ownSlice_persist $$ Hk with #Hk
-    imod ownSlice_persist $$ Hv with #Hv
+    imod kvsOutRd_single _ rtx ks vs kn v $$ Hout with ⟨%ksl, %vsl, #Hk, #Hrk1, #Hv, #Hrv1⟩
     imodintro
     iapply HΦ
     iframe Hkey
@@ -869,7 +840,7 @@ theorem rt_metaWf (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     iright
     iexists ksl, vsl, v
     iframe Hk Hv Hrk1 Hrv1
-    ipureintro; exact hv
+    ipureintro; exact ⟨rfl, hv⟩
 
 end readers
 
@@ -2435,18 +2406,15 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
     rcases hk with rfl | rfl <;> decide
   ihave Hrb := rbPut_other (GF := GF) γ P metaBI.name st.S hP.2.2.2.2.2
   ihave Hhk : hkPut γ P metaBI.name k st.S $$ []
-  · unfold hkPut BParams.hk
-    rw [show metaBI.name = go_etcd_io.etcd.server.v3.storage.schema.metaName from rfl, hHK k hk]
-    simp only [Bool.and_false, Bool.false_eq_true, ↓reduceIte]
-    itrivial
+  · iapply hkPut_of_not_HK γ P metaBI.name k st.S (hHK k hk)
   ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
-  · unfold fkPut; rw [if_pos (fkKey_meta hk)]; iexact Hfk
+  · rw [fkPut_of_fk γ _ _ (fkKey_meta hk)]; iexact Hfk
   wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
       (fun _ => hFV v hv))
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl, -, -, Hfp⟩
   have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
       iprop(∃ f : Nat, fkOwn γ f) := by
-    unfold fkPut; exact if_pos (fkKey_meta hk)
+    exact fkPut_of_fk γ _ _ (fkKey_meta hk)
   rw [hfk]
   iapply HΦ
   isplitr [Hfp]
@@ -2673,8 +2641,7 @@ theorem sData_delKey_lookup {P : BParams} (hP : bridgeParams P) (S : Data) (k : 
     (nk : GoString × GoString) :
     (sData P (S.insert keyName ((bktOf S keyName).delete k))).lookup nk =
       if nk = (keyName, k) then none else (sData P S).lookup nk := by
-  unfold sData
-  rw [vData_lookup, vData_lookup, vOf_emptyR, vOf_emptyR, dget_insert]
+  rw [sData_lookup, sData_lookup, dget_insert]
   obtain ⟨n, k'⟩ := nk
   by_cases hn : n = keyName
   · subst hn
@@ -2694,7 +2661,7 @@ theorem thinV_delKey {P : BParams} (hP : bridgeParams P) (γ : BNames) (S : Data
   iintro ⟨#Hth, #Hd⟩
   ihave %Hsub := thinV_sub γ _ _ $$ Hth
   ihave #Hdl := thinV_dl γ _ _ $$ Hth
-  iunfold thinV
+  iapply thinV_intro
   isplitr
   · ipureintro
     intro nk v h
@@ -2935,8 +2902,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     ihave Hrb := rbPut_other (GF := GF) γ P keyBI.name st'.S hP.2.2.2.2.1
     ihave Harg : iprop(∃ own : Bool,
         if own then key ↦*{DFrac.discard} k else txBytes st'.tx key k) $$ [HRd]
-    · iunfold rdB at HRd
-      icases HRd with (#Hks | #Hks)
+    · icases (rdB_iff _ _ _).1 $$ HRd with (#Hks | #Hks)
       · iexists true
         simp only [↓reduceIte]
         iexact Hks
@@ -2988,18 +2954,15 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
       rcases hk with rfl | rfl <;> decide
     ihave Hrb := rbPut_other (GF := GF) γ P metaBI.name st'.S hP.2.2.2.2.2
     ihave Hhk : hkPut γ P metaBI.name k st'.S $$ []
-    · unfold hkPut BParams.hk
-      rw [show metaBI.name = go_etcd_io.etcd.server.v3.storage.schema.metaName from rfl, hHK k hk]
-      simp only [Bool.and_false, Bool.false_eq_true, ↓reduceIte]
-      itrivial
+    · iapply hkPut_of_not_HK γ P metaBI.name k st'.S (hHK k hk)
     ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
-    · unfold fkPut; rw [if_pos (fkKey_meta hk)]; iexact Hfk
+    · rw [fkPut_of_fk γ _ _ (fkKey_meta hk)]; iexact Hfk
     wp_apply (hUP γ P W Pk b t st' bk2 metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
         (fun _ => hFV v hv))
       $$ [$Hb $Ht $Hl' $Hbk2 $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl', -, -, Hfp⟩
     have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
         iprop(∃ f : Nat, fkOwn γ f) := by
-      unfold fkPut; exact if_pos (fkKey_meta hk)
+      exact fkPut_of_fk γ _ _ (fkKey_meta hk)
     rw [hfk]
     iapply HΦ'
     iframe Hfp
@@ -3366,21 +3329,11 @@ theorem storeDlReg_congr (γB : backend.BNames) (γ : StoreNames) (Cmp : Prop) :
   isplitl
   · iintro !> %k Hk
     iunfold bkDel at Hk
-    iunfold backend.dlIs at Hk
-    icases Hk with ⟨%Φ, #HΦ, #Hv⟩
-    iunfold backend.dlReg at HΦ
-    ihave #Hr' := Hr
-    iunfold backend.dlReg at Hr'
-    icases HΦ with ⟨#Hs1, -⟩
-    icases Hr' with ⟨#Hs2, -⟩
-    ihave Heq := saved_pred_agree γB.dlg _ _ Φ _ (go!"key", k) $$ Hs1 Hs2
     ihave Hl : ▷ (⌜(go!"key", k).1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
-        delKeyI γ.idx (go!"key", k).2) $$ [Heq]
-    · inext
-      ihave Hiff := internalEq_iff _ _ $$ Heq
-      icases Hiff with ⟨H1, -⟩
-      iapply H1
-      iexact Hv
+        delKeyI γ.idx (go!"key", k).2) $$ [Hk]
+    · iapply backend.dlReg_dlIs γB (fun nk : GoString × GoString => iprop(⌜nk.1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+          delKeyI (GF := GF) γ.idx nk.2)) (go!"key", k)
+      iframe Hr Hk
     ihave Hl' : ◇ (⌜(go!"key", k).1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
         delKeyI γ.idx (go!"key", k).2) $$ [Hl]
     · iapply Timeless.timeless
@@ -3391,8 +3344,8 @@ theorem storeDlReg_congr (γB : backend.BNames) (γ : StoreNames) (Cmp : Prop) :
     iexact Hd
   · iintro !> %- %k #Hk
     iunfold bkDel
-    iunfold backend.dlIs
-    iexists _
+    iapply backend.dlIs_of_dlReg γB (fun nk : GoString × GoString => iprop(⌜nk.1 = go_etcd_io.etcd.server.v3.storage.schema.keyName⌝ ∗
+        delKeyI (GF := GF) γ.idx nk.2)) (go!"key", k)
     iframe Hr
     iintro !>
     isplitr
@@ -3402,7 +3355,7 @@ theorem storeDlReg_congr (γB : backend.BNames) (γ : StoreNames) (Cmp : Prop) :
 
 instance storeDlReg_persistent (γB : BNames) (γi : IdxNames) :
     Persistent (storeDlReg (GF := GF) γB γi) := by
-  unfold storeDlReg dlReg; infer_instance
+  unfold storeDlReg; infer_instance
 
 /-- The real instance's hooks own no compaction key (`KBReal.P`'s `HK`: the consistent index's two
 keys of `Meta` only). -/

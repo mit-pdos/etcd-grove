@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 
 @[expose] public section
 
@@ -139,11 +140,8 @@ theorem server_kv_watchable_of
     · iintro %s %γ %hγ
       iapply Hsb
       ipureintro; exact ⟨hγ.1, hγ.2.1⟩
-    rw [show mvcc.kbView (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
-      show mvcc.kbNoCmp (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) γb = mvcc.bkNoCmp d.γB from rfl,
-      show mvcc.kbRegRight (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) = mvcc.lateReg d.gx from rfl,
-      show mvcc.kbWT (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) = backend.wbTok d.γB from rfl,
-      show mvcc.kbRT (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) = mvcc.bkRTx d.γB d.P d.be from rfl]
+    simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
+      mvcc.kbRT_some, mvcc.KBReal.P_withCm]
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
