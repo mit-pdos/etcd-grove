@@ -1616,7 +1616,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `InvBuild.lean` (`srvMsgNet_bundle` (done)), `EtcdServer__start.lean` (done) (both), `EtcdServer__run.lean`
    (`run_job_body`, `run_job_bodyOn`, `wp_proof`, `wp_proofOn`), `NewServer.lean` (`wp_proofM`,
    `wp_proof`; `wp_proofCompact` was already `sorry`).
-5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (`KV.run.wp_proof`), new
+5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
    `KvRun*` lemma modules, `SnapData.lean`.
 6. **S-A net, read, errors** (leaf): `InvNet.lean` (`stepIn_of_recv`), `ReadRaft.lean`
    (`isReadRaft_of_raftNode`), `ReadServer.lean` (`isReadServer_of_serverM`), `raftNode__ReadIndex.lean`,
