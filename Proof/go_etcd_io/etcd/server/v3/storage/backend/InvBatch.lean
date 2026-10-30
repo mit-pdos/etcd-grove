@@ -155,7 +155,7 @@ theorem wp_commitsAdd (b : Loc) (v : w64) :
 /-- The batch lock's half of the flag, for a state that keeps what the flag and the bit say
 (`fkOk`). -/
 theorem fkHalf_mono (γ : BNames) (P : BParams) {st st' : BSess}
-    (hF : ∀ f w, fkOk P f w st → fkOk P f w st') : fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st' := by
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') : fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st' := by
   unfold fkHalf
   iintro ⟨%f, %w, Ha, #Hv, %Hf⟩
   iexists f, w
@@ -166,7 +166,7 @@ theorem fkHalf_mono (γ : BNames) (P : BParams) {st st' : BSess}
 /-- A reader's lower bound of the flag, with the bit, for a state `rv` of which the batch lock's
 state gives what they say (a write-back's or a commit's new readers' state). -/
 theorem fkHalf_rd (γ : BNames) (P : BParams) (st : BSess) (rv : RView)
-    (h : ∀ f w, fkOk P f w st → fkOkRv P f w rv) :
+    (h : ∀ f g, fkOkG P f g st → fkOkRvG P f g rv) :
     fkHalf (GF := GF) γ P st ⊢ fkHalf γ P st ∗ fkRd γ P rv := by
   unfold fkHalf fkRd
   iintro ⟨%f, %w, Ha, #Hv, %Hf⟩
@@ -182,10 +182,10 @@ theorem fk_halves (γ : BNames) (n : Nat) :
   rw [Qp.half_add_half] at h
   exact h
 
-/-- The batch lock's half of the flag and the client's, raised to at least `1` (a put of a
+/-- The batch lock's half of the flag and the client's, raised by one (a put of a
 compaction key, of a well-formed value: `hR`). -/
 theorem fkHalf_raise (γ : BNames) (P : BParams) (st st' : BSess) (g : Nat)
-    (hR : ∀ f w, fkOk P f w st → fkOk P (max f 1) w st') :
+    (hR : ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') :
     ⊢ fkHalf (GF := GF) γ P st -∗ fkOwn γ g ==∗ fkHalf γ P st' ∗ ∃ g' : Nat, fkOwn γ g' := by
   unfold fkHalf fkOwn
   iintro ⟨%f, %w, H1, #Hv, %Hf⟩ H2
@@ -193,23 +193,23 @@ theorem fkHalf_raise (γ : BNames) (P : BParams) (st st' : BSess) (g : Nat)
   obtain ⟨-, rfl⟩ := Hag
   ihave H := (fk_halves γ f).2 $$ [H1 H2]
   · iframe
-  imod mono_nat_own_update (max f 1) (Nat.le_max_left f 1) $$ H with ⟨H, -⟩
-  icases (fk_halves γ (max f 1)).1 $$ H with ⟨H1, H2⟩
+  imod mono_nat_own_update (f + 1) (Nat.le_succ f) $$ H with ⟨H, -⟩
+  icases (fk_halves γ (f + 1)).1 $$ H with ⟨H1, H2⟩
   imodintro
   isplitl [H1]
-  · iexists max f 1, w
+  · iexists f + 1, w
     iframe H1 Hv
     ipureintro
     exact hR f w Hf
-  · iexists max f 1
+  · iexists f + 1
     iexact H2
 
 /-- What a put of key `k` in bucket `n` does to the flag: with the client's half if `k` is a
 compaction key (both halves raised; the state keeps the bit, `hR`), else the state keeps what the
 flag and the bit say (`hF`). -/
 theorem fkHalf_put (γ : BNames) (P : BParams) {st st' : BSess} (n k : GoString)
-    (hF : ¬ fkKey n k → ∀ f w, fkOk P f w st → fkOk P f w st')
-    (hR : fkKey n k → ∀ f w, fkOk P f w st → fkOk P (max f 1) w st') :
+    (hF : ¬ fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P f g st')
+    (hR : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') :
     ⊢ fkHalf (GF := GF) γ P st -∗ fkPut γ n k ==∗ fkHalf γ P st' ∗ fkPut γ n k := by
   unfold fkPut
   by_cases hk : fkKey n k
@@ -230,7 +230,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
     (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend = sint.nat st.pend + 1)
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1)
     (hS : hkData P st'.S = hkData P st.S) (hB : rbData P st'.S = rbData P st.S)
-    (hF : ∀ f w, fkOk P f w st → fkOk P f w st') :
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') :
     batchGhost (GF := GF) γ P st ⊢ batchGhost γ P st' := by
   unfold batchGhost batchGhostAt batchViewQ
   rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB]
@@ -251,7 +251,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) (n : GoString)
     (hS : hkData P st'.S = hkData P st.S)
     (hB : P.RB n = false → rbData P st'.S = rbData P st.S)
-    (hF : ∀ f w, fkOk P f w st → fkOk P f w st') :
+    (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') :
     ⊢ batchGhost (GF := GF) γ P st -∗ rbPut γ P n st.S ==∗
       batchGhost γ P st' ∗ rbPut γ P n st'.S := by
   unfold rbPut
@@ -284,8 +284,8 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) (n k : GoString)
     (hS : P.hk n k = false → hkData P st'.S = hkData P st.S)
     (hB : P.RB n = false → rbData P st'.S = rbData P st.S)
-    (hF : ¬ fkKey n k → ∀ f w, fkOk P f w st → fkOk P f w st')
-    (hFk : fkKey n k → ∀ f w, fkOk P f w st → fkOk P (max f 1) w st') :
+    (hF : ¬ fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P f g st')
+    (hFk : fkKey n k → ∀ f g, fkOkG P f g st → fkOkG P (f + 1) g st') :
     ⊢ batchGhost (GF := GF) γ P st -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S -∗ fkPut γ n k ==∗
       batchGhost γ P st' ∗ hkPut γ P n k st'.S ∗ rbPut γ P n st'.S ∗ fkPut γ n k := by
   unfold batchGhost batchGhostAt batchViewQ trkHalf

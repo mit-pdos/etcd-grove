@@ -26905,3 +26905,51 @@ seal with the caller's bound (`mvcc.idxWriterNR_seal`: the sealed log is today's
 hypotheses, and `putgetc`'s `Main` (the one compacting example, one member) has no way to establish it.
 A pure form needs a bound on the cluster's committed history in terms of the workload; or a gate that
 drops it where no image is ever installed. For the user.
+
+## M2's restore chain, the backend part: the open's records clause, and two premises on deletes (2026-10-30, items 27/29/30/37)
+
+**2026-10-30 · item 29's backend part switched on branch `m2-backend`; items 30 and 37 drafted**
+
+The restore chain reads a compacting image's compaction records through the new backend while the
+client's half of the compaction-key flag is unmoved since the open (`kbRecs`). The backend had to say
+what an unmoved flag means.
+
+**Decision: one ghost, the open's value and the keys' values in it, and the clause "at the open's
+flag, the open's values".** `γ.fkv` (already discarded at allocation, holding the well-formedness bit)
+now holds `(bit, flag at the open, values at the open)`; `fkV` is its first component (text and users
+unchanged), `fkOpen` the other two (round 4's S4: one name at one type). The batch lock's and the
+readers' facts gain `fkOkG`: the flag is never below the open's value, and while equal to it the
+states hold the open's values at the two keys with no buffered entry there. Why "never below" and
+not just "`f = n →`": a reader keeps only a *lower bound* of the flag, taken when its state was set;
+with the batch lock's `n ≤ f`, a reader's `f ≤ n` gives `f = n` at that time, so its state holds the
+values (`fkOkRvG`'s `f ≤ n →`). Why the flag is raised by one at a compaction-key put (`f + 1`, until
+now `max f 1`): `max f 1` leaves a flag at `1` unmoved, and a store opened over data with a record
+(flag `1` at the open) would keep the clause after writing a new record.
+
+Why the values clause includes "no buffered entry" rather than "the readers' view reads `v`": the
+buffers start empty and only puts fill them; with the flag unmoved no put of a compaction key
+happened, so absence from both buffers is what is preserved operation by operation (`fkAbsB`, the
+lemmas `fkAbsD`'s proofs already had), and the view's value follows (`vOf_fkVal`).
+
+**Two premises the approved design missed**: "kept by every operation but a compaction-key put" was
+false of the backend's specs, which let `UnsafeDelete` delete a compaction key and
+`UnsafeDeleteBucket` delete `meta`. Chosen: pure premises on those specs (`¬ fkKey bi.name kb`;
+`∀ k, ¬ fkKey bi.name k`), like `P.hk … = false` already there. Rejected: the client's half of the
+flag for such a delete (as `fkPut`): a resource no caller has a use for (only mvcc writes the keys, it
+never deletes them; nothing deletes `meta`), and every delete's caller would carry it.
+
+**The constructor's post**: `fkCl`'s body holds the merged ghost at `D`'s values; `newPost`/`newPostK`'s
+text is unchanged, so `storage.OpenBackend`'s and `OpenSnapshotBackend`'s axiom texts are unchanged;
+their posts now include the open record, which is `backend.New`'s proved post (the justification the
+axiom review of the compaction-keys post gave for `fkCl`). Flagged for the user, not hidden: if the
+user counts a body change of a definition an axiom's post names as an axiom change, the open record
+must instead be drafted as a `newPostK` conjunct and reviewed with the `axiom` skill.
+
+**Item 30, not provable as drafted** (the plan section): the clean read is exact, but over a
+registered backend reads are only thin of the clients' view (any deleting session); recommended
+repair: `Restore` fixes the new backend's registration after `restore()`'s reads (`dlInit` lent to the
+clean read, `dlInit_noDel` for exactness), as `NewStore` does. Also the records' sign must be a premise.
+
+**Item 37, round 4's ghost law refutable**: the view's other half is in the two locks' resources, so
+only an operation holding both can widen (`Unlock.specW`, drafted); whether to widen at the store's
+first `Unlock` or to let mvcc's writer relation be "thin of the log's bucket" is the chain's choice.
