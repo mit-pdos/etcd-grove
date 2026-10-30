@@ -25681,3 +25681,13 @@ in neither mode.
   `"#HA1"` and removed A1 from `runCfgLoan`, so while a snapshot is lent nothing bounds the
   configuration index and the unguarded form is false. Phase 1 missed these two, like
   `wp_rn_raft_Step_net`. (Approved by the coordinator.)
+- `ownRawNodeReady` (internal, `InvRawnodeReady`): a conjunct `"%Hcepre" ∷ ⌜es ≠ [] → ce <+:
+  logCommittedEnts s.logst⌝` (`RawNode.readyWithoutAccept` proves it from `nextCommittedEnts`'
+  prefix; a stale `Ready` sent again, `ownRawNodeIdle_ready`, has no batch, whence the guard: the
+  lead approved the unguarded form, which `ownRawNodeIdle_ready` cannot give, since nothing keeps a
+  stale `Ready`'s committed entries tied to the log). And `readyData` (internal, `InvNodeChan`) a
+  last conjunct `⌜∀ e0, es.head? = some e0 → (∀ j e, es[j]? = some e → uint.nat e.Index' =
+  uint.nat e0.Index' + j) ∧ (∀ j e, ce[j]? = some e → uint.nat e0.Index' ≤ d.length + 1 + j →
+  es[d.length + 1 + j - uint.nat e0.Index']? = some e)⌝`. Why: P6's `readyRest_indices` and
+  `readyRest_ceInBatch` (which kvreconf needs) read it out of `readyRecv_open`. (Approved by the
+  lead.)

@@ -1169,6 +1169,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "Hce_cap" ∷ ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
   "#Hents" ∷ entsRO rd.Entries' es ∗
   "%Hceok" ∷ ⌜CeOk s.logst ce⌝ ∗
+  -- (raft-final phase 2, 2026-10-30) with a batch, the committed entries are the log's after
+  -- `applying`: the batch and they agree at the indices they share (`readyData`'s batch clause; a
+  -- stale `Ready` sent again, `ownRawNodeIdle_ready`, has no batch)
+  "%Hcepre" ∷ ⌜es ≠ [] → ce <+: logCommittedEnts s.logst⌝ ∗
   "%Hes" ∷ ⌜es = nextUnstable s.logst⌝ ∗
   "%Hrdc" ∷ ⌜rdCountM (ms.map QMsg.st) ≤ rdCount s.outbox⌝ ∗
   -- (2026-10-19, D21 M6) and its proposals are among the outbox's (their tickets)
@@ -1797,7 +1801,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hceok, Hes, Hrdc, Hprc, Hnsout, Hsdt⟩
+      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt⟩
   isplitl [Hout]
   · rw [Hstor.2]; iexact Hout
   iframe Hcef
@@ -2043,7 +2047,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt⟩
+    fun e He => ?_, fun h => absurd rfl h, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne
