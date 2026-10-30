@@ -42,8 +42,9 @@ connection's (`grpcConn`), which the dial gives, and the packages' (`watchDescOk
 context's (`ctxErrClientAllW`: `ctxErrClientAllW_of`, from Go's `Err` contract). -/
 def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : IProp GF :=
-  iprop(isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
-      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
+  iprop(isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
+      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R)
+      (fun md => v3rpc.watchSpec V.R (auth.mdTokenOf md)) ∗
     mvcc.watchTokPool V.R.γ ∗
     srvLogsSmall V.R ∗
     eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ ∗
@@ -212,9 +213,9 @@ theorem watchConnFacts_of_members [srv_sem : go_etcd_io.etcd.server.v3.etcdserve
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗
       grpcConn (GF := GF) conn V.addrs ics [] ∗
-      isGrpcStreams (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
-        go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a).γ)
-        (fun a => v3rpc.watchSpec (V.memOf a)) ∗
+      isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
+        go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a))
+        (fun a md => v3rpc.watchSpec (V.memOf a) (auth.mdTokenOf md)) ∗
       (□ ∀ i : Nat, ⌜i < V.nm⌝ -∗ watchMemberFacts (V.atIdx i)) ∗ eofOk ∗
       ⌜V.pfx ≠ [] ∧ V.addrs.Nodup ∧ ∃ i, i < V.nm ∧ V.mem i = (V.addr, V.R)⌝ ⊢
       watchConnFacts { V with conn := conn, ics := ics } := by

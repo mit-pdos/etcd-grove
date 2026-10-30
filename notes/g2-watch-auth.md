@@ -1,4 +1,45 @@
 <!-- The approved G2 design (candidate 4, approved by the user 2026-10-30, after three spec-review rounds). Statements go in code over named stubs; no proofs before the freeze. -->
+
+**In code (2026-10-30, branch `g2-stmts`).** The statements below are in code over named stubs
+(`sorry -- G2: re-prove after freeze`). Three departures from the approved text, none of them a
+trusted change:
+- **The bound per create is a ghost field of the request model, `CreateReqM.bound`** (as
+  `CreateReqM.sr` is), in place of `∃ γb n, agreeOwn γb n` in the up content. The approved
+  mechanism could not say which create a server record belongs to: `ctrlWatcher` names the create
+  by its request, and `γb` was existential in the up content, so two creates with the same key could
+  not be told apart. The wire model reads fields one by one (`isWatchReq`), so a ghost field costs
+  the Go code nothing. The client sets it to its `n` and keeps it on a resume (`initReq`, with only
+  `rev` advanced). A create's up content carries `□ authPubLbM R.E.authMode c.bound` (`watchUp`), and
+  `ctrlWatcher` records `watchAuthed γ s tok c.bound c.key c.rangeEnd`.
+- **`classResFrom M n info perms`** (`apply/AuthClass.lean`) is `classRes` at a bound (each
+  permission granted by a state recorded at an index `≥ n`). `watchClassFrom` is it at
+  `watchPerms`, and `isWatchPermitted`'s post is `classResFrom … [(k, e, .read)]`. Laws:
+  `classResFrom_zero`, `watchClassFrom_zero` and `watchClassFrom_on`, all proved.
+- **F-W3's law in two pieces.** `attemptTokOk_of_watcher` (`InvClientAuth.lean`, a stub) is the
+  agreement: the `Watcher` field and a `watcherConnAt w conn` with `clientTokAt` give
+  `attemptTokOk conn P`. `watcher_of_clientTokAt` (`WatchCheck.lean`, the approved statement) is
+  proved from it, `isNewClient_watcher` and `watcherConnAt_of_watcher`. `New`'s proof gives the new
+  conjunct from `watcherConnAt_of_core`.
+- `infoBoundT` moved from `v3rpc/ServerKVOn.lean` to `AuthReqDerive.lean` (no change of meaning),
+  so that `InvWatchStream` can name it without importing the KV server's proofs.
+- **(g) is not changed.** `etcd_kv_auth_served_on` serves the unary methods (`grpcServerAt`); the
+  watch stream is served by `etcd_watch_served_chain` (`grpcStreamServerAt`), now md-indexed at
+  `R.s` (row (l)), which authkv calls as linkv3p and watchkv do. One exported statement fewer moves.
+- **`grpcStreamHandlerOk` is md-indexed too** (as `grpcStreamMethodOk`, row (b)): the watch server's
+  handler spec (`watchServer.Watch.spec`) is at the run's token `auth.ctxTokenOf ci`, which a fixed
+  `Spec` cannot say; `_Watch_Watch_Handler.spec` takes `Spec : GrpcMd → StreamSpec` with
+  `Spec (incomingOf ci)`. A local predicate (`InvGrpcStream.lean`), not an axiom.
+- **(d) also gives the token binding**: `watch_registered_authorized` (and `ctrlWatcher_authorized`,
+  `watchAuthed_on`) conclude `infoBoundT s (.on γa) tok info` and `c.bound ≤ i`.
+- **The client's internals**: the watcher's channel element (`outcElem`) keeps the row `True`, and
+  `runCore`'s epoch token is existential, until `Watch` and `run` are re-proved. The internal specs
+  `openWatchClient`, `newWatchClient` and `serveWatchClient` carry the stream's metadata `md` and
+  its token, and `newWatcherGRPCStream`'s post the stream context's `outgoingOf` and key.
+- **Stubs** (`sorry -- G2: re-prove after freeze`, each with the commit of the proof before G2):
+  `watcher.Watch`, `watchGRPCStream.newWatchClient`, `serverWatchStream.recvLoop` (needs
+  `srvAuthLb` threaded through `WSrv`/`NewWatchServer`), `serverWatchStream.isWatchPermitted` (the
+  bound's reasoning at the store), and the law `attemptTokOk_of_watcher` (field agreement). The
+  rest of the restated proofs are adapted.
 # G2: the watch with auth on (candidate 4, 2026-10-30; after review round 3, the last)
 
 **Changes from candidate 3** (review: `g2-review3.md`; round 3 is the last review round. The user

@@ -1416,28 +1416,32 @@ theorem watch_server : EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := 
 theorem new_watch_server : EtcdGrove.v3rpc.NewWatchServer.spec (GF := GF) (hG := hG) :=
   wp_NewWatchServer
 
-/-- **A registered watcher was authorized** (the auth plan's A4, 2026-10-24; `WatchClass.lean`,
-`ctrlWatcher_authorized`): with the server's auth mode `on γa` (`watchSrvOk`'s tag of the store's
-names, `auth.modeTag γ.tag`), the mvcc watcher a created, not canceled, control response names
-(`watchDn`'s `ctrlOk`, `ctrlWatcher`) has a range every key of which some principal (the stream's
-context's auth info, or the empty one) could read at a recorded state of the auth history: auth
-disabled there, or the principal a user with the root role, or one whose READ permissions cover
-the key. The interval the check saw is the interval mvcc registers for every request shape
-(`createRangeOk_inRange`): the point, the proper range, `WithFromKey`'s `"\x00"` end, the empty
-key. -/
-theorem watch_registered_authorized (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames)
+/-- **A registered watcher was authorized** (the auth plan's A4, 2026-10-24; strengthened in G2,
+2026-10-30; `WatchClass.lean`, `ctrlWatcher_authorized`): with the server's auth mode `on γa`
+(`watchSrvOk`'s tag of the store's names, `auth.modeTag γ.tag`), the mvcc watcher a created, not
+canceled, control response names (`watchDn`'s `ctrlOk`, `ctrlWatcher`, at the server `s` and the
+stream's token `tok`) has a range every key of which some principal could read at a recorded state
+of the auth history, at an index at least the create's bound `c.bound`: auth disabled there, or the
+principal a user with the root role, or one whose READ permissions cover the key; and the
+principal is bound to the stream's token (`infoBoundT`: the empty user, a token issued to its user,
+or the server's TLS identity). The interval the check saw is the interval mvcc registers for every
+request shape (`createRangeOk_inRange`): the point, the proper range, `WithFromKey`'s `"\x00"` end,
+the empty key. -/
+theorem watch_registered_authorized (γ : mvcc.WsNames) (s : Loc) (tok : Option GoString)
+    (γo : mvcc.WsStreamNames)
     (γa : auth.AuthNames) (c : CreateReqM) (m : WatchRespM) (h : m.canceled = false) :
-    auth.modeTag (GF := GF) γ.tag (.on γa) ∗ ctrlWatcher γ γo (.create c) m ⊢
+    auth.modeTag (GF := GF) γ.tag (.on γa) ∗ ctrlWatcher γ s tok γo (.create c) m ⊢
       ∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (i : Nat) (st : auth.AuthState),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         mvcc.idAssigned γo m.watchId w ∗ auth.authStateAt γa i st ∗
-        ⌜st.enabled = false ∨
+        infoBoundT s (.on γa) tok info ∗
+        ⌜c.bound ≤ i ∧ (st.enabled = false ∨
           ((auth.authInfoM info).rev ≠ 0 ∧
             ∃ u, st.users !! (auth.authInfoM info).user = some u ∧
               (auth.isRoot u ∨ ∀ x, r.covers x = true →
-                ∃ p ∈ auth.userPerms st u, p.covers .read x))⌝ :=
-  ctrlWatcher_authorized γ γo γa c m h
+                ∃ p ∈ auth.userPerms st u, p.covers .read x)))⌝ :=
+  ctrlWatcher_authorized γ s tok γo γa c m h
 
 end watch
 
@@ -1473,12 +1477,16 @@ theorem watch_streamHandlerOk (p : Loc) (R : WSrv GF) :
     grpcStreamHandlerOk (Req := pbWatchRequest)
       #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
         go!"Watch" #p)
-      (watchRunSlot R) (watchUp R.γ) (watchSpec R) := by
+      (watchRunSlot R) (watchUp R) (fun md => watchSpec R (auth.mdTokenOf md)) := by
   iintro ⟨#Hinit, #Hws⟩
   unfold grpcStreamHandlerOk
   iintro !> %γs %Dn %ci %cd %st %Φ HSpec HS #Hst HRt HSt HAux HΦ
-  ihave #Hup := upOk_watchUp (GF := GF) R.γ
-  iapply (watch_server p R st γs (watchUp R.γ) Dn ci cd) $$ [HSpec HS HRt HSt HAux]
+  ihave HSpec : watchStreamSpec γs R.γ R.s (auth.ctxTokenOf (GoInterface.ok ci)) R.cid R.mid Dn
+    $$ [HSpec]
+  · rw [auth.ctxTokenOf_md]
+    iexact HSpec
+  ihave #Hup := upOk_watchUp (GF := GF) R
+  iapply (watch_server p R st γs (watchUp R) Dn ci cd) $$ [HSpec HS HRt HSt HAux]
   · iframe
     iframe #
   inext
@@ -1499,25 +1507,28 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : Lis
     grpcStreamMethodOk (Req := pbWatchRequest) (@! etcdserverpb._Watch_Watch_Handler)
       (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) ics
-      iprop(watchRunSlot R ∗ [∗list] R' ∈ Rs, R') (watchUp R.γ) (watchSpec R) := by
+      iprop(watchRunSlot R ∗ [∗list] R' ∈ Rs, R') (watchUp R)
+      (fun md => watchSpec R (auth.mdTokenOf md)) := by
   iintro ⟨#Hpb, #Hinit, #Hws, #Hics⟩
   ihave #Hh := watch_streamHandlerOk p R $$ [Hinit Hws]
   · iframe #
   unfold grpcStreamMethodOk
   isplitr
-  · iapply streamSpecOk_watchSpec
+  · iintro !> %md
+    iapply streamSpecOk_watchSpec
   iintro !> %γs %Dn %ci %cd %st %info HSpec ⟨HS, HRs⟩ #Hraw HRt HSt HAux #Hinfo
-  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequest pbWatchResponse (watchUp R.γ) Dn γs ci cd
+  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequest pbWatchResponse (watchUp R) Dn γs ci cd
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
     (@! etcdserverpb._Watch_Watch_Handler) (fun _ => iprop(True)))
   iframe #
   iframe HRs
   isplit
-  · iintro %st' %ci' %cd' #Hraw'
-    iapply (watch_handler pbWatchRequest pbWatchResponse (watchUp R.γ) (watchSpec R)
+  · iintro %st' %cd' #Hraw'
+    iapply (watch_handler pbWatchRequest pbWatchResponse (watchUp R)
+      (fun md => watchSpec R (auth.mdTokenOf md))
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty, #p⟩
-      (watchRunSlot R) γs Dn ci' cd' st' rfl rfl hset) $$ [HSpec HS HRt HSt HAux]
+      (watchRunSlot R) γs Dn ci cd' st' rfl rfl hset) $$ [HSpec HS HRt HSt HAux]
     · iframe
       iframe #
       iintro !> %l Hl
@@ -1539,7 +1550,9 @@ and the `Watch` stream of `Watch_ServiceDesc` registered with the `*watchServer`
 (`grpcStreamServerAt`, the registration `RegisterWatchServer` makes), handed `n` run slots (each
 the watch run's resources and the interceptors'), serves the method: its stream specification is
 `watchStreamSpec` at the server's names and ids, and each request the client sends carries
-`watchUp` (restricted, a watch token with each create). -/
+`watchUp` (restricted, a watch token and the auth bound with each create). Since G2 (2026-10-30) the
+registration is metadata-indexed (`isGrpcStreamMd`): the stream specification is at the token of
+the stream's metadata (`auth.mdTokenOf`), for which each create's check passed. -/
 theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (ics : List GoFunc)
     (Rs : List (IProp GF)) (sregs : List (GoString × val × GoInterface)) (n : Nat)
     (hset : go.typeSetContains
@@ -1552,15 +1565,15 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (ics : List 
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isWatchServer p R ∗ srvStreamInterceptorsOk ics Rs ∗ grpcStreamServerAt addr ics sregs ∗
       ([∗list] _x ∈ List.replicate n (), iprop(watchRunSlot R ∗ [∗list] R' ∈ Rs, R')) ⊢
-    |={⊤}=> isGrpcStream (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
-      go!"/etcdserverpb.Watch/Watch" (watchUp R.γ)
-      (fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn) := by
+    |={⊤}=> isGrpcStreamMd (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
+      go!"/etcdserverpb.Watch/Watch" (watchUp R)
+      (fun md γs Dn => watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) := by
   iintro ⟨#Hpb, #Hinit, #Hws, #Hics, Hsrv, Hslots⟩
   ihave #Hok := etcd_watchMethodOk p R ics Rs hset $$ [Hpb Hinit Hws Hics]
   · iframe #
   let m : GrpcStreamMethod GF :=
     { name := go!"/etcdserverpb.Watch/Watch", Req := pbWatchRequest, Rep := pbWatchResponse,
-      Up := watchUp R.γ, spec := watchSpec R, handler := @! etcdserverpb._Watch_Watch_Handler,
+      Up := watchUp R, spec := fun md => watchSpec R (auth.mdTokenOf md), handler := @! etcdserverpb._Watch_Watch_Handler,
       srv := interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p }
   have hnd : ([m].map GrpcStreamMethod.name).Nodup := by simp
@@ -1596,9 +1609,9 @@ theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (im is
       isWatchServer p R ∗ srvStreamInterceptorOk im iprop(True) ∗
       srvStreamInterceptorOk is iprop(True) ∗ grpcStreamServerAt addr [im, is] sregs ∗
       ([∗list] _x ∈ List.replicate n (), watchRunSlot R) ⊢
-    |={⊤}=> isGrpcStream (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
-      go!"/etcdserverpb.Watch/Watch" (watchUp R.γ)
-      (fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn) := by
+    |={⊤}=> isGrpcStreamMd (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
+      go!"/etcdserverpb.Watch/Watch" (watchUp R)
+      (fun md γs Dn => watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) := by
   iintro ⟨#Hpb, #Hinit, #Hws, #Him, #His, Hsrv, Hslots⟩
   iapply (etcd_watch_served addr p R [im, is] [iprop(True), iprop(True)] sregs n hset hreg)
   iframe #
@@ -1663,9 +1676,9 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
           isWatchServer p R ∗ srvStreamInterceptorOk im iprop(True) ∗
           grpcStreamServerAt addr [im, is] sregs ∗
           ([∗list] _x ∈ List.replicate n (), watchRunSlot R) ={⊤}=∗
-          isGrpcStream (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
-            go!"/etcdserverpb.Watch/Watch" (watchUp R.γ)
-            (fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn)) }} := by
+          isGrpcStreamMd (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
+            go!"/etcdserverpb.Watch/Watch" (watchUp R)
+            (fun md γs Dn => watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) }} := by
   iintro %Φ ⟨#Hpkg, -, Hpre⟩ HΦ
   wp_apply (new_stream_interceptor s c ch mid tm et) $$ [Hpre] as %is ⟨#His, Hgr, Hlg⟩
   · iexact Hpre

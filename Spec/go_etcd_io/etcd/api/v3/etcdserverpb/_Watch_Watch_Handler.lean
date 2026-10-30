@@ -32,14 +32,15 @@ are `*WatchRequest`/`*WatchResponse` (a fresh `new(WatchRequest)` is a message t
 on a raw server end `stream` of a fresh stream (`srvRawStreamIs`, both tokens at `[]`, its
 auxiliary name unset: `streamAuxTok`) with `Spec γ Dn` and `S`: wraps the stream and runs `srv.Watch` on it; returns (nothing promised). -/
 abbrev etcdserverpb._Watch_Watch_Handler.spec : Prop :=
-  ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep)
+  ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep)
     (srv : GoInterfaceOk) (S : IProp GF) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (st : GoInterface),
   Req.ty = etcdserverpb.WatchRequest.ty → Rep.ty = etcdserverpb.WatchResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.WatchServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.WatchRequest) -∗ Req.own l) ∗
-      grpcStreamHandlerOk #(methods srv.ty go!"Watch" srv.v) S Up Spec ∗ Spec γ Dn ∗ S ∗
+      grpcStreamHandlerOk #(methods srv.ty go!"Watch" srv.v) S Up Spec ∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn ∗ S ∗
       srvRawStreamIs st γ Req Rep Up Dn ci cd ∗ srvRecvTok (Req := Req) γ [] ∗
       srvSendTok (Rep := Rep) γ [] ∗ streamAuxTok γ }}
     (streamHandlerCall (@! etcdserverpb._Watch_Watch_Handler) #(GoInterface.ok srv) #st)

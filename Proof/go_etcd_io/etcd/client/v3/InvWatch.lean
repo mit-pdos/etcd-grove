@@ -442,9 +442,9 @@ specification, D32), each member's facts, the packages', the prefix not empty, t
 distinct, `V` at one of its members. -/
 def watchConnFacts (V : WEnv GF) : IProp GF :=
   iprop(grpcConn V.conn V.addrs V.ics [] ∗
-    isGrpcStreams (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
-      go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a).γ)
-      (fun a => v3rpc.watchSpec (V.memOf a)) ∗
+    isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
+      go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a))
+      (fun a md => v3rpc.watchSpec (V.memOf a) (auth.mdTokenOf md)) ∗
     v3rpc.watchDescOk ∗ (□ ∀ i : Nat, ⌜i < V.nm⌝ -∗ watchMemberFacts (V.atIdx i)) ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗
     ⌜V.pfx ≠ [] ∧ V.addrs.Nodup ∧ ∃ i, i < V.nm ∧ V.mem i = (V.addr, V.R)⌝)
@@ -573,10 +573,11 @@ def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
 
 /-- **The caller's channel's element** (D47): a response as one firing of the read update
 `Q`, at the watch's second cursor (`watchStateElem`, at `γ.cur2`: the cursor of a watch that
-promises completeness). -/
+promises completeness). Its authorization row is `True` (G2: `watcher.Watch.spec`'s row
+`watchCheckOk` is threaded through here when `Watch` is re-proved after the freeze). -/
 def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) :
     Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
-  watchStateElem { γ with cur := γ.cur2 } o Q
+  watchStateElem { γ with cur := γ.cur2 } o Q iprop(True)
 
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
 contract's SPSC channel, with the consumer's resources (`Watch` returns them). -/
@@ -875,24 +876,26 @@ instance streamNames_countable : Pos.Countable StreamNames :=
 
 /-- **An epoch of `run`** (D25): the gRPC stream it opened, the first position of `respc` its
 responses take, the name of its count of responses forwarded (a mono nat, `serveWatchClient`'s),
-(W3b) the member the stream is at. -/
-abbrev EpInfo := StreamNames × Nat × GName × Nat
+(W3b) the member the stream is at, (G2) the token of the metadata the stream was opened with. -/
+abbrev EpInfo := StreamNames × Nat × GName × Nat × Option GoString
 
 /-- **What `respc` carries, across reconnections** (D25): the `k`th element was forwarded from the
 gRPC stream of some epoch `e` of `run` (`γep`), from its first position `b` on, while its count was
 at `k` (the count's lower bound `k + 1`: the epoch had not ended), and is that stream's `(k - b)`th
 response (`respcElem`, its content the watch stream's `watchDn`). -/
 def respcE (V : WEnv GF) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
-  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat),
-    monoListIdxOwn γep e ((γs, b, γc, i) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗ ⌜b ≤ k.toNat⌝ ∗
-    respcElem γs (v3rpc.watchDn γs (V.mem i).2.γ (V.mem i).2.cid (V.mem i).2.mid)
+  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat) (tok : Option GoString),
+    monoListIdxOwn γep e ((γs, b, γc, i, tok) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗
+    ⌜b ≤ k.toNat⌝ ∗
+    respcElem γs (v3rpc.watchDn γs (V.mem i).2.γ (V.mem i).2.s tok (V.mem i).2.cid (V.mem i).2.mid)
       ((k.toNat - b : Nat) : Int) p)
 
 /-- **`respc`'s producer side, handed back** (D25; with the stream's receive error on `errc`): the
 epoch the forwarder served, its count at the responses sent. -/
 def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
-  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat) (sent : List Loc),
-    monoListIdxOwn γep e ((γs, b, γc, i) : EpInfo) ∗ sspscProducer γr sent ∗
+  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat) (tok : Option GoString)
+      (sent : List Loc),
+    monoListIdxOwn γep e ((γs, b, γc, i, tok) : EpInfo) ∗ sspscProducer γr sent ∗
     monoNatAuthOwn γc 1 sent.length ∗ ⌜b ≤ sent.length⌝)
 
 /-- **What `errc` carries** (`serveWatchClient`'s receive error; a bag): a stream error or

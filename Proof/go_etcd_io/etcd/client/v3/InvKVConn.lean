@@ -757,29 +757,22 @@ theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ call
 
 /-! ## The connection -/
 
-/-- **An attempt of a call on an etcd client's connection `conn` with the caller's context `ctx`
-reaches a handler that sees the metadata `md`** (the auth plan's E3zc): the retry interceptor sends
+/-- **An attempt of a call on an etcd client's connection `conn` with a context whose outgoing
+metadata is `m` reaches a handler that sees the metadata `md`** (the auth plan's E3zc; over the
+metadata since G2): the retry interceptor sends
 every attempt on `withVersion(ctx)`, a context whose outgoing metadata is `ctx`'s with the API
 version's key set (`withVersion.spec`), and grpc's attempt on it delivers `md`
 (`grpcAttemptMd`). -/
-def clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
+def clientAttemptMdOf (conn : Loc) (m : GrpcMd) (md : GrpcMd) : Prop :=
   ∃ (c : GoInterface) (v : GoString),
-    metadata.outgoingOf c = metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v] ∧
+    metadata.outgoingOf c = metadata.mdSet m go!"client-api-version" [v] ∧
     grpcAttemptMd conn c md
 
-/-- **The token a call's metadata carries** (`auth.ctxTokenOf`'s, over the metadata itself: what a
-metadata-indexed gRPC spec sees of the attempt). -/
-def auth.mdTokenOf (md : GrpcMd) : Option GoString :=
-  match md with
-  | none => none
-  | some md =>
-    match md go!"token" with
-    | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
-    | some [] => none
-    | none =>
-      match md go!"authorization" with
-      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
-      | _ => none
+/-- `clientAttemptMdOf` at a context's outgoing metadata (G2, 2026-10-30: the relation depends on
+the context only through it, so a fact about a gRPC stream opened with another context of the same
+metadata can be stated over the metadata). -/
+abbrev clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
+  clientAttemptMdOf conn (metadata.outgoingOf ctx) md
 
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with

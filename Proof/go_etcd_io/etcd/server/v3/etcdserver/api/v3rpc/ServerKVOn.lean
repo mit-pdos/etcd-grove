@@ -90,19 +90,6 @@ def txnReadAnsOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) 
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)
 
-/-- **An auth info is the caller's** (persistent; `infoBoundM`'s over the token: E3zb): its user
-the empty one or the one the caller's token `tok` was issued to, or the server's TLS fallback is
-on. -/
-def infoBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
-  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
-    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s))
-
-instance infoBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (infoBoundT (GF := GF) s M tok info) := by
-  unfold infoBoundT; infer_instance
-
 /-- An auth info bound to the context `ctx` is bound to its token. -/
 theorem infoBoundM_tok (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :

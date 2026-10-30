@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.StreamKey
 
 @[expose] public section
 
@@ -27,7 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.newWatcherGRPCStream(inctx)` (a model context): a new gRPC watch stream of `w` (`isWGS`,
-over the watcher's call options), its context `WithCancel(&valCtx{inctx})`, its key some string,
+over the watcher's call options), its context `WithCancel(&valCtx{inctx})`, with `inctx`'s outgoing
+metadata (`WithCancelValCtx`'s; G2, 2026-10-30), its key `streamKeyFromCtx(inctx)`'s (`streamKeyOf`),
 its channels made, with its `run` started (under the thread bound `threadBound GF ≤ 2^31`, which
 keeps its wait group's counter below `2^31`: `InvWatchWg.lean`). -/
 abbrev watcher.newWatcherGRPCStream.spec : Prop :=
@@ -38,7 +40,11 @@ abbrev watcher.newWatcherGRPCStream.spec : Prop :=
       ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"newWatcherGRPCStream")) (Val #(GoInterface.ok inctx)))
   {{ (wgs : Loc), RET #wgs; ∃ (G : WgsPrm GF) (callSl : GoSlice),
-      ⌜G.wgs = wgs ∧ G.w = w⌝ ∗ watcherF w go!"callOpts" ↦□ callSl ∗ isWGS V G callSl }}
+      ⌜G.wgs = wgs ∧ G.w = w⌝ ∗ watcherF w go!"callOpts" ↦□ callSl ∗ isWGS V G callSl ∗
+      -- (G2, 2026-10-30) the stream's context has `inctx`'s outgoing metadata, and its key is
+      -- `inctx`'s
+      ⌜metadata.outgoingOf (GoInterface.ok G.ctx) = metadata.outgoingOf (GoInterface.ok inctx) ∧
+        G.ckey = streamKeyOf (metadata.outgoingOf (GoInterface.ok inctx))⌝ }}
 
 end spec
 

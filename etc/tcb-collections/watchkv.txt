@@ -584,3 +584,8 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint64.wp_proof
+sorry v3rpc.serverWatchStream.isWatchPermitted.wp_proof
+sorry v3rpc.serverWatchStream.recvLoop.wp_proof
+sorry watchGRPCStream.newWatchClient.wp_proof
+sorry watchGRPCStream.run.wp_proof
+sorry watcher.Watch.wp_proof

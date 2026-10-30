@@ -449,6 +449,67 @@ theorem watchClass_on (γa : auth.AuthNames) (info : go_etcd_io.etcd.server.v3.a
   iframe #
   ipureintro; exact Hp
 
+/-- **The class result no older than the index `n`** (G2, 2026-10-30; `classRes` at a reader's
+lower bound): in the mode `on γa`, each permission of `perms` granted by a state recorded at an index
+at least `n`; nothing otherwise. -/
+def classResFrom (M : auth.AuthMode) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (perms : List Perm3) : IProp GF :=
+  match M with
+  | .on γa => iprop([∗list] x ∈ perms, ∃ (i : Nat) (st : auth.AuthState),
+      auth.authStateAt γa i st ∗ ⌜n ≤ i ∧ auth.permitted st (auth.authInfoM info) x.1 x.2.1 x.2.2⌝)
+  | _ => iprop(True)
+
+instance classResFrom_persistent (M : auth.AuthMode) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (perms : List Perm3) :
+    Persistent (classResFrom (GF := GF) M n info perms) := by
+  unfold classResFrom; cases M <;> infer_instance
+
+/-- At the bound `0` the class result no older than it is the class result. -/
+theorem classResFrom_zero (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (perms : List Perm3) :
+    classRes (GF := GF) M info perms ⊢ classResFrom M 0 info perms := by
+  cases M with
+  | on γa =>
+    unfold classRes classOk classResFrom
+    iapply BigSepL.bigSepL_mono_of_forall
+    intro _ x
+    iintro ⟨%i, %st, #Hst, %Hp⟩
+    iexists i, st
+    iframe Hst
+    ipureintro; exact ⟨Nat.zero_le _, Hp⟩
+  | off => iintro -; unfold classResFrom; itrivial
+  | any => iintro -; unfold classResFrom; itrivial
+
+/-- **The class of a watch create request no older than the index `n`** (G2; `watchClass` at the
+client's bound, as `rangeClassFrom` is `rangeClass`'s). -/
+def watchClassFrom (M : auth.AuthMode) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (key rangeEnd : GoString) : IProp GF :=
+  classResFrom M n info (watchPerms key rangeEnd)
+
+instance watchClassFrom_persistent (M : auth.AuthMode) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) :
+    Persistent (watchClassFrom (GF := GF) M n info key rangeEnd) := by
+  unfold watchClassFrom; infer_instance
+
+/-- At the bound `0` the class no older than it is the class. -/
+theorem watchClassFrom_zero (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (key rangeEnd : GoString) :
+    watchClass (GF := GF) M info key rangeEnd ⊢ watchClassFrom M 0 info key rangeEnd := by
+  unfold watchClass watchClassFrom
+  exact classResFrom_zero M info _
+
+/-- **In the mode `on γa`, the class no older than `n` names a state recorded at an index at least
+`n` that permitted the read.** -/
+theorem watchClassFrom_on (γa : auth.AuthNames) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) :
+    watchClassFrom (GF := GF) (.on γa) n info key rangeEnd ⊢
+      ∃ (i : Nat) (st : auth.AuthState), auth.authStateAt γa i st ∗
+        ⌜n ≤ i ∧ auth.permitted st (auth.authInfoM info) (watchKey key) rangeEnd .read⌝ := by
+  unfold watchClassFrom classResFrom watchPerms
+  iintro H
+  ihave ⟨H1, -⟩ := BigSepL.bigSepL_cons.1 $$ H
+  iexact H1
+
 /-- A registered watch's request has the shape the permission cache decides (`auth.reqShape`):
 mvcc's `Watch` registers `[k, e')` (`e'` the rewritten range end: empty for `"\x00"`) only for
 `e' = []` or `k < e'`. -/

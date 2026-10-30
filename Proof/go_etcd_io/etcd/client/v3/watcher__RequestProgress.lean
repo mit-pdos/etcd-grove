@@ -52,7 +52,9 @@ theorem watcher.RequestProgress.wp_proof
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
   wp_auto
-  wp_apply wp_key as %ckey -
+  wp_apply wp_key ctx cs $$ []
+  · iframe #
+  generalize streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx)) = ckey
   irename ctx => Hctxp
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold watcherMu at HR
@@ -86,7 +88,7 @@ theorem watcher.RequestProgress.wp_proof
       ⌜G.w = w⌝ ∗ isWGS V G callSl ∗ w_ptr ↦ w ∗ ctx_ptr ↦ GoInterface.ok ctx ∗
       ctxKey_ptr ↦ ckey ∗ watcherF w go!"streams" ↦ m)
     with [wgs HM w Hctxp ctxKey Hst] as ⟨%G, %M', wgs, HM, #HMs', %HGw, #HG, w, Hctxp, ctxKey, Hst⟩
-  · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG⟩
+  · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, -⟩
     · iframe #; ipureintro; exact Hb
     icombine Hco Hco' gives %Hcs
     obtain ⟨-, rfl⟩ := Hcs

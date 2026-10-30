@@ -82,11 +82,14 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
         rw [show (W64 0 : w64) = (zero_val etcdserverpb.ResponseHeader).Revision' from rfl]
         iexact HRevision
       ipureintro; exact ⟨Hcr, Hca, Hcrt⟩
-    unfold watchStateRespOk
-    ileft
-    iframe Hse
-    ipureintro
-    exact ⟨Or.inr (Or.inr Hca), rfl⟩
+    isplitr
+    · unfold watchStateRespOk
+      ileft
+      iframe Hse
+      ipureintro
+      exact ⟨Or.inr (Or.inr Hca), rfl⟩
+    iintro !> -
+    itrivial
   (try wp_auto)
   wp_apply +noauto HDone as %dch %dγ #Hdone
   (try wp_auto)

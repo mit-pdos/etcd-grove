@@ -269,7 +269,7 @@ theorem setupHdr_anon (s conn : Loc) (ctx : GoInterface) (M : AuthMode) (hm : ap
   iunfold setupCtx at Hc
   icases Hc with ⟨#Ht, #Htls, %Hout⟩
   iunfold attemptTokOk at Ht
-  ihave Htk := Ht $$ %ctx %md %hmd
+  ihave Htk := Ht $$ %(metadata.outgoingOf ctx) %md %hmd
   have hnone : auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm (metadata.outgoingOf ctx)) →
       auth.mdTokenOf md = none := by
     intro h; rw [h, Hout]; rfl

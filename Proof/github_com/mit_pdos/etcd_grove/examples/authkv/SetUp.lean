@@ -60,7 +60,7 @@ theorem SetUp.wp_proof
   intro CS EA FA RA CRE CEC cl ep V s E ρ cid mid γa hmode hc0 hAs
   wp_start as ⟨#Hnc, #Htok, #Hput, #Hkv, #Hauth, #Htls, Hview⟩
   iunfold clientTokAt at Htok
-  icases Htok with ⟨%api, %conn, #Hkvf, #Hobj, #Hctok, %ap, #Hauf, #Hap⟩
+  icases Htok with ⟨%api, %conn, #Hkvf, #Hobj, #Hctok, ⟨%ap, #Hauf, #Hap⟩, -⟩
   imod (setup_alloc ρ.kv ⊤) $$ Hview with ⟨%γz, #Hc, #Hn⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

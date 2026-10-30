@@ -77,7 +77,7 @@ theorem watchClient.Watch.wp_proof
   inext
   iintro %cs %err Hres
   wp_auto
-  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %Ha, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, %Ha, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto
@@ -95,7 +95,7 @@ theorem watchClient.Watch.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists a, γ, Dn, cd'
+    iexists a, γ, Dn, cd', md
     iframe
     isplitr
     · ipureintro; exact Ha

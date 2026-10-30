@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -35,10 +36,15 @@ apply package's `applyErrIs` describes (`nil`: permitted). 2026-10-23 (auth plan
 only with, for some auth info (the stream's context's, or the empty one), that info's read
 permission class of the watch's range (`apply.classRes`, with auth on: `classOk`).
 With auth on, a passed check's principal is moreover the anonymous one or bound to the request's
-token (`principalBoundI`; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec). -/
+token (`principalBoundI`; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec).
+G2 (2026-10-30): at a bound `n` on the auth store's published index (`authPubLbM`), with the store's
+lower-bound check (`srvAuthLb`, as `Range`'s), the class is at states no older than `n`
+(`classResFrom`); at `n = 0` it is the plain class (`classResFrom_zero`). -/
 abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
-  ∀ (sws : Loc) (r : v3rpc.WRun GF) (wcr : Loc) (ks es : GoSlice) (k e : List w8) (dk de : DFrac),
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (wcr : Loc) (ks es : GoSlice) (k e : List w8) (dk de : DFrac)
+    (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r ∗ r.srv.E.RD ∗
+      srvAuthLb r.srv.s r.srv.E ∗ □ auth.authPubLbM r.srv.E.authMode n ∗
       structFieldRef etcdserverpb.WatchCreateRequest go!"Key" wcr ↦{dk} ks ∗ ks ↦*□ k ∗
       structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" wcr ↦{de} es ∗ es ↦*□ e ∗
       ⌜k.length < 2 ^ 63 - 1⌝ }}
@@ -49,7 +55,7 @@ abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
       structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" wcr ↦{de} es ∗
       applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, ∃ info,
-        apply.classRes r.srv.E.authMode info [(k, e, auth.PermType.read)] ∗
+        apply.classResFrom r.srv.E.authMode n info [(k, e, auth.PermType.read)] ∗
         □ (⌜r.srv.E.authMode.isOn = true⌝ →
           principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) info)) }}
 

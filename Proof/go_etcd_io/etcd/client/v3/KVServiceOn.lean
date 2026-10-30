@@ -32,10 +32,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-theorem auth.ctxTokenOf_md [GooseExts] (ctx : GoInterface) :
-    auth.ctxTokenOf ctx = auth.mdTokenOf (metadata.incomingOf ctx) :=
-  rfl
-
 namespace client
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver

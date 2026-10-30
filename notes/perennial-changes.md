@@ -37,6 +37,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `#print axioms`: Lean's three only). Not landed: Perennial's `etc/land.sh` (prepare, review, push)
   is the user's. The pin then moves to it.
 
+### Context model: `WithCancel` keeps its parent's values (2026-10-30, authkv G2)
+
+- **Limitation.** Perennial's `WithCancel` specs say nothing of the new context's `Value`: a
+  `*cancelCtx` answers every key but its own `&cancelCtxKey` with its parent's value
+  (`context.go`, `cancelCtx.Value`), so grpc's outgoing metadata (key `mdOutgoingKey{}`) is the
+  parent's. The model cannot state it (`isContext`'s `Values` are unused, the entry below).
+- **Needed by.** G2's watch (`notes/g2-watch-auth.md`, row (h)): the watcher's stream runs on
+  `WithCancel(&valCtx{inctx})`, and the stream's metadata must be `inctx`'s.
+- **Workaround here.** The local trust-boundary axiom `context.WithCancelValCtx.wp_proof`, strengthened
+  in place with `⌜metadata.outgoingOf ctx' = metadata.outgoingOf inctx⌝` (the user's choice,
+  2026-10-30).
+- **Proposed.** A `Value` contract for `WithCancel`/`WithTimeout`/`WithDeadline` (delegation to the
+  parent at every key but the context's own), on a Perennial branch by its own workflow, together
+  with the `Values` clause below. (h) is retired when it lands.
+- **Status.** Open.
+
 ### Context model: a descriptor's `Values` constrain nothing (2026-10-29, authkv round 1)
 
 - **Limitation.** `isContext c d` never reads `d.Values` (its docstring: "unused"), so
