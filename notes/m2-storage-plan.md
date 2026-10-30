@@ -2171,3 +2171,12 @@ check the shape against; best done with item 15.
 - Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11211 jobs, no error.
 - `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries); every
   `etc/tcb-collections/*.txt` `--check` matches.
+
+**The user's answers after the restore chain's round 2 (2026-10-30).**
+- **B2: no premise; sealed logs.** The pure entry bound (`logCh ≤ 2·MaxTxnOps·|entries|`) is false of
+  etcd (`--max-txn-ops` unchecked by the apply side; nested transactions multiply its budget; the start
+  log counts). Instead every installed snapshot's log is some member's sealed log, which already has
+  `logCh < receiptBound` (`idxSealed`); carry that fact with the snapshot (the snapshot track's
+  statements: drafts for the collaborator). No `NewServer` premise; supersedes the `Nc`/`K` draft.
+- **Item 37: with item 15.** The writer relation `bucketViewL` (designed in "The restore chain,
+  round 2") is implemented by whoever proves item 15's `Restore`, so its one consumer checks its shape.
