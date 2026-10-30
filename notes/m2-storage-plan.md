@@ -1554,4 +1554,4 @@ round 3's list. None is axiom-backed unless said.
 - `etc/lean-check.py -a` on every changed or new Draft.
 - Targeted `lake build` of the 15 Draft modules (7148 jobs, no error).
 - No `axiom`, no `sorry` in any Draft (grep).
-- Full `lake build` of the last commit: below.
+- Full `lake build` of `40cfa3ae75` passed (11212 jobs, no error).
