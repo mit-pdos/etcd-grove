@@ -234,6 +234,58 @@ theorem akGranted_point (who : GoString) (rq : apply.IRRModel) (k : GoString) (o
   exact kvGranted_setupSt_point r _ who k op hg (by rw [principalOf_withHeader]; exact hu)
     (by rw [reqPerms_withHeader]; exact hx) hk
 
+/-! ## A read's check at `setupSt` -/
+
+/-- **A range read granted at `setupSt` to a principal of `who`'s** (a proper or open-ended range):
+`who` is `u`, and role `r`'s permission covers the range. -/
+theorem granted_setupSt_range_who (r : Nat) (who user : GoString) (rv : Nat) (key e : GoString)
+    (hu : akUser who user) (hg : auth.granted (setupSt r) ⟨user, rv⟩ key e .read)
+    (hs : auth.reqShape key e) (he : e ≠ []) :
+    who = go!"u" ∧ auth.coversRange (setupSt r) [go!"r"] .read key e := by
+  obtain ⟨-, u', hu', hc⟩ := hg
+  simp only at hu'
+  rcases hu with h0 | ⟨rfl, hw⟩
+  · rw [h0, setupSt_users_empty] at hu'; cases hu'
+  rcases hw with rfl | rfl
+  · rw [setupSt_users_u] at hu'
+    cases hu'
+    rcases hc with hroot | hc
+    · exact absurd hroot not_isRoot_u
+    · have := hc hs
+      simp only [auth.covers, if_neg he] at this
+      exact ⟨rfl, this⟩
+  · rw [setupSt_users_v] at hu'
+    cases hu'
+    rcases hc with hroot | hc
+    · exact absurd hroot not_isRoot_v
+    · have := hc hs
+      simp only [auth.covers, if_neg he] at this
+      have hin : auth.inRange key e key := by
+        simp only [auth.inRange, if_neg he]
+        exact ⟨Or.inl rfl, hs.2.resolve_left he⟩
+      obtain ⟨p, hp, -⟩ := this key hin
+      simp [userPerms_v] at hp
+
+/-- **No principal of the program reads the prefix `c/`** at `setupSt`. -/
+theorem not_granted_c (r : Nat) (who user : GoString) (rv : Nat) (hu : akUser who user) :
+    ¬ auth.granted (setupSt r) ⟨user, rv⟩ go!"c/" go!"c0" .read := by
+  intro hg
+  have hs : auth.reqShape go!"c/" go!"c0" := ⟨by decide, Or.inr (Or.inr (by decide))⟩
+  exact not_coversRange_c r .read (granted_setupSt_range_who r who user rv _ _ hu hg hs (by decide)).2
+
+/-- **No principal of the program reads `[a, d)`** at `setupSt`. -/
+theorem not_granted_past (r : Nat) (who user : GoString) (rv : Nat) (hu : akUser who user) :
+    ¬ auth.granted (setupSt r) ⟨user, rv⟩ lo go!"d" .read := by
+  intro hg
+  have hs : auth.reqShape lo go!"d" := ⟨by decide, Or.inr (Or.inr (by decide))⟩
+  exact not_coversRange_past r .read (granted_setupSt_range_who r who user rv _ _ hu hg hs (by decide)).2
+
+/-- **Only `u` reads `[a, b)`** at `setupSt`. -/
+theorem granted_ab_u (r : Nat) (who user : GoString) (rv : Nat) (hu : akUser who user)
+    (hg : auth.granted (setupSt r) ⟨user, rv⟩ lo hi .read) : who = go!"u" := by
+  have hs : auth.reqShape lo hi := ⟨by decide, Or.inr (Or.inr (by decide))⟩
+  exact (granted_setupSt_range_who r who user rv _ _ hu hg hs (by decide)).1
+
 end pure
 
 section grant
@@ -307,6 +359,74 @@ theorem akOpGranted_of_grant (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames
     · iframe Hf Hseen Htls
     imodintro; ipureintro; exact ⟨tw, Htw, H⟩
   | _ => imodintro; ipureintro; simp [akOpGranted]
+
+/-- **An auth state recorded no older than the set-up's published index is `setupSt`**
+(`akAuthFixed`'s read row, at `⊤`). -/
+theorem akStateAt_setup (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n m : Nat)
+    (st : auth.AuthState) (hm : n ≤ m) :
+    akAuthFixed (GF := GF) γa ρ Lset n ⊢ auth.authStateAt γa m st ={⊤}=∗ ⌜∃ r, st = setupSt r⌝ := by
+  iintro #Hf #Hst
+  iunfold akAuthFixed at Hf
+  icases Hf with ⟨-, #Hrd, -⟩
+  have hmask : authTieReadMask ⊆ (⊤ : CoPset) ∧ n ≤ m := ⟨fun _ _ => CoPset.mem_full, hm⟩
+  iapply Hrd $$ %⊤ %m %st %hmask Hst
+
+/-- **A range read of `who`'s checked no older than the set-up's published index `n`**
+(`rangeAuthed`) was granted at `setupSt` to a principal of `who`'s. -/
+theorem akRead_granted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ : ReqNames)
+    (γr : ReadNames) (Lset : List EntryModel) (n : Nat) (who : GoString) (c : w64)
+    (tok : Option GoString) (o : OpFull) (hγa : E.authMode = .on γa) :
+    akAuthFixed (GF := GF) γa ρ Lset n ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ⊢
+      v3rpc.rangeAuthed s E γr c n tok o ={⊤}=∗
+        ⌜∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
+          akUser who info.Username' ∧
+          apply.authEndOf o.base.rangeEnd e ∧
+          auth.granted (setupSt r) (auth.authInfoM info) o.key e .read⌝ := by
+  rw [v3rpc.rangeAuthed, hγa]
+  iintro ⟨#Hf, #Hseen, #Htls⟩ ⟨%info, %m, %Hm, #Hcl, #Hb, -⟩
+  ihave %Hu := akUser_info s γa who tok info $$ [Hb Hseen Htls]
+  · iframe Hb Hseen Htls
+  unfold apply.rangeClassFrom
+  icases Hcl with ⟨%e, %He, #Hv⟩
+  unfold auth.permVerdictFrom
+  icases Hv with ⟨⟨%i, %st, #Hst, %Hi⟩, -⟩
+  imod (akStateAt_setup γa ρ Lset n i st (Nat.le_trans Hm Hi.1)) $$ Hf Hst with %Hr
+  obtain ⟨r, rfl⟩ := Hr
+  imodintro
+  ipureintro
+  rcases Hi.2 rfl with hen | hg
+  · simp [setupSt] at hen
+  · exact ⟨r, info, e, Hu, He, hg⟩
+
+/-- **`who`'s watch of the prefix `c/` reports nothing** (`Work`'s refused watch): a response with
+events carries the server's check of the create (`watchCheckOk`), for the stream's token, which
+`who`'s context makes none or `bad`'s (`akOut_streamKey`), at states no older than the set-up's
+published index, so at `setupSt` (`akStateAt_setup`), where no principal of `who`'s reads `c/`
+(`not_granted_c`). -/
+theorem akWatch_c_refused (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface)
+    (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
+    (hout : metadata.outgoingOf ctx = akOut who) :
+    akAuthFixed (GF := GF) γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
+      auth.modeTag γ.tag (.on γa) ∗ □ (srvTLSId s -∗ False) ⊢
+      watchCheckOk γ s conn ctx n go!"c/" go!"c0" ={⊤}=∗ False := by
+  iintro ⟨#Hf, #Hat, #Htag, #Htls⟩ #Hw
+  ihave ⟨%m, %tok, %M, %info, %Hk, #Ht, #HtagM, #Hcl, #Hb⟩ :=
+    watchCheckOk_tok γ s conn ctx n _ _ (akTokP γa who) $$ [Hw Hat]
+  · iframe Hw Hat
+  ihave %HM := auth.modeTag_agree γ.tag (.on γa) M $$ Htag HtagM
+  subst HM
+  rw [hout] at Hk
+  ihave #Hseen := akTokSeen_of γa who m tok (akOut_streamKey who m Hk) $$ Ht
+  ihave #Hb' := Hb $$ %rfl
+  ihave %Hu := akUser_info s γa who tok info $$ [Hb' Hseen Htls]
+  · iframe Hb' Hseen Htls
+  unfold apply.watchClassFrom apply.classResFrom apply.watchPerms
+  ihave ⟨%i, %st, #Hst, %Hi⟩ := (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hcl
+  imod (akStateAt_setup γa ρ Lset n i st Hi.1) $$ Hf Hst with %Hr
+  obtain ⟨r, rfl⟩ := Hr
+  rcases Hi.2 with hen | hg
+  · simp [setupSt] at hen
+  · exact absurd hg (not_granted_c r who _ _ Hu)
 
 end grant
 
