@@ -50,11 +50,7 @@ theorem mvcc.store.Compact.wp_of_le
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
-      (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
-        (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.compactRightR s γ c ∗ Pre)) }} := by
+        mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }} := by
   wp_start as ⟨#Hs, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
@@ -92,8 +88,7 @@ theorem mvcc.store.Compact.wp_of_le
   · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
-    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩ |
-    ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
+    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
   · subst Herr
     (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
@@ -121,23 +116,11 @@ theorem mvcc.store.Compact.wp_of_le
     (try wp_auto)
     iapply HΦ
     iframe Htrc HRTok HhookW
-    iright; ileft
+    iright
     iframe Hright HPre Hch
     isplitr
     · ipureintro; exact Hle
     iexists ec; iframe Hec; ipureintro; rfl
-  · subst Herr Hch
-    (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
-    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
-    (try wp_auto)
-    iapply HΦ
-    iframe Htrc HRTok HhookW
-    iright; iright
-    iframe Hright HPre Hcert
-    isplitr
-    · ipureintro; exact ⟨Hlt, rfl⟩
-    iexists ef; iframe Hef; ipureintro; rfl
 
 theorem mvcc.store.Compact.wp_proof
     (h0 : mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG))

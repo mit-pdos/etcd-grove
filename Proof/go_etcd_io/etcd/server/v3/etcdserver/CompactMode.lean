@@ -224,7 +224,7 @@ def reqPropOkC (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → I
 its trace, if any, owned (`apply.traceRes`: `Compact` uses `result.Trace` before it checks
 `result.Err`; on success the applier's trace, on an error a nil one, `apply/backend.go`), and the compaction's response (`*pb.CompactionResponse`, its header if any, owned:
 `Compact` writes the revision into it) or the error the request path reports (`applyErrIs`: the
-store's `ErrCompacted` or `ErrFutureRev`). -/
+store's `ErrCompacted`; `store.Compact`'s spec excludes its `ErrFutureRev`, M2's item 18). -/
 def compactResultIs (res : Loc) : IProp GF :=
   iprop(⌜res ≠ null⌝ ∗ ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, res ↦□ v ∗
     apply.traceRes v.Trace' ∗

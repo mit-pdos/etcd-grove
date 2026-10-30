@@ -176,7 +176,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       icases mvcc.lockCtxM_pre γ P hk Pre Q Post $$ Hctx with ⟨Hback, HPre⟩
       iapply HΦ
       iframe HRTok Hback
-      iright; ileft
+      iright
       isplitr
       · ipureintro; exact ⟨by word, rfl⟩
       isplitr
@@ -209,37 +209,13 @@ theorem mvcc.store.updateCompactRev.wp_proof
       word
     rw [hl]
     wp_if_destruct
-    · -- `rev > s.currentRev`: `ErrFutureRev`
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
-      · iframe #
-        inext
-        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
-        iexists log, ntok, c'
-        simp only [named]
-        iframe
-        iframe #
-        ipureintro; exact ⟨Hne, Hbudget, Hc⟩
-      (try wp_auto)
-      icases mvcc.lockCtxM_pre γ P hk Pre Q Post $$ Hctx with ⟨Hback, HPre⟩
-      iapply HΦ
-      iframe HRTok Hback
-      iright; iright
-      isplitr
-      · ipureintro; exact ⟨Hgt, rfl, rfl⟩
-      isplitr
-      · iexists ef; iframe Hfut; ipureintro; rfl
-      isplitr
-      · iexists log; iframe Hcert; ipureintro; omega
-      isplitl [HcmpM HcrevM]
-      · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
-      isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
-      · iapply (mvcc.compactRightR_iff s γ _).2
-        iframe Hcr Hq
-        iexists ⟨b, ti, GoInterface.ok sci, sstop⟩
-        iframe Hsc Hstc Htok Hstop
-        iunfold mvcc.fieldShareAt; simp only [named]; iframe Hcur Hfrst Hph0
-        iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
-      iexact HPre
+    · -- `rev > s.currentRev` (`ErrFutureRev`) does not arise: the committed log extends the
+      -- caller's certificate (M2, the apply side, item 18)
+      ihave %Hpre := mvcc.idxLogAuth_cert_prefix γ.idx _ log logc $$ [Hlog]
+      · iframe Hlog HcertC
+      exfalso
+      have := Hpre.length_le
+      omega
     · -- `s.compactMainRev = rev`, under both locks: the field and the revision's authority
       have hrl : sint.Z rev < log.length := by omega
       ihave Hcmpf : (s.[store, go!"compactMainRev"] ↦ (W64 c' : w64) : IProp GF) $$ [Hcmp HcmpM]

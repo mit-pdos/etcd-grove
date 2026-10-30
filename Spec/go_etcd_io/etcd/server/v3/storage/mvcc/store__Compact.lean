@@ -36,9 +36,10 @@ assumed backend, or a real backend in compaction mode, `KBReal.cm`: question 5's
   since), `nil`, the caller's `Post`, and the job's channel (`compactChan`: once closed, `compactDone s γ rev`: the index and the bucket
   compacted at `rev`, `finishedCompactRev = rev`, or the compaction interrupted by `Close`);
 * `rev ≤ c`: `ErrCompacted`, the barrier's channel (closed once the jobs before it ran:
-  nothing promised, `True`), `Pre` back;
-* `rev` above the committed log's last revision (a certificate of a shorter log): `ErrFutureRev`,
-  a `nil` channel, `Pre` back.
+  nothing promised, `True`), `Pre` back.
+The code's third case, `rev` above the committed log's last revision (`ErrFutureRev`), does not
+arise: the caller's certificate (below) is of a prefix of the committed log (M2, the apply side,
+item 18, 2026-10-30; until then a third arm, with a certificate of a shorter log).
 The right's revision is at least `-1` (`NewStore`'s; each success raises it: 2026-10-13, unit 5c,
 contract correction: the counter `crevN` cannot tell a right below `-1` from one at `-1`, and
 then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configuration's batch limit
@@ -46,8 +47,7 @@ is positive (`isStore`: `NewStore` excludes a negative one,
 `issues/etcd-compaction-negative-batch-limit.md`).
 
 **The delete-then-put premise** (2026-10-13, unit 6a): the caller holds a certificate of a log
-`log` with revision `rev` (so `rev` is not above the committed log: the `ErrFutureRev` case does
-not arise from such a caller) whose revision `rev` does not delete a key and put it again
+`log` with revision `rev` (so `rev` is not above the committed log) whose revision `rev` does not delete a key and put it again
 (`NoDelPutAt`): else the compaction deletes the key's live value and a later read `Fatal`s
 (`issues/etcd-compaction-delete-then-put.md`). The store records it for the new compaction
 revision (`crevSafe`, in `s.mu`'s resource) and the keys the job deletes carry it (`delKey`), which
@@ -86,11 +86,7 @@ abbrev mvcc.store.Compact.spec : Prop :=
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
-      (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
-        (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.compactRightR s γ c ∗ Pre)) }}
+        mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
 
 end spec
 

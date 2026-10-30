@@ -473,8 +473,9 @@ next one the index compactor's token, with the closer's half and the jobs' lease
 fields, M2's item 17): on success, the right at `rev`, a lower bound `rev` of the
 compaction revision for every reader, and the job's channel, whose receive gives `compactDone`
 (the compaction finished at `rev` or later, `compactedAt`, or interrupted by the store's `Close`
-or a cancelled scheduler context); `ErrCompacted` (the barrier's channel) or `ErrFutureRev`
-otherwise, the right unchanged. And what it means for readers: at a compaction revision `c`, a
+or a cancelled scheduler context); `ErrCompacted` (the barrier's channel)
+otherwise, the right unchanged (not `ErrFutureRev`: the caller's certificate is of a prefix of the
+committed log; M2, the apply side, item 18). And what it means for readers: at a compaction revision `c`, a
 read at a revision at or above `c` answers as the uncompacted store (`mvcc_rangeOutcomeC_ge`: the
 read path's `rangeOutcomeC` is `rangeOutcome`, the answer from the certified log; below `c`,
 `ErrCompacted`), with the pure model's `IdxCRep.kiAt`/`IdxCRep.rangeAt` (the compacted index

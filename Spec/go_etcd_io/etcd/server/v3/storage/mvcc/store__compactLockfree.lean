@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.compactLockfree(rev)` (`restore`'s, with `s.mu` held exclusively: `muInvAt s γ 1 c`):
 `updateCompactRev` then, on success, `compact` (at `context.TODO()`'s trace), the job scheduled on
-the compaction right's queue (2026-10-13, unit 5c). Of a store whose
+the compaction right's queue (2026-10-13, unit 5c); not `ErrFutureRev`, which the caller's
+certificate excludes (M2, the apply side, item 18, 2026-10-30). Of a store whose
 backend supports the compaction (`storeCmp`). The caller asserts that revision `rev` of a
 certified log does not delete then put a key (`NoDelPutAt`, as `store.Compact`'s; 2026-10-13,
 unit 6a).
@@ -48,10 +49,7 @@ abbrev mvcc.store.compactLockfree.spec : Prop :=
         mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
-      (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
-        (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre)) }}
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
 
 end spec
 

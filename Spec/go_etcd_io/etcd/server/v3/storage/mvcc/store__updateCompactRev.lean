@@ -40,8 +40,10 @@ unset hook lent and the caller's update from `Pre` to `Post` (`LockInsideApply` 
 * `rev ≤ c`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`), tracked (M2, the storage side, item 17: the right's queue,
   the last job's `Post` passed through; until then untracked, under the never-stopped
-  `schedLive`); nothing changed, `Pre` back;
-* `rev` above the committed log's last revision: `ErrFutureRev`, a `nil` channel; `Pre` back.
+  `schedLive`); nothing changed, `Pre` back.
+The code's third case, `rev` above the committed log's last revision (`ErrFutureRev`), does not
+arise: the caller's certificate is of a prefix of the committed log (M2, the apply side, item 18,
+2026-10-30).
 
 The store's reader token `storeRT γ` is lent and given back in every case (question 5's core stage,
 parts (2)-(4), decided by the agent: `SetScheduledCompact`'s `LockInsideApply` and the
@@ -65,11 +67,7 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
         mvcc.compactJobPre s γ rev) ∨
       (⌜sint.Z rev ≤ c ∧ prev = W64 0⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
-      (⌜c < sint.Z rev ∧ ch = chan.nil ∧ prev = W64 0⌝ ∗
-        (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre)) }}
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
 
 end spec
 

@@ -49,8 +49,7 @@ theorem mvcc.store.compactLockfree.wp_proof
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
-    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩ |
-    ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
+    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
   · subst Herr
     (try wp_auto)
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
@@ -74,20 +73,11 @@ theorem mvcc.store.compactLockfree.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HRTok Hhook
-    iright; ileft
+    iright
     iframe Hmu Hright HPre Hch
     isplitr
     · ipureintro; exact Hle
     iexists ec; iframe Hec; ipureintro; rfl
-  · subst Herr Hch
-    (try wp_auto)
-    iapply HΦ
-    iframe HRTok Hhook
-    iright; iright
-    iframe Hmu Hright HPre
-    isplitr
-    · ipureintro; exact ⟨Hlt, rfl⟩
-    iexists ef; iframe Hef; ipureintro; rfl
 
 end proof
 
