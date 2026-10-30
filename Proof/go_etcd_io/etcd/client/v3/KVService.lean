@@ -120,6 +120,10 @@ invariant now keeps of every committed entry. -/
 def txnModelIn (t : TxnModel) : Prop :=
   ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rev = W64 0 ∧ ¬ txn.cutEarly o
 
+/-- **A read-only transaction is flat** (`notes/txn-nested.md`, L9: every operation a get). -/
+theorem txnReadonly_plain (t : TxnModel) (h : txn.txnReadonly t = true) : TxnModel.plain t := by
+  sorry -- txn-nested: prove after freeze
+
 theorem txnWireOf_plain (t : TxnModel) (h : TxnModel.plain t) : TxnModel.plain (txnWireOf t) := by
   refine ⟨?_, ?_⟩
   · intro op hm

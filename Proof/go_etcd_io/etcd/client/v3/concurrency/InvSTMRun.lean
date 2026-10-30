@@ -339,18 +339,6 @@ theorem stmStale_stm_init (lvl : w64) (hlvl : isoSer lvl = false) (pfx : GoStrin
   ipureintro
   simp [GetOptsOk, hlvl]
 
-/-- No comparisons: the nil slice. -/
-theorem cmpsAt_nil : ⊢ cmpsAt (GF := GF) slice.nil [] := by
-  unfold cmpsAt
-  iexists ([] : List go_etcd_io.etcd.client.v3.Cmp)
-  isplitl
-  · iapply ownSlice_nil
-  isplitl
-  · ipureintro; rfl
-  imodintro
-  iintro %i %c %m %Hc %Hm
-  simp at Hc
-
 end proof
 
 end concurrency

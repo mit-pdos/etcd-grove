@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.client.v3.ModRevision
 public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section
 
@@ -135,7 +136,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) ci cd _ tsl
       [opPutModel key val [withLeaseM (W64 0)]] [.put key val (W64 0)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -215,7 +216,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       rcases i with _ | i
       · cases Ho; cases Hm; iexact Hop2
       · simp at Ho
-    wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) ci cd _ esl
+    wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) ci cd _ esl
         [opGetModel key []] [.get (opGetModel key [])]) $$ [Hobj] as Hobj
     · iframe #
       iframe Hobj

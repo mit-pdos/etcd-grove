@@ -222,6 +222,58 @@ theorem leafWire_txnOpOf (o : OpFull) (op : TxnOp) (h : txnOpOf o = some op) :
       · rw [if_pos h3, Option.some.injEq] at h; subst h; simp [opWire]
       · rw [if_neg h3] at h; cases h
 
+/-- `opWire` of a nested transaction, its branches by `List.map` (`opWire` is written with
+`attach`; `notes/txn-nested.md`, L14). -/
+theorem opWire_txn (cs : List CmpModel) (ts es : List TxnOp) :
+    opWire (.txn cs ts es) = .txn cs (ts.map opWire) (es.map opWire) := by
+  rw [opWire]
+  simp only [TxnOp.txn.injEq, true_and]
+  exact ⟨List.attach_map_val, List.attach_map_val⟩
+
+/-! ### Operation trees on the wire (`notes/txn-nested.md`, N1) -/
+
+mutual
+/-- **The wire model of an operation tree** (`Op.toRequestOp`'s request, as the server reads it): a
+leaf's `leafWire`, a nested transaction's comparisons and its branches' wire models. -/
+def OpT.wire : OpT → TxnOp
+  | .leaf o => leafWire o
+  | .txn _ cs ts es => .txn cs (OpT.wireL ts) (OpT.wireL es)
+
+/-- The wire models of a list of trees, in order. -/
+def OpT.wireL : List OpT → List TxnOp
+  | [] => []
+  | t :: ts => t.wire :: OpT.wireL ts
+end
+
+mutual
+/-- **`op.isWrite()` of an operation tree**: a leaf not a range; a nested transaction with a
+writing operation in either branch. -/
+def OpT.isWrite : OpT → Bool
+  | .leaf o => decide (o.t ≠ W64 1)
+  | .txn _ _ ts es => OpT.isWriteL ts || OpT.isWriteL es
+
+/-- Whether some tree of the list writes. -/
+def OpT.isWriteL : List OpT → Bool
+  | [] => false
+  | t :: ts => t.isWrite || OpT.isWriteL ts
+end
+
+/-- **A tree's transaction operation's wire model is its wire model** (L5). -/
+theorem OpT.wire_txnOp (t : OpT) (op : TxnOp) (h : OpT.txnOp t = some op) :
+    OpT.wire t = opWire op := by
+  sorry -- txn-nested: prove after freeze
+
+/-- The lists' version of `OpT.wire_txnOp`. -/
+theorem OpT.wireL_txnOps (ts : List OpT) (ops : List TxnOp) (h : OpT.txnOps ts = some ops) :
+    OpT.wireL ts = ops.map opWire := by
+  sorry -- txn-nested: prove after freeze
+
+/-- **A tree with a transaction operation has gets, puts and deletes as leaves** (L5: `Then`'s
+premise gives `Op.toRequestOp`'s). -/
+theorem OpT.txnOp_leaves (t : OpT) (op : TxnOp) (h : OpT.txnOp t = some op) :
+    ∀ o ∈ t.leaves, o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3 := by
+  sorry -- txn-nested: prove after freeze
+
 end model
 
 section defs
@@ -400,11 +452,18 @@ def deleteReqAt (d : Loc) (o : OpFull) : IProp GF :=
     structFieldRef etcdserverpb.DeleteRangeRequest go!"PrevKv" d ↦□ pk ∗
     ⌜o = txn.deleteOpOf k e pk⌝)
 
+/-- The `*pb.Compare`s `ps` hold, in order, the comparisons `ms` (not nil, read-only). -/
+def comparesAt (ps : List Loc) (ms : List CmpModel) : IProp GF :=
+  iprop(⌜ps.length = ms.length⌝ ∗
+    □ ∀ (i : Nat) (p : Loc) (m : CmpModel), ⌜ps[i]? = some p⌝ -∗ ⌜ms[i]? = some m⌝ -∗
+      ⌜p ≠ null⌝ ∗ compareAt p m)
+
+mutual
 /-- **The `*pb.RequestOp` `p` of the client's memory holds the operation `op`** (its wire
-model; read-only): a get, a put or a delete (`Op.toRequestOp`'s); a nested transaction is not
-covered (`False`: the builder's operations are plain). -/
-def reqOpAt (p : Loc) (op : TxnOp) : IProp GF :=
-  match op with
+model; read-only): a get, a put or a delete (`Op.toRequestOp`'s); a nested transaction's request
+(`Op.toTxnRequest`'s) with its comparisons and its operations' requests, recursively (until
+2026-10-30, `False`: `notes/txn-nested.md`, D1). -/
+def reqOpAt (p : Loc) : TxnOp → IProp GF
   | .get o => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
       structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w :
@@ -417,25 +476,54 @@ def reqOpAt (p : Loc) (op : TxnOp) : IProp GF :=
           GoInterface) ∗
       structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
       deleteReqAt r o)
-  | .txn _ _ _ => iprop(False)
-  | _ => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc) (o : OpFull),
+  | .txn cs ts es => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc) (csl ssl fsl : GoSlice)
+        (cps sps fps : List Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗ ⌜r ≠ null⌝ ∗
+      structFieldRef etcdserverpb.TxnRequest go!"Compare" r ↦□ csl ∗ csl ↦*□ cps ∗
+        comparesAt cps cs ∗
+      structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl ∗ ssl ↦*□ sps ∗
+        reqOpsAt sps ts ∗
+      structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl ∗ fsl ↦*□ fps ∗
+        reqOpsAt fps es)
+  | op => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc) (o : OpFull),
       structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
           GoInterface) ∗
       structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
       putReqAt r o ∗ ⌜op = txn.putTxnOp o⌝)
 
-/-- The `*pb.RequestOp`s `ps` hold, in order, the operations `ops`. -/
-def reqOpsAt (ps : List Loc) (ops : List TxnOp) : IProp GF :=
-  iprop(⌜ps.length = ops.length⌝ ∗
-    □ ∀ (i : Nat) (p : Loc) (op : TxnOp), ⌜ps[i]? = some p⌝ -∗ ⌜ops[i]? = some op⌝ -∗
-      reqOpAt p op)
+/-- The `*pb.RequestOp`s `ps` hold, in order, the operations `ops` (structural since 2026-10-30;
+the index form is `reqOpsAt_index`). -/
+def reqOpsAt : List Loc → List TxnOp → IProp GF
+  | [], [] => iprop(True)
+  | p :: ps, op :: ops => iprop(reqOpAt p op ∗ reqOpsAt ps ops)
+  | _, _ => iprop(False)
+end
 
-/-- The `*pb.Compare`s `ps` hold, in order, the comparisons `ms` (not nil, read-only). -/
-def comparesAt (ps : List Loc) (ms : List CmpModel) : IProp GF :=
-  iprop(⌜ps.length = ms.length⌝ ∗
-    □ ∀ (i : Nat) (p : Loc) (m : CmpModel), ⌜ps[i]? = some p⌝ -∗ ⌜ms[i]? = some m⌝ -∗
-      ⌜p ≠ null⌝ ∗ compareAt p m)
+/-- **The fields of a nested transaction's `*pb.TxnRequest` `r`** (read-only; `Op.toTxnRequest`'s
+result, `reqOpAt`'s nested case): its comparisons hold `cs`, its `Success` and `Failure` the
+requests of `ts` and `es`. -/
+def txnReqFieldsAt (r : Loc) (cs : List CmpModel) (ts es : List TxnOp) : IProp GF :=
+  iprop(∃ (csl ssl fsl : GoSlice) (cps sps fps : List Loc),
+    structFieldRef etcdserverpb.TxnRequest go!"Compare" r ↦□ csl ∗ csl ↦*□ cps ∗
+      comparesAt cps cs ∗
+    structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl ∗ ssl ↦*□ sps ∗
+      reqOpsAt sps ts ∗
+    structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl ∗ fsl ↦*□ fps ∗
+      reqOpsAt fps es)
+
+/-- `reqOpAt`'s nested case through `txnReqFieldsAt`. -/
+theorem reqOpAt_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
+    reqOpAt (GF := GF) p (.txn cs ts es) ⊣⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗ ⌜r ≠ null⌝ ∗
+      txnReqFieldsAt r cs ts es := by
+  sorry -- txn-nested: prove after freeze
 
 /-- **The `pb.TxnRequest` value `req` of the client's memory holds the transaction `t`** (its
 wire model, `txnWireOf` of the builder's; its slices read-only). -/
@@ -452,14 +540,47 @@ instance putReqAt_persistent (r : Loc) (o : OpFull) : Persistent (putReqAt (GF :
 instance deleteReqAt_persistent (r : Loc) (o : OpFull) :
     Persistent (deleteReqAt (GF := GF) r o) := by
   unfold deleteReqAt; infer_instance
-instance reqOpAt_persistent (p : Loc) (op : TxnOp) : Persistent (reqOpAt (GF := GF) p op) := by
-  unfold reqOpAt; split <;> infer_instance
-instance reqOpsAt_persistent (ps : List Loc) (ops : List TxnOp) :
-    Persistent (reqOpsAt (GF := GF) ps ops) := by
-  unfold reqOpsAt; infer_instance
 instance comparesAt_persistent (ps : List Loc) (ms : List CmpModel) :
     Persistent (comparesAt (GF := GF) ps ms) := by
   unfold comparesAt; infer_instance
+
+mutual
+theorem reqOpAt_persistent' (p : Loc) : ∀ op : TxnOp, Persistent (reqOpAt (GF := GF) p op)
+  | .get _ => by unfold reqOpAt; infer_instance
+  | .delete _ => by unfold reqOpAt; infer_instance
+  | .put _ _ _ => by unfold reqOpAt; infer_instance
+  | .putKeep _ _ => by unfold reqOpAt; infer_instance
+  | .putIgnVal _ _ => by unfold reqOpAt; infer_instance
+  | .txn cs ts es => by
+    haveI : ∀ ps, Persistent (reqOpsAt (GF := GF) ps ts) := fun ps => reqOpsAt_persistent' ps ts
+    haveI : ∀ ps, Persistent (reqOpsAt (GF := GF) ps es) := fun ps => reqOpsAt_persistent' ps es
+    unfold reqOpAt; infer_instance
+
+theorem reqOpsAt_persistent' :
+    ∀ (ps : List Loc) (ops : List TxnOp), Persistent (reqOpsAt (GF := GF) ps ops)
+  | [], [] => by unfold reqOpsAt; infer_instance
+  | p :: ps, op :: ops => by
+    haveI := reqOpAt_persistent' p op
+    haveI := reqOpsAt_persistent' ps ops
+    unfold reqOpsAt; infer_instance
+  | [], _ :: _ => by unfold reqOpsAt; infer_instance
+  | _ :: _, [] => by unfold reqOpsAt; infer_instance
+end
+
+instance reqOpAt_persistent (p : Loc) (op : TxnOp) : Persistent (reqOpAt (GF := GF) p op) :=
+  reqOpAt_persistent' p op
+instance reqOpsAt_persistent (ps : List Loc) (ops : List TxnOp) :
+    Persistent (reqOpsAt (GF := GF) ps ops) := reqOpsAt_persistent' ps ops
+instance txnReqFieldsAt_persistent (r : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
+    Persistent (txnReqFieldsAt (GF := GF) r cs ts es) := by
+  unfold txnReqFieldsAt; infer_instance
+
+/-- **`reqOpsAt` by index** (its definition until 2026-10-30; `notes/txn-nested.md`, L6). -/
+theorem reqOpsAt_index (ps : List Loc) (ops : List TxnOp) :
+    reqOpsAt (GF := GF) ps ops ⊣⊢ ⌜ps.length = ops.length⌝ ∗
+      □ ∀ (i : Nat) (p : Loc) (op : TxnOp), ⌜ps[i]? = some p⌝ -∗ ⌜ops[i]? = some op⌝ -∗
+        reqOpAt p op := by
+  sorry -- txn-nested: prove after freeze
 instance txnReqAt_persistent (req : etcdserverpb.TxnRequest) (t : TxnModel) :
     Persistent (txnReqAt (GF := GF) req t) := by
   unfold txnReqAt; infer_instance
@@ -505,23 +626,47 @@ def delCountT : List TxnOp → Nat
   | .txn _ ts es :: us => delCountT ts + delCountT es + delCountT us
   | _ :: us => delCountT us
 
-/-- **What the decoding gives of a transaction request's deletes** (`r`, the server's copy;
-persistent): each top-level delete's `RangeEnd` is `nil` or not empty (protobuf decodes an empty
-`bytes` field as `nil`), and the deletes are fewer than `2 ^ 63` in each branch (each is at least
-a byte of the message): `v3rpc.txnReqWire`, over the transaction model; nested transactions are
-not covered (the builder's operations are plain). -/
-def txnWireOk (r : Loc) (t : TxnModel) : IProp GF :=
-  iprop(⌜delCountT t.thenOps < 2 ^ 63 ∧ delCountT t.elseOps < 2 ^ 63⌝ ∗
-    □ ∀ (sl : GoSlice) (ps : List Loc) (i : Nat) (p w d : Loc) (esl : GoSlice),
-      (structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ sl ∨
-        structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ sl) -∗ sl ↦*□ ps -∗
-      ⌜ps[i]? = some p⌝ -∗
+mutual
+/-- **The deletes of the operation `op` at `p` are as decoded** (persistent): a delete's `RangeEnd`
+`nil` or not empty; a nested transaction's, recursively, through its `Success` and `Failure`.
+Stated over the fields' points-tos (whatever they hold), as a wand, as `v3rpc.reqOpWire` is
+(`notes/txn-nested.md`, D2). -/
+def delWireAtT (p : Loc) : TxnOp → IProp GF
+  | .delete _ => iprop(□ ∀ (w d : Loc) (esl : GoSlice),
       structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
           GoInterface) -∗
       structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ d -∗
       structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" d ↦□ esl -∗
       ⌜esl = slice.nil ∨ esl.len ≠ W64 0⌝)
+  | .txn _ ts es => iprop(□ ∀ (w r : Loc) (ssl fsl : GoSlice) (sps fps : List Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) -∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r -∗
+      structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl -∗ ssl ↦*□ sps -∗
+      structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl -∗ fsl ↦*□ fps -∗
+      delWiresAtT sps ts ∗ delWiresAtT fps es)
+  | _ => iprop(True)
+
+/-- `delWireAtT` of each operation, in order. -/
+def delWiresAtT : List Loc → List TxnOp → IProp GF
+  | p :: ps, op :: ops => iprop(delWireAtT p op ∗ delWiresAtT ps ops)
+  | _, _ => iprop(True)
+end
+
+/-- **What the decoding gives of a transaction request's deletes** (`r`, the server's copy;
+persistent): every delete's `RangeEnd`, at every depth, `nil` or not empty (protobuf-go decodes an
+empty proto3 `bytes` field as `nil`, at any depth), and the deletes, at every depth, fewer than
+`2 ^ 63` in each branch (the decoded copy is a tree parsed from one byte slice, each delete at least
+two bytes of it): `v3rpc.txnReqWire` over the transaction model (`delWiresAtT_reqOpsWire`). Until
+2026-10-30 the top-level deletes only (`notes/txn-nested.md`, D2). -/
+def txnWireOk (r : Loc) (t : TxnModel) : IProp GF :=
+  iprop(⌜delCountT t.thenOps < 2 ^ 63 ∧ delCountT t.elseOps < 2 ^ 63⌝ ∗
+    □ ∀ (ssl fsl : GoSlice) (sps fps : List Loc),
+      structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl -∗ ssl ↦*□ sps -∗
+      structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl -∗ fsl ↦*□ fps -∗
+      delWiresAtT sps t.thenOps ∗ delWiresAtT fps t.elseOps)
 
 instance txnWireOk_persistent (r : Loc) (t : TxnModel) : Persistent (txnWireOk (GF := GF) r t) := by
   unfold txnWireOk; infer_instance
@@ -683,10 +828,11 @@ def pbDeleteRangeResponse : ProtoMsg GF where
 /-- **A `*pb.TxnRequest`** on the wire (the vertical slice's unit V2; a trusted wire model, as
 `pbPutRequest`'s): a request's model is the transaction model `t` the server reads; the sender's
 message is the owned struct whose slices hold, read-only, the comparisons and the operations' wire
-requests of `t` (`txnReqAt`: what the client's `txn.Commit` builds); the decoded copy denotes the
-same transaction (`txn.txnRequestIs`: the txn package's model of the server's request) and is as
-protobuf decodes it (`txnWireOk`: each top-level delete's `RangeEnd` `nil` or not empty, an empty
-`bytes` field being decoded as `nil`; fewer than `2 ^ 63` deletes per branch, each at least a byte
+requests of `t` (`txnReqAt`: what the client's `txn.Commit` builds; since 2026-10-30 with nested
+transactions, `notes/txn-nested.md`); the decoded copy denotes the same transaction
+(`txn.txnRequestIs`: the txn package's model of the server's request) and is as protobuf decodes it
+(`txnWireOk`: each delete's `RangeEnd`, at every depth, `nil` or not empty, an empty `bytes` field
+being decoded as `nil`; fewer than `2 ^ 63` deletes per branch, at every depth, each at least a byte
 of the message). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty

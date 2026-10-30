@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.ModRevision
 public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.OpDelete
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section
 
@@ -114,7 +115,7 @@ theorem Client.OptimisticDelete.wp_proof
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) ci cd _ tsl
       [opDeleteModel key []] [.delete (opDeleteModel key [])]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -194,7 +195,7 @@ theorem Client.OptimisticDelete.wp_proof
       rcases i with _ | i
       · cases Ho; cases Hm; iexact Hop2
       · simp at Ho
-    wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) ci cd _ esl
+    wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) ci cd _ esl
         [opGetModel key []] [.get (opGetModel key [])]) $$ [Hobj] as Hobj
     · iframe #
       iframe Hobj

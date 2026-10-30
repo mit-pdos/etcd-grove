@@ -79,6 +79,78 @@ def etcdRangeSpecOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗
         v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) o -∗ Φ m)
 
+/-! ### Nested transactions' shape (`notes/txn-nested.md`, N2-N4) -/
+
+mutual
+/-- The keys an operation puts, at any depth, both branches. -/
+def opPutKeys : TxnOp → List GoString
+  | .put k _ _ => [k]
+  | .putKeep k _ => [k]
+  | .putIgnVal k _ => [k]
+  | .txn _ ts es => opsPutKeys ts ++ opsPutKeys es
+  | _ => []
+
+/-- The keys a list of operations puts, at any depth. -/
+def opsPutKeys : List TxnOp → List GoString
+  | [] => []
+  | op :: ops => opPutKeys op ++ opsPutKeys ops
+end
+
+mutual
+/-- The deletes of an operation, at any depth, both branches. -/
+def opDelOps : TxnOp → List OpFull
+  | .delete o => [o]
+  | .txn _ ts es => opsDelOps ts ++ opsDelOps es
+  | _ => []
+
+/-- The deletes of a list of operations, at any depth. -/
+def opsDelOps : List TxnOp → List OpFull
+  | [] => []
+  | op :: ops => opDelOps op ++ opsDelOps ops
+end
+
+/-- A nested transaction `u` puts no key (at any depth) that a delete of `v` (at any depth)
+covers, in the model's sense of a range (`inRange`: the key alone, from the key on for `[0]`,
+`[key, rangeEnd)` otherwise). Constrains nothing unless `u` is a nested transaction. -/
+def sibOkT (u v : TxnOp) : Prop :=
+  match u with
+  | .txn _ _ _ => ∀ k ∈ opPutKeys u, ∀ o ∈ opDelOps v, inRange o.key o.base.rangeEnd k = false
+  | _ => True
+
+mutual
+/-- **No nested transaction puts a key a later sibling deletes**, at every level (the model's
+reading of the server's `ReqOp.siblingSafe`; `issues/etcd-txn-check-intervals-sibling.md`: the case
+`checkIntervals` does not check). -/
+def txnSibSafe : TxnOp → Prop
+  | .txn _ ts es => txnSibSafeL ts ∧ txnSibSafeL es
+  | _ => True
+
+/-- `txnSibSafe` of each operation, and `sibOkT` of each with every later sibling. -/
+def txnSibSafeL : List TxnOp → Prop
+  | [] => True
+  | u :: us => (∀ v ∈ us, sibOkT u v) ∧ txnSibSafe u ∧ txnSibSafeL us
+end
+
+/-- **A writing transaction's nested shape** (a premise; what the server's handler needs of a
+writing transaction beyond `txn.txnPlain` and `txnNoZeroEnd`, inherited from its `kvDepPre`, D19c):
+no get at any depth a sort cut early by a limit (`txn.OpsNoCut`,
+`issues/etcd-range-sort-none-limit.md`), and no nested transaction putting a key a later sibling
+deletes (`txnSibSafeL`). A transaction of plain operations within the model has it
+(`txnNestOk_of_plain`). -/
+def txnNestOk (t : TxnModel) : Prop :=
+  txn.OpsNoCut t.thenOps ∧ txn.OpsNoCut t.elseOps ∧ txnSibSafeL t.thenOps ∧ txnSibSafeL t.elseOps
+
+/-- **A transaction of plain operations within the model has the nested shape** (L8). This is the
+one place a writing transaction's caller still meets `txnModelIn`: the source of `OpsNoCut` for a
+plain transaction. -/
+theorem txnNestOk_of_plain (t : TxnModel) (hp : TxnModel.plain t) (hin : txnModelIn t) :
+    txnNestOk t := by
+  sorry -- txn-nested: prove after freeze
+
+/-- **Operations with no delete at any depth are sibling-safe** (L8). -/
+theorem txnSibSafeL_of_noDel (ops : List TxnOp) (h : opsDelOps ops = []) : txnSibSafeL ops := by
+  sorry -- txn-nested: prove after freeze
+
 /-- **A transaction's auth facts, as its reply carries them** (persistent): a read-only one's
 check (`txnAuthed`), a writing one's grant. -/
 def txnAuthOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) (n : Nat)
@@ -91,19 +163,40 @@ instance txnAuthOn_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     Persistent (txnAuthOn (GF := GF) s E ρ γr c n tok t) := by
   unfold txnAuthOn; split <;> infer_instance
 
-/-- **etcd's `Txn` with auth on**: `etcdTxnSpec`'s, a writing transaction's every permission of the
+/-- A writing transaction's auth facts are its grant (L13). -/
+theorem txnAuthOn_write (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (n : Nat) (tok : Option GoString) (t : TxnModel) (h : txn.txnReadonly t = false) :
+    txnAuthOn (GF := GF) s E ρ γr c n tok t ⊣⊢
+      ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ v3rpc.writeGrantOn s E ρ tok (irrTxn tw) := by
+  sorry -- txn-nested: prove after freeze
+
+/-- **A put at any depth of a transaction needs the write permission on its key** (L10). -/
+theorem reqPerms_irrTxn_put (tw : txn.TxnModelW) (k : GoString)
+    (h : k ∈ opsPutKeys (tw.toModel.thenOps ++ tw.toModel.elseOps)) :
+    ((k, [], .write) : apply.Perm3) ∈ reqPerms (irrTxn tw) := by
+  sorry -- txn-nested: prove after freeze
+
+/-- `reqPerms_irrTxn_put` at a put one level down in the then-branch (L10). -/
+theorem reqPerms_irrTxn_nestedPut (tw : txn.TxnModelW) (cs : List CmpModel) (ts es : List TxnOp)
+    (k v : GoString) (l : w64) (hm : TxnOp.txn cs ts es ∈ tw.toModel.thenOps)
+    (hp : TxnOp.put k v l ∈ ts) :
+    ((k, [], .write) : apply.Perm3) ∈ reqPerms (irrTxn tw) := by
+  sorry -- txn-nested: prove after freeze
+
+/-- **etcd's `Txn` with auth on**: `etcdTxnSpec`'s (a writing transaction may nest transactions: plain, `txn.txnPlain`, at every
+depth; `txnNestOk`), a writing transaction's every permission of the
 shape the permission cache decides, with a lower bound `n` of the published auth index, the reply
 also with the transaction's auth facts (`txnAuthOn`), a writing one's update told its grant
 (`v3rpc.kvOpAuOn`). -/
 def etcdTxnSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse :=
   fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) =>
-    iprop(⌜TxnModel.plain t ∧ txnModelIn t ∧ (txn.txnReadonly t = false →
+    iprop(⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (txn.txnReadonly t = false →
         ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw))⌝ ∗
       ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
-        (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗
+        (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
           v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
       mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
@@ -162,8 +255,16 @@ def txnUpdAtOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx :
     (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
     (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
-    (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗
+    (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
       clientOpAuOn s E ρ conn ctx (.txn t) Q))
+
+/-- A writing transaction's update, from its shape and its update (L13). -/
+theorem txnUpdAtOn_write (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
+    (ctx : GoInterface) (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF)
+    (h1 : txn.txnReadonly t = false) (h2 : txn.txnPlain t) (h3 : txnNoZeroEnd t)
+    (h4 : txnNestOk t) :
+    clientOpAuOn (GF := GF) s E ρ conn ctx (.txn t) Q ⊢ txnUpdAtOn s E ρ conn ctx γr t Q := by
+  sorry -- txn-nested: prove after freeze
 
 end defs
 

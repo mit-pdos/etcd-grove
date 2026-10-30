@@ -21,13 +21,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.isWrite()` of a plain operation (not a transaction): whether it is not a range. -/
+/-- `op.isWrite()` of an operation tree: whether it is not a range, for a nested transaction
+whether some operation of either branch writes (`OpT.isWrite`). -/
 abbrev Op.isWrite.spec : Prop :=
-  ∀ (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opFullAt opv o ∗
-      ⌜o.t ≠ W64 4⌝ }}
+  ∀ (opv : go_etcd_io.etcd.client.v3.Op) (t : OpT),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opTAtC false opv t }}
     (App (Val (opv @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"isWrite")) (Val #()))
-  {{ RET #(decide (o.t ≠ W64 1)); True }}
+  {{ RET #(OpT.isWrite t); True }}
 
 end spec
 

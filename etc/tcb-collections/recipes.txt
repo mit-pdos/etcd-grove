@@ -20,3 +20,9 @@ axiom proto.Clone.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+sorry Op.isWrite.wp_proof
+sorry Op.toRequestOp.wp_proof
+sorry txn.Else.spec_plain
+sorry txn.Else.wp_proof
+sorry txn.Then.spec_plain
+sorry txn.Then.wp_proof

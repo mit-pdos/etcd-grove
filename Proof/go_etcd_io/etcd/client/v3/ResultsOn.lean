@@ -300,7 +300,8 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 /-- **`Commit()` on a builder over a `*kv` over `conn` to a member with auth on** (as
-`client_txn_any` at one member): a transaction a writing one of which has every permission of the
+`client_txn_any` at one member, nested transactions included: `notes/txn-nested.md`): a
+transaction, read-only within the model (`txnModelIn`), a writing one with every permission of the
 shape the permission cache decides (`kvShapeAll`), the member's committed index at least `c`, the
 floor `F`, a lower bound `n` of the published auth index and the caller's update
 (`txnUpdAtOn`: a writing one's told its grant), persistent or on a builder that sends a write at
@@ -309,7 +310,7 @@ some attempt's metadata (`txnAuthOn`), or an error. -/
 theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (Q : KVState → IProp GF) (F : mvcc.Log)
-    (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
+    (hin : txn.txnReadonly (txnWireOf b.model) = true → txnModelIn (txnWireOf b.model))
     (hsh : txn.txnReadonly (txnWireOf b.model) = false →
       ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -338,7 +339,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     iintro %md %Hmd
     unfold etcdTxnSpecOn
     isplitl []
-    · ipureintro; exact ⟨hp, hin, hsh⟩
+    · ipureintro; exact ⟨hin, hsh⟩
     iexists Q
     isplitl [Hu]
     · iunfold txnUpdAtOn at Hu

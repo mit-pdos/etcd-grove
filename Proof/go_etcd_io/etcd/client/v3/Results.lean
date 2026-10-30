@@ -317,32 +317,11 @@ theorem get_after_put_kvs (key val : GoString) (x x' : apply.ApplyKV) (l : Log)
 
 end pure
 
-/-- A delete's count of plain operations: `delCountT` and `v3rpc.delCount` agree. -/
-theorem delCount_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
-    v3rpc.ReqOp.toTxnOps us = some ops → (∀ op ∈ ops, TxnOp.plain op) → v3rpc.delCount us = delCountT ops
-  | [], ops, h, _ => by
-    simp [v3rpc.ReqOp.toTxnOps] at h; subst h; simp [v3rpc.delCount, delCountT]
-  | u :: us, ops, h, hp => by
-    simp only [v3rpc.ReqOp.toTxnOps] at h
-    split at h
-    · rename_i t ts h1 h2
-      simp only [Option.some.injEq] at h
-      subst h
-      have ih := delCount_toTxnOps us ts h2 (fun op hm => hp op (List.mem_cons_of_mem _ hm))
-      have ht := hp t (List.mem_cons_self ..)
-      cases u with
-      | range o => simp [v3rpc.ReqOp.toTxnOp] at h1; subst h1; simp [v3rpc.delCount, delCountT, ih]
-      | put o =>
-        simp [v3rpc.ReqOp.toTxnOp] at h1; subst h1
-        unfold txn.putTxnOp
-        split <;> (try split) <;> simp [v3rpc.delCount, delCountT, ih]
-      | delete o => simp [v3rpc.ReqOp.toTxnOp] at h1; subst h1; simp [v3rpc.delCount, delCountT, ih]
-      | txn cs ts' es' =>
-        simp only [v3rpc.ReqOp.toTxnOp] at h1
-        split at h1 <;> simp at h1
-        subst h1; exact ht.elim
-      | empty => simp [v3rpc.ReqOp.toTxnOp] at h1
-    · cases h
+/-- A delete's count: `delCountT` and `v3rpc.delCount` agree (nested transactions included). -/
+theorem delCount_toTxnOps (us : List v3rpc.ReqOp) (ops : List TxnOp)
+    (h : v3rpc.ReqOp.toTxnOps us = some ops) : v3rpc.delCount us = delCountT ops := by
+  -- the proof before: git show 51b0f7adad:Proof/go_etcd_io/etcd/client/v3/Results.lean
+  sorry -- txn-nested: prove after freeze
 
 section bridge
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -517,49 +496,22 @@ theorem reqOpsWire_of_delWireAt : ∀ (ps : List Loc) (us : List v3rpc.ReqOp),
       iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
       iapply H $$ %(i + 1) %q %w %d %esl %Hi H1 H2 H3
 
+/-- **The client's wire facts of a transaction's operations are the handler's** (`notes/txn-nested.md`,
+L12): `delWiresAtT` of the model is `v3rpc.reqOpsWire` of the request operations whose model it is. -/
+theorem delWiresAtT_reqOpsWire (ps : List Loc) (us : List v3rpc.ReqOp) (ops : List TxnOp)
+    (h : v3rpc.ReqOp.toTxnOps us = some ops) :
+    delWiresAtT (GF := GF) ps ops ⊢ v3rpc.reqOpsWire ps us := by
+  sorry -- txn-nested: prove after freeze
+
 /-- **The transport's request is the gRPC handler's** (see the file header): the server's copy of
-a transaction `t` of plain operations, as decoded (`txnRequestIs`, `txnWireOk`), is the handler's
+a transaction `t` (nested ones included), as decoded (`txnRequestIs`, `txnWireOk`), is the handler's
 request `txnReqIs r t.cmps ts es` with its wire facts, whose model is `t`. -/
-theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) (hp : TxnModel.plain t) :
+theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) :
     txn.txnRequestIs (GF := GF) r t ∗ txnWireOk r t ⊢
       ∃ ts es : List v3rpc.ReqOp, v3rpc.txnReqIs r t.cmps ts es ∗ v3rpc.txnReqWire r ts es ∗
         ⌜v3rpc.txnModelOf t.cmps ts es = some t⌝ := by
-  iintro ⟨#Hreq, #Hw⟩
-  iunfold txn.txnRequestIs at Hreq
-  icases Hreq with ⟨%Hrn, Hreq⟩
-  iunfold txn.txnFieldsIs at Hreq
-  icases Hreq with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm,
-    #Hf, #Hfs, #Hfm⟩
-  ihave ⟨%ts, #Hts, %Hts'⟩ := reqOps_of_requestOps sps t.thenOps hp.1 $$ Hsm
-  ihave ⟨%es, #Hes, %Hes'⟩ := reqOps_of_requestOps fps t.elseOps hp.2 $$ Hfm
-  iexists ts, es
-  iunfold txnWireOk at Hw
-  icases Hw with ⟨%Hcnt, #Hw⟩
-  isplitl
-  · unfold v3rpc.txnReqIs
-    isplitl; · ipureintro; exact Hrn
-    iexists csl, ssl, fsl, cps, sps, fps
-    iframe #
-  isplitl
-  · unfold v3rpc.txnReqWire
-    isplitl
-    · ipureintro
-      rw [delCount_toTxnOps ts _ Hts' hp.1, delCount_toTxnOps es _ Hes' hp.2]
-      exact Hcnt
-    iintro !> %ssl' %fsl' %sps' %fps' #Hs' #Hss' #Hf' #Hfs'
-    isplitl
-    · iapply reqOpsWire_of_delWireAt sps' ts (reqNotTxn_of_toTxnOps ts _ Hts' hp.1)
-      unfold delWireAt
-      iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
-      iapply Hw $$ %ssl' %sps' %i %q %w %d %esl [] Hss' %Hi H1 H2 H3
-      ileft; iexact Hs'
-    · iapply reqOpsWire_of_delWireAt fps' es (reqNotTxn_of_toTxnOps es _ Hes' hp.2)
-      unfold delWireAt
-      iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
-      iapply Hw $$ %fsl' %fps' %i %q %w %d %esl [] Hfs' %Hi H1 H2 H3
-      iright; iexact Hf'
-  · ipureintro
-    simp [v3rpc.txnModelOf, Hts', Hes']
+  -- the proof before: git show 51b0f7adad:Proof/go_etcd_io/etcd/client/v3/Results.lean
+  sorry -- txn-nested: prove after freeze
 
 end bridge
 
@@ -707,11 +659,12 @@ end
 end resp
 
 theorem txnInModel_of (t : TxnModel) (cs : List CmpModel) (ts es : List v3rpc.ReqOp)
-    (h : txnModelIn t) (hm : v3rpc.txnModelOf cs ts es = some t) : v3rpc.txnInModel cs ts es := by
+    (h : txn.txnReadonly t = true → txnModelIn t) (hm : v3rpc.txnModelOf cs ts es = some t) :
+    v3rpc.txnInModel cs ts es := by
   intro t' ht'
   rw [hm] at ht'
   cases ht'
-  exact fun _ => h
+  exact h
 
 /-- No get of a list of operations, none nested, sorts cut by a limit (D19c). -/
 theorem opsNoCut_of_flat (ops : List TxnOp) (hp : ∀ op ∈ ops, TxnOp.plain op)
@@ -1355,7 +1308,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   icases Hspec with ⟨%Hpl, %Q, Hnp, %c, %F, #Hc0, #HF, Hspec⟩
   obtain ⟨hp, hin⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
-  ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t hp $$ [$Hreq $Hw]
+  ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
   -- the deposit (unit T2): none, or (unit W-M3) a linearizable read-only transaction's read
   -- update, or a writing one's update
   ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
@@ -1415,7 +1368,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     iframe
     iframe Hc0
     isplitr
-    · ipureintro; exact txnInModel_of t _ _ _ hin Hmod
+    · ipureintro; exact txnInModel_of t _ _ _ (fun _ => hin) Hmod
     ipureintro; exact Hdp
   inext
   iintro %resp %err Hpost

@@ -277,6 +277,33 @@ def opsTAt (sl : GoSlice) (ts : List OpT) : IProp GF :=
 instance opsTAt_persistent (sl : GoSlice) (ts : List OpT) : Persistent (opsTAt (GF := GF) sl ts) := by
   unfold opsTAt; infer_instance
 
+/-- **A plain operation's tree** (`notes/txn-nested.md`, L2). -/
+theorem opTAtC_leaf (v : go_etcd_io.etcd.client.v3.Op) (o : OpFull) :
+    opTAtC (GF := GF) false v (.leaf o) ⊣⊢ opFullAt v o ∗ ⌜o.t ≠ W64 4⌝ := by
+  sorry -- txn-nested: prove after freeze
+
+/-- **`OpTxn`'s result is a nested transaction's tree** (L1): its `Op` (`OpTxn.spec`'s post) and the
+trees of its two slices. -/
+theorem opTAtC_opTxn (v : go_etcd_io.etcd.client.v3.Op) (ms : List CmpModel) (tsl esl : GoSlice)
+    (ts es : List OpT) (hs : v.thenOps' = tsl ∧ v.elseOps' = esl) :
+    opFullAt (GF := GF) v OpFull.txnInit ∗ cmpsAt v.cmps' ms ∗ opsTAt tsl ts ∗ opsTAt esl es ⊢
+      opTAtC false v (.txn OpFull.txnInit ms ts es) := by
+  sorry -- txn-nested: prove after freeze
+
+/-- No trees: the nil slice (L3). -/
+theorem opsTAt_nil : ⊢ opsTAt (GF := GF) slice.nil [] := by
+  sorry -- txn-nested: prove after freeze
+
+/-- A slice of `Op` values that are the trees `ts` holds them (L3). -/
+theorem opsTAt_of_list (sl : GoSlice) (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT) :
+    sl ↦*□ vs ∗ opListAtC (GF := GF) false vs ts ⊢ opsTAt sl ts := by
+  sorry -- txn-nested: prove after freeze
+
+/-- A one-element slice (a literal `[]Op{v}`) holds `v`'s tree (L15). -/
+theorem opsTAt_one (sl : GoSlice) (v : go_etcd_io.etcd.client.v3.Op) (t : OpT) :
+    sl ↦*□ [v] ∗ opTAtC (GF := GF) false v t ⊢ opsTAt sl [t] := by
+  sorry -- txn-nested: prove after freeze
+
 /-! ## Nested responses, read-only -/
 
 mutual

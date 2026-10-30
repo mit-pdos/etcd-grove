@@ -109,6 +109,13 @@ theorem hits_of_inRange (o : OpFull) (k : GoString) (hk : k ≠ []) (ho : goodDe
       · exact h1 h
     simp [this]
 
+/-- **A key a delete's interval hits is in the delete's range** (`notes/txn-nested.md`, L7; the
+converse of `hits_of_inRange`, for every key and range end: at an empty `k` or key there is never a
+hit). -/
+theorem inRange_of_hits (o : OpFull) (k : GoString) (h : hits [delIvl o] k = true) :
+    inRange o.key o.base.rangeEnd k = true := by
+  sorry -- txn-nested: prove after freeze
+
 /-- `Union`'s filter keeps a good delete's interval. -/
 theorem unionSel_mem (o : OpFull) (ds : List adt.IvlS) (ho : goodDel o) (h : delIvl o ∈ ds) :
     delIvl o ∈ unionSel ds := by

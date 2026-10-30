@@ -10,8 +10,9 @@ it; every method locks it), the flags `cif`, `cthen`, `celse` (`b`'s), and the c
 operations so far as the requests `Commit` sends: `cmps` the `*pb.Compare`s of `b.model.cmps`
 (clones of the caller's: `Cmp.Clone`), `sus` and `fas` the `*pb.RequestOp`s of the then- and
 else-operations' wire models (`opWire`; `Op.toRequestOp`'s), each slice with its spare capacity
-(the methods append to them). The operations are plain (gets, puts, deletes: `txnOpOf`'s, as
-`txnBuilderSpec` takes them); `Commit` sends `txnWireOf b.model`.
+(the methods append to them). The operations are gets, puts, deletes (`txnOpOf`'s) and, since
+2026-10-30, nested transactions of them (`OpT.txnOps`, as `txnBuilderSpecO` takes them;
+`notes/txn-nested.md`); `Commit` sends `txnWireOf b.model`.
 -/
 module
 
@@ -95,13 +96,9 @@ theorem comparesAt_nil : ⊢ comparesAt (GF := GF) [] [] := by
   simp at h1
 
 theorem reqOpsAt_nil : ⊢ reqOpsAt (GF := GF) [] [] := by
-  unfold reqOpsAt
+  simp only [reqOpsAt]
   iintro
-  isplitl []
-  · ipureintro; rfl
-  imodintro
-  iintro %i %p %m %h1 %h2
-  simp at h1
+  itrivial
 
 theorem comparesAt_snoc (ps : List Loc) (ms : List CmpModel) (p : Loc) (m : CmpModel) :
     comparesAt (GF := GF) ps ms ∗ ⌜p ≠ null⌝ ∗ compareAt p m ⊢ comparesAt (ps ++ [p]) (ms ++ [m]) := by
@@ -114,14 +111,28 @@ theorem comparesAt_snoc (ps : List Loc) (ms : List CmpModel) (p : Loc) (m : CmpM
   iframe #
   ipureintro; exact hp
 
-theorem reqOpsAt_snoc (ps : List Loc) (ops : List TxnOp) (p : Loc) (op : TxnOp) :
-    reqOpsAt (GF := GF) ps ops ∗ reqOpAt p op ⊢ reqOpsAt (ps ++ [p]) (ops ++ [op]) := by
-  unfold reqOpsAt
-  iintro ⟨⟨%hl, #H⟩, #Hc⟩
-  isplitl []
-  · ipureintro; simp [hl]
-  iapply pointwise_snoc (fun (p : Loc) (op : TxnOp) => reqOpAt (GF := GF) p op) ps ops p op hl
-  iframe #
+theorem reqOpsAt_snoc : ∀ (ps : List Loc) (ops : List TxnOp) (p : Loc) (op : TxnOp),
+    reqOpsAt (GF := GF) ps ops ∗ reqOpAt p op ⊢ reqOpsAt (ps ++ [p]) (ops ++ [op])
+  | [], [], p, op => by
+    simp only [List.nil_append, reqOpsAt]
+    iintro ⟨-, H⟩
+    iframe H
+  | q :: ps, o :: ops, p, op => by
+    simp only [List.cons_append, reqOpsAt]
+    iintro ⟨⟨H1, H2⟩, H3⟩
+    iframe H1
+    iapply reqOpsAt_snoc ps ops p op
+    iframe
+  | [], _ :: _, _, _ => by
+    simp only [reqOpsAt]
+    iintro ⟨H, -⟩
+    iexfalso
+    iexact H
+  | _ :: _, [], _, _ => by
+    simp only [reqOpsAt]
+    iintro ⟨H, -⟩
+    iexfalso
+    iexact H
 
 end defs
 

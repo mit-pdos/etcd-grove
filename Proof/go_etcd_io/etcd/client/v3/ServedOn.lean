@@ -68,6 +68,13 @@ theorem readQ_of_ansOn (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → I
       iexact HQ
   · simp only [↓reduceIte]; iintro -; itrivial
 
+/-- **The model's sibling safety is the handler's** (`notes/txn-nested.md`, L7): request operations
+whose model is sibling-safe (`txnSibSafeL`, over the model's ranges) are (`ReqOp.siblingSafeL`, over
+the handler's intervals; by `v3rpc.inRange_of_hits`). -/
+theorem siblingSafeL_of_model (us : List v3rpc.ReqOp) (ops : List TxnOp)
+    (h : v3rpc.ReqOp.toTxnOps us = some ops) (hs : txnSibSafeL ops) : v3rpc.ReqOp.siblingSafeL us := by
+  sorry -- txn-nested: prove after freeze
+
 /-- **etcd's `Put` handler meets etcd's `Put` spec with auth on** (`grpcHandlerOkMd`; from
 `put_end_to_end_on`, at no lower bound of the published auth index): as `etcd_putHandlerOk`, the
 reply also with the put's grant at the run's token. -/
@@ -467,9 +474,9 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   iunfold etcdTxnSpecOn at Hspec
   rw [← auth.ctxTokenOf_md]
   icases Hspec with ⟨%Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
-  obtain ⟨hp, hin, hsh⟩ := Hpl
+  obtain ⟨hin, hsh⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
-  ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t hp $$ [$Hreq $Hw]
+  ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
   ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwnOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
       ⌜v3rpc.kvDepPre d (.txn t.cmps ts es)⌝ ∗
       ⌜(txn.txnReadonly t = true ∧ ((d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q)) ∨
@@ -505,11 +512,10 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       cases ht'
       right
       have hfl := v3rpc.txnModelOf_ops Hmod
-      exact ⟨⟨Q, rfl⟩, Hw.2.1, Hw.2.2,
-        siblingSafeL_of_flat ts t.thenOps hfl.1 hp.1,
-        siblingSafeL_of_flat es t.elseOps hfl.2 hp.2,
-        opsNoCut_of_flat _ hp.1 (fun o h => (hin o (List.mem_append_left _ h)).2),
-        opsNoCut_of_flat _ hp.2 (fun o h => (hin o (List.mem_append_right _ h)).2)⟩
+      obtain ⟨-, hpl, hnz, hn1, hn2, hs1, hs2⟩ := Hw
+      exact ⟨⟨Q, rfl⟩, hpl, hnz,
+        siblingSafeL_of_model ts t.thenOps hfl.1 hs1,
+        siblingSafeL_of_model es t.elseOps hfl.2 hs2, hn1, hn2⟩
   rw [kvServerAt_srvKVAnsOn p s E ρ γr (W64 0) c cid mid n [] F .none d 0 na none
     (auth.ctxTokenOf (GoInterface.ok ci))]
   iunfold etcdRunSlot at Hslot
