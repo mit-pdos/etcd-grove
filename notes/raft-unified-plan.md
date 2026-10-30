@@ -1721,6 +1721,9 @@ helpers at a time (common brief: `notes/repair-stageP-brief.md`; helpers
 commit only their own files and push `origin/repair`; the coordinator keeps notes/). Wave 1 (started
 2026-10-30): S-0, S-C, S-D, S-E. Queued: K-b, S-A, K-a, K-c; then the downstream server examples
 and k8s's apiserver storage. Done items are marked in the sorry list above as they land.
+- S-0 done (98ca8947c0). K-b done (76e45b36f4: `KV.run` over `KvRunFrozen`/`KvRunSnap`/`KvRunInv`; the
+  conf-change branch refuted by `kv_noConf`; three callee specs of `KV.run` now unused, Link may drop
+  them). S-A started after K-b (wave 2). Queued: K-a + K-c.
 
 ## Repair: Stage P changes (2026-10-30)
 
