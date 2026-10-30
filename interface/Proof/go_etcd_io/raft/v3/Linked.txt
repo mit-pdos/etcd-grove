@@ -74,8 +74,63 @@ theorem RaftLink.MemoryStorage.wp_Term [package_sem : Assumptions] : MemoryStora
             WP ((intoVal (methods MemoryStorage.ty.PointerType go!"Term" (intoVal ms))) (intoVal i0))
               {{ Φ }}
 
+theorem RaftLink.node.wp_Tick [package_sem : Assumptions] : node.Tick.spec
+  -- `Perennial.EtcdGrove.node.Tick.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP ((intoVal (methods node.ty.PointerType go!"Tick" (intoVal n))) (intoVal ())) {{ Φ }}
+
+theorem RaftLink.node.wp_Ready [package_sem : Assumptions] : node.Ready.spec
+  -- `Perennial.EtcdGrove.node.Ready.spec`, unfolded:
+  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          (▷ ∀ ch, isReadyChan n γ N ch -∗ Φ (intoVal ch)) -∗
+            WP ((intoVal (methods node.ty.PointerType go!"Ready" (intoVal n))) (intoVal ()))
+              {{ Φ }}
+
+theorem RaftLink.node.wp_TransferLeadership [package_sem : Assumptions] :
+    node.TransferLeadership.spec
+  -- `Perennial.EtcdGrove.node.TransferLeadership.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP
+              ((((intoVal
+                      (methods node.ty.PointerType
+                        go!"TransferLeadership"
+                        (intoVal n)))
+                    (intoVal (GoInterface.ok ctx)))
+                  (intoVal lead))
+                (intoVal transferee))
+              {{ Φ }}
+
 theorem RaftLink.confchange.Changer.wp_EnterJoint_api [package_sem : Assumptions] :
     confchange.Changer.EnterJoint.apiSpec
+
+theorem RaftLink.node.wp_ReadIndex [package_sem : Assumptions] : node.ReadIndex.spec
+  -- `Perennial.EtcdGrove.node.ReadIndex.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
+          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              (((intoVal
+                    (methods node.ty.PointerType go!"ReadIndex"
+                      (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                (intoVal rctx))
+              {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
     MemoryStorage.FirstIndex.spec
@@ -136,6 +191,84 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
                                                   Φ (intoVal nd)) -∗
                                             WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
 
+theorem RaftLink.MemoryStorage.wp_Snapshot [package_sem : Assumptions] : MemoryStorage.Snapshot.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.Snapshot.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (esu : GoInterface),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            memStorInvP ms γs J ∗
+              memCompacted γs c ∗ typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
+          (▷
+              ∀ snap err,
+                (⌜err = esu⌝ ∨
+                    ⌜err = GoInterface.nil⌝ ∗
+                      ∃ sv,
+                        ownSnapM snap (DFrac.own 1) sv ∗
+                          ⌜c ≤ uint.nat sv.Metadata'.Index'⌝ ∗
+                            (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index'))) -∗
+                  Φ (intoVal snap, intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType go!"Snapshot"
+                    (intoVal ms)))
+                (intoVal ()))
+              {{ Φ }}
+
+theorem RaftLink.MemoryStorage.wp_InitialState [package_sem : Assumptions] :
+    MemoryStorage.InitialState.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.InitialState.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (hs : HardStateM),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs -∗
+          (▷
+              ∀ hp cs,
+                hsOpt hp hs ∗
+                    memStorMeta ms γs hs ∗
+                      memStorFresh ms γs ∗ csPts cs DFrac.discard memSnapEmpty.Metadata'.ConfState' true -∗
+                  Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType
+                    go!"InitialState" (intoVal ms)))
+                (intoVal ()))
+              {{ Φ }}
+
+theorem RaftLink.MemoryStorage.wp_CreateSnapshot [package_sem : Assumptions] :
+    MemoryStorage.CreateSnapshot.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.CreateSnapshot.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (i : w64) (e : EntryM) (cs : Loc) (dq : DFrac)
+    (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (sv0 : SnapshotM) (eood : GoInterface),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            memStorInvP ms γs J ∗
+              memLog γs (uint.nat i) DFrac.discard [e] ∗
+                J.SV (memSnapCreated sv0 i e.Term' oc bs) ∗
+                  J.DL (uint.nat i) ∗
+                    memSnapExact γs sv0 ∗
+                      memCsArg cs dq oc ∗
+                        ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+          (▷
+              ∀ snap err,
+                memCsArg cs dq oc ∗
+                    (⌜err = GoInterface.nil⌝ ∗
+                        memSnapExact γs (memSnapCreated sv0 i e.Term' oc bs) ∗
+                          ownSnapM snap (DFrac.own 1) (memSnapCreated sv0 i e.Term' oc bs) ∨
+                      ⌜snap = null ∧ err = eood ∧ uint.nat i ≤ uint.nat sv0.Metadata'.Index'⌝ ∗
+                        memSnapExact γs sv0 ∗ ownSlice data bs (DFrac.own 1)) -∗
+                  Φ (intoVal snap, intoVal err)) -∗
+            WP
+              ((((intoVal
+                      (methods MemoryStorage.ty.PointerType
+                        go!"CreateSnapshot"
+                        (intoVal ms)))
+                    (intoVal i))
+                  (intoVal cs))
+                (intoVal data))
+              {{ Φ }}
+
 theorem RaftLink.MemoryStorage.wp_LastIndex [package_sem : Assumptions] :
     MemoryStorage.LastIndex.spec
   -- `Perennial.EtcdGrove.MemoryStorage.LastIndex.spec`, unfolded:
@@ -152,6 +285,40 @@ theorem RaftLink.MemoryStorage.wp_LastIndex [package_sem : Assumptions] :
               {{ Φ }}
 
 theorem RaftLink.confchange.wp_Restore_api [package_sem : Assumptions] : confchange.Restore.apiSpec
+
+theorem RaftLink.MemoryStorage.wp_Compact [package_sem : Assumptions] : MemoryStorage.Compact.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.Compact.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (sv0 : SnapshotM) (ecomp : GoInterface),
+    uint.nat x ≤ uint.nat sv0.Metadata'.Index' →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              memStorInvP ms γs J ∗
+                ((∃ e, memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
+                  J.B (uint.nat x) ∗ memSnapExact γs sv0 ∗ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
+            (▷
+                ∀ err,
+                  ⌜err = GoInterface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) ∗ memSnapExact γs sv0 -∗
+                    Φ (intoVal err)) -∗
+              WP
+                ((intoVal
+                    (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
+                  (intoVal x))
+                {{ Φ }}
+
+theorem RaftLink.node.wp_Step [package_sem : Assumptions] : node.Step.spec
+  -- `Perennial.EtcdGrove.node.Step.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗ stepIn γ N id ml -∗
+          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                (intoVal ml))
+              {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_Entries [package_sem : Assumptions] : MemoryStorage.Entries.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Entries.spec`, unfolded:
@@ -251,6 +418,38 @@ theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStor
                 Φ (intoVal ms)) -∗
           WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
 
+theorem RaftLink.MemoryStorage.wp_ApplySnapshot [package_sem : Assumptions] :
+    MemoryStorage.ApplySnapshot.spec
+  -- `Perennial.EtcdGrove.MemoryStorage.ApplySnapshot.spec`, unfolded:
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc) (dq : DFrac)
+    (sv sv0 : SnapshotM) (eood : GoInterface),
+    j ≤ uint.nat sv.Metadata'.Index' →
+      uint.nat sv.Metadata'.Index' < 2 ^ 61 →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                memStorInvP ms γs J ∗
+                  memLog γs j (DFrac.own 1) old ∗
+                    memEnd γs (j + old.length) ∗
+                      J.B (uint.nat sv.Metadata'.Index') ∗
+                        J.SV sv ∗
+                          J.DL (uint.nat sv.Metadata'.Index') ∗
+                            snapArg sp dq sv ∗
+                              memSnapExact γs sv0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+              ▷
+                  (ownSnapM sp dq sv ∗
+                      memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+                        memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapExact γs sv -∗
+                    Φ (intoVal GoInterface.nil)) -∗
+                WP
+                  ((intoVal
+                      (methods MemoryStorage.ty.PointerType
+                        go!"ApplySnapshot"
+                        (intoVal ms)))
+                    (intoVal sp))
+                  {{ Φ }}
+
 theorem RaftLink.node.wp_ForgetLeader [package_sem : Assumptions] : node.ForgetLeader.spec
   -- `Perennial.EtcdGrove.node.ForgetLeader.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -263,6 +462,37 @@ theorem RaftLink.node.wp_ForgetLeader [package_sem : Assumptions] : node.ForgetL
                   (methods node.ty.PointerType
                     go!"ForgetLeader" (intoVal n)))
                 (intoVal (GoInterface.ok ctx)))
+              {{ Φ }}
+
+theorem RaftLink.node.wp_ReportUnreachable [package_sem : Assumptions] : node.ReportUnreachable.spec
+  -- `Perennial.EtcdGrove.node.ReportUnreachable.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP
+              ((intoVal
+                  (methods node.ty.PointerType
+                    go!"ReportUnreachable"
+                    (intoVal n)))
+                (intoVal to))
+              {{ Φ }}
+
+theorem RaftLink.node.wp_ReportSnapshot [package_sem : Assumptions] : node.ReportSnapshot.spec
+  -- `Perennial.EtcdGrove.node.ReportSnapshot.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP
+              (((intoVal
+                    (methods node.ty.PointerType
+                      go!"ReportSnapshot"
+                      (intoVal n)))
+                  (intoVal to))
+                (intoVal status))
               {{ Φ }}
 
 theorem RaftLink.wp_IsEmptyHardState [package_sem : Assumptions] : IsEmptyHardState.spec
@@ -309,6 +539,31 @@ theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemorySto
                     (intoVal s))
                   {{ Φ }}
 
+theorem RaftLink.node.wp_ProposeConfChange [package_sem : Assumptions] : node.ProposeConfChange.spec
+  -- `Perennial.EtcdGrove.node.ProposeConfChange.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            isNode n γ N id ∗
+              nodeCtx ctx cd ∗
+                ownConfChangeI c dq (some o) ∗
+                  □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
+                        ⌜MarshalsConfChange (some o) bs⌝ ∗
+                          ownCommittedOps γ
+                            (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
+                        COMM True }> -∗
+          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              (((intoVal
+                    (methods node.ty.PointerType
+                      go!"ProposeConfChange"
+                      (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                (intoVal c))
+              {{ Φ }}
+
 theorem RaftLink.MemoryStorage.wp_SetHardState [package_sem : Assumptions] :
     MemoryStorage.SetHardState.spec
   -- `Perennial.EtcdGrove.MemoryStorage.SetHardState.spec`, unfolded:
@@ -322,4 +577,23 @@ theorem RaftLink.MemoryStorage.wp_SetHardState [package_sem : Assumptions] :
                   (methods MemoryStorage.ty.PointerType
                     go!"SetHardState" (intoVal ms)))
                 (intoVal st))
+              {{ Φ }}
+
+theorem RaftLink.node.wp_Propose [package_sem : Assumptions] : node.Propose.spec
+  -- `Perennial.EtcdGrove.node.Propose.spec`, unfolded:
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            isNode n γ N id ∗
+              nodeCtx ctx cd ∗
+                ownSlice data_sl data DFrac.discard ∗
+                  □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
+                        ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
+          (▷ ∀ err, propErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                (intoVal data_sl))
               {{ Φ }}
