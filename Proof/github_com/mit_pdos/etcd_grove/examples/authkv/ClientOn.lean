@@ -223,45 +223,6 @@ theorem client_Txn_on (cl api conn : Loc) (addr : GoString) (ci : GoInterfaceOk)
 
 end proof
 
-section watcher
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
-
-/-- **The client's `Watcher`, its attempts carrying the client's tokens** (G2's F-W3): the
-watcher `isNewClient_watcher` gives (`cli.Watcher.Watch` is `watcher.Watch.spec` on it), over a
-connection whose attempts carry a token meeting `P` or the context's own
-(`attemptTokOk_of_watcher`), what `watchCheckOk_tok` takes. -/
-theorem client_watcher_tok [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (cl : Loc) (eps : List GoString) (V : WEnv GF) (P : GoString → IProp GF)
-    (hV : eps = [V.addr]) (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗
-      isNewClient cl eps V ∗ watchAddrFacts V ∗ clientTokAt cl eps P ⊢
-      ∃ (w conn wc lg : Loc) (ics : List GoFunc),
-        clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
-        isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w ∗
-        attemptTokOk conn P := by
-  iintro ⟨#P1, #P2, #P3, #Hnc, #Hwf, #Htk⟩
-  ihave ⟨%w, %conn, %wc, %lg, %ics, #HWf, #Hcw⟩ :=
-    isNewClient_watcher wp_ErrAny hAs cl eps V hV hm hn $$ [P1 P2 P3 Hnc Hwf]
-  · iframe #
-  ihave #Hc := watcherConnAt_of_watcher _ w $$ Hcw
-  ihave #Ht := attemptTokOk_of_watcher cl eps P w conn $$ [HWf Hc Htk]
-  · iframe #
-  iexists w, conn, wc, lg, ics
-  iframe #
-
-end watcher
-
 end authkv
 end EtcdGrove
 end Perennial
