@@ -431,6 +431,35 @@ resource parts show. Next libraries by the paper replay's yield: etcd's own name
 The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
 a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).
 
+**`Bucket.Delete_kv` widened (backend-cmp F3, 2026-10-30).** The tester now records every slice a
+cursor move hands out (`curAt`'s `txBytes tx k e.1`, `txBytes tx v e.2`) and checks, at a step
+`(read txBytes)` (`txBytes_acc` with a fraction of `txLive`), that each slice of a live transaction
+still reads its bytes; `Seek` may take such a slice as its key; and `Delete`'s key is a fresh slice
+or another live transaction's slice (`own = true`, through `txBytes_acc`), or, with the widened
+statement, the write transaction's own slice (`own = false`), given back holding the same bytes
+(`-old-delete`: owned keys only). A write cursor goes back (the wand) before the `Delete`, which
+needs `ownWTxG`, so the specs allow iteration after a `Delete` on a new cursor only; reads of the
+deleted key's own slice after the `Delete`, after more `Put`s and `Delete`s, are allowed and
+checked. `-focus delete` weights the steps toward that path (no `Close`, mostly writers);
+`-nkeys 12 -vmax 1500` makes buckets large enough to leave inline storage, so that a write
+transaction's cursor keys point into the memory map (instrumented). Runs of 60 calls:
+
+| statements | runs | refuted | how |
+|---|---|---|---|
+| current, uniform steps | 10 000 | **0** | 280 blocked (as before); 143 Deletes by the tx's own slice, 55 of a present key |
+| current, `-focus delete` | 10 000 | **0** | 1108 blocked (11%, from the weighting: commits remapping under readers; `-old-delete` 11% too); 5922 Deletes by the tx's own slice (2102 of a present key), 6340 reads of a deleted key's slice |
+| current, `-focus delete -nkeys 12 -vmax 1500` | 10 000 | **0** | 1593 blocked; 2073 Deletes of a present key by the tx's own slice, 72 of them a slice into the memory map |
+| `-old-delete`, `-focus delete` | 3000 | 0 | no Delete by the tx's own slice (the generator respects the old pre) |
+| mutant: a Delete by the tx's own slice keeps the key (`delete-tx-noop`) | 3000 | 117 (3.9%) | a later cursor sees the key; uniform steps: 2 (0.07%) |
+| mutant: a Delete by the tx's own slice changes what the slice reads (`delete-clears-txbytes`) | 3000 | 562 (19%) | `(read txBytes)`, or the slice given back, reads the old bytes; uniform steps: 15 (0.5%) |
+| mutant: `Delete` a no-op, `-focus delete` | 3000 | 903 (30%) | (1.7% with uniform steps) |
+
+So the widened statement survives at bbolt v1.5.0 (etcd's pin), including the uncertain point
+(`txBytes` after `Delete`: the deleted key's slice and the others still read their bytes, the
+inode array is shifted, the key bytes are not touched; `node.go:145-159`). The uniform generator
+reaches the new path rarely (55 Deletes of a present key in 10 000 runs): a widened precondition
+needs a weighting toward it, as here, or the tester's verdict on it is weak.
+
 ## Checkpoint: the compactor pilot and M2 to review round 1 (2026-10-28)
 
 **What works.**

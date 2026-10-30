@@ -363,6 +363,11 @@ non-hook buckets; the first branch dropped), F9 (`kbSR`/`srSlot` one definition)
   `batchTx.UnsafeDelete`'s proof passes `own := true` (unchanged otherwise). `UnsafeDelete.specC`
   takes the same choice over the session's transaction. The trust base changes by this axiom's
   statement only (record it in `etc/tcb-baseline.txt`'s review when the stage merges).
+  **Tested** (2026-10-30, `etc/spec-test/bbolt -focus delete`, bbolt v1.5.0): 0 refuted in 30 000
+  runs of 60 calls on the current statements, among them about 4 200 Deletes of a present key by a
+  slice a cursor of the same write transaction returned (72 into the memory map), then the
+  deleted key's slice and the others read back; the mutants (the key kept; the slice changed) are
+  caught (`notes/spec-first-plan.md`, "`Bucket.Delete_kv` widened").
 - **F6**: `dlNone` and `BNames.dln` dropped; `dlInit` is the registration's whole fraction alone;
   `dlInit_noDel : dlInit γ ∗ dlIs γ nk ⊢ False` (an unfixed registration rules out every deletable
   key: `saved_pred_valid_2` with `DFrac.valid_own_op_discard`, no later), which D22's exact readers
