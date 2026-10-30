@@ -399,7 +399,9 @@ store's `GetList` is still names-only.
   the watchable store's construction, the boot's budgets, `writerOwn`'s count. **Draft** written
   (branch `m2-storage`); Q1 (R2-7's timing) answered (a), the supply per compaction, and drafted;
   Q2 (the drafted statements) open; step 2 (restore in compaction mode) drafted, Q4-Q6 answered;
-  review round 3 repaired (the Q2 list at 26 items; Q7 open: Q5 (a) fails in a `Compact(0)` corner).
+  review round 3 repaired (the Q2 list at 26 items); Q7 answered (a); review round 4 repaired (A1/A2
+  by evidence; the Q2 list at 37 items, approvable now or waiting; Q8 open: the index writer's
+  receipts over a compacted image).
 
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
   auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
@@ -584,6 +586,24 @@ exported or trusted switched:
   a client's `Compact(0)` and installs an image with that compaction unfinished; Go issue
   `issues/etcd-restore-scheduled-compact-zero.md` (reproduced). Full `lake build` passed (11209
   jobs).
+
+- **Review round 4 repaired** (2026-10-30; the plan's "After review round 4"; step 2's second round,
+  the next is its last): A1 settled by evidence in Lean. The records vocabulary
+  (`keyReadLockedR` … `storeBackendTR`, `restoreViewR`; each at no record equal to today's) and
+  `restore()`'s two reads over it, proved. `idxCRep_restore_counterexample` (proved): today's index
+  invariant `IdxCRep` is false after `restore()` over a compacted image (`restoreTombstone`'s
+  header); repaired up to unread headers (`IdxCRepN`, `kiGet_kiNorm` proved); round 3's bucket shape
+  refuted (`bucketThinnedAt_counterexample`), the job's `entsCutAt` with `KeyOnceAt` in its place;
+  the rebuild's theorem `idxRestore_cutStmt` stated, not proved (pure). `store.restore.specR`
+  redrafted, `spec_of_specR` proved, `wp_proofR` not (blocked on the `IdxCRepN` switch and that
+  theorem). Found by drafting: the index writer's receipts cannot be refilled from a compacted image
+  (`restoreBoundM`, Q8) and the backend's view must be widened at the open (not drafted). A2:
+  `resumeHookM` (the walk's unset hook lent), `lockNilSpec`, `bt_lockInNil` proved from the backend's
+  nil arm; the batch-lock invariant passes through. Q7's premise: `EtcdServer.Compact.specD`'s
+  `1 ≤ r` (`compactableOk_serverD` proved), `compactPropOkD` in `plainLogC`, `recsPos` in the image.
+  The chain over the restorable right (`M2StorageDraftChain.lean`; `mvcc_NewStore_backend_cmpR`
+  proved), `γx`'s home (`stopPayAt_done` proved), `StoreNamesD.cm`. New Drafts:
+  `mvcc/M2StorageDraft{Index,Chain}.lean`, `etcdserver/M2StorageDraftScope.lean`.
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 

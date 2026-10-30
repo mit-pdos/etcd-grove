@@ -1,6 +1,12 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **review round 3 repaired** ("After review round 3", the last section: the
+Status (2026-10-30): **review round 4 repaired** ("After review round 4", the last section: A1 by
+evidence (the records' reads proved; today's index invariant shown false over a compacted image,
+repaired as `IdxCRepN` with readers unaffected, proved; round 3's bucket shape refuted, the job's
+`entsCutAt` in its place; the rebuild's pure theorem stated, not proved; two more facts found: the
+writer's receipts, Q8, and the view's widening); A2 by the backend's nil arm (`bt_lockInNil`
+proved); Q7's premise drafted at the request and the committed log; the Q2 list at 37 items, marked
+approvable now or waiting). Before: **review round 3 repaired** ("After review round 3", the last section: the
 image's compaction records and the generalized `store.restore`, the scheduler's payload, the second
 tier; the Q2 list complete at 26 items; Q7 for the user: Q5 (a) fails in a `Compact(0)` corner). Before:
 **step 2 drafted** ("Step 2: restore in compaction mode", the last section:
@@ -1329,3 +1335,223 @@ would be, if its re-proof needed a new bbolt fact).
   sits (the compaction arm's request, or the apply model) and how #8 discharges `c ≤ c'` from it.
 - **The snapshot track's statements** (Q2 items 15, 16, 21, 22, 25) stay drafts: the collaborator
   switches them, ideally when proving SNAPSHOT-SORRY #8. Everything else M2 switches itself once approved.
+
+## After review round 4 (2026-10-30)
+
+The report: `notes/spec-first-study/m2-storage-review-4.md` (on `f3282099c3`; A1, A2, S1-S6),
+committed on its own (`f4194ecc72`). This is step 2's second repair; the next review is its third
+and last round. Per the plan's Review step, this repair settles A1/A2 by evidence (proofs and
+counterexamples in Lean), not prose. Commits: `f4194ecc72` (the report), `6e162e38f7` (the index,
+pure), `e39f87edb6` (the records vocabulary, the nil-hook arm, `specR`), `2070c2b8f0` (Q7's vehicle,
+the chain, the leftovers), and this notes commit. Nothing exported, trusted or D22's switched; no
+`axiom`, no `sorry`; no Perennial change; no generated file edited. New Draft modules:
+`mvcc/M2StorageDraftIndex.lean` (pure), `mvcc/M2StorageDraftChain.lean`,
+`etcdserver/M2StorageDraftScope.lean`.
+
+### A1: what was proved, what is missing
+
+**(a) The records, read: proved composable.** The backend vocabulary takes the records `r`
+(mvcc R, "The backend vocabulary with the records"): `metaReadSpecR` (at no record *equal* to
+today's `metaReadSpec rt true`), `keyReadLockedR`, `keyReadSnapR`, `keyReadSnapCR`, `keyCleanReadR`,
+`isKeyBackendGR`, `storeBackendTR`, `restoreViewR` (over the image's bucket `m`), each with its
+`_empty` law, an equation with today's. `restore()`'s two reads over it are **proved**
+(`UnsafeReadFinishedCompact.wp_proofR`, `UnsafeReadScheduledCompact.wp_proofR`: the record, exactly).
+`Restore.specM` (both) now take `storeBackendTR … r` and `keyCleanReadR … (kbRecs … r) r`; the
+off-mode laws are re-proved over them.
+**Missing:** `keyCleanRead_of_backendC` (stated as `mvcc.keyCleanRead_of_backendC_stmt`, the bridge
+law the walk needs: over `storeDlReg` instead of `dlNoDel`, at the records the client's flag stands
+at since the open). Its proof needs one backend fact, backend-internal: `fkOk`'s clause
+`f = n → the state's compaction keys are v` (the merged ghost `fkVD γ w n v`, drafted), set at the
+open from bbolt's data `D` as `fkCl` already is, kept by every operation but a compaction-key put
+(which raises the flag). Expected over the backend's existing bbolt axioms; if the re-proof needs a
+new bbolt fact, that fact is an axiom: the `axiom` skill before Freeze.
+
+**(b) The index over a compacted bucket: today's invariant is false there; repaired, and its pure
+theorem stated.** Evidence, proved in `M2StorageDraftIndex.lean`:
+- **`idxCRep_restore_counterexample`**: log `[[], [], [put a], [del a]]`, compaction at `3`; the
+  bucket keeps only the tombstone; `restoreTombstone` builds `{created 0, ver 1, [3]}`, while every
+  compaction of the log's key index at a level the lock's invariant allows keeps the put or the
+  header `created 2`. So `IdxCRep` (the `RWMutex` resource's `HL`) **cannot hold** after `restore()`
+  over a compacted image, and `idx_publish` (which takes `IdxCRep (-1)`) cannot be used there.
+- **The repair (a modelling choice, internal to mvcc):** compare key indexes up to the header of a
+  generation that is not the last and has one revision (`kiNorm`, `IdxCRepN`), which nothing reads:
+  **`kiGet_kiNorm`** (proved: `kiGet (kiNorm ki) a = kiGet ki a`, the scan never stops at such a
+  generation); `IdxCRepN_of` (today's gives it), `cx_idxCRepN` (it holds in the counterexample).
+- **`bucketThinnedAt_counterexample`**: round 3's shape (any deletable subset missing) admits a
+  bucket (revision 3 of three puts gone, revision 2 kept) whose rebuilt index answers a read *at the
+  compaction revision* with version 2 where the log's says 3. Replaced by **`entsCutAt`**: per key, a
+  prefix of its entries deletable at `c` removed (the job deletes from revision 0 up; `KeyDel` is
+  monotone in `c`, so a finished earlier compaction's deletions are of the same shape).
+- **`cx3_not_compacted`**: a job's batch boundary between two changes of one key in one revision
+  leaves an index no level gives, even up to headers: the premise **`KeyOnceAt`** (each key changed
+  once per revision up to `c`; etcd's `checkIntervals`). A new apply-side premise, like
+  `irrNoDelPut`: in `keyImageM`, from the request shape.
+- **`idxRestore_cutStmt`** (drafted, **not proved**): over `entsCutAt`, `KeyOnceAt`, the rebuilt index
+  is `IdxCRepN c`. Its route is in the docstring (per key, the first surviving entry is `restore`d
+  with the generation's create revision and version: `KvMatch`; compaction commutes with the later
+  events: `kiCompact_kiPut`, `kiCompactO_step`; `kiNorm` too). Pure, no trust base. The whole-bucket
+  case is proved (`idxRestore_full_N`).
+
+**(c) Two further facts the evidence found (not in the report).**
+- **Receipts.** `idxWriter` holds a time receipt per change (`⧗ (logCh ilog)`, D19b), which today's
+  restore refills from the rebuild (one step per change: the whole bucket has one entry per change).
+  Over a compacted image the rebuild takes one step per *surviving* entry (`revProt`'s
+  `⧗ ents.length`), so the restored writer's receipts cannot be had. Drafted: `restoreBoundM`
+  (on: `logCh L' < receiptBound`, a premise of `Restore.specM` from the apply side), `specR`'s
+  disjunctive premise (the whole bucket or the bound), and `restoreDone`'s `⧗ ents.length`. The
+  writer's handle then counts receipts from the last restore (internal). **Q8 below.**
+- **The view.** `restore_finish` gives the store's writer `bucketView … (bucketMap L')` (the log's
+  bucket: the job's deletions leave the view, only reads miss them). The image's backend view is
+  `bucketOfEnts ents`. Needed: a backend law at the open widening the view over keys the
+  registration (`storeDlReg`) marks deletable (`kbView_widen`; backend-internal, ghost; not drafted).
+
+**(d) `store.restore.specR`: redrafted; the off-mode law proved; the WP proof not.**
+`specR` takes the records vocabulary, the image's entries (`entsCutAt`, `KeyOnceAt`), the index's
+lower bound `crevLb γ.idx r.crev`, the receipts' disjunction; its post goes through `resumeK` to
+`restoreDone` (a receipt per entry). **`spec_of_specR`** (proved): at no record and the whole
+bucket it gives today's `store.restore.spec`. **`wp_proofR` is not proved**: the proof is today's
+(`store__restore.lean`, 774 lines) with the reads above (proved) and the found branch's lock round;
+what blocks it is the index: `idx_publish` takes `IdxCRep (-1)`, so the proof needs the switch of
+`idxLockInv`'s `HL` to `IdxCRepN` (internal; every reader's use of `HL` goes through
+`IdxCRep.kiAt`/`rangeAt`, to be re-proved over `kiGet_kiNorm`) and the pure `idxRestore_cutStmt`.
+Neither is a backend or bbolt fact; nothing here touches the trust base.
+
+**(e) `Restore.specM`'s premises in the records form, as the walk can build them:** the image by
+`restoreImageM` (the entries of the job's shape, `kbRecs`, `fkVM`, `recsOk`, `recsPos`, `entsCutAt`,
+`NoDelPutAt`, `KeyOnceAt`) from `keyImageM` (the apply side's) and the backend's `fkOpenD`; the
+contract and clean read at the records from the bridge (`storeBackendT_of_backendC` at `r`,
+`keyCleanRead_of_backendC`); the unset hook (A2); `restoreBoundM` (Q8).
+
+### A2: the resumed compaction runs no hook
+
+- `resumeCsM`/`resumePostM` are gone. **`resumeHookM d' r`**: on and resuming, the new backend's
+  unset hook (`kbHookNil`: the client's half `plHook γB func.nil`, which the walk holds as `HnH`
+  until `hSTP`, `SnapApplyWalk.lean:428`), lent and given back. `Restore.specM` lost `f Pre Q Post`.
+- **The store-level nil-hook law:** `lockNilSpec` (the clause `batchTxSpecG` gains at the switch:
+  `LockInsideApply` with the unset hook gives the lock, `W` and the batch lock's invariant `P`
+  itself). **`bt_lockInNil` (proved)** from the backend spec's nil arm, as `bt_lockIn` from the hook
+  arm; the bridge passes it through at the switch. At the chain: `lockCtxM`/`lockBackM` (the
+  critical section by the hook's state) in `updateCompactRev.specR`/`compactLockfree.specR`.
+- **The batch-lock invariant survives** (checked): the server's `P` is `batchLockInv γ TM`; with no
+  hook, `LockInsideApply` hands it to the critical section unchanged (`Q := Pk ∗ Pre`), the resumed
+  `UnsafeSetScheduledCompact` writes a compaction key (not one `metaTM` tracks), and `Unlock` takes
+  `P` back: no update, so no `Pre`/`Q` from the walk. In Go the skipped hook only would have raised
+  `consistentIndex` to the applying index; `SetBackend` reset it to `0` and
+  `UnsafeUpdateConsistentIndex` skips `0` (`cindex.go:123-129`, `schema/cindex.go:69-73`), so the
+  stored index is untouched, as the model's pass-through says.
+
+### Round 3's leftovers and round 4's second tier
+
+- **S2.1 (`isFifo` pins `pay`)**: required at the switch, stated in the schedule Draft
+  (`SchedNamesD`'s and `Stop.specD`'s docstrings: as drafted over the extension, `Stop.specD` is
+  unprovable; with `pay` a field of `SchedNames`, `fifoCtxDesc` is over the same names). No Lean
+  pin is expressible before the field moves. Item 19 says "required".
+- **S2.2 (`γx`'s home)**: `PhysNames` gains `sx` (fresh per scheduler), `physOk`'s conjunct
+  `stopPayAt p.sx γ.sch o`; **`stopPayAt_done` (proved)**: with the scheduler's payload, a job learns
+  the stop channel of *its* objects is closed.
+- **S3 (round 3's S2.1/S2.2 as Lean)**: `M2StorageDraftChain.lean`: `compactJobPreR`,
+  `store.Compact.specR` (item 17), `updateCompactRev.specR`, `compactLockfree.specR`, and
+  **`mvcc_NewStore_backend_cmpR` (proved over `NewStore.specD`, item 24)**. The chain's re-proof over
+  `storeStopR` is the switch's (the per-read invariant opening; mechanical).
+- **S2.5 (`StoreNames.cm`)**: `StoreNamesD` with `withPhysD` (keeps `cm`, `rfl`), `cmTie`,
+  `cmTie_withPhysD`, `restoreRightMC_eq` (proved).
+- **S1 (Q7 drafted)**: below. `crevOf` (the KV model's compaction revision) is the apply side's and
+  not defined here; named in item 21.
+- **S4 (clarity)**: `r.crev < L.length` dropped (`recsOk_crev_lt`, proved); `fkV`/`fkOpenD` merged
+  into one ghost at one type (`fkVD`, `fkVM`, `fkOpenD`); `restoreRightPostM` renamed `storeCloserM`
+  (also in the etcdserver Draft).
+
+### Q7's premise: where it sits (drafted, `etcdserver/M2StorageDraftScope.lean`)
+
+- **How `kvRaftOf` models proposals**: a fold of the committed raft entries (`kvRaftSt`,
+  `KVModelDefs.lean:372`), each decoded and dispatched; a compaction entry adds no revision. The
+  apply side's invariant of the committed entries in compaction mode is `plainLogC` (every plain
+  entry a plain request or `compactPropOk`, `CompactMode.lean`): the vehicle.
+- **The request**: `EtcdServer.Compact.specD` = today's with `1 ≤ r`, marked as M2's scope
+  restriction; **`compactableOk_serverD` (proved)**: the compactor's permits carry `0 < r`
+  (`revPermit`, `perPermit`), so its statement is `compactableOk_server`'s, unchanged.
+- **The log**: `compactPropOkD` (`1 ≤ r`) in `plainEntryCD`/`plainLogCD`;
+  `compactPropOkD_irrCompaction` (Compact's proposal makes it); **`plainLogCD_compaction_pos`
+  (proved)**: every committed compaction is at `≥ 1`.
+- **The storage side**: `recsPos` in `keyImageM`/`restoreImageM`; **`recsPos_crev` (proved)**: the
+  restored revision is `-1` or `≥ 1`, so #8's `c ≤ r.crev` is `crevOf_mono` without a corner. Not in
+  `store.Compact.spec`, not in `Restore.specM`.
+
+### Statements for the user's approval (Q2), complete after round 4
+
+Each: the statement; the drafted text; step; D22's (snapshot track: the collaborator switches it) or
+not; axiom-backed or not. **[now]**: the user can approve it now; **[waits]**: on what. "mvcc R" =
+`mvcc/M2StorageDraftRestore.lean`, "Index" = `mvcc/M2StorageDraftIndex.lean`, "Chain" =
+`mvcc/M2StorageDraftChain.lean`, "Scope" = `etcdserver/M2StorageDraftScope.lean`; the others as in
+round 3's list. None is axiom-backed unless said.
+
+1-3, 5-14: unchanged from round 3's list (step 1; converged in round 3). **[now]**
+4. `mvcc.store.Compact.spec` / `mvcc_store_Compact`: the step-2 text is Chain's `store.Compact.specR`
+   (Supply's supply line and item 17's right). **[now]** (text; the chain's re-proof at the switch).
+15. `mvcc.store.Restore.spec`: mvcc R's `store.Restore.specM` (records vocabulary, `resumeHookM`,
+    `restoreBoundM`). Step 2. **D22's.** **[waits]** on 32 (the index), Q8 (receipts), 37 (the view).
+16. `mvcc.watchableStore.Restore.spec`: `watchableStore.Restore.specM`. **D22's.** **[waits]** as 15.
+17. The compaction chain: Chain's `updateCompactRev.specR`, `compactLockfree.specR`, `compactJobPreR`
+    (internal), with item 4. Not D22. **[now]**
+18. `mvcc.store.restore.spec` (internal, proved today): mvcc R's `store.restore.specR`
+    (`spec_of_specR` proved). Not D22. **[waits]** on 32.
+19. `schedule` (round 3's list), with `pay` a field of `SchedNames` **required** (S2.1). **[now]**
+20. `wsCloserR_of_wsCloser` (mvcc R). **[now]**
+21. **D22's** (round 3's items 1-9), with round 4's changes: `specSnap`'s `hkI : keyImageM` (now
+    `recsPos`, `entsCutAt`, `KeyOnceAt`), its `restoreBoundM` premise (Q8), `c` the closer's
+    revision `crevOf A` (S1: the KV model's compaction revision, the apply side's, not defined); the
+    walk builds `restoreImageM` from `hkI`, `fkCl`, `fkOpenD`, the contract and clean read at the
+    records from `storeBackendT_of_backendC`/`keyCleanRead_of_backendC`, and lends `HnH` as
+    `resumeHookM` (no server contract). **[waits]** with 15.
+22. `NewServer.spec`/`specCompact`'s `srvKVCloserM s E (-1)`. D22's predicate. **[now]**
+23. `mvcc.store.Close.spec`: `store.Close.specM` over `storeCloserM`. **[now]**
+24. Export `mvcc_NewStore_backend_cmp`'s post: Chain's `mvcc_NewStore_backend_cmpR` (proved). **[now]**
+25. `mvcc.isWatchableStore_withPhys` (D22's): no change with 26. **D22's.** **[now]**
+26. `mvcc.StoreNames.cm`: mvcc R's `StoreNamesD`, `cmTie` (internal). **[now]**
+27. **The backend vocabulary with the records** (round 4's S6.1; used by D22's `Restore.specM` and
+    walk, so not switch-internal): `metaReadSpecR`, `keyReadLockedR`, `keyReadSnapR`, `keyReadSnapCR`,
+    `keyCleanReadR`, `isKeyBackendGR`, `storeBackendTR`, `restoreViewR` (mvcc R; each `_empty` =
+    today's). Step 2. Snapshot track uses it. **[now]**
+28. `UnsafeReadFinishedCompact.spec`/`UnsafeReadScheduledCompact.spec` over the records (`specR`,
+    proved; internal). **[now]**
+29. The records: `CmpRecs` (`crev`, `resumes`), `kbRecs`, `recsOk`, `recsPos`, and the backend's merged
+    ghost `fkVD`/`fkVM`/`fkOpenD` with `fkOk`'s records clause (the backend's, proved over bbolt's data
+    as `fkCl`). **[now]** for the vocabulary; axiom-backed only if the backend's re-proof needs a new
+    bbolt fact (then the `axiom` skill).
+30. **`keyCleanRead_of_backendC`** (new exported bridge law; mvcc R's `_stmt`). Snapshot track uses it.
+    **[waits]** on 29's backend clause.
+31. **The nil-hook law**: `lockNilSpec` as `batchTxSpecG`'s clause, `kbHookNil`, `resumeHookM`,
+    `lockCtxM`/`lockBackM` (mvcc R, Chain); `bt_lockInNil` proved from the backend's existing spec.
+    Not axiom-backed. **[now]**
+32. **The index over a compacted bucket** (internal): `idxLockInv`'s `HL` over `IdxCRepN`/`kiNorm`
+    (Index), `entsCutAt` in place of `bucketThinnedAt`, `idx_publish` at `r.crev`. **[waits]** on
+    `idxRestore_cutStmt`'s proof (pure, no trust base).
+33. `KeyOnceAt` (Index): a new premise of the image, the apply side's (from the request shape, as
+    `irrNoDelPut`). Snapshot track's `specSnap`. **[now]** (the premise; its source is the apply side's)
+34. `γx`'s home: `PhysNames.sx`, `physOk`'s `stopPayAt` (mvcc R; internal). **[now]**
+35. **The Q7 premise** (Scope): `EtcdServer.Compact.spec`'s `1 ≤ r`, `compactPropOkD` in `plainLogC`,
+    `recsPos` in `keyImageM`. M2's scope restriction (`issues/etcd-restore-scheduled-compact-zero.md`).
+    **[now]**
+36. `restoreBoundM` (mvcc R): **[waits]** on Q8.
+37. `kbView_widen` (backend, at the open): not drafted. **[waits]**
+
+37 items; D22's: 15, 16, 21, 22, 25 (and 27, 30, 33 used by them). Approvable now: 1-14, 17, 19, 20,
+22-29, 31, 33-35. Waiting: 15, 16, 18, 21, 30, 32, 36, 37.
+
+### Questions for the user
+
+- **Q8, receipts for a compacted image** (found by drafting `specR`): the index writer's receipt per
+  change cannot be refilled when `restore()` rebuilds from fewer entries than the log has changes.
+  (a) **the bound from the apply side**: `logCh L' < receiptBound` a premise of `specSnap` (the
+  committed log's changes below the bound: an invariant of the KV model, or a scope premise as the
+  `2^48` bound is), and the writer's handle counts receipts from the last restore (internal to mvcc;
+  recommended); (b) a configuration bound only (the server's total changes below `receiptBound`, a
+  scope premise of M2 stated at `NewServer`); (c) drop the receipt device for the index writer in
+  favour of a pure bound carried in `IdxWf` (D19b reversed; larger).
+
+### Checked
+
+- `etc/lean-check.py -a` on every changed or new Draft.
+- Targeted `lake build` of the 15 Draft modules (7148 jobs, no error).
+- No `axiom`, no `sorry` in any Draft (grep).
+- Full `lake build` of the last commit: below.
