@@ -138,8 +138,20 @@ theorem Replica.run.wp_proof
       wp_apply wp_IsEmptySnap rdv.Snapshot' DFrac.discard none $$ [$Hraft] as %b2 ⟨%Hb2, -⟩
       · unfold snapOpt; ipureintro; exact Hnull
       subst Hb2
+      simp only [Option.elim]
       try wp_auto
-      sorry
+      wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$Hraft $Hhs]
+      ihave Hmeta : iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs') $$ [Hmeta]
+      · iexists hs; iexact Hmeta
+      try wp_auto
+      try wp_if_destruct
+      all_goals try (icases Hmeta with ⟨%hs0, Hmeta⟩
+                     wp_apply Storage.wp_SetHardState wp_SetHardState st ρ.ms ρ.γs hs0 rdv.HardState' h
+                       $$ [$HstRec $Hraft $Hmeta $Hhs] as Hmeta
+                     ihave Hmeta : iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs') $$ [Hmeta]
+                     · iexists h; iexact Hmeta
+                     try wp_auto)
+      all_goals sorry
     | some l =>
       sorry
   iapply BigAndL.bigAndL_cons.2
