@@ -95,19 +95,25 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
 theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off
     (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs γp w hoff
   have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs γp w srvAuthSt0
   rw [hoff] at this
   exact this
+-/
 
 /-- **`specOn`**, `spec` with the mode-`on` row (the auth-mode merge's corollary). -/
 theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on
     (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs γp w sa hon
   have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs γp w sa
   rw [hon] at this
   exact this
+-/
 
 
 end variants

@@ -513,6 +513,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The apply thread's auth row with auth on, opened** (see the file header). -/
 theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)

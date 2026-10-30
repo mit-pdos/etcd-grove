@@ -43,6 +43,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (v : w64)
     (L : mvcc.Log) :
@@ -186,6 +187,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's atomics in the mode `on`** (`srvAtomics` at `false`): the applied index's
 invariant over the mode's model (`srvAppliedInvM`) and the KV invariants in the mode
