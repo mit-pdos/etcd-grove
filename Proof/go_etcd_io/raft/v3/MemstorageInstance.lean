@@ -40,15 +40,15 @@ class MemStorReg (GF : BundledGFunctors) where
   memStorRegName : GName
 
 /-- A storage's names, as the registry records them. -/
-abbrev MemStorNamesRec := GName × GName × GName × GName × GName × GName × GName × GName
+abbrev MemStorNamesRec := GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk)
+  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk, γs.sl, γs.pr)
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2 := by
   cases γs1; cases γs2
   simp only [MemStorNames.tuple, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 section model
@@ -415,9 +415,14 @@ theorem memStorage_isStorageP
     imodintro
     iintro %Φ ⟨#Hc, #Hesu⟩ HΦ
     ihave #Hc := memStorCompacted_to ms γs c $$ Hreg Hc
-    wp_apply wp_Snapshot ms γs J c esu $$ [$Hinv $Hc $Hesu] as %snap %err Hres
+    wp_apply wp_Snapshot ms γs J c false esu $$ [$Hinv $Hc $Hesu] as %snap %err ⟨-, Hres⟩
+    · iempintro
     iapply HΦ
-    iexact Hres
+    icases Hres with (%H | ⟨%H, %sv, Hs, %Hsv, Hv⟩)
+    · ileft; ipureintro; exact H
+    iright
+    iframe
+    ipureintro; exact ⟨H, Hsv.1⟩
   isplitr
   · iintro !> %c #Hc
     ihave #Hc := memStorCompacted_to ms γs c $$ Hreg Hc

@@ -475,7 +475,10 @@ namespace EtcdGrove
 #print axioms memSnap_take
 #print axioms memSnap_put
 #print axioms memSnap_update
-#print axioms memSnapExact_agree
+#print axioms memSnapNone_open
+#print axioms memSnapNone_lb
+#print axioms memSnapNone_empty
+#print axioms memSnapLb_mono
 #print axioms Membership.Valid.snapListsOk'
 
 end EtcdGrove

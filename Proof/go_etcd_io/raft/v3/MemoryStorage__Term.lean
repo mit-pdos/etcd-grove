@@ -99,7 +99,7 @@ theorem MemoryStorage.Term.wp_proof
     try wp_auto
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]
     · unfold memstorageInv
       iexists p, ents, M, sv
       simp only [named]
@@ -161,7 +161,7 @@ theorem MemoryStorage.Term.wp_proof
       rfl
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]
   · unfold memstorageInv
     iexists p, ents, M, sv
     simp only [named]

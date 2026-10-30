@@ -291,7 +291,7 @@ theorem MemoryStorage.Append.wp_proof
       ipureintro; exact ⟨Hd0i, Hd0t'⟩
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hf' Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hf' Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]
     · unfold memstorageInv
       iexists p, (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest), M2, sv
       simp only [named]
@@ -325,7 +325,7 @@ theorem MemoryStorage.Append.wp_proof
       ipureintro; exact ⟨Hd0i, Hd0t'⟩
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hf' Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hf' Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]
     · unfold memstorageInv
       iexists p, (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest), M2, sv
       simp only [named]

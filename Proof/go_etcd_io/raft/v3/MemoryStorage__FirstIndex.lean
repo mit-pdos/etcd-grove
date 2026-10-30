@@ -75,7 +75,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
   wp_apply wp_MemoryStorage_firstIndex _ _ Hpb $$ [$Hf] as %fi ⟨%Hfi, Hfields_inv⟩
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfields_inv Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfields_inv Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]
   · unfold memstorageInv
     iexists p, ents, M, sv
     simp only [named]

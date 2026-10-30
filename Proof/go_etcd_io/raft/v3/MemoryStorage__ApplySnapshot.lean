@@ -2,7 +2,8 @@
 `0` or frozen in the map, so below the caller's owned range from `j ≤ s` (`s` the argument's index):
 the out-of-date test fails. The caller's range is deleted from the map, the dummy at `s` inserted
 frozen, the end moved to `s + 1`, the compaction point to `s` (registered with `J.B s`), and the
-snapshot replaced by the clone (taken out of its home with the lock's key). -/
+snapshot replaced by the clone (taken out of its home with the lock's key), its index's authority
+raised to `s` (kvreconf-snapshot-thread, 2026-10-30: `memSnapLb γs s`, no client snapshot half). -/
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
@@ -63,8 +64,10 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs J j old sp dq sv sv0 eood Hjs Hs61
-  wp_start as ⟨#Hsi, Hold, Hend, #HB, #HSV, #HDL, Hsnap, Hsx, #Herr⟩
+  intro ms γs J j old sp dq sv eood Hjs Hs61
+  wp_start as ⟨#Hsi, Hold, Hend, #HB, #HSV, #HDL, Hsnap, #Hlb0, #Herr⟩
+  iunfold memSnapLb at Hlb0
+  icases Hlb0 with ⟨-, #Hpr⟩
   iunfold memStorInvP at Hsi
   icases Hsi with ⟨#Hlock, #HB0, #Hjinv⟩
   ihave #Hsi : memStorInvP ms γs J $$ []
@@ -80,14 +83,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%p, %ents, %M, %sv1, Hinv⟩
+  icases Hinv with ⟨%p, %ents, %M, %sv0, Hinv⟩
   iNamedSuffix Hinv "_inv"
   -- the ghost facts: the end, the snapshot's half, the dummy and the stored snapshot below `j`
   iunfold memEnd at Hend
   icases Hend with ⟨Hen, Hek⟩
   icases ghostVar_agree γs.en _ _ _ _ $$ Hen Hen_inv with %He
-  icases memSnapExact_agree γs sv0 sv1 $$ Hsx Hsx_inv with %Hsv0
-  subst Hsv0
   iunfold memLog at Hold
   icases Hold with ⟨Hold, %Holdb⟩
   icases Hd0_inv with ⟨%e0, #He0, %He0t⟩
@@ -178,8 +179,9 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
       with ⟨Hen, Hen_inv⟩
     imod mono_nat_own_update (uint.nat sv.Metadata'.Index') (by omega) $$ Hcp_inv with ⟨Hcp, #Hcplb⟩
     imod memCompJust_register ms γs J (uint.nat sv.Metadata'.Index') ⊤ HN $$ Hsi HB with #Hcjn
-    iunfold memSnapExact at Hsx
-    imod memSnap_update γs sv0 sv0 sv0 sv $$ Hsx Hsx_inv Hsxh with ⟨Hsx, Hsx_inv, Hsxh⟩
+    imod memSnap_update γs sv0 sv0 sv $$ Hsx_inv Hsxh with ⟨Hsx_inv, Hsxh⟩
+    imod mono_nat_own_update (uint.nat sv.Metadata'.Index') (by omega) $$ Hsl_inv with ⟨Hsl_inv, #Hslb⟩
+    iclear Hsn_inv
     imod memSnap_put ms γs J ⊤ HN $$ Hsi [Hhk Hsnapshot Hp' Hsxh] with Hlk
     · iunfold memSnapHome
       iframe Hhk
@@ -203,7 +205,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hsl_cap Hcs_firstIndex
-      Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog Hen_inv Hcp Hsx_inv Hlk]
+      Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog Hen_inv Hcp Hsx_inv Hsl_inv Hlk]
     · unfold memstorageInv
       iexists entryID.mk sv.Metadata'.Term' sv.Metadata'.Index', [], _, sv
       simp only [named, List.length_nil, Nat.add_zero]
@@ -223,7 +225,9 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
           inext
           iapply entsBig_nil
         ipureintro; exact ⟨rfl, rfl⟩
-      iframe Hlog Hen_inv Hcp Hsx_inv Hlk Hcjn
+      iframe Hlog Hen_inv Hcp Hsx_inv Hsl_inv Hlk Hcjn
+      isplitr
+      · iright; iexact Hpr
       isplitr
       · iexists memDummy sv
         iframe Hd
@@ -253,8 +257,8 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
       ipureintro; right; simp only [List.length_singleton]; omega
     isplitl [Hen Hek]
     · iunfold memEnd; iframe Hen Hek
-    iunfold memSnapExact
-    iexact Hsx
+    iunfold memSnapLb
+    iframe Hpr Hslb
 
 end proof
 

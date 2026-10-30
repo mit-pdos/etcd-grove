@@ -33,8 +33,8 @@ theorem MemoryStorage.Compact.wp_proof
     (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs J ci sv0 ecomp Hxs
-  wp_start as ⟨#Hsi, #Hpre, #HB, Hsx, #Herr⟩
+  intro ms γs J ci ecomp
+  wp_start as ⟨#Hsi, #Hpre, #HB, #Hlbx, #Herr⟩
   iunfold memStorInvP at Hsi
   icases Hsi with ⟨#Hlock, #HB0, #Hjinv⟩
   ihave #Hsi : memStorInvP ms γs J $$ []
@@ -49,10 +49,14 @@ theorem MemoryStorage.Compact.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%p, %ents, %M, %sv, Hinv⟩
+  icases Hinv with ⟨%p, %ents, %M, %sv0, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  icases memSnapExact_agree γs sv0 sv $$ Hsx Hsx_inv with %Hsv0
-  subst Hsv0
+  -- `ci` is at most the stored snapshot's index
+  ihave %Hxs : ⌜uint.nat ci ≤ uint.nat sv0.Metadata'.Index'⌝ $$ [Hsl_inv]
+  · iunfold memSnapLb at Hlbx
+    icases Hlbx with ⟨#Hlb, -⟩
+    icases monoNatLbOwn_valid _ _ _ _ $$ Hsl_inv Hlb with %H
+    ipureintro; exact H.2
   ihave #Hcplb := monoNatLbOwn_get _ _ _ $$ Hcp_inv
   have Hok := Hok_inv
   have Hpb : uint.Z (memPhys p ents).prev.index' + ((memPhys p ents).ents.length : Int) < 2^61 := by
@@ -80,7 +84,7 @@ theorem MemoryStorage.Compact.wp_proof
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv
-      Hsx_inv Hlk_inv]
+      Hsx_inv Hsl_inv Hlk_inv]
     · unfold memstorageInv
       iexists p, ents, M, sv0
       simp only [named]
@@ -95,7 +99,6 @@ theorem MemoryStorage.Compact.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; right; rfl
-    iframe Hsx
     iunfold memCompacted
     iright
     isplitr
@@ -242,7 +245,7 @@ theorem MemoryStorage.Compact.wp_proof
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState_1 Hents_f_1 Hes'_cap Hcs_firstIndex_1
-    Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1 Hlog_inv Hen_inv Hcp Hsx_inv Hlk_inv]
+    Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1 Hlog_inv Hen_inv Hcp Hsx_inv Hsl_inv Hlk_inv]
   · unfold memstorageInv
     inext
     iexists entryID.mk e.Term' ci, ents.drop (uint.nat ci - uint.nat p.index'), M, sv0
@@ -262,7 +265,7 @@ theorem MemoryStorage.Compact.wp_proof
     isplitl [Hen_inv]
     · iExactEq Hen_inv
       rw [Hend]
-    iframe Hcp Hsx_inv Hlk_inv Hcjn
+    iframe Hcp Hsx_inv Hsl_inv Hsn_inv Hlk_inv Hcjn
     isplitr
     · iexists e
       isplitl []
@@ -275,7 +278,6 @@ theorem MemoryStorage.Compact.wp_proof
   iapply HΦ
   isplitr
   · ipureintro; left; rfl
-  iframe Hsx
   iunfold memCompacted
   iright
   iframe Hcplb'

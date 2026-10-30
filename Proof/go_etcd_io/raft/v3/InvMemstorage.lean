@@ -460,13 +460,26 @@ theorem memSnapNone_open (γs : MemStorNames) :
   imodintro
   iframe Hsl Hpr
 
+/-- While no snapshot is stored yet, the lock's stored snapshot is the empty one (`Snapshot`). -/
+theorem memSnapNone_empty (γs : MemStorNames) (b : Bool) (sv : SnapshotM) :
+    (if b then memSnapNone (GF := GF) γs else emp) ∗ (⌜sv = memSnapEmpty⌝ ∨ monoNatLbOwn γs.pr 1) ⊢
+      (if b then memSnapNone γs else emp) ∗ ⌜b = true → sv = memSnapEmpty⌝ := by
+  iintro ⟨H, (%Hs | #Hpr)⟩
+  · iframe H; ipureintro; intro _; exact Hs
+  cases b
+  · iframe H; ipureintro; intro h; cases h
+  · simp only [if_true]
+    unfold memSnapNone
+    icases monoNatLbOwn_valid γs.pr 1 0 1 $$ H Hpr with %Hv
+    exfalso; have := Hv.2; omega
+
 /-- No snapshot stored yet and a write's permission contradict. -/
 theorem memSnapNone_lb (γs : MemStorNames) (i : Nat) :
     memSnapNone (GF := GF) γs ∗ memSnapLb γs i ⊢ False := by
   unfold memSnapNone memSnapLb
   iintro ⟨H, -, #Hpr⟩
-  icases monoNatLbOwn_valid γs.pr 1 0 1 $$ H Hpr with %⟨-, H⟩
-  exfalso; omega
+  icases monoNatLbOwn_valid γs.pr 1 0 1 $$ H Hpr with %Hv
+  exfalso; have := Hv.2; omega
 
 theorem memLog_app (γs : MemStorNames) (k : Nat) (dq : DFrac) (a b : List EntryM) :
     memLog (GF := GF) γs k dq (a ++ b) ⊣⊢ memLog γs k dq a ∗ memLog γs (k + a.length) dq b := by

@@ -50,7 +50,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState_f
     Hents_f_f Hents_f Hents_cap_f Hcs_firstIndex_f Hcs_lastIndex_f Hcs_entries_f Hcs_term_f
-    Hcs_snapshot_f Hlog_inv Hen_inv Hcp_inv Hsx_inv Hlk_inv]
+    Hcs_snapshot_f Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]
   · unfold memstorageInv
     iexists p, ents, M, sv
     simp only [named]
