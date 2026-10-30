@@ -46,9 +46,6 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
         [∗list] id ∈ vs, nodeFounderU γ N vs id := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro Hrb Hne Hnd Hnz Hlen
   imod budget_alloc (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
   imod alloc_maps (GF := GF) (K := w64) (V := CfgNames) allNodeIds with ⟨%tab, -, Htab⟩
@@ -91,11 +88,24 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
     · exact Hnz' h'
     all_goals exact GMap.not_elem_of_empty _ h'
   have Hmr : ModeDec γ c0 gd := ⟨Hrn, ⟨Hv.1, Hv.2, Hγm⟩, Hr0⟩
+  -- (raft-final, U7) the read credits' exchange, from every read credit and no receipt
+  imod receipt_zero (GF := GF) with H0
+  imod inv_alloc (N .@ "rdpool") E
+    iprop(∃ (k c : Nat), ⧗ k ∗ rdCred γ.raft c ∗ ⌜2 ^ 64 - 2 ≤ k + c⌝) $$ [Hcr H0] with #Hpool
+  · inext
+    iexists 0, 2 ^ 64 - 2
+    iframe H0 Hcr
+    ipureintro; omega
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
-  · unfold isClusterU clusterInv
-    iframe Hcinv Hinv HspT
-    ipureintro
-    exact ⟨⟨⟨c0, gd, Hmr⟩, Hsl, Hcert, by rw [HbootL]; simp⟩, HNs⟩
+  · unfold isClusterU rdPool
+    isplitr
+    · ipureintro; exact ⟨⟨c0, gd, Hmr⟩, Hsl, Hcert, by rw [HbootL]; simp⟩
+    isplitr
+    · unfold clusterInv
+      iframe Hcinv Hinv HspT
+      ipureintro; exact HNs
+    iframe Hpool
+    ipureintro; exact Hrb
   -- every id's part (raft's ghost state at the initial state, the node table's), into the join
   -- authority; the founders' out of it
   isimp only [Option.isSome_some] at Hnodes
@@ -123,8 +133,6 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
   iframe Hops Hctx Hdc Hja
   isplitr
   · ipureintro; exact Hdup
-  isplitl [Hcr]
-  · unfold readCredits; iexact Hcr
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd
@@ -148,15 +156,12 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
     isplitr; · ipureintro; exact ⟨Hrg, .nil⟩
     imodintro
     iapply (BigSepL.bigSepL_nil).2; iempintro
-  isplitr
-  · unfold leaderTransferOn; ipureintro; exact Hnx
   iapply BigSepL.bigSepL_impl $$ Hfs
   imodintro
   iintro %k %id %_ Hj
   unfold nodeFounderU
   iframe Hj
   ipureintro; exact ⟨Hcfg, ⟨gd, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩
-  -/
 
 end alloc
 
