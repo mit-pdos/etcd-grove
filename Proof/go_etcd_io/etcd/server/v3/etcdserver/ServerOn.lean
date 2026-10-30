@@ -388,7 +388,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM on ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token
+    "Hrunh" ∷ rnRunHalf γn ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
@@ -632,6 +634,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
 theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth.AuthState) :
     kvInvOn (GF := GF) ρ.raft ρ.kv st₀ ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
       clusterWorkloadOkM true ρ E := by
+  sorry
+/- REPAIR-OLD
   iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOkM
   iintro !> %L #HL
@@ -667,6 +671,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   isplitr
   · ipureintro; exact HshL
   iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL $$ HclL HNZ HL
+-/
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
@@ -682,11 +687,14 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     (x₀ : apply.ApplyKV) (γw : RNNames) (st₀ : auth.AuthState)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
-    (hcap : 1 ≤ γw.γs.cap)
+    -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
+    -- cluster, its decoder; and the storage's cap)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInvOn (GF := GF) ρ.raft ρ.kv st₀ ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOkM true ρ E ⊢
       rnEnvOk (srvErM true ρ E ai₀ c₀ x₀ id S) γw := by
+  sorry
+/- REPAIR-OLD
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvErM
   simp only
@@ -736,21 +744,26 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     ipureintro
     rw [hai0]; exact Hc.1
   · ipureintro; trivial
+-/
 
 /-- **The server's raft environment meets the wrapper's discharge in the auth mode `on`**. -/
 theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (γw : RNNames)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
-    (hcap : 1 ≤ γw.γs.cap)
+    -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
+    -- cluster, its decoder; and the storage's cap)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInvM (GF := GF) on ρ.raft ρ.kv srvAuthSt0 ∗ srvRaftLogInv ρ.raft ∗
         clusterWorkloadOkM on ρ E ⊢
       rnEnvOk (srvErM on ρ E ai₀ c₀ x₀ id S) γw := by
+  sorry
+/- REPAIR-OLD
   cases on
   · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ γw hraft hpre hai hai0 hdec hcap id S hid
   · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ γw srvAuthSt0 hraft hpre hai hai0 hdec hcap id S hid
+-/
 
 /-- **The certificates' invariant in the mode `on`** (`kvCertInv_alloc`'s). -/
 theorem kvCertInvOn_alloc (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)

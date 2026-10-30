@@ -192,6 +192,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) := by
+  sorry
+/- REPAIR-OLD
   letI := srvAnyStor (GF := GF)
   obtain ⟨Hpnd, Hok, Hlen⟩ := idPfxsOf_ok ps Hpd Hp0
   have hboot := srvBootLogOk_of_BootLog ps ctxs boot HB
@@ -298,6 +300,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     unfold idPfxsOf; rw [BigSepL.bigSepL_map]
   rw [← hm]
   iexact Hwns
+-/
 
 /-- **A member's names and share** (D21e (A), stage M4; see the file header): for the member
 `id` of a cluster allocated by `srvClusterBoot_alloc` (its KV names `γk`, its claims' names), the
