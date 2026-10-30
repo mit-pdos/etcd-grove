@@ -539,3 +539,25 @@ user chose to extend client/v3's specs to nested transactions; that is handed to
 (`sorry`; a triple of `Then` with the nested op whose post is the refused `Commit`, so that it does
 not depend on how client/v3 will model a nested op: today's `reqOpAt` of one is `False`). Next:
 `Main`.
+
+## Main: what blocks it (2026-10-30)
+
+Proved: `ak_alloc` (`MainAlloc.lean`): `memberBootOn`, the client's `etcdKV` at an admitted boot
+state (for `akHist_alloc`) and `authHistView … [srvAuthSt0]` (for `SetUp`), from the mode-`on`
+cluster and member allocations. The serve step (`wk_served`'s analog) needs four facts nothing gives:
+
+1. **`watchAddrFacts V` with auth on** (first-tier). Its `srvKVFacts` is `srvKVInvs`, the auth-off
+   KV invariant (`kvInv`), and the watch client's proofs fire the read update through it
+   (`watch_fire`, `raw_to_state`, `WatchFire.lean`; `WatchRun.lean`). An auth-on member has
+   `srvKVInvsOn` only, so `Work.spec`'s premise and `Main`'s two watches cannot be met. Fix: a
+   mode-generic `srvKVFacts` (`srvKVInvsM`) and `watch_fire`/`raw_to_state` over `kvInvOn`/
+   `kvCertInvOn` (G2's follow-up, client/v3).
+2. **`Authenticate`'s registration** in `grpcUpOn`: `v3rpc.authRegs` holds the five admin methods,
+   not `Authenticate` (C1's A5, "Q9"); `etcd_kv_auth_served_onA` takes it as `hreg`.
+3. **The auth store's `BcryptCost()`** (`bcryptCostOk`, a premise of `etcd_kv_auth_served_on(A)`):
+   no spec of `authStore.BcryptCost`, `NewAuthStore`'s post and `memberUpOn` do not export it.
+4. **`ClientCertAuthEnabled = false`** (`SetUp`'s and `Work`'s `□ (srvTLSId s -∗ False)`, by
+   `srvTLSId_false`): `memberUpOn` has the field at an unknown value (`watchSrvOk`'s `cca`), not
+   the config's `false`.
+
+3 and 4 are an export from `NewServer` through `startServer`'s post (`memberUpOn`).
