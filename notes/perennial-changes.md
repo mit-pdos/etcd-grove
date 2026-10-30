@@ -882,3 +882,22 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Workaround here.** `rfl` or `simp` on those goals.
 - **Proposed change.** Find which `word` step produces the ill-typed term on closed goals (or
   have `word` try `decide`/`rfl` first on them); add a test.
+
+### gokv's `trusted_proph` has a trusted model but no spec, and no translation in Perennial
+
+- **Found** (2026-10-30, kvreconf-final, the atomic `Cluster.Read`): Perennial has the trusted
+  model of `github.com/mit-pdos/gokv/trusted_proph`
+  (`Perennial/TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean`: `NewProph`,
+  `ResolveBytes := ResolveProph p (Convert []byte→string b)`), but no Goose translation of the
+  package and no spec of `ResolveBytes`.
+- **Workaround here.** The kvreconf project translates the package (`etc/goose.py`,
+  `Code/github_com/mit_pdos/gokv/trusted_proph.toml`, both functions trusted;
+  `TrustedCode/github_com/mit_pdos/gokv/trusted_proph.lean` re-exports Perennial's model), and the
+  spec is proved here from `wp_bytes_to_string` and `wp_resolve_proph`
+  (`Spec/github_com/mit_pdos/gokv/trusted_proph/ResolveBytes.lean`,
+  `Proof/.../trusted_proph/ResolveBytes.lean`):
+  `{proph p pvs ∗ sl ↦*{dq} s} ResolveBytes(p, sl) {∃ pvs', ⌜pvs = #s :: pvs'⌝ ∗ proph p pvs' ∗ sl ↦*{dq} s}`.
+- **Proposed change.** Translate `trusted_proph` in Perennial (as `primitive`, a `.toml` with the
+  two trusted functions), and add this spec and its proof (`Perennial/Spec/.../trusted_proph/`,
+  `Perennial/Proof/.../trusted_proph/`, with a `Link`), as for `primitive`'s
+  `ProphId.ResolveU64`. Then this repository drops its translation and its copy of the spec.
