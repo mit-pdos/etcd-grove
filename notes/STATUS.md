@@ -16,10 +16,13 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
 
 ### Pins
 
-- **Perennial** `ad74ee4f60a72b32c6bf209e5416d0eb675b1786`, branch `lean` (uniform function
+- **Perennial** `6da88b2802cc6229aef703242d83e21b4adbf044`, branch `lean` (`wp_slice_literal_nonnull`;
+  integers and floats as little-endian bytes, integer atomics as byte atomics, plain types with
+  gc layout, a bounded heap, unsafe conversions; before it, `ad74ee4f6`: uniform function
   results, range over functions and over strings, extensions named in the syntax; goose's `defer`
   and `go` passing a call's arguments by parameter, `min`/`max` at go/types' type, a generic
-  type's method set in its own type parameters; `lakefile.toml`, `lake-manifest.json`); the pin
+  type's method set in its own type parameters; `lakefile.toml`, `lake-manifest.json`; section
+  "Perennial pin `6da88b280`"); the pin
   follows Perennial's `lean` (section "Perennial: the pin follows `lean`" below; CLAUDE.md,
   "Changes to Perennial").
 - **Go projects** (`etc/goose.py`, `PROJECTS`):
