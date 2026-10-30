@@ -2258,11 +2258,13 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       -- (2026-10-19, D21 M3)
       ⌜NsLink γ s⌝ ∗
       -- (D22 S-b′3) the storage's certificate link
-      certLink γ s.gh.sn := by
+      certLink γ s.gh.sn ∗
+      -- (raft-final phase 2) the leader witness and the transfer records' witnesses
+      leadW γ id (toPState s) ∗ xfW γ s := by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl, -, -⟩
+  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl, #Hlw, #Hxw⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
@@ -2270,7 +2272,7 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
   · ipureintro
     exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
       (by rw [Hlrn]; rfl) HC.2
-  iframe Hcl
+  iframe Hcl Hlw Hxw
   ipureintro; exact Hnl
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
@@ -2302,11 +2304,10 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       certLink γ s.gh.sn -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
       snapLocOk γ id s.logst.snap -∗
+      -- (raft-final phase 2) the leader witness and the transfer records' witnesses
+      leadW γ id (toPState s) -∗ xfW γ s -∗
       ownRawNode γ rn id rs := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hlw #Hxw
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -2314,14 +2315,11 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id s $$ [Hghost]
   · rw [Hm]
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-    iframe Hghost Hcl
-    isplitr
-    · ipureintro; exact Hnl
-    ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
+    iframe Hghost Hcl Hlw Hxw
+    ipureintro; exact ⟨Hnl, CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor (Hpvoff.static_fp Hm) Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
-  -/
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
 theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :

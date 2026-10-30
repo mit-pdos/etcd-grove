@@ -1509,7 +1509,9 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       -- (D22 S-b′3) the storage's certificate link
       certLink γ s.gh.sn -∗
       -- (2026-10-26, D22 J2) the pending snapshot's receiver-local fact
-      snapLocOk γ id s.logst.snap -∗ £ 1 ={⊤}=∗
+      snapLocOk γ id s.logst.snap -∗
+      -- (raft-final phase 2) the leader witness and the transfer records' witnesses
+      leadW γ id (toPState s) -∗ xfW γ s -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
   obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
     (applyCCOkC_step (B := 0) _ _ _ _ Hok).resolve_right
@@ -1523,8 +1525,12 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   have Hwf' : NStateWf s' := by
     obtain ⟨-, H1, H2⟩ := Hrel
     exact ⟨by rw [Hsf, Hro]; exact H1, by rw [Htk]; exact H2⟩
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc Hlc
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hlw #Hxw Hlc
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsnap') $$ Hsloc
+  -- (raft-final phase 2) the witnesses across the change (`leadW_applyCC`; `xw` kept)
+  ihave #Hlw' := leadW_applyCC γ Hok $$ Hlw
+  ihave #Hxw' : xfW (GF := GF) γ s' $$ []
+  · iunfold xfW; rw [Hgh]; iunfold xfW at Hxw; iexact Hxw
   ihave #Hcl' : certLink (GF := GF) γ s'.gh.sn $$ []
   · rw [Hgh]; iexact Hcl
   rw [← Hrel.1] at *
@@ -1543,7 +1549,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hloan.keep Hgh (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) Hc)
     (by unfold SdtTie; rw [Hls]; exact Hsdt)
     Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl)
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc'
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc' Hlw' Hxw'
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
@@ -1568,7 +1574,7 @@ theorem wp_rn_raft_applyConfChange
   icombine Hr Hr' gives %Heq
   subst Heq
   icases ownRawNode_static_open γ rs Hm fp ds cf rnv.raft' id s $$ Hphys Hghost with
-    ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl⟩
+    ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl, #Hlw, #Hxw⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   iapply wp_fupd
@@ -1583,7 +1589,7 @@ theorem wp_rn_raft_applyConfChange
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt (Hdom' ▸ Hok)
     (trackedOk_shrink Htrk Hlp Hdom') Hnl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlc with Hrn
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw Hlc with Hrn
   try wp_auto
   imodintro
   iapply HΦ $$ %cs %xs %ls
@@ -1603,7 +1609,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have Hm : rs.mode = .static := Hmd.2 Hst
   iNamed H
   icases ownRawNode_static_open γ rs Hm fp ds cf rnv.raft' id s $$ Hphys Hghost with
-    ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl⟩
+    ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl, #Hlw, #Hxw⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
@@ -1617,7 +1623,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iintro Hphys
   iapply ownRawNode_intro_static γ rn id rs s _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Htrk Hnl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw
 
 /-- `r.applyConfChange(cc)` on the node's raft struct in the dynamic mode (2026-10-15, stage N;
 `node.run`'s `confc` arm): `wp_applyConf_dyn` on `ownRawNode`, the changes read-only. -/
