@@ -1005,7 +1005,7 @@ theorem EtcdServer.apply.wp_proofOn
   ihave #HatM : srvAtomicsM E.authOn s E γr $$ []
   · rw [hAuthOn]; iexact Hat
   ihave #Hkvi : srvKVInvsOn E γr srvAuthSt0 $$ []
-  · rw [← srvKVInvsM_true]; iexact Hkvi
+  · iapply srvKVInvsM_true; iexact Hkvi
   ihave #Hkvi2 := Hkvi
   iunfold srvKVInvsOn at Hkvi2
   icases Hkvi2 with ⟨-, -, #Hrli, -⟩

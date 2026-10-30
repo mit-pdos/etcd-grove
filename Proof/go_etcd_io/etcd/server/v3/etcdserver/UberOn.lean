@@ -54,13 +54,6 @@ instance srvStoreLatest_persistent (s : Loc) (E : apply.AEnv GF)
     (L : List auth.AuthState → IProp GF) : Persistent (srvStoreLatest s E L) := by
   unfold srvStoreLatest; infer_instance
 
-/-- **The server's lessor finds no lease** (persistent; a named premise, see the file header). -/
-def srvLessorNil (s : Loc) : IProp GF :=
-  iprop(∃ le : GoInterface, srvLessorAddr s ↦□ le ∗ apply.lookupNil le)
-
-instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
-  unfold srvLessorNil; infer_instance
-
 /-- **The lessor finds no lease, in the mode `on` only** (the auth-mode merge's step 1,
 2026-10-29): `True` off. -/
 def srvLessorNilM (on : Bool) (s : Loc) : IProp GF :=

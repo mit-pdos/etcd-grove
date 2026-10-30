@@ -37,6 +37,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyRec
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthTie
 
@@ -226,7 +227,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
     (hL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
     (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
-    (hA : apply.Apply.spec (GF := GF) (hG := hG))
+    (hA0 : apply.Apply.spec (GF := GF) (hG := hG))
+    (hUb : apply.uberApplier.Apply.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -238,6 +240,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
+  have hA := apply.Apply.spec_rec hA0 hUb
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A
@@ -950,21 +953,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
     (hL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
     (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
-    (hA : apply.Apply.spec (GF := GF) (hG := hG))
+    (hA0 : apply.Apply.spec (GF := GF) (hG := hG))
+    (hUb : apply.uberApplier.Apply.spec (GF := GF) (hG := hG))
     (hK : apply.Apply.kvSpecL (GF := GF) (hG := hG))
     (hAd : adminEntryOn.spec (GF := GF) (hG := hG))
-    (hRange : apply.authApplierV3.Range.specL (GF := GF) (hG := hG))
-    (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
-    (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
-    (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
-    (hUA : apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG))
-    (hRA : apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG))
-    (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
-    (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
-    (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
-    (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
-    (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
-    (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -976,6 +968,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG) := by
+  have hA := apply.Apply.spec_rec hA0 hUb
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hM
@@ -990,8 +983,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   iunfold srvAtomicsM at Hat'
   icases Hat' with ⟨#Hainv, -, #Hkvi⟩
   ihave #Hmono := appliedMono_of_invM true s E γr $$ Hainv
+  ihave #Huon := srvKVInvsM_uberOn _ _ _ $$ Hkvi
   ihave #Hkvi : srvKVInvsOn E γr srvAuthSt0 $$ []
-  · rw [← srvKVInvsM_true]; iexact Hkvi
+  · iapply srvKVInvsM_true; iexact Hkvi
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
   icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok⟩
@@ -1131,11 +1125,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       · -- an admin request: the auth row's admin steps (`adminEntryOn`), nothing applied
         icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf, #Hlend,
           #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
-        ihave #HUA := srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAu hApplyL hApply s ua E γa stl bel T hM
-          $$ []
-        · isplitr
-          · iPkgInit
-          iframe Hb Hasf Hsteps
+        ihave #HUA := srvUberOn_adm s E γa ua stl bel T hM $$ []
+        · iframe Huon Hb Hasf Hsteps
         iapply wp_fupd
         (try wp_auto)
         wp_apply hAd fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
@@ -1305,11 +1296,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · -- a KV request: the latest-state triple (`kvSpecL`), the verdict at the row's history
           icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf,
             #Hlend, #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
-          ihave ⟨%stl', #Hasf', #HUK⟩ := srv_uberKVL_on hRange hDel hPut hTxn s ua E γa hM
-            $$ []
-          · isplitr
-            · iPkgInit
-            iframe Hb Hlnil
+          ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM $$ []
+          · iframe Huon Hb Hlnil
           icombine Hasf Hasf' gives %Hst
           have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
           subst Hst'
@@ -1446,11 +1434,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
           ihave Hx := apply.adminExtra_authenticate E γa rq hs _ am (ciEff γ st.k) hka ham $$ [HSpA Hfr]
           · iframe HSpA Hfr
-          ihave #HUA := srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAu hApplyL hApply s ua E γa stl bel T hM
-            $$ []
-          · isplitr
-            · iPkgInit
-            iframe Hb Hasf Hsteps
+          ihave #HUA := srvUberOn_adm s E γa ua stl bel T hM $$ []
+          · iframe Huon Hb Hasf Hsteps
           (try wp_auto)
           wp_apply hAd fv.lg e m ua fv.w true E
               iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
@@ -1511,11 +1496,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         obtain ⟨hkv', hfl⟩ := adminKindOk_kinds rq hadm
         icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf, #Hlend,
           #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
-        ihave #HUA := srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAu hApplyL hApply s ua E γa stl bel T hM
-          $$ []
-        · isplitr
-          · iPkgInit
-          iframe Hb Hasf Hsteps
+        ihave #HUA := srvUberOn_adm s E γa ua stl bel T hM $$ []
+        · iframe Huon Hb Hasf Hsteps
         -- (H5) the cap raised to the log with `m`, and the step's cap permission
         have hsaA : srvAuthAtLog γr.kv (auth.bump auth.bootState) A = sa := by
           unfold srvAuthAtLog; rw [show auth.bump auth.bootState = srvAuthSt0 from rfl, ← Hxl]

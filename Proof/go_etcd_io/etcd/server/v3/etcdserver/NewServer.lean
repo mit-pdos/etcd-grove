@@ -103,6 +103,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapsho
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactEnv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberKit
 
 @[expose] public section
 
@@ -231,6 +232,8 @@ theorem NewServer.wp_proofM (on : Bool)
     (h23 : math.Ceil.spec (GF := GF) (hG := hG))
     (h24 : lease.NewLessor.spec (GF := GF) (hG := hG))
     (hTP : authSrvTP (GF := GF) (hG := hG) on)
+    -- (step 6 of the auth-mode merge) what the uber-applier's contracts with auth on are built from
+    (hKit : uberKitM (GF := GF) (hG := hG) on)
     (h26 : mvcc.New.spec (GF := GF) (hG := hG))
     (h27 : newCorruptionChecker.spec (GF := GF) (hG := hG))
     (h28 : mvcc.store.HashStorage.spec (GF := GF) (hG := hG))
@@ -1490,8 +1493,11 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe Hkci Hsrl Hkvinv
       ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
     · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
-      iframe Hkci Hsrl Hkvinv Htie
-      ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
+      isplit
+      · iframe Hkci Hsrl Hkvinv Htie
+        ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
+      · iapply srvUberOn_of_kit hKit
+        iPkgInit
   isplitr
   · ipureintro
     refine ⟨?_, rfl, fun _ => ⟨Int.le_refl _, Hrn6, rfl⟩⟩
@@ -1961,7 +1967,7 @@ theorem NewServer.wp_proof
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   have h := NewServer.wp_proofM false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
-    h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
+    h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h87 h88 h89 h90 h91 h92 h93 h94

@@ -78,7 +78,7 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
     (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
-    srvAppliedInvM on s E γr ∗ srvKVInvsM on E γr ∗ srvCommittedInv s γr ∗
+    srvAppliedInvM on s E γr ∗ srvKVInvsM on s E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
     srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
@@ -340,10 +340,11 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
 
 /-- **The read loop's update with auth on** (`readCompose` at the mode-`on` state function), from
 the KV invariants in the mode. -/
-theorem readCompose_on (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVInvsM (GF := GF) true E γr ⊢ readCompose γr (kvStM true γr.kv) := by
-  rw [srvKVInvsM_true, kvStM_true]
+theorem readCompose_on (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) true s E γr ⊢ readCompose γr (kvStM true γr.kv) := by
+  rw [kvStM_true]
   iintro #Hkvi
+  ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
   iunfold srvKVInvsOn at Hkvi
   icases Hkvi with ⟨#HkvI, -⟩
   iunfold readCompose
@@ -553,11 +554,11 @@ theorem kv_read_logOn (γr : ReadNames) (γs : mvcc.StoreNames) (hγ : γs.cok =
 mode-`on` model of a committed raft log `L`, and raft's witness gives the client's `□ Q L`. -/
 theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (Q : List EntryModel → IProp GF) (g : GName) (l : mvcc.Log) :
-    ⊢ srvAppliedInvM (GF := GF) true s E γr -∗ srvKVInvsM true E γr -∗ readWitAt γr Q g l -∗
+    ⊢ srvAppliedInvM (GF := GF) true s E γr -∗ srvKVInvsM true s E γr -∗ readWitAt γr Q g l -∗
       mvcc.certOk E.γ l -∗ £ 6
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = l⌝ ∗ □ Q L := by
-  rw [srvKVInvsM_true]
   iintro #Hainv #Hkvi #Hw #Hc Hlc
+  ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
   iunfold srvKVInvsOn at Hkvi
   icases Hkvi with ⟨-, #HcI, -, -, %Hcok⟩
   iunfold readWitAt at Hw

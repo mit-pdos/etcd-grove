@@ -59,7 +59,7 @@ abbrev adminEntryOn.spec : Prop :=
     (hs : List auth.AuthState),
     E.authMode = .on γa → apply.noSideEffect rq = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-        Perennial.EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+        Perennial.EtcdGrove.apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestRes stl (.on γa)) ∗
         waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗

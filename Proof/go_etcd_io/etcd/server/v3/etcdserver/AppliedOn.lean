@@ -191,7 +191,7 @@ invariant over the mode's model (`srvAppliedInvM`) and the KV invariants in the 
 def srvAtomicsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(srvAppliedInvM on s E γr ∗
     inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v) ∗
-    srvKVInvsM on E γr)
+    srvKVInvsM on s E γr)
 
 instance srvAtomicsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvAtomicsM (GF := GF) on s E γr) := by

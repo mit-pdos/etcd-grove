@@ -77,7 +77,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     "#Hai" ∷ srvAppliedInvM true s E γr ∗
-    "#Hkvi" ∷ srvKVInvsM true E γr ∗
+    "#Hkvi" ∷ srvKVInvsM true s E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗

@@ -135,6 +135,7 @@ ConfChange__GetId: @
 # The applier (`apply.Apply`): proved in the apply package (`--apply`), linked in its
 # `Link.lean` (`@`; since the apply package's unit 3, 2026-10-12).
 apply_Apply: @
+apply_uberApplier__Apply: @
 # The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: names-only
 # callees (zap, the alarm store, ...).
 pbutil_MustUnmarshalMessage:
@@ -183,7 +184,7 @@ EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply
 # RWMutex, InvGoAttach.lean; the apply thread's alarm goroutine is dead in the model, D19k:
 # NoSpaceDead.lean)
 EtcdServer__GoAttach: EtcdServer__Logger zap_Logger__Warn
-EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach EtcdServer__MemberID
+EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply apply_uberApplier__Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach EtcdServer__MemberID
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
 # The raft wrapper (server/etcdserver/raft.go), see InvRaftNode.lean: raft v3.7's helpers and
 # getters it calls (raft's, linked in raft's Link.lean: `@`), its trust boundary (zap's Duration and Fatal, proto.Clone: names-only), and

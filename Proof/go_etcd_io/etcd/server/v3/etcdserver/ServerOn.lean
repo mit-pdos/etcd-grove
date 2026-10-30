@@ -33,6 +33,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 
 @[expose] public section
 
@@ -300,24 +302,6 @@ instance srvReqBuiltM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ :
 theorem srvReqBuiltM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     srvReqBuiltM (GF := GF) false s E ρ v = srvReqBuilt s E ρ v := rfl
 
-/-- **The apply thread's KV invariants in the auth mode `on`**: `srvKVInvs`, or at `on = true`
-`srvKVInvsOn` from `srvAuthSt0` (the mode's KV and certificates' invariants, and the auth history's
-tie to the log, `authHistTie`). -/
-def srvKVInvsM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  match on with
-  | false => srvKVInvs E γr
-  | true => srvKVInvsOn E γr srvAuthSt0
-
-instance srvKVInvsM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
-    Persistent (srvKVInvsM (GF := GF) on E γr) := by
-  cases on <;> unfold srvKVInvsM <;> infer_instance
-
-theorem srvKVInvsM_false (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVInvsM (GF := GF) false E γr = srvKVInvs E γr := rfl
-
-theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVInvsM (GF := GF) true E γr = srvKVInvsOn E γr srvAuthSt0 := rfl
-
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
 resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
 store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
@@ -359,6 +343,88 @@ instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF)
     Persistent (srvUberBase s ua E) := by
   unfold srvUberBase; infer_instance
 
+/-- **The server's lessor finds no lease** (persistent; a named premise, see `UberOn.lean`). -/
+def srvLessorNil (s : Loc) : IProp GF :=
+  iprop(∃ le : GoInterface, srvLessorAddr s ↦□ le ∗ apply.lookupNil le)
+
+instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
+  unfold srvLessorNil; infer_instance
+
+/-- (step 6 of the auth-mode merge, 2026-10-30) **The server's uber-applier's latest-state `Apply`
+contracts, with auth on** (persistent): for every environment with auth on and every uber-applier
+the server holds (`applySnapshot` replaces it) with its base applier's auth layer (`srvUberBase`),
+its KV contract (`apply.uberKVC`) given that the lessor finds no lease, and its admin contract
+(`apply.uberAdmC`) at every admin row's store, backend and write token. Whoever constructs the
+uber-applier establishes its contract: `NewServer` with auth on (`uberKitM`); `applyEntryNormal`
+reads it (`srvKVInvsM_uberOn`). -/
+def srvUberOn (s : Loc) : IProp GF :=
+  iprop(□ ∀ (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface), ⌜E.authMode = .on γa⌝ →
+    srvUberBase s ua E -∗
+    (srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa))) ∗
+    (∀ (stl bel : Loc) (T : IProp GF), srvAuthStoreAddr s ↦□ auth.authIface stl -∗
+        apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
+          (adminW stl bel (.on γa) E.P E.f T) E.RD -∗
+        apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+          (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+          (auth.latestRes stl (.on γa))))
+
+instance srvUberOn_persistent (s : Loc) : Persistent (srvUberOn (GF := GF) s) := by
+  unfold srvUberOn; infer_instance
+
+/-- **The apply thread's KV invariants in the auth mode `on`**: `srvKVInvs`, or at `on = true`
+`srvKVInvsOn` from `srvAuthSt0` (the mode's KV and certificates' invariants, and the auth history's
+tie to the log, `authHistTie`) with (step 6 of the auth-mode merge, 2026-10-30) the server's
+uber-applier contracts (`srvUberOn s`). -/
+def srvKVInvsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  match on with
+  | false => srvKVInvs E γr
+  | true => iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s)
+
+instance srvKVInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvKVInvsM (GF := GF) on s E γr) := by
+  cases on <;> unfold srvKVInvsM <;> infer_instance
+
+theorem srvKVInvsM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) false s E γr = srvKVInvs E γr := rfl
+
+/-- `srvKVInvsM true`'s KV invariants. -/
+theorem srvKVInvsM_true (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) true s E γr ⊢ srvKVInvsOn E γr srvAuthSt0 := by
+  unfold srvKVInvsM; iintro ⟨#H, -⟩; iexact H
+
+/-- `srvKVInvsM true`'s uber-applier contracts. -/
+theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) true s E γr ⊢ srvUberOn s := by
+  unfold srvKVInvsM; iintro ⟨-, #H⟩; iexact H
+
+/-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`), given that the
+lessor finds no lease. -/
+theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
+    (hM : E.authMode = .on γa) :
+    srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvLessorNil s ⊢
+      ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
+  iintro ⟨#H, #Hb, #Hln⟩
+  iunfold srvUberOn at H
+  ihave ⟨#Hkv, -⟩ := H $$ %E %γa %ua %hM Hb
+  iapply Hkv $$ Hln
+
+/-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
+row's store, backend and write token. -/
+theorem srvUberOn_adm (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
+    (stl bel : Loc) (T : IProp GF) (hM : E.authMode = .on γa) :
+    srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+      apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
+        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
+      apply.uberAdmC ua E (adminW stl bel (.on γa) E.P E.f T)
+        (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+        (auth.latestRes stl (.on γa)) := by
+  iintro ⟨#H, #Hb, #Hf, #Hsteps⟩
+  iunfold srvUberOn at H
+  ihave ⟨-, #Had⟩ := H $$ %E %γa %ua %hM Hb
+  iapply Had $$ %stl %bel %T Hf Hsteps
+
 /-- **The built part's uber-applier row in the auth mode `on`** (E3k): `srvBuilt`'s at `false`
 (by definition), with the base applier's auth layer (`srvUberBase`) at `true`. -/
 def srvUberRowM (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) : IProp GF :=
@@ -382,7 +448,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     "#Hai" ∷ srvAppliedInvM on s E γr ∗
-    "#Hkvi" ∷ srvKVInvsM on E γr ∗
+    "#Hkvi" ∷ srvKVInvsM on s E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗

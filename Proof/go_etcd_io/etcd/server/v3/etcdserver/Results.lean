@@ -1640,9 +1640,7 @@ request's principal** (the auth plan's E2y, `apply/ApplyFnKVL.lean`): the hypoth
 `kv_applied_out_on` through `outcomeOn_of_kvOutL`. -/
 theorem apply_apply_kv_latest :
     EtcdGrove.apply.Apply.kvSpecL (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.Apply.wp_kvL Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage
-    Perennial.EtcdGrove.apply.zap.wp_Stringer Perennial.EtcdGrove.apply.zap.Logger.wp_Debug
-    Perennial.EtcdGrove.apply.wp_noSideEffect apply_uber_apply_kv_latest
+  EtcdGrove.apply.Apply.wp_kvL Perennial.EtcdGrove.apply.wp_Apply
 
 end kvLatest
 
@@ -1722,9 +1720,7 @@ state** (the auth plan's E3c, `apply/ApplyFnAdminL.lean`): a rejected entry's ch
 latest state (`adminStateR_of_rejL`), a dispatched one's passed (`adminOk_of_passL`). -/
 theorem apply_apply_admin_latest :
     EtcdGrove.apply.Apply.adminSpecL (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.Apply.wp_adminL Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage
-    Perennial.EtcdGrove.apply.zap.wp_Stringer Perennial.EtcdGrove.apply.zap.Logger.wp_Debug
-    Perennial.EtcdGrove.apply.wp_noSideEffect apply_uber_apply_admin_latest
+  EtcdGrove.apply.Apply.wp_adminL Perennial.EtcdGrove.apply.wp_Apply
 
 /-- **An admin entry's application by the apply thread, with auth on** (the auth plan's E3n,
 `AdminEntryOn.lean`), every callee linked: the store's half of `be` borrowed from the rest, the
@@ -1742,12 +1738,8 @@ theorem server_apply_entry_normal_on :
   EtcdServer.applyEntryNormal.wp_proofOn raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
     consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex
     notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout
-    Perennial.EtcdGrove.apply.wp_Apply apply_apply_kv_latest server_admin_entry_on
-    apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
-    apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
-    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX
-    (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
-    Perennial.EtcdGrove.apply.applierV3backend.wp_Apply
+    Perennial.EtcdGrove.apply.wp_Apply Perennial.EtcdGrove.apply.uberApplier.wp_Apply
+    apply_apply_kv_latest server_admin_entry_on
     errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64
     zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
     EtcdServer.wp_MemberID
@@ -2078,7 +2070,13 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With
     membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger
     config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr
-    math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hValid hD22) mvcc.wp_New wp_newCorruptionChecker
+    math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hValid hD22)
+    ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
+      apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_UserAdd_fuelX,
+      apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,
+      apply_AuthEnable_fuelX, apply_Authenticate_specX,
+      EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission,
+      Perennial.EtcdGrove.apply.applierV3backend.wp_Apply⟩ mvcc.wp_New wp_newCorruptionChecker
     mvcc.store.wp_HashStorage schema.wp_NewAuthBackend v3compactor.wp_New
     EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier
     EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook

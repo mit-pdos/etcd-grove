@@ -2101,7 +2101,7 @@ theorem EtcdServer.wp_isLeader :
 
 theorem EtcdServer.wp_applyEntryNormal :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach EtcdServer.wp_MemberID
+  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply apply.uberApplier.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach EtcdServer.wp_MemberID
 
 theorem EtcdServer.wp_setAppliedIndex :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=

@@ -1064,7 +1064,7 @@ theorem EtcdServer.start.wp_proofOn
   -- the minted contexts (2026-10-16, stage R7b): from the mint and raft's commit invariant
   ihave #Hmint : readCtxMinted (GF := GF) γr $$ []
   · ihave #Hkvi3 := Hkvi
-    iunfold srvKVInvsM at Hkvi3
+    ihave #Hkvi3 := srvKVInvsM_true _ _ _ $$ Hkvi3
     iunfold srvKVInvsOn at Hkvi3
     icases Hkvi3 with ⟨-, -, #Hli, -, -⟩
     ihave #Hq17 := Q17
@@ -1092,7 +1092,7 @@ theorem EtcdServer.start.wp_proofOn
   · iexists rd
     iframe Hread
     iapply Hrlp $$ Hrs Hrr [] Hmint
-    iapply readCompose_on E γr $$ Hkvi
+    iapply readCompose_on s E γr $$ Hkvi
   isplitl [Hlrl Hlc1 Hfcr]
   · iunfold srvReadLR
     isplitl [Hlrl]
