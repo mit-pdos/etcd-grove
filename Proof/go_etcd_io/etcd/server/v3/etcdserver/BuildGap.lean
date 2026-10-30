@@ -89,12 +89,14 @@ type and data as one of the server's log. -/
 theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryModel)
     (hA : srvIdxOkW ai₀ A) (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
     ([∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ [∗list] m ∈ A, entryClaim γi m := by
-  sorry
-/- REPAIR-OLD
   have key : ∀ (k : Nat) (m : EntryModel), A[k]? = some m →
       iprop(□ [∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ entryClaim γi m := by
     intro k m hk
-    rcases srv_entry_src ai₀ A L hA h m (List.mem_of_getElem? hk) with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    rcases srv_entry_src ai₀ A L hA h m (List.mem_of_getElem? hk) with
+      ⟨-, hd⟩ | ⟨-, hd⟩ | ⟨m', hm', he⟩
+    · iintro -
+      iunfold entryClaim
+      ileft; ipureintro; exact .inr hd
     · iintro -
       iunfold entryClaim
       ileft; ipureintro; exact .inr hd
@@ -111,7 +113,6 @@ theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryMode
   iapply (BigSepL.bigSepL_intro (Φ := fun _ m => entryClaim (GF := GF) γi m) key)
   imodintro
   iexact HL
--/
 
 /-- **The workload clause, proved** (D19c, 2026-10-18; until then a premise of `NewServer.spec`):
 a committed log is a prefix of the KV invariant's, whose entries have good shapes and claimed ids
@@ -119,11 +120,19 @@ a committed log is a prefix of the KV invariant's, whose entries have good shape
 theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
       clusterWorkloadOk ρ E := by
-  sorry
-/- REPAIR-OLD
   iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOk
   iintro !> %L #HL
+  -- (2026-10-30, the repair) no empty `ConfChangeV2` committed (`srv_committed_noV2`)
+  ihave #HLc : isCommittedLogLb ρ.raft.raft.cl (srvLE ρ.raft L) $$ []
+  · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 ρ.raft (srvLE ρ.raft L) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HLc
+  have hnv : ∀ m ∈ L, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
   icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
@@ -138,8 +147,9 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have hshL : logShape L := by
     intro m hm
-    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
     · have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
@@ -148,8 +158,9 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
       rw [← h1, ← h2]; exact this
   have hcclL : ccLogOk ρ.raft.raft L := by
     intro m hm
-    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · intro h; exact absurd ht h
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
     · have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
@@ -159,7 +170,6 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   isplitr
   · ipureintro; exact hshL
   iapply batchWaitOk_of_work ρ E L hshL hcclL $$ HclL HNZ HL
--/
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (the cluster the server's, the start log and index the
@@ -182,8 +192,6 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
       rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S) γw := by
-  sorry
-/- REPAIR-OLD
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only
@@ -194,16 +202,10 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact hdec
   isplitr
-  · ipureintro; exact hcap
-  isplitr
   · iexact Hr
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc⟩
-    ihave #Hcl : srvClusterOk ρ.raft $$ []
-    · iunfold srvRaftLogInv at Hr; icases Hr with ⟨-, #H, -⟩; iexact H
+  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
     rw [hraft, hid] at *
-    ihave %Hns := srv_sentMsg_notSnap ρ.raft id st $$ [Hcl Hrm]
-    · iframe Hcl Hrm
     isplitl [Hc]
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
@@ -234,7 +236,6 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     ipureintro
     rw [hai0]; exact Hc.1
   · ipureintro; trivial
--/
 
 /-- **`start`'s construction premise from `NewServer`'s built part and the residual**
 (`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts
@@ -245,17 +246,15 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
-  sorry
-/- REPAIR-OLD
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
   iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
-  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh
   isplitr
   · unfold srvFieldsBuiltNA
     iexists v
@@ -280,7 +279,6 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   · ipureintro; exact Hok
   iexists ua
   iframe Hua Hfor Hakv
--/
 
 end gap
 
