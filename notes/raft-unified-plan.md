@@ -1315,6 +1315,14 @@ Phase 2 (internal statement changes):
 - Client repair note: `readySnap none`'s new trailing conjunct needs a binding in the server's and
   kv's destructurings (`InvRaftNode`, `SrvRaftLog`, `KV__run`).
 
+- P3b (internal): `ownRawNode_static_open` also returns `leadW ∗ xfW`, `ownRawNode_intro_static` and
+  `rawNode_applyCC_reseal` take them; `RawNode.Bootstrap.spec` takes `γ.reNoSnap = false` and posts `sn :=
+  s.gh.sn`; new last conjunct of `SnpOk`, `SnpSg g ls := ls.lent = true → ∀ k, g.snp = some k → ls.sg ≤
+  uint.nat k.sid.index'` (`SnpKeep` keeps `sg`; `of_fields` take `hsg := rfl`), for `RawNode.Advance`'s
+  `ownRaftLog_absorb_snap`; `lendLog`/`lendView` set `sg := uint.nat prev.index'` (was `max sg …`, the
+  same value: `ownStorage_sg`); `LemmasP3bXw.lean` (cleanup candidate, overlaps P4's `step_xw`).
+- Phase 2 done at `9491b601ab`: raft's Link/Linked/Results/Api/MemstorageApi build, 0 live `sorry`s.
+
 ### Phase 2 progress (the lead's hand-off)
 
 - Step 1 (statement fixes) pushed at `8f14f5df18`.
@@ -1366,3 +1374,18 @@ LIFE, NET, RECONF, TOP (`RandomOptions`, `RandomConfig`, `Run`, `Main`, `Link`, 
 `trusted_proph`). Left: `etc/tcb-report.py --roots kvreconf` and a kvreconf TCB collection, once
 the whole repository builds (after the clients' repair); merging into `lean` with the rest of the
 raft-unified train.
+  P5 together with P7. All tracks done (phase 2 complete at `9491b601ab`); phase 3 next. Then phase 3.
+
+### Phase 3 (done 2026-10-30)
+
+- `Link.lean` regenerated (`etc/gen-link.py --raft`): unchanged. `Linked` exports every `node` method
+  and `MemoryStorage.{InitialState, CreateSnapshot, ApplySnapshot, Compact, Snapshot}` (review F3).
+  `Results` also prints the axioms of `InvNode`'s, `InvNodeRule`'s, `MemstorageApi`'s and
+  `InvMemstorage`'s laws. No result depends on `sorryAx`.
+- `interface/` regenerated; `etc/api-check.py etc/api/raft.txt --check` passes; `gen-interface
+  --check --layout`: 0 new layout violations.
+- Axioms, read off `#print axioms` of all 415 printed results, against `etc/tcb-collections/raft.txt`:
+  the baseline's 13, plus **`ccDecodeV2_nil`** (the expected one, user-approved). The type
+  axioms of untranslated types are the same as before. `etc/tcb-report.py --collection … --check
+  --update` is not run: it needs the whole repository built, and the clients are broken until the
+  repair phase. Run it, with the user's go-ahead, once they build.

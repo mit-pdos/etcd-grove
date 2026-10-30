@@ -27,6 +27,19 @@ public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
 public import Spec.go_etcd_io.raft.v3.node__Campaign
 public import Spec.go_etcd_io.raft.v3.node__Status
 public import Spec.go_etcd_io.raft.v3.node__Stop
+public import Spec.go_etcd_io.raft.v3.node__Propose
+public import Spec.go_etcd_io.raft.v3.node__Step
+public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.node__ReadIndex
+public import Spec.go_etcd_io.raft.v3.node__Ready
+public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
+public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
+public import Spec.go_etcd_io.raft.v3.node__Tick
+public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 import Proof.go_etcd_io.raft.v3.Link
 import Proof.go_etcd_io.raft.v3.ConfchangeApiProof
 
@@ -84,6 +97,44 @@ theorem node.wp_Campaign [StorageModel GF] :
     node.Campaign.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.node.wp_Campaign
 
+/-! (raft-final, 2026-10-29) The other node methods. -/
+
+theorem node.wp_Propose [StorageModel GF] :
+    node.Propose.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Propose
+
+theorem node.wp_Step [StorageModel GF] :
+    node.Step.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Step
+
+theorem node.wp_ProposeConfChange [StorageModel GF] :
+    node.ProposeConfChange.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_ProposeConfChange
+
+theorem node.wp_ReadIndex [StorageModel GF] :
+    node.ReadIndex.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_ReadIndex
+
+theorem node.wp_Ready [StorageModel GF] :
+    node.Ready.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Ready
+
+theorem node.wp_ReportSnapshot [StorageModel GF] :
+    node.ReportSnapshot.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_ReportSnapshot
+
+theorem node.wp_ReportUnreachable [StorageModel GF] :
+    node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_ReportUnreachable
+
+theorem node.wp_Tick [StorageModel GF] :
+    node.Tick.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_Tick
+
+theorem node.wp_TransferLeadership [StorageModel GF] :
+    node.TransferLeadership.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.node.wp_TransferLeadership
+
 end linksLC
 
 section links
@@ -129,6 +180,28 @@ theorem MemoryStorage.wp_LastIndex [AllG GF] [StorageModel GF] :
 theorem MemoryStorage.wp_Term [AllG GF] [StorageModel GF] :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.MemoryStorage.wp_Term
+
+/-! (raft-final, 2026-10-29) The rest of `MemoryStorage` a client wrapping it calls (kvreconf). -/
+
+theorem MemoryStorage.wp_InitialState :
+    MemoryStorage.InitialState.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_InitialState
+
+theorem MemoryStorage.wp_CreateSnapshot :
+    MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_CreateSnapshot
+
+theorem MemoryStorage.wp_ApplySnapshot :
+    MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_ApplySnapshot
+
+theorem MemoryStorage.wp_Compact :
+    MemoryStorage.Compact.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_Compact
+
+theorem MemoryStorage.wp_Snapshot :
+    MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_Snapshot
 
 /-! `confchange` and `tracker` for clients (2026-10-29, stage U11, `ConfchangeApi.lean`): the
 importable specs, from the internal ones (`ConfchangeApiProof.lean`) and `Link.lean`'s results. -/

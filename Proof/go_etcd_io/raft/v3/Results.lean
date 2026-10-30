@@ -35,6 +35,10 @@ public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import Proof.go_etcd_io.raft.v3.ConfchangeApi
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -383,6 +387,96 @@ namespace EtcdGrove
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc
+
+-- (raft-final, 2026-10-29) the node API's laws (`InvNode`, `InvNodeRule`) and the storage's
+-- (`MemstorageApi`, `InvMemstorage`), which clients prove with
+#print axioms ownCommittedOps_get_lb
+#print axioms ownCommittedOps_lb_prefix
+#print axioms isCommittedLogLb_nil
+#print axioms isCommittedLogLb_mono
+#print axioms isCommittedLogLb_agree
+#print axioms readCtx_commit
+#print axioms readStateOk_ctx
+#print axioms readStateOk_used
+#print axioms nodeErrS_nodeErr
+#print axioms propErrS_propErr
+#print axioms sentMsg_appFrom
+#print axioms stepIn_intro
+#print axioms sentMsg_shape
+#print axioms msgCredits_intro
+#print axioms nodeAppliedLb_zero
+#print axioms nodeAppliedLb_mono
+#print axioms readyRest_ceInBatch
+#print axioms readyRest_indices
+#print axioms Membership.simple_valid
+#print axioms Membership.applyChange_valid
+#print axioms Membership.applyChange_nodeZero
+#print axioms Membership.applyChange_addVoter
+#print axioms Membership.applyChange_removeVoter
+#print axioms Membership.applyChange_removeAbsent
+#print axioms nodeDriver_deliveredLogLb
+#print axioms deliveredLogLb_mono
+#print axioms deliveredLogLb_committed
+#print axioms committedAtTerm_committed
+#print axioms sentMsg_replaceSnapshot
+#print axioms msgCredits_copy
+#print axioms isCommittedLogLb_length
+#print axioms readCtx_commit_after
+#print axioms readStateOk_after
+#print axioms isReadyChan_recvAu
+#print axioms readyRest_fits
+#print axioms sentMsg_snapshot
+#print axioms node.wp_readyRecv
+#print axioms cluster_alloc
+#print axioms joinAuth_join
+#print axioms nodeRunning_stopped
+#print axioms ownConfDecisions_excl
+#print axioms ownConfDecisions_lookup
+#print axioms ownConfDecisions_witness
+#print axioms confDecided_agree
+#print axioms confDecide
+#print axioms confAt_agree
+#print axioms confAt_valid
+#print axioms committed_confDecodes
+#print axioms committed_emptyV2_joint
+#print axioms confAt_noConf
+#print axioms confAt_decided
+#print axioms skippedIn_noConf
+#print axioms snapMade_elem
+#print axioms snapshotCert_make
+#print axioms Membership.Valid.snapListsOk
+#print axioms snapshotCert_made
+#print axioms snapshotCert_valid
+#print axioms memStorInv_alloc
+#print axioms memStorage_isStorage
+#print axioms memKey_excl
+#print axioms memLogL_app
+#print axioms memElem_frac
+#print axioms memLogL_frac
+#print axioms memLogL_persist
+#print axioms memLogL_lookup
+#print axioms memLogL_auth
+#print axioms memLogL_frozen_ne
+#print axioms memLogL_delete
+#print axioms memLogL_insert
+#print axioms memLog_app
+#print axioms memLog_frac
+#print axioms memLog_persist
+#print axioms memLog_nil
+#print axioms memLog_bound
+#print axioms memEnd_excl
+#print axioms memCompacted_zero
+#print axioms memCompacted_mono
+#print axioms memstorageFields_congr
+#print axioms memStorFresh_compacted
+#print axioms memStorInvP_alloc
+#print axioms memCompacted_bound
+#print axioms memCompJust_register
+#print axioms memSnap_take
+#print axioms memSnap_put
+#print axioms memSnap_update
+#print axioms memSnapExact_agree
+#print axioms Membership.Valid.snapListsOk'
 
 end EtcdGrove
 end Perennial
