@@ -1821,3 +1821,6 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   when closing `donec`: `donecInv γ F`'s closed case now keeps `∃ L q, monoListAuthOwn γ.jobs q L ∗ (baton L
   (|L|-1) ∨ monoListAuthOwn γ.jobs (1/4) L)`, and `fifoLockInv`'s stopped branch holds `∃ q,
   monoListAuthOwn γ.jobs q L` (was the half). No spec changes, no new ghost names.
+  As built (29dda0fb3f): the carried fact framed as `donecCarry γ F` (`baton L (|L|-1)` or, once `Stop`
+  took it, `dghostVar F.st (own ½) true`: `Stop` persists only half of the `stopped` flag, so a second
+  taker is refuted; the proposed `monoListAuthOwn ¼` could not refute it).
