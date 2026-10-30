@@ -328,6 +328,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   (2026-10-26): a raft request from an id that is no peer with a malformed `X-PeerURLs` makes
   `AddRemote` `Logger.Panic`, which `net/http` recovers (a logged stack, no exit), with a test; a
   log-and-return fix; low priority.
+  [etcd-auth-old-revision-auth-disabled](etcd-auth-old-revision-auth-disabled.md)
+  (2026-10-30): with `--client-cert-auth` and auth disabled, a serializable read racing an
+  auth-store write fails with `ErrAuthOldRevision`; a transient spurious error in an uncommon
+  configuration, no test yet; low priority.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
