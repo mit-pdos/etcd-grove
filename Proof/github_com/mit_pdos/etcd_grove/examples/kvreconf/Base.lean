@@ -23,6 +23,7 @@ public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.kvreconf
 public import Perennial.Proof.encoding.binary
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
+public import Proof.github_com.mit_pdos.gokv.trusted_proph.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.fmt.Base
