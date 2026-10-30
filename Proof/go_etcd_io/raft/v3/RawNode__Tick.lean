@@ -29,9 +29,6 @@ theorem RawNode.Tick.wp_proof
     (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
     (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
     RawNode.Tick.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ rn id rs Hterm Hflw
   wp_start as H
   iNamed H
@@ -42,6 +39,7 @@ theorem RawNode.Tick.wp_proof
                                               omega
   wp_apply raft.wp_load_tickC cf rnv.raft' id s Hwf.2 $$ Hphys as %f ⟨Hphys, %Hf⟩
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   rcases Hf with rfl | rfl
   all_goals first
     | wp_apply wp_tickElection cf _ γ rnv.raft' id s
@@ -52,6 +50,7 @@ theorem RawNode.Tick.wp_proof
         $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
   all_goals (
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc, Hgd, Hsrb⟩ := Htk
+    icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
     ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) Hip4 $$ Hstrecs
     iapply HΦ $$ %s'.term
     isplitl
@@ -59,7 +58,7 @@ theorem RawNode.Tick.wp_proof
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
         Hwf' Hin
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) ⟨fun h => Hgd fp (Hpvoff.1 h), by rw [Hgh]; exact Hpvoff.2.1,
+        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact ⟨Hstor.1, by rw [Hsn1.2, Hgh, ← Hns0.2]; exact Hstor.2⟩) ⟨fun h => Hgd fp (Hpvoff.1 h), by rw [Hgh]; exact Hpvoff.2.1,
           by rw [Hgh]; omega, fun hp => by rw [Hgh, Htpc hp]; exact Htc1, Hpvoff.2.2.2.2.step Hsrb⟩
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
@@ -67,7 +66,6 @@ theorem RawNode.Tick.wp_proof
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, Ht2⟩)
-  -/
 
 end proof
 
