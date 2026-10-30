@@ -308,7 +308,28 @@ theorem StartCluster.wp_proof
     iapply (BigSepM.bigSepM_insert (Φ := fun _ r => repStop (GF := GF) γr
       (bootVoters (uint.nat o.Voters')) r) HRn).2
     iframe Htoks Hrs
-  sorry
+  obtain ⟨Hk1, HkV, HdomR⟩ := Hk
+  have HkV' : uint.nat k = uint.nat o.Voters' + 1 := by word
+  have HnV : uint.nat (o.Voters' + W64 1) = uint.nat o.Voters' + 1 := by word
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked replicas HR nextID nextOp Hopn HnidA Hjoin
+      Hreps Hrseq Hstp1 Htoks]
+  · inext
+    unfold clusterLockInv
+    iexists mR, R, o.Voters' + W64 1, W64 0, listToSet (bootVoters (uint.nat o.Voters')), false
+    rw [HnV]
+    simp only [named, Bool.false_eq_true, ↓reduceIte]
+    rw [show (W64 0 : w64) = 0 from rfl]
+    iframe
+    ipureintro
+    refine ⟨fun i => by rw [HdomR, HkV'], fun i => ?_, ?_, by omega⟩
+    · rw [GMap.elem_of_list_to_set, bootVoters_mem _ (by omega)]; omega
+    · rw [bootVoters_length]; omega
+  try wp_auto
+  iapply HΦ
+  iexists γr
+  iframe Hc Hval
+  unfold stopper
+  iexact Hstp2
 
 end proof
 
