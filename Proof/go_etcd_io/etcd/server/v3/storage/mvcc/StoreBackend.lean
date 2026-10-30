@@ -54,7 +54,8 @@ and the compaction right's half of the revision's authority: D19m (C)). In compa
 question 5's core stage) the creator also gives the backend's safe-range slot (`kbSRM`, from
 `newPost`'s `srSlot`), its write-back supply (`kbWTSupplyM`; discharged only by M2, R2-7) and the
 compaction keys' values tracked (`fkV d.γB true`, from `newPost`'s `fkCl`), and gets one reader fewer
-(`nJobRd`: the compaction job's, kept back); the store registers its deletable keys in the backend
+(`nJobRd`: the compaction job's, kept back; the pool's retired count starts there, `retiredAt`,
+whose half lets the creator retire a reader for its own reader token: Probe P2, 2026-10-30); the store registers its deletable keys in the backend
 (`storeDlReg`) and its contract has the compaction (`storeCmp`, part (4): the new bridge,
 `storeBackend_of_backendC`). Otherwise the slot and supply are `True` (`cmOff_res`), the
 registration is "nothing deletable" (`dlNoDel`) and the contract the old bridge's. -/
@@ -122,7 +123,8 @@ theorem mvcc.NewStore_backend
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
+        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
+        mvcc.retiredAt γ (mvcc.nJobRd (some d)) }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
@@ -166,11 +168,11 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, -⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, Hret⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
-  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr
+  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret
   ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real

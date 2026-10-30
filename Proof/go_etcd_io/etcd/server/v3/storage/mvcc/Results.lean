@@ -292,20 +292,28 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} :=
-  mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
-    backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
-    backend.backend.wp_Size backend.backend.wp_SizeInUse
-    backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
-    backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
-    backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
-    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
-    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-    backend.batchTxBuffered.wp_UnsafeCreateBucket
-    backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
-    backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
-    lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb
+        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
+  iintro %Φ H HΦ
+  iapply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
+      backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+      backend.backend.wp_Size backend.backend.wp_SizeInUse
+      backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+      backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+      backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+      backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+      backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+      backend.batchTxBuffered.wp_UnsafeCreateBucket
+      backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
+      schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
+      backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
+      lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb) $$ %Φ [H]
+  · iexact H
+  inext
+  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -⟩
+  iapply HΦ
+  iexists γ
+  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr
+  ipureintro; exact Hγ
 
 /-- **`NewStore` over a compacting real backend, linked** (question 5's stage 6, the close):
 `mvcc_NewStore_backend` at a backend record in compaction mode (`hcm : d.cm = true`; the
@@ -314,8 +322,12 @@ The store supports the compaction (`storeCmp γ`, `mvcc_store_Compact`'s premise
 close it is given up for the compaction right at `-1` (`compactRight_of_closer`), with `storeStop`.
 So `store.Compact.spec`'s premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`,
 `storeStop`, `compactRight γ (-1)`, `idxCert γ.idx [[], []]`, `hookIs`) are this post's; the caller
-brings the rest (the reader's token `storeRT γ`, the critical-section contract, the trace). One
-reader of the pool is kept back for the compaction job (`nJobRd`). -/
+brings the rest (the critical-section contract, the trace, and the reader's token `storeRT γ`). One
+reader of the pool is kept back for the compaction job (`nJobRd`), and the pool's retired count is
+at `1` (`retiredAt γ 1`, the creator's half, Probe P2, 2026-10-30): the caller makes its reader's
+token by retiring one of the post's readers (`storeReader_retire`, with £1, `isStore`, the pin
+`curAt γ DFrac.discard o` that `storeStop_open` gives, the reader through `storeReader_of`, and
+`retiredAt γ 1`, giving `storeRT γ` and `retiredAt γ 2`). -/
 theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (γb γl : GName)
@@ -350,13 +362,26 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
-        mvcc.compactRight γ (-1) ∗ mvcc.storeStop s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half }} := by
+        mvcc.compactRight γ (-1) ∗ mvcc.storeStop s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
+        mvcc.retiredAt γ 1 }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
     Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
+  wp_apply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
+        backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+        backend.backend.wp_Size backend.backend.wp_SizeInUse
+        backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+        backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+        backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+        backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+        backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+        backend.batchTxBuffered.wp_UnsafeCreateBucket
+        backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
+        schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
+        backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
+        lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
       $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright⟩
+    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
@@ -371,7 +396,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     refine ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2, ?_⟩
     show mvcc.kbCmpM γ.kb
     rw [Hγ.2.2.1]; exact hcm
-  iframe Hrd Hcok Hhk' Hviews Hrds Htoks Hcr Hfs
+  iframe Hrd Hcok Hhk' Hviews Hrds Htoks Hcr Hfs Hret
   iframe #
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
