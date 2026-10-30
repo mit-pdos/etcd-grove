@@ -26866,3 +26866,45 @@ the started member (`memberUpOn`) gave neither.
   stays proved. `etcdserver/Results.lean`'s `auth_store_new_on` keeps its statement (drops the
   new conjunct).
 - Only in the mode `on`: `auth.NewAuthStore`'s axiom (the auth-off store) is untouched.
+
+## G2's freeze: `srvKVFacts` in either auth mode (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze"; the user's approval)
+
+**What.** `watcher.Watch.spec`'s premise `isClientWatcher V w` (and `watchAddrFacts V`, which
+authkv's `Work.spec` takes) contains each member's `client.srvKVFacts V`, which G2 left as D47's
+auth-off `srvKVInvs` (`kvInv`, `kvCertInv`): no auth-on member has it, so the watch with auth on,
+G2's purpose, could not be used (authkv's `Work` and `Main`, `notes/authkv-main-plan.md`, "Main:
+what blocks it", item 1). The spec's text is unchanged; its meaning changes through `srvKVFacts`'s
+body, now `∃ on γr, srvKVCoreM on V.R.E γr ∗ …`, so the premise is weaker and every auth-off caller
+discharges it as before (`srvKVFacts_of_off`; `srvKVCoreM false` is `srvKVInvs` by `rfl`).
+
+**The narrow predicate `srvKVCoreM`** (server `ReadOn.lean`): the KV invariant, the certificates',
+raft's committed log's, and the `cok` names, in the mode (`kvInvOn`/`kvCertInvOn` from
+`srvAuthSt0` at `true`). Not `srvKVInvsM on s E γr`, the read view's, whose `true` case also carries
+the uber-applier contracts `srvUberOn s` and the auth history's tie `authHistTie`, which the watch
+never uses and which arrived on 10-29 and 10-30: over `srvKVInvsM`, each new apply-side conjunct
+would change the frozen spec (PRINCIPLES, "Local"). `srvKVInvsM_core` and `srvKVCoreM_of_readM` get
+it from the server's views.
+
+**The mode is existential**, not `V.R.E.authMode.isOn`: a weaker premise, so every spec is at least
+as strong ("Prefer the stronger spec"); the watch reads nothing of the mode, and the server's read
+view also takes its mode apart from `E.authMode` (`isServerReadM on`). Fixing it would cost linkv3p's
+`memberWatch` a mode fact for nothing.
+
+**Internals changed with it.** The firing law is the server's: `srvKVCoreM_fire` (both modes; its
+`true` case the steps of `kv_cert_floor_on`), replacing `client.watch_fire` (auth off, which
+unfolded the server's `srvKVInvs` and `kvInv`); `client.raw_to_state` takes the mode `on`. New:
+`srvKVCoreM`, `srvKVCoreM_false`/`_true`, `srvKVInvsM_onPart`, `srvKVInvsM_core`,
+`srvKVCoreM_of_readM` (server `ReadOn.lean`, in its `defs` section, which has no
+`etcdserver.Assumptions`: in a section with it every theorem would take that instance, and the
+client's watch proofs would have had to thread it); `storeSmall_small` (server `InvRead.lean`);
+`srvKVFacts_intro`, `srvKVFacts_of_off` (client `InvWatch.lean`), `srvLogsSmall_of_receipts`
+(client `ServerWatcher.lean`: `watchAddrFacts`'s `srvLogsSmall` in any mode, from the receipts'
+bound, `storeSmall_of_receipts`; it too had no source with auth on). With it (the user's choice),
+the client's positional destructurings of the server's read view, `srvKVInvs_of_read` and
+`storeSmall_of_read`, moved to the server (`InvRead.lean`, same names, namespace `EtcdGrove`), and
+`srvLogsSmall_of_read` no longer unfolds `storeSmall`.
+
+**Review criterion that should have caught it.** "Complete: sufficient for every caller": the
+approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFacts V` into
+`Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
+be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.

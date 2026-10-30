@@ -81,7 +81,7 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
   ihave #Hsm := client.srvLogsSmall_of_read V.R s ρ.rd Hlink $$ Hrd
-  ihave #Hinvs := client.srvKVInvs_of_read s V.R.E ρ.rd $$ Hrd
+  ihave #Hinvs := srvKVInvs_of_read s V.R.E ρ.rd $$ Hrd
   ihave #Hlaws := client.watchLaws_hist V γr.raft γr.kv ρ.rd pw hWM hWL hm hlog0 $$ [Hinvs Hws]
   · iframe #
   ihave #H00 := cert0_of_server pw V.R $$ Hws
@@ -90,11 +90,8 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   iframe #
   isplitr
   · ipureintro; exact Hlink
-  iunfold client.srvKVFacts
-  iexists ρ.rd
+  iapply client.srvKVFacts_of_off V ρ.rd (by rw [hst, hK]) (by rw [hm.2.2.2, hlog0]) hrb
   iframe #
-  ipureintro
-  exact ⟨by rw [hst, hK], by rw [hm.2.2.2, hlog0], hrb⟩
 
 theorem watchEnv_addrs (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     (watchEnv R₁ R₂ R₃ γr pfx).addrs = [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := rfl

@@ -969,9 +969,9 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
   · iframe Hcur HQ
   -- (D47) the caller's read update, fired at the response's watched log
   iunfold srvKVFacts at Hkf
-  icases Hkf with ⟨%γr, #Hinvs, #H0, %Hkr⟩
+  icases Hkf with ⟨%on, %γr, #Hinvs, #H0, %Hkr⟩
   iunfold wsAu at Hau
-  imod (raw_to_state V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2.1 Hkr.2.2 P.o c2 c2' v r P.Q)
+  imod (raw_to_state on V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2.1 Hkr.2.2 P.o c2 c2' v r P.Q)
     $$ Hinvs H0 Hau Hcp
     [Hok] with ⟨%σ, #HQσ, #Hsσ⟩
   · rw [← hst]; iexact Hok
