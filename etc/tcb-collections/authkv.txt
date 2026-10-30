@@ -11,6 +11,10 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Results\.lean$
+axiom Client.Close.wp_proof
+axiom Client.Endpoints.wp_proof
+axiom Client.roundRobinQuorumBackoff.wp_proof
+axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
@@ -20,6 +24,9 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
+axiom NewCluster.wp_proof
+axiom NewMaintenance.wp_proof
+axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
@@ -93,20 +100,40 @@ axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.WithCancelBackground.wp_proof
+axiom context.WithCancelTodo.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
+axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
+axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
+axiom endpoint.RequiresCredentials.wp_proof
+axiom errors.IsStatusErr.wp_proof
+axiom etcdResolverOwn
+axiom etcdResolver_grpc
+axiom etcdStreamInterceptor
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
+axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.Target.wp_proof
+axiom grpc.NewClient.wp_proof
+axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpc.WithPerRPCCredentials.wp_proof
+axiom grpc.WithResolvers.wp_proof
+axiom grpc.WithStreamInterceptor.wp_proof
+axiom grpc.WithTransportCredentials.wp_proof
+axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
+axiom grpcDialOptIs
 axiom grpcPeerOpt
+axiom grpcResolverAt
 axiom grpcServes
 axiom grpcServesStream
 axiom grpcServes_persistent
@@ -132,6 +159,7 @@ axiom http.reqURL_ok
 axiom http.respReadAny_of_ok
 axiom http.respWrite_ok
 axiom httputil.GracefulClose.wp_proof
+axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
@@ -149,6 +177,7 @@ axiom netAddrFree
 axiom newCorruptionChecker.wp_proof
 axiom pbEnc_ok
 axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom peer.Peer.String.wp_proof
 axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
@@ -185,6 +214,9 @@ axiom raftpb.MessageType.String.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
+axiom resolver.EtcdManualResolver.Close.wp_proof
+axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
+axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
@@ -200,11 +232,13 @@ axiom semver.semverValid_simple
 axiom snap.Message.CloseWithError.wp_proof
 axiom snap.Message.fields.wp_proof
 axiom sort.Stable.wp_proof
+axiom status.Code.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
@@ -232,6 +266,8 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
+axiom waitRetryBackoff.wp_proof
+axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof
@@ -250,6 +286,7 @@ axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
+axiom zap.Uint.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
@@ -257,6 +294,8 @@ sorry EtcdServer.run.wp_proofOn
 sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry authkv.Main.wp_proof
+sorry authkv.Work.wp_proof
+sorry authkv.newUserClient.wp_proof
 sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
 sorry rnApplyTok_recv
