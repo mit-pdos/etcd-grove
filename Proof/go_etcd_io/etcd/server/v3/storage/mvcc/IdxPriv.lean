@@ -96,7 +96,7 @@ theorem idx_publish (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
     isplitl []
     · iexists log₀; iframe Hllb; ipureintro; omega
     isplitl []
-    · ipureintro; exact ⟨hrep, Int.le_refl _⟩
+    · ipureintro; exact ⟨IdxCRepN_of hrep, Int.le_refl _⟩
     isplitl []
     · ipureintro; exact Hwf
     iapply idxCmpOwn_neg γ 1 [] L (-1) (by decide) $$ Hcmp

@@ -1763,3 +1763,72 @@ file edited.
 
 **The user approved `watchableStore.Close.spec`'s text (2026-10-30)**, written at the switch (item 23's
 "alike"): `∀ … (c : Int)`, pre `mvcc.wsCloserM s st γ.st c` in place of `mvcc.wsCloser s st γ.st`.
+
+## The index at a full revision (branch m2-index)
+
+The user's decision B1 after round 5 (2026-10-30): the index invariant's compaction level is a full
+revision (main and sub), removing `KeyOnceAt` (item 33) and its apply-side obligation. Done on branch
+`m2-index` (off `m2-storage` at `938b3fa371`), in the index's files only (`InvIndex*.lean`, new
+`InvIndexCut.lean`/`InvIndexRestore.lean`, `M2StorageDraftIndex.lean`), the index's method proofs
+and their pure users, plus a minimal edit of `mvcc/M2StorageDraftRestore.lean` (the `KeyOnceAt`
+conjuncts and premise removed). `notes/decisions.md`, "M2's storage side: the index invariant at a
+full revision".
+
+### The new `IdxCRepN` (`mvcc/InvIndexCut.lean`)
+
+- **The cut**: `kiCutAt gi j ki` drops the generations before `gi` and the first `j` revisions of
+  generation `gi` (headers kept): the key index from its revision at position `(gi, j)` on, a full
+  revision of the key. `kiCutO` is `none` when nothing is left.
+- **The level**: `CutLe c ki gi j`, the position at or before the one compaction at `c` cuts at
+  (`compactGenIdx`, `cmpRevIdx`). A compaction is the cut at its own position (`kiCompact_eq_cutAt`).
+- **The invariant**: `IdxCRepN cmax evs idx := idx sorted ∧ ∀ k, ∃ c ∈ [-1, cmax], ∃ gi j, CutLe (W64 c)
+  (kiOfKey evs k) gi j ∧ (idxGet idx k).map kiNorm = (kiCutO gi j (kiOfKey evs k)).map kiNorm`
+  (`kiNorm`: the unread header of a tombstone-only generation that is not the last, round 4's).
+
+### Proved (pure; no backend or bbolt fact needed)
+
+- The cut's laws: compaction at `c' ≥ c` erases it (`kiCompact_cutAt`), a reader at or above `c`
+  cannot tell (`kiGet_cutAt`), nor can `doCompact`'s and `keep`'s choices (`kiAvail_cutAt`,
+  `kiKeep_cutAt`), the writer's event commutes with it (`kiCutO_step`, `CutLe.kiApply`), and the
+  same up to `kiNorm` (`kiGet_kiNorm`, `kiAvail_kiNorm`, `kiKeep_kiNorm`, `kiNorm_kiPut`,
+  `kiNorm_kiTombstone`, `kiNorm_kiCompact`, `stepO_norm`).
+- S2's list for `IdxCRepN`: `IdxCRepN_of` (from `IdxCRep`), `nil`, `mono`, `step` (the writer's
+  event), `kiAt`, `rangeAt`, `compactAt`, `gensOk`, `avail_some`/`avail_none`, `keep_some`/
+  `keep_none`, `avail_inj`, and `get_facts`/`lastEmpty_none` (what `Put`/`Tombstone` read of a key's
+  tree index: not empty, `modified`, the last generation's emptiness).
+- **`idxRestore_cut`** (`mvcc/InvIndexRestore.lean`; replaces the Draft's `idxRestore_cutStmt`):
+  `LogWf' L → LogB L → -1 ≤ c → c < L.length → entsCutAt L c ents → IdxCRepN c (evsOf L)
+  (idxRestore ents)`, with no premise on how often a revision changes a key. `entsCutAt` and
+  `entsCutAt_full` moved there from the Draft.
+- The counterexamples gone (`M2StorageDraftIndex.lean`, now evidence only): the reviewer's round-5
+  log (`[[], [], [put a], [put a, del a]]`, the batch ending after revision `2`) checked:
+  `cxr_not_compacted` (no main-revision level gives the rebuilt key index) and `cxr_idxCRepN` (it is
+  related at `IdxCRepN 3`, cut at `⟨3, 0⟩`); likewise `cx3_idxCRepN` for round 4's `cx3Log`, and
+  `cx_idxCRepN` for the tombstone-only case.
+
+### Item 32 switched (internal)
+
+`idxLockInv`'s `HL` is `IdxCRepN cmax … ∧ -1 ≤ cmax`. Re-proved over it: `reader_answerC`,
+`rangeAnswers_entriesC` (`InvIndex.lean`), `entries_not_emptyC` (`ReadLemmas.lean`), `keepFold_spec`,
+`keepAt_keys` (`CompactMaps.lean`), `treeIndex.Put`/`Tombstone`/`Keep`/`Compact`'s proofs;
+`idx_publish` keeps its premise `IdxCRep (-1)` (the private index, compaction-free) and converts it
+(`IdxCRepN_of`). No exported statement changed; `treeIndex__Compact`'s spec changed only in its
+docstring. `IdxCRep` and its lemmas stay (the private index's, `RestoreChunks`, `Results.lean`'s
+prints).
+
+### Not done (the restore chain's)
+
+- `store.restore.specR`'s proof still needs `idx_publish` at the restored level (`crevLb γ.idx
+  r.crev` and `IdxCRepN r.crev` in place of `-1`): a variant of `idx_publish`, with
+  `idxRestore_cut` as its pure input, when the chain is switched.
+- Q8/B2's receipt bound, item 37's view widening, item 30's backend clause: unchanged.
+
+### Checked
+
+- `etc/lean-check.py -a` on every changed or new file; targeted `lake build` of the index modules and
+  both restore Drafts (3657 jobs, no error).
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11205 jobs, no error.
+- `etc/tcb-report.py --check`: the trust base matches `etc/tcb-baseline.txt` (766 axioms, 18
+  sorries): no new axiom, no new `sorry`. No Perennial change, no generated file edited.
+- `notes/STATUS.md` not edited on this branch (to keep the merge with `m2-storage` trivial): at the
+  merge, item 32 moves to switched and item 33 to dropped.

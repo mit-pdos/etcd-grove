@@ -1,40 +1,37 @@
 /-
-**M2, the storage side, step 2: the index `restore()` rebuilds from a compacted bucket (Draft,
-pure)** (`notes/m2-storage-plan.md`, "After review round 4", A1 (b)). Imported by mvcc's restore
-Draft (`M2StorageDraftRestore.lean`); no `axiom`, no `sorry`; nothing switched.
+**M2, the storage side, step 2: the evidence for the index over a compacted bucket** (`notes/
+m2-storage-plan.md`, "After review round 4", A1 (b), and "The index at a full revision (branch
+m2-index)"). Pure; no `axiom`, no `sorry`. What it argued for is now real: the index invariant at a
+full revision (`IdxCRepN`, `InvIndexCut.lean`, `idxLockInv`'s `HL`) and the rebuild theorem
+(`idxRestore_cut`, `InvIndexRestore.lean`). This module keeps the counterexamples that shaped them.
 
 **What `restoreIntoIndex` builds from a compacted `Key` bucket** (`kvstore.go:430-480`,
 `key_index.go:105-126`): a key whose oldest surviving entry is a put gets
-`restore(Revision{Main: kv.CreateRevision}, rev, kv.Version)`, which agrees with the compacted
-key index (the generation cut to start at `rev` keeps the original `created` and `ver`); a key
-whose oldest surviving entry is a tombstone gets `restoreTombstone`, a generation
-`{created: 0, ver: 1, revs: [rev]}` and an empty one, where the compacted key index keeps the
-original `created` and `ver` of the generation it cut down to its tombstone.
+`restore(Revision{Main: kv.CreateRevision}, rev, kv.Version)`, which agrees with the key index cut
+to start at `rev` (the cut keeps the generation's `created` and `ver`); a key whose oldest surviving
+entry is a tombstone gets `restoreTombstone`, a generation `{created: 0, ver: 1, revs: [rev]}` and
+an empty one, where the cut keeps the original `created` and `ver` of the generation it cut down to
+its tombstone.
 
-**So today's index invariant cannot hold after a restore over a compacted bucket**
-(`idxCRep_restore_counterexample`, proved): `IdxCRep cmax evs idx` (`Compact.lean`, the
-`RWMutex` resource's `HL`, `idxLockInv`) asks every key's index to be *equal* to the log's key index
-compacted at some level, and no level gives the restored one (log `[[], [], [put a], [del a]]`,
-compaction at `3`: the bucket keeps only the tombstone). The `created`/`ver` of a generation whose
-only revision is its tombstone are never read (`kiGet` never answers a tombstone; compaction and
-`keep` read revisions), so the repair is a modelling choice, internal to mvcc: the invariant compares
-key indexes up to them (`kiNorm`, `IdxCRepN`); `kiGet_kiNorm` (proved) is the fact that readers see
-no difference. This is the "index over a thinned bucket" item of the approval list (internal).
-
-**The bucket's shape must be the job's** (`bucketThinnedAt_counterexample`, proved): the round-3
-Draft's `bucketThinnedAt L c m` (every missing entry deletable at `c`) admits a bucket missing a
-deletable revision while keeping an older one of the same key, from which the rebuilt index answers
-a read at `c` with the wrong version. The compaction job deletes the deletable keys in revision order
-(`scheduleCompaction`'s batches from revision 0 up, `kvstore_compaction.go`), and a finished earlier
-compaction's deletions are deletable at a later one (`KeyDel` is monotone in `c`), so every image a
-member can send has, per key, a *prefix* of its revisions removed: `bucketCutAt` (drafted below), in
-place of `bucketThinnedAt`.
+- **Equality with a compaction cannot hold** (`idxCRep_restore_counterexample`): the old invariant
+  `IdxCRep` asked every key's index to *equal* the log's compacted at some level; the restored
+  tombstone-only generation's header differs. Repaired by comparing up to that header (`kiNorm`),
+  which nothing reads (`kiGet_kiNorm`).
+- **The bucket's shape must be the job's** (`bucketThinnedAt_counterexample`): any deletable subset
+  missing admits a wrong index; the job's shape is a prefix of each key's entries (`entsCutAt`).
+- **A level at a main revision is not enough** (`cx3_not_compacted`, and the reviewer's log of round 5,
+  `cxr_not_compacted`): a job's batch can stop between two sub-revisions of one main revision, after
+  which the rebuilt key index starts at the key's first surviving *sub*-revision, which no compaction
+  at a main revision gives, even up to the headers. Round 4 excluded it with a premise (`KeyOnceAt`,
+  each key changed once per revision), which is no etcd guarantee
+  (`issues/etcd-txn-check-intervals-sibling.md`: sibling transactions put and delete one key in one
+  revision). The user's decision B1 (round 5) made the level a full revision instead: both logs'
+  rebuilt indexes are related at it (`cx3_idxCRepN`, `cxr_idxCRepN`), as `idxRestore_cut` proves in
+  general, with no premise on how often a revision changes a key.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreModel
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexRestore
 
 @[expose] public section
 
@@ -43,33 +40,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace mvcc
-
-/-! ## Key indexes up to the unread header of a tombstone-only generation -/
-
-/-- **A generation's unread header cleared** (draft): a generation that is not the last and has one
-revision (its tombstone: a generation that is not the last ends with one) gets `created := 0`,
-`ver := 1`, the values `restoreTombstone` gives it. -/
-def genNorm (last : Bool) (g : Gen) : Gen :=
-  if last = false ∧ g.revs.length = 1 then { g with created := W64 0, ver := W64 1 } else g
-
-/-- **A key index up to the unread headers** (draft): every generation but the last normalized. -/
-def kiNorm (ki : KeyIndex) : KeyIndex :=
-  { ki with gens := ki.gens.mapIdx fun i g => genNorm (decide (i + 1 = ki.gens.length)) g }
-
-/-- **The index, compacted per key, up to the unread headers** (draft of `IdxCRep`'s repair:
-`idxLockInv`'s `HL` at the switch). -/
-def IdxCRepN (cmax : Int) (evs : List Ev) (idx : IndexM) : Prop :=
-  idx.Pairwise idxLess ∧
-    ∀ k, ∃ c : Int, -1 ≤ c ∧ c ≤ cmax ∧
-      (idxGet idx k).map kiNorm = (kiCompactO c (kiOfKey evs k)).map kiNorm
-
-/-- Today's invariant gives the repaired one. -/
-theorem IdxCRepN_of {cmax : Int} {evs : List Ev} {idx : IndexM} (h : IdxCRep cmax evs idx) :
-    IdxCRepN cmax evs idx :=
-  ⟨h.1, fun k => by
-    obtain ⟨c, h0, h1, h2⟩ := h.2 k
-    exact ⟨c, h0, h1, by rw [h2]⟩⟩
-
 
 /-! ## The counterexample: today's invariant after a restore over a compacted bucket -/
 
@@ -166,83 +136,21 @@ theorem idxCRep_restore_counterexample :
     rw [hget] at hg
     exact cx_not_compacted c h0 (by omega) hg.symm
 
-/-- **The repaired invariant holds there** (`IdxCRepN`, at level `3`): up to the tombstone-only
-generation's header the rebuilt key index is the log's compacted at `3`. -/
-theorem cx_idxCRepN : ∀ k, (idxGet (idxRestore [cxTombEnt]) k).map kiNorm =
-    (kiCompactO (if k = cxKey then 3 else -1) (kiOfKey (evsOf cxLog) k)).map kiNorm := by
-  intro k
+/-- **The invariant at a full revision holds there** (`IdxCRepN`, at level `3`, the key cut at its
+tombstone, `(0, 1)`): up to the tombstone-only generation's header the rebuilt key index is the
+log's cut there. -/
+theorem cx_idxCRepN : IdxCRepN 3 (evsOf cxLog) (idxRestore [cxTombEnt]) := by
+  refine ⟨by rw [cx_idxRestore]; simp, fun k => ?_⟩
   by_cases hk : k = cxKey
-  · subst hk; rfl
-  · rw [cx_idxRestore, cx_kiOfKey_other k hk,
-      idxGet_none_of_not_mem (by simp) (fun v hv => hk (by simp at hv; exact hv.1))]
-    simp only [hk, ↓reduceIte]
-    rfl
-
-/-! ## Readers see no difference -/
-
-theorem kiNorm_length (ki : KeyIndex) : (kiNorm ki).gens.length = ki.gens.length := by
-  simp [kiNorm]
-
-theorem kiNorm_getD (ki : KeyIndex) (i : Nat) :
-    (kiNorm ki).gens.getD i Gen.empty =
-      if i < ki.gens.length then genNorm (decide (i + 1 = ki.gens.length)) (ki.gens.getD i Gen.empty)
-      else Gen.empty := by
-  unfold kiNorm
-  simp only [List.getD_eq_getElem?_getD, List.getElem?_mapIdx]
-  by_cases hi : i < ki.gens.length
-  · simp [hi]
-  · simp [hi]
-
-theorem genNorm_revs (l : Bool) (g : Gen) : (genNorm l g).revs = g.revs := by
-  unfold genNorm; split <;> rfl
-
-theorem kiNorm_revs (ki : KeyIndex) (i : Nat) :
-    ((kiNorm ki).gens.getD i Gen.empty).revs = (ki.gens.getD i Gen.empty).revs := by
-  rw [kiNorm_getD]
-  split
-  · exact genNorm_revs _ _
-  · rename_i hi
-    simp [List.getD_eq_getElem?_getD, List.getElem?_eq_none (Nat.le_of_not_lt hi), Gen.empty]
-
-/-- The generation scan reads only the revisions. -/
-theorem kiFindGenAux_congrRevs (gens gens' : List Gen) (a : w64) (hl : gens.length = gens'.length)
-    (hr : ∀ i, (gens.getD i Gen.empty).revs = (gens'.getD i Gen.empty).revs) :
-    ∀ n, kiFindGenAux gens a n = kiFindGenAux gens' a n
-  | 0 => rfl
-  | n + 1 => by
-    rw [kiFindGenAux_succ, kiFindGenAux_succ]
-    simp only [hr n, hl, kiFindGenAux_congrRevs gens gens' a hl hr n]
-
-theorem kiFindGen_kiNorm (ki : KeyIndex) (a : w64) : kiFindGen (kiNorm ki) a = kiFindGen ki a := by
-  unfold kiFindGen
-  rw [kiNorm_length]
-  exact kiFindGenAux_congrRevs _ _ a (kiNorm_length ki) (kiNorm_revs ki) _
-
-/-- **Readers see no difference** (`kiGet`, what every read of the index answers): the scan never
-stops at a generation that is not the last and has one revision (its tombstone, at or below every
-revision the scan could stop there for), the only ones `kiNorm` changes. -/
-theorem kiGet_kiNorm (ki : KeyIndex) (a : w64) : kiGet (kiNorm ki) a = kiGet ki a := by
-  unfold kiGet
-  rw [kiFindGen_kiNorm]
-  cases hf : kiFindGen ki a with
-  | none => rfl
-  | some gx =>
-    obtain ⟨hlt, hne, hnot, hhead⟩ := kiFindGenAux_spec ki.gens.length gx hf
-    simp only
-    have hg : (kiNorm ki).gens.getD gx Gen.empty = ki.gens.getD gx Gen.empty := by
-      rw [kiNorm_getD]; simp only [hlt, ↓reduceIte]
-      unfold genNorm
-      split
-      · rename_i h
-        exfalso
-        apply hnot
-        obtain ⟨hl, h1⟩ := h
-        refine ⟨by intro he; simp at hl; omega, ?_⟩
-        generalize ki.gens.getD gx Gen.empty = g at *
-        match g, h1 with
-        | ⟨_, _, [r]⟩, _ => simpa using hhead
-      · rfl
-    rw [hg]
+  · subst hk
+    refine ⟨3, by decide, Int.le_refl _, 0, 1, ?_, ?_⟩
+    · rw [cx_kiOfKey]; right; decide
+    · rw [cx_kiOfKey]; rfl
+  · refine ⟨-1, Int.le_refl _, by decide, 0, 0, ?_, ?_⟩
+    · rw [cx_kiOfKey_other k hk]; right; decide
+    · rw [cx_idxRestore, cx_kiOfKey_other k hk,
+        idxGet_none_of_not_mem (by simp) (fun v hv => hk (by simp at hv; exact hv.1))]
+      rfl
 
 /-! ## The bucket's shape: a prefix of each key's revisions, not any deletable subset -/
 
@@ -308,11 +216,28 @@ theorem bucketThinnedAt_counterexample :
 abbrev cx3Log : Log :=
   [[], [], [.put cxKey [W8 120] (W64 0)], [.put cxKey [W8 121] (W64 0), .put cxKey [W8 122] (W64 0)]]
 
-/-- **Why `KeyOnceAt`**: the job's cut just after revision `2` (deletable at `3`, as `⟨3, 0⟩` is)
-leaves `⟨3, 0⟩, ⟨3, 1⟩`, rebuilt as one generation `{created 2, ver 3, [⟨3,0⟩, ⟨3,1⟩]}`
-(`restore` at `⟨3, 0⟩`'s create revision and version `2`, then a put), which no compaction level
-`-1 … 3` gives, even up to the headers: the levels below `3` keep revision `2`, `3` cuts to
-`⟨3, 1⟩`. -/
+theorem cx3_kiOfKey : kiOfKey (evsOf cx3Log) cxKey =
+    { modified := ⟨W64 3, W64 1⟩,
+      gens := [{ ver := W64 3, created := W64 2, revs := [⟨W64 2, W64 0⟩, ⟨W64 3, W64 0⟩, ⟨W64 3, W64 1⟩] }] } := by
+  rfl
+
+theorem cx3_kiOfKey_other (k : GoString) (hk : k ≠ cxKey) : kiOfKey (evsOf cx3Log) k = kiEmpty := by
+  have he : evsOf cx3Log = [{ rev := ⟨W64 2, W64 0⟩, change := .put cxKey [W8 120] (W64 0) },
+      { rev := ⟨W64 3, W64 0⟩, change := .put cxKey [W8 121] (W64 0) },
+      { rev := ⟨W64 3, W64 1⟩, change := .put cxKey [W8 122] (W64 0) }] := by rfl
+  unfold kiOfKey
+  rw [he]
+  have hne : ¬ cxKey = k := fun h => hk h.symm
+  simp [Ev.key, Change.key, hne]
+
+/-- `cx3Log`'s `Key` bucket. -/
+abbrev cx3Ents : List KvEnt := logEnts cx3Log 0 cx3Log.length
+
+/-- **No compaction at a main revision gives it** (why round 4 needed `KeyOnceAt`): the job's cut
+just after revision `2` (deletable at `3`, as `⟨3, 0⟩` is) leaves `⟨3, 0⟩, ⟨3, 1⟩`, rebuilt as one
+generation `{created 2, ver 3, [⟨3,0⟩, ⟨3,1⟩]}` (`restore` at `⟨3, 0⟩`'s create revision and version
+`2`, then a put), which no compaction level `-1 … 3` gives, even up to the headers: the levels below
+`3` keep revision `2`, `3` cuts to `⟨3, 1⟩`. -/
 theorem cx3_not_compacted (c : Int) (h0 : -1 ≤ c) (h1 : c ≤ 3) :
     (kiCompactO c (kiOfKey (evsOf cx3Log) cxKey)).map kiNorm ≠
       some (kiNorm (kiPut (kiRestore (W64 2) ⟨W64 3, W64 0⟩ (W64 2)) ⟨W64 3, W64 1⟩)) := by
@@ -322,51 +247,93 @@ theorem cx3_not_compacted (c : Int) (h0 : -1 ≤ c) (h1 : c ≤ 3) :
   obtain rfl | rfl | rfl | rfl | rfl : c = -1 ∨ c = 0 ∨ c = 1 ∨ c = 2 ∨ c = 3 := by omega
   all_goals decide
 
-/-! ## The drafted shape and what the rebuild gives over it -/
+/-- The rebuilt index over `cx3Log`'s bucket with revision `2` deleted (the batch boundary after
+it): `restore` of `⟨3, 0⟩` (created `2`, version `2`), then a put of `⟨3, 1⟩`. -/
+theorem cx3_idxRestore : idxRestore (cx3Ents.drop 1) =
+    [(cxKey, kiPut (kiRestore (W64 2) ⟨W64 3, W64 0⟩ (W64 2)) ⟨W64 3, W64 1⟩)] := by
+  rfl
 
-/-- **Each key changes at most once in revision `r`** (pure; draft): etcd's transactions never
-touch a key twice (`checkIntervals` rejects overlapping puts, and a put overlapping a delete, in one
-request), so every revision of the committed log has it. Needed only where a compaction's job may
-cut between two changes of one key in one revision (a batch boundary of `scheduleCompaction` falls
-on any bucket key): with a put and then a delete or a put of the same key in revision `r`, a cut
-just after the first leaves a key index no compaction level gives. `NoDelPutAt L r` is its
-del-then-put case. -/
-def KeyOnceAt (L : Log) (r : Nat) : Prop :=
-  ((L.getD r []).map Change.key).Nodup
+/-- **At a full revision, the third counterexample is gone** (`IdxCRepN 3`, the key cut at
+`⟨3, 0⟩`, position `(0, 1)`). -/
+theorem cx3_idxCRepN : IdxCRepN 3 (evsOf cx3Log) (idxRestore (cx3Ents.drop 1)) := by
+  rw [cx3_idxRestore]
+  refine ⟨by simp, fun k => ?_⟩
+  by_cases hk : k = cxKey
+  · subst hk
+    refine ⟨3, by decide, Int.le_refl _, 0, 1, ?_, ?_⟩
+    · rw [cx3_kiOfKey]; right; decide
+    · rw [cx3_kiOfKey]; rfl
+  · refine ⟨-1, Int.le_refl _, by decide, 0, 0, ?_, ?_⟩
+    · rw [cx3_kiOfKey_other k hk]; right; decide
+    · rw [cx3_kiOfKey_other k hk,
+        idxGet_none_of_not_mem (by simp) (fun v hv => hk (by simp at hv; exact hv.1))]
+      rfl
 
-/-- **The job's shape** (draft, in place of `bucketThinnedAt`; A1 (b)): the image's `Key` entries
-`ents` are the log's (in order) but for, per key, a prefix of its entries, each deletable by the
-compaction at `c` (`KeyDel`). A finished compaction at `c` (every deletable entry gone), a leader's
-bucket mid-job (the job deletes from revision `0` up, in batches), and either after an earlier
-finished compaction (`KeyDel` grows with `c`) all have it. -/
-def entsCutAt (L : Log) (c : Int) (ents : List KvEnt) : Prop :=
-  ents.Sublist (logEnts L 0 L.length) ∧
-    (∀ e ∈ logEnts L 0 L.length, e ∉ ents → KeyDel L c (revBytes e.rev e.tomb)) ∧
-    ∀ e₁ ∈ logEnts L 0 L.length, ∀ e₂ ∈ logEnts L 0 L.length,
-      e₁.kv.key = e₂.kv.key → Rev.lt e₁.rev e₂.rev → e₂ ∉ ents → e₁ ∉ ents
+/-! ## The reviewer's log (review round 5, B1): a put and a delete of one key in one revision -/
 
-/-- The whole bucket has the shape at any revision. -/
-theorem entsCutAt_full (L : Log) (c : Int) : entsCutAt L c (logEnts L 0 L.length) :=
-  ⟨List.Sublist.refl _, fun _ h h' => absurd h h', fun _ _ _ h₂ _ _ h => absurd h₂ h⟩
+/-- The log of round 5's B1: `a` put at `2`; then put at `⟨3, 0⟩` and deleted at `⟨3, 1⟩` (sibling
+transactions of one request, which `checkIntervals` admits). -/
+abbrev cxrLog : Log :=
+  [[], [], [.put cxKey [W8 120] (W64 0)], [.put cxKey [W8 121] (W64 0), .del cxKey]]
 
-/-- **What `restoreIntoIndex` rebuilds from the job's shape** (the statement, drafted; **not yet
-proved**: the pure fact `store.restore.specR`'s index post rests on, A1 (b)): over a well-formed
-log whose revisions up to `c` change each key once, the rebuilt index is the log's compacted per key
-at a level of its own, at most `c`, up to the unread headers (`IdxCRepN c`). The level of a key
-whose first surviving entry `e` follows dropped ones is `e`'s main revision, or `c` if that is past
-`c`; of a key with nothing dropped, `-1`. The proof's route: the index per key is the fold of
-`idxRestoreEnt` over the key's surviving entries (`idxGet_btInsert`); the first is `restore`d with
-the entry's create revision and version, which are the key's generation's (`KvMatch`, `rev_step`),
-so it is the log's key index up to that entry compacted at its revision (up to the header when it is
-a tombstone); compaction commutes with the later events, all above the level (`kiCompact_kiPut`,
-`kiCompactO_step`), and so does `kiNorm`. -/
-def idxRestore_cutStmt : Prop :=
-  ∀ (L : Log) (c : Int) (ents : List KvEnt),
-    LogWf' L → LogB L → -1 ≤ c → c < L.length → (∀ r : Nat, (r : Int) ≤ c → KeyOnceAt L r) →
-    entsCutAt L c ents → IdxCRepN c (evsOf L) (idxRestore ents)
+theorem cxr_kiOfKey : kiOfKey (evsOf cxrLog) cxKey =
+    { modified := ⟨W64 3, W64 1⟩,
+      gens := [{ ver := W64 3, created := W64 2, revs := [⟨W64 2, W64 0⟩, ⟨W64 3, W64 0⟩, ⟨W64 3, W64 1⟩] },
+        Gen.empty] } := by
+  rfl
 
-/-- The whole bucket rebuilds the log's index (today's `idxRestore_logEnts'`), in the repaired
-form, at any level. -/
+theorem cxr_kiOfKey_other (k : GoString) (hk : k ≠ cxKey) : kiOfKey (evsOf cxrLog) k = kiEmpty := by
+  have he : evsOf cxrLog = [{ rev := ⟨W64 2, W64 0⟩, change := .put cxKey [W8 120] (W64 0) },
+      { rev := ⟨W64 3, W64 0⟩, change := .put cxKey [W8 121] (W64 0) },
+      { rev := ⟨W64 3, W64 1⟩, change := .del cxKey }] := by rfl
+  unfold kiOfKey
+  rw [he]
+  have hne : ¬ cxKey = k := fun h => hk h.symm
+  simp [Ev.key, Change.key, hne]
+
+/-- The log's `Key` bucket: the put at `2`, the put at `⟨3, 0⟩` (created at `2`, version `2`), the
+tombstone at `⟨3, 1⟩`. -/
+theorem cxr_logEnts : logEnts cxrLog 0 cxrLog.length =
+    [⟨⟨W64 2, W64 0⟩, false,
+       { key := cxKey, createRev := W64 2, modRev := W64 2, version := W64 1, value := [W8 120], lease := W64 0 }⟩,
+     ⟨⟨W64 3, W64 0⟩, false,
+       { key := cxKey, createRev := W64 2, modRev := W64 3, version := W64 2, value := [W8 121], lease := W64 0 }⟩,
+     ⟨⟨W64 3, W64 1⟩, true, zeroKv cxKey⟩] := by
+  rfl
+
+/-- **No compaction at a main revision gives the rebuilt key index** (the reviewer's hand-worked
+case, now checked): after the job's batch stops just after revision `2`, the bucket keeps
+`⟨3, 0⟩, ⟨3, 1⟩`, rebuilt as `{created 2, ver 3, [⟨3,0⟩, ⟨3,1⟩]}` and an empty generation; the
+levels `-1 … 2` keep revision `2`, level `3` cuts to `⟨3, 1⟩`. -/
+theorem cxr_not_compacted (c : Int) (h0 : -1 ≤ c) (h1 : c ≤ 3) :
+    (kiCompactO c (kiOfKey (evsOf cxrLog) cxKey)).map kiNorm ≠
+      (idxGet (idxRestore ((logEnts cxrLog 0 cxrLog.length).drop 1)) cxKey).map kiNorm := by
+  intro h
+  have h' := congrArg (Option.map fun ki : KeyIndex => ki.gens.map fun g => (g.created, g.ver, g.revs)) h
+  revert h'
+  obtain rfl | rfl | rfl | rfl | rfl : c = -1 ∨ c = 0 ∨ c = 1 ∨ c = 2 ∨ c = 3 := by omega
+  all_goals decide
+
+/-- **At a full revision, the reviewer's case is related** (`IdxCRepN 3`, the key cut at `⟨3, 0⟩`,
+position `(0, 1)`): the rebuilt key index is the log's with revision `2` dropped. -/
+theorem cxr_idxCRepN : IdxCRepN 3 (evsOf cxrLog) (idxRestore ((logEnts cxrLog 0 cxrLog.length).drop 1)) := by
+  have hr : idxRestore ((logEnts cxrLog 0 cxrLog.length).drop 1) =
+      [(cxKey, kiTombstone (kiRestore (W64 2) ⟨W64 3, W64 0⟩ (W64 2)) ⟨W64 3, W64 1⟩)] := by
+    rw [cxr_logEnts]; rfl
+  rw [hr]
+  refine ⟨by simp, fun k => ?_⟩
+  by_cases hk : k = cxKey
+  · subst hk
+    refine ⟨3, by decide, Int.le_refl _, 0, 1, ?_, ?_⟩
+    · rw [cxr_kiOfKey]; right; decide
+    · rw [cxr_kiOfKey]; rfl
+  · refine ⟨-1, Int.le_refl _, by decide, 0, 0, ?_, ?_⟩
+    · rw [cxr_kiOfKey_other k hk]; right; decide
+    · rw [cxr_kiOfKey_other k hk,
+        idxGet_none_of_not_mem (by simp) (fun v hv => hk (by simp at hv; exact hv.1))]
+      rfl
+
+/-- The whole bucket rebuilds the log's index (today's `idxRestore_logEnts'`), at any level. -/
 theorem idxRestore_full_N (L : Log) (c : Int) (hc : -1 ≤ c) (hb : LogB L) (hwf : LogWf' L) :
     IdxCRepN c (evsOf L) (idxRestore (logEnts L 0 L.length)) := by
   rw [idxRestore_logEnts' L hb.1 hb.2 hwf]

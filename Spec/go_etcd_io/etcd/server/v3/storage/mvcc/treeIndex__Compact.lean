@@ -27,7 +27,7 @@ store's FIFO scheduler runs the jobs one by one, in the order of their revisions
 compaction `c` at most `rev`), with `rev` a lower bound of the compaction revision (`crevLb`:
 `Compact` set it; so the readers read at or above it) and a revision of a certified log: each
 key index of the tree (a clone's, each under the lock) compacted at `rev` (a key whose compaction
-empties it is deleted from the tree; the lock's invariant, `IdxCRep`, takes the new levels, at
+empties it is deleted from the tree; the lock's invariant, `IdxCRepN`, takes the new levels, at
 most `rev`), and the map of the revisions compaction keeps (`keepSetIs`: every key's `kiAvail` at
 `rev` of the log: later events, above `rev`, and earlier compactions, below it, do not change
 it, `reader_avail`, `kiAvail_kiCompact`; a key put after the clone has none, `keepAt_keys`).
