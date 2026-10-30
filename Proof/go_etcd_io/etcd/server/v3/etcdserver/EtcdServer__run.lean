@@ -57,24 +57,29 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (dv : Option Loc) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape (A ++ ce))
     (hw : C.γw = C.ρ.wait)
-    -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
-    -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
-    (hdvn : dv = none → C.ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
-    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.ρ.raft.raft.dyn = true ∧
-      C.ρ.raft.raft.dec = srvDec C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
-      C.ρ.raft.ai0 = W64 0) :
+    -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, no conf entry;
+    -- with one, a fresh start (`c₀ ≤ ai₀`) at the server's rule (2026-10-30, the repair: one mode)
+    (hdvn : dv = none → ∀ m, m ∈ ce → m.typ ≠ W32 1)
+    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧
+      C.ρ.raft.raft.rule = srvRule C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
+      C.ρ.raft.ai0 = W64 0)
+    -- (2026-10-30, the repair) the node's id, whose applied index `raftAdvancedC`'s close reports
+    (nid : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
-        rnAdvChan rac (memFloorAtLeast C.ms C.γs (uint.Z C.ai₀ + ((A ++ ce).length : Int))) ∗
+        rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
+          nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length)) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
         isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
-        dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗
+        dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ dvRun C.ρ.raft dv ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
         applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) }} := by
+    {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) ∗ dvRun C.ρ.raft dv }} := by
+  sorry
+/- REPAIR-OLD
   iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyRes at HR
@@ -197,6 +202,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   · apply ciJ_step _ _ _ ai ai' HJ (by rw [hai']; omega) hci'
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
   · rw [hun] at hat'; exact lastTermIs_append Hlt hat'
+-/
 
 /-- **A job's body in the mode `on`** (the auth plan's E3q; `run_job_body`'s over
 `applyAll.specOn`). Formerly: **A job's body** (`s.applyAll(&ep, &ap)`, in the scheduler's goroutine): from the apply
@@ -213,24 +219,29 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     (dv : Option Loc) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeOn (A ++ ce))
     (hw : C.γw = C.ρ.wait)
-    -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
-    -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
-    (hdvn : dv = none → C.ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
-    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.ρ.raft.raft.dyn = true ∧
-      C.ρ.raft.raft.dec = srvDec C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
-      C.ρ.raft.ai0 = W64 0) :
+    -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, no conf entry;
+    -- with one, a fresh start (`c₀ ≤ ai₀`) at the server's rule (2026-10-30, the repair: one mode)
+    (hdvn : dv = none → ∀ m, m ∈ ce → m.typ ≠ W32 1)
+    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧
+      C.ρ.raft.raft.rule = srvRule C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
+      C.ρ.raft.ai0 = W64 0)
+    -- (2026-10-30, the repair) the node's id, whose applied index `raftAdvancedC`'s close reports
+    (nid : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         srvLessorNil C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
-        rnAdvChan rac (memFloorAtLeast C.ms C.γs (uint.Z C.ai₀ + ((A ++ ce).length : Int))) ∗
+        rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
+          nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length)) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
         isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
-        dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗
+        dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ dvRun C.ρ.raft dv ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
         applyResOn C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ applyResOn C (A ++ ce) }} := by
+    {{ RET #(); schedule.schedRunning γs ∗ applyResOn C (A ++ ce) ∗ dvRun C.ρ.raft dv }} := by
+  sorry
+/- REPAIR-OLD
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyResOn at HR
@@ -353,6 +364,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   · apply ciJ_step _ _ _ ai ai' HJ (by rw [hai']; omega) hci'
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
   · rw [hun] at hat'; exact lastTermIs_append Hlt hat'
+-/
 
 
 set_option hygiene false in
@@ -403,6 +415,8 @@ theorem EtcdServer.run.wp_proof
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
   wp_start as Hpre
   iunfold isServerRun at Hpre
@@ -901,6 +915,7 @@ theorem EtcdServer.run.wp_proof
     iexfalso; iexact Hf
   iapply BigAndL.bigAndL_nil.2
   itrivial
+-/
 
 
 set_option maxHeartbeats 0 in
@@ -923,6 +938,8 @@ theorem EtcdServer.run.wp_proofOn
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.specOn (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ γa hM hRB
   wp_start as Hpre
   iunfold isServerRunOn at Hpre
@@ -1422,6 +1439,7 @@ theorem EtcdServer.run.wp_proofOn
     iexfalso; iexact Hf
   iapply BigAndL.bigAndL_nil.2
   itrivial
+-/
 
 end proof
 
