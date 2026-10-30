@@ -1736,6 +1736,11 @@ and k8s's apiserver storage. Done items are marked in the sorry list above as th
   downstream server examples and k8s's apiserver storage) started. Left: S-D `applyAll`; S-E P6, `NewServer`.
 - K-c done (8ff30c9ee0): **examples/kv has no sorry left**; kv's `Results`/`Link`/`AdequacyLinked` built
   (no `sorryAx` printed), `kv_porcupine_safe` byte-identical to origin/lean's; kv's Link unchanged.
+- S-D done (59cf04668c: `applyAll` both, #7 kept; the `ap.snapshot ≠ nil` branch dead under the frozen
+  spec, no sorry). P8 (b834ac2330), P9 (6dc15e1fc6). **For the post-merge snapshot track** (besides P8's two
+  open problems): `snapshotIfNeeded…specFull`'s `storage.releaseOk` and `ai ≤ ciEff` are not available at
+  `applyAll`'s call under the frozen statements (nothing gives `releaseOk`; `run`'s `ciJ` gives `ci ≤ ai`, the
+  wrong direction; in Go, `ci ≥ ai` from boot). Left: S-E `NewServer` (`wp_proof`, `wp_proofM`); D.
 
 ## Repair: Stage P changes (2026-10-30)
 
