@@ -27,8 +27,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.KvrStorageApi
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunInv
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunBatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunReadyIdx
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunAppend
 public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.raft.v3.FrameH
 
@@ -121,7 +120,7 @@ theorem Replica.run.wp_proof
     iapply Hau $$ [$Hlc1 $Hlc2]
     inext
     iintro %rdv ⟨%ce, %es, %h, %L, #Hce, #Hcomm, Hrs, Hrest, Hdrv⟩
-    ihave ⟨%Hidx, Hrest⟩ := kvr_readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
     try wp_auto
     cases L with
     | none =>
@@ -129,7 +128,7 @@ theorem Replica.run.wp_proof
       iunfold readyRest at Hrest
       icases Hrest with ⟨%msl, #Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
       iunfold readySnap at Hsnap
-      icases Hsnap with ⟨%Hnull, Happ, #Hcef⟩
+      icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
       wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
       cases b
       · run_exit
@@ -151,7 +150,31 @@ theorem Replica.run.wp_proof
                      ihave Hmeta : iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs') $$ [Hmeta]
                      · iexists h; iexact Hmeta
                      try wp_auto)
-      all_goals sorry
+      all_goals
+        icases append_none_pre st ρ.ms ρ.γs es $$ HstRec Happ with ⟨%k, %old, ⟨%Hk, %Hk0⟩, Hrange⟩
+        have h1 : ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j := by
+          intro j e hj
+          cases hes : es with
+          | nil => rw [hes] at hj; cases hj
+          | cons e0 rest =>
+            rw [Hk e0 (by rw [hes]; rfl)]
+            exact Hidx e0 (by rw [hes]; rfl) j e hj
+        have h2 : k + es.length ≤ 2 ^ 61 := by
+          cases hes : es with
+          | nil => rw [Hk0 hes]; simp
+          | cons e0 rest =>
+            have := Hfit' e0 (by rw [hes]; rfl)
+            rw [Hk e0 (by rw [hes]; rfl)]
+            rw [hes] at this
+            word
+        ihave #HmsInv' := HmsInv
+        iunfold memStorInvP at HmsInv'
+        icases HmsInv' with ⟨#Hlock, -, -⟩
+        wp_apply Storage.wp_Append wp_Append st ρ.ms ρ.γs k old es rdv.Entries' DFrac.discard h1 h2
+          $$ [$HstRec $Hraft $Hlock $Hrange $Hes] as ⟨-, Hb⟩
+        imod append_none_post st ρ.ms ρ.γs c D ce es k Hsi.2.2 (Hin) Hidx Hk
+          $$ HstRec Hfz Hcef Hb with ⟨#Hfz', Hrcpt⟩
+        sorry
     | some l =>
       sorry
   iapply BigAndL.bigAndL_cons.2

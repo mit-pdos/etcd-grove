@@ -37,7 +37,8 @@ attribute [local instance] kvrStorageModel
 
 theorem append_none_pre (st ms : Loc) (γs : MemStorNames) (es : List EntryM) :
     ⊢ kvrStorRec (GF := GF) st ms γs -∗ appendRight (kvrStorIface st) es -∗
-      ∃ (k : Nat) (old : List EntryM), ⌜∀ e0, es.head? = some e0 → k = uint.nat e0.Index'⌝ ∗
+      ∃ (k : Nat) (old : List EntryM),
+        ⌜(∀ e0, es.head? = some e0 → k = uint.nat e0.Index') ∧ (es = [] → k = 0)⌝ ∗
         (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) := by
   iintro #Hrec Happ
   iunfold appendRight at Happ
@@ -46,13 +47,13 @@ theorem append_none_pre (st ms : Loc) (γs : MemStorNames) (es : List EntryM) :
     iexists 0, []
     simp only [if_true]
     isplitr
-    · ipureintro; intro e h; cases h
+    · ipureintro; simp
     itrivial
   · iexists uint.nat e0.Index', old
     have hne : es ≠ [] := by intro h; subst h; cases Hh
     simp only [if_neg hne]
     isplitr
-    · ipureintro; intro e h; rw [Hh] at h; cases h; rfl
+    · ipureintro; exact ⟨fun e h => by rw [Hh] at h; cases h; rfl, fun h => absurd h hne⟩
     ihave Hl := kvrStorLog_to st ms γs _ _ _ $$ Hrec Hl
     ihave He := kvrStorEnd_to st ms γs _ $$ Hrec He
     iframe Hl He
