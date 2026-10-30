@@ -990,6 +990,80 @@ def mvcc.stopPayD (γx : GName) : IProp GF :=
 instance mvcc.stopPayD_persistent (γx : GName) : Persistent (mvcc.stopPayD (GF := GF) γx) := by
   unfold mvcc.stopPayD; infer_instance
 
+/-- **The payload's channel name, at home** (draft; review round 4's S2.2): the agreement name
+`γx` a store allocates for its scheduler's payload is a field of the physical names (`PhysNames`
+gains `sx : GName`, fresh per scheduler, `NewStore` and `store.Restore` allocate it before
+`NewFIFOScheduler`), and `physOk`'s conjunct is `stopPayAt p.sx γ.sch o` at the current objects `o`:
+the name records the stop channel `o.sstop` (fixed once the channel is made) and is the scheduler's
+payload's. Internal, as item 26. -/
+def mvcc.stopPayAt (γx : GName) (γs : schedule.SchedNamesD) (o : mvcc.StoreObjs) : IProp GF :=
+  iprop(dghostVar γx DFrac.discard o.sstop ∗ schedule.schedPayIs γs (mvcc.stopPayD γx))
+
+instance mvcc.stopPayAt_persistent (γx : GName) (γs : schedule.SchedNamesD) (o : mvcc.StoreObjs) :
+    Persistent (mvcc.stopPayAt (GF := GF) γx γs o) := by
+  unfold mvcc.stopPayAt; infer_instance
+
+/-- **What a job finding its context cancelled learns** (proved): the stop channel of the objects it
+reads through (`storeStopR s γ o`, the same `o` as `physOk`'s) is closed, a step later; so
+`compactBarrier`'s nonblocking receive takes the ready branch, the re-schedule branch is dead. -/
+theorem mvcc.stopPayAt_done (γx : GName) (γs : schedule.SchedNamesD) (o : mvcc.StoreObjs) :
+    mvcc.stopPayAt (GF := GF) γx γs o ∗ schedule.schedPay γs ⊢
+      ▷ ∃ γc : ChanNames, ownBroadcastChan o.sstop γc iprop(True) Broadcast.Done := by
+  iintro ⟨#Ha, #Hq⟩
+  iunfold mvcc.stopPayAt at Ha
+  icases Ha with ⟨#Hx, #Hp⟩
+  ihave Hl := schedule.schedPay_elim γs (mvcc.stopPayD γx) $$ [$Hp $Hq]
+  inext
+  icases Hl with #Hs
+  iunfold mvcc.stopPayD at Hs
+  icases Hs with ⟨%c, #Hc, %γc, #Hb⟩
+  ihave %He := dghostVar_agree γx o.sstop DFrac.discard c DFrac.discard $$ Hx Hc
+  subst He
+  iexists γc
+  iexact Hb
+
+/-! ## The logical mode (review round 3's S2.5, decided; drafted after round 4) -/
+
+/-- **The store's names with the logical mode** (draft of item 26: at the switch `cm` is
+`StoreNames`' own field): `NewStore` sets it to `decide (kbCmpM kb)`, `withPhys` keeps it, and
+`physOk`'s conjunct ties it to the current backend (`cmTie`). -/
+structure mvcc.StoreNamesD extends mvcc.StoreNames where
+  cm : Bool
+
+/-- `withPhys`, keeping the mode. -/
+def mvcc.StoreNamesD.withPhysD (γ : mvcc.StoreNamesD) (p : mvcc.PhysNames) : mvcc.StoreNamesD :=
+  { γ with toStoreNames := γ.toStoreNames.withPhys p }
+
+theorem mvcc.StoreNamesD.withPhysD_cm (γ : mvcc.StoreNamesD) (p : mvcc.PhysNames) :
+    (γ.withPhysD p).cm = γ.cm := rfl
+
+/-- **`physOk`'s tie of the mode to the backend** (pure; draft). -/
+def mvcc.cmTie (γ : mvcc.StoreNamesD) : Prop := mvcc.kbCmpM γ.kb ↔ γ.cm = true
+
+/-- `Restore` re-ties it at the new names when the new backend's mode is the old one's
+(`d'.cm = d.cm`, `Restore.specM`'s premise): the only place it is needed. -/
+theorem mvcc.cmTie_withPhysD (γ : mvcc.StoreNamesD) (p : mvcc.PhysNames) (h : mvcc.cmTie γ)
+    (hp : mvcc.kbCmpM p.kb ↔ mvcc.kbCmpM γ.kb) : mvcc.cmTie (γ.withPhysD p) := by
+  unfold mvcc.cmTie at h ⊢
+  show mvcc.kbCmpM (γ.toStoreNames.withPhys p).kb ↔ γ.cm = true
+  rw [mvcc.StoreNames.withPhys_kb]
+  exact hp.trans h
+
+/-- **`restoreRightM` over the logical mode** (draft): the gated logical predicates read `γ.cm`. -/
+def mvcc.restoreRightMC (s : Loc) (γ : mvcc.StoreNamesD) (c : Int) : IProp GF :=
+  if γ.cm then mvcc.compactRightR s γ.toStoreNames c
+  else iprop(mvcc.storeCloser s γ.toStoreNames ∗ mvcc.crevFrozen γ.toStoreNames ∗ ⌜c = -1⌝)
+
+/-- Under the tie it is round 3's (so the drafted statements read the same either way). -/
+theorem mvcc.restoreRightMC_eq (s : Loc) (γ : mvcc.StoreNamesD) (c : Int) (h : mvcc.cmTie γ) :
+    mvcc.restoreRightMC (GF := GF) s γ c = mvcc.restoreRightM s γ.toStoreNames c := by
+  unfold mvcc.restoreRightMC mvcc.restoreRightM
+  by_cases hc : γ.cm = true
+  · have : mvcc.kbCmpM γ.kb := h.2 hc
+    simp only [hc, this, ↓reduceIte]
+  · have : ¬ mvcc.kbCmpM γ.kb := fun h' => hc (h.1 h')
+    simp only [hc, this, Bool.false_eq_true, ↓reduceIte]
+
 /-! ## The records read (`restore()`'s two reads of the compaction keys; proved) -/
 
 /-- **Draft of `UnsafeReadFinishedCompact.spec` over the records' reader**: the finished record,

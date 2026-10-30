@@ -63,7 +63,12 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 /-- **The scheduler's names with the payload's** (draft: at the switch the field `pay` is
-`SchedNames`' own). -/
+`SchedNames`' own). **Required, not optional** (review round 4's S2.1): `isFifo` must pin `pay`.
+Over this extension it does not (`isFifo sc γ.toSchedNames` says nothing of `γ.pay`), so a caller of
+`Scheduler.Stop.specD` could pass names with a fresh `pay` holding `True`, and `Stop`'s proof could
+not produce the context's real `PDone`: as drafted here `Stop.specD` is unprovable. With `pay` a
+field of `SchedNames`, `isFifo sc γ`'s internal context description (`fifoCtxDesc`, whose `PDone` is
+`stopped F ∗ schedPay γ`, `fifoOf`'s) is over the same `γ`, which fixes it. -/
 structure schedule.SchedNamesD extends schedule.SchedNames where
   /-- the payload's saved proposition (`schedPayIs`), fixed by the creator -/
   pay : GName
@@ -237,7 +242,8 @@ abbrev schedule.NewFIFOScheduler.specD : Prop :=
 
 /-- **Draft of `schedule.Scheduler.Stop.spec`**: today's, taking the payload (`schedPay γ`: `Stop`
 cancels the context, done with it) and returning the run token (`schedDoneD`: the worker has
-exited). -/
+exited). Provable only once `isFifo` pins `γ.pay` (`SchedNamesD`'s docstring: `pay` a field of
+`SchedNames`, a switch requirement). -/
 abbrev schedule.Scheduler.Stop.specD : Prop :=
   ∀ (fi : GoInterfaceOk) (γ : schedule.SchedNamesD) (Ps : List GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
