@@ -1,6 +1,6 @@
 /-
-`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to the user clients**, the
-rest a `sorry` (2026-10-30). Lean-first (no Rocq counterpart).
+`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to the workloads**
+(`wg.Wait()`), the rest a `sorry` (2026-10-30). Lean-first (no Rocq counterpart).
 
 Proved: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
 (`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.specOn`) with the
@@ -10,8 +10,11 @@ history invariant, `akHist_setupAu`; the TLS fallback off and the auth store's c
 `memberUpOn`), and every error's return of `Failed`. `ak_served_watch` gives the watch server's
 facts (`watchAddrFacts`) at the clients' watcher environment `akV R`, for the workloads and the
 watches. Then the user clients (`newUserClient` for root, u and v, over the registration of
-`Authenticate` that `ak_served_kv` gives: `authTokReg_of`). Not yet: the workloads, root's last
-write and the two watches (`notes/authkv-main-plan.md`, "Main: what blocks it").
+`Authenticate` that `ak_served_kv` gives: `authTokReg_of`). Then the workloads: the auth state
+fixed after the set-up (`akAuthFixed_alloc` from `SetUp`'s post), the principals' loop
+(`Principals`; `c` the client of `u`, of `v`, or the set-up's, with its tokens as `akTokP`), each
+`Work(c, who)` in a goroutine under a wait group, and `wg.Wait()`. Not yet: root's last write and
+the two watches (`notes/authkv-main-plan.md`, "Main: what blocks it").
 
 What the proof needs, as the auth plan put it (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth plan"):
 - **the server in the mode `on γa`** (E2e's next step, E2g): `NewServer.spec` generic in the auth
@@ -51,6 +54,9 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.context.ErrAny
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.WorkEnv
+public import Perennial.Proof.sync.WaitGroupJoin
+public import Perennial.Proof.sync.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.MainAlloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.MainServe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Hist
@@ -216,7 +222,7 @@ theorem Main.wp_proof
   wp_apply (wp_NewClient go!"127.0.0.1:23916" lg
       (akV R) Hlg
       (by unfold plainEndpoint; decide) Htb31) as %cl %cerr Hcl
-  icases Hcl with (⟨%Hcerr, #Hnc, Hctk⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -232,13 +238,16 @@ theorem Main.wp_proof
   · iintro !> %k %hk
     ihave #H := akHist_setupAu ρ.rd.kv k hk $$ Hhist
     iexact H
-  iunfold akKVOn at HKV
-  icases HKV with ⟨#Hput, -, -, -⟩
+  ihave #Hput : isGrpcRpcMd go!"127.0.0.1:23916" go!"/etcdserverpb.KV/Put"
+      (client.etcdPutSpecOn srv E { ρ with wait := γw } cid mid) $$ []
+  · iunfold akKVOn at HKV
+    icases HKV with ⟨#H, -, -, -⟩
+    iexact H
   wp_apply (wp_SetUp cl go!"127.0.0.1:23916"
       (akV R) srv E
       { ρ with wait := γw } cid mid γa HEo
       (by show uint.Z ρ.rd.kv.c0 ≤ uint.Z ρ.rd.raft.ai0; rw [hc0]; word) hAs)
-    $$ [Hctk Hview] as %ok Hok
+    $$ [Hview] as %ok Hok
   · iframe; iframe #
   cases ok
   · wp_auto
@@ -258,7 +267,7 @@ theorem Main.wp_proof
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
-  icases Hrc with (⟨%Hrerr, #Hrnc, Hrtk⟩ | %Hrfail)
+  icases Hrc with (⟨%Hrerr, #Hrnc, #Hrtk⟩ | %Hrfail)
   rotate_left
   · obtain ⟨Hrerr, -⟩ := Hrfail
     cases rerr with
@@ -273,7 +282,7 @@ theorem Main.wp_proof
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
-  icases Huc with (⟨%Huerr, #Hunc, Hutk⟩ | %Hufail)
+  icases Huc with (⟨%Huerr, #Hunc, #Hutk⟩ | %Hufail)
   rotate_left
   · obtain ⟨Huerr, -⟩ := Hufail
     cases uerr with
@@ -288,7 +297,7 @@ theorem Main.wp_proof
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
-  icases Hvc with (⟨%Hverr, #Hvnc, Hvtk⟩ | %Hvfail)
+  icases Hvc with (⟨%Hverr, #Hvnc, #Hvtk⟩ | %Hvfail)
   rotate_left
   · obtain ⟨Hverr, -⟩ := Hvfail
     cases verr with
@@ -298,8 +307,86 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Hverr
   wp_auto
-  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): the workloads, root's last
-  -- write and the two watches
+  -- the auth state fixed after the set-up (S6, `akAuthFixed_alloc`), from `SetUp`'s post
+  rw [ite_eq_left rfl]
+  icases Hok with ⟨%γz, %hs, %Lset, %kpub, %rset, #Hfz, #Hllb, %Hadm, #Hpub, #Hsst⟩
+  ihave #Hfix := akAuthFixed_alloc srv E γa { ρ with wait := γw } γz hs Lset kpub rset HEo
+    $$ [Hrd Hfz Hllb Hpub Hsst]
+  · iframe #; ipureintro; exact Hadm
+  -- the workloads: `for _, who := range Principals() { ...; wg.Add(1); go func() { Work(c, who);
+  -- wg.Done() }() }`, then `wg.Wait()`
+  wp_apply wp_Principals as %psl Hpsl
+  imod ownSlice_persist _ _ _ $$ Hpsl with #Hpsl
+  (try wp_auto)
+  ihave %Hpl := ownSlice_len $$ Hpsl
+  ipersist cli
+  ipersist ucli
+  ipersist vcli
+  imod sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr $$ wg with ⟨%γwg, Hwg⟩
+  imod sync.join.init wg_ptr γwg $$ Hwg with Hwg
+  ihave IH : (∃ (k : w64) (na : w32),
+      "i" ∷ i_ptr ↦ k ∗ "Hwg" ∷ sync.join.ownAdder wg_ptr na iprop(True) ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 4 ∧ sint.Z na = sint.Z k⌝ : IProp GF)
+    $$ [i Hwg]
+  · iexists W64 0, W32 0
+    iframe
+    ipureintro
+    exact ⟨by decide, by decide, by decide⟩
+  -- `Work`'s facts shared by every principal
+  obtain ⟨hRE', hRs'⟩ := HRQ
+  ihave #Htag' : auth.modeTag R.γ.tag (.on γa) $$ []
+  · rw [← HEo]; iexact Htag
+  have hplen : sint.Z psl.len = 4 := by
+    have h := Hpl.1; simp only [principals, List.length] at h; word
+  wp_for IH
+  wp_if_destruct
+  · -- the principal `who := principals[k]`
+    have Hlt : sint.nat k < principals.length := by simp only [principals, List.length]; word
+    obtain ⟨who, Hl⟩ : ∃ w, principals[sint.nat k]? = some w :=
+      ⟨_, List.getElem?_eq_getElem Hlt⟩
+    have hwho : who ∈ principals := List.mem_of_getElem? Hl
+    have Hbnd : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z psl.len := ⟨Hk.1, by word⟩
+    rw [ite_eq_left Hbnd]
+    icases ownSlice_elem_acc (sint.Z k) who psl DFrac.discard principals Hk.1 Hl $$ Hpsl
+      with ⟨#Hle, -⟩
+    (try wp_auto)
+    -- `c` is `ucli` for u, `vcli` for v, `cli` (no user name) for anon and bad
+    wp_if_destruct
+    rotate_left
+    wp_if_destruct
+    all_goals
+      (try wp_auto)
+      wp_apply (sync.join.WaitGroup.wp_Add_of sync.WaitGroup.wp_Add iprop(True) wg_ptr iprop(True)
+          na) $$ [Hwg] as ⟨Hwg, Hdone⟩
+      · iframe; ipureintro; word
+      wp_apply wp_fork $$ [Hdone who c]
+      · (try wp_auto)
+        wp_apply (wp_Work _ _ (akV R) srv E { ρ with wait := γw } cid mid γa Lset kpub hwho HEo
+            ⟨rfl, rfl, rfl, hRs', hRE', rfl⟩ hAs)
+        · iframe #
+          first
+          | (rw [akTokP, ite_eq_left (Or.inl rfl)]; iexact Hutk)
+          | (rw [akTokP, ite_eq_left (Or.inr rfl)]; iexact Hvtk)
+          | (rw [akTokP, ite_eq_right (fun h => h.elim ‹_› ‹_›)]; iexact Hctk)
+        (try wp_auto)
+        wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
+          $$ [Hdone]
+        · iframe
+        itrivial
+      wp_for_post
+      iframe
+      iexists (k + W64 1), (na + W32 1)
+      iframe
+      isplitl [Hwg]
+      · iapply sync.join.ownAdder_wand $$ [] Hwg
+        iintro -; itrivial
+      ipureintro
+      refine ⟨by word, by word, by word⟩
+  -- the workloads are done: `wg.Wait()`
+  wp_apply (sync.join.WaitGroup.wp_Wait_of sync.WaitGroup.wp_Wait _ na wg_ptr) $$ [$Hwg] as -
+  (try wp_auto)
+  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): root's last write and the
+  -- two watches
   sorry
 
 end proof

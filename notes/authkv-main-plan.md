@@ -576,7 +576,7 @@ waits on 1.
 
 **`Main.wp_proof` up to `SetUp` (2026-10-30)**: the logger, `ak_alloc` and `akHist_alloc`,
 `startServer`, `Serve.specOn` with `ak_served_kv`, `NewClient`, `SetUp` (its puts by
-`akHist_setupAu`), every error's `Failed`; then (same day) the watch half (`ak_served_watch`) and the user clients (`newUserClient` ×3 over `authTokReg_of`, `ctxErrClientAll` from `ctxErrClientAllW_of`, the callee `context.ErrAny`); a `sorry` from the workloads on. Linking: the
+`akHist_setupAu`), every error's `Failed`; then (same day) the watch half (`ak_served_watch`) and the user clients (`newUserClient` ×3 over `authTokReg_of`, `ctxErrClientAll` from `ctxErrClientAllW_of`, the callee `context.ErrAny`), and the workloads (`akAuthFixed_alloc` from `SetUp`'s post; the principals' loop, each `Work(c, who)` forked under a wait group, `akTokP` reduced per branch; `wg.Wait()`); a `sorry` from root's last write on. Linking: the
 callees `zap.NewNop`, `startServer` (pending in `Link.lean`, `?`: `Results.lean`'s `authkv_Main`
 passes `authkv_startServer`, so it takes its premises `auth.ValidSpec`, `authSchemaSrv` and the
 semantics' `Float64ToInt64Semantics`, `ErrorStringLeaf`; the user's choice), `Serve.specOn`
