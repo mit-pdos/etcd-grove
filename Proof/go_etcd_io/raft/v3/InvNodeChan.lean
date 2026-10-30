@@ -675,7 +675,14 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     softStateRO rd.SoftState' ∗
     ⌜rd.Snapshot' = null⌝ ∗
     -- (2026-10-18, D19b stage 5) the indices handed out are within the log (`readyIdx`)
-    readyIdx γ.raft d ce es)
+    readyIdx γ.raft d ce es ∗
+    -- (raft-final phase 2, 2026-10-30) the batch's indices are consecutive, and the committed
+    -- entries at or past its first index are its entries there (both the log's: `readyRest`'s
+    -- `readyRest_indices`, `readyRest_ceInBatch`)
+    ⌜∀ e0, es.head? = some e0 →
+      (∀ j e, es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+      (∀ j e, ce[j]? = some e → uint.nat e0.Index' ≤ d.length + 1 + j →
+        es[d.length + 1 + j - uint.nat e0.Index']? = some e)⌝)
 
 -- (U8 v2) `dlvAfter` (the committed log handed out after a `Ready`) moved to `InvRawnodeReady.lean`.
 
@@ -968,7 +975,9 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
-    undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length)
+    -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
+    -- until then unguarded)
+    □ (⌜rs.slent = none⌝ -∗ undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length))
 
 /-- The `advancec` protocol (see above). (D22 S-d4) The driver's payload for its `Ready`'s loan
 `L`, its request `reqOf L ds`, `run`'s answer `reqWit`. -/

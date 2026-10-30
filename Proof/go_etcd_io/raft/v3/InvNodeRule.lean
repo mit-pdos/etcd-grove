@@ -502,7 +502,37 @@ theorem snapshotCert_valid (γ : Cluster) (N : Namespace) (sv : SnapshotM) :
     0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 →
     isCluster (GF := GF) γ N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢
       snapshotValid γ sv := by
-  sorry
+  intro Hpos H61
+  iintro ⟨#Hc, #Hk⟩
+  ihave ⟨%l, %m, #Hlb, #Ha, #Hm, %Hf⟩ := snapshotCert_made γ N _ $$ [Hc Hk]
+  · iframe Hc Hk
+  -- the lists' bound, from the certificate's `snapAtOk` (the registry on: `UniNames`)
+  ihave %Hsl : ⌜SnapListsOk (snapTrip sv sv.Metadata'.ConfState'.lists)⌝ $$ []
+  · iunfold isCluster at Hc
+    iunfold ApiImpl.isClusterU at Hc
+    icases Hc with ⟨%HU, -, -⟩
+    obtain ⟨⟨c0, g, ⟨⟨_, _, _, _, _, Hreg, _⟩, _⟩⟩, _⟩ := HU
+    iunfold snapshotCert at Hk
+    iunfold ApiImpl.snapshotCert at Hk
+    icases Hk with ⟨-, #Hrc, -⟩
+    iunfold raftSnapCert at Hrc
+    icases Hrc with ⟨-, -, -, #Hat⟩
+    iunfold snapAtOk at Hat
+    icases Hat with (%Hn | ⟨%L, %M, -, -, %Hp⟩)
+    · exact absurd Hn Hreg
+    ipureintro; exact Hp.2.2.1
+  obtain ⟨Hlen, Hlast, ⟨h1, h2, h3, h4⟩, hal⟩ := Hf
+  unfold snapshotValid
+  iexists l, m
+  isplitr; · iexact Hlb
+  isplitr; · iexact Ha
+  isplitr
+  · iExactEq Hm; rfl
+  ipureintro
+  have u := uint_nat_eq sv.Metadata'.Index'
+  have Hlen' : l.length = uint.nat sv.Metadata'.Index' := Hlen
+  refine ⟨Hlen', by omega, Hlast, ⟨h1, h2, h3, h4, hal⟩, by omega, ?_⟩
+  exact Hsl.2.2.2.2.2.1
 
 end api
 

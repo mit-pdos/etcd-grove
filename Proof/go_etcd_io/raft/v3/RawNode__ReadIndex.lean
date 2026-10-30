@@ -44,9 +44,6 @@ theorem RawNode.ReadIndex.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ rn id rs rctx c Qr L0
   wp_start as H
   iNamed H
@@ -98,6 +95,7 @@ theorem RawNode.ReadIndex.wp_proof
   have hP : (W32 15 : w32) ≠ MsgProp := by simp [MsgProp]
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 15 } : MessageM)
     [propEntryM c] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgReadIndex])
@@ -109,6 +107,10 @@ theorem RawNode.ReadIndex.wp_proof
     $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
   · -- the message: its one-entry batch, read-only; `Context` nil; the client's request
     simp only [hP, ↓reduceIte, named]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by msg_ne)
     isplitl [Hm]
     · isplitl [Hm]
       · simp only [msgIn, HmC]; iexact Hm
@@ -139,12 +141,13 @@ theorem RawNode.ReadIndex.wp_proof
     revert Hc
     msg_ne
   simp only [hP]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   obtain ⟨Ht1, -, Ht3, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
@@ -166,12 +169,11 @@ theorem RawNode.ReadIndex.wp_proof
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-    Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) 
+    Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact ⟨Hstor.1, by rw [Hsn1.2, Hgh, ← Hns0.2]; exact Hstor.2⟩) 
     (Hpvoff.step rfl rfl Hpre Hgh (by rw [Hterm]; exact Hpvoff.2.2.1) Hpcs (by msg_ne))
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
     (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
-  -/
 
 end proof
 

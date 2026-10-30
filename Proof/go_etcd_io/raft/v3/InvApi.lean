@@ -2171,7 +2171,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readyData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, -, Hss, %Hnull, #Hidx⟩
+      ⟨%h, Hhs, %Hp'⟩, -, Hss, %Hnull, #Hidx, %Hix⟩
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
@@ -2215,9 +2215,22 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       · iExactEq Hout
         rfl
       ipureintro
-      -- (raft-final phase 2) PENDING P4: from `readyData`'s indices clause (the batch's indices
-      -- consecutive, the committed entries at or past its first index the batch's)
-      sorry
+      -- from `readyData`'s indices clause
+      intro e0 he
+      obtain ⟨h1, h2⟩ := Hix e0 he
+      refine ⟨h1, fun j e hj hle => ?_⟩
+      unfold strip at hj
+      rw [List.getElem?_map] at hj
+      cases hce : ce[j]? with
+      | none => rw [hce] at hj; cases hj
+      | some e' =>
+        rw [hce] at hj
+        simp only [Option.map_some, Option.some.injEq] at hj
+        subst hj
+        try rw [Hlen] at hle
+        try rw [Hlen]
+        rw [h2 j e' hce hle]
+        rfl
     unfold nodeDriver
     dsimp only
     iexists γn, id, ds ++ ce

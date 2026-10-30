@@ -1298,7 +1298,22 @@ Phase 2 (internal statement changes):
   consecutive from its head and the committed entries at or past the batch's head the batch's
   (`readyRest_indices`, new, and `readyRest_ceInBatch` are its projections). Its sources (internal,
   P4): `readyData` (InvNodeChan) gets the same fact as its last conjunct, and `ownRawNodeReady` gets
-  `"%Hcepre" ∷ ⌜ce <+: logCommittedEnts s.logst⌝` (from `readyWithoutAccept`'s `Hce`).
+  `"%Hcepre" ∷ ⌜es ≠ [] → ce <+: logCommittedEnts s.logst⌝` (from `readyWithoutAccept`'s `Hce`;
+  guarded: `ownRawNodeIdle_ready` re-sends a stale `Ready` with `es = []`).
+
+- `newRaft.spec` (internal): post gains `s.logst.dtk = 0`; `NewRawNode.spec` (internal): post gains
+  `s.logst.sn = sn ∧ s.gh.sn = sn`; `rawNodeFresh`'s `%Hlog` gains `s.logst.dtk = 0`. Why: `RestartNode`
+  needs `SdtTie` of the fresh node and the boot bundle's storage names, which the posts left out.
+
+- P6 (internal): `api_sentSnapCert` takes `reNoSnap = false`; `api_msg`/`api_msgs` take `UniNames`,
+  `rdPool` and no per-message `rdCred`; `RestartNode.specRaw` (private) takes the five configuration
+  names and their resources from the wrapper; new `sentMsg_snap_bound`, `rawNodeFresh_intro_sn`.
+- P4 (internal): `wp_rn_raft_Step_net` takes the transfer witness (no `Hxt`/`Hsnp`); A1 guarded by
+  `rs.slent = none` also in `runCfgR_a1`, `runCfg_advance`, `advRet` (phase 1 missed them; false while a
+  snapshot is lent); `readySnapData` gains `raftSnapCertD` of the lent snapshot; `leadW_applyCC`.
+  Cleanup candidate: P4's `RNPv.step_xw`/`LoanOk.step_xw` and P3b's `LemmasP3bXw` overlap.
+- Client repair note: `readySnap none`'s new trailing conjunct needs a binding in the server's and
+  kv's destructurings (`InvRaftNode`, `SrvRaftLog`, `KV__run`).
 
 ### Phase 2 progress (the lead's hand-off)
 
@@ -1308,7 +1323,7 @@ Phase 2 (internal statement changes):
   P2a = `InvRaftPhys`, `raft__send`, `raft__sendTimeoutNow`, `raft__become{Candidate,Leader}`,
   `raft__tick{Election,Heartbeat}`, `stepFollower`, `stepLeader`, `stepLeader/Rest`;
   P2b = `Protocol/LeadWit`, `StepGhostMode`, `raft__Step`, `raft__Step/*`; P3a as in the table;
-  P5 together with P7. Done: P5+P7, P2a, P2b, P3a. Wave 2: P6, P4, P3b running. Then phase 3.
+  P5 together with P7. Done: P5+P7, P2a, P2b, P3a, P4, P6. P3b running. Then phase 3.
 
 ### kvreconf-final: the read path, for the logically atomic `Cluster.Read` (2026-10-30)
 

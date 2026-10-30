@@ -42,9 +42,6 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ rn id rs c o dq
   wp_start as H
   iNamed H
@@ -57,6 +54,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   ihave #Hcc := ccEntsOk_cc (GF := GF) o bs Hbs
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml propMsgM [ccEntryM (some o) bs] [] none []
     (by simp [StepMsg, stepMsgTypes, propMsgM, MsgProp]) 
     (by msg_ne) (by msg_ne)
@@ -71,6 +69,10 @@ theorem RawNode.ProposeConfChange.wp_proof
     $$ [$Hphys $Hghost $Hlc1 Hm Hcr Htk]
   · -- the message: its one-entry batch, owned, with the entry's bytes; `Context` nil
     simp only [propMsgM, MsgProp, ite_true]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by msg_ne)
     isplitl [Hm Htk]
     · simp only [named]
       isplitl [Hm]
@@ -109,7 +111,7 @@ theorem RawNode.ProposeConfChange.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [propMsgM, MsgProp]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %Htm, %_, -, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %Htm, %_, -, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hc' (by msg_ne); subst c'
@@ -117,6 +119,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
   obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inl rfl)
+  icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr.1]; exact Int.le_refl _)
     Hfr.2.2.2.2.1 Hfr.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.1 $$ Hstrecs
@@ -130,7 +133,7 @@ theorem RawNode.ProposeConfChange.wp_proof
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, (logStoreRec_stored Hfr.2.2.2.2.2.1)⟩ Hc Hap'
         (tc_le_of_gh Hfr.2.2.2.2.2.2.2.2.1) Hstok)
-      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
+      (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact ⟨Hstor.1, by rw [Hsn1.2, Hfr.2.2.2.2.2.2.2.2.1, ← Hns0.2]; exact Hstor.2⟩)
       (Hpvoff.keep rfl rfl Hfr.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.1 Hfr.1 Hfr.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1
         (PreGuardF.step (Htm (by msg_ne))))
       (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
@@ -141,7 +144,6 @@ theorem RawNode.ProposeConfChange.wp_proof
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd
-  -/
 
 end proof
 

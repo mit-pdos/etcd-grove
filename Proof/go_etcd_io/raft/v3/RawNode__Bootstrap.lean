@@ -37,15 +37,12 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  sorry -- PHASE1
-  /- PHASE1-OLD
- by
   intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
-  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap, #Hcl⟩
+  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
-  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg⟩ := Hlog
+  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0'⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpslen : ps.length = pv.length := by rw [R1, List.length_map]
@@ -65,8 +62,8 @@ theorem RawNode.Bootstrap.wp_proof
   icases ownRaftPhys_log_same _ _ _ s $$ Hphys with ⟨Hlog, Hlogback⟩
   iNamed Hlog
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
+  ihave #Hsto : isStorageWith (ownStorage s.logst.sn lv.storage') (storCut lv.storage')
+      (svCert s.logst.sn) lv.storage' $$ [HisStorage]
   · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -282,7 +279,8 @@ theorem RawNode.Bootstrap.wp_proof
   · iExactEq Hlog; rw [Hs1ls, Hcont.1]
   ihave Hphys := Hlogback $$ %(logAppend s.logst bootLog) Hlog
     %(⟨⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h),
-        (by have h := Hgh0.1.2; rw [Hs1ls] at h; exact h.of_fields rfl rfl rfl rfl rfl (Int.le_refl _))⟩,
+        (by have h := Hgh0.1.2.1; rw [Hs1ls] at h; exact h.of_fields rfl rfl rfl rfl rfl (Int.le_refl _)),
+        (by have h := Hgh0.1.2.2; rw [Hs1ls] at h; exact h)⟩,
       (by intro h; rw [Hs1gh, Hgh] at h; cases h), (by rw [Hs1ls]; rfl)⟩)
     %(by intro h; rw [Hs1r] at h; cases h)
   generalize Hs2 : ({ s1 with logst := logAppend s.logst bootLog } : NState) = s2
@@ -424,13 +422,13 @@ theorem RawNode.Bootstrap.wp_proof
   -- the state: a follower at term `1`, the boot log committed -- `bootPState bootLog`
   have HN : sk.term = W64 1 ∧ sk.vote = W64 0 ∧ sk.lead = W64 0 ∧ sk.role = .follower ∧
       sk.votes = ∅ ∧ sk.outbox = [] ∧
-      sk.logst = { logAppend s.logst bootLog with committed := ents.len } ∧ sk.gh = {} ∧
+      sk.logst = { logAppend s.logst bootLog with committed := ents.len } ∧ sk.gh = { sn := s.gh.sn } ∧
       sk.prevote = pre ∧ sk.rd.states = [] ∧ sk.rd.pend = [] ∧
       sk.stepfn = stepFuncOf .follower ∧ sk.ticking = true := by
     rw [Hsk, ← Hs3, ← Hs2]
     refine ⟨Hs1t, Hs1v, Hs1l, Hs1r, Hs1vs, ?_, rfl, ?_, ?_, ?_, ?_, Hs1sf, Hs1tk⟩
     · show s1.outbox = []; rw [Hs1o, Ho]
-    · show s1.gh = {}; rw [Hs1gh, Hgh]
+    · show s1.gh = { sn := s.gh.sn }; rw [Hs1gh]; exact Hgh
     · show s1.prevote = pre; rw [Hs1pv, Hpvoff]
     · show s1.rd.states = []; rw [Hs1rs, Hrst]
     · show s1.rd.pend = []; rw [Hs1rp, Hrpd]
@@ -457,27 +455,33 @@ theorem RawNode.Bootstrap.wp_proof
   have HrnflB : ∀ rs0 : RNState, rs0.steps = [] →
       RNFl rs0 { sk with gh := { sk.gh with tc := W64 1 } } := fun rs0 _ =>
     ⟨fun _ => by rw [Haa]; exact Hflk.1, fun h => absurd h (by rw [Haa]; exact Int.lt_irrefl _)⟩
-  -- (2026-10-19, D21 M3) into the cluster's no-snapshot mode: a follower with its boot log
-  -- committed (non-empty in the mode, `RaftNames.noSnap_boot`)
-  ihave Hphys := ownRaftPhys_set_ns _ rnv.raft' id { sk with gh := { sk.gh with tc := W64 1 } }
-    γ.reNoSnap γ.reNoXfer (by show sk.gh.ns = false; rw [HNgh])
-    (by show sk.gh.xf = true; rw [HNgh]) (by show sk.gh.bt = false; rw [HNgh])
-    (fun hb => by
-      have Hne := RaftNames.noSnap_boot hb
-      rw [R8] at Hne
-      have Hbl := List.length_pos_iff.mpr Hne
-      refine ⟨by simp only; rw [HNr]; decide, by simp only; rw [HNls]; simp only [logAppend, Hsn],
-        by simp only; rw [HNls]; simp only [logAppend, Hp]; decide, ?_⟩
-      refine ⟨?_, by simp only; rw [HNo]; intro _ h; cases h⟩
-      simp only; rw [HNls]; simp only; rw [Hlen']; omega)
-    -- (2026-10-19, D21 M2r) past term `0`, an empty outbox; (D22 S-a) leader transfer at the
-    -- cluster's no-transfer mode (`RaftNames.reNoXfer`), until then kept off in the mode;
-    -- (D22 S-c) with it the boot flag (`NGhost.bt`), which these are now for
-    (fun _ => ⟨by simp only; rw [HNt]; decide, by simp only; rw [HNo]⟩)
-    $$ [] Hphys
-  · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hnscap
-  have Hnl0 : NsLink γ { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } :=
-    ⟨rfl, rfl, rfl⟩
+  -- (raft-final phase 2) the node is outside the no-snapshot mode (`NsCap`: `NGhost.ns` off), so the
+  -- cluster must be too (`NsLink`). BLOCKED: nothing in the precondition says `γ.reNoSnap = false`
+  -- (a bootstrapped cluster may be allocated in the mode, `RaftNames.reNoSnap_ok`); see P3b's report.
+  have Hns : γ.reNoSnap = false := by
+    sorry
+  -- BLOCKED (the same): the post's `RNState` has the default storage names (`sn := {}`), but
+  -- `rawNodeFresh` does not fix the log's `sn`; see P3b's report. (The certified height `0` is
+  -- `rawNodeFresh`'s, `Hlog`.)
+  have Hsn0 : s.logst.sn = {} := by
+    sorry
+  have Hdtk0 : s.logst.dtk = 0 := Hdtk0'
+  have Hnl0 : NsLink γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) := by
+    unfold NsLink; show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns]
+  have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
+  have Hlead0 : (toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState)).lead = W64 0 := by
+    rw [HpS]; rfl
+  ihave #Hlw : leadW (GF := GF) γ id (toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState)) $$ []
+  · iapply leadW_none; exact Hlead0
+  ihave #Hxw : xfW (GF := GF) γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) $$ []
+  · iunfold xfW
+    rw [show ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).gh.xw = ∅ by
+      show sk.gh.xw = ∅; rw [HNgh]]
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  ihave #Hcl' : certLink (GF := GF) γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).gh.sn $$ []
+  · rw [show ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).gh.sn = s.gh.sn by
+      show sk.gh.sn = s.gh.sn; rw [HNgh]]
+    iexact Hcl
   -- (D22l) `prevHardSt` the zero record, `RNState.phs`'s default
   ihave #Hes' := prevHS_of_zero γ _ _ rfl $$ Hesz
   iapply HΦ
@@ -487,17 +491,32 @@ theorem RawNode.Bootstrap.wp_proof
   · cases md with
     | static =>
       iunfold bootInit at Hghost
-      iapply ownRawNode_intro_static (fp := []) γ rn id
+      ihave %Hst0 := ownRaftGhost_static γ id _ $$ Hghost
+      ihave Hphys := ownRaftPhys_toC' $$ Hphys
+      -- (raft-final phase 2) the ghost part built here (`ownRawNode_intro_static` takes no leader
+      -- witness): at no leader and no transfer record
+      ihave Hghost : ownStepGhost γ
+          (RNMode.toG .static ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩)
+          (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).progress \ γ.reCfg))
+          id ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) $$ [Hghost]
+      · simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
+        iframe Hcl' Hlw Hxw
+        isplitl [Hghost]
+        · rw [HpS]; iexact Hghost
+        ipureintro
+        exact ⟨Hnl0, CfgStatic.simple γ _ Hst0,
+          TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6)⟩
+      iapply ownRawNode_intro γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, mode := RNMode.static,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
-          ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
-          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] rfl HNrel
-          (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
+          ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
+          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2
+          (fun _ => by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
           (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
           (by rw [HNls]; simp only [logAppend, Hun])
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
-          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
+          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg]; exact ⟨trivial, Hsn0.symm⟩)
           ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
             fun h => (by simp only at h; rw [HNr] at h; cases h),
             fun h => (h (by rw [HNls]; simp only [logAppend, Hsn])).elim⟩
@@ -505,14 +524,11 @@ theorem RawNode.Bootstrap.wp_proof
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
-          (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]))
-          (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
-          Hnl0
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
+          (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
-      · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
     | dyn dec c0 h0 h1 =>
@@ -523,14 +539,14 @@ theorem RawNode.Bootstrap.wp_proof
       icases Hghost with ⟨%HD, Hgr⟩
       obtain ⟨HD, rfl⟩ := HD
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
-      have Hro : rOf ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩ =
+      have Hro : rOf ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩ =
           rboot (cfgState (GMap.listToSet ps) ∅) bootLog := by
-        have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) = bootPState bootLog := HNrel.1
+        have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
         unfold rOf rboot pciR
         rw [HpS]
         simp only; rw [HNls]
         simp [logAppend, Hap0, Hsn, HNr]
-      have Hdiff : domSet ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState).progress \ γ.reCfg = ∅ := by
+      have Hdiff : domSet ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).progress \ γ.reCfg = ∅ := by
         apply GMap.set_eq; intro k
         rw [GMap.elem_of_difference]
         constructor
@@ -539,9 +555,9 @@ theorem RawNode.Bootstrap.wp_proof
       ihave Hghost : ownStepGhost γ
           (RNMode.toG (.dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1)
             ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩)
-          (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState).progress \ γ.reCfg)) id ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) $$ [Hgr]
+          (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).progress \ γ.reCfg)) id ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) $$ [Hgr]
       · simp only [RNMode.toG]
-        iapply (ownStepGhost_dyn γ dec _ h0 _ _ id ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState)).2
+        iapply (ownStepGhost_dyn γ dec _ h0 _ _ id ({ sk with gh := { sk.gh with tc := W64 1 } } : NState)).2
         rw [Hro, effDec_empty]
         iframe Hgr
         isplitr
@@ -549,17 +565,17 @@ theorem RawNode.Bootstrap.wp_proof
           refine ⟨HD, ?_, Hnl0⟩
           rw [Hdiff, R7]; rfl
         isplitr; · iapply decLb_empty
-        simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
+        iframe Hcl' Hlw Hxw
       iapply ownRawNode_intro γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
-          ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
+          ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
           (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) Hasync
           (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
           (by rw [HNls]; simp only [logAppend, Hun])
           (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
-          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
+          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg]; exact ⟨trivial, Hsn0.symm⟩)
           ⟨fun _ _ h => (by simp only at h; rw [HNr] at h; cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
             fun h => (by simp only at h; rw [HNr] at h; cases h),
             fun h => (h (by rw [HNls]; simp only [logAppend, Hsn])).elim⟩
@@ -567,7 +583,7 @@ theorem RawNode.Bootstrap.wp_proof
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
-          (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]))
+          (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
@@ -575,7 +591,6 @@ theorem RawNode.Bootstrap.wp_proof
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
   · iexact Hpeers
-  -/
 
 end proof
 
