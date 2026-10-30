@@ -1618,8 +1618,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `wp_proof`; `wp_proofCompact` was already `sorry`).
 5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
    `KvRun*` lemma modules, `SnapData.lean`.
-6. **S-A net, read, errors** (leaf): `InvNet.lean` (`stepIn_of_recv`), `ReadRaft.lean`
-   (`isReadRaft_of_raftNode`), `ReadServer.lean` (`isReadServer_of_serverM`), `raftNode__ReadIndex.lean`,
+6. **S-A net, read, errors** (leaf): `InvNet.lean` (`stepIn_of_recv` (done)), `ReadRaft.lean`
+   (`isReadRaft_of_raftNode` (done)), `ReadServer.lean` (`isReadServer_of_serverM`), `raftNode__ReadIndex.lean` (done),
    `read/Read__requestCurrentIndex.lean`, `read/Read__sendReadIndex.lean`,
    `EtcdServer__processInternalRaftRequestOnce.lean` (`wp_proofM`).
 7. **K-a kv transport** (low): `examples/kv/deliver.lean` (`deliver.wp_proof`).
