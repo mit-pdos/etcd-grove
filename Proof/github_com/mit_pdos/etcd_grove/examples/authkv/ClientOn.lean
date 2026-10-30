@@ -33,6 +33,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`cli.Put(ctx, key, val)` through a client whose `KV` is a `*kv` over `conn`** (`clientTokAt`'s
 parts) to a member with auth on: `client_put_on` through the `*Client` method. -/

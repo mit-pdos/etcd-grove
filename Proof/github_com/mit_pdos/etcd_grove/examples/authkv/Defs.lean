@@ -75,13 +75,12 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     IProp GF :=
   iprop(
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.dyn = false ∧
+      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (akDir id)) ∗
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
-    rnStopOkStarted ∗
     v3rpc.runsNoRequireLeader)
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
