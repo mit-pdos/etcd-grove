@@ -212,12 +212,8 @@ theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   unfold rnTickerOk isRNTicker srvEr
   exact .rfl
 
-/-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is
-`rnSnapMsg`, which is `False` since the server's clusters send no snapshot (2026-10-27). -/
-theorem rnSnapMsg_false (m : Loc) : rnSnapMsg m ⊢ (False : IProp GF) := by
-  iintro H
-  iunfold rnSnapMsg at H
-  iexact H
+/- (2026-10-30, the repair: snapshots allowed) `rnSnapMsg_false` is gone: `msgSnapC` delivers raft's
+`MsgSnap`s (`rnSnapMsg`). -/
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the

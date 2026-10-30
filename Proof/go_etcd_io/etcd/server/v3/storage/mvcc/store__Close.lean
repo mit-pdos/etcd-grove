@@ -62,7 +62,7 @@ theorem mvcc.store.Close.wp_proof
   iunfold mvcc.compactQueue at Hq
   icases Hq with ⟨%Ps, %p, %Q, %R, Hq, -, -, -⟩
   (try wp_auto)
-  wp_apply wp_Stop fi γ.sch (Ps ++ [p]) $$ [Htok Hq]
+  wp_apply wp_Stop fi γ.sch (Ps ++ [p]) $$ [Htok Hq] as -
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ

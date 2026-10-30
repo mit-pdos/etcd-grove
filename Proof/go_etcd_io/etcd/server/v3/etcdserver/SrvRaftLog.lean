@@ -71,9 +71,9 @@ outside `srvRaftN`, so that the apply thread decides a conf entry under any mask
 updates leave. -/
 def srvConfN : Namespace := nroot .@ "server_conf"
 
-/-- (2026-10-30, the repair; D2(i)) **The namespace of the cluster's snapshot registry**, which the
-server holds empty for good (`srvClusterOk`): outside `srvRaftN`, so that a snapshot fact is refuted
-under any mask the server's updates leave. -/
+/-- (2026-10-30, the repair) **The namespace of the cluster's snapshot registry**
+(`srvClusterOk`: the server registers its snapshots there, `snapshotCert_make`): outside
+`srvRaftN`, so that the apply thread opens it under any mask the server's updates leave. -/
 def srvSnapsN : Namespace := nroot .@ "server_snaps"
 
 /-- **The cluster, as the server sees it** (2026-10-27; 2026-10-30, the repair: one mode): the node
@@ -677,16 +677,17 @@ instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF
 the node API's cluster at the server's storage model (`srvStor`); its conf entries decided by the
 server's rule (`confPolicy` at `γ.raft.rule`; `rnEnvOk` ties it to `srvRule`); the voters it started
 with (`confAt 0`); the `Ready`s' entries within `MemoryStorage.Append`'s bound (`readyFits`);
-proposals not duplicated (`dup = false`); and (D2(i), the user's decision 2026-10-30) the cluster's
-snapshot registry held empty for good (`ownSnapsMade cl []` in an invariant): the server makes no
-snapshot, so every snapshot certificate, snapshot validity, `MsgSnap` and `Ready` snapshot is
-refuted (`srv_snapMade_false`). Until the repair: a static or dynamic cluster
-(`isStaticCluster`/`isDynamicCluster`), leader transfer off, `bootedCluster`. -/
+proposals not duplicated (`dup = false`); and (2026-10-30, the user's decision: snapshots allowed) the
+cluster's snapshot registry in an invariant (`∃ S, ownSnapsMade cl S`), where the apply thread
+registers the snapshots it creates (`snapshotCert_make`, `CreateSnapshot`'s `snapshotValid`; no
+content: etcd's raft snapshot data is nil, the image travels as `srvImage`). Snapshots are
+allowed: raft may send a `MsgSnap` and hand out a `Ready` snapshot. Until the repair: a static or dynamic cluster (`isStaticCluster`/`isDynamicCluster`), leader transfer off,
+`bootedCluster`. -/
 def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   letI := srvStor (GF := GF) γ.raft
   iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
     confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
-    ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (ownSnapsMade γ.raft.cl []) ∗
+    ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (∃ S, ownSnapsMade γ.raft.cl S) ∗
     ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
@@ -1533,54 +1534,15 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
   iexact HQr
 -/
 
-/-- **No snapshot is made in the server's cluster** (2026-10-30, the repair; D2(i), the user's
-decision): the cluster's snapshot registry is empty for good (`srvClusterOk`'s invariant), so a
-made snapshot is refuted (`snapMade_elem`). The masks the server's updates leave contain
-`srvSnapsN`. -/
-theorem srv_snapMade_false (γ : ServerRaftNames) (s : SnapRec) (E : CoPset)
-    (hE : ↑srvSnapsN ⊆ E) :
-    srvClusterOk (GF := GF) γ ∗ (letI := srvStor (GF := GF) γ.raft; snapMade γ.raft.cl s) ⊢
-      |={E}=> False := by
-  sorry
+/- (2026-10-30, the repair: the server registers its snapshots) `srv_snapMade_false`, `srv_snapshotCert_false` and
+`srv_snapshotValid_false` (D2(i)'s, the registry empty for good) are gone: the server registers its
+snapshots. -/
 
-/-- **No snapshot certificate in the server's cluster** (D2(i)): `snapshotCert_made`, then
-`srv_snapMade_false`. -/
-theorem srv_snapshotCert_false (γ : ServerRaftNames) (k : SnapTrip) (E : CoPset)
-    (hE : ↑srvSnapsN ⊆ E) :
-    srvClusterOk (GF := GF) γ ∗
-      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN k) ⊢
-      |={E}=> False := by
-  sorry
+/- (2026-10-30, the repair: snapshots allowed, the user's decision) `srv_sentMsg_notSnap` and
+`srv_readySnap_none` are gone: the server registers its snapshots (`srvClusterOk`), so raft may
+send a `MsgSnap` and hand out a `Ready` snapshot; their paths are the SNAPSHOT-SORRYs
+(`notes/raft-unified-plan.md`, "Repair: snapshot sorries"). -/
 
-/-- **No valid snapshot in the server's cluster** (D2(i)): what the storage's `Snapshot()` answers
-of a non-empty snapshot (`isStorage`'s `snapshotValid`) is refuted. -/
-theorem srv_snapshotValid_false (γ : ServerRaftNames) (sv : SnapshotM) (E : CoPset)
-    (hE : ↑srvSnapsN ⊆ E) :
-    srvClusterOk (GF := GF) γ ∗
-      (letI := srvStor (GF := GF) γ.raft; snapshotValid γ.raft.cl sv) ⊢
-      |={E}=> False := by
-  sorry
-
-/-- **The server's cluster sends no `MsgSnap`** (2026-10-27; 2026-10-30, the repair, D2(i): a
-`MsgSnap` carries a snapshot certificate, `sentMsg_snapshot`, refuted by
-`srv_snapshotCert_false`; until then a dynamic cluster sent none and a static one vouched for no
-snapshot's data). -/
-theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) (E : CoPset)
-    (hE : ↑srvSnapsN ⊆ E) :
-    srvClusterOk (GF := GF) γ ∗
-      (letI := srvStor (GF := GF) γ.raft; sentMsg γ.raft.cl srvClusterN src st) ⊢
-      |={E}=> ⌜st.msg.Type' ≠ MsgSnap⌝ := by
-  sorry
-
-/-- **The server's cluster's `Ready`s carry no snapshot** (2026-10-27; 2026-10-30, the repair,
-D2(i): a `Ready`'s snapshot comes with its certificate, `readySnap`, refuted by
-`srv_snapshotCert_false`), at the server's storage model. -/
-theorem srv_readySnap_none (γ : ServerRaftNames) (id : w64) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) (E : CoPset) (hE : ↑srvSnapsN ⊆ E) :
-    srvClusterOk (GF := GF) γ ∗
-      (letI := srvStor (GF := GF) γ.raft
-       readySnap γ.raft.cl srvClusterN id rd st ce es (some l)) ⊢ |={E}=> False := by
-  sorry
 /- REPAIR-OLD
 /-- **The server's cluster sends no `MsgSnap`** (2026-10-27): a dynamic cluster sends none, a static
 one vouches for no snapshot's data. -/
@@ -1630,6 +1592,7 @@ theorem srv_readySnap_none (γ : ServerRaftNames) (rd : Ready) (st : NodeDriverS
     iapply readySnap_dynamic $$ [Hk Hs]
     iframe Hk Hs
 -/
+
 
 end bridges
 

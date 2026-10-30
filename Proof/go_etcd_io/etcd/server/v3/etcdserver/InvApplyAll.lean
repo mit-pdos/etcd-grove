@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 
 @[expose] public section
@@ -119,6 +120,18 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
+/-- (2026-10-30, the repair) **What `CreateSnapshot` at the applied index `ai` of term
+`at'` takes of the cluster and the storage** (persistent): the storage's invariant at the node
+`nid`'s justifications, the node's delivered log past `ai` (`J.DL`), raft's committed log at the
+server (its registry, `srvClusterOk`) and a committed log `A` of length `ai` whose last term is
+`at'` (`snapshotCert_make`'s). -/
+def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid : w64) (ai at' : w64) :
+    IProp GF :=
+  letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
+  iprop(memStorInv ms γs γr.raft.raft.cl nid ∗ storDL γr.raft.raft.cl nid (uint.nat ai) ∗
+    srvRaftLogInv γr.raft ∗
+    ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜uint.Z ai = A.length ∧ lastTermIs A at'⌝)
+
 /-- **The apply thread's snapshot state** (see the file header) at the applied index `ai`: the
 snapshot indices at most `ai`, the raft wrapper's `MemoryStorage` `ms`, and (2026-10-30, the
 repair: raft's two-writer `MemoryStorage` specs, R1) the storage's stored snapshot index at least
@@ -126,15 +139,17 @@ repair: raft's two-writer `MemoryStorage` specs, R1) the storage's stored snapsh
 compacts below). Until the repair: the application's shared snapshot token (`memSnapRO`,
 `memKey`, the counter `γss` in `srvStorTokN`'s invariant, D22 J4).
 
-PENDING the coordinator's answer on D2 (Stage F, 2026-10-30): etcd takes an in-memory snapshot every
-`memorySnapshotCount = 100` applied entries (`shouldSnapshotToMemory`), so `CreateSnapshot` is
-reachable under any `SnapshotCount`, and its `snapshotValid` needs a registered snapshot
-(`snapMade`); what the apply thread holds for that (the cluster's registry, or a premise) is to be
-added here. -/
+(2026-10-30, the repair: snapshots allowed) The in-memory snapshot (every `memorySnapshotCount =
+100` entries) and the disk one reach `CreateSnapshot`, its `snapshotValid` from the cluster's
+registry (`srvSnapStor`, `srvClusterOk`); the frozen entry at the applied index is
+`srvFrozenAt`. -/
 def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
     srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
-    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl))
+    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapLb γs (uint.nat sl) ∗
+    -- (2026-10-30, the repair) the storage's entry at the applied index frozen (`CreateSnapshot`'s),
+    -- every entry below it frozen or compacted (`Compact`'s)
+    srvFrozenAt γs (uint.nat ai) ∗ srvFrozenBelow γs (uint.nat ai))
 
 /-- A lower bound of the stored snapshot index is one of every smaller index. -/
 theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)

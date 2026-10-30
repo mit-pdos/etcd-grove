@@ -69,7 +69,9 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-          nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length)) ∗
+          iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
+            srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
+              (uint.nat C.ai₀ + (A ++ ce).length + 1))) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
         isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
         dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
@@ -231,7 +233,9 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
         srvLessorNil C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-          nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length)) ∗
+          iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
+            srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
+              (uint.nat C.ai₀ + (A ++ ce).length + 1))) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
         isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
         dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗

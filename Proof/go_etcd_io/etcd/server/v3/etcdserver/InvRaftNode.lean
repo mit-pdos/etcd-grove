@@ -162,17 +162,21 @@ type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persist
 def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
   iprop(∃ (to : w64) (ty : w32), msgAt m to ty ∗ E.M m)
 
-/-- (D22 S-l sender, 2026-10-22; 2026-10-27: `False`) **A `MsgSnap` raft handed out, owned**: the
-server's clusters send none (a dynamic cluster sends none, a static one vouches for no snapshot's
-data: `srv_sentMsg_notSnap`), so the snapshot sender's path is unreachable; kept for its shape. -/
-def rnSnapMsg (_m : Loc) : IProp GF := iprop(False)
+/-- (D22 S-l sender, 2026-10-22; 2026-10-30, the repair: snapshots allowed, until then `False`)
+**A `MsgSnap` raft handed out, owned**: the message at some fraction (a `Ready`'s), of type
+`MsgSnap`, sent by the node, with its credits (`sentMsg_snapshot` gives its snapshot's
+certificate): what `processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. -/
+def rnSnapMsg (γ : RNNames) (m : Loc) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
+    sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st)
 
 /-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
 read-only with `E.M` (`rnMsgOk`'s, with its type not `MsgSnap`), a `MsgSnap` owned
 (`rnSnapMsg`). `processMessages` turns the first into `rnMsgOk` for the transport and hands the
 second to `msgSnapC`. -/
 def rnMsgR (E : RNEnv GF) (γ : RNNames) (m : Loc) : IProp GF :=
-  iprop((∃ (to : w64) (ty : w32), msgAt m to ty ∗ ⌜ty ≠ MsgSnap⌝ ∗ E.M m) ∨ rnSnapMsg m)
+  iprop((∃ (to : w64) (ty : w32), msgAt m to ty ∗ ⌜ty ≠ MsgSnap⌝ ∗ E.M m) ∨ rnSnapMsg γ m)
 
 /-! ## The node's `Ready`/`Advance` exchange -/
 
@@ -194,6 +198,30 @@ nothing frozen (2026-10-30, the repair: `appendReceipt`'s frozen prefix `a` is `
 def rnAppendReceipt (γ : RNNames) (es : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   appendReceipt (memStorIface γ.ms) (es.map EntryModel.toM) []
+
+/-- (2026-10-30, the repair) **The storage's entry at `i` frozen** (persistent; `CreateSnapshot`'s
+premise): none at `0`, else read-only for good (the raft loop freezes the committed entries,
+`advReceipt`'s prefix, and hands the batch's over with `raftAdvancedC`, `rnFrozenB`). -/
+def srvFrozenAt (γs : MemStorNames) (i : Nat) : IProp GF :=
+  iprop(⌜i = 0⌝ ∨ ∃ e, memLog γs i DFrac.discard [e])
+
+/-- (2026-10-30, the repair) **The entries `lo .. hi - 1` frozen** (persistent; the raft loop's
+hand-over with `raftAdvancedC`). -/
+def srvFrozenRange (γs : MemStorNames) (lo hi : Nat) : IProp GF :=
+  [∗list] j ∈ List.range' lo (hi - lo), srvFrozenAt γs j
+
+/-- (2026-10-30, the repair) **Every entry below `n` frozen or compacted** (persistent;
+`Compact`'s premise at any compaction index below the applied index: `ApplySnapshot` compacts
+below a snapshot). -/
+def srvFrozenBelow (γs : MemStorNames) (n : Nat) : IProp GF :=
+  [∗list] j ∈ List.range n, iprop((∃ e, memLog γs j DFrac.discard [e]) ∨ memCompacted γs j)
+
+/-- (2026-10-30, the repair) **`Advance`'s receipt for a batch without a snapshot** after the
+committed log `d ++ ce` handed out: raft's `advReceipt` (the append's receipt with a frozen prefix
+`a` of the committed entries, which the loop freezes before `Advance`, `appendReceipt`'s). -/
+def rnAdvReceipt (γ : RNNames) (d ce es : List EntryModel) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  advReceipt (memStorIface γ.ms) (srvLE γ.srv (d ++ ce)).length (es.map EntryModel.toM) none
 
 /- (2026-10-30, the repair) **The node's running token** (raft's `nodeRunning`: `node.Stop` takes
 all of it; a half refutes the stopped answers of `Advance` and `ApplyConfChange`,
@@ -363,6 +391,36 @@ theorem rnReadStateBridge_of_raft [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF
   iframe Henv Hst Hctx
   ipureintro; exact Hi
 
+/-! ## (D22 J6a) A `Ready` with a snapshot (2026-10-30, the repair: snapshots allowed) -/
+
+/-- (D22 J6a; 2026-10-30, the repair: snapshots allowed, until then `False`) **What a `Ready` with
+a snapshot gives the driver**, after the committed log `d`: the node API's snapshot part
+(`readySnap … (some l)`: the loan's snapshot, half owned, its certificate, the storage's range from
+an index at most the snapshot's with the end, `snapGiven`), the committed log `A'` the snapshot
+jumps to (raft's `strip l.dlv`, past `d`), `E.C A'`, the entries `es` to append after it with the
+right to, the messages, soft state, hard state (`p'` after `p`) and read states as `rnReadyData`'s. -/
+def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
+    (p p' : HardStateM) (l : SnapLoan) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(∃ (esL msL : List Loc) (hs : HardStateModel),
+    readySnap γ.node.cl srvClusterN γ.id rd (rnDrvSt γ d p) [] (es.map EntryModel.toM) (some l) ∗
+    ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length⌝ ∗ □ E.C A' ∗
+    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗
+    rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgR E γ m) ∗
+    softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗ ⌜p' = phsNext p hs.toM⌝ ∗
+    (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗
+      [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs))
+
+/-- (D22 J6a; 2026-10-30, the repair: until then `False`) **The driver with a snapshot `Ready` in
+hand**: the node API's `nodeDriver` busy with the loan, delivered the snapshot's log `A'`, its view
+after the log before (`rnCfgAt γ d`, replaced by `Advance`'s answer at the snapshot). -/
+def rnBusyS (γ : RNNames) (d A' es : List EntryModel) (p : HardStateM) (l : SnapLoan) :
+    IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(nodeDriver γ.nl γ.node.cl srvClusterN
+      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l)⟩ ∗
+    rnCfgAt γ d)
+
 /-- **The `raft.Node` `n`** (see the file header; 2026-10-30, the repair: raft's unified node API):
 its `ApplyConfChange` (the apply thread's, `raftApplyCC`); `Ready` returns the node API's `Ready`
 channel (`isReadyChan`); `Advance` takes the busy driver, the view after the batch and the append
@@ -384,11 +442,22 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
       {{ (ch : Loc), RET #ch; isReadyChan γ.nl γ.node.cl srvClusterN ch }}) ∗
     -- (D43 M3) with the view after the batch, its conf entries applied
     □ (∀ (d ce es : List EntryModel) (p : HardStateM),
-      {{ rnBusyN γ d ce es p ∗ rnCfgAt γ (d ++ ce) ∗ rnAppendReceipt γ es ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) }}
+      {{ rnBusyN γ d ce es p ∗ rnCfgAt γ (d ++ ce) ∗ rnAdvReceipt γ d ce es ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       -- (2026-10-30, the repair) and the node's applied index past the committed log handed out
       {{ RET #(); rnDrv γ (d ++ ce) p ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
           nodeAppliedLb γ.node.cl γ.id (γ.pre ++ d ++ ce).length }}) ∗
+    -- (2026-10-30, the repair: snapshots allowed) `Advance` after a snapshot `Ready`: the storage's
+    -- `snapReceipt` (the snapshot applied, the entries after it appended) and the snapshot's
+    -- certificate; the idle driver at the snapshot's log `A'` with its view there
+    □ (∀ (d A' es : List EntryModel) (p : HardStateM) (l : SnapLoan),
+      {{ rnBusyS γ d A' es p l ∗
+          snapReceipt (memStorIface γ.ms) l (es.map EntryModel.toM) ∗
+          snapshotCert γ.node.cl srvClusterN (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
+          nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half }}
+        (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
+      {{ RET #(); rnDrv γ A' p ∗ nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half ∗
+          nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length }}) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ nodeRunning γ.nl γ.node.cl srvClusterN 1 }}
         (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #()))
@@ -443,8 +512,17 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
       msgCredits γ.node.cl srvClusterN q.st))).1 $$ H with ⟨⟨Hm, #Hsm, Hc⟩, Hrest⟩
     imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hrest with Hrest
     simp only [List.map_cons]
-    imod srv_sentMsg_notSnap E.γr.raft γ.id q.st ⊤ (fun _ _ => CoPset.mem_full) $$ [Hcl Hsm] with %hsn
-    · rw [Hraft]; iframe Hcl Hsm
+    by_cases hsn : q.st.msg.Type' = MsgSnap
+    · -- (2026-10-30, the repair) a `MsgSnap`: owned, for `msgSnapC`
+      imodintro
+      iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgR (GF := GF) E γ m)).2
+      iframe Hrest
+      iunfold rnMsgR
+      iright
+      iunfold rnSnapMsg
+      iexists (readyDq q.st), q.st
+      iframe Hm Hsm Hc
+      ipureintro; exact hsn
     imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
     imodintro
     iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgR (GF := GF) E γ m)).2
@@ -562,9 +640,15 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
               delivered := strip l.dlv
               hardState := phsNext (rnDrvSt γ L p).hardState h
               handling := some (es, some l) }) ={⊤}=∗
-      ∃ ce' es' p', rnReadyData E γ rd L ce' es' p p' ∗ rnBusy γ L ce' es' p' ∗
+      (∃ ce' es' p', rnReadyData E γ rd L ce' es' p p' ∗ rnBusy γ L ce' es' p' ∗
         deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) ∗
-        ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝ := by
+        ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝) ∨
+      -- (2026-10-30, the repair: snapshots allowed) a `Ready` with a snapshot
+      (∃ (es' A' : List EntryModel) (p' : HardStateM) (l : SnapLoan),
+        rnReadySnap E γ rd L es' A' p p' l ∗ rnBusyS γ L A' es' p' l ∗
+        ⌜srvIdxOkW E.γr.raft.ai0 A'⌝) := by
+  -- SNAPSHOT-SORRY (the `some l` case): `rnReadySnap` from `readySnap (some l)` and the
+  -- messages, `rnBusyS` from the driver; the `none` case is the REPAIR-OLD body's
   sorry
 /- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
@@ -696,17 +780,6 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     iexact Hdrv
   · rw [Hdel]; iframe Hdlb; ipureintro; exact HLiW
 -/
-
-/-! ## (D22 J6a) A `Ready` with a snapshot (2026-10-27: unreachable, `srv_readySnap_none`) -/
-
-/-- (D22 J6a; 2026-10-27: `False`) **What a `Ready` with a snapshot gives the driver**: the server's
-clusters hand out none (`srv_readySnap_none`); kept for its shape. -/
-def rnReadySnap (_E : RNEnv GF) (_γ : RNNames) (_rd : Ready) (_d _es _A' : List EntryModel)
-    (_p _p' : HardStateM) (_l : SnapLoan) : IProp GF := iprop(False)
-
-/-- (D22 J6a; 2026-10-27: `False`) The driver with a snapshot `Ready` in hand. -/
-def rnBusyS (_γ : RNNames) (_d _es : List EntryModel) (_p : HardStateM) (_l : SnapLoan) : IProp GF :=
-  iprop(False)
 
 /-! ## The other components -/
 
@@ -932,7 +1005,9 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     -- index past the batch (until then the storage's floor)
     rnAdvChan ap.raftAdvancedC'
       (letI := srvStor (GF := GF) γ.node
-       nodeAppliedLb γ.node.cl γ.id (γ.pre ++ F ++ ce).length) ∗
+       iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ F ++ ce).length ∗
+        -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
+        srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1))) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
     rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
@@ -948,8 +1023,23 @@ entry at its index), its two channels, the committed index at least the snapshot
 (`updateCommittedIndex`), its raft term. Only outside raft's no-snapshot mode. `notifyc` is as in
 the entries' case (`isNotify … True`, one receive); the snapshot branch's two sends and the apply
 thread's two receives need a two-receive variant (J6b, J8a). -/
-def rnApSnap (_E : RNEnv GF) (_γ : RNNames) (_i : Int) (_ap : toApply) : IProp GF :=
-  iprop(False)
+def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  -- (2026-10-30, the repair: snapshots allowed, until then `False`)
+  iprop(∃ (F A' : List EntryModel) (sv : SnapshotM),
+    monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) A' ∗
+    ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
+    ownSnapM ap.snapshot' DFrac.discard sv ∗
+    snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗ □ E.C A' ∗
+    -- `notifyc`: two sends for a snapshot batch (raft.go:274,302); stated with the entries' one
+    -- receive until the two-receive notify is written with the branch's proof (SNAPSHOT-SORRY)
+    (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+    -- closed once `Advance` returned: the node's applied index at the snapshot
+    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
+      -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
+      srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) ∗
+    committedAtLeast E.γr sv.Metadata'.Index' ∗
+    rnRtOk γ ap.raftTerm' (rnLogOf γ A').length)
 
 /-- **The `i`th payload on `applyc`** (D22 J6a, 2026-10-26: with or without a snapshot): committed
 entries (`rnApN`) or a snapshot (`rnApSnap`, only outside raft's no-snapshot mode). -/
@@ -976,9 +1066,19 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
       ipureintro; exact H6
     iexists F, ce
     iframe H2 Hrt
-  · -- (D22 J6a) a snapshot: none (2026-10-27)
+  · -- (D22 J6a) a snapshot (2026-10-30, the repair: allowed): `cum[i+1] = A'`, as `A' ++ []`
     iunfold rnApSnap at H
-    iexfalso; iexact H
+    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #H4, #H5, #H6, H7, #H8, #H9, #Hrt⟩
+    isplitl [H7]
+    · iunfold rnApP
+      iright
+      iunfold rnApSnap
+      iexists F, A', sv
+      iframe H1 H2 H4 H5 H6 H7 H8 H9 Hrt
+      ipureintro; exact H3
+    iexists A', []
+    rw [List.append_nil]
+    iframe H2 Hrt
 
 /-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never
@@ -1014,7 +1114,7 @@ def rnApplyTok (γ : RNNames) (A : List EntryModel) : IProp GF :=
 a server whose raft sends none knows the channel never delivers); (D22 S-l sender, 2026-10-22)
 each owned with its protocol facts (`rnSnapMsg`), for `applyAll`'s merge, which writes it. -/
 def isRNMsgSnapC (γ : RNNames) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc) rnSnapMsg)
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc) (rnSnapMsg γ))
 
 instance isRNMsgSnapC_persistent (γ : RNNames) (c : Loc) :
     Persistent (isRNMsgSnapC (GF := GF) γ c) := by

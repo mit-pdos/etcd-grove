@@ -150,12 +150,8 @@ abbrev NewServer.spec : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  -- (2026-10-30, the repair; D2(i), the user's decision: in place of 2026-10-19's run bound
-  -- `SnapshotCatchUpEntries + 1`) at most `SnapshotCount`, so the apply thread, one write token
-  -- per entry, never reaches the disk-snapshot trigger. PENDING (Stage F, reported to the
-  -- coordinator): the in-memory snapshot trigger (`memorySnapshotCount = 100`) and
-  -- `forceDiskSnapshot` still reach `CreateSnapshot`
-  receiptBound GF ≤ uint.Z cfg.SnapshotCount' →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.boot.length ≤ 2 ^ 60 →
@@ -299,12 +295,8 @@ abbrev NewServer.specCompact : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  -- (2026-10-30, the repair; D2(i), the user's decision: in place of 2026-10-19's run bound
-  -- `SnapshotCatchUpEntries + 1`) at most `SnapshotCount`, so the apply thread, one write token
-  -- per entry, never reaches the disk-snapshot trigger. PENDING (Stage F, reported to the
-  -- coordinator): the in-memory snapshot trigger (`memorySnapshotCount = 100`) and
-  -- `forceDiskSnapshot` still reach `CreateSnapshot`
-  receiptBound GF ≤ uint.Z cfg.SnapshotCount' →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.boot.length ≤ 2 ^ 60 →
@@ -454,12 +446,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  -- (2026-10-30, the repair; D2(i), the user's decision: in place of 2026-10-19's run bound
-  -- `SnapshotCatchUpEntries + 1`) at most `SnapshotCount`, so the apply thread, one write token
-  -- per entry, never reaches the disk-snapshot trigger. PENDING (Stage F, reported to the
-  -- coordinator): the in-memory snapshot trigger (`memorySnapshotCount = 100`) and
-  -- `forceDiskSnapshot` still reach `CreateSnapshot`
-  receiptBound GF ≤ uint.Z cfg.SnapshotCount' →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.boot.length ≤ 2 ^ 60 →

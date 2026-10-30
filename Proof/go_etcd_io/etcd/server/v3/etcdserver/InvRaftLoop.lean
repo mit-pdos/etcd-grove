@@ -53,7 +53,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     (ap : toApply) :
     ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
       rnApP E γ (rcv.length : Int) ap -∗
-      ∃ (ce : List EntryModel) (ceL : List Loc),
+      (∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
         ⌜ap.snapshot' = null⌝ ∗
         (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
@@ -61,14 +61,27 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
            nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A ++ ce).length) ∗
-        committedLast E.γr ce := by
+        committedLast E.γr ce) ∨
+      -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
+      (∃ (A' : List EntryModel) (sv : SnapshotM),
+        rnApplyTok γ A' ∗
+        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
+        ownSnapM ap.snapshot' DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γ.node
+         snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
+        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length) ∗
+        committedAtLeast E.γr sv.Metadata'.Index') := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
   icases HP with (HP | HP)
   rotate_left
-  · -- (D22 J6a; 2026-10-27) no snapshot payload
-    iunfold rnApSnap at HP
-    iexfalso; iexact HP
+  · -- SNAPSHOT-SORRY: the snapshot payload's components, `cum`'s agreement at `rcv.length`
+    -- (`A` is `F`) and the consumer's token at `A'`
+    sorry
+  ileft
   iunfold rnApN at HP
   icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
   simp only [Int.toNat_natCast] at *

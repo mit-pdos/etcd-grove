@@ -70,8 +70,11 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       -- node `nid`'s applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
       -- storage's floor)
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        nodeAppliedLb ρ.raft.raft.cl nid
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+        iprop(nodeAppliedLb ρ.raft.raft.cl nid
+          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
+          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
+          srvFrozenRange γs (uint.nat ai + 1)
+            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -136,8 +139,11 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- node `nid`'s applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
       -- storage's floor)
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        nodeAppliedLb ρ.raft.raft.cl nid
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+        iprop(nodeAppliedLb ρ.raft.raft.cl nid
+          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
+          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
+          srvFrozenRange γs (uint.nat ai + 1)
+            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
