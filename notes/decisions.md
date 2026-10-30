@@ -25695,3 +25695,25 @@ in neither mode.
   undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length)` (was unguarded). Why: `advanceP`'s
   A1 is guarded at `L = none` (the design's A1), so after a snapshot `Ready` the rendezvous
   (`advance_complete`) has none to hand back; only `runCfgR_a1`'s `slent = none` case reads it.
+
+## raft-final phase 2, track P6: API, allocation, restart (2026-10-30 · `notes/raft-unified-plan.md`)
+
+Internal statement changes, old → new, why (each approved by the coordinator or the lead):
+- `api_sentSnapCert` gains `(Hns : γ.raft.reNoSnap = false)`; `api_msg`/`api_msgs` gain
+  `(HU : UniNames γ N)` and `rdPool γ N -∗`, and drop the per-message `rdCred`. Why: `sentMsg` now
+  ends with `rdPool ∗ ⌜UniNames⌝`, and `snapshotCert` needs `reNoSnap = false`, which `isRaftMsg` no
+  longer implies; `readyRecv_open` gets both from `isNode`. The forwarded read credit is dropped (§2.9).
+- `readySnapData` (P4) carries the loan snapshot's `raftSnapCertD`: `readySnap`'s `snapshotCert` had
+  no source once `readyOut`'s certificate went (U8 v2).
+- `readySnap none` (InvNode's and `ApiImpl`'s, kept defeq) gains a last pure conjunct: the batch's
+  indices consecutive and the committed entries at or past its first index the batch's, from P4's new
+  `readyData` clause. Why: kvreconf's `readyRest_indices` (new law) and `readyRest_ceInBatch` (A2);
+  neither follows from `appendRight`/`ceFrozen`.
+- `newRaft.spec`'s post gains `s.logst.dtk = 0`, `NewRawNode.spec`'s `⌜s.logst.sn = sn ∧ s.gh.sn =
+  sn⌝`, `rawNodeFresh`'s `%Hlog` `s.logst.dtk = 0` (and `rawNodeFresh_intro_sn`, the intro with
+  `s.gh = { sn := s.gh.sn }`). Why: `RestartNode` needs the fresh node's `SdtTie` and its storage
+  names to be the boot bundle's.
+- `RestartNode.specRaw` (private) takes the node's five configuration names (`dlm cap ccq cam live`)
+  with their initial resources, allocated by the wrapper. Why: the storage contract's `Bnd`/`DL`
+  are read through the node's table entry (`nodeStorNames`), which must exist before `InitialState`
+  returns, and the entry is the whole `cfgNamesOf γn`.
