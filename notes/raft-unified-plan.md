@@ -1627,7 +1627,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `read/Read__requestCurrentIndex.lean` (done), `read/Read__sendReadIndex.lean` (done),
    `EtcdServer__processInternalRaftRequestOnce.lean` (done) (`wp_proofM`).
 7. **K-a kv transport** (low): `examples/kv/deliver.lean` (done) (`deliver.wp_proof`).
-8. **K-c kv start and link** (low): `examples/kv/StartCluster.lean` (`StartCluster.wp_proof`), then
+8. **K-c kv start and link** (low): `examples/kv/StartCluster.lean` (done) (`StartCluster.wp_proof`), then
    kv's `Link`/`Results` only if a callee list changes.
 
 Not stage P's: `rnSnapOnce_of_tok` (proved in stage F). After stage P (or at the integrator's full
