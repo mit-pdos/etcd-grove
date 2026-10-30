@@ -7,75 +7,108 @@ the axiom review `axiom/txn-nested-wire` refuted. grpc v1.84's `codecV2.Marshal`
 is recorded in `notes/decisions.md`, "The encoded-size bound at grpc's send side". This file
 records the state of the change and what `txn-nested` must fold.
 
-## State: partial (one pass did not reach the libraries)
+## State: partial (passes 1, 2 and the cache's part of pass 3)
 
 **Done (builds: `Proof.go_etcd_io.etcd.client.v3.Link`, `Results`, `ResultsOn`, `ClientPutGet`,
-`KMWatch`, `watcher__Watch`):**
+the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `ServerKVPut`,
+`ServerKVTxn`, `ServerWatcher`; `Proof.go_etcd_io.etcd.cache.v3.Results`):**
 
-- **The gRPC layer.**
-  - `grpcMsgMax`, `wireSlack`, `ProtoMsg.wireLen` and `grpcInvokerOk`'s new premise are in
+- **Pass 1, the gRPC layer and the client** (`9cf7e979f1`).
+  - `grpcMsgMax`, `ProtoMsg.wireLen` and `grpcInvokerOk`'s premise are in
     `Proof/google_golang_org/grpc/InvGrpc.lean`.
-  - `StreamMsg.wireLen` is in `InvGrpcStream.lean`. The `SendMsg`/`Send` triples of
-    `cliStreamIs`/`cliBidiStreamIs` gain the premise.
-- **The wire models.** Each request instance gets a `wireLen`, and the whole-struct sends gain
-  `unknownFields' = slice.nil`:
-  - the KV requests (`InvKVConn`);
-  - the auth requests (`InvAuthConn`, `InvClientAuth`);
-  - the lease requests (`InvLease`, `InvLessor`);
-  - the watch request (`v3rpc.watchReqWireLen`, `InvWatchStream`).
+  - `StreamMsg.wireLen` and the `SendMsg`/`Send` premise are in `InvGrpcStream.lean`.
+  - Each request instance has a `wireLen`, and the whole-struct sends pin
+    `unknownFields' = slice.nil`. The instances are in `InvKVConn`, `InvAuthConn`,
+    `InvClientAuth`, `InvLease`, `InvLessor` and `v3rpc.InvWatchStream`.
+  - `reqOpAt`'s put case gains `o.ignoreValue = true → o.val = []` (W2).
+  - The client's specs from the interceptor up gain the premise:
+    - the stubs and the retry clients;
+    - `kv.Do`/`Put`/`Get`/`Delete` and `txn.Commit` (`spec`, `specM`, `specG`);
+    - the auth client (`strsSizeOk`, with the credentials' bound in `clientAuthAt`/`clientAuthPre`);
+    - `watcher.Watch` (`watchSizeOk`).
+  - The client results take `hsz`:
+    - `client_*_any`, `_end_to_end`, `client_get_after_put`, `client_*_on`;
+    - `client_{Put_own,Get_own,Get_st,Put_rep,Put_any,Put_st,Delete_st,Put_kv}`.
+- **Pass 2, cache/v3's client contracts and their adapters** (`99650e0ced`).
+  - Each operation of the contracts takes the size premise as a last pure conjunct:
+    - the gets (`opSizeOk (opGetModel key gs)`): `isEtcdKV`, `isEtcdKVE`, `isEtcdKVTodo`;
+    - the watches (`watchSizeOk (opWatchModel key gs)`): `isEtcdWatcher`, `isEtcdRangeWatcher`;
+    - the deletes and puts (`opSizeOk`): `isEtcdDeleteKV`, `isEtcdDeleteKVTodo`, `isEtcdPutKVTodo`;
+    - every builder's `Commit` (`txnSizeOk b.model`): `txnBuilderSpec`/`X`, `txnCommitErrTodo`,
+      `txnBuilderSpecO`;
+    - `readTxnBuilderSpec`'s `Commit` (`txnSizeOk (readTxn os)`, a new definition);
+    - `isEtcdDoKV` (`opSizeOk o`).
+  - The adapters pass it on; the client's `txnSizeOk_wireOf` takes the model's bound to the wire's.
+  - Where the vocabulary lives:
+    - the payload predicates, `opWireLen`, `wireSlack` and the option laws are in the client's `InvOp`
+      (the contracts import it);
+    - `cmpWireLen`, `TxnOp.wireLen`, `txnWireLen` and `txnSizeOk` are in `cache/v3/InvEtcdTxn`,
+      beside `TxnModel`;
+    - the laws against `grpcMsgMax` stay in `InvKVConn`.
+  - The scalar options' keep laws are added to `InvOp`: `withLimitM_keep`, `withRevM_keep`, ...,
+    `withSortM_keep`.
+- **Pass 3, the cache.**
+  - `New.spec` and `newCache.spec` take `pfx.length ≤ 2 ^ 28`.
+  - `isCacheFields` keeps it (`"%Hpfx"`).
+  - The cache's get, `serverRevision`'s get and `watchEvents`' watch discharge their premises by
+    `cacheGet_size`, `cacheRev_size` and `cacheWatch_size` (`InvCache.lean`).
+  - `cache_end_to_end_client` and `cache_end_to_end_new` take `hpl`.
 
-  `reqOpAt`'s put case gains `o.ignoreValue = true → o.val = []` (W2).
-- **The client's vocabulary and laws.** In `InvKVConn.lean`:
-  - `opWireLen`, `cmpWireLen`, `TxnOp.wireLen`, `txnWireLen`;
-  - the predicates `opSizeOk`, `watchSizeOk`, `txnSizeOk`, `strsSizeOk`;
-  - the option laws `OpShape`, `optsKeep`, `optsKeep_*`, `withPrefixM_keep`, `withFromKeyM_keep`,
-    `withRangeM_keep` and `opShape_opFold`;
-  - the laws `opSizeOk_opGetModel`/`opPutModel`/`opDeleteModel`, `watchSizeOk_opWatchModel` and
-    `strsSizeOk_of_le`.
-- **The specs, from the interceptor up, which gain the premise:**
-  - `etcdInterceptorOk(M)` and `EtcdInvoke`;
-  - the stubs and the retry clients (KV, auth, lease);
-  - `kv.Do`/`Put`/`Get`/`Delete` and `txn.Commit` (`spec`, `specM`, `specG`);
-  - the auth client's methods (`strsSizeOk`), with the credentials' bound in `clientAuthAt`/`clientAuthPre`;
-  - `watcher.Watch` (`watchSizeOk`).
+**Left (the build is red from these on):**
 
-  The internal `Op.toRequestOp` premise and the `Op.toRangeRequest` post change too.
-- **The client results.** A hypothesis `hsz` is added to:
-  - `client_{put,range,delete,txn}_any`;
-  - `client_{put,range,get,delete,txn}_end_to_end` and `client_get_after_put`;
-  - `client_{put,range,delete,txn}_on`;
-  - `client_{Put_own,Get_own,Get_st,Put_rep,Put_any,Put_st,Delete_st,Put_kv}`.
-- **The adapter `isEtcdWatcher_of_km`** gains `pfx.length ≤ 2 ^ 28`, which pins the prefix watch's
-  size. `isEtcdClient_of_km` does not yet pass it on.
+1. **concurrency.**
+   - The objects need the bound kept in their invariants: `isMutex`, the election, the session's
+     users. The constructors `NewMutex`, `NewElection`, `ResumeElection` need a prefix bound;
+     `Campaign`/`Proclaim` a value bound.
+   - About 16 contract calls to discharge: `Mutex__{Lock,TryLock,Unlock,tryAcquire}`,
+     `Election__{Campaign,Proclaim,Resign,Leader,observe}`, `waitDelete(s)`,
+     `stm__{commit,fetch}`, `stmSerializable__commit`.
+   - The STM needs per-call bounds (Q6), tracked through its read and write sets, so that `commit`'s
+     transaction has `txnSizeOk`.
+   - **A statement beyond the draft is needed here: stopped.** The servers
+     `server/v3/etcdserver/api/v3lock` (`lockServer.Lock`, `Defs.lean:52`: `∀ pfx, isEtcdMutexClient
+     c pfx`) and `v3election` build mutexes and elections on prefixes taken from the request they
+     received (`req.Name`). Their proofs cannot meet `NewMutex`'s prefix bound unless one of these
+     is decided:
+     - (a) the received request's size is bounded, a new trusted fact about grpc's server receive
+       (`MaxRecvMsgSize`);
+     - (b) the servers' specs take a premise on `req.Name`, a new statement of registered
+       handlers, which nothing can discharge for a request off the wire;
+     - (c) the contract keeps no size premise for the uncovered case, and the size goes to an
+       error branch.
 
-**Left (not started; the build is red from here on):**
+     The draft's section 7 does not list these two servers.
+2. **leasing**: each KV operation of the leasing KV gains the client's predicate. Its own
+   transactions (key and lease key) must fit `txnBuilderSpecO`'s `txnSizeOk`; `isEtcdDoKV`'s get
+   too.
+3. **recipes** (`experimental/recipes`): the constructors gain a prefix bound kept in the object,
+   and `Enqueue` a value bound.
+4. **k8s**: `kubernetes.Client.{Get,OptimisticPut,OptimisticDelete}` (`client_range_any`/`txn_any`
+   now take `hsz`) and the etcd3 store's specs (key and encoded-object bounds), up to the cacher
+   and `k8setcd3`.
+5. **The examples' closed theorems.** The size facts are discharged inside each one:
+   - `GenKv` and `common.Writer.spec`;
+   - linkvtxn's `GenIn`, which needs `txnSizeOk_of_bounds` (L-s4, not yet written);
+   - k8setcd3's `GenIn`;
+   - authkv's `ClientOn` (`client_put_on`);
+   - cachekv (`New`'s `pfx` bound, `"ck/"`);
+   - linkv3p's `MainWatch`.
+6. **The checks.** None has been run: the full build, `etc/tcb-report.py --check` and the
+   collections, `etc/api-check.py`, `etc/gen-interface.py --check --layout`, `gen-link`,
+   `gen-init`.
 
-1. **cache/v3's client contracts.** Each operation gains the size premise:
-   - `isEtcdKV`/`isEtcdKVE` (`InvEtcd.lean:790,813`) and `isEtcdWatcher` (`:943`);
-   - `isEtcdRangeWatcher` (`InvEtcdTxn.lean:1091`);
-   - `txnBuilderSpec`/`X` (`:561,629`), `readTxnBuilderSpec` (`:723`), `isEtcdTxnKV`,
-     `isEtcdReadTxnKV`, `isEtcdDeleteKV` and the `…Todo` contracts (`:878-970`);
-   - `txnBuilderSpecO`, `isEtcdTxnKVO` and `isEtcdDoKV` (`InvEtcdTxnOwn.lean:448-496`).
-
-   Their adapters must be updated with them: `KMGet`, `KMPut`, `KMTxn`, `ServerKVGet` (the first
-   to fail, `:303`, `kv_get_server_r` against `kv.Get.specM`), `ServerKVTxn`, `ServerKVPut` and
-   `KMClient` (`isEtcdClient_of_km` needs `hpl`).
-2. **The libraries that call the contracts:**
-   - the cache (`New` gains `pfx.length ≤ 2 ^ 28`, kept in its state);
-   - concurrency (`Mutex`, `Election`, the locker; STM per call, Q6);
-   - leasing;
-   - recipes (`experimental/`);
-   - k8s (the store's specs, `kubernetes.Client`).
-3. **The examples' closed theorems.** The size facts are discharged inside each one. Examples
-   are `GenKv`, `common.Writer.spec`, linkvtxn's `GenIn` (it needs a law `txnSizeOk_of_bounds`,
-   L-s4, not yet written), k8setcd3's `GenIn` and authkv's `ClientOn` (`client_put_on`).
-4. **The checks.** None has been run on this state: the full build, `etc/tcb-report.py --check`
-   (expected to show nothing, since the baseline lists names), the collections, `etc/api-check.py`,
-   `etc/gen-interface.py --check --layout`, `gen-link`, `gen-init`.
+**Possible follow-up, not done:** the adapters' "Todo" premises still have no size premise:
+`kmTxnUncoveredTodo`, `kmPutRestTodo`, `kvLeasedPutTodo`, `kvLeasedCommitTodo`. They are premises
+about the uncovered client calls, which reach the same `Invoke`. A size premise would make them
+weaker and more honest, but they are statements the draft does not list.
 
 ## Departures from the approved draft
 
-- `wireSlack` is in `InvGrpc.lean` (the watch's `wireLen` in `v3rpc` uses it), not in `InvKVConn`.
+- `wireSlack` and the payload predicates are in the client's `InvOp`, not in `InvKVConn`.
+  `txnWireLen`/`txnSizeOk` are in `cache/v3/InvEtcdTxn`, so that cache/v3's contracts can state
+  them (`InvKVConn` imports the contracts).
+- `readTxnBuilderSpec`'s `Commit` bounds `readTxn os` (a new definition: the read transaction's
+  gets).
 - `pbTxnRequest.send` also pins the top-level `TxnRequest`'s `unknownFields` (an extension of W3).
 - The lease stubs and retry clients (`LeaseGrant`, `LeaseRevoke`) gain the `unknownFields` premise.
   The draft had "unchanged".
@@ -90,10 +123,10 @@ records the state of the change and what `txn-nested` must fold.
 
 ## What `txn-nested` must fold (from `lean` at this branch)
 
-- **D1** `reqOpAt` (`Proof/go_etcd_io/etcd/client/v3/InvKVConn.lean:742`): the put case is
-  `⌜op = txn.putTxnOp o ∧ (o.ignoreValue = true → o.val = [])⌝`. `reqOpAt_put` (`:806`) takes
+- **D1** `reqOpAt` (`Proof/go_etcd_io/etcd/client/v3/InvKVConn.lean:537`): the put case is
+  `⌜op = txn.putTxnOp o ∧ (o.ignoreValue = true → o.val = [])⌝`. `reqOpAt_put` (`:601`) takes
   `(hv : o.ignoreValue = true → o.val = [])`. The nested case is unchanged: its bound is
-  `TxnOp.wireLen`'s `.txn` case (`:253`).
+  `TxnOp.wireLen`'s `.txn` case (`Proof/go_etcd_io/etcd/cache/v3/InvEtcdTxn.lean:167`).
 - **S2** `Op.toRequestOp.spec` (`Spec/go_etcd_io/etcd/client/v3/Op__toRequestOp.lean:31`): on
   `lean`, the leaf premise is `(o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3) ∧ (o.t = W64 2 →
   o.ignoreValue = true → o.val = [])`.
@@ -109,7 +142,8 @@ records the state of the change and what `txn-nested` must fold.
 - **The auth-off `txn.Commit`** (`Spec/go_etcd_io/etcd/client/v3/txn__Commit.lean:50`, `specM`/`specG`
   at `Proof/go_etcd_io/etcd/client/v3/KVMembers.lean:152,270`): the pre's last conjunct is
   `⌜txnSizeOk (txnWireOf b.model)⌝`.
-- **`txnBuilderSpecO`'s `Commit`** (`InvEtcdTxnOwn.lean:448`): `txnSizeOk`, with the contracts
-  (item 1 above, not yet on this branch).
+- **`txnBuilderSpecO`'s `Commit`** (`Proof/go_etcd_io/etcd/cache/v3/InvEtcdTxnOwn.lean:449`):
+  `⌜b.model.Under pfx ∧ txnSizeOk b.model⌝`. txn-nested's own nested-op builder is the same
+  definition, so the fold is its `Commit`'s pure gaining `∧ txnSizeOk b.model`.
 - **Unchanged:** D3 `etcdTxnSpecOn`, D4 `txnUpdAtOn`, S1, S3, S5, D2 and N1–N4. The size is the
   sender's obligation to grpc, not part of the registered spec.

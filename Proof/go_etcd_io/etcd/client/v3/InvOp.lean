@@ -573,6 +573,48 @@ theorem optKeep_of_eq {K E V : Nat} (g : OpFull → OpFull)
   unfold OpShape at ho ⊢
   rw [h1, h2, h3]; exact ho
 
+/-! The scalar options keep any bounds (they change neither key, nor range end, nor value). -/
+
+theorem withLimitM_keep {K E V : Nat} (n : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withLimitM n o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withSerializableM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withSerializableM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withCountOnlyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withCountOnlyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withProgressNotifyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withProgressNotifyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withCreatedNotifyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withCreatedNotifyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withLeaseM_keep {K E V : Nat} (id : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withLeaseM id o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withMaxCreateRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withMaxCreateRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withMaxModRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withMaxModRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withMinModRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withMinModRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withSortM_keep {K E V : Nat} (t r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withSortM t r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withKeysOnlyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withKeysOnlyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withIgnoreLeaseM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withIgnoreLeaseM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+
 theorem withPrefixM_keep {K E V : Nat} (hK : 1 ≤ K) (hKE : K ≤ E) :
     ∀ o, OpShape K E V o → OpShape K E V (withPrefixM o) := by
   intro o ho

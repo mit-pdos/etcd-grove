@@ -36,7 +36,7 @@ theorem newCache.wp_proof
     (wp_getWatchLoop : Cache.getWatchLoop.spec (GF := GF) (hG := hG))
     (wp_run : conditionalProgressRequestor.run.spec (GF := GF) (hG := hG)) :
     newCache.spec (GF := GF) (hG := hG) := fun client pfx cfg clk => by
-  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg, %Hthr⟩
+  wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg, %Hthr, %Hpl⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -210,7 +210,7 @@ theorem newCache.wp_proof
       isplitl []
       · iexact Hictx
       · iexact Hcc
-    ipureintro; exact ⟨hP, Hthr⟩
+    ipureintro; exact ⟨hP, Hthr, Hpl⟩
   ihave #HwgInv' : inv cacheWgN (cacheWgInv cf) $$ [HwgInv]
   · iexact HwgInv
   ihave #HisWg' : sync.isWaitGroup (cacheWgAddr «$r0_ptr») cf.γwg cacheWgWGN $$ []
