@@ -393,7 +393,7 @@ the image's revision is `-1`, `restoreImageM_off`). -/
 theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames) (d d' : mvcc.KBReal)
     (c' : Int) (hs : E'.s = E.s) (hγ : E'.γ = E.γ.withPhys p') (hkb : E.γ.kb = some d)
     (hkb' : p'.kb = some d') (hcm' : d'.cm = d.cm) (hc' : d.cm = false → c' = -1) :
-    mvcc.restoreRightPostM (GF := GF) E.s (E.γ.withPhys p') c' ∗
+    mvcc.storeCloserM (GF := GF) E.s (E.γ.withPhys p') c' ∗
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
@@ -415,7 +415,7 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
       iexists stc
       iframe Hstc Hstcl Hwsw
     · have h' : ¬ mvcc.kbCmpM (E.γ.withPhys p').kb := by rw [← hγ]; exact h
-      ihave Hr := (mvcc.restoreRightPostM_off E.s (E.γ.withPhys p') c' h').1 $$ Hr
+      ihave Hr := (mvcc.storeCloserM_off E.s (E.γ.withPhys p') c' h').1 $$ Hr
       -- off: `Restore`'s image premise made `c' = -1` (`restoreImageM_off`): the closer at `-1`
       have hoff : d.cm = false := by
         have : ¬ mvcc.kbCmpM E.γ.kb := fun h2 => h (hmode.2 h2)
