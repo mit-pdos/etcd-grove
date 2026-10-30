@@ -26889,7 +26889,8 @@ branch; its one new step is `bt_lockInNil`, proved). It waits for that.
 
 ## M2's storage side: B2, the receipt bound as a premise of `NewServer.specCompact` (2026-10-30, drafted)
 
-**2026-10-30 · drafted for the user (trusted statement)**
+**2026-10-30 · drafted for the user (trusted statement); superseded the same day** by "M2's storage
+side: B2 by sealed logs, persistent receipts" (below): the user chose no premise.
 
 The user's B2 (Q8 (b)) supersedes Q8 (a) (`restoreBoundM` from the apply side; "M2's storage side"
 entries above that assume it). Drafted (`etcdserver/M2StorageDraftB2.lean`): `srvChBound γ γk st₀ :=
@@ -26990,3 +26991,36 @@ only consumer, `store.Restore.specM`'s proof, is not written. The refuted wideni
 fact of the model (the apply side checks no `--max-txn-ops`, nesting multiplies the budget, the start
 log counts); the glue (`srvChBound_of_len`) takes any monotone `B`, so the form the user approves
 (the request's size bound `K` in place of `MaxTxnOps`, or none, by a gate) plugs in.
+
+## M2's storage side: B2 by sealed logs, persistent receipts (2026-10-30, drafted)
+
+**2026-10-30 · drafted (snapshot-track and mvcc statements; nothing switched)**
+
+The user's decision: no `NewServer` premise; every installed image's log is some member's sealed log,
+carried with the snapshot. Supersedes "B2, the receipt bound as a premise of `NewServer.specCompact`"
+and the `Nc`/`K` form.
+
+**Why persistent receipts (`⧖`), not the pure bound.** Carrying the sealed log's pure fact `logCh L <
+receiptBound` restores the image but not the induction: the restored writer must pay its *later*
+changes, and its exclusive receipts (`⧗`) count from zero, so its next seal is bounded by
+`logCh L + |new| < 2·receiptBound` (review round 5's B2). The image's `⧗` cannot travel (they are the
+sender's writer's, still needed there). Perennial's persistent receipt `⧖ n` ("the one global step
+counter is at least `n`", shared by every member, `⧖ n ⊢ n < receiptBound`) can, and a Go step raises
+it by one whoever holds it (`wp_go_step_preceipt`, our `wp_raise_receipt`, already used by raft). So a
+sealed/certified log carries `⧖ (logCh log)` (from the writer's `⧗` by `receipt_snapshot` at the
+seal/commit); the image's certificate carries it (`dbImageR`/`srvImageR`, the network's `img`); the
+installer's restore takes it (`restoreRcptM`, `store.Restore.specMR`); the restored writer holds
+`⧖ (logCh ilog + |pend|)` (`idxWriterP`) and each index change's Go step raises it
+(`treeIndex.Put.specP`/`Tombstone.specP`, today's proofs with `wp_raise_receipt` for
+`wp_take_receipt`); its commit certifies with the receipt again (`idxWriterP_commit`): the induction
+closes. No Perennial change, no new ghost state.
+
+**Why the image's certificate, not raft's registry or `snapshot()`.** etcd's raft snapshot has no data
+(`ownSnapsMade` in `srvClusterOk` has no KV content); the KV image is made at send time
+(`createMergedSnapshotMessage`'s `be.Snapshot()`, the apply thread's `msgSnapC` branch) and travels
+with `srvImage`, kept in the receiver's snapshot directory. `EtcdServer.snapshot`, `srvSnapStor`,
+`srvSnapFrozen`, `snapTakenLb` do not change.
+
+**Cost.** The writer's receipts stop being exclusive, so they no longer add up with another pool's;
+nothing uses that (`idxWriter_split` has no user). Drafts: `storage/mvcc/M2StorageDraftSealed.lean`,
+`etcdserver/M2StorageDraftB2.lean`; the plan's "B2 by sealed logs".

@@ -2180,3 +2180,67 @@ check the shape against; best done with item 15.
   statements: drafts for the collaborator). No `NewServer` premise; supersedes the `Nc`/`K` draft.
 - **Item 37: with item 15.** The writer relation `bucketViewL` (designed in "The restore chain,
   round 2") is implemented by whoever proves item 15's `Restore`, so its one consumer checks its shape.
+
+## B2 by sealed logs (2026-10-30; Draft)
+
+The user's answer after the restore chain's round 2 (above): no `NewServer` premise; every installed
+image's log is some member's sealed log, carried with the snapshot. Drafts:
+`storage/mvcc/M2StorageDraftSealed.lean` (new) and `etcdserver/M2StorageDraftB2.lean` (rewritten).
+No `axiom`, no `sorry`, no Perennial change, nothing switched. `notes/decisions.md`, "M2's storage
+side: B2 by sealed logs, persistent receipts".
+
+### The design
+
+- **The carried fact is a persistent receipt**, `⧖ (logCh L)` (Perennial's `preceipt`, a lower bound
+  of the one global step counter: all members share it and `receiptBound GF`), not the pure
+  `logCh L < receiptBound`. The pure fact restores the image but does not close the induction: the
+  restored writer's later changes would be paid by exclusive receipts counted from zero
+  (`< 2·receiptBound` at its next seal). A Go step raises `⧖ m` to `⧖ (m + 1)` for whoever holds it
+  (`wp_go_step_preceipt`, `wp_raise_receipt`), so the restored writer can go on from the image's.
+- **Where it is made**: at the sender's commit, from its writer's own `⧗` (`receipt_snapshot`):
+  `idxWriter_commitR`/`idxWriterSealed_commitR`/`idxWriter_sealR` give `idxCertR`/`idxSealedR`
+  (`idxCert`/`idxSealed` with `⧖ (logCh log)`, which implies the pure bound).
+- **How it travels**: in the image's certificate, not in raft's registry (`ownSnapsMade` has no KV
+  content: etcd's raft snapshot data is nil) nor in `snapshot()`'s post (`srvSnapStor` is raft's log
+  only). The image is made by `createMergedSnapshotMessage` (`be.Snapshot()`, the `msgSnapC` branch,
+  SNAPSHOT-SORRY #7) and carries `srvImage` (the network's `img`, kept in the snapshot directory);
+  drafted `dbImageR`/`srvImageR` add `⧖ (logCh (kvModel γk A))`. The sender has it from its sole
+  writer's certified log (`x.log = kvModel γk A`): `dbImageR_of_sender`.
+- **The installer**: `rcpt_of_image` (from `srvImageR` and `snapRecv_image`'s `SnapImageFacts`: the
+  committed `A'` of the image's length is the certificate's, `[[], []] ++ R = kvModel γr.kv A'`)
+  gives `⧖ (logCh ([[], []] ++ R))`, so `restoreRcptM_of_image` (`Restore.specMR`'s premise) and
+  `restoreBoundM_of_sealed` (today's `restoreBoundM`).
+- **The induction** (proved, mvcc Draft): the restored handle `idxWriterP γ L []` from the image's
+  receipt (`idxWriterP_of_image`; `idxWriterNR ∗ ⧖ (logCh ilog + |pend|)`); every change raises it
+  (**`treeIndex.Put.wp_proofP`, `treeIndex.Tombstone.wp_proofP`: today's proofs, three lines changed,
+  `wp_raise_receipt` for `wp_take_receipt`**); `idxWriterP_seal` gives `idxSealedR`,
+  `idxWriterP_commit` gives `idxCertR`, which `dbImageR_of_sender` takes for this member's next image.
+  `sealedR_small`: below `2 ^ 48` under `receiptBound GF ≤ 2 ^ 48`, no premise. Every writer can move
+  to `idxWriterP` (`idxWriterP_of_writer`), so the switch may make it the only handle.
+- Nothing stopped: the receipts give the induction (persistent, not exclusive ones).
+
+### Drafted statement changes (exact texts in the Drafts)
+
+- **Snapshot track (the collaborator's)**: `dbImage`/`srvImage` become `dbImageR`/`srvImageR`
+  (`InvImage.lean`; `srvNet`'s `img` and `SnapRO`'s `snapDirInv … (srvImage …)` unchanged textually);
+  the `msgSnapC` sender builds it by `dbImageR_of_sender`; `applySnapshot.specSnap`'s pre gains
+  `mvcc.restoreRcptM d ([[], []] ++ R) ∗` when `hcm` goes (items 15/16; `True` while it stays), its
+  caller supplying it by `restoreRcptM_of_image`. Unchanged: `EtcdServer.snapshot`/`SnapTakeProof`,
+  `srvSnapStor`, `srvSnapFrozen`, `snapTakenLb`, `ownSnapsMade`/`srvClusterOk`.
+- **mvcc (internal)**: `idxSealed`'s/`idxCert`'s pure conjunct becomes `⧖ (logCh log)`; the writer's
+  handle `idxWriterP` (by the mode, or always); `treeIndex.Put.specP`/`Tombstone.specP`;
+  `store.Restore.specMR` (`specM` with `restoreBoundM` replaced by `restoreRcptM` in the pre;
+  `specMR_of_specM` proved). Consumers that unfold `idxSealed`'s pure bound (`WatchFire.lean`,
+  `watchableStoreTxnWrite__End.lean`) read it through `preceipt_lt`; `restoreIntoIndex`'s rebuild
+  raises the receipt as the puts do.
+- **`NewServer` (trusted)**: no change; the `srvChBound` and `Nc`/`K` premise drafts are dropped.
+
+### Dropped from `M2StorageDraftB2.lean`
+
+`srvChBound` (and `_committed`, `_small`, `_of_len`), `restoreBoundM_of_chBound`,
+`restoreBoundM_of_len`, `kvChLe`, `srvLogLe`; `idxWriterNR_seal`/`idxWriterSealedNR` moved to the mvcc
+Draft (used by `idxWriterP_seal`).
+
+### Checked
+
+- `etc/lean-check.py -a` on both Drafts; targeted `lake build` of both (3646 jobs).

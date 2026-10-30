@@ -674,6 +674,18 @@ exported or trusted switched:
   - **B2**: the glue from a model bound and a run bound (`srvChBound_of_len`, proved); the user's
     `2·MaxTxnOps·N` premise is not sound as stated (nested transactions, no apply-side check, the start
     log); `NewServer.specCompact`'s text drafted for approval (the plan).
+  - **B2 by sealed logs** (the user's answer: no `NewServer` premise; the plan's "B2 by sealed logs",
+    Drafts `mvcc/M2StorageDraftSealed.lean`, `etcdserver/M2StorageDraftB2.lean`): the image carries
+    its sealed log's *persistent* receipt `⧖ (logCh L)`; the restored writer holds a persistent
+    receipt (`idxWriterP`) that each index change's Go step raises (`treeIndex.Put`/`Tombstone`
+    re-proved at it, `wp_proofP`), so its own later seals carry one again: the induction closes, no
+    premise. **For the collaborator (snapshot track, drafted, not switched)**: `dbImage`/`srvImage`
+    gain the conjunct `⧖ (mvcc.logCh (kvModel γk A))` (`dbImageR`/`srvImageR`); the `msgSnapC`
+    sender (SNAPSHOT-SORRY #7) builds it from its sole writer's certificate (`dbImageR_of_sender`,
+    over mvcc's `idxCertR`); `applySnapshot.specSnap`'s pre gains `mvcc.restoreRcptM d ([[], []] ++
+    R)` once `hcm` goes, its caller supplying it by `restoreRcptM_of_image`. `EtcdServer.snapshot`,
+    `srvSnapStor`, `srvSnapFrozen`, `snapTakenLb`, the registry `ownSnapsMade`: unchanged (raft's
+    snapshot has no KV content).
   **For the collaborator (snapshot track; Drafts only, no switched statement changed)**: the restore
   Draft's `Restore.specM`/`watchableStore.Restore.specM` take `restoreRegM d'` (`dlInit` on), the
   contract as a wand from `restoreFixM` (`storeDlReg` on), the clean read at `storeRT ∗ restoreRegM`;
