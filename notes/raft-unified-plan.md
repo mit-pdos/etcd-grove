@@ -1552,6 +1552,8 @@ results see them:
   ("Repair: Stage P changes").
 - **`isRNMemStor`'s `rnAppendRight`** (stage P, P5; trusted conclusion's precondition strengthened (only consecutive batches, as raft hands out); coordinator-approved while the user was away, for the user's review): += `rnConsec es`
   ("Repair: Stage P changes").
+- **`isServerApplyAll`** (stage P, P6; trusted precondition weakened; coordinator-approved while the user was away, for the user's review): the msgSnapC bag's False clause and
+  `receiptBound ≤ scu + 1` dropped ("Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1594,7 +1596,7 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `InvRaftNode.lean` (`rn_ready_recv` (done)), `InvRaftLoop.lean` (`rnCfgAt_normal1` (done), `rnCfgAt_back_true` (done),
    `rnApR_dv` (done), `rnApGive_dv` (done), `srvRaftNodeCC_of_isRaftNode` (done)), `NodeBridge.lean`
    (`isRNMemStor_of_memstorage` (done), `raftPropose_of_isNode` (done), `raftApplyCC_of_isNode` (done),
-   `isRaftNodeIfc_of_isNode` (done), `rnStepIfc_of_isNode` (done)), `raftNode__start.lean`,
+   `isRaftNodeIfc_of_isNode` (done), `rnStepIfc_of_isNode` (done)), `raftNode__start.lean` (done),
    `raftNode__onStop.lean` (done), `raftNode__stop.lean` (done), `raftNode__tick.lean` (done), `newRaftNode.lean` (done)
    (`rnApP_cum` (done), `newRaftNode.wp_proof`).
 3. **S-D the apply thread and storage** (BLOCKED in part on D2: `snapshotIfNeeded`, `compactRaftLog`,
@@ -1619,8 +1621,8 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
 5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
    `KvRun*` lemma modules, `SnapData.lean`.
 6. **S-A net, read, errors** (leaf): `InvNet.lean` (`stepIn_of_recv` (done)), `ReadRaft.lean`
-   (`isReadRaft_of_raftNode` (done)), `ReadServer.lean` (`isReadServer_of_serverM`), `raftNode__ReadIndex.lean` (done),
-   `read/Read__requestCurrentIndex.lean`, `read/Read__sendReadIndex.lean`,
+   (`isReadRaft_of_raftNode` (done)), `ReadServer.lean` (`isReadServer_of_serverM` (done)), `raftNode__ReadIndex.lean` (done),
+   `read/Read__requestCurrentIndex.lean` (done), `read/Read__sendReadIndex.lean` (done),
    `EtcdServer__processInternalRaftRequestOnce.lean` (`wp_proofM`).
 7. **K-a kv transport** (low): `examples/kv/deliver.lean` (`deliver.wp_proof`).
 8. **K-c kv start and link** (low): `examples/kv/StartCluster.lean` (`StartCluster.wp_proof`), then
@@ -1682,7 +1684,7 @@ Statement changes vs the "Repair: Stage F statements" above (approved: the two e
 
 ## Repair: snapshot sorries (2026-10-30; exact)
 
-(Stage P: #4 and #5 were proved; the remaining snapshot sorries are #1-#3, #6-#10.) Each is a `-- SNAPSHOT-SORRY` in the file (`grep -rn SNAPSHOT-SORRY Proof Spec`). "In a stage-P
+(Stage P: #4 and #5 were proved; #11 added (P7); the remaining snapshot sorries are #1-#3, #6-#11.) Each is a `-- SNAPSHOT-SORRY` in the file (`grep -rn SNAPSHOT-SORRY Proof Spec`). "In a stage-P
 sorry" means the whole proof is a stage-P `sorry` today and the marker names the branch to keep as
 the one `sorry` when the rest is proved. Server files under `Proof/go_etcd_io/etcd/server/v3/etcdserver/`.
 
@@ -1698,6 +1700,7 @@ the one `sorry` when the rest is proved. Server files under `Proof/go_etcd_io/et
 | 8 | `EtcdServer__run.lean` | `run_job_body`, `run_job_bodyOn` (in stage-P sorries) | a snapshot payload's job: `applyAll` on a snapshot batch (a spec of it over `applySnapshot.specSnap`'s premises: lean's J8a) |
 | 9 | `EtcdServer__snapshot.lean` | `EtcdServer.snapshot.wp_proof` | the whole function: `SnapTakeProof.lean`'s proof, rewired (`CreateSnapshot` over `srvSnapStor`: `snapshotCert_make` in the registry, `snapshotCert_valid`, `storDL`, the frozen entry) |
 | 10 | `SnapTakeProof.lean` | `EtcdServer.snapshot.wp_proof_full` | lean's proof, kept below, to rewire (it becomes #9's proof) |
+| 11 | `EtcdServer__snapshotIfNeededAndCompactRaftLog.lean`, `ModeSpecs.lean` | `snapshotIfNeededAndCompactRaftLog.wp_proof`, `spec_off`/`spec_on` (stage P, P7) | the "snapshot is due" branch: `snapshot` and `compactRaftLog`; proved already over the strong `specFull` (`wp_proofFull`), whose premises `applyAll`/`run` must then supply |
 
 Not snapshot sorries (stay proved as they are, the build says so): `EtcdServer.applySnapshot`'s
 `specSnap`/`wp_proof_snap` and `SnapApply*`, `createMergedSnapshotMessage`, `sendMergedSnap`,
@@ -1758,3 +1761,13 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   `rnConsec es := ∀ e0, es.head? = some e0 → ∀ j e, es[j]? = some e → uint.Z e.index = uint.Z e0.index + j`.
   Why: `MemoryStorage.Append.spec` needs consecutive indices; `rn_ready_recv` gets them from `readySnap none`.
   `isRNMemStor` (the conclusion of the exported `node_contract_memstor`) reads `rnAppendRight`.
+- **P6 `isServerApplyAll`** (`InvApplyAll`; inside the exported `applyAll_model`'s pre; **trusted precondition weakened; coordinator-approved while the user was away, for the user's review**), and
+  `srvApplyAllBuilt` (`InvStart`): the msgSnapC bag's `□ (∀ m, P m -∗ False)` dropped (S-C's proved
+  `processMessages` puts `rnSnapMsg` into that bag; applyAll's merge branch stays SNAPSHOT-SORRY #7), and
+  `⌜receiptBound GF ≤ uint.Z scu + 1⌝` dropped (NewServer has no run-length premise; unused). Made by S-E.
+- **P7 `snapshotIfNeededAndCompactRaftLog.spec`, ModeSpecs' `specOff`/`specOn`** (internal; coordinator-approved):
+  Stage F's revision made them take all `snapshot` takes, which `applyAll`'s frozen pre does not give
+  (`releaseOk`, `srvSnapDisk`, the KV commit contract, `srvSnapStor`/`storDL`, `ai ≤ ciEff`). The Go returns
+  unless a snapshot is due, then calls `snapshot` and `compactRaftLog`: the specs take only what the
+  no-snapshot path and the guard need; the due branch is **SNAPSHOT-SORRY #11**. The strong statements and
+  S-D's proofs of them are kept as `specFull`/`wp_proofFull` (for the snapshot track after the merge).
