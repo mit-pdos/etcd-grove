@@ -153,6 +153,10 @@ theorem schedule.fifo.run.wp_proof
         ihave %Hv := dghostVar_valid_2 F.st _ _ _ _ $$ Hst HPD
         exact absurd Hv.1 (dfrac_own_one_op_invalid _)
       (try wp_auto)
+      icases Hq' with ⟨%q, Hq'⟩
+      ihave ⟨Hq', Hqw⟩ := (monoListAuthOwn_fractional γ.jobs L).fractional q.half q.half |>.1
+        $$ [Hq']
+      · rw [Qp.half_add_half]; iexact Hq'
       imod dghostVar_update_halves RunSt.drained F.w _ _ $$ Hrs Hws with ⟨Hrs, Hws⟩
       have HLpos : 0 < L.length := by have := Hchain.1; omega
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hpend Hsch Hfin Hcf Hrs Hq Hdr Htok Hq']
@@ -264,6 +268,15 @@ theorem schedule.fifo.run.wp_proof
         (try wp_auto)
         wp_for_post
         (try wp_auto)
+        have Hb' : b' = L.length - 1 := by
+          obtain ⟨Hi0, Hil, Hich⟩ := Hi
+          have Hge : items.length ≤ sint.nat i := by
+            have := Hlen2.1; simp only [List.length_map] at this; word
+          rw [List.drop_eq_nil_of_le Hge] at Hich
+          have := Hich.2.1
+          simp only [List.filterMap_nil, List.length_nil] at this
+          omega
+        subst Hb'
         clear Hi Hchain Hlen Hlen2
         wp_bind (App (Val #(functions go.close _)) _)
         wp_apply_core chan.wp_close (V := Unit) F.dch F.γd $$ Hdch
@@ -274,7 +287,7 @@ theorem schedule.fifo.run.wp_proof
         iintro Hmask
         inext
         iunfold donecInv at Hdi
-        icases Hdi with (Hch | ⟨Hch, Hdc'⟩)
+        icases Hdi with (Hch | ⟨Hch, Hdc', -⟩)
         rotate_left
         · ihave %Hv := dghostVar_valid_2 F.dc () (DFrac.own 1) () (DFrac.own 1) $$ Hdc Hdc'
           exact absurd Hv.1 (dfrac_own_one_op_invalid _)
@@ -283,8 +296,11 @@ theorem schedule.fifo.run.wp_proof
         dsimp only
         iintro Hch
         imod Hmask with -
-        imod Hclose $$ [Hch Hdc] with -
+        imod Hclose $$ [Hch Hdc Hqw Hbaton] with -
         · inext; iunfold donecInv; iright; iframe
+          iunfold donecCarry
+          iexists L, q.half
+          iframe
         imodintro
         (try wp_auto)
         wp_bind (App (Val #(functions go.close _)) _)
