@@ -95,8 +95,6 @@ theorem EtcdServer.start.wp_proof
     (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.spec (GF := GF) (hG := hG) := by
-  sorry
-/- REPAIR-OLD
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
   wp_start as Hb
   iNamed Hb
@@ -450,10 +448,10 @@ theorem EtcdServer.start.wp_proof
     · iframe HT HP
     (try wp_auto)
     wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
     · iunfold isServerRun
       iframe
       iframe Hrf Hsa Hsrv Hrn
@@ -570,7 +568,6 @@ theorem EtcdServer.start.wp_proof
   iintro ⟨#Hl, Hslot⟩
   iexists lcn
   iframe Hl Hslot
--/
 
 
 set_option maxHeartbeats 0 in
@@ -605,8 +602,6 @@ theorem EtcdServer.start.wp_proofOn
     (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.specOn (GF := GF) (hG := hG) := by
-  sorry
-/- REPAIR-OLD
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N γa hM hRB Hrb Hai0
   wp_start as ⟨Hb, #Hlnil⟩
   iNamed Hb
@@ -989,10 +984,10 @@ theorem EtcdServer.start.wp_proofOn
     · iframe HT HP
     (try wp_auto)
     wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ γa hM hRB
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
     · iunfold isServerRunOn
       iframe
       iframe Hrf Hsa Hsrv Hrn Hlnil
@@ -1115,7 +1110,6 @@ theorem EtcdServer.start.wp_proofOn
   iintro ⟨#Hl, Hslot⟩
   iexists lcn
   iframe Hl Hslot
--/
 
 end proof
 
