@@ -31,15 +31,25 @@ proclamation of the request's value as the leader `key` at `rev` (`ResumeElectio
 leader's name, `Election.Proclaim`): its write is to the request's leader key. It returns the
 response `{Header}` of the proclamation (`proclaimedAt`, at the session's lease: the leader's), or
 no response and an error. The leader's name is non-empty (`ResumeElection`'s spec requires a
-non-empty prefix; Go does not). -/
+non-empty prefix; Go does not).
+
+The request's leader's name and key and the value are at most the server's receive limit long
+(`v3rpc.grpcRecvBytesOk`, the receive-size fact: grpc's server decoded the request under etcd's
+limit `v3rpc.etcdMaxRecvMsgSize maxReq`, `maxReq` the configuration's `MaxRequestBytes`, which
+meets `v3rpc.etcdMaxRequestBytesOk`; 2026-10-30, `notes/decisions.md`, "The receive-size
+fact"). -/
 abbrev electionServer.Proclaim.spec : Prop :=
   ∀ (es c req lk : Loc) (vsl : GoSlice) (name key val : GoString) (rev lease : w64)
-    (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+    (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
       isElectionServer es c ∗ electionClientOk c ∗
+      ⌜v3rpc.etcdMaxRequestBytesOk maxReq⌝ ∗
       structFieldRef v3electionpb.ProclaimRequest go!"Leader" req ↦□ lk ∗
-      (⌜lk = null⌝ ∨ leaderKeyAt lk name key rev lease ∗ ⌜name ≠ []⌝) ∗
+      (⌜lk = null⌝ ∨ leaderKeyAt lk name key rev lease ∗ ⌜name ≠ []⌝ ∗
+        ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
+          v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) key⌝) ∗
       structFieldRef v3electionpb.ProclaimRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
+      ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
       context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Proclaim"))
       (Val #(GoInterface.ok ctx))) (Val #req))

@@ -43,8 +43,8 @@ theorem lockServer.Lock.wp_proof
     (hMH : concurrency.Mutex.Header.spec (GF := GF) (hG := hG))
     (hMK : concurrency.Mutex.Key.spec (GF := GF) (hG := hG)) :
     lockServer.Lock.spec (GF := GF) (hG := hG) := by
-  intro ls c req nsl name lease ctx cs
-  wp_start as ⟨#Hls, #Hok, #Hnf, #Hns, #Hlf, #Hctx, #Hcc⟩
+  intro ls c req nsl name lease ctx cs maxReq
+  wp_start as ⟨#Hls, #Hok, #Hnf, #Hns, %Hrecv, #Hlf, #Hctx, #Hcc⟩
   iunfold isLockServer at Hls
   iunfold lockClientOk at Hok
   icases Hok with ⟨%cctx, #Hsc, #Hmc⟩

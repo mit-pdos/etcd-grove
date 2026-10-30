@@ -26910,3 +26910,49 @@ fields sharing one slice does the same, so the defect is generic, not the Txn's 
 - A Txn-only premise: the amplification is generic.
 - A bound in the stubs' specs only: the axiom itself was false.
 - `2 ^ 31`: no failure happens below `2 ^ 32` on the model's platform.
+
+## The receive-size fact (2026-10-30 · accepted, the user's choice (a) · `notes/invoke-size.md`, "Receive-size fact")
+
+**Why:** the send-side bound (the previous entry) makes `concurrency`'s mutex and election take a
+bound on their prefix and values. The Lock and Election servers (`v3lock`, `v3election`) build
+them on names, keys and values taken from the request they received. Their in-process client
+(`v3client.New`) does no marshalling, but their client contracts (`isEtcdMutexClient`) are the
+size-bounded ones, so the servers need a bound on what they receive. The user chose (a): a trusted
+fact about grpc's server receive, rather than a premise nothing discharges (b) or an
+error branch in the contracts (c).
+
+**Decision:**
+
+- **The fact.** `v3rpc.grpcRecvBytesOk lim b := b.length ≤ lim`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/RecvLimit.lean`): a `bytes` field `b` of
+  a request grpc's server decoded under the receive limit `lim` is at most `lim` bytes long. grpc
+  v1.84 refuses a frame, and a decompressed message, longer than `maxReceiveMessageSize` before
+  decoding (`recvAndDecompress`), and `proto.Unmarshal` copies a `bytes` field out of the
+  message.
+- **Over field lengths, not `wireLen`.** `ProtoMsg.wireLen` is an upper bound on the encoding
+  (`wireSlack = 256` per node), so `wireLen ≤ limit` would be false of a request that fits. A field's
+  length is a lower bound on the message's size, and it is all the servers use. Per field, not a
+  sum: the weakest form they need.
+- **Where.** In the handlers' request predicates: the specs of `lockServer.Lock` and
+  `electionServer.{Campaign, Leader, Proclaim, Resign}` take it for each `bytes` field they hand
+  `concurrency` (name; name and value; name and leader key, and the value). Those specs are not
+  wired to `grpc.serve` (their requests are field points-tos, not a `ProtoMsg`), so the fact is a
+  premise there, met by grpc's runtime, their caller. It is not an `axiom` and adds nothing to
+  `etc/tcb-baseline.txt`; `notes/audit.md` lists it with the axioms.
+- **The limit, from the configuration.** `etcdMaxRecvMsgSize maxReq = maxReq + 512 KiB`, what
+  `v3rpc.Server` passes to `grpc.MaxRecvMsgSize`. Each spec takes `maxReq`, the configuration's
+  `MaxRequestBytes`, and the premise `etcdMaxRequestBytesOk maxReq`: the limit is below `2 ^ 27`
+  (`MaxRequestBytes` below 127.5 MiB). This holds at the default 1.5 MiB
+  (`etcdMaxRequestBytesOk_default`), and etcd warns above 10 MiB. `2 ^ 27` is what the mutex
+  needs: `tryAcquire`'s transaction carries its key three times and the prefix's range four times,
+  under `txnSizeOk`'s `2 ^ 30`.
+- **Not covered:** `GRPCAdditionalServerOptions` with a `MaxRecvMsgSize` of its own. It is
+  appended after etcd's options and would replace the limit. The fact's docstring states this.
+
+**Alternatives rejected:**
+
+- `Req.wireLen m ≤ limit` at `grpcDecOk`: false, because of the slack. Even over a true measure,
+  it would need the limit in `grpcServerAt` and a `ProtoMsg` for the lock and election requests,
+  and it would change every server handler's proof.
+- A bound on the request's whole encoded size (the sum of its fields): stronger than the servers
+  need.

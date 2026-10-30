@@ -29,13 +29,21 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ap
 the leader of the election on the request's name (`NewElection`, `Election.Leader`): its read is
 of the keys under `name/`. It returns the response `{Header, Kv}` of the leader's key-value
 (`leaderKvAt`: the oldest key under `name/` at the header's revision), or no response and an
-error. -/
+error.
+
+The request's name is at most the server's receive limit long
+(`v3rpc.grpcRecvBytesOk`, the receive-size fact: grpc's server decoded the request under etcd's
+limit `v3rpc.etcdMaxRecvMsgSize maxReq`, `maxReq` the configuration's `MaxRequestBytes`, which
+meets `v3rpc.etcdMaxRequestBytesOk`; 2026-10-30, `notes/decisions.md`, "The receive-size
+fact"). -/
 abbrev electionServer.Leader.spec : Prop :=
   ∀ (es c req : Loc) (nsl : GoSlice) (name : GoString) (ctx : GoInterfaceOk)
-    (cs : context.ContextDesc (IProp GF)),
+    (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
       isElectionServer es c ∗ electionClientOk c ∗
       structFieldRef v3electionpb.LeaderRequest go!"Name" req ↦□ nsl ∗ nsl ↦*□ name ∗
+      ⌜v3rpc.etcdMaxRequestBytesOk maxReq ∧
+        v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name⌝ ∗
       context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Leader"))
       (Val #(GoInterface.ok ctx))) (Val #req))

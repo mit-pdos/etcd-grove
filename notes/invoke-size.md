@@ -78,6 +78,9 @@ the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `S
        error branch.
 
      The draft's section 7 does not list these two servers.
+
+     **Decided (2026-10-30): (a)**, stated in code ("Receive-size fact" below); the servers' proofs
+     use it once `concurrency` takes its bounds.
 2. **leasing**: each KV operation of the leasing KV gains the client's predicate. Its own
    transactions (key and lease key) must fit `txnBuilderSpecO`'s `txnSizeOk`; `isEtcdDoKV`'s get
    too.
@@ -101,6 +104,45 @@ the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `S
 `kmTxnUncoveredTodo`, `kmPutRestTodo`, `kvLeasedPutTodo`, `kvLeasedCommitTodo`. They are premises
 about the uncovered client calls, which reach the same `Invoke`. A size premise would make them
 weaker and more honest, but they are statements the draft does not list.
+
+## Receive-size fact
+
+The user chose (a) (2026-10-30). The fact, in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/RecvLimit.lean` (namespace
+`Perennial.EtcdGrove.v3rpc`):
+
+```lean
+def grpcOverheadBytes : Nat := 512 * 1024
+def etcdMaxRecvMsgSize (maxReq : Nat) : Nat := maxReq + grpcOverheadBytes
+def etcdMaxRequestBytesOk (maxReq : Nat) : Prop := etcdMaxRecvMsgSize maxReq < 2 ^ 27
+theorem etcdMaxRequestBytesOk_default : etcdMaxRequestBytesOk (3 * 2 ^ 19)
+/-- The receive-size fact: a `bytes` field `b` of a request grpc's server decoded under the
+receive limit `lim` is at most `lim` bytes long. -/
+def grpcRecvBytesOk (lim : Nat) (b : GoString) : Prop := b.length ≤ lim
+```
+
+It is a premise of the handlers' specs, where grpc's runtime is the caller. Each spec quantifies
+`maxReq` (the configuration's `MaxRequestBytes`) and takes `⌜v3rpc.etcdMaxRequestBytesOk
+maxReq⌝`, plus `⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) b⌝` for each field `b`:
+
+- `lockServer.Lock`: `Name`;
+- `electionServer.Campaign`: `Name`, `Value`;
+- `electionServer.Leader`: `Name`;
+- `electionServer.Proclaim`: the leader's `Name` and `Key` (in the leader branch), `Value`;
+- `electionServer.Resign`: the leader's `Name` and `Key` (in the leader branch).
+
+**Soundness.**
+
+- grpc v1.84 checks the frame's length against `maxReceiveMessageSize` before reading it
+  (`parser.recvMsg`, `rpc_util.go:797`), and the decompressed size too (`decompress`).
+- etcd sets the limit to `MaxRequestBytes + 512 KiB` (`v3rpc/grpc.go:74`).
+- `proto.Unmarshal` (`v3rpc.codec`) copies each `bytes` field out of the message, so a field is no
+  longer than the message.
+- The fact is not stated over `wireLen`. `wireLen` is an upper bound (it adds `wireSlack` per
+  node), so `wireLen ≤ limit` would be false.
+- Not covered: a `MaxRecvMsgSize` in `GRPCAdditionalServerOptions`, which would replace etcd's.
+
+`notes/decisions.md`, "The receive-size fact"; `notes/audit.md`, its row.
 
 ## Departures from the approved draft
 

@@ -33,8 +33,8 @@ theorem electionServer.Leader.wp_proof
     (hNE : concurrency.NewElection.spec (GF := GF) (hG := hG))
     (hEL : concurrency.Election.Leader.spec (GF := GF) (hG := hG)) :
     electionServer.Leader.spec (GF := GF) (hG := hG) := by
-  intro es c req nsl name ctx cs
-  wp_start as ⟨#Hes, #Hok, #Hnf, #Hns, #Hctx, #Hcc⟩
+  intro es c req nsl name ctx cs maxReq
+  wp_start as ⟨#Hes, #Hok, #Hnf, #Hns, %Hrecv, #Hctx, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'

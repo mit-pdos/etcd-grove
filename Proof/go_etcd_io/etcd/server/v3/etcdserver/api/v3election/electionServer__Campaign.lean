@@ -41,8 +41,8 @@ theorem electionServer.Campaign.wp_proof
     (hER : concurrency.Election.Rev.spec (GF := GF) (hG := hG))
     (hSL : concurrency.Session.Lease.spec (GF := GF) (hG := hG)) :
     electionServer.Campaign.spec (GF := GF) (hG := hG) := by
-  intro es c req nsl vsl name val lease ctx cs
-  wp_start as ⟨#Hes, #Hok, #Hnf, #Hns, #Hlf, #Hvf, #Hvs, #Hctx, #Hcc⟩
+  intro es c req nsl vsl name val lease ctx cs maxReq
+  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hnf, #Hns, #Hlf, #Hvf, #Hvs, %Hrecv, #Hctx, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'

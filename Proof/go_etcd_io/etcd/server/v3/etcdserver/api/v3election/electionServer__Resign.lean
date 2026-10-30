@@ -35,8 +35,8 @@ theorem electionServer.Resign.wp_proof
     (hER : concurrency.Election.Resign.spec (GF := GF) (hG := hG))
     (hEH : concurrency.Election.Header.spec (GF := GF) (hG := hG)) :
     electionServer.Resign.spec (GF := GF) (hG := hG) := by
-  intro es c req lk name key rev lease ctx cs
-  wp_start as ⟨#Hes, #Hok, #Hlf, Hlk, #Hctx, #Hcc⟩
+  intro es c req lk name key rev lease ctx cs maxReq
+  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hctx, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -55,7 +55,7 @@ theorem electionServer.Resign.wp_proof
     iframe He0
     ipureintro
     exact ⟨⟨rfl, rfl⟩, by simp⟩
-  icases Hlk with (%Hnull | ⟨#Hlk, %Hne⟩)
+  icases Hlk with (%Hnull | ⟨#Hlk, %Hne, %Hrecv⟩)
   · exact absurd Hnull hlk
   iunfold leaderKeyAt at Hlk
   icases Hlk with ⟨%nsl, %ksl, #Hnf, #Hns, #Hkf, #Hks, #Hrf, #Hlsf⟩
