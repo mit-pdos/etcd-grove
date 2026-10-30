@@ -108,6 +108,9 @@ noncomputable def SetUp [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Writer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.Writer"
 
+noncomputable def SetupWrite [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/authkv.SetupWrite"
+
 noncomputable def CheckHistory [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.CheckHistory"
 
@@ -1450,10 +1453,66 @@ noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value")))))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- CheckHistory panics unless every watched event after the set-up (above revision setupRev) but
-    root's last write (key endKey) is a write its key's principal was permitted.
+/-- SetupWrite is whether e is one of SetUp's puts (keyOf(x, who, "d") for x in a and c, the value
+    "setup"): an attempt of one may still be applied after SetUp returns (the client retries a
+    refused put), so the history may hold it at any revision.
 
-    go: authkv.go:344:6 -/
+    go: authkv.go:345:6 -/
+noncomputable def SetupWrite.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (App (Val (GoInstruction (FuncResolve Principals []))) (Val #())) (Val #()))
+  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (Let "$v0" (Val #(go!"a"))
+  (Let "$v1" (Val #(go!"c"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Put"))) (Var "e"))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
+  (Let "$a2" (Val #(go!"d"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Val"))) (Var "e"))) (Val #(go!"setup")))) (Val #false))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "x") (Var "$value"))))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- CheckHistory panics unless every watched event after the set-up (above revision setupRev) but
+    root's last write (key endKey) and a repeat of a set-up put (SetupWrite) is a write its key's
+    principal was permitted.
+
+    go: authkv.go:359:6 -/
 noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "setupRev"
@@ -1469,7 +1528,8 @@ noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (If (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Rev"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "setupRev")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endKey"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e")))
+  (If (If (If (If (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Rev"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "setupRev")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endKey"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Var "e"))
+  (App (App (Val (GoInstruction (FuncResolve SetupWrite []))) (Val #())) (Var "$a0")))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e")))
   (App (App (Val (GoInstruction (FuncResolve Writer []))) (Val #())) (Var "$a0")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Key"))) (Var "e")))
   (App (App (App (Val (GoInstruction (FuncResolve Permitted []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #false))
@@ -1486,7 +1546,7 @@ noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- LastIn is the revision of the last event of evs in [lo, hi) (0 if there is none).
 
-    go: authkv.go:353:6 -/
+    go: authkv.go:368:6 -/
 noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -1523,7 +1583,7 @@ noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Main starts the member, sets up and enables auth, runs the four principals' workloads at once,
     then checks the history through root's watch, and u's watch of [lo, hi).
 
-    go: authkv.go:365:6 -/
+    go: authkv.go:380:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1987,6 +2047,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Work_unfold : FuncUnfold Work [] Work.impl
   SetUp_unfold : FuncUnfold SetUp [] SetUp.impl
   Writer_unfold : FuncUnfold Writer [] Writer.impl
+  SetupWrite_unfold : FuncUnfold SetupWrite [] SetupWrite.impl
   CheckHistory_unfold : FuncUnfold CheckHistory [] CheckHistory.impl
   LastIn_unfold : FuncUnfold LastIn [] LastIn.impl
   Main_unfold : FuncUnfold Main [] Main.impl
@@ -2017,6 +2078,7 @@ attribute [instance] Assumptions.Principals_unfold
   Assumptions.Work_unfold
   Assumptions.SetUp_unfold
   Assumptions.Writer_unfold
+  Assumptions.SetupWrite_unfold
   Assumptions.CheckHistory_unfold
   Assumptions.LastIn_unfold
   Assumptions.Main_unfold

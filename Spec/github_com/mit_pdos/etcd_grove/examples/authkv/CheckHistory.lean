@@ -24,7 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
 /-- `CheckHistory(evs, setupRev, endKey)` returns (does not panic) when every event above
-`setupRev` but of the key `endKey` is a write its key's principal was permitted (`histOk`). -/
+`setupRev` but of the key `endKey` and a repeat of a set-up put (`setupWriteK`) is a write its
+key's principal was permitted (`histOk`). -/
 abbrev CheckHistory.spec : Prop :=
   ∀ (esl : GoSlice) (evs : List wev) (dq : DFrac) (setupRev : w64) (endKey : GoString),
   histOk evs setupRev endKey →

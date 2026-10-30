@@ -38,10 +38,6 @@ namespace authkv
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
-/-- The keys `SetUp` puts, in order: `x/<who>/d` for every principal and `x` in `a`, `c`. -/
-def setupKeys : List GoString :=
-  principals.flatMap fun w => keyParts.map fun x => keyOfK x w go!"d"
-
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

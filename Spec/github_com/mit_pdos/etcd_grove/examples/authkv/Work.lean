@@ -45,14 +45,13 @@ abbrev Work.spec : Prop :=
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (who : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (setupRev : Nat)
-    (Lset : List EntryModel) (n : Nat),
+    (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat),
   who ∈ principals → E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       isNewClient cl [go!"127.0.0.1:23916"] V ∗ watchAddrFacts V ∗
       clientTokAt cl [go!"127.0.0.1:23916"] (akTokP γa who) ∗
       akKVOn go!"127.0.0.1:23916" s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗
-      akHistInv ρ.kv setupRev ∗ akAuthFixed γa ρ Lset n }}
+      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.authkv.Work)) (Val #cl))
       (Val #who))
   {{ RET #(); True }}

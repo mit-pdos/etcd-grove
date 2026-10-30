@@ -12,7 +12,8 @@ authkv_refused:
 authkv_Principals:
 authkv_Writer: authkv_Principals
 authkv_LastIn: authkv_InRange
-authkv_CheckHistory: authkv_Writer authkv_Permitted
+authkv_SetupWrite: authkv_Principals authkv_keyOf
+authkv_CheckHistory: authkv_SetupWrite authkv_Writer authkv_Permitted
 authkv_checkKVs: authkv_Permitted
 authkv_checkTxnReads: authkv_checkKVs
 # the request contexts: the timeout context, and the bad principal's token appended (C3, grpc's

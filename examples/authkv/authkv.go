@@ -18,7 +18,7 @@
 //     after the workload, reports only writes their principal was permitted. A key names its
 //     writer (x/<who>/...: once auth is on, only <who> writes or deletes it), and the writes
 //     before the workload (the keys the deletes may remove, at revisions 2 to setupRev) are the
-//     set-up's.
+//     set-up's, as is a later repeat of one (a retried attempt of a set-up put: SetupWrite).
 //
 // Main calls only what the proofs specify or the client's auth side states as a contract
 // (notes/decisions.md, "E2b of the auth plan"): etcdserver.NewServer, Start, v3rpc.Server (through
@@ -339,11 +339,26 @@ func Writer(k string) string {
 	return ""
 }
 
+// SetupWrite is whether e is one of SetUp's puts (keyOf(x, who, "d") for x in a and c, the value
+// "setup"): an attempt of one may still be applied after SetUp returns (the client retries a
+// refused put), so the history may hold it at any revision.
+func SetupWrite(e common.Event) bool {
+	for _, who := range Principals() {
+		for _, x := range []string{"a", "c"} {
+			if e.Put && e.Key == keyOf(x, who, "d") && e.Val == "setup" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // CheckHistory panics unless every watched event after the set-up (above revision setupRev) but
-// root's last write (key endKey) is a write its key's principal was permitted.
+// root's last write (key endKey) and a repeat of a set-up put (SetupWrite) is a write its key's
+// principal was permitted.
 func CheckHistory(evs []common.Event, setupRev int64, endKey string) {
 	for _, e := range evs {
-		if e.Rev > setupRev && e.Key != endKey && !Permitted(Writer(e.Key), e.Key) {
+		if e.Rev > setupRev && e.Key != endKey && !SetupWrite(e) && !Permitted(Writer(e.Key), e.Key) {
 			panic("authkv: the history holds a write its principal was not permitted")
 		}
 	}

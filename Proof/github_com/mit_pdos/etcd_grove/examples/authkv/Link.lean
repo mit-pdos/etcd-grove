@@ -15,6 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Permitted
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Principals
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.SetUp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.SetupWrite
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Work
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.checkKVs
@@ -50,6 +51,14 @@ theorem wp_Principals :
     EtcdGrove.authkv.Principals.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.Principals.wp_proof
 
+theorem wp_keyOf :
+    EtcdGrove.authkv.keyOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.keyOf.wp_proof
+
+theorem wp_SetupWrite :
+    EtcdGrove.authkv.SetupWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.SetupWrite.wp_proof wp_Principals wp_keyOf
+
 theorem wp_Writer :
     EtcdGrove.authkv.Writer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.Writer.wp_proof wp_Principals
@@ -64,15 +73,11 @@ theorem wp_Permitted :
 
 theorem wp_CheckHistory :
     EtcdGrove.authkv.CheckHistory.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.CheckHistory.wp_proof wp_Writer wp_Permitted
+  EtcdGrove.authkv.CheckHistory.wp_proof wp_SetupWrite wp_Writer wp_Permitted
 
 theorem wp_LastIn :
     EtcdGrove.authkv.LastIn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.LastIn.wp_proof wp_InRange
-
-theorem wp_keyOf :
-    EtcdGrove.authkv.keyOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.keyOf.wp_proof
 
 theorem wp_refused :
     EtcdGrove.authkv.refused.spec (GF := GF) (hG := hG) :=
