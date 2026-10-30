@@ -42,7 +42,7 @@ theorem RawNode.Bootstrap.wp_proof
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
-  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg⟩ := Hlog
+  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0'⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpslen : ps.length = pv.length := by rw [R1, List.length_map]
@@ -460,13 +460,12 @@ theorem RawNode.Bootstrap.wp_proof
   -- (a bootstrapped cluster may be allocated in the mode, `RaftNames.reNoSnap_ok`); see P3b's report.
   have Hns : γ.reNoSnap = false := by
     sorry
-  -- BLOCKED (the same): the post's `RNState` has the default storage names (`sn := {}`) and the
-  -- certified height `0` (`SdtTie` at `delivered = []`), but `rawNodeFresh` fixes neither the log's
-  -- `sn` nor its `dtk`; see P3b's report.
+  -- BLOCKED (the same): the post's `RNState` has the default storage names (`sn := {}`), but
+  -- `rawNodeFresh` does not fix the log's `sn`; see P3b's report. (The certified height `0` is
+  -- `rawNodeFresh`'s, `Hlog`.)
   have Hsn0 : s.logst.sn = {} := by
     sorry
-  have Hdtk0 : s.logst.dtk = 0 := by
-    sorry
+  have Hdtk0 : s.logst.dtk = 0 := Hdtk0'
   have Hnl0 : NsLink γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) := by
     unfold NsLink; show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns]
   have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
