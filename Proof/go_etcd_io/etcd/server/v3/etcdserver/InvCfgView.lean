@@ -493,7 +493,8 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
     (L rest : List EntryModel) (m : EntryModel) (cm : ConfChangeM)
     (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
     (Hdyn : ∀ n, dv = some n → ccApplyOkR γs.raft cm ∧ lid ∈ γs.raft.cfg ∧
-      withIdx ((γs.pre ++ L).map EntryModel.toLE) = γs.pre ++ L) :
+      withIdx ((γs.pre ++ L).map EntryModel.toLE) = γs.pre ++ L ∧
+      (∀ x, ¬ RemovedIn (γs.pre ++ L) x)) :
     dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half)) ⊢
       ∃ (v : ConfigView) (m' : Membership),
         dvCCPre s γs dv v (srvLE γs (L ++ m :: rest)) ∗
@@ -502,8 +503,6 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
             (.v1 (membership.ccRaftEff (restModel kc0 γs.raft.boot (γs.pre ++ L)).bk cm))
             (γs.pre ++ L).length m.toLE m'⌝ ∗
         (dvCCPost γs dv (γs.pre ++ L).length m' -∗ dvView γs dv (L ++ [m]) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half))) := by
-  sorry
-/- REPAIR-OLD
   unfold dvView dvRes dvCCPre dvCCPost
   rcases dv with _ | n
   · iintro -
@@ -515,16 +514,14 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
     iintro -
     itrivial
   · unfold srvCfgView
-    iintro ⟨⟨%v, Hc, %Hok⟩, #Hn, #Hd⟩
-    obtain ⟨Hcm, Hpol, Hlid, Hwi⟩ := Hdyn n rfl
+    iintro ⟨⟨%v, Hc, %Hok⟩, ⟨#Hn, #Hd⟩, Hrun⟩
+    obtain ⟨Hcm, -, Hwi, Hnr⟩ := Hdyn n rfl
     have hlog : srvLE γs (L ++ m :: rest) = ((γs.pre ++ L) ++ m :: rest).map EntryModel.toLE := by
       simp [srvLE]
-    have Hcm' : ccApplyOk γs.raft.cfg cm ∨ (cm.type = W32 1 ∧ cm.nodeId ∈ γs.raft.cfg) := .inl Hcm
-    obtain ⟨m', Hpre, Hpost⟩ := srvCfgOk_cc Hok kc0 γs.raft.boot m rest cm Hty Hdec _ lid Hpol
-      Hlid Hcm' Hwi
+    obtain ⟨m', Hpre, Hpost⟩ := srvCfgOk_ccS Hok kc0 γs.raft.boot m rest cm Hty Hdec Hnr Hcm Hwi
     iexists v, m'
     dsimp only
-    iframe Hn Hc
+    iframe Hn Hc Hrun
     isplitr
     · rw [hlog]; iexact Hd
     isplitr
@@ -533,13 +530,13 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
       cases h
       rw [hlog]
       exact Hpre
-    iintro Hc'
+    iintro ⟨Hc', Hrun'⟩
+    iframe Hrun'
     iexists ⟨(γs.pre ++ L).length + 1, m'⟩
     iframe Hc'
     ipureintro
     rw [← List.append_assoc]
     exact Hpost
--/
 
 end apply
 
