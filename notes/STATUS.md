@@ -560,14 +560,26 @@ over the watch.
 
 Spec-first (`notes/authkv-main-plan.md`): `Main.wp_proof` over its callees' drafted specs, each a
 named stub (`sorry`): `Work` (a principal's workload), `newUserClient`, and the history invariant's
-laws (`Hist.lean`: `akHist_alloc`, `akHist_writeAu`, `akHist_readAu`; `stateHistOk_step` proved).
+laws (`Hist.lean`: `akHist_writeAu`, `akHist_readAu`; `stateHistOk_step`, `akHist_alloc` proved).
 `Main` itself is still a `sorry`, as before. Two review rounds are done. Statements in:
 `akAuthFixed`'s write half over `SetUp`'s frozen history (`akAuthFixed_write`, proved);
 `common.Collect.spec` general in a per-event fact (watchkv and linkv3p through
 `common.wp_Collect_plan`); `reqCtx`'s timeout context with no outgoing metadata (over
 `context.WithTimeoutBackgroundMd`, as `SetUp`: `WithTimeoutBackground.wp_proof` stays proved).
-Open before the freeze (review round 3): the read half and `Main`'s read hypothesis (H5's
-`authStateAt_setup`, on `h5-tie`), `SetUp`'s KV half (F-S1, after F-S2 part 2), the watch spec (G2).
+Round 3 (2026-10-30, branch `authkv-r3`, candidate 1): F-S1 by a Go change, the checker tolerates
+a repeated set-up put (`SetupWrite`, proved; `CheckHistory`'s `histOk` gains the disjunct); the
+history invariant over the whole log, without `setupRev` (`evHistOk`, `akHist_alloc` proved,
+`opHistOk_setupPut` and `akHist_setupAu` proved over the `akHist_writeAu` stub; `evHistOk`'s set-up
+disjunct leaves out the event's kind, which no `opHistOk` of a put can show of an arbitrary state:
+the reader shows it); the read half: `akAuthFixed`'s read row an update at masks over `akReadMask`,
+`akAuthFixed_alloc` proved from the server law `isServerReadM_tie` (`ReadOn.lean`) and
+`authStateAt_setup`. Round 3's review (F1-F6, 2026-10-30): `setupRev` dropped (the user's choice:
+`CheckHistory(evs, endKey)` checks every event, `SetUp` returns only `ok`); `Work.spec` ties its
+watcher to the member (`V.addr`, `V.mem`, `V.nm = 1`, `V.R.s/E`, `V.kst`); `Main`'s glue laws
+proved in `Hist.lean` (`revEvents_setupPut_put` under `kvLogOkTo`, `stateHistOk_boot`,
+`opHistOk_putKey`/`opHistOk_endPut`, `histOk_of_evHistOk` moved from `Drafts`); the read law's
+mask a server definition (`authTieReadMask`, `authStateAt_setup` restated over it). Open before
+the freeze: the watch spec (G2), the other round-2 items.
 The trust base gains the stubs' two `sorry`s (`Work.wp_proof`, `newUserClient.wp_proof`).
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)

@@ -5,6 +5,7 @@ condition is false by `histOk`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.CheckHistory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.SetupWrite
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Writer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Permitted
 
@@ -27,10 +28,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
-theorem CheckHistory.wp_proof (wp_Writer : Writer.spec (GF := GF) (hG := hG))
+theorem CheckHistory.wp_proof (wp_SetupWrite : SetupWrite.spec (GF := GF) (hG := hG))
+    (wp_Writer : Writer.spec (GF := GF) (hG := hG))
     (wp_Permitted : Permitted.spec (GF := GF) (hG := hG)) :
     CheckHistory.spec (GF := GF) (hG := hG) := by
-  intro esl evs dq setupRev endKey Hok
+  intro esl evs dq endKey Hok
   wp_start as Hevs
   ihave %Hel := ownSlice_len $$ Hevs
   wp_auto
@@ -53,8 +55,17 @@ theorem CheckHistory.wp_proof (wp_Writer : Writer.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
+      wp_for_post
+      iframe
+      iexists j + W64 1, x
+      iframe
+      ipureintro; constructor <;> word
+    · (try wp_auto)
+      have hne := Hif
+      wp_apply wp_SetupWrite
       wp_if_destruct
-      · (try wp_auto)
+      · -- a repeated set-up put
+        (try wp_auto)
         wp_for_post
         iframe
         iexists j + W64 1, x
@@ -63,19 +74,13 @@ theorem CheckHistory.wp_proof (wp_Writer : Writer.spec (GF := GF) (hG := hG))
       · (try wp_auto)
         wp_apply wp_Writer
         wp_apply wp_Permitted
-        rw [decide_eq_true (Hok x hxm (by word) Hif)]
+        rw [decide_eq_true (Hok x hxm hne Hif)]
         (try wp_auto)
         wp_for_post
         iframe
         iexists j + W64 1, x
         iframe
         ipureintro; constructor <;> word
-    · (try wp_auto)
-      wp_for_post
-      iframe
-      iexists j + W64 1, x
-      iframe
-      ipureintro; constructor <;> word
   · (try wp_auto)
     iapply HΦ
     iframe

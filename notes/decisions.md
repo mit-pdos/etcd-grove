@@ -26815,3 +26815,19 @@ Each `wp_proof` is the two old proofs (`wp_proofOff`, `wp_proofOn`) by cases on 
 the proof bodies (about 900 lines each, mostly shared) is later cleanup. The corollaries are stated
 over `srvRunH` (`SDRun.lean`), not the inline `match dv` whose generated matcher each declaration
 names after itself.
+
+## authkv's checker admits a repeated set-up write (2026-10-30, the user's choice for F-S1)
+
+`SetUp`'s puts are given persistent updates (`□ kvOpAu1`), because the client's put spec may resend
+an attempt; so the model allows a set-up put to be applied after `SetUp` returns, and Go's
+`CheckHistory` would then panic on it (a write to `c/<who>/d` that `who` is not permitted). In Go it
+cannot happen: clientv3 resends a non-repeatable `Put` only when the attempt was never sent, so each
+set-up put is applied before `SetUp` returns. Excluding it in the proof needs F-S2 part 2 (the auth
+refusals' identity, parked: it changes the grpc client contract and about 15 server specs) or a new
+axiom. The user chose instead to change the example's checker: `CheckHistory` skips a set-up put
+(`SetupWrite`), and the history invariant admits it at any revision. **What the checker loses**: for
+those 8 key/value pairs only, a server bug that applied a set-up put after `AuthEnable` (a write
+accepted with no token: `anon` and `bad` share the set-up client) would go unnoticed. With
+`setupRev` gone the checker checks every event, set-up puts included. Revisit if F-S2 part 2 is done:
+the skip can then go.
+

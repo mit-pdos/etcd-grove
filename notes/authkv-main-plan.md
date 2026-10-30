@@ -478,3 +478,36 @@ strengthened with it), and `dialOk` requires an etcd stream interceptor. The use
 the whole trusted table (candidate 4, `notes/g2-watch-auth.md`). Next: the statements in code
 over named stubs (client, grpc and context here; v3rpc and auth proposed to the merge session),
 the `axiom` skill on each strengthened axiom, then the freeze.
+
+## Round 3 and the freeze (2026-10-30, branch `authkv-r3`)
+
+**F-S1, the user's choice: the checker tolerates a repeated set-up write.** `SetUp`'s puts take
+persistent updates (the client may resend a refused put), and with F-S2 part 2 parked nothing
+excludes such an update firing after `SetUp` returns. `CheckHistory` skips a set-up put
+(`SetupWrite`: `x/<who>/d`, the value `setup`), so the history invariant (`Hist.lean`: `evHistOk`,
+`stateHistOk`, `akHistInv`) is over the whole log, allocated at the boot state before `SetUp`
+(`akHist_alloc` proved, `stateHistOk_boot`), and the set-up's updates come from it
+(`akHist_setupAu`, over the `akHist_writeAu` stub). `setupRev` was then dead (every event at or
+below it a set-up write) and is gone, the user's choice: `CheckHistory(evs, endKey)` checks every
+event, `SetUp` returns `bool`. The invariant's set-up case checks key and value only; that such an
+event is a put comes from the watch's reachable log (`revEvents_setupPut_put`, over `kvLogOkTo`).
+The trade-off is in `notes/decisions.md` ("authkv's checker admits a repeated set-up write").
+
+**The read half (H5).** `akAuthFixed`'s read row is an update at any mask containing the server's
+`authTieReadMask` (`AuthTieRead.lean`), built by `akAuthFixed_alloc` from `SetUp`'s post and the
+read view (`isServerReadM_tie`, `ReadOn.lean`): both proved, no premise added to `Main.wp_proof`.
+
+**Round 3's review** (spec reviewer): both changes sound; first-tier F1, `Work.spec` not tied to the
+member's watcher (G2's F-W3), fixed (`Work.spec`'s premise on `V`: address, one member, the server
+and environment, the KV names); F2-F6 fixed (`Main`'s pure laws drafted and proved:
+`opHistOk_putKey`/`_endPut`, `stateHistOk_boot`, `revEvents_setupPut_put`; the comment no longer
+claims Go can apply a set-up put late; `authTieReadMask`; stale text). G2's `Watch` of `""` reports
+from `"\x00"` (the user's, 2026-10-30, on `g2-freeze`): every authkv key is non-empty, no change.
+
+**Frozen (2026-10-30).** The statements: `Main.spec` (unchanged), `SetUp.spec`, `Work.spec`,
+`newUserClient.spec`, `CheckHistory.spec`, `SetupWrite.spec`, `Hist.lean`'s invariant and laws,
+`WorkEnv.lean`'s `akAuthFixed`. Stubs left, each provable on its own: `akHist_writeAu`,
+`akHist_readAu`, `Work.wp_proof`, `newUserClient.wp_proof` (needs C1's A4-A5), `Main.wp_proof`
+(over the others and G2's frozen `watcher.Watch.spec`). Still open, not statements: F-C1 (`ClientOn`'s
+second `Put` spec, temporary), round 2's item 8 (`ctxErrClientAll`'s law, the thread bound).
+

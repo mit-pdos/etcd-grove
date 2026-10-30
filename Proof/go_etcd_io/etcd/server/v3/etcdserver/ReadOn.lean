@@ -368,6 +368,23 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     iintro !>
     iexact HQs
 
+/-- **The reader's view with auth on holds the auth history's tie** (H5; authkv's read half,
+2026-10-30): the KV invariants of the mode `on` (`srvKVInvsM true`), with the raft log's invariant,
+the KV invariant and the tie, what the tie's read law `authStateAt_setup` takes. -/
+theorem isServerReadM_tie (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerReadM (GF := GF) true s E γr ⊢
+      srvRaftLogInv γr.raft ∗ kvInvOn γr.raft γr.kv srvAuthSt0 ∗ authHistTie E γr srvAuthSt0 := by
+  unfold isServerReadM srvReadFieldsAtM
+  iintro ⟨%v, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
+  ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
+  iunfold srvKVInvsOn at Hkvi
+  icases Hkvi with ⟨#Hkv, -, #Hrl, #Htie, -⟩
+  isplitl []
+  · iexact Hrl
+  isplitl []
+  · iexact Hkv
+  · iexact Htie
+
 /-- **The read loop's update with auth on** (`readCompose` at the mode-`on` state function), from
 the KV invariants in the mode. -/
 theorem readCompose_on (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :

@@ -16,9 +16,10 @@ and returns `Ok` (`0`: every check ran and passed), `Failed` (`1`: a step of the
 `WatchEnded` (`2`: a watch ended before it reported what it was read for). Not panicking is the
 auth result (`notes/decisions.md`, "E2b of the auth plan"): every request the auth state
 (`authkv.setupSt`) refuses its principal returned an error, every reply holds only keys its
-principal may read (`u`'s ranges, transactions and watch), and every write of the history after
-the set-up up to `z/end` is one its principal was permitted (`authkv.permittedK`, the model's
-verdict at `setupSt`: `granted_setupSt_iff`).
+principal may read (`u`'s ranges, transactions and watch), and every write of the history up to
+`z/end` is one its principal was permitted (`authkv.permittedK`, the model's verdict at
+`setupSt`: `granted_setupSt_iff`), but the set-up's puts (`x/<who>/d` with the value `setup`,
+`SetupWrite`), which the check admits at any revision.
 
 The premises are watchkv's for the server's start, stated before the proof: an auth-enabled
 server's proof may need others (the client's auth contract, `ClientAuth.lean`, and what E2a's
