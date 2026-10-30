@@ -38,10 +38,8 @@ theorem read.Read.sendReadIndex.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
-  sorry
-/- REPAIR-OLD
   intro r γr RQ LR NR id n Qr F
-  wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
+  wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr⟩
   iunfold isReadLoopPre at Hpre
   icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -, -⟩
   iunfold isReadServer at Hsrv
@@ -66,8 +64,8 @@ theorem read.Read.sendReadIndex.wp_proof
   wp_apply HRT as %d -
   wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
   · iframe #
-  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr Hcr] as %err ⟨#HerrE, Hrq⟩
-  · iframe #; iframe Hfr Hcr
+  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr] as %err ⟨#HerrE, Hrq⟩
+  · iframe #; iframe Hfr
   (try wp_auto)
   wp_apply Hcancel
   wp_apply read_wp_Is_var hIs err eR HlR as %b -
@@ -100,7 +98,6 @@ theorem read.Read.sendReadIndex.wp_proof
   · wp_auto
     iapply HΦ
     iframe HLR HerrE Hrq
--/
 
 end proof
 

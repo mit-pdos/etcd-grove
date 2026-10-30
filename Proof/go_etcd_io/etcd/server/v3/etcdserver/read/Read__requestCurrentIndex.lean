@@ -74,10 +74,10 @@ local macro "rci_resend" fcN:term:max : tactic => `(tactic| (
   ihave HN1 := HNRu
   imod HN1
   (try wp_auto)
-  wp_apply HNR $$ HN1 as %rid' ⟨Hfr', Hcr'⟩
+  wp_apply HNR $$ HN1 as %rid' Hfr'
   wp_apply wp_mapInsert go.uint64 mref _ rid' () $$ Hm as Hm
-  wp_apply hSRI r γr RQ LR NR rid' n Qr F $$ [HLR Hfr' Hcr'] as %err' ⟨HLR, #HaE', HRQ'⟩
-  · iframe #; iframe HLR Hfr' Hcr'
+  wp_apply hSRI r γr RQ LR NR rid' n Qr F $$ [HLR Hfr'] as %err' ⟨HLR, #HaE', HRQ'⟩
+  · iframe #; iframe HLR Hfr'
   cases err' with
   | ok ei' =>
     wp_auto
@@ -106,8 +106,6 @@ theorem read.Read.requestCurrentIndex.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hI : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     read.Read.requestCurrentIndex.spec (GF := GF) (hG := hG) := by
-  sorry
-/- REPAIR-OLD
   intro r γr RQ LR NR lcn n Qr F
   wp_start as ⟨#Hpre, HLR, #HNRu, #Hlcn, #Hc, #HRA⟩
   ihave #Hpre' := Hpre
@@ -136,10 +134,10 @@ theorem read.Read.requestCurrentIndex.wp_proof
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hm
   ihave HN0 := HNRu
   imod HN0
-  wp_apply HNR $$ [$HN0] as %rid0 ⟨Hfr0, Hcr0⟩
+  wp_apply HNR $$ [$HN0] as %rid0 Hfr0
   wp_apply wp_mapInsert go.uint64 mref _ rid0 () $$ [$Hm] as Hm
-  wp_apply hSRI r γr RQ LR NR rid0 n Qr F $$ [HLR Hfr0 Hcr0] as %err0 ⟨HLR, #HaE0, HRQ0⟩
-  · iframe #; iframe HLR Hfr0 Hcr0
+  wp_apply hSRI r γr RQ LR NR rid0 n Qr F $$ [HLR Hfr0] as %err0 ⟨HLR, #HaE0, HRQ0⟩
+  · iframe #; iframe HLR Hfr0
   cases err0 with
   | ok ei0 =>
     wp_auto
@@ -361,7 +359,6 @@ theorem read.Read.requestCurrentIndex.wp_proof
     rci_ret_err HaStop
   iapply BigAndL.bigAndL_nil.2
   itrivial
--/
 
 end proof
 
