@@ -385,6 +385,15 @@ store's `GetList` is still names-only.
 
 ### Plan files (`notes/*-plan.md`)
 
+- `autoverify-plan.md` (2026-10-30): a skill for autonomous, end-to-end verification of a Go
+  package, from the history of this repository: the top-level spec is the adequacy theorem of a Go
+  test (gated: green over seeds, no early returns, mutation score, coverage, pure premises only,
+  the checker's soundness), then inventory, the protocol design (the permissioned state machine),
+  the spec skeleton to a freeze, the trust frontier's gates, parallel proofs, close; every user
+  decision of the stages so far replaced by a gate or an adjudication. **Proposed**; nothing built.
+  It notes the open `rnStopOkStarted` premise (the server theorems vacuous) as the no-Iris-premise
+  gate's first case.
+
 - `k8s-daemonset-plan.md`: the Kubernetes DaemonSet controller (`pkg/controller/daemon`): prove
   `MaxOnePodPerNode` (kubernetes/kubernetes#139657's robustness test) of the real controller over a
   model API server, client-go's informers and leaf libraries verified (D49). **Active**: phase 0
