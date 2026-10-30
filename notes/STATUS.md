@@ -532,8 +532,10 @@ now gates the switch), `srvKVCloserW` and `srvKVCloserM_split`; `dispatchOkM` in
 `dispatchOk`; `Apply.specRecD`. Four new items (18-21).
 **Round-2 repair (2026-10-30):** N-1 (the shapes by the mode: `rqShapeD cmp`, `kvWorkD`, `entryOkMD`,
 today's off by `rfl`) and N-2 (`srvReqFieldsAtD`, the switch's text, in place of a second invariant
-copy), both caused by round 1's repairs (`notes/spec-first-study/m2-apply-review-2.md`). Next: review
-round 3.
+copy), both caused by round 1's repairs (`notes/spec-first-study/m2-apply-review-2.md`). Review round 3 (`m2-apply-review-3.md`): two
+more first-tier findings of the same kind (R3-1, R3-2: other carriers of the off `logShape`/`kvInv`);
+stopped for the user's Q6 (`m2-apply-plan.md`, "Review round 3"): state the switch in place, or
+complete the copies.
 
 ## The delete-then-put fix in the fork: what is left (2026-10-30, branch `etcd-ndp-fix`)
 

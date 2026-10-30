@@ -126,10 +126,13 @@ def entryOkOnD (cmp : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
     (apply.rqOk x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOkM cmp x.chain.authOn rq
 
+/-- By both modes: the auth-on arm is today's `entryOkOn` (review round 3's S3-1: auth-on servers
+keep retention `0`, `NewServer.specM`'s `E₀.cmp = false`, and the auth mode's shapes exclude a
+compaction, so no caller produces one there). -/
 def entryOkMD (on cmp : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
   | false => entryOkD cmp x m
-  | true => entryOkOnD cmp x m
+  | true => entryOkOn x m
 
 theorem entryOkMD_false (on : Bool) (x : apply.ApplyKV) (m : EntryModel) :
     entryOkMD on false x m = entryOkM on x m := by

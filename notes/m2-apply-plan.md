@@ -401,3 +401,34 @@ and built (3825 jobs, no error); no `axiom`, no `sorry`, nothing switched.
 | S-6 `Compact.specD`'s `E.cmp = true` undocumented | documented in the spec: a client `Compact` at a server with the auto-compactor off stays outside the model. |
 | S-7 the header's revision fact unread | kept (the gRPC caller's `compactOk` needs a header; true of Go). |
 
+## Review round 3 (2026-10-30): stopped for a design question
+
+The report: `notes/spec-first-study/m2-apply-review-3.md`. Two first-tier findings, the same
+pattern as rounds 1-2 (a drafted copy of a definition, with another carrier of the off version
+left): **R3-1**, the committed-log clauses between the invariant and `applyEntryNormal` still read
+the mode-free `logShape`/`logShapeM` (`srvC`, `srvCM`, `clusterWorkloadOk(M)`, the premises of
+`applyAll`, `applyEntries`, `EtcdServer.apply`; item 13 is wrong, and `EtcdServer.apply.spec` is
+missing from the list); **R3-2**, `Compact.specD` still holds the off `kvInv` through
+`isServerRead` → `srvKVInvs` (also `isServer(M)`, `srvBuilt`). Repaired: S3-1 (`entryOkMD`'s
+auth-on arm is today's `entryOkOn`). Open: S3-2 (the plan's item texts 1, 8, 12, 13 describe
+superseded designs), S3-3 (a cheaper source of `cmpEntryOk` inside `applyEntryNormal`'s proof),
+S3-4 (round 2's S-5, S-4, S-2').
+
+**The question (Q6, for the user).** Drafting a mode-indexed copy of each definition does not
+converge: every carrier of `kvInv` or `logShape` needs its copy, and three rounds each found more.
+Two ways to state the switch:
+- **(a) In place.** `KVNames.cmp` added; `kvInv γ γk` redefined as `kvInvD γ γk γk.cmp` (every
+  carrier, `srvKVInvs`, `isServerRead`, `srvBuilt`, ..., unchanged in text), with the tie
+  `ρ.kv.cmp = E.cmp` in `srvKVInvs`; `dispatchOk`/`rqShape` redefined to admit a compaction (round
+  1's design), so `logShape`, `srvC`, `clusterWorkloadOk`, `applyAll`... are unchanged in text, and
+  the gate is `plainLogM γk.cmp`/`cmpEntryOk` (compactions only in compaction mode). Cost: the
+  compaction-off texts no longer read as today *by definition* (round 1's S-1): they admit a
+  compaction in the shapes, excluded by the invariant's `plainLogM` and the entry's claim instead;
+  off laws (`kvInvD_off`, `cmpLogOk_plain`) show the off servers are unchanged in meaning.
+- **(b) Copies, completed.** Keep the mode-indexed vocabulary and draft every carrier (`srvC`,
+  `srvCM`, `clusterWorkloadOk(M)`, `srvKVInvs`, `isServerRead`, `isServer(M)`, `srvBuilt`, and the
+  apply-loop specs), each today's at `cmp = false` by `rfl`. Cost: about a dozen more drafted
+  definitions and four spec texts, and more review rounds of the same kind.
+Recommended: (a) for `kvInv` (the plan already said "redefined in place" for it) and (a) for the
+shapes, with the off laws as the evidence that compaction-off servers mean what they meant.
+
