@@ -191,6 +191,125 @@ theorem akUser_info (s : Loc) (γa : auth.AuthNames) (who : GoString) (tok : Opt
 
 end tok
 
+/-! ## A write's grant at `setupSt` -/
+
+section pure
+variable [GooseExts]
+
+/-- No request has the empty user at `setupSt`. -/
+theorem setupSt_users_empty (rev : Nat) :
+    (setupSt rev).users !! (zeroValDef : GoString) = none := by
+  simp [setupSt, zeroValDef]
+
+/-- **A granted request of `who`'s principal at `setupSt`**: each point permission it needs on a
+non-empty key is one `who` holds (`permittedK`). -/
+theorem kvGranted_setupSt_point (r : Nat) (rq : apply.IRRModel) (who k : GoString) (op : auth.PermType)
+    (hg : kvGranted (setupSt r) rq) (hu : akUser who (apply.principalOf rq).Username')
+    (hx : ((k, [], op) : apply.Perm3) ∈ reqPerms rq) (hk : k ≠ []) : permittedK who k := by
+  rcases hg _ hx with hen | ⟨hrev, -, u', hu', hc⟩
+  · simp [setupSt] at hen
+  · simp only [auth.authInfoM] at hrev hu' hc
+    rcases hu with h0 | ⟨hw, hw'⟩
+    · rw [h0, setupSt_users_empty] at hu'; cases hu'
+    · rw [hw] at hu'
+      exact (granted_setupSt_iff r _ op who k hrev hk hw').1 ⟨hrev, u', hu', hc.imp id fun h _ => h⟩
+
+/-- **The write's grant the history admits**: the stamped request of `rq` granted at some
+`setupSt`, its user one of `who`'s. -/
+def akGranted (who : GoString) (rq : apply.IRRModel) : Prop :=
+  ∃ r hm, kvGranted (setupSt r) (apply.withHeader rq hm) ∧ akUser who hm.username
+
+/-- **A write operation's grant** (`opGrantT`'s request: a put's, a delete's, some wire
+transaction's of a transaction). -/
+def akOpGranted (who : GoString) : KVOp → Prop
+  | .put o => akGranted who (irrPut o)
+  | .deleteRange o => akGranted who (irrDeleteRange o)
+  | .txn t => ∃ tw : txn.TxnModelW, tw.toModel = t ∧ akGranted who (irrTxn tw)
+  | _ => True
+
+/-- A granted request's point permissions on non-empty keys are `who`'s. -/
+theorem akGranted_point (who : GoString) (rq : apply.IRRModel) (k : GoString) (op : auth.PermType)
+    (hg : akGranted who rq) (hx : ((k, [], op) : apply.Perm3) ∈ reqPerms rq) (hk : k ≠ []) : permittedK who k := by
+  obtain ⟨r, hm, hg, hu⟩ := hg
+  exact kvGranted_setupSt_point r _ who k op hg (by rw [principalOf_withHeader]; exact hu)
+    (by rw [reqPerms_withHeader]; exact hx) hk
+
+end pure
+
+section grant
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- The auth history's namespace is inside the history invariant's updates' mask. -/
+theorem authHistN_akMask : (↑authHistN : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑akHistN := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  exact ⟨⟨⟨CoPset.mem_full, fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩,
+    fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩,
+    fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩
+
+/-- **A grant at an attempt of `who`'s** (`writeGrantG` at the set-up's log `Lset`, its header
+bound to a token `akTokSeen` admits) **is at `setupSt`**: the grant's log extends `Lset`, so its auth
+state is `setupSt` (`akAuthFixed_write`), and the header's user is one of `who`'s
+(`akUser_hdr`). -/
+theorem akGranted_of_writeGrantG (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
+    (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) (who : GoString) (tok : Option GoString)
+    (rq : apply.IRRModel) (σ : KVState) (Em : CoPset) (hγa : E.authMode = .on γa)
+    (hE : ↑authHistN ⊆ Em) :
+    akAuthFixed (GF := GF) γa ρ Lset n ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ⊢
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq Lset σ ={Em}=∗
+        ⌜akGranted who rq⌝ := by
+  rw [hγa]
+  iintro ⟨#Hf, #Hseen, #Htls⟩ Hw
+  unfold writeGrantG
+  icases Hw with ⟨%hm, %L, #Hb, #Hlb, %Hp⟩
+  obtain ⟨hL, hgr, -⟩ := Hp
+  imod (akAuthFixed_write γa ρ Lset n L Em hE hL) $$ Hf Hlb with %Hr
+  obtain ⟨r, hr⟩ := Hr
+  ihave %Hu := akUser_hdr s γa who tok hm $$ [Hb Hseen Htls]
+  · iframe Hb Hseen Htls
+  imodintro
+  ipureintro
+  exact ⟨r, hm, by rw [← hr]; exact (grantedAt_iff _ _ _ _).1 hgr, Hu⟩
+
+/-- **A write of `who`'s, told its grant, was granted at `setupSt`** (layer 2): the grant
+(`clientGrant` at the set-up's log `Lset`) of an attempt of a context with `who`'s outgoing
+metadata (`akTokSeen_attempt`, `akGranted_of_writeGrantG`). -/
+theorem akOpGranted_of_grant (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ : ReqNames)
+    (Lset : List EntryModel) (n : Nat) (who : GoString) (conn : Loc) (ctx : GoInterface)
+    (op : KVOp) (σ : KVState) (Em : CoPset) (hγa : E.authMode = .on γa)
+    (hout : metadata.outgoingOf ctx = akOut who) (hE : ↑authHistN ⊆ Em) :
+    akAuthFixed (GF := GF) γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
+      □ (srvTLSId s -∗ False) ⊢
+      client.clientGrant s E ρ conn ctx op Lset σ ={Em}=∗ ⌜akOpGranted who op⌝ := by
+  iintro ⟨#Hf, #Hat, #Htls⟩ Hg
+  unfold client.clientGrant
+  icases Hg with ⟨%md, %Hmd, Hg⟩
+  have Hmd' : clientAttemptMdOf conn (akOut who) md := by rw [← hout]; exact Hmd
+  ihave #Hseen := akTokSeen_attempt γa who conn md Hmd' $$ Hat
+  cases op with
+  | put o =>
+    simp only [v3rpc.opGrantT, akOpGranted]
+    iapply (akGranted_of_writeGrantG s E γa ρ Lset n who _ _ σ Em hγa hE) $$ [] Hg
+    iframe Hf Hseen Htls
+  | deleteRange o =>
+    simp only [v3rpc.opGrantT, akOpGranted]
+    iapply (akGranted_of_writeGrantG s E γa ρ Lset n who _ _ σ Em hγa hE) $$ [] Hg
+    iframe Hf Hseen Htls
+  | txn t =>
+    simp only [v3rpc.opGrantT, akOpGranted]
+    icases Hg with ⟨%tw, %Htw, Hg⟩
+    imod (akGranted_of_writeGrantG s E γa ρ Lset n who _ _ σ Em hγa hE) $$ [] Hg with %H
+    · iframe Hf Hseen Htls
+    imodintro; ipureintro; exact ⟨tw, Htw, H⟩
+  | _ => imodintro; ipureintro; simp [akOpGranted]
+
+end grant
+
 end authkv
 end EtcdGrove
 end Perennial
