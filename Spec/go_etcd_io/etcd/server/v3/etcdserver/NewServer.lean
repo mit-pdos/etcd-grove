@@ -136,6 +136,9 @@ abbrev NewServer.spec : Prop :=
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
   -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
   ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -282,6 +285,9 @@ abbrev NewServer.specCompact : Prop :=
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
   -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
   ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -432,6 +438,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
   -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
   ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
