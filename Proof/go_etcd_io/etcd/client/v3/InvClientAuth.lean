@@ -549,7 +549,23 @@ theorem attemptTokOk_of_watcher (cl : Loc) (eps : List GoString) (P : GoString �
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
         GoInterface.ok (watcherIfaceOf w) ∗ watcherConnAt w conn ∗ clientTokAt cl eps P ⊢
       attemptTokOk conn P := by
-  sorry -- G2: re-prove after freeze (the fields' agreement: `Watcher`, `remote`, `cc`)
+  iintro ⟨#Hw, #Hc, #Ht⟩
+  iunfold clientTokAt at Ht
+  icases Ht with ⟨%api, %conn', -, -, #Hk, -, %w', #Hw', #Hc'⟩
+  icombine Hw Hw' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  iunfold watcherConnAt at Hc Hc'
+  icases Hc with ⟨%wc, #Hr, #Hs⟩
+  icases Hc' with ⟨%wc', #Hr', #Hs'⟩
+  icombine Hr Hr' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  iunfold v3rpc.watchStubAt at Hs Hs'
+  icombine Hs Hs' gives %Heq
+  simp at Heq
+  obtain rfl := go.intoVal_inj Heq
+  iexact Hk
 
 end defs
 
