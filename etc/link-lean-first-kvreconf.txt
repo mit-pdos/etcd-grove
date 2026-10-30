@@ -1,0 +1,137 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/Link.lean`
+# (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --kvreconf`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`; `@`: linked in its package's
+# `Link.lean` (raft's, lintest's, context's); `=term`: a term given as is (Perennial's `time`
+# results, raft's importable `confchange`/`tracker` specs in `Linked.lean`).
+#
+# the callees outside the store
+IsEmptyHardState: @
+IsEmptySnap: @
+MemoryStorage__Append: @
+MemoryStorage__ApplySnapshot: @
+MemoryStorage__Compact: @
+MemoryStorage__CreateSnapshot: @
+MemoryStorage__Entries: @
+MemoryStorage__FirstIndex: @
+MemoryStorage__InitialState: @
+MemoryStorage__LastIndex: @
+MemoryStorage__SetHardState: @
+MemoryStorage__Snapshot: @
+MemoryStorage__Term: @
+NewMemoryStorage: @
+RestartNode: @
+context_WithTimeoutBackground: @
+lintest_CounterClock: @
+lintest_Run: @
+node__Advance: @
+node__ApplyConfChange: @
+node__Campaign: @
+node__ForgetLeader: @
+node__Propose: @
+node__ProposeConfChange: @
+node__ReadIndex: @
+node__Ready: @
+node__ReportSnapshot: @
+node__ReportUnreachable: @
+node__Status: @
+node__Step: @
+node__Stop: @
+node__Tick: @
+node__TransferLeadership: @
+proto_CloneConfState: @
+proto_CloneSnapshot: @
+proto_UnmarshalConfChange: @
+proto_UnmarshalConfChangeV2: @
+raftpb_ConfChangeTransition__Enum: @
+raftpb_ConfChangeType__Enum: @
+raftpb_ConfChangeV2__AsV2: @
+raftpb_ConfChangeV2__EnterJoint: @
+raftpb_ConfChangeV2__GetChanges: @
+raftpb_ConfChangeV2__LeaveJoint: @
+raftpb_ConfChange__AsV2: @
+raftpb_ConfState__GetLearners: @
+raftpb_ConfState__GetLearnersNext: @
+raftpb_ConfState__GetVoters: @
+raftpb_ConfState__GetVotersOutgoing: @
+raftpb_Entry__GetData: @
+raftpb_Entry__GetIndex: @
+raftpb_Entry__GetType: @
+raftpb_Message__GetTo: @
+raftpb_Message__GetType: @
+raftpb_SnapshotMetadata__GetConfState: @
+raftpb_SnapshotMetadata__GetIndex: @
+raftpb_Snapshot__GetData: @
+raftpb_Snapshot__GetMetadata: @
+# the store (examples/kvreconf)
+kvreconf_Cluster__Disrupt: kvreconf_sleep kvreconf_Cluster__random kvreconf_below node__TransferLeadership node__Campaign node__ForgetLeader node__Status context_WithTimeoutBackground
+kvreconf_Cluster__Get: kvreconf_Cluster__do
+kvreconf_Cluster__Put: kvreconf_Cluster__do
+kvreconf_Cluster__Read: kvreconf_Cluster__randomMember kvreconf_Replica__read kvreconf_Stats__add
+kvreconf_Cluster__Reconfigure: kvreconf_sleep kvreconf_Cluster__randomChange kvreconf_Cluster__random kvreconf_Stats__add node__ProposeConfChange context_WithTimeoutBackground
+kvreconf_Cluster__Stop: kvreconf_Cluster__all kvreconf_Replica__stop
+kvreconf_Cluster__all:
+kvreconf_Cluster__config:
+kvreconf_Cluster__deliver: kvreconf_Cluster__replica kvreconf_Cluster__dropped kvreconf_Cluster__step kvreconf_copyMsg kvreconf_Stats__add kvreconf_oneIn kvreconf_below raftpb_Message__GetTo
+kvreconf_Cluster__do: kvreconf_encode kvreconf_Cluster__randomMember kvreconf_Replica__propose kvreconf_Stats__add
+kvreconf_Cluster__dropped: kvreconf_Stats__add raftpb_Message__GetTo raftpb_Message__GetType node__ReportUnreachable node__ReportSnapshot
+kvreconf_Cluster__random: kvreconf_Cluster__all kvreconf_below
+kvreconf_Cluster__randomChange: kvreconf_Cluster__random kvreconf_Cluster__randomID kvreconf_Replica__conf kvreconf_below kvreconf_oneIn raftpb_ConfChangeType__Enum raftpb_ConfChangeTransition__Enum
+kvreconf_Cluster__randomID: kvreconf_Cluster__random kvreconf_Cluster__startNew kvreconf_oneIn kvreconf_pick raftpb_ConfState__GetVoters raftpb_ConfState__GetVotersOutgoing raftpb_ConfState__GetLearners
+kvreconf_Cluster__randomMember: kvreconf_Cluster__random kvreconf_Cluster__replica kvreconf_Replica__conf kvreconf_below kvreconf_oneIn raftpb_ConfState__GetVoters raftpb_ConfState__GetLearners
+kvreconf_Cluster__replica:
+kvreconf_Cluster__send: kvreconf_Cluster__replica kvreconf_copyMsg kvreconf_Cluster__deliver
+kvreconf_Cluster__sender: kvreconf_Cluster__send
+kvreconf_Cluster__startNew: kvreconf_Cluster__config kvreconf_Cluster__tick kvreconf_Cluster__sender kvreconf_newReplica kvreconf_Stats__add RestartNode NewMemoryStorage kvreconf_Storage__InitialState kvreconf_Storage__Snapshot MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries kvreconf_quietLogger__Debugf kvreconf_quietLogger__Errorf kvreconf_quietLogger__Infof kvreconf_quietLogger__Warningf
+kvreconf_Cluster__step: kvreconf_Stats__add kvreconf_oneIn raftpb_Message__GetTo raftpb_Message__GetType node__Step node__ReportUnreachable node__ReportSnapshot context_WithTimeoutBackground
+kvreconf_Cluster__tick: kvreconf_below
+kvreconf_Gen:
+kvreconf_Main: kvreconf_RandomConfig lintest_CounterClock kvreconf_Run kvreconf_Cluster__Stop
+kvreconf_Model: kvreconf_copyMap kvreconf_within kvreconf_hashMap
+kvreconf_RandomConfig: kvreconf_RandomOptions kvreconf_below
+kvreconf_RandomOptions: kvreconf_below kvreconf_oneIn
+kvreconf_Replica__answer: kvreconf_decodeReadCtx
+kvreconf_Replica__applyConf: node__ApplyConfChange kvreconf_validConf kvreconf_Stats__add raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 raftpb_ConfChangeV2__EnterJoint
+kvreconf_Replica__applyEntry: kvreconf_Replica__applyOp kvreconf_Replica__applyConf raftpb_Entry__GetType raftpb_Entry__GetData raftpb_Entry__GetIndex proto_UnmarshalConfChange proto_UnmarshalConfChangeV2
+kvreconf_Replica__applyOp: kvreconf_decode
+kvreconf_Replica__conf:
+kvreconf_Replica__install: kvreconf_Stats__add raftpb_SnapshotMetadata__GetConfState raftpb_SnapshotMetadata__GetIndex raftpb_ConfState__GetVotersOutgoing raftpb_ConfState__GetLearners raftpb_ConfState__GetLearnersNext proto_CloneConfState
+kvreconf_Replica__maybeCompact: kvreconf_Stats__add kvreconf_below MemoryStorage__FirstIndex MemoryStorage__Compact
+kvreconf_Replica__maybeSnapshot: kvreconf_Stats__add kvreconf_encodeState raftpb_ConfState__GetVotersOutgoing MemoryStorage__CreateSnapshot
+kvreconf_Replica__propose: node__Propose context_WithTimeoutBackground
+kvreconf_Replica__read: kvreconf_readCtx node__ReadIndex context_WithTimeoutBackground
+kvreconf_Replica__run: kvreconf_Replica__applyEntry kvreconf_Replica__install kvreconf_Replica__answer kvreconf_Replica__maybeSnapshot kvreconf_Replica__maybeCompact kvreconf_fits kvreconf_oneIn kvreconf_decodeState node__Ready node__Advance IsEmptySnap IsEmptyHardState raftpb_Snapshot__GetData raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__SetHardState
+kvreconf_Replica__stop: node__Stop
+kvreconf_Replica__ticker: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop node__Tick
+kvreconf_Run: kvreconf_StartCluster kvreconf_Cluster__Reconfigure kvreconf_Cluster__Disrupt kvreconf_Cluster__Put kvreconf_Cluster__Get kvreconf_Cluster__Read kvreconf_Model kvreconf_Gen lintest_Run
+kvreconf_StartCluster: kvreconf_Cluster__config kvreconf_Cluster__tick kvreconf_Cluster__sender kvreconf_newReplica kvreconf_Stats__add RestartNode NewMemoryStorage kvreconf_Storage__InitialState kvreconf_Storage__Snapshot MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries kvreconf_quietLogger__Debugf kvreconf_quietLogger__Errorf kvreconf_quietLogger__Infof kvreconf_quietLogger__Warningf
+kvreconf_Stats__add:
+kvreconf_Storage__InitialState: MemoryStorage__InitialState proto_CloneConfState
+kvreconf_Storage__Snapshot: kvreconf_oneIn MemoryStorage__Snapshot
+kvreconf_below:
+kvreconf_copyMap:
+kvreconf_copyMsg: proto_CloneSnapshot
+kvreconf_decode:
+kvreconf_decodeReadCtx: kvreconf_decode
+kvreconf_decodeState: kvreconf_getMap
+kvreconf_encode:
+kvreconf_encodeState: kvreconf_putMap
+kvreconf_fits: raftpb_Entry__GetIndex
+kvreconf_getBytes:
+kvreconf_getMap: kvreconf_getBytes
+kvreconf_hashMap: kvreconf_hashString
+kvreconf_hashString:
+kvreconf_less:
+kvreconf_newReplica: kvreconf_Replica__run kvreconf_Replica__ticker proto_CloneConfState
+kvreconf_oneIn:
+kvreconf_pick: kvreconf_below
+kvreconf_putBytes:
+kvreconf_putMap: kvreconf_putBytes kvreconf_sortStrings
+kvreconf_quietLogger__Debugf:
+kvreconf_quietLogger__Errorf:
+kvreconf_quietLogger__Infof:
+kvreconf_quietLogger__Warningf:
+kvreconf_readCtx: kvreconf_encode
+kvreconf_sleep: kvreconf_below =_root_.Perennial.time.wp_After
+kvreconf_sortStrings: kvreconf_less
+kvreconf_validConf: =RaftLink.tracker.wp_MakeProgressTracker_api =RaftLink.confchange.wp_Restore_api =RaftLink.confchange.Changer.wp_Simple_api =RaftLink.confchange.Changer.wp_EnterJoint_api =RaftLink.confchange.Changer.wp_LeaveJoint_api raftpb_ConfChangeV2__LeaveJoint raftpb_ConfChangeV2__EnterJoint raftpb_ConfChangeV2__GetChanges
+kvreconf_within:
