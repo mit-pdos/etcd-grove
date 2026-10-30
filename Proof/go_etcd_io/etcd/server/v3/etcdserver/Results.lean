@@ -1951,7 +1951,8 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
-        auth.authOwn (.on γa) hs ∗ auth.authStoreInit γa stl }}
+        auth.authOwn (.on γa) hs ∗ auth.authStoreInit γa hs stl ∗
+        auth.capNext (.on γa) hs (auth.bump stl) }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List auth.AuthState),
@@ -1971,7 +1972,8 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
 allocated over the boot state with the token provider's names, the batch lock's half of the history
 handed to the backend, whose contracts for the new names are the named premise D22 discharges
 (`auth.authSchemaBoot`); the store's invariant, the admin side's write resource, the provider's
-share and the admin side's authority at `[bootState, bump bootState]`. -/
+share, the admin side's authority at `[bootState, bump bootState]` and the cap of the history at it
+(H5). -/
 theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
     (γt γf : GName) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
@@ -1983,6 +1985,7 @@ theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : G
         ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗
         auth.authWR stp (.on γa) P f T ∗ auth.tpAdmin stp (.on γa) ∗ Post ∗
         auth.authOwn (.on γa) [auth.bootState, auth.bump auth.bootState] ∗
+        auth.capAuth γa [auth.bootState, auth.bump auth.bootState] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
   auth.newAuthStore_boot zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision

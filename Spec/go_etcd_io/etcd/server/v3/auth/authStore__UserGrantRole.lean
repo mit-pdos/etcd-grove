@@ -36,7 +36,7 @@ abbrev auth.authStore.UserGrantRole.spec : Prop :=
       authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
       ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
         u.length < 2 ^ 62⌝ ∗
-      ⌜stepOk M hs (userGrantRoleR user role)⌝ }}
+      ⌜stepOk M hs (userGrantRoleR user role)⌝ ∗ capNextM M hs (userGrantRoleR user role) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserGrantRole")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
       respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗

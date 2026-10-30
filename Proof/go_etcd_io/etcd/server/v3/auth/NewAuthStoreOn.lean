@@ -217,7 +217,7 @@ theorem newAuthStore_on
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
-        authOwn (.on γa) hs ∗ authStoreInit γa stl }}
+        authOwn (.on γa) hs ∗ authStoreInit γa hs stl ∗ capNext (.on γa) hs (bump stl) }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List AuthState),
@@ -226,9 +226,9 @@ theorem newAuthStore_on
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
+  wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
   iunfold authStoreInit at Hcur
-  icases Hcur with ⟨Hcur, Hpub, ⟨%b0, Hfe⟩, %v0, Hfc⟩
+  icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, ⟨%b0, Hfe⟩, %v0, Hfc⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -390,13 +390,15 @@ theorem newAuthStore_on
   ipersist lg
   ipersist tokenProvider
   -- the revision's invariant
-  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hpub HfeI HfcI]
+  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hrq Hpub HfeI HfcI]
     with #Hrev
   · inext; iunfold revInv; iexists x; iframe revision
     isplitl []
     · iunfold revisionVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hx
-    isplitl [Hcur]
-    · iunfold revCur; iexists st0; iframe Hcur; ipureintro; exact Hx
+    isplitl [Hcur Hrq]
+    · iunfold revCur; iexists st0; iframe Hcur; isplitr
+      · ipureintro; exact Hx
+      · iexists hs; iframe Hrq Hcl
     · -- (E3h) nothing published yet: the published index `0`, the latest state's revision
       iunfold revFresh
       iexists 0
