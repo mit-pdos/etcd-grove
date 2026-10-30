@@ -352,33 +352,47 @@ theorem raftApplyCC_of_isNode (γ : RNNames)
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ∗ srvClusterOk γ.srv ⊢
       raftApplyCC γ.srv γ.nl (rnNodeIface γ) := by
-  sorry
-/- REPAIR-OLD
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpraft, #Hnode, #Hcl⟩
   iunfold rnIsNode at Hnode
   iunfold srvClusterOk at Hcl
-  isimp only [Hdyn, ↓reduceIte] at Hcl
-  icases Hcl with ⟨#Hdc, -, -, -⟩
-  iunfold raftApplyCCDyn
+  icases Hcl with ⟨#Hisc, #Hpol, -⟩
+  iunfold raftApplyCC
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
   · ipureintro; rfl
-  isplitr
-  · ipureintro; exact Hdyn
-  iintro !> %c %cm %l %v %k %e %m' %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl⟩ HΦ
-  obtain ⟨h1, h2, h3, h4, o', h5, h6, h7, h8⟩ := Hpre
-  wp_apply (wp_ApplyConfChange_dyn γ.nl γ.node.cl srvClusterN γ.id
-      (Membership.simple γ.node.cfg) γ.node.dec c (.v1 cm) o' l k e v m'
-      h1 h2 h3 h4 h5 h6 h7 h8) $$ [Hc Hcfg]
-    as %csp %cs ⟨Hcs, Hcfg, -⟩
+  iintro !> %c %cm %l %v %k %e %m' %q %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl, Hrun⟩ HΦ
+  obtain ⟨h1, h2, h3, h4, o', h5, h6, h7, -⟩ := Hpre
+  have hk : k ≤ l.length := Nat.le_of_lt (List.getElem?_eq_some_iff.1 h2).1
+  ihave ⟨Hcfg, #Hca⟩ := nodeConfig_confAt γ.nl γ.node.cl srvClusterN v $$ Hcfg
+  ihave #Hcom := deliveredLogLb_committed γ.nl γ.node.cl srvClusterN l $$ Hdl
+  ihave #Hck : confAt γ.node.cl k v.membership $$ []
+  · iapply confAt_noConf γ.node.cl l v.applied k v.membership h4 h1 hk
+    iframe Hcom Hca
+  have hstep : (ConfDecision.ofRule (γ.node.rule (List.take k l) v.membership e)).step
+      v.membership = some m' := by
+    rw [h5]; exact h6
+  imod confPolicy_decide γ.node.cl srvClusterN srvConfN ⊤ γ.node.rule l k e v.membership m'
+      h2 h3 (fun _ _ => CoPset.mem_full) hstep $$ [Hisc Hpol Hcom Hck] with #Hdec
+  · iframe Hisc Hpol Hcom Hck
+  ihave #Hdec' : confDecided γ.node.cl k (ConfDecision.apply o') $$ []
+  · rw [show ConfDecision.apply o' = ConfDecision.ofRule (γ.node.rule (List.take k l)
+      v.membership e) by rw [h5]; rfl]
+    iexact Hdec
+  ihave #Hsk := skippedIn_noConf γ.node.cl l v.applied k h4
+  wp_apply (wp_ApplyConfChange γ.nl γ.node.cl srvClusterN γ.id c (.v1 cm) o' l k e v m'
+      h1 h2 h3 h6 h7) $$ [Hc Hcfg] as %csp %cs Hres
   · iframe #
     iframe Hc Hcfg
-  iapply HΦ
-  iframe Hcfg
-  iexists cs
-  iexact Hcs
--/
+  icases Hres with (⟨Hcs, Hcfg, %Hcsi⟩ | ⟨%-, #Hst⟩)
+  · iapply HΦ
+    iframe Hcfg Hrun
+    iexists cs
+    iframe Hcs
+    ipureintro; exact Hcsi
+  · iexfalso
+    iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN q $$ [Hrun Hst]
+    iframe Hrun Hst
 
 /-- **The node meets `isRaftNodeIfc`** (2026-10-27: over the node API; 2026-10-30, the repair:
 raft's unified specs, `Stop` too, so no premise): `ApplyConfChange` (`raftApplyCC_of_isNode`),
