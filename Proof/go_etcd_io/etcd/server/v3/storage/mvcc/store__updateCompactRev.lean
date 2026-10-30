@@ -302,8 +302,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- (question 5's core stage) the store's swap of its lock's resource for the right
       iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
           (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-          (mvcc.kbMW γ.kb γ.bucket) f rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
-      · iframe #
+          (mvcc.kbMW γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
+      · rw [mvcc.lockArmS_some]
+        iframe #
         iframe HPre HRTok Hwt1
         iintro ⟨HQ, HW⟩
         imod Hupd $$ HQ with ⟨HP, HPost⟩

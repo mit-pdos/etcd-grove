@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreNC
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
@@ -35,6 +36,8 @@ theorem mvcc.store.Restore.wp_proof
     (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
+  -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
+  have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro s γ b' d' γb' P' L R hLR hR
   wp_start as ⟨#Hs, %Hkb, %Hcm', Hcl, Hfs, Hwsd, Hfrag, Hown, #Hfrz, #HcL, Htoks, HlogQ, #Hok', #HbkT,
     #HcrT, Hview, Hnc, Hrr, Hrts⟩

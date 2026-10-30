@@ -51,7 +51,7 @@ hook's contract for the compaction `restore()` resumes (`kbSRM`, `kbWTSupplyM` o
 `resumeHookM`: the new backend's unset hook, lent), the old job's budgets back
 (`compactJobResM γ.kb`, for the old backend's `Close`), the new store's right
 (`storeCloserM`). Also drafted: the generalized `store.restore` (`store.restore.specR`, item
-18) and `store.Close` by the mode (`store.Close.specM`). At `cm = false` each reads as today: `store.Restore.spec_of_specM` and
+18: switched and proved, 2026-10-30) and `store.Close` by the mode (`store.Close.specM`). At `cm = false` each reads as today: `store.Restore.spec_of_specM` and
 `watchableStore.Restore.spec_of_specM` derive today's specs from the drafted ones.
 -/
 module
@@ -70,6 +70,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCom
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 
 @[expose] public section
 
@@ -196,120 +198,10 @@ switched: `CmpRecs.lean`, item 28 with review round 5's S1. The drafts below rea
 
 /-! ## The backend vocabulary with the records (review round 4, A1 (a))
 
-Each is today's text with the meta clause at `metaReadSpecR rt r` in place of `metaReadSpec rt true`
-(`keyReadLocked`'s), the records `r` passed down; at `r = empty` each *is* today's (`…_empty`, by
-`metaReadSpecR_empty`). At the switch they replace today's, with `r` a parameter of default
-`empty`: every existing use reads as today. -/
-
-/-- **Draft of `keyReadLocked`** with the records `r` (its meta clause: with `NC`, the reads of
-the compaction keys find the records). -/
-def mvcc.keyReadLockedR (RT NC : IProp GF) (r : mvcc.CmpRecs) (rng : Bool) (rt : GoInterfaceOk)
-    (m : mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) :
-    IProp GF :=
-  iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
-    □ mvcc.keyRangeSpec rt m Rd Tok ∗
-    (if rng then iprop(□ mvcc.keyRangeReadSpec rt m Rd Tok ∗ □ mvcc.keyRangeLimSpec rt m Rd Tok cl ∗
-      □ mvcc.rdSplit rt m Rd Tok cl ∗ □ (NC -∗ NC ∗ □ mvcc.metaReadSpecR rt (some r) Rd Tok))
-     else iprop(True)) ∗
-    mvcc.rdCap Rd Tok)
-
-theorem mvcc.keyReadLockedR_empty (RT NC : IProp GF) (rng : Bool) (rt : GoInterfaceOk)
-    (m : mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool) :
-    mvcc.keyReadLockedR RT NC mvcc.CmpRecs.empty rng rt m Rd Tok cl =
-      mvcc.keyReadLocked RT NC rng rt m Rd Tok cl := by
-  unfold mvcc.keyReadLockedR mvcc.keyReadLocked; rw [mvcc.metaReadSpecR_empty]
-
-/-- **Draft of `keyReadSnap`** with the records. -/
-def mvcc.keyReadSnapR (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (r : mvcc.CmpRecs)
-    (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) :
-    IProp GF :=
-  iprop(□ (∀ q : Qp, {{ L ∗ View q m }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
-    {{ RET #(); View q m ∗ ∃ (m' : mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
-        Tok ∗ mvcc.keyReadLockedR RT NC r rng rt m' Rd Tok ∗ mvcc.snapThin m m' Del }}))
-
-theorem mvcc.keyReadSnapR_empty (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF)
-    (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) :
-    mvcc.keyReadSnapR View RT NC mvcc.CmpRecs.empty Del rng rt m L =
-      mvcc.keyReadSnap View RT NC Del rng rt m L := by
-  unfold mvcc.keyReadSnapR mvcc.keyReadSnap; simp only [mvcc.keyReadLockedR_empty]
-
-/-- **Draft of `keyReadSnapC`** with the records. -/
-def mvcc.keyReadSnapCR (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (r : mvcc.CmpRecs)
-    (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) : IProp GF :=
-  iprop(□ (∀ q : Qp, {{ L ∗ View q m }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
-    {{ RET #(); View q m ∗ ∃ (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
-        Tok ∗ mvcc.keyReadLockedR RT NC r true rt m Rd Tok true }}))
-
-theorem mvcc.keyReadSnapCR_empty (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF)
-    (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) :
-    mvcc.keyReadSnapCR View RT NC mvcc.CmpRecs.empty rt m L = mvcc.keyReadSnapC View RT NC rt m L := by
-  unfold mvcc.keyReadSnapCR mvcc.keyReadSnapC; simp only [mvcc.keyReadLockedR_empty]
-
-/-- **Draft of `keyCleanRead`** with the records (what `store.restore` takes of a backend holding
-data, its `NC` the records' `kbRecs … r`; D22's walk builds it from `keyCleanRead_of_backendC`). -/
-def mvcc.keyCleanReadR (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF)
-    (r : mvcc.CmpRecs) : IProp GF :=
-  iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
-    □ (∀ (q : Qp) (m : mvcc.Bucket),
-      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
-          ∃ L : IProp GF, L ∗ mvcc.keyReadSnapCR View RT NC r rt m L }}))
-
-instance mvcc.keyCleanReadR_persistent (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF)
-    (RT NC : IProp GF) (r : mvcc.CmpRecs) : Persistent (mvcc.keyCleanReadR (GF := GF) b View RT NC r) := by
-  unfold mvcc.keyCleanReadR; infer_instance
-
-theorem mvcc.keyCleanReadR_empty (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF)
-    (RT NC : IProp GF) :
-    mvcc.keyCleanReadR (GF := GF) b View RT NC mvcc.CmpRecs.empty = mvcc.keyCleanRead b View RT NC := by
-  unfold mvcc.keyCleanReadR mvcc.keyCleanRead; simp only [mvcc.keyReadSnapCR_empty]
-
-/-- **Draft of `isKeyBackendG`** with the records (its two `ReadTx`s' snapshots at `r`). -/
-def mvcc.isKeyBackendGR (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF) (RT WT NC : IProp GF)
-    (r : mvcc.CmpRecs) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
-    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
-    (HF : val → IProp GF)
-    (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
-    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
-    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True))
-    (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) : IProp GF :=
-  iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
-    □ (∀ (q : Qp) (m : mvcc.Bucket),
-      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
-      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
-          ∃ L : IProp GF, L ∗ mvcc.keyReadSnapR View RT NC r Del false rt m L }}) ∗
-    □ (∀ (q : Qp) (m : mvcc.Bucket),
-      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
-          ∃ L : IProp GF, L ∗ mvcc.keyReadSnapR View RT NC r Del true rt m L }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
-          mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW }}) ∗
-    □ (∀ (X Y : IProp GF),
-      {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      {{ RET #(); RT ∗ Y }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"Size" bi.v)) (Val #()))
-      {{ (n : w64), RET #n; True }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"SizeInUse" bi.v)) (Val #()))
-      {{ (n : w64), RET #n; True }}) ∗
-    □ (⌜Cmp⌝ -∗
-      □ ({{ SR }} (App (Val #(methods bi.ty go!"LockForSafeRangeDelete" bi.v)) (Val #()))
-        {{ RET #(); SRh }}) ∗
-      □ ({{ SRh }} (App (Val #(methods bi.ty go!"UnlockForSafeRangeDelete" bi.v)) (Val #()))
-        {{ RET #(); SR }}) ∗
-      □ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-        {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); mvcc.metaReadTx rt RT }})))
-
-theorem mvcc.isKeyBackendGR_empty (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF)
-    (RT WT NC : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
-    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
-    (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW : IProp GF) :
-    mvcc.isKeyBackendGR b View RT WT NC mvcc.CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh
-        MW =
-      mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW := by
-  unfold mvcc.isKeyBackendGR mvcc.isKeyBackendG; simp only [mvcc.keyReadSnapR_empty]
+(`keyReadLockedR`, `keyReadSnapR`, `keyReadSnapCR`, `keyCleanReadR`, `isKeyBackendGR`, `restoreViewR`
+are switched, the approval's item 27 with item 18, 2026-10-30: `RestoreRecs.lean`, beside today's;
+`restoreViewR` over the records' resource `NC`, here `kbRecs … r`. `storeBackendTR` stays here: it
+names `kbRecs`, the backend's part of item 29.) -/
 
 /-- **Draft of `storeBackendT`** with the records: `NC` the records' `kbRecs … r`. -/
 def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
@@ -324,17 +216,7 @@ theorem mvcc.storeBackendTR_empty (b : GoInterface) (s : Loc) (γ : mvcc.StoreNa
   unfold mvcc.storeBackendTR mvcc.storeBackendT
   rw [mvcc.kbRecs_empty, mvcc.isKeyBackendGR_empty]
 
-/-- The `Key` bucket of the entries `ents` (`bucketMap`'s fold over them). -/
-def mvcc.bucketOfEnts (ents : List mvcc.KvEnt) : mvcc.Bucket :=
-  (ents.map mvcc.KvEnt.pair).foldl (fun m p => GMap.insert p.1 p.2 m) GMap.empty
-
-/-- **Draft of `restoreView`, over the image's bucket `m` and records `r`**: `NewStore`'s empty
-bucket (no record), or the bucket `m` over a clean read buffer with the records' clean read. -/
-def mvcc.restoreViewR (b : GoInterface) (γ : mvcc.StoreNames) (RT : IProp GF) (q : Qp) (R : mvcc.Log)
-    (m : mvcc.Bucket) (r : mvcc.CmpRecs) : IProp GF :=
-  if R = [] then iprop(mvcc.bucketView γ q ∅ ∗ ⌜m = ∅ ∧ r = mvcc.CmpRecs.empty⌝)
-  else iprop(mvcc.bucketViewC γ q m ∗
-    mvcc.keyCleanReadR b (mvcc.bucketViewC γ) RT (mvcc.kbRecs γ.kb γ.bucket r) r)
+/- (`bucketOfEnts` and `restoreViewR` are switched: `RestoreCut.lean`, `RestoreRecs.lean`.) -/
 
 set_option linter.unusedVariables false in
 /-- **The records' clean read of a compacting real backend** (the statement of the bridge law the
@@ -442,15 +324,10 @@ def mvcc.kbHookNil (kb : Option mvcc.KBReal) : IProp GF :=
   | none => iprop(False)
   | some d => backend.plHook d.γB func.nil
 
-/-- **`LockInsideApply` with no hook set** (draft of the clause `batchTxSpecG` gains at the switch,
-with `HN := kbHookNil kb`; the store-level nil-hook law of the approval list): from the session's
-tokens and the unset hook, the lock, its resource `W` and the batch lock's invariant `P` itself
-(no hook ran). -/
-def mvcc.lockNilSpec (bt : GoInterfaceOk) (RT WT W P HN : IProp GF) (Locked : mvcc.Puts → IProp GF) :
-    IProp GF :=
-  iprop(□ (∀ Pre : IProp GF,
-    {{ Pre ∗ RT ∗ WT ∗ HN }} (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
-    {{ RET #(); Locked [] ∗ W ∗ P ∗ Pre ∗ RT ∗ HN }}))
+/- (`lockNilSpec` is switched with `SetScheduledCompact.spec`'s nil-hook arm, item 31, 2026-10-30:
+`LockArm.lean`. Its place as `batchTxSpecG`'s clause, with `HN := kbHookNil kb`, waits on the backend
+bridge's re-proof, `BackendBridge.lean`, branch `m2-backend`: `bt_lockInNil` below is that proof's
+one new step.) -/
 
 /-- **The real backend gives it** (proved, from the backend spec's nil arm, as `bt_lockIn` from its
 hook arm): the bridge's instance of `lockNilSpec`, the store's `batchTxSpecG` clause at the switch
@@ -740,195 +617,13 @@ their switch, with item 15, they read the logical mode `γ.cm`, equal under `phy
 /- (The records reads, `UnsafeReadFinishedCompact`/`UnsafeReadScheduledCompact` over the records,
 are switched as one spec each over an optional record set: item 28, review round 5's S1.) -/
 
-/-! ## `store.restore`, generalized (item 18) -/
+/-! ## `store.restore`, generalized (item 18)
 
-/-- **`restore()`'s lock round for the finished record** (draft; `kvstore.go:330-341`): none if the
-image has no finished record; else `RevP0` gives, at `Lock`, the lock's part `dql` of
-`compactMainRev` with `RevK0`, and `Unlock` takes it at the record with `RevK0` and gives `RevP` (the
-second round's, today's `revLockW`). `NewStore`: private memory; `store.Restore`: the lock in
-restoring mode, as today's round. -/
-def mvcc.revFinW (s : Loc) (dql : DFrac) (fin : Option w64) (RevP0 RevP : IProp GF) : IProp GF :=
-  match fin with
-  | none => iprop(RevP0 -∗ RevP)
-  | some x => iprop(∃ RevK0 : IProp GF,
-      (∀ Ψ : val → IProp GF, RevP0 -∗
-        ▷ (∀ v : w64, (s.[store, go!"compactMainRev"] ↦{dql} v : IProp GF) -∗ RevK0 -∗ Ψ #()) -∗
-        WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Lock"))
-          (Val #())) {{ Ψ }}) ∗
-      (∀ Ψ : val → IProp GF, (s.[store, go!"compactMainRev"] ↦{dql} x : IProp GF) -∗ RevK0 -∗
-        ▷ (RevP -∗ Ψ #()) -∗
-        WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Unlock"))
-          (Val #())) {{ Ψ }}))
-
-/-- **What `restore()` has once the index is rebuilt and `s.revMu` released** (draft: today's
-post, with the records' write right, `compactMainRev` at the finished record, and one receipt per
-entry the rebuild took: `ents.length`, today's `logCh L'` for the whole bucket,
-`logEnts_length`). -/
-def mvcc.restoreDone (s : Loc) (γ : mvcc.StoreNames) (b : GoInterface) (ti : Loc) (q1 : Qp)
-    (dqb dqi dqc : DFrac) (L' : mvcc.Log) (ents : List mvcc.KvEnt) (r : mvcc.CmpRecs)
-    (RT RevQ : IProp GF) : IProp GF :=
-  iprop(RT ∗ mvcc.kbMW γ.kb γ.bucket ∗ ⧗ ents.length ∗ RevQ ∗
-    s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((L'.length : Int) - 1) : w64) ∗
-    s.[store, go!"compactMainRev"] ↦{dqc} (r.fin.getD (W64 (-1))) ∗
-    s.[store, go!"b"] ↦{dqb} b ∗
-    s.[store, go!"kvindex"] ↦{dqi}
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface))
-
-/-- **The resume, as `restore()`'s caller provides it** (draft): if the records resume a compaction,
-`s.compactLockfree(sched)` from `restoreDone` ends in `Fin`, whatever it returns (`restore()` only
-logs the error); else `restoreDone` is `Fin`. `store.Restore`'s proof provides it from
-`compactLockfree.spec` (over `storeStopR`/`compactRightR`, the store's invariant re-established at
-the new names first, the lent unset hook `resumeHookM` for `SetScheduledCompact`'s lock, the new
-job's budgets and supply); `NewStore`'s, over a fresh bucket, never resumes. -/
-def mvcc.resumeK (s : Loc) (r : mvcc.CmpRecs) (Done Fin : IProp GF) : IProp GF :=
-  if r.resumes then
-    iprop(∀ Ψ : val → IProp GF, Done -∗
-      ▷ (∀ (ch : GoChan) (err : GoInterface), Fin -∗ Ψ (PairV #ch #err)) -∗
-      WP (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree"))
-        (Val #(r.sched.getD (W64 0)))) {{ Ψ }})
-  else iprop(Done -∗ Fin)
-
-/-- **Draft of `store.restore.spec`, generalized** (item 18; internal and proved today, not an
-axiom: `store__restore.lean`, linked in `mvcc/Link.lean`; repaired after review round 4's A1). Today's
-text but for the image's records `r` and entries `ents`:
-* the backend's contract at the records (`isKeyBackendGR … (kbRecs γ.kb γ.bucket r) r`, the
-  resource `kbRecs γ.kb γ.bucket r`), with `recsOk L' r`;
-* the view over the image's bucket (`restoreViewR … (bucketOfEnts ents) r`: its clean read at the
-  records), the entries of the job's shape at the restored revision (`entsCutAt L' r.crev ents`);
-* the index published at the restored revision's level: the lower bound `crevLb γ.idx r.crev` (the
-  caller raises the authority to it first), the unlock's payload the view of `m` and the index
-  (`isTreeIndex`, whose lock invariant is over `IdxCRepN`, the index at a full revision: the old
-  `IdxCRep` cannot hold, `idxCRep_restore_counterexample`), with the receipts' bound, which the rebuild's receipts give only
-  for the whole bucket: otherwise the caller's (`restoreBoundM`), the new disjunctive premise;
-* the finished record's lock round (`revFinW`, the pair `RevP0`, `dql`), before today's;
-* the post: `Fin`, where the caller's `resumeK` takes `restoreDone` (today's post, `compactMainRev`
-  at the finished record, a receipt per entry) through the resumed compaction, if any.
-At `r = empty`, `ents` the whole bucket, `RevP0 = RevP`, `Fin = restoreDone …` it is today's.
-
-**Not proved** (A1's evidence, `notes/m2-storage-plan.md`, "After review round 4"): the WP proof is
-today's (`store__restore.lean`) with the records' reads (`UnsafeReadFinishedCompact.wp_proofR`,
-`UnsafeReadScheduledCompact.wp_proofR`, proved) and the found branch's lock round; what it cannot
-get today is the rebuilt index's invariant at `r.crev`: the pure fact is proved (`idxRestore_cut`,
-`InvIndexRestore.lean`) and the lock invariant's `HL` is `IdxCRepN` (branch `m2-index`), but
-`idx_publish` takes the level `-1`, and publishing at `r.crev` needs its variant. Its caller `store.Restore` further needs the backend's view widened from the image's
-bucket to the log's (the store's writer holds `bucketMap L'`, `restore_finish`; the job's deletions
-leave the view, only reads miss them: a backend law at the open, `kbView_widen`, not drafted) and
-the writer's receipts from `restoreBoundM` (`idxWriter`'s `⧗ (logCh L')`, which `⧗ ents.length`
-cannot give). -/
-abbrev mvcc.store.restore.specR : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
-    (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
-    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
-    (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
-    (dqb dqi : DFrac)
-    (R : mvcc.Log) (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp)
-    (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF),
-  mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r →
-    mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
-    (ents = mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length ∨
-      mvcc.logCh ([[], []] ++ R) < receiptBound GF) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      s.[store, go!"b"] ↦{dqb} b ∗
-      mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT (mvcc.kbRecs γ.kb γ.bucket r) r PutOk
-        (mvcc.delKey γ) W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) ∗
-      RT ∗ mvcc.kbRecs γ.kb γ.bucket r ∗ mvcc.restoreViewR b γ RT q R (mvcc.bucketOfEnts ents) r ∗
-      s.[store, go!"kvindex"] ↦{dqi}
-        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
-      mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗ mvcc.crevLb γ.idx r.crev ∗
-      s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗
-      s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
-      s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP0 ∗
-      mvcc.revFinW s dql r.fin RevP0 RevP ∗
-      mvcc.revLockW s q2 RevP RevK ∗
-      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
-        iprop((if R = [] then mvcc.bucketView γ q ∅ else mvcc.bucketViewC γ q (mvcc.bucketOfEnts ents)) ∗
-          mvcc.isTreeIndex ti γ.idx ∗
-          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗
-          ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ ∗
-      mvcc.resumeK s r (mvcc.restoreDone s γ b ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT RevQ) Fin }}
-    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; Fin }}
-
-/-- The whole bucket's entries make the log's bucket. -/
-theorem mvcc.bucketOfEnts_logEnts (L : mvcc.Log) :
-    mvcc.bucketOfEnts (mvcc.logEnts L 0 L.length) = mvcc.bucketMap L := by
-  unfold mvcc.bucketOfEnts mvcc.bucketMap; rw [mvcc.bucketOf_logEnts]
-
-set_option maxHeartbeats 800000 in
-/-- **At no record and the whole bucket the drafted `restore` reads as today** (the off-mode law,
-proved): today's spec follows from `specR` at `r = empty`, `ents` the whole bucket's entries,
-`RevP0 = RevP` and `Fin` today's post. -/
-theorem mvcc.store.restore.spec_of_specR (h : mvcc.store.restore.specR (GF := GF) (hG := hG)) :
-    mvcc.store.restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP RevK RevQ dqc
-    q1 q2 hR hq12
-  iintro %Φ ⟨#Hpkg, Hb, #Hbk, Hrt, Hnc, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
-    HRevP, HLk, HUl⟩ HΦ
-  iunfold mvcc.idxLockG at Hig
-  icases Hig with ⟨Hgn, #Hcl, Hgl, Hgc⟩
-  have hrec : mvcc.recsOk ([[], []] ++ R) mvcc.CmpRecs.empty := by
-    unfold mvcc.recsOk mvcc.CmpRecs.empty
-    refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
-  iapply (h s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP RevP RevK
-      RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
-      iprop(RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
-        ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
-        s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
-        s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
-        s.[store, go!"b"] ↦{dqb} b ∗
-        s.[store, go!"kvindex"] ↦{dqi}
-          (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface))
-      hR hq12 hrec (mvcc.entsCutAt_full _ _) (Or.inl rfl)) $$
-    [Hb Hrt Hnc Hview Hkvi Hix Hgn Hgl Hgc Hcur1 Hcmp HRevP HLk HUl]
-  · rw [mvcc.kbRecs_empty, mvcc.isKeyBackendGR_empty, mvcc.bucketOfEnts_logEnts,
-      mvcc.CmpRecs.crev_empty]
-    ihave Hig : mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length $$ [Hgn Hgl Hgc]
-    · iunfold mvcc.idxLockG
-      iframe Hgn Hcl Hgl Hgc
-    ihave Hview : mvcc.restoreViewR b γ RT q R (mvcc.bucketMap ([[], []] ++ R)) mvcc.CmpRecs.empty
-        $$ [Hview]
-    · iunfold mvcc.restoreView at Hview
-      iunfold mvcc.restoreViewOut at Hview
-      iunfold mvcc.restoreViewR
-      by_cases hR0 : R = []
-      · subst hR0
-        simp only [↓reduceIte]
-        icases Hview with ⟨Hv, -⟩
-        iframe Hv
-        ipureintro; exact ⟨rfl, trivial⟩
-      · simp only [hR0, ↓reduceIte]
-        rw [mvcc.kbRecs_empty, mvcc.keyCleanReadR_empty]
-        iexact Hview
-    ihave Hfw : mvcc.revFinW s DFrac.discard mvcc.CmpRecs.empty.fin RevP RevP $$ []
-    · simp only [mvcc.CmpRecs.empty]
-      iunfold mvcc.revFinW
-      iintro H; iexact H
-    iunfold mvcc.restoreViewOut at HUl
-    ihave Hk : mvcc.resumeK s mvcc.CmpRecs.empty
-        (mvcc.restoreDone s γ b ti q1 dqb dqi dqc ([[], []] ++ R)
-          (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) mvcc.CmpRecs.empty RT RevQ)
-        iprop(RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
-          ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
-          s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
-          s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
-          s.[store, go!"b"] ↦{dqb} b ∗
-          s.[store, go!"kvindex"] ↦{dqi}
-            (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface)) $$ []
-    · iunfold mvcc.resumeK
-      simp only [mvcc.CmpRecs.resumes_empty, Bool.false_eq_true, ↓reduceIte]
-      unfold mvcc.restoreDone
-      simp only [mvcc.CmpRecs.empty, Option.getD_none, mvcc.logEnts_length]
-      iintro H
-      iexact H
-    iframe Hpkg Hb Hbk Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hcl Hig Hview Hfw HUl Hk
-    ipureintro; exact Hlgnn
-  iintro !> H
-  iapply HΦ
-  iexact H
+Switched and proved (2026-10-30, `notes/m2-storage-plan.md`, "The restore chain, mvcc part"):
+`store.restore.spec` is the drafted `specR` (over the records' resource `NC` in place of `kbRecs`, the
+lock's ghost part at the restored level `idxLockGAt` in place of `idxLockG ∗ crevLb`), proved in
+`store__restore.lean`; `revFinW`, `restoreDone`, `resumeK` are in `RestoreRecs.lean`, today's text is
+`store.restore.specNC` (`RestoreNC.lean`, `specNC_of_spec`). -/
 
 /- (`store.Close.specM` is switched: `store.Close.spec`, the approval's item 23.) -/
 

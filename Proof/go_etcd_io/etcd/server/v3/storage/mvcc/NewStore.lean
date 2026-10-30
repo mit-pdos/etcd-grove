@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreNC
 
 @[expose] public section
 
@@ -90,6 +91,8 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
+  -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
+  have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)

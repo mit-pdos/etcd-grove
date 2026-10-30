@@ -8,14 +8,18 @@ Switched (2026-10-30): `compactJobPre` (with the jobs' leased share `storeStopR`
 at the hook set (`hookIs ∗ csContract`, `lockCtxM`'s `some f` arm), the export
 `mvcc_NewStore_backend_cmp` (item 24): `InvCompact.lean`, the specs, `Results.lean`.
 
-**Still a Draft** (item 31, with `kbHookNil`/`lockNilSpec`/`bt_lockInNil` in
-`M2StorageDraftRestore.lean`): the critical section's context by the hook's state (`lockCtxM`,
-`lockBackM`) and `updateCompactRev.specR`/`compactLockfree.specR` over it, for `restore()`'s resumed
-compaction inside `Restore` (the new backend's hook unset). Its `none` arm needs a nil-hook
-`SetScheduledCompact` (the backend's `LockInsideApply` running no hook, `lockNilSpec`), which the
-approved texts do not state: `SetScheduledCompact.spec` takes the hook's triple (`HF f`), and one
-spec per function (review round 5's S1) means generalizing it by the hook's state too. Its only
-consumer is the waiting restore chain (items 15, 18), so it waits with them.
+**Switched with item 31 (2026-10-30, "The restore chain, mvcc part"):** `SetScheduledCompact.spec`
+by the hook's state (`lockArmS`: the hook-set arm as before, the nil-hook arm over `lockNilSpec`,
+`LockArm.lean`), proved. **Still a Draft**: the critical section's context by the hook's state at the
+store (`lockCtxM`, `lockBackM`) and `updateCompactRev.specR`/`compactLockfree.specR` over it, for
+`restore()`'s resumed compaction inside `Restore` (the new backend's hook unset), with `kbHookNil`/
+`bt_lockInNil` in `M2StorageDraftRestore.lean`. Their `none` arm calls `SetScheduledCompact` at
+`hk = none`, which takes `lockNilSpec` for the store's batch transaction: the store gets it only
+from its backend contract, `batchTxSpecG`'s new clause `lockNilSpec bt RT WT W P (kbHookNil kb)
+Locked`, which the backend bridge proves (`isKeyBackendG_of_backendC`, `BackendBridge.lean`: one
+step, `bt_lockInNil`, proved). The bridge is the backend side's (branch `m2-backend`), so the clause,
+and the chain's switch over it, wait for it. Its only consumer is the waiting `store.Restore` in
+compaction mode (item 15).
 -/
 module
 

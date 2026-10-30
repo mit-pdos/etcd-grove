@@ -122,6 +122,94 @@ theorem idx_publish (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
   iapply BigSepL.bigSepL_cons.2
   iframe Htok Htoks
 
+/-- **The index lock's ghost part at a compaction level `c`** (M2, the storage side, item 18:
+`restore()` over a bucket a compaction thinned publishes its rebuilt index at the restored revision):
+`idxLockG`'s, with the compaction revision's lower bound at `c`, a lower bound of the committed log
+past `c`, and the compactor's state at or above `c` (`idxCmpOwn` at `c`). At `c = -1` it is `idxLockG`
+(`idxLockG_at`). -/
+def idxLockGAt (γ : IdxNames) (n : Nat) (c : Int) : IProp GF :=
+  iprop(monoNatAuthOwn γ.nev 1 n ∗ crevLb γ c ∗
+    (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜c < log₀.length⌝) ∗ idxCmpOwn γ 1 [] c)
+
+theorem idxLockG_at (γ : IdxNames) (n : Nat) :
+    idxLockG (GF := GF) γ n ⊣⊢ idxLockGAt γ n (-1) := by
+  unfold idxLockG idxLockGAt
+  constructor
+  · iintro ⟨H1, H2, ⟨%log₀, H3⟩, H4⟩
+    iframe H1 H2 H4
+    iexists log₀
+    iframe H3
+    ipureintro; omega
+  · iintro ⟨H1, H2, ⟨%log₀, H3, -⟩, H4⟩
+    iframe H1 H2 H4
+    iexists log₀
+    iexact H3
+
+/-- The compactor's state over no entry holds over any (no key index is pending). -/
+theorem idxCmpOwn_nil (γ : IdxNames) (q : Qp) (L : List IdxEntry) (c : Int) :
+    idxCmpOwn (GF := GF) γ q [] c ⊢ idxCmpOwn γ q L c := by
+  unfold idxCmpOwn
+  iintro ⟨%cc, %P, H, %Hp⟩
+  iexists cc, P
+  iframe H
+  ipureintro
+  refine ⟨Hp.1, fun p hp => ?_, Hp.2.2⟩
+  exfalso
+  have := Hp.2.1 p hp
+  simp at this
+
+/-- **A private index made a lock-protected one at a compaction level `c`** (`idx_publish` at `c`;
+M2's item 18): its entries `L` related to the writer's log at the full-revision level `c`
+(`IdxCRepN`: `idxRestore_cut` gives it for a bucket a compaction at `c` thinned). -/
+theorem idx_publishAt (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log) (c : Int)
+    (hrep : IdxCRepN c (evsOf (log ++ [[]])) (idxOfEntries L)) (hc : -1 ≤ c) :
+    ⊢ ownIdxPriv (GF := GF) ti L -∗ idxLockGAt γ (evsOf (log ++ [[]])).length c -∗
+      idxWriterLb γ log ={⊤}=∗
+      isTreeIndex ti γ ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        idxReader ti γ) := by
+  iintro Hix Hg #Hw
+  iunfold ownIdxPriv at Hix
+  icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
+  iunfold idxLockGAt at Hg
+  icases Hg with ⟨Hnauth, #Hclb, ⟨%log₀, #Hllb, %Hl0⟩, Hcmp⟩
+  iunfold idxWriterLb at Hw
+  icases Hw with ⟨#Hhlb, #Hnlb, %Hwf⟩
+  imod sync.init_RWMutex (idxLockInv (hG := hG) t γ) (idxMuAddr ti) $$ [Hnauth Htr Hcmp] Hmu
+    with Htoks
+  · inext
+    unfold idxLockInv
+    iexists log, [], L, c
+    simp only [named]
+    iframe Hnauth Htr Hhlb Hclb
+    isplitl []
+    · iexists log₀; iframe Hllb; ipureintro; exact Hl0
+    isplitl []
+    · ipureintro; exact ⟨hrep, hc⟩
+    isplitl []
+    · ipureintro; exact Hwf
+    iapply idxCmpOwn_nil γ 1 L c $$ Hcmp
+  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
+    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
+  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
+    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
+  rw [hm, List.replicate_succ]
+  icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Htok, Htoks⟩
+  icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨Htok, #Hguard⟩
+  imodintro
+  isplitl []
+  · iunfold isTreeIndex
+    iexists t, lg
+    simp only [named]
+    iframe #
+    ipureintro; exact Hlgnn
+  rw [← List.replicate_succ]
+  iapply idxReaders_of_toks ti t γ (m + 1)
+  isplitl []
+  · iexact Htree
+  rw [List.replicate_succ]
+  iapply BigSepL.bigSepL_cons.2
+  iframe Htok Htoks
+
 /-- **Fresh index names, split** for `newTreeIndex` (the event count's authority and the compactor's
 state, with the lower bounds it takes) and the rest the store keeps: the writer's handle for the
 empty log, the other half of the committed log's authority and the compaction revision's authority
