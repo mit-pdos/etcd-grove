@@ -30,7 +30,8 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 and the resource `S` (`grpcStreamHandlerOk`, on the wrapped server end), for messages whose types
 are `*WatchRequest`/`*WatchResponse` (a fresh `new(WatchRequest)` is a message the receiver owns),
 on a raw server end `stream` of a fresh stream (`srvRawStreamIs`, both tokens at `[]`, its
-auxiliary name unset: `streamAuxTok`) with `Spec γ Dn` and `S`: wraps the stream and runs `srv.Watch` on it; returns (nothing promised). -/
+auxiliary name unset: `streamAuxTok`) with the specification at the run's incoming metadata,
+`Spec (incomingOf ci) γ Dn` (metadata-indexed, G2), and `S`: wraps the stream and runs `srv.Watch` on it; returns (nothing promised). -/
 abbrev etcdserverpb._Watch_Watch_Handler.spec : Prop :=
   ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep)
     (srv : GoInterfaceOk) (S : IProp GF) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)

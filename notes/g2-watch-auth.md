@@ -35,9 +35,19 @@ trusted change:
   `runCore`'s epoch token is existential, until `Watch` and `run` are re-proved. The internal specs
   `openWatchClient`, `newWatchClient` and `serveWatchClient` carry the stream's metadata `md` and
   its token, and `newWatcherGRPCStream`'s post the stream context's `outgoingOf` and key.
+- **`srvAuthLb` in `watchSrvOk`** (after etcd-grove-56's review, 2026-10-30): the server's
+  contract for the watch path carries the auth store at a reader's lower bound, so `recvLoop` has
+  what `isWatchPermitted` takes, and `recvLoop`'s stubbed statement is final. The off-mode builders
+  get it from `srvAuthLb_off`, the on-mode one (`grpcCfgOk_of_started_on_w`) from `Start.specOn`.
+- **Bound 0 today**: the verified client builds its creates with `bound := 0` (`createOf`,
+  `client/v3/InvWatch.lean`), so `c.bound ≤ i` in `watch_registered_authorized` is trivially true of
+  every create the verified client sends until `Watch` and `run` are re-proved with `n`.
+- **(h) makes a context spec depend on grpc**: `Spec/context/WithCancelValCtx.lean` imports
+  `metadata/Outgoing.lean`, the stopgap until Perennial's `Value` contract
+  (`notes/perennial-changes.md`, "Context model: `WithCancel` keeps its parent's values").
 - **Stubs** (`sorry -- G2: re-prove after freeze`, each with the commit of the proof before G2):
-  `watcher.Watch`, `watchGRPCStream.newWatchClient`, `serverWatchStream.recvLoop` (needs
-  `srvAuthLb` threaded through `WSrv`/`NewWatchServer`), `serverWatchStream.isWatchPermitted` (the
+  `watcher.Watch`, `watchGRPCStream.newWatchClient`, `serverWatchStream.recvLoop`,
+  `serverWatchStream.isWatchPermitted` (the
   bound's reasoning at the store), and the law `attemptTokOk_of_watcher` (field agreement). The
   rest of the restated proofs are adapted.
 # G2: the watch with auth on (candidate 4, 2026-10-30; after review round 3, the last)
@@ -343,10 +353,15 @@ abbrev watcher.Watch.spec : Prop :=
   - (h): consistency with `AppendToOutgoingContext`, under the recorded convention (above).
   - (a′), (b′): (b′) is a stronger contract for prometheus's interceptor; (a′) only narrows what
     `NewClient`'s axiom accepts.
-- `tcb-report.py --check` will flag only the two new laws of (c) (`--check --update` with the
-  approval). The in-place strengthenings keep their names, so the audit rows list their
-  collections. authkv's collection gains (a), (b), (c), (h) and the laws once `Work` uses the
-  watch.
+- `tcb-report.py --check` flags only what a linked result reaches. The in-place strengthenings keep
+  their names, so the audit rows list their collections. The two new laws of (c)
+  (`streamKeyOf_none`, `streamKeyOf_single`; approved with the table, 2026-10-30) and the stub
+  `attemptTokOk_of_watcher` are reached by no linked result yet, so `--check` does not list them
+  (2026-10-30: it listed the five stubbed `wp_proof`s only). They enter the baseline, and authkv's
+  collection gains (a), (b), (c), (h) and the laws, once `Work` uses the watch; the laws get the
+  `axiom` skill all the same. (c)'s laws rest on `outgoingOf`'s reading (its docstring,
+  `metadata/Outgoing.lean`): `FromOutgoingContext`'s view, keys lower-cased, no raw `MD` whose
+  keys collide up to case.
 - (h)'s general fix goes to `notes/perennial-changes.md`: Perennial's context model has no `Value`
   contract (`isContextDef`'s `Values` field is unused). The general change is a `Value` contract
   for `WithCancel`/`WithTimeout` (delegation to the parent at foreign keys), proposed on a

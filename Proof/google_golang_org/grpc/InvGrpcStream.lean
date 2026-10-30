@@ -42,18 +42,20 @@ the generated handler's `grpc.GenericServerStream[Req, Res]` (`Recv()` allocatin
 **The registration** (`grpcStreamMethodOk mh srv ics S Up Spec`): the method handler `mh` with
 the service `srv`, under the server's stream interceptor chain `ics` (`srvStreamChainWP`, as
 grpc's `chainStreamServerInterceptors` composes it), run by grpc with the run slot `S`, a fresh
-raw server end, both tokens at `[]`, and the stream specification `Spec γ Dn` (the handler's
-premise: the serving layer fixes `Dn` at the stream's creation); the run returns nothing (the
+raw server end, both tokens at `[]`, and the stream specification at the run's incoming metadata,
+`Spec (incomingOf ci) γ Dn` (metadata-indexed since G2, 2026-10-30: `Spec : GrpcMd → StreamSpec`,
+the handler's premise: the serving layer fixes `Dn` at the stream's creation); the run returns nothing (the
 slot stays with the run: `Watch` returns while its receive loop may be blocked). Since
 2026-10-18 (the axiom audit: the model ran at most `n` streams in all, Go runs every one) the
 runtime's `n` slots are a pool (`grpcSlotPool S`, an invariant) that a run is given
 (`grpcStreamMethodOkR`) and may return its slot to from whichever thread frees it last
 (`grpcSlotPool_return`): the model bounds the runs holding a slot at once, not all runs.
 `grpcStreamMethodOk` (a run that keeps its slot) gives it (`grpcStreamMethodOk_R`). `Spec` is
-satisfiable per stream (`streamSpecOk`): the transport picks `Dn` with `□ Spec γ Dn` and gives a
+satisfiable per stream at every metadata (`□ ∀ md, streamSpecOk (Spec md)`): the transport picks `Dn` with `□ Spec γ Dn` and gives a
 copy to each end. Served by `grpc.serveStream` from `grpcStreamServerAt addr ics sregs` (an
 axiomatized token of the server's construction, beside the unary `grpcServerAt`), obtaining
-`grpcServesStream`; `isGrpcStream addr name Up Spec` is what a client needs.
+`grpcServesStream`; `isGrpcStreamMd addr name Up Spec` is what a client needs (`isGrpcStream`, its
+instance at a spec that ignores the metadata, the form of a registration with no auth).
 -/
 module
 
@@ -996,8 +998,8 @@ abbrev isGrpcStreams {Req Rep : StreamMsg GF} (addrs : List GoString) (name : Go
     (Up : GoString → Nat → Req.M → IProp GF) (Spec : GoString → StreamSpec Rep) : IProp GF :=
   isGrpcStreamsMd addrs name Up (fun a _ => Spec a)
 
-/-- A served stream handler that meets `Spec` registers it. -/
-theorem isGrpcStream_intro {Req Rep : StreamMsg GF} (addr name : GoString) (mh : val)
+/-- A served stream handler that meets `Spec` registers it (metadata-indexed). -/
+theorem isGrpcStreamMd_intro {Req Rep : StreamMsg GF} (addr name : GoString) (mh : val)
     (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF)
     (Spec : GrpcMd → StreamSpec Rep) :
     grpcServesStream addr name mh srv ics S ∗ grpcStreamMethodOkR mh srv ics S Up Spec ⊢
@@ -1032,7 +1034,7 @@ axiom grpc.serveStream (addr : GoString) (ics : List GoFunc)
   |={⊤}=> [∗list] m ∈ ms, grpcServesStream addr m.name m.handler m.srv ics S
 
 /-- **The streaming methods of a served server are registered** (`grpc.serveStream`,
-`isGrpcStream_intro`), for runs that keep their slots (`grpcStreamMethodOk`, as
+`isGrpcStreamMd_intro`), for runs that keep their slots (`grpcStreamMethodOk`, as
 `grpcStreamMethodOk_R`). -/
 theorem grpc_serveStream_rpcs (addr : GoString) (ics : List GoFunc)
     (sregs : List (GoString × val × GoInterface)) (ms : List (GrpcStreamMethod GF)) (S : IProp GF)
@@ -1055,7 +1057,7 @@ theorem grpc_serveStream_rpcs (addr : GoString) (ics : List GoFunc)
     (Φ := fun _ m => iprop(grpcServesStream addr m.name m.handler m.srv ics S ∗
       grpcStreamMethodOkR m.handler m.srv ics S m.Up m.spec))
     (Ψ := fun _ m => isGrpcStreamMd addr m.name m.Up m.spec)
-    (fun {_ m} => isGrpcStream_intro (GF := GF) addr m.name m.handler m.srv ics S m.Up m.spec)
+    (fun {_ m} => isGrpcStreamMd_intro (GF := GF) addr m.name m.handler m.srv ics S m.Up m.spec)
   iapply Hm
   iapply BigSepL.bigSepL_sep_eqv.2
   isplitl [Hsv]

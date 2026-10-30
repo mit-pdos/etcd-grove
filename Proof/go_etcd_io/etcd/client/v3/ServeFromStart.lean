@@ -64,6 +64,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
   · iframe #
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
@@ -137,6 +138,7 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
         [∗list] _x ∈ List.replicate K (), mvcc.watchReader C.wsl E.s C.γ := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
   · iframe #
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]

@@ -21,7 +21,9 @@ store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread
 `E.γ`), `Term()`/`Leader()` return (`raftStatusOk`), and its auth store (`isReqAuth`, A2's, and the
 apply package's `isAuthStore`, both at the reader resource `E.RD`, the latter in the store's mode
 `E.authOn`), with auth on the store's bound request side too (`isReqAuthBound`, the
-auth-mode merge, 2026-10-29).
+auth-mode merge, 2026-10-29), and (G2, 2026-10-30) the server's auth store at a reader's lower bound
+(`srvAuthLb`, what `isWatchPermitted` takes for a create's bound: `True` with auth off,
+`srvAuthLb_off`).
 
 **The watch server** (`isWatchServer p R`, persistent): `NewWatchServer`'s `*watchServer`, its
 fields fixed (`WSrv`: the server, its environment, the watchable store and its names, the cluster
@@ -43,6 +45,7 @@ public import Proof.errors.NewVar
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Proof.sync
@@ -150,7 +153,10 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
       srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authMode E.RW) ∗
-    watchVars ∗ mvcc.watchTokPool γ ∗ auth.modeTag γ.tag E.authMode)
+    watchVars ∗ mvcc.watchTokPool γ ∗ auth.modeTag γ.tag E.authMode ∗
+    -- (G2, 2026-10-30) the server's auth store at a reader's lower bound (what
+    -- `isWatchPermitted` takes for a create's bound)
+    srvAuthLb s E)
 
 instance watchSrvOk_persistent (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) :
     Persistent (watchSrvOk s E γ wsl) := by
