@@ -228,7 +228,8 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 update or none (see the file header). -/
 theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (Q : KVState → IProp GF) :
+    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map client.SrvAt.addr) V ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
@@ -261,7 +262,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   wp_pures
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
-      iprop(True) Q []) $$ [] as %resp %err ⟨-, Hout⟩
+      iprop(True) Q [] hsz) $$ [] as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel listFrom [withRangeM listTo]).base.sortSet = false from rfl]
@@ -291,7 +292,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     (ms : List (client.SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)
-    (hne : t ++ e ≠ []) :
+    (hne : t ++ e ≠ []) (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
@@ -339,7 +340,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
       exact intuitionistic_alias.trans (intuitionistically_mono (BigAndL.bigAndL_mono hm))
     ihave #Hau' := hbox $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin) $$ [Hobj]
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz) $$ [Hobj]
       as %resp %err Hout
     · iframe Hobj
       iframe #
@@ -386,7 +387,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [hw]
         iExactEq H; rfl
     ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin)
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz)
       $$ [Hobj Hau' Hone]
       as %resp %err Hout
     · iframe Hobj

@@ -43,7 +43,7 @@ abbrev Client.OptimisticPut.spec : Prop :=
     (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (vsl : GoSlice) (val : GoString) (rev : w64)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (Q : KVState → IProp GF),
-  opts.LeaseID' = W64 0 →
+  opts.LeaseID' = W64 0 → key.length ≤ 2 ^ 27 → val.length ≤ 2 ^ 28 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗

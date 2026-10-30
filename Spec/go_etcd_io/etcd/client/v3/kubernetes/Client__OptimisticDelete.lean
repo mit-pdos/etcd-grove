@@ -44,6 +44,7 @@ abbrev Client.OptimisticDelete.spec : Prop :=
     (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (rev : w64)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (Q : KVState → IProp GF),
+  key.length ≤ 2 ^ 27 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗

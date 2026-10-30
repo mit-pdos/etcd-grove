@@ -45,7 +45,7 @@ theorem Client.OptimisticDelete.wp_proof
     (wp_Compare : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
     (wp_kvFromTxnResponse : kvFromTxnResponse.spec (GF := GF) (hG := hG)) :
     Client.OptimisticDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key rev opts Q
+  intro _ _ kc ms V ci cd key rev opts Q hk
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, Hau⟩
   wp_auto
   ihave #Hnil0 := optsAt_nil (GF := GF)
@@ -129,7 +129,8 @@ theorem Client.OptimisticDelete.wp_proof
       simp [TxnModel.empty, clientTxn, linkv.cmpOf, compareM, cmpKeyM, clientTOp]
     (try wp_auto)
     wp_apply (txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.del key] [], true, true, false⟩
-        Q [.mod key rev] [.del key] [] rfl (by simp)) $$ [Hobj Hau Htwo]
+        Q [.mod key rev] [.del key] [] rfl (by simp)
+        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inl rfl) hk (by simp))) $$ [Hobj Hau Htwo]
       as %resp %err Hout
     · iframe #
       iframe
@@ -207,7 +208,8 @@ theorem Client.OptimisticDelete.wp_proof
     (try wp_auto)
     wp_apply (txn_Commit_st tp ms ci cd
         ⟨clientTxn [.mod key rev] [.del key] [.get key], true, true, true⟩
-        Q [.mod key rev] [.del key] [.get key] rfl (by simp)) $$ [Hobj Hau Htwo]
+        Q [.mod key rev] [.del key] [.get key] rfl (by simp)
+        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inr rfl) hk (by simp))) $$ [Hobj Hau Htwo]
       as %resp %err Hout
     · iframe #
       iframe
