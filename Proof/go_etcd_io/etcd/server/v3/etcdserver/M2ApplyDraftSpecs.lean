@@ -5,9 +5,15 @@ nothing; no `axiom`, no `sorry`; nothing switched. Generated from today's texts
 
 - `NewServer.specD`: `NewServer.spec` merged with `NewServer.specCompact` (one statement, the mode
   the configuration's: `E₀.cmp = decide (retention ≠ 0)`), the KV invariant in the cluster's mode
-  (`kvInvD`), the KV's closer by the mode (`srvKVCloserM … (-1)`, the storage side's draft).
-- `EtcdServer.Compact.specD`: over the general `isServerReq` (the compaction family's
-  `isServerReqC` gone) in the cluster's compaction mode.
+  (`kvInvD`), the KV's closer by the mode (`srvKVCloserM … (-1)`, the storage side's draft, with
+  the inner store's right: `start` splits it, `srvKVCloserM_split`).
+- `EtcdServer.Compact.specD`: over the general request path's view in the server's mode
+  (`isServerReqD`, review round 1's F-3; the compaction family's `isServerReqC` gone) in compaction
+  mode.
+- **The closer without the right** (`srvKVCloserW`, review round 1's F-6): what `start` keeps for
+  the snapshot path once the right has gone to the apply thread (A2), the one the snapshot track's
+  `restorePre_of_applyM` takes; `srvKVCloserM_split` (proved): the closer by the mode at `c` is
+  `srvKVCloserW` and `apply.cmpRight E c`.
 -/
 module
 
@@ -25,7 +31,68 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+
+section closer
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The KV's closer without the compaction right** (review round 1's F-6; A2: the right lives
+with the apply thread, `apply.cmpOwn`): off, today's `srvKVCloser`; on, the watchable store's own
+parts of `mvcc.wsCloserR` (its stop channel's close and its waiter), without the inner store's
+right. What `start` keeps after splitting `NewServer`'s `srvKVCloserM srv E (-1)`, and what the
+snapshot track's `restorePre_of_applyM` takes beside `apply.cmpOwn` (the collaborator's draft,
+item 17). -/
+def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  if mvcc.kbCmpM E.γ.kb then
+    iprop(∃ wsl : Loc,
+      srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+      ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
+  else srvKVCloser s E
+
+/-- **`start`'s split** (G5, review round 1's F-6): the closer by the mode at `c` (at least `-1`)
+is the closer without the right and the apply thread's compaction right at `c`; and back (for the
+server's `Stop` path, or a restore that hands the right back). -/
+theorem srvKVCloserM_split (s : Loc) (E : apply.AEnv GF) (c : Int) :
+    srvKVCloserM (GF := GF) s E c ∗ ⌜-1 ≤ c⌝ ⊣⊢ srvKVCloserW s E ∗ apply.cmpRight E c := by
+  unfold srvKVCloserM srvKVCloserW apply.cmpRight
+  by_cases h : mvcc.kbCmpM E.γ.kb
+  · simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨⟨%wsl, #Hkv, Hcl⟩, %hc⟩
+      icases (mvcc.wsCloserR_iff wsl E.s E.γ c).1 $$ Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hr⟩
+      iframe Hr
+      isplitl [Hsc Hw]
+      · iexists wsl
+        iframe Hkv
+        iexists stc
+        iframe Hstc Hsc Hw
+      · ipureintro; exact hc
+    · iintro ⟨⟨%wsl, #Hkv, %stc, #Hstc, Hsc, Hw⟩, Hr, %hc⟩
+      isplitl [Hsc Hw Hr]
+      · iexists wsl
+        iframe Hkv
+        iapply (mvcc.wsCloserR_iff wsl E.s E.γ c).2
+        iexists stc
+        iframe Hstc Hsc Hw Hr
+      · ipureintro; exact hc
+  · simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨⟨Hcl, %hc⟩, -⟩
+      iframe Hcl
+      ipureintro; exact hc
+    · iintro ⟨Hcl, %hc⟩
+      iframe Hcl
+      isplitr
+      · ipureintro; exact hc
+      · ipureintro; omega
+
+end closer
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -156,7 +223,9 @@ abbrev NewServer.specD : Prop :=
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`; (M2, the
           -- apply side, Draft) by the mode, at the store's compaction revision `-1`
           -- (`srvKVCloserM`, the storage side's D22 draft: on, the watchable store's own parts and
-          -- the inner store's restorable right, `srvKVCloserM_of_new` after the last error return)
+          -- the inner store's restorable right, `srvKVCloserM_of_new` after the last error return;
+          -- `start` splits off the right for the apply thread, `srvKVCloserM_split`: review round
+          -- 1's F-6)
           srvKVCloserM srv E (-1) ∗
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
@@ -194,9 +263,10 @@ abbrev EtcdServer.Compact.specD : Prop :=
   -- item 35) a revision past `0`
   1 ≤ r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- (M2, the apply side, Draft: one family) the general request path's server, in the
-      -- cluster's compaction mode (at the switch `ρ.kv.cmp = true`; `envAgree` gives `E.cmp`)
-      isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
+      -- (M2, the apply side, Draft: one family) the general request path's server, its KV
+      -- invariant in the server's mode (`isServerReqD`: review round 1's F-3; at the switch
+      -- `isServerReq`, whose `srvReqFieldsAt` ties `ρ.kv.cmp = E.cmp`), in compaction mode
+      isServerReqD s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ srvRevLb E.γ r ∗
       compactReqIs p r }}

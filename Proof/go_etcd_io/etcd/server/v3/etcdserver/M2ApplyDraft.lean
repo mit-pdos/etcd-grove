@@ -9,20 +9,23 @@ compaction mode, one for every member: `envAgree` ties each member's `E.cmp` to 
   as a fact"): the committed entries plain or, in the cluster's compaction mode, compactions in
   M2's scope (`plainLogM`, `compactPropOkD`: at a revision `≥ 1`, Q7 (a); no side-effect-free or
   admin field beside it, so `Apply` neither skips nor rejects it); each committed compaction's
-  claims at the model of the entries before it (`cmpLogOk`: its revision one of the model's, no
-  delete-then-put at it); in compaction mode no delete-then-put at any revision of the model (the
-  `NoDelPutAt` premise of `store.Compact`, from the admitted writes until the fork takes
-  etcd-io/etcd#22377). At `cmp = false` it is today's `kvInv` (`kvInvD_off`).
+  claims at the model of the entries before it (`cmpLogOk`: in M2's scope, its revision one of the
+  model's). No `NoDelPutAt` (review round 1's F-5: stated in the fork fix's form; the switch waits
+  for mvcc's specs to drop the premise). At `cmp = false` it is today's `kvInv` (`kvInvD_off`).
 - **The compaction revision of the committed log** (`crevOf`, Q5 (a): logical across a restore):
   `kvEntry`'s twin (`kvCrevEntry`, `apply.dispatchCrev` per normal entry above the start's
   consistent index), from `-1`; monotone (`crevOf_mono`: the `c ≤ c'` the snapshot track's #8
   needs), `-1` on a plain log, `-1` or at least `1` (`crevOf_pos`: with `recsPos_crev`, #8's corner
   closed, Q7 (a)), and the apply thread's step (`crevOf_step`).
-- **The proposal's form** (`reqPropOkD`): today's write forms, each with `irrNoDelPut` in
-  compaction mode; or a compaction in M2's scope with a reached revision (`cmpReach`: a KV
-  certificate of a longer log, which `kvCertInv` makes a committed model log).
+- **The proposal's form** (`reqPropOkD`): today's forms; or, in compaction mode, a compaction in
+  M2's scope with a reached revision (`cmpReach`: a KV certificate of a longer log, which
+  `kvCertInv` makes a committed model log).
 - **The entry's facts at the apply thread** (`cmpEntryOk`, from `cmpLogOk` of a committed log:
-  `cmpLogOk_snoc_entry`) give the apply package's `cmpAdmit` (`cmpAdmit_of_entry`).
+  `cmpLogOk_snoc_entry`) give the apply package's `cmpAdmit` (`cmpAdmit_of_entry`) and the scope
+  `crevOf_step` needs (`compactPropOkD_of_entry`, review round 1's F-4).
+- **The request path's mode** (`isServerReqD`, review round 1's F-3): the request path's view with
+  its KV invariant in the server's mode (at the switch a conjunct `⌜ρ.kv.cmp = E.cmp⌝` of
+  `srvReqFieldsAt`, beside its `kvInv`).
 -/
 module
 
@@ -265,13 +268,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **What a committed compaction entry `m` after the log `A` claims** (pure): in the cluster's
-compaction mode only, at a revision of the model of `A` (no `ErrFutureRev`), with no
-delete-then-put at it (`mvcc.NoDelPutAt`, until etcd-io/etcd#22377 is in the fork). -/
+compaction mode only, in M2's scope (`compactPropOkD`: neither skipped nor rejected by `Apply`, so
+the apply thread's revision is the model's, `crevOf_step`; review round 1's F-4), at a revision of
+the model of `A` (no `ErrFutureRev`). No `NoDelPutAt` (F-5: the fork fix's form). -/
 def cmpEntryOk (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    apply.dispatchKind rq = .compaction → cmp = true ∧
-      ∀ r, rq.compaction = some r → sint.Z r < (kvModel γk A).length ∧
-        mvcc.NoDelPutAt (kvModel γk A) (sint.Z r)
+    apply.dispatchKind rq = .compaction → cmp = true ∧ compactPropOkD rq ∧
+      ∀ r, rq.compaction = some r → sint.Z r < (kvModel γk A).length
 
 /-- **Every compaction of `L` claims at the model before it.** -/
 def cmpLogOk (γk : KVNames) (cmp : Bool) (L : List EntryModel) : Prop :=
@@ -305,21 +308,26 @@ theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m 
     (hkb : cmp = true → mvcc.kbCmpM kb) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
     apply.cmpAdmit kb log rq := by
-  intro hk
-  obtain ⟨hc, hr⟩ := h ht hd rq hdec hk
+  intro hk r hr
+  obtain ⟨hc, -, hrl⟩ := h ht hd rq hdec hk
   subst hl
-  exact ⟨hkb hc, hr⟩
+  exact ⟨hkb hc, hrl r hr⟩
+
+/-- **The scope `crevOf_step` needs, from the entry's claims** (review round 1's F-4: its `hok`). -/
+theorem compactPropOkD_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
+    apply.dispatchKind rq = .compaction → compactPropOkD rq :=
+  fun hk => (h ht hd rq hdec hk).2.1
 
 /-! ## The KV invariant -/
 
 /-- **Draft of `kvInv`** (`InvRequest.lean`), in the cluster's compaction mode `cmp`: today's, its
-log plain in the mode (`plainLogM`), its compactions' claims (`cmpLogOk`), and in compaction mode
-no delete-then-put at any revision of its model. -/
+log plain in the mode (`plainLogM`) and its compactions' claims (`cmpLogOk`). -/
 def kvInvD (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
     ⌜plainLogM cmp L ∧ cmpLogOk γk cmp L ∧
-      (cmp = true → ∀ c, mvcc.NoDelPutAt (kvModel γk L) c) ∧
       srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft γk L)
 
@@ -328,13 +336,12 @@ instance kvInvD_persistent (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) :
   unfold kvInvD; infer_instance
 
 theorem kvInvD_off_pure (γk : KVNames) (L : List EntryModel) (Q : Prop) :
-    (plainLogM false L ∧ cmpLogOk γk false L ∧
-      (false = true → ∀ c, mvcc.NoDelPutAt (kvModel γk L) c) ∧ Q) ↔ (plainLog L ∧ Q) := by
+    (plainLogM false L ∧ cmpLogOk γk false L ∧ Q) ↔ (plainLog L ∧ Q) := by
   rw [plainLogM_false]
   constructor
-  · rintro ⟨h1, -, -, h4⟩; exact ⟨h1, h4⟩
+  · rintro ⟨h1, -, h4⟩; exact ⟨h1, h4⟩
   · rintro ⟨h1, h4⟩
-    exact ⟨h1, cmpLogOk_plain γk false L h1, fun h => absurd h (by decide), h4⟩
+    exact ⟨h1, cmpLogOk_plain γk false L h1, h4⟩
 
 /-- **At the mode off it is today's** (so every compaction-off statement over it reads as today). -/
 theorem kvInvD_off (γ : ServerRaftNames) (γk : KVNames) :
@@ -347,7 +354,11 @@ theorem kvInvD_off (γ : ServerRaftNames) (γk : KVNames) :
 /-- **A compaction's revision reached** (persistent): a KV certificate (`kvCert`: the model of a
 committed raft log, by `kvCertInv`; or one of the start's two revisions) of a log longer than it.
 What `reqPropOkD`'s compaction form carries to the commit, where the KV invariant records the
-revision as one of the model before the entry (`cmpLogOk`). -/
+revision as one of the model before the entry (`cmpLogOk`). The proposer's source (G2, review
+round 1's S-2): `srvRevLb E.γ r` (an `idxCert` of the proposer's store) is no `kvCert`; the
+closable form is mvcc's "the store's current committed log is `certOk`" (`revMuBody` already
+holds `certOk γ log` of its committed log beside the log's authority), exported as a law
+`idxCert γ l ⊢ ∃ l', certOk γ l' ∗ ⌜l <+: l'⌝` under the store's invariant: the Probe's. -/
 def cmpReach (γk : KVNames) (r : w64) : IProp GF :=
   iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝)
 
@@ -355,13 +366,11 @@ instance cmpReach_persistent (γk : KVNames) (r : w64) : Persistent (cmpReach (G
   unfold cmpReach; infer_instance
 
 /-- **Draft of `reqPropOk`** (`InvRequest.lean`), in the cluster's compaction mode `cmp`: today's
-forms, each, in compaction mode, deleting no key it puts again in its revision (`irrNoDelPut`: the
-`NoDelPutAt` the invariant keeps; a put and a delete meet it by their kind, a transaction by the
-`Txn` caller's premise, until the fork takes etcd-io/etcd#22377); or, in compaction mode, a
+forms (no `irrNoDelPut`: review round 1's F-5, the fork fix's form); or, in compaction mode, a
 compaction in M2's scope at a reached revision, its result trivial. -/
 def reqPropOkD (γk : KVNames) (cmp : Bool) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
-  iprop((reqPropOk γk rq Qr ∗ ⌜cmp = true → irrNoDelPut rq⌝) ∨
+  iprop(reqPropOk γk rq Qr ∨
     (⌜cmp = true ∧ compactPropOkD rq ∧ rqShapeD rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ cmpReach γk r))
@@ -371,13 +380,41 @@ theorem reqPropOkD_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMod
     reqPropOkD (GF := GF) γk false rq Qr ⊣⊢ reqPropOk γk rq Qr := by
   unfold reqPropOkD
   constructor
-  · iintro (⟨H, -⟩ | ⟨%h, -⟩)
+  · iintro (H | ⟨%h, -⟩)
     · iexact H
     · exact absurd h.1 (by decide)
   · iintro H
     ileft
+    iexact H
+
+/-! ## The request path's mode -/
+
+/-- **The request path's view in the server's compaction mode** (review round 1's F-3, G8): the
+general `isServerReq` and its KV invariant in the mode `E.cmp`, so that `E.cmp = true` gives a
+proposer `reqPropOkD`'s compaction form. At the switch `kvInv ρ.raft ρ.kv` is `kvInvD … ρ.kv.cmp`
+(item 5) and `srvReqFieldsAt` gains `⌜ρ.kv.cmp = E.cmp⌝`, made by `NewServer` from its
+`ρ.rd.kv.cmp = E₀.cmp` and `envAgree`; this definition is then `isServerReq` itself. -/
+def isServerReqD (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
+  iprop(isServerReq s E ρ ∗ kvInvD ρ.raft ρ.kv E.cmp)
+
+instance isServerReqD_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    Persistent (isServerReqD s E ρ) := by
+  unfold isServerReqD; infer_instance
+
+/-- **Off, today's** (`isServerReq` holds the off invariant already). -/
+theorem isServerReqD_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (h : E.cmp = false) :
+    isServerReqD (GF := GF) s E ρ ⊣⊢ isServerReq s E ρ := by
+  unfold isServerReqD
+  rw [h, kvInvD_off]
+  constructor
+  · iintro ⟨#H, -⟩; iexact H
+  · iintro #H
     iframe H
-    ipureintro; intro h; exact absurd h (by decide)
+    iunfold isServerReq at H
+    icases H with ⟨⟨%v, Hf⟩, -⟩
+    iunfold srvReqFieldsAt at Hf
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hkv, -⟩
+    iexact Hkv
 
 end claims
 

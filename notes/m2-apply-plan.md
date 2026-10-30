@@ -1,35 +1,24 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
-Status (2026-10-30, **checkpoint for a session handoff**): Draft written and checked; the user's
-answers Q1-Q4 recorded (end of file); **review round 1 done** (`notes/spec-first-study/
-m2-apply-review-1.md`, six first-tier findings F-1..F-6); nothing switched; nothing running.
+Status (2026-10-30): **review round 1 repaired** ("Review round 1: the repair", the last
+section): the six first-tier findings and the second tier's S-1, S-2 (reformulated), S-6/S-8 in
+the Drafts, checked and built; nothing switched; nothing running.
 
 **Resume here.**
 1. *Done so far.* Draft modules `etcdserver/apply/M2ApplyDraft.lean`, `etcdserver/M2ApplyDraft.lean`,
-   `etcdserver/M2ApplyDraftSpecs.lean` (imported by nothing; no `axiom`/`sorry`); full build of the
-   branch passes. The `NoDelPutAt` fork fix is **already on `lean`** since 2026-10-28 (fork branch
-   `goose-lean-compactfix`, pushed, `249d76bea`; pin `5d82727117`; proofs `7c8ef717ef`): what is left
-   is dropping the premise from the specs (`notes/STATUS.md`, "The delete-then-put fix in the fork:
-   what is left").
-2. *Next step: the round-1 repair* (one agent, on this branch), per the review: F-1 drop
-   `store.Compact`/`updateCompactRev`'s unreachable `ErrFutureRev` arm (an exported mvcc spec: needs
-   the user's approval; new gap G6, new item); F-2 the compaction result carries "error implies no
-   trace" (G7; keep `specCompact` until then); F-3 the tie `ρ.kv.cmp = E.cmp` in the request path's
-   view, made at `NewServer` (G8); F-4 `compactPropOkD` in `cmpEntryOk`; F-5 the items in their form
-   *without* `NoDelPutAt` (so dropping `NoDelPutAt` from mvcc's specs gates the whole switch, not only
-   `Txn`: correct the Q2 note); F-6 two closer predicates (with/without the right) or the right as its
-   own conjunct; second tier: a mode-indexed `dispatchOkM` instead of redefining `dispatchOk` in place
-   (keeps the off texts), `specRec`, `bootKV`/`bootKVOf` naming `ApplyKV.crev`, the unlisted
-   dependencies (the storage side's `srvEnvOkD` first; Q4's interim texts). Q3 (G2): the law as
-   phrased is false (a restore certifies only the image's log); use "the store's current committed log
-   is certified".
-3. *Then* review round 2; then the user's approval batch: Q5 (items, per round 1's verdict table),
+   `etcdserver/M2ApplyDraftSpecs.lean` (imported by nothing; no `axiom`/`sorry`), repaired for review
+   round 1 (`notes/spec-first-study/m2-apply-review-1.md`); targeted build passes. The `NoDelPutAt`
+   fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
+   so dropping the premise from mvcc's specs gates the switch (F-5).
+2. *Next step: review round 2* (a fresh `spec-reviewer`, on this branch's Drafts and the repair
+   section below, against round 1's report), then its repair.
+3. *Then* the user's approval batch: Q5 (items 1-16 as repaired, and the new items 18-21 below),
    dropping `NoDelPutAt` from mvcc/server specs (`store.Compact.spec`, `compactLockfree`,
    `updateCompactRev`, `crevSafe`/`delKey`/`compactJobPre`, `CompactMode`'s clause, `irrNoDelPut`;
-   `check_gives_nodup`'s `noFromKeyDelL` needs a proof attempt), F-1's new item.
+   `check_gives_nodup`'s `noFromKeyDelL` needs a proof attempt), F-1's `ErrFutureRev` arm (item 18).
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
-   `notes/m2-storage-plan.md`).
+   `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
 
 **Environment.** Worktree `/shared/etcd-grove-m2a` (branch `m2-apply`, local, unpushed; its
 `.lake/build` is a fresh full build). Build with `lake build --packages=<manifest>` where the manifest
@@ -365,3 +354,32 @@ The fix: etcd-io/etcd#22377 (`keyIndex.doCompact`) and #22395 (the gRPC path) in
 - **Q4:** `NewServer.spec` and `specCompact` stay separate until the compaction-on case is proved,
   then merge in one step.
 - **Q5** (approve items 1-16) waits for the review round.
+
+## Review round 1: the repair (2026-10-30)
+
+The report: `notes/spec-first-study/m2-apply-review-1.md`. All in the three Drafts; checked
+(`etc/lean-check.py -a` on each) and built (`lake build` of the three, 3817 jobs, no error, no
+warning in them); no `axiom`, no `sorry`, nothing switched.
+
+| finding | repair |
+|---|---|
+| **F-1** `cmpTriple` unprovable over `store.Compact.spec`'s `ErrFutureRev` arm | **item 18** (new, mvcc, exported `mvcc_store_Compact`): `mvcc.store.updateCompactRev.specD` and `mvcc.store.Compact.specD` without the `ErrFutureRev` arm (and without `NoDelPutAt`, F-5). Why it is provable: in that branch the store holds its committed log's authority (`revMuBody`'s `idxLogAuth γ.idx (revQ γ q) log`), which extends the caller's certificate (`idxLogAuth_cert_prefix`), so the caller's `rev < |log₀|` gives `rev ≤ currentRev`: `cmp_not_future` (proved) is the step; the re-proof of `updateCompactRev` replaces its `ErrFutureRev` branch by that contradiction (gap **G6**, cheap). `cmpTriple`'s and `Compaction.specD`'s backend proof then rests on `specD`. |
+| **F-2** the compaction's result loses "no trace on an error" | `dispatchAnswerD` takes the result's trace: the compaction's error arm `rp = null ∧ err ≠ nil ∧ tr = null`; `dispatchResultD` passes `v.Trace'`, `applyResultIsD` over it; `dispatch.specD`, `Apply.specD` (and `specRecD`) use them; `dispatchAnswerD_nonCmp` (proved: another kind reads as today). Gap **G7** closed in the text; `specCompact` stays until the switch. |
+| **F-3** `Compact.specD`'s `E.cmp = true` does not reach the KV invariant's mode | `isServerReqD s E ρ := isServerReq s E ρ ∗ kvInvD ρ.raft ρ.kv E.cmp` (**item 19**: at the switch a conjunct `⌜ρ.kv.cmp = E.cmp⌝` of `srvReqFieldsAt`, made by `NewServer` from `ρ.rd.kv.cmp = E₀.cmp` and `envAgree`); `isServerReqD_off` (proved: off, `isServerReq` itself). `Compact.specD` takes `isServerReqD s E ρ ∗ ⌜E.cmp = true⌝`. Gap **G8**: `NewServer`'s proof makes the tie. |
+| **F-4** `applyEntryNormal` has no source for `compactPropOkD` | `cmpEntryOk`'s compaction case carries `compactPropOkD rq`; `compactPropOkD_of_entry` (proved) is `crevOf_step`'s `hok`. `reqPropOkD`'s compaction form already has it, so G4 records it at the commit. |
+| **F-5** items 5/6 cannot precede the fork fix | the items in the fix's form: `cmpAdmit` (and the new `cmpAdmitRev`), `cmpTriple`, `Compaction.specD`, `cmpEntryOk`, `kvInvD` (its `NoDelPutAt` conjunct gone), `reqPropOkD` (its first disjunct `reqPropOk` alone) have no `NoDelPutAt`; G3 and item 16 are moot. **The plan's Q2 note was wrong**: dropping `NoDelPutAt` from mvcc's specs (STATUS, "The delete-then-put fix in the fork: what is left") gates the whole switch, not only `Txn`'s item. |
+| **F-6** item 14 inconsistent with A2 | two predicates: `NewServer`'s post keeps `srvKVCloserM srv E (-1)` (with the right, the storage side's draft); **item 20**, `srvKVCloserW s E` (off `srvKVCloser`; on the watchable store's own parts, no right), what `start` keeps and the snapshot track's `restorePre_of_applyM` takes; `srvKVCloserM_split` (proved): `srvKVCloserM s E c ∗ ⌜-1 ≤ c⌝ ⊣⊢ srvKVCloserW s E ∗ apply.cmpRight E c`, `start`'s step (G5). Under Q4, `specCompact`'s post must hand out `srvKVCloserM` too (today `srvKVCloser`): part of item 14's merge. |
+| S-1 `dispatchOk` redefined in place | `dispatchOk` stays; **item 1 is now `dispatchOkM cmp on rq`** (`dispatchOk` off, `dispatchOkD` on; `dispatchOkM_false` by `rfl`, `dispatchOkM_of`), at `E.cmp` in the uber's specs, at the mode in `entryOkM`/`rqShape` (through `logShapeM`) at the switch. **Item 21**: `apply.Apply.specRecD` (drafted, the compaction arm threaded as in `Apply.specD`). The off texts of items 12/13 read as today through `dispatchOkM_false`. |
+| S-2 G2's law, as phrased, unprovable | reformulated in `cmpReach`'s docstring: the store's current committed log is `certOk` (**`revMuBody` already holds `certOk γ log` beside the log's authority**, so the invariant exists), and the law `idxCert γ l ⊢ ∃ l', certOk γ l' ∗ ⌜l <+: l'⌝` under the store's invariant; whether a caller holding only `storeReaderC` can reach it is the Probe's. |
+| S-3 `crevOf_step`'s hypotheses | `hch` from `kvApplied` (the start's chain), `hv3` the spec's premise, `hok` from `compactPropOkD_of_entry` (F-4). |
+| S-4 unlisted dependencies | listed: `srvEnvOkD` (the storage side's draft) switches first; `KVNames.cmp` and the tie (item 19); the interim texts under Q4 (`NewServer.spec` at `ρ.rd.kv.cmp = false`, `specCompact` at `true` with `srvKVCloserM`); `compactableOk_server` restated over `isServerReqD`; the examples' allocation at the mode; a lemma `compactPropOkD (withHeader rq hm)` (for the glue). |
+| S-5 `ApplyKV.crev`'s default and `⟨log, chain⟩` | noted for the switch: `bootKV`/`bootKVOf` and positional `ApplyKV`s name the field. |
+| S-6 `NewServer.specD`'s off reading | needs an exported `kbCmpM E.γ.kb ↔ E.γ.cm` (`srvEnvOkD_mode_step`'s second half, at the start); for item 14's merge. |
+| S-7 G1 | unchanged (needs item 19's tie). |
+| S-8 the repeated admission | `cmpAdmitRev kb log rev := kbCmpM kb ∧ rev < |log|`, used by `cmpAdmit`, `cmpTriple`, `Compaction.specD`. |
+
+New items for Q5: **18** (`store.updateCompactRev`/`store.Compact` without `ErrFutureRev`),
+**19** (`srvReqFieldsAt`'s `ρ.kv.cmp = E.cmp`), **20** (`srvKVCloserW`), **21** (`Apply.specRec`'s
+compaction arm). Items 1 (now `dispatchOkM`), 2 (the trace), 3 (no `NoDelPutAt`, `cmpAdmitRev`), 5,
+6, 9, 10, 12 (F-4's claim) changed as above; 16 withdrawn (Q2).
+
