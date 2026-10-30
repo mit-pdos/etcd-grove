@@ -1544,6 +1544,9 @@ results see them:
   `srvDynLog` the positional policy unconditionally. `srvNet`'s `dup` by `msgCredits_intro`;
   `srvMsgNet_bundle` without `leaderTransferOff`; `rnEnvOk`: `rule = srvRule` (no cap);
   `rnEnvOk_of_cluster(On/M)` likewise.
+- **`rnEnvOk`'s message clause** (stage P, P2; trusted premise weakened; coordinator-approved while the
+  user was away, for the user's review): `∗ ⌜st.msg.Type' ≠ MsgSnap⌝` in the antecedent (the
+  `node_contract*` results' premise; "Repair: Stage P changes").
 - **Instance arguments**: sections that lacked a package assumption got raft's
   (`[go_etcd_io.raft.v3.Assumptions]`, implied by the server's `import_raft_Assumption`): the
   server's predicates are over raft's storage model now. One exported section of `Results.lean`
@@ -1724,3 +1727,11 @@ Internal invariant/statement changes decided during stage P (by the stage P lead
   (the sealed API has `_addVoter`, `_nodeZero`, `_removeVoter`, `_removeAbsent` only). Under D3 no
   `RemoveNode` is ever committed: callers discharge it with the new `srv_noRemovedIn` (`srvRaftLogInv`
   and a committed bound). Affects only `EtcdServer__apply.lean`'s two calls (S-D).
+- **P2 `rnEnvOk`'s message clause** (`InvRaftNode`; **trusted premise weakened; coordinator-approved while
+  the user was away, for the user's review**): the antecedent gains `∗ ⌜st.msg.Type' ≠ MsgSnap⌝`
+  (`msgOwn m □ st ∗ sentMsg … ∗ msgCredits … ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ -∗ E.M m`). Why: the server's
+  `E.M` holds `srvMsgNoSnap`, discharged until the snapshot revision by `srv_sentMsg_notSnap`, now
+  false (raft sends `MsgSnap`s); `rnEnvOk_of_cluster(On/M)` were unprovable. The only consumer,
+  `rnMsgOk_of_api`, reads the clause in its non-`MsgSnap` branch; `MsgSnap`s go through `rnSnapMsg`/
+  `msgSnapC` (SNAPSHOT-SORRY #4/#5). `rnEnvOk` is a premise of the exported `node_contract*` results
+  (`Results.lean`), which become stronger.
