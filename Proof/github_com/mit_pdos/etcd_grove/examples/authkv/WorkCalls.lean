@@ -203,6 +203,99 @@ theorem kvShapeAll_irrTxn (tw : txn.TxnModelW)
   · exact opsPerms_shape _ (fun op hop => ho op (List.mem_append_left _ hop)) x hx
   · exact opsPerms_shape _ (fun op hop => ho op (List.mem_append_right _ hop)) x hx
 
+/-! ### `Work`'s transactions T1–T3 -/
+
+/-- `OpPut(k, v)`'s model operation. -/
+theorem txnOpOf_put (k v : GoString) : txnOpOf (opPutModel k v []) = some (.put k v (W64 0)) := by
+  simp [txnOpOf, opPutModel, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero]
+
+theorem not_putPanics (k v : GoString) : ¬ (opPutModel k v []).putPanics := by
+  simp [OpFull.putPanics, opPutModel, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero]
+
+/-- `OpGet(lo, WithRange(hi))`'s model operation. -/
+theorem txnOpOf_get_ab :
+    txnOpOf (opGetModel lo [withRangeM hi]) = some (.get (opGetModel lo [withRangeM hi])) := by
+  simp [txnOpOf, opGetModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero, withRangeM]
+
+/-- What `work_commit` asks of a transaction's model. -/
+def akTxnOk (m : TxnModel) : Prop :=
+  TxnModel.plain (txnWireOf m) ∧ txnModelIn (txnWireOf m) ∧
+  (∀ tw : txn.TxnModelW, tw.toModel = txnWireOf m → kvShapeAll (irrTxn tw)) ∧
+  txn.txnReadonly (txnWireOf m) = false ∧
+  (txn.txnPlain (txnWireOf m) ∧ txnNoZeroEnd (txnWireOf m))
+
+/-- T1: `Then(OpPut(k1, v), OpGet(lo, WithRange(hi)))`. -/
+def t1M (k v : GoString) : TxnModel :=
+  { cmps := [], thenOps := [.put k v (W64 0), .get (opGetModel lo [withRangeM hi])], elseOps := [] }
+
+/-- T2: `Then(OpPut(k1, v), OpPut(k2, v))`. -/
+def t2M (k1 k2 v : GoString) : TxnModel :=
+  { cmps := [], thenOps := [.put k1 v (W64 0), .put k2 v (W64 0)], elseOps := [] }
+
+/-- T3: `If(c).Then(OpPut(k1, v)).Else(OpPut(k2, v))`. -/
+def t3M (c : CmpModel) (k1 k2 v : GoString) : TxnModel :=
+  { cmps := [c], thenOps := [.put k1 v (W64 0)], elseOps := [.put k2 v (W64 0)] }
+
+theorem t1M_ok (k v : GoString) (hk : k ≠ []) : akTxnOk (t1M k v) := by
+  refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
+  · intro op hop; simp [t1M, txnWireOf, opWire] at hop; rcases hop with rfl | rfl <;> trivial
+  · intro op hop; simp [t1M, txnWireOf] at hop
+  · intro o ho
+    simp [t1M, txnWireOf, opWire] at ho
+    subst ho
+    simp [rangeWireOf, txn.rangeOpOf, opGetModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero, withRangeM,
+      txn.cutEarly, OpFull.effSortOrder, sortOrderWire, sortTargetWire]
+  · intro tw htw
+    refine kvShapeAll_irrTxn tw (by rw [htw]; simp [t1M, txnWireOf]) ?_
+    rw [htw]
+    intro op hop
+    simp [t1M, txnWireOf, opWire] at hop
+    rcases hop with rfl | rfl
+    · exact hk
+    · simp only [opShapeOk]
+      exact ⟨by decide, Or.inr (Or.inr (by decide))⟩
+  · simp [t1M, txnWireOf, opWire, txn.txnReadonly, txn.opIsGet]
+  · simp [t1M, txnWireOf, opWire, txn.txnPlain, txn.opsPlain, txn.opPlain, rangeWireOf,
+      txn.rangeOpOf, opGetModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero, withRangeM]
+  · refine ⟨by simp [t1M, txnWireOf], ?_, by simp [t1M, txnWireOf, txnOpsNoZeroEnd]⟩
+    simp [t1M, txnWireOf, opWire, txnOpsNoZeroEnd, txnOpNoZeroEnd, rangeWireOf, txn.rangeOpOf,
+      opGetModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero, withRangeM]
+
+theorem t2M_ok (k1 k2 v : GoString) (hk1 : k1 ≠ []) (hk2 : k2 ≠ []) : akTxnOk (t2M k1 k2 v) := by
+  refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
+  · intro op hop; simp [t2M, txnWireOf, opWire] at hop; rcases hop with rfl | rfl <;> trivial
+  · intro op hop; simp [t2M, txnWireOf] at hop
+  · intro o ho; simp [t2M, txnWireOf, opWire] at ho
+  · intro tw htw
+    refine kvShapeAll_irrTxn tw (by rw [htw]; simp [t2M, txnWireOf]) ?_
+    rw [htw]
+    intro op hop
+    simp [t2M, txnWireOf, opWire] at hop
+    rcases hop with rfl | rfl
+    · exact hk1
+    · exact hk2
+  · simp [t2M, txnWireOf, opWire, txn.txnReadonly, txn.opIsGet]
+  · simp [t2M, txnWireOf, opWire, txn.txnPlain, txn.opsPlain, txn.opPlain]
+  · simp [t2M, txnWireOf, opWire, txnNoZeroEnd, txnOpsNoZeroEnd, txnOpNoZeroEnd]
+
+theorem t3M_ok (c : CmpModel) (k1 k2 v : GoString) (hc : auth.reqShape c.key c.rangeEnd)
+    (hc0 : c.rangeEnd ≠ [W8 0]) (hk1 : k1 ≠ []) (hk2 : k2 ≠ []) : akTxnOk (t3M c k1 k2 v) := by
+  refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
+  · intro op hop; simp [t3M, txnWireOf, opWire] at hop; subst hop; trivial
+  · intro op hop; simp [t3M, txnWireOf, opWire] at hop; subst hop; trivial
+  · intro o ho; simp [t3M, txnWireOf, opWire] at ho
+  · intro tw htw
+    refine kvShapeAll_irrTxn tw (by rw [htw]; simpa [t3M, txnWireOf] using hc) ?_
+    rw [htw]
+    intro op hop
+    simp [t3M, txnWireOf, opWire] at hop
+    rcases hop with rfl | rfl
+    · exact hk1
+    · exact hk2
+  · simp [t3M, txnWireOf, opWire, txn.txnReadonly, txn.opIsGet]
+  · simp [t3M, txnWireOf, opWire, txn.txnPlain, txn.opsPlain, txn.opPlain]
+  · simpa [t3M, txnWireOf, opWire, txnNoZeroEnd, txnOpsNoZeroEnd, txnOpNoZeroEnd] using hc0
+
 /-- No events after the state's revision. -/
 theorem revEvents_after (σ : KVState) (r : Nat) (hr : σ.rev < r) : σ.revEvents r = [] := by
   unfold KVState.revEvents
@@ -250,14 +343,14 @@ theorem get_ab_ok : (¬ opGetPanics [withRangeM hi] ∧ (opGetModel lo [withRang
     (opGetModel lo [withRangeM hi]).base.sortSet = false ∧
     (rangeWireOf (opGetModel lo [withRangeM hi])).key = lo ∧
     (rangeWireOf (opGetModel lo [withRangeM hi])).base.rangeEnd = hi :=
-  ⟨⟨by simp [opGetPanics, opFold, withRangeM, OpFull.newOp], rfl⟩, rfl, rfl, rfl⟩
+  ⟨⟨by simp [opGetPanics, opFold, withRangeM, OpFull.newOp, OpModel.zero], rfl⟩, rfl, rfl, rfl⟩
 
 /-- `Get("c/", WithPrefix())`: the range `[c/, c0)`. -/
 theorem get_c_ok : (¬ opGetPanics [withPrefixM] ∧ (opGetModel go!"c/" [withPrefixM]).t = W64 1) ∧
     (opGetModel go!"c/" [withPrefixM]).base.sortSet = false ∧
     (rangeWireOf (opGetModel go!"c/" [withPrefixM])).key = go!"c/" ∧
     (rangeWireOf (opGetModel go!"c/" [withPrefixM])).base.rangeEnd = go!"c0" :=
-  ⟨⟨by simp [opGetPanics, opFold, withPrefixM, OpFull.newOp], rfl⟩, rfl, rfl, by decide⟩
+  ⟨⟨by simp [opGetPanics, opFold, withPrefixM, OpFull.newOp, OpModel.zero], rfl⟩, rfl, rfl, by decide⟩
 
 /-- `Get(lo, WithRange("d"))`: the range `[a, d)`. -/
 theorem get_past_ok :
@@ -265,7 +358,7 @@ theorem get_past_ok :
     (opGetModel lo [withRangeM go!"d"]).base.sortSet = false ∧
     (rangeWireOf (opGetModel lo [withRangeM go!"d"])).key = lo ∧
     (rangeWireOf (opGetModel lo [withRangeM go!"d"])).base.rangeEnd = go!"d" :=
-  ⟨⟨by simp [opGetPanics, opFold, withRangeM, OpFull.newOp], rfl⟩, rfl, rfl, rfl⟩
+  ⟨⟨by simp [opGetPanics, opFold, withRangeM, OpFull.newOp, OpModel.zero], rfl⟩, rfl, rfl, rfl⟩
 
 /-- **A read of `[a, b)` granted at `setupSt` to a user of `who`'s is `u`'s.** -/
 theorem read_ab_u (who : GoString)
