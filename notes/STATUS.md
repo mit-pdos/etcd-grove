@@ -512,6 +512,10 @@ context has no outgoing metadata; the user's choice). F-S2 part 1 is in: the axi
 not yet read by the attempt contract, so no result rests on it; part 2 (the auth refusals' identity
 in the error branches) makes `etcd_noRefusal` a theorem. Then `applyEntryNormal`'s variant families, which block `apply` and the
 chain above it (drafts on branch `auth-mm-apply-wip`).
+H5 (branch `h5-tie`, 2026-10-30): the auth store's history capped and tied to the committed log
+(`authHistTie`, in `srvKVInvsOn`; decisions, "H5: the auth history's cap, tied to the log"), with
+authkv's read law `authStateAt_setup` (`AuthTieRead.lean`) proved; full build, trust base unchanged.
+`Main`'s read half can now take the law from the tie instead of a premise.
 
 ## Two compaction-path axioms refuted (2026-10-29)
 

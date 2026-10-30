@@ -25423,3 +25423,45 @@ auth history, not an abstract `Q` the client chooses.
 - **Not here:** `ClientCertAuthEnabled ↦□ false` tied to the started member's config (the premise
   `□ (srvTLSId s -∗ False)`'s source) is `Main`'s, with the rest of its proof: `memberUpOn`
   exposes the config `cfg` but not that the server's field is `cfg.ClientCertAuthEnabled'`.
+
+## H5: the auth history's cap, tied to the log (2026-10-30, the auth-mode merge's 5b, candidate 3)
+
+User-approved (candidate 3, after three review rounds). The auth store's recorded states are the
+model's history along a committed log, so a client that froze the history (`authHistFrozen`) reads
+the frozen state at every later index of the store (`authStateAt_setup`), which `Main`'s read half
+needs. No axiom, no `sorry`.
+- **The cap** (`auth/`): `AuthNames.cap`, a mono-list (`capAuth`, `capLb`). The history's authority
+  is split three ways: ½ `authHistHalf` (admin side), ¼ the lock's, ¼ `authHistRev` kept by the
+  revision invariant's `revCur` with `capLb` at the same history. Every append needs `capNext M hs
+  st'` (the cap already at `hs ++ [st']`), so every op spec takes `capNextM M hs R` beside its step
+  relation (`AuthEnable`'s at the state's own flag, `authEnableOwnR`). `authOwn_capped`,
+  `authStateAt_capped`: the store's states are below the cap. `bootState` moved to `Steps.lean`
+  (`Boot.lean` is too heavy for the server's files to import).
+- **The apply layer**: the cap permission is threaded through `isAuthSteps(X)` and the step/fuel
+  specs; the dispatch's extra precondition takes the history (`apply.adminExtra E γa rq hs Pre`,
+  `AdminReq.extraPre`), and above the dispatch it is guarded by the admission check's verdict
+  (`apply.adminExtraG := ⌜adminPassL E.authMode hs rq⌝ -∗ adminExtra …`). The callbacks of
+  `applierAdmL`/`authApplierV3.Apply.specL` gain `⌜adminPassL …⌝`: true of the Go
+  (`IsAdminPermitted` runs before `applyFunc`). Round 2's finding: an unguarded `∀ hs` premise
+  cannot be proved by the server, whose cap covers its own `hs` only.
+- **The tie** (`authHistTie E ρ st₀`, `KVApplyOn.lean`): the store's invariant, and an invariant
+  (`authTieN`) that the cap is `bootState :: admStates A` for a committed `A` (`srvRLogLb`). It is
+  a conjunct of `srvKVInvsOn` (so `Start.specOn`'s post carries it through `isServerBuiltOn`
+  without a textual change; `srvKVInvsM` is now defined by cases on the mode), allocated in
+  `NewServer` from the kit's new output `authCapM` (`authHistTie_alloc`).
+- **No history parameter through the apply thread.** Candidate 3 sketched a pin `hs = admStates A`
+  in `kvAppliedOn`; instead the pin is derived where it is needed, at the admin entry
+  (`authHistTie_raise`, `AuthTie.lean`): the store's history is below the cap (`authOwn_capped`),
+  the cap is the history of a committed `A₀`, comparable with `A ++ [m]` (`srvRLogLb_prefix`); the
+  log's history has no state twice (`srvHist_nodup`: `authOrd`, twice the revision plus the flag,
+  strictly increases along recorded steps), so a prefix ending at `A`'s last state is `A`'s history
+  (`prefix_eq_of_last`). The apply thread raises the cap to `A ++ [m]` and gives the step its
+  permission. Fewer files change (no `kvAppliedOn` edit).
+- **The read law** (`authStateAt_setup`, `AuthTieRead.lean`): the frozen `hs` is `kvInvOn`'s
+  `admStates L` (`authHistFrozen_adm`); every recorded state is in `bootState :: hs`, where
+  `last hs` sits only at the last index. No `setupFrozenOk` needed (round 3), so `SetUp.spec` does
+  not change. Its masks are separate premises (holding at `⊤`, authkv's ask); one more than the
+  plan's: `↑srvRaftN` (turning the tie's committed-log bound into a requested-log one,
+  `srvReqLogLb_of_rlogLb`). The alternative, a requested-log bound in the tie, would rework the
+  raise law.
+- **Locked in:** a snapshot is never restored with auth on (already true; the tie needs it).
