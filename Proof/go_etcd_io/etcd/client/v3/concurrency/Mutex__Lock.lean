@@ -53,7 +53,7 @@ theorem Mutex.Lock.wp_proof
     as %resp %err Hres
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
-  icases Hm' with ⟨#Hms, #Hmpfx, %Hpfx, #Hsess, #Hcl⟩
+  icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   icases Hres with (⟨%Hne, %key0, Hst⟩ | ⟨%Hnil, %key, %rev, %r, %hdr, Hst, #Hr, #Hacq, %Hp⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with

@@ -260,7 +260,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   wp_start as ⟨#He, #Hctx, #Hcc, #Hch, Hprod, Hauth, #HRl, %HL, %HRl0⟩
   ihave #He' := He
   iunfold isElection at He'
-  icases He' with ⟨#Hes, #Hepfx, %Hpfx, #Hsess, #Hcl⟩
+  icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

@@ -31,7 +31,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
-  icases Hm' with ⟨#Hms, #Hmpfx, %Hpfx, #Hsess, #Hcl⟩
+  icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   ihave Hci : (concurrencyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, -, ⟨%eL, #HeL⟩, -⟩

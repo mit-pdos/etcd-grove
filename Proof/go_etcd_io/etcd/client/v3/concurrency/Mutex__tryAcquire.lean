@@ -49,7 +49,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
-  icases Hm' with ⟨#Hms, #Hmpfx, %Hpfx, #Hsess, #Hcl⟩
+  icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   unfold mutexState
   icases Hst with ⟨Hk, Hrv, Hh⟩
   wp_auto

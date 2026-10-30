@@ -95,7 +95,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   wp_start as ⟨#He, Hst, #Hctx, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
-  icases He' with ⟨#Hes, #Hepfx, %Hpfx, #Hsess, #Hcl⟩
+  icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   unfold electionState
   icases Hst with ⟨Hk, Hrv, Hls, Hh, %Hsess⟩
   wp_auto

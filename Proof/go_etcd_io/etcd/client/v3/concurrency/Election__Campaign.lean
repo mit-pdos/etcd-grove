@@ -216,7 +216,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   wp_start as ⟨#He, Hst, #Hctx, #Hcc, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
-  icases He' with ⟨#Hes, #Hepfx, %Hpfx, #Hsess, #Hcl⟩
+  icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   iunfold electionState at Hst
   icases Hst with ⟨Hk, Hrv, Hls, Hh, %Hsess0⟩
   wp_auto

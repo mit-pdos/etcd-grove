@@ -70,7 +70,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
   icases Hrr with ⟨%ksl, %kps, %kvs, #HK, #Hkps, #Hkv, %Hok, -⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
-  icases Hm' with ⟨#Hms, #Hmpfx, %Hpfx, #Hsess, #Hcl⟩
+  icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   obtain ⟨w0, rfl, hw0, hmin⟩ := ownerOp_kvs pfx key rev s0 kvs Hpfx Hwf.1 Hwf.2 Hok
   iunfold kvPtrsAt at Hkv
   icases Hkv with ⟨%Hkl, #Hkv⟩

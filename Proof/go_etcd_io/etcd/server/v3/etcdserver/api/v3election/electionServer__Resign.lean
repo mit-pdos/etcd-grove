@@ -82,7 +82,7 @@ theorem electionServer.Resign.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %name
   wp_apply hRE s γ c id name key rev $$ [$Hcpkg $Hss $Hmc'] as %e ⟨#He, Hest⟩
-  · ipureintro; exact Hne
+  · ipureintro; exact ⟨Hne, Nat.le_of_lt (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.1)⟩
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hER e s γ c id name { key := key, rev := rev, sess := s, hdr := null } ctx cs (W64 0) $$

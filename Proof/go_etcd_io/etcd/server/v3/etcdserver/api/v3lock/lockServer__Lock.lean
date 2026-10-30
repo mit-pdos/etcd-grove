@@ -98,6 +98,7 @@ theorem lockServer.Lock.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %(name ++ go!"/")
   wp_apply hNM s γ c id name $$ [$Hcpkg $Hss $Hmc'] as %m ⟨#Hm, Hmst⟩
+  · ipureintro; exact v3rpc.grpcRecvBytesOk.lt Hrecv.1 Hrecv.2
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hML m s γ c id (name ++ go!"/") MutexSt.init ctx cs (W64 0) $$

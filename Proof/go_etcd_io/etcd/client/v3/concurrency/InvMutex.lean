@@ -181,11 +181,12 @@ def mutexState (m : Loc) (st : MutexSt) : IProp GF :=
     structFieldRef Mutex go!"hdr" m ↦ st.hdr)
 
 /-- **The mutex** `m` (persistent): its session `s` (of `client`, with the lease `id`) and its
-prefix `pfx` (with `NewMutex`'s `/`), read-only, and the client's contract for `pfx`. -/
+prefix `pfx` (with `NewMutex`'s `/`), read-only, of at most `2 ^ 27` bytes (2026-10-30, so that
+the requests the mutex sends fit a gRPC message), and the client's contract for `pfx`. -/
 def isMutex (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) :
     IProp GF :=
   iprop(structFieldRef Mutex go!"s" m ↦□ s ∗ structFieldRef Mutex go!"pfx" m ↦□ pfx ∗
-    ⌜pfx ≠ []⌝ ∗ isSession s γ client id ∗ isEtcdMutexClient client pfx)
+    ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 27⌝ ∗ isSession s γ client id ∗ isEtcdMutexClient client pfx)
 
 instance isMutex_persistent (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64)
     (pfx : GoString) : Persistent (isMutex (GF := GF) m s γ client id pfx) := by

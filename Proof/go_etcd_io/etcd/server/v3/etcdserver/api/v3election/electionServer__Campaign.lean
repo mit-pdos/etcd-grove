@@ -68,6 +68,7 @@ theorem electionServer.Campaign.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %(name ++ go!"/")
   wp_apply hNE s γ c id name $$ [$Hcpkg $Hss $Hmc'] as %e ⟨#He, Hest⟩
+  · ipureintro; exact v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.1
   (try wp_auto)
   wp_apply wp_bytes_to_string vsl val DFrac.discard $$ [$Hvs] as -
   (try wp_auto)

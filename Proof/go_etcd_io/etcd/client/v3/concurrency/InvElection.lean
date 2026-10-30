@@ -290,13 +290,14 @@ def electionState (e s : Loc) (st : ElectionSt) : IProp GF :=
     structFieldRef Election go!"hdr" e ↦ st.hdr ∗ ⌜st.sess = null ∨ st.sess = s⌝)
 
 /-- **The election** `e` (persistent): its session `s` (of `client`, with the lease `id`) and its
-key prefix `pfx` (`NewElection`'s argument with a `/`, `ResumeElection`'s as given), read-only,
+key prefix `pfx` (`NewElection`'s argument with a `/`, `ResumeElection`'s as given), read-only, of
+at most `2 ^ 27` bytes (2026-10-30, so that the requests the election sends fit a gRPC message),
 and the client's contract for `pfx`. -/
 def isElection (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) :
     IProp GF :=
   iprop(structFieldRef Election go!"session" e ↦□ s ∗
     structFieldRef Election go!"keyPrefix" e ↦□ pfx ∗
-    ⌜pfx ≠ []⌝ ∗ isSession s γ client id ∗ isEtcdMutexClient client pfx)
+    ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 27⌝ ∗ isSession s γ client id ∗ isEtcdMutexClient client pfx)
 
 instance isElection_persistent (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64)
     (pfx : GoString) : Persistent (isElection (GF := GF) e s γ client id pfx) := by

@@ -60,6 +60,7 @@ theorem electionServer.Leader.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %(name ++ go!"/")
   wp_apply hNE s γ c id name $$ [$Hcpkg $Hss $Hmc'] as %e ⟨#He, -⟩
+  · ipureintro; exact v3rpc.grpcRecvBytesOk.lt Hrecv.1 Hrecv.2
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hEL e s γ c id (name ++ go!"/") ctx cs (W64 0) $$ [$Hcpkg $He $Hctx $Hlo] as %l %lerr Hl
