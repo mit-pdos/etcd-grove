@@ -548,7 +548,13 @@ now a `grpcReservedKey`; `metadata.lowerKey` excluded only ASCII `A`-`Z` where g
 Unicode (`AppendToOutgoingContext` false, `streamKeyOf_single` refuted with it): `lowerKey` now
 requires ASCII; Go prints `[]` and `[""]` alike: `streamKeyOf_single` takes `v ≠ ""`. Landed
 with `authkv-main-skel` (etcd-grove-56's OK). **Frozen** 2026-10-30 (`notes/g2-watch-auth.md`, "The
-freeze"); next: the stubs' proofs.
+freeze"). **All six stubs proved** (2026-10-30): `recvLoop`, `isWatchPermitted`, `newWatchClient`,
+`attemptTokOk_of_watcher` and `run` (branch `g2p-run`), `watcher.Watch` (branch `g2p-watch`,
+`notes/g2-watch-auth.md`, "Proof of Watch"). For `Watch` two frozen statements moved
+(`notes/decisions.md`): v3rpc's `createRangeOk` reads the end `"\x00"` as `some []` only (F5, after the
+pin `6da88b280`'s `wp_slice_literal_nonnull`), and `watcher.Watch.spec`'s events are of the range
+with an empty key read as `"\x00"` (`OpFull.watchNorm`, the user's decision). Next: authkv's `Work`
+over the watch.
 
 ## authkv's `Main`: a skeleton of statements (2026-10-29, branch `authkv-main-skel`)
 

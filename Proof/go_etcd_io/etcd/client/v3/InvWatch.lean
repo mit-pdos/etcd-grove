@@ -563,14 +563,15 @@ structure WsPrm (GF : BundledGFunctors) where
   bd : Nat
 
 /-- **The key `key` and range end `ed` register exactly their range** (pure; G2, 2026-10-30,
-until then a prefix watch): every watcher range the server may register for a create of them
-(`v3rpc.createRangeOk`) covers exactly the keys of `[key, ed)` as the client reads it (`inRange`).
-It holds of a point or a proper range of a non-empty key (`rangeExact_point`,
-`rangeExact_proper`); of a from-key range (`ed = [0]`) of a non-empty key once `createRangeOk`
-says the registered range is open-ended (today it allows a single key: `notes/g2-watch-auth.md`,
-"Proof of run"); of an empty key's ranges only with a fact that no stored key is empty. -/
+until then a prefix watch): every watcher range the server may register for a create of a key
+that the server reads as `key` (an empty key as `"\x00"`, `OpFull.watchNorm`) and of the range
+end `ed` (`v3rpc.createRangeOk`) covers exactly the keys of `[key, ed)` as the client reads it
+(`inRange`). It holds of every range of a non-empty `key`: a point, a from-key range (`ed = [0]`)
+and a proper range (`rangeExact_point`, `rangeExact_fromKey`, `rangeExact_proper`;
+`rangeExact_of_ne`). -/
 def rangeExact (key ed : GoString) : Prop :=
-  ∀ (c : v3rpc.CreateReqM) (id : w64) (r : mvcc.WatchRange), c.key = key → c.rangeEnd = ed →
+  ∀ (c : v3rpc.CreateReqM) (id : w64) (r : mvcc.WatchRange),
+    (if c.key = [] then [W8 0] else c.key) = key → c.rangeEnd = ed →
     v3rpc.createRangeOk c id r → ∀ k, r.covers k = inRange key ed k
 
 /-- **The watch promises completeness** (K2e-7d): its start revision was read from the server's
@@ -589,23 +590,25 @@ theorem cplCond_iff {sr : Bool} {o : OpFull} {rev : w64} :
 abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
 
 /-- **The request is one of the contract's** (pure): a range watch from `rev ≥ 0`
-(`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's. -/
+(`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's, its key as
+the server reads it (G2, 2026-10-30: `P.o` is the range the watch's events are of,
+`OpFull.watchNorm`, an empty request key read as `"\x00"`). -/
 def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
   P.o.isRangeWatch P.rev = true ∧ ¬ P.o.watchPanics ∧ 0 ≤ sint.Z P.rev ∧
-    P.key = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧ P.cn = P.o.base.createdNotify ∧
-    P.pn = P.o.base.progressNotify
+    (if P.key = [] then [W8 0] else P.key) = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧
+    P.cn = P.o.base.createdNotify ∧ P.pn = P.o.base.progressNotify
 
 /-- **The row of a watch's responses with events** (persistent; G2, 2026-10-30): with one member,
 the server's check of the watch's create (`watchCheckOk` of `WatchCheck.lean`, unfolded: this file
 cannot import it; `wsRow_eq` there): the gRPC stream the create went on was opened with metadata
 `m` of the watch's context's stream key, an attempt of it delivered `md`, and the member's check
-of the watch's key and range end passed for `md`'s token at the caller's bound `n`. -/
+of the watch's request key and range end (`P.key`, `P.ed`) passed for `md`'s token at the caller's
+bound `n`. -/
 def wsRow (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(□ (⌜V.nm = 1⌝ → ∃ (m md : GrpcMd),
     ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) ∧
       clientAttemptMdOf V.conn m md⌝ ∗
-    v3rpc.watchAuthed (V.mem 0).2.γ (V.mem 0).2.s (auth.mdTokenOf md) P.n P.o.key
-      P.o.base.rangeEnd))
+    v3rpc.watchAuthed (V.mem 0).2.γ (V.mem 0).2.s (auth.mdTokenOf md) P.n P.key P.ed))
 
 instance wsRow_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsRow V P) := by
   unfold wsRow; infer_instance
@@ -619,6 +622,51 @@ def wsBdOk (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
 
 instance wsBdOk_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsBdOk V P) := by
   unfold wsBdOk; infer_instance
+
+/-- The bound `0` at the first `N` members' auth stores (`authPubLbM_zero`, for each). -/
+theorem authPubLbM_zero_upto (f : Nat → auth.AuthMode) :
+    ∀ N : Nat, ⊢ |==> □ (∀ i : Nat, ⌜i < N⌝ → auth.authPubLbM (GF := GF) (f i) 0)
+  | 0 => by
+    iintro
+    imodintro
+    iintro !> %i %hi
+    exact absurd hi (Nat.not_lt_zero i)
+  | N + 1 => by
+    iintro
+    imod authPubLbM_zero_upto f N with #H
+    imod authPubLbM_zero (GF := GF) (f N) with #H0
+    imodintro
+    iintro !> %i %hi
+    by_cases h : i < N
+    · iapply H; ipureintro; exact h
+    · have : i = N := by omega
+      subst this; iexact H0
+
+/-- **A watch's creates' bound, from the caller's** (G2): the caller's `n` with one member (its
+published index the caller's premise when `0 < n`; `0` is free), `0` otherwise. -/
+theorem wsBdOk_intro (V : WEnv GF) (P : WsPrm GF) (hbd : P.bd = if V.nm = 1 then P.n else 0) :
+    □ (⌜V.nm = 1 ∧ 0 < P.n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode P.n) ⊢ |==> wsBdOk V P := by
+  iintro #Hn
+  imod authPubLbM_zero_upto (GF := GF) (fun i => (V.mem i).2.E.authMode) V.nm with #Hz
+  imodintro
+  unfold wsBdOk
+  isplitl
+  · iintro !> %i %hi
+    by_cases h1 : V.nm = 1
+    · have hi0 : i = 0 := by omega
+      subst hi0
+      rw [hbd, if_pos h1]
+      by_cases hn : 0 < P.n
+      · iapply Hn; ipureintro; exact ⟨h1, hn⟩
+      · have h0 : P.n = 0 := by omega
+        rw [h0]; iapply Hz; ipureintro; exact hi
+    · rw [hbd, if_neg h1]; iapply Hz; ipureintro; exact hi
+  ipureintro; intro h1; rw [hbd, if_pos h1]
+
+/-- The normalization keeps a range watch one (`isRangeWatch` reads no key). -/
+theorem isRangeWatch_watchNorm (o : OpFull) (rev : w64) :
+    o.watchNorm.isRangeWatch rev = o.isRangeWatch rev := by
+  unfold OpFull.watchNorm; split <;> rfl
 
 /-- **The member `V` is at** (G2): with one member, it is member `0`. -/
 theorem watchConnFacts_one (V : WEnv GF) :
@@ -655,7 +703,7 @@ theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c 
     (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
       streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
     watchConnFacts V ∗ wsBdOk V P ∗
-      v3rpc.watchAuthed V.R.γ V.R.s tok P.bd P.o.key P.o.base.rangeEnd ⊢ wsRow V P := by
+      v3rpc.watchAuthed V.R.γ V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
   iintro ⟨#Hc, #Hb, #Ha⟩
   ihave %H1 := watchConnFacts_one V $$ Hc
   iunfold wsBdOk at Hb
@@ -898,9 +946,7 @@ theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c : GoInt
       wsRow V P := by
   iintro ⟨#Hc, #H, #Ha⟩
   iunfold wsIs at H
-  icases H with ⟨-, -, -, -, -, -, %Hq, -, -, -, -, #Hb⟩
-  obtain ⟨-, ⟨-, -, -, hk, he, -⟩, -⟩ := Hq
-  rw [hk, he]
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
   iapply wsRow_of_authed V P tok c htok hkey
   iframe Hc Hb Ha
 

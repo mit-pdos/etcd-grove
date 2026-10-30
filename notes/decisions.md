@@ -26746,6 +26746,54 @@ was unwritten. The note's claim that `recvLoop`'s stubbed statement was final ("
 `watchSrvOk`") was checked against what `isWatchPermitted` takes of the server (`srvAuthLb`), not
 against what it takes of the request (the bound), which reaches `recvLoop` only through `upOk`.
 
+## G2's freeze: `createRangeOk` reads the from-key end (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** v3rpc's `createRangeOk` (`InvWatchStream.lean`), frozen with G2, read a create's range
+end `"\x00"` as `r.end? = some [] ∨ r.end? = none`: "from the key on", or, in the model only, a single
+key, because Perennial's `wp_slice_literal` did not say that recvLoop's `[]byte{}` is not `nil`. With
+the disjunct a from-key watch's registered range is not determined, so the client cannot show it
+covers exactly the watch's range (`rangeExact`), and `watcher.Watch.spec`'s widening to any range
+(F5) had no proof for from-key watches, authkv's root watch `Watch("", WithPrefix())` among them.
+
+**Decision** (planned in G2's design, F5: "the Perennial lemma ... Root's watch waits for the pin
+bump"; done after the pin `6da88b280` brought `wp_slice_literal_nonnull`): `createRangeOk` gives
+`r.end? = some []` only, and its docstring's caveat goes. `recvLoop`'s proof shows the literal's
+pointer non-null (`wp_slice_literal_nonnull`), so its range end is not `nil` whenever the request's
+is not empty. The users of the disjunct: `createRangeOk_inRange` (`WatchClass.lean`, its `none` case
+now vacuous) and the client's `covers_inRange` (`WatchContent.lean`, one branch less). New laws in
+their packages for the client's from-key case: `mvcc.covers_from`, `adt.affLt_top_iff`,
+`adt.affLt_iff_of_ne`, the cache's `inRange_from`.
+
+**Review criterion that should have caught it.** None: the weakening was deliberate and recorded
+(`notes/g2-watch-auth.md`, "Scope choices", F5), pending a Perennial change.
+
+## G2's freeze: `Watch`'s range from `""` starts at `"\x00"` (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** `watcher.Watch.spec`'s events were of the range of `opWatchModel key opts`, which for an
+empty key starts at `""`. etcd's server rewrites an empty key to `"\x00"` (`v3rpc/watch.go:266-269`;
+`createRangeOk`'s registered key), so the range it watches misses the empty key, and the spec's range
+equals it only given that no stored key is empty, which the KV model (`LogWf'`) does not say. With
+`createRangeOk` tightened (the entry above) every other watch's range is registered exactly; the root
+watch `Watch("", WithPrefix())` (from-key from `""`) was the one left.
+
+**Decision** (the user's, 2026-10-30; not an invariant that no stored key is empty): the spec's events
+are of the watch's range with an empty key read as `"\x00"`, `OpFull.watchNorm` (`InvOp.lean`):
+the post is `watchStateElem γw (opWatchModel key opts).watchNorm Q Au`. Not in `watchStateElem`,
+shared with the cache's and k8s's proofs: a change there would move every caller's statement, while
+the normalization is `Watch`'s alone (what the server does to a create). The row (`watchCheckOk`)
+stays over the request's own key and range end, as the server checked them. Callers with a non-empty
+key rewrite with `OpFull.watchNorm_of_ne`. The premise `o.key = [] → o.base.rangeEnd ≠ []` stays
+(no longer needed by the proof: the normalized point watch of `""` is the point `"\x00"`, as the
+server watches it). Inside the client, `WsPrm.o` is the normalized op and `wsReqOk` relates it to the
+request's key (`(if P.key = [] then [0] else P.key) = P.o.key`); `rangeExact` quantifies over the
+creates whose key the server reads as `key`, and holds of every range of a non-empty key
+(`rangeExact_of_ne`); `wsRow` is over the request's `P.key`/`P.ed`.
+
+**Review criterion that should have caught it.** The spec skill's "check what the statement claims
+at the boundary inputs" against the server's normalization of the request (as for the entry "G2's
+freeze: `Watch` excludes the empty key's single-key watch"): the empty key's from-key range was
+checked against the from-key reading (F5) but not against the key's rewrite.
+
 ## Step 3 for `apply` and `applyEntries`: the off corollaries read the mode off the server (2026-10-30, the auth-mode merge)
 
 `EtcdServer.apply.spec` and `applyEntries.spec` are now one statement each at `E.authOn` (`.any`

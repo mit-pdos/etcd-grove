@@ -26,8 +26,12 @@ epoch's metadata and token) -- and the internal specs written over them (`run`, 
 `sendCloseSubstream`, `dispatchEvent`, `unicastResponse`, `broadcastResponse`,
 `waitCancelSubstreams`, `serveWatchClient`, `toPB`, ...). `watcher.Watch.spec` and everything else
 above stays frozen.
-Next: the proofs of the stubs, `watcher.Watch`, `watchGRPCStream.run`, `newWatchClient`,
-`serverWatchStream.recvLoop`, `isWatchPermitted`, and the law `attemptTokOk_of_watcher`.
+**Status (2026-10-30): all six stubs proved** -- `watcher.Watch` (branch `g2p-watch`, "Proof of
+Watch" below), `watchGRPCStream.run` ("Proof of run"), `newWatchClient`,
+`serverWatchStream.recvLoop`, `isWatchPermitted`, and the law `attemptTokOk_of_watcher`. Two frozen
+statements moved for `Watch`, each with a `notes/decisions.md` entry: v3rpc's `createRangeOk`
+("G2's freeze: `createRangeOk` reads the from-key end", planned as F5) and `watcher.Watch.spec`'s
+event range ("G2's freeze: `Watch`'s range from `""` starts at `"\x00"`", the user's decision).
 
 **In code (2026-10-30, branch `g2-stmts`).** The statements below are in code over named stubs
 (`sorry -- G2: re-prove after freeze`). Three departures from the approved text, none of them a
@@ -472,7 +476,29 @@ The client's internal vocabulary changed (all in `client/v3`, none exported):
 - `regFacts`: `wsRow V P`; `recvElem_of` takes the row; `cpl_facts` gives `rangeExact`'s coverage.
 - `serveSubstream`: `publish_elem` takes the row; `recv_row` (new).
 
-For `watcher.Watch` (still `sorry`): its fresh-stream branch gets `reqP`'s key from
-`newWatcherGRPCStream` (`start_bag` at `cx`'s key) and the reuse branch from `watcherMu`'s key;
-`wsBdOk` from its `n` and the members' `authPubLbM` (`authPubLbM_zero` when `n = 0`); and
-`cplCond` from `rangeExact_point`/`_proper` (from-key once `createRangeOk` is tightened).
+## Proof of Watch (2026-10-30, branch `g2p-watch`)
+
+`watcher.Watch` is proved again (no `sorry`), after two statement changes (`notes/decisions.md`):
+1. `createRangeOk` reads the end `"\x00"` as `some []` only (`recvLoop` by
+   `wp_slice_literal_nonnull`, pin `6da88b280`).
+2. `Watch.spec`'s events are of `(opWatchModel key opts).watchNorm`: an empty key read as `"\x00"`,
+   as the server reads it; the row stays over the request's key and range end. Callers with a
+   non-empty key rewrite with `OpFull.watchNorm_of_ne`.
+
+The proof follows the pre-G2 one (`8527537fba`). What is new:
+- The watch's values `P0`: `o` the normalized op, `key`/`ed` the request's, `n` the caller's,
+  `bd := if V.nm = 1 then n else 0`. `wsBdOk_intro` (`InvWatch.lean`) gives `wsBdOk` from the
+  caller's gated bound, and `authPubLbM_zero` at every member (`authPubLbM_zero_upto`).
+- `cplCond` holds of every watch: `rangeExact_of_ne` (point, from-key `rangeExact_fromKey`,
+  proper), at the normalized key, never empty.
+- The request's stream key: the request is made at `streamKeyOf (outgoingOf ctx)` and moved to the
+  stream's (`isWGS`'s bag is at `G.ctx`'s key) by the key equation the `wp_join` keeps: on a fresh
+  stream from `newWatcherGRPCStream`'s `outgoingOf G.ctx = outgoingOf ctx`, on a reused one from
+  `watcherMu`'s map.
+- The row: `wsRow_eq` (`WatchCheck.lean`, `rfl`), rewritten into the post before `watch_post`.
+
+The client's internal vocabulary changed (none exported): `wsReqOk` relates `P.o.key` to the
+request's (`(if P.key = [] then [0] else P.key) = P.o.key`); `rangeExact key ed` is over the creates
+whose key the server reads as `key`; `wsRow`, `wsRow_of_authed`, `wsIs_row` are over `P.key`/`P.ed`.
+New laws outside the client, in their packages: `mvcc.covers_from`, `adt.affLt_top_iff`,
+`adt.affLt_iff_of_ne`, the cache's `inRange_from`. No cross-package unfold added.

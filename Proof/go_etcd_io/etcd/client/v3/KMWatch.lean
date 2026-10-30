@@ -640,6 +640,8 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     iunfold kvAu at Hau
     iexact Hau
   inext
+  -- (G2) a non-empty key's range is its own (`watchNorm_of_ne`)
+  rw [OpFull.watchNorm_of_ne _ (by rw [hkey]; exact hp)]
   iintro %ch %γw ⟨#Hs, Hc, Hi⟩
   iapply HΦ
   isplitr

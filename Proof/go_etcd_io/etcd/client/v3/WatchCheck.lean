@@ -73,6 +73,14 @@ theorem watchCheckOk_tok (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface) 
   iframe Htag Hcl Hb Htk
   ipureintro; exact hk
 
+/-- **A watch's row is the server's check of its create** (G2, 2026-10-30): `wsRow`
+(`InvWatch.lean`, which this file imports) is `watchCheckOk`'s body at the first member, the
+watch's context, bound, request key and range end. -/
+theorem wsRow_eq [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (V : WEnv GF) (P : WsPrm GF) :
+    wsRow V P = iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
+      (GoInterface.ok P.ctx) P.n P.key P.ed)) := rfl
+
 /-- **The client's watcher, with its connection's token fact** (G2's F-W3, 2026-10-30;
 `isNewClient_watcher` with `clientTokAt`): `New`'s client at one server has a `Watcher` field that
 is a `*watcher` over the connection with the server's facts, and that connection is the one

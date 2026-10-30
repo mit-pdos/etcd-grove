@@ -108,11 +108,11 @@ theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
     simp [hlt]
   · simp [hk0, hkey, h0]
 
-/-- **A point watch of a non-empty key is registered exactly** (G2, 2026-10-30). -/
-theorem rangeExact_point (key : GoString) (hkey : key ≠ []) : rangeExact key [] := by
+/-- **A point watch is registered exactly** (G2, 2026-10-30). -/
+theorem rangeExact_point (key : GoString) : rangeExact key [] := by
   intro c id r hck hce hc k
   obtain ⟨hk, -, -, he⟩ := hc
-  rw [hck, if_neg hkey] at hk
+  rw [hck] at hk
   rw [hce, if_pos rfl] at he
   unfold WatchRange.covers inRange
   rw [he, hk]
@@ -124,7 +124,7 @@ theorem rangeExact_proper (key ed : GoString) (hkey : key ≠ []) (h0 : ed ≠ [
     (h1 : ed ≠ [W8 0]) : rangeExact key ed := by
   intro c id r hck hce hc k
   obtain ⟨hk, -, -, he⟩ := hc
-  rw [hck, if_neg hkey] at hk
+  rw [hck] at hk
   rw [hce, if_neg h0, if_neg h1] at he
   unfold WatchRange.covers inRange
   rw [he, if_neg h0, if_neg h1, hk]
@@ -137,6 +137,24 @@ theorem rangeExact_proper (key ed : GoString) (hkey : key ≠ []) (h0 : ed ≠ [
       rw [ht]; exact go.goStringLt_nil_cons a t
     simp [hlt]
   · simp [hk0, hkey, h0]
+
+/-- **A from-key range of a non-empty key is registered exactly** (G2, 2026-10-30): the range end
+`[0]` is registered open-ended (`createRangeOk`'s `some []`). -/
+theorem rangeExact_fromKey (key : GoString) (hkey : key ≠ []) : rangeExact key [W8 0] := by
+  intro c id r hck hce hc k
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [hck] at hk
+  rw [hce, if_neg (by simp), if_pos rfl] at he
+  rw [mvcc.covers_from r k he (by rw [hk]; exact hkey), hk, inRange_from]
+
+/-- **Every range of a non-empty key is registered exactly** (G2, 2026-10-30): a point, a from-key
+range or a proper range. -/
+theorem rangeExact_of_ne (key ed : GoString) (hkey : key ≠ []) : rangeExact key ed := by
+  by_cases h0 : ed = []
+  · subst h0; exact rangeExact_point key
+  by_cases h1 : ed = [W8 0]
+  · subst h1; exact rangeExact_fromKey key hkey
+  exact rangeExact_proper key ed hkey h0 h1
 
 /-! ## The second cursor's steps (pure) -/
 
