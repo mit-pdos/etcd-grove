@@ -524,11 +524,14 @@ theorem snapshotCert_valid (γ : Cluster) (N : Namespace) (sv : SnapshotM) :
   obtain ⟨Hlen, Hlast, ⟨h1, h2, h3, h4⟩, hal⟩ := Hf
   unfold snapshotValid
   iexists l, m
-  iframe Hlb Ha Hm
+  isplitr; · iexact Hlb
+  isplitr; · iexact Ha
+  isplitr
+  · iExactEq Hm; rfl
   ipureintro
   have u := uint_nat_eq sv.Metadata'.Index'
   have Hlen' : l.length = uint.nat sv.Metadata'.Index' := Hlen
-  refine ⟨Hlen', by omega, Hlast, ⟨h1, h2, h3, h4, hal.symm⟩, by omega, ?_⟩
+  refine ⟨Hlen', by omega, Hlast, ⟨h1, h2, h3, h4, hal⟩, by omega, ?_⟩
   exact Hsl.2.2.2.2.2.1
 
 end api
