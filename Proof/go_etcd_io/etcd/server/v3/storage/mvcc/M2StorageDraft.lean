@@ -205,6 +205,18 @@ theorem mvcc.isWatchableStoreD_noCompactor (s st : Loc) (γ : mvcc.WsNames)
     mvcc.isWatchableStoreD (GF := GF) s st γ ⊢ mvcc.noCompactor γ.st :=
   (mvcc.isWatchableStoreD_frozen s st γ h).trans (mvcc.noCompactor_of_frozen γ.st)
 
+/-- **Off, the drafted predicate gives today's** (a Draft-only bridge, the identity at the in-place
+switch: lets the examples' Draft glue reuse today's lemmas over `isWatchableStore`). -/
+theorem mvcc.isWatchableStoreD_to (s st : Loc) (γ : mvcc.WsNames) (h : ¬ mvcc.kbCmpM γ.st.kb) :
+    mvcc.isWatchableStoreD (GF := GF) s st γ ⊢ mvcc.isWatchableStore s st γ := by
+  unfold mvcc.isWatchableStoreD mvcc.isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  ihave #Hf := (mvcc.wsFrozenM_off γ.st h).1 $$ Hfrz
+  iexists vc, stc, rv, γv
+  iframe #
+  ipureintro; exact Hwq
+
 /-- **A creator that will not compact freezes the store** (review round 1's S5; any mode): with the
 authority's half it was handed (`crevRightM`, in compaction mode, mvcc's assumed backend's
 included) or the frozen fact the store already has (off), the "no compactor" fact, so that it can

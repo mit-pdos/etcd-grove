@@ -148,6 +148,51 @@ theorem v3rpc.isWatchServerD_noCompactor_env [go_etcd_io.etcd.server.v3.etcdserv
   ihave %hl := v3rpc.isWatchServerD_link p R $$ H
   iapply v3rpc.isWatchServerD_noCompactor p R (by rw [hl]; exact h) $$ H
 
+/-- **Off, the drafted watch server is today's** (a Draft-only bridge, the identity at the in-place
+switch of `isWatchableStore`: lets the examples' Draft glue reuse today's client lemmas over
+`isWatchServer`, `client.watchSrvLink_of_server` and `watchTokPool_of_server`). -/
+theorem v3rpc.isWatchServerD_to [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    (p : Loc) (R : v3rpc.WSrv GF) (h : ¬ mvcc.kbCmpM R.E.γ.kb) :
+    v3rpc.isWatchServerD p R ⊢ v3rpc.isWatchServer p R := by
+  iintro #H
+  ihave %hl := v3rpc.isWatchServerD_link p R $$ H
+  iunfold v3rpc.isWatchServerD at H
+  icases H with ⟨%Hp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, Hok⟩
+  iunfold v3rpc.watchSrvOkD at Hok
+  icases Hok with ⟨#Hws, #Hrest⟩
+  ihave #Hws' := mvcc.isWatchableStoreD_to _ _ R.γ (by rw [hl]; exact h) $$ Hws
+  iunfold v3rpc.isWatchServer
+  iframe #
+  isplitr
+  · ipureintro; exact Hp
+  iunfold v3rpc.watchSrvOk
+  iframe #
+
+/-- **Draft of `etcd_watch_served_chain`'s statement** (`v3rpc/Results.lean`, linked; N1's glue
+takes it as a hypothesis): the watch stream registered with the drafted client content
+`watchUpD` (a create carries the "no compactor" fact), over the drafted watch server. At the
+switch its text is today's (`watchUp`, `isWatchServer` redefined in place); its proof changes in
+one place, `watch_streamHandlerOk`'s `upOk_watchUp` (`upOkD_watchUpD`), over `recvLoop`'s pattern
+(one more conjunct). -/
+abbrev v3rpc.etcd_watch_served_chain.specD [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] : Prop :=
+  ∀ (addr : GoString) (p : Loc) (R : v3rpc.WSrv GF) (im is : GoFunc)
+    (sregs : List (GoString × val × GoInterface)) (n : Nat),
+  go.typeSetContains
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+      etcdserverpb.WatchServer.ty = true →
+  (go!"/etcdserverpb.Watch/Watch", (@! etcdserverpb._Watch_Watch_Handler : val),
+      interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) ∈ sregs →
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.isWatchServerD p R ∗ srvStreamInterceptorOk im iprop(True) ∗
+      srvStreamInterceptorOk is iprop(True) ∗ grpcStreamServerAt addr [im, is] sregs ∗
+      ([∗list] _x ∈ List.replicate n (), v3rpc.watchRunSlot R) ⊢
+    |={⊤}=> isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addr
+      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUpD R.γ)
+      (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn)
+
 end draft
 
 end EtcdGrove

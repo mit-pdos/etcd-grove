@@ -82,6 +82,24 @@ theorem client.watchMemberFactsD_noCompactor (V : WEnv GF) :
   icases H with ⟨-, -, -, -, -, #Hf⟩
   iexact Hf
 
+/-- **The member's KV facts** (S3': the projection `watcher__Watch.lean:54-55` uses at the switch in
+place of its positional pattern `⟨-, -, -, -, #Hkf0⟩`, which the appended conjunct would break). -/
+theorem client.watchMemberFactsD_kv (V : WEnv GF) :
+    client.watchMemberFactsD V ⊢ srvKVFacts V := by
+  iintro #H
+  iunfold client.watchMemberFactsD at H
+  icases H with ⟨-, -, -, -, #Hk, -⟩
+  iexact Hk
+
+/-- **The member's names link** (S3': the projection for `InvWatch.lean:469`'s `⟨-, -, %Hst, -⟩`,
+which the appended conjunct leaves working, and `linkv3p/WatchEnv.lean`'s unfold). -/
+theorem client.watchMemberFactsD_st (V : WEnv GF) :
+    client.watchMemberFactsD V ⊢ ⌜V.R.γ.st = V.R.E.γ⌝ := by
+  iintro #H
+  iunfold client.watchMemberFactsD at H
+  icases H with ⟨-, -, %h, -⟩
+  ipureintro; exact h
+
 /-- **Today's member facts and the fact are the drafted ones** (S3': the conjunct appended last;
 the sites that build `watchMemberFacts`, `linkv3p/WatchEnv.lean`'s `memberWatch_facts`, add it). -/
 theorem client.watchMemberFactsD_of (V : WEnv GF) :

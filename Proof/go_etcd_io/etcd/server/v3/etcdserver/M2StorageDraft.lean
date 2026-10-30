@@ -16,16 +16,18 @@ proved against them before any proof is switched:
   `newServer_compactRight` dropped, S2). It gives `watchWriter`/`writerFrag` in place of today's
   `txn.isKV`/`txn.kvWriter`, which are defined over today's `isWatchableStore` (a Draft artifact:
   at the switch the predicate is redefined in place and they follow as today).
-- `kbWTSupplyM_of_srvWTPool`: R2-7's conversion (unchanged).
-- **F2, the backend's name frozen in compaction mode** (review round 1's F2, the user's decision;
-  D22's predicates, the collaborator's: drafted here only). `srvBeOwnD` is `srvBeOwn` with the
-  apply thread's quarter of `E.γbe` discarded when the store compacts (`srvBeFrac`); off, it reads
-  as today (`srvBeOwnD_off`). A discarded part forbids any update of `E.γbe` (an update needs the
-  whole), which is P4 (no snapshot installed in compaction mode); it is persistent, so the apply
-  thread's compaction arm copies it out (`srvBeOwnD_frozen`) for R2-7's conversion
-  (`kbWTSupplyM_of_srvBeOwnD`: the supply `store.Compact.specD` takes, closing Q1 (a)'s chain).
-  The boot's allocation (`srvBe_allocD`, `NewServer`'s three-way split of `E.γbe`) discards that
-  quarter when the backend compacts.
+- `kbWTSupplyM_of_srvWTPool`: R2-7's conversion (unchanged; its discarded part of `E.γbe` had F2
+  as its source, which the user withdrew with P4 on 2026-10-30, "restore must work in compaction
+  mode": the supply's server source is pending step 2, `notes/m2-storage-plan.md`).
+- **F2 withdrawn** (2026-10-30, the user's decisions after `lean`'s Stage P): `srvBeFrac`,
+  `srvBeOwnD`, `srvBeOwnD_off`, `srvBeOwnD_frozen`, `kbWTSupplyM_of_srvBeOwnD` and `srvBe_allocD`
+  are gone (step 2 replaces them; review round 2's S1' and S2' with them).
+- **N1, the server's mode in its apply environment** (review round 2's N1; the route decided after
+  the round, `notes/m2-storage-plan.md`): `apply.AEnvD` (`apply.AEnv` with the field `cmp`),
+  `envAgreeD` (today's `envAgree` with `E.cmp = E'.cmp` and the mode clause `kbCmpM E.γ.kb ↔
+  E.cmp = true`: S5', the one reading of the mode), its laws (`envAgreeD_agree`, `envAgreeD_off`,
+  `envAgreeD_on`, `envAgreeD_mode`) and `NewServer`'s step (`envAgreeD_of_new`, at
+  `NewServer.lean:1039`).
 -/
 module
 
@@ -67,6 +69,14 @@ theorem kbWTSupplyM_of_srvWTPool (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBR
     imodintro
     iexact Ht
   · itrivial
+
+/-- **A real backend's write-back tokens are the store's write supply** (review round 2's S6': a
+law of txn's, so the server's glue does not unfold `txn.storeWTs`; goes to `txn/Defs.lean` at the
+switch). -/
+theorem txn.storeWTs_someD (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hd : γ.kb = some d) (n : Nat) :
+    ownToks (GF := GF) d.γB.wb n ⊢ txn.storeWTs γ n := by
+  unfold txn.storeWTs
+  rw [hd]
 
 /-- **`server_kv_watchable_of` over the backend record `d`, in either mode** (S1; see the file
 header). -/
@@ -184,78 +194,79 @@ theorem server_kv_watchable_ofD
   iframe Hws Hhk Hww Hfrag Hwt Hcok Hrds Hcl Hcr Hro Hret Htag Hrv
   isplitr
   · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
-  unfold txn.storeWTs
-  rw [hk]
-  iexact Hw
+  iapply (txn.storeWTs_someD γw.st d hk N) $$ Hw
 
-/-! ## F2: the backend's name frozen in compaction mode (D22's predicates, drafted) -/
+/-! ## N1: the server's compaction mode in its apply environment (review round 2's N1)
 
-/-- **The apply thread's part of `E.γbe`, by the mode** (F2): a quarter, as today, when the store
-does not compact; discarded when it does (the name frozen: no snapshot is installed, P4). -/
-def srvBeFrac (E : apply.AEnv GF) : DFrac :=
-  if mvcc.kbCmpM E.γ.kb then DFrac.discard else DFrac.own (1 : Qp).half.half
+The watching examples hold `memberBuilt`/`memberUp`, whose apply environment `E` is existential and
+whose parameters carry no mode; both `NewServer.spec` and `NewServer.specCompact` give them. The
+mode reaches them through the stand-in `E₀` they already pass: `apply.AEnv` gains a field `cmp`
+(drafted as `apply.AEnvD`, a structure extending today's), `envAgree E E₀` (a pure conjunct of
+`NewServer.spec`'s post, `memberBuilt`, `memberUp`) agrees on it and ties it to the store's mode
+(`envAgreeD`), and `NewServer.spec` takes `E₀.cmp = false` (`specCompact`: `E₀.cmp = true`). An
+example then reads `¬ kbCmpM E.γ.kb` off `envAgree` (`envAgreeD_off`), the premise of the watch
+server's "no compactor" law (`v3rpc.isWatchServerD_noCompactor_env`). -/
 
-/-- **Draft of `srvBeOwn`** (F2; D22's `InvApplier.lean`): the apply thread's part of `E.γbe` at
-`srvBeFrac E`; otherwise the same. -/
-def srvBeOwnD (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗
-    srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-    dghostVar E.γbe (srvBeFrac E) d)
+/-- **Draft of `apply.AEnv`** (N1; `apply/Chain.lean`): one more field, after `γbe`,
+```
+  /-- (M2, the storage side, N1) the server's compaction mode: whether its store compacts (the
+  auto-compactor on), which `envAgree` ties to the store's backend (`kbCmpM E.γ.kb`) and the
+  stand-in `E₀` carries to the examples; the apply package does not use it (as `γrev`) -/
+  cmp : Bool := false
+```
+(drafted as an extension, so the Draft reads today's predicates at `E.toAEnv`). -/
+structure apply.AEnvD (GF : BundledGFunctors) extends apply.AEnv GF where
+  cmp : Bool := false
 
-/-- Off, the drafted predicate is today's (`srv_be_swap` and the snapshot path read it so). -/
-theorem srvBeOwnD_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) :
-    srvBeOwnD (GF := GF) s E ⊣⊢ srvBeOwn s E := by
-  unfold srvBeOwnD srvBeOwn srvBeFrac
-  simp only [h, ↓reduceIte]
-  exact .rfl
+instance apply.AEnvD.coe : CoeOut (apply.AEnvD GF) (apply.AEnv GF) := ⟨apply.AEnvD.toAEnv⟩
 
-/-- **The frozen name, copied out** (F2; persistent): in compaction mode the apply thread's part is
-a discarded part of `E.γbe` at the store's backend. -/
-theorem srvBeOwnD_frozen (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.kb) :
-    srvBeOwnD (GF := GF) s E ⊢
-      srvBeOwnD s E ∗ ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ dghostVar E.γbe DFrac.discard d := by
-  unfold srvBeOwnD srvBeFrac
-  simp only [h, ↓reduceIte]
-  iintro ⟨%d, %Hd, Hbe, #Hg⟩
-  isplitl [Hbe]
-  · iexists d; iframe Hbe Hg; ipureintro; exact Hd
-  iexists d; iframe Hg; ipureintro; exact Hd
+/-- **Draft of `envAgree`** (N1; `InvBuild.lean`): two environments agree on the names (today's),
+on the compaction mode, and the first one's mode is its store's (S5': one reading of the mode,
+`E.cmp` the server's own, not a second copy that could drift; D22's snapshot install, which
+replaces `E.γ.kb`, keeps the clause in step 2). -/
+def envAgreeD (E E' : apply.AEnvD GF) : Prop :=
+  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧
+    (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)
 
-/-- **The compaction's supply, at the apply thread** (F2 closing Q1 (a)'s chain): the write budget
-and the apply thread's part of `s.be` give `store.Compact.specD`'s `kbWTSupplyM E.γ.kb`, the part
-kept. -/
-theorem kbWTSupplyM_of_srvBeOwnD (s : Loc) (E : apply.AEnv GF) (γp : GName)
-    (h : mvcc.kbCmpM E.γ.kb) :
-    srvWTPool (GF := GF) E γp ∗ srvBeOwnD s E ⊢ srvBeOwnD s E ∗ mvcc.kbWTSupplyM E.γ.kb := by
-  iintro ⟨#Hp, Hbo⟩
-  icases srvBeOwnD_frozen s E h $$ Hbo with ⟨Hbo, %d, %Hd, #Hg⟩
-  iframe Hbo
-  rw [Hd]
-  iapply kbWTSupplyM_of_srvWTPool E γp d $$ [Hp Hg]
-  iframe #
+/-- Today's agreement (what `srvC_agree`/`srvCM_agree` read: at the switch their patterns
+`⟨hi, hc, hr⟩` become `⟨hi, hc, hr, -, -⟩`). -/
+theorem envAgreeD_agree (E E' : apply.AEnvD GF) (h : envAgreeD E E') :
+    envAgree (GF := GF) E.toAEnv E'.toAEnv :=
+  ⟨h.1, h.2.1, h.2.2.1⟩
 
-/-- **The boot's allocation of `E.γbe`, by the mode** (F2; `NewServer.lean:644-648`'s split): half
-for `s.bemu`'s lock invariant (`bemuP`), a quarter for the write budget (`srvWTStock`), and the
-apply thread's part at the store's mode (`srvBeFrac`: discarded when compacting). -/
-theorem srvBe_allocD (d : mvcc.KBReal) :
-    ⊢ |==> ∃ γbe : GName, dghostVar (GF := GF) γbe (DFrac.own (1 : Qp).half) d ∗
-      dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗
-      dghostVar γbe (if mvcc.kbCmpM (some d) then DFrac.discard
-        else DFrac.own (1 : Qp).half.half) d := by
-  imod (dghostVar_alloc (GF := GF) d) with ⟨%γbe, Hγbe⟩
-  icases (dghostVar_split (GF := GF) γbe d (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half))
-    $$ [Hγbe] with ⟨Hγbm, Hγbe⟩
-  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
-  icases (dghostVar_split (GF := GF) γbe d (DFrac.own (1 : Qp).half.half)
-      (DFrac.own (1 : Qp).half.half)) $$ [Hγbe] with ⟨HγbW, HγbA⟩
-  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
-  iexists γbe
-  iframe Hγbm HγbW
-  by_cases h : mvcc.kbCmpM (some d)
-  · simp only [h, ↓reduceIte]
-    iapply dghostVar_persist γbe _ d $$ HγbA
-  · simp only [h, ↓reduceIte]
-    imodintro; iexact HγbA
+/-- **The mode, read at the stand-in** (N1, S5'): the server's store compacts exactly when the
+stand-in says so. -/
+theorem envAgreeD_mode (E E₀ : apply.AEnvD GF) (h : envAgreeD E E₀) :
+    mvcc.kbCmpM E.γ.kb ↔ E₀.cmp = true := by
+  rw [h.2.2.2.2, h.2.2.2.1]
+
+/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
+`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
+theorem envAgreeD_off (E E₀ : apply.AEnvD GF) (h : envAgreeD E E₀) (h0 : E₀.cmp = false) :
+    ¬ mvcc.kbCmpM E.γ.kb := by
+  rw [envAgreeD_mode E E₀ h, h0]; simp
+
+/-- A compacting stand-in, a compacting server (`specCompact`'s, for the compaction arm). -/
+theorem envAgreeD_on (E E₀ : apply.AEnvD GF) (h : envAgreeD E E₀) (h0 : E₀.cmp = true) :
+    mvcc.kbCmpM E.γ.kb :=
+  (envAgreeD_mode E E₀ h).2 h0
+
+/-- **`NewServer`'s step** (N1; `NewServer.lean:1039`, `hγs`): today's agreement, the store built
+over the boot backend `d` at the environment's mode (`{ d with cm := E.cmp }`; today
+`{ d with cm := false }`), and the environment built at the stand-in's mode (`cmp := E₀.cmp`, the
+anonymous constructor's one more component) give the drafted agreement. -/
+theorem envAgreeD_of_new (E E₀ : apply.AEnvD GF) (d : mvcc.KBReal)
+    (h : envAgree (GF := GF) E.toAEnv E₀.toAEnv) (hkb : E.γ.kb = some d) (hd : d.cm = E.cmp)
+    (hc : E.cmp = E₀.cmp) : envAgreeD E E₀ :=
+  ⟨h.1, h.2.1, h.2.2, hc, by rw [hkb, mvcc.kbCmpM_some, hd]⟩
+
+/-- `NewServer.spec`'s instance (`E₀.cmp = false`, the store at `{ d with cm := false }`). -/
+theorem envAgreeD_of_new_off (E E₀ : apply.AEnvD GF) (d : mvcc.KBReal)
+    (h : envAgree (GF := GF) E.toAEnv E₀.toAEnv)
+    (hkb : E.γ.kb = some ({ d with cm := false } : mvcc.KBReal)) (hc : E.cmp = false)
+    (h0 : E₀.cmp = false) : envAgreeD E E₀ :=
+  envAgreeD_of_new E E₀ _ h hkb (by rw [hc]) (by rw [hc, h0])
+
 
 end draft
 
