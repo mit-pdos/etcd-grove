@@ -17,6 +17,15 @@ review criterion that should have caught it, or "none". Its checks:
   `isGrpcStream` before; `watchkv/Main` and `KMWatch` unfolding `OpFull.isRangeWatch`), left as
   they were;
 - the trust base: 766 axioms, 25 `sorry`s, the five stubs among them (`etc/tcb-baseline.txt`).
+**Frozen pending `Watch` and `run`** (amended the same day; `notes/decisions.md`, "G2's freeze:
+the client's watch internals frozen pending"): the client's internal watch vocabulary that the
+bullets "The client's internals" and "Bound 0 today" below left for the re-proof of `Watch` and
+`run` -- `outcElem`/`retcP` (the row, `True` today), `WsPrm`/`reqP`/`wrRO`/`createOf` (the bound,
+`0` today, and the create's `authPubLbM`), `watcherMu` (a stream's key), `runCore`/`respcE` (the
+epoch's metadata and token) -- and the internal specs written over them (`run`, `serveSubstream`,
+`sendCloseSubstream`, `dispatchEvent`, `unicastResponse`, `broadcastResponse`,
+`waitCancelSubstreams`, `serveWatchClient`, `toPB`, ...). `watcher.Watch.spec` and everything else
+above stays frozen.
 Next: the proofs of the stubs, `watcher.Watch`, `watchGRPCStream.run`, `newWatchClient`,
 `serverWatchStream.recvLoop`, `isWatchPermitted`, and the law `attemptTokOk_of_watcher`.
 

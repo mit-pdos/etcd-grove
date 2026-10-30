@@ -26674,3 +26674,23 @@ holds the channel, the `snapDone` handoff and `memSnapLb γs 0` (`newReplica` op
 `c ≤ snapIndex` kept). Tests: `go test ./kvreconf/ -race` passes; the non-short `TestRounds`
 takes ~300-1400 snapshots and compactions per round.
 
+## G2's freeze: the client's watch internals frozen pending (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
+
+**What.** The freeze (`5682e997c4`) froze every statement G2 put in code. The first proof attempt
+of `watcher.Watch` (agent, 2026-10-30) showed that the frozen `watcher.Watch.spec` is unreachable
+over the client's internal watch definitions as G2 left them: the channel `Watch` returns gets its
+element predicate from `retcP`/`outcElem`, whose row is `True` (Perennial's `isSpsc` puts the
+element predicate in an invariant, so it cannot be strengthened afterwards); creates are built
+with `bound := 0` (`createOf`); `watcherMu` does not record a shared stream's key; `runCore`'s epoch
+token is existential. The approved design said so ("The client's internals", "Bound 0 today": kept
+"until `Watch` and `run` are re-proved"), but the freeze record did not exclude them.
+
+**Decision.** Those internals and the internal specs over them are frozen pending the joint re-proof
+of `Watch` and `run` (one task: the two share them); `watcher.Watch.spec`, the md-indexed gRPC and
+server statements, the auth vocabulary and the axioms stay frozen. A change to the latter still
+needs an entry here.
+
+**Review criterion that should have caught it.** The freeze's check "every caller's glue proves":
+the internals' callers were stubs (`Watch`, `run`), so their glue had not been written; the
+spec-first plan's "frozen pending" (`notes/spec-first-plan.md`, the freeze requires every caller's
+glue) applied and the freeze record should have said so.
