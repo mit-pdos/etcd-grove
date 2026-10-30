@@ -23,8 +23,8 @@ ungranted principal's update is then never fired with a `G σ` that holds.
 The update is step 5's `kvAu1G` (`InvRequest.lean`), at whatever `G`; with auth on, the server's
 `writeGrantG … L₀`. Proved: `stateHistOk_step`, `opHistOk_putKey` (`opHistOk_setupPut`,
 `opHistOk_endPut`), `stateHistOk_boot`, `revEvents_setupPut_put`, `histOk_of_evHistOk`,
-`akHist_alloc`, `akHist_setupAu` (over `akHist_writeAu`); `akHist_writeAu` and `akHist_readAu`
-are `sorry`: the stage's stubs.
+`akHist_alloc`, `akHist_writeAu`, `akHist_readAu`, and over `akHist_writeAu` the set-up's puts
+(`akHist_setupAu`) and root's last write (`akHist_endAu`).
 -/
 module
 
@@ -413,6 +413,26 @@ theorem akHist_setupAu (γk : KVNames) (k : GoString) (hk : k ∈ setupKeys) :
       imodintro
       isplitl []
       · ipureintro; exact opHistOk_setupPut k hk
+      · itrivial
+  imodintro
+  unfold kvOpAu1
+  iapply kvAu1G_true
+  iexact Hau
+
+/-- **Root's last write under the invariant**: a put of `endKey` keeps it from any state
+(`opHistOk_endPut`), told nothing (`akHist_writeAu` at `G := True`). -/
+theorem akHist_endAu (γk : KVNames) (v : GoString) :
+    akHistInv (GF := GF) γk ⊢
+      □ kvOpAu1 γk (.put (client.putKeyOp endKey v)) (fun _ => iprop(True)) := by
+  iintro #Hinv
+  ihave #Hau := akHist_writeAu γk (.put (client.putKeyOp endKey v)) (fun _ => iprop(True))
+    (fun _ => iprop(True)) $$ [Hinv]
+  · isplitl []
+    · iexact Hinv
+    · iintro !> %σ -
+      imodintro
+      isplitl []
+      · ipureintro; exact opHistOk_endPut v
       · itrivial
   imodintro
   unfold kvOpAu1

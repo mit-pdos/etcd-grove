@@ -1,6 +1,6 @@
 /-
-`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to the workloads**
-(`wg.Wait()`), the rest a `sorry` (2026-10-30). Lean-first (no Rocq counterpart).
+`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to root's last write**
+(`root.Put(ctx, "z/end", "end")`), the rest a `sorry` (2026-10-30). Lean-first (no Rocq counterpart).
 
 Proved: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
 (`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.specOn`) with the
@@ -13,7 +13,10 @@ watches. Then the user clients (`newUserClient` for root, u and v, over the regi
 `Authenticate` that `ak_served_kv` gives: `authTokReg_of`). Then the workloads: the auth state
 fixed after the set-up (`akAuthFixed_alloc` from `SetUp`'s post), the principals' loop
 (`Principals`; `c` the client of `u`, of `v`, or the set-up's, with its tokens as `akTokP`), each
-`Work(c, who)` in a goroutine under a wait group, and `wg.Wait()`. Not yet: root's last write and
+`Work(c, who)` in a goroutine under a wait group, and `wg.Wait()`. Then root's last write, in a
+timeout context (`client.wp_WithTimeout_bg`; the token does not matter, so no metadata fact), through
+root's client (`client_Put_on`), its update admitted by the history from any state
+(`akHist_endAu`); the reply (`putRespMsg`, `putReplied`) is kept for the watch's revision. Not yet:
 the two watches (`notes/authkv-main-plan.md`, "Main: what blocks it").
 
 What the proof needs, as the auth plan put it (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth plan"):
@@ -62,6 +65,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.MainServe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Hist
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.ClientOn
+public import Spec.context.WithTimeoutBackground
 
 @[expose] public section
 
@@ -97,7 +103,8 @@ theorem Main.wp_proof
     (wp_Work : Work.spec (GF := GF) (hG := hG))
     (wp_Principals : Principals.spec (GF := GF) (hG := hG))
     (wp_CheckHistory : CheckHistory.spec (GF := GF) (hG := hG))
-    (wp_LastIn : LastIn.spec (GF := GF) (hG := hG)) :
+    (wp_LastIn : LastIn.spec (GF := GF) (hG := hG))
+    (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
@@ -385,8 +392,33 @@ theorem Main.wp_proof
   -- the workloads are done: `wg.Wait()`
   wp_apply (sync.join.WaitGroup.wp_Wait_of sync.WaitGroup.wp_Wait _ na wg_ptr) $$ [$Hwg] as -
   (try wp_auto)
-  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): root's last write and the
-  -- two watches
+  -- root's last write, `root.Put(ctx, "z/end", "end")` in a timeout context: admitted by the
+  -- history from any state (`akHist_endAu`)
+  ihave #Hend := akHist_endAu ρ.rd.kv go!"end" $$ Hhist
+  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  ihave #Hnil := optsAt_nil (GF := GF)
+  iunfold clientTokAt at Hrtk
+  icases Hrtk with ⟨%rapi, %rconn, #Hrkvf, #Hrobj, -, -, -⟩
+  wp_apply context.wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg wp_WithTimeout wp_ErrAny hAs _)
+    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -⟩
+  (try wp_auto)
+  wp_apply (client_Put_on rcl rapi rconn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid
+      ectx ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []) $$ [] as %eresp %eerr Hend'
+  · iframe #
+  (try wp_auto)
+  wp_apply Hecancel
+  icases Hend' with (⟨%Heerr, %em, Hemsg, Herep, -⟩ | ⟨%Heerr, -⟩)
+  rotate_left
+  · cases eerr with
+    | nil => exact absurd rfl Heerr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; left; rfl
+  subst Heerr
+  (try wp_auto)
+  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): the two watches
   sorry
 
 end proof

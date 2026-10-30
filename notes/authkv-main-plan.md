@@ -314,7 +314,7 @@ plan's key; root's history has a DELETE), `akHist_events` (an event of `σ.revEv
 | `newUserClient` ×3 | S3 | drafted |
 | `Principals`, `Work` ×4, `sync.WaitGroup` | `Principals.spec`, S2, Perennial's | S2 waits on 5b and G2 |
 | `context.WithTimeout`, `ErrAny` | `context.WithTimeoutBackground.spec` (now with no values), `context.ErrAny.spec` | exist |
-| `root.Put(z/end)` | `client_Put_on` (local wrapper, not frozen: F-C1) at a non-persistent update once the refusal fact lands | exists |
+| `root.Put(z/end)` | `client_Put_on` (local wrapper, not frozen: F-C1) at a persistent update (`akHist_endAu`: `z/end` is admitted from any state, so no refusal fact is needed) | done (2026-10-30) |
 | `context.WithCancel` | `context.WithCancelBackground.spec` | exists |
 | `root.Watcher.Watch("", WithPrefix, WithRev(1))`, `ucli.Watcher.Watch(lo, WithRange(hi), WithRev(1))` | G2's `watcher.Watch.spec` (the merge session's); `WithPrefix.spec`, `WithRange.spec`, `WithRev.spec` | G2 pending |
 | `common.Collect` ×2 | `draft.Collect_spec` (`Drafts.lean`): general in a per-event fact `F`. Root's: `F i e := ⌜sint.Z setupRev < sint.Z e.Rev' → keyHistOk e.Key'⌝`, from the watch's events at states `akHist_readAu` fires at. u's: `F i e := ⌜permittedK u e.Key'⌝`, from G2's no events refused to u | drafted; restating `common.Collect.spec` changes a spec of `common` (watchkv, linkv3p use it, through the corollary at their plan): the user's call |
@@ -576,7 +576,7 @@ waits on 1.
 
 **`Main.wp_proof` up to `SetUp` (2026-10-30)**: the logger, `ak_alloc` and `akHist_alloc`,
 `startServer`, `Serve.specOn` with `ak_served_kv`, `NewClient`, `SetUp` (its puts by
-`akHist_setupAu`), every error's `Failed`; then (same day) the watch half (`ak_served_watch`) and the user clients (`newUserClient` ×3 over `authTokReg_of`, `ctxErrClientAll` from `ctxErrClientAllW_of`, the callee `context.ErrAny`), and the workloads (`akAuthFixed_alloc` from `SetUp`'s post; the principals' loop, each `Work(c, who)` forked under a wait group, `akTokP` reduced per branch; `wg.Wait()`); a `sorry` from root's last write on. Linking: the
+`akHist_setupAu`), every error's `Failed`; then (same day) the watch half (`ak_served_watch`) and the user clients (`newUserClient` ×3 over `authTokReg_of`, `ctxErrClientAll` from `ctxErrClientAllW_of`, the callee `context.ErrAny`), and the workloads (`akAuthFixed_alloc` from `SetUp`'s post; the principals' loop, each `Work(c, who)` forked under a wait group, `akTokP` reduced per branch; `wg.Wait()`), and root's last write (`client_Put_on` with the persistent update `akHist_endAu`: `z/end` is admitted from any state, so a late firing is harmless; the callee `context.WithTimeoutBackground`); a `sorry` from the watches on. Linking: the
 callees `zap.NewNop`, `startServer` (pending in `Link.lean`, `?`: `Results.lean`'s `authkv_Main`
 passes `authkv_startServer`, so it takes its premises `auth.ValidSpec`, `authSchemaSrv` and the
 semantics' `Float64ToInt64Semantics`, `ErrorStringLeaf`; the user's choice), `Serve.specOn`
