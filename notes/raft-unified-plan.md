@@ -1356,3 +1356,13 @@ signed off first; until then `Run`'s `opRead` branch is the single `sorry` of kv
   at once if it already is). Raft's `isReadCtx`'s `Q` (fired at raft's own read point, when the
   leader's commit index is fixed) is not the read's linearization point here: the applier answers at
   `r.index ≥ i`, possibly later.
+
+### kvreconf-final: done (2026-10-30)
+
+`kvreconf_porcupine_safe` builds with no `sorry` (`Results.lean`; STATUS has the axioms). Every
+proof group finished: T1 storage, RUN/RUN2 (`run`, `maybeSnapshot`, `maybeCompact`), CLIENT,
+LIFE, NET, RECONF, TOP (`RandomOptions`, `RandomConfig`, `Run`, `Main`, `Link`, `Adequacy`,
+`AdequacyLinked`, `Results`), READ (the atomic `Cluster.Read`: `ReadSlot.lean`, gokv's
+`trusted_proph`). Left: `etc/tcb-report.py --roots kvreconf` and a kvreconf TCB collection, once
+the whole repository builds (after the clients' repair); merging into `lean` with the rest of the
+raft-unified train.
