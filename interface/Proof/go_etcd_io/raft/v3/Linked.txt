@@ -269,6 +269,49 @@ theorem RaftLink.MemoryStorage.wp_CreateSnapshot [package_sem : Assumptions] :
                 (intoVal data))
               {{ Φ }}
 
+theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
+  -- `Perennial.EtcdGrove.StartNode.spec`, unfolded:
+  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (hs : HardStateM) (csm : ConfStateM) (Q : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
+    ConfigValid cv →
+      cv.Logger' = GoInterface.ok lok →
+        cv.Storage' = GoInterface.ok si →
+          sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+            cv.DisableProposalForwarding' = false →
+              cv.ReadOnlyOption' = W64 0 →
+                cv.DisableConfChangeValidation' = false →
+                  cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
+                    cv.AsyncStorageWrites' = false →
+                      cv.Applied' = W64 0 →
+                        HsEmpty hs →
+                          csm.Voters' = [] →
+                            csm.VotersOutgoing' = [] →
+                              csm.Learners' = [] →
+                                csm.LearnersNext' = [] →
+                                  csm.AutoLeave' = false →
+                                    vs = List.map Peer.ID' pv →
+                                      ⊢
+                                        ∀ Φ,
+                                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                              typedPointsto c cv (DFrac.own 1) ∗
+                                                isLogger lok ∗
+                                                  bootStorage γ cv.ID' (GoInterface.ok si) hs csm Q ∗
+                                                    ownSlice peers pv dq ∗
+                                                      peersCtx pv ctxs ∗ nodeBoot γ N vs ctxs cv.ID' -∗
+                                            (▷
+                                                ∀ nd,
+                                                  (∃ n,
+                                                      ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                        isNode n γ N cv.ID' ∗
+                                                          nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si)) ∗
+                                                            nodeConfig n γ N
+                                                                { applied := 0,
+                                                                  membership := Membership.simple (listToSet vs) } ∗
+                                                              nodeRunning n γ N 1 ∗ Q ∗ ownSlice peers pv dq) -∗
+                                                    Φ (intoVal nd)) -∗
+                                              WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers))
+                                                {{ Φ }}
+
 theorem RaftLink.MemoryStorage.wp_LastIndex [package_sem : Assumptions] :
     MemoryStorage.LastIndex.spec
   -- `Perennial.EtcdGrove.MemoryStorage.LastIndex.spec`, unfolded:

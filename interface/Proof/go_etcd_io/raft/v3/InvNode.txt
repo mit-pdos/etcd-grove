@@ -87,6 +87,9 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
 
 def (sealed) Cluster.bootLen (γ : Cluster) : Nat
 
+theorem readyFits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) : receiptBound GF
+    + γ.bootLen ≤ 2 ^ 61 → ⊢ readyFits γ N
+
 def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF)) (err :
     GoInterface) : IProp GF :=
   iprop(nodeErrS n γ N cd err ∨ stepErr err)
@@ -185,8 +188,6 @@ theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyF
 
 theorem msgCredits_copy [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.dup = true → msgCredits γ N st ⊢ □ msgCredits γ N st
-
-def (sealed) nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF
 
 def (sealed) Cluster.dup (γ : Cluster) : Bool
 

@@ -49,11 +49,14 @@ def (sealed) nodeJoin (γ : Cluster) (N : Namespace) (id : w64) : IProp GF
 
 def (sealed) joinAuth (γ : Cluster) (U : GSet w64) : IProp GF
 
-theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (vs : List w64) (dup : Bool) (E :
-    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62
-    → ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup⌝ ∗ ownCommittedOps γ [] ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗
-    ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗
-    joinAuth γ (listToSet vs) ∗ [∗list] id ∈ vs, nodeFounder γ N vs id
+theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (vs : List w64) (ctxs : List (List
+    w8)) (boot : List LogEntry) (dup : Bool) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] →
+    vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → (boot ≠ [] → BootLog vs ctxs boot) → ⊢ (if boot =
+    [] then emp else bootMarshal vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧
+    γ.bootLen = boot.length⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗
+    ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗ if
+    boot = [] then joinAuth γ (listToSet vs) ∗ [∗list] id ∈ vs, nodeFounder γ N vs id else
+    isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id
 
 theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec) (s : SnapRec) :
     ownSnapsMade γ S ∗ snapMade γ s ⊢ ⌜s ∈ S⌝
@@ -75,6 +78,9 @@ def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
                             ↑sv.Metadata'.ConfState'.LearnersNext'.length ≤
                           2 ^ 62⌝)
 
+def (sealed) nodeBoot (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id :
+    w64) : IProp GF
+
 theorem confAt_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) (m :
     Membership) : NoConfChangeIn l a b → a ≤ b → b ≤ l.length → isCommittedLogLb γ l ∗ confAt γ a m
     ⊢ confAt γ b m
@@ -84,6 +90,9 @@ theorem confAt_decided [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m :
     m'
 
 def (sealed) confAt (γ : Cluster) (k : Nat) (m : Membership) : IProp GF
+
+theorem nodeConfig_confAt [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (v :
+    ConfigView) : nodeConfig n γ N v ⊢ nodeConfig n γ N v ∗ confAt γ v.applied v.membership
 
 theorem committed_emptyV2_joint [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) (k : Nat) (e : LogEntry) (m : Membership) : l[k]? = some e → e.isEmptyV2 → isCluster γ
@@ -116,6 +125,12 @@ theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Names
     N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢ snapshotValid γ sv
 
 def (sealed) isCluster (γ : Cluster) (N : Namespace) : IProp GF
+
+def (sealed) nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF
+
+theorem confAt_skipped [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) (m
+    : Membership) : a ≤ b → b ≤ l.length → isCommittedLogLb γ l ∗ confAt γ a m ∗ skippedIn γ l a b ⊢
+    confAt γ b m
 
 theorem confAt_persistent (γ : Cluster) (k : Nat) (m : Membership) : Persistent (confAt γ k m)
 
