@@ -523,7 +523,10 @@ theorem NewServer.wp_proofM (on : Bool)
   · iPkgInit
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, -⟩ := bootBackend_of_newPost d.γB d.P
+  -- (M2, the storage side) the safe-range slot `HsrS` and the compaction keys' values tracked
+  -- `HfkV` kept for a compacting store (`mvcc.kbSRM_some`; `New`'s `fkV`): dropped at `mvcc.New` below,
+  -- whose store does not compact yet (`{ d with cm := false }`)
+  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS⟩ := bootBackend_of_newPost d.γB d.P
     (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN HnoCmp $$ Hnew
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
@@ -1838,7 +1841,7 @@ theorem NewServer.wp_proofM (on : Bool)
     simp only [apply.AEnv.authOn, HM'.1]
   iunfold apply.kvOwn
   ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
-  · iunfold mvcc.writerOwn; iframe HrtA HtrA
+  · iapply (mvcc.writerOwn_off γw.st (by rw [Hγw.2.2.1]; rfl)).2; iframe HrtA HtrA
   iframe Hsrd Hkvw HRD2 HwoA
   iunfold apply.leasesLive
   iexists []

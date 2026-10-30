@@ -3813,8 +3813,17 @@ backend's. (The restore plan's R5e) With the readers' pool's retired count (D22 
 W7, 2026-10-25: `retiredAt γ 2`, until then the writer's retired ticket): the etcd server, the
 store's only creator that retires, retires two readers (the storage version monitor's and the
 writer's), so the restore knows the pool holds `nReaders - 2` slots, and returns exactly the old
-backend's tokens it held. -/
-def writerOwn (γ : StoreNames) : IProp GF := iprop(storeRT γ ∗ retiredAt γ 2)
+backend's tokens it held. (M2, the storage side, 2026-10-30; the backend-cmp Probe's S2) Counted from
+`NewStore`'s start, `nJobRd γ.kb` (the compaction job's reader kept back, one in compaction mode): a
+compacting server's writer holds `retiredAt γ 3`; `store.Restore`, never in compaction mode, sees
+`2` (`writerOwn_off`). -/
+def writerOwn (γ : StoreNames) : IProp GF := iprop(storeRT γ ∗ retiredAt γ (2 + nJobRd γ.kb))
+
+/-- The sole writer's resources of a store that keeps no reader back for the compaction job
+(`nJobRd γ.kb = 0`: not compacting, what `store.Restore` takes): the count at `2`. -/
+theorem writerOwn_off (γ : StoreNames) (h : nJobRd γ.kb = 0) :
+    writerOwn (GF := GF) γ ⊣⊢ iprop(storeRT γ ∗ retiredAt γ 2) := by
+  unfold writerOwn; rw [h]; exact .rfl
 
 /-- The sole writer lends its backend token. -/
 theorem writerOwn_rt (γ : StoreNames) :

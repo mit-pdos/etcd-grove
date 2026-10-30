@@ -184,8 +184,10 @@ theorem mvcc.store.Restore.wp_proof
   ihave Hnc : mvcc.kbNoCmp (GF := GF) (γ.withPhys p').kb (γ.withPhys p').bucket $$ [Hnc]
   · simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]; iexact Hnc
   -- the writer's old backend token, and its retired ticket
-  iunfold mvcc.writerOwn at Hown
-  icases Hown with ⟨HrtOld, Htkr⟩
+  have hj0 : mvcc.nJobRd γ.kb = 0 := by
+    obtain ⟨d0, hd0, hc0⟩ := Hkb
+    rw [hd0]; exact (mvcc.cmOff_res (GF := GF) d0 hc0).2.1
+  icases (mvcc.writerOwn_off γ hj0).1 $$ Hown with ⟨HrtOld, Htkr⟩
   -- `compactMainRev`: a quarter for `restore`, a quarter kept (the restoring lock's part agrees)
   icases (mvcc.typedPointsto_halves _ _ _).1 $$ Hcm with ⟨HcmR, HcmK⟩
   ihave #Hiwlb : mvcc.idxWriterLb (GF := GF) (γ.withPhys p').idx ([[], []] ++ R) $$ []
@@ -385,7 +387,9 @@ theorem mvcc.store.Restore.wp_proof
   isplitl [HfsW]
   · iunfold mvcc.fieldShare; iexists p', ⟨b', ti, sc, stopc⟩; iexact HfsW
   isplitl [Hrt1 Htkr]
-  · unfold mvcc.writerOwn mvcc.retiredAt; simp only [mvcc.StoreNames.withPhys_tkr]
+  · iapply (mvcc.writerOwn_off (γ.withPhys p') (by
+      simp only [mvcc.StoreNames.withPhys_kb, hk]; exact (mvcc.cmOff_res (GF := GF) d' Hcm').2.1)).2
+    unfold mvcc.retiredAt; simp only [mvcc.StoreNames.withPhys_tkr]
     iframe Hrt1 Htkr
   isplitl []
   · iunfold mvcc.hookP; simp only [mvcc.StoreNames.withPhys_hook]; iexact Hh'
