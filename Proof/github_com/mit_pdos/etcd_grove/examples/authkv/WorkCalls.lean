@@ -152,13 +152,41 @@ theorem akOpGranted_txn_put (who k v : GoString) (le : w64) (t : TxnModel) (hk :
   · have h1 := put_mem_opsPerms k v [] le _ hm
     simp [reqPerms, irrTxn, apply.dispatchKind, apply.irrEmpty, h1]
 
+/-- No events after the state's revision. -/
+theorem revEvents_after (σ : KVState) (r : Nat) (hr : σ.rev < r) : σ.revEvents r = [] := by
+  unfold KVState.revEvents
+  have hc : σ.changesAt r = [] := by
+    unfold KVState.rev at hr
+    unfold KVState.changesAt
+    split
+    · rfl
+    · rw [List.getElem?_eq_none (by omega)]; rfl
+  rw [hc, mvcc.evsOfRevM_nil]
+
+/-- **`Work`'s transaction T1** (`Then(OpPut(k, v), OpGet(...))`) keeps the history when `k` is its
+writer's to write: it commits the put's one change, or nothing. -/
+theorem opHistOk_txn_put_get (k v : GoString) (og : OpFull) (h : permittedK (writerK k) k) :
+    opHistOk (.txn (txnWireOf
+      { cmps := [], thenOps := [.put k v (W64 0), .get og], elseOps := [] })) := by
+  intro σ r hr ev hev
+  simp only [kvOpStep] at hev
+  split at hev
+  · have hc : (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf
+        { cmps := [], thenOps := [.put k v (W64 0), .get og], elseOps := [] })).2.1 =
+        [.put k v (W64 0)] := by
+      simp [txn.srvRunTxn, txnWireOf, opWire, TxnModel.branch, txn.srvOps_cons, txn.srvOps_nil,
+        txn.srvOp]
+    rw [hc, ← kvOpStep_putKeyOp] at hev
+    exact opHistOk_putKey k v (Or.inl h) σ r hr ev hev
+  · rw [revEvents_after σ r hr] at hev; cases hev
+
 /-! ### `Work`'s three ranges -/
 
 /-- A key in `[a, b)` is `u`'s to read. -/
 theorem permitted_of_inRange_ab (k : GoString) (h : inRange lo hi k = true) :
     permittedK go!"u" k := by
   unfold inRange at h
-  rw [if_neg (by decide), if_neg (by decide)] at h
+  rw [_root_.if_neg (by decide), _root_.if_neg (by decide)] at h
   simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not,
     decide_eq_true_eq] at h
   refine ⟨rfl, ?_, h.2⟩
