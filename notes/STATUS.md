@@ -491,7 +491,10 @@ raft's `Link` to build (raft-final's `raft__tickElection` at 64e7e7b9a3): `Link.
 (`etc/gen-link.py --kvreconf`), `AdequacyLinked`, `Results` (`kvreconf_porcupine_safe`). The one
 `sorry` of kvreconf's chain: `run_apply_read` (`ReadAtomic.lean`), a logically atomic `Cluster.Read`
 in `Get`'s shape, which lintest's client closure needs; the user chose to prove it by prophecy,
-its spec to be designed and signed off first (the plan's "the read path" section). The plan's
+its spec signed off 2026-10-30 (`notes/spec-first-study/kvreconf-read-spec.md`: Get's spec word
+for word, a prophecy resolved by gokv's `trusted_proph.ResolveBytes`), being implemented.
+(`examples/kv`'s `KV.Read` keeps the lower-bound spec, `kvLb L0 ⊢ ∃ L, kvLb L ∗ L0 <+: L ∧ …`: kv's
+porcupine traffic issues no reads; the same prophecy design would make it atomic.) The plan's
 "kvreconf-final" section has the structure.
 
 ## `examples/kvreconf`'s proof, track C: the leaf layer (2026-10-29, branch `raft-unified-kvreconf`)
