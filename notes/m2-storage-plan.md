@@ -539,3 +539,18 @@ false)`, `memberBoot_cmp`, linkv3p's `memberWatch` `⌜… ∧ E.cmp = false⌝`
   `etcd_cache_served`; D22's (the collaborator's): `srvBeOwn`, `srvBeOwn_frag`, `srv_be_swap`, the
   snapshot state's rebuild, `NewServer`'s allocation of `E.γbe`.
 - No full build (the coordinator's instruction).
+
+## The user's decisions after `lean`'s Stage P (2026-10-30)
+
+- **Three members, not one** (reverses phase 0's decision 2, `notes/m2-plan.md`): raft's snapshots are
+  proved, so M2 targets a 3-member cluster. A lagging follower installs a snapshot while compaction
+  runs, so **restore must work in compaction mode**; P4's scope limit (no restore while compacting)
+  and the F2 anchor (freeze `E.γbe` in compaction mode) are withdrawn. Watchers stay excluded in
+  compaction mode (N1's route, unaffected).
+- **Order:** (1) finish the parts that do not depend on restore (Q1 (a), N1, round 2's S1'-S6'),
+  against the merged `lean`; (2) draft restore in compaction mode as its own increment
+  (`store.Restore` taking back the compaction right, `storeStop` and the job's budgets and handing out
+  the new store's; the write-back supply following the backend through `applySnapshot`; D22's
+  `srvEnvOk`, `applySnapshot.specSnap`, the walk lemmas). Draft only: D22 is the collaborator's, who
+  will see it through the notes. The server's restore branch is still SNAPSHOT-SORRY #8
+  (`EtcdServer__run.lean:811`); the 3-member program comes after the apply-loop side.
