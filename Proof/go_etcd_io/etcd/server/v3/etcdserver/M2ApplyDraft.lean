@@ -459,7 +459,10 @@ revision as one of the model before the entry (`cmpLogOk`). The proposer's sourc
 round 1's S-2): `srvRevLb E.γ r` (an `idxCert` of the proposer's store) is no `kvCert`; the
 closable form is mvcc's "the store's current committed log is `certOk`" (`revMuBody` already
 holds `certOk γ log` of its committed log beside the log's authority), exported as a law
-`idxCert γ l ⊢ ∃ l', certOk γ l' ∗ ⌜l <+: l'⌝` under the store's invariant: the Probe's. -/
+`idxCert γ l ⊢ ∃ l', certOk γ l' ∗ ⌜l <+: l'⌝` under the store's invariant: the Probe's (or
+round 2's S-2', `store.Read`'s `certOk`). At the commit (review rounds 5-6, item 6): read through
+`kvCertInv` (`kv_cert_read`), turned into a lower bound of the server's log
+(`srvReqLogLb_of_rlogLb`) before the atomic update, compared inside it by `srvReqLogLb_prefix`. -/
 def cmpReach (γk : KVNames) (r : w64) : IProp GF :=
   iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝)
 
@@ -493,7 +496,9 @@ theorem reqPropOkD_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryMod
 /-- **Draft of `srvReqFieldsAt`** (`InvProposer.lean`; review round 1's F-3, round 2's N-2): today's
 with the KV invariant in the server's compaction mode, `kvInvD ρ.raft ρ.kv E.cmp`, in place of
 `kvInv ρ.raft ρ.kv` (one invariant: a second copy beside the off one could not be allocated, each
-owning half of `srvRLog`). At the switch `kvInv` is `kvInvD … ρ.kv.cmp` (item 5) and this conjunct
+owning half of `srvRLog`), and the certificates' invariant `kvCertInv` (review round 5's F5-1: the
+commit step reads a compaction's `cmpReach` through it, `kv_cert_read`, before the atomic update;
+`start` has it from `srvKVInvs`). At the switch `kvInv` is `kvInvD … ρ.kv.cmp` (item 5) and this conjunct
 is `kvInv ρ.raft ρ.kv ∗ ⌜ρ.kv.cmp = E.cmp⌝` (item 19), made by `NewServer` from its
 `ρ.rd.kv.cmp = E₀.cmp` and `envAgree`. -/
 def srvReqFieldsAtD (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
@@ -514,19 +519,36 @@ def srvReqFieldsAtD (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
-    srvMintInv ρ ∗ kvInvD ρ.raft ρ.kv E.cmp ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInvD ρ.raft ρ.kv E.cmp ∗ kvCertInv ρ.raft ρ.kv ∗
+    ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
+/-- **Off, today's with the certificates' invariant** (item 19 adds `kvCertInv`, review round 5's
+F5-1: the commit step compares a compaction's reached revision with the committed log). -/
 theorem srvReqFieldsAtD_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
-    (h : E.cmp = false) : srvReqFieldsAtD (GF := GF) s E ρ v ⊣⊢ srvReqFieldsAt s E ρ v := by
+    (h : E.cmp = false) :
+    srvReqFieldsAtD (GF := GF) s E ρ v ⊣⊢ srvReqFieldsAt s E ρ v ∗ kvCertInv ρ.raft ρ.kv := by
   unfold srvReqFieldsAtD srvReqFieldsAt
   rw [h]
   constructor
-  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, Hkv, Hc⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, Hkv, Hci, Hc⟩
     iframe
     iapply (kvInvD_off ρ.raft ρ.kv).1 $$ Hkv
-  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, Hkv, Hc⟩
+  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, Hkv, Hc⟩, Hci⟩
     iframe
     iapply (kvInvD_off ρ.raft ρ.kv).2 $$ Hkv
+
+/-- **The tie by the auth mode** (review round 6's R6-1, item 19): the KV names' compaction mode
+the server's with auth off; nothing with auth on (auth-on servers keep retention `0` and the auth
+mode's own vocabulary excludes a compaction, so no consumer reads it there, and `start.specOn`
+has no producer for it). `srvReqFieldsAtM on` carries `kvTieM on γk E` (both `rfl` laws kept; no
+auth-on text touched). `cmp` stands for `KVNames.cmp` until the switch adds the field. -/
+def kvTieM (on : Bool) (cmp : Bool) (E : apply.AEnv GF) : Prop :=
+  match on with
+  | false => cmp = E.cmp
+  | true => True
+
+theorem kvTieM_off (cmp : Bool) (E : apply.AEnv GF) : kvTieM (GF := GF) false cmp E = (cmp = E.cmp) :=
+  rfl
 
 /-- **Draft of `srvKVInvs`** (`InvApplier.lean`; review round 3's R3-2, item 19): the apply side's
 and the readers' KV invariants (`isServerRead`, `srvBuilt`, `isServer(M)` carry it), today's with

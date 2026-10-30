@@ -10,8 +10,8 @@ review round 3 (R3-1/R3-2), round 2 repaired, round 1 repaired. Nothing switched
    round 1 (`notes/spec-first-study/m2-apply-review-1.md`); targeted build passes. The `NoDelPutAt`
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
-2. *Next step: review round 6* (a fresh `spec-reviewer`, on the consolidated item list as
-   restated after round 5); the rounds end when one has nothing in the first tier.
+2. *Next step: review round 7* (a fresh `spec-reviewer`, narrow: round 6's R6-1 repair, `kvTieM`,
+   and the S6 edits); the rounds end when one has nothing in the first tier.
 3. *Then* the user's approval batch: Q5 (the consolidated items of "The switch in place"),
    dropping `NoDelPutAt` from mvcc/server specs (`store.Compact.spec`, `compactLockfree`,
    `updateCompactRev`, `crevSafe`/`delKey`/`compactJobPre`, `CompactMode`'s clause, `irrNoDelPut`;
@@ -259,22 +259,20 @@ such a statement is written in. "Snapshot track" = the collaborator's (D22).
 - **G3, `irrNoDelPut` of a put and a delete** (`irrNoDelPut_put`, `_delete`): from `chainStep`'s
   backend outcome (a put's revision has one `put` change, a delete's only `del`s). Mechanical.
 - **G4, the commit step** (`kv_prop_au` over `kvInvD`/`reqPropOkD`): the compaction form keeps the
-  state (`kvModelSt_snoc_nonwrite`), records `cmpLogOk` at the new entry from `cmpReach` (`kvCertInv`
-  opened beside `kvInv`: `kvcN` and `kvN` disjoint) and the invariant's `NoDelPutAt`; the write
-  forms keep `NoDelPutAt` of the extended model from `irrNoDelPut` (the model's last revision is
-  the request's outcome's).
+  state (`kvModelSt_snoc_nonwrite`) and records `cmpLogOk` at the new entry from `cmpReach`, read
+  before the atomic update (item 6's route, rounds 5-6: `kv_cert_read`, `srvReqLogLb_of_rlogLb`,
+  inside `srvReqLogLb_prefix`). (Superseded: "`kvCertInv` opened beside `kvInv`", and the
+  `NoDelPutAt` clauses, gone with F-5.)
 - **G5, `start`'s split** (A2) and the supply (`kbWTSupplyM_of_poolR`): `start`'s proof, which
   today frames the closer; with D22's `srvWTPoolR` (the storage side's draft, not switched).
 
 ## What `applyAll`/`run` need
 
-Under A1: **`run.spec` no textual change**; `applyAll.spec` and `applyEntries.spec` one pure
-conjunct each (item 13: the batch's compaction claims, which they pass to `applyEntryNormal`), and
-`applyEntryNormal.spec` one (item 12). The revision itself rides in `x` (`srvApplyKV(M)`,
+(Superseded by "The switch in place", items 8, 12, 13: no apply-loop spec changes in text; the
+entry's claim is derived inside `applyEntryNormal`'s proof.) Under A1 the revision itself rides in `x` (`srvApplyKV(M)`,
 `kvApplied(M)`, `entriesStep`): their two-copy proofs (`applyAll`'s, `run`'s, with SNAPSHOT-SORRY
 #7/#8) only pass it through, except at the install (`applySnapshot.specSnap`, the snapshot track's:
-item 17). `run` gets the claims from `clusterWorkloadOk` (item 8) where it gets `logShape` today.
-Nothing here merges them (the auth merge does, after the snapshot proofs).
+item 17). Nothing here merges them (the auth merge does, after the snapshot proofs).
 
 ## The 3-member `putgetc` (scoped, not built)
 
@@ -486,11 +484,12 @@ they differ; "in place" = the unsuffixed name redefined to the drafted text):
    at `γk.cmp = true`; `NewServer.specCompact` is item 14's). Users of the compaction family to
    move: `EtcdServer.Compact`'s proof, `compactableOk_server`, `processInternalRaftRequestOnce`'s
    `specCompact` proof. `reqPropOk_wire` needs lemmas that the compaction fields ignore the header.
-   **The commit step (G4, round 5's F5-1):** `kv_prop_au` runs at `⊤ \ srvRaftN` inside
-   `processInternalRaftRequestOnce`'s proof, so the compaction form's `cmpReach` is compared with
-   the committed log **before** the atomic update is built (with `kvCertInv`, item 19, and
-   `srvRLog_lb` at `srvRaftN`), and the update carries a `monoListLbOwn` lower bound of the
-   server's log that the model at the commit extends.
+   **The commit step (G4, rounds 5-6):** `kv_prop_au` runs at the caller's `⊤`; the atomic update
+   it builds runs at `⊤ \ srvRaftN`. So its leading step reads the compaction form's `cmpReach`
+   through `kvCertInv` (item 19; `kv_cert_read`) and turns it into a lower bound of the server's
+   log with `srvRaftLogInv` (from `raftPropose`) by `srvReqLogLb_of_rlogLb` (`SrvRaftLog.lean`),
+   without opening `kvInv`; inside the update `srvReqLogLb_prefix` (no mask) places it below the
+   committed log, where the invariant records `cmpLogOk`.
 7. `crevOf` (new, internal).
 8. **Dropped** (S3-3, rounds 4-5's recommendation): `applyEntryNormal`'s proof derives the
    entry's claim from what it holds (`srvRLogLb (A ++ [m])`, `srvKVInvs` with the tie, the KV
@@ -528,7 +527,13 @@ they differ; "in place" = the unsuffixed name redefined to the drafted text):
     Range, Txn are written over it; the conjunct at the same place in both texts keeps their two
     `rfl` laws) and `srvKVInvs` gain `⌜…kv.cmp = E.cmp⌝` beside their `kvInv`; the request path's
     view also gains `kvCertInv` (`kvCertInvM` in the M copy; round 5's F5-1: the commit step needs
-    it)
+    it; produced by `start` from `srvKVInvs`, on from `srvKVInvsOn`'s `kvCertInvOn`). **In the M
+    copy the tie is `kvTieM on γk.cmp E`** (round 6's R6-1: `⌜γk.cmp = E.cmp⌝` off, `True` on;
+    `start.specOn` has no producer for an on tie, and no auth-on consumer reads one), so
+    `NewServer.specM`'s premise `ρ.rd.kv.cmp = false` is used only by its allocation. Positional
+    consumers to move (round 6's S6-4): the `#Hclog, %Hcfgnn` pattern of
+    `processInternalRaftRequestOnce`, and `client/v3/ServeFromStart.lean`, `v3rpc/ServerKV.lean`
+    (outside the package: projection laws for `srvReqFieldsAt`)
     (`srvReqFieldsAtD`, `srvKVInvsD`); `NewServer` makes them from `ρ.rd.kv.cmp = E₀.cmp` (14').
     `srvKVInvs` gets projection laws (`client/v3` and `v3rpc` unfold it by position). **Scope**:
     the tie puts every member of a cluster in one compaction mode (`KVNames.cmp` is the
@@ -545,6 +550,14 @@ introduced nothing; two first-tier findings at the compaction's proposal, F5-1 (
 `kvCertInv` in the request path's view, the comparison before the atomic update) and F5-2
 (`Compact.specD`'s readers' names, `ρ.rd`), repaired (items 6, 15, 19; the spec Draft); items
 8, 12, 13 committed to S3-3 (unchanged texts).
+
+Review round 6 (`notes/spec-first-study/m2-apply-review-6.md`): round 5's repairs sound (the commit
+step's route, `kvCertInv`'s producers in both modes, F5-2, S3-3); one first-tier finding, R6-1
+(item 19's tie had no producer in `srvReqFieldsAtM`'s on arm), repaired by `kvTieM` (drafted);
+S6-1 (`srvReqFieldsAtD` with `kvCertInv`, its off law `⊣⊢ srvReqFieldsAt ∗ kvCertInv`; `cmpReach`'s
+docstring), S6-3, S6-4 in the items; S6-2 below. Uncertain, the storage side's S4:
+`compactableOk_server` needs views only `start` makes (its user `NewServer.wp_proofCompact` runs
+before `start`).
 
 Still open, second tier: S-5/round 1's S-6 (the `kbCmpM E.γ.kb ↔ E.cmp` law to export), S-2'
 (G2 through `store.Read`'s `certOk`), S3-3 (`cmpEntryOk` derived in `applyEntryNormal`'s proof).
