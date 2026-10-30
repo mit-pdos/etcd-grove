@@ -189,27 +189,57 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                         "%Hframe" ∷
                                                                             ⌜m.Type' ≠ MsgSnap →
                                                                                 m.Type' ≠ MsgStorageApplyResp →
-                                                                                  (m.Type' = MsgStorageAppendResp →
-                                                                                      sn = none) →
-                                                                                    NetFrame s s'⌝ ∗
-                                                                          "%Hterm" ∷
-                                                                              ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
-                                                                            "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-                                                                              "%Hsnapfr" ∷
-                                                                                  ⌜m.Type' = MsgSnap →
-                                                                                      SnapStep m s s' ∧
-                                                                                        ∀ (sv : SnapshotM),
-                                                                                          sn = some sv →
-                                                                                            SnapLogStep sv m s s'⌝ ∗
-                                                                                "%Htrunc" ∷
-                                                                                    ⌜m.Type' = MsgApp →
-                                                                                        AppTrunc m ents s s'⌝ ∗
-                                                                                  "Herr" ∷
-                                                                                    (⌜err = GoInterface.nil⌝ ∨
-                                                                                      ⌜m.Type' = MsgProp⌝ ∗
-                                                                                        typedPointsto
-                                                                                          (globalAddr ErrProposalDropped)
-                                                                                          err DFrac.discard) -∗
+                                                                                  m.Type' ≠ MsgTransferLeader →
+                                                                                    (m.Type' = MsgStorageAppendResp →
+                                                                                        sn = none) →
+                                                                                      NetFrame s s'⌝ ∗
+                                                                          "%Hxwframe" ∷
+                                                                              ⌜m.Type' = MsgTransferLeader →
+                                                                                  NetFrame s
+                                                                                      { term := s'.term, vote := s'.vote,
+                                                                                        lead := s'.lead, role := s'.role,
+                                                                                        votes := s'.votes,
+                                                                                        outbox := s'.outbox,
+                                                                                        stepfn := s'.stepfn,
+                                                                                        ticking := s'.ticking,
+                                                                                        progress := s'.progress,
+                                                                                        log := s'.log, logst := s'.logst,
+                                                                                        prvals := s'.prvals,
+                                                                                        prevote := s'.prevote, gh := s.gh,
+                                                                                        rd := s'.rd, lt := s'.lt,
+                                                                                        pci := s'.pci,
+                                                                                        isLearner := s'.isLearner,
+                                                                                        sdr := s'.sdr, cq := s'.cq } ∧
+                                                                                    (s'.gh =
+                                                                                        have __src := s.gh;
+                                                                                        { outlb := __src.outlb,
+                                                                                          unst := __src.unst,
+                                                                                          tc := __src.tc, ns := __src.ns,
+                                                                                          xw := s'.gh.xw,
+                                                                                          slent := __src.slent,
+                                                                                          snp := __src.snp,
+                                                                                          sn := __src.sn }) ∧
+                                                                                      ∀ (p : w64 × w64),
+                                                                                        p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+                                                                            "%Hterm" ∷
+                                                                                ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
+                                                                              "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
+                                                                                "%Hsnapfr" ∷
+                                                                                    ⌜m.Type' = MsgSnap →
+                                                                                        SnapStep m s s' ∧
+                                                                                          ∀ (sv : SnapshotM),
+                                                                                            sn = some sv →
+                                                                                              SnapLogStep sv m s s'⌝ ∗
+                                                                                  "%Htrunc" ∷
+                                                                                      ⌜m.Type' = MsgApp →
+                                                                                          AppTrunc m ents s s'⌝ ∗
+                                                                                    "Herr" ∷
+                                                                                      (⌜err = GoInterface.nil⌝ ∨
+                                                                                        ⌜m.Type' = MsgProp⌝ ∗
+                                                                                          typedPointsto
+                                                                                            (globalAddr
+                                                                                              ErrProposalDropped)
+                                                                                            err DFrac.discard) -∗
                                                             Φ (intoVal err)) -∗
                                                       WP
                                                         ((intoVal

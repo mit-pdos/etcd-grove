@@ -11,6 +11,11 @@ def isStorage (γ : Cluster) (id : w64) (st : Storage) : IProp GF :=
 theorem nodeRunning_stopped [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (q :
     Qp) : nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False
 
+theorem Membership.Valid.snapListsOk {m : Membership} {cs : ConfStateM} {t i : w64} {d : List w8} :
+    m.Valid → confStateIs cs m → ¬W64 0 ∈ m.ids → (∀ (k : w64), k ∈ m.learnersNext → ¬k ∈ m.voters)
+    → GMap.size m.ids < 2 ^ 61 → uint.Z i < 2 ^ 61 → SnapListsOk { sid := { term' := t, index' := i
+    }, cl := cs.lists, al := m.autoLeave, dat := d }
+
 theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Persistent (skippedIn γ
     l a b)
 

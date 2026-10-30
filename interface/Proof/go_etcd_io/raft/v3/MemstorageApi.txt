@@ -22,3 +22,10 @@ theorem memStorInv_persistent [package_sem : Assumptions] [MemStorReg GF] (ms : 
 theorem memStorInv_alloc [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
     (γ : Cluster) (id : w64) (E : CoPset) : ⊢ memStorLock ms γs -∗ memStorFresh ms γs ={E}=∗
     memStorInv ms γs γ id
+
+theorem MemJust.mk.congr_simp.{u_1} (SV SV✝ : SnapshotM → IProp GF) (e_SV : SV = SV✝) (B B✝ : Nat →
+    IProp GF) (e_B : B = B✝) (DL DL✝ : Nat → IProp GF) (e_DL : DL = DL✝) (SV_pers : ∀ (sv :
+    SnapshotM), Persistent (SV sv)) (B_pers : ∀ (k : Nat), Persistent (B k)) (B_timeless : ∀ (k :
+    Nat), Timeless (B k)) (DL_pers : ∀ (i : Nat), Persistent (DL i)) : { SV := SV, B := B, DL := DL,
+    SV_pers := SV_pers, B_pers := B_pers, B_timeless := B_timeless, DL_pers := DL_pers } = { SV :=
+    SV✝, B := B✝, DL := DL✝, SV_pers := ⋯, B_pers := ⋯, B_timeless := ⋯, DL_pers := ⋯ }

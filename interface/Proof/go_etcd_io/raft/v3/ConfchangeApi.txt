@@ -125,6 +125,10 @@ theorem ownCfgPairM_size [package_sem : Assumptions] (cfg : tracker.Config) (prs
     Membership) : ownCfgPairM cfg prs m ⊢ ∃ M dq, ownMap prs dq M ∗ ⌜M.size = GMap.size m.ids⌝ ∗
     (ownMap prs dq M -∗ ownCfgPairM cfg prs m)
 
+theorem Membership.Valid.snapListsOk' {m : Membership} {cs : ConfStateM} {t i : w64} {d : List w8} :
+    m.Valid → m.Restorable → confStateIs cs m → GMap.size m.ids < 2 ^ 61 → uint.Z i < 2 ^ 61 →
+    SnapListsOk { sid := { term' := t, index' := i }, cl := cs.lists, al := m.autoLeave, dat := d }
+
 def tracker.MakeProgressTracker.apiSpec : Prop :=
   ∀ (maxInflight maxBytes : w64),
     0 ≤ sint.Z maxInflight ∧ sint.Z maxInflight < 2 ^ 62 →
