@@ -2418,6 +2418,9 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+-- (2026-10-30, the repair) the server package's assumptions (the applied index's invariant is stated
+-- over raft's cluster since the repair)
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The applied index's deposit in the auth mode** (the auth plan's E3i, `AppliedOn.lean`): the
 apply thread deposits the log after the next entry, the mode's model of the committed raft log. -/
