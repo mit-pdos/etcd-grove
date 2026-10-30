@@ -360,17 +360,6 @@ instance dvRes_persistent (s : Loc) (γs : ServerRaftNames) (dv : Option Loc)
     (L : List EntryModel) : Persistent (dvRes (GF := GF) s γs dv L) := by
   unfold dvRes; split <;> infer_instance
 
-/-- (2026-10-30, the repair) **The apply side's half of the node's running token, for a batch with
-a view** (owned): `node.ApplyConfChange` answers nil and `nodeStopped` once the node is stopped,
-which the apply thread refutes with it. `EtcdServer.run` holds the half from the start (the raft
-loop the other, `rnRunHalf`), lends it to a batch's `applyAll` with a view, and gives it to the loop
-with `raftNode.stop` (`rnStopBag`) once the scheduler is drained. -/
-def dvRun (γs : ServerRaftNames) (dv : Option Loc) : IProp GF :=
-  match dv with
-  | none => iprop(True)
-  | some n => letI := srvStor (GF := GF) γs.raft
-      nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half
-
 /-- **The premise on a batch's view**: without one, no conf entry (2026-10-30, the repair: one mode;
 until then also a static cluster); with one, no entry at or below the consistent index `c` (no
 replay: Go hands a replayed conf change to no one), the cluster at the server's rule (from the
@@ -390,7 +379,7 @@ def dvCCPre (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (v : ConfigView)
   match dv with
   | none => iprop(True)
   | some n => letI := srvStor (GF := GF) γs.raft; iprop(srvRaftNodeCC s γs n ∗ nodeConfig n γs.raft.cl srvClusterN v ∗
-      deliveredLogLb n γs.raft.cl srvClusterN l ∗ dvRun γs (some n))
+      deliveredLogLb n γs.raft.cl srvClusterN l ∗ nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half)
 
 /-- `applyConfChange`'s node answer: with a view, `nodeConfig` at `⟨k + 1, m'⟩`, and (2026-10-30)
 the running token's half back. -/
@@ -399,7 +388,7 @@ def dvCCPost (γs : ServerRaftNames) (dv : Option Loc) (k : Nat) (m' : Membershi
   match dv with
   | none => iprop(True)
   | some n => letI := srvStor (GF := GF) γs.raft
-      iprop(nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗ dvRun γs (some n))
+      iprop(nodeConfig n γs.raft.cl srvClusterN ⟨k + 1, m'⟩ ∗ nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half)
 
 /-- A normal entry keeps the view. -/
 theorem dvView_normal (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryModel)
@@ -428,17 +417,16 @@ and back from its answer the view after the entry. -/
 theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid : w64)
     (L rest : List EntryModel) (m : EntryModel) (cm : ConfChangeM)
     (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
-    (Hdyn : ∀ n, dv = some n → ccApplyOkR γs.raft cm ∧
-      srvDynPol γs.raft.boot.length lid (γs.pre ++ L ++ [m]) ∧ lid ∈ γs.raft.cfg ∧
+    (Hdyn : ∀ n, dv = some n → ccApplyOkR γs.raft cm ∧ lid ∈ γs.raft.cfg ∧
       withIdx ((γs.pre ++ L).map EntryModel.toLE) = γs.pre ++ L) :
-    dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ∗ dvRun γs dv ⊢
+    dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half)) ⊢
       ∃ (v : ConfigView) (m' : Membership),
         dvCCPre s γs dv v (srvLE γs (L ++ m :: rest)) ∗
         ⌜∀ n, dv = some n →
           srvCCPre (srvRule kc0 γs.raft.boot) (srvLE γs (L ++ m :: rest)) v
             (.v1 (membership.ccRaftEff (restModel kc0 γs.raft.boot (γs.pre ++ L)).bk cm))
             (γs.pre ++ L).length m.toLE m'⌝ ∗
-        (dvCCPost γs dv (γs.pre ++ L).length m' -∗ dvView γs dv (L ++ [m]) ∗ dvRun γs dv) := by
+        (dvCCPost γs dv (γs.pre ++ L).length m' -∗ dvView γs dv (L ++ [m]) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half))) := by
   sorry
 /- REPAIR-OLD
   unfold dvView dvRes dvCCPre dvCCPost

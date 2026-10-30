@@ -230,14 +230,12 @@ def ccMembRes (_γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : I
   iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF), ⌜c.lid = lid⌝ ∗
       trLive γn t c rs)
 
-/-- **The positional policy** (persistent; D43 M5d, the user's decision; 2026-10-30, the repair: in
-every cluster, until then in the dynamic mode, `True` in the static one): the local member `lid`
-is a member of raft's configuration, and every conf entry of the committed log (`srvDynPol`, by
-its position in raft's log) decodes to an `AddNode` among the boot entries (re-applied) or a
-`RemoveNode` after them (D3: none), never of the local member. -/
+/-- **The local member a voter** (persistent; 2026-10-30, the repair, T1d: D3's static membership
+needs no positional policy, the server's conf entries being the boot log's `ccPolOk`; until then,
+in the dynamic mode, also D43 M5d's `srvDynPol` over the committed log): the local member `lid` is
+a member of raft's configuration. -/
 def srvDynLog (γs : ServerRaftNames) (lid : w64) : IProp GF :=
-  iprop(⌜lid ∈ γs.raft.cfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
-      ⌜srvDynPol γs.raft.boot.length lid (γs.pre ++ L)⌝)
+  iprop(⌜lid ∈ γs.raft.cfg⌝)
 
 instance srvDynLog_persistent (γs : ServerRaftNames) (lid : w64) :
     Persistent (srvDynLog (GF := GF) γs lid) := by
@@ -402,8 +400,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
           (cm.type = W32 0 → GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62) ∧
-          (srvDynPol γr.raft.raft.boot.length lid (γr.raft.pre ++ (A ++ [m])) ∧
-            lid ∈ γr.raft.raft.cfg)⌝ ∗
+          lid ∈ γr.raft.raft.cfg⌝ ∗
         (∀ v3 : Bool, ccMembRes γs cl tl lid (ccPeersAfter v3 cm
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk prs) -∗
           srvApRes s γr (A ++ [m])) := by

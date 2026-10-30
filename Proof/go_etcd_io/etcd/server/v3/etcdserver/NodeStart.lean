@@ -177,7 +177,7 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
           (NodeDriverState.init (memStorIface γ.ms)) ∗
-        nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ rnRunHalf γ ∗
+        nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
@@ -337,7 +337,7 @@ abbrev NodeStartSpec : Prop :=
           -- `isServerBuilt`'s rows but `isRaftNode`; (2026-10-30, the repair) the apply side's
           -- half of the node's running token (`StartNode`'s `nodeRunning 1`, the other half in
           -- `rnLoopTok`)
-          rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ rnRunHalf γw ∗
+          rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ (letI := srvStor (GF := GF) γw.node; nodeRunning γw.nl γw.node.cl srvClusterN (1 : Qp).half) ∗
           -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
           -- wrapper's names, the committed index's invariant of the server `s` and the read

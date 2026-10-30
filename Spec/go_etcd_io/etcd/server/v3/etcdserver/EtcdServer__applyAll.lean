@@ -82,7 +82,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
-      dvRun ρ.raft dv }}
+      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -92,7 +92,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ dvRun ρ.raft dv ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
@@ -148,7 +148,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
-      dvRun ρ.raft dv ∗
+      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
       srvTokRights E (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
@@ -160,7 +160,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ dvRun ρ.raft dv ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ srvTokRights E' (ciEff γ' st'.k) ∗
         applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗

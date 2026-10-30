@@ -195,14 +195,13 @@ def rnAppendReceipt (γ : RNNames) (es : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   appendReceipt (memStorIface γ.ms) (es.map EntryModel.toM) []
 
-/-- (2026-10-30, the repair) **The raft loop's half of the node's running token** (`nodeRunning`,
-raft's: `Stop` takes all of it, `node.Stop.spec`; a half refutes the stopped answers of `Advance`
-and `ApplyConfChange`, `nodeRunning_stopped`). The other half is the apply side's (`EtcdServer.run`
-holds it, hands it to a batch's conf changes with the view, `dvView`, and gives it to the loop with
-`stopped`, `rnStopBag`, once the scheduler is drained: etcd stops raft after the scheduler). -/
-def rnRunHalf (γ : RNNames) : IProp GF :=
-  letI := srvStor (GF := GF) γ.node
-  nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half
+/- (2026-10-30, the repair) **The node's running token** (raft's `nodeRunning`: `node.Stop` takes
+all of it; a half refutes the stopped answers of `Advance` and `ApplyConfChange`,
+`nodeRunning_stopped`) is split in halves, written out where used: the raft loop's in
+`rnLoopTokP` and `Advance`'s clause; the apply side's held by `EtcdServer.run` (its state's
+`"Hrunh"`), lent to a batch with a view (`applyAll`/`applyEntries`/`apply`, `dvCCPre`), and given to
+the loop with `raftNode.stop` (`rnStopBag`'s payload) once the scheduler is drained: etcd stops
+raft after the scheduler. -/
 
 /-- A `Ready`'s `SoftState`: nil, or read-only fields (raft's `softStateRO`). -/
 def softStateAt (p : Loc) : IProp GF := softStateRO p
@@ -385,10 +384,10 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
       {{ (ch : Loc), RET #ch; isReadyChan γ.nl γ.node.cl srvClusterN ch }}) ∗
     -- (D43 M3) with the view after the batch, its conf entries applied
     □ (∀ (d ce es : List EntryModel) (p : HardStateM),
-      {{ rnBusyN γ d ce es p ∗ rnCfgAt γ (d ++ ce) ∗ rnAppendReceipt γ es ∗ rnRunHalf γ }}
+      {{ rnBusyN γ d ce es p ∗ rnCfgAt γ (d ++ ce) ∗ rnAppendReceipt γ es ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       -- (2026-10-30, the repair) and the node's applied index past the committed log handed out
-      {{ RET #(); rnDrv γ (d ++ ce) p ∗ rnRunHalf γ ∗
+      {{ RET #(); rnDrv γ (d ++ ce) p ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
           nodeAppliedLb γ.node.cl γ.id (γ.pre ++ d ++ ce).length }}) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ nodeRunning γ.nl γ.node.cl srvClusterN 1 }}
@@ -852,7 +851,7 @@ of the node's running token (`rnRunHalf`'s other half: `raftNode.stop` is called
 is drained, so the apply thread no longer needs it), which with the loop's makes the whole token
 `node.Stop` takes. -/
 def rnStopBag (E : RNEnv GF) (γ : RNNames) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ rnRunHalf γ)))
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half))))
 
 instance rnStopBag_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
     Persistent (rnStopBag E γ c) := by
@@ -996,7 +995,7 @@ half, and `cum`'s authority, one element per payload sent after the first, endin
 (2026-10-30, the repair) the loop's half of the node's running token. -/
 def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF :=
   iprop(∃ (sent : List toApply) (cums : List (List EntryModel)),
-    rnDrv γ L p ∗ rnRunHalf γ ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
+    rnDrv γ L p ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
     ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝ ∗
     -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
     ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝)

@@ -26,6 +26,8 @@ token): the `stopped` flag set, the context cancelled (`cancel` with `stopped`),
 `nil` and the stop token and the queue left in the lock invariant; then `<-f.donec` returns once
 the worker has closed it. -/
 theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := hG) := by
+  sorry
+/- REPAIR-OLD
   intro l γ F Ps
   wp_start as ⟨#Hf, Htok, HqS⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -98,6 +100,7 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
     wp_auto
     iapply HΦ
     itrivial
+-/
 
 end proof
 

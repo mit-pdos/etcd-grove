@@ -2016,7 +2016,9 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
     (rule : ConfRule) (boot : List EntryM) (reg : GName) (snapLoc : w64 → Option GName)
     (Lf0 : List EntryModel) (E : CoPset)
     (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller ∧ ¬ m.toLE.isEmptyV2)
-    (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0) :
+    (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0)
+    -- (2026-10-30, the repair, T1c) its conf entries changes the server takes (`srvLogCore`'s)
+    (hcc : ∀ m ∈ Lf0, m.typ = W32 1 → ccBootOk (GMap.listToSet vs) m.data) :
     ⊢ ownCommittedOps (GF := GF) cl (Lf0.map EntryModel.toLE) ={E}=∗
       ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.rule = rule ∧ γr.boot = boot ∧ γr.reg = reg ∧
         γr.snapLoc = snapLoc⌝ ∗

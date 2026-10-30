@@ -26,13 +26,17 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 /-- **`f.Stop()`**, with the stop token and the queue (so no `Schedule` follows: an untracked one
 needs `schedLive`, which the stop token excludes, a tracked one the queue; `fifo.Schedule` after
 `Stop` panics): it cancels the scheduler's context and returns once its goroutine has run the
-pending jobs (with the cancelled context) and exited. -/
+pending jobs (with the cancelled context) and exited; and (2026-10-30, the repair, T1b) with the
+last tracked job's postcondition (the queue's last saved proposition: its `Post`, or the initial
+`True`): every pending job ran before `donec` closed (`schedule.go:150-184`). -/
 abbrev schedule.Scheduler.Stop.spec : Prop :=
   ∀ (fi : GoInterfaceOk) (γ : schedule.SchedNames) (Ps : List GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
       schedule.isFifo (GoInterface.ok fi) γ ∗ schedule.schedStopTok γ ∗ schedule.schedQueue γ Ps }}
     (App (Val #(methods fi.ty go!"Stop" fi.v)) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); (match Ps.getLast? with
+      | none => iprop(True)
+      | some p => iprop(∃ P : IProp GF, schedule.savedProp p P ∗ ▷ P)) }}
 
 end spec
 

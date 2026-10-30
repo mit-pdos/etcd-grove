@@ -30,7 +30,7 @@ abbrev raftNode.stop.spec : Prop :=
       E.ST ∗
       -- (2026-10-30, the repair) the apply side's half of the node's running token, which
       -- `stopped` carries to the loop (`rnStopBag`)
-      rnRunHalf γ }}
+      (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
