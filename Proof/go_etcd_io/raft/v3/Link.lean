@@ -51,6 +51,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.RestartNode
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
+public import Proof.go_etcd_io.raft.v3.StartNode
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
 public import Proof.math.big.NewInt
@@ -275,6 +276,7 @@ public import Proof.go_etcd_io.raft.v3.readOnly__maybeAdvance
 public import Proof.go_etcd_io.raft.v3.readOnly__recvAck
 public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+public import Proof.go_etcd_io.raft.v3.setupNode
 public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
@@ -1605,6 +1607,14 @@ theorem node.wp_run [StorageModel GF] :
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
   RestartNode.wp_proof wp_NewRawNode wp_newNode node.wp_run
+
+theorem wp_setupNode [StorageModel GF] :
+    setupNode.spec (GF := GF) (hG := hG) :=
+  setupNode.wp_proof wp_NewRawNode RawNode.wp_Bootstrap wp_newNode
+
+theorem wp_StartNode [StorageModel GF] :
+    StartNode.spec (GF := GF) (hG := hG) :=
+  StartNode.wp_proof wp_setupNode node.wp_run
 
 theorem node.wp_Advance [StorageModel GF] :
     node.Advance.spec (GF := GF) (hG := hG) :=

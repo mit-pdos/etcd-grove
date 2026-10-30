@@ -50,6 +50,7 @@ part of the signature yet.
 module
 
 public import Spec.go_etcd_io.raft.v3.RestartNode
+public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.node__Propose
 public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.node__Step

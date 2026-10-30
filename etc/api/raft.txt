@@ -37,6 +37,8 @@ importable Proof.go_etcd_io.raft.v3.ConfPolicy
 # `MakeProgressTracker`, `Restore`, `Changer.{Simple,EnterJoint,LeaveJoint}` (linked in `Linked`)
 importable Proof.go_etcd_io.raft.v3.ConfchangeApi
 importable Spec.go_etcd_io.raft.v3.RestartNode
+# (2026-10-30, stage R5) a cluster with a bootstrap log
+importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance
 importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 # (2026-10-29, stage U9a) `node__ForgetLeader` over the node API (until then over raft's internals,

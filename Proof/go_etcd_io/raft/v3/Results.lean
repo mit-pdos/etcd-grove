@@ -342,6 +342,7 @@ namespace EtcdGrove
 #print axioms RawNode.wp_Advance
 #print axioms node.wp_run
 #print axioms wp_RestartNode
+#print axioms wp_StartNode
 #print axioms RawNode.wp_readyWithoutAccept
 #print axioms RawNode.wp_acceptReady
 #print axioms RawNode.wp_HasReady
@@ -428,6 +429,9 @@ namespace EtcdGrove
 #print axioms sentMsg_snapshot
 #print axioms node.wp_readyRecv
 #print axioms cluster_alloc
+#print axioms readyFits_intro
+#print axioms nodeConfig_confAt
+#print axioms confAt_skipped
 #print axioms joinAuth_join
 #print axioms nodeRunning_stopped
 #print axioms ownConfDecisions_excl

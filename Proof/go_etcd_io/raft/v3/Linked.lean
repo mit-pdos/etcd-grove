@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Spec.go_etcd_io.raft.v3.RestartNode
+public import Spec.go_etcd_io.raft.v3.StartNode
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Proof.go_etcd_io.raft.v3.ConfchangeApi
@@ -64,10 +65,15 @@ theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.wp_RestartNode
 
-/-! (2026-10-29, U9) One spec per function: `RestartNode`, `node.Advance` and
-`node.ApplyConfChange` over the one cluster (`isCluster`), linked in `Link.lean` like every other
-function (until U9 the static family there, and the dynamic and unified variants here); `StartNode`
-has no spec until the server's repair (U10). -/
+/-- (2026-10-30, stage R5) `StartNode` in a cluster with a bootstrap log. -/
+theorem wp_StartNode [StorageModel GF] :
+    StartNode.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.wp_StartNode
+
+/-! (2026-10-29, U9) One spec per function: `RestartNode`, `StartNode` (2026-10-30, stage R5),
+`node.Advance` and `node.ApplyConfChange` over the one cluster (`isCluster`), linked in `Link.lean`
+like every other function (until U9 the static family there, and the dynamic and unified variants
+here). -/
 
 theorem node.wp_Advance [StorageModel GF] :
     node.Advance.spec (GF := GF) (hG := hG) :=
