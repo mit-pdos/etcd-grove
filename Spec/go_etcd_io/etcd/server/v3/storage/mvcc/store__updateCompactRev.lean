@@ -41,7 +41,7 @@ The store's reader token `storeRT γ` is lent and given back in every case (ques
 parts (2)-(4), decided by the agent: `SetScheduledCompact`'s `LockInsideApply` and the
 `ForceCommit` after it take it; the caller's, `compactLockfree`'s and `store.Compact`'s). Their
 write-back tokens come from the store's supply (`physCmp`'s `kbWTSupply`) and the receipts of its own
-steps. -/
+steps. The caller's `hookIs γ P f` is given back in every case (Probe P1, 2026-10-30). -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log),
@@ -52,7 +52,7 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeRT γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
-      mvcc.storeRT γ ∗
+      mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
       ((⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 c ∧ c < sint.Z rev⌝ ∗
         mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRight γ (sint.Z rev) ∗ Post ∗
         mvcc.compactJobPre s γ rev) ∨

@@ -64,7 +64,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post logc hcmp
   wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs, HRTok⟩
-  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, -⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, HwFrag⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -158,6 +158,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRTok
+      isplitl [HwFrag]
+      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
       iright; ileft
       isplitr
       · ipureintro; exact ⟨by word, rfl⟩
@@ -199,6 +201,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRTok
+      isplitl [HwFrag]
+      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
       iright; iright
       isplitr
       · ipureintro; exact ⟨Hgt, rfl, rfl⟩
@@ -324,6 +328,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRTok
+      isplitl [HwFrag]
+      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
       ileft
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, Hgt⟩

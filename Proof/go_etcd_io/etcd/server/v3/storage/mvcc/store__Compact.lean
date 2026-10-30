@@ -44,7 +44,7 @@ theorem mvcc.store.Compact.wp_of_le
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
@@ -88,7 +88,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h0 s γ hcmp) $$ [$HRTok] as %pcc HRTok
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW $HRTok] as %ch %prev %err ⟨HRTok, Hres⟩
+  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW $HRTok] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
@@ -107,7 +107,7 @@ theorem mvcc.store.Compact.wp_of_le
     wp_apply (h3 s γ trace rev prev pcc te htr) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, Htrc⟩
     (try wp_auto)
     iapply HΦ
-    iframe Htrc HRTok
+    iframe Htrc HRTok HhookW
     ileft
     iframe HPost Hch'
     isplitr
@@ -123,7 +123,7 @@ theorem mvcc.store.Compact.wp_of_le
     · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
-    iframe Htrc HRTok
+    iframe Htrc HRTok HhookW
     iright; ileft
     iframe Hright HPre Hch
     isplitr
@@ -135,7 +135,7 @@ theorem mvcc.store.Compact.wp_of_le
     · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
-    iframe Htrc HRTok
+    iframe Htrc HRTok HhookW
     iright; iright
     iframe Hright HPre Hcert
     isplitr

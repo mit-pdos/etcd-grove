@@ -60,6 +60,10 @@ the job derives it from the certificate's time-receipt bound (`CompactSmall_of_c
 **The reader's token** (question 5's switch, decision (i), 2026-10-29): the caller lends the store's
 reader token `storeRT γ` (the apply thread's, from `writerOwn`) for `checkPrevCompactionCompleted`'s
 `ReadTx`, and gets it back in every case.
+
+**The writer's hook** (Probe P1, 2026-10-30): `hookIs γ P f` (the persistent `hookOk` and the
+writer's fragment `writerFrag`) is given back in every case, so the caller can still write
+(`store.Write`), compact again, or restore.
 -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
@@ -71,7 +75,7 @@ abbrev mvcc.store.Compact.spec : Prop :=
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
