@@ -1028,3 +1028,9 @@ Each drafted in `etcdserver/M2StorageDraftRestore.lean` (Lean) or as text here:
 - The full `lake build` of `c826174109` passed (11208 jobs, no error).
 - Go: the reproduction test (`issues/etcd-restore-pending-compaction-unclosed/repro_test.go`) fails
   as the issue says, in 6 runs, 5 of them with `-race`.
+
+**The user's answers on step 2 (2026-10-30).** Q4 (a): one write-token stock per backend, sharing
+R2-7's receipt counter (as drafted). Q5 (a): the compaction revision stays logical across a restore,
+with the premise `c ≤ c'`; the apply side models the compaction revision of the committed log. Q6:
+the `schedule` spec changes approved (`Stop` returns the run token and takes the "stop channel
+closed" fact; `updateCompactRev`'s barrier a tracked job).
