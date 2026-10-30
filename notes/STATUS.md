@@ -591,8 +591,16 @@ an attempt, `akOut`/`akTokSeen`; a write told its grant was granted at `setupSt`
 `TrimPrefix(token, "Bearer ")` leaves an issued token unchanged (`tokIssued_trim`); the served
 `Authenticate` owes it (C1's A4-A5). `Work.spec` gains `auth.modeTag V.R.γ.tag (.on γa)` (the watch's
 verdict is at the tagged mode; `Main` has it from the member's start), and `Work.wp_proof` takes the
-builders' and the watch's specs and `WithTimeoutBackgroundMd` (Link regenerated). Open: `Work`'s
-per-call lemmas and its proof, then `Main`.
+builders' and the watch's specs and `WithTimeoutBackgroundMd` (Link regenerated). **`Work` proved**
+(2026-10-30) but for T4, the nested transaction: `then_commit_nested_refused` (`WorkCalls.lean`,
+`sorry`) states that `Then(OpTxn(nil, [OpPut(c/who/t3)], nil))` returns the builder and its `Commit`
+replies with an error, until client/v3's builder and `Commit` specs cover nested transactions
+(branch `txn-nested`, etcd-grove-83). `Work.spec` gains `errors.AsTarget EtcdError` (as `Main.spec`).
+The per-call lemmas are in `WorkCalls.lean` (`work_put`/`_delete`/`_get`/`_commit`, the last now also
+giving the reply's responses, `txnReplied_facts`; T1's reads in `[a, b)`, `t1_reads`); the refused
+watch's events refuted by `akWatch_c_refused`. The authkv results now reach G2's `streamKeyOf_none`
+and `streamKeyOf_single` (reviewed, approved axioms; `notes/audit.md`), through the watch. Open:
+`Main`.
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 

@@ -534,3 +534,8 @@ three ranges. **The nested transaction (T4)** is outside client/v3's proved spec
 needs every op's `txnOpOf` (an `OpTxn` has none), and `client_txn_on` needs `TxnModel.plain`. The
 user chose to extend client/v3's specs to nested transactions; that is handed to the G2 session
 (etcd-grove-83). Until it lands, Work's T4 call is a named `sorry`.
+
+**`Work` proved** (2026-10-30), over the per-call lemmas, but for T4: `then_commit_nested_refused`
+(`sorry`; a triple of `Then` with the nested op whose post is the refused `Commit`, so that it does
+not depend on how client/v3 will model a nested op: today's `reqOpAt` of one is `False`). Next:
+`Main`.

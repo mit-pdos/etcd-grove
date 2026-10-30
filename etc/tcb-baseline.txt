@@ -687,6 +687,8 @@ axiom strconv.FormatUint.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
+axiom streamKeyOf_none
+axiom streamKeyOf_single
 axiom strings.Contains.wp_proof
 axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
@@ -776,7 +778,7 @@ sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry authkv.Main.wp_proof
-sorry authkv.Work.wp_proof
+sorry authkv.then_commit_nested_refused
 sorry isRaftNodeIfc_of_isNode
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
