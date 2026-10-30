@@ -28,8 +28,6 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 theorem schedule.Scheduler.Stop.wp_proof
     (wp_fifo_Stop : schedule.fifo.Stop.spec (GF := GF) (hG := hG)) :
     schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) := by
-  sorry
-/- REPAIR-OLD
   intro fi γ Ps
   iintro %Φ ⟨#Hpkg, #Hf, Htok, Hq⟩ HΦ
   iunfold isFifo at Hf
@@ -40,11 +38,10 @@ theorem schedule.Scheduler.Stop.wp_proof
   cases fi
   simp only [interface.mkOk, GoInterface.ok.injEq] at Hfi
   obtain ⟨rfl, rfl⟩ := Hfi
-  wp_apply wp_fifo_Stop l γ F Ps $$ [Htok Hq]
+  wp_apply wp_fifo_Stop l γ F Ps $$ [Htok Hq] as HP
   · iframe; iframe #
   iapply HΦ
-  itrivial
--/
+  iexact HP
 
 end proof
 
