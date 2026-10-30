@@ -246,6 +246,155 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
     Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt⟩
 
+/-! ## A `Ready`'s batch and committed entries (raft-final phase 2, for `readyData`) -/
+
+/-- (raft-final phase 2, 2026-10-30) **The batch's indices** (`readyData`'s last clause): a `Ready`'s
+entries `es` (the unstable ones not yet handed out) are numbered consecutively, and its committed
+entries `ce` (the log's after `applying`, the committed log `d` handed out before) at or past the
+batch's first index are the batch's entries there: both are the log's. -/
+theorem readyBatch_ok (ls : LogState) (d ce es : List EntryM)
+    (Hidx : LogIndicesOk ls.prev (ls.sents ++ ls.uents))
+    (Hnw : uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64)
+    (Hcl : uint.Z ls.committed ≤
+      uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int))
+    (Hdlen : d.length = (uint.Z ls.applying).toNat)
+    (Hceok : CeOk ls ce) (Hcepre : es ≠ [] → ce <+: logCommittedEnts ls)
+    (Hes : es = nextUnstable ls) :
+    ∀ e0, es.head? = some e0 →
+      (∀ j e, es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+      (∀ j e, ce[j]? = some e → uint.nat e0.Index' ≤ d.length + 1 + j →
+        es[d.length + 1 + j - uint.nat e0.Index']? = some e) := by
+  intro e0 h0
+  have Hes' : ∀ k, es[k]? = (ls.sents ++ ls.uents)[ls.sents.length +
+      (uint.Z ls.inprogress - logOffset ls).toNat + k]? := by
+    intro k
+    rw [Hes]; unfold nextUnstable
+    rw [List.getElem?_drop, List.getElem?_append_right (by omega)]
+    congr 1; omega
+  have Hix : ∀ k e, es[k]? = some e → uint.Z e.Index' = uint.Z ls.prev.index' +
+      ((ls.sents.length + (uint.Z ls.inprogress - logOffset ls).toNat + k + 1 : Nat) : Int) := by
+    intro k e he; rw [Hes'] at he; exact Hidx _ _ he
+  have h0' : es[0]? = some e0 := by rw [← List.head?_eq_getElem?]; exact h0
+  have Hi0 := Hix 0 e0 h0'
+  have Hn0 : (uint.nat e0.Index' : Int) = uint.Z e0.Index' := by word
+  refine ⟨fun j e he => ?_, fun j e he hle => ?_⟩
+  · have Hi := Hix j e he
+    have Hn : (uint.nat e.Index' : Int) = uint.Z e.Index' := by word
+    omega
+  · have Hne : es ≠ [] := by intro h; rw [h] at h0; simp at h0
+    have Hpre := Hcepre Hne
+    -- `ce`'s entries are the log's from `applying + 1` on
+    have Hlog : ∀ i x, ce[i]? = some x → (ls.sents ++ ls.uents)[
+        (uint.Z (ls.applying + W64 1) - uint.Z ls.prev.index' - 1).toNat + i]? = some x := by
+      intro i x hx
+      obtain ⟨t', ht'⟩ := Hpre
+      have h1 : (logCommittedEnts ls)[i]? = some x := by
+        rw [← ht', List.getElem?_append_left (List.getElem?_eq_some_iff.1 hx).1]; exact hx
+      unfold logCommittedEnts at h1
+      rw [List.getElem?_take] at h1
+      split at h1
+      · unfold plogFrom at h1; rw [List.getElem?_drop] at h1; exact h1
+      · cases h1
+    have Hcix : ∀ i x, ce[i]? = some x → uint.Z x.Index' = uint.Z ls.prev.index' +
+        (((uint.Z (ls.applying + W64 1) - uint.Z ls.prev.index' - 1).toNat + i + 1 : Nat) : Int) :=
+      fun i x hx => Hidx _ _ (Hlog i x hx)
+    -- the last committed entry's index pins `applying` against the base
+    have Hcne : ce ≠ [] := by intro h; rw [h] at he; simp at he
+    obtain ⟨el, Hel⟩ := List.getLast?_isSome.2 Hcne |> Option.isSome_iff_exists.1
+    have Hlast : ce[ce.length - 1]? = some el := by rw [← List.getLast?_eq_getElem?]; exact Hel
+    obtain ⟨Hc1, Hc2, Hc3⟩ := Hceok el Hel
+    have Hil := Hcix _ _ Hlast
+    have Hj : j < ce.length := (List.getElem?_eq_some_iff.1 he).1
+    have Ha1 : uint.Z (ls.applying + W64 1) = uint.Z ls.applying + 1 := by word
+    have Hie := Hcix j e he
+    have Hdl : (d.length : Int) = uint.Z ls.applying := by
+      have := uint_Z_nonneg ls.applying; omega
+    rw [Hes']
+    rw [← Hlog j e he]
+    congr 1
+    omega
+
+/-- (raft-final phase 2) `readyBatch_ok` of a computed `Ready` (`ownRawNodeReady`'s log facts). -/
+theorem ownRawNodeReady_batch (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (h : Bool) (L : Option SnapLoan) :
+    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h L ⊢
+      ⌜∀ e0, es.head? = some e0 →
+        (∀ j e, es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+        (∀ j e, ce[j]? = some e → uint.nat e0.Index' ≤ rs.delivered.length + 1 + j →
+          es[rs.delivered.length + 1 + j - uint.nat e0.Index']? = some e)⌝ ∗
+      ownRawNodeReady γ rn id rs rd ce es ms h L := by
+  iintro H
+  ihave %Hb : ⌜∀ e0, es.head? = some e0 →
+        (∀ j e, es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
+        (∀ j e, ce[j]? = some e → uint.nat e0.Index' ≤ rs.delivered.length + 1 + j →
+          es[rs.delivered.length + 1 + j - uint.nat e0.Index']? = some e)⌝ $$ [H]
+  · iunfold ownRawNodeReady at H
+    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
+    iNamed H
+    iunfold ownRaftPhysReady at Hphys
+    icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
+    iNamed Hphys
+    icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+    icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
+    icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hfl, -⟩
+    ipureintro
+    have e1 : ∀ lt dk, (rdyLog h lt s.logst dk).prev = s.logst.prev ∧
+        (rdyLog h lt s.logst dk).sents = s.logst.sents ∧
+        (rdyLog h lt s.logst dk).uents = s.logst.uents ∧
+        (rdyLog h lt s.logst dk).committed = s.logst.committed := by
+      intro lt dk; cases h <;> cases lt <;> simp [rdyLog, logHanded, lendLog]
+    obtain ⟨p1, p2, p3, p4⟩ := e1 _ _
+    rw [p1, p2, p3] at Hidx Hnw
+    rw [p1, p2, p3, p4] at Hfl
+    exact readyBatch_ok s.logst rs.delivered ce es Hidx Hnw Hfl.2.2.1 Hdlen Hceok Hcepre Hes
+  iframe H
+  ipureintro; exact Hb
+
+/-- (raft-final phase 2, 2026-10-30) **A snapshot `Ready`'s certificate** (`readySnapData`'s): raft
+pinned it when it restored the `MsgSnap` (`ksnCert`, the loan's snapshot among `ksn`, `SnapRdy`), and
+the certificate link makes it the cluster's (`certLink`, `raftSnapCertD`). -/
+theorem ownRawNodeReady_loanCert (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
+    ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ={⊤}=∗
+      raftSnapCertD γ (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
+      ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
+  iintro H
+  ihave #Hk : iprop(∃ sn : StorNames, ksnCert sn (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
+      certLink γ sn) $$ [H]
+  · iunfold ownRawNodeReady at H
+    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
+    iNamed H
+    iunfold rdSnapRel at Hrdz
+    icases Hrdz with ⟨-, -, -, %Hr⟩
+    iunfold ownRaftPhysReady at Hphys
+    icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
+    iNamed Hphys
+    icases ownRaftLog_kcert _ _ $$ Hlog with ⟨#Hkc, -⟩
+    have e1 : ∀ lt dk, (rdyLog h lt s.logst dk).sn = s.logst.sn ∧
+        (rdyLog h lt s.logst dk).ksn = s.logst.ksn := by
+      intro lt dk; cases h <;> cases lt <;> simp [rdyLog, logHanded, lendLog]
+    obtain ⟨q1, q2⟩ := e1 _ _
+    rw [q1, q2]
+    iunfold ksnCerts at Hkc
+    ihave ⟨#Hc, -⟩ := BigSepL.bigSepL_mem_acc Hr.2.2.2.1 $$ Hkc
+    have Hsn : s.logst.sn = s.gh.sn := Hgh_unst.1.2.2
+    iunfold ownStepGhost at Hghost
+    icases Hghost with ⟨-, Hrest⟩
+    icases ghostRest_certLink γ _ cf id _ $$ Hrest with ⟨#Hl, -⟩
+    iexists s.logst.sn
+    iframe Hc
+    rw [Hsn]
+    have Hg : (if h then { s with outbox := [] } else s).gh.sn = s.gh.sn := by cases h <;> rfl
+    rw [Hg] at *
+    iexact Hl
+  icases Hk with ⟨%sn, #Hk, #Hl⟩
+  iunfold certLink at Hl
+  iunfold storCertOk at Hl
+  icases Hl with ⟨-, #Hks, -⟩
+  imod Hks $$ %_ %⊤ %CoPset.subseteq_top Hk with #Hc
+  imodintro
+  iframe Hc H
+
 /-! ## Abandoning a `Ready`, keeping it armed -/
 
 /-- `ownRawNodeReady_abandon`, also giving back what of the `Ready` `ownRawNodeIdle_ready`
