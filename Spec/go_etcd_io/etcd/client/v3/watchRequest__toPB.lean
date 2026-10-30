@@ -29,9 +29,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `wr.toPB()` of a request of a range watch (no filter, no previous key-values, no fragments):
 a `*pb.WatchRequest` the client sends (`watchReqSend`, read-only) holding the create request of
 its key, range end, start revision (the `rev` field, read at any fraction) and progress flag,
-with the automatic watch id (`createOf`). -/
+with the automatic watch id (`createOf`), its ghost fields any (`sr`, G2's `bd`). -/
 abbrev watchRequest.toPB.spec : Prop :=
-  ∀ (wr : Loc) (key ed : GoString) (rv : w64) (pn : Bool) (flt : GoSlice) (dq : DFrac) (sr : Bool),
+  ∀ (wr : Loc) (key ed : GoString) (rv : w64) (pn : Bool) (flt : GoSlice) (dq : DFrac) (sr : Bool)
+    (bd : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       wrF wr go!"key" ↦□ key ∗ wrF wr go!"end" ↦□ ed ∗ wrF wr go!"rev" ↦{dq} rv ∗
       wrF wr go!"progressNotify" ↦□ pn ∗ wrF wr go!"filters" ↦□ flt ∗ flt ↦*□ ([] : List w32) ∗
@@ -39,7 +40,7 @@ abbrev watchRequest.toPB.spec : Prop :=
     (App (Val (wr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty @!! go!"toPB"))
       (Val #()))
   {{ (p : Loc), RET #p; wrF wr go!"rev" ↦{dq} rv ∗
-      v3rpc.watchReqSend p (.create (createOf key ed rv pn sr)) }}
+      v3rpc.watchReqSend p (.create (createOf key ed rv pn sr bd)) }}
 
 end spec
 

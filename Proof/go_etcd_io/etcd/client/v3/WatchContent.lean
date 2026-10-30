@@ -495,7 +495,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     (hsrc : m.src = some ρ) (hρw : ρ.evs ≠ [] → ρ.w = w)
     (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
     (hps : ps.length = ρ.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
-    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr) X rg)
+    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr P.bd) X rg)
     (hrr : P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rr)
     (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
     (hhi : (evsOf Dm w = [] ∧ hi = hb) ∨

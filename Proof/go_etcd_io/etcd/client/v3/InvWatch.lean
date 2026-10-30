@@ -82,6 +82,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostMap
 public import Perennial.Proof.sync
 public import Proof.go_etcd_io.etcd.client.v3.InvWatchWg
+public import Proof.go_etcd_io.etcd.client.v3.StreamKey
 
 @[expose] public section
 
@@ -493,10 +494,12 @@ instance watchSrvFacts_persistent (V : WEnv GF) : Persistent (watchSrvFacts V) :
 
 /-- The create request `toPB` builds from a watch request's fields: the key and range end, the
 start revision, the progress flag, no filter, no previous key-values, the automatic id, no
-fragments. -/
-def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.CreateReqM :=
+fragments; the ghost fields `sr` and (G2, 2026-10-30) `bound`, the client's bound on the auth
+store's published index (`WsPrm.bd`). -/
+def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) (bd : Nat) :
+    v3rpc.CreateReqM :=
   { key := key, rangeEnd := ed, startRev := rv, progressNotify := pn, filters := [],
-    prevKv := false, watchId := W64 0, fragment := false, sr := sr }
+    prevKv := false, watchId := W64 0, fragment := false, sr := sr, bound := bd }
 
 /-! ## One watch: its request and its substream -/
 
@@ -552,14 +555,35 @@ structure WsPrm (GF : BundledGFunctors) where
   response one firing of it (`recvCmpl`, `outcElem`) -/
   kv : KVNames
   Q : KVState → IProp GF
+  /-- (G2, 2026-10-30) the caller's bound on the auth store's published index (`watcher.Watch`'s
+  `n`): the row of the watch's responses with events (`wsRow`) is the server's check at it -/
+  n : Nat
+  /-- (G2) the bound its creates carry (`CreateReqM.bound`, `createOf`): `n` with one member,
+  `0` otherwise (`wsBdOk`) -/
+  bd : Nat
+
+/-- **The key `key` and range end `ed` register exactly their range** (pure; G2, 2026-10-30,
+until then a prefix watch): every watcher range the server may register for a create of them
+(`v3rpc.createRangeOk`) covers exactly the keys of `[key, ed)` as the client reads it (`inRange`).
+It holds of a point or a proper range of a non-empty key (`rangeExact_point`,
+`rangeExact_proper`); of a from-key range (`ed = [0]`) of a non-empty key once `createRangeOk`
+says the registered range is open-ended (today it allows a single key: `notes/g2-watch-auth.md`,
+"Proof of run"); of an empty key's ranges only with a fact that no stored key is empty. -/
+def rangeExact (key ed : GoString) : Prop :=
+  ∀ (c : v3rpc.CreateReqM) (id : w64) (r : mvcc.WatchRange), c.key = key → c.rangeEnd = ed →
+    v3rpc.createRangeOk c id r → ∀ k, r.covers k = inRange key ed k
 
 /-- **The watch promises completeness** (K2e-7d): its start revision was read from the server's
-store (`sr`), a non-zero one, and it is a prefix watch of a non-empty key not all `0xff` (its range
-end neither empty nor `[0]`, so that the registered range covers exactly the keys under it,
-`covers_prefix`). -/
+store (`sr`), a non-zero one, and its range is registered exactly (`rangeExact`; until G2, a
+prefix watch of a non-empty key not all `0xff`, `covers_prefix`). -/
 def cplCond (sr : Bool) (o : OpFull) (rev : w64) : Bool :=
-  sr && decide (o.key ≠ [] ∧ o.base.rangeEnd = prefixRangeEnd o.key ∧
-    prefixRangeEnd o.key ≠ [W8 0] ∧ rev ≠ W64 0)
+  sr && @decide (rangeExact o.key o.base.rangeEnd ∧ rev ≠ W64 0) (Classical.propDecidable _)
+
+/-- `cplCond`, unfolded. -/
+theorem cplCond_iff {sr : Bool} {o : OpFull} {rev : w64} :
+    cplCond sr o rev = true ↔ sr = true ∧ rangeExact o.key o.base.rangeEnd ∧ rev ≠ W64 0 := by
+  unfold cplCond
+  simp only [Bool.and_eq_true, decide_eq_true_eq]
 
 /-- `cplCond` of a watch's values. -/
 abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
@@ -571,20 +595,93 @@ def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
     P.key = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧ P.cn = P.o.base.createdNotify ∧
     P.pn = P.o.base.progressNotify
 
+/-- **The row of a watch's responses with events** (persistent; G2, 2026-10-30): with one member,
+the server's check of the watch's create (`watchCheckOk` of `WatchCheck.lean`, unfolded: this file
+cannot import it; `wsRow_eq` there): the gRPC stream the create went on was opened with metadata
+`m` of the watch's context's stream key, an attempt of it delivered `md`, and the member's check
+of the watch's key and range end passed for `md`'s token at the caller's bound `n`. -/
+def wsRow (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
+  iprop(□ (⌜V.nm = 1⌝ → ∃ (m md : GrpcMd),
+    ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) ∧
+      clientAttemptMdOf V.conn m md⌝ ∗
+    v3rpc.watchAuthed (V.mem 0).2.γ (V.mem 0).2.s (auth.mdTokenOf md) P.n P.o.key
+      P.o.base.rangeEnd))
+
+instance wsRow_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsRow V P) := by
+  unfold wsRow; infer_instance
+
+/-- **The bound a watch's creates carry** (persistent; G2): every member's auth store has
+published it (`authPubLbM`, what `watchUp` asks of a create), and with one member it is the
+caller's `n`. -/
+def wsBdOk (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
+  iprop(□ (∀ i : Nat, ⌜i < V.nm⌝ → auth.authPubLbM (V.mem i).2.E.authMode P.bd) ∗
+    ⌜V.nm = 1 → P.bd = P.n⌝)
+
+instance wsBdOk_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsBdOk V P) := by
+  unfold wsBdOk; infer_instance
+
+/-- **The member `V` is at** (G2): with one member, it is member `0`. -/
+theorem watchConnFacts_one (V : WEnv GF) :
+    watchConnFacts V ⊢ ⌜V.nm = 1 → (V.mem 0).2 = V.R⌝ := by
+  iintro #H
+  iunfold watchConnFacts at H
+  icases H with ⟨-, -, -, -, -, -, -, -, %Hp⟩
+  ipureintro
+  intro h1
+  obtain ⟨-, -, i, hi, he⟩ := Hp
+  have : i = 0 := by omega
+  subst this; rw [he]
+
+/-- **A create's bound at the current member** (G2): what `watchUp` asks of a create. -/
+theorem wsBdOk_cur (V : WEnv GF) (P : WsPrm GF) :
+    watchConnFacts V ∗ wsBdOk V P ⊢ □ auth.authPubLbM V.R.E.authMode P.bd := by
+  iintro ⟨#H, #Hb⟩
+  iunfold watchConnFacts at H
+  icases H with ⟨-, -, -, -, -, -, -, -, %Hp⟩
+  obtain ⟨-, -, i, hi, he⟩ := Hp
+  iunfold wsBdOk at Hb
+  icases Hb with ⟨#Hb, -⟩
+  ihave #Hi := Hb $$ %i %hi
+  have hR : (V.mem i).2 = V.R := by rw [he]
+  irevert Hi; rw [hR]; iintro #Hi
+  iexact Hi
+
+/-- **A watch's row from its create's check** (G2): the check the current member made of the
+watch's create (`watchAuthed`, from its created response), at a token an attempt of a stream of
+the watch's context's stream key delivered. -/
+theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c : GoInterfaceOk)
+    (htok : ∃ md, tok = auth.mdTokenOf md ∧
+      clientAttemptMdOf V.conn (metadata.outgoingOf (GoInterface.ok c)) md)
+    (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
+      streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
+    watchConnFacts V ∗ wsBdOk V P ∗
+      v3rpc.watchAuthed V.R.γ V.R.s tok P.bd P.o.key P.o.base.rangeEnd ⊢ wsRow V P := by
+  iintro ⟨#Hc, #Hb, #Ha⟩
+  ihave %H1 := watchConnFacts_one V $$ Hc
+  iunfold wsBdOk at Hb
+  icases Hb with ⟨-, %Hbn⟩
+  obtain ⟨md, rfl, hmd⟩ := htok
+  unfold wsRow
+  iintro !> %hn
+  iexists (metadata.outgoingOf (GoInterface.ok c)), md
+  isplitr
+  · ipureintro; exact ⟨hkey.symm, hmd⟩
+  rw [H1 hn, ← Hbn hn]
+  iexact Ha
+
 /-- **The caller's channel's element** (D47): a response as one firing of the read update
 `Q`, at the watch's second cursor (`watchStateElem`, at `γ.cur2`: the cursor of a watch that
-promises completeness). Its authorization row is `True` (G2: `watcher.Watch.spec`'s row
-`watchCheckOk` is threaded through here when `Watch` is re-proved after the freeze). -/
-def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) :
+promises completeness), with the row `Au` when it has events (G2: `wsRow`). -/
+def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF) :
     Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
-  watchStateElem { γ with cur := γ.cur2 } o Q iprop(True)
+  watchStateElem { γ with cur := γ.cur2 } o Q Au
 
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
-contract's SPSC channel, with the consumer's resources (`Watch` returns them). -/
-def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (Q : KVState → IProp GF) (outc : Loc) :
-    IProp GF :=
+contract's SPSC channel (its row `Au`), with the consumer's resources (`Watch` returns them). -/
+def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (Q : KVState → IProp GF)
+    (Au : IProp GF) (outc : Loc) : IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
-    isSpsc γ.spsc outc (outcElem γ o Q) (fun _ => iprop(True)) ∗
+    isSpsc γ.spsc outc (outcElem γ o Q Au) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
     ⌜γ.cpl = cplCond sr o rev⌝)
@@ -710,10 +807,9 @@ theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.�
       have : sint.Z (P.rev - W64 1) = sint.Z P.rev - 1 := by word
       omega
   · rw [hc] at hcpl
-    unfold cplOf cplCond at hcpl
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at hcpl
+    have hcpl := cplCond_iff.1 hcpl
     refine ⟨hcpl.1, ?_⟩
-    have : sint.Z P.rev ≠ 0 := fun h => hcpl.2.2.2.2 (by word)
+    have : sint.Z P.rev ≠ 0 := fun h => hcpl.2.2 (by word)
     show 1 ≤ sint.Z P.rev
     omega
 
@@ -749,7 +845,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(notStart P k.toNat ∗ resumeF V P r))) ∨
+    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P)))) ∨
     dghostVar P.γx DFrac.discard true)
 
 /-- **A watch's read update** (persistent; D47): the caller's, of the KV state `P.kv` reads, its
@@ -769,16 +865,44 @@ each lifetime of the goroutine has its own `donec`: owned fields, `LifePrm`.) -/
 def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(wrRO (wsF P.ws go!"initReq") P ∗
     wsF P.ws go!"recvc" ↦□ P.recvc ∗
-    isSpsc P.γ.spsc P.outc (outcElem P.γ P.o P.Q) (fun _ => iprop(True)) ∗
+    isSpsc P.γ.spsc P.outc (outcElem P.γ P.o P.Q (wsRow V P)) (fun _ => iprop(True)) ∗
     isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     context.isContext P.ctx P.cs ∗
-    isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
+    isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
     ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev ∗
     -- (D47) the caller's read update, of the cluster's KV state; the watch promises completeness
-    wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ P.γ.cpl = true⌝)
+    wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ P.γ.cpl = true⌝ ∗
+    -- (G2) its creates' bound
+    wsBdOk V P)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
+
+/-- **A watch's creates' bound** (G2), at the current member: what `watchUp` asks of a create. -/
+theorem wsIs_bd (V : WEnv GF) (P : WsPrm GF) :
+    watchConnFacts V ∗ wsIs V P ⊢ □ auth.authPubLbM V.R.E.authMode P.bd := by
+  iintro ⟨#Hc, #H⟩
+  iunfold wsIs at H
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
+  iapply wsBdOk_cur V P
+  iframe Hc Hb
+
+/-- **A watch's row from its create's check** (G2; `wsRow_of_authed`), at the watch's key and
+range end as its request has them. -/
+theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c : GoInterfaceOk)
+    (htok : ∃ md, tok = auth.mdTokenOf md ∧
+      clientAttemptMdOf V.conn (metadata.outgoingOf (GoInterface.ok c)) md)
+    (hkey : streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
+      streamKeyOf (metadata.outgoingOf (GoInterface.ok c))) :
+    watchConnFacts V ∗ wsIs V P ∗ v3rpc.watchAuthed V.R.γ V.R.s tok P.bd P.key P.ed ⊢
+      wsRow V P := by
+  iintro ⟨#Hc, #H, #Ha⟩
+  iunfold wsIs at H
+  icases H with ⟨-, -, -, -, -, -, %Hq, -, -, -, -, #Hb⟩
+  obtain ⟨-, ⟨-, -, -, hk, he, -⟩, -⟩ := Hq
+  rw [hk, he]
+  iapply wsRow_of_authed V P tok c htok hkey
+  iframe Hc Hb Ha
 
 /-! ## A goroutine's lifetime (D25) -/
 
@@ -914,21 +1038,24 @@ instance closeErrPub_persistent (wgs : Loc) : Persistent (closeErrPub (GF := GF)
   unfold closeErrPub; infer_instance
 
 /-- **What `reqc` carries** (a bag): a `*watchRequest`, read-only, of a watch of the contract, its
-`retc` a bag carrying its channel (`retcP`); or (unit W-K) a `*progressRequest`
-(`RequestProgress`'s). -/
-def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
+`retc` a bag carrying its channel (`retcP`), (G2) its context of the stream's key `k` and its
+creates' bound (`wsBdOk`); or (unit W-K) a `*progressRequest` (`RequestProgress`'s). -/
+def reqP (V : WEnv GF) (k : GoString) (v : GoInterface) : IProp GF :=
   iprop((∃ (wr : Loc) (P : WsPrm GF),
     ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr ∧
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
-    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
+    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
     ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev ∗
     -- (D47) the caller's read update, a first firing, the KV state the members', completeness
-    wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ cplOf P = true⌝) ∨
+    wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ cplOf P = true⌝ ∗
+    -- (G2) the stream's key, the creates' bound
+    ⌜streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) = k⌝ ∗ wsBdOk V P) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
 
-instance reqP_persistent (V : WEnv GF) (v : GoInterface) : Persistent (reqP V v) := by
+instance reqP_persistent (V : WEnv GF) (k : GoString) (v : GoInterface) :
+    Persistent (reqP V k v) := by
   unfold reqP; infer_instance
 
 /-- **What a goroutine stopping for good leaves** (D25: in its lifetime's invariant, `lifeSt`):
@@ -1003,7 +1130,7 @@ def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
     wgsF G.wgs go!"donec" ↦□ G.donec ∗ wgsF G.wgs go!"errc" ↦□ G.errc ∗
     wgsF G.wgs go!"closingc" ↦□ G.closingc ∗ wgsF G.wgs go!"lg" ↦□ V.lg ∗
     context.isContext G.ctx G.cd ∗ context.cancelSpec G.cancel G.γctx iprop(True) ∗
-    isChanBag G.γreq G.reqc (reqP V) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
+    isChanBag G.γreq G.reqc (reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)))) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
     isChanBag G.γclosing G.closingc (closingP V G) ∗
     ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown ∗
     isSspsc G.γr G.respc (respcE V G.γep) (fun _ => iprop(False)))
@@ -1015,11 +1142,13 @@ instance isWGS_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
 /-! ## The watcher -/
 
 /-- **What the watcher's lock guards**: the streams map, `nil` once closed, otherwise a map from
-context keys to gRPC watch streams (`isWGS`). -/
+context keys to gRPC watch streams (`isWGS`), each at the key of its context's outgoing metadata
+(G2, 2026-10-30: a watch that joins it has a context of the same key). -/
 def watcherMu (V : WEnv GF) (w : Loc) (callSl : GoSlice) : IProp GF :=
   iprop(∃ m : Loc, watcherF w go!"streams" ↦ m ∗
     (⌜m = null⌝ ∨ ∃ M : GMap GoString Loc, ownMap m (DFrac.own 1) M ∗
-      [∗map] _k ↦ wgs ∈ M, ∃ G : WgsPrm GF, ⌜G.wgs = wgs ∧ G.w = w⌝ ∗ isWGS V G callSl))
+      [∗map] k ↦ wgs ∈ M, ∃ G : WgsPrm GF, ⌜G.wgs = wgs ∧ G.w = w ∧
+        streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx)) = k⌝ ∗ isWGS V G callSl))
 
 /-- **The watcher `w`** (persistent; the file header): its read-only fields (the stub, the call
 options, the logger), its lock, the server's and the transport's facts. -/
@@ -1185,7 +1314,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(notStart P k.toNat ∗ resumeF V P r)))
+    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P))))
 
 /-- **The dispatch cursors do not move from `recvc`'s position `a` to `b`** (persistent; D25): the
 responses between were created ones the goroutine skipped (a resumed create keeps both cursors). -/
