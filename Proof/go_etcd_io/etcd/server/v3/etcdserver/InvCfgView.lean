@@ -276,6 +276,49 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : ConfigView}
     exact ⟨D.length, m, cm, hmD, Hty, Hdec, ht, hn⟩
   · exact RemovedIn_snoc (hrem x hx hxW) m
 
+/-- (2026-10-30, the repair; D3) **A conf entry of the server's, applied, in a static cluster**: the
+entry `m` after `D` (consecutive from index `1`, no `RemoveNode` in it), a `ConfChange` whose bytes
+decode to an `AddNode` of a voter (`ccApplyOk`), meets the node API's premise for the change etcd
+hands raft (`ccRaftEff`: the change or it at the node `0`), which keeps the view's membership. -/
+theorem srvCfgOk_ccS {V : GSet w64} {D : List EntryModel} {v : ConfigView}
+    (h : srvCfgOk V D v) (c0 : w64) (boot : List EntryM) (m : EntryModel) (rest : List EntryModel)
+    (cm : ConfChangeM) (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
+    (Hnr : ∀ x, ¬ RemovedIn D x) (Hcm : ccApplyOk V cm)
+    (Hwi : withIdx (D.map EntryModel.toLE) = D) :
+    ∃ m' : Membership,
+      srvCCPre (srvRule c0 boot) ((D ++ m :: rest).map EntryModel.toLE) v
+        (.v1 (membership.ccRaftEff (restModel c0 boot D).bk cm)) D.length m.toLE m' ∧
+      srvCfgOk V (D ++ [m]) ⟨D.length + 1, m'⟩ := by
+  obtain ⟨h1, h2, ⟨W, hcfg, hWV, hrem, hW0, hsz⟩⟩ := h
+  have hVW : ∀ x, x ∈ V → x ∈ W := fun x hx =>
+    Classical.byContradiction fun hn => Hnr x (hrem x hx hn)
+  obtain ⟨hct, hcin, -⟩ := Hcm
+  have hne : W ≠ ∅ := fun he => by
+    have := hVW _ hcin; rw [he] at this; exact GMap.not_elem_of_empty _ this
+  have hval : (Membership.simple W).Valid := Membership.simple_valid W hne hW0 hsz
+  generalize heff : membership.ccRaftEff (restModel c0 boot D).bk cm = eff
+  have hs : Membership.applyChange (.v1 eff) (Membership.simple W) = some (Membership.simple W) := by
+    rw [← heff]; unfold membership.ccRaftEff; split
+    · exact Membership.applyChange_addVoter W cm hct (hVW _ hcin) hval
+    · exact Membership.applyChange_nodeZero W _ rfl hval
+  rw [← hcfg] at hs
+  have hk : ((D ++ m :: rest).map EntryModel.toLE)[D.length]? = some m.toLE := by
+    rw [List.map_append, List.getElem?_append_right (by simp), List.length_map, Nat.sub_self]; rfl
+  have hnc : NoConfChangeIn ((D ++ m :: rest).map EntryModel.toLE) v.applied D.length := by
+    intro k e hk1 hk2 he
+    rw [List.map_append, List.getElem?_append_left (by simpa using hk2)] at he
+    exact h2 k e hk1 hk2 he
+  have htake : ((D ++ m :: rest).map EntryModel.toLE).take D.length = D.map EntryModel.toLE := by
+    rw [List.map_append, List.take_left' (by simp)]
+  have hdec : srvRule c0 boot (((D ++ m :: rest).map EntryModel.toLE).take D.length)
+      v.membership m.toLE = some (.v1 eff) := by
+    rw [htake]
+    unfold srvRule
+    simp only [EntryModel.toLE, Hty, ↓reduceIte, Hdec, Option.map_some, Hwi, heff]
+  refine ⟨v.membership, ⟨h1, hk, .inl Hty, hnc, ⟨_, hdec, hs, hs, by rw [hcfg]; rfl⟩⟩, ?_⟩
+  refine ⟨by simp, fun _ _ h1 h2 _ => absurd h2 (by simp at h1 ⊢; omega),
+    ⟨W, hcfg, hWV, fun x hx hw => absurd (hVW x hx) hw, hW0, hsz⟩⟩
+
 end pure
 
 section defs
@@ -422,6 +465,24 @@ theorem dvView_normal (γs : ServerRaftNames) (dv : Option Loc) (L : List EntryM
     simp only [EntryModel.toLE, hm]
     intro h
     rcases h with h | h <;> simp at h
+
+/-- (2026-10-30, the repair; D3) **No committed log has a `RemoveNode`**: its v1 conf entries are
+the server's (`srv_committed_ccBoot`), `AddNode`s (`ccApplyOk`). What `dvView_cc`'s premise asks of
+the log before the entry. -/
+theorem srv_noRemovedIn (γ : ServerRaftNames) (L : List EntryModel) (E : CoPset)
+    (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl (srvLE γ L) ⊢
+      |={E}=> ⌜∀ x, ¬ RemovedIn (γ.pre ++ L) x⌝ := by
+  iintro ⟨#Hinv, #Hl⟩
+  imod srv_committed_ccBoot γ (srvLE γ L) E hL $$ [$Hinv $Hl] with %Hall
+  imodintro
+  ipureintro
+  rintro x ⟨p, e, cc, hp, h1, h2, h3, -⟩
+  have he : e.toLE ∈ srvLE γ L := by
+    unfold srvLE; exact List.mem_map_of_mem (List.mem_of_getElem? hp)
+  have := (Hall _ he h1 cc h2).1
+  rw [h3] at this
+  simp at this
 
 /-- **A conf entry, at the view** (`applyConfChange`'s call): the view and the node's give the
 node resources of `applyConfChange`'s spec at `v`, its premise (the change etcd hands raft,
