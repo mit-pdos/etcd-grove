@@ -7,6 +7,7 @@ Lean-first (no Rocq counterpart).
 only for a snapshot `Ready` (`readySnap`'s `LogIndicesOk`). This raft law is requested (a law out of
 `readyRest`, proved from raft's `LogIndicesOk` of its unstable entries). Until it lands this is a
 **`sorry`**, stated exactly as requested so that the swap is a rename.
+So is `kvr_ownSnapM_combine`, raft's `ownSnapM_combine` (proved in a module that is not importable).
 -/
 module
 
@@ -40,6 +41,12 @@ theorem kvr_readyRest_indices (γ : Cluster) (N : Namespace) (id : w64) (rd : Re
     readyRest (GF := GF) γ N id rd st ce es h L ⊢
       ⌜∀ e0, es.head? = some e0 → ∀ j e, es[j]? = some e →
         uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗ readyRest γ N id rd st ce es h L := by
+  sorry
+
+/-- **Stand-in (sorry)** for raft's `ownSnapM_combine` (`InvRawnodeReady.lean`, proved there but
+not importable): a snapshot's halves combine. Requested exported. -/
+theorem kvr_ownSnapM_combine (p : Loc) (dq1 dq2 : DFrac) (sn : SnapshotM) :
+    ownSnapM (GF := GF) p dq1 sn ∗ ownSnapM p dq2 sn ⊢ ownSnapM p (dq1 • dq2) sn := by
   sorry
 
 end law
