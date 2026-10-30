@@ -126,28 +126,6 @@ theorem snapDirs_alloc : ∀ (ps : List w64), ps.Nodup →
     ipureintro; simp [hx, h]
 
 /- (2026-10-30, the repair) `readCredits_members` is gone with raft's read credits. -/
-/- REPAIR-OLD
-/-- `c` of the cluster's read credits for each member of `ps`, out of `n` (D21e (A): `c = 2 ^ 48`;
-2026-10-27: the node API's `readCredits`, until then raft's `rdCred`). -/
-theorem readCredits_members (cl : Cluster) (c : Nat) :
-    ∀ (ps : List w64) (n : Nat), ps.length * c ≤ n →
-      readCredits (GF := GF) cl n ⊢ [∗list] _id ∈ ps, readCredits cl c
-  | [], _, _ => by
-    iintro -
-    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
-    itrivial
-  | _ :: ps, n, h => by
-    rw [List.length_cons, Nat.succ_mul] at h
-    iintro H
-    ihave H' : iprop(readCredits cl (c + (n - c))) $$ [H]
-    · rw [show c + (n - c) = n by omega]
-      iexact H
-    icases (readCredits_split cl _ _).1 $$ H' with ⟨H1, H2⟩
-    iapply BigSepL.bigSepL_cons.2
-    iframe H1
-    iapply (readCredits_members cl c ps (n - c) (by omega)) $$ H2
-
--/
 /-- The node API's bootstrap log, as the server's entries, is the node API's log. -/
 theorem bootEntries_toLE (boot : List LogEntry) :
     (bootEntries (LogEntry.toEntries boot 0)).map EntryModel.toLE = boot := by
