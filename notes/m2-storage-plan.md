@@ -1832,3 +1832,110 @@ prints).
   sorries): no new axiom, no new `sorry`. No Perennial change, no generated file edited.
 - `notes/STATUS.md` not edited on this branch (to keep the merge with `m2-storage` trivial): at the
   merge, item 32 moves to switched and item 33 to dropped.
+
+## The restore chain, backend part (branch m2-backend)
+
+Branch `m2-backend` (off `m2-storage` at `3fb21d0515`), in the backend package, `mvcc/BackendBridge.lean`
+and new files, plus a minimal edit of `mvcc/Image.lean` (four `(fkCl_parts …).1` became `fkCl_parts …`,
+the law now an entailment). Items 27/29 (backend part), 30 and 37 of the approval list. No `axiom`, no
+`sorry`, no Perennial change, no generated file edited; no snapshot-track statement touched. No new
+bbolt fact was needed. `notes/decisions.md`, "M2's restore chain, the backend part".
+
+### Item 29's backend part: the merged ghost and the open's records clause (switched)
+
+- **The merged ghost** (`InvBackend.lean`): `γ.fkv` holds `FkG = Bool × Nat × FkVals` (the bit, the
+  flag's value at the open, the compaction keys' values at the open; `FkVals` = (finished,
+  scheduled), `Model2.lean`). `fkVR γ g` is the ghost; `fkV γ w := ∃ n v, fkVR γ (w, n, v)` (today's
+  bit, text and users unchanged); `fkOpen γ n v := ∃ w, fkVR γ (w, n, v)` (the Draft's `fkOpenD`;
+  the Draft's `fkVD γ w n v` is `fkVR γ (w, n, v)` by definition).
+- **The records clause** (`fkOkG`, `Model2.lean`): the batch lock's `fkHalf` and the readers' `fkRd`
+  carry `fkOkG P f g st := fkOk P f g.1 st ∧ g.2.1 ≤ f ∧ (f = g.2.1 → fkValSt P g.2.2 st)` (readers:
+  `f ≤ g.2.1 → fkValRv …`, the lower bound being at least the open's value when taken):
+  while the flag is at its value at the open, the committed data and the writer's contents hold the
+  open's values at the two keys and neither buffer has an entry there. Kept by every operation
+  (`fkOkG_put`/`del`/`create`/`delBucket`/`wb`/`commit`/`setHw`, `FkLemmas.lean`); a put of a
+  compaction key raises the flag by one (`fkHalf_raise`: `f + 1`, until now `max f 1`), past the
+  open's value. Set at the open from bbolt's data `D` as `fkCl` was (`NewAlloc.lean`: the ghost
+  allocated at `(fkWInit P D, fkInit D, fkVals D)`, `fkOkG_init`).
+- **The read law** `fkRd_open` (`ReadLemmas.lean`): `fkOwn γ n ∗ fkOpen γ n v ∗ fkRd γ P rv ⊢ fkOwn γ n ∗
+  ⌜fkValRv P v rv⌝`; `vOf_fkVal`: such a state reads `fkAt v k` at a compaction key.
+- **The constructor's post**: `fkCl γ P D := fkOwn γ (fkInit D) ∗ fkVR γ (fkWInit P D, fkInit D,
+  fkVals D)` (its body; `newPost`/`newPostK`'s text unchanged, so `OpenBackend`'s and
+  `OpenSnapshotBackend`'s axiom texts are unchanged). Laws: `fkCl_parts` (now `⊢`: the flag and the
+  bit, every existing use), `fkCl_open` (with `fkOpen γ (fkInit D) (fkVals D)`, what the walk takes
+  for `kbRecs`), `fkOpen_fkV`. **For the user**: the axioms' posts now carry the open record through
+  `fkCl`'s body; it is `backend.New`'s proved post (`New`'s proof computes it from `D`, as it does
+  `fkInit`/`fkWInit`), the justification `notes/axiom-review/openbackend-post.md` gave for `fkCl`.
+- **A gap the design missed, closed by two premises** (backend specs, internal): the clause is not
+  kept by a delete of a compaction key or of the `meta` bucket, which the backend's specs allowed.
+  `batchTxBuffered.UnsafeDelete.spec` takes `¬ fkKey bi.name kb`, `UnsafeDeleteBucket.spec` takes
+  `∀ k, ¬ fkKey bi.name k` (only mvcc writes the keys and never deletes one; nothing deletes `meta`).
+  Callers: the bridge's two deletes (`Lease`, `Key`: `lease_not_fk`, `key_not_fk`); nothing calls
+  `UnsafeDeleteBucket`.
+
+Item 27 (the records threaded through `keyReadLocked`, …, mvcc's vocabulary) stays the Draft's: its
+definitions are mvcc's (`InvStore.lean`), the parallel branch's area, and its only users are the
+waiting chain. The Draft's `kbRecs` reads, at the switch, `∃ n, fkOwn γB n ∗ fkOpen γB n (recsVals r)`
+(`recsVals r` = the Draft's `(recBytes r.fin, recBytes r.sched)`).
+
+### Item 30: the records' half proved; the drafted statement is not provable (two defects)
+
+- **Proved** (`mvcc/BackendRecs.lean`, new): `rt_metaRecs`: the held shared read transaction's reads
+  of `Meta`'s compaction keys, under `fkOwn γ n ∗ fkOpen γ n (recsVals r)` and the reader's `fkRd`,
+  are `metaReadSpecR … (some r)` (the records exactly; at no record, today's `metaReadSpec … true`).
+  This is `keyReadLockedR`'s meta clause from `kbRecs`'s resources: the part of the clean read the
+  records add.
+- **Defect D1 (exactness)**: `keyCleanReadR` promises reads *exactly* of the view's bucket `m`
+  (`keyReadSnapCR` → `keyReadLockedR … m`). Over a registered backend (`storeDlReg`, no `dlNoDel`) a
+  reader's state is only thin of the clients' view (`rtHeld_clean` gives `thinV`): a deleting session
+  (`Unlock`'s first branch) may delete any key the registration makes deletable, without the clients'
+  view (or its clean flag) changing. The statement is persistent and its premises (`isBackend`,
+  `keySized`, `storeDlReg`) exclude no such session: the image can hold entries deletable at the old
+  store's compaction level (`entsCutAt` removes *a* prefix, possibly none), the registration's
+  `delKeyI γ.idx` makes them deletable, and after one is deleted the clean read's range at `m` claims it.
+  In Go nothing deletes from the new backend before `restore()` reads; the proof world needs a
+  resource saying so. **Repair (recommended, (a))**: `Restore` takes the new backend's registration
+  *unfixed* (`dlInit`, as `NewStore` does) and fixes it (`storeDlReg`) after `restore()`'s reads; the
+  clean read's exactness is then `dlInit_noDel` (existing) in place of `dlNoDel_noDel`
+  (`bridge_rt_clean`'s proof otherwise unchanged), the clean read lending `dlInit` in its pre, and the
+  contract `storeBackendTR` given as a wand from `storeDlReg`. (b) An exclusive "no deletion yet"
+  token from the constructor: changes `newPostK`, an axiom text; not recommended.
+- **Defect D2 (records' sign)**: `metaReadSpecR … (some r)` states `0 ≤ sint.Z x` of each record;
+  `kbRecs` gives only the open's values. The statement needs the records' sign as a premise
+  (`rt_metaRecs`'s `hpos`; `Restore` has it from `restoreImageM`'s `recsOk`), or `fkV γB true` with
+  `P.FV`'s `metaRevVal` and `revBytes_inj`.
+- With D1's repair (a) and D2's premise the remaining proof is `bridge_rt_clean`'s with `rt_metaRecs`
+  for the meta clause; not written here (the repair changes the chain's statements: the restore chain's
+  call, not the backend's).
+
+### Item 37: drafted; round 4's shape refutable; a lock-holding form drafted
+
+`backend/M2BackendDraft.lean` (new Draft, imported by nothing):
+- `viewWidenGhost_stmt` (round 4's "law at the open": `bView γ 1 vd ∗ thinV γ vd vd' ⊢ |={⊤}=> bView γ 1
+  vd'`) is **refutable**: the view's other half is two quarters in the two locks' resources
+  (`readTx.mu`'s `viewQ`, the batch lock's `batchViewQ`); after such an update the next put session's
+  `Unlock`, which combines the three shares, derives `vd = vd'`. Only an operation holding both locks
+  can widen.
+- `batchTxBuffered.Unlock.specW`: `Unlock`'s put branch widened (the session gives `bView γ 1 vd` and
+  `thinV γ vd vd'`, gets `bView γ 1 (relog P vd' st)`); `Unlock.spec_of_specW` (proved: `vd' = vd`).
+  Not proved (today's `Unlock` proof with `thinV_trans` at the readers' and cached states).
+- Neither serves `Restore` directly: `restore()` runs a put session only when it resumes a compaction.
+  Options for the chain (mvcc's call): carry the pending widening in the writer until its first
+  `Unlock` (with `specW`), or generalize mvcc's writer relation to "the backend's logical view is thin
+  of the log's bucket" (no backend change; the backend's physical view already is thin of its logical
+  one; that the store's put sessions keep it through `relog` is not checked).
+
+### No new bbolt fact
+
+The open record is computed by `New`'s proof from bbolt's data `D` (the same `D` `fkInit`/`fkWInit`
+read); its preservation is the backend's own model. Nothing was asked of bbolt.
+
+### Checked
+
+- `etc/lean-check.py -a` on the new files; targeted `lake build`s of the backend (`Link`,
+  `ClientLaws`) and of `mvcc/{Image,BackendBridge,StoreBackend}`.
+- The Draft's `backend.fkOpenD γ n (recBytes r.fin, recBytes r.sched)` is `backend.fkOpen γ n
+  (recsVals r)` by `rfl` (checked in a scratch module, not committed).
+- Full `lake build` (`--packages` at Perennial `ad74ee4`): passed, 11208 jobs, no error.
+- `etc/tcb-report.py --check`: matches `etc/tcb-baseline.txt` (766 axioms, 18 sorries).
+- `notes/STATUS.md` not edited (updated at the merge).
