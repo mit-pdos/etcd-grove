@@ -27565,3 +27565,19 @@ server serves it.
   `etcd_kv_auth_served_on`'s, `authnStoreOk (GoInterface.ok ast) E.RD`, its conclusion unchanged;
   it replaces `etcd_kv_auth_served_on`, which no proof used, and takes its name. The handler's run
   slot is `authnSlot` (a part of the KV's `etcdGrpcSlot`, `etcdGrpcSlot_authn`).
+
+## The WAL's readiness and one disk premise (2026-10-31, the user's decisions)
+
+`notes/axiom-review/savesnap.md` (branch `axiom/savesnap`): `rnNewStorageOk`, a premise of every
+exported result over the server, gave `isRNWal` (no-panic `Close`/`Save`/`SaveSnap`/`Sync`) for a
+storage over any WAL, nil included, where Go panics: false, the results vacuous. The user approved:
+- `rnNewStorageOk` over a WAL ready to write (`storage.walReady w`, opaque: `ReadAll` has read it),
+  which `bootOk` gives for the bootstrapped WAL (`HwalR`); `newRaftNode.spec` and `NodeStartSpec`
+  take it. Done.
+- One disk premise, `storage.diskOk` (`dbOpensOk`, `snapOpensOk`, `walSaveOk`), in place of several
+  (`releaseOk` approved onto the exported results through it); no `SaveSnap` axiom: `isRNWal`'s
+  `SaveSnap` triple strengthened (metadata set, `err = nil ∨ ¬ walSaveOk`). Pending: the `Close`
+  question below.
+- Open (2026-10-31): `isRNWal` is persistent, so its `SaveSnap` and `Close` triples also cover calls
+  after `Close`, where Go returns errors (a closed file's flush; `dirFile.Close` twice); `Close` also
+  fails on I/O. etcd closes once, after the apply thread stops (`server.go:819-831`).

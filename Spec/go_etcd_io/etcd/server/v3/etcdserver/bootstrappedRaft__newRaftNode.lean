@@ -82,6 +82,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   (ps.length : Int) ≤ 2 ^ 62 →
   cv.ID' ∈ ps →
   γr.vs = ps →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+  storage.walReady wal →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as

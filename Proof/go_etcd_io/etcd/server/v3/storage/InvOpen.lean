@@ -59,6 +59,17 @@ environment; D22 receiver epochs, S8d, 2026-10-24): `storage.Release`'s closing 
 files below a snapshot and removal of the older `.snap.db` files do not fail (I/O). -/
 opaque releaseOk : Prop
 
+/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **`w` is a WAL ready to write** (opaque): a
+`*wal.WAL` that `ReadAll` has read (its encoder set, a lock file held), as `bootstrapWAL` hands the
+server's (`bootstrap.go:666`). What `serverstorage.NewStorage`'s contract (`rnNewStorageOk`) is for:
+over a nil WAL, or one opened and not read, `Close`, `Save`, `SaveSnap` and `Sync` panic. -/
+opaque walReady (w : Loc) : Prop
+
+/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL records a snapshot** (opaque, a named
+premise about the program's environment, as `releaseOk`): `wal.SaveSnapshot`'s write and sync of a
+well-formed snapshot record do not fail (I/O). -/
+opaque walSaveOk : Prop
+
 /-- **The file system cooperates for an applied snapshot's files** (a named premise about the
 program's environment, as `dbOpensOk`; D22 receiver epochs, S8d, 2026-10-24): the snapshot
 directories' reads (`snap.dirReadOk`), the renames of a held file onto an owned entry

@@ -320,6 +320,8 @@ abbrev NodeStartSpec : Prop :=
     -- the peers, the cluster's voters
     ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
     (ps.length : Int) < 2 ^ 62 → cv.ID' ∈ ps → γr.vs = ps →
+    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+    storage.walReady wal →
     -- the time-receipt bound past the bootstrap log (`rnLogFits`)
     receiptBound GF + γr.boot.length ≤ 2 ^ 61 →
     -- the server's names: the cluster, the start log empty
@@ -419,7 +421,7 @@ theorem raftNode_of_StartNode
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
   intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
-    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hfit HEγ HEpre HEai
+    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal Hfit HEγ HEpre HEai
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
@@ -431,7 +433,7 @@ theorem raftNode_of_StartNode
     iprop(memStorInv bv.storage' γs γr.cl cv.ID' ∗
       memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))
     Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
-    (by omega) Hid Hvs)
+    (by omega) Hid Hvs Hwal)
     $$ [Hb Hc Hbs Hpeers Hboot]
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers Hboot

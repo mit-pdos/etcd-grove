@@ -121,9 +121,11 @@ def rnStorageOf (st : GoInterface) (ss : Loc) : Prop :=
 
 /-- **`serverstorage.NewStorage(lg, w, ss)`** (names-only): the WAL as the raft loop uses it
 (`isRNWal`); (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`NewStorage` returns
-`&storage{lg: lg, w: w, s: s}`, `storage.go`). -/
+`&storage{lg: lg, w: w, s: s}`, `storage.go`). (2026-10-31, `notes/axiom-review/savesnap.md`) Over a WAL ready to write
+(`storage.walReady`): until then over any `w`, false for a nil one (`isRNWal`'s `Close` panics on
+it). -/
 def rnNewStorageOk : IProp GF :=
-  iprop(□ ∀ (lg w ss : Loc), {{ True }}
+  iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
       (Val #ss))
     {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss⌝ }})
