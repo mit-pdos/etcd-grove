@@ -787,7 +787,12 @@ the Probe's `kv_prop_au_cmp` with `cmpReach_reqLb`, moved to `KVLemmas.lean`), s
 `specCompact` and its `sorry` retired; trust base 19 `sorry`s), `EtcdServer.Compact.spec` the Draft's
 (item 15, `rfl`), `compactableOk_server` at `E.cmp = true`, `CompactMode.lean`'s family retired (it
 keeps `srvRevLb`, `cmpReach_of_srvRevLb`, `compactResultIs`). `kvApplied`'s `crevOf` clause deferred to
-the compaction arm (`notes/decisions.md`, "stage 4c"). **Stage 4 is done but for what waits on
+the compaction arm (`notes/decisions.md`, "stage 4c"). **`srvEnvOkD` in place and the compaction arm: done (2026-10-31, branch `m2-envok`, the user's (a))**:
+`srvEnvOk`'s `d.cm = E.cmp`, a snapshot installed only with the mode off (the interim restriction),
+`applyEntryNormal` (auth off) applying compaction entries (`ApplyCmpArm.lean`); the compaction's
+outcome the chain's and its error named (`notes/decisions.md`, "`srvEnvOkD` in place"). Left: lifting
+the restriction (restore in compaction mode, the collaborator's (b)), `kvApplied`'s `crevOf` clause,
+stage 5 (Q4, the auth-mode merge). (Before:) **Stage 4 is done but for what waits on
 `srvEnvOkD`** (the snapshot track's, the collaborator's): `applyEntryNormal`'s compaction arm and
 `kvApplied`'s `crevOf` clause. Next: stage 5 (blocked: Q4, the auth-mode merge), or `NewServer.specD`
 (item 14) when Q4 is answered.

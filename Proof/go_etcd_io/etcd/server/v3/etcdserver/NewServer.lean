@@ -1459,7 +1459,7 @@ theorem NewServer.wp_proofM (on : Bool)
     isplitr
     · ipureintro; exact Hlgnn
     ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := false } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
-      rfl⟩
+      Hcmp0.symm⟩
   isplitr
   · -- `#Hreqb`
     iexists ⟨gen, GoInterface.nil, cfg.MaxRequestBytes', cfg.ServerFeatureGate',

@@ -59,7 +59,8 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.γ.kb = some d)
     -- (question 5's core stage, part (1); Q5-4, review round 16's M1) the store's backend does not
-    -- compact: no restore in compaction mode (`srvEnvOk`'s conjunct gives it)
+    -- compact: no restore in compaction mode (M2's apply side, 2026-10-31, the user's (a): an interim
+    -- restriction, `srvEnvOk` now giving `d.cm = E.cmp`; the caller's mode off gives it)
     (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
