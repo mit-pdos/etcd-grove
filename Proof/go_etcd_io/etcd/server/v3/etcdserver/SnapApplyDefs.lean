@@ -85,7 +85,7 @@ from which `applySnapshot.spec`'s postcondition is assembled. (Question 5's core
 review round 16's M1) The new backend's instance does not compact (`d'.cm = false`). -/
 def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A : List EntryModel)
-    (x : apply.ApplyKV) (R : mvcc.Log) (ss hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
+    (x : apply.ApplyKV) (R : mvcc.Log) (ss : Loc) (bp : GoString) (hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
     (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) (memI : GMap w64 apply.MemberM)
     (quota : w64) (wad : time.Duration) (Tal : IProp GF) (zal : Bool) : IProp GF :=
   iprop(∃ (γB : backend.BNames) (d' : mvcc.KBReal) (gx : GName) (π0 : ApplyPhys)
@@ -147,7 +147,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
-    backend.pathOwn (snap.snapDBPath ss sv.Metadata'.Index') ∗ Tal ∗
+    backend.pathOwn bp ∗ Tal ∗
     (∀ E1 : apply.AEnv GF, ⌜E1.RD = E.RD⌝ -∗ apply.backendOptsOk E1 opts' -∗
       apply.uberIs E1 up' opts' ∗ ∃ ns cr, ⌜zal = true → ns = false ∧ cr = false⌝ ∗
         apply.uberOwn E1 up' (apply.alarmChain E1.authOn ns cr)) ∗
@@ -167,15 +167,15 @@ part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: th
 resources with the applied index at the snapshot's `sv.Metadata'.Index'` and the KV at the restored
 log `[[], []] ++ R`, the rest buckets at the snapshot's entries `A'`), and what the next snapshot
 takes again at the new backend: its stop channels and the constructors' half of its open token
-(W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the snapshot file's path
-(now the backend's), the transport's live state (W8: with every other member re-added, `L`) and the
+(W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the backend's path `bp` (2026-10-31, `os.Rename`
+restated: until then the snapshot file's), the transport's live state (W8: with every other member re-added, `L`) and the
 alarm store's resource `Tal`. The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). The new
 backend's instance does not compact (`d'.cm = false`: question 5's core stage, part (1), review round
 16's M1), as the next snapshot's `store.Restore` needs. -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (A' : List EntryModel)
-    (ss : Loc) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64)
-    (lp al ast cl : Loc) (Tal : IProp GF) : IProp GF :=
+    (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
+    (idm : w64) (lp al ast cl : Loc) (Tal : IProp GF) : IProp GF :=
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
     ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = false ∧ d'.P = d.P ∧
@@ -190,7 +190,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloser s E' ∗
     backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
-    backend.pathOwn (snap.snapDBPath ss sv.Metadata'.Index') ∗
+    backend.pathOwn bp ∗
     trLive γn t c L ∗ Tal)
 
 end proof

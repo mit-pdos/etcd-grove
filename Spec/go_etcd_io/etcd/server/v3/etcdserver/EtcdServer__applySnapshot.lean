@@ -152,7 +152,7 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN) (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R A' ss γt γn t c rs idm lp al ast cl Tal }} 
+    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal }} 
 
 end spec
 

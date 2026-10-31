@@ -28075,3 +28075,20 @@ the backend's `Key` bucket is the writer's log (`bucketMap x.log`), goes to the 
 (the user's decision; M2's item 37, `bucketViewL`, has its first consumer here). #7's holes:
 `mergedCreate_window`, `merged_image`, and the mode-on branch (`SNAPSHOT-SORRY #7-on`: the network's
 image is the mode-off model's, a design question).
+
+## `os.Rename` keeps the destination's entry (2026-10-31, branch `snap-sorries`)
+
+Supersedes the `os.Rename` item of "The snapshot's backend swap" list above (`fileHolds src D ∗
+pathOwn dst` to `fileHolds dst D ∗ pathOwn src`). On success the axiom now gives `fileHolds dst D
+∗ pathOwn dst`. The program's right to `dst`, the backend path, which nothing else renames onto
+or removes, does not change with the rename. Giving back `pathOwn src` was dubious, since the
+snapshot directory's owner (the transport) may create a file at `src` again. Nothing in the
+program uses `src` after the rename. #8's loop (J8a, `notes/snapshot-sj-plan.md` item 5) needs
+`pathOwn (backendPathOf cfg.DataDir')` back after each `applySnapshot`, to rename the next
+snapshot onto it.
+
+`OpenSnapshotBackend.spec`'s success follows. So do `snapWalkPost` and `srvSnapApplied`, which take
+the backend path `bp` after `ss` and hold `backend.pathOwn bp`; their callers pass
+`config.backendPathOf cfg.DataDir'`. The trust base keeps the same axiom, restated. The user
+approved the change (a trusted statement).
+

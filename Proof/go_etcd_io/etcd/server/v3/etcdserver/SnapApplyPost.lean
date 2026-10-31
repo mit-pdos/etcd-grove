@@ -104,9 +104,9 @@ theorem srvSnapApplied_of_walk
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
       srvWTPool E γp ∗
-      E.RD ∗ snapWalkPost s ep sv γ ci E ρ γr d D A x R ss hk γt γn t c rs idm lp al ast cl memI
+      E.RD ∗ snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Tal zal ⊢
-    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss γt γn t c rs idm lp al ast cl Tal := by
+    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, HRD2, Hw⟩
   iunfold snapWalkPost at Hw
