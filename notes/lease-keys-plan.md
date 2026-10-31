@@ -335,3 +335,67 @@ feature, `lessor.Renew` (the expiry heap, `refresh`, the checkpointer), a timed 
 `checkLeaseTimeToLive`, `checkLeaseLeases`, with `lessor.Leases` and `Lease.Keys` from a reader);
 the entry points stay names-only, so no lease row is closed at the handler level, and B3 does not
 reach a spec. B1: **the history, with lower bounds**, as recommended.
+
+## Part B, Draft (the design, top-down; 2026-10-31)
+
+**The checks' specs** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__checkLease*.lean`),
+each for a caller with the auth store's reader resource `RD` and a lower bound `n` of the published
+auth index (`auth.authPubLbM`, as `CheckTxnAuth.specLb`), the lessor's reader resource
+`lease.lessorReader γl` and a lower bound `m` of the lessor's history (`lease.lessorLb γl m`):
+- `checkLeaseTimeToLive(ctx, id)`: on `nil`, auth disabled at a state `≥ n`, or the principal an
+  admin at one, or (`leaseKeysFrom γl m id K`) the lease's item set at a lessor index `≥ m` (empty if
+  `id` was not live there) is `K` and `IsRangePermitted(k, [])` passed at a state `≥ n` for each
+  `k ∈ K` (`auth.permVerdictFrom`); the returned revision is unconstrained (its only use is
+  `LeaseTimeToLive`'s re-check, outside the scope).
+- `checkLeaseRenew(ctx, id)`: the same with `IsPutPermitted`, and on `nil` past the keys, the
+  revision unchanged (`ErrAuthOldRevision` otherwise): the two `Revision()` reads' verdicts
+  (`auth.revisionVerdictFrom`) at the same revision.
+- `checkLeaseLeases(ctx, leases)`: over the slice `Leases()` returned (each `*Lease` live at an index
+  `≥ m`: `leaseLiveFrom`), each lease's keys as above with `IsRangePermitted`, and the revision
+  re-check.
+
+**The lessor from a reader** (the lease package):
+- `lease.lessorHist γl` (in `lessorPin`'s names): a monotone list of `(M, I)` snapshots (lease map,
+  item map), appended by the owner at each change under `le.mu`'s write lock; `lessorLb γl m`
+  (persistent) a lower bound of its length; an invariant `lessorHistInv γl` holds the list's
+  authority, the owner's current `(M, I)` (the other half of a ghost variable in `leaseClosers`),
+  and for every `*Lease` ever made, its item set's ghost variable (the other half in `l.mu`'s
+  invariant, `leaseItems`), equal to the item set of `l`'s id at the last index where the lease
+  map has `l` (the current one while `l` is live; frozen at its revocation, since Go's `Revoke` does
+  not clear `l.itemSet` and the id can be granted again).
+- `lease.leaseLiveFrom γl m id l` (persistent): `l` is the lease of `id` at an index `≥ m`;
+  `lease.leaseAbsentFrom γl m id`: `id` is not live at an index `≥ m`.
+- `lease.lessorReader γl`: a reader slot of `le.mu` and a borrowing token of the leases' reader
+  slots: every `*Lease` made gives the invariant `K` of its `l.mu`'s slots (one per borrowing
+  token), so a reader holding the token borrows `l.mu`'s slot for one `Keys()` and returns it.
+- Specs from a reader: `lessor.Lookup.specRd` (`l = nil` and `leaseAbsentFrom`, or
+  `leaseLiveFrom` and `isLeaseObj l`), `Lease.Keys.specRd` (for `leaseLiveFrom γl m id l`: `ks` is the item set of `id`
+  at an index `≥ m` where the lease map has `l`).
+- What changes for the owner: `Grant`, `Attach`, `Detach`, `Revoke`, `Recover` (and `NewLessor`,
+  `NewLease`) append to the history / allocate the ghost variables and slots. The owner's specs'
+  statements stay (the definitions they are written in grow).
+
+`checkLeaseLeases` takes its slice as a premise (each lease `leaseLiveFrom`); `lessor.Leases` waits
+for the entry points: it sorts with `sort.Sort(leasesByExpiry(ls))`, whose `Less` compares
+`Remaining()`, which reads the clock (and `expiry`, which `Renew` moves), so it is no fixed order,
+and Perennial's `sort.Sort.spec` needs `Less` to agree with a strict weak order. A spec of `Sort`
+for any `Less` (a permutation, no order) would be a Perennial change (recorded in
+`notes/perennial-changes.md` when the entry points are taken up).
+
+**Not in Part B** (the user's B4): the entry points and their server-level resources (the request
+slots' `lessorReader`, the lessor lower bound at a handler's start), and the auth side's
+`IsAdminPermitted` at a lower bound (`specLb`; an additive lemma in the auth package, to check
+with the auth work in progress).
+
+**Draft finding: the trust boundary (for the user, 2026-10-31).** The reader-side model is ghost
+state that the lessor's invariant and the owner's resource carry; two of the lessor's results that
+build or rebuild them are axioms: `lease.NewLessor.wp_proof` (names-only constructor) and
+`lease.lessor.Recover.wp_proof` (names-only). Their statements' text would not change, but the
+definitions they are written in (`lessorInv`, `leaseOwn`, `leaseRevokers`) would, so what they
+assert grows: `NewLessor` allocates the history at the empty maps (`[(∅, ∅)]`), the item-set
+variable map and the slot pool empty; `Recover` appends the fresh empty maps to the history (every
+lease of before revoked there, its item set frozen at its last live index, as `Revoke` does). The
+docstrings' arguments extend directly (fresh ghost state, a ghost update under the lock), but it
+is a trust-base change: the user's gate. `Promote`/`Demote`/`scheduleCheckpointIfNeeded` (axioms)
+do not touch the two maps. The pin gains the reader names (`LessorGV`'s first component), inside
+`lessorPinG` (its arity unchanged).
