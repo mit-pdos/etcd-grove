@@ -117,11 +117,11 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 /-- **The answer's error at the start's chain** (`dispatchAnswer`, given back): not
 `ErrNoSpace`'s. -/
 theorem dispatchAnswer_notNoSpace (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
-    (resp err : GoInterface) (o : apply.Outcome) (hp : plainCover rq)
+    (resp err : GoInterface) (tr : Loc) (o : apply.Outcome) (hp : plainCover rq)
     (ho : o = .rejected .backend ∨ ∃ l, o = .applied l false) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
-      apply.dispatchAnswer rq log skip resp err o -∗
-      apply.dispatchAnswer rq log skip resp err o ∗ notNoSpaceErr err := by
+      apply.dispatchAnswer rq log skip resp err tr o -∗
+      apply.dispatchAnswer rq log skip resp err tr o ∗ notNoSpaceErr err := by
   iintro #Hv H
   icases Hv with ⟨-, -, #HK, #HL, #HF, #HC, #AK, #AL, #AF, #AC, -⟩
   have hnil : ⊢ notNoSpaceErr (GF := GF) GoInterface.nil := by
@@ -222,7 +222,7 @@ theorem applyResultIs_notNoSpace (rq : apply.IRRModel) (x x' : apply.ApplyKV) (a
     have ho := dispatchStep_start rq x.log o hp hd
     simp only [apply.applyResultIs, apply.dispatchResult, or_true, ↓reduceIte]
     icases H with ⟨%hnn, %v, #Hvv, Hans, #HeI⟩
-    ihave ⟨Hans, #Hn⟩ := dispatchAnswer_notNoSpace rq x.log skip v.Resp' v.Err' o hp ho $$ Hv Hans
+    ihave ⟨Hans, #Hn⟩ := dispatchAnswer_notNoSpace rq x.log skip v.Resp' v.Err' v.Trace' o hp ho $$ Hv Hans
     isplitl [Hans]
     · isplitr
       · ipureintro; exact hnn

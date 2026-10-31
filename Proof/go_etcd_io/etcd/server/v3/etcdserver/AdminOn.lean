@@ -202,10 +202,10 @@ theorem reqPropOkM_true_admin (γ : ServerRaftNames) (γk : KVNames)
 
 /-- **`dispatch`'s answer to an admitted admin request is a response of its type.** -/
 theorem dispatchAnswer_admin (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
-    (resp err : GoInterface) (o : apply.Outcome) (T : go.GoType)
+    (resp err : GoInterface) (tr : Loc) (o : apply.Outcome) (T : go.GoType)
     (hT : adminRespTy (apply.dispatchKind rq) = some T) :
-    apply.dispatchAnswer (GF := GF) rq log skip resp err o ⊢
-      apply.dispatchAnswer rq log skip resp err o ∗
+    apply.dispatchAnswer (GF := GF) rq log skip resp err tr o ⊢
+      apply.dispatchAnswer rq log skip resp err tr o ∗
         ⌜∃ r : Loc, resp = interface.mkOk (go.GoType.PointerType T) #r⌝ := by
   unfold apply.dispatchAnswer
   revert hT
@@ -246,7 +246,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
     iunfold appliedOkM at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, Hok⟩
     have hT' : adminRespTy (apply.dispatchKind rq') = some T := by rw [Hwire.2.2.1]; exact hT
-    ihave ⟨Hans, %Hty⟩ := dispatchAnswer_admin rq' x.log skip resp GoInterface.nil o T hT' $$ Hans
+    ihave ⟨Hans, %Hty⟩ := dispatchAnswer_admin rq' x.log skip resp GoInterface.nil null o T hT' $$ Hans
     obtain ⟨l, rfl⟩ := Hty
     iapply HΦ
     isplitl []

@@ -703,7 +703,7 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
   iintro H
   ihave #Hc : iprop(mvcc.idxCert E.γ.idx x.log) $$ [H]
   · iunfold apply.applyKV at H
-    icases H with ⟨%p, -, -, Hk⟩
+    icases H with ⟨%p, -, -, Hk, -⟩
     iunfold apply.kvOwn at Hk
     icases Hk with ⟨-, Hsw, -⟩
     iunfold txn.kvWriter at Hsw
@@ -760,7 +760,7 @@ theorem srvApplyKV_small' (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   iunfold srvApplyKV at H
   icases H with ⟨%ua, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk⟩
+  icases Hkv with ⟨%p, -, -, Hk, -⟩
   iunfold apply.kvOwn at Hk
   icases Hk with ⟨-, Hsw, -⟩
   iunfold txn.kvWriter at Hsw

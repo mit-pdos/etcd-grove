@@ -1851,6 +1851,9 @@ theorem NewServer.wp_proofM (on : Bool)
   · icases HM with %HM'
     iExactEq Huo
     simp only [apply.AEnv.authOn, HM'.1]
+  -- (M2's apply side, A1) the store does not compact: the compaction resources at `-1`
+  isplitl; rotate_left
+  · iapply apply.cmpOwn_of_off _ Hkbw
   iunfold apply.kvOwn
   ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
   · iapply (mvcc.writerOwn_off γw.st (by rw [Hγw.2.2.1]; rfl)).2; iframe HrtA HtrA

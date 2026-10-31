@@ -75,7 +75,7 @@ def apply.dispatchOkC (on : Bool) (rq : apply.IRRModel) : Prop :=
 
 /-- `dispatchOk` gives `dispatchOkC`. -/
 theorem apply.dispatchOkC_of (on : Bool) (rq : apply.IRRModel) (h : apply.dispatchOk on rq) :
-    apply.dispatchOkC on rq := ⟨h.2.1, h.2.2⟩
+    apply.dispatchOkC on rq := h
 
 
 /-- **A request's shape in compaction mode** (`rqShape` with `dispatchOkC`; a request that deletes

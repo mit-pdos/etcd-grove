@@ -57,12 +57,13 @@ def storeKind : ReqKind → Bool
   | .range | .put | .deleteRange | .txn | .leaseRevoke => true
   | _ => false
 
-/-- **The premise on the request's kind**: not a compaction (out of the model:
-`notes/decisions.md`) and some field set (`dispatch` panics on a request with none, its
-`default`: only a crafted WAL entry has none, unit 0's suspect 2). -/
+/-- **The premise on the request's kind**: some field set (`dispatch` panics on a request with
+none, its `default`: only a crafted WAL entry has none, unit 0's suspect 2), `AuthEnable` only
+with auth on. A compaction is admitted (M2's apply side, the switch, 2026-10-31: item 1; until
+then it was out of the model): its gate is the KV invariant's `plainLogM` by the cluster's mode and
+its facts `cmpAdmit`. -/
 def dispatchOk (on : Bool) (rq : IRRModel) : Prop :=
-  dispatchKind rq ≠ .compaction ∧ dispatchKind rq ≠ .none ∧
-    (dispatchKind rq = .authEnable → on = true)
+  dispatchKind rq ≠ .none ∧ (dispatchKind rq = .authEnable → on = true)
 
 /-- **What `dispatch(rq, v3)` does to the KV** through the chain `c` at the log `log`. -/
 def dispatchStep (c : Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (o : Outcome) : Prop :=
@@ -86,11 +87,52 @@ store's answers ask for. -/
 def chainAfter (rq : IRRModel) (v3 : Bool) (c c' : Chain) : Prop :=
   c' = c ∨ (v3 = true ∧ dispatchKind rq = .alarm ∧ ∃ ns cr, c' = alarmChain c.authOn ns cr)
 
-/-- **The state `apply.Apply` changes**: the committed log of the KV and the uber-applier's
-current chain. -/
+/-- **The state `apply.Apply` changes**: the committed log of the KV, the uber-applier's
+current chain, and the compaction revision `crev` the apply thread's compaction resources are at
+(`cmpOwn`; M2's apply side, A1: `-1` at a store that does not compact). -/
 structure ApplyKV where
   log : mvcc.Log
   chain : Chain
+  crev : Int
+
+/-- **What `dispatch(rq, v3)` through the chain `c` does to the compaction revision**: a compaction
+dispatched with `v3` through a chain that reaches the backend raises it (`cmpRevAfter`); nothing
+else changes it (without `v3` a compaction is not dispatched: `dispatch`'s
+`if !shouldApplyV3 { return nil }`). -/
+def dispatchCrev (c : Chain) (rq : IRRModel) (v3 : Bool) (crev : Int) : Int :=
+  if v3 = true ∧ dispatchKind rq = .compaction ∧ chainCompacts c = true then
+    match rq.compaction with
+    | some r => cmpRevAfter crev r
+    | none => crev
+  else crev
+
+theorem dispatchCrev_ge (c : Chain) (rq : IRRModel) (v3 : Bool) (crev : Int) :
+    crev ≤ dispatchCrev c rq v3 crev := by
+  unfold dispatchCrev
+  split
+  · split
+    · exact cmpRevAfter_ge _ _
+    · exact Int.le_refl _
+  · exact Int.le_refl _
+
+theorem dispatchCrev_nonCmp (c : Chain) (rq : IRRModel) (v3 : Bool) (crev : Int)
+    (h : dispatchKind rq ≠ .compaction) : dispatchCrev c rq v3 crev = crev := by
+  unfold dispatchCrev
+  split
+  · rename_i h'; exact absurd h'.2.1 h
+  · rfl
+
+theorem dispatchCrev_noV3 (c : Chain) (rq : IRRModel) (crev : Int) :
+    dispatchCrev c rq false crev = crev := by
+  unfold dispatchCrev; simp
+
+/-- **What a compaction request needs at the log `log`**: `cmpAdmitRev` at its revision; nothing
+for another kind. -/
+def cmpAdmit (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev kb log r
+
+theorem cmpAdmit_nonCmp (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel)
+    (h : dispatchKind rq ≠ .compaction) : cmpAdmit kb log rq := fun h' => absurd h' h
 
 /-- What became of an entry in `apply.Apply`. -/
 inductive ApplyOut where
@@ -121,7 +163,15 @@ def applyStep (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) : ApplyOut → Prop
   | .rejected => needAdminPermission rq = true ∧ x' = x
   | .dispatched o skip => (skip = true → rq.txn.isSome = true) ∧
       dispatchStep x.chain rq v3 x.log o ∧ x'.log = o.logAfter x.log ∧
-      chainAfter rq v3 x.chain x'.chain
+      chainAfter rq v3 x.chain x'.chain ∧ x'.crev = dispatchCrev x.chain rq v3 x.crev
+
+/-- A request that is no compaction leaves the compaction revision. -/
+theorem applyStep_crev_nonCmp (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (out : ApplyOut)
+    (h : dispatchKind rq ≠ .compaction) (hs : applyStep rq v3 x x' out) : x'.crev = x.crev := by
+  cases out with
+  | skipped => rw [hs.2]
+  | rejected => rw [hs.2]
+  | dispatched o sk => rw [hs.2.2.2.2]; exact dispatchCrev_nonCmp _ _ _ _ h
 
 /-- **The floor met by `Apply(rq, v3)`** (unit V2): its dispatched outcome meets the floor
 (`kvFloorOk`); a skipped or rejected request ran nothing. -/
@@ -217,10 +267,11 @@ instance applierFor_persistent (ua : GoInterface) (E : AEnv GF) :
   unfold applierFor; infer_instance
 
 /-- **The apply thread's applier state** at `x`: the `UberApplier` `ua`'s current chain
-`x.chain` and the KV resources at the committed log `x.log`. -/
+`x.chain`, the KV resources at the committed log `x.log`, and the compaction resources at
+`x.crev` (`cmpOwn`; M2's apply side, A1). -/
 def applyKV (E : AEnv GF) (ua : GoInterface) (x : ApplyKV) : IProp GF :=
   iprop(∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
-    uberOwn E p x.chain ∗ kvOwn E x.log)
+    uberOwn E p x.chain ∗ kvOwn E x.log ∗ cmpOwn E x.crev)
 
 /-! ## The results -/
 
@@ -239,10 +290,16 @@ and `Err`), for the outcome `o`: a KV request's or a revocation's, unit 1's outc
 at the response's pointer; a request of the first `switch`, no response and no error; an
 admin request the mode `on` admits (`adminKindOk`; E3w, 2026-10-27), a response of its type (what
 its entry point asserts); the others, nothing (the triples of `applierSpec` say nothing of their
-answers). -/
+answers). A compaction's (M2's apply side, item 2): a `*pb.CompactionResponse`, owned without
+an error (`cmpRespOk`), or with one, no response and no trace `tr` (`backend.go`: `EtcdServer.Compact`
+reads `result.Trace` before `result.Err`). -/
 def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : GoInterface)
-    (o : Outcome) : IProp GF :=
+    (tr : Loc) (o : Outcome) : IProp GF :=
   match dispatchKind rq with
+  | .compaction => iprop(∃ rp : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.CompactionResponse.ty) #rp⌝ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ cmpRespOk rp) ∨
+        ⌜rp = null ∧ err ≠ GoInterface.nil ∧ tr = null⌝))
   | .put => iprop(∃ (op : OpFull) (r : Loc), ⌜rq.put = some op ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.PutResponse.ty) #r⌝ ∗
       putAnswerIs log op r err o)
@@ -272,13 +329,28 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
       interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r⌝)
   | _ => iprop(True)
 
+/-- **Without an error the answer does not depend on the trace** (only a compaction's error arm
+names it). -/
+theorem dispatchAnswer_nil_tr (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp : GoInterface)
+    (tr tr' : Loc) (o : Outcome) :
+    dispatchAnswer (GF := GF) rq log skip resp GoInterface.nil tr o ⊢
+      dispatchAnswer rq log skip resp GoInterface.nil tr' o := by
+  unfold dispatchAnswer
+  cases dispatchKind rq <;> simp only [] <;> try (iintro H; iexact H)
+  iintro ⟨%rp, %h, (⟨%he, Hr⟩ | %h')⟩
+  · iexists rp
+    isplitr
+    · ipureintro; exact h
+    ileft; iframe Hr
+  · exact absurd rfl h'.2.1
+
 /-- **`dispatch`'s result** `ar`: without `v3`, `nil` (but for the first `switch`'s requests);
 else a fresh `Result`, read-only from then on, holding the answer, whose error `errors.Is` can
 take (`applyErrIs`). -/
 def dispatchResult (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (ar : Loc)
     (o : Outcome) : IProp GF :=
   if preV3Kind (dispatchKind rq) = true ∨ v3 = true then
-    iprop(⌜ar ≠ null⌝ ∗ ∃ v : Result, ar ↦□ v ∗ dispatchAnswer rq log skip v.Resp' v.Err' o ∗
+    iprop(⌜ar ≠ null⌝ ∗ ∃ v : Result, ar ↦□ v ∗ dispatchAnswer rq log skip v.Resp' v.Err' v.Trace' o ∗
       applyErrIs v.Err')
   else iprop(⌜ar = null⌝)
 

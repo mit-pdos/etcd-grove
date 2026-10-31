@@ -1,43 +1,18 @@
 /-
-**M2, the apply side: the apply package's compaction arm (Draft)** (`notes/m2-apply-plan.md`).
-Imported by nothing but the server's apply-side Draft; no `axiom`, no `sorry`; nothing switched.
-Each `…D` is the draft of the unsuffixed statement it names, to replace it in place at the switch
-(the user's Q6 (a), 2026-10-30: the switch is stated in place; a definition that only carries a
-redefined one, `rqShape`, `logShape`, `entryOk`, ..., keeps its text and is read under the
-redefinition).
+**M2, the apply side: the apply package's compaction arm (Draft, what is left of it)**
+(`notes/m2-apply-plan.md`). Imported by nothing but the server's apply-side Draft; no `axiom`, no
+`sorry`.
 
-- **The premise on the request's kind** (`dispatchOkD`, item 1): `dispatchOk` without its
-  compaction conjunct, redefined in place (so `rqShape`, `logShape`, `kvWork`, `entryOk`, `srvC`,
-  `clusterWorkloadOk` admit a compaction textually unchanged); the gate is the KV invariant's
-  `plainLogM` and the entry's claim (`cmpEntryOk`: compaction mode only). Off, nothing changes for
-  a request that is no compaction (`dispatchOkD_iff`).
-- **The compaction revision** the apply thread holds the right at: `cmpRevAfter` (the store's
-  `updateCompactRev`: raised to `rev` when above), `chainCompacts` (the chains whose `Compaction`
-  reaches the backend: every wrapper but the corrupt applier passes it on, `corrupt.go`),
-  `dispatchCrev`/`applyCrev` (what `dispatch`/`Apply` do to it).
-- **The apply thread's compaction resources** (`cmpOwn E c`): by the store's mode
-  (`kbCmpM E.γ.kb`, the backend-keyed reading, as `srvKVCloserM`), the store's restorable compaction
-  right at `c` (`mvcc.compactRightR`, at least `-1`), else `c = -1`; and the write-back supply
-  (`mvcc.kbWTSupplyM`, persistent: the server's from its write budget's stock, R2-7/Q4 (a)).
-- **What a compaction needs** (`cmpAdmitRev`, `cmpAdmit`): the store compacting and the revision
-  one of the log's (`rev < log.length`). No `NoDelPutAt` (review round 1's F-5: the items are
-  stated in the fork fix's form, etcd-io/etcd#22377 being in the fork since 2026-10-28; mvcc's specs
-  dropped it with item 18, 2026-10-31).
-- **The answers** (`cmpRespOk`, `cmpAnswerIs`, `dispatchAnswerD`, `dispatchResultD`,
-  `applyResultIsD`): the compaction's error arm with no trace (F-2: `EtcdServer.Compact` reads
-  `result.Trace` before `result.Err`).
-- **The statements** (drafts of the linked ones; mvcc's `store.updateCompactRev` and
-  `store.Compact`, drafted here until item 18 put them in mvcc, 2026-10-31: no `ErrFutureRev` arm,
-  no `NoDelPutAt`): the chain's `Compaction` triple (`cmpTriple`, a conjunct to add to
-  `applierTriples`), `applierV3backend.Compaction.specD` (new: the method has no spec today),
-  `uberApplier.dispatch.specD`, `uberApplier.Apply.specD`, `apply.Apply.specRecD` (S-1).
-- **Glue, proved**: `cmp_store_pre` (the backend's `Compaction` can meet `store.Compact.spec`'s
-  precondition from its own: the right and the supply from `cmpOwn`, the certificate and the
-  writer's fragment from `kvOwn`, the reader's token lent by `writerOwn`, the hook's facts from the
-  options), `dispatchOkD_of`, `dispatchOkD_iff`, `cmpRevAfter_ge`/
-  `dispatchCrev_ge` (the revision never goes down), `dispatchCrev_nonCmp`, `cmpAdmit_nonCmp`,
-  `dispatchAnswerD_nonCmp`, `cmp_not_future` (F-1's argument: the store's committed log extends a
-  caller's certificate, so `rev < log.length` excludes `ErrFutureRev`).
+The switch's stages 1-3 (2026-10-31) put this Draft's statements in place: `cmpTriple` in
+`applierTriples` and the compaction vocabulary (`Chain.lean`), `applierV3backend.Compaction.spec`,
+`dispatchOk` (item 1), the answers with the compaction's case (item 2), `dispatchCrev`/`cmpAdmit`
+and A1's record (`ApplyKV.crev`, `applyKV`'s `cmpOwn`, `applyStep`'s crev clause: `InvUber.lean`),
+the uber's `dispatch`/`Apply` specs and `apply.Apply.specRec` (items 11, 21). What is left, for the
+server's Draft (stage 4):
+- `dispatchOkD`, now `dispatchOk` itself (its laws trivial), which the server Draft's copies of the
+  shapes are written over;
+- `applyCrev` (what `Apply` does to the revision; `applyStep_crev`: `applyStep`'s clause);
+- the glue `cmp_not_future` (F-1's argument).
 -/
 module
 
@@ -65,47 +40,13 @@ namespace apply
 
 /-! ## The pure part -/
 
-/-- **Draft of `dispatchOk`** (`InvUber.lean`), redefined in place at the switch (item 1, the
-user's Q6 (a)): some field set, `AuthEnable` only with auth on; a compaction is admitted (M2:
-compaction in the model; the gate is the KV invariant's `plainLogM` by the cluster's mode). -/
-def dispatchOkD (on : Bool) (rq : IRRModel) : Prop :=
-  dispatchKind rq ≠ .none ∧ (dispatchKind rq = .authEnable → on = true)
+/-- **`dispatchOk` as item 1 drafted it** (in place since the switch's stage 3). -/
+abbrev dispatchOkD (on : Bool) (rq : IRRModel) : Prop := dispatchOk on rq
 
-theorem dispatchOkD_of (on : Bool) (rq : IRRModel) (h : dispatchOk on rq) : dispatchOkD on rq :=
-  ⟨h.2.1, h.2.2⟩
+theorem dispatchOkD_of (on : Bool) (rq : IRRModel) (h : dispatchOk on rq) : dispatchOkD on rq := h
 
-/-- **For a request that is no compaction, today's** (the off law: a compaction-off server's
-requests are none, `plainLog`, so every text over `dispatchOk` means what it meant). -/
-theorem dispatchOkD_iff (on : Bool) (rq : IRRModel) (h : dispatchKind rq ≠ .compaction) :
-    dispatchOkD on rq ↔ dispatchOk on rq :=
-  ⟨fun h' => ⟨h, h'.1, h'.2⟩, dispatchOkD_of on rq⟩
-
-/-- **What `dispatch(rq, v3)` through the chain `c` does to the compaction revision**: a compaction
-dispatched with `v3` through a chain that reaches the backend raises it (`cmpRevAfter`); nothing
-else changes it (without `v3` a compaction is not dispatched: `dispatch`'s
-`if !shouldApplyV3 { return nil }`). -/
-def dispatchCrev (c : Chain) (rq : IRRModel) (v3 : Bool) (crev : Int) : Int :=
-  if v3 = true ∧ dispatchKind rq = .compaction ∧ chainCompacts c = true then
-    match rq.compaction with
-    | some r => cmpRevAfter crev r
-    | none => crev
-  else crev
-
-theorem dispatchCrev_ge (c : Chain) (rq : IRRModel) (v3 : Bool) (crev : Int) :
-    crev ≤ dispatchCrev c rq v3 crev := by
-  unfold dispatchCrev
-  split
-  · split
-    · exact cmpRevAfter_ge _ _
-    · exact Int.le_refl _
-  · exact Int.le_refl _
-
-theorem dispatchCrev_nonCmp (c : Chain) (rq : IRRModel) (v3 : Bool) (crev : Int)
-    (h : dispatchKind rq ≠ .compaction) : dispatchCrev c rq v3 crev = crev := by
-  unfold dispatchCrev
-  split
-  · rename_i h'; exact absurd h'.2.1 h
-  · rfl
+theorem dispatchOkD_iff (on : Bool) (rq : IRRModel) (_h : dispatchKind rq ≠ .compaction) :
+    dispatchOkD on rq ↔ dispatchOk on rq := Iff.rfl
 
 /-- **What `Apply` does to the compaction revision**: a dispatched request's `dispatchCrev`; a
 skipped or rejected one nothing. -/
@@ -113,62 +54,14 @@ def applyCrev (rq : IRRModel) (v3 : Bool) (c : Chain) (crev : Int) : ApplyOut �
   | .dispatched _ _ => dispatchCrev c rq v3 crev
   | _ => crev
 
-/-- **What a compaction request needs at the log `log`**: `cmpAdmitRev` at its revision; nothing
-for another kind. -/
-def cmpAdmit (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev kb log r
+/-- `applyStep`'s crev clause, as `applyCrev`. -/
+theorem applyStep_crev (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (out : ApplyOut)
+    (h : applyStep rq v3 x x' out) : x'.crev = applyCrev rq v3 x.chain x.crev out := by
+  cases out with
+  | skipped => rw [h.2]; rfl
+  | rejected => rw [h.2]; rfl
+  | dispatched o skip => exact h.2.2.2.2
 
-theorem cmpAdmit_nonCmp (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel)
-    (h : dispatchKind rq ≠ .compaction) : cmpAdmit kb log rq := fun h' => absurd h' h
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-
-/-! ## The answers -/
-
-/-- **Draft of `dispatchAnswer`** (`InvUber.lean`), with the result's trace `tr` (review round 1's
-F-2): today's, with the compaction's case (today `True`, a compaction being out of the model): a
-`*pb.CompactionResponse` interface value, a response at the current revision without an error, or,
-with one, no response and **no trace** (`backend.go:73-75`; `EtcdServer.Compact` reads
-`result.Trace` before `result.Err`, `v3_server.go:393-401`, so its proof needs the trace `nil` on an
-error: what `compactResultIs` gives today). `dispatchResult` already gives `applyErrIs` of every
-error. -/
-def dispatchAnswerD (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : GoInterface)
-    (tr : Loc) (o : Outcome) : IProp GF :=
-  if dispatchKind rq = .compaction then
-    iprop(∃ rp : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.CompactionResponse.ty) #rp⌝ ∗
-      ((⌜err = GoInterface.nil⌝ ∗ cmpRespOk rp) ∨
-        ⌜rp = null ∧ err ≠ GoInterface.nil ∧ tr = null⌝))
-  else dispatchAnswer rq log skip resp err o
-
-theorem dispatchAnswerD_nonCmp (rq : IRRModel) (log : mvcc.Log) (skip : Bool)
-    (resp err : GoInterface) (tr : Loc) (o : Outcome) (h : dispatchKind rq ≠ .compaction) :
-    dispatchAnswerD (GF := GF) rq log skip resp err tr o = dispatchAnswer rq log skip resp err o := by
-  unfold dispatchAnswerD; simp only [h, ↓reduceIte]
-
-/-- **Draft of `dispatchResult`** (`InvUber.lean`): today's, over `dispatchAnswerD` (the result's
-trace passed). -/
-def dispatchResultD (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (ar : Loc)
-    (o : Outcome) : IProp GF :=
-  if preV3Kind (dispatchKind rq) = true ∨ v3 = true then
-    iprop(⌜ar ≠ null⌝ ∗ ∃ v : Result, ar ↦□ v ∗ dispatchAnswerD rq log skip v.Resp' v.Err' v.Trace' o ∗
-      applyErrIs v.Err')
-  else iprop(⌜ar = null⌝)
-
-/-- **Draft of `applyResultIs`** (`InvUber.lean`), over `dispatchResultD`. -/
-def applyResultIsD (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (ar : Loc) : ApplyOut → IProp GF
-  | .skipped => iprop(⌜ar = null⌝)
-  | .rejected => rejectedResultIs ar
-  | .dispatched o skip => dispatchResultD rq v3 log skip ar o
-
-/-! ## The statements -/
-
-end defs
 
 /-! ## The glue: `store.Compact`'s precondition from the backend's -/
 
@@ -198,125 +91,6 @@ end glue
 
 end apply
 
-/-! ## The drafted specs -/
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-
-/- (Item 18, done 2026-10-31: the drafts `store.updateCompactRev.specD` and `store.Compact.specD`
-are now mvcc's statements, `store.updateCompactRev.spec` and `store.Compact.spec`, checked equal by
-`rfl` before the drafts went; `mvcc_store_Compact` is proved of them.) -/
-
-/-- **`a.Compaction(cr)`** on the `*applierV3backend` `p` (draft; no spec today, the method being
-out of the model): `EnsureTrace` makes a fresh trace (`context.TODO()` holds none), `KV.Compact(trace,
-rev)` (the watchable store's embedded `*store`'s, `store.Compact.spec`: the right, the certificate
-of a log with `rev`, the hook, the contract, the reader's token, the supply), then, on
-success, `KV.Range(ctx, "compaction", nil, {})` at the latest revision (a latest read is never
-compacted: `rr` is not nil) for the response's header. The chain-`.backend` instance of
-`cmpTriple`. -/
-abbrev apply.applierV3backend.Compaction.specD : Prop :=
-  ∀ (E : AEnv GF) (p cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.backendIs E p ∗ apply.compactionIs cr rev ∗ ⌜apply.cmpAdmitRev E.γ.kb log rev⌝ ∗
-      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log
-        Pre Q Post ∗ apply.cmpOwn E crev }}
-    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Compaction")) (Val #cr))
-  {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
-      RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-      apply.kvOwn E log ∗ (Post ∨ Pre) ∗ apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
-      apply.cmpAnswerIs .backend crev rev resp ch trace err }}
-
-/-- **Draft of `uberApplier.dispatch.spec`**: today's, with the compaction arm: `dispatchOkD`
-(item 1's redefinition), the compaction's facts
-(`cmpAdmit`), the apply thread's compaction resources at `crev` in, at `dispatchCrev c rq v3 crev`
-out, and the compaction's answer (`dispatchResultD`; at the switch `dispatchAnswer` itself gains the
-case and the trace). `dispatchStep`
-needs no change: a compaction is not a `storeKind`, so the log is unchanged (true: a compaction
-changes no value at a revision it keeps). -/
-abbrev apply.uberApplier.dispatch.specD : Prop :=
-  ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
-    (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log F : mvcc.Log) (Pre Q Post : IProp GF)
-    (rs : apply.RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
-      apply.irrWrapperIs r rq skip ∗ apply.chainRes c a info ∗
-      structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
-      apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk log rq ∧ apply.dispatchOkD E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
-      ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
-    (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; apply.chainResAny c a ∗ E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
-      apply.cmpOwn E (apply.dispatchCrev c rq v3 crev) ∗
-      ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
-        structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
-        apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗
-        ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
-          apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗
-        (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗
-        apply.resTrace ar ∗ apply.dispatchResultD rq v3 log skip ar o }}
-
-/-- **Draft of `uberApplier.Apply.spec`**: today's, with the compaction arm threaded as in
-`dispatch.specD` (`dispatchOkD`, `cmpAdmit`, `cmpOwn` in at `crev` and out at
-`applyCrev rq v3 x.chain crev out`, `applyResultIsD`). `apply.Apply.spec` is parametric in its method's contract and
-does not change. -/
-abbrev apply.uberApplier.Apply.specD : Prop :=
-  ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (x : apply.ApplyKV) (r : Loc)
-    (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM)
-    (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
-      apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
-      apply.certPreV v3 E x.chain rq x.log ∗
-      mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk x.log rq ∧ apply.dispatchOkD E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
-      ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
-    (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
-      E.RO (apply.restOut rq v3 out rs) ∗ apply.cmpOwn E (apply.applyCrev rq v3 x.chain crev out) ∗
-      ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
-        apply.applyFloorOk rq v3 F x.log out⌝ ∗
-      apply.resTrace ar ∗ apply.applyResultIsD rq v3 x.log ar out ∗
-      apply.applyAuthRes E.authMode x.chain rq v3 out }}
-
-/-- **Draft of `apply.Apply.specRec`** (`ApplyRec.lean`; review round 1's S-1: `applyEntryNormal`'s
-proof calls `Apply` through it): today's, with the compaction arm threaded as in
-`uberApplier.Apply.specD` (`dispatchOkD`, `cmpAdmit`, `cmpOwn` in at `crev` and out at
-`applyCrev`, `applyResultIsD`; at the switch the revision is `x.crev` and `cmpOwn` part of
-`applyKV`, A1). -/
-abbrev apply.Apply.specRecD : Prop :=
-  ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
-    (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
-    (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM)
-    (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
-      (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
-          (Q ={⊤}=∗ E.P ∗ Post))
-       else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOkD E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
-      mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
-    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
-      (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
-      ⌜id' = id⌝ ∗
-      ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
-        E.RO (apply.restOut rq v3 out rs) ∗
-        apply.cmpOwn E (apply.applyCrev rq v3 x.chain crev out) ∗
-        ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
-        apply.applyResultIsD rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
-        (⌜out.waived = false⌝ ∨ G ot id) }}
-
-end spec
 
 end EtcdGrove
 end Perennial

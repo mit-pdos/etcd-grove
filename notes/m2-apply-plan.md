@@ -2,7 +2,7 @@
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
 **the Probe: done** (item 18, G2, the commit step's compaction arm, S3-3's transfer lemma, G1:
-"The Probe"); **the switch: started** ("The switch", the last section: stage 1 done). Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+"The Probe"); **the switch: stages 1-3 done** ("The switch", the last section); next stage 4. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -16,8 +16,8 @@ Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The
    (`kv_prop_au_cmp`), S3-3's transfer lemma (`kv_entry_claim`) and G1 (`clusterWorkloadOk_ofD`),
    all in `M2ApplyProbe.lean`, done ("The Probe", below). The Probe is done. **The switch** ("The
    switch", the last section): stages 1 (the backend's `Compaction`) and 2 (the chain's
-   `Compaction` triple) done; **stage 3 waits on a question** (A1 reaches the snapshot track's
-   producers of `applyKV`: "Stage 3: stopped", the last paragraph).
+   `Compaction` triple) and 3 (`dispatch`/`Apply` in place, A1; the user's (b) for the snapshot
+   track's producers) done; **next: stage 4** (the server side).
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -729,3 +729,27 @@ invariant admitting compaction entries) needs stage 3's arm. Options:
 - (c) An interim form without A1: `cmpOwn` a separate conjunct of `Apply.specRec` and the uber's
   specs, threaded by `applyEntryNormal`'s proof only (A1's rejected alternative, as an interim).
 Recommended: (b) if the collaborator agrees, else (a).
+
+
+**Stage 3: done (2026-10-31; the user chose (b): "go ahead").** In place (`InvUber.lean`): `dispatchOk`
+without its compaction conjunct (item 1); `dispatchAnswer` with the trace argument and the
+compaction's case (item 2; `dispatchResult` passes `v.Trace'`; `dispatchAnswer_nil_tr`: without an
+error the trace is irrelevant, so `appliedOk(M)` name it `null`); `dispatchCrev`, `cmpAdmit` with
+their laws (item 3); A1's record (item 4): `ApplyKV.crev`, `applyKV`'s last conjunct `cmpOwn E
+x.crev`, `applyStep`'s dispatched clause `x'.crev = dispatchCrev x.chain rq v3 x.crev`
+(`applyStep_crev_nonCmp`). Specs (items 11, 21): `uberApplier.dispatch.spec` (`crev`, `cmpAdmit`,
+`cmpOwn` in and at `dispatchCrev` out), `uberApplier.Apply.spec` (at `x.crev`/`x'.crev`: with A1 the
+revision is the record's, so the Draft's separate `crev` and `applyCrev` went; `applyCrev` stays in
+the apply Draft for the server Draft's `crevOf_step`, with `applyStep_crev`), `apply.Apply.specRec`
+(`cmpAdmit`; `cmpOwn` inside `applyKV`). `dispatch`'s compaction arm proved (the chain's
+`cmpTriple`; `cmpAnswerIs_errIs`, `cmpAnswerIs_split` in `DispatchLemmas.lean`). Moved: the KVL/admin
+dispatch variants (their compaction arm was already excluded by kind), the auth-on `Apply` variants
+(`cmpOwn` passed through, `applyStep_crev_nonCmp`), `applyEntryNormal`'s four `Apply` calls
+(`cmpAdmit` of a covered request, `plainCover_nonCmp`), `bootKV(Of)` at `-1`, `NewServer`
+(`cmpOwn_of_off`: the store does not compact), the snapshot track's `snap_applyKV` (new hypothesis
+`hcm'`, the received backend's `d'.cm = false`, which its caller `SnapApplyPost` has; the state after
+the install at `-1`) and `SnapApplyWalk` (the old store's `cmpOwn` dropped: no restore in compaction
+mode, Q5-3). Not done here (stage 4, needs the KV invariant): `kvApplied(On)`'s `x.crev = crevOf γk
+A`. The apply Draft is down to `dispatchOkD` (now `dispatchOk`), `applyCrev` and `cmp_not_future`.
+Checked: full build (11252 jobs), tcb unchanged (766 axioms, 20 sorries), `gen-interface --check`.
+Next: stage 4 (the server side).

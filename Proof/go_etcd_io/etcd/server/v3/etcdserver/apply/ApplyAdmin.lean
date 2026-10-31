@@ -134,13 +134,15 @@ theorem apply.uberApplier.Apply.wp_admin
     ⟨%Hna, ⟨Ha, Hkv, Hcs, Ho, Hrc, HW, -⟩, Hrej⟩)
   · imodintro
     iapply HΦ
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.applyAuthRes, apply.adminOut]
     iframe Hkv HPP Htr Hres HW Hdone Hadm
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists _; iframe Ha' Hs Hsh; ipureintro; exact HcE
     isplitr
-    · ipureintro; exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl⟩, Or.inr ⟨o, rfl⟩⟩
+    · ipureintro
+      exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl, (apply.dispatchCrev_nonCmp _ _ _ _
+        (fun h => by have := Hok.2.1; simp [apply.adminKindOk, h] at this)).symm⟩, Or.inr ⟨o, rfl⟩⟩
     iintro %_
     iapply (apply.chainClass_nonKV _ _ _ _ _ (apply.adminKindOk_nonKV rq Hok.2.1))
   · iunfold apply.rejectResultIs at Hrej

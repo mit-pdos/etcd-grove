@@ -63,7 +63,7 @@ theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShap
   obtain ⟨-, -, -, hk⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk
-    rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, by decide, fun h => by cases h⟩
+    rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, fun h => by cases h⟩
   · unfold apply.rqOk
     rcases hk with hk | ⟨hk, hv⟩ <;> rw [hk]
     · trivial

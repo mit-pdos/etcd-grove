@@ -98,6 +98,8 @@ set_option hygiene false in
 local macro "fin_same" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
   iframe Hres
+  rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+  iframe Hco
   iexists (GoInterface.ok ai), c, (Outcome.applied log false)
   simp only [apply.Outcome.logAfter]
   iframe Ha Hs Hkv
@@ -123,6 +125,8 @@ set_option hygiene false in
 local macro "fin_kv" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
   iframe Hres
+  rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+  iframe Hco
   iexists (GoInterface.ok ai), c, oc
   iframe Ha Hs Hkv
   isplitl [HPP]
@@ -168,8 +172,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG))
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
-  intro E p opts c a r rq skip v3 log F Pre Q Post rs info
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp, HRO⟩
+  intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp, HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
@@ -225,7 +229,8 @@ theorem apply.uberApplier.dispatch.wp_proof
   icases Hsp with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster, -⟩
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster, -, #HCmp⟩
+  iunfold apply.cmpTriple at HCmp
   ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave Hinit : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
@@ -345,6 +350,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe HFS HRO
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iframe Hres
+    rw [apply.dispatchCrev_noV3]
+    iframe Hco
     iexists (GoInterface.ok ai), c, (Outcome.applied log false)
     simp only [apply.Outcome.logAfter]
     iframe Ha Hs Hkv
@@ -371,7 +378,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
       a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
-      (apply.chainResAny c (GoInterface.ok ai) ∗
+      (apply.chainResAny c (GoInterface.ok ai) ∗ apply.cmpOwn E (apply.dispatchCrev c rq true crev) ∗
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
@@ -379,7 +386,7 @@ theorem apply.uberApplier.dispatch.wp_proof
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
-    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt]
+    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -472,11 +479,52 @@ theorem apply.uberApplier.dispatch.wp_proof
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zTxn : rq.txn = none := nTx.1 (by simpa using Hif)
   wp_if_destruct
-  · -- Compaction: out of the model (the premise `dispatchOk`)
+  · -- Compaction (M2's apply side, 2026-10-31: the chain's `Compaction`, `cmpTriple`)
     have hl : lCo ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCo.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCo
     have hk : dispatchKind rq = .compaction := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, hs]
-    exact absurd hk Hok.2.1
+    have hadm : apply.cmpAdmitRev E.γ.kb log x := Hok.2.2 hk x hs
+    wp_apply HCmp $$ %lCo %x %log %crev %Pre %Q %Post %info [Hkv Hres Hc Hco]
+      as %resp %physc %trace %err ⟨Hkv, Hres, HPP, Hco, Hans⟩
+    · iframe HR
+      isplitr
+      · ipureintro; exact hadm
+      iunfold apply.mPre
+      iframe
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.cmpAnswerIs_errIs _ _ _ _ _ _ _) $$ [$Hev $Hans]
+    ihave ⟨Htrc, Hans⟩ := apply.cmpAnswerIs_split _ _ _ _ _ _ _ $$ Hans
+    join_ar
+    ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
+    iframe Hres
+    have hcr : apply.dispatchCrev c rq true crev =
+        (if apply.chainCompacts c then apply.cmpRevAfter crev x else crev) := by
+      unfold apply.dispatchCrev
+      cases apply.chainCompacts c <;> simp [hk, hs]
+    rw [hcr]
+    iframe Hco
+    iexists (GoInterface.ok ai), c, (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Ha Hs Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+    isplitl [Htrc]
+    · iapply apply.resTrace_of $$ H0; iexact Htrc
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · iexact HeI
+    simp only [apply.dispatchAnswer, hk]
+    iexists resp
+    isplitr
+    · ipureintro; rfl
+    iexact Hans
   have zCompaction : rq.compaction = none := nCo.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseGrant
@@ -692,7 +740,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
-  exact Hok.2.2.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
+  exact Hok.2.1.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
   -- after the join: `return ar` and the deferred metrics
   iintro Hj
   imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩

@@ -1033,6 +1033,17 @@ theorem cmpOwn_off (E : AEnv GF) (c : Int) (h : ¬ mvcc.kbCmpM E.γ.kb) :
   iintro ⟨%hc, -⟩
   ipureintro; exact hc
 
+/-- **At a store that does not compact, the resources are free at `-1`** (`cmpRight`'s off arm,
+`kbWTSupplyM`'s `True`): what a producer of the apply thread's state over such a store gives
+(the boot, the state after a snapshot's install). -/
+theorem cmpOwn_of_off (E : AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) : ⊢ cmpOwn (GF := GF) E (-1) := by
+  unfold cmpOwn cmpRight mvcc.kbWTSupplyM
+  simp only [h, ↓reduceIte]
+  iintro
+  isplitr
+  · ipureintro; trivial
+  itrivial
+
 theorem cmpOwn_ge (E : AEnv GF) (c : Int) : cmpOwn (GF := GF) E c ⊢ ⌜-1 ≤ c⌝ := by
   unfold cmpOwn cmpRight
   split

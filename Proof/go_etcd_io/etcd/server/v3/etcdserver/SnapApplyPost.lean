@@ -129,7 +129,7 @@ theorem srvSnapApplied_of_walk
   · iframe #
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      zal rfl hkb' hγw hwq hpre hRok hrbw $$
+      zal rfl hkb' hcm' hγw hwq hpre hRok hrbw $$
       [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
   · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0
   imod HKV' with ⟨%x', %Hx', HKV'⟩

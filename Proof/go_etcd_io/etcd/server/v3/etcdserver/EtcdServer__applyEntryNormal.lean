@@ -384,7 +384,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         isplitr
         · itrivial
         iframe Hcx
-        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk⟩
+        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq (Hpl rq hdata hdec))⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -586,7 +586,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
             · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
             iexact Hst
         · iframe Hst Happ Hbe HcF
-          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk⟩
+          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq (Hpl rq hdata hdec))⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -1118,7 +1118,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           isplitr
           · itrivial
           iframe Hcx
-          ipureintro; exact ⟨hdec, hid, hrq', HaOn ▸ hdk⟩
+          ipureintro; exact ⟨hdec, hid, hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp)⟩
         have Hstep := Hstep0.1
         rw [srvRest_apply E γr A m rq false x x' out Htyp hdata hdec HkA.2 hp Hstep]
         have hkeep := applyStep_plain_false rq x x' out hp Hstep
@@ -1389,7 +1389,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             isplitr
             · ipureintro; exact Hlgnn
             iframe Hst Happ Hbe HcF
-            ipureintro; exact ⟨hpre, hdec, hid, hrq', HaOn ▸ hdk⟩
+            ipureintro; exact ⟨hpre, hdec, hid, hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp)⟩
           have hkeep := applyStep_keep rq true x x' out hp hw Hstep0.1
           have hc' := hkeep.2
           have hmod : (sa, x'.log) = kvEntryOn γr.kv.c0 x.chain (sa, x.log) m := by

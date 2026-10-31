@@ -363,9 +363,8 @@ theorem entryOkOn_of_shape (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape
   · refine Or.inr ⟨rq, hdec, hid, ?_⟩
     rcases hsh with hsh | hadm
     · exact ⟨Or.inl (hsh.2 x.log (rqSmall_of_small x.log rq hl hc)), hsh.1 _⟩
-    · refine ⟨Or.inr hadm, ?_, ?_, fun _ => ha⟩
-      · intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
-      · intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
+    · refine ⟨Or.inr hadm, ?_, fun _ => ha⟩
+      intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
 
 
 /-- A conf change leaves the mode-`on` model's state. -/
@@ -754,7 +753,7 @@ theorem srvApplyKVOn_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, -, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk⟩
+  icases Hkv with ⟨%p, -, -, Hk, -⟩
   iunfold apply.kvOwn at Hk
   icases Hk with ⟨-, Hsw, -⟩
   iunfold txn.kvWriter at Hsw
@@ -772,7 +771,7 @@ theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho⟩
+  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
   iunfold apply.kvOwn at Ho
   icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
@@ -790,7 +789,7 @@ theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   · iexact Hb
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo]
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
   · iunfold apply.applyKV
     iexists p
     iframe Hu

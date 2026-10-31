@@ -30,7 +30,7 @@ theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 F Pre Q Post rs
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF, HFS, HSp, HRO⟩
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF, HFS, HSp, HRO, Hco⟩
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
   ihave #Hs' := Hs
@@ -45,42 +45,43 @@ theorem apply.uberApplier.Apply.wp_proof
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗ apply.kvOwn E x.log ∗
         mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ E.FS ∗
-        (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs))
-      %(fun ar => iprop(E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
+        (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev))
+      %(fun ar => iprop(E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
+        apply.cmpOwn E (apply.dispatchCrev x.chain rq v3 x.crev) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
           apply.kvFloorOk rq v3 F x.log o ∧ a' = GoInterface.ok ai ∧ c' = x.chain⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
         apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
-      [Ha Hkv Hwt Hcs HFS HSp HRO] as %ar Hpost
-  · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO
+      [Ha Hkv Hwt Hcs HFS HSp HRO Hco] as %ar Hpost
+  · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO Hco
     imodintro
-    iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO⟩ HΦ'
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq)) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO]
+    iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO, Hco⟩ HΦ'
+    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq) x.crev) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO Hco]
     · iframe #
-      iframe Hres Ha Hkv Hwt Hcs HFS HSp HRO
+      iframe Hres Ha Hkv Hwt Hcs HFS HSp HRO Hco
       ipureintro; exact ⟨Hok, HcE⟩
     inext
-    iintro %ar ⟨Hres, HFS, HRO, HB⟩
+    iintro %ar ⟨Hres, HFS, HRO, Hco, HB⟩
     iapply HΦ'
     simp only []
-    iframe Hres HFS HRO
+    iframe Hres HFS HRO Hco
     iexact HB
-  icases Hpost with (⟨⟨HFS, HRO, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, #Hcls, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO⟩, Hrej⟩)
+  icases Hpost with (⟨⟨HFS, HRO, Hco, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, #Hcls, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO, Hco⟩, Hrej⟩)
   · obtain ⟨-, -, -, ha, hc⟩ := id Hst
     subst ha hc
     imodintro
     iapply HΦ
     iframe HFS
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, apply.dispatchCrev x.chain rq v3 x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.restOut, apply.applyAuthRes]
-    iframe Hkv HPP Hres Htr HRO Hcls Hadm
+    iframe Hkv HPP Hres Htr HRO Hcls Hadm Hco
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists _; iframe Ha' Hs'' Hsh
       ipureintro; exact HcE
     ipureintro
-    exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
+    exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1, rfl⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
   · iunfold apply.rejectResultIs at Hrej
     icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeI⟩
     ipersist Hv
@@ -90,7 +91,7 @@ theorem apply.uberApplier.Apply.wp_proof
     ihave HRO : iprop(E.RO (apply.restOut rq v3 .rejected rs)) $$ [HRO]
     · rw [show apply.restOut rq v3 .rejected rs = rs from rfl]; iexact HRO
     iexists x, .rejected
-    iframe Hkv HRO
+    iframe Hkv HRO Hco
     isplitl [Ha]
     · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
     isplitl [Hcs]

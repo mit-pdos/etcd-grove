@@ -166,7 +166,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     imodintro
     iapply HΦ
     iframe HFS
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.restOut, apply.applyAuthRes]
     iframe Hkv HPP Hres Htr HRO Hcls Hadm HL
     isplitl [Ha']
@@ -174,7 +174,8 @@ theorem apply.uberApplier.Apply.wp_kvL
       ipureintro; exact HcE
     isplitr
     · ipureintro
-      exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
+      exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1, (apply.dispatchCrev_nonCmp _ _ _ _
+        (fun h => by simp [apply.isKVKind, h] at Hkk)).symm⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
     ipureintro
     intro o' ho' hv
     injection ho' with ho'

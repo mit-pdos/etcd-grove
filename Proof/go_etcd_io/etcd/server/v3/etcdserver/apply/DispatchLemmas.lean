@@ -272,6 +272,48 @@ theorem txnAnswerIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : 
   · icases H with ⟨H, -⟩
     iapply txnOutcomeIs_errIs $$ Hv H
 
+/-- A compaction's error (`cmpAnswerIs`, M2's apply side): `nil`, mvcc's `ErrCompacted` through
+the backend (`applyErrIs` in the answer), or the corrupt applier's `ErrCorrupt`. -/
+theorem cmpAnswerIs_errIs [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
+    (trace : Loc) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      cmpAnswerIs c crev rev resp ch trace err -∗ applyErrIs err := by
+  iintro #Hv H
+  icases Hv with ⟨#HC, -⟩
+  unfold cmpAnswerIs
+  split
+  · icases H with (⟨%h, -, -⟩ | ⟨%h, #He⟩)
+    · rw [h.2]; iapply applyErrIs_nil
+    · iexact He
+  · icases H with ⟨%h, #He⟩
+    iapply errVarIs_errIs _ _ $$ HC He
+
+/-- **A compaction's answer, as `dispatch` stores it** (M2's apply side, item 2): the trace owned
+(`traceRes`: `nil` on an error), and the response owned without an error (`cmpRespOk`) or, with
+one, no response and no trace. -/
+theorem cmpAnswerIs_split [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
+    (trace : Loc) (err : GoInterface) :
+    cmpAnswerIs (GF := GF) c crev rev resp ch trace err ⊢
+      traceRes trace ∗ ((⌜err = GoInterface.nil⌝ ∗ cmpRespOk resp) ∨
+        ⌜resp = null ∧ err ≠ GoInterface.nil ∧ trace = null⌝) := by
+  unfold cmpAnswerIs
+  split
+  · iintro (⟨%h, Hr, Ht⟩ | ⟨%h, -⟩)
+    · iframe Ht; ileft; iframe Hr; ipureintro; exact h.2
+    · obtain ⟨-, hr, ht, he⟩ := h
+      subst ht
+      isplitr
+      · iapply traceRes_null
+      iright; ipureintro; exact ⟨hr, he, rfl⟩
+  · iintro ⟨%h, #He⟩
+    obtain ⟨hr, -, ht⟩ := h
+    subst ht
+    iunfold txn.errVarIs at He
+    icases He with ⟨%e, -, %he⟩
+    isplitr
+    · iapply traceRes_null
+    iright; ipureintro; exact ⟨hr, by rw [he]; nofun, rfl⟩
+
 end errIs
 
 end apply

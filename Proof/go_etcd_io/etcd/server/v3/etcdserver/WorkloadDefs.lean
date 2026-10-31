@@ -286,7 +286,14 @@ theorem dispatchOk_of_plain (rq : apply.IRRModel) (h : plainCover rq) (on : Bool
     apply.dispatchOk on rq := by
   unfold plainCover at h
   unfold apply.dispatchOk
-  refine ⟨?_, ?_, ?_⟩ <;> intro hk <;> rw [hk] at h <;> exact h.elim
+  refine ⟨?_, ?_⟩ <;> intro hk <;> rw [hk] at h <;> exact h.elim
+
+/-- A covered request is no compaction (M2's apply side: `cmpAdmit` of it is free,
+`apply.cmpAdmit_nonCmp`). -/
+theorem plainCover_nonCmp (rq : apply.IRRModel) (h : plainCover rq) :
+    apply.dispatchKind rq ≠ .compaction := by
+  unfold plainCover at h
+  intro hk; rw [hk] at h; exact h.elim
 
 /-- **The shape of a covered request whose premise is its size clauses** (a put, a delete, the
 kinds `rqOk` asks nothing of). -/
