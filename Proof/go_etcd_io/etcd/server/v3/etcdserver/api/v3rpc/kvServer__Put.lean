@@ -38,7 +38,7 @@ theorem v3rpc.kvServer.Put.wp_proof
   wp_start as ⟨#Hsrv, Hcall, #Hr, %Hpre⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
-  icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, #HKV⟩
+  icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, -, #HKV⟩
   iunfold v3rpc.raftKV at HKV
   icases HKV with ⟨-, #HPut, -, -, -⟩
   iunfold v3rpc.kvPutOk at HPut

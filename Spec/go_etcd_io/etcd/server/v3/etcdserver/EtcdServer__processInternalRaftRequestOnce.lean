@@ -65,6 +65,10 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗

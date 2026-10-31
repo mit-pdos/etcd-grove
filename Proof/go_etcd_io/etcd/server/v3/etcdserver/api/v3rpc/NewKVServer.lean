@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.NewKVServer.wp_proof
     (hNH : v3rpc.newHeader.spec (GF := GF) (hG := hG)) :
     v3rpc.NewKVServer.spec (GF := GF) (hG := hG) := by
-  intro s A n
+  intro s A n Hmx
   wp_start as ⟨#Hkv, #Hn⟩
   wp_auto
   wp_apply hNH $$ [] as %hv ⟨%cid, %mid, #Hhv⟩
@@ -59,7 +59,7 @@ theorem v3rpc.NewKVServer.wp_proof
   iframe #
   rw [Hc, Hm, Hsg]
   iframe #
-  ipureintro; exact Hpn
+  ipureintro; exact ⟨Hpn, Hmx⟩
 
 end proof
 

@@ -116,7 +116,7 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) t
   iintro %Φ ⟨#Hpkg, #Hsrv, Hlt, Hrd, Hid, #Hctx, #Hirr, Hhdr, #HF⟩ HΦ
   ihave #Hperm := reqPropOkM_true_authn (GF := GF) ρ.raft ρ.kv
     (hdrBoundM true s E (GoInterface.ok ctx)) name pre hpre
-  wp_apply hRR s E ρ ctx cd p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl $$ [Hlt Hrd Hid Hhdr]
+  wp_apply hRR s E ρ ctx cd p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt Hrd Hid Hhdr]
     as %resp %err ⟨Hlt, Hrd, Hres⟩
   · iframe; iframe #
   icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, -, Hok, -, -, -⟩ | ⟨%Hre, #HaE, -⟩)

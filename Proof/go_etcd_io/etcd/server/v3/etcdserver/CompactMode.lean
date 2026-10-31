@@ -51,6 +51,14 @@ Compaction: r}`): of the kind `compaction`, at a revision `≥ 1` (M2, the stora
 def compactPropOk (rq : apply.IRRModel) : Prop :=
   apply.dispatchKind rq = .compaction ∧ ∃ r : w64, rq.compaction = some r ∧ 1 ≤ sint.Z r
 
+/-- **A compaction is within protobuf's recursion limit** (`proto.MarshalIRR`'s premise):
+`dispatch` tests `.txn` before `.compaction` (`apply.dispatchKind`), so it has no transaction. -/
+theorem irrDepthOk_of_compactPropOk {rq : apply.IRRModel} (h : compactPropOk rq) :
+    apply.irrDepthOk rq := by
+  apply apply.irrDepthOk_of_txn_none
+  apply apply.txn_none_of_dispatchKind
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [h.1] <;> decide
+
 /-- `&pb.InternalRaftRequest{Compaction: r}`, for `r` at the revision `rev` (`EtcdServer.Compact`'s). -/
 def irrCompaction (rev : w64) : apply.IRRModel := { apply.irrEmpty with compaction := some rev }
 

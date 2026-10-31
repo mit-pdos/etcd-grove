@@ -2608,10 +2608,10 @@ theorem kvServerAt_of_is (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) :
     v3rpc.kvServerIs (GF := GF) p s A cid mid n ⊢ v3rpc.kvServerAt p s A cid mid n := by
   iintro #H
   iunfold v3rpc.kvServerIs at H
-  icases H with ⟨%Hp, #Hh, #Hk, #Hn, -⟩
+  icases H with ⟨%Hp, #Hh, #Hk, #Hn, %Hmx, -⟩
   iunfold v3rpc.kvServerAt
   iframe #
-  ipureintro; exact Hp
+  ipureintro; exact ⟨Hp, Hmx⟩
 
 /-- **etcd's KV service, started** (see the file header): the server `v3rpc.Server` built
 (`grpcSrvNew` with its chains and registrations, the KV methods `kvRegs q` among them, the quota
