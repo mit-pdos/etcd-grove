@@ -29,18 +29,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.checkLeaseRenew(ctx, id)`**, any goroutine, with the resources of
 `checkLeaseTimeToLive.spec`: on `nil`, auth disabled at a state no older than `n`, or the request's
 principal an admin at one or allowed to write (`IsPutPermitted(k)`) every key of the lease `id` at a
-lessor index no older than `m`; on an error, an error the gRPC layer can take. (The revision re-check,
-`ErrAuthOldRevision`, refuses a check across an auth change; the class does not need it, each
-verdict being at a state no older than `n`.) -/
+lessor index no older than `m`; on an error, an error the gRPC layer can take. **The margin**: the
+revision re-check (`ErrAuthOldRevision` unless `Revision()` is the same after the keys' checks as
+before) is not stated: it makes Go check every key at one auth revision, but the verdicts
+(`auth.permVerdictFrom`) say only that each check's state is no older than `n`, not its revision, so
+a statement of it would need verdicts at a revision. -/
 abbrev EtcdServer.checkLeaseRenew.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorReader γl }}
+      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗
+      ⌜threadBound GF ≤ 2 ^ 30⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))
-  {{ (err : GoInterface), RET #err; E.RD ∗ lease.lessorReader γl ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗ applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
         (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) }}
 

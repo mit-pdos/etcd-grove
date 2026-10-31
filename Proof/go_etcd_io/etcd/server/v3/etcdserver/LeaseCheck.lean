@@ -5,7 +5,7 @@
 `checkLeaseRenew`, `checkLeaseTimeToLive` and `checkLeaseLeases` (`v3_server.go`) run on a gRPC
 goroutine: they read the auth store as a reader with a lower bound `n` of its published index
 (`auth.authPubLbM`, as the read path's checks, `apply/AuthCheckTxnLb.lean`) and the lessor as a
-reader with a lower bound `m` of its history (`lease.lessorLb`, `lease/Reader.lean`). A passed check
+reader with a lower bound `m` of its history (`lease.lessorLb`, `lease/InvLessor.lean`). A passed check
 says, of the principal the request carries (`infoBoundM`): auth disabled at a state no older than
 `n`, or the principal an admin at one, or the permission (`IsPutPermitted` for a renewal,
 `IsRangePermitted` for the others) of every key of the lease at an index no older than `m`, each at a
@@ -18,14 +18,15 @@ state no older than `n`.
   `IsPutPermitted.wp_lb`, `IsRangePermitted.wp_lb` (`auth/Fresh*.lean`); `IsAdminPermitted` at a
   lower bound has no proof yet (Part B leaves the server-level resources to the entry points).
 - `srvAuthLeaseLb s E`, `srvLessorRd s γl`: the server's auth store and lessor fields with them.
-- `leaseKeysFrom`'s verdicts: `leaseKeysVerdictFrom M n info γl m id op`; the checks' class:
+- `leaseKeysFrom`'s verdicts: `leaseOfKeysVerdictFrom` (of a lease), `leaseKeysVerdictFrom` (of an id); the checks' class:
   `leaseCheckFrom`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
-public import Proof.go_etcd_io.etcd.server.v3.lease.Reader
+public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__Keys
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 
 @[expose] public section
 
@@ -113,15 +114,27 @@ def srvLessorRd (s : Loc) (γl : GName) : IProp GF :=
 instance srvLessorRd_persistent (s : Loc) (γl : GName) : Persistent (srvLessorRd (GF := GF) s γl) := by
   unfold srvLessorRd; infer_instance
 
+/-- **The keys of the lease `l` of `id` at an index no older than `m`, each permitted** (persistent):
+its keys `ks` there (`leaseKeysFrom`), the operation `op` on each permitted to `info` at a state no
+older than `n`. -/
+def leaseOfKeysVerdictFrom (M : auth.AuthMode) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (γl : GName) (m : Nat) (id : w64) (l : Loc)
+    (op : auth.PermType) : IProp GF :=
+  iprop(∃ ks : List GoString, lease.leaseKeysFrom γl m id l ks ∗
+    [∗list] k ∈ ks, auth.permVerdictFrom M n info k [] op GoInterface.nil)
+
+instance leaseOfKeysVerdictFrom_persistent (M : auth.AuthMode) (n : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (γl : GName) (m : Nat) (id : w64) (l : Loc)
+    (op : auth.PermType) : Persistent (leaseOfKeysVerdictFrom (GF := GF) M n info γl m id l op) := by
+  unfold leaseOfKeysVerdictFrom; infer_instance
+
 /-- **The keys of the lease `id` at an index no older than `m`, each permitted** (persistent): no
 lease of `id` there, or the keys `ks` of its lease `l` there (`leaseKeysFrom`), the operation `op`
 on each permitted to `info` at a state no older than `n` (`IsPutPermitted(k)`/`IsRangePermitted(k,
 [])`'s verdict passed). -/
 def leaseKeysVerdictFrom (M : auth.AuthMode) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (γl : GName) (m : Nat) (id : w64) (op : auth.PermType) : IProp GF :=
-  iprop(lease.leaseAbsentFrom γl m id ∨
-    ∃ (l : Loc) (ks : List GoString), lease.leaseKeysFrom γl m id l ks ∗
-      [∗list] k ∈ ks, auth.permVerdictFrom M n info k [] op GoInterface.nil)
+  iprop(lease.leaseAbsentFrom γl m id ∨ ∃ l : Loc, leaseOfKeysVerdictFrom M n info γl m id l op)
 
 instance leaseKeysVerdictFrom_persistent (M : auth.AuthMode) (n : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (γl : GName) (m : Nat) (id : w64)

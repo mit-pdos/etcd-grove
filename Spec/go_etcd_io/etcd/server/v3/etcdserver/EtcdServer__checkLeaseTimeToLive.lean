@@ -29,24 +29,27 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.checkLeaseTimeToLive(ctx, id)`**, any goroutine, with the server's auth store at the lease
 checks' lower bounds (`srvAuthLeaseLb`) and its request side (`srvAuthAt`), its lessor (`srvLessorRd`),
 a lower bound `n` of the auth store's published index and `m` of the lessor's history, and a reader
-of each (`E.RD`, `lessorReader`): on `nil`, auth disabled at a state no older than `n`, or the
+of each (`E.RD`, a reader slot of the lessor's lock `lessorRdOf`, and the goroutine's thread token,
+with which `Keys()` borrows a slot of the lease's lock: at most `2^30` live threads): on `nil`, auth disabled at a state no older than `n`, or the
 request's principal an admin at one or allowed to read (`IsRangePermitted(k, [])`) every key of the
 lease `id` at a lessor index no older than `m` (`leaseKeysVerdictFrom`; none if `id` was not live
-there); on an error, an error the gRPC layer can take. The returned revision is not stated (its one
-use is `LeaseTimeToLive`'s re-check). The keys are the local lessor's: what `LeaseTimeToLive` then
+there), and the returned revision the auth store's at a state no older than `n` (what
+`LeaseTimeToLive`'s re-check compares); on an error, an error the gRPC layer can take. The keys are the local lessor's: what `LeaseTimeToLive` then
 returns comes from another lookup, possibly on the leader (`issues/etcd-lease-timetolive-keys-toctou.md`). -/
 abbrev EtcdServer.checkLeaseTimeToLive.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorReader γl }}
+      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗
+      ⌜threadBound GF ≤ 2 ^ 30⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #id))
-  {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); E.RD ∗ lease.lessorReader γl ∗
+  {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗
       applyErrIs err ∗
-      (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
-        (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read)) }}
+      (∀ _ : err = GoInterface.nil, auth.revisionVerdictFrom E.authMode n rev ∗
+        leaseCheckFrom s E (GoInterface.ok ctx) n
+          (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read)) }}
 
 end spec
 
