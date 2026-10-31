@@ -137,7 +137,10 @@ theorem SetUp.wp_proof
       have hk : keyOfK x w go!"d" ∈ setupKeys := by
         unfold setupKeys; exact List.mem_flatMap.2 ⟨w, hwm, List.mem_map.2 ⟨x, hxm, rfl⟩⟩
       wp_apply (client_Put_on cl api conn ep s E ρ cid mid cctx cd (keyOfK x w go!"d")
-          go!"setup" slice.nil (fun _ => iprop(True)) []) $$ [] as %resp %err Hout
+          go!"setup" slice.nil (fun _ => iprop(True)) []
+          (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
+            ((show ∀ k ∈ setupKeys, k.length ≤ 2 ^ 28 by decide) _ hk) (by decide) (by decide)))
+        $$ [] as %resp %err Hout
       · iframe #
         iintro !>
         iapply Hkv
@@ -181,6 +184,9 @@ theorem SetUp.wp_proof
     wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"root" go!"root-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"root" (fun _ => effLb ρ.kv 0)))) $$ [] as %resp0 %err0 Hout0
     · iframe #
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_userAdd s E ρ conn _ γz 0 go!"root" go!"root-pw" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) (by decide) (by decide)) $$ Hc Hn Hx
@@ -202,6 +208,9 @@ theorem SetUp.wp_proof
     wp_apply (wp_UserGrantRole ap conn [ep] cctx cd go!"root" go!"root" (v3rpc.etcdUserGrantRoleSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrUserGrantRole go!"root" go!"root") (fun _ => effLb ρ.kv 1)))) $$ [] as %resp1 %err1 Hout1
     · iframe #
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_userGrantRole s E ρ conn _ γz 1 go!"root" go!"root" rfl (by decide) (by decide)) $$ Hc Hn Hx
@@ -223,6 +232,9 @@ theorem SetUp.wp_proof
     wp_apply (wp_RoleAdd ap conn [ep] cctx cd go!"r" (v3rpc.etcdRoleAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleAdd go!"r") (fun _ => effLb ρ.kv 2)))) $$ [] as %resp2 %err2 Hout2
     · iframe #
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_roleAdd s E ρ conn _ γz 2 go!"r" rfl (by decide) (by decide)) $$ Hc Hn Hx
@@ -246,6 +258,9 @@ theorem SetUp.wp_proof
     · iframe #
       isplitr
       · ipureintro; decide
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_roleGrantPermission s E ρ conn _ γz 3 go!"r" ⟨W32 2, go!"a", go!"b"⟩ rfl (by decide) (by decide)) $$ Hc Hn Hx
@@ -267,6 +282,9 @@ theorem SetUp.wp_proof
     wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"u" go!"u-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"u" (fun _ => effLb ρ.kv 4)))) $$ [] as %resp4 %err4 Hout4
     · iframe #
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_userAdd s E ρ conn _ γz 4 go!"u" go!"u-pw" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) (by decide) (by decide)) $$ Hc Hn Hx
@@ -288,6 +306,9 @@ theorem SetUp.wp_proof
     wp_apply (wp_UserGrantRole ap conn [ep] cctx cd go!"u" go!"r" (v3rpc.etcdUserGrantRoleSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied s E ρ tok (irrUserGrantRole go!"u" go!"r") (fun _ => effLb ρ.kv 5)))) $$ [] as %resp5 %err5 Hout5
     · iframe #
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_userGrantRole s E ρ conn _ γz 5 go!"u" go!"r" rfl (by decide) (by decide)) $$ Hc Hn Hx
@@ -309,6 +330,9 @@ theorem SetUp.wp_proof
     wp_apply (wp_UserAdd ap conn [ep] cctx cd go!"v" go!"v-pw" (v3rpc.etcdUserAddSpec s E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied s E ρ tok go!"v" (fun _ => effLb ρ.kv 6)))) $$ [] as %resp6 %err6 Hout6
     · iframe #
+      isplitl
+      rotate_left
+      · ipureintro; decide
       iintro !>
       inext
       iapply (setup_pre_userAdd s E ρ conn _ γz 6 go!"v" go!"v-pw" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) (by decide) (by decide)) $$ Hc Hn Hx

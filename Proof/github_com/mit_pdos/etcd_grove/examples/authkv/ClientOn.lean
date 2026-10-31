@@ -39,7 +39,8 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 parts) to a member with auth on: `client_put_on` through the `*Client` method. -/
 theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
@@ -61,7 +62,7 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   wp_pures
   wp_auto
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
-  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F) $$ [] as %resp %err Hout
+  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
     ileft
     imodintro

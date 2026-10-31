@@ -37,7 +37,7 @@ set_option maxHeartbeats 400000 in
 theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi
+  intro CS CRE CEC clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi hsz
   wp_start as ⟨#Hcls, #Hcl, #Hms, #Ht, #Hkv, #Hmu⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -126,7 +126,8 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
     (try wp_auto)
     -- `resp, err := cli.Put(ctx, p.Key, p.Val)`
     wp_apply (client_Put_km cl ms V γ.kv cctx ccd x.Key' x.Val' slice.nil
-        (client.kmWriteQ γ [] (.put (client.putKeyOp x.Key' x.Val')))) $$ [Hau] as %resp %err Hout
+        (client.kmWriteQ γ [] (.put (client.putKeyOp x.Key' x.Val')))
+        (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [Hau] as %resp %err Hout
     · iframe #; iexact Hau
     -- `cancel()`
     (try wp_auto)
