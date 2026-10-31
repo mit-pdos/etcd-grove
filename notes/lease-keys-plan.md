@@ -1,8 +1,10 @@
 # Plan: the lease rows' key checks (spec-first; branch `lease-keys`)
 
 Status (2026-10-31): **Scope decided** (the user's: Q1 (b) A then B, Q2 the lessor's item map, Q3
-lower bounds; to follow the spec-first plan, `notes/spec-first-plan.md`). Next: Part A's Draft
-("Part A, Draft" below). Started at
+lower bounds; to follow the spec-first plan, `notes/spec-first-plan.md`). Part A's Draft in progress: items 1-4
+done and proved (`ec422e5167`: the owner's `Lookup` opens its resource at the lease, the Probe);
+item 5 deferred (it touches `UberOn`/`SnapRO`, other tracks' files); **stopped at a question for the
+user, Q4** (the lease keys' length bound, below). Started at
 the user's request: the first of the three items that would let the repository answer
 etcd-io/etcd#22595 ("Plan to revert Auth to Beta"), whose requirement "an audit to verify that RBAC
 covers all etcd operations" `notes/auth-matrix.md` answers for every row but the lease keys.
@@ -157,3 +159,28 @@ Glue to prove before the freeze: 7 (`checkLeasePutsKeys`: the loop over `Keys()`
 accumulated), 8, 9 over 7-8, `authApplierV3.Put` over 9 (the lend from `kvOwn`), and 3 (the
 `Lookup` agreement, a Probe: the one place the lessor's invariant is opened). Probe: also
 `authApplierV3.LeaseRevoke` (the class for a request no workload admits yet).
+
+### Draft finding: the keys' length bound (Q4, for the user)
+
+`IsPutPermitted` (the auth store's real spec, `auth.authStore.IsPutPermitted.spec`, and the apply
+contract `permCheck2`) takes a key shorter than `2 ^ 63 - 1` bytes. `checkLeasePutsKeys` passes each
+of the lease's keys. Today that bound comes from `apply.leaseIs`'s `Keys()` clause, part of
+`isApplyLessor`'s `Lookup` clause, which the server takes from `lease.NewLessor`'s **axiom** (its
+post's `Lookup` triple, "true of every string in memory"). With the owner's `Keys()` (exactly the
+item map's keys) nothing bounds them: neither the lessor's item map, nor mvcc's state, nor the
+store's `put` (whose spec takes no key bound) carries one; only the request's own key has it
+(`txn.putRequestIs`), and the server's KV invariant has the key-length law
+(`EtcdModel.etcdState_keys`, `2 ^ 27`) above the apply layer. Options:
+- (a) **the KV state's keys bounded at the apply thread**: a pure conjunct of `apply.leasesLive`
+  (in `kvOwn`), kept by the backend layer's writes (each put's key has the bound from its request)
+  and made at boot and at a snapshot's restore (the server's KV invariant's key-length law). Touches
+  the chain's backend proofs, `NewServer`, the snapshot track's restore.
+- (b) **the lessor's item map's keys bounded**: a pure conjunct of `lease.leaseClosers`, kept by
+  `Attach` (a new premise: the items' keys bounded), whose caller, mvcc's `put` through
+  `mvcc.isLessor`, gets it from a new premise of `storeTxnWrite.put` (and the txn layer's from the
+  request); `Recover` from the backend's records. Touches the lease package and mvcc's write path.
+- (c) **a named premise** of the lease-keys statements (`lease.itemKeysShort I`), carried in the
+  chain's `putPre`/`txnPre`/`revokePre` and discharged at the server from the key-length law:
+  every chain layer's precondition grows by one pure conjunct.
+Recommended: (b): the bound travels with the key from the request that put it, in the package
+that keeps the item map, and the server's other statements do not change.
