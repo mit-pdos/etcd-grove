@@ -21,6 +21,13 @@ request's range end denotes `[0]` both for the bytes `"\x00"` and for an empty n
 A request decoded from the wire (the gRPC server's) has no empty non-nil slice, so its encoding
 decodes to it; that is the premise unit 2 will state of the handlers' requests.
 
+**The keys are no longer than the encoding** (2026-10-30, `notes/keylen.md`; the user's approval,
+`notes/decisions.md`, "The key-length law"): every key the decoded request puts (`irrKeysLe`: its
+`Put`'s, its transaction's at any depth) is at most `bs.length` bytes. protobuf encodes a set
+`bytes` field as its tag, its length and then all its bytes, and `proto.Marshal` emits every set
+field of every nested message, so each decoded key is a contiguous region of `bs`. Stated over the
+decoded `rq'` (what the apply side applies), not `rq`.
+
 The size caches protobuf-go stores in the messages (atomically) are outside the model:
 `internalRaftRequestIs` and the KV requests' predicates do not own them.
 -/
@@ -96,7 +103,8 @@ abbrev proto.MarshalIRR.spec : Prop :=
   {{ (d : GoSlice) (err : GoInterface), RET (PairV #d #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (bs : List w8) (rq' : apply.IRRModel),
         d ↦* bs ∗ ownSliceCap w8 d (DFrac.own 1) ∗
-        ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq' ∧ (rq.header ≠ none → bs ≠ [])⌝) ∨
+        ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq' ∧ (rq.header ≠ none → bs ≠ []) ∧
+          apply.irrKeysLe bs.length rq'⌝) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err) }}
 
 end spec

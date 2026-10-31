@@ -168,7 +168,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     rw [Hid0]
     (try wp_auto)
     rw [Hhvid]
-    obtain ⟨Hdec, Hwire, Hbsne⟩ := Hbsdec
+    obtain ⟨Hdec, Hwire, Hbsne, -⟩ := Hbsdec
     have Hidrq : apply.irrId rq' = some id := by
       obtain ⟨h1, h2, -, -⟩ := Hwire
       unfold apply.irrId
