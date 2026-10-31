@@ -41,8 +41,8 @@ Brief for the prover. Unfold `isServer`; take the old one's parts apart (`⌜ρ.
   `srvClusterAddr s` (the hypothesis's `↦□ cl` and `srvFieldsAt`'s `↦□ v.cluster`: their agreement,
   e.g. `pointsto_agree`/`typed_pointsto_agree` as used elsewhere for `↦□`). Rewrite with that before
   framing `srvEnvOk`'s `cl`.
-- `srvAtomics`, `srvGenAt`: equal (`srvAtomics_snapE`, `srvGenAt_snapE`, `rfl`); `srvRaftNode`
-  kept. -/
+- `srvAtomics`, `srvGenAt`: kept (`srvAtomics_snapE`: both backends off, M2's apply side;
+  `srvGenAt_snapE`, `rfl`); `srvRaftNode` kept. -/
 theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (γB : backend.BNames)
     (P : backend.BParams) (d' : mvcc.KBReal) (p' : mvcc.PhysNames) (g : GoFunc)
@@ -62,7 +62,11 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster d'.be) v.cluster :=
     ⟨Henv.1, rfl, γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hγB,
       rfl, hcm'⟩
-  rw [srvAtomics_snapE, srvGenAt_snapE]
+  -- (M2's apply side) the KV invariants' mode law: both backends off
+  obtain ⟨-, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := Henv
+  ihave #Hat := srvAtomics_snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster
+    d'.be s γr d d' hkb hcm hkb' hcm' $$ Hat
+  rw [srvGenAt_snapE]
   isplitr
   · ipureintro; exact Hrd
   isplitr

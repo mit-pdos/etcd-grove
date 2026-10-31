@@ -27293,3 +27293,26 @@ The agent's, reversible, for the user to review with stage 1's.
 - **The snapshot track's `snap_applyKV` takes `d'.cm = false`** (the user's (b)): its caller
   `SnapApplyPost` already has it from the walk; the old store's `cmpOwn` is dropped in `SnapApplyWalk`
   (no restore in compaction mode, Q5-3; item 17's `restorePre_of_applyM` is the collaborator's).
+
+## M2 apply side, the switch's stage 4b: S-5's law in the tie, and the compaction arm of `applyEntryNormal` waits on `srvEnvOkD` (2026-10-31)
+
+The agent's, reversible, for the user to review.
+- **`srvKVInvs`' tie carries S-5's law**: `⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝`
+  (item 19 approved the first half; S-5/S-6, "the `kbCmpM E.γ.kb ↔ E.cmp` law to export", was open
+  in the second tier). Reason: the apply thread's view (`isServer`) holds D22's `srvEnvOk`, whose
+  backend has `d.cm = false`; with the law, `applyEntryNormal` derives the cluster's mode off
+  (`srvKV_mode_off`), so the KV log is plain (`plainLogM false = plainLog`) and today's proof stands.
+  Without it, nothing in the apply thread's view ties `E.cmp` to the store's backend, and a
+  compaction entry (admitted by `kvInv` when `γk.cmp = true`) would need `cmpAdmit`'s `kbCmpM`,
+  which `srvEnvOk` refutes. Producers: `NewServer` (its store's backend does not compact, its mode
+  off) and the snapshot track's install (`srvAtomics_snapE`, now an entailment: both backends off,
+  the old by `srvEnvOk`, the received by `d'.cm = false`; a mechanical change of the kind the user's
+  (b) allowed).
+- **Hence `applyEntryNormal`'s compaction arm (items 8, 12) is not proved in stage 4b**: it is
+  unreachable while `srvEnvOk` says `d.cm = false`. It becomes reachable, and is owed, when the
+  snapshot track's `srvEnvOkD` (`d.cm = E.cmp`, D22's draft in `M2StorageDraftRestore.lean`; the plan's
+  S-4: "`srvEnvOkD` switches first") is switched by the collaborator; `kv_entry_claim` (the Probe,
+  now over the in-place `kvInv`) and `cmpAdmit_of_entry` are ready for it.
+- **`compactPropOk` redefined in place with the scope** (the Draft's `compactPropOkD`: no
+  side-effect-free or admin field), rather than a second name; its one producer, `irrCompaction`,
+  meets both (moved to `InvProposer.lean`, beside `irrEmpty`).

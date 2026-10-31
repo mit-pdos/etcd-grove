@@ -44,20 +44,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [GooseExts]
 
-/-- **A compaction request**, as `EtcdServer.Compact` proposes it (`&pb.InternalRaftRequest{
-Compaction: r}`): of the kind `compaction`, at a revision `≥ 1` (M2, the storage side, 2026-10-30:
-**M2's scope restriction**, the user's Q7 (a), the approval's item 35: no compaction at revision `0`,
-`issues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s premise `1 ≤ r`). -/
-def compactPropOk (rq : apply.IRRModel) : Prop :=
-  apply.dispatchKind rq = .compaction ∧ ∃ r : w64, rq.compaction = some r ∧ 1 ≤ sint.Z r
-
-/-- `&pb.InternalRaftRequest{Compaction: r}`, for `r` at the revision `rev` (`EtcdServer.Compact`'s). -/
-def irrCompaction (rev : w64) : apply.IRRModel := { apply.irrEmpty with compaction := some rev }
-
-/-- `Compact`'s request at a revision `≥ 1` is a compaction in M2's scope. -/
-theorem compactPropOk_irrCompaction (rev : w64) (h : 1 ≤ sint.Z rev) :
-    compactPropOk (irrCompaction rev) :=
-  ⟨by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty], rev, rfl, h⟩
+/- (M2's apply side, stage 4b: `compactPropOk`, `irrCompaction` and `compactPropOk_irrCompaction`
+moved to `KVModelDefs.lean`, `compactPropOk` with M2's scope.) -/
 
 /-- **A request that deletes no key it puts again** in the revision it makes (S2, option (a)):
 whatever the chain, a dispatch that appends a revision appends one with `mvcc.NoDelPutAt`, so a
@@ -107,7 +95,7 @@ theorem plainLogC_compaction_pos (L : List EntryModel) (hL : plainLogC L) (m : E
     (hm : m ∈ L) (ht : m.typ = W32 0) (hd : m.data ≠ []) (rq : apply.IRRModel)
     (hrq : apply.irrDecode m.data = some rq) (hk : apply.dispatchKind rq = .compaction) (r : w64)
     (hr : rq.compaction = some r) : 1 ≤ sint.Z r := by
-  rcases hL m hm ht hd rq hrq with hp | ⟨-, r', hr', h1⟩
+  rcases hL m hm ht hd rq hrq with hp | ⟨⟨-, r', hr', h1⟩, -⟩
   · exfalso
     have := hp.2
     rw [hk] at this

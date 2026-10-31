@@ -7,12 +7,12 @@ switch adds (the cluster's compaction mode, one for every member: `srvKVInvs` an
 tie each member's `E.cmp` to it). A definition that only carries a redefined one (`entryOk`,
 `srvC`, `clusterWorkloadOk`, `isServerReq`, `isServerRead`, `srvBuilt`, the apply-loop specs)
 keeps its text and is read under the redefinitions; the Draft copies one only where its own
-statements need the new reading (`rqShapeD`, `entryShapeD`, `logShapeD`, `kvWorkD`: the texts of
+statements need the new reading (`rqShape`, `entryShapeD`, `logShapeD`, `kvWorkD`: the texts of
 `rqShape`, ..., `kvWork` read under item 1's `dispatchOkD`).
 
 - **One KV invariant** (`kvInvD`, M2's round-1 decision "one family"; the user's 2026-10-28 "mode
   as a fact"): the committed entries plain or, in the cluster's compaction mode, compactions in
-  M2's scope (`plainLogM`, `compactPropOkD`: at a revision `≥ 1`, Q7 (a); no side-effect-free or
+  M2's scope (`plainLogM`, `compactPropOk`: at a revision `≥ 1`, Q7 (a); no side-effect-free or
   admin field beside it, so `Apply` neither skips nor rejects it); each committed compaction's
   claims at the model of the entries before it (`cmpLogOk`: in M2's scope, its revision one of the
   model's). No `NoDelPutAt` (review round 1's F-5: stated in the fork fix's form; mvcc's specs
@@ -28,8 +28,8 @@ a plain log has no compaction, so the shapes read as today's, `logShapeD_plain`)
   `kvCertInv` makes a committed model log).
 - **The entry's facts at the apply thread** (`cmpEntryOk`, from `cmpLogOk` of a committed log:
   `cmpLogOk_snoc_entry`) give the apply package's `cmpAdmit` (`cmpAdmit_of_entry`) and the scope
-  `crevOf_step` needs (`compactPropOkD_of_entry`, review round 1's F-4).
-- **The shapes under item 1** (`rqShapeD`, `entryShapeD`, `logShapeD`, `kvWorkD`; review rounds
+  `crevOf_step` needs (`compactPropOk_of_entry`, review round 1's F-4).
+- **The shapes under item 1** (`rqShape`, `entryShapeD`, `logShapeD`, `kvWorkD`; review rounds
   2-3's N-1/R3-1): their texts over `apply.dispatchOkD` (a compaction admitted everywhere; the gate
   is `plainLogM`/`cmpEntryOk`); for a plain entry today's (`entryShapeD_plain`, `logShapeD_plain`).
 - **The ties of the mode** (`srvReqFieldsAtD`, `srvKVInvsD`; review rounds 1-3's F-3/N-2/R3-2): the
@@ -60,87 +60,9 @@ variable [GooseExts]
 
 /-! ## The requests and entries admitted -/
 
-/-- **A compaction in M2's scope, as the model takes it**: `compactPropOk` (the kind, a revision
-`≥ 1`), with no side-effect-free field (`Apply` would skip it without a waiter) and no admin field
-(the auth layer's admin check would reject it) beside it: so `Apply` dispatches it on every member,
-and the model's `kvCrevEntry` (which ignores skipping, as `kvEntry` does) is exact. `Compact`'s
-request has nothing else set. -/
-def compactPropOkD (rq : apply.IRRModel) : Prop :=
-  compactPropOk rq ∧ apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
-
-theorem compactPropOkD_irrCompaction (rev : w64) (h : 1 ≤ sint.Z rev) :
-    compactPropOkD (irrCompaction rev) :=
-  ⟨compactPropOk_irrCompaction rev h, by rfl, by rfl⟩
-
-/-- **A plain entry in the mode `cmp`** (draft of `plainEntry`, by the cluster's mode): a plain
-request, or, in compaction mode, a compaction in M2's scope. -/
-def plainEntryM (cmp : Bool) (m : EntryModel) : Prop :=
-  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    plainReq rq ∨ (cmp = true ∧ compactPropOkD rq)
-
-def plainLogM (cmp : Bool) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp m
-
-theorem plainEntryM_false (m : EntryModel) : plainEntryM false m ↔ plainEntry m := by
-  unfold plainEntryM plainEntry
-  simp
-
-theorem plainLogM_false (A : List EntryModel) : plainLogM false A ↔ plainLog A := by
-  unfold plainLogM plainLog
-  simp only [plainEntryM_false]
-
-/-- A plain request is no compaction. -/
-theorem plainReq_nonCmp (rq : apply.IRRModel) (h : plainReq rq) :
-    apply.dispatchKind rq ≠ .compaction := by
-  intro hk
-  have := h.2
-  rw [hk] at this
-  simp [putgetKind] at this
-
-/-- **`rqShape` under item 1** (its text over `apply.dispatchOkD`: a compaction admitted; `rqOk`
-of a compaction is `True`). -/
-def rqShapeD (rq : apply.IRRModel) : Prop :=
-  (∀ on, apply.dispatchOkD on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk log rq
-
-theorem rqShapeD_of (rq : apply.IRRModel) (h : rqShape rq) : rqShapeD rq :=
-  ⟨fun on => apply.dispatchOkD_of on rq (h.1 on), h.2⟩
-
-/-- For a request that is no compaction, today's. -/
-theorem rqShapeD_iff (rq : apply.IRRModel) (h : apply.dispatchKind rq ≠ .compaction) :
-    rqShapeD rq ↔ rqShape rq := by
-  unfold rqShapeD rqShape
-  simp only [apply.dispatchOkD_iff _ rq h]
-
-/-- **`entryShape` under item 1.** -/
-def entryShapeD (m : EntryModel) : Prop :=
-  (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
-      (∃ id, apply.irrId rq = some id) ∧ rqShapeD rq) ∧
-    (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
-
-/-- **For a plain entry, today's** (the off law). -/
-theorem entryShapeD_plain (m : EntryModel) (hp : plainEntry m) : entryShapeD m ↔ entryShape m := by
-  unfold entryShapeD entryShape
-  constructor
-  · rintro ⟨h1, h2⟩
-    refine ⟨fun ht => ?_, h2⟩
-    rcases h1 ht with hd | ⟨rq, hdec, hid, hs⟩
-    · exact Or.inl hd
-    · by_cases hd : m.data = []
-      · exact Or.inl hd
-      · exact Or.inr ⟨rq, hdec, hid,
-          (rqShapeD_iff rq (plainReq_nonCmp rq (hp ht hd rq hdec))).1 hs⟩
-  · rintro ⟨h1, h2⟩
-    refine ⟨fun ht => ?_, h2⟩
-    rcases h1 ht with hd | ⟨rq, hdec, hid, hs⟩
-    · exact Or.inl hd
-    · exact Or.inr ⟨rq, hdec, hid, rqShapeD_of rq hs⟩
-
-/-- **`logShape` under item 1.** -/
-def logShapeD (L : List EntryModel) : Prop := ∀ m ∈ L, entryShapeD m
-
-theorem logShapeD_plain (L : List EntryModel) (hp : plainLog L) : logShapeD L ↔ logShape L := by
-  unfold logShapeD logShape
-  exact ⟨fun h m hm => (entryShapeD_plain m (hp m hm)).1 (h m hm),
-    fun h m hm => (entryShapeD_plain m (hp m hm)).2 (h m hm)⟩
+/- (Stage 4b of the switch, 2026-10-31: in place, `compactPropOk` with M2's scope, `plainEntryM`,
+`plainLogM` and their laws (`KVModelDefs.lean`); the shapes' texts are today's, `dispatchOk` being
+item 1's since stage 3, so `rqShape`, `entryShapeD`, `logShapeD` and their off laws went.) -/
 
 /-! ## The compaction revision of the committed log -/
 
@@ -277,13 +199,13 @@ theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plain
 compaction arm under the drafted `applyStep`, whose `x'.crev` is `apply.applyCrev`): for a
 decoded entry applied by `Apply` with `v3` the model's, at the start's chain, the revision after
 `Apply` is the model's after the entry. A compaction is neither skipped nor rejected
-(`compactPropOkD`); any other kind leaves it. -/
+(`compactPropOk`); any other kind leaves it. -/
 theorem crevOf_step (γk : KVNames) (A : List EntryModel) (m : EntryModel) (rq : apply.IRRModel)
     (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut)
     (hch : x.chain = γk.ch0) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv3 : v3 = decide (uint.Z γk.c0 < uint.Z m.index))
     (hst : apply.applyStep rq v3 x x' out)
-    (hok : apply.dispatchKind rq = .compaction → compactPropOkD rq) :
+    (hok : apply.dispatchKind rq = .compaction → compactPropOk rq) :
     apply.applyCrev rq v3 x.chain (crevOf γk A) out = crevOf γk (A ++ [m]) := by
   rw [crevOf_snoc]
   unfold kvCrevEntry
@@ -317,38 +239,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **What a committed compaction entry `m` after the log `A` claims** (pure): in the cluster's
-compaction mode only, in M2's scope (`compactPropOkD`: neither skipped nor rejected by `Apply`, so
-the apply thread's revision is the model's, `crevOf_step`; review round 1's F-4), at a revision of
-the model of `A` (no `ErrFutureRev`). No `NoDelPutAt` (F-5: the fork fix's form). -/
-def cmpEntryOk (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel) : Prop :=
-  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    apply.dispatchKind rq = .compaction → cmp = true ∧ compactPropOkD rq ∧
-      ∀ r, rq.compaction = some r → sint.Z r < (kvModel γk A).length
-
-/-- **Every compaction of `L` claims at the model before it.** -/
-def cmpLogOk (γk : KVNames) (cmp : Bool) (L : List EntryModel) : Prop :=
-  ∀ (i : Nat) (m : EntryModel), L[i]? = some m → cmpEntryOk γk cmp (L.take i) m
-
-theorem cmpLogOk_snoc_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
-    (h : cmpLogOk γk cmp (A ++ [m])) : cmpEntryOk γk cmp A m := by
-  have := h A.length m (by simp)
-  simpa using this
-
-theorem cmpLogOk_prefix (γk : KVNames) (cmp : Bool) (A L : List EntryModel)
-    (h : cmpLogOk γk cmp L) (hp : A <+: L) : cmpLogOk γk cmp A := by
-  obtain ⟨C, rfl⟩ := hp
-  intro i m hi
-  have hlt : i < A.length := by
-    rcases (List.getElem?_eq_some_iff.1 hi) with ⟨hl, -⟩; exact hl
-  have := h i m (by rw [List.getElem?_append_left hlt]; exact hi)
-  rwa [List.take_append_of_le_length (Nat.le_of_lt hlt)] at this
-
-/-- A plain log has no compaction, so its claims hold in either mode. -/
-theorem cmpLogOk_plain (γk : KVNames) (cmp : Bool) (L : List EntryModel) (h : plainLog L) :
-    cmpLogOk γk cmp L := by
-  intro i m hi ht hd rq hrq hk
-  exact absurd hk (plainReq_nonCmp rq (h m (List.mem_of_getElem? hi) ht hd rq hrq))
+/- (Stage 4b: `cmpEntryOk`, `cmpLogOk` and their laws in place, `InvRequest.lean`.) -/
 
 /-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
 the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in
@@ -364,95 +255,16 @@ theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m 
   exact ⟨hkb hc, hrl r hr⟩
 
 /-- **The scope `crevOf_step` needs, from the entry's claims** (review round 1's F-4: its `hok`). -/
-theorem compactPropOkD_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+theorem compactPropOk_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
-    apply.dispatchKind rq = .compaction → compactPropOkD rq :=
+    apply.dispatchKind rq = .compaction → compactPropOk rq :=
   fun hk => (h ht hd rq hdec hk).2.1
 
-/-! ## The KV invariant -/
+/-! ## The KV invariant
 
-/-- **`kvWork` under item 1** (over `logShapeD`, so a compaction entry has a shape). -/
-def kvWorkD (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShapeD L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
-
-instance kvWorkD_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
-    Persistent (kvWorkD (GF := GF) cfg γk L) := by
-  unfold kvWorkD; infer_instance
-
-instance kvWorkD_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
-    Timeless (kvWorkD (GF := GF) cfg γk L) := by
-  unfold kvWorkD; infer_instance
-
-/-- **Draft of `kvInv`** (`InvRequest.lean`), in the cluster's compaction mode `cmp`: today's, its
-log plain in the mode (`plainLogM`), its compactions' claims (`cmpLogOk`), its work by the mode
-(`kvWork` under item 1, `kvWorkD`). -/
-def kvInvD (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) : IProp GF :=
-  inv kvN iprop(∃ L : List EntryModel,
-    srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLogM cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk cmp L⌝ ∗
-      kvWorkD γ.raft γk L)
-
-instance kvInvD_persistent (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) :
-    Persistent (kvInvD (GF := GF) γ γk cmp) := by
-  unfold kvInvD; infer_instance
-
-/-- (The claims last, review round 4: the proofs that read today's conjuncts by position keep
-their indices.) -/
-theorem kvInvD_off_pure (γk : KVNames) (L : List EntryModel) (A B C D : Prop) :
-    (plainLogM false L ∧ A ∧ B ∧ C ∧ D ∧ cmpLogOk γk false L) ↔ (plainLog L ∧ A ∧ B ∧ C ∧ D) := by
-  rw [plainLogM_false]
-  constructor
-  · rintro ⟨h1, ha, hb, hc, hd, -⟩; exact ⟨h1, ha, hb, hc, hd⟩
-  · rintro ⟨h1, ha, hb, hc, hd⟩
-    exact ⟨h1, ha, hb, hc, hd, cmpLogOk_plain γk false L h1⟩
-
-/-- **At the mode off it is today's** (the off law: a plain log has no compaction, so its shapes
-read as today's; every compaction-off statement over it means what it meant). -/
-theorem kvInvD_off (γ : ServerRaftNames) (γk : KVNames) :
-    kvInvD (GF := GF) γ γk false ⊣⊢ kvInv γ γk := by
-  unfold kvInvD kvInv
-  simp only [kvInvD_off_pure]
-  constructor
-  · iintro #H
-    iapply inv_iff $$ H
-    inext; imodintro
-    unfold iff
-    isplit
-    · iintro ⟨%L, H1, H2, %hp, Hw⟩
-      iunfold kvWorkD at Hw
-      icases Hw with ⟨%hs, Hc⟩
-      iexists L; iframe H1 H2
-      iunfold kvWork; iframe Hc
-      ipureintro
-      exact ⟨hp, (logShapeD_plain L hp.1).1 hs.1, hs.2⟩
-    · iintro ⟨%L, H1, H2, %hp, Hw⟩
-      iunfold kvWork at Hw
-      icases Hw with ⟨%hs, Hc⟩
-      iexists L; iframe H1 H2
-      iunfold kvWorkD; iframe Hc
-      ipureintro
-      exact ⟨hp, (logShapeD_plain L hp.1).2 hs.1, hs.2⟩
-  · iintro #H
-    iapply inv_iff $$ H
-    inext; imodintro
-    unfold iff
-    isplit
-    · iintro ⟨%L, H1, H2, %hp, Hw⟩
-      iunfold kvWork at Hw
-      icases Hw with ⟨%hs, Hc⟩
-      iexists L; iframe H1 H2
-      iunfold kvWorkD; iframe Hc
-      ipureintro
-      exact ⟨hp, (logShapeD_plain L hp.1).2 hs.1, hs.2⟩
-    · iintro ⟨%L, H1, H2, %hp, Hw⟩
-      iunfold kvWorkD at Hw
-      icases Hw with ⟨%hs, Hc⟩
-      iexists L; iframe H1 H2
-      iunfold kvWork; iframe Hc
-      ipureintro
-      exact ⟨hp, (logShapeD_plain L hp.1).1 hs.1, hs.2⟩
+(Stage 4b: `kvInv γ γk` is the draft's `kvInvD γ γk γk.cmp` in place, `InvRequest.lean`; `kvWorkD`
+is today's `kvWork`, and the off law is `kv_log_plain_off`.) -/
 
 /-! ## The proposal's form -/
 
@@ -517,7 +329,7 @@ compaction in M2's scope at a reached revision, its result trivial. -/
 def reqPropOkD (γk : KVNames) (cmp : Bool) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop(reqPropOk γk rq Qr ∨
-    (⌜cmp = true ∧ compactPropOkD rq ∧ rqShapeD rq ∧ irrNoZeroEnd rq ∧
+    (⌜cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ cmpReach γk r))
 

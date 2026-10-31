@@ -133,10 +133,10 @@ abbrev NewServer.specD : Prop :=
   -- (M2's scope: no periodic mode, which needs the clock's trust boundary); the stand-in's mode
   -- the configuration's (`E₀.cmp`: the store built at `cm := retention ≠ 0`, `envAgree`'s
   -- `E.γ.cm = E.cmp` reads it off the post); the KV invariant's mode the member's (one for the
-  -- cluster: at the switch the field `ρ.rd.kv.cmp`, here `kvInvD`'s argument)
+  -- cluster: the field `ρ.rd.kv.cmp`, in place since stage 4a)
   (cfg.AutoCompactionRetention' = 0 ∨
     (cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention')) →
-  E₀.cmp = decide (cfg.AutoCompactionRetention' ≠ 0) →
+  E₀.cmp = decide (cfg.AutoCompactionRetention' ≠ 0) → ρ.rd.kv.cmp = E₀.cmp →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
   threadBound GF ≤ 2 ^ 31 →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
@@ -192,7 +192,7 @@ abbrev NewServer.specD : Prop :=
       -- (M2, the apply side, Draft; review round 4's R4-1) in the member's mode: at the switch
       -- `kvInv ρ.rd.raft ρ.rd.kv` with the premise `ρ.rd.kv.cmp = E₀.cmp` (the post's ties,
       -- item 19, need it; the interim `NewServer.spec`/`specCompact`/`specM` take it too)
-      "#Hkvinv" ∷ kvInvD ρ.rd.raft ρ.rd.kv E₀.cmp ∗
+      "#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv ∗
       -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
       -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)

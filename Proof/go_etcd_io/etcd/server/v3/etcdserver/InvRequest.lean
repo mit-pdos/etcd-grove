@@ -227,18 +227,76 @@ instance kvWork_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWork (GF := GF) cfg γk L) := by
   unfold kvWork; infer_instance
 
+/-- **What a committed compaction entry `m` after the log `A` claims** (pure; M2's apply side,
+item 5): in the cluster's compaction mode only, in M2's scope (`compactPropOk`: neither skipped nor
+rejected by `Apply`; review round 1's F-4), at a revision of the model of `A` (no `ErrFutureRev`). -/
+def cmpEntryOk (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+    apply.dispatchKind rq = .compaction → cmp = true ∧ compactPropOk rq ∧
+      ∀ r, rq.compaction = some r → sint.Z r < (kvModel γk A).length
+
+/-- **Every compaction of `L` claims at the model before it.** -/
+def cmpLogOk (γk : KVNames) (cmp : Bool) (L : List EntryModel) : Prop :=
+  ∀ (i : Nat) (m : EntryModel), L[i]? = some m → cmpEntryOk γk cmp (L.take i) m
+
+theorem cmpLogOk_snoc_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (h : cmpLogOk γk cmp (A ++ [m])) : cmpEntryOk γk cmp A m := by
+  have := h A.length m (by simp)
+  simpa using this
+
+theorem cmpLogOk_prefix (γk : KVNames) (cmp : Bool) (A L : List EntryModel)
+    (h : cmpLogOk γk cmp L) (hp : A <+: L) : cmpLogOk γk cmp A := by
+  obtain ⟨C, rfl⟩ := hp
+  intro i m hi
+  have hlt : i < A.length := by
+    rcases (List.getElem?_eq_some_iff.1 hi) with ⟨hl, -⟩; exact hl
+  have := h i m (by rw [List.getElem?_append_left hlt]; exact hi)
+  rwa [List.take_append_of_le_length (Nat.le_of_lt hlt)] at this
+
+/-- The claims, one entry on. -/
+theorem cmpLogOk_snoc (γk : KVNames) (cmp : Bool) (L : List EntryModel) (e : EntryModel)
+    (h : cmpLogOk γk cmp L) (he : cmpEntryOk γk cmp L e) : cmpLogOk γk cmp (L ++ [e]) := by
+  intro i m hi
+  have hil := (List.getElem?_eq_some_iff.1 hi).1
+  simp only [List.length_append, List.length_singleton] at hil
+  rcases Nat.lt_or_ge i L.length with hlt | hge
+  · rw [List.getElem?_append_left hlt] at hi
+    rw [List.take_append_of_le_length (Nat.le_of_lt hlt)]
+    exact h i m hi
+  · have hi' : i = L.length := by omega
+    subst hi'
+    simp only [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
+      Option.some.injEq] at hi
+    subst hi
+    simpa using he
+
+/-- A plain entry claims nothing. -/
+theorem cmpEntryOk_plain (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (h : plainEntry m) : cmpEntryOk γk cmp A m :=
+  fun ht hd rq hrq hk => absurd hk (plainReq_nonCmp rq (h ht hd rq hrq))
+
+/-- A plain log has no compaction, so its claims hold in either mode. -/
+theorem cmpLogOk_plain (γk : KVNames) (cmp : Bool) (L : List EntryModel) (h : plainLog L) :
+    cmpLogOk γk cmp L := by
+  intro i m hi
+  exact cmpEntryOk_plain γk cmp _ m (h m (List.mem_of_getElem? hi))
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
 with auth disabled and no alarm, the start log not empty; and (D19c, 2026-10-18) the workload
 facts of `L` (`kvWork`), which every update the server hands raft checks of its entry. (2026-10-27:
 `L` the requested entries only, `srvRLog`; the start's consistent index at most the start index, so
-that every entry of a log after the start is above it, `kvModel_eqv`.) -/
+that every entry of a log after the start is above it, `kvModel_eqv`.) (M2's apply side, item 5,
+2026-10-31: "plain" in the cluster's compaction mode `γk.cmp`, `plainLogM`: a compaction in M2's
+scope admitted in compaction mode; and, last, each committed compaction's claims, `cmpLogOk`. At
+`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft γk L)
+    ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L⌝ ∗
+      kvWork γ.raft γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by

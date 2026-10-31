@@ -177,8 +177,9 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-      ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft γk L))
+      ⌜plainLogM γk.cmp L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L⌝ ∗
+        kvWork γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
@@ -186,7 +187,9 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     isplitl [HL]
     · iexact HL
     isplitr
-    · ipureintro; exact hok
+    · ipureintro
+      exact ⟨plainLogM_of _ _ hok.1, hok.2.1, hok.2.2.1, hok.2.2.2.1, hok.2.2.2.2,
+        cmpLogOk_plain _ _ _ hok.1⟩
     iunfold kvWork
     iframe Hcl
     ipureintro; exact ⟨hshape, hccl⟩

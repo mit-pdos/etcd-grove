@@ -329,10 +329,12 @@ structure SrvFields where
 
 /-- The server's KV invariants (persistent; 2026-10-14, unit T1): the KV invariant, the
 certificates', raft's committed log's; the store's certificates at the KV's names; and (M2's apply
-side, item 19) the KV names' compaction mode the server's. -/
+side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
+`kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
+track's `srvEnvOkD` makes the backend's mode the server's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp⌝)
+    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝)
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -481,6 +483,20 @@ def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Lo
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
         H = srvObjsOn al st lp cl d.be ∧ d.cm = false
+
+/-- **The cluster's compaction mode is off at an apply environment whose store does not compact**
+(M2's apply side, item 19 with S-5's law): `srvEnvOk`'s backend has `d.cm = false`, and the KV
+names' mode is the server's, which is its store's backend's (`srvKVInvs`). -/
+theorem srvKV_mode_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (γr : ReadNames) (h : srvEnvOk s γ ci E cl)
+    (ht : γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)) : γr.kv.cmp = false := by
+  obtain ⟨-, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
+  rw [ht.1]
+  cases hE : E.cmp
+  · rfl
+  · have := ht.2.2 hE
+    rw [hkb] at this
+    simp [mvcc.kbCmpM, hcm] at this
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its

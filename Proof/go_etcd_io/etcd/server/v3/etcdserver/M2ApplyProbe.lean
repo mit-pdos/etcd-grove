@@ -38,30 +38,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [GooseExts]
 
-/-- The claims, one entry on. -/
-theorem cmpLogOk_snoc (γk : KVNames) (cmp : Bool) (L : List EntryModel) (e : EntryModel)
-    (h : cmpLogOk γk cmp L) (he : cmpEntryOk γk cmp L e) : cmpLogOk γk cmp (L ++ [e]) := by
-  intro i m hi
-  have hil := (List.getElem?_eq_some_iff.1 hi).1
-  simp only [List.length_append, List.length_singleton] at hil
-  rcases Nat.lt_or_ge i L.length with hlt | hge
-  · rw [List.getElem?_append_left hlt] at hi
-    rw [List.take_append_of_le_length (Nat.le_of_lt hlt)]
-    exact h i m hi
-  · have hi' : i = L.length := by omega
-    subst hi'
-    simp only [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
-      Option.some.injEq] at hi
-    subst hi
-    simpa using he
-
-/-- A compaction is no write: the model's log and state stay. -/
-theorem compactPropOkD_nonwrite (rq : apply.IRRModel) (h : compactPropOkD rq) :
-    ¬ writeKind (apply.dispatchKind rq) := by
-  rw [h.1.1]
-  unfold writeKind
-  simp
-
 /-- **The transfer (S3-3, item 8), pure**: a committed log `A ++ [m]` whose requested entries are
 a prefix of the server's log `L`'s (no fillers in `L`) gets the entry's claim from `L`'s claims:
 `m`, if a compaction, is one of `L`'s entries, at the position after the prefix `A'` of `L` with
@@ -114,28 +90,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **The workload facts, one entry on**, under item 1 (`kvWork_snoc` over `kvWorkD`). -/
-theorem kvWorkD_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShapeD e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
-    ⊢ kvWorkD (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkD cfg γk (L ++ [e]) := by
-  iintro Hw #He
-  iunfold kvWorkD at Hw
-  icases Hw with ⟨%Hsh, #Hcl⟩
-  iunfold kvWorkD
-  isplitr
-  · ipureintro
-    refine ⟨fun m hm => ?_, fun m hm => ?_⟩
-    · rw [List.mem_append, List.mem_singleton] at hm
-      rcases hm with hm | hm
-      · exact Hsh.1 m hm
-      · subst hm; exact hs
-    · rw [List.mem_append, List.mem_singleton] at hm
-      rcases hm with hm | hm
-      · exact Hsh.2 m hm
-      · subst hm; exact hc
-  iapply BigSepL.bigSepL_snoc.2
-  iframe Hcl He
 
 /-- **The commit step's leading step** (item 6, review rounds 5-6): a compaction's revision reached
 (`cmpReach`, a KV certificate) gives a lower bound `L₀` of the server's log of requested entries
@@ -192,13 +146,13 @@ reached revision `r`), for data claimed under the request's id, as today's `kv_p
 The entry leaves the model (a compaction is no write: `kvModelSt_snoc_nonwrite`), is plain in the
 mode (`plainLogM`), and its claim (`cmpEntryOk`) is the leading step's bound, placed below the
 committed log. The result is `True`. -/
-theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : List w8)
+theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (rq : apply.IRRModel) (hdec : apply.irrDecode d = some rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E)
     (r : w64) (hr : rq.compaction = some r)
-    (hform : cmp = true ∧ compactPropOkD rq ∧ rqShapeD rq) :
-    ⊢ kvInvD (GF := GF) γ γk cmp -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
+    (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
       idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ cmpReach γk r ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
   have Hdisj := kvN_raftN
@@ -208,7 +162,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : 
   unfold srvPropAu1
   iauintro
   unfold atomic_acc
-  iunfold kvInvD at Hinv
+  iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   -- the leading step's bound is below the committed log
@@ -235,9 +189,9 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : 
       intro rq' h
       rw [hed, hdec] at h
       cases h
-      exact compactPropOkD_nonwrite rq hform.2.1
+      exact compactPropOk_nonwrite rq hform.2.1
     -- the entry's claim: its revision one of the model's before it
-    have hclaim : cmpEntryOk γk cmp L e := by
+    have hclaim : cmpEntryOk γk γk.cmp L e := by
       intro _ _ rq' h _
       rw [hed, hdec] at h
       cases h
@@ -249,12 +203,12 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : 
       unfold kvModel at h1 ⊢
       omega
     -- plain in the mode: a compaction in M2's scope
-    have hplain : plainEntryM cmp e := by
+    have hplain : plainEntryM γk.cmp e := by
       intro _ _ rq' h
       rw [hed, hdec] at h
       cases h
       exact Or.inr ⟨hform.1, hform.2.1⟩
-    have hsh : entryShapeD e :=
+    have hsh : entryShape e :=
       ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hform.2.2⟩, fun h => absurd het h⟩
     ihave #Hecl : entryClaim γk.ids e $$ []
     · iunfold entryClaim
@@ -263,7 +217,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : 
       rw [hed]
       iframe Hcl Hreg
       ipureintro; exact ⟨hdec, hid⟩
-    ihave #Hw' := kvWorkD_snoc γ.raft γk L e hsh (fun h => absurd het h) $$ Hw Hecl
+    ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h) $$ Hw Hecl
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]
@@ -271,7 +225,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : 
       iframe HL Hσ Hw'
       ipureintro
       obtain ⟨hpl, -, hc0, hch, h0, hcl⟩ := Hok
-      refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk cmp L e hcl hclaim⟩
+      refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim⟩
       rw [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm
       · exact hpl m hm
@@ -283,12 +237,12 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool) (d : 
 /-- **The transfer (S3-3, item 8)**: an entry `m` of the committed log after `A` (a lower bound of
 it, as `applyEntryNormal`'s proof holds) gets its claim from the KV invariant's, at the invariant's
 mode. At `⊤`, as `kv_log_plain`. -/
-theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool)
+theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames)
     (A : List EntryModel) (m : EntryModel) :
-    ⊢ kvInvD (GF := GF) γ γk cmp -∗ srvRaftLogInv γ -∗ srvRLogLb γ (A ++ [m]) ={⊤}=∗
-      ⌜cmpEntryOk γk cmp A m⌝ := by
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ (A ++ [m]) ={⊤}=∗
+      ⌜cmpEntryOk γk γk.cmp A m⌝ := by
   iintro #Hinv #Hr #HB
-  iunfold kvInvD at Hinv
+  iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
@@ -299,108 +253,7 @@ theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool)
   imodintro
   ipureintro
   obtain ⟨-, -, hc0, -, -, hcl⟩ := Hok
-  exact cmpEntryOk_transfer γ γk cmp A L m HBi Hp.1 Hp.2.1 Hp.2.2 hc0 hcl
-
-/-- `batchWaitOk_of_work` over the drafted shapes (item 1): it reads only a conf change's id `0`,
-which `entryShapeD` keeps. -/
-theorem batchWaitOk_of_workD (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShapeD L) (hcl : ccLogOk ρ.raft.raft L) :
-    ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
-      batchWaitOk ρ E L := by
-  iintro #Hcl #HNZ #HL
-  iunfold batchWaitOk
-  iintro !> %m %hm
-  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-  ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ m => entryClaim (GF := GF) ρ.ids m) hn) $$ Hcl
-  have hsh := hs m hm
-  unfold entryWaitOk
-  split
-  · rename_i ht
-    isplitr
-    · iintro %rq %id %hrq
-      obtain ⟨hd, hdec, hid⟩ := hrq
-      iunfold entryClaim at Hc
-      icases Hc with (%hc | ⟨%rq', %id', %γf, %hrq', #Hcl', #Hreg⟩)
-      · exfalso; rcases hc with hc | hc
-        · exact hc ht
-        · exact hd hc
-      · obtain ⟨hdec', hid'⟩ := hrq'
-        rw [hdec] at hdec'
-        cases hdec'
-        rw [hid] at hid'
-        cases hid'
-        iframe Hreg
-        iexists γf
-        iexact Hcl'
-    · iexists L
-      iframe HL
-      ipureintro; exact hm
-  · rename_i ht
-    have h0 := hsh.2 ht
-    rw [h0]
-    isplitr
-    rotate_left
-    · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
-    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0
-
-/-- **G1: the workload clause over the switch's invariant** (`clusterWorkloadOk_of` over `kvInvD`,
-with `clusterWorkloadOk`'s `logShape` read under item 1 as `logShapeD`): a committed log's entries
-have the drafted shapes (a compaction admitted) and claimed ids. The claims `cmpLogOk` are not in
-it: S3-3 (`kv_entry_claim`) gives `applyEntryNormal` each entry's from the invariant, so the
-clause does not carry them (item 8 dropped). -/
-theorem clusterWorkloadOk_ofD (ρ : ReqNames) (E : apply.AEnv GF) (cmp : Bool) :
-    kvInvD (GF := GF) ρ.raft ρ.kv cmp ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
-      □ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeD L⌝ ∗ batchWaitOk ρ E L := by
-  iintro ⟨#Hkv, #Hr, #HNZ⟩
-  iintro !> %L #HL
-  ihave #HLc : isCommittedLogLb ρ.raft.raft.cl (srvLE ρ.raft L) $$ []
-  · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
-  imod (srv_committed_noV2 ρ.raft (srvLE ρ.raft L) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
-    $$ [] with %Hv2
-  · iframe Hr HLc
-  have hnv : ∀ m ∈ L, ¬ (m.typ = W32 2 ∧ m.data = []) := by
-    rintro m hm ⟨ht, hd⟩
-    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
-    exact ⟨hd, ht⟩
-  iunfold kvInvD at Hkv
-  iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
-  imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
-  ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ] with -
-  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
-  iunfold kvWorkD at Hw
-  icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl⟩ := Hsh
-  have hshL : logShapeD L := by
-    intro m hm
-    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
-    · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
-    · exact absurd ⟨ht, hd⟩ (hnv m hm)
-    · have h1 := congrArg LogEntry.type he
-      have h2 := congrArg LogEntry.data he
-      simp only [EntryModel.toLE] at h1 h2
-      have := Hsh m' hm'
-      unfold entryShapeD at this ⊢
-      rw [← h1, ← h2]; exact this
-  have hcclL : ccLogOk ρ.raft.raft L := by
-    intro m hm
-    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
-    · intro h; exact absurd ht h
-    · exact absurd ⟨ht, hd⟩ (hnv m hm)
-    · have h1 := congrArg LogEntry.type he
-      have h2 := congrArg LogEntry.data he
-      simp only [EntryModel.toLE] at h1 h2
-      rw [← h1, ← h2]; exact Hccl m' hm'
-  ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
-  imodintro
-  isplitr
-  · ipureintro; exact hshL
-  iapply batchWaitOk_of_workD ρ E L hshL hcclL $$ HclL HNZ HL
+  exact cmpEntryOk_transfer γ γk γk.cmp A L m HBi Hp.1 Hp.2.1 Hp.2.2 hc0 hcl
 
 end probe
 

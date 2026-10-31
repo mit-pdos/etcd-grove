@@ -488,7 +488,7 @@ theorem EtcdServer.start.wp_proof
     have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
     rw [hkv, hrf]
     iframe HkcI
-    ipureintro; exact ⟨Hktie, Q19⟩
+    ipureintro; exact ⟨Hktie.1, Q19⟩
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
   icases Hvd with ⟨#R1, #R2, #R3, #R4, #R5, #R6, #R7, #R8, #R9, %R10, #R11, #R12, #R13, #R14, #R15⟩

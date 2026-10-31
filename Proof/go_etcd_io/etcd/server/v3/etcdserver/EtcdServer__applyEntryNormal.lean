@@ -259,7 +259,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   -- the KV model (unit T1): the entry plain, the log after it the model's, certified
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvs at Hkvi'
-  icases Hkvi' with ⟨-, -, -, %Hcok, -⟩
+  icases Hkvi' with ⟨-, -, -, %Hcok, %Hktie⟩
   icases srvApplyKV_idxCert s E ρ.wait x $$ HKV with ⟨HKV, #Hcx⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
   icases kvApplied_log γr.raft γr.kv A x $$ Hka with ⟨Hka, %Hxl⟩
@@ -271,14 +271,19 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   icases Hkvi'' with ⟨#HkI, -, #HrI, -⟩
   imod kv_log_plain γr.raft γr.kv (A ++ [m]) $$ HkI HrI HAm with %Hpc0
   have Hch0 := Hpc0.2
-  -- (D22, 2026-10-23) a covered request: its rest buckets' effect is `dispatch`'s
-  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainCover rq :=
-    fun rq hd hdec => (Hpc0.1 m (by simp) Htyp hd rq hdec).1
   ihave ⟨Hka, #Hkc⟩ := kvAppliedL_cert _ _ _ _ $$ Hka
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
+  -- (M2's apply side, item 19 with S-5's law) the cluster's compaction mode is off: the server's
+  -- store does not compact (`srvEnvOk`), and the KV names' mode is its backend's (`srvKVInvs`)
+  have hcmp0 : γr.kv.cmp = false := srvKV_mode_off s γ ci E fv.cluster γr HEo Hktie
+  rw [hcmp0, plainEntryM_false] at Hpe
+  rw [hcmp0, plainLogM_false] at Hpc0
+  -- (D22, 2026-10-23) a covered request: its rest buckets' effect is `dispatch`'s
+  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainCover rq :=
+    fun rq hd hdec => (Hpc0.1 m (by simp) Htyp hd rq hdec).1
   ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
   ihave #Pnot : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []

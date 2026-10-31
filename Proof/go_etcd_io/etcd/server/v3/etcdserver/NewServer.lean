@@ -1506,7 +1506,11 @@ theorem NewServer.wp_proofM (on : Bool)
     cases on
     · simp only [srvKVInvsM, srvKVInvs, kvInvM, kvCertInvM]
       iframe Hkci Hsrl Hkvinv
-      ipureintro; exact ⟨Hγw.2.2.2.2.trans Hcok.symm, Hkcmp.trans Hcmp0.symm⟩
+      ipureintro
+      refine ⟨Hγw.2.2.2.2.trans Hcok.symm, Hkcmp.trans Hcmp0.symm, fun h => absurd h Hkbw, ?_⟩
+      intro h
+      have h' : E₀.cmp = true := h
+      rw [Hcmp0] at h'; cases h'
     · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
       isplit
       · iframe Hkci Hsrl Hkvinv Htie

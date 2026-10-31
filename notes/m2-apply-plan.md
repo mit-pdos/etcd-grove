@@ -753,3 +753,26 @@ mode, Q5-3). Not done here (stage 4, needs the KV invariant): `kvApplied(On)`'s 
 A`. The apply Draft is down to `dispatchOkD` (now `dispatchOk`), `applyCrev` and `cmp_not_future`.
 Checked: full build (11252 jobs), tcb unchanged (766 axioms, 20 sorries), `gen-interface --check`.
 Next: stage 4 (the server side).
+
+**Stage 4a: done (2026-10-31; `6453326ef2`).** `KVNames.cmp` (default `false`); the ties of item 19:
+`srvKVInvs`' and `srvReqFieldsAt`'s `⌜…kv.cmp = E.cmp⌝`, the request path's `kvCertInv` (`srvReqFieldsAtM`:
+`kvTieM` and `kvCertInvM`); `NewServer.spec`/`specM` at `ρ.rd.kv.cmp = false`, `specCompact` at `true`
+(item 14'); the cluster's and member's allocations and the examples' boot bundles carry the mode.
+
+**Stage 4b: done (2026-10-31).** In place: `compactPropOk` with M2's scope, `plainEntryM`/`plainLogM`
+(`KVModelDefs.lean`), `cmpEntryOk`/`cmpLogOk` and `kvInv` over `plainLogM γk.cmp` with the claims last
+(`InvRequest.lean`, item 5). Moved: the commit step's plain arms (`kvInv_facts_snoc`), the model
+lemmas (`kvTableOf_plainM`, `kvModelSt_plain`, `kv_fire_reads`, `KVModelRestore`'s restorable
+lemmas) over `plainLogM`, `kv_log_plain` (to `plainLogM`; `kv_log_plain_off`), `kv_applied_step`,
+`kvInv_congr`, the boot allocation. **A design point** (`notes/decisions.md`, "stage 4b"):
+`srvKVInvs`' tie also carries S-5's law `kbCmpM E.γ.kb ↔ E.cmp`, so the apply thread, whose
+`srvEnvOk` has `d.cm = false`, derives the mode off (`srvKV_mode_off`) and `applyEntryNormal`'s
+proof stands; its compaction arm (items 8, 12) is owed once the snapshot track's `srvEnvOkD`
+(`d.cm = E.cmp`) is switched (S-4). The snapshot track's `srvAtomics_snapE` became an entailment
+(both backends off). Drafts: the server Draft and the Probe over the in-place names (their copies
+gone); kept for later, `crevOf` and its laws, `cmpAdmit_of_entry`, `cmpReach`, `reqPropOkD`
+(Draft), `kv_entry_claim`, `kv_prop_au_cmp`, `cmpReach_reqLb`, `cmpEntryOk_transfer` (Probe).
+Checked: full build, tcb unchanged. **Next, 4c:** `reqPropOk` in place with the compaction form and
+the commit step's compaction arm (`kv_prop_au_cmp`), `processInternalRaftRequestOnce.specCompact` and
+`EtcdServer.Compact.spec` over the request path's view (items 6, 15), `CompactMode.lean`'s family
+retired; `kvApplied`'s `crevOf` clause (item 4's rest) with the snapshot track's re-tie.

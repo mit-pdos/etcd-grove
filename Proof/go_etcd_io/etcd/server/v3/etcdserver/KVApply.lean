@@ -132,11 +132,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The committed log is plain** (the KV invariant's), and the start's chain the base chain with
-auth disabled. -/
+/-- **The committed log is plain in the cluster's mode** (the KV invariant's, `plainLogM γk.cmp`:
+M2's apply side, a compaction admitted in compaction mode), and the start's chain the base chain
+with auth disabled. -/
 theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
-      ⌜plainLog B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
+      ⌜plainLogM γk.cmp B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -148,7 +149,7 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  refine ⟨srv_entry_transfer γ.ai0 B L plainEntry ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L (plainEntryM γk.cmp) ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
   · intro m m' he h ht hd rq hdec
     have h1 := congrArg LogEntry.type he
     have h2 := congrArg LogEntry.data he
@@ -156,6 +157,17 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
     exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
   · intro m _ hd _ h; exact absurd hd h
   · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
+
+/-- **Off, the committed log is plain** (M2's apply side, item 5: the law in place of `kvInvD_off`
+for the callers whose mode is off). -/
+theorem kv_log_plain_off (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
+    (h : γk.cmp = false) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
+      ⌜plainLog B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
+  iintro #Hinv #Hr #HB
+  imod kv_log_plain γ γk B $$ Hinv Hr HB with %Hp
+  rw [h, plainLogM_false] at Hp
+  imodintro; ipureintro; exact Hp
 
 /-- A KV certificate is the store's (at the server's names). -/
 theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = γk.cok)
@@ -187,13 +199,14 @@ theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok
       iapply kvCert_certOk γk E.γ hγ $$ Hc
     · rw [hoff] at h; cases h
 
-/-- **The apply thread's step on the next committed entry `m`**: `m` plain, the chain the start's
-(auth disabled), the log after `m` the model's, certified (`kv_cert_step`). -/
+/-- **The apply thread's step on the next committed entry `m`**: `m` plain in the cluster's mode
+(M2's apply side: a compaction in M2's scope, in compaction mode), the chain the start's (auth
+disabled), the log after `m` the model's, certified (`kv_cert_step`). -/
 theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel)
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntry m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
+      ⌜plainEntryM γr.kv.cmp m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs

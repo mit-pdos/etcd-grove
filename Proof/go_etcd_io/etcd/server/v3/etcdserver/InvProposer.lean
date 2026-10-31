@@ -92,6 +92,16 @@ def apply.irrEmpty : apply.IRRModel where
   downgradeInfoSet := none
   downgradeVersionTest := false
 
+/-- `&pb.InternalRaftRequest{Compaction: r}`, for `r` at the revision `rev` (`EtcdServer.Compact`'s). -/
+def irrCompaction (rev : w64) : apply.IRRModel := { apply.irrEmpty with compaction := some rev }
+
+/-- `Compact`'s request at a revision `≥ 1` is a compaction in M2's scope. -/
+theorem compactPropOk_irrCompaction (rev : w64) (h : 1 ≤ sint.Z rev) :
+    compactPropOk (irrCompaction rev) :=
+  ⟨⟨by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty], rev, rfl, h⟩,
+    by simp [apply.noSideEffect, irrCompaction, apply.irrEmpty],
+    by simp [apply.needAdminPermission, irrCompaction, apply.irrEmpty]⟩
+
 /-- `&pb.InternalRaftRequest{Put: r}` for `r` holding `op`. -/
 def irrPut (op : OpFull) : apply.IRRModel := { apply.irrEmpty with put := some op }
 /-- `&pb.InternalRaftRequest{DeleteRange: r}`. -/

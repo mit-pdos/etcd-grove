@@ -61,9 +61,9 @@ theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel
   exact kvStateOf_backendLog _ rq _ (kvModel_ne_nil γk L h0)
 
 /-- **A plain committed log's state has no lease** (unit T3, L3a). -/
-theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) (h : plainLog L) :
+theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) {cmp : Bool} (h : plainLogM cmp L) :
     kvModelSt γk L = kvStateOf (kvModel γk L) := by
-  unfold kvModelSt kvLeases; rw [kvTableOf_plain _ _ L h]
+  unfold kvModelSt kvLeases; rw [kvTableOf_plainM _ _ cmp L h]
 
 /-- A write-free entry keeps the model's log. -/
 theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
@@ -192,22 +192,24 @@ theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
   cases h
   exact hp
 
-/-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
+/-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain; M2's apply side: in the
+mode, and its claims vacuous). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
+    (hok : plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
-    plainLog (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
+    plainLogM γk.cmp (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
-  obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
-  refine ⟨?_, hidx', hc0, hch, h0⟩
-  rw [plainLog_append]
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
+      cmpLogOk γk γk.cmp (L ++ [e]) := by
+  obtain ⟨hplog, -, hc0, hch, h0, hcl⟩ := hok
+  refine ⟨?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk _ L e hcl (cmpEntryOk_plain γk _ L e hpl)⟩
+  rw [plainLogM_append]
   refine ⟨hplog, fun m hm => ?_⟩
   rw [List.mem_singleton] at hm
   subst hm
-  exact hpl
+  exact plainEntryM_of _ _ hpl
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
 theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
@@ -344,7 +346,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         have := Hok.2.2.1
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
-        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
@@ -407,7 +409,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         have := Hok.2.2.1
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
-        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
@@ -467,7 +469,7 @@ theorem reqPropOk_qinv (γ : ServerRaftNames) (γk : KVNames) (rq : apply.IRRMod
 
 /-- Firing every registered read update at the state of `L`'s model, the KV authority's half
 agreeing. -/
-theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (hpl : plainLog L) :
+theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp L) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvModelSt γk L) -∗
         ([∗list] g ∈ gs, regOk γk g) -∗
