@@ -288,3 +288,50 @@ The Review (a spec-reviewer agent, 2026-10-31), its findings and what became of 
 
 Not yet: the lease class is not carried through `uberApplier.dispatch`/`Apply` (the dispatch drops
 it); the server-level results state `reqClass` only. A follow-up.
+
+## Part B, Scope (2026-10-31)
+
+What exists: of the lease API, only `EtcdServer.LeaseGrant`, `LeaseRevoke` and `requireAuthInfo` are
+translated (no spec of the first two); `checkLeaseRenew`, `checkLeaseTimeToLive`,
+`checkLeaseLeases`, `LeaseTimeToLive`, `leaseTimeToLive`, `LeaseLeases`, `LeaseRenew` are names-only,
+as are `lessor.Leases`, `lessor.Renew`, `Lease.Remaining`/`Demoted`. The lessor's `Lookup` and
+`Lease.Keys` are specified for the lease owner only (the apply thread: `leaseOwn`); a gRPC goroutine
+holds no owner's resource, and the lease's lock `l.mu` guards only the lock's half of the item set,
+which says nothing of which lease it is or when. The server's reader resource pattern exists
+(`RD`, the auth store's reader slots threaded through each call: `AuthReqDerive.lean`).
+
+**B1. The lessor's reader-side key model** (the lease package's invariant). Recommended: a history
+of the lessor's (lease map, item map), appended by the owner at each change (`Grant`, `Attach`,
+`Detach`, `Revoke`, `Recover`), in a lessor invariant that also holds, for each `*Lease` ever
+granted, a ghost variable of its item set, whose other part the lease's lock invariant holds. A
+reader holding `l.mu`'s read lock then learns that `l.Keys()` is the item set of `l`'s id at a
+recorded index no earlier than its lower bound: the current index while `l` is live, the index of
+its revocation after (Go's `Revoke` does not clear `l.itemSet`, and `id` can be granted again, so a
+revoked lease's set is pinned to its revocation's index, which is after any `Lookup` that found
+it). `Lookup`/`Leases` from a reader (the lessor's read lock) give leases live at an index no earlier
+than the lower bound. This touches every lessor method that changes the maps and the lease
+package's interface (`InvLessor`'s owner resources, `Lookup.spec` generalized: review F9).
+
+**B2. The specs.** Lower bounds (Q3): a passed check means, of every key of the lease's item set at
+a lessor index `≥ n0` (the caller's lower bound at the call), the principal's `IsRangePermitted`
+(`TimeToLive`, `Leases`) or `IsPutPermitted` (`Renew`) at a recorded auth state, or the
+principal an admin at one; and the revision re-check (`ErrAuthOldRevision`) states the auth states'
+window. `checkLeaseLeases` over the leases `Leases()` returned.
+
+**B3. Finding: `LeaseTimeToLive` returns keys it did not check** (reproduced with gofail, on the
+leader and a follower: `issues/etcd-lease-timetolive-keys-toctou.md`). `checkLeaseTimeToLive` checks the keys of the local
+lessor's lease; `leaseTimeToLive` then looks the lease up again (on the leader) or asks the leader
+(on a follower) and returns that lease's keys. A key attached in between (by a user who may write
+the lease's earlier keys: `checkLeasePuts`) is returned to a principal who may not read it; the
+revision re-check catches only auth changes. So `LeaseTimeToLive`'s spec can state the class of the
+keys it checked, not of the keys it returns.
+
+**B4. The extent of the translation.** `LeaseRenew` (the KeepAlive row) and `leaseTimeToLive` carry
+much besides the check: leadership (`isLeader`, `ensureLeadership`, `waitLeader`), the applied
+index's wait, the forwarding over `leasehttp` (names-only, a contract), the `FastLeaseKeepAlive`
+feature, `lessor.Renew` (the expiry heap, `refresh`, the checkpointer), a timed retry loop.
+
+**The user's decisions (2026-10-31).** B4: **the three checks only** (`checkLeaseRenew`,
+`checkLeaseTimeToLive`, `checkLeaseLeases`, with `lessor.Leases` and `Lease.Keys` from a reader);
+the entry points stay names-only, so no lease row is closed at the handler level, and B3 does not
+reach a spec. B1: **the history, with lower bounds**, as recommended.

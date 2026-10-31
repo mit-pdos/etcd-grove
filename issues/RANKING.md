@@ -143,6 +143,13 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
     128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
     `checkTxnRequest`). Upstream not searched.
+15. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+    with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
+    its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
+    read them; the revision re-check sees no auth change. An information leak of key names (not
+    values), across a permission line, so a candidate for etcd's private security process (the
+    user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
+    returned keys. Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
