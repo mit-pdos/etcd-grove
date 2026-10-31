@@ -231,7 +231,8 @@ whole state; 2026-10-19, D21 M6: its update fired at most once, its result left 
 theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) (γc : GName) :
     putPermit (GF := GF) γk op Q ⊢
       reqPropOk γk (irrPut op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
-  unfold putPermit reqPropOk
+  unfold putPermit
+  iintro H; iapply reqPropOk_of_W; iunfold reqPropOkW; irevert H
   iintro ⟨%Hl, Hau⟩
   iright; iright
   iexists .put op, Q, γc
@@ -258,7 +259,8 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     (γc : GName) :
     deletePermit (GF := GF) γk op Q ⊢
       reqPropOk γk (irrDeleteRange op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
-  unfold deletePermit reqPropOk
+  unfold deletePermit
+  iintro H; iapply reqPropOk_of_W; iunfold reqPropOkW; irevert H
   iintro ⟨%Hz, Hau⟩
   iright; iright
   iexists .deleteRange op, Q, γc
@@ -284,7 +286,8 @@ theorem txnPermit_reqPropOk (γk : KVNames) (tw : txn.TxnModelW) (Q : KVState �
     (γc : GName) :
     txnPermit (GF := GF) γk tw.toModel Q ⊢
       reqPropOk γk (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
-  unfold txnPermit reqPropOk
+  unfold txnPermit
+  iintro H; iapply reqPropOk_of_W; iunfold reqPropOkW; irevert H
   iintro ⟨%Ht, Hau⟩
   iright; iright
   iexists .txn tw.toModel, Q, γc

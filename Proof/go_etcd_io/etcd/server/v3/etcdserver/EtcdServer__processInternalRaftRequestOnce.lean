@@ -225,7 +225,8 @@ local macro "piro_tail" : tactic => `(tactic| (
     imod kv_prop_au_M on ρ.raft ρ.kv bs (hdrBoundM true s E (GoInterface.ok ctx)) rq rq'
       ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
       (Hbsne (by simp [apply.withHeader])) Hdec Hwire id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hgb Hok with ⟨Hau, #Hqi⟩
+      CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
+      $$ Hclog Hkci HrLog Hclaim Hireg Hgb Hok with ⟨Hau, #Hqi⟩
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     -- (2026-10-27) a later credit for the node API's `Propose` (its registry's invariant)
     wp_auto_lc 1

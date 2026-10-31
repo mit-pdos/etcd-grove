@@ -89,7 +89,8 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iunfold srvMonitorPermit
   iframe H
   iintro !> %rq %hrq
-  iunfold reqPropOk
+  iapply reqPropOk_of_W
+  iunfold reqPropOkW
   ileft
   ipureintro
   have hs := rqShape_of_monitorReq rq hrq

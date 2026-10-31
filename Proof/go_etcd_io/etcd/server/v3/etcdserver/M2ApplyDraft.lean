@@ -268,22 +268,7 @@ is today's `kvWork`, and the off law is `kv_log_plain_off`.) -/
 
 /-! ## The proposal's form -/
 
-/-- **A compaction's revision reached** (persistent): a KV certificate (`kvCert`: the model of a
-committed raft log, by `kvCertInv`; or one of the start's two revisions) of a log longer than it.
-What `reqPropOkD`'s compaction form carries to the commit, where the KV invariant records the
-revision as one of the model before the entry (`cmpLogOk`). The proposer's source (G2, review
-round 1's S-2): `srvRevLb E.γ r` (an `idxCert` of the proposer's store) is no `kvCert`; the
-closable form is mvcc's "the store's current committed log is `certOk`" (`revMuBody` already
-holds `certOk γ log` of its committed log beside the log's authority), exported as a law
-`idxCert γ l ⊢ ∃ l', certOk γ l' ∗ ⌜l <+: l'⌝` under the store's invariant: the Probe's (or
-round 2's S-2', `store.Read`'s `certOk`). At the commit (review rounds 5-6, item 6): read through
-`kvCertInv` (`kv_cert_read`), turned into a lower bound of the server's log
-(`srvReqLogLb_of_rlogLb`) before the atomic update, compared inside it by `srvReqLogLb_prefix`. -/
-def cmpReach (γk : KVNames) (r : w64) : IProp GF :=
-  iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝)
-
-instance cmpReach_persistent (γk : KVNames) (r : w64) : Persistent (cmpReach (GF := GF) γk r) := by
-  unfold cmpReach; infer_instance
+/- (Stage 4c: `cmpReach` in place, `InvRequest.lean`.) -/
 
 /-- **G2, the proposer's reach** (Q3's (a'), the user's, 2026-10-31): a revision the server's store has
 reached (`srvRevLb`, the compactor's `RevLb` and `EtcdServer.Compact.spec`'s premise) is a

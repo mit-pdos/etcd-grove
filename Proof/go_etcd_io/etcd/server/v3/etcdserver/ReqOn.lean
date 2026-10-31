@@ -679,24 +679,28 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     (Gb : apply.HeaderModel → IProp GF) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (hd : d ≠ [])
     (hdec : apply.irrDecode d = some rq') (hw : irrWireOf (apply.withHeader rq hm) rq')
-    (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
-    ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
+    (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E)
+    (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
+    ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ kvCertInvM on γ γk srvAuthSt0 -∗ srvRaftLogInv γ -∗
+      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
       □ (⌜on = true⌝ → Gb hm) -∗
       reqPropOkM on γ γk Gb rq Qh ={E}=∗ srvPropAu1 γ d (Qh hm) ∗ srvQInv γ (Qh hm) := by
   cases on
   · rw [kvInvM_false]
-    iintro #Hinv #Hcl #Hreg - Hok
+    simp only [kvCertInvM]
+    iintro #Hinv #Hci #Hrl #Hcl #Hreg - Hok
     iunfold reqPropOkM at Hok
     icases Hok with ⟨%Qr, Hok, %HQh⟩
     subst HQh
     ihave Hok' := reqPropOk_wire γk rq rq' hm Qr hw $$ Hok
     ihave ⟨Hok', Hq⟩ := reqPropOk_qinv γ γk rq' Qr $$ Hok'
-    imod kv_prop_au γ γk d rq' Qr hd hdec id γf hid E hE $$ Hinv Hcl Hreg Hok' with Hau
+    imod kv_prop_au γ γk d rq' Qr hd hdec id γf hid E hE hE1 hE2 $$ Hinv Hci Hrl Hcl Hreg Hok'
+      with Hau
     imodintro
     iframe Hau
     iapply Hq $$ Hinv
   · rw [kvInvM_true]
-    iintro #Hinv #Hcl #Hreg #Hgb Hok
+    iintro #Hinv - - #Hcl #Hreg #Hgb Hok
     ihave #Hgb' : □ Gb hm $$ []
     · iintro !>; iapply Hgb; ipureintro; rfl
     iunfold reqPropOkM at Hok

@@ -519,8 +519,9 @@ delete, no transaction: `Qr` trivial); or a plain request of the KV operation `o
 no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
 the client's `□ Q` at the state of `L`'s model). Since D19c (2026-10-18) either of a good shape
 (`rqShape`: the apply's premise at every log but for its size clauses) and, the first, with no
-range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). -/
-def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply side, item 6: the
+write forms, `reqPropOk`'s first disjunct.) -/
+def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
@@ -533,6 +534,40 @@ def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IP
         reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
+
+/-- **A compaction's revision reached** (persistent; M2's apply side, item 6): a KV certificate
+(`kvCert`: the model of a committed raft log, by `kvCertInv`; or one of the start's two revisions)
+of a log longer than it. What `reqPropOk`'s compaction form carries to the commit, where the KV
+invariant records the revision as one of the model before the entry (`cmpLogOk`): read through
+`kvCertInv` before the atomic update, compared inside it (`kv_prop_au`). -/
+def cmpReach (γk : KVNames) (r : w64) : IProp GF :=
+  iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝)
+
+instance cmpReach_persistent (γk : KVNames) (r : w64) : Persistent (cmpReach (GF := GF) γk r) := by
+  unfold cmpReach; infer_instance
+
+/-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
+(`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
+revision (`cmpReach`), its result trivial. -/
+def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    IProp GF :=
+  iprop(reqPropOkW γk rq Qr ∨
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
+        Qr = fun _ => iprop(True)⌝ ∗
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ cmpReach γk r))
+
+/-- The write forms are proposals. -/
+theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    reqPropOkW (GF := GF) γk rq Qr ⊢ reqPropOk γk rq Qr := by
+  iintro H; iunfold reqPropOk; ileft; iexact H
+
+/-- **Off, only the write forms** (the compaction form needs the mode on). -/
+theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF)
+    (h : γk.cmp = false) : reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
+  unfold reqPropOk
+  iintro (H | ⟨%hc, -⟩)
+  · iexact H
+  · rw [h] at hc; exact absurd hc.1 (by decide)
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 
