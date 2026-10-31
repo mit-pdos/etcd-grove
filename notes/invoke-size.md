@@ -146,6 +146,17 @@ the adapters `KMGet`, `KMPut`, `KMTxn`, `KMWatch`, `KMClient`, `ServerKVGet`, `S
      - On (2) (keys from etcd's state): `waitDelete`, `waitDeletes`, `Election__observe` (and `Lock`,
        `Campaign` through `waitDeletes`).
      - So `concurrency`'s `Link`/`Results` and v3lock's/v3election's `Link`/`Results` do not build yet.
+
+     **Done (2026-10-31, after the pin `d62b13ac1` and the key-length law):** `tryAcquire` and
+     `Campaign` bound their key by Perennial's `SprintfOut.str_x_named_int64` (`LeaseID` is a named
+     `int64` with no formatting method): at most `pfx.length + 17` bytes. `mutexState` and
+     `electionState` keep the held key at most `2 ^ 28` bytes; `ResumeElection` takes that bound on
+     its `leaderKey` (`electionServer.Proclaim`/`Resign` prove it by `grpcRecvBytesOk.lt`). The
+     transactions' sizes are computed exactly (`acquireTxn_size`: the key three times and the owner
+     get twice, about `7 · 2 ^ 27`; `campaignTxn_size`, `proclaimTxn_size`, `resignTxn_size`).
+     `Election.observe` takes the owner get's `ownerOp_size` and the prefix watch's
+     `watchSizeOk_opWatchModel`. Every `concurrency` module, its `Link`/`Results`, and v3lock's and
+     v3election's build.
      - The examples using the STM (`lintest`, `linkvtxn`, `k8setcd3`, `kv`, `linkv3p`, `kvreconf`) need
        `applySpec`'s `P` and the per-call premises: pass 4.
 
@@ -282,4 +293,19 @@ The size facts are discharged inside each closed theorem; no closed theorem's st
   function on a no-op input returns the object it read, whose value nothing bounds. Closing it
   needs a change to `GuaranteedUpdate`'s exported premise (e.g. only for an object whose stored
   value fits, or only for a result that is written), beyond what pass 4 may change.
+
+  **The user's choice (2026-10-31), "only for a result that is written", does not close it.**
+  Checked against the code: (1) Go's `GuaranteedUpdate` skips the write only when
+  `!origState.stale && bytes.Equal(data, origState.data)`, so a stale reading is written even
+  when its encoding equals the stored bytes; a premise "when the encoding differs from the stored
+  bytes" is unprovable in `GuaranteedUpdate` for a general codec (the stale, equal case writes with
+  no bound), and the faithful one is "when stale or different" (`fromS v = some (d, stl)`,
+  `decode d = some o`, `f o n = .ok o'`, `stl = true ∨ encode o' ≠ d`). (2) Even that does not
+  close k8setcd3's branch: `driverCodec` decodes both tags, and the driver seeds keys with the old
+  `v0:` encoding (`encodeV0`, `k8setcd3.go:763`), so a no-op update of a seeded key re-encodes it
+  with `v1:` (different bytes: written), and the write is as long as the stored value, which no
+  fact of the model bounds. Closing it needs a bound on a stored value: a value-length law on
+  etcd's state like `etcdState_keys` (a new trusted fact, justified by the same request limit),
+  or a premise of `GuaranteedUpdate` that the stored value fits, which its caller cannot prove
+  either without such a law. Not changed; a question for the user.
 

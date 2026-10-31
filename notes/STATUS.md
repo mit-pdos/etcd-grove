@@ -540,8 +540,16 @@ conjunct of `proto.MarshalIRR`'s post (commit `0d43bc2dd8`, for an axiom review 
 - **Pass 4, the examples** (`notes/invoke-size.md`, "Pass 4"): done but for k8setcd3's `call`
   (the Update branch: `GuaranteedUpdate`'s premise on a no-op update). No closed theorem's
   statement changes; linkvtxn's and k8setcd3's `GenIn` bound their inputs' strings.
-- **Left:** concurrency's `Mutex`/`Election` sizes (`%x`, waiting for the pin bump), and
-  k8setcd3's `call`.
+- **Concurrency** (2026-10-31, `d7df00b610`): done. The held key is bounded by Perennial's
+  `SprintfOut.str_x_named_int64` (`pfx.length + 17`), kept in `mutexState`/`electionState`
+  (`2 ^ 28`); `ResumeElection` takes the bound on its `leaderKey`; the transactions' sizes are exact
+  (`acquireTxn_size`, ...). Every `concurrency` module and v3lock's and v3election's build.
+- **Left:** k8setcd3's `call`, the Update branch, the only module the full build fails on. The
+  user's choice (`GuaranteedUpdate`'s premise only for a written result) does not close it: a
+  stale reading is written even when its bytes are equal, and the driver's seeded `v0:` keys make
+  a no-op update a write as long as the stored value, which nothing bounds (`notes/invoke-size.md`,
+  "Left, k8setcd3's `call`"). Open question for the user. The checks needing a green build
+  (`etc/tcb-report.py`, `etc/gen-interface.py`) wait for it.
 
 ## Perennial pin `d62b13ac1` (2026-10-31, branch `pin-d62b`)
 
