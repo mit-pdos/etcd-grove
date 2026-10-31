@@ -28,9 +28,9 @@ Options:
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-txn-keysonly-reply-alloc-panic` in `/shared/etcd-fixes/etcd-txn-keysonly-reply-alloc-panic` (a worktree of the shared fork clone `/shared/etcd`, `origin` upamanyus/etcd over SSH), two
   commits (signed off, no trailers): 511703d7b (`etcdserver: test the operation limit of nested txns`) adds the
-  tests; 7a63f2b96 (`etcdserver: count nested txns' operations toward --max-txn-ops`) is the fix. Not pushed (push: `git -C /shared/etcd-fixes/etcd-txn-keysonly-reply-alloc-panic push origin fix/etcd-txn-keysonly-reply-alloc-panic`).
+  tests; 7a63f2b96 (`etcdserver: count nested txns' operations toward --max-txn-ops`) is the fix. Pushed to `origin` (upamanyus/etcd) on 2026-10-31 by the user, at 7a63f2b96: https://github.com/upamanyus/etcd/tree/fix/etcd-txn-keysonly-reply-alloc-panic.
 - **Base**: upstream `main` 1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28).
-- **State**: draft (security decision pending)
+- **State**: draft; the fix branch is public on the fork (2026-10-31), the route (advisory or public issue and PR) still the user's decision; issue.md and pr.md are still in the advisory shape
 - **Upstream issue**: —
 - **PR**: —
 
