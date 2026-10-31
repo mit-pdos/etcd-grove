@@ -279,6 +279,14 @@ The size facts are discharged inside each closed theorem; no closed theorem's st
   cachekv's and linkv3p's Mains prove it from `GenAll`'s `GenKv`.
 - `linkv3p.client_Put_km` and `authkv.client_Put_on` take their put's `opSizeOk`; authkv's `SetUp`
   proves it of its keys (`setupKeys`, by `decide`) and the admin calls' `strsSizeOk`.
+- authkv after `lean`'s Main (2026-10-31, the merge `7e4b39d3a1`): `ClientOn`'s other wrappers
+  (`client_Put_onG`, `client_Get_on`, `client_Delete_on`) and `WorkCalls`' `work_put`,
+  `work_delete`, `work_get`, `work_commit` take their request's `opSizeOk`/`txnSizeOk`, which
+  `Work` proves (`keyOfK_principal_le`: a principal's key `x/who/n` within `2 ^ 20`;
+  `akPut_sizeOk`, `akDelete_sizeOk`, `akRange_sizeOk`, `akPrefix_sizeOk`; `t1M_size`..`t3M_size`
+  by `txnSizeOk_of_bounds`); `newUserClient.spec` takes `strsSizeOk [name, pw]` (`New`'s
+  credentialed case), which `Main` proves of its literals; `Main`'s last put its literal's.
+  `MainServe` takes `watchLaws_srv` from the member's `srvKVFacts` (keylen). `Main.spec` unchanged.
 - putget, putget3, putgetc: their literals; cachekv: its prefix's length (`New`).
 - linkvtxn: `GenIn` gains `minBytesLe inMax` of the decoded input (`inMax = 2 ^ 20`: every key and
   value, a comparison's key and value too), which `genFrom` proves; `callGet`, `callPut`,

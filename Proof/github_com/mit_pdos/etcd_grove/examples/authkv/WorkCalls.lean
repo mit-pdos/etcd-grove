@@ -296,6 +296,48 @@ theorem t3M_ok (c : CmpModel) (k1 k2 v : GoString) (hc : auth.reqShape c.key c.r
   · simp [t3M, txnWireOf, opWire, txn.txnPlain, txn.opsPlain, txn.opPlain]
   · simpa [t3M, txnWireOf, opWire, txnNoZeroEnd, txnOpsNoZeroEnd, txnOpNoZeroEnd] using hc0
 
+/-- **T1's request fits a gRPC message** (its key and value within `2 ^ 20`). -/
+theorem t1M_size (k v : GoString) (hk : k.length ≤ 2 ^ 20) (hv : v.length ≤ 2 ^ 20) :
+    txnSizeOk (txnWireOf (t1M k v)) := by
+  refine txnSizeOk_of_bounds (N := 2 ^ 20) (M := 3) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+  · intro c hc; simp [t1M, txnWireOf] at hc
+  · intro o ho
+    simp [t1M, txnWireOf, opWire] at ho
+    rcases ho with rfl | rfl
+    · (simp only [TxnOp.bytesLe]; exact ⟨hk, hv⟩)
+    · simp [TxnOp.bytesLe, rangeWireOf, txn.rangeOpOf, opGetModel, opFold, OpFull.getInit,
+        OpFull.newOp, OpModel.zero, withRangeM]
+  · intro o ho; simp [t1M, txnWireOf] at ho
+  · simp [TxnModel.nodes, t1M, txnWireOf, opWire, TxnOp.nodes]
+
+/-- **T2's request fits a gRPC message** (its keys and value within `2 ^ 20`). -/
+theorem t2M_size (k1 k2 v : GoString) (hk1 : k1.length ≤ 2 ^ 20) (hk2 : k2.length ≤ 2 ^ 20)
+    (hv : v.length ≤ 2 ^ 20) : txnSizeOk (txnWireOf (t2M k1 k2 v)) := by
+  refine txnSizeOk_of_bounds (N := 2 ^ 20) (M := 3) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+  · intro c hc; simp [t2M, txnWireOf] at hc
+  · intro o ho
+    simp [t2M, txnWireOf, opWire] at ho
+    rcases ho with rfl | rfl
+    · (simp only [TxnOp.bytesLe]; exact ⟨hk1, hv⟩)
+    · (simp only [TxnOp.bytesLe]; exact ⟨hk2, hv⟩)
+  · intro o ho; simp [t2M, txnWireOf] at ho
+  · simp [TxnModel.nodes, t2M, txnWireOf, opWire, TxnOp.nodes]
+
+/-- **T3's request fits a gRPC message** (its comparison's bytes, keys and value within
+`2 ^ 20`). -/
+theorem t3M_size (c : CmpModel) (k1 k2 v : GoString) (hc : c.bytesLe (2 ^ 20))
+    (hk1 : k1.length ≤ 2 ^ 20) (hk2 : k2.length ≤ 2 ^ 20) (hv : v.length ≤ 2 ^ 20) :
+    txnSizeOk (txnWireOf (t3M c k1 k2 v)) := by
+  refine txnSizeOk_of_bounds (N := 2 ^ 20) (M := 3) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+  · intro c' hc'; simp [t3M, txnWireOf] at hc'; subst hc'; exact hc
+  · intro o ho
+    simp [t3M, txnWireOf, opWire] at ho
+    subst ho; (simp only [TxnOp.bytesLe]; exact ⟨hk1, hv⟩)
+  · intro o ho
+    simp [t3M, txnWireOf, opWire] at ho
+    subst ho; (simp only [TxnOp.bytesLe]; exact ⟨hk2, hv⟩)
+  · simp [TxnModel.nodes, t3M, txnWireOf, opWire, TxnOp.nodes]
+
 /-- No events after the state's revision. -/
 theorem revEvents_after (σ : KVState) (r : Nat) (hr : σ.rev < r) : σ.revEvents r = [] := by
   unfold KVState.revEvents
@@ -593,7 +635,7 @@ theorem putReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : O
   iintro H
   iunfold putReplied at H
   icases H with ⟨%_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
-  ipureintro; exact HP
+  ipureintro; exact HP.2
 
 /-- A delete's reply holds its update's result. -/
 theorem deleteReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
@@ -602,7 +644,7 @@ theorem deleteReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o 
   iintro H
   iunfold deleteReplied at H
   icases H with ⟨%_, %_, %_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
-  ipureintro; exact HP
+  ipureintro; exact HP.2
 
 /-- **What every call of `Work`'s holds** (persistent): the client's `KV` field over `conn`, whose
 attempts carry `who`'s tokens, the member's KV methods with auth on, the TLS refutation, the
@@ -628,7 +670,8 @@ theorem work_put (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (k v : GoString) (hγa : E.authMode = .on γa)
     (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
-    (hop : akOpGranted who (.put (putKeyOp k v)) → opHistOk (.put (putKeyOp k v))) :
+    (hop : akOpGranted who (.put (putKeyOp k v)) → opHistOk (.put (putKeyOp k v)))
+    (hsz : opSizeOk (opPutModel k v [])) :
     {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #v)) (Val #slice.nil))
@@ -642,7 +685,7 @@ theorem work_put (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   · iframe #
   iunfold akKVOn at Hkv
   icases Hkv with ⟨#Hput, -, -, -⟩
-  wp_apply (client_Put_onG cl api conn _ s E ρ cid mid ci cd k v slice.nil _ []) $$ []
+  wp_apply (client_Put_onG cl api conn _ s E ρ cid mid ci cd k v slice.nil _ [] hsz) $$ []
     as %resp %err Hout
   · iframe #
   iapply HΦ
@@ -657,7 +700,8 @@ theorem work_delete (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
     (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
     (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) →
-      opHistOk (.deleteRange (txn.deleteOpOf k [] false))) :
+      opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
+    (hsz : opSizeOk (opDeleteModel k [])) :
     {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #slice.nil))
@@ -671,7 +715,7 @@ theorem work_delete (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
   · iframe #
   iunfold akKVOn at Hkv
   icases Hkv with ⟨-, -, #Hdel, -⟩
-  wp_apply (client_Delete_on cl api conn _ s E ρ cid mid ci cd k slice.nil _ [] hk) $$ []
+  wp_apply (client_Delete_on cl api conn _ s E ρ cid mid ci cd k slice.nil _ [] hk hsz) $$ []
     as %resp %err Hout
   · iframe #
   iapply HΦ
@@ -689,7 +733,7 @@ theorem work_get (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     (gs : List (OpFull → OpFull)) (hγa : E.authMode = .on γa)
     (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
     (hg : ¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1)
-    (hs : (opGetModel key gs).base.sortSet = false) :
+    (hs : (opGetModel key gs).base.sortSet = false) (hsz : opSizeOk (opGetModel key gs)) :
     {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
         optsAt sl gs }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -723,7 +767,7 @@ theorem work_get (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   ihave Hres := optsAt_res sl gs iprop(True) $$ Hopts
   iapply wp_fupd
   wp_apply (client_Get_on cl api conn _ s E ρ.rd cid mid (W64 0) n ci cd key sl gs iprop(True)
-      (fun _ => iprop(True)) []) $$ [Hres] as %resp %err Hout
+      (fun _ => iprop(True)) [] hsz) $$ [Hres] as %resp %err Hout
   · iframe #
     isplitl []
     · itrivial
@@ -742,7 +786,7 @@ theorem work_get (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     imodintro
     iapply HΦ
     iunfold rangeReplyOk at Hok
-    icases Hok with ⟨%log, -, -, %Hl, -⟩
+    icases Hok with ⟨%log, -, -, -, %Hl, -⟩
     iright
     isplitl []
     · ipureintro; exact Herr
@@ -764,7 +808,7 @@ theorem txnReplied_Q (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mv
   rw [hro]
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases H with ⟨%_, %_, %_, %_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
-  ipureintro; exact HP
+  ipureintro; exact HP.2
 
 /-- **A writing transaction's reply, read as itself** (no range end `[0]`, `irrNoZeroEnd_txn`): its
 update's result, and its responses those of its branch run on some state. -/
@@ -783,7 +827,7 @@ theorem txnReplied_facts (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F 
   have ht : t' = t := hzt (irrNoZeroEnd_txn tw t htw hz)
   subst ht
   ipureintro
-  exact ⟨HP, _, _, skip, hsucc, hrel⟩
+  exact ⟨HP.2, _, _, skip, hsucc, hrel⟩
 
 /-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
 permission cache decides): a reply with no error was granted to `who` (`hop`: a granted
@@ -793,6 +837,7 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
     (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
+    (hsz : txnSizeOk (txnWireOf b.model))
     (hsh : ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw))
     (hro : txn.txnReadonly (txnWireOf b.model) = false)
     (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
@@ -828,7 +873,7 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci cd b
-      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] hp hin
+      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] hp hin hsz
       (fun _ => hsh)) $$ [Hobj] as %resp %err Hout
   · iframe #
     iframe Hobj

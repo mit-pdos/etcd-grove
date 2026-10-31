@@ -88,7 +88,8 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
 update (`akHist_writeAu`) sees the grant. -/
 theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
@@ -109,7 +110,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F) $$ [] as %resp %err Hout
+  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -127,7 +128,8 @@ member with auth on: `client_range_on` through the `*Client` method. -/
 theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
@@ -152,7 +154,7 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_range_on api conn addr s E γr cid mid c n ci cd key sl gs R Q F)
+  wp_apply (client_range_on api conn addr s E γr cid mid c n ci cd key sl gs R Q F hsz)
     $$ [Hopts HR Hsn] as %resp %err Hout
   · iframe #
     iframe Hopts HR Hsn
@@ -165,7 +167,8 @@ auth on, the update persistent and told the delete's grant: `client_delete_on` t
 `*Client` method. -/
 theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ []) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
+    (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
@@ -187,7 +190,7 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_on api conn addr s E ρ cid mid ci cd key sl Q F hk) $$ []
+  wp_apply (client_delete_on api conn addr s E ρ cid mid ci cd key sl Q F hk hsz) $$ []
     as %resp %err Hout
   · iframe #
   iapply HΦ

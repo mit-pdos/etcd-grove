@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 
 theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     newUserClient.spec (GF := GF) (hG := hG) := by
-  intro name pw lg V P Hlg Htb
+  intro name pw lg V P Hlg Htb Hsz
   wp_start as ⟨#Hce, #Hreg⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -62,7 +62,7 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
     · iunfold clientAuthPre
       iright
       iframe #
-      ipureintro; exact Htb
+      ipureintro; exact ⟨Htb, Hsz⟩
     ipureintro; omega
   iapply HΦ
   iexact Hcl
