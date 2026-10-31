@@ -194,6 +194,11 @@ theorem lease.lessor.Revoke.wp_proof
     wp_apply (hSort ksl ks) $$ [$Hksl] as %ks' ⟨Hksl, %Hperm, %Hsorted⟩
     · ipureintro; exact hkslen
     have hnd' : ks'.Nodup := (List.Perm.nodup_iff Hperm).1 Hks.2
+    -- (R1) the sorted keys are the revocation's deletions
+    have hD : mvcc.leaseDels (mvcc.stateAfter log) id = ks'.map mvcc.Change.del := by
+      rw [mvcc.leaseDelKeys_eq (mvcc.stateAfter_sorted log) id ks' hnd'
+        (fun k => (Hperm.mem_iff.symm).trans (Hks.1 k)) Hsorted]
+      rfl
     -- the write transaction, opened: its batch transaction's wrapper, the inner transaction
     iunfold mvcc.isWatchTxnWrite at Htx
     iNamed Htx
@@ -408,8 +413,8 @@ theorem lease.lessor.Revoke.wp_proof
       -- `txn.End()`: the deletes committed (the watchers notified), the batch lock's invariant
       -- back from the caller's update
       imod Hupd $$ HQ with ⟨HP, HPost⟩
-      ihave #Hcn := Hcok $$ %(ks'.map mvcc.Change.del) %(by
-        intro c hc; obtain ⟨k, -, rfl⟩ := List.mem_map.1 hc; rfl)
+      ihave #Hcn : mvcc.certOkNext γw.st log (ks'.map mvcc.Change.del) $$ []
+      · rw [← hD]; iexact Hcok
       icases (mvcc.hookIs_split γw.st P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩
       ihave Hhook : mvcc.hookIs γw.st P f $$ [Hfrag]
       · iapply (mvcc.hookIs_split γw.st P f).2; iframe HhookOk Hfrag
@@ -469,10 +474,7 @@ theorem lease.lessor.Revoke.wp_proof
       iright
       isplitr
       · ipureintro; exact ⟨hidL, rfl⟩
-      iexists ks'
-      isplitr
-      · ipureintro
-        refine ⟨hnd', fun k => (Hperm.mem_iff.symm).trans (Hks.1 k), Hsorted⟩
+      rw [hD]
       iframe Hww HPost Hrb
       rw [txn.stateAfter_commitLog]
       isplitl [Hfr Him4 HI4 Hcm Ho HSo]

@@ -507,6 +507,18 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## LeaseRevoke through the apply chain (2026-10-31, branch `lease-revoke`; Draft reviewed, awaiting Freeze)
+
+`notes/lease-revoke-plan.md`. Scope: the apply chain (the server's `plainCover`, rest model and
+entry point stay out, L3c/L4). Done: `lease.lessor.Revoke.spec` restated at its actual deletions
+(`mvcc.leaseDels`, re-proved; `notes/decisions.md`); the apply-side statements in
+`apply/LeaseRevokeDraft.lean` (the exact revocation, the Revoke clause over the rest resource `RO`
+and the range deleter `rdAt`, `chain_revoke`), probes in `apply/LeaseRevokeProbe.lean`; two
+independent reviews (`notes/spec-review/lease-revoke-draft{,-r2}.md`; no blocker in the second);
+etcd's revoke tests pass at the pin. Found: `lease.lessor.Recover`'s axiom is false about `le.rd`
+(Go stores the new deleter, the model keeps the old one; a Go test shows `Revoke` calls `Recover`'s;
+`notes/audit.md`), the fix deferred to L3c (the user's choice: the range deleter a premise).
+
 ## The lease rows' key checks, Part A: the apply layer (2026-10-31, branch `lease-keys`; frozen at `97c2e6d92d`, the user's approval)
 
 `notes/lease-keys-plan.md` (spec-first; the user's scope: A then B, the lessor's item map, lower

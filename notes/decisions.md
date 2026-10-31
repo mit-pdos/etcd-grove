@@ -27819,3 +27819,21 @@ ahead". For the collaborator to review (the snapshot track's draft, switched her
   ErrNoSpace)` is false (`applyResultIs_notNoSpace_M`).
 - **Still deferred**: `kvApplied`'s `x.crev = crevOf γk A` (no consumer until the restore's #8;
   with (a) the installed state is at `-1` on a plain log anyway).
+
+## `lessor.Revoke` at its actual deletions (2026-10-31 · accepted, the user's approval of R1 · `notes/lease-revoke-plan.md`)
+
+**Context.** `lease.lessor.Revoke.spec` (proved, unit T3) took the certificates of *any* commit of
+deletions (`□ ∀ pend, ⌜all deletes⌝ -∗ certOkNext γ log pend`) and returned some sorted `ks` with
+the item map's keys of the lease. The apply chain certifies only the log its outcome model names
+(`certPre`); with the revocation's outcome exact (the lease-revoke plan's D1), nothing supplies the
+`∀`, and at the server it is false (the raft log certifies one log). The independent review's
+D3-1 (`notes/spec-review/lease-revoke-draft.md`).
+
+**Decision.** The deletions are named: `mvcc.leaseDels s id` (`mvcc/LeaseItems.lean`: the keys of
+`s` with lease `id`, none for `0`, in key order; `leaseDelKeys_mem`, `leaseDels_mem` its members).
+The premise is `□ certOkNext γ log (leaseDels (stateAfter log) id)`; the live case's post is at
+`commitLog log (leaseDels …)`, no `∃ ks`. The proof identifies the sorted item set with it
+(`leaseDelKeys_eq`: two strictly increasing lists with the same members are equal).
+
+**Why.** A weaker premise (one certificate) and a determined post: both stronger for every caller.
+The other `lessor.Revoke` (the client's, `Spec/go_etcd_io/etcd/client/v3/`) is a different function.
