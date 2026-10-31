@@ -48,7 +48,10 @@ selection; for a `DeleteRange`, the application of the delete the proposed data 
 The results:
 * **`etcd_kv_served`** (the server side): the gRPC server at `addr` built with etcd's chain of
   interceptors and the KV service registered on the quota wrapper (`grpcServerAt`), that hands
-  the runtime `N` run slots, registers etcd's three specs at `addr` (`isGrpcRpc`).
+  the runtime `N` run slots, registers etcd's three specs at `addr` (`isGrpcRpc`). Like every
+  result taking a server token (`grpcServerAt`, `grpcStreamServerAt`), conditional on the workload
+  premise `grpcRepliesFit` through it (made only by `grpc.start`, which takes the premise;
+  2026-10-31, `notes/reply-size.md`); `etcd_kv_started` takes it.
 * **`client_put_end_to_end`**: `kv.Put(ctx, key, val)` with no options on a connection to `addr`
   whose `Put` is registered with `etcdPutSpec`: `nil` and a reply holding a message `m`
   (`putRespMsg`) with `putReplied` for the put `key ↦ val` (`putReplyOk` and the revision's
@@ -2618,12 +2621,13 @@ theorem kvServerAt_of_is (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) :
 wrapper `q` over `p`, the interceptors' contracts) and a listener at `addr` become, in a ghost
 step, the right to serve `gs` on `lis`, the stream registrations at `addr`, and etcd's specs of
 `Put`, `Range`, `DeleteRange` and `Txn` registered at `addr` (`isGrpcRpc`), given the server's
-request-path premises (`etcd_kv_served`'s). -/
+request-path premises (`etcd_kv_served`'s), under the workload premise `grpcRepliesFit`
+(`grpc.start`'s, 2026-10-31). -/
 theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
     (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
     (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N : Nat)
-    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) :
+    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -2642,7 +2646,7 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots⟩
-  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
+  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
   · iframe
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk

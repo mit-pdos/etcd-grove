@@ -64,7 +64,7 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn
-    Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
+    Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown⟩
   -- the premises in the shared start's form
@@ -197,7 +197,7 @@ theorem startMember.wp_proof
     [Hgsn Hclis]
   · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
-      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
+      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1 Hrf)
     $$ [Hgsn Hclis Hslots] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn⟩
   · iframe Hgsn Hclis Hslots
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu

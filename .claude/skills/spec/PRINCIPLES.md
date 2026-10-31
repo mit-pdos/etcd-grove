@@ -86,6 +86,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, Review)
+- **A size argument from fresh copies checks every path for aliasing**: an encoding counts each
+  reference, a heap counts each allocation; one fast path that reuses a buffer (etcd's keys-only
+  ranges reuse the index's key slices) turns "Go runs out of memory first" into a reachable panic.
+  (`reply-size.md`, critique 2)
 - **One spec, a gated row, not two specs**: a stronger variant that holds only under a condition the
   caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
   the condition is there only because a trust-boundary axiom is too weak to give the row
@@ -106,6 +110,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A workload premise about a resource's later operations goes on the resource's only producer**,
+  carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
+  quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'
+  statements stay, and the premise is taken where a proof reaches the producer, not beside a sibling
+  premise wherever that one sits. No law extracts the premise back from the resource; the docstrings
+  of the results consuming it say they are conditional on it. (`reply-size.md`)
 - **A contract between packages states the receiver's need, not the supplier's mechanism**: the
   server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
   implies it; the supplier proves the law from its mechanism to the need. The need is weaker to

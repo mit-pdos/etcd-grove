@@ -932,8 +932,9 @@ end defs
 
 /-- **The gRPC server listening at `addr`, built with the stream interceptor chain `ics`, its
 services' streaming methods `sregs` registered** (exclusive; an axiomatized predicate, the stream
-analogue of `grpcServerAt`, which keeps its arity): `ics` the stream interceptors `grpc.NewServer`'s
-options chain (`StreamInterceptor`'s, then `ChainStreamInterceptor`'s, in order: etcd's
+analogue of `grpcServerAt`, which keeps its arity). Exists only in a run satisfying
+`grpcRepliesFit`: made only by `grpc.start`, which takes it. `ics` the stream interceptors
+`grpc.NewServer`'s options chain (`StreamInterceptor`'s, then `ChainStreamInterceptor`'s, in order: etcd's
 `v3rpc.Server` installs grpc-prometheus's and `newStreamInterceptor`), `sregs` the `(full method
 name, StreamDesc.Handler, service value)` of every stream of the `ServiceDesc`s registered with
 `RegisterService`. Established by the server's unverified construction: a premise of the
@@ -1033,7 +1034,12 @@ resources are free (2026-10-18, the axiom audit; until then a run kept its copy,
 started at most `n` streams in all while Go starts every one). The runtime starts a stream when
 the pool holds a copy, so the model bounds the runs holding a slot at once (`n`: etcd's watch
 runs hold reader slots of its locks, which Go's `RWMutex` bounds at about `2 ^ 30` concurrent
-readers). -/
+readers).
+
+Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
+codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
+`grpcStreamServerAt`, `grpcServeTok`) comes only from `grpc.start`, under `grpcRepliesFit`, so no
+reply exceeds it. A reply in `(2 ^ 31 - 1, 2 ^ 48]` fails with `ResourceExhausted`. -/
 axiom grpc.serveStream (addr : GoString) (ics : List GoFunc)
     (sregs : List (GoString × val × GoInterface)) (ms : List (GrpcStreamMethod GF)) (S : IProp GF)
     (n : Nat) :
