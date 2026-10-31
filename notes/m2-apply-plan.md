@@ -1,8 +1,8 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
-**the Probe**: item 18 and G2 done ("The Probe", the last section); next the commit step and
-S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+**the Probe**: item 18, G2 and the commit step's compaction arm done ("The Probe", the last
+section); next S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -12,9 +12,9 @@ S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
 2. *Approved* (2026-10-31, the user: "approve the items; start the Probe with item 18").
-3. *The Probe*: item 18 done; G2 done by the user's (a') (`store.Rev` returns `certOk`, `srvRevLb`
-   carries it, `cmpReach_of_srvRevLb`; "The Probe", below). **Next: the commit step (G4: `kv_prop_au` over
-   `kvInvD`/`reqPropOkD` with `kvCertInv`), S3-3's transfer lemma (item 8), G1.
+3. *The Probe*: item 18, G2 (the user's (a')) and the commit step's compaction arm
+   (`kv_prop_au_cmp`, `M2ApplyProbe.lean`) done ("The Probe", below). **Next: S3-3's transfer
+   lemma** (item 8), then G1.
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -612,3 +612,18 @@ already: `cmpReach` could be `srvRevLb`'s form directly. **The user approved (a'
 unchanged), `srvRevLb`'s definition with `certOk` (`srvRevLb_mono`), `EtcdServer.Compact`'s proof's
 pattern; the law `cmpReach_of_srvRevLb` (server Draft, proved: `kvCertInv γ γk -∗ srvRevLb γs (sint.Z r)
 ={E}=∗ cmpReach γk r`, the free certificate excluded as in `kv_cert_read`). G2 closed.
+
+**The commit step (G4), the compaction arm: done (2026-10-31).** `etcdserver/M2ApplyProbe.lean`
+(imported by nothing, as the Drafts; no `axiom`/`sorry`): `kv_prop_au_cmp` (a compaction proposal's
+`srvPropAu1` over `kvInvD γ γk cmp`, from `reqPropOkD`'s compaction form, `kvCertInv` and
+`srvRaftLogInv`, at a mask with `kvcN` and `srvRaftN`), by the route of item 6: the leading step
+`cmpReach_reqLb` (at the caller's mask, `kvCertInv` opened: a start revision gives the empty
+prefix, the start log having two revisions; a map element gives a committed raft log `A`, turned
+into a lower bound `L₀` of the requested entries by `srvReqLogLb_of_rlogLb`, `kvModel_eqv` relating
+their models); inside the update `srvReqLogLb_prefix` puts `L₀` below the invariant's log, and
+`kvRaftOf_prefix` gives the claim. Helpers: `cmpLogOk_snoc`, `compactPropOkD_nonwrite` (a
+compaction leaves the model: `kvModelSt_snoc_nonwrite`), `kvWorkD_snoc`; the Draft gained
+`kvWorkD_timeless`. As predicted, no surprise. Left for the switch (mechanical, not the risk):
+today's three arms re-run over `kvInvD` (a plain entry keeps `cmpLogOk` by `cmpLogOk_snoc` with a
+vacuous claim), assembled as `kv_prop_au` over `reqPropOk` in place, and the auth-on twin
+`kv_prop_au_M`. Next in the Probe: S3-3's transfer lemma (item 8).

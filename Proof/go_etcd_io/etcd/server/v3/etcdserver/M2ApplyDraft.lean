@@ -380,6 +380,10 @@ instance kvWorkD_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel
     Persistent (kvWorkD (GF := GF) cfg γk L) := by
   unfold kvWorkD; infer_instance
 
+instance kvWorkD_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
+    Timeless (kvWorkD (GF := GF) cfg γk L) := by
+  unfold kvWorkD; infer_instance
+
 /-- **Draft of `kvInv`** (`InvRequest.lean`), in the cluster's compaction mode `cmp`: today's, its
 log plain in the mode (`plainLogM`), its compactions' claims (`cmpLogOk`), its work by the mode
 (`kvWork` under item 1, `kvWorkD`). -/
