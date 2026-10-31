@@ -534,6 +534,15 @@ back for `onStop`'s `Close`; `isRNWal`'s `SaveSnap` over a well-formed snapshot 
 exported results take one disk premise, `storage.diskOk` (`dbOpensOk`, `snapOpensOk`, `walSaveOk`,
 `walCloseOk`) in place of `dbOpensOk`. The trust base is unchanged (769 axioms, 14 `sorry`s).
 
+**A batch's raft term made real** (2026-10-31, branch `snap-rt`): `rnRtOk γ t n`, `True` since
+2026-10-27, is again `t = 0` or `∃ c, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜n ≤ uint.Z c⌝`
+(`InvRaftNode.lean`), proved where `raftNode.start` builds both payloads (`rn_rtOk_busyN`,
+`rn_rtOk_busyS`, over `rn_rtOk_st`: the busy driver after the `Ready`, through the node API's
+`nodeDriver_hardStateCommitted`, at `prevHardSt` `p'`; the loop invariant's `uint.Z rt = 0 ∨ rt =
+p.Term'` was already the tie, unchanged). Rests on `nodeDriver_hardStateCommitted`, which lands
+with branch `snap-sorries` (not committed on `snap-rt`: it does not build alone). `applyAll`, its
+consumer, untouched.
+
 ## A depth premise for `proto.MarshalIRR` (2026-10-31, branch `irr-depth`)
 
 The repair of `proto.MarshalIRR.wp_proof`, false of a request deeper than protobuf-go's recursion

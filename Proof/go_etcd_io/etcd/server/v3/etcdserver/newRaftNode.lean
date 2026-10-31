@@ -33,7 +33,7 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
     (_hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
     (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk RNNames.srv
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv
   rw [h, hγs, hpre, hn, hnl, hid]
 
 set_option maxHeartbeats 0 in
