@@ -132,10 +132,80 @@ theorem txnModelIn_txnOf (cs : List (linkv.MCmp GoString GoString))
     refine ⟨rfl, ?_⟩
     simp [txn.cutEarly, OpFull.effSortOrder, txn.rangeOpOf, op_simps]
 
+/-! ## The inputs' sizes (2026-10-31, `notes/invoke-size.md`, pass 4) -/
+
+/-- The longest key or value of an input `Gen` returns (its strings are the workload's keys and
+one-byte values): every request it makes fits a gRPC message. -/
+abbrev inMax : Nat := 2 ^ 20
+
+/-- A model operation's strings at most `N` bytes. -/
+def mopBytesLe (N : Nat) : linkv.MOp GoString GoString → Prop
+  | .get k => k.length ≤ N
+  | .put k v => k.length ≤ N ∧ v.length ≤ N
+  | .del k => k.length ≤ N
+
+/-- A model comparison's strings at most `N` bytes. -/
+def mcmpBytesLe (N : Nat) : linkv.MCmp GoString GoString → Prop
+  | .val k v => k.length ≤ N ∧ v.length ≤ N
+  | .ver k _ => k.length ≤ N
+  | .mod k _ => k.length ≤ N
+
+/-- A model input's strings at most `N` bytes. -/
+def minBytesLe (N : Nat) : linkv.MIn GoString GoString → Prop
+  | .get k => k.length ≤ N
+  | .list => True
+  | .put k v => k.length ≤ N ∧ v.length ≤ N
+  | .del k => k.length ≤ N
+  | .txn cs t e => (∀ c ∈ cs, mcmpBytesLe N c) ∧ ∀ o ∈ t ++ e, mopBytesLe N o
+
 /-- **An input `Gen` may return** (`ValidIn`), its transactions not empty: a transaction with no
-operations is served without a linearizable read (`issues/etcd-txn-empty-serializable.md`). -/
+operations is served without a linearizable read (`issues/etcd-txn-empty-serializable.md`); its
+strings at most `inMax` bytes (its requests fit a gRPC message). -/
 def GenIn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) : Prop :=
-  ValidIn x ∧ ∀ cs t e, decIn x = some (.txn cs t e) → t ++ e ≠ []
+  ValidIn x ∧ (∀ cs t e, decIn x = some (.txn cs t e) → t ++ e ≠ []) ∧
+    ∀ i, decIn x = some i → minBytesLe inMax i
+
+theorem nodes_tOpOf : ∀ l : List (linkv.MOp GoString GoString),
+    (l.map fun o => (linkv.tOpOf o).nodes).sum = l.length
+  | [] => rfl
+  | o :: l => by
+    rw [List.map_cons, List.sum_cons, nodes_tOpOf l, List.length_cons]
+    cases o <;> simp [linkv.tOpOf, TxnOp.nodes] <;> omega
+
+/-- **A transaction input's request fits**: at most five comparisons and operations, its strings
+at most `inMax` bytes. -/
+theorem txnSizeOk_txnOf (cs : List (linkv.MCmp GoString GoString))
+    (t e : List (linkv.MOp GoString GoString)) (hl : cs.length + t.length + e.length ≤ 5)
+    (hb : minBytesLe inMax (.txn cs t e)) : txnSizeOk (linkv.txnOf cs t e) := by
+  obtain ⟨hc, ho⟩ := hb
+  refine txnSizeOk_of_bounds (N := inMax) (M := 5) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+  · intro c hc'
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 hc'
+    have := hc m hm
+    cases m <;> simp_all [mcmpBytesLe, linkv.cmpOf, CmpModel.bytesLe]
+  · intro o ho'
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ho'
+    have := ho m (List.mem_append_left _ hm)
+    cases m <;> simp_all [mopBytesLe, linkv.tOpOf, TxnOp.bytesLe, txn.rangeOpOf, txn.deleteOpOf,
+      op_simps]
+  · intro o ho'
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ho'
+    have := ho m (List.mem_append_right _ hm)
+    cases m <;> simp_all [mopBytesLe, linkv.tOpOf, TxnOp.bytesLe, txn.rangeOpOf, txn.deleteOpOf,
+      op_simps]
+  · simp only [TxnModel.nodes, linkv.txnOf, List.length_map, List.map_map]
+    have h1 := nodes_tOpOf t
+    have h2 := nodes_tOpOf e
+    simp only [Function.comp_def] at h1 h2 ⊢
+    omega
+
+theorem cmpsOfL_length (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) :
+    (cmpsOfL x).length ≤ 1 := by
+  unfold cmpsOfL; split <;> simp
+
+theorem elseOfL_length1 (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) :
+    (elseOfL x).length ≤ 1 := by
+  unfold elseOfL; split <;> simp
 
 theorem txnSerializable_txnOf (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hne : t ++ e ≠ []) :
@@ -179,6 +249,15 @@ theorem decIn_txn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)
   split at h
   · rename_i hk; exact hk.2.1
   · cases h
+
+/-- A transaction input has at most five comparisons and operations. -/
+theorem decIn_txn_length (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)
+    (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
+    (h : decIn x = some (.txn cs t e)) : cs.length + t.length + e.length ≤ 5 := by
+  obtain ⟨-, hc, ht, he⟩ := decIn_txn x cs t e h
+  rw [decAll_length _ _ _ hc, decAll_length _ _ _ ht, decAll_length _ _ _ he]
+  have := cmpsOfL_length x; have := thenOfL_length x; have := elseOfL_length1 x
+  omega
 
 theorem txnOf_branch' (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (b : Bool) :
