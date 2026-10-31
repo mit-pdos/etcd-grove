@@ -248,7 +248,7 @@ include h_authkv_startServer
 
 theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Main.wp_proof zap.wp_NewNop h_authkv_startServer common.wp_ServeOn common.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground
+  EtcdGrove.authkv.Main.wp_proof zap.wp_NewNop h_authkv_startServer common.wp_ServeOn common.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground common.wp_Collect client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev
 
 end links_pending
 
