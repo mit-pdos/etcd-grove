@@ -170,7 +170,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     rw [Hhvid]
     obtain ⟨Hdec, Hwire, Hbsne, Hkeys⟩ := Hbsdec
     have Hk : apply.irrKeysLe etcdKeyMax rq' := by
-      refine Hkeys.mono ?_
+      refine Hkeys.keys.mono ?_
       unfold v3rpc.etcdMaxRequestBytesOk v3rpc.etcdMaxRecvMsgSize v3rpc.grpcOverheadBytes at Hmrbv
       unfold etcdKeyMax
       word
