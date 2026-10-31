@@ -3,8 +3,8 @@
 - **Finding**: `issues/grpc-codec-alloc-before-size-check.md`
 - **Target**: grpc/grpc-go, `master` (not one of the skill's etcd-io targets: drafted by hand in the skill's shape,
   with grpc-go's own rules where they differ, below)
-- **Branch**: `fix/grpc-codec-alloc-before-size-check` in `~/etcd-fixes/grpc-codec-alloc-before-size-check`
-  (worktree of `~/grpc-go`, cloned over HTTPS, remote `upstream` grpc/grpc-go; no fork, no `origin`), two signed-off
+- **Branch**: `fix/grpc-codec-alloc-before-size-check` in `/shared/etcd-fixes/grpc-codec-alloc-before-size-check`
+  (worktree of `/shared/grpc-go`, cloned over HTTPS, remote `upstream` grpc/grpc-go; no fork, no `origin`), two signed-off
   commits: 87decb761 (`encoding/proto: test marshaling a message too large to allocate`) adds the tests, which panic
   there; b3a700339 (`encoding/proto: check the message size before allocating`) is the fix.
 - **Base**: upstream `master` bc90736a6fadc41582f9a23fb955bb66088f1bb8 (2026-10-29, `v1.86.0-dev-54`). The code is
@@ -123,7 +123,7 @@ is allocated near 2^48.
 ## check.py
 
 `PATH=/usr/local/go/bin:$PATH python3 -I .claude/skills/upstream-report/check.py grpc-codec-alloc-before-size-check
---worktree ~/etcd-fixes/grpc-codec-alloc-before-size-check --base bc90736a6fadc41582f9a23fb955bb66088f1bb8 --fork
+--worktree /shared/etcd-fixes/grpc-codec-alloc-before-size-check --base bc90736a6fadc41582f9a23fb955bb66088f1bb8 --fork
 NOFORK/grpc-go` (the script assumes an etcd-io target, `main` and a fork remote): two FAILs and three WARNs, each
 decided as not applying to grpc-go:
 
@@ -140,6 +140,6 @@ decided as not applying to grpc-go:
   `encoding/proto: check the message size before allocating` ("A message whose encoding was too large to allocate
   made Marshal panic; it now fails with ResourceExhausted, as encode does for messages over 4 GiB."). Author and
   sign-off Frans Kaashoek <kaashoek@mit.edu>.
-- To file: fork grpc/grpc-go, `git -C ~/grpc-go remote add origin <fork>`, then
-  `git -C ~/etcd-fixes/grpc-codec-alloc-before-size-check push origin fix/grpc-codec-alloc-before-size-check`; file
+- To file: fork grpc/grpc-go, `git -C /shared/grpc-go remote add origin <fork>`, then
+  `git -C /shared/etcd-fixes/grpc-codec-alloc-before-size-check push origin fix/grpc-codec-alloc-before-size-check`; file
   the issue (or the P4 report, above), then the PR with `#<issue>` filled in; sign the CLA when the bot asks.
