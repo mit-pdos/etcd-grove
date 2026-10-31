@@ -27864,3 +27864,21 @@ post, the compaction's supply).
 - **Callees**: `NewServer.wp_proofCompact` takes `wp_proof`'s and the compacting server's own (the
   compacting store's backend contract's `LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`,
   `UnsafePut`; the store's `Rev`; the server's `Compact`); putgetc's `MainLinked` links them by hand.
+
+## M2 item 14: `NewServer.spec` in both compaction modes, `specCompact` merged in (2026-10-31, branch `m2-specd`)
+
+The user, on `N + N`: "N + N is fine for now but later we may want to switch to one token count,
+go ahead with item 14" (Q4: merge once the compaction-on case is proved, done the same day).
+- **`NewServer.spec` is the Draft's `specD`**: the compactor off or on in revision mode at a
+  positive retention, the stand-in's mode the configuration's (`E₀.cmp = decide (retention ≠ 0)`),
+  the KV names' mode the stand-in's (`ρ.rd.kv.cmp = E₀.cmp`), `bootstrap`'s contract at
+  `N + if E₀.cmp then N else 0`; the post as before (the closer without the right, `srvKVCloserW`,
+  not the Draft's `srvKVCloserM … (-1)`: the previous entry). `NewServer.specCompact` and
+  `NewServer.wp_proofCompact` are gone; `NewServer.wp_proof` is `wp_proofG false E₀.cmp` and takes
+  the compacting server's five callees (the server's `Link.lean`, regenerated); putgetc's hand link
+  is gone (`wp_NewServer`). `specM` (auth on, the mode off) and `specG` (the general one) stay.
+- The examples' glue keeps `newServer.spec`/`newServer.specCompact` apart (the example-level
+  statements: the off examples' fixed `retention = 0`, putgetc's compacting start); both are over
+  the one `NewServer.spec` now.
+- Later (the user's): one token count for the write budget and the compaction's stock, in place of
+  `N + N`.

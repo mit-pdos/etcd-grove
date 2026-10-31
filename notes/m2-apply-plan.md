@@ -797,8 +797,8 @@ stage 5 (Q4, the auth-mode merge). **`NewServer.specCompact`: proved (2026-10-31
 closer `srvKVCloserW` (item 20 in place), the compaction's write-back stock (`srvCmpStock`, at `N`
 more tokens: `bootstrap`'s contract at `N + N` in the compaction chain), the compactor's run
 contract built in `start` from its views (`compactorRun`'s wand); `notes/decisions.md`,
-"`NewServer.specCompact` proved". Item 14 (`NewServer.specD`, Q4's merge) can now be read off
-`specG`. (Before:) **Stage 4 is done but for what waits on
+"`NewServer.specCompact` proved". **Item 14: done (2026-10-31, branch `m2-specd`)**: `NewServer.spec` in both
+modes (`notes/decisions.md`, "M2 item 14"). (Before:) **Stage 4 is done but for what waits on
 `srvEnvOkD`** (the snapshot track's, the collaborator's): `applyEntryNormal`'s compaction arm and
 `kvApplied`'s `crevOf` clause. Next: stage 5 (blocked: Q4, the auth-mode merge), or `NewServer.specD`
 (item 14) when Q4 is answered.
