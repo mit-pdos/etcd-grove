@@ -409,7 +409,7 @@ theorem raftNode.start.wp_proof
       · ipureintro; decide
       -- (D19i part 1) `raftAdvancedC`: a broadcast channel, closed after `Advance`
       -- its close carries the storage's floor past the batch (`node.Advance`'s)
-      imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗
+      imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗ storDL γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗
           srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1) ∗
           srvFrozenTerms γ.γs (γ.pre.length + 1) (L' ++ ce)) γac ac
         $$ Hacch Hacown with Hacp
@@ -675,6 +675,7 @@ theorem raftNode.start.wp_proof
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
             · imodintro; iframe Hfl Hfr Hft
+              rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
             (try wp_auto)
             wp_for_post
             iframe
@@ -727,6 +728,7 @@ theorem raftNode.start.wp_proof
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
               · imodintro; iframe Hfl Hfr Hft
+                rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
               (try wp_auto)
               wp_for_post
               iframe
@@ -783,6 +785,7 @@ theorem raftNode.start.wp_proof
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
             · imodintro; iframe Hfl Hfr Hft
+              rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
             (try wp_auto)
             wp_for_post
             iframe
@@ -829,6 +832,7 @@ theorem raftNode.start.wp_proof
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
               · imodintro; iframe Hfl Hfr Hft
+                rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
               (try wp_auto)
               wp_for_post
               iframe

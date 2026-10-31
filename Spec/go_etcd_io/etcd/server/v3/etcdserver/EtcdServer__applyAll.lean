@@ -74,6 +74,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       -- storage's floor)
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
         iprop(nodeAppliedLb ρ.raft.raft.cl nid
+          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ storDL ρ.raft.raft.cl nid
           (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
           -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
           srvFrozenRange γs (uint.nat ai + 1)
@@ -150,6 +151,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- storage's floor)
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
         iprop(nodeAppliedLb ρ.raft.raft.cl nid
+          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ storDL ρ.raft.raft.cl nid
           (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
           -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
           srvFrozenRange γs (uint.nat ai + 1)

@@ -236,6 +236,20 @@ theorem srvFrozenTerms_app (γs : MemStorNames) (lo : Nat) (L1 L2 : List EntryMo
   refine sep_mono .rfl (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
   rw [show lo + L1.length + k = lo + (k + L1.length) by omega]
 
+/-- (2026-10-31, the snapshot track: #11's S4) The committed log delivered through `L`, at the
+node: the storage contract's `DL` (`storDL`) at its length (`CreateSnapshot`'s `J.DL`). -/
+theorem rn_storDL (γ : RNNames) (L : List EntryModel) :
+    letI := srvStor (GF := GF) γ.node
+    isNode (GF := GF) γ.nl γ.node.cl srvClusterN γ.id ∗ deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv L) ⊢
+      storDL γ.node.cl γ.id (γ.pre ++ L).length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨#Hn, #Hd⟩
+  unfold storDL
+  iexists γ.nl, srvClusterN, srvLE γ.srv L
+  iframe Hn Hd
+  ipureintro
+  simp [srvLE]
+
 /-- (2026-10-30, the repair) **Every entry below `n` frozen or compacted** (persistent;
 `Compact`'s premise at any compaction index below the applied index: `ApplySnapshot` compacts
 below a snapshot). -/
@@ -1179,7 +1193,7 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     -- index past the batch (until then the storage's floor)
     rnAdvChan ap.raftAdvancedC'
       (letI := srvStor (GF := GF) γ.node
-       iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ F ++ ce).length ∗
+       iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ F ++ ce).length ∗ storDL γ.node.cl γ.id (γ.pre ++ F ++ ce).length ∗
         -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
         srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1) ∗
         -- (2026-10-31, the snapshot track: #11's S3) with their terms
@@ -1211,7 +1225,7 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     -- receive until the two-receive notify is written with the branch's proof (SNAPSHOT-SORRY)
     (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
-    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
+    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗ storDL γ.node.cl γ.id (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
       srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) ∗
     committedAtLeast E.γr sv.Metadata'.Index' ∗

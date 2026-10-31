@@ -72,7 +72,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-          iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗ storDL C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
             srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
               (uint.nat C.ai₀ + (A ++ ce).length + 1) ∗
             srvFrozenTerms C.γs (uint.nat C.ai₀ + 1) (A ++ ce))) ∗
@@ -155,6 +155,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   have e2 : uint.nat ai + 1 = uint.nat C.ai₀ + A.length + 1 := by word
   ihave #Hracc' : rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
       iprop(nodeAppliedLb C.ρ.raft.raft.cl nid
+        (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ storDL C.ρ.raft.raft.cl nid
         (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
         srvFrozenRange C.γs (uint.nat ai + 1)
           ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
@@ -275,7 +276,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
         srvLessorNil C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-          iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗ storDL C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
             srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
               (uint.nat C.ai₀ + (A ++ ce).length + 1) ∗
             srvFrozenTerms C.γs (uint.nat C.ai₀ + 1) (A ++ ce))) ∗
@@ -358,6 +359,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   have e2 : uint.nat ai + 1 = uint.nat C.ai₀ + A.length + 1 := by word
   ihave #Hracc' : rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
       iprop(nodeAppliedLb C.ρ.raft.raft.cl nid
+        (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ storDL C.ρ.raft.raft.cl nid
         (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
         srvFrozenRange C.γs (uint.nat ai + 1)
           ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
@@ -880,7 +882,7 @@ theorem EtcdServer.run.wp_proof
       have hp0 : γn.pre = [] := Hc0a.2.1
       have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
       ihave #Hrac' : rnAdvChan apv.raftAdvancedC' (letI := srvStor (GF := GF) ρ.raft.raft
-          iprop(nodeAppliedLb ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗ storDL ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗
             srvFrozenRange γn.γs (uint.nat ai₀ + A.length + 1)
               (uint.nat ai₀ + (A ++ ce).length + 1) ∗
             srvFrozenTerms γn.γs (uint.nat ai₀ + 1) (A ++ ce))) $$ []
@@ -1404,7 +1406,7 @@ theorem EtcdServer.run.wp_proofOn
       have hp0 : γn.pre = [] := Hc0a.2.1
       have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
       ihave #Hrac' : rnAdvChan apv.raftAdvancedC' (letI := srvStor (GF := GF) ρ.raft.raft
-          iprop(nodeAppliedLb ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗ storDL ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗
             srvFrozenRange γn.γs (uint.nat ai₀ + A.length + 1)
               (uint.nat ai₀ + (A ++ ce).length + 1) ∗
             srvFrozenTerms γn.γs (uint.nat ai₀ + 1) (A ++ ce))) $$ []
