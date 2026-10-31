@@ -17,6 +17,23 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Semantics: a failing byte CAS on a read-only cell (2026-10-31, the Linux file extension)
+
+- **Limitation.** `CmpXchgBytesFailS` (`Perennial/GooseLang/Lang.lean`) accepts cells with readers
+  (`BytesAt σg l bs true`). The Linux file extension's read-only mappings
+  (`GooseLang/Ext/OsFs/Impl.lean`) are byte cells born with a phantom reader, so that every store
+  is stuck. A failing CAS on such a cell is still defined in the model. On a `PROT_READ` page,
+  x86 `LOCK CMPXCHG` faults whether or not the compare succeeds, so here the model is more
+  defined than Go.
+- **Needed by.** The soundness of the extension's mappings (`notes/osfs-ext-plan.md`, "Perennial
+  prerequisite").
+- **Workaround here.** None. The extension's docstring states the gap, and a stuck probe in
+  `examples/bboltfs` records it. bbolt does no atomics on mapped memory.
+- **Proposed.** Require `BytesAt σg l bs false` in `CmpXchgBytesFailS`. Byte cells get readers only
+  from the phantom reader, so nothing else should change. This needs Perennial's
+  `/fix-semantics` and the user's sign-off.
+- **Status.** Not started.
+
 ### Slices: an empty slice literal is not nil (2026-10-29, authkv G2)
 
 - **Limitation.** `wp_slice_literal` gives an arbitrary pointer for an empty literal, so a proof
