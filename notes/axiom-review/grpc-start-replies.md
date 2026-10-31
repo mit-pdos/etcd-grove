@@ -25,7 +25,9 @@ can only be used as a hypothesis. Nothing reaches the serving facts without goin
 `grpc.start`. grpc v1.84 has no other reply-side panic that the three axioms still exclude.
 
 There is no counterexample and no new `issues/` file. Four inaccuracies in the docstring, none of
-which makes the premise false of a closed theorem (proposed wording below, not applied):
+which makes the premise false of a closed theorem. Their corrections were **applied** on this branch
+at the coordinator's request (docstrings and notes only, no statement changed; see "Applied
+wording" below):
 
 1. **The flat read-only bound leaves out the per-key encoding.** "at most that many copies of the
    stored keys" is not quite right. A keys-only `KeyValue` encodes its three revisions too.
@@ -201,7 +203,15 @@ handful of keys.
 - **Panics outside the reply path** (handlers, interceptors) are excluded by the handlers' proofs
   and the interceptors' own axioms, not by these three. They were not in scope.
 
-## Proposed docstring wording (not applied)
+## Applied wording
+
+Applied on `axiom/grpc-start-replies` (2026-10-31) in `grpcRepliesFit`'s docstring and the
+`InvGrpcServer.lean` header ("the replies to the program's own clients' calls"), and in
+`notes/reply-size.md` and `notes/audit.md`'s replies'-size row. The Adequacy headers only name the
+premise and repeat none of these claims, so they are unchanged. Checks after applying them: full
+`lake build` green (11270 jobs); `etc/tcb-report.py --check` matches the baseline (769 axioms, 17
+`sorry`s); all 43 collections `--check` pass; `etc/gen-interface.py etc/api/raft.txt --check
+--layout`: no interface moved, 0 new layout violations. As first proposed:
 
 In `grpcRepliesFit`'s docstring:
 

@@ -560,7 +560,7 @@ bound at grpc's send side").
   `grpcRepliesFit`, a premise of `grpc.start` carried by the server tokens; false of etcd under a
   client sending nested keys-only transactions (`issues/etcd-txn-keysonly-reply-alloc-panic.md`).
   `notes/reply-size.md`. The axiom review survives (`notes/axiom-review/grpc-start-replies.md`).
-  The premise's docstring has four inaccuracies, with wording proposed but not applied.
+  Its four docstring corrections are applied (docstrings only).
 
 Details, the departures from the draft and what `txn-nested` must fold: `notes/invoke-size.md`.
 
