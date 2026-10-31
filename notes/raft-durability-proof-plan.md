@@ -4,7 +4,67 @@
 (`/home/ubuntu/spec-scratch/raft-durability/candidate.md`; the `spec` skill's
 `examples/raft-durable-node-api.md`). After that, kvdurable's adequacy.
 
-**Status.** This plan, before any proof is written.
+**Status.** This plan, before any proof is written. Reviewed once (`plan-review-1.md` beside the
+surveys). Its repairs R2-R9 are adopted below. R1 and R10 await the user.
+
+## Review 1 and what it changed (2026-10-31)
+
+- **R1 (design error; an API change for the user).** Amendment 2's derivation is false. A
+  restarted node's `commitIn … σ.commit S.term` needs a commit fact at a term `≤ S.term`. A
+  committed-log lower bound does not give one: a node at term 5 may write commit 10, which only
+  the leader of term 9 committed. Weakening `t ≤ tm` breaks `campDyn` and vote requests.
+  **Proposed:**
+  - the Ready's post gives a sealed, persistent `commitAt γ id c`: the cut's `commitIn` at its
+    own term, and a `termLB`;
+  - `RestartNode`'s AU takes `commitAt γ id σ.commit` in place of the committed-log fact.
+
+  Every real client writes a commit it got from a Ready, so the change is cheap for them. One new
+  predicate.
+- **R2 (design error).** The volatile half cannot open a per-node invariant: `ownRaftGhost` has
+  no `N` and no token. And besides `vote_excl`, these look up an authority:
+  - `ownLogGhost_ack_agree`, `heartbeat_commit_le_last`, `ownLogGhost_ack_le` (with
+    `not_doomed`/`hbAck`/`hbResp`);
+  - `win`, in the dynamic mode.
+
+  **Adopted:**
+  - a permanent per-id invariant, `slotInv` at `raftN γ .@ "slot"`, holding the entered D
+    authorities' slot shares, which `ownRaftGhost` names;
+  - `nodeVacant` keeps only the exclusive pieces;
+  - `step_app_accept`, `step_heartbeat`, `step_snap_fastfwd`, `step_snap_restore` become fupds
+    (today `==∗`), and `heartbeat_commit_le_last` an fupd (today pure). Their code callers'
+    proofs change: this is not "statements kept".
+- **R3.** The leader's self-match at `win` (`LeaderMatchOk`, `plastIndex`) is a pending ack that
+  `step_commit` reads through `matchedOk`. **Adopted:** `matchedOk` exempts the self entry when
+  its term is below `s.term`. (survey-protocol §3E was wrong here.)
+- **R4.** A durable `ackAgree` for every current-term ack cannot be produced by *enter* once the
+  base passes the ack. **Adopted:** a restart lemma from Leader Completeness for the acks in
+  `(σ.commit, cE]`, in place of a durable `ackAgree`.
+- **R5.** At the code level the proof runs in the dynamic mode (`ownRaftGhostR`, 147 uses outside
+  `Protocol/`), whose `dynEnv` holds a candidate's `isCampK`, which cannot exist while its
+  campaign is pending. **Adopted:** drop that conjunct; `win` takes the campaign from the tally's
+  `voteJust` and a `slotInv` lookup.
+- **R6.** The leader-side authorities (`reWins`, `reTerms`, `reLcm`, `reRdq`) are in the volatile
+  half while a node runs, and in `nodeVacant` otherwise. The per-key `isCampK` goes in the
+  volatile body.
+- **R7.** The outbox wands range over the queued batch and the pending list (a re-granted queued
+  vote). The durable half keeps copies of the entered fragments. *Enter*'s driver carries the
+  batch's fragments to `Advance` (`pselfAck`, the self vote).
+- **R8.** `raft_restart` gives `ownDurGhost` back, because the AU returns `raftState` unchanged.
+  `raft_stop` cannot consume the client's batch token, so a generation counter in the slot makes a
+  stopped node's batch unenterable.
+- **R9.** F3 is a conjunct of `ownRaftGhost`'s body, stated in stage I: "a non-self message in the
+  outbox that depends on pending promises implies `role ≠ leader`, and at a candidate, a pending
+  campaign at `s.term`". (plan-review-1.md §R9 has the argument.)
+- **R10 (for the user).** The dynamic protocol model (`RefinementDyn`/`ResultsDyn`,
+  `raft_dyn_alloc`) has no *enter*. Under I-1, pending promises would accumulate in it forever.
+  Either:
+  - its step cuts and enters at once (kept, at a cost);
+  - or its model-level results retire, per the user's rule that model theorems are scaffolding
+    once the Go API specs reach them.
+- **Notes adopted:** `gg` starts at the attach for `storDL`; the cut batch's durable state has the
+  same full log as the in-memory one; `ownRaftGhost_intro`'s signature; masks (kvdurable's
+  namespaces disjoint from `N`); and the code proofs the lists left out (plan-review-1.md,
+  Notes).
 
 **Inputs.** Five read-only surveys of the current proof, each with file:line references
 throughout, in `/home/ubuntu/spec-scratch/raft-durability/`:
