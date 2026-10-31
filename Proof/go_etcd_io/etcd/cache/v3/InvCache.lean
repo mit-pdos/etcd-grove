@@ -1262,6 +1262,35 @@ theorem demuxWriter_inv (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert 
 
 end watchdefs
 
+/-! ## The size of the cache's requests (2026-10-30) -/
+
+/-- The cache's get of its prefix (`Get(ctx, c.prefix, WithPrefix())`) fits a gRPC message. -/
+theorem cacheGet_size {pfx : GoString} (h : pfx.length ≤ 2 ^ 28) :
+    opSizeOk (opGetModel pfx [withPrefixM]) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _)) (optsKeep_nil _ _ _)) h
+    (by decide)
+
+/-- `serverRevision`'s get (`"/"`, or the prefix, with `WithLimit(1), WithCountOnly()`). -/
+theorem cacheRev_size {pfx : GoString} (h : pfx.length ≤ 2 ^ 28) :
+    opSizeOk (opGetModel (if pfx = [] then (go!"/" : GoString) else pfx)
+      [withLimitM (W64 1), withCountOnlyM]) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 0) (V := 0)
+    (optsKeep_cons (withLimitM_keep _) (optsKeep_cons withCountOnlyM_keep (optsKeep_nil _ _ _)))
+    (by split
+        · decide
+        · exact h)
+    (by decide)
+
+/-- `watchEvents`'s watch of the prefix. -/
+theorem cacheWatch_size {pfx : GoString} (rev : w64) (h : pfx.length ≤ 2 ^ 28) :
+    watchSizeOk (opWatchModel pfx [withPrefixM, withRevM rev, withProgressNotifyM,
+      withCreatedNotifyM]) :=
+  watchSizeOk_opWatchModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+      (optsKeep_cons (withRevM_keep _) (optsKeep_cons withProgressNotifyM_keep
+        (optsKeep_cons withCreatedNotifyM_keep (optsKeep_nil _ _ _))))) h (by decide)
+
 section cache
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -1276,8 +1305,10 @@ points for good to `cf`'s values; `cf.ready` is a `ready` (ghost names `γr`), `
 capacity `cf.scap`), `cf.kv` a client of etcd for the prefix (`isEtcdKVE`), `cf.watcher` its
 watcher (`isEtcdWatcher`), the progress requestor a `*conditionalProgressRequestor`, the internal
 context a context, `cf.clock` a clock, `cf.stop` the internal context's cancel function; the wait
-group is a `WaitGroup` with the counter invariant `cacheWgInv`; and the configuration's
-`PerWatcherBufferSize` is not negative (finding 5) and below `2^32` (`make(chan T, n)`). -/
+group is a `WaitGroup` with the counter invariant `cacheWgInv`; the configuration's
+`PerWatcherBufferSize` is not negative (finding 5) and below `2^32` (`make(chan T, n)`); and the
+prefix is at most `2 ^ 28` bytes (2026-10-30, so that the requests the cache sends fit a gRPC
+message: `cacheGet_size`, `cacheRev_size`, `cacheWatch_size`). -/
 def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames)
     (cap : Nat) : IProp GF :=
   iprop("#Hprefix" ∷ cachePrefixAddr c ↦□ cf.pfx ∗
@@ -1307,7 +1338,8 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#HisStop" ∷ □ (∀ Φ : val → IProp GF, □ (True : IProp GF) -∗ ▷ (True -∗ Φ #()) -∗
       WP (App (Val #cf.stop) (Val #())) {{ Φ }}) ∗
     "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize' ∧ sint.Z cf.cfg.PerWatcherBufferSize' < 2 ^ 32⌝ ∗
-    "%Hthreads" ∷ ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝)
+    "%Hthreads" ∷ ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ ∗
+    "%Hpfx" ∷ ⌜cf.pfx.length ≤ 2 ^ 28⌝)
 
 instance isCacheFields_persistent (c : Loc) (cf : CacheFields) (γr : ReadyNames)
     (γd : DemuxNames) (cap : Nat) : Persistent (isCacheFields (GF := GF) c cf γr γd cap) := by

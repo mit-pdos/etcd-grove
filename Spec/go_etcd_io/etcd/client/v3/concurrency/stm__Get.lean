@@ -25,17 +25,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- `s.Get(keys...)` (a `*stm`: `RepeatableReads`, `ReadCommitted`), keys under `pfx`: a written
-key's value, or `fetch`'s (`GetPost`). A client error aborts it (`stmRet`). -/
+key's value, or `fetch`'s (`GetPost`), for a call that fits (`STMCallOk`). A client error aborts it
+(`stmRet`). -/
 abbrev stm.Get.spec : Prop :=
   ∀ (b : Loc) (pfx : GoString) (st : STMSt) (gs : List (OpFull → OpFull)) (ksl : GoSlice)
     (ks : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
-      stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗ ksl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ }}
+      stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗ ksl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗
+      ⌜STMCallOk st ks []⌝ }}
     (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"Get")) (Val #ksl))
   {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
       ∃ reads' : GMap GoString ReadM, stmRsetOwn pfx b reads' ∗
       stmWsetOwn pfx b st.writes ∗ stmOptsOwn b gs ∗
-      ⌜GetPost ks st v { reads := reads', writes := st.writes }⌝) }}
+      ⌜GetPost ks st v { reads := reads', writes := st.writes, n := st.n + ks.length }⌝) }}
 
 end spec
 

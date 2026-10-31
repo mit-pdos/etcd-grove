@@ -34,7 +34,8 @@ the guard failed, or the delete (`deleteCommitted`). -/
 abbrev leasingKV.deleteRangeRPC.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (maxLeaseRev : w64) (key e : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ etcdReached lo ∗
+      ⌜key.length ≤ 2 ^ 27 ∧ e.length ≤ 2 ^ 27⌝ }}
     (App (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"deleteRangeRPC")) (Val #(GoInterface.ok ctx))) (Val #maxLeaseRev)) (Val #key)) (Val #e))
   {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err);
       ⌜dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo (rangeDeleteOp key e) dr) }}

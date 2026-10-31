@@ -404,7 +404,8 @@ def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvsM on s E ∗
     srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜kvTieM on ρ.kv.cmp E⌝ ∗
-    kvCertInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    kvCertInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
+      v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (v : ReqFields) : Persistent (srvReqFieldsAtM (GF := GF) on s E ρ v) := by
@@ -679,8 +680,8 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     (Gb : apply.HeaderModel → IProp GF) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (hd : d ≠ [])
     (hdec : apply.irrDecode d = some rq') (hw : irrWireOf (apply.withHeader rq hm) rq')
-    (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E)
-    (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
+    (hk : apply.irrPutsLe etcdKeyMax rq') (id : w64) (γf : GName) (hid : apply.irrId rq' = some id)
+    (E : CoPset) (hE : ↑kvN ⊆ E) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
     ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ kvCertInvM on γ γk srvAuthSt0 -∗ srvRaftLogInv γ -∗
       idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
       □ (⌜on = true⌝ → Gb hm) -∗
@@ -694,7 +695,7 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     subst HQh
     ihave Hok' := reqPropOk_wire γk rq rq' hm Qr hw $$ Hok
     ihave ⟨Hok', Hq⟩ := reqPropOk_qinv γ γk rq' Qr $$ Hok'
-    imod kv_prop_au γ γk d rq' Qr hd hdec id γf hid E hE hE1 hE2 $$ Hinv Hci Hrl Hcl Hreg Hok'
+    imod kv_prop_au γ γk d rq' Qr hd hdec hk id γf hid E hE hE1 hE2 $$ Hinv Hci Hrl Hcl Hreg Hok'
       with Hau
     imodintro
     iframe Hau
@@ -710,7 +711,7 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     have he := irrWireOf_eq rq rq' hm hw Hz
     subst he
     ihave ⟨Hok, Hq⟩ := reqPropOkOn_qinv γ γ γk srvAuthSt0 Gb rq hm (Qh hm) $$ Hok
-    imod kv_prop_au_on γ γk srvAuthSt0 d Gb rq hm (Qh hm) hd hdec id γf hid E hE
+    imod kv_prop_au_on γ γk srvAuthSt0 d Gb rq hm (Qh hm) hd hdec hk id γf hid E hE
       $$ Hinv Hcl Hreg Hgb' Hok with Hau
     imodintro
     iframe Hau

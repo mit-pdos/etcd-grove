@@ -145,7 +145,9 @@ structure KMNames where
 whose changes the client knows a lower bound of, well formed and small. -/
 def kmLog (γ : KMNames) (W : Log) : IProp GF :=
   iprop(∃ l : List (List Change), monoListLbOwn γ.ch l ∗
-    ⌜W <+: [] :: l ∧ LogWf' W ∧ W.length < 2 ^ 63 ∧ LogSmall W⌝)
+    ⌜W <+: [] :: l ∧ LogWf' W ∧ W.length < 2 ^ 63 ∧ LogSmall W ∧
+      -- (2026-10-30, `notes/keylen.md`) its keys short (`kvLogOkTo`'s)
+      LogPutsLe etcdKeyMax W⌝)
 
 instance kmLog_persistent (γ : KMNames) (W : Log) : Persistent (kmLog (GF := GF) γ W) := by
   unfold kmLog; infer_instance
@@ -166,8 +168,8 @@ theorem kmLog_two (γ : KMNames) (L1 L2 : Log) :
   obtain ⟨L, p1, p2, hL⟩ := km_longer_log (prefix_cmp_of h1.1 h2.1 hc)
   refine ⟨L, p1, p2, ?_⟩
   rcases hL with rfl | rfl
-  · exact ⟨h1.2.1, h1.2.2.1, h1.2.2.2, Or.inl rfl⟩
-  · exact ⟨h2.2.1, h2.2.2.1, h2.2.2.2, Or.inr rfl⟩
+  · exact ⟨h1.2.1, h1.2.2.1, h1.2.2.2.1, Or.inl rfl⟩
+  · exact ⟨h2.2.1, h2.2.2.1, h2.2.2.2.1, Or.inr rfl⟩
 
 /-! ## The predicates -/
 
@@ -232,12 +234,31 @@ theorem kmEtcdState_revs (γ : KMNames) (r : w64) (pfx : GoString) (s : List Etc
   unfold kmEtcdState kmLog
   iintro ⟨%L, ⟨%l, -, %Hw⟩, %h⟩
   ipureintro
-  obtain ⟨-, hwf, hlen, hs⟩ := Hw
+  obtain ⟨-, hwf, hlen, hs, -⟩ := Hw
   obtain ⟨h0, hl, rfl⟩ := h
   intro v hv
   have := stateAt_client_revs L hwf hlen hs (sint.Z r).toNat (by omega) v (mem_underPfx.1 hv).1
   rw [km_toNat_cast h0] at this
   exact this
+
+/-- **Keys are short** (2026-10-30, `notes/keylen.md`): the seen log's. -/
+theorem kmEtcdState_keys (γ : KMNames) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+    kmEtcdState (GF := GF) γ r pfx s ⊢ ⌜∀ v ∈ s, v.key.length ≤ etcdKeyMax⌝ := by
+  unfold kmEtcdState kmLog
+  iintro ⟨%L, ⟨%l, -, %Hw⟩, %h⟩
+  ipureintro
+  obtain ⟨-, -, rfl⟩ := h
+  intro v hv
+  exact stateAt_keys Hw.2.2.2.2 _ v (mem_underPfx.1 hv).1
+
+theorem kmEtcdState_vals (γ : KMNames) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+    kmEtcdState (GF := GF) γ r pfx s ⊢ ⌜∀ v ∈ s, v.value.length ≤ etcdKeyMax⌝ := by
+  unfold kmEtcdState kmLog
+  iintro ⟨%L, ⟨%l, -, %Hw⟩, %h⟩
+  ipureintro
+  obtain ⟨-, -, rfl⟩ := h
+  intro v hv
+  exact stateAt_vals Hw.2.2.2.2 _ v (mem_underPfx.1 hv).1
 
 theorem kmEtcdState_create_persist (γ : KMNames) (r a : w64) (pfx : GoString)
     (s s' : List EtcdKv) :
@@ -380,6 +401,8 @@ def etcdModelOfKV (γ : KMNames) : EtcdModel GF where
   etcdState := kmEtcdState γ
   etcdState_agree := kmEtcdState_agree γ
   etcdState_revs := kmEtcdState_revs γ
+  etcdState_keys := kmEtcdState_keys γ
+  etcdState_vals := kmEtcdState_vals γ
   etcdState_create_persist := kmEtcdState_create_persist γ
   etcdState_modrev_det := kmEtcdState_modrev_det γ
   etcdState_modrev_persist := kmEtcdState_modrev_persist γ
@@ -600,7 +623,7 @@ theorem km_etcdState_of (γ : KMNames) (σ : KVState) (r : Nat) (pfx : GoString)
     monoListLbOwn (GF := GF) γ.ch σ.changes ⊢
       □ kmEtcdState γ (W64 (r : Int)) pfx (underPfx pfx (stateAt σ.log r)) ∗
       ⌜EtcdStateWf pfx (underPfx pfx (stateAt σ.log r))⌝ := by
-  obtain ⟨he, hr, hr63, hw, hs⟩ := h
+  obtain ⟨he, hr, hr63, hw, hs, hk⟩ := h
   have hc : σ.compacted = 0 := by rw [he]; rfl
   have hrl : r + 1 ≤ σ.log.length := by
     simp only [KVState.log, List.length_cons]
@@ -616,7 +639,7 @@ theorem km_etcdState_of (γ : KMNames) (σ : KVState) (r : Nat) (pfx : GoString)
       iexists σ.changes
       iframe Hlb
       ipureintro
-      refine ⟨List.take_prefix _ _, hw, ?_, hs⟩
+      refine ⟨List.take_prefix _ _, hw, ?_, hs, hk⟩
       rw [List.length_take]; omega
     ipureintro
     refine ⟨by rw [hz]; omega, by rw [hz, List.length_take]; omega, ?_⟩

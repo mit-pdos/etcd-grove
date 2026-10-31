@@ -185,12 +185,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 
 /-! ## The queues -/
 
-/-- **A `*Queue`** `q` on the prefix `kp` (non-empty; persistent): its fields, read-only (the
+/-- **A `*Queue`** `q` on the prefix `kp` (non-empty, at most `2 ^ 27` bytes: `notes/invoke-size-b.md`; persistent): its fields, read-only (the
 client, `context.TODO()`, the prefix), and the client's contracts at `kp`. -/
 def isQueue (q client : Loc) (kp : GoString) : IProp GF :=
   iprop(structFieldRef Queue go!"client" q ↦□ client ∗
     structFieldRef Queue go!"ctx" q ↦□ GoInterface.ok todoCtxVal ∗
-    structFieldRef Queue go!"keyPrefix" q ↦□ kp ∗ ⌜kp ≠ []⌝ ∗ isEtcdRecipesClient client kp)
+    structFieldRef Queue go!"keyPrefix" q ↦□ kp ∗ ⌜kp ≠ [] ∧ kp.length ≤ 2 ^ 27⌝ ∗
+    isEtcdRecipesClient client kp)
 
 instance isQueue_persistent (q client : Loc) (kp : GoString) :
     Persistent (isQueue (GF := GF) q client kp) := by
@@ -202,7 +203,8 @@ the module docstring). -/
 def isPriorityQueue (q client : Loc) (key : GoString) : IProp GF :=
   iprop(structFieldRef PriorityQueue go!"client" q ↦□ client ∗
     structFieldRef PriorityQueue go!"ctx" q ↦□ GoInterface.ok todoCtxVal ∗
-    structFieldRef PriorityQueue go!"key" q ↦□ (key ++ go!"/") ∗ isEtcdRecipesClient client [])
+    structFieldRef PriorityQueue go!"key" q ↦□ (key ++ go!"/") ∗ isEtcdRecipesClient client [] ∗
+    ⌜key.length ≤ 2 ^ 27⌝)
 
 instance isPriorityQueue_persistent (q client : Loc) (key : GoString) :
     Persistent (isPriorityQueue (GF := GF) q client key) := by

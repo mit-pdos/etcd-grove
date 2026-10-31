@@ -35,7 +35,7 @@ abbrev RWMutex.waitOnLastRev.spec : Prop :=
   ∀ (m s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx bp : GoString)
     (ek : Loc) (st : RemoteKVSt) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRWMutex m s γ client id pfx ∗ rwMyKey m pfx (some (ek, st)) ∗ etcdReached lo ∗
-      ⌜pfx <+: bp ∧ 0 < sint.Z st.rev⌝ }}
+      ⌜pfx <+: bp ∧ 0 < sint.Z st.rev ∧ bp.length ≤ 2 ^ 28⌝ }}
     (App (Val (m @!! go.GoType.PointerType RWMutex.ty @!! go!"waitOnLastRev")) (Val #bp))
   {{ (done : Bool) (err : GoInterface), RET (PairV #done #err); rwMyKey m pfx (some (ek, st)) ∗
       ((⌜done = true ∧ err = GoInterface.nil⌝ ∗ ∃ (R : w64) (s' : List EtcdKv), etcdReached R ∗

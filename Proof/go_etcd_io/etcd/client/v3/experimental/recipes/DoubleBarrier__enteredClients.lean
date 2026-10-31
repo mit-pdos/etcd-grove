@@ -35,7 +35,9 @@ theorem DoubleBarrier.enteredClients.wp_proof
   wp_start as ⟨#Hb, #Hlo⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
-  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %Hcount, #Hsess, #Hcl, #Hclosed⟩
+  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
+  have Hcount := HcountB.1
+  have Hkl := HcountB.2
   ihave ⟨%kv, #HKVf, #Hkvc⟩ := isEtcdRecipesClient_kv client (key ++ go!"/") $$ Hcl
   wp_auto
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -75,7 +77,8 @@ theorem DoubleBarrier.enteredClients.wp_proof
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.1, (waitersOp_t _).1, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      waitersOp_size (by simp; omega)⟩
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM, withSortM (W64 2) (W64 1)] =
       waitersOp (key ++ go!"/waiters") := rfl
   rw [Hop]

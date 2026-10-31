@@ -29,6 +29,19 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 
+section pure
+variable [GooseExts]
+
+/-- **A compaction is within protobuf's recursion limit** (`proto.MarshalIRR`'s premise):
+`dispatch` tests `.txn` before `.compaction` (`apply.dispatchKind`), so it has no transaction. -/
+theorem irrDepthOk_of_compactPropOk {rq : apply.IRRModel} (h : compactPropOk rq) :
+    apply.irrDepthOk rq := by
+  apply apply.irrDepthOk_of_txn_none
+  apply apply.txn_none_of_dispatchKind
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [h.1.1] <;> decide
+
+end pure
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

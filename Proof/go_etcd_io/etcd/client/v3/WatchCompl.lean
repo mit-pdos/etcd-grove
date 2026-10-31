@@ -306,8 +306,6 @@ theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (p
   ihave %Hsmall : ⌜LogSmall L⌝ $$ []
   · iunfold srvLogsSmall at Hsm
     iapply Hsm; rw [hst]; iexact Hs
-  ihave #Hsl : v3rpc.srvLog V.R.E L $$ []
-  · unfold v3rpc.srvLog; iframe Hs; ipureintro; exact Hsmall
   ihave %Hw := v3rpc.sealed_pure _ L $$ Hs
   have hlen : L.length < 2 ^ 63 := Hw.2
   have hnone' : ∀ x : Nat, p < x → x < b → mvcc.watchEvents L rg x (x + 1) = [] := by

@@ -140,15 +140,15 @@ theorem NewKV.wp_proof
   · unfold isLeasingKV
     iexists cl, kv, ictx, _, cancel, osl
     isplitr
-    · ipureintro; exact Hpre.1
+    · ipureintro; exact ⟨Hpre.1, Hpre.2.1⟩
     iframe #
-    ipureintro; exact Hpre.2
+    ipureintro; exact Hpre.2.2
   ihave #Hcanc : isLeasingCancel «$r0_ptr» $$ []
   · unfold isLeasingCancel concurrency.cancelSpec
     iexists cancel
     iframe #
   -- `lkv.wg.Add(2)`
-  wp_apply wp_leasingWg_Add2 «$r0_ptr» γ 1 Hpre.2 $$ [$Hsync $HisWg $HwgInv $Hcaps $Hop]
+  wp_apply wp_leasingWg_Add2 «$r0_ptr» γ 1 Hpre.2.2 $$ [$Hsync $HisWg $HwgInv $Hcaps $Hop]
     as ⟨H2, Hop⟩
   icases ownToks_add_1 1 1 γ.wo $$ H2 with ⟨Hr1, Hr2⟩
   -- the session monitor

@@ -472,5 +472,244 @@ theorem opFold_take_succ (gs : List (OpFull → OpFull)) (o : OpFull) (n : Nat)
     opFold (gs.take (n + 1)) o = g (opFold (gs.take n) o) :=
   foldl_apply_take_succ gs o n g h
 
+
+/-! ## The size of the client's requests (2026-10-30)
+
+The payload bounds the client's API asks of its callers, and their laws (`notes/decisions.md`, "The
+encoded-size bound at grpc's send side"; the encoding's bounds against grpc's, `InvKVConn`). -/
+
+section size
+
+/-- **The fixed part of one request's encoding** (the request instances' `wireLen`): its scalar
+fields and every field's tag and length (12 bytes a field at most: a tag of at most 2 bytes, a
+varint of at most 10), with its own tag and length in the enclosing messages; the largest of
+etcd's requests is a `RangeRequest` (13 fields) in a `RequestOp` in a `TxnRequest`
+(`13·12 + 2·12 = 180`). -/
+def wireSlack : Nat := 256
+
+/-- **A bound on the encoding of the request an `OpFull` stands for** (a `PutRequest`,
+`RangeRequest` or `DeleteRangeRequest`, alone or in a `RequestOp`): its key, range end and value,
+and the fixed part. -/
+def opWireLen (o : OpFull) : Nat := o.key.length + o.base.rangeEnd.length + o.val.length + wireSlack
+
+/-- **A request's payload fits a gRPC message** (client API): the key, range end and value an
+`OpFull` sends total at most `2 ^ 30` bytes (`opSizeOk.wire_lt`: its encoding is below
+`grpcMsgMax`). A scope restriction: the code sends up to `2 ^ 32` bytes less the fixed part. -/
+def opSizeOk (o : OpFull) : Prop := o.key.length + o.base.rangeEnd.length + o.val.length ≤ 2 ^ 30
+
+/-- **A watch's request fits a gRPC message**: its key and range end at most `2 ^ 30` bytes (a watch
+sends no value: `v3rpc.watchReqWireLen`). -/
+def watchSizeOk (o : OpFull) : Prop := o.key.length + o.base.rangeEnd.length ≤ 2 ^ 30
+
+instance (o : OpFull) : Decidable (watchSizeOk o) := by unfold watchSizeOk; infer_instance
+
+/-- **The strings a request carries total at most `2 ^ 30` bytes** (the Auth API's). -/
+def strsSizeOk (ss : List GoString) : Prop := (ss.map List.length).sum ≤ 2 ^ 30
+
+instance (o : OpFull) : Decidable (opSizeOk o) := by unfold opSizeOk; infer_instance
+instance (ss : List GoString) : Decidable (strsSizeOk ss) := by unfold strsSizeOk; infer_instance
+
+/-! ### The payload of an `Op` built with options (2026-10-30) -/
+
+theorem length_dropWhile_le {α : Type} (f : α → Bool) :
+    ∀ l : List α, (l.dropWhile f).length ≤ l.length
+  | [] => by simp
+  | a :: l => by
+    simp only [List.dropWhile_cons]
+    split
+    · have := length_dropWhile_le f l
+      simp only [List.length_cons]; omega
+    · simp
+
+/-- A prefix's range end is no longer than the prefix (one byte for a prefix of `0xff`s). -/
+theorem prefixRangeEnd_length_le (p : GoString) : (prefixRangeEnd p).length ≤ max p.length 1 := by
+  unfold prefixRangeEnd
+  have h := length_dropWhile_le (fun b => b == W8 255) p.reverse
+  rw [List.length_reverse] at h
+  split
+  · simp only [List.length_cons, List.length_nil]; omega
+  · rename_i b r hr
+    rw [hr] at h
+    simp only [List.length_append, List.length_reverse, List.length_cons, List.length_nil] at h ⊢
+    omega
+
+/-- **An `Op`'s payload within bounds**: its key at most `K` bytes, its range end at most `E`, its
+value at most `V`. -/
+def OpShape (K E V : Nat) (o : OpFull) : Prop :=
+  o.key.length ≤ K ∧ o.base.rangeEnd.length ≤ E ∧ o.val.length ≤ V
+
+/-- **Options keeping an `Op`'s payload within bounds** (`OpShape K E V`): what `OpGet`, `OpPut`,
+`OpDelete` and `OpWatch` with them build stays within them (`opSizeOk_opGetModel`, ...). Every
+scalar option keeps any bounds (`optKeep_*`); `WithPrefix` and `WithFromKey` keep them when the
+range end may be as long as the key and the key a byte (`withPrefixM_keep`, `withFromKeyM_keep`);
+`WithRange(e)` when `e` is within `E` (`withRangeM_keep`). -/
+def optsKeep (K E V : Nat) (gs : List (OpFull → OpFull)) : Prop :=
+  ∀ g ∈ gs, ∀ o, OpShape K E V o → OpShape K E V (g o)
+
+theorem optsKeep_nil (K E V : Nat) : optsKeep K E V [] := by
+  intro g hg; cases hg
+
+theorem optsKeep_cons {K E V : Nat} {g : OpFull → OpFull} {gs : List (OpFull → OpFull)}
+    (hg : ∀ o, OpShape K E V o → OpShape K E V (g o)) (hgs : optsKeep K E V gs) :
+    optsKeep K E V (g :: gs) := by
+  intro g' hg'
+  rcases List.mem_cons.1 hg' with h | h
+  · subst h; exact hg
+  · exact hgs g' h
+
+theorem optsKeep_append {K E V : Nat} {gs hs : List (OpFull → OpFull)}
+    (h1 : optsKeep K E V gs) (h2 : optsKeep K E V hs) : optsKeep K E V (gs ++ hs) := by
+  intro g hg
+  rcases List.mem_append.1 hg with h | h
+  · exact h1 g h
+  · exact h2 g h
+
+/-- An option that changes neither the key, nor the range end, nor the value keeps any bounds. -/
+theorem optKeep_of_eq {K E V : Nat} (g : OpFull → OpFull)
+    (h : ∀ o, (g o).key = o.key ∧ (g o).base.rangeEnd = o.base.rangeEnd ∧ (g o).val = o.val) :
+    ∀ o, OpShape K E V o → OpShape K E V (g o) := by
+  intro o ho
+  obtain ⟨h1, h2, h3⟩ := h o
+  unfold OpShape at ho ⊢
+  rw [h1, h2, h3]; exact ho
+
+/-! The scalar options keep any bounds (they change neither key, nor range end, nor value). -/
+
+theorem withLimitM_keep {K E V : Nat} (n : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withLimitM n o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withSerializableM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withSerializableM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withCountOnlyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withCountOnlyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withProgressNotifyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withProgressNotifyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withCreatedNotifyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withCreatedNotifyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withLeaseM_keep {K E V : Nat} (id : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withLeaseM id o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withMaxCreateRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withMaxCreateRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withMaxModRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withMaxModRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withMinModRevM_keep {K E V : Nat} (r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withMinModRevM r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withSortM_keep {K E V : Nat} (t r : w64) :
+    ∀ o, OpShape K E V o → OpShape K E V (withSortM t r o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withKeysOnlyM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withKeysOnlyM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+theorem withIgnoreLeaseM_keep {K E V : Nat} :
+    ∀ o, OpShape K E V o → OpShape K E V (withIgnoreLeaseM o) :=
+  optKeep_of_eq _ (fun _ => ⟨rfl, rfl, rfl⟩)
+
+theorem withPrefixM_keep {K E V : Nat} (hK : 1 ≤ K) (hKE : K ≤ E) :
+    ∀ o, OpShape K E V o → OpShape K E V (withPrefixM o) := by
+  intro o ho
+  unfold OpShape at ho ⊢
+  unfold withPrefixM
+  split
+  · simp only [List.length_cons, List.length_nil]; omega
+  · have := prefixRangeEnd_length_le o.key
+    refine ⟨ho.1, ?_, ho.2.2⟩
+    show (prefixRangeEnd o.key).length ≤ E
+    omega
+
+theorem withFromKeyM_keep {K E V : Nat} (hK : 1 ≤ K) (hE : 1 ≤ E) :
+    ∀ o, OpShape K E V o → OpShape K E V (withFromKeyM o) := by
+  intro o ho
+  unfold OpShape at ho ⊢
+  unfold withFromKeyM
+  refine ⟨?_, by simp only [List.length_cons, List.length_nil]; omega, ho.2.2⟩
+  show (if o.key = [] then [W8 0] else o.key).length ≤ K
+  split
+  · simp only [List.length_cons, List.length_nil]; omega
+  · exact ho.1
+
+theorem withRangeM_keep {K E V : Nat} {e : GoString} (he : e.length ≤ E) :
+    ∀ o, OpShape K E V o → OpShape K E V (withRangeM e o) := by
+  intro o ho
+  unfold OpShape at ho ⊢
+  exact ⟨ho.1, he, ho.2.2⟩
+
+theorem opShape_opFold {K E V : Nat} {gs : List (OpFull → OpFull)} (hg : optsKeep K E V gs)
+    {o : OpFull} (ho : OpShape K E V o) : OpShape K E V (opFold gs o) := by
+  unfold opFold
+  induction gs generalizing o with
+  | nil => exact ho
+  | cons g gs ih =>
+    simp only [List.foldl_cons]
+    exact ih (fun g' h => hg g' (List.mem_cons_of_mem _ h)) (hg g (List.mem_cons_self ..) o ho)
+
+theorem opSizeOk_of_shape {K E V : Nat} {o : OpFull} (h : OpShape K E V o)
+    (hs : K + E + V ≤ 2 ^ 30) : opSizeOk o := by
+  unfold OpShape at h; unfold opSizeOk; omega
+
+/-- **`OpGet(key, opts...)`'s payload fits** when the options keep bounds within `2 ^ 30` that
+the key is within. -/
+theorem opSizeOk_opGetModel {K E V : Nat} {key : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hs : K + E + V ≤ 2 ^ 30) :
+    opSizeOk (opGetModel key gs) :=
+  opSizeOk_of_shape (opShape_opFold hg ⟨hk, by simp [OpFull.getInit, OpFull.newOp, OpModel.zero],
+    by simp [OpFull.getInit, OpFull.newOp]⟩) hs
+
+/-- `OpWatch(key, opts...)`'s (`watchSizeOk`: no value). -/
+theorem watchSizeOk_opWatchModel {K E V : Nat} {key : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hs : K + E ≤ 2 ^ 30) :
+    watchSizeOk (opWatchModel key gs) := by
+  have h := opShape_opFold hg (o := OpFull.getInit key) ⟨hk,
+    by simp [OpFull.getInit, OpFull.newOp, OpModel.zero], Nat.zero_le _⟩
+  unfold OpShape at h; unfold watchSizeOk opWatchModel; omega
+
+/-- **A key watch fits** (`Watch(key, WithRev(r))`: no range end). -/
+theorem watchSizeOk_keyWatch {key : GoString} (rev : w64) (h : key.length ≤ 2 ^ 30) :
+    watchSizeOk (opWatchModel key [withRevM rev]) :=
+  watchSizeOk_opWatchModel (K := 2 ^ 30) (E := 0) (V := 0)
+    (optsKeep_cons (withRevM_keep rev) (optsKeep_nil _ _ _)) h (by decide)
+
+/-- `OpPut(key, val, opts...)`'s: the value within `V` too. -/
+theorem opSizeOk_opPutModel {K E V : Nat} {key val : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hv : val.length ≤ V)
+    (hs : K + E + V ≤ 2 ^ 30) : opSizeOk (opPutModel key val gs) :=
+  opSizeOk_of_shape (opShape_opFold hg ⟨hk, by simp [OpFull.putInit, OpFull.newOp, OpModel.zero],
+    by simpa [OpFull.putInit, OpFull.newOp] using hv⟩) hs
+
+/-- `OpDelete(key, opts...)`'s. -/
+theorem opSizeOk_opDeleteModel {K E V : Nat} {key : GoString} {gs : List (OpFull → OpFull)}
+    (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hs : K + E + V ≤ 2 ^ 30) :
+    opSizeOk (opDeleteModel key gs) :=
+  opSizeOk_of_shape (opShape_opFold hg ⟨hk, by simp [OpFull.deleteInit, OpFull.newOp, OpModel.zero],
+    by simp [OpFull.deleteInit, OpFull.newOp]⟩) hs
+
+/-- `strsSizeOk` of strings each within `N`, at most `M` of them, `M * N ≤ 2 ^ 30`. -/
+theorem strsSizeOk_of_le {ss : List GoString} {N : Nat} (h : ∀ s ∈ ss, s.length ≤ N)
+    (hM : ss.length * N ≤ 2 ^ 30) : strsSizeOk ss := by
+  unfold strsSizeOk
+  have : (ss.map List.length).sum ≤ ss.length * N := by
+    induction ss with
+    | nil => simp
+    | cons a l ih =>
+      simp only [List.map_cons, List.sum_cons, List.length_cons]
+      have h1 := h a (List.mem_cons_self ..)
+      have h2 := ih (fun s hs => h s (List.mem_cons_of_mem _ hs)) (by
+        have : l.length * N ≤ (l.length + 1) * N := Nat.mul_le_mul_right _ (Nat.le_succ _)
+        simp only [List.length_cons] at hM; omega)
+      rw [Nat.add_mul, Nat.one_mul]; omega
+  omega
+
+end size
+
 end EtcdGrove
 end Perennial

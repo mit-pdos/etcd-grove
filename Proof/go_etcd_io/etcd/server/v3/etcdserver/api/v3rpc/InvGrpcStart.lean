@@ -130,7 +130,8 @@ theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
 
 /-- The Auth service's methods `v3rpc.Server` registers that `examples/authkv`'s `SetUp` calls, with
 the `*AuthServer` `p` (the auth plan's E3zb): `UserAdd`, `UserGrantRole`, `RoleAdd`,
-`RoleGrantPermission`, `AuthEnable`. -/
+`RoleGrantPermission`, `AuthEnable`, and (C1's A5, 2026-10-31) `Authenticate`, which a client's `New`
+calls. -/
 def v3rpc.authRegs (p : Loc) : List (GoString × val × GoInterface) :=
   [(go!"/etcdserverpb.Auth/UserAdd", (@! etcdserverpb._Auth_UserAdd_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
@@ -141,6 +142,8 @@ def v3rpc.authRegs (p : Loc) : List (GoString × val × GoInterface) :=
    (go!"/etcdserverpb.Auth/RoleGrantPermission", (@! etcdserverpb._Auth_RoleGrantPermission_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
    (go!"/etcdserverpb.Auth/AuthEnable", (@! etcdserverpb._Auth_AuthEnable_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/Authenticate", (@! etcdserverpb._Auth_Authenticate_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p)]
 
 /-- **The Auth service's registration contains `authRegs`** (from the descriptor's methods). -/
@@ -152,8 +155,9 @@ theorem v3rpc.authRegs_sub (p : Loc) (mds : List google_golang_org.grpc.MethodDe
   rw [v3rpc.descRegs_eq, h]
   simp only [v3rpc.authRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
   simp only [v3rpc.authDescMethods, List.map_cons, List.map_nil]
-  -- the positions of UserAdd, UserGrantRole, RoleAdd, RoleGrantPermission, AuthEnable
-  rcases hx with rfl | rfl | rfl | rfl | rfl
+  -- the positions of UserAdd, UserGrantRole, RoleAdd, RoleGrantPermission, AuthEnable,
+  -- Authenticate
+  rcases hx with rfl | rfl | rfl | rfl | rfl | rfl
   · iterate 4 apply List.mem_cons_of_mem
     exact List.mem_cons_self ..
   · iterate 9 apply List.mem_cons_of_mem
@@ -163,6 +167,8 @@ theorem v3rpc.authRegs_sub (p : Loc) (mds : List google_golang_org.grpc.MethodDe
   · iterate 15 apply List.mem_cons_of_mem
     exact List.mem_cons_self ..
   · exact List.mem_cons_self ..
+  · iterate 3 apply List.mem_cons_of_mem
+    exact List.mem_cons_self ..
 
 /-- The Auth descriptor's names are distinct. -/
 theorem v3rpc.authDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
@@ -249,13 +255,14 @@ structure v3rpc.GrpcCfg (GF : BundledGFunctors) [GooseExts] where
   mcs : w32
 
 /-- **The server's fields and contracts `v3rpc.Server` reads** (persistent; see the file header):
-read-only, as `NewServer` left them. -/
+read-only, as `NewServer` left them; (2026-10-31) the transaction budget within protobuf's
+recursion limit (`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
 def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
   iprop(v3rpc.raftKV s C.A ∗ v3rpc.watchSrvOk s C.E C.γ C.wsl ∗
     srvKVAddr s ↦□ v3rpc.wsIface C.wsl ∗ v3rpc.srvIdsOk s ∗
     srvCfgFieldAddr s go!"Logger" ↦□ C.lg0 ∗ ⌜C.lg0 ≠ null⌝ ∗ srvLgAddr s ↦□ C.lg ∗ ⌜C.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ C.qb ∗ srvMemberIDAddr s ↦□ C.mid ∗
-    srvCfgFieldAddr s go!"MaxTxnOps" ↦□ C.n ∗
+    srvCfgFieldAddr s go!"MaxTxnOps" ↦□ C.n ∗ ⌜v3rpc.maxTxnOpsOk (sint.Z C.n)⌝ ∗
     srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ C.wd ∗
     srvLeadInv s ∗ srvClusterAddr s ↦□ C.c ∗ membership.isRaftCluster C.c ∗
     membership.localKept C.c ∗ srvStoppingAddr s ↦□ C.ch ∗ stopChan C.ch ∗

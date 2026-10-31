@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.client.v3.Op__isWrite
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRangeRequest
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
+public import Proof.go_etcd_io.etcd.client.v3.Op__toTxnRequest
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.RetryAuthClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
@@ -661,7 +662,11 @@ theorem v3.Op.wp_toRangeRequest :
 
 theorem v3.Op.wp_toRequestOp :
     EtcdGrove.Op.toRequestOp.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Op.toRequestOp.wp_proof v3.Op.wp_toRangeRequest
+  EtcdGrove.Op.toRequestOp.wp_proof v3.Op.wp_toRangeRequest v3.Cmp.wp_Clone v3.Cmp.wp_GetCompare
+
+theorem v3.Op.wp_toTxnRequest :
+    EtcdGrove.Op.toTxnRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Op.toTxnRequest.wp_proof v3.Op.wp_toRequestOp v3.Cmp.wp_Clone v3.Cmp.wp_GetCompare
 
 theorem v3.wp_RetryAuthClient :
     EtcdGrove.RetryAuthClient.spec (GF := GF) (hG := hG) :=

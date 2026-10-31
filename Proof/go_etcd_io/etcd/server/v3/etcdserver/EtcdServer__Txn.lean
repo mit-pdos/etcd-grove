@@ -650,7 +650,7 @@ theorem EtcdServer.Txn.wp_proof
   have hDS := EtcdServer.doSerialize.spec_off hDS
   have hRR := EtcdServer.raftRequest.spec_off hRR
   intro s E ρ γr c ctx cd r t Q Qr ot te F
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF, Hnp⟩
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, %Hdpt, #HF, Hnp⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
@@ -661,7 +661,7 @@ theorem EtcdServer.Txn.wp_proof
     %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
   -- the floor (the vertical slice's unit V2), as `Range`'s
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
-  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0'.1 HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
@@ -844,7 +844,7 @@ theorem EtcdServer.Txn.wp_proof
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
-        F rfl
+        F rfl (apply.irrDepthOk_irrTxn (Hdpt hro))
         $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hnp]
@@ -1071,7 +1071,7 @@ theorem EtcdServer.Txn.wp_proofOnR
     %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
   -- the floor (the vertical slice's unit V2), as `Range`'s
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
-  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0'.1 HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
@@ -1354,7 +1354,8 @@ theorem EtcdServer.Txn.wp_proofOn
     (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
     EtcdServer.Txn.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r t Q ot te F lg
-  wp_start as ⟨#Hsrv, Hlt, Hard, Hcred, #Hlgf, %Hlgn, Hlr, #Hctx, #Hct, Hto, #Hrt, %Hro, #HF, Hnp⟩
+  wp_start as ⟨#Hsrv, Hlt, Hard, Hcred, #Hlgf, %Hlgn, Hlr, #Hctx, #Hct, Hto, #Hrt, %HroD, #HF, Hnp⟩
+  obtain ⟨Hro, Hdpt⟩ := HroD
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -1522,7 +1523,7 @@ theorem EtcdServer.Txn.wp_proofOn
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
-        F rfl
+        F rfl (apply.irrDepthOk_irrTxn Hdpt)
         $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hau]

@@ -64,7 +64,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   axioms in place, list for each the collections that now rest on the stronger claim (`--check` does
   not flag a same-name change), and put it to the user. Before strengthening, check what the axiom
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
-  harmlessly. (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+  harmlessly. A post that says a call returns claims it returns on every input the premise admits:
+  check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
 
 ## Preferences: strength
 
@@ -113,6 +114,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A contract between packages states the receiver's need, not the supplier's mechanism**: the
+  server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
+  implies it; the supplier proves the law from its mechanism to the need. The need is weaker to
+  supply and names nothing of the supplier. (`irr-depth.md`, critique 2)
 - **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it

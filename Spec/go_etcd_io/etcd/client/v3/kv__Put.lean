@@ -30,7 +30,9 @@ reads (`putWireOf`; `kvOpStep`), persistent if the client's writes may be delive
 (`□?dup`); the error through `ContextError`:
 `nil` and the reply's message `m` with `Q σ` for the state `σ` the update fired at, the reply's
 revision `σ`'s next and its previous key-value the key's record in `σ`'s current store if asked,
-`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D48); or a client error (`kvErr`) and no reply. -/
+`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D48); or a client error
+(`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`).
+-/
 abbrev kv.Put.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key val : GoString) (opts_sl : GoSlice)
@@ -40,7 +42,8 @@ abbrev kv.Put.spec : Prop :=
       ⌜¬ (opPutModel key val opts).putPanics ∧ (opPutModel key val opts).t = W64 2 ∧
         (putWireOf (opPutModel key val opts)).leaseID = W64 0⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ), COMM Q σ }>) }}
+        <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ), COMM Q σ }>) ∗
+      ⌜opSizeOk (opPutModel key val opts)⌝ }}
     (App (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #opts_sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

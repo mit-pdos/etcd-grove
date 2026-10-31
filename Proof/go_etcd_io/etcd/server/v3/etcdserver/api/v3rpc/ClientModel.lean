@@ -93,9 +93,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **A sealed small log**: mvcc's seal of `log` (`idxSealed`: its history is a lower bound of
 the index's, and it is well formed; every certified log is sealed, `idxCert_sealed`) and
-`LogSmall` (at most `2 ^ 62` changes: the read path's `storeSmall`). -/
+`LogSmall` (at most `2 ^ 62` changes: the read path's `storeSmall`); (2026-10-30,
+`notes/keylen.md`) its keys short (the server's KV invariant's, `srvKVCoreM_keys`). -/
 def srvLog (E : apply.AEnv GF) (log : Log) : IProp GF :=
-  iprop(idxSealed E.γ.idx log ∗ ⌜LogSmall log⌝)
+  iprop(idxSealed E.γ.idx log ∗ ⌜LogSmall log ∧ mvcc.LogPutsLe etcdKeyMax log⌝)
 
 instance srvLog_persistent (E : apply.AEnv GF) (log : Log) : Persistent (srvLog E log) := by
   unfold srvLog; infer_instance
@@ -173,8 +174,8 @@ theorem srvLog_two (E : apply.AEnv GF) (L1 L2 : Log) :
   obtain ⟨L, h1, h2, hL⟩ := longer_log Hp
   refine ⟨L, h1, h2, ?_⟩
   rcases hL with rfl | rfl
-  · exact ⟨Hw1.1, Hw1.2, Hs1, Or.inl rfl⟩
-  · exact ⟨Hw2.1, Hw2.2, Hs2, Or.inr rfl⟩
+  · exact ⟨Hw1.1, Hw1.2, Hs1.1, Or.inl rfl⟩
+  · exact ⟨Hw2.1, Hw2.2, Hs2.1, Or.inr rfl⟩
 
 /-! ## The laws -/
 
@@ -199,9 +200,28 @@ theorem srvEtcdState_revs (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : Li
   ipureintro
   obtain ⟨h0, hl, rfl⟩ := h
   intro v hv
-  have := stateAt_client_revs L Hw.1 Hw.2 Hs (sint.Z r).toNat (by omega) v (mem_underPfx.1 hv).1
+  have := stateAt_client_revs L Hw.1 Hw.2 Hs.1 (sint.Z r).toNat (by omega) v (mem_underPfx.1 hv).1
   rw [toNat_cast h0] at this
   exact this
+
+/-- **Keys are short** (2026-10-30, `notes/keylen.md`): the sealed log's. -/
+theorem srvEtcdState_keys (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+    srvEtcdState E r pfx s ⊢ ⌜∀ v ∈ s, v.key.length ≤ etcdKeyMax⌝ := by
+  unfold srvEtcdState srvLog
+  iintro ⟨%L, ⟨-, %Hs⟩, %h⟩
+  ipureintro
+  obtain ⟨-, -, rfl⟩ := h
+  intro v hv
+  exact stateAt_keys Hs.2 _ v (mem_underPfx.1 hv).1
+
+theorem srvEtcdState_vals (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+    srvEtcdState E r pfx s ⊢ ⌜∀ v ∈ s, v.value.length ≤ etcdKeyMax⌝ := by
+  unfold srvEtcdState srvLog
+  iintro ⟨%L, ⟨-, %Hs⟩, %h⟩
+  ipureintro
+  obtain ⟨-, -, rfl⟩ := h
+  intro v hv
+  exact stateAt_vals Hs.2 _ v (mem_underPfx.1 hv).1
 
 theorem srvEtcdState_create_persist (E : apply.AEnv GF) (r a : w64) (pfx : GoString)
     (s s' : List EtcdKv) :
@@ -338,6 +358,8 @@ def etcdModelOfServer (E : apply.AEnv GF) : EtcdModel GF where
   etcdState := srvEtcdState E
   etcdState_agree := srvEtcdState_agree E
   etcdState_revs := srvEtcdState_revs E
+  etcdState_keys := srvEtcdState_keys E
+  etcdState_vals := srvEtcdState_vals E
   etcdState_create_persist := srvEtcdState_create_persist E
   etcdState_modrev_det := srvEtcdState_modrev_det E
   etcdState_modrev_persist := srvEtcdState_modrev_persist E
@@ -388,7 +410,7 @@ theorem etcdReached_of_certOk (E : apply.AEnv GF) (log : Log) (r : w64)
 path's): the state at revision `r` of a sealed log, restricted to `pfx`, is etcd's state at `r`
 (persistent), and well formed under `pfx`. -/
 theorem etcdState_of_sealed (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoString)
-    (h0 : 0 ≤ sint.Z r) (h : sint.Z r < log.length) :
+    (h0 : 0 ≤ sint.Z r) (h : sint.Z r < log.length) (hk : mvcc.LogPutsLe etcdKeyMax log) :
     storeSmall E.γ ∗ idxSealed E.γ.idx log ⊢
       □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAt log (sint.Z r).toNat)) ∗
       ⌜EtcdStateWf pfx (underPfx pfx (stateAt log (sint.Z r).toNat))⌝ := by
@@ -401,22 +423,22 @@ theorem etcdState_of_sealed (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoS
     unfold srvEtcdState srvLog
     iexists log
     isplitl
-    · iframe H; ipureintro; exact Hs
+    · iframe H; ipureintro; exact ⟨Hs, hk⟩
     ipureintro; exact ⟨h0, h, rfl⟩
   · ipureintro; exact underPfx_wf log _ pfx
 
 /-- **etcd's state at a certified revision** (`etcdState_of_sealed`: a certified log is
 sealed). -/
 theorem etcdState_of_cert (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoString)
-    (h0 : 0 ≤ sint.Z r) (h : sint.Z r < log.length) :
+    (h0 : 0 ≤ sint.Z r) (h : sint.Z r < log.length) (hk : mvcc.LogPutsLe etcdKeyMax log) :
     storeSmall E.γ ∗ idxCert E.γ.idx log ⊢
       □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAt log (sint.Z r).toNat)) ∗
       ⌜EtcdStateWf pfx (underPfx pfx (stateAt log (sint.Z r).toNat))⌝ :=
-  (sep_mono_right (idxCert_sealed E.γ.idx log)).trans (etcdState_of_sealed E log r pfx h0 h)
+  (sep_mono_right (idxCert_sealed E.γ.idx log)).trans (etcdState_of_sealed E log r pfx h0 h hk)
 
 /-- `etcdState_of_sealed` at a log's last revision. -/
 theorem etcdState_of_sealed_last (E : apply.AEnv GF) (log : Log) (pfx : GoString)
-    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) :
+    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) (hk : mvcc.LogPutsLe etcdKeyMax log) :
     storeSmall E.γ ∗ idxSealed E.γ.idx log ⊢
       □ etcdState (self := etcdModelOfServer E) (W64 ((log.length : Int) - 1)) pfx
           (underPfx pfx (stateAfter log)) ∗
@@ -425,16 +447,16 @@ theorem etcdState_of_sealed_last (E : apply.AEnv GF) (log : Log) (pfx : GoString
   have hst : stateAt log (sint.Z (W64 ((log.length : Int) - 1))).toNat = stateAfter log := by
     rw [hr, show ((log.length : Int) - 1).toNat = log.length - 1 by omega, stateAt_last]
   rw [← hst]
-  exact etcdState_of_sealed E log _ pfx (by omega) (by omega)
+  exact etcdState_of_sealed E log _ pfx (by omega) (by omega) hk
 
 /-- `etcdState_of_cert` at a log's last revision. -/
 theorem etcdState_of_cert_last (E : apply.AEnv GF) (log : Log) (pfx : GoString)
-    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) :
+    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) (hk : mvcc.LogPutsLe etcdKeyMax log) :
     storeSmall E.γ ∗ idxCert E.γ.idx log ⊢
       □ etcdState (self := etcdModelOfServer E) (W64 ((log.length : Int) - 1)) pfx
           (underPfx pfx (stateAfter log)) ∗
       ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ :=
-  (sep_mono_right (idxCert_sealed E.γ.idx log)).trans (etcdState_of_sealed_last E log pfx h2 h3)
+  (sep_mono_right (idxCert_sealed E.γ.idx log)).trans (etcdState_of_sealed_last E log pfx h2 h3 hk)
 
 /-! ### A put's revision -/
 

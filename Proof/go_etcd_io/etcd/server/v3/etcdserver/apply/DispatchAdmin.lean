@@ -510,7 +510,8 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAu.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAu
     have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
-    have hnm : (apply.AdminReq.authenticate x.name x.simpleToken).nameOk := trivial
+    have hnm : (apply.AdminReq.authenticate x.name x.simpleToken).nameOk := by
+      have h := Hadmk; unfold apply.adminKindOk at h; rw [hk] at h; exact h.2 x hs
     ihave Hx : (apply.AdminReq.authenticate x.name x.simpleToken).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *

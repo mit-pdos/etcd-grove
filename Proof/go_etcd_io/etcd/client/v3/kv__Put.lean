@@ -33,7 +33,7 @@ theorem kv.Put.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci cd key val sl gs Sp Qp
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
@@ -42,6 +42,8 @@ theorem kv.Put.wp_generic
       (fun _ => iprop(True)) (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ [Hrun]
     as %r %err Hout
   · iframe #
+    isplitl [Hrun]; rotate_left
+    · ipureintro; exact Hsz
     unfold doRunGen
     iright
     ileft
@@ -84,7 +86,7 @@ theorem kv.Put.wp_members
     (wp_Put : kv.Put.specG (GF := GF) (hG := hG)) :
     kv.Put.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key val sl gs Q F
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
   obtain ⟨Hnp, Ht, Hl⟩ := Hnp
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
@@ -96,6 +98,8 @@ theorem kv.Put.wp_members
   · ipureintro; exact ⟨Hnp, Ht⟩
   isplitl []
   · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcPut ms) $$ Hregs
+  isplitl [Hrun]; rotate_left
+  · ipureintro; exact Hsz
   iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
     ((putSpec_of ms F (putWireOf (opPutModel key val gs)) Q Hl).trans
       (attemptPre_md conn (GoInterface.ok ci) (kvPutSpec ms) _ _)))
@@ -107,7 +111,7 @@ theorem kv.Put.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key val sl gs Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht, Hl⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
@@ -115,6 +119,8 @@ theorem kv.Put.wp_proof
   wp_apply wp_Do api γ dup ci cd opv (opPutModel key val gs) Q $$ [Hrun]
     as %r %err Hout
   · iframe #
+    isplitl [Hrun]; rotate_left
+    · ipureintro; exact Hsz
     unfold doRunOk
     iright
     ileft

@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem Queue.Enqueue.wp_proof (hNUK : newUniqueKV.spec (GF := GF) (hG := hG)) :
     Queue.Enqueue.spec (GF := GF) (hG := hG) := by
   intro q client kp val lo
-  wp_start as ⟨#Hq, #Hlo⟩
+  wp_start as ⟨#Hq, #Hlo, %Hv⟩
   iunfold isQueue at Hq
   icases Hq with ⟨#Hqc, -, #Hqk, %Hkp, #Hcl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   wp_auto
   wp_apply hNUK kv kp kp val lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
-  · ipureintro; exact List.prefix_refl kp
+  · ipureintro; exact ⟨List.prefix_refl kp, by omega, Hv⟩
   icases Hres with (⟨%Heq, %key, %r, -, #Hr, #Hc, %Hrr⟩ | %Hne)
   · subst Heq
     (try wp_auto)

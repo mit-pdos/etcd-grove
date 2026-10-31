@@ -100,32 +100,6 @@ theorem OpT.chosenL_take_succ (ts : List OpT) (rs : List TxnOpResult) (i : Nat) 
   rw [this]
   simp
 
-theorem OpT.txnOps_length : ∀ (ts : List OpT) (ops : List TxnOp),
-    OpT.txnOps ts = some ops → ops.length = ts.length
-  | [], ops, h => by simp [OpT.txnOps] at h; subst h; rfl
-  | t :: ts, ops, h => by
-    simp only [OpT.txnOps] at h
-    split at h
-    · rename_i a b _ hb
-      simp at h; subst h
-      simp [OpT.txnOps_length ts b hb]
-    · simp at h
-
-theorem OpT.txnOps_getElem : ∀ (ts : List OpT) (ops : List TxnOp) (i : Nat) (t : OpT),
-    OpT.txnOps ts = some ops → ts[i]? = some t → ∃ op, t.txnOp = some op ∧ ops[i]? = some op
-  | [], _, _, _, _, h => by simp at h
-  | t' :: ts, ops, i, t, h, hi => by
-    simp only [OpT.txnOps] at h
-    split at h
-    · rename_i a b ha hb
-      simp at h; subst h
-      rcases i with _ | i
-      · simp at hi; subst hi; exact ⟨a, ha, rfl⟩
-      · simp at hi
-        obtain ⟨op, h1, h2⟩ := OpT.txnOps_getElem ts b i t hb hi
-        exact ⟨op, h1, by simpa using h2⟩
-    · simp at h
-
 theorem OpT.txnOp_txn (o : OpFull) (cs : List CmpModel) (ts es : List OpT) (op : TxnOp)
     (h : (OpT.txn o cs ts es).txnOp = some op) :
     ∃ a b, op = .txn cs a b ∧ OpT.txnOps ts = some a ∧ OpT.txnOps es = some b := by
@@ -141,33 +115,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
-
-theorem opListAtC_length (c : Bool) :
-    ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT),
-      opListAtC (GF := GF) c vs ts ⊢ ⌜vs.length = ts.length⌝
-  | [], [] => by iintro -; ipureintro; rfl
-  | [], _ :: _ => by simp only [opListAtC]; iintro H; iexfalso; iexact H
-  | _ :: _, [] => by simp only [opListAtC]; iintro H; iexfalso; iexact H
-  | v :: vs, t :: ts => by
-    simp only [opListAtC]
-    iintro ⟨-, H⟩
-    ihave %h := opListAtC_length c vs ts $$ H
-    ipureintro; simp [h]
-
-/-- The first of the trees `drop i`. -/
-theorem opListAtC_drop (c : Bool) (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT)
-    (i : Nat) (v : go_etcd_io.etcd.client.v3.Op) (t : OpT) (hv : vs[i]? = some v)
-    (ht : ts[i]? = some t) :
-    opListAtC (GF := GF) c (vs.drop i) (ts.drop i) ⊢
-      opTAtC c v t ∗ opListAtC c (vs.drop (i + 1)) (ts.drop (i + 1)) := by
-  have hvi : i < vs.length := (List.getElem?_eq_some_iff.1 hv).1
-  have hti : i < ts.length := (List.getElem?_eq_some_iff.1 ht).1
-  rw [List.drop_eq_getElem_cons hvi, List.drop_eq_getElem_cons hti]
-  have e1 : vs[i] = v := (List.getElem?_eq_some_iff.1 hv).2
-  have e2 : ts[i] = t := (List.getElem?_eq_some_iff.1 ht).2
-  rw [e1, e2]
-  simp only [opListAtC]
-  exact .rfl
 
 
 theorem txnOpsRespN_length :
@@ -200,35 +147,6 @@ theorem txnOpsRespN_get :
       iintro ⟨-, H⟩
       iapply txnOpsRespN_get ps ops rs i p op r h1 h2 h3 $$ H
 
-
-/-- The `i`-th tree of a list of trees (any capacity flag). -/
-theorem opListAtC_get (c : Bool) :
-    ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT) (i : Nat)
-      (v : go_etcd_io.etcd.client.v3.Op) (t : OpT), vs[i]? = some v → ts[i]? = some t →
-      opListAtC (GF := GF) c vs ts ⊢ opTAtC c v t ∗ True
-  | [], _, _, _, _, h, _ => by simp at h
-  | _ :: _, [], _, _, _, _, h => by simp at h
-  | v' :: vs, t' :: ts, i, v, t, hv, ht => by
-    simp only [opListAtC]
-    rcases i with _ | i
-    · simp at hv ht; subst hv ht
-      iintro ⟨H, -⟩; iframe H
-    · simp at hv ht
-      iintro ⟨-, H⟩
-      iapply opListAtC_get c vs ts i v t hv ht $$ H
-
-/-- The lists of trees of an appended slice. -/
-theorem opListAtC_append (c : Bool) :
-    ∀ (vs1 vs2 : List go_etcd_io.etcd.client.v3.Op) (ts1 ts2 : List OpT),
-      opListAtC (GF := GF) c vs1 ts1 ∗ opListAtC c vs2 ts2 ⊢ opListAtC c (vs1 ++ vs2) (ts1 ++ ts2)
-  | [], vs2, [], ts2 => by simp only [List.nil_append, opListAtC]; iintro ⟨-, H⟩; iexact H
-  | [], _, _ :: _, _ => by simp only [opListAtC]; iintro ⟨H, -⟩; iexfalso; iexact H
-  | _ :: _, _, [], _ => by simp only [opListAtC]; iintro ⟨H, -⟩; iexfalso; iexact H
-  | v :: vs1, vs2, t :: ts1, ts2 => by
-    simp only [List.cons_append, opListAtC]
-    iintro ⟨⟨H1, H2⟩, H3⟩
-    iframe H1
-    iapply opListAtC_append c vs1 vs2 ts1 ts2 $$ [$H2 $H3]
 
 /-! ## Lists of values related elementwise (`opsAt`, `cmpsAt`) -/
 

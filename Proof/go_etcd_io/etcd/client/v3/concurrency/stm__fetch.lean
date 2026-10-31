@@ -34,7 +34,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     (hAdd : readSet.add.spec (GF := GF) (hG := hG)) :
     stm.fetch.spec (GF := GF) (hG := hG) := by
   intro b pfx reads gs ksl ks
-  wp_start as ⟨#Henv, Hrs, Hopts, %Hgs, #Hks, %Hpk⟩
+  wp_start as ⟨#Henv, Hrs, Hopts, %Hgs, #Hks, %Hpk, %Hsz⟩
   ihave %Hlen := ownSlice_len $$ Hks
   wp_auto
   wp_if_destruct
@@ -226,6 +226,10 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     wp_apply HCommit $$ %(ks.map (fun k => opGetModel k gs)) %(W64 0) [$HB $H0] as %resp %err #Hres
+    · ipureintro
+      refine fetchTxn_size (fun k => ⟨(readOp_fields k gs Hgs).2.1, (readOp_fields k gs Hgs).2.2.1,
+        ?_⟩) Hsz.1 Hsz.2
+      rcases Hgs with rfl | rfl | ⟨S, rfl⟩ <;> simp [op_simps]
     iunfold readTxnResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %r, %hdr, %rsl, %ps, #HH, %Hhdr, #HRev, #HSucc, #HR, #Hps, #Hr, %Hrr, #Hops⟩)
     · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

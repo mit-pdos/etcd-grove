@@ -35,7 +35,7 @@ premise on the keys under `kp`, `seqKeyPutAt_order`, `seqKeyPutAt_created`); or 
 abbrev PriorityQueue.Enqueue.spec : Prop :=
   ∀ (q client : Loc) (key val : GoString) (pr : w16) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isPriorityQueue q client key ∗ etcdReached lo }}
+      isPriorityQueue q client key ∗ etcdReached lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
     (App (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Enqueue")) (Val #val))
       (Val #pr))
   {{ (err : GoInterface), RET #err;

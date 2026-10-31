@@ -78,7 +78,8 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvAppliedInvM on s E γr ∗ srvKVInvsM on s E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
@@ -439,6 +440,127 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     iframe HQ0
     ipureintro; exact HpL
 
+
+/-- **The mode-`on` model of a log with short keys, from a start with none, has none**
+(`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
+theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logPutsOk A →
+      mvcc.LogPutsLe etcdKeyMax s₀.2 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
+  | s₀, [], _, hl => hl
+  | s₀, m :: A, hA, hl => by
+    have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
+    rw [hk]
+    apply kvRaftOfOn_keys c₀ ch _ A (fun m' h => hA m' (by simp [h]))
+    have hm := hA m (by simp)
+    unfold kvEntryOn
+    split
+    · split
+      · split
+        · exact hl
+        · split
+          · exact hl
+          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+      · exact hl
+    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+
+/-- **A certified sealed log has short keys, in either auth mode** (2026-10-30,
+`notes/keylen.md`): with the KV core in the mode `on` and a sealed log `B` of at least two
+revisions with short keys (the start log `[[], []]`), a sealed log `l` the server certified has
+short keys: `l` is the mode's model of a committed raft prefix (`kv_cert_read`,
+`kv_cert_read_on`), whose entries the KV invariant keeps short (`kvWork`'s `logPutsOk`, from the
+start log's), or has at most two revisions (then a prefix of `B`, the sealed logs being in prefix
+order). -/
+theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool)
+    (E : apply.AEnv GF) (γr : ReadNames) (B l : mvcc.Log) (hB : 2 ≤ B.length)
+    (hBk : mvcc.LogPutsLe etcdKeyMax B) :
+    ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx B -∗ mvcc.idxSealed E.γ.idx l -∗
+      mvcc.certOk E.γ l ={⊤}=∗ ⌜mvcc.LogPutsLe etcdKeyMax l⌝ := by
+  have hshort : l.length ≤ 2 → (B <+: l ∨ l <+: B) → mvcc.LogPutsLe etcdKeyMax l := by
+    intro hl h
+    rcases h with h | h
+    · have hlen := h.length_le
+      rw [← h.eq_of_length (by omega)]; exact hBk
+    · exact hBk.prefix h
+  cases on
+  · rw [srvKVCoreM_false]
+    iintro #Hinvs #HB #Hl #Hc
+    iunfold srvKVInvs at Hinvs
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
+    imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l $$ HcI Hc with Hcase
+    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
+    · iframe HB Hl
+    icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+    · imodintro; ipureintro; exact hshort hl Hp0
+    iunfold kvInv at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    ihave #Hw2 := Hw
+    iunfold kvWork at Hw2
+    icases Hw2 with ⟨%Hws, -⟩
+    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+    imod Hclose $$ [HLf Hσ'] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imodintro
+    ipureintro
+    obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+    rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
+    unfold kvModel
+    exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2
+  · rw [srvKVCoreM_true]
+    iintro #Hinvs #HB #Hl #Hc
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l
+      $$ HcI Hc with Hcase
+    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
+    · iframe HB Hl
+    icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+    · imodintro; ipureintro; exact hshort hl Hp0
+    iunfold kvInvOn at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+    ihave #Hw2 := Hw
+    iunfold kvWorkOn at Hw2
+    icases Hw2 with ⟨%Hws, -⟩
+    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+    imod Hclose $$ [HLf Hσ' Hh] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+    imodintro
+    ipureintro
+    obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
+      (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+    rw [← hA]
+    unfold kvModelOn
+    rw [hAL]
+    exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2
+
+/-- **A log the server certified has short keys** (2026-10-30, `notes/keylen.md`): what a request
+handler holds of the log it read or wrote (its `idxCert` and `certOk`), with the server's read
+view, whose floor is a certified log of at least two revisions with short keys
+(`srvKVCoreM_keys`). -/
+theorem readM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool) (s : Loc)
+    (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ isServerReadM on s E γr -∗ mvcc.idxCert E.γ.idx l -∗ mvcc.certOk E.γ l ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax l⌝ := by
+  iintro #Hsrd #Hc #Hok
+  ihave #Hcore := srvKVCoreM_of_readM on s E γr $$ Hsrd
+  iunfold isServerReadM at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAtM at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%B, #HB, %hB⟩, -⟩
+  ihave #HBs := mvcc.idxCert_sealed E.γ.idx B $$ HB
+  ihave #Hls := mvcc.idxCert_sealed E.γ.idx l $$ Hc
+  iapply (srvKVCoreM_keys on E γr B l hB.1 hB.2) $$ Hcore HBs Hls Hok
+
+/-- `readM_keys` in the mode `off` (`isServerRead`). -/
+theorem read_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (s : Loc)
+    (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ isServerRead s E γr -∗ mvcc.idxCert E.γ.idx l -∗ mvcc.certOk E.γ l ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax l⌝ :=
+  readM_keys false s E γr l
 
 end defs
 

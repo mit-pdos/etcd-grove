@@ -294,7 +294,8 @@ A `UserAdd`'s password choice cannot fail (`UserAddModel.pwSure`, the server's o
 2026-10-28) And `Authenticate`, which writes nothing (`GetUser` only reads its name: no key bound),
 in a request needing no admin permission (`needAdminPermission` reads the request's fields, the
 dispatch its first: a request with an admin field beside it would pass the admin check and still
-dispatch `Authenticate`; the server proposes it alone). -/
+dispatch `Authenticate`; the server proposes it alone), its token prefix one the provider makes
+(`auth.tokPrefixOk`, 2026-10-30: no space, so a token's `"Bearer "` trim leaves it as issued). -/
 def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
@@ -303,7 +304,8 @@ def adminKindOk (rq : IRRModel) : Prop :=
   | .authRoleGrantPermission =>
       ∀ n w, rq.authRoleGrantPermission = some (n, w) → n.length ≤ backend.maxKeySize
   | .authEnable => True
-  | .authenticate => needAdminPermission rq = false
+  | .authenticate => needAdminPermission rq = false ∧
+      ∀ am, rq.authenticate = some am → auth.tokPrefixOk am.simpleToken
   | _ => False
 
 /-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`

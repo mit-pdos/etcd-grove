@@ -36,6 +36,36 @@ authkv_SetUp: context_WithTimeoutBackgroundMd context_ErrAny authkv_Principals a
 # the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
 client_v3_New: @
 authkv_newUserClient: client_v3_New
-authkv_Work: authkv_keyOf authkv_reqCtx authkv_refused authkv_checkKVs authkv_checkTxnReads authkv_Permitted context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
+# Work's builders (client/v3's, re-linked as linkvtxn's and leasing's) and the watch (the auth-on
+# `Watch`, client/v3's `Link.lean`)
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+Value:
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__Clone: cloneCompare
+Cmp__ensureCompare:
+mustInt64:
+mustInt64orLeaseID: mustInt64
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+OpTxn: Cmp__Clone
+WithRange:
+getPrefix:
+WithPrefix: getPrefix
+WithRev:
+watcher__Watch: @
+common_Collect: @
+authkv_Work: authkv_keyOf authkv_reqCtx authkv_refused authkv_checkKVs authkv_checkTxnReads authkv_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev watcher__Watch
+# `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
+# its proof takes the named premises `auth.ValidSpec` and `authSchemaSrv`, `Results.lean`'s
+# `authkv_startServer`), `Serve`'s auth-on spec (`=common.wp_ServeOn`, `common/LinkOn.lean`), the
+# client, and the auth store's `BcryptCost` (the server's `Link.lean`)
+zap_NewNop:
+authkv_startServer: ?
+common_NewClient: @
 # `Main`: its proof over the stubs (notes/authkv-main-plan.md)
-authkv_Main: authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn
+authkv_Main: zap_NewNop authkv_startServer =common.wp_ServeOn common_NewClient =auth.authStore.wp_BcryptCost context_ErrAny authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn context_WithTimeoutBackground common_Collect watcher__Watch WithPrefix WithRev WithRange authkv_Permitted

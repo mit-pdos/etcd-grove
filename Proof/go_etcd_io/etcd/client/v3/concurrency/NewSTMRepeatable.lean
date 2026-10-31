@@ -56,7 +56,7 @@ theorem NewSTMRepeatable.wp_proof (hNew : NewSTM.spec (GF := GF) (hG := hG))
     · simp only [List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at Hf Hg
       subst Hf Hg; iexact Hf1
     · simp at Hf
-  wp_apply hNew c pfx apply Q _ [id, withIsoM isoRR] lo $$ [$Hpkg $Hcl $Happ $Hopts $Hlo]
+  wp_apply hNew c pfx 0 apply Q _ [id, withIsoM isoRR] lo $$ [$Hpkg $Hcl $Happ $Hopts $Hlo]
     as %resp %err #Hres
   · ipureintro
     refine ⟨by simp [stmOptsFold, STMOpts.init, withIsoM, isoValid], ?_⟩

@@ -36,7 +36,7 @@ prefix `pfx` of `kv`'s contracts), knowing etcd has reached `lo`: the transactio
 abbrev deleteRevKey.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key : GoString) (rev lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗
-      ⌜pfx <+: key ∧ 0 < sint.Z rev⌝ }}
+      ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ key.length ≤ 2 ^ 28⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.deleteRevKey))
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #rev))
   {{ (ok : Bool) (err : GoInterface), RET (PairV #ok #err);

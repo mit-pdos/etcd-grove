@@ -52,7 +52,7 @@ theorem auth.authStore.UserDelete.wp_tie
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
   iunfold tokenProviderOkA at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -, -⟩
   subst Htpi
   iunfold userDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩

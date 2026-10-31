@@ -31,7 +31,7 @@ abbrev leasingKV.revokeRange.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (b e : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ sessionReady γ ∗ context.isContext ctx cs ∗
-      context.isCancelCtxCtx ctx cs }}
+      context.isCancelCtxCtx ctx cs ∗ ⌜b.length ≤ 2 ^ 27 ∧ e.length ≤ 2 ^ 27⌝ }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"revokeRange")) (Val #(GoInterface.ok ctx))) (Val #b)) (Val #e))
   {{ (maxRev : w64) (err : GoInterface), RET (PairV #maxRev #err); lkvReader lkv γ pfx }}
 

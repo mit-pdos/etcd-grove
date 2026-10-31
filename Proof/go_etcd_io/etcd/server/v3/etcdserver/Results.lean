@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Authenticate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthSteps
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthFuel
@@ -591,7 +592,8 @@ context's).
 **`txn_readonly`** (linked `EtcdServer.Txn` at a read-only request): the server's run of the
 transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
 unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request,
-with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2): the apply
+with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2; within protobuf's
+recursion limit, `apply.txnDepthOk`, 2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`): the apply
 thread's application of the request the proposed data decode to (`txnAppliedOk`, with `□ Q` of the
 state the update linearized at: unit W-M3, the state of the log the transaction met),
 possibly with header-only ranges (`SkipRangeExecution`: the apply loops call the wait's
@@ -726,6 +728,8 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   · iframe #; iframe Hlt Hcr Hrc Hct Hot
     isplitr
     · ipureintro; exact fun _ => Hg
+    isplitr
+    · ipureintro; intro h; cases h
     iunfold kvDep; iright; ipureintro; rfl
   inext
   iintro %resp %err ⟨Hlt, Hrc, Hcr, H⟩
@@ -736,7 +740,7 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
 theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
     (Q : KVState → IProp GF) (ot : Option Loc) (te : Bool) (F : mvcc.Log)
-    (hw : txn.txnReadonly t = false) :
+    (hw : txn.txnReadonly t = false) (hd : apply.txnDepthOk t) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
@@ -752,7 +756,7 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
   have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F
   simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
-  · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact fun h => h.elim
+  · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact ⟨fun h => h.elim, fun _ => hd⟩
   inext
   iintro %resp %err ⟨Hlt, Hrc, H⟩
   iapply HΦ
@@ -1922,7 +1926,8 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
         auth.simpleWaitOk p ⊢
       auth.tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
-  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof p γa
+  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof
+    auth.tokenSimple.wp_genTokenPrefix p γa
 
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
 `auth/NewAuthStoreOn.lean`): over the store's backend contracts and the token provider's, the
@@ -1948,11 +1953,17 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
         auth.tpAdmin stp (.on γa) ∗ Post ∗ auth.authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [auth.bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
-  auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
+          auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} := by
+  iintro %Φ Hpre HΦ
+  iapply (auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
     auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa R P f T A Pre Q Post hs stl hlast
-    hfit hempty
+    hfit hempty) $$ Hpre
+  iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, Hr⟩
+  iapply HΦ
+  iexists stp, hs'
+  iframe
+  ipureintro; exact ⟨Heq, Hh⟩
 
 /-- **`NewAuthStore` at the server's boot, in the mode `on γa`** (the auth plan's E2e;
 `auth.newAuthStore_boot`, `Proof/go_etcd_io/etcd/server/v3/auth/Boot.lean`): the auth names
@@ -2015,6 +2026,7 @@ with auth on (`notes/decisions.md`, "E2i of the auth plan"). -/
 theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : authSrvTP (GF := GF) (hG := hG) true :=
   authSrvTP_on auth.wp_NewTokenProvider hValid zap.Logger.wp_Debug zap.String.wp_proof
+    auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
     auth.authStore.wp_AuthInfoFromCtx auth.authStore.wp_AuthInfoFromTLS
@@ -2036,7 +2048,8 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
       auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String
       zap.wp_ByteString zap.Logger.wp_Info)
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
-      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) hD22
+      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write)
+    auth.authStore.wp_CheckPassword auth.authStore.wp_GenTokenPrefix hD22
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
@@ -2129,7 +2142,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
           γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
-          γk.ids.issued = issued⌝ ∗
+          γk.ids.issued = issued ∧ γk.cmp = false⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2153,7 +2166,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
-          ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist⌝ ∗
+          ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
   srvMemberBootOn_alloc γ cnt γk id cok
@@ -2327,6 +2340,14 @@ theorem server_user_grant_role_on : EtcdServer.UserGrantRole.specOn (GF := GF) (
 theorem server_role_grant_permission_on :
     EtcdServer.RoleGrantPermission.specOn (GF := GF) (hG := hG) :=
   EtcdServer.RoleGrantPermission.wp_proofOn server_raft_request_on
+
+/-- **`Authenticate` with auth on** (C1's A4, 2026-10-31): the read index, then the retry loop of
+`CheckPassword`, `GenTokenPrefix` and one proposal in the mode `on` (`server_raft_request_on`); on
+`nil` an `*AuthenticateResponse` whose token was issued to the request's user. Every callee
+linked; the auth store's side is the premise `authnStoreOk`. -/
+theorem server_authenticate_on : EtcdServer.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Authenticate.wp_proof server_raft_request_on EtcdServer.wp_Logger EtcdServer.wp_AuthStore
+    zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_String zap.wp_Error errors.wp_Is
 
 end serverProposeOn
 

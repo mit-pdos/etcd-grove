@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.NewQuotaKVServer.wp_proof
     (wp_NewKVServer : v3rpc.NewKVServer.spec (GF := GF) (hG := hG)) :
     v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) := by
-  intro s A n lg qb Hbuq
+  intro s A n lg qb Hbuq Hmx
   wp_start as ⟨#HKV, #Hn, #Hlg, %Hlgn, #Hqb⟩
   wp_auto
-  wp_apply wp_NewKVServer s A n $$ [] as %kv ⟨%p, %cid, %mid', %Hkv, #Hp⟩
+  wp_apply wp_NewKVServer s A n Hmx $$ [] as %kv ⟨%p, %cid, %mid', %Hkv, #Hp⟩
   · iframe #
   subst Hkv
   wp_alloc q as Hqv

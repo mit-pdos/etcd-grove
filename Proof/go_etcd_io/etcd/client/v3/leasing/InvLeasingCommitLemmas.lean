@@ -120,6 +120,124 @@ theorem runTxn_outer (r : w64) (s : List EtcdKv) (m : TxnModel) (ms : List CmpMo
   refine ⟨rfl, rfl, ?_⟩
   simp [txnWrote, TxnOpResult.wrote, TxnOpResult.wroteL_eq]
 
+/-! ### The size of `serverTxn`'s transaction (`LTxnBuild.sizeOk`) -/
+
+/-- A plain operation's `TxnOp` keeps its strings, and is one node. -/
+theorem txnOpOf_bytesLe {N : Nat} {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op)
+    (hs : OpShape N N N o) : op.bytesLe N ∧ op.nodes = 1 := by
+  obtain ⟨h1, h2, h3⟩ := hs
+  unfold txnOpOf at h
+  repeat' (first | (split at h) | (simp only [Option.some.injEq, reduceCtorEq] at h))
+  all_goals (subst h; refine ⟨?_, by rw [TxnOp.nodes]; simp⟩; rw [TxnOp.bytesLe]; omega)
+
+theorem mapM_txnOpOf_mem : ∀ (os : List OpFull) (ops : List TxnOp),
+    os.mapM txnOpOf = some ops → ops.length = os.length ∧ ∀ op ∈ ops, ∃ o ∈ os, txnOpOf o = some op
+  | [], ops, h => by simp at h; subst h; simp
+  | o :: os, ops, h => by
+    simp only [List.mapM_cons, Option.bind_eq_bind] at h
+    cases h1 : txnOpOf o with
+    | none => simp [h1] at h
+    | some a =>
+      cases h2 : os.mapM txnOpOf with
+      | none => simp [h1, h2] at h
+      | some l =>
+        simp [h1, h2] at h
+        subst h
+        obtain ⟨hl, hm⟩ := mapM_txnOpOf_mem os l h2
+        refine ⟨by simp [hl], ?_⟩
+        intro op hop
+        simp only [List.mem_cons] at hop
+        rcases hop with rfl | hop
+        · exact ⟨o, List.mem_cons_self .., h1⟩
+        · obtain ⟨o', ho', h'⟩ := hm op hop
+          exact ⟨o', List.mem_cons_of_mem _ ho', h'⟩
+
+theorem sum_map_one {α : Type} : ∀ l : List α, (l.map (fun _ => (1 : Nat))).sum = l.length
+  | [] => rfl
+  | _ :: l => by simp only [List.map_cons, List.sum_cons, List.length_cons, sum_map_one l]; omega
+
+theorem nodes_sum_of_plain (os : List OpFull) (ops : List TxnOp) (N : Nat)
+    (h : os.mapM txnOpOf = some ops) (hs : ∀ o ∈ os, OpShape N N N o) :
+    (ops.map TxnOp.nodes).sum = os.length ∧ ∀ op ∈ ops, op.bytesLe N := by
+  obtain ⟨hl, hm⟩ := mapM_txnOpOf_mem os ops h
+  have hb : ∀ op ∈ ops, op.bytesLe N ∧ op.nodes = 1 := by
+    intro op hop
+    obtain ⟨o, ho, h'⟩ := hm op hop
+    exact txnOpOf_bytesLe h' (hs o ho)
+  refine ⟨?_, fun op hop => (hb op hop).1⟩
+  rw [← hl]
+  have : ops.map TxnOp.nodes = ops.map (fun _ => 1) :=
+    List.map_congr_left (fun op hop => (hb op hop).2)
+  rw [this, sum_map_one]
+
+/-- The operations of a transaction within `LTxnBuild.sizeOk` have keys and range ends of at most
+`2 ^ 27` bytes (what `guardRanges` takes). -/
+theorem LTxnBuild.sizeOk_ops {pfx : GoString} {b : LTxnBuild} (h : b.sizeOk pfx) :
+    ∀ o ∈ b.thenOs ++ b.elseOs, o.key.length ≤ 2 ^ 27 ∧ o.base.rangeEnd.length ≤ 2 ^ 27 := by
+  intro o ho
+  obtain ⟨N, -, hs, hb⟩ := h
+  obtain ⟨h1, h2, -⟩ := hs o ho
+  have hn : 1 ≤ b.thenOs.length + b.elseOs.length := by
+    have : 0 < (b.thenOs ++ b.elseOs).length := List.length_pos_of_mem ho
+    simp only [List.length_append] at this; omega
+  have : 6 * (3 * (pfx.length + N) + 256) ≤ 2 ^ 30 :=
+    Nat.le_trans (Nat.mul_le_mul_right _ (by omega)) hb
+  omega
+
+/-- **`serverTxn`'s transaction fits a gRPC message**: the guards `ms` (at most three per
+operation) and the fallback gets `fos` (at most one per operation) on the operations' prefixed keys
+and range ends, and the user's transaction nested, of a transaction within `LTxnBuild.sizeOk`. -/
+theorem serverTxn_sizeOk (pfx : GoString) (b : LTxnBuild) (tops eops : List TxnOp)
+    (ms : List CmpModel) (fos : List OpFull) (hsz : b.sizeOk pfx)
+    (Ht : b.thenOps = some tops) (He : b.elseOps = some eops)
+    (hms : ms.length ≤ 3 * (b.thenOs ++ b.elseOs).length ∧
+      ∀ c ∈ ms, guardOf pfx (b.thenOs ++ b.elseOs) c.key c.rangeEnd c.val)
+    (hfos : fos.length ≤ (b.thenOs ++ b.elseOs).length ∧
+      ∀ f ∈ fos, guardOf pfx (b.thenOs ++ b.elseOs) f.key f.base.rangeEnd f.val) :
+    txnSizeOk (TxnModel.mk ms [TxnOp.txn b.cmps tops eops] (fos.map TxnOp.get)) := by
+  obtain ⟨N, hc, hs, hb⟩ := hsz
+  have hs' : ∀ o ∈ b.thenOs ++ b.elseOs, OpShape (pfx.length + N) (pfx.length + N)
+      (pfx.length + N) o := by
+    intro o ho; obtain ⟨g1, g2, g3⟩ := hs o ho; exact ⟨by omega, by omega, by omega⟩
+  have hts := fun o ho => hs' o (List.mem_append_left b.elseOs ho)
+  have hes := fun o ho => hs' o (List.mem_append_right b.thenOs ho)
+  obtain ⟨htn, htb⟩ := nodes_sum_of_plain b.thenOs tops _ Ht hts
+  obtain ⟨hen, heb⟩ := nodes_sum_of_plain b.elseOs eops _ He hes
+  have hg : ∀ k e v, guardOf pfx (b.thenOs ++ b.elseOs) k e v →
+      k.length ≤ pfx.length + N ∧ e.length ≤ pfx.length + N ∧ v.length ≤ pfx.length + N := by
+    intro k e v ⟨o, ho, h1, h2, h3⟩
+    obtain ⟨g1, g2, g3⟩ := hs o ho
+    subst h3; simp only [List.length_nil]; omega
+  apply txnSizeOk_of_bounds (N := pfx.length + N)
+      (M := 5 * (b.cmps.length + b.thenOs.length + b.elseOs.length) + 1)
+  · refine ⟨?_, ?_, ?_⟩
+    · intro c hcm
+      exact hg _ _ _ (hms.2 c hcm)
+    · intro op hop
+      simp only [List.mem_singleton] at hop
+      subst hop
+      rw [TxnOp.bytesLe_txn]
+      refine ⟨?_, htb, heb⟩
+      intro c hcm
+      obtain ⟨g1, g2, g3⟩ := hc c hcm
+      exact ⟨by omega, by omega, by omega⟩
+    · intro op hop
+      simp only [List.mem_map] at hop
+      obtain ⟨f, hf, rfl⟩ := hop
+      rw [TxnOp.bytesLe]
+      exact hg _ _ _ (hfos.2 f hf)
+  · simp only [TxnModel.nodes, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
+      TxnOp.nodes_txn, htn, hen, List.map_map]
+    have : (fos.map (TxnOp.nodes ∘ TxnOp.get)).sum = fos.length := by
+      have : fos.map (TxnOp.nodes ∘ TxnOp.get) = fos.map (fun _ => 1) :=
+        List.map_congr_left (fun _ _ => by simp [TxnOp.nodes])
+      rw [this, sum_map_one]
+    rw [this]
+    have := hms.1; have := hfos.1
+    simp only [List.length_append] at *
+    omega
+  · exact hb
+
 
 end pure
 
@@ -244,7 +362,7 @@ theorem isLeasingKV_cache (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
 theorem isLeasingKV_kv (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
     isLeasingKV (GF := GF) lkv γ pfx ⊢ ∃ kv : GoInterfaceOk,
       structFieldRef leasingKV go!"kv" lkv ↦□ GoInterface.ok kv ∗ isEtcdTxnKVO kv [] ∗
-      structFieldRef leasingKV go!"pfx" lkv ↦□ pfx ∗ ⌜pfx ≠ []⌝ := by
+      structFieldRef leasingKV go!"pfx" lkv ↦□ pfx ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 26⌝ := by
   unfold isLeasingKV
   iintro ⟨%cl, %kv, %ctx, %cs, %cancel, %osl, %Hp, -, #Hkv, #Hpfx, -, -, -, -, -, #Htxn, -⟩
   iexists kv
@@ -334,28 +452,34 @@ theorem cachedKvOwns_kvPtrsAt : ∀ (cs : List CachedKv),
     · simp only [List.map_cons, List.getElem?_cons_succ] at hp hv
       iapply Hall $$ %i %p %v %hp %hv
 
-/-- The owned responses of the fallback gets, read-only (`revokeFallback`'s premise). -/
-theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List TxnOpResult),
+/-- The owned responses of the fallback gets, read-only (`revokeFallback`'s premise), with a bound
+`n` on the keys of the gets' selections bounding the keys they list. -/
+theorem fallbackResps_ro (n : Nat) : ∀ (ps : List Loc) (fos : List OpFull) (rs : List TxnOpResult),
+    (∀ x ∈ rs, ∀ sel c, x = .range sel c → ∀ w ∈ sel, w.key.length ≤ n) →
     txnOpsRespOwn (GF := GF) ps (fos.map TxnOp.get) rs ⊢
       |==> ∃ kvss : List (List EtcdKv), ⌜ps.length = kvss.length⌝ ∗
+        ⌜∀ kvs ∈ kvss, ∀ v ∈ kvs, v.key.length ≤ n⌝ ∗
         [∗list] i ↦ p ∈ ps, ∃ kvs, ⌜kvss[i]? = some kvs⌝ ∗ rangeKvsRO p kvs
-  | [], [], [] => by
+  | [], [], [], _ => by
     iintro -
     imodintro
     iexists []
     isplitr
     · ipureintro; rfl
+    isplitr
+    · ipureintro; simp
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
-  | p :: ps, o :: fos, r :: rs => by
+  | p :: ps, o :: fos, r :: rs, hrs => by
     simp only [List.map_cons, txnOpsRespOwn]
     iintro ⟨H1, H2⟩
-    imod fallbackResps_ro ps fos rs $$ H2 with ⟨%kvss, %hl, H2⟩
+    imod fallbackResps_ro n ps fos rs (fun x hx => hrs x (List.mem_cons_of_mem _ hx)) $$ H2
+      with ⟨%kvss, %hl, %hk, H2⟩
     cases r with
-    | range sel n =>
+    | range sel c =>
       simp only [txnOpRespOwn]
       icases H1 with ⟨%hp, %w, %rr, #Hu, #Hw, %hrr, H1⟩
       unfold rangeRespOwn rangeBodyOwn
-      icases H1 with ⟨%h, -, %sl, %cs, %more, Hk, Hsl, -, Hcs, -, -, -⟩
+      icases H1 with ⟨%h, -, %sl, %cs, %more, Hk, Hsl, -, Hcs, %Hok, -, -⟩
       ipersist Hk
       imod ownSlice_persist $$ Hsl with #Hsl
       imod cachedKvOwns_kvPtrsAt cs $$ Hcs with #Hcs
@@ -363,6 +487,12 @@ theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List Tx
       iexists (cs.map CachedKv.kv) :: kvss
       isplitr
       · ipureintro; simp [hl]
+      isplitr
+      · ipureintro
+        intro kvs hkvs
+        rcases List.mem_cons.1 hkvs with rfl | hkvs
+        · exact rangeKvsOk_keys Hok (hrs _ List.mem_cons_self sel c rfl)
+        · exact hk kvs hkvs
       iapply BigSepL.bigSepL_cons.2
       isplitr
       · iexists cs.map CachedKv.kv
@@ -379,10 +509,28 @@ theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List Tx
       iframe
       ipureintro; simpa using hk
     | _ => simp only [txnOpRespOwn]; iexfalso; iexact H1
-  | [], [], _ :: _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
-  | [], _ :: _, _ => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
-  | _ :: _, [], _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
-  | _ :: _, _ :: _, [] => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | [], [], _ :: _, _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | [], _ :: _, _, _ => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | _ :: _, [], _, _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | _ :: _, _ :: _, [], _ => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+
+/-- A run of gets leaves the state and selects from it. -/
+theorem runOps_gets (r : w64) (s : List EtcdKv) : ∀ fos : List OpFull,
+    runOps r s (fos.map TxnOp.get) = (s, fos.map fun o => .range (rangeSel s o) (rangeIn s o).length)
+  | [] => by simp [runOps]
+  | o :: fos => by simp [runOps, applyTxnOp, runOps_gets r s fos]
+
+/-- The gets' selections have the state's keys. -/
+theorem runOps_gets_keys (r : w64) (s : List EtcdKv) (fos : List OpFull) (n : Nat)
+    (hs : ∀ w ∈ s, w.key.length ≤ n) :
+    ∀ x ∈ (runOps r s (fos.map TxnOp.get)).2, ∀ sel c, x = .range sel c →
+      ∀ w ∈ sel, w.key.length ≤ n := by
+  rw [runOps_gets]
+  intro x hx sel c hxe w hw
+  obtain ⟨o, -, rfl⟩ := List.mem_map.1 hx
+  cases hxe
+  unfold rangeSel rangeIn at hw
+  exact hs w ((List.mem_filter.1 (List.mem_filter.1 hw).1).1)
 
 /-- The user's transaction `OpTxn(cs, opst, opse)` as an operation tree. -/
 theorem userTxn_tree (uv : go_etcd_io.etcd.client.v3.Op) (ms : List CmpModel) (tsl esl : GoSlice)

@@ -327,6 +327,20 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
     ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
 
+/-- **The member's compaction mode, read off its boot bundle with auth on** (`memberBoot_cmp`'s). -/
+theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
+    memberBootOn γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBootOn γ ctxs ρ E₀ Φs id cmp := by
+  iintro H
+  iunfold memberBootOn at H
+  icases H with ⟨%Hρ, Hr⟩
+  isplitr
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
+  iunfold memberBootOn
+  isplitr
+  · ipureintro; exact Hρ
+  iexact Hr
+
 /-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
 `NewServer.specM true` and `Start.specOn`): at an apply environment in the mode `.on γa`, the
 request and read views in the mode (`isServerReqM true`, `isServerReadM true`) and the store's range
@@ -348,7 +362,11 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗
+    -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
+    -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
+    -- and (C1's A4, 2026-10-31) its `Authenticate` side (`srvAuthStoreOn`)
+    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on

@@ -132,10 +132,80 @@ theorem txnModelIn_txnOf (cs : List (linkv.MCmp GoString GoString))
     refine ⟨rfl, ?_⟩
     simp [txn.cutEarly, OpFull.effSortOrder, txn.rangeOpOf, op_simps]
 
+/-! ## The inputs' sizes (2026-10-31, `notes/invoke-size.md`, pass 4) -/
+
+/-- The longest key or value of an input `Gen` returns (its strings are the workload's keys and
+one-byte values): every request it makes fits a gRPC message. -/
+abbrev inMax : Nat := 2 ^ 20
+
+/-- A model operation's strings at most `N` bytes. -/
+def mopBytesLe (N : Nat) : linkv.MOp GoString GoString → Prop
+  | .get k => k.length ≤ N
+  | .put k v => k.length ≤ N ∧ v.length ≤ N
+  | .del k => k.length ≤ N
+
+/-- A model comparison's strings at most `N` bytes. -/
+def mcmpBytesLe (N : Nat) : linkv.MCmp GoString GoString → Prop
+  | .val k v => k.length ≤ N ∧ v.length ≤ N
+  | .ver k _ => k.length ≤ N
+  | .mod k _ => k.length ≤ N
+
+/-- A model input's strings at most `N` bytes. -/
+def minBytesLe (N : Nat) : linkv.MIn GoString GoString → Prop
+  | .get k => k.length ≤ N
+  | .list => True
+  | .put k v => k.length ≤ N ∧ v.length ≤ N
+  | .del k => k.length ≤ N
+  | .txn cs t e => (∀ c ∈ cs, mcmpBytesLe N c) ∧ ∀ o ∈ t ++ e, mopBytesLe N o
+
 /-- **An input `Gen` may return** (`ValidIn`), its transactions not empty: a transaction with no
-operations is served without a linearizable read (`issues/etcd-txn-empty-serializable.md`). -/
+operations is served without a linearizable read (`issues/etcd-txn-empty-serializable.md`); its
+strings at most `inMax` bytes (its requests fit a gRPC message). -/
 def GenIn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) : Prop :=
-  ValidIn x ∧ ∀ cs t e, decIn x = some (.txn cs t e) → t ++ e ≠ []
+  ValidIn x ∧ (∀ cs t e, decIn x = some (.txn cs t e) → t ++ e ≠ []) ∧
+    ∀ i, decIn x = some i → minBytesLe inMax i
+
+theorem nodes_tOpOf : ∀ l : List (linkv.MOp GoString GoString),
+    (l.map fun o => (linkv.tOpOf o).nodes).sum = l.length
+  | [] => rfl
+  | o :: l => by
+    rw [List.map_cons, List.sum_cons, nodes_tOpOf l, List.length_cons]
+    cases o <;> simp [linkv.tOpOf, TxnOp.nodes] <;> omega
+
+/-- **A transaction input's request fits**: at most five comparisons and operations, its strings
+at most `inMax` bytes. -/
+theorem txnSizeOk_txnOf (cs : List (linkv.MCmp GoString GoString))
+    (t e : List (linkv.MOp GoString GoString)) (hl : cs.length + t.length + e.length ≤ 5)
+    (hb : minBytesLe inMax (.txn cs t e)) : txnSizeOk (linkv.txnOf cs t e) := by
+  obtain ⟨hc, ho⟩ := hb
+  refine txnSizeOk_of_bounds (N := inMax) (M := 5) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+  · intro c hc'
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 hc'
+    have := hc m hm
+    cases m <;> simp_all [mcmpBytesLe, linkv.cmpOf, CmpModel.bytesLe]
+  · intro o ho'
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ho'
+    have := ho m (List.mem_append_left _ hm)
+    cases m <;> simp_all [mopBytesLe, linkv.tOpOf, TxnOp.bytesLe, txn.rangeOpOf, txn.deleteOpOf,
+      op_simps]
+  · intro o ho'
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ho'
+    have := ho m (List.mem_append_right _ hm)
+    cases m <;> simp_all [mopBytesLe, linkv.tOpOf, TxnOp.bytesLe, txn.rangeOpOf, txn.deleteOpOf,
+      op_simps]
+  · simp only [TxnModel.nodes, linkv.txnOf, List.length_map, List.map_map]
+    have h1 := nodes_tOpOf t
+    have h2 := nodes_tOpOf e
+    simp only [Function.comp_def] at h1 h2 ⊢
+    omega
+
+theorem cmpsOfL_length (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) :
+    (cmpsOfL x).length ≤ 1 := by
+  unfold cmpsOfL; split <;> simp
+
+theorem elseOfL_length1 (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) :
+    (elseOfL x).length ≤ 1 := by
+  unfold elseOfL; split <;> simp
 
 theorem txnSerializable_txnOf (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hne : t ++ e ≠ []) :
@@ -179,6 +249,15 @@ theorem decIn_txn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)
   split at h
   · rename_i hk; exact hk.2.1
   · cases h
+
+/-- A transaction input has at most five comparisons and operations. -/
+theorem decIn_txn_length (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)
+    (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
+    (h : decIn x = some (.txn cs t e)) : cs.length + t.length + e.length ≤ 5 := by
+  obtain ⟨-, hc, ht, he⟩ := decIn_txn x cs t e h
+  rw [decAll_length _ _ _ hc, decAll_length _ _ _ ht, decAll_length _ _ _ he]
+  have := cmpsOfL_length x; have := thenOfL_length x; have := elseOfL_length1 x
+  omega
 
 theorem txnOf_branch' (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (b : Bool) :
@@ -228,7 +307,8 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 update or none (see the file header). -/
 theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (Q : KVState → IProp GF) :
+    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map client.SrvAt.addr) V ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
@@ -261,7 +341,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   wp_pures
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
-      iprop(True) Q []) $$ [] as %resp %err ⟨-, Hout⟩
+      iprop(True) Q [] hsz) $$ [] as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel listFrom [withRangeM listTo]).base.sortSet = false from rfl]
@@ -277,7 +357,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     · ipureintro; exact Herr
     ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrev, hb⟩ := Hσ
+    obtain ⟨hsel, hrev, hb, -⟩ := Hσ
     iexists m, σ
     iframe Hm HQ
     ipureintro
@@ -291,7 +371,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     (ms : List (client.SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)
-    (hne : t ++ e ≠ []) :
+    (hne : t ++ e ≠ []) (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
@@ -309,7 +389,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
               m.resps ∧
             m.hdr.revision = W64 ((if (linkv.MIn.txn cs t e).isWrite then
               (kvOpStep (opIn (.txn cs t e)) σ).rev else σ.rev : Nat) : Int) ∧
-            σ.rev + 3 < 2 ^ 63⌝) ∨
+            σ.rev + 3 < 2 ^ 63 ∧
+            -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
+            ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = linkv.txnOf cs t e := by rw [hb, txnWireOf_clientTxn]
@@ -339,7 +421,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
       exact intuitionistic_alias.trans (intuitionistically_mono (BigAndL.bigAndL_mono hm))
     ihave #Hau' := hbox $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin) $$ [Hobj]
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz) $$ [Hobj]
       as %resp %err Hout
     · iframe Hobj
       iframe #
@@ -351,7 +433,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, hser, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%log, -, -, %Hp, -, #HQ⟩
+      icases Hr with ⟨%log, -, -, %Hlk, %Hp, -, #HQ⟩
       obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
       have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := client.kvStateOf_rev_succ _ hlen
       have hs : (kvStateOf log).kvs = mvcc.stateAfter log := kvStateOf_kvs _
@@ -359,7 +441,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hm HQ
       ipureintro
       rw [hr, hs]
-      refine ⟨hok, hrel, ?_, ?_⟩
+      refine ⟨hok, hrel, ?_, ?_, mvcc.stateAfter_vals Hlk⟩
       · rw [hrev]
         (try simp only [Bool.false_eq_true, ↓reduceIte])
         rw [kvStateOf_rev]
@@ -386,7 +468,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [hw]
         iExactEq H; rfl
     ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin)
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz)
       $$ [Hobj Hau' Hone]
       as %resp %err Hout
     · iframe Hobj
@@ -402,8 +484,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
-      obtain ⟨Htw, -, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, %Hlk, HQ⟩
+      obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
       have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e tw Htw)
       subst ht hsk
       have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
@@ -412,7 +494,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hm HQ
       ipureintro
       rw [hr, hs]
-      refine ⟨hok, hrel, ?_, ?_⟩
+      refine ⟨hok, hrel, ?_, ?_,
+        mvcc.stateAfter_vals (Hlk.prefix (applyStep_prefix _ _ _ _ _ hap))⟩
       · (try simp only [↓reduceIte])
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
       · rw [kvStateOf_rev]; omega

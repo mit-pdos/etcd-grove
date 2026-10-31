@@ -83,7 +83,8 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     as %gresp %gerr ⟨-, #Hgr, -⟩
   · ipureintro
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      lastKeyOp_size (by omega)⟩
   iunfold kvGetResultR at Hgr
   icases Hgr with (%Hgne | ⟨%Hgnil, %g, #HgRev, #Hg, %Hgle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
@@ -227,6 +228,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hkey' := sprintf_slash_016d kp n key Hkey
   have Hkpk : (kp ++ go!"/") <+: key := by rw [Hkey']; exact List.prefix_append _ _
+  have HkeyL : key.length ≤ 2 ^ 28 := seqKey_length_le n Hk.2.2.1 Hkey'
   have Hpk : pfx <+: key := Hk.1.trans ((List.prefix_append _ _).trans Hkpk)
   have Hnext : SeqNext kp sg key := Hkey' ▸ seqNum_next kp sg n Hn
   iunfold getRespRev at HgRev
@@ -305,8 +307,9 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (seqBuild kp key val g) (by rfl) $$ HB
   wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
-  · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
-        (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, op_simps])⟩
+  · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2.1 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
+        (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, op_simps]),
+        seqTxn_size g Hk.2.2.1 HkeyL Hk.2.2.2⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
@@ -347,6 +350,8 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     iexists key, g, r
     unfold ownRemoteKV RemoteKVSt.val'
     iframe Hrk Hr
+    isplitr
+    · ipureintro; exact HkeyL
     isplitr
     · unfold seqKeyPutAt
       iexists sg, s0

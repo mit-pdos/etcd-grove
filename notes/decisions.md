@@ -27184,6 +27184,52 @@ accepted with no token: `anon` and `bad` share the set-up client) would go unnot
 the skip can then go.
 
 
+## Nested transactions with auth on only (2026-10-30 · `notes/txn-nested.md`, the user's Q2)
+
+The auth-on `Commit` (`client_txn_on`, `etcdTxnSpecOn`) admits writing transactions with nested
+transactions (`txnNestOk`); the auth-off one (`txn.Commit.spec`, `etcdTxnSpec`, `client_txn_any`)
+keeps `TxnModel.plain`: its response relation (`txnSpec_of`, `ServerKVTxn.srvRunTxn_wire`: `srvOp` of
+`opWire op` = `srvOp` of `op`, `plain_branch`, `flat_branch`) is proved for plain operations only. A
+scope restriction, not a second design: lifting it is the same premise change on the off side plus
+those pure lemmas at depth, to do with (or before) the auth-mode merge; the merge takes the on
+side's premise (`txnNestOk`), not `TxnModel.plain`. (`Then`/`Else` themselves take nested
+operations in both modes: the restriction is `Commit`'s.)
+
+## The simple token's prefix has no space (2026-10-30, branch `authkv-hist`)
+
+User-approved ("Strengthen auth model"). The client sends a token as gRPC metadata and etcd's server
+reads it back with `strings.TrimPrefix(token, "Bearer ")` (`v3rpc`'s token reader); authkv's `Work`
+proof needs the token it sent to be the one the server checks. With the simple token's prefix
+unconstrained, `simpleTok pre idx` could begin with `"Bearer "`, and the trim would change it.
+Go: the prefix is `genTokenPrefix`'s 16 letters (`tokenSimple`, `[a-zA-Z]`), never a space.
+- **The model** (`auth/Model.lean`): `tokPrefixOk pre := W8 32 ∉ pre`; `authnCtx` carries it, and
+  `tokShape token := ∃ pre idx, token = simpleTok pre idx ∧ tokPrefixOk pre` (`Tokens.lean`), so
+  `tokIssued_shape` gives `tokShape_trimBearer`: the trim is the identity on an issued token.
+- **Who owes it**: the served `Authenticate` (`Authenticate.specX`'s premise
+  `auth.tokPrefixOk am.simpleToken`), from the admission chain (`adminKindOk`'s `.authenticate`
+  conjunct, `AdminReq.nameOk`); in turn C1's A4-A5 (the request's `simpleToken` from
+  `genTokenPrefix`) owe it, an obligation they did not have before.
+- Rejected: an axiom on the token reader, or a `Work.spec` premise naming the trim: the fact is the
+  token provider's, where Go establishes it.
+
+## The started member exports its auth store's cost field and its TLS fallback off (2026-10-30, branch `authkv-hist`)
+
+User-approved ("Approve, prove it"; the draft of authkv Main's blockers 3 and 4,
+`notes/authkv-main-plan.md`, "Main: what blocks it"). The served Auth service's `UserAdd` needs the
+auth store's `BcryptCost()` (`bcryptCostOk`), and `SetUp`/`Work` need `□ (srvTLSId s -∗ False)`;
+the started member (`memberUpOn`) gave neither.
+- **`authStore.BcryptCost`** translated (`Code/.../auth.toml`) and proved (one load), its spec over
+  the field `bcryptCost` read-only; `bcryptCostOk_of_field` (`authkv/MainServe.lean`) turns the
+  field into `bcryptCostOk`.
+- **Exported along the chain**: `auth.newAuthStore_on`'s post gains the field (`↦□`, made
+  read-only before the store is returned); `authStoreKit`'s, under `M.isOn = true`;
+  `NewServer.specM`'s post gains the configuration's `ClientCertAuthEnabled` field and
+  `□ (⌜on = true⌝ → srvBcryptField srv)`; `common.memberUpOn` gains `□ (srvTLSId s -∗ False)`
+  (`srvTLSId_false` at the composite literal's `false`) and `srvBcryptField s`. `startServer`
+  stays proved. `etcdserver/Results.lean`'s `auth_store_new_on` keeps its statement (drops the
+  new conjunct).
+- Only in the mode `on`: `auth.NewAuthStore`'s axiom (the auth-off store) is untouched.
+
 ## G2's freeze: `srvKVFacts` in either auth mode (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze"; the user's approval)
 
 **What.** `watcher.Watch.spec`'s premise `isClientWatcher V w` (and `watchAddrFacts V`, which
@@ -27335,3 +27381,369 @@ The agent's, reversible, for the user to review.
   applies; its consumer is the snapshot track's restore (#8, `c ≤ c'`), whose re-tie is item 17's
   (the collaborator's). Adding it now would move the snapshot track's `kvApplied` producers for no
   use; it lands with `applyEntryNormal`'s compaction arm, after `srvEnvOkD`.
+## The encoded-size bound at grpc's send side (2026-10-30 · accepted, the user's approval Q1-Q6 · `notes/invoke-size.md`)
+
+**Why:** the axiom review `axiom/txn-nested-wire` refuted `grpc.ClientConn.Invoke.wp_proof`. Its
+`Attack.lean` builds a read-only Txn of `2^18 + 1` copies of one get of a `2^30`-byte key. grpc
+v1.84's `codecV2.Marshal` allocates `proto.Size` bytes (counting a shared submessage at each
+reference) before any size check, and `make` panics above `maxAlloc`. A message of two `bytes`
+fields sharing one slice does the same, so the defect is generic, not the Txn's alone.
+
+**Decision:**
+
+- **The bound.** `grpcMsgMax = 2 ^ 32`, the size at and above which grpc refuses a message with
+  an error (`encode`'s `MaxUint32` check), on 64-bit Go. A message below it neither panics nor
+  is refused for its size, so the premise excludes no possible success.
+- **The axioms and the wire models.**
+  - `grpcInvokerOk`'s pre, and the stream `SendMsg`/`Send` of `NewStream`'s post, take `⌜Req.wireLen
+    m < grpcMsgMax⌝`. The axioms are weaker, with the same names.
+  - `wireLen` is a new field of the trusted message classes (`ProtoMsg`, `StreamMsg`): an upper
+    bound on the encoding of what `send` holds. Its default, `grpcMsgMax`, means "cannot be sent".
+  - Each request instance defines its `wireLen`: payload strings plus `wireSlack = 256`.
+  - The whole-struct sends pin `unknownFields' = slice.nil`. The unknown fields of messages held
+    field by field are a stated scope, to be pinned later (Q5).
+- **The client API.** The client asks for payload bounds: `opSizeOk`, `watchSizeOk`, `txnSizeOk`
+  and `strsSizeOk`, each `≤ 2 ^ 30`. This is a scope restriction (the code sends up to `2^32`
+  less the fixed part), chosen so that a sum of a few bounded parts stays below the axiom's
+  bound with room to spare (Q2).
+- **STM (Q6).** Each Get's and Put's key and value are bounded, as are their count per run of
+  `apply` and the `WithPrefetch` keys.
+- **The server side (Q4).** `grpc.serve`'s replies take the same `prepareMsg` path, so the
+  server's handlers' contracts are known-false in the same way. This is recorded in
+  `notes/audit.md` and fixed separately.
+
+**Alternatives rejected:**
+
+- A Txn-only premise: the amplification is generic.
+- A bound in the stubs' specs only: the axiom itself was false.
+- `2 ^ 31`: no failure happens below `2 ^ 32` on the model's platform.
+
+## The receive-size fact (2026-10-30 · accepted, the user's choice (a) · `notes/invoke-size.md`, "Receive-size fact")
+
+**Why:** the send-side bound (the previous entry) makes `concurrency`'s mutex and election take a
+bound on their prefix and values. The Lock and Election servers (`v3lock`, `v3election`) build
+them on names, keys and values taken from the request they received. Their in-process client
+(`v3client.New`) does no marshalling, but their client contracts (`isEtcdMutexClient`) are the
+size-bounded ones, so the servers need a bound on what they receive. The user chose (a): a trusted
+fact about grpc's server receive, rather than a premise nothing discharges (b) or an
+error branch in the contracts (c).
+
+**Decision:**
+
+- **The fact.** `v3rpc.grpcRecvBytesOk lim b := b.length ≤ lim`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/RecvLimit.lean`): a `bytes` field `b` of
+  a request grpc's server decoded under the receive limit `lim` is at most `lim` bytes long. grpc
+  v1.84 refuses a frame, and a decompressed message, longer than `maxReceiveMessageSize` before
+  decoding (`recvAndDecompress`), and `proto.Unmarshal` copies a `bytes` field out of the
+  message.
+- **Over field lengths, not `wireLen`.** `ProtoMsg.wireLen` is an upper bound on the encoding
+  (`wireSlack = 256` per node), so `wireLen ≤ limit` would be false of a request that fits. A field's
+  length is a lower bound on the message's size, and it is all the servers use. Per field, not a
+  sum: the weakest form they need.
+- **Where.** In the handlers' request predicates: the specs of `lockServer.Lock` and
+  `electionServer.{Campaign, Leader, Proclaim, Resign}` take it for each `bytes` field they hand
+  `concurrency` (name; name and value; name and leader key, and the value). Those specs are not
+  wired to `grpc.serve` (their requests are field points-tos, not a `ProtoMsg`), so the fact is a
+  premise there, met by grpc's runtime, their caller. It is not an `axiom` and adds nothing to
+  `etc/tcb-baseline.txt`; `notes/audit.md` lists it with the axioms.
+- **The limit, from the configuration.** `etcdMaxRecvMsgSize maxReq = maxReq + 512 KiB`, what
+  `v3rpc.Server` passes to `grpc.MaxRecvMsgSize`. Each spec takes `maxReq`, the configuration's
+  `MaxRequestBytes`, and the premise `etcdMaxRequestBytesOk maxReq`: the limit is below `2 ^ 27`
+  (`MaxRequestBytes` below 127.5 MiB). This holds at the default 1.5 MiB
+  (`etcdMaxRequestBytesOk_default`), and etcd warns above 10 MiB. `2 ^ 27` is what the mutex
+  needs: `tryAcquire`'s transaction carries its key three times and the prefix's range four times,
+  under `txnSizeOk`'s `2 ^ 30`.
+- **Not covered:** `GRPCAdditionalServerOptions` with a `MaxRecvMsgSize` of its own. It is
+  appended after etcd's options and would replace the limit. The fact's docstring states this.
+
+**Alternatives rejected:**
+
+- `Req.wireLen m ≤ limit` at `grpcDecOk`: false, because of the slack. Even over a true measure,
+  it would need the limit in `grpcServerAt` and a `ProtoMsg` for the lock and election requests,
+  and it would change every server handler's proof.
+- A bound on the request's whole encoded size (the sum of its fields): stronger than the servers
+  need.
+
+## The STM's sizes: a per-attempt count and `applySpec`'s start premise (2026-10-30 · accepted, the user's approval of Q6 (ii) as proposed · `notes/invoke-size.md`)
+
+**Why:** with the send-side bound (two entries above), the STM's `commit` must show `txnSizeOk` of
+its one transaction: the read set's comparisons, the write set's comparisons (`SerializableSnapshot`)
+and operations, and (serializable levels) a get per read key; and `stm.fetch` that of its read
+transaction. The user's closure chooses all of them. The draft's Q6 (ii), approved: bound each call's
+keys and values, and the number of keys an attempt's calls name (the read and write sets are reset
+on each retry).
+
+**Decision (in `InvSTM.lean`):**
+
+- **The count.** `STMSt` gains `n : Nat`, the keys the attempt's calls named: `Get(keys...)` its
+  keys, `Put`, `Rev`, `Del` one each. `GetPost`/`RevPost` and the `Put`/`Del` posts advance it;
+  `STMSt.empty` has `n = 0`. The user's closure tracks it as it tracks the read and write sets.
+- **Each call's premise.** `STMCallOk st ks vs`: `st.n + ks.length ≤ stmCallMax` and every key and
+  value within `stmKeyMax`. `stmMethods`' `Get`, `Put`, `Rev`, `Del` take it.
+- **The constants.** `stmKeyMax = 2 ^ 20` bytes, `stmCallMax = 2 ^ 8` keys per attempt:
+  `stmCallMax * (3 * stmKeyMax + 2 * wireSlack) ≤ 2 ^ 30` covers the largest commit (per counted
+  key: a comparison and an `Else` get for a read, a comparison and an operation for a write).
+- **Kept by the state, hidden.** `stmState` keeps `STMSizeOk st`: lists of the read and the written
+  keys, as many as `n` together, each within `stmKeyMax`, as the written values. `stmCommit_size` and
+  `fetchTxn_size` turn it (and `fetch`'s premise: at most `stmCallMax` keys within `stmKeyMax`) into
+  `txnSizeOk`. Internal specs: `stm.commit` takes `STMSizeOk`, `stm.fetch` the keys' bound,
+  `stm.Get`/`stmSerializable.Get`/`.Rev` `STMCallOk`, `stm.Rev` the key's bound.
+- **`applySpec`'s start premise.** `applySpec pfx P apply Q`: the closure starts from an attempt with
+  `st.n ≤ P`. Without it the closure cannot know its budget: with `WithPrefetch`, `NewSTM` wraps
+  `apply` in `s.Get(prefetch...)`, a counted call before the user's code. `NewSTM` takes `P` with the
+  prefetch keys within `stmKeyMax`, at most `P` of them, `P ≤ stmCallMax`; `runSTM` any `P` (it
+  starts at `n = 0`); `NewSTMRepeatable`/`Serializable`/`ReadCommitted` (no prefetch) take
+  `applySpec pfx 0`.
+
+**Alternatives rejected:** a premise on the closure that every run's sets fit (Q6 (i): states the
+sizes in terms of the commit, which the user cannot see); a byte budget instead of a count (finer,
+but every call's premise then needs the sum of its keys' lengths); counting distinct keys rather than
+calls (a key read and written is two entries of the commit, so the bound per key would be `5N`, over
+`2 ^ 30` at these constants).
+
+## Leasing's sizes (2026-10-30 · accepted, the user's approval · `notes/invoke-size-b.md`)
+
+**Context.** The encoded-size bound ("The encoded-size bound at grpc's send side") gives each KV
+operation of a client the client's predicate on its arguments (`opSizeOk`, `txnSizeOk`). The
+leasing KV cannot pass that premise on: each request it sends carries the user's operation and the
+prefixed key several times. `acquire` sends `pfx+key` three times, the key once more and the user's
+get twice; `revoke` and `tryModifyOp` the prefixed key with the user's operation; `serverTxn` the
+user's transaction nested, and for each of its write operations up to three guards and a fallback
+get on the operation's key and range end, prefixed or not.
+
+**Decision** (the user approved the proposal):
+
+- `NewKV` takes `pfx.length ≤ 2 ^ 26`, kept in `isLeasingKV`.
+- `Get`, `Put`, `Delete` and `Do` (its get, put and delete) take `OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28)`
+  of their operation, the vocabulary of `InvOp`, instead of `opSizeOk`.
+- `txnLeasing.Commit`, and `Do`'s transaction, take a leasing-specific bound built on L-s4's node
+  count: `LTxnBuild.sizeOk pfx b`, every comparison's and operation's string at most `N` bytes and
+  `(5 * n + 1) * (3 * (|pfx| + N) + 256) ≤ 2 ^ 30`, `n` the number of comparisons and operations.
+  `serverTxn_sizeOk` bounds the server transaction by `txnSizeOk_of_bounds` (L-s4, written in
+  `cache/v3/InvEtcdTxn.lean` beside `txnSizeOk`) at `|pfx| + N` bytes and `5 * n + 1` nodes.
+  `guardKeys`, `guardRanges`, `guard` and `fallback` return their strings' bounds (`guardOf`) and
+  counts, which the proof needs.
+- Each internal function takes the bounds of what it sends (`rescind`, `waitRescind`,
+  `monitorLease`, `revoke`: the key at most `2 ^ 27`; `acquire`: `OpShape (2 ^ 27) 0 0`, Go's
+  `OpGet(key)`; `deleteRangeRPC`, `revokeRange`: key and range end at most `2 ^ 27`).
+- The lease cache's keys need no bound of their own: every request on a cached key gets its key
+  from the user's operation. (The proposal had the cache keep it; nothing uses it.)
+- `revokeLeaseKvs` revokes keys etcd returned. Their bound waits for the key-length bound on etcd's
+  state (every key at most `2 ^ 27`), designed separately as a law of the clients' model.
+
+**Alternatives rejected:** passing the client's `opSizeOk`/`txnSizeOk` through (false of the
+requests leasing builds); a bound on the user's `txnWireLen` with a separate node count (two
+premises where `bytesLe` and `nodes` give one, and the guards' size depends on the strings, not on
+the total).
+
+## The key-length law (2026-10-30 · accepted, the user's approval of the draft's Q0-Q8 · `notes/keylen.md`)
+
+**Context.** The clients that send a key they read from etcd (a recipe's queue key, a mutex's or
+an election's waiter key, a leasing revocation) need a bound on it for the size premises of their
+requests (`opSizeOk`, `watchSizeOk`; "The encoded-size bound at grpc's send side"). Nothing in the
+clients' model of etcd (`class EtcdModel`) bounded the keys of its state.
+
+**Decision:**
+
+- A class law `etcdState_keys`: every key of `etcdState r pfx s` is at most `etcdKeyMax = 2 ^ 27`
+  bytes (Q0). Its three instances prove it from the logs they are built on.
+- The bound is etcd's own: `processInternalRaftRequestOnce` refuses a request longer than
+  `Cfg.MaxRequestBytes` before proposing it (Q1). `NewServer` takes
+  `v3rpc.etcdMaxRequestBytesOk` of its configuration (Q2, the premise the lock and election
+  servers already use; a scope restriction, etcd's default meets it). The one trusted change:
+  `proto.MarshalIRR.spec`'s success branch gives `apply.irrKeysLe bs.length rq'` (Q3; commit
+  `0d43bc2dd8`; to go through an axiom review before landing).
+- The KV invariant (`kvWork`, `kvWorkOn`) keeps that every committed request has short keys
+  (`logKeysOk`), and the start log; the read view's floor keeps `LogKeysLe` of its log, so that a
+  handler gets the bound of what it read or wrote with no new premise (Q8). The reply predicates
+  and `kvLogOkTo` carry it (Q6: the registered KV specs get stronger).
+- `waitDelete` takes `key.length ≤ 2 ^ 30` (Q4, what its watch needs); no `EtcdStep` law (Q5).
+- With it, `waitDeletes` takes `pfx.length ≤ 2 ^ 27`, the bound its own get needs (its callers,
+  through `isMutex`/`isElection`, hold it).
+
+**Departures from the draft:** `v3rpc.etcdState_of_range`/`etcdState_of_txnRead` (exported, used
+by no proof) take the server's read view and conclude under an update, since their `srvLog` now
+needs the keys' bound; `histWL_of_sealed` takes the bound as an argument (the draft had it at `⊤`);
+`irrKeysLe` is over the request's model transaction; `kvWorkC` (no proposer) is unchanged.
+
+**Leasing** (2026-10-31, an internal change the coordinator authorized): `leasingKV.revokeLeaseKvs`
+holds the keys it revokes as bare `kvPtrsAt` values, with no `etcdState` fact; it and
+`txnLeasing.revokeFallback` take their bound as a premise, which their callers prove from the
+responses' `rangeKvsOk` and `etcdState_keys` (`notes/keylen.md`, "Leasing's revocations").
+
+**Alternatives rejected:** a premise on each client function (the keys come from etcd, not from
+the caller); a sealed-start-log premise on the read side (the floor already carries the log).
+
+## The examples' sizes (2026-10-31 · pass 4 of the encoded-size bound, the coordinator's scope · `notes/invoke-size.md`, "Pass 4")
+
+**Context.** The examples' closed theorems must not change; the client calls they make now take
+size premises.
+
+**Decision:** each example discharges them inside: a writer takes `wkvSizeOk` of the pairs it
+tries (a per-pair bound, which `GenKv` gives); a program's internal call functions take their
+strings' bounds; linkvtxn's and k8setcd3's `GenIn` (what `Gen` returns) bound the inputs' strings,
+which their `genFrom` proofs show from the workload's literals. linkvtxn bounds every string of
+the decoded input (`minBytesLe`), a comparison's key included, which `inKeys` did not bound.
+
+**Not done:** k8setcd3's no-op update (`GuaranteedUpdate`'s premise quantifies over any object
+read; `notes/invoke-size.md`).
+
+
+## The value-length law (2026-10-31 · accepted, the user's choice · `notes/vallen.md`)
+
+**Context.** k8setcd3's no-op update writes the object it read, re-encoded; its size is the stored
+value's, which nothing bounded (the key-length law bounded keys only).
+
+**Decision:** the values get the keys' law, from the same check: etcd's server refuses a request
+longer than `Cfg.MaxRequestBytes` before proposing it, so every value it stores is no longer than
+the request that put it.
+
+- `EtcdModel` gains `etcdState_vals`: every value of etcd's state is at most `etcdKeyMax`
+  (`2 ^ 27`, reused: one limit, the request's). Its three instances (history, kmodel, the server's)
+  prove it as they prove `etcdState_keys`.
+- The trusted change (its own commit, `f5c9aceb9a`, to have its axiom review redone):
+  `proto.MarshalIRR.spec`'s success conjunct `apply.irrKeysLe` became `apply.irrPutsLe` (a put's
+  key and value, at any depth of a transaction), the decoding's values no longer than its
+  encoding, as its keys.
+- The threading is the keys': the predicates that carried the key bound now carry both
+  (`ChPutsLe`, `LogPutsLe`, `logPutsOk`, `TxnOp.putsLe`; renamed from `*KeysLe`), through the same
+  invariants and read views; a put with `IgnoreValue` takes the stored value, so `srvOps_keys`
+  takes the state's values' bound. `rangeReply_state_bnd` and linkvtxn's `txn_Commit_st` give the
+  state's values' bound, and `kubernetes.Client.Get`/`OptimisticPut` pass it on to the k8s store.
+
+**Alternatives rejected:** a separate value limit (`etcdValMax`; the check is one, on the
+request); bounding values in the k8s store's caller (`GenIn`; the value read is etcd's, which the
+driver does not choose: it seeds `v0:` values itself, but another writer could store any).
+
+## GuaranteedUpdate's size premise (2026-10-31 · accepted, the user's choices · `notes/vallen.md`)
+
+**Context.** `store.GuaranteedUpdate.spec` took `storedSizeOk o'` of every result of the update
+function, from any object; k8setcd3 could not show it of a no-op update of a long value. The user
+chose (2026-10-31) to bound only a result that is written, and the value read by the value law.
+
+**Decision:** the premise is Go's write condition: for a stored value `v` with `v.length ≤ 2 ^ 27`
+(the law), its transformer data `d` and staleness `stl`, an object `o` decoding `d`, and a result
+`o'` of the update function on `o`, if `stl` or `o'`'s encoding differs from `d` (Go skips the write
+when `!origState.stale && bytes.Equal(data, origState.data)`), then `storedSizeOk o'`. The store's
+loop keeps the bound of the value it read (`getStateOk`'s answer and `updateOnce`'s conflict give
+the state's values' bound, from the client's posts). k8setcd3 closes its no-op case from it: the
+re-encoding (`v0:` to `v1:`, both three bytes) is as long as the value read
+(`decodeObjD_encode_length`).
+
+**Alternatives rejected:** `storedSizeOk` of every result (unprovable for a no-op of a long value);
+the written-result condition without the value bound (a stale reading is written even when its
+encoding is equal, and the re-encoding is as long as the stored value, which needs a bound).
+
+## txn-nested's freeze (2026-10-31 · `notes/txn-nested.md`, "The freeze")
+
+**What.** The nested-transaction statements (S1-S4, D1-D4, R1, the laws) are frozen: approved by
+the user (2026-10-30, Q1), and the axiom review of their wire model (grpc `Invoke`'s send side,
+refuted for an unbounded encoded size) resolved by the encoded-size premise of `invoke-size`
+(`notes/decisions.md`, "The encoded-size bound at grpc's send side"), folded into the nested
+statements as `notes/invoke-size.md`, "What txn-nested must fold", lists (the user approved those
+folds with the size design). Nothing else moved at the freeze. The internals used only by stubbed
+proofs are "frozen pending" (the note's list): a proof may still restate one of them, not an
+exported statement.
+
+## authkv's `Main` up to `SetUp`: `startServer`'s boot premise, and its start linked as pending (2026-10-30, branch `authkv-hist`)
+
+Both changes are the user's choices.
+- **`startServer.spec` takes `bootstrap`'s contract at authkv's `cfgOk`/`urlsOk`** (the first
+  conjunct of `Main`'s `premises`), not `common.bootPremise`. The latter asks for the contract at
+  every configuration with `common.cfgOk`, which does not fix `AuthToken`, while `Main`'s premise
+  gives it only at `AuthToken = "simple"`: `Main` could not meet it. The weaker premise is all
+  `startServer`'s proof uses (its composite literal's configuration), so `authkv_startServer` is
+  stronger. Rejected: strengthening `Main`'s premise to `common.cfgOk` (changes `Main.spec`, and
+  assumes the contract for configurations `Main` never builds).
+- **`startServer` is pending in authkv's `Link.lean`** (`authkv_startServer: ?`), since its proof
+  takes named premises (`auth.ValidSpec`, D22's `authSchemaSrv`) a `Link.lean` cannot supply.
+  `Results.lean`'s `authkv_Main` passes `authkv_startServer`, so it takes those premises, and the
+  semantics' `Float64ToInt64Semantics` and `ErrorStringLeaf`, as `authkv_startServer` does.
+- `Serve.specOn` (`Serve`'s second spec until the merge folds it into `Serve.spec`) is linked by
+  hand in `common/LinkOn.lean` (`common.wp_ServeOn`), an `=` callee of authkv's `Link.lean`.
+
+## C1's A4 and A5: the served `Authenticate` with auth on (2026-10-31, branch `auth-a4`)
+
+User-approved ("Approve all three"; the draft in the session's scratch file, two rounds of the
+`spec-reviewer`). `EtcdServer.Authenticate` (`v3_server.go`) gets a spec and proof, and the gRPC
+server serves it.
+- **`tokenSimple.genTokenPrefix`'s axiom is stronger**: its post was `True` of the prefix and the
+  error; it is now `err = nil ∧ auth.tokPrefixOk s`. Go: 16 letters of `[a-zA-Z]` read through
+  `crypto/rand`'s `Reader`, whose `Read` never returns an error at the pinned toolchain (an OS
+  failure crashes the program instead); it holds while no code reassigns `crypto/rand.Reader`.
+  `authStore.GenTokenPrefix`'s spec, and `tokenProviderOk`'s clause, carry the same post. Why:
+  the proposal's admission (`adminKindOk .authenticate`) needs `tokPrefixOk` of the token prefix
+  (the entry of 2026-10-30, "The simple token's prefix has no space": A4-A5 owe it), and with the
+  error possible the spec would need a case Go never takes.
+- **`EtcdServer.Authenticate.spec` is in the mode `on γa` only** (`E.authMode = .on γa`, a scope
+  restriction: with auth off `CheckPassword` returns `ErrAuthNotEnabled` and the call fails, which
+  a spec could state, but no client needs it). Its premise on the auth store is `authnStoreOk`
+  (`AuthnStore.lean`): the triples of the store's `CheckPassword`, `GenTokenPrefix` and `Revision`
+  at the server's reader resource `E.RD`, the three methods the loop calls through the
+  `AuthStore` interface. It is had of the store's invariant (`authnStoreOk_of_authInv`) and only
+  with auth on, hence the scope. Post: the run's four readers back, the password field owned and
+  cleared on success (the `defer`, `CVE-2021-28235`), the error one the gRPC layer can take, and on
+  `nil` an `*AuthenticateResponse` whose token was issued to the user named (`auth.tokIssued`).
+  The proposal is one round of `raftRequest.specM true` on `irrAuthenticate ⟨name, [], pre⟩`
+  (`AuthnOn.lean`: admitted by `reqPropOkOn`'s pure case, its answer read by `appliedOkM_authn`).
+  The revision loop's earlier rounds issue tokens nobody returns: harmless.
+- **The start chain exports the store's `Authenticate` side**: `authStoreKit`'s auth-on clause
+  holds `authnStoreOk st RD` beside the cost field (`authStoreKit_on`, `authSrvTP_on` gain
+  `CheckPassword`'s and `GenTokenPrefix`'s specs); `NewServer.specM`'s post and `memberUpOn` hold
+  `srvAuthStoreOn s E.RD` (the cost field and `authnStoreOk`) in place of `srvBcryptField s`, which
+  stays as its weakening (`srvBcryptField_of_authStoreOn`).
+- **A5**: `Authenticate` joins `v3rpc.authRegs`; `etcd_kv_auth_served_onA` (the stub of
+  2026-10-28, `client/v3/AuthnServedOn.lean`) is proved, with one premise more than
+  `etcd_kv_auth_served_on`'s, `authnStoreOk (GoInterface.ok ast) E.RD`, its conclusion unchanged;
+  it replaces `etcd_kv_auth_served_on`, which no proof used, and takes its name. The handler's run
+  slot is `authnSlot` (a part of the KV's `etcdGrpcSlot`, `etcdGrpcSlot_authn`).
+
+## A depth premise for `proto.MarshalIRR`, discharged from a `MaxTxnOps` bound (2026-10-31 · accepted, the user's approval of the draft's seven recommendations · `notes/irr-depth.md`)
+
+**Context.** `proto.MarshalIRR.wp_proof` (trusted) said: for any `InternalRaftRequest` model `rq`,
+`proto.Marshal` returns an error the gRPC layer can take, or fresh bytes `bs` with `irrDecode bs =
+some rq'` (`irrWireOf rq rq'`, `rq.header ≠ none → bs ≠ []`, `irrPutsLe bs.length rq'`). The axiom
+review `axiom/txn-nested-wire` (attack 9) found it false: protobuf-go's `proto.Unmarshal` refuses a
+message more than 10000 levels deep (`protowire.DefaultRecursionLimit`, every message counted, the
+top one included), and a transaction nested 4999 times passes gRPC's decoding (10000 levels) while
+its `InternalRaftRequest` (10001) does not: `pbutil.MustUnmarshalMessage` panics at apply, on every
+member, again on replay (`issues/etcd-txn-nested-depth-apply-panic.md`). The user chose "depth
+premise + config" (2026-10-30), then approved the draft's statements (2026-10-31).
+
+**Decision** (the seven recommendations of the draft's §10, all accepted):
+
+1. **A premise, not a weakened post**: `proto.MarshalIRR.spec` takes `apply.irrDepthOk rq →` (its
+   transaction, if any, at most 9999 messages deep: `TxnModel.msgDepth t + 1 ≤ 10000`), the post
+   unchanged (`irrPutsLe` stays). Rejected: a weakened post (bytes always, their decoding only
+   under the bound), stronger as a whole but a trusted claim that `Marshal` returns at any depth,
+   which Go's stack (a recursion per level, a fatal error past 1 GB) does not give, and which no
+   caller uses; the old axiom's claim at such depths was false too.
+2. **The bound's value**: `v3rpc.maxTxnOpsOk n := n ≤ 4999` of `sint.Z MaxTxnOps`, exact:
+   `checkTxnRequest` at the budget `n` admits a transaction `2n + 1` deep
+   (`v3rpc.txnCheck_msgDepth`, tight), so at 5000 the issue's chain passes the check and panics the
+   apply; a negative budget (a `uint` of at least `2^63`) refuses every transaction and meets it.
+   Rejected: a rounder `≤ 4096`; `uint.nat ≤ 4999` (excludes the safe `≥ 2^63` budgets).
+3. **Where the bound lives in v3rpc**: the object. `kvServerIs`/`kvServerAt` keep
+   `⌜maxTxnOpsOk (sint.Z n)⌝`, `NewKVServer.spec`/`NewQuotaKVServer.spec` take it as a premise
+   (`NewKVServer` copies the budget once). Rejected (D2): a premise of `kvServer.Txn.spec` only,
+   which about ten exported statements above it (`txn_end_to_end(_on)`, `etcd_kv_served(_on)`, ...)
+   would have to carry by hand.
+4. **Where the configuration premise enters**: `NewServer.spec`, `specCompact`, `specM` take
+   `v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →` (the `etcdMaxRequestBytesOk` precedent);
+   `srvServeCfg` and `grpcCfgOk` carry it to `v3rpc.Server`. Rejected: a hypothesis of
+   `grpcCfgOk_of_started*` (as `hlg`), which three statements of the examples' serving glue would
+   take too, where `cfg` is abstract.
+5. **The server's premise is on the request**: `apply.irrDepthOk rq` on
+   `processInternalRaftRequestOnce`/`raftRequest` (and their mode forms), `apply.txnDepthOk t` on a
+   writing `EtcdServer.Txn` (`spec`: gated on `txnReadonly t = false`; `specOn`); `txn_applied`
+   takes it. Rejected: a server-level configuration fact (`isServerReq` carrying the budget bound),
+   which would tie the server's spec to v3rpc's check.
+6. **The `kvTxnOk` contract is over the depth of the request's model**: `∀ t, txnModelOf cs ts es =
+   some t → apply.txnDepthOk t` beside `txnReqOk n …` (`txnModelOf` moved to `InvKV`). Rejected:
+   `maxTxnOpsOk n` (round 1's form), weaker for the server: a flat transaction of 5000 comparisons
+   checks only at `n ≥ 5000` and is 3 deep.
+7. **No upstream etcd fix now**: the configuration premise is the scope restriction (etcd accepts
+   any `--max-txn-ops`; its default, 128, meets it) until a depth check in `checkTxnRequest`
+   (the issue's fix) would make it a checked error instead.
+
+**The axiom review** of the restated axiom (`notes/axiom-review/marshalirr-depth.md`): survives.

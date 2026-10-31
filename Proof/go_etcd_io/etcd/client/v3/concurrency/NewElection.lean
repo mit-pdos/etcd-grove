@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 theorem NewElection.wp_proof : NewElection.spec (GF := GF) (hG := hG) := by
   intro s γ client id pfx
-  wp_start as ⟨#Hs, #Hc⟩
+  wp_start as ⟨#Hs, #Hc, %Hpl⟩
   iapply wp_fupd
   wp_auto
   irename «$r0» => He
@@ -39,7 +39,7 @@ theorem NewElection.wp_proof : NewElection.spec (GF := GF) (hG := hG) := by
   iframe
   iframe #
   ipureintro
-  simp
+  simp; omega
 
 end proof
 

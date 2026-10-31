@@ -146,6 +146,15 @@ abbrev NewServer.spec : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  -- (2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`) the transaction budget
+  -- (`MaxTxnOps`) within protobuf's recursion limit (`v3rpc.maxTxnOpsOk`: at most 4999): a scope
+  -- restriction, the code accepts any budget and from 5000 on one nested transaction panics every
+  -- member's apply; etcd's default (128) meets it
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
   -- the compactor off (D14e: `v3compactor.New` not reached, and `start()`'s `Run` skipped: the
   -- spec-first pilot's glue lifts it, `notes/compactor-pilot-plan.md`)
   cfg.AutoCompactionRetention' = 0 →
@@ -300,6 +309,15 @@ abbrev NewServer.specCompact : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  -- (2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`) the transaction budget
+  -- (`MaxTxnOps`) within protobuf's recursion limit (`v3rpc.maxTxnOpsOk`: at most 4999): a scope
+  -- restriction, the code accepts any budget and from 5000 on one nested transaction panics every
+  -- member's apply; etcd's default (128) meets it
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
   -- the compactor on: revision mode, a positive retention (M2's phase 0)
   cfg.AutoCompactionMode' = go!"revision" → 0 < sint.Z cfg.AutoCompactionRetention' →
   -- (M2, the storage side, N1, item 11) the stand-in's mode on
@@ -457,6 +475,15 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  -- (2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`) the transaction budget
+  -- (`MaxTxnOps`) within protobuf's recursion limit (`v3rpc.maxTxnOpsOk`: at most 4999): a scope
+  -- restriction, the code accepts any budget and from 5000 on one nested transaction panics every
+  -- member's apply; etcd's default (128) meets it
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
   -- the compactor off (D14e: `v3compactor.New` not reached, and `start()`'s `Run` skipped: the
   -- spec-first pilot's glue lifts it, `notes/compactor-pilot-plan.md`)
   cfg.AutoCompactionRetention' = 0 →
@@ -588,7 +615,13 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           srvWatchReaders srv E 64 ∗
           -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
           -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
-          srvLessorNil srv }}
+          srvLessorNil srv ∗
+          -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
+          -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
+          -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
+          -- `Authenticate` side at the server's reader resource (`srvAuthStoreOn`)
+          srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) }}
 
 end spec
 

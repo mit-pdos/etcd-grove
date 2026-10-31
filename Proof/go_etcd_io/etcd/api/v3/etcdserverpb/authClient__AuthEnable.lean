@@ -57,6 +57,7 @@ theorem etcdserverpb.authClient.AuthEnable.wp_proof
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hres with (⟨%Herr, %m', -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto

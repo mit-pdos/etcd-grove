@@ -35,6 +35,7 @@ process serves fewer than `2 ^ 48` requests).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
@@ -114,6 +115,11 @@ def irrTxn (tw : txn.TxnModelW) : apply.IRRModel := { apply.irrEmpty with txnW :
 @[simp] theorem irrTxn_txn (tw : txn.TxnModelW) : (irrTxn tw).txn = some tw.toModel := rfl
 @[simp] theorem irrTxn_txnW (tw : txn.TxnModelW) : (irrTxn tw).txnW = some tw := rfl
 @[simp] theorem irrEmpty_txn : apply.irrEmpty.txn = none := rfl
+
+/-- `irrTxn tw` is within protobuf's recursion limit if its transaction is. -/
+theorem apply.irrDepthOk_irrTxn {tw : txn.TxnModelW} (h : apply.txnDepthOk tw.toModel) :
+    apply.irrDepthOk (irrTxn tw) := by
+  intro t ht; simp only [irrTxn_txn, Option.some.injEq] at ht; subst ht; exact h
 
 /-- **`exceedsRequestLimit(ai, ci, r, enable)`** (`util.go`), `prio` = `isPriorityRequest(r)`
 (a lease revocation): the committed index more than `maxNormalGap` (5000) past the applied one,
@@ -436,7 +442,7 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
     srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜ρ.kv.cmp = E.cmp⌝ ∗ kvCertInv ρ.raft ρ.kv ∗
-    ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧ v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqFieldsAt s E ρ v) := by

@@ -152,6 +152,18 @@ structure IRRModel where
 `PrevKv` forgotten): the wire transaction's (`txnW`) model. -/
 def IRRModel.txn (rq : IRRModel) : Option TxnModel := rq.txnW.map txn.TxnModelW.toModel
 
+/-- **Every key and value the request `rq` puts is at most `n` bytes** (2026-10-31,
+`notes/vallen.md`): its `Put`'s key and value, and its transaction's puts' at any depth
+(`TxnModel.putsLe`; a put keeping the stored value bounds its key only). -/
+def irrPutsLe (n : Nat) (rq : IRRModel) : Prop :=
+  (∀ o, rq.put = some o → o.key.length ≤ n ∧ o.val.length ≤ n) ∧
+    (∀ t, rq.txn = some t → t.putsLe n)
+
+theorem irrPutsLe.mono {n m : Nat} (h : n ≤ m) {rq : IRRModel} (hk : irrPutsLe n rq) :
+    irrPutsLe m rq :=
+  ⟨fun o ho => ⟨Nat.le_trans (hk.1 o ho).1 h, Nat.le_trans (hk.1 o ho).2 h⟩,
+    fun t ht => TxnModel.putsLe_mono h (hk.2 t ht)⟩
+
 @[simp] theorem IRRModel.txnW_map (rq : IRRModel) :
     rq.txnW.map txn.TxnModelW.toModel = rq.txn := rfl
 

@@ -158,7 +158,9 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__BcryptCost
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__CheckPassword
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__GenTokenPrefix
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__HasRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
@@ -200,6 +202,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderJWT
 public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderNop
 public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenSimple__genTokenPrefix
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.golang_org.x.crypto.bcrypt.CompareHashAndPassword
 public import Proof.golang_org.x.crypto.bcrypt.GenerateFromPassword
@@ -1121,6 +1124,10 @@ theorem auth.authStore.wp_Authenticate :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) :=
   auth.authStore.Authenticate.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write
 
+theorem auth.authStore.wp_BcryptCost :
+    auth.authStore.BcryptCost.spec (GF := GF) (hG := hG) :=
+  auth.authStore.BcryptCost.wp_proof
+
 theorem auth.authStore.wp_lockedReadTx :
     auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) :=
   auth.authStore.lockedReadTx.wp_proof
@@ -1132,6 +1139,10 @@ theorem bcrypt.wp_CompareHashAndPassword :
 theorem auth.authStore.wp_CheckPassword :
     auth.authStore.CheckPassword.spec (GF := GF) (hG := hG) :=
   auth.authStore.CheckPassword.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_lockedReadTx bcrypt.wp_CompareHashAndPassword zap.wp_String zap.Logger.wp_Info
+
+theorem auth.authStore.wp_GenTokenPrefix :
+    auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG) :=
+  auth.authStore.GenTokenPrefix.wp_proof
 
 theorem auth.authStore.wp_HasRole :
     auth.authStore.HasRole.spec (GF := GF) (hG := hG) :=
@@ -1244,6 +1255,10 @@ theorem auth.authStore.wp_UserRevokeRole :
 theorem auth.authStore.wp_setupMetricsReporter :
     auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG) :=
   auth.authStore.setupMetricsReporter.wp_proof
+
+theorem auth.tokenSimple.wp_genTokenPrefix :
+    auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG) :=
+  auth.tokenSimple.genTokenPrefix.wp_proof
 
 theorem binary.wp_WriteUint64 :
     binary.WriteUint64.spec (GF := GF) (hG := hG) :=

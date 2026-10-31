@@ -25,12 +25,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`NewMutex(s, pfx)`**, for a session `s` whose client answers for the prefix `pfx + "/"`
-(`isEtcdMutexClient`): a mutex on that prefix, in its initial state (`myKey = ""`, `myRev = -1`,
+(`isEtcdMutexClient`), and a prefix shorter than `2 ^ 27` bytes (2026-10-30, kept in `isMutex`): a
+mutex on that prefix, in its initial state (`myKey = ""`, `myRev = -1`,
 `hdr = nil`). -/
 abbrev NewMutex.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client (pfx ++ go!"/") }}
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewMutex)) (Val #s)) (Val #pfx))
   {{ (m : Loc), RET #m; isMutex m s γ client id (pfx ++ go!"/") ∗ mutexState m MutexSt.init }}
 

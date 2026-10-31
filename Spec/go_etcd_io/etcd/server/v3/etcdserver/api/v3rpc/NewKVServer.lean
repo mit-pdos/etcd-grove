@@ -28,9 +28,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`NewKVServer(s)`**: a `KVServer` holding a `*kvServer` over the server `s` (its header,
-`s` as its `RaftKV`, `s.Cfg.MaxTxnOps` as its budget). -/
+`s` as its `RaftKV`, `s.Cfg.MaxTxnOps` as its budget), for a budget within protobuf's recursion
+limit (`v3rpc.maxTxnOpsOk`, 2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`: the object
+keeps it, for `kvServer.Txn`'s proposals). -/
 abbrev v3rpc.NewKVServer.spec : Prop :=
   ∀ (s : Loc) (A : v3rpc.KVAns GF) (n : w64),
+  v3rpc.maxTxnOpsOk (sint.Z n) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.raftKV s A ∗
       structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps"
         (structFieldRef EtcdServer go!"Cfg" s) ↦□ n }}

@@ -7,7 +7,8 @@ another message type than mvcc's `KeyValue` (`Marshal.lean`): kept apart because
 the apply package's request model, which mvcc's proofs must not import (as `pbutil.
 MustUnmarshalMessage`'s cases, but in a file of its own); the two have disjoint premises.
 
-**What it says** (`processInternalRaftRequestOnce` marshals the request it proposes): either an
+**What it says** (`processInternalRaftRequestOnce` marshals the request it proposes; of a request
+within protobuf-go's recursion limit, "The depth" below): either an
 error (protobuf-go rejects a string field that is not valid UTF-8, a `Header.Username` from the
 auth store; protobuf-go's errors are pointer errors, `*prefixError` with an `Is` method comparing
 the target with its sentinel, `*wrapError` with `Unwrap` too, and `Error()` returns: so in an error
@@ -21,12 +22,42 @@ request's range end denotes `[0]` both for the bytes `"\x00"` and for an empty n
 A request decoded from the wire (the gRPC server's) has no empty non-nil slice, so its encoding
 decodes to it; that is the premise unit 2 will state of the handlers' requests.
 
+**The keys and values are no longer than the encoding** (2026-10-30, `notes/keylen.md`, for the
+keys; 2026-10-31, `notes/vallen.md`, extended to the values; the user's approvals,
+`notes/decisions.md`, "The key-length law" and "The value-length law"): every key and every value
+the decoded request puts (`irrPutsLe`: its `Put`'s key and value, its transaction's puts' at any
+depth) is at most `bs.length` bytes. protobuf encodes a set `bytes` field as its tag, its length
+and then all its bytes, and `proto.Marshal` emits every set field of every nested message, so each
+decoded key and value is a contiguous region of `bs`. Stated over the decoded `rq'` (what the apply
+side applies), not `rq`.
+
+**The depth** (2026-10-31, `notes/irr-depth.md`, the axiom review `axiom/txn-nested-wire`'s
+attack 9, `issues/etcd-txn-nested-depth-apply-panic.md`; the user's approval, `notes/decisions.md`,
+"A depth premise for `proto.MarshalIRR`"): the claim is made of a request within protobuf-go's
+recursion limit only (`apply.irrDepthOk`, the premise). At the pin (protobuf-go v1.36.12),
+`proto.Unmarshal` (`pbutil.MustUnmarshalMessage`'s) decodes with `RecursionLimit:
+protowire.DefaultRecursionLimit` = 10000 (`proto/decode.go:61-63`, `encoding/protowire/wire.go:28`),
+which `MessageInfo.unmarshalPointer` decrements on entry to every message, the top one included,
+failing below 0 (`internal/impl/decode.go:105`); a nested message field (singular, repeated, a
+oneof's member) decodes with the decremented count. So the bytes decode iff every message is at
+most 10000 levels deep. Scalar and `bytes` fields and a oneof wrapper (`RequestOp_RequestTxn`, a
+Go wrapper, no message) cost no level; unknown fields are skipped against a fresh limit
+(`protowire.ConsumeFieldValue`). The only recursion of the request is its transaction
+(`TxnRequest`/`RequestOp`): every other field is a non-recursive message at most two levels deep
+(`AuthUserAddRequest` with its `UserAddOptions`, ...), so the request is at most 3 deep without a
+transaction, and with one its transaction's depth plus one (`TxnModel.msgDepth`;
+`internalRaftRequestIs` and `txnRequestIsW` own every field of the messages, so the model's tree
+has the heap's shape). Marshalling has no depth check: the code also returns bytes for a deeper
+request (up to Go's stack), which then do not decode; this statement claims nothing of it (no
+caller has a use for such bytes).
+
 The size caches protobuf-go stores in the messages (atomically) are outside the model:
 `internalRaftRequestIs` and the KV requests' predicates do not own them.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.IrrDepth
 public import GeneratedProof.google_golang_org.protobuf.proto
 
 @[expose] public section
@@ -73,6 +104,9 @@ def apply.withHeader (rq : apply.IRRModel) (h : apply.HeaderModel) : apply.IRRMo
 @[simp] theorem apply.withHeader_txnW (rq : apply.IRRModel) (h : apply.HeaderModel) :
     (apply.withHeader rq h).txnW = rq.txnW := rfl
 
+@[simp] theorem apply.irrDepthOk_withHeader (rq : apply.IRRModel) (h : apply.HeaderModel) :
+    apply.irrDepthOk (apply.withHeader rq h) ↔ apply.irrDepthOk rq := Iff.rfl
+
 /-- **What the encoding of `rq` decodes to**: `rq'` with the same id, header and kind, and
 `rq` itself when no range end is `[0]`. -/
 def irrWireOf (rq rq' : apply.IRRModel) : Prop :=
@@ -89,6 +123,9 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 /-- See the file header. -/
 abbrev proto.MarshalIRR.spec : Prop :=
   ∀ (p : Loc) (rq : apply.IRRModel),
+  -- (2026-10-31, `axiom/txn-nested-wire`'s attack 9) the request within protobuf-go's recursion
+  -- limit (`apply.irrDepthOk`): a deeper one is encoded but does not decode
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
       apply.internalRaftRequestIs p rq }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal))
@@ -96,7 +133,8 @@ abbrev proto.MarshalIRR.spec : Prop :=
   {{ (d : GoSlice) (err : GoInterface), RET (PairV #d #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (bs : List w8) (rq' : apply.IRRModel),
         d ↦* bs ∗ ownSliceCap w8 d (DFrac.own 1) ∗
-        ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq' ∧ (rq.header ≠ none → bs ≠ [])⌝) ∨
+        ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq' ∧ (rq.header ≠ none → bs ≠ []) ∧
+          apply.irrPutsLe bs.length rq'⌝) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err) }}
 
 end spec

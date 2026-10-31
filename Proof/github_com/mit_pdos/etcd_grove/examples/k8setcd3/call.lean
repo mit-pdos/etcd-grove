@@ -81,7 +81,9 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_Update : store.GuaranteedUpdate.spec (GF := GF) (hG := hG))
     (wp_Get : store.Get.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c eD eU x W _ Φu Q hc hAs hse hkey hpp hx hQ
+  intro _ _ _ sp c eD eU x W _ Φu Q hc hAs hse hkey hpp hx hvl hQ
+  have hkl : (c.pathPrefix ++ storeKeyL x.Key').length ≤ 2 ^ 27 := by
+    rw [hpp]; unfold InOk at hx; simp [mkeyL, storeKeyL]; omega
   wp_start as ⟨#Hst, #HD, #HU, Hpre⟩
   wp_auto
   wp_apply context.wp_Background
@@ -117,7 +119,12 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     wp_apply (wp_Create DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #p1) (mkObj x) (rvStr 0)
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) (storeKeyL x.Key')
-        Φu hkey (by rw [hc]; exact parseRVD_rvStr 0)) $$ [Hobj Hout Hpre] as %err0 ⟨-, Hres⟩
+        Φu hkey hkl
+        (by
+          rw [hc, hmk]; intro v hv; cases hv
+          show (encodeWith tagV1 x.Key' x.Val').length ≤ 2 ^ 28
+          simp [encodeWith]; unfold InOk at hx; omega)
+        (by rw [hc]; exact parseRVD_rvStr 0)) $$ [Hobj Hout Hpre] as %err0 ⟨-, Hres⟩
     · iframe #
       iframe Hobj Hout
       rw [hpp]
@@ -172,7 +179,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · iframe #
     wp_apply (wp_Delete DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) (zero_val _)
-        (rejD eD x.Reject') vf W Φu (storeKeyL x.Key') hkey rfl) $$ [Hout HW Haus] as %err0 Hres
+        (rejD eD x.Reject') vf W Φu (storeKeyL x.Key') hkey hkl rfl) $$ [Hout HW Haus] as %err0 Hres
     · iframe #
       iframe Hout HW
       rw [hpp]
@@ -226,9 +233,32 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [← hz]; iexact Hr0
     ihave #Hupd := tryUpdateD_ok c hc eU x uf $$ [HvU HU Huf]
     · iframe #
+    have hsz : ∀ (w d : GoString) (stl : Bool) (o : DObj) (n : Nat) (o' : DObj),
+        w.length ≤ 2 ^ 27 → c.S.fromS w = some (d, stl) → c.S.decode d = some o →
+        updD eU x o n = .ok o' → (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o' := by
+      intro w d stl o n o' hw hfs hdec h _
+      rw [hc] at hfs hdec ⊢
+      unfold updD at h
+      split at h
+      · cases h
+      cases h
+      intro v hv
+      cases hv
+      show (encodeWith tagV1 (updObj x o).1.1 (updObj x o).1.2).length ≤ 2 ^ 28
+      have ho := o.2
+      simp only [updObj]
+      split
+      · -- a no-op update writes the object read, re-encoded (a `v0:` value as `v1:`): as long
+        -- as the stored value, within etcd's limit (`GuaranteedUpdate.spec`'s premise)
+        change some (w, false) = some (d, stl) at hfs
+        cases hfs
+        rw [decodeObjD_encode_length _ o hdec]
+        omega
+      · simp [encodeWith]; omega
     wp_apply (wp_Update DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0)
-        (updD eU x) uf W Φu (storeKeyL x.Key') hkey) $$ [Hout HW Haus] as %err0 Hres
+        (updD eU x) uf W Φu (storeKeyL x.Key') hkey hkl
+        hsz) $$ [Hout HW Haus] as %err0 Hres
     · iframe #
       iframe Hout HW
       rw [hpp, hz0]
@@ -277,7 +307,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [← hz]; iexact Hr0
     wp_apply (wp_Get DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         ⟨x.IgnoreNotFound', []⟩ (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero
-        (rvStr 0) (storeKeyL x.Key') Q hkey rfl hQ) $$ [Hout Hpre] as %err0 Hres
+        (rvStr 0) (storeKeyL x.Key') Q hkey hkl rfl hQ) $$ [Hout Hpre] as %err0 Hres
     · iframe #
       iframe Hout Hpre
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨

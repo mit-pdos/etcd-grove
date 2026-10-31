@@ -137,6 +137,26 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
     key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
     range end too). Upstream not searched.
+14. **[etcd-txn-nested-depth-apply-panic](etcd-txn-nested-depth-apply-panic.md)** (2026-10-30): a
+    transaction nested 4999 deep passes gRPC's protobuf decoding (10000 levels) but its raft entry is
+    one level deeper, and every member panics applying it, again on every restart (as item 1, the
+    cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
+    128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
+    `checkTxnRequest`). Upstream not searched.
+15. **[etcd-txn-keysonly-reply-alloc-panic](etcd-txn-keysonly-reply-alloc-panic.md)** (2026-10-31): a
+    `Txn` of nested keys-only whole-range reads builds a reply whose encoding exceeds 2^48 bytes while
+    using only about 11 GiB of heap (keys-only aliases the index's key slices), and the gRPC codec's
+    `make([]byte, size)` panics (`makeslice`) marshalling it, exiting the member; `checkTxnRequest`
+    budgets `maxTxnOps` per nesting level, so nesting multiplies the leaf count. Any client with
+    read+write access (any client with auth off). Needs `--max-request-bytes` raised to about 10 MiB
+    (borderline at the 1.5 MiB default), and the clean crash needs a wide election timeout so the
+    handler waits for the apply to finish (at the default timing the client times out first, but the
+    apply loop still builds the multi-GB reply on every member and replays it on each restart);
+    reproduced end to end through `clientv3`. Same codec root cause as
+    [grpc-codec-alloc-before-size-check](grpc-codec-alloc-before-size-check.md) (the client send side)
+    and the known-false server reply-size axioms (`notes/audit.md:338`). Fix: copy keys in the
+    keys-only branch, cap a transaction's total response or total leaves, or (grpc) check the size
+    before allocating. Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a

@@ -825,6 +825,20 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### `fmt.Sprintf`: `%x` of an integer, and named integer types (2026-10-31)
+
+- **Missing (at the pin `6da88b280`).** `fmt.wp_Sprintf` admitted arguments of predeclared basic
+  types only (`fmt.ArgsWf`), and its `SprintfOut` left `%x` arbitrary: concurrency's
+  `Sprintf("%s%x", pfx, s.Lease())` (a `LeaseID`, `type LeaseID int64` without methods) needed a
+  trust-boundary axiom here, `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), whose
+  output was arbitrary from the `%x` on.
+- **Landed** (2026-10-31) in the pin `d62b13ac1`: `21b7311b5` (`%x` of an integer,
+  `SprintfOut.hex`), `a4e2fb9e6` and `d62b13ac1` (a named integer type without formatting methods
+  formatted as its underlying integer, through `TypeAssertUnderlying2`: `fmt.IsIntArgType`,
+  `fmt.NoFmtMethods`, `SprintfOut.str_x_named_int64`). The axiom stays (still true, now with a
+  determined output); dropping it needs `fmt.NoFmtMethods` of `LeaseID`'s type, from a
+  `go.MethodSetIs` fact (`notes/STATUS.md`, "Perennial pin `d62b13ac1`").
+
 ### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
 
 - **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded

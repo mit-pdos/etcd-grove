@@ -345,7 +345,7 @@ theorem EtcdServer.Compact.wp_proof
   have hsh := irrCompaction_shape rv.Revision'
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HcF0
   wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') (fun _ => iprop(True)) []
-      rfl $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
+      rfl (irrDepthOk_of_compactPropOk hcp) $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd
     isplitr
     · iunfold reqPropOk

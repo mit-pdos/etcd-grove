@@ -34,13 +34,14 @@ theorem txnLeasing.Commit.wp_proof (heval : txnLeasing.eval.spec (GF := GF) (hG 
   wp_start as ⟨Htxn, Hrd, #Hcc, #Hlo, %Hbnd⟩
   wp_auto_lc 1
   wp_apply heval $$ [$Htxn $Hrd] as %resp %err ⟨Htxn, Hrd, Hres⟩
-  · ipureintro; exact Hbnd
+  · ipureintro; exact Hbnd.1
   icases Hres with (%Hn | ⟨%Hn, Hev⟩)
   · subst Hn
     cases err with
     | nil =>
       wp_auto
       wp_apply hsrv $$ [$Htxn $Hrd $Hcc $Hlo] as %resp %err ⟨Hrd, %tops, %eops, %Hops, Hres⟩
+      · ipureintro; exact Hbnd.2
       iapply HΦ
       iframe
       unfold commitOutcome

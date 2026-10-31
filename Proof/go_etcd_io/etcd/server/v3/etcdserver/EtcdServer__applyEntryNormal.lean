@@ -1415,7 +1415,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · -- (C1's A2) an `Authenticate`: the right to its token minted at the consistent index
           -- the backend reads, `ciEff γ st.k` (`srvTokRights_next`); its response (A3) dropped
           have hna : apply.needAdminPermission rq = false := by
-            have h := hadm; unfold apply.adminKindOk at h; rw [hka] at h; exact h
+            have h := hadm; unfold apply.adminKindOk at h; rw [hka] at h; exact h.1
           obtain ⟨am, ham⟩ := Option.isSome_iff_exists.mp (apply.dispatchKind_authenticate rq hka)
           -- the right to the token `<prefix>.<ci>` at the consistent index the backend reads
           icases HtokA with ⟨-, Hmint⟩
