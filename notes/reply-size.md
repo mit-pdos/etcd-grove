@@ -44,8 +44,7 @@ tree of nested transactions with keys-only ranges at the leaves encodes to leave
   many copies of the stored keys: below `2^48` unless that limit times the stored keys' bytes passes
   it (2 TiB of keys at the default; the suggested maximum quota is 8 GiB).
 - A single keys-only range does not amplify (its own key, `index.go:166-171`). Watch, Lease and Auth
-  replies: no amplification found (Watch events reference the Put's slices once per revision; not
-  traced line by line); the axiom review should attack them.
+  replies: no amplification (traced by the axiom review, `notes/axiom-review/grpc-start-replies.md`).
 
 ## What changed
 
@@ -93,5 +92,8 @@ tree of nested transactions with keys-only ranges at the leaves encodes to leave
 - `etc/api-check.py etc/api/raft.txt --check`: 0 errors; `etc/gen-interface.py etc/api/raft.txt
   --check --layout`: no interface moved, 0 new layout violations; `etc/gen-init.py --check`: clean;
   `etc/gen-link.py`: every Link identical (but the known lintest-logkvcompact/logkvsnap mismatch).
-- The axiom review of the restated `grpc.start` and the premise's docstring is the next step (not
-  run here).
+- The axiom review of the restated `grpc.start` and the premise's docstring (2026-10-31,
+  `notes/axiom-review/grpc-start-replies.md`): **survives**. Watch, Lease and Auth replies do not
+  amplify, and no closed workload comes near `2^48`. Four docstring inaccuracies were found, with
+  wording proposed but not applied: the flat bound's per-key encoding, linkv3p's `Main` and the
+  cache's own requests, "a few kilobytes", outside clients.

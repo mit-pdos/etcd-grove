@@ -559,7 +559,8 @@ bound at grpc's send side").
 - **Server side:** repaired (2026-10-31, branch `reply-size`) under the named workload premise
   `grpcRepliesFit`, a premise of `grpc.start` carried by the server tokens; false of etcd under a
   client sending nested keys-only transactions (`issues/etcd-txn-keysonly-reply-alloc-panic.md`).
-  `notes/reply-size.md`.
+  `notes/reply-size.md`. The axiom review survives (`notes/axiom-review/grpc-start-replies.md`).
+  The premise's docstring has four inaccuracies, with wording proposed but not applied.
 
 Details, the departures from the draft and what `txn-nested` must fold: `notes/invoke-size.md`.
 
