@@ -1,8 +1,8 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
-**the Probe**: item 18, G2 and the commit step's compaction arm done ("The Probe", the last
-section); next S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+**the Probe**: item 18, G2, the commit step's compaction arm and S3-3's transfer lemma done ("The
+Probe", the last section); next G1. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -12,9 +12,9 @@ section); next S3-3's transfer lemma. Before: review rounds done (round 7: nothi
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
 2. *Approved* (2026-10-31, the user: "approve the items; start the Probe with item 18").
-3. *The Probe*: item 18, G2 (the user's (a')) and the commit step's compaction arm
-   (`kv_prop_au_cmp`, `M2ApplyProbe.lean`) done ("The Probe", below). **Next: S3-3's transfer
-   lemma** (item 8), then G1.
+3. *The Probe*: item 18, G2 (the user's (a')), the commit step's compaction arm
+   (`kv_prop_au_cmp`) and S3-3's transfer lemma (`kv_entry_claim`), both in `M2ApplyProbe.lean`,
+   done ("The Probe", below). **Next: G1.**
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -627,3 +627,15 @@ compaction leaves the model: `kvModelSt_snoc_nonwrite`), `kvWorkD_snoc`; the Dra
 today's three arms re-run over `kvInvD` (a plain entry keeps `cmpLogOk` by `cmpLogOk_snoc` with a
 vacuous claim), assembled as `kv_prop_au` over `reqPropOk` in place, and the auth-on twin
 `kv_prop_au_M`. Next in the Probe: S3-3's transfer lemma (item 8).
+
+**S3-3's transfer lemma (item 8): done (2026-10-31).** `M2ApplyProbe.lean`: `kv_entry_claim` (`⊢
+kvInvD γ γk cmp -∗ srvRaftLogInv γ -∗ srvRLogLb γ (A ++ [m]) ={⊤}=∗ ⌜cmpEntryOk γk cmp A m⌝`), at
+`kv_log_plain`'s shape: `applyEntryNormal`'s proof calls `kv_log_plain γr.raft γr.kv (A ++ [m]) $$
+HkI HrI HAm` (`EtcdServer__applyEntryNormal.lean:272`) and has the same three hypotheses, so at the
+switch (`kvInv γ γk = kvInvD γ γk γk.cmp`) the call beside it is `kv_entry_claim … γr.kv.cmp A m`. Its
+pure core `cmpEntryOk_transfer`: a compaction entry is no filler or empty `ConfChangeV2`, so
+`opsOf` keeps it; by `srv_eqv_prefix` the prefix `A'` of the invariant's log `L` with `A`'s requested
+entries has length `|opsOf A|`, `L`'s next entry has `m`'s type and data, `cmpLogOk L` at that index
+gives the claim at `A'`, and `kvModel_eqv` moves it to `A` (under the invariant's `c0 ≤ ai0`). No
+surprise. What the switch still needs there: the mode `γr.kv.cmp` read as `E.cmp` (S-5's law, by
+item 19's tie), for `cmpAdmit_of_entry`.
