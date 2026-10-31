@@ -27,18 +27,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`checkPutAuth(as, ai, lessor, r)`**: the auth store's `IsPutPermitted` of the key, `checkLeasePuts` of the put's lease and, with `PrevKv`, `IsRangePermitted` of the key: the first error, or `nil`; the `AuthInfo` kept, nothing written. With the lease owner's view (`U`), a `nil` answer also gives the class of the put's lease's keys (its wire `Lease`). -/
+/-- **`checkPutAuth(as, ai, lessor, r)`**: the auth store's `IsPutPermitted` of the key, `checkLeasePuts` of the put's lease and, with `PrevKv`, `IsRangePermitted` of the key: the first error, or `nil`; the `AuthInfo` kept, nothing written. By the lease owner (`lease.lessorUser`, lent and given back): a `nil` answer also gives the class of the put's lease's keys at the owner's item map `I` (its wire `Lease`, whatever `IgnoreLease` says: `leaseKeysClass`). -/
 abbrev apply.checkPutAuth.spec : Prop :=
   ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (r : Loc) (o : OpFull) (U : apply.LeaseView),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (r : Loc) (o : OpFull) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
-      apply.lessorView γ.leases U ∗ txn.putRequestIs r o }}
+      lease.lessorUser γ.leases L I ∗ txn.putRequestIs r o }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.lessorView γ.leases U ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.lessorUser γ.leases L I ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.putClass on info o ∗
-        apply.viewClass U (fun I => apply.leaseKeysClass on info I o.leaseID)) }}
+        apply.leaseKeysClass on info I o.leaseID) }}
 
 end spec
 

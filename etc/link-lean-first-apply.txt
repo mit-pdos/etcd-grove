@@ -90,7 +90,10 @@ applierV3Corrupt__LeaseRevoke:
 # Unit 1: auth.go (`checkTxnPermission` and `checkTxnReqsPermission` are mutually recursive:
 # one Löb proof in AuthLemmas.lean, the latter's result over the former's).
 needAdminPermission:
-checkLeasePutsKeys:
+# The lease's keys (`Lease.Keys`, the lease package's proof), which `checkLeasePutsKeys` checks
+# one by one (notes/lease-keys-plan.md).
+lease_Lease__Keys:
+checkLeasePutsKeys: lease_Lease__Keys
 checkLeasePuts: checkLeasePutsKeys
 checkPutAuth: checkLeasePuts
 checkTxnPermission: checkPutAuth

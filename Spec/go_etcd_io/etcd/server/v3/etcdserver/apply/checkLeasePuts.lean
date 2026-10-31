@@ -26,17 +26,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`checkLeasePuts(as, ai, lessor, id)`**: the lessor's `Lookup(id)`; for a lease, `checkLeasePutsKeys`: its error, or `nil`; the `AuthInfo` kept, nothing written. With the lease owner's view (`U = some (L, I)`, its resource lent and given back), a `nil` answer gives the class of `id`'s keys at `I` (`leaseKeysClass`; a lease the lessor does not have holds no key). -/
+/-- **`checkLeasePuts(as, ai, lessor, id)`**: the lessor's `Lookup(id)`; for a lease, `checkLeasePutsKeys`: its error, or `nil`; the `AuthInfo` kept, nothing written. By the lease owner (`lease.lessorUser`: the live leases `L`, the item map `I`), its resource lent and given back: a `nil` answer gives the class of `id`'s keys at `I` (`leaseKeysClass`; a lease the lessor does not have holds no key). -/
 abbrev apply.checkLeasePuts.spec : Prop :=
   ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64) (U : apply.LeaseView),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
-      apply.lessorView γ.leases U }}
+      lease.lessorUser γ.leases L I }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePuts))
       (Val #st)) (Val #ai)) (Val #le)) (Val #id))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.lessorView γ.leases U ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.lessorUser γ.leases L I ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.viewClass U (fun I => apply.leaseKeysClass on info I id)) }}
+      (∀ _ : err = GoInterface.nil, apply.leaseKeysClass on info I id) }}
 
 end spec
 

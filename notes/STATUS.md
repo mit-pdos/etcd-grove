@@ -507,6 +507,25 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## The lease rows' key checks, Part A: the apply layer (2026-10-31, branch `lease-keys`; Draft and proofs, before the freeze)
+
+`notes/lease-keys-plan.md` (spec-first; the user's scope: A then B, the lessor's item map, lower
+bounds). The auth applier's lease-key checks now state what they check: `checkLeasePutsKeys`/
+`checkLeasePuts` give `apply.leaseKeysClass on info I id` (admin, or the write of every key the
+lessor's item map `I` attaches to the lease), `checkPutAuth` with the put's lease, the transaction
+walk (`checkTxnReqsPermission`, `checkTxnPermission`, `CheckTxnAuth`) the puts' leases'
+(`txnLeaseClass`, under a lease view `U`: the read path has none and walks only read-only
+transactions). `chainLeaseClass` is a conjunct of `kvPost`/`kvPostF` (not of the auth-on track's
+`kvPostFL`), and `apply/Results.lean`'s `chain_put`/`chain_txn` state `reqLeaseClass` beside
+`reqClass`. The lessor keeps its keys short (`itemKeysShort`, in `leaseClosers`; `Attach` takes
+the key-length premise, which mvcc's put path passes from the request). Every statement proved;
+no new axiom or `sorry`; etcd's own tests of the checks pass.
+
+Gaps (recorded in the plan): `putKeep`/lease-keeping `putIgnVal` in transactions (`TxnOp` forgets
+the wire lease, as their `PrevKv`); a revocation's class reaches no chain result (`rqOk` excludes
+it); the dispatch (`uberApplier.dispatch`, `Apply`) drops the lease class. Next: the freeze (the
+user's approval), then Part B, the API layer (`LeaseTimeToLive`, `LeaseLeases`, `LeaseKeepAlive`).
+
 ## A depth premise for `proto.MarshalIRR` (2026-10-31, branch `irr-depth`)
 
 The repair of `proto.MarshalIRR.wp_proof`, false of a request deeper than protobuf-go's recursion

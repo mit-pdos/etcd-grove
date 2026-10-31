@@ -446,14 +446,16 @@ def lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF 
   iprop(leaseOwn γl L I ∗ lessorRdOf γl ∗ leaseRevokers γl L)
 
 /-- **The owner's resource opened at the live lease `l` of `id`** (the lease-keys plan, item 1,
-2026-10-31): the lease `l` (`isLeaseObj`), the owner's half of its item set (what `I` attaches to
-`id`) and a reader slot of its lock, which `Keys()` takes, and the wand that closes the owner's
-resource back. `Lookup(id)` by the owner gives it. Not persistent: a revoked lease keeps its `ID`
+2026-10-31): the item map's keys short (`itemKeysShort`, which `leaseClosers` keeps), the lease `l`
+(`isLeaseObj`), the owner's half of its item set (what `I` attaches to `id`) and a reader slot of
+its lock, which `Keys()` takes, and the wand that closes the owner's resource back. `Lookup(id)`
+by the owner gives it. Not persistent: a revoked lease keeps its `ID`
 and `id` can be granted again, so "`l` is the lease of `id`" holds only of the owner's closers
 at the time. -/
 def leaseOwnOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
     IProp GF :=
-  iprop(isLeaseObj l ∗ leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ∗
+  iprop(⌜itemKeysShort I⌝ ∗ isLeaseObj l ∗ leaseItemsOwn l I id ∗
+    sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ∗
     (leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) -∗ leaseOwn γl L I))
 
 /-- **The txn layer's owner resource after `Lookup(id)` returned `l`**: `nil` and the resource as
@@ -498,7 +500,7 @@ theorem leaseFrag_agree (γl : GName) (q1 q2 : Qp) (L1 L2 : List w64) :
 theorem leaseOwnOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
     (l : Loc) : leaseOwnOpen (GF := GF) γl L I id l ⊢ leaseOwn γl L I := by
   unfold leaseOwnOpen
-  iintro ⟨-, Hio, Hslot, Hback⟩
+  iintro ⟨-, -, Hio, Hslot, Hback⟩
   iapply Hback; iframe
 
 /-- The txn layer's owner resource, closed back after `Lookup`. -/
@@ -536,6 +538,18 @@ theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w6
     iframe Hp Him HI Hcm
     ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIS
+
+/-- **The owner's item map's facts, through the txn layer's resource**: its keys short, its
+leases live (the lease-keys plan: `checkLeasePuts` reads both before `Lookup`). -/
+theorem lessorUser_items (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    lessorUser (GF := GF) γl L I ⊢ lessorUser γl L I ∗
+      ⌜itemKeysShort I ∧ ∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ := by
+  unfold lessorUser
+  iintro ⟨Ho, Hrd, Hrv⟩
+  ihave ⟨Ho, %HIS⟩ := leaseOwn_items_short γl L I $$ Ho
+  ihave ⟨Ho, %HIL⟩ := leaseOwn_items_live γl L I $$ Ho
+  iframe Ho Hrd Hrv
+  ipureintro; exact ⟨HIS, HIL⟩
 
 end defs
 

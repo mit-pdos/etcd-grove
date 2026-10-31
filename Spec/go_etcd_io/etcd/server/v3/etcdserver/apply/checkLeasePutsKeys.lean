@@ -26,17 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`checkLeasePutsKeys(as, ai, l)`**: `nil` for an admin (`IsAdminPermitted`); else `IsPutPermitted` of each of the lease's keys (`l.Keys()`): the first error, or `nil`; the `AuthInfo` kept, nothing written. With the lease owner's view (`U = some (L, I)`: the owner's resource opened at `l`, the lease of `id`), a `nil` answer gives the lease's class at `I` (an admin, or every key `I` attaches to `id` writable: `leaseKeysClass`). -/
+/-- **`checkLeasePutsKeys(as, ai, l)`**: `nil` for an admin (`IsAdminPermitted`); else `IsPutPermitted` of each of the lease's keys (`l.Keys()`): the first error, or `nil`; the `AuthInfo` kept, nothing written. By the lease owner, its resource opened at `l`, the lease of `id` (`lease.leaseOwnOpen`, which the owner's `Lookup(id)` gives), lent and given back: a `nil` answer gives the lease's class at the owner's item map `I` (an admin, or every key `I` attaches to `id` writable: `leaseKeysClass`). -/
 abbrev apply.checkLeasePutsKeys.spec : Prop :=
   ∀ (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF)
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (l : Loc) (id : w64)
-    (U : apply.LeaseView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ ai ↦{dq} info ∗ apply.leaseAtView γ.leases U id l ∗ RD }}
+    (γl : GName) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ ai ↦{dq} info ∗ lease.leaseOwnOpen γl L I id l ∗ RD }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys))
       (Val #st)) (Val #ai)) (Val #l))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.leaseAtView γ.leases U id l ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.leaseOwnOpen γl L I id l ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.viewClass U (fun I => apply.leaseKeysClass on info I id)) }}
+      (∀ _ : err = GoInterface.nil, apply.leaseKeysClass on info I id) }}
 
 end spec
 

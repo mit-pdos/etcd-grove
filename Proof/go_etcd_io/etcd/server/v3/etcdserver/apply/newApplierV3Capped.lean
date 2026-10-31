@@ -98,10 +98,11 @@ theorem apply.newApplierV3Capped.wp_proof
     · iexact Htrc
     iunfold apply.kvPostF at Hpost
     iunfold apply.kvPostF
-    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
     ihave #Hcls := apply.chainClass_capped E.authMode info c rq oc $$ Hcls
+    ihave #Hlc := apply.chainLeaseClass_capped E.authMode info _ c rq oc $$ Hlc
     iexists oc
-    iframe HR Hkv HPP Hcls
+    iframe HR Hkv HPP Hcls Hlc
     isplitr
     · ipureintro
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1]

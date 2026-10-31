@@ -373,10 +373,11 @@ theorem isApplyLessorAny_of (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) 
   unfold isApplyLessorAny; iintro H; iexists s; iexact H
 
 /-- **The lease owner's view, when the checking thread has it** (the lease-keys plan): `some (L,
-I)` on the apply thread, which lends the auth layer's checks its owner's resource
-(`lease.lessorUser`: `L` the live leases, `I` the item map); `none` on the server's read path
-(`EtcdServer.Txn`'s `CheckTxnAuth`), which holds none and checks only read-only transactions
-(no put, so no lease to look up). -/
+I)` on the apply thread, which lends the transaction walk (`checkTxnPermission`) its owner's
+resource (`lease.lessorUser`: `L` the live leases, `I` the item map); `none` on the server's read
+path (`EtcdServer.Txn`'s `CheckTxnAuth`), which holds none and walks only read-only transactions
+(every operation a get: no put, so no lease to look up; the walk's specs take that premise with
+`none`). -/
 abbrev LeaseView := Option (List w64 × GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
 
 /-- The owner's resource of the view (`lease.lessorUser`), nothing without one. -/
@@ -384,15 +385,10 @@ def lessorView (γl : GName) : LeaseView → IProp GF
   | none => iprop(True)
   | some (L, I) => lease.lessorUser γl L I
 
-/-- **The lease `l` of `id` as the view has it** (`checkLeasePutsKeys`'s argument): with the
-owner's view, its resource opened at `l` (`lease.leaseOwnOpen`, from the owner's `Lookup`) and its
-keys short (`IsPutPermitted`'s bound); without, the apply package's lessor contract's `leaseIs`
-(`isApplyLessor`'s `Lookup`, the trust boundary's `lease.NewLessor`). -/
-def leaseAtView (γl : GName) (U : LeaseView) (id : w64) (l : Loc) : IProp GF :=
-  match U with
-  | none => leaseIs l id
-  | some (L, I) => iprop(lease.leaseOwnOpen γl L I id l ∗ ⌜lease.itemKeysShort I⌝)
-
+theorem lessorView_none (γl : GName) : lessorView (GF := GF) γl none = iprop(True) := rfl
+theorem lessorView_some (γl : GName) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) :
+    lessorView (GF := GF) γl (some (L, I)) = lease.lessorUser γl L I := rfl
 /-! ## The alarm store, the cluster, the raft status, the snapshot server -/
 
 /-- The `*pb.AlarmMember` `m` (not nil): its `Alarm`, read-only. -/

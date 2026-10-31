@@ -404,6 +404,25 @@ theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
   iintro Hrd
   iframe
 
+open Iris.ProofMode in
+/-- The auth store's reader resource and the lease owner's resource (`leasesLive`'s
+`lease.lessorUser`, at the item map of the log's state) of the apply thread's KV resources, lent
+out (the lease-keys plan: the auth layer's checks read the item map). -/
+theorem kvOwn_lend (E : AEnv GF) (log : mvcc.Log) :
+    kvOwn E log ⊢ E.RD ∗ ∃ L : List w64,
+      lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+      (E.RD -∗ lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+        kvOwn E log) := by
+  unfold kvOwn leasesLive
+  iintro ⟨Hsr, Hsw, ⟨%L, #Hk, Hu⟩, Hrd, Hwo⟩
+  iframe Hrd
+  iexists L
+  iframe Hu
+  iintro Hrd Hu
+  iframe Hsr Hsw Hrd Hwo
+  iexists L
+  iframe Hk Hu
+
 /-- The KV's certificate of its log (persistent; the vertical slice's unit V2: the trivial
 floor). -/
 theorem kvOwn_cert (E : AEnv GF) (log : mvcc.Log) :

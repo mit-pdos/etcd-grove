@@ -18,15 +18,15 @@ in `on γa`.
   could build; so a range's class is stated for some end `e` with `authEndOf o.base.rangeEnd e`:
   the model's end, or empty when the model's is open-ended.
 - A put: the write of its key (a point: `IsPutPermitted(key)`), and with `PrevKv` the read of
-  the key (`IsRangePermitted(key, nil)`: a point). **Not stated**: the keys of the put's lease
-  (`checkLeasePuts`: admin, or `IsPutPermitted` of each key `Keys()` returns), because the
-  lessor's contract (`isApplyLessor`, names-only) does not relate `Keys()` to any model, so a
-  statement over them would be vacuous; the leases unit (T3) is where they get a model.
+  the key (`IsRangePermitted(key, nil)`: a point). The keys of the put's lease (`checkLeasePuts`:
+  admin, or `IsPutPermitted` of each key `Keys()` returns) are a separate class, over the lease
+  owner's item map (`leaseKeysClass` and the lease classes below, `notes/lease-keys-plan.md`).
 - A delete range: the write of the range, and with `PrevKv` its read. A range: its read. A
   transaction (`txnClass`): the read of each comparison's range, then both branches' operations,
   nested transactions recursively (`opClass`/`opsClass`, as `checkTxnReqsPermission` walks them).
-  A nested put's `PrevKv` read and lease keys are checked by the code (`checkPutAuth`) but not
-  stated: `TxnOp` carries neither (`putTxnOp`).
+  A nested put's `PrevKv` read is checked by the code (`checkPutAuth`) but not stated: `TxnOp`
+  does not carry it (`putTxnOp`); nor the lease of a `putKeep` or of a lease-keeping
+  `putIgnVal` (`opLeaseClass`).
 
 The method-level statement (the auth applier's `Put` etc. for the principal `Apply` set from the
 request's header) needs the principal threaded through `chainRes`'s auth case; it is not here
@@ -131,6 +131,20 @@ theorem classRes_of_permVerdict (M : auth.AuthMode)
     ipureintro
     exact Hp rfl
 
+theorem classRes_on (γa : auth.AuthNames) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (perms : List Perm3) : classRes (GF := GF) (.on γa) info perms = classOk γa info perms := rfl
+
+/-- `classOk` of a permission of the list. -/
+theorem classOk_of_mem (γa : auth.AuthNames) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (l : List Perm3) (x : Perm3) (h : x ∈ l) :
+    classOk (GF := GF) γa info l ⊢ classOk γa info [x] := by
+  unfold classOk
+  iintro #H
+  iapply BigSepL.bigSepL_singleton.2
+  iapply (BigSepL.bigSepL_mem (Φ := fun x : Perm3 => iprop(∃ (i : Nat) (st : auth.AuthState),
+    auth.authStateAt (GF := GF) γa i st ∗ ⌜auth.permitted st (auth.authInfoM info) x.1 x.2.1 x.2.2⌝)) h)
+  iexact H
+
 /-- The range end a check saw, given the model's (see the file header): the model's end, or empty
 when the model's is open-ended (a non-`nil` empty `RangeEnd`). -/
 def authEndOf (modelEnd e : GoString) : Prop :=
@@ -167,7 +181,7 @@ def deleteClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthI
 def putPerms (o : OpFull) : List Perm3 :=
   (o.key, [], .write) :: if o.base.prevKV then [(o.key, [], .read)] else []
 
-/-- The class of a put `o` (`checkPutAuth`; the lease's keys are not stated, see the header). -/
+/-- The class of a put `o` (`checkPutAuth`; its lease's keys: `leaseKeysClass`). -/
 def putClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (o : OpFull) :
     IProp GF :=
   classRes M info (putPerms o)
@@ -180,8 +194,8 @@ def cmpsClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInf
 
 mutual
 /-- **The class of a transaction's operation** (`checkTxnReqsPermission`'s walk): a get's read, a
-put's write of its key (its `PrevKv` read and lease keys are not in `TxnOp`), a delete's write and
-`PrevKv` read, a nested transaction's comparisons and both branches. -/
+put's write of its key (its `PrevKv` read is not in `TxnOp`; its lease's keys: `opLeaseClass`), a
+delete's write and `PrevKv` read, a nested transaction's comparisons and both branches. -/
 def opClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     TxnOp → IProp GF
   | .get o => rangeClass M info o
@@ -241,7 +255,9 @@ mode `M`: in `on γa`, the principal an admin at a recorded state (`checkLeasePu
 return, `IsAdminPermitted`), or the write of every key the item map `I` attaches to `id`
 (`IsPutPermitted` of each of `l.Keys()`); nothing in the other modes. `I` is the lease owner's
 item map when the check runs (`lease.lessorUser`): the state before the request, which the auth
-layer checks before it applies anything. A lease the lessor does not have attaches no key. -/
+layer checks before it applies anything. A lease the lessor does not have attaches no key. As
+every class here, a permission holds at *some* recorded state of the auth store (`classOk`), not
+necessarily the latest; the latest-state track (`AuthApplyLatest.lean`) states no lease class. -/
 def leaseKeysClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : IProp GF :=
   match M with
@@ -374,6 +390,110 @@ theorem opsClass_snoc (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth
   rw [opsClass_cons, opsClass_nil_eq]
   iframe H2
 
+/-! ### The lease classes' laws -/
+
+theorem viewClass_none (C : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF) :
+    viewClass none C = iprop(True) := rfl
+theorem viewClass_some (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+    (C : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF) :
+    viewClass (some (L, I)) C = C I := rfl
+
+
+
+theorem viewClass_intro (U : LeaseView) (C : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF) (h : ∀ I, ⊢ C I) :
+    ⊢ viewClass (GF := GF) U C := by
+  cases U with
+  | none => unfold viewClass; itrivial
+  | some LI => unfold viewClass; exact h LI.2
+
+theorem viewClass_mono (U : LeaseView) (C D : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF) (h : ∀ I, C I ⊢ D I) :
+    viewClass (GF := GF) U C ⊢ viewClass U D := by
+  cases U with
+  | none => unfold viewClass; iintro -; itrivial
+  | some LI => unfold viewClass; exact h LI.2
+
+theorem viewClass_sep (U : LeaseView) (C D : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF) :
+    viewClass (GF := GF) U C ∗ viewClass U D ⊢ viewClass U (fun I => iprop(C I ∗ D I)) := by
+  cases U with
+  | none => unfold viewClass; iintro -; itrivial
+  | some LI => unfold viewClass; iintro H; iexact H
+
+/-- A lease that holds no key has the class (`checkLeasePuts` of a lease the lessor does not have). -/
+theorem leaseKeysClass_empty (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (h : ∀ it, I.lookup it ≠ some id) : ⊢ leaseKeysClass (GF := GF) M info I id := by
+  unfold leaseKeysClass
+  cases M with
+  | on γa =>
+    iright
+    iintro %k %hk
+    exact absurd hk (h _)
+  | _ => itrivial
+
+theorem opLeaseClass_get (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull) :
+    ⊢ opLeaseClass (GF := GF) M info I (.get o) := by
+  unfold opLeaseClass; itrivial
+
+theorem opLeaseClass_delete (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull) :
+    ⊢ opLeaseClass (GF := GF) M info I (.delete o) := by
+  unfold opLeaseClass; itrivial
+
+theorem opLeaseClass_txn (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+    (cs : List CmpModel) (ts es : List TxnOp) :
+    txnLeaseClass (GF := GF) M info I ⟨cs, ts, es⟩ ⊢ opLeaseClass M info I (.txn cs ts es) := by
+  unfold txnLeaseClass opLeaseClass
+  iintro #H
+  imodintro
+  iexact H
+
+/-- A put's lease class (its wire `Lease`) gives its operation's (`putTxnOp`). -/
+theorem opLeaseClass_put (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull) :
+    leaseKeysClass (GF := GF) M info I o.leaseID ⊢ opLeaseClass M info I (txn.putTxnOp o) := by
+  unfold txn.putTxnOp
+  by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;>
+    simp only [h1, h2, Bool.false_eq_true, ↓reduceIte] <;> unfold opLeaseClass <;>
+    first | (iintro H; iexact H) | (iintro -; itrivial)
+
+theorem opsLeaseClass_nil (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) :
+    ⊢ opsLeaseClass (GF := GF) M info I [] := by
+  unfold opsLeaseClass; itrivial
+
+theorem opsLeaseClass_app (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (l1 l2 : List TxnOp) :
+    opsLeaseClass (GF := GF) M info I l1 ∗ opsLeaseClass M info I l2 ⊢
+      opsLeaseClass M info I (l1 ++ l2) := by
+  induction l1 with
+  | nil => simp only [List.nil_append]; iintro ⟨-, H⟩; iexact H
+  | cons op ops ih =>
+    simp only [List.cons_append, opsLeaseClass]
+    iintro ⟨⟨H1, H2⟩, H3⟩
+    iframe H1
+    iapply ih
+    iframe H2 H3
+
+theorem opsLeaseClass_snoc (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (l : List TxnOp)
+    (op : TxnOp) :
+    opsLeaseClass (GF := GF) M info I l ∗ opLeaseClass M info I op ⊢
+      opsLeaseClass M info I (l ++ [op]) := by
+  iintro ⟨H1, H2⟩
+  iapply opsLeaseClass_app
+  iframe H1
+  simp only [opsLeaseClass]
+  iframe H2
+
+/-- The walk's invariant for the lease class, at the empty prefix. -/
+theorem viewClass_opsLease_nil (U : LeaseView) (M : auth.AuthMode)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    ⊢ viewClass (GF := GF) U (fun I => opsLeaseClass M info I []) :=
+  viewClass_intro U _ (fun I => opsLeaseClass_nil M info I)
+
+/-- The walk's invariant for the lease class, extended by one operation's. -/
+theorem viewClass_opsLease_snoc (U : LeaseView) (M : auth.AuthMode)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (l : List TxnOp) (op : TxnOp) :
+    viewClass (GF := GF) U (fun I => opsLeaseClass M info I l) ∗
+        viewClass U (fun I => opLeaseClass M info I op) ⊢
+      viewClass U (fun I => opsLeaseClass M info I (l ++ [op])) :=
+  (viewClass_sep U _ _).trans (viewClass_mono U _ _ (fun I => opsLeaseClass_snoc M info I l op))
+
 theorem cmpsClass_nil (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     ⊢ cmpsClass (GF := GF) M info [] := by
   unfold cmpsClass
@@ -421,7 +541,9 @@ instance reqClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.
 /-- **The lease class of the request `rq`** for the principal `info` in the mode `M`, at the
 lease owner's item map `I` (`checkLeasePuts`): a put's lease's keys (its wire `Lease`, which Go
 checks whatever `IgnoreLease` says), a transaction's puts' (`txnLeaseClass`), a lease revocation's
-lease's keys; nothing for the other requests. -/
+lease's keys; nothing for the other requests. The revocation's case is vacuous in the chain's
+results for now: no revocation reaches the auth applier with `rqOk` (`Chain.lean`), so no result
+states it yet. -/
 def reqLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (rq : IRRModel) : IProp GF :=
   match dispatchKind rq with
@@ -462,6 +584,31 @@ theorem reqClass_txn (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.
     (rq : IRRModel) (t : TxnModel) (h : rq.txn = some t) (hk : dispatchKind rq = .txn) :
     txnClass (GF := GF) M info t ⊢ reqClass M info rq := by
   unfold reqClass; rw [hk]; iintro H; iexists t; iframe H; ipureintro; exact h
+
+theorem reqLeaseClass_put (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (rq : IRRModel) (o : OpFull)
+    (h : rq.put = some o) (hk : dispatchKind rq = .put) :
+    leaseKeysClass (GF := GF) M info I o.leaseID ⊢ reqLeaseClass M info I rq := by
+  unfold reqLeaseClass; rw [hk]; iintro H; iexists o; iframe H; ipureintro; exact h
+
+theorem reqLeaseClass_txn (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (rq : IRRModel) (t : TxnModel)
+    (h : rq.txn = some t) (hk : dispatchKind rq = .txn) :
+    txnLeaseClass (GF := GF) M info I t ⊢ reqLeaseClass M info I rq := by
+  unfold reqLeaseClass; rw [hk]; iintro H; iexists t; iframe H; ipureintro; exact h
+
+/-- A request with no lease to check (not a put, a transaction or a revocation) has the trivial
+lease class. -/
+theorem reqLeaseClass_noLease (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (rq : IRRModel)
+    (h : dispatchKind rq ≠ .put ∧ dispatchKind rq ≠ .txn ∧ dispatchKind rq ≠ .leaseRevoke) :
+    ⊢ reqLeaseClass (GF := GF) M info I rq := by
+  unfold reqLeaseClass
+  split
+  · exact absurd ‹_› h.1
+  · exact absurd ‹_› h.2.1
+  · exact absurd ‹_› h.2.2
+  · itrivial
 
 /-- The read of a range `o` from its check's verdict (`IsRangePermitted(key, rangeEnd)` on the
 request's slices, the model's end `rangeEndOf esl e`). -/

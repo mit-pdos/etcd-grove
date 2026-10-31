@@ -7,7 +7,9 @@ item 5 deferred (it touches `UberOn`/`SnapRO`, other tracks' files); Q4 (the lea
 bound, below) decided by the user, (b): `lease.itemKeysShort I` a conjunct of `leaseClosers`, kept
 by `Attach` (a new premise) and `Detach`/`Revoke`, passed by mvcc's put path (`storeTxnWrite.put`/`Put`,
 `metricsTxnWrite.Put`, `writeView.Put`: a premise on the key's length) from the request
-(`txn.put`, `putRequestIs`); `leaseOwn_items_short` reads it. Next: items 6-12. Started at
+(`txn.put`, `putRequestIs`); `leaseOwn_items_short` reads it. Q5 decided, (b): the lease class a separate conjunct of
+`kvPost`/`kvPostF`. Items 6-12 drafted and proved; the Review done (below, "the Draft as
+written"). Next: Test/Probe, then the freeze (the user's approval). Started at
 the user's request: the first of the three items that would let the repository answer
 etcd-io/etcd#22595 ("Plan to revert Auth to Beta"), whose requirement "an audit to verify that RBAC
 covers all etcd operations" `notes/auth-matrix.md` answers for every row but the lease keys.
@@ -228,28 +230,59 @@ touching the auth-on track; (a) can follow when that track models leases.
 unchanged; `reqLeaseClass` and `chainLeaseClass` new (`AuthClass.lean`, `Chain.lean`); `kvPost`/
 `kvPostF` gain the conjunct; the auth layer's checks give `reqLeaseClass`.
 
-### Part A, the Draft as written (2026-10-31, after Q4 and Q5)
+### Part A, the Draft as written (2026-10-31, after Q4 and Q5, revised after the Review)
 
-Drafted (statements compile; proofs to follow):
+Drafted and proved (the build of `lease-keys`):
 - `apply.leaseKeysClass M info I id` (`AuthClass.lean`): in `on γa`, an admin at a recorded state
   (`adminOk`), or `∀ k, I.lookup ⟨k⟩ = some id → classOk γa info [(k, [], .write)]`; `True` in the
-  other modes.
+  other modes. As every class, a permission at *some* recorded auth state (the review's F2); the
+  latest-state track (`AuthApplyLatest.lean`, `kvPostFL`) states no lease class (Q5 (b)).
 - `apply.opLeaseClass`/`opsLeaseClass`/`txnLeaseClass` (a put's lease, `putIgnVal`'s `some` lease,
   nested branches; `putKeep` and a lease-keeping `putIgnVal` are `True`: `TxnOp` forgets their wire
   `Lease`, the same gap as their `PrevKv`), `apply.reqLeaseClass M info I rq` (a put's
   `o.leaseID`, a transaction's, a revocation's id).
-- **The lease view** (`Contracts.lean`, `AuthClass.lean`), found while drafting:
-  `CheckTxnAuth.spec` is also the server's read path's (`EtcdServer.Txn`, `ReadOn`), which holds
-  no owner's resource. So the checks take `U : apply.LeaseView = Option (List w64 × GMap …)`:
-  `apply.lessorView γl U` (`lessorUser γl L I` for `some (L, I)`, `True` for `none`) lent and given
-  back, `apply.leaseAtView γl U id l` (`leaseOwnOpen` and short keys, or the old `leaseIs`), and
-  the classes under `apply.viewClass U C` (`C I`, or `True`). One spec and one proof per function;
-  the read path instantiates `none`, the apply thread `some`.
-- Specs: `checkLeasePutsKeys` (pre/post `leaseAtView`; post `viewClass U (leaseKeysClass · id)`),
-  `checkLeasePuts` (+ `lessorView`), `checkPutAuth` (+ `lessorView`; `putClass ∗ viewClass U
-  (leaseKeysClass · o.leaseID)`), `checkTxnReqsPermission` (`opsClass ∗ viewClass U (opsLeaseClass
-  · ops)`), `checkTxnPermission`/`CheckTxnAuth` (`txnClass ∗ viewClass U (txnLeaseClass · t)`).
+- **The lease view, only for the transaction walk** (`Contracts.lean`, `AuthClass.lean`):
+  `CheckTxnAuth.spec` is also the server's read path's (`EtcdServer.Txn`), which holds no owner's
+  resource; but that path walks only read-only transactions, which reach no put. So
+  `checkTxnReqsPermission`/`checkTxnPermission`/`CheckTxnAuth` take `U : apply.LeaseView = Option
+  (List w64 × GMap …)`: `apply.lessorView γl U` (`lessorUser γl L I`, or `True` for `none`) lent and
+  given back, with the premise `⌜U = none → read-only⌝`, and give the classes under `apply.viewClass
+  U C` (`C I`, or `True`). The read path instantiates `none`, the apply thread `some`. The put and
+  lease checks take the owner's resource outright (the review's F3: the first draft had a `none`
+  view there too, under which `checkLeasePutsKeys` stated nothing).
+- `lease.leaseOwnOpen` starts with `⌜itemKeysShort I⌝` (the review's F6: the first draft paired it
+  with `leaseOwnOpen` in a separate `leaseAtView`); `lease.lessorUser_items` reads it and the
+  items' leases from `lessorUser`.
+- Specs: `checkLeasePutsKeys` (`(γl L I)`, pre/post `leaseOwnOpen γl L I id l`; post
+  `leaseKeysClass on info I id` on success; its proof takes `Lease.Keys.spec`, linked in
+  `etc/link-lean-first-apply.txt`), `checkLeasePuts` (`lessorUser γ.leases L I` lent;
+  `leaseKeysClass`), `checkPutAuth` (`putClass ∗ leaseKeysClass on info I o.leaseID`),
+  `checkTxnReqsPermission` (`opsClass ∗ viewClass U (opsLeaseClass · ops)`),
+  `checkTxnPermission`/`CheckTxnAuth` (`txnClass ∗ viewClass U (txnLeaseClass · t)`).
 - `apply.chainLeaseClass M info I c rq oc` (`Chain.lean`, with `chainClass`'s lemmas mirrored), a
-  conjunct of `kvPost`/`kvPostF` at `I = mvcc.leaseItemsOf (mvcc.stateAfter log)`.
-- To add: `Results.lean`'s `chain_put`/`chain_txn` (and the revocation's) state `reqLeaseClass` beside
-  `reqClass` for an outcome that passed the auth layer.
+  conjunct of `kvPost`/`kvPostF` at `I = mvcc.leaseItemsOf (mvcc.stateAfter log)`; the auth
+  applier's `Put`/`Txn` lend the owner's resource out of `kvOwn` (`kvOwn_lend`).
+- `Results.lean`'s `chain_put`/`chain_txn` state `reqLeaseClass` beside `reqClass` for an outcome
+  that passed the auth layer.
+
+The Review (a spec-reviewer agent, 2026-10-31), its findings and what became of them:
+- F1: `LeaseRevoke`'s lease class is vacuous: `rqOk` is `False` for a revocation, so no chain result
+  reaches it. Documented (`reqLeaseClass`'s docstring); a revocation's result waits for the
+  revocation track (the apply thread's `Revoke` clause, L3).
+- F2: any recorded auth state, and no lease class on the latest-state track. Documented (above,
+  `leaseKeysClass`).
+- F3, F6: adopted (above).
+- F4: `putKeep`/a lease-keeping `putIgnVal` could be covered through the wire model (`TxnModelW`,
+  `rq.txnW`), as the `PrevKv` gap could. Deferred with the `PrevKv` gap.
+- F5: `kvPostFL_kvPostF` (unused) no longer holds; deleted.
+- F7: `chainLeaseClass` duplicates `chainClass`'s shape; a shared definition over the class would
+  remove the mirrored lemmas. Low; recorded.
+- F8: `AuthClass.lean`'s header, `putClass`'s and `opClass`'s docs said the lease keys were not
+  stated. Fixed.
+- F9: for Part B (the API layer), `Lookup.spec` must be generalized beyond the owner's resource
+  (the API layer's checks run outside the apply thread).
+- F10: a law relating the item map's keys to the KV state's keys would let a client read the class
+  over the store's keys. Low; recorded.
+
+Not yet: the lease class is not carried through `uberApplier.dispatch`/`Apply` (the dispatch drops
+it); the server-level results state `reqClass` only. A follow-up.

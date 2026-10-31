@@ -104,6 +104,8 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
     iright
     iunfold leaseOwnOpen
     iframe Hlo Hio Hslot
+    isplitr
+    · ipureintro; exact HIS
     iintro ⟨Hio, Hslot⟩
     iunfold leaseOwn; iframe Hfr
     iunfold leaseClosers
