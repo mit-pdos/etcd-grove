@@ -390,7 +390,7 @@ theorem floor0_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%F0, #HF0, %HF02⟩, -⟩
   iexists F0
   iframe HF0
-  ipureintro; exact HF02
+  ipureintro; exact HF02.1
 
 end floor
 

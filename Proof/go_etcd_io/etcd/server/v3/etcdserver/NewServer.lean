@@ -1466,7 +1466,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe firstCommitInTerm Hast Hapl Hti Hcert0 WarningApplyDurationS lessor authStore lg
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; simp
+    ipureintro; exact ⟨by simp, mvcc.LogKeysLe.empties _⟩
   isplitr
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, GoInterface.nil, sstats, null⟩

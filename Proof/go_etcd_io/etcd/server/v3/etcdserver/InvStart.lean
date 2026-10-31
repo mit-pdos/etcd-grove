@@ -124,7 +124,8 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogKeysLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
 instance srvReadBuilt_persistent (s : Loc) (E : apply.AEnv GF) (v : ReadFields) :

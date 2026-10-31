@@ -78,7 +78,8 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogKeysLe etcdKeyMax log₀⌝) ∗
     srvAppliedInvM on s E γr ∗ srvKVInvsM on s E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
@@ -535,6 +536,31 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     unfold kvModelOn
     rw [hAL]
     exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2
+
+/-- **A log the server certified has short keys** (2026-10-30, `notes/keylen.md`): what a request
+handler holds of the log it read or wrote (its `idxCert` and `certOk`), with the server's read
+view, whose floor is a certified log of at least two revisions with short keys
+(`srvKVCoreM_keys`). -/
+theorem readM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool) (s : Loc)
+    (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ isServerReadM on s E γr -∗ mvcc.idxCert E.γ.idx l -∗ mvcc.certOk E.γ l ={⊤}=∗
+      ⌜mvcc.LogKeysLe etcdKeyMax l⌝ := by
+  iintro #Hsrd #Hc #Hok
+  ihave #Hcore := srvKVCoreM_of_readM on s E γr $$ Hsrd
+  iunfold isServerReadM at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAtM at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%B, #HB, %hB⟩, -⟩
+  ihave #HBs := mvcc.idxCert_sealed E.γ.idx B $$ HB
+  ihave #Hls := mvcc.idxCert_sealed E.γ.idx l $$ Hc
+  iapply (srvKVCoreM_keys on E γr B l hB.1 hB.2) $$ Hcore HBs Hls Hok
+
+/-- `readM_keys` in the mode `off` (`isServerRead`). -/
+theorem read_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (s : Loc)
+    (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ isServerRead s E γr -∗ mvcc.idxCert E.γ.idx l -∗ mvcc.certOk E.γ l ={⊤}=∗
+      ⌜mvcc.LogKeysLe etcdKeyMax l⌝ :=
+  readM_keys false s E γr l
 
 end defs
 
