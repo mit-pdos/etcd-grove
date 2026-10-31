@@ -180,13 +180,13 @@ links:
   transaction checks' guarantee (`checkIntervals`, the txn package's `NoDupKeysPerRev`).
   **Since the fix (2026-10-28, `7c8ef717ef`)** the model follows the fixed loop (`compactGenIdx`
   over `genAdv`/`genRecreatedAt`, `Compact.lean`; `generation.isRecreatedAt` specified and
-  proved) and `keyIndex.doCompact.wp_proof` is re-proved against it, but the premise is still in
-  place: `kiGet_avail` still takes `NoDelPutAt` (one `exfalso` branch, the tombstone at `c` and
-  the read's revision at `c` in a later generation, uses it, where the fixed loop's
-  `genRecreatedAt` now covers that case), and with it `named_not_del`, `rangeAnswers_not_del`,
-  `crevSafe`, `delKey`, `compactJobPre`, and the specs of `store.Compact`, `compactLockfree` and
-  `updateCompactRev`. Dropping it is a spec change, not yet made (`notes/STATUS.md`, "The
-  delete-then-put fix in the fork").
+  proved) and `keyIndex.doCompact.wp_proof` is re-proved against it. **The premise is gone since
+  2026-10-31** (M2, the apply side, item 18, branch `m2-apply`): `kiGet_avail`'s case of a
+  tombstone at `c` with the read's revision at `c` in a later generation is the fixed loop's
+  `genRecreatedAt` step, so `kiGet_avail`, `named_not_del`, `rangeAnswers_not_del`, `delKey`,
+  `compactJobPre` and the specs of `store.Compact`, `compactLockfree` and `updateCompactRev` hold
+  without `NoDelPutAt`; `crevSafe` keeps only the certificate. (The server's interim compaction
+  family, `CompactMode.lean`'s `irrNoDelPut`, still has it until the switch replaces the family.)
 - **Possible fixes**: in `doCompact`, skip a generation whose tombstone is at `atRev` when a later
   generation has a revision at `atRev` (compare the next generation's first revision, not the
   tombstone, with `atRev`); or reject a put of a key the same write transaction deleted.

@@ -2135,15 +2135,13 @@ def crevFrozen (γ : StoreNames) : IProp GF := inv crevFrozenN (crevUB γ.idx (1
 instance crevFrozen_persistent (γ : StoreNames) : Persistent (crevFrozen (GF := GF) γ) := by
   unfold crevFrozen; infer_instance
 
-/-- **A compaction revision safe for readers** (persistent; 2026-10-13, unit 6a): a certified
-log with revision `c` that does not delete a key and put it again (`NoDelPutAt`, `Compact.lean`:
-else compaction at `c` deletes the key's live value, `issues/etcd-compaction-delete-then-put.md`).
-`NoDelPutAt` depends on revision `c` alone (`NoDelPutAt_prefix`), so it holds of every certified log
-with that revision (`crevSafe_cert`). The one who compacts asserts it (`store.Compact`'s premise);
-`s.mu`'s resource keeps it for the current compaction revision (`muInvAt`), the keys compaction
-may delete for theirs (`delKey`). Trivial at `c < 0` (`crevSafe_neg`). -/
+/-- **A certified compaction revision** (persistent; 2026-10-13, unit 6a): a certified log with
+revision `c`. `s.mu`'s resource keeps it for the current compaction revision (`muInvAt`). Until
+M2's item 18 (2026-10-30) it also said that revision `c` does not delete a key and put it again
+(`NoDelPutAt`, which the one who compacts asserted); the fixed `doCompact` (etcd-io/etcd#22377)
+needs no such premise. Trivial at `c < 0` (`crevSafe_neg`). -/
 def crevSafe (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(∃ log : Log, idxCert γ.idx log ∗ ⌜c < log.length ∧ NoDelPutAt log c⌝)
+  iprop(∃ log : Log, idxCert γ.idx log ∗ ⌜c < log.length⌝)
 
 instance crevSafe_persistent (γ : StoreNames) (c : Int) : Persistent (crevSafe (GF := GF) γ c) := by
   unfold crevSafe; infer_instance
@@ -2155,28 +2153,16 @@ theorem crevSafe_neg (γ : StoreNames) (c : Int) (log : Log) (hc : c < 0) (hl : 
   iunfold crevSafe
   iexists log
   iframe H
-  ipureintro; exact ⟨hl, NoDelPutAt_neg hc⟩
-
-/-- **Every certified log with revision `c` is safe at `c`** if one is. -/
-theorem crevSafe_cert (γ : StoreNames) (c : Int) (log : Log) (hl : c < log.length) :
-    crevSafe (GF := GF) γ c ∗ idxCert γ.idx log ⊢ ⌜NoDelPutAt log c⌝ := by
-  iintro ⟨Hs, #Hc⟩
-  iunfold crevSafe at Hs
-  icases Hs with ⟨%log', #Hc', %Hl'⟩
-  ihave %Hp := idxCert_prefix γ.idx log log' $$ [$Hc $Hc']
-  ipureintro
-  rcases Hp with h | h
-  · exact (NoDelPutAt_prefix h hl).1 Hl'.2
-  · exact (NoDelPutAt_prefix h Hl'.1).2 Hl'.2
+  ipureintro; exact hl
 
 /-- **A key compaction may delete** (persistent, the store's choice of the backend contract's
 `Del`): of a certified log, a revision's bytes compaction at a lower bound `c` of the
-compaction revision may delete (`KeyDel`, `Compact.lean`), revision `c` of the log not deleting
-then putting a key (`NoDelPutAt`: the compactor's assertion, `compactJobPre`; 2026-10-13, unit 6a):
-so a read at or above the compaction revision never names one (`rangeAnswers_not_del`). -/
+compaction revision may delete (`KeyDel`, `Compact.lean`): a read at or above the compaction
+revision never names one (`rangeAnswers_not_del`; until M2's item 18, 2026-10-30, also with revision
+`c` of the log not deleting then putting a key, `NoDelPutAt`, the compactor's assertion). -/
 def delKey (γ : StoreNames) (k : GoString) : IProp GF :=
   iprop(∃ (c : Int) (log : Log), crevLb γ.idx c ∗ idxCert γ.idx log ∗
-    ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+    ⌜-1 ≤ c ∧ KeyDel log c k⌝)
 
 /-- `delKey` is timeless (ghost lower bounds and pure facts; the backend-compaction stage, review
 round 2, Target 4): so the store's deletable keys can be instantiated as `◇ delKey`, which the
@@ -2191,7 +2177,7 @@ instance delKey_persistent (γ : StoreNames) (k : GoString) : Persistent (delKey
 names only through the index's (`γ.idx`), which `NewStore`'s caller allocates before the store
 exists, so the creator can fix the backend's registration to it before `NewStore`. -/
 def delKeyI (γi : IdxNames) (k : GoString) : IProp GF :=
-  iprop(∃ (c : Int) (log : Log), crevLb γi c ∗ idxCert γi log ∗ ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+  iprop(∃ (c : Int) (log : Log), crevLb γi c ∗ idxCert γi log ∗ ⌜-1 ≤ c ∧ KeyDel log c k⌝)
 
 theorem delKey_eq_delKeyI (γ : StoreNames) (k : GoString) :
     delKey (GF := GF) γ k = delKeyI γ.idx k := rfl
@@ -2250,7 +2236,7 @@ theorem crevUB_noDel (γ : StoreNames) (q : Qp) (k : GoString) :
   iunfold delKey at Hd
   icases Hd with ⟨%c, %log, #Hlb, -, %Hk⟩
   ihave %Hle := crevUB_lb γ.idx q (-1) c (by decide) Hk.1 $$ Hc Hlb
-  exact (KeyDel_neg (show c < 0 by omega) Hk.2.1).elim
+  exact (KeyDel_neg (show c < 0 by omega) Hk.2).elim
 
 /-- **A snapshot of a store not compacted is the bucket**: with a part of the compaction
 revision's authority at `-1` (kept), a thinned snapshot misses no key. -/
@@ -3543,8 +3529,7 @@ instance readerPool_persistent (γ : StoreNames) : Persistent (readerPool (GF :=
 /-- `s.mu`'s resource at fraction `q`, at the compaction revision `c` (`-1`: none): half
 `compactMainRev`'s points-to and a quarter of the compaction revision's authority (`s.revMu`
 holds as much; the compaction right, half the authority, is `compactRightR`), with a certified
-log of which `c` is a revision, safe for readers (`crevSafe`: no key deleted then put again at
-`c`, which `store.Compact`'s caller asserts; 2026-10-13, unit 6a). A transaction holds `s.mu`
+log of which `c` is a revision (`crevSafe`; 2026-10-13, unit 6a). A transaction holds `s.mu`
 shared for its whole life, so its `rangeKeys` reads `compactMainRev` from its part (`muHeld`). -/
 def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
   iprop("HcmpM" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
@@ -3724,7 +3709,7 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   icases Hc0 with ⟨-, %Hwf, -⟩
   iframe HcmpM HcrevM
   isplitl []
-  · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
+  · ipureintro; exact ⟨HcM, by have := Hlt; omega⟩
   iintro Hm Hc
   iunfold muHeld
   iframe Hl Hf
@@ -3810,7 +3795,7 @@ theorem muHeld_cmp_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   icases Hc0 with ⟨-, %Hwf, -⟩
   iframe HcmpM HcrevM Hi
   isplitl []
-  · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
+  · ipureintro; exact ⟨HcM, by have := Hlt; omega⟩
   iintro Hm Hc Hi
   ihave Hf := Hfb $$ Hi
   iunfold muHeld

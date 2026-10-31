@@ -15,8 +15,8 @@ statements need the new reading (`rqShapeD`, `entryShapeD`, `logShapeD`, `kvWork
   M2's scope (`plainLogM`, `compactPropOkD`: at a revision `≥ 1`, Q7 (a); no side-effect-free or
   admin field beside it, so `Apply` neither skips nor rejects it); each committed compaction's
   claims at the model of the entries before it (`cmpLogOk`: in M2's scope, its revision one of the
-  model's). No `NoDelPutAt` (review round 1's F-5: stated in the fork fix's form; the switch waits
-  for mvcc's specs to drop the premise). At `cmp = false` it means today's `kvInv` (`kvInvD_off`:
+  model's). No `NoDelPutAt` (review round 1's F-5: stated in the fork fix's form; mvcc's specs
+  dropped it with item 18, 2026-10-31). At `cmp = false` it means today's `kvInv` (`kvInvD_off`:
 a plain log has no compaction, so the shapes read as today's, `logShapeD_plain`).
 - **The compaction revision of the committed log** (`crevOf`, Q5 (a): logical across a restore):
   `kvEntry`'s twin (`kvCrevEntry`, `apply.dispatchCrev` per normal entry above the start's

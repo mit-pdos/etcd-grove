@@ -143,8 +143,8 @@ compactions compose (`kiCompact_kiCompact`, `kiCompact_kiCompact_le`), compactio
 changes nothing (`kiCompact_neg`), compaction commutes with the writer's next event
 (`kiCompactO_step`, `IdxCRep.step`), the compacted index answers as the uncompacted one
 (`IdxCRep.kiAt`, `IdxCRep.rangeAt`), and what a read at or above the compaction revision names is
-kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
-`issues/etcd-compaction-delete-then-put.md`). -/
+kept (`kiGet_avail`, `named_not_del`: by the fixed `doCompact`, etcd-io/etcd#22377; until M2's
+item 18, 2026-10-30, under `NoDelPutAt`, `issues/etcd-compaction-delete-then-put.md`). -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
@@ -480,7 +480,7 @@ read at a revision at or above `c` answers as the uncompacted store (`mvcc_range
 read path's `rangeOutcomeC` is `rangeOutcome`, the answer from the certified log; below `c`,
 `ErrCompacted`), with the pure model's `IdxCRep.kiAt`/`IdxCRep.rangeAt` (the compacted index
 answers as the uncompacted one there) and `named_not_del` (what such a read names is not deleted
-from the bucket, under `NoDelPutAt`, which `store.Compact`'s caller asserts since unit 6a). -/
+from the bucket; no premise on the compaction revision since M2's item 18, the fixed `doCompact`). -/
 
 noncomputable section
 
@@ -534,9 +534,8 @@ The store's readers hold of a store whose compaction revision moves: a reader is
 `crevLb γ rev` makes every transaction opened afterwards observe `crev ≥ rev`:
 `mvcc_store_Read_after_Compact`). Its range reads answer `rangeOutcomeC` at `crev`:
 `ErrCompacted` below it (`mvcc_rangeOutcomeC_lt`), the uncompacted outcome at or above it
-(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted, because the
-one who compacts asserts `NoDelPutAt` at its revision (`store.Compact`'s premise, carried by the
-keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The readers' statements (the packages above mvcc: `storeReader`, the
+(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted (the keys the job deletes,
+`delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The readers' statements (the packages above mvcc: `storeReader`, the
 transactions at the tag `True`, the observed `crev` exposed; `ReaderSpecs.lean`) are corollaries
 (`spec_R`), printed here linked. -/
 

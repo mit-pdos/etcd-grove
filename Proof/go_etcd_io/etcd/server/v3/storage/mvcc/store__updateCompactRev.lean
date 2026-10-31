@@ -63,7 +63,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P hk Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, HmuA, Hright, #HcertC, %HndC, Hctx, HRTok, #HsupM⟩
+  wp_start as ⟨#Hs, HmuA, Hright, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -381,7 +381,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         rw [hrw]
         iframe
         isplitr
-        · iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HndC
+        · iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HrevC
         ipureintro; omega
       ihave Hq := mvcc.compactQueue_mono γ c' (sint.Z rev) (by omega) $$ Hq
       isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
@@ -393,17 +393,12 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
 
       iframe HPost
-      -- the caller's `NoDelPutAt`, for the committed log (`crevSafe_cert`)
-      ihave %Hnd' : ⌜mvcc.NoDelPutAt log (sint.Z rev)⌝ $$ []
-      · iapply mvcc.crevSafe_cert γ (sint.Z rev) log hrl $$ [Hcert]
-        iframe Hcert
-        iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HndC
       iunfold mvcc.compactJobPre
       iframe #
       isplitr
       · ipureintro; exact hcmp
       ipureintro
-      exact ⟨by omega, hrl, Hnd'⟩
+      exact ⟨by omega, hrl⟩
 
 end proof
 

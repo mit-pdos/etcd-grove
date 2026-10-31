@@ -34,9 +34,9 @@ unset hook lent and the caller's update from `Pre` to `Post` (`LockInsideApply` 
   locks' halves, the authority with the right's), `scheduledCompactRev = rev` written, `nil`, the
   previous compaction revision; the right at `rev` (its queue unchanged, good at `rev`:
 `compactQueue_mono`); the job's premises (`compactJobPre`: `crevLb γ rev`, the caller's
-  certified log with revision `rev`, which does not delete then put a key) and the caller's
-  `Post`; `s.mu`'s resource records the revision safe for readers (`crevSafe`; 2026-10-13, unit
-  6a: the caller's `NoDelPutAt`, as `store.Compact`'s);
+  certified log with revision `rev`) and the caller's
+  `Post`; `s.mu`'s resource records the revision's certificate (`crevSafe`; 2026-10-13, unit
+  6a);
 * `rev ≤ c`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`), tracked (M2, the storage side, item 17: the right's queue,
   the last job's `Post` passed through; until then untracked, under the never-stopped
@@ -57,7 +57,7 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);

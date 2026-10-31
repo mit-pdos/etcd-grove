@@ -21,14 +21,14 @@ redefinition).
   (`mvcc.kbWTSupplyM`, persistent: the server's from its write budget's stock, R2-7/Q4 (a)).
 - **What a compaction needs** (`cmpAdmitRev`, `cmpAdmit`): the store compacting and the revision
   one of the log's (`rev < log.length`). No `NoDelPutAt` (review round 1's F-5: the items are
-  stated in the fork fix's form, etcd-io/etcd#22377 being in the fork since 2026-10-28; the switch
-  waits for mvcc's specs to drop the premise).
+  stated in the fork fix's form, etcd-io/etcd#22377 being in the fork since 2026-10-28; mvcc's specs
+  dropped it with item 18, 2026-10-31).
 - **The answers** (`cmpRespOk`, `cmpAnswerIs`, `dispatchAnswerD`, `dispatchResultD`,
   `applyResultIsD`): the compaction's error arm with no trace (F-2: `EtcdServer.Compact` reads
   `result.Trace` before `result.Err`).
-- **The statements** (drafts of the linked ones): mvcc's `store.updateCompactRev.specD` and
-  `store.Compact.specD` (F-1: no `ErrFutureRev` arm, unreachable under their precondition, and no
-  `NoDelPutAt`), the chain's `Compaction` triple (`cmpTriple`, a conjunct to add to
+- **The statements** (drafts of the linked ones; mvcc's `store.updateCompactRev` and
+  `store.Compact`, drafted here until item 18 put them in mvcc, 2026-10-31: no `ErrFutureRev` arm,
+  no `NoDelPutAt`): the chain's `Compaction` triple (`cmpTriple`, a conjunct to add to
   `applierTriples`), `applierV3backend.Compaction.specD` (new: the method has no spec today),
   `uberApplier.dispatch.specD`, `uberApplier.Apply.specD`, `apply.Apply.specRecD` (S-1).
 - **Glue, proved**: `cmp_store_pre` (the backend's `Compaction` can meet `store.Compact.spec`'s
@@ -248,7 +248,7 @@ at `log` and the critical-section contract (`mPre`: `store.Compact`'s `SetSchedu
 under the batch lock), and its compaction resources at `crev`: the KV and the chain's resources as
 they were, the contract's `Post` or `Pre`, the compaction resources at the revision after it
 (`cmpRevAfter crev rev` through a chain that reaches the backend), the answer (`cmpAnswerIs`).
-Its proof for the backend rests on `store.Compact.specD` (F-1: no `ErrFutureRev` arm, which
+Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` arm, which
 `cmpAnswerIs` has no case for). -/
 def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(□ (∀ (cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
@@ -323,7 +323,7 @@ theorem cmp_store_pre (E : AEnv GF) (log : mvcc.Log) (crev : Int) (h : mvcc.kbCm
   iframe Hr'
   ipureintro; exact hc'
 
-/-- **F-1's argument** (why `store.Compact.specD` and `store.updateCompactRev.specD` can drop the
+/-- **F-1's argument** (why `store.Compact.spec` and `store.updateCompactRev.spec` drop the
 `ErrFutureRev` arm, for the mvcc Probe): in that branch the store holds its committed log's
 authority (`revMuBody`'s `idxLogAuth γ.idx (revQ γ q) log`), which extends the caller's certificate
 (`idxLogAuth_cert_prefix`), so a revision of the caller's log is one of the committed log's: the
@@ -351,60 +351,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **Draft of `store.updateCompactRev.spec`** (review round 1's F-1, G6; an mvcc statement, which
-`store.Compact.spec`, exported as `mvcc_store_Compact`, is written over): today's without the
-`ErrFutureRev` arm (unreachable under the precondition: `cmp_not_future`) and without the
-`NoDelPutAt` premise (F-5: etcd-io/etcd#22377 is in the fork; `compactJobPre` and `crevSafe` lose
-it with the re-proof of the compaction job). -/
-abbrev mvcc.store.updateCompactRev.specD : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (hk : Option val)
-    (Pre Q Post : IProp GF) (log : mvcc.Log),
-  mvcc.storeCmp γ →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
-      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
-      go!"updateCompactRev")) (Val #rev))
-  {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
-      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗
-      ((⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 c ∧ c < sint.Z rev⌝ ∗
-        mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRightR s γ (sint.Z rev) ∗ Post ∗
-        mvcc.compactJobPre s γ rev) ∨
-      (⌜sint.Z rev ≤ c ∧ prev = W64 0⌝ ∗
-        (∃ ec : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□
-          GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
-
-/-- **Draft of `store.Compact.spec`** (review round 1's F-1, G6; exported as `mvcc_store_Compact`):
-today's without the `ErrFutureRev` arm (unreachable: the caller's certificate is of a log with
-`rev`, which the committed log extends, `cmp_not_future`; the docstring already said so) and without
-the `NoDelPutAt` premise (F-5: etcd-io/etcd#22377 in the fork, the re-proof of `keyIndex.doCompact`
-and of the job against the fixed code). Two answers: compacted at `rev`, or `ErrCompacted`. -/
-abbrev mvcc.store.Compact.specD : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
-  trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
-      mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
-      mvcc.kbWTSupplyM γ.kb }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
-      go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
-      traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
-      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
-        mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
-      (⌜sint.Z rev ≤ c⌝ ∗
-        (∃ ec : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□
-          GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
+/- (Item 18, done 2026-10-31: the drafts `store.updateCompactRev.specD` and `store.Compact.specD`
+are now mvcc's statements, `store.updateCompactRev.spec` and `store.Compact.spec`, checked equal by
+`rfl` before the drafts went; `mvcc_store_Compact` is proved of them.) -/
 
 /-- **`a.Compaction(cr)`** on the `*applierV3backend` `p` (draft; no spec today, the method being
 out of the model): `EnsureTrace` makes a fresh trace (`context.TODO()` holds none), `KV.Compact(trace,
-rev)` (the watchable store's embedded `*store`'s, `store.Compact.specD`: the right, the certificate
+rev)` (the watchable store's embedded `*store`'s, `store.Compact.spec`: the right, the certificate
 of a log with `rev`, the hook, the contract, the reader's token, the supply), then, on
 success, `KV.Range(ctx, "compaction", nil, {})` at the latest revision (a latest read is never
 compacted: `rr` is not nil) for the response's header. The chain-`.backend` instance of

@@ -18406,3 +18406,33 @@ libraries, the informers, the model API server, the controller's first round) fo
   merge into `lean` as is.
 - `lake build` (10749 jobs) passes; `etc/gen-init.py --check` passes; every generated `Link.lean`
   is current.
+
+<!-- Moved from STATUS.md 2026-10-31: done by M2 apply's item 18 (branch m2-apply), but for CompactMode's interim irrNoDelPut and v3rpc's check_gives_nodup (see STATUS, "M2, the apply side"). -->
+
+## The delete-then-put fix in the fork: what is left (2026-10-30, branch `etcd-ndp-fix`)
+
+The fork fix of round 1's decision (b) is in: upstream's etcd-io/etcd#22377 (`keyIndex.doCompact`)
+and #22395 (`checkIntervals`, from-key deletes) cherry-picked as `e7bb9f2de`/`249d76bea` (branch
+`goose-lean-compactfix` of `upamanyus/etcd`, pushed), the pin bumped (`5d82727117`), and
+`doCompact`, `generation.isRecreatedAt` and `checkIntervals` re-proved over the fixed code
+(`7c8ef717ef`, M2 step 1). The specs were left alone: `NoDelPutAt` is still a premise.
+Dropping it is a spec change for the user to approve:
+
+- **mvcc, the model**: `kiGet_avail` (`Compact.lean`) uses `hnd` in one `exfalso` branch (the
+  tombstone of generation `j'` and the read's revision `r` in a later generation `gx` both at
+  main `c`). Under the fixed loop that case is `genAdv` by `genRecreatedAt` of generation `j'+1`
+  (its first revision is above the tombstone and at or below `r`, so at main `c`). Then
+  `kiGet_avail`, `named_not_del` and `rangeAnswers_not_del` drop `hnd`, and `NoDelPutAt`,
+  `NoDelPutAt_neg` and `NoDelPutAt_prefix` go unless something else still needs them.
+- **mvcc, the store**: `crevSafe`, `delKey`'s and `compactJobPre`'s conjunct (`InvStore.lean`,
+  `InvCompact.lean`), and the premise in `store.Compact.spec` (export `mvcc_store_Compact`),
+  `store.compactLockfree.spec` and `store.updateCompactRev.spec`, with their proofs
+  (`store__scheduleCompaction`, `store__updateCompactRev`) and `M2StorageDraftRestore`'s uses.
+- **server**: `CompactMode.lean`'s `NoDelPutAt` dispatch clause (and `irrNoDelPut`); in the
+  `m2-apply` Draft (not on `lean`), `cmpAdmit`, `cmpTriple`, `applierV3backend.Compaction.specD`,
+  `cmpEntryOk`, `kvInvD`'s clause, `reqPropOkD`'s `irrNoDelPut`, and `EtcdServer.Txn`'s
+  compaction-mode premise (`m2-apply-plan.md`, "`NoDelPutAt`: what the upstream fix would
+  remove").
+- **v3rpc** (to check, not shown): whether `check_gives_nodup` still needs
+  `ReqOp.noFromKeyDelL` now that `delIvl` reads a from-key delete as `[k, +∞)`.
+

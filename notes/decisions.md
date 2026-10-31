@@ -5001,7 +5001,8 @@ where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu`
 
 ### Compaction-aware readers (unit 6a): the delete-then-put premise on `Compact`, the frozen reader a corollary
 
-**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 6a)
+**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 6a); **Decision 1
+superseded 2026-10-31** ("mvcc compaction: no `NoDelPutAt`, no `ErrFutureRev` arm", below)
 
 **Decision 1: the one who compacts asserts `NoDelPutAt` at its revision.** `store.Compact`
 (`compactLockfree`, `updateCompactRev`) takes `idxCert γ.idx log`, `sint.Z rev < log.length` and
@@ -27237,3 +27238,13 @@ reading as today by `rfl` (round 1's S-1); in its place, the off laws (`kvInvD_o
 equivalence; `logShapeD_plain`; `dispatchOkD_iff`). Supersedes the round-1 repair of S-1 (the
 `dispatchOkM` family).
 
+
+## mvcc compaction: no `NoDelPutAt`, no `ErrFutureRev` arm (2026-10-31, the user's approval of M2 apply's items · `notes/m2-apply-plan.md`, "The Probe")
+
+Supersedes "Decision 1: the one who compacts asserts `NoDelPutAt` at its revision" (unit 6a, above).
+With the fork's fixed `doCompact` (etcd-io/etcd#22377) a compaction at a revision that deletes a key and
+puts it again keeps the put, so the premise is not needed: `store.Compact`, `compactLockfree` and
+`updateCompactRev` drop it, and the store keeps only the certificate (`crevSafe`). Their
+`ErrFutureRev` arm goes as well, because the caller's certificate is of a prefix of the committed log.
+Both changes were approved as item 18 of the M2 apply batch, and the proofs went through as the Drafts
+predicted.

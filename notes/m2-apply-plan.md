@@ -1,9 +1,9 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
-Status (2026-10-30): **review rounds done** (round 7: nothing in the first tier); waiting for the
-user's approval batch (Q5). Before: **the switch restated in place** (the user's Q6 (a); "The switch in place",
-the last section, with the consolidated item list that supersedes the item texts above). Before:
-review round 3 (R3-1/R3-2), round 2 repaired, round 1 repaired. Nothing switched.
+Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
+**the Probe**: item 18 done ("The Probe", the last section); next G2 by Q3's (a) (the user's
+order), then the commit step and S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+(the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
 1. *Done so far.* Draft modules `etcdserver/apply/M2ApplyDraft.lean`, `etcdserver/M2ApplyDraft.lean`,
@@ -11,12 +11,13 @@ review round 3 (R3-1/R3-2), round 2 repaired, round 1 repaired. Nothing switched
    round 1 (`notes/spec-first-study/m2-apply-review-1.md`); targeted build passes. The `NoDelPutAt`
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
-2. *Next step: the user's approval batch* (review rounds done: round 7 had nothing in the first
-   tier).
-3. *Then* the user's approval batch: Q5 (the consolidated items of "The switch in place"),
-   dropping `NoDelPutAt` from mvcc/server specs (`store.Compact.spec`, `compactLockfree`,
-   `updateCompactRev`, `crevSafe`/`delKey`/`compactJobPre`, `CompactMode`'s clause, `irrNoDelPut`;
-   `check_gives_nodup`'s `noFromKeyDelL` needs a proof attempt), F-1's `ErrFutureRev` arm (item 18).
+2. *Approved* (2026-10-31, the user: "approve the items; start the Probe with item 18").
+3. *The Probe*: item 18 done (mvcc, below). **Next (the user, 2026-10-31): G2 by Q3's (a)**: check
+   the mvcc law that every log the server's store certifies is `certOk` (`revMuBody` keeps `certOk`
+   of the committed log; every `idxCert` is a prefix of it, `idxLogAuth_cert_prefix`; the questions:
+   `certOk` prefix-closed, and reachable from an invariant the proposer can open, not only under
+   `revMu`); if it fails, back to the user for (b). Then the commit step (G4: `kv_prop_au` over
+   `kvInvD`/`reqPropOkD` with `kvCertInv`), S3-3's transfer lemma (item 8), G1.
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -295,7 +296,7 @@ off (`newServer(…, 0, …)`), and `kvreconf` is a membership-change example of
   `sorry`s: a follower may install a snapshot, so restore in compaction mode is reachable), plus
   M2's own `sorry`s until proved. `etc/tcb-collections/m2.txt` follows.
 
-## `NoDelPutAt`: what the upstream fix would remove (not done)
+## `NoDelPutAt`: what the upstream fix would remove (mvcc's part done by item 18, 2026-10-31)
 
 The fix: etcd-io/etcd#22377 (`keyIndex.doCompact`) and #22395 (the gRPC path) in the fork
 (`upamanyus/etcd`, branch `goose-lean`), the etcd pin bumped in `etc/goose.py` and the examples'
@@ -578,3 +579,23 @@ same kind (a drafted copy missing a carrier) until the user's Q6 (a).
 item 18 and the `NoDelPutAt` removal from mvcc's specs; Q3 (G2's route) still open; then the
 Probe (the first proofs: item 18's re-proof, the commit step, S3-3's transfer lemma).
 
+
+## The Probe (2026-10-31)
+
+**Item 18, done.** mvcc's `store.updateCompactRev.spec`, `store.compactLockfree.spec` and
+`store.Compact.spec` (exported `mvcc_store_Compact`) are now the approved drafts:
+- *No `ErrFutureRev` arm* (`78024e8cd9`): `updateCompactRev`'s `rev > currentRev` branch is
+  contradictory: `revMuBody`'s `idxLogAuth` of the committed log extends the caller's certificate
+  (`idxLogAuth_cert_prefix`), and `rev < |logc|`. The callers lose their third case.
+- *No `NoDelPutAt`*: `kiGet_avail`'s one use (a tombstone at main `c` in generation `j'`, the read's
+  revision at `c` in a later one) is now the fixed loop's step: generation `j'+1`'s first revision is
+  above the tombstone and at or below the read's, so at main `c` (`genRecreatedAt`), and `genAdv`
+  steps past `j'`. Then `named_not_del`, `rangeAnswers_not_del`, `delKey`/`delKeyI`, `compactJobPre`
+  lose the premise and `crevSafe` keeps only the certificate (`crevSafe_cert` gone); the proofs of
+  `scheduleCompaction`, `updateCompactRev`, `compactLockfree`, `Compact`, `rangeKeys` follow.
+- The Draft's `specD`s were checked `rfl`-equal to the new statements, then retired (the apply Draft
+  now cites the real specs).
+- Kept: `NoDelPutAt` and its laws (`M2StorageDraftRestore`'s Draft names it; not ours to edit);
+  `CompactMode.lean`'s interim `irrNoDelPut` (the switch replaces that family: items 15, 19);
+  v3rpc's `check_gives_nodup`'s `noFromKeyDelL` (no longer needed by compaction; a separate cleanup).
+- Cost: as estimated (G6 cheap; the model's case about 30 lines).

@@ -46,12 +46,12 @@ then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configurat
 is positive (`isStore`: `NewStore` excludes a negative one,
 `issues/etcd-compaction-negative-batch-limit.md`).
 
-**The delete-then-put premise** (2026-10-13, unit 6a): the caller holds a certificate of a log
-`log` with revision `rev` (so `rev` is not above the committed log) whose revision `rev` does not delete a key and put it again
-(`NoDelPutAt`): else the compaction deletes the key's live value and a later read `Fatal`s
-(`issues/etcd-compaction-delete-then-put.md`). The store records it for the new compaction
-revision (`crevSafe`, in `s.mu`'s resource) and the keys the job deletes carry it (`delKey`), which
-is what makes the readers' specs hold of a compacted store (`rangeAnswers_not_del`).
+**The certificate** (2026-10-13, unit 6a): the caller holds a certificate of a log `log` with
+revision `rev` (so `rev` is not above the committed log). The store records it for the new
+compaction revision (`crevSafe`, in `s.mu`'s resource). Until M2's item 18 (2026-10-30) the caller
+also asserted that revision `rev` does not delete a key and put it again (`NoDelPutAt`: else the
+unfixed `doCompact` deleted the key's live value, `issues/etcd-compaction-delete-then-put.md`); the
+fork's fix (etcd-io/etcd#22377) makes every revision safe to compact at (`rangeAnswers_not_del`).
 
 **The physical bound** (item 8, 2026-10-17; not a premise since 2026-10-18, D19b): the log up to
 `rev` has fewer than `2 ^ 62` changes (`CompactSmall`), so the job's count of deleted keys (an
@@ -76,7 +76,7 @@ abbrev mvcc.store.Compact.spec : Prop :=
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
       mvcc.kbWTSupplyM γ.kb }}

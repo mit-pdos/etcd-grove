@@ -14,6 +14,7 @@ principles match your target.
 | [auth-history-tie.md](auth-history-tie.md) | a cap tying a library's ghost history to the server's model, and a client's read law over it | a premise its supplier can prove (at the actual state, not every state); guard by the check where the code has done it; use only what the client's spec exports; masks as subset premises |
 | [apply-uber-contract.md](apply-uber-contract.md) | a function calling through an interface, three specs of it at three contracts; a server that needs the on contracts | one spec parametric in the method's contract; the constructor establishes the contract; store it at the level called, for every object the field may hold |
 | [apply-loop-merge.md](apply-loop-merge.md) | a pair of specs (mode off and on) merged into one at the environment's mode, callers in another track's proof | the restoring corollary states the old spec exactly, deriving the merged premises from the old precondition; check a "callers untouched" claim against the order the caller's proof obtains its facts |
+| [compaction-in-place.md](compaction-in-place.md) | a new mode (compaction) in a family of shared predicates and the specs over them; a library spec with an unreachable error arm | redefine in place, not mode-indexed copies; no arm the precondition excludes |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

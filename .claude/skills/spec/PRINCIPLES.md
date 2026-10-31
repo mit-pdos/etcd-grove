@@ -89,6 +89,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
   the condition is there only because a trust-boundary axiom is too weak to give the row
   unconditionally, the docstring names that axiom as the margin. (`authinfo.md`)
+- **A new mode redefines the shared predicates in place, not mode-indexed copies**: when a mode widens
+  what a family of predicates admits (compaction entries in the KV invariant), redefine the few that
+  change, keep the text of the specs and predicates that carry them (read under the redefinition), and
+  prove that the old mode means the old statements (laws, not `rfl`). Copies indexed by the mode must
+  cover every carrier, and each review round finds one more that was missed. (`compaction-in-place.md`)
+- **No arm the precondition excludes**: an error case of the code that the caller's premises rule out
+  (`ErrFutureRev` under a certificate of the revision) is a sentence in the docstring, not a disjunct
+  every caller must discharge; its proof branch is a contradiction. (`compaction-in-place.md`)
 
 ## Preferences: abstraction
 

@@ -40,7 +40,7 @@ theorem mvcc.store.Compact.wp_of_le
     (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
       mvcc.kbWTSupplyM γ.kb }}
@@ -51,7 +51,7 @@ theorem mvcc.store.Compact.wp_of_le
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
         mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }} := by
-  wp_start as ⟨#Hs, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc, HRTok, #HsupM⟩
+  wp_start as ⟨#Hs, Hright, #HcertC, %HrevC, HhookW, Hcs, Htrc, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -81,7 +81,7 @@ theorem mvcc.store.Compact.wp_of_le
   (try wp_auto)
   wp_apply (h1 s γ rev c' P (some f) Pre Q Post log hcmp) $$ [$Hmu1 $Hright $HRTok Hcs HhookW] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
   · rw [mvcc.lockCtxM_some]
-    iframe #; iframe Hcs HhookW; ipureintro; exact HndC
+    iframe #; iframe Hcs HhookW; ipureintro; exact HrevC
   rw [mvcc.lockBackM_some]
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
