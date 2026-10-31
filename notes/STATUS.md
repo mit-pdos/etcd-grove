@@ -525,19 +525,20 @@ Gaps (recorded in the plan): `putKeep`/lease-keeping `putIgnVal` in transactions
 the wire lease, as their `PrevKv`); a revocation's class reaches no chain result (`rqOk` excludes
 it); the dispatch (`uberApplier.dispatch`, `Apply`) drops the lease class. Next: Part B, the API layer (`LeaseTimeToLive`, `LeaseLeases`, `LeaseKeepAlive`).
 
-**Part B, the API layer (in progress, 2026-10-31).** The user's scope: the checks only
+**Part B, the API layer (proved, 2026-10-31).** The user's scope: the checks only
 (`checkLeaseRenew`, `checkLeaseTimeToLive`, `checkLeaseLeases`; the entry points stay names-only),
 a reader-side model of the lessor (a monotone history of its (lease map, item map) snapshots, lower
 bounds), and the restated `NewLessor`/`Recover` axioms (text unchanged, definitions grown; the
-user's approval with an axiom review). Done: the Draft (statements of the three checks, the
-unified `Lookup`/`Keys` specs, the readers' vocabulary in `InvLessor.lean`), its Review, the axiom
-review (`axiom/lessor-reader`, `881a927f93`: survives), the Probe (`Keys` proved for owner and
-reader; `Grant`'s registration of a fresh lease, `itemSet_register`; it found `setsOk`'s coverage
-conjunct and the `threadBound ≤ 2^30 - 1` premise). The lessor's other proofs (`LessorLemmas`,
-`Grant`, `Attach`, `Detach`, `Revoke`, `Lookup`, `LessorContract`) are broken until the Prove step;
-the build is red on this branch. **Frozen** at `211662f7ba` (the user's approval); next: Prove. Found:
+user's approval with an axiom review, `axiom/lessor-reader`, `881a927f93`: survives). Frozen at
+`211662f7ba`; every statement proved since (the plan's "Prove"): the lessor's proofs carry the
+history (`LessorHist.lean`, `hist_append`), the three checks are linked in the server's
+`Link.lean`. A passed check says, of the request's principal: auth off, or admin, or the
+permission of every key of the lease at a lessor index no older than the caller's lower bound,
+each at an auth state no older than its own. No new axiom or `sorry`. Found:
 `issues/etcd-lease-timetolive-keys-toctou.md` (LeaseTimeToLive returns keys it did not check).
-Perennial: a typed points-to's fraction validity (`notes/perennial-changes.md`).
+Perennial: a typed points-to's fraction validity (`notes/perennial-changes.md`). Next: the entry
+points (`LeaseRenew`, `LeaseTimeToLive`, `LeaseLeases`), which would give the checks their lower
+bounds.
 
 ## A depth premise for `proto.MarshalIRR` (2026-10-31, branch `irr-depth`)
 

@@ -446,7 +446,7 @@ axioms: authkv, linkvtxn, cachekv, linkv3p, server, putget, k8setcd3, putget3, w
 
 **The Probe** (2026-10-31): `Lease.Keys.wp_proof` re-proved for both callers (`itemSet_keysFrom`:
 under the read lock, the reader's element of the item sets' map is its id's items at the last
-index the lease map has `l`, `≥ m`); `itemSet_register`, `Grant`'s step that registers a fresh
+index the lease map has `l`, `≥ m`); `grant_hist` (then `itemSet_register`), `Grant`'s step that registers a fresh
 `*Lease` with the empty set. It found two Draft errors, fixed: `setsOk` must also say every lease
 of the history has a set (else a fresh `l` could not be shown absent from the history), and the
 pool's premise is `threadBound GF ≤ 2^30 - 1` (`actualMaxReaders = 2^30 - 1`, less the owner's slot;
@@ -464,3 +464,18 @@ integration`) `TestAuthLease*`. The TOCTOU the checks' specs leave as their gap 
 unified `Lookup`/`Keys` specs, the readers' vocabulary (`InvLessor.lean`), the restated
 `NewLessor`/`Recover`. A change to them now needs a `notes/decisions.md` entry with its cause.
 Next: Prove.
+
+**Prove** (2026-10-31): no frozen statement changed. The lessor's proofs repaired for the history:
+`LessorHist.lean` (new, pure: `setsOk_snoc` and its instances `setsOk_grant`, `setsOk_items` for
+`Attach`/`Detach`, `setsOk_delete` for `Revoke`), `LessorLemmas` (`hist_append`, `hist_append_set`,
+`grant_hist`, `closers_grant`, `lockHist_at`); `Grant` (registers the fresh lease and appends
+`(M.insert id l, I)`; it initializes the lease's lock and its reader pool), `Attach`/`Detach` (append
+the snapshot with the new item map and the lease's new set), `Revoke` (its second critical section
+appends `(M.delete id, I)`; the owner's and the lock's last snapshots agree, so the closers' map is
+the lessor's), `Lookup` (one proof for the owner and a reader), `LessorContract` (the owner's
+`Lookup` at its index-0 lower bound, `leaseOwn_lb`), `checkLeasePutsKeys` (the unified `Keys`).
+Nothing outside the lease package needed more. The three checks proved
+(`EtcdServer__checkLease{Renew,TimeToLive,Leases}.lean`, shared lemmas in `LeaseCheckLemmas.lean`:
+the auth store at the lower bound, the two errors) and linked (`etc/link-lean-first-server.txt`).
+A `lean-check` artifact: a kernel error on an abstracted `word` proof that `lake build` does not
+reproduce (the server's elaboration of a file copied from another open one).

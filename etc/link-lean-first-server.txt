@@ -298,6 +298,12 @@ EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
 EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
+# the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
+# of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
+# call them stay names-only
+EtcdServer__checkLeaseRenew: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_lessor__Lookup lease_Lease__Keys
+EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_lessor__Lookup lease_Lease__Keys
+EtcdServer__checkLeaseLeases: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_Lease__Keys
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`

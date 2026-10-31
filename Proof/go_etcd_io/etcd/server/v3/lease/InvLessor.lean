@@ -821,68 +821,6 @@ theorem w64_own_discard_false (l : Loc) (v w : w64) :
   have h := DFrac.valid_own_op_discard.1 Hc.1
   exact absurd h (by simp)
 
-/-- **`Grant` registers a new `*Lease`** (Part B, the Probe): its empty item set enters the item
-sets' map (with the owner's half of its authority), the whole element for the lease's lock, and its
-`ID`, which no other goroutine can have written, becomes read-only. It is in no snapshot of the
-history: its `ID` was exclusive, so it was not in the map, which has every lease of the history
-(`setsOk`). -/
-theorem itemSet_register (γl : GName) (γr : LessorRdNames) (l : Loc) (id : w64)
-    (Sm0 : GMap Loc (GMap LeaseItem Unit)) (E : CoPset) (hE : ↑lessorRdN ⊆ E) :
-    lessorRdInv (GF := GF) γl ∗ lessorPinR γl γr ∗ ghostMapAuth γr.2 (1 : Qp).half Sm0 ∗
-      lsF go!"ID" l ↦ id ⊢
-    |={E}=> ghostMapAuth γr.2 (1 : Qp).half (Sm0.insert l (∅ : GMap LeaseItem Unit)) ∗
-      ghostMapElem γr.2 l (DFrac.own 1) (∅ : GMap LeaseItem Unit) ∗
-      lsF go!"ID" l ↦□ id := by
-  unfold lessorRdInv
-  iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, #Hp, Ho, HID⟩
-  ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hp $Hp1]
-  subst H1
-  iinv Hinv with Hb Hclose
-  iunfold lessorRdBody at Hb
-  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, #>Hids⟩
-  ihave %HSm := ghostMapAuth_agree γr.2 _ _ Sm0 Sm $$ Ho HS
-  subst HSm
-  cases Hfresh : Sm0.lookup l with
-  | some S =>
-    ihave ⟨%id', HID'⟩ := BigSepM.bigSepM_lookup Hfresh $$ Hids
-    iexfalso
-    iapply w64_own_discard_false _ id id' $$ [$HID $HID']
-  | none =>
-  ihave Hfull := (ghostMapAuth_halves γr.2 Sm0).2 $$ [$Ho $HS]
-  imod ghost_map_insert l (∅ : GMap LeaseItem Unit) Hfresh $$ Hfull with ⟨Hfull, He⟩
-  icases (ghostMapAuth_halves γr.2 _).1 $$ Hfull with ⟨Ho, HS⟩
-  ipersist HID
-  have Hok' : setsOk hs (Sm0.insert l ∅) ∧ histOk hs := by
-    refine ⟨⟨fun i σ id' l' hi hl' => ?_, fun l' S hS => ?_⟩, Hok.2⟩
-    · have h := Hok.1.1 i σ id' l' hi hl'
-      rw [GMap.lookup_insert_eq_iff]
-      split
-      · rfl
-      · exact h
-    · rw [GMap.lookup_insert_eq_iff] at hS
-      split at hS
-      · rename_i hll
-        subst hll
-        cases hS
-        left
-        refine ⟨fun i σ id' hi hl => ?_, rfl⟩
-        have h := Hok.1.1 i σ id' l hi hl
-        rw [Hfresh] at h
-        exact Bool.false_ne_true h
-      · exact Hok.1.2 l' S hS
-  imod Hclose $$ [Ha HS] with -
-  · inext; iunfold lessorRdBody; iexists hs, Sm0.insert l ∅; iframe Ha HS
-    isplitr
-    · ipureintro; exact Hok'
-    iapply (BigSepM.bigSepM_insert (Φ := fun l _ => iprop(∃ id : w64, lsF go!"ID" l ↦□ id))
-      (show Iris.Std.PartialMap.get? Sm0 l = none from Hfresh)).2
-    isplitr
-    · iexists id; iexact HID
-    iexact Hids
-  imodintro
-  iframe
-  iexact HID
-
 /-- **A reader's item set is its lease's keys in the history** (Part B; `Keys()` from a reader):
 the element `S` of the item sets' map of a lease `l` of `id` at an index `≥ m` is what the item map
 attaches to `id` at an index `≥ m` where the lease map has `l` (the last one that has it: `setsOk`,

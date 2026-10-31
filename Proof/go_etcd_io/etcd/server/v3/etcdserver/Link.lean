@@ -82,6 +82,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfCh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseLeases
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseRenew
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseTimeToLive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkMembershipOperationPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
@@ -1012,6 +1015,14 @@ theorem bcrypt.wp_GenerateFromPassword :
     bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG) :=
   bcrypt.GenerateFromPassword.wp_proof
 
+theorem lease.Lease.wp_Keys :
+    lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
+  lease.Lease.Keys.wp_proof
+
+theorem lease.lessor.wp_Lookup :
+    lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Lookup.wp_proof
+
 theorem io.wp_Pipe :
     io.Pipe.spec (GF := GF) (hG := hG) :=
   io.Pipe.wp_proof
@@ -1352,10 +1363,6 @@ theorem lease.lessor.wp_SetRangeDeleter :
     lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG) :=
   lease.lessor.SetRangeDeleter.wp_proof
 
-theorem lease.lessor.wp_Lookup :
-    lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
-  lease.lessor.Lookup.wp_proof
-
 theorem lease.lessor.wp_isPrimary :
     lease.lessor.isPrimary.spec (GF := GF) (hG := hG) :=
   lease.lessor.isPrimary.wp_proof
@@ -1439,10 +1446,6 @@ theorem lease.lessor.wp_Promote :
 theorem lease.lessor.wp_Demote :
     lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
   lease.lessor.Demote.wp_proof
-
-theorem lease.Lease.wp_Keys :
-    lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
-  lease.Lease.Keys.wp_proof
 
 theorem sort.StringSlice.wp_Sort :
     sort.StringSlice.Sort.spec (GF := GF) (hG := hG) :=
@@ -2366,6 +2369,18 @@ theorem EtcdServer.wp_UserRevokeRole :
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
+
+theorem EtcdServer.wp_checkLeaseLeases :
+    EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkLeaseLeases.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.Lease.wp_Keys
+
+theorem EtcdServer.wp_checkLeaseRenew :
+    EtcdServer.checkLeaseRenew.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkLeaseRenew.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.lessor.wp_Lookup lease.Lease.wp_Keys
+
+theorem EtcdServer.wp_checkLeaseTimeToLive :
+    EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkLeaseTimeToLive.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.lessor.wp_Lookup lease.Lease.wp_Keys
 
 theorem wp_newSnapshotReaderCloser :
     newSnapshotReaderCloser.spec (GF := GF) (hG := hG) :=

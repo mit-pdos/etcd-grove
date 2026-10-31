@@ -29,14 +29,15 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
   intro lp γl id items xs dq L0 I0
   wp_start as ⟨#Hinv, Hown, %Hne0, %Hxs0, Hxs⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx,
+    %γrl, %hsl, #Hprl, Hhl, %Hlastl⟩
   wp_auto
   -- the owner's: the live set, the item map's half, the lease's element and item set's half
   iunfold leaseOwn at Hown
@@ -44,7 +45,8 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs,
+    %γr, %hs, %Sm, #Hpr, Ho, %Hlast, HSo⟩
   icases lessorAuth_pin γl 1 lp lp' L0 M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
   subst Hlp'
   ihave ⟨%Him_eq, Him⟩ := ptsto_halves_combine (lF go!"itemMap" lp) im im' $$ [$Him $Him']
@@ -55,19 +57,19 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
     obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil xs Hne0
     exact HIL x id (Hxs0 x hx)
   obtain ⟨l, hCl⟩ : ∃ l, C.lookup id = some l := Option.isSome_iff_exists.1 ((HC id).1 HidL)
-  icases closers_items γcl C id l I hCl $$ Hcs with ⟨He, Hio, Hcs⟩
+  icases closers_items γl γcl C id l I hCl $$ Hcs with ⟨He, Hio, Hcs⟩
   ihave %HMl := ghost_map_lookup $$ Hcl He
   wp_apply (wp_map_lookup1 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   rw [HMl]
   simp only [Option.getD_some]
   ihave #Hl := BigSepM.bigSepM_lookup HMl $$ Hls
   iunfold isLeaseObj at Hl
-  icases Hl with ⟨%Hnn, #Hlmu⟩
+  icases Hl with ⟨%Hnn, #Hlmu, -, -⟩
   simp only [Hnn, decide_false]
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hlmu] as ⟨Hllk, HS⟩
   iunfold leaseItems at HS
-  icases HS with ⟨%sm, %S, Hsm, HSm⟩
+  icases HS with ⟨%sm, %S, %γr3, #Hpr3, Hsm, HSm, Hel⟩
   iunfold leaseItemsOwn at Hio
   icases Hio with ⟨%sm', %S0, Hsm', HSm', %HSI⟩
   ihave ⟨%Hsm_eq, Hsm⟩ := ptsto_halves_combine (lsF go!"itemSet" l) sm sm' $$ [$Hsm $Hsm']
@@ -109,23 +111,44 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
   · have hys : ys = xs := by
       rw [Hys]; apply List.take_of_length_le; word
     subst hys
+    -- the history: the snapshot without the lease's detached items appended, its set without them
+    ihave %Hr := lessorPinR_agree γl γr γrl $$ [$Hpr $Hprl]
+    subst Hr
+    ihave %Hr := lessorPinR_agree γl γr γr3 $$ [$Hpr $Hpr3]
+    subst Hr
+    ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hsl $$ Ho Hhl
+    obtain ⟨-, rfl⟩ := Hh
+    have hCM : C = M := by
+      rw [Hlast] at Hlastl; injection Hlastl with h; injection h
+    iapply fupd_wp
+    imod hist_append_set γl γr hs Sm (M, deleteAll I ys) l S (deleteAll S ys) ⊤
+      (fun _ _ => CoPset.mem_full)
+      (fun hok hh hS => setsOk_items Hlastl hok hh HMl hS (itemsFor_detach I id S ys)
+        (fun id' hne it => detach_other I id id' ys Hxs0 hne it)
+        (fun h => itemKeysShort_deleteAll I ys h))
+      $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
+    imodintro
+    have hlast' : (hs ++ [(M, deleteAll I ys)]).getLast? = some (M, deleteAll I ys) := by
+      simp
     icases ownMap_halves_split sm (deleteAll S ys) $$ HSm with ⟨HSm, HSm'⟩
     icases ptsto_halves_split (lsF go!"itemSet" l) sm $$ Hsm with ⟨Hsm, Hsm'⟩
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hllk Hsm HSm]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hllk Hsm HSm Hel]
     · inext
       iunfold leaseItems
-      iexists sm, deleteAll S ys
-      iframe
+      iexists sm, deleteAll S ys, γr
+      iframe; iframe #
     icases ownMap_halves_split im (deleteAll I ys) $$ HI with ⟨HI, HI'⟩
     icases ptsto_halves_split (lF go!"itemMap" lp) im $$ Him with ⟨Him, Him'⟩
     ihave Ha := Hback $$ %M Hcl
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhl]
     · inext
       iunfold lessorMu
       iexists lm, im, M, deleteAll I ys, rd0, L0
       iframe
       iframe Hls
-      ipureintro; exact HL
+      isplitr
+      · ipureintro; exact HL
+      iframe Hpr; ipureintro; exact hlast'
     iapply HΦ
     iframe Hxs
     iunfold leaseOwn
@@ -144,15 +167,19 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
       · simp only [hi, ↓reduceIte] at h; exact HIL it id' h
     isplitr
     · ipureintro; exact itemKeysShort_deleteAll I ys HIS
-    iapply Hcs $$ %(deleteAll I ys) [] He
-    · ipureintro
-      intro id' hne it
-      exact detach_other I id id' ys Hxs0 hne it
-    iunfold leaseItemsOwn
-    iexists sm, deleteAll S ys
-    iframe Hsm' HSm'
-    ipureintro
-    exact itemsFor_detach I id S ys HSI
+    isplitl [Hcs He Hsm' HSm']
+    · iapply Hcs $$ %(deleteAll I ys) [] He
+      · ipureintro
+        intro id' hne it
+        exact detach_other I id id' ys Hxs0 hne it
+      iunfold leaseItemsOwn
+      iexists sm, deleteAll S ys
+      iframe Hsm' HSm'
+      ipureintro
+      exact itemsFor_detach I id S ys HSI
+    iexists γr, hs ++ [(M, deleteAll I ys)], Sm.insert l (deleteAll S ys)
+    iframe Hpr Ho HSo
+    ipureintro; rw [hCM]; exact hlast'
 
 end proof
 

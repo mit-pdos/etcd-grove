@@ -41,7 +41,7 @@ theorem lease.lessor.Checkpoint.wp_proof
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
   ihave #Hbe' := Hbe
   iunfold lessorBackend at Hbe'
   icases Hbe' with ⟨%b, #Hbk, #Hlens⟩
@@ -50,7 +50,7 @@ theorem lease.lessor.Checkpoint.wp_proof
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
   icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
   (try wp_auto)
@@ -61,7 +61,7 @@ theorem lease.lessor.Checkpoint.wp_proof
     (try wp_auto)
     ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
     · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
       iunfold lessorMu
@@ -125,7 +125,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iexact Hexp
     ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
     · iunfold lessorExtra; iexists dc, np, h', hx', cp, bl; iframe
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
       iunfold lessorMu

@@ -40,16 +40,23 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
   iintro %Φ ⟨#Hpkg, Ho⟩ HΦ
   iunfold lease.leaseOwnOpen at Ho
   icases Ho with ⟨%HIS, #Hl, Hio, Hslot, Hback⟩
-  iapply (hK l I id) $$ [Hio Hslot]
-  · iframe Hpkg Hl Hio Hslot
-  iintro !> %sl %ks ⟨Hs, Hslot, Hio, %Hks⟩
+  iapply (hK γl l id (.owner I)) $$ [Hio Hslot]
+  · iframe Hpkg Hl; rw [lease.keysPre_owner]; iframe Hio Hslot
+  iintro !> %sl %ks ⟨Hs, Hpre, Hpost, %Hnd⟩
+  ihave Hpre : iprop(lease.leaseItemsOwn l I id ∗
+      sync.ownRWMutex (lease.lsF go!"mu" l) (lease.leaseItems γl l)) $$ [Hpre]
+  · rw [← lease.keysPre_owner]; iexact Hpre
+  icases Hpre with ⟨Hio, Hslot⟩
+  ihave %Hks : ⌜∀ k : GoString, k ∈ ks ↔
+      I.lookup (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk k) = some id⌝ $$ [Hpost]
+  · rw [← lease.keysPost_owner]; iexact Hpost
   iapply HΦ
   iexists ks
   iframe Hs
   isplitl [Hio Hslot Hback]
   · iunfold lease.leaseOwnOpen; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
   ipureintro
-  exact ⟨fun k hk => HIS _ id ((Hks.1 k).1 hk), fun k hk => (Hks.1 k).2 hk⟩
+  exact ⟨fun k hk => HIS _ id ((Hks k).1 hk), fun k hk => (Hks k).2 hk⟩
 
 /-- The passed checks of a prefix of the keys: their writes. -/
 private def keysPerms (ks : List GoString) : List apply.Perm3 := ks.map (fun k => (k, [], .write))

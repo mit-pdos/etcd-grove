@@ -45,7 +45,7 @@ theorem isLessor_of_lessorInv
   iintro ⟨#Hpkg, #Hinv⟩
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, -⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, -, -⟩
   iunfold mvcc.isLessor
   iexists lp
   isplitr
@@ -89,7 +89,7 @@ theorem isTxnLessor_of_lessorInv
   · ipureintro; rfl
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, -⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, -, -⟩
   iintro !> %id %L %I %Φ !> Hu HΦ
   iunfold lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
@@ -97,11 +97,13 @@ theorem isTxnLessor_of_lessorInv
   icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
   subst Heq
-  iunfold leaseOwn at Hown
-  icases Hown with ⟨Hown, Hcls⟩
-  iapply (hLk lp γl id L I) $$ [Hrd Hown Hcls]
-  · iframe Hpkg Hinv Hrd; iunfold leaseOwn; iframe Hown Hcls
-  iintro !> %l ⟨Hrd, %Hl, Ho⟩
+  ihave ⟨Hown, #Hlb⟩ := leaseOwn_lb γl L I $$ Hown
+  iapply (hLk lp γl id 0 (some (L, I))) $$ [Hrd Hown]
+  · iframe Hpkg Hinv Hrd Hlb; rw [lookupView_some]; iexact Hown
+  iintro !> %l ⟨Hrd, -, Ho⟩
+  ihave ⟨%Hl, Ho⟩ : iprop(⌜l = null ↔ id ∉ L⌝ ∗
+      ((⌜l = null⌝ ∗ leaseOwn γl L I) ∨ leaseOwnOpen γl L I id l)) $$ [Ho]
+  · rw [← lookupViewAfter_some]; iexact Ho
   iapply HΦ
   isplitl [Hrd Ho Hrvk]
   · iunfold lessorUserOpen
