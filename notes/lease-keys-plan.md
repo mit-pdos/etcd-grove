@@ -9,7 +9,9 @@ by `Attach` (a new premise) and `Detach`/`Revoke`, passed by mvcc's put path (`s
 `metricsTxnWrite.Put`, `writeView.Put`: a premise on the key's length) from the request
 (`txn.put`, `putRequestIs`); `leaseOwn_items_short` reads it. Q5 decided, (b): the lease class a separate conjunct of
 `kvPost`/`kvPostF`. Items 6-12 drafted and proved; the Review done (below, "the Draft as
-written"). Next: Test/Probe, then the freeze (the user's approval). Started at
+written"). Test: etcd's own tests of the checks pass. **Part A frozen** (the user's approval,
+2026-10-31, at `97c2e6d92d`): a change to its statements now needs a `notes/decisions.md` entry with
+its cause. Next: Part B. Started at
 the user's request: the first of the three items that would let the repository answer
 etcd-io/etcd#22595 ("Plan to revert Auth to Beta"), whose requirement "an audit to verify that RBAC
 covers all etcd operations" `notes/auth-matrix.md` answers for every row but the lease keys.
