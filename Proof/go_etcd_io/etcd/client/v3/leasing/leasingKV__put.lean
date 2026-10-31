@@ -45,7 +45,7 @@ theorem leasingKV.put.wp_proof
     leasingKV.put.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o top lo
   wp_start as ⟨#Hlkv, Hrd, #Hctx, #Hcc, #Hop, #Hlo, %Hpre⟩
-  obtain ⟨Hot, Htop⟩ := Hpre
+  obtain ⟨Hot, Htop, Hsh⟩ := Hpre
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
@@ -90,7 +90,7 @@ theorem leasingKV.put.wp_proof
   simp only [goose_wp_simp_extra, ↓reduceIte]
   (try wp_auto)
   wp_apply (hTry lkv γ pfx ctx cs opv o top lo) $$ [$Hlkv $Hctx $Hop $Hlo] as %resp1 %wc %err1 Htry
-  · ipureintro; exact ⟨Htop, Or.inl Hot⟩
+  · ipureintro; exact ⟨Htop, Or.inl Hot, Hsh⟩
   (try wp_auto)
   wp_join iprop(∃ (resp : Loc) (err : GoInterface), "resp" ∷ resp_ptr ↦ resp ∗ "err" ∷ err_ptr ↦ err ∗
       "Hrd" ∷ lkvReader lkv γ pfx ∗ "op" ∷ op_ptr ↦ opv ∗ "ctx" ∷ ctx_ptr ↦ GoInterface.ok ctx ∗
@@ -110,7 +110,7 @@ theorem leasingKV.put.wp_proof
         (try wp_auto)
         wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
           as %resp2 %err2 ⟨Hrd, Hr2⟩
-        · ipureintro; exact Htop
+        · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
         (try wp_auto)
         wp_join_done
         iexists resp2, err2
@@ -123,7 +123,7 @@ theorem leasingKV.put.wp_proof
         (try wp_auto)
         wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
           as %resp2 %err2 ⟨Hrd, Hr2⟩
-        · ipureintro; exact Htop
+        · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
         (try wp_auto)
         wp_join_done
         iexists resp2, err2
@@ -138,7 +138,7 @@ theorem leasingKV.put.wp_proof
         (try wp_auto)
         wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
           as %resp2 %err2 ⟨Hrd, Hr2⟩
-        · ipureintro; exact Htop
+        · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
         (try wp_auto)
         wp_join_done
         iexists resp2, err2
@@ -152,7 +152,7 @@ theorem leasingKV.put.wp_proof
           (try wp_auto)
           wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
             as %resp2 %err2 ⟨Hrd, Hr2⟩
-          · ipureintro; exact Htop
+          · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
           (try wp_auto)
           wp_join_done
           iexists resp2, err2

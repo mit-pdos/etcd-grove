@@ -269,8 +269,8 @@ theorem Main.wp_proof
     iunfold client.ctxErrClientAll
     iexact Hw
   wp_auto
-  wp_apply (wp_newUserClient go!"root" _ lg (akV R) (fun t => auth.tokIssued γa t go!"root") Hlg
-      (by omega)) as %rcl %rerr Hrc
+  wp_apply (wp_newUserClient go!"root" go!"root-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"root")
+      Hlg (by omega) (by unfold strsSizeOk; decide)) as %rcl %rerr Hrc
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -284,8 +284,8 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Hrerr
   wp_auto
-  wp_apply (wp_newUserClient go!"u" _ lg (akV R) (fun t => auth.tokIssued γa t go!"u") Hlg
-      (by omega)) as %ucl %uerr Huc
+  wp_apply (wp_newUserClient go!"u" go!"u-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"u") Hlg
+      (by omega) (by unfold strsSizeOk; decide)) as %ucl %uerr Huc
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -299,8 +299,8 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Huerr
   wp_auto
-  wp_apply (wp_newUserClient go!"v" _ lg (akV R) (fun t => auth.tokIssued γa t go!"v") Hlg
-      (by omega)) as %vcl %verr Hvc
+  wp_apply (wp_newUserClient go!"v" go!"v-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"v") Hlg
+      (by omega) (by unfold strsSizeOk; decide)) as %vcl %verr Hvc
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -406,7 +406,9 @@ theorem Main.wp_proof
     as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -⟩
   (try wp_auto)
   wp_apply (client_Put_on rcl rapi rconn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid
-      ectx ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []) $$ [] as %eresp %eerr Hend'
+      ectx ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []
+      (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) (by decide)
+        (by decide) (by decide))) $$ [] as %eresp %eerr Hend'
   · iframe #
   (try wp_auto)
   wp_apply Hecancel

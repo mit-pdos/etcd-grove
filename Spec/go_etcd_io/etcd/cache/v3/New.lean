@@ -32,13 +32,15 @@ the readers of `Get`, the slots of `Watch`, the handles of `WaitForNextResync`, 
 (`realClock`). An accepted configuration must be `CfgBounded` (finding 5). It takes
 `context.isClosedchanInit`, `context`'s package-init fact about `closedchan` (persistent; a
 program's `main` has it once `context` is initialized), which the internal context's
-`WithCancel(Background())` needs. -/
+`WithCancel(Background())` needs. The prefix is at most `2 ^ 28` bytes (2026-10-30, a scope
+restriction: the cache's gets and watch of the prefix must fit a gRPC message, `notes/decisions.md`,
+"The encoded-size bound at grpc's send side"). -/
 abbrev New.spec : Prop :=
   ∀ (client : Loc) (pfx : GoString) (sl : GoSlice) (gs : List (Config → Config)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
       isEtcdClient client pfx ∗ cfgOptsAt sl gs ∗
       ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
-      ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
+      ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ ∗ ⌜pfx.length ≤ 2 ^ 28⌝ }}
     (App (App (App (Val (@! New)) (Val #client)) (Val #pfx)) (Val #sl))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       newCacheResult pfx (cfgApply gs defaultConfigVal) c err }}

@@ -33,7 +33,7 @@ theorem kv.Get.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci cd key sl gs R Sr Qr
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
@@ -42,6 +42,8 @@ theorem kv.Get.wp_generic
       (fun _ => iprop(True)) Sr Qr (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ []
     as %r %err Hout
   · iframe #
+    isplitl []; rotate_left
+    · ipureintro; exact Hsz
     unfold doRunGen
     ileft
     iframe #
@@ -85,7 +87,7 @@ theorem kv.Get.wp_members
     (wp_Get : kv.Get.specG (GF := GF) (hG := hG)) :
     kv.Get.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs R c F Q
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun, %Hsz⟩ HΦ
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
@@ -97,6 +99,8 @@ theorem kv.Get.wp_members
   · ipureintro; exact Hnp
   isplitl []
   · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcRange ms) $$ Hregs
+  isplitl []; rotate_left
+  · ipureintro; exact Hsz
   imodintro
   inext
   iapply (attemptPre_md conn (GoInterface.ok ci) (kvRangeSpec ms) (rangeWireOf (opGetModel key gs))
@@ -110,7 +114,7 @@ theorem kv.Get.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs R Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
@@ -118,6 +122,8 @@ theorem kv.Get.wp_proof
   wp_apply wp_Do api γ dup ci cd opv (opGetModel key gs) Q $$ []
     as %r %err Hout
   · iframe #
+    isplitl []; rotate_left
+    · ipureintro; exact Hsz
     unfold doRunOk
     ileft
     iframe #

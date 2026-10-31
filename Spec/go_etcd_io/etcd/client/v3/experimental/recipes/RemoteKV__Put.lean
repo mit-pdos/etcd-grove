@@ -31,7 +31,7 @@ record is unchanged (the code does not update its `val`). -/
 abbrev RemoteKV.Put.spec : Prop :=
   ∀ (rk : Loc) (st : RemoteKVSt) (kv : GoInterfaceOk) (pfx val : GoString) (lo : w64),
   {{ ownRemoteKV (GF := GF) rk st ∗ ⌜st.kv = GoInterface.ok kv⌝ ∗ isRecipesKV st.kv pfx ∗
-      etcdReached lo ∗ ⌜pfx <+: st.key⌝ }}
+      etcdReached lo ∗ ⌜pfx <+: st.key ∧ val.length ≤ 2 ^ 28⌝ }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Put")) (Val #val))
   {{ (err : GoInterface), RET #err; ownRemoteKV rk st ∗
       putResult pfx lo (.put st.key val (W64 0)) err }}

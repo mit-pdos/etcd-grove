@@ -163,7 +163,8 @@ theorem Cache.get.wp_proof
   · iframe Hctx Hopts HRB
     ipureintro
     refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
-      (by simp [op_simps] <;> (try split) <;> (try simp)), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      (by simp [op_simps] <;> (try split) <;> (try simp)), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      cacheGet_size Hpfx⟩
     rintro ⟨-, h⟩
     simp [op_simps] at h
   iunfold kvGetResultC at Hres

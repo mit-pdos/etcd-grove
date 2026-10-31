@@ -103,7 +103,7 @@ theorem leasingKV.revoke.wp_proof
     rcases i with _ | i
     · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hv Ho; subst Hv Ho; iexact Hop
     · simp at Hv
-  have Hmap : [o].map txnOpOf = [top].map some := by simp [Htop]
+  have Hmap : [o].map txnOpOf = [top].map some := by simp [Htop.1]
   ihave #HopsTT := opsAt_leaves _ [o] [top] Hmap $$ HopsT
   wp_apply_raw HThen $$ %_ %_ %([o].map OpT.leaf) %([top]) [$HB]
   · isplitl
@@ -165,7 +165,14 @@ theorem leasingKV.revoke.wp_proof
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ key)) .lt (.num (rv + W64 1))], [top], [TxnOp.putKeep (pfx ++ key) go!"REVOKE"]⟩, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact TxnModel.under_nil _
+  · ipureintro
+    refine ⟨TxnModel.under_nil _, ?_⟩
+    have hw := txnOpOf_wireLen_le Htop.1
+    obtain ⟨h1, h2, h3⟩ := Htop.2.2
+    have hk := Htop.2.1
+    simp only [opWireLen, wireSlack] at hw
+    simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, compareM, cmpKeyM, wireSlack]
+    omega
   iunfold txnCommitResultO at Hres
   icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
@@ -187,7 +194,7 @@ theorem leasingKV.revoke.wp_proof
     icases Hhf with ⟨%Hhn, -, -, #Hrev, -, -⟩
     (try wp_auto)
     wp_apply (hWR lkv γ pfx ctx cs key hm.revision) $$ [$Hlkv $Hctx $Hcc] as %err2 -
-    · ipureintro; constructor <;> omega
+    · ipureintro; refine ⟨?_, ?_, Htop.2.1⟩ <;> omega
     (try wp_auto)
     iapply HΦ
     iframe

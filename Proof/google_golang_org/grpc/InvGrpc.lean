@@ -66,6 +66,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The size below which grpc's codec sends a message** (`2 ^ 32` bytes; 64-bit Go, the model's
+platform; `notes/decisions.md`, "The encoded-size bound at grpc's send side";
+`issues/grpc-codec-alloc-before-size-check.md`). grpc-go v1.84's `codecV2.Marshal` allocates
+`proto.Size(m)` bytes (rounded up to 4 KiB) before any size check, and `make` panics above Go's
+`maxAlloc` (`2 ^ 48` on linux/amd64); at `2 ^ 32` bytes and above, grpc refuses the message
+(`encode`'s `MaxUint32` check, an error), so no message at or above the bound is ever delivered. -/
+def grpcMsgMax : Nat := 2 ^ 32
+
 /-- **A protobuf message type** (see the file header). -/
 structure ProtoMsg (GF : BundledGFunctors) where
   /-- The message's Go type `T` (the message is passed as `*T`). -/
@@ -74,6 +82,16 @@ structure ProtoMsg (GF : BundledGFunctors) where
   M : Type
   /-- The sender's `*T` holding `m` (what marshaling needs; it comes back). -/
   send : Loc → M → IProp GF
+  /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`
+  holds at `m`, counting a submessage at each reference (as protobuf-go's `Size` does). Read it
+  against `send`: every wire field must be pinned by `send`. Scope: the unknown fields of the
+  messages `send` holds field by field (inside `txnReqAt`, `createReqSend`, `userOptsAt`,
+  `ownPermW`) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
+  translated; requests are struct literals), so the bound is claimed for messages without them
+  (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
+  bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),
+  so the message cannot be sent (`grpcInvokerOk`). Part of the instance's trusted wire model. -/
+  wireLen : M → Nat := fun _ => grpcMsgMax
   /-- A decoded `*T` holding `m` (read-only). -/
   recv : Loc → M → IProp GF
   recv_persistent : ∀ l m, Persistent (recv l m)
@@ -943,14 +961,18 @@ Since 2026-10-23 (D37) the error is no caller's `errors.New` value (`errCellOk`:
 (`rpc_util.go`), which passes `nil` and `io.EOF` (io's `errors.New("EOF")`) through and turns
 every other error into a status error (`*status.Error`), except one `status.FromError` already
 accepts, whose dynamic type is then not `*errors.errorString` (an `errorString` has no
-`GRPCStatus` method and no `Unwrap`); its own errors are status errors (`status.Error`). -/
+`GRPCStatus` method and no `Unwrap`); its own errors are status errors (`status.Error`).
+
+Since 2026-10-30 (the axiom review `txn-nested-wire`) the request's encoding is below `grpcMsgMax`
+(`Req.wireLen`): grpc marshals before it checks a size, and the codec's allocation panics above
+Go's `maxAlloc`. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
     {{ isGrpcRpcsMd addrs method Spec ∗
         ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ) ∗
-        ctxOk ctx cd ∗ Req.send inp m ∗
+        ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)

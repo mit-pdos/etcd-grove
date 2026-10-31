@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 error otherwise. -/
 abbrev newKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key val : GoString) (lease lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ 2 ^ 28 ∧ val.length ≤ 2 ^ 28⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newKV))
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #val)) (Val #lease))
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);

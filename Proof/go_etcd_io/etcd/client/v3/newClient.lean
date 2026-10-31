@@ -273,10 +273,12 @@ theorem newClient.wp_proof
       · ileft; ipureintro; exact Hup
       · obtain ⟨rfl, rfl⟩ := Hupc
         iunfold clientAuthPre at Hauth
-        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg⟩)
+        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg, %Hsz⟩)
         · ileft; ipureintro; exact Hup
         · iright
           iframe Hall Hreg
+          isplitl []; rotate_left
+          · ipureintro; exact Hsz
           iapply tokenBundleInv_nn
           iexact Hb
     ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []

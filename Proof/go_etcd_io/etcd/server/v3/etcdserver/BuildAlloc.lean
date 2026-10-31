@@ -108,7 +108,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
-    (hlog : γk.log0 ≠ []) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvModelSt γk (bootEntries γs.raft.boot)) ={E}=∗
       kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries γs.raft.boot)) := by
@@ -189,7 +189,11 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     · ipureintro; exact hok
     iunfold kvWork
     iframe Hcl
-    ipureintro; exact ⟨hshape, hccl⟩
+    ipureintro
+    refine ⟨hshape, hccl, fun m hm => entryPutsOk_conf m ?_, hlk⟩
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    obtain ⟨-, ht, -, -⟩ := hent' n m hn
+    rw [ht]; decide
   imodintro
   iframe Hinv
   iunfold etcdKV; iexact Hv2

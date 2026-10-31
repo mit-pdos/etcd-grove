@@ -29,15 +29,24 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ap
 election on the request's name with its value (`NewElection`, `Election.Campaign`): its keys are
 under `name/`. It returns the response `{Header, Leader: {Name, Key, Rev, Lease}}` of the
 campaign's key (`keyValAt`, under `name/`) and its outcome (`leaderAt`: the leader, or
-`campaignLost`: its key gone before it won), or no response and an error. -/
+`campaignLost`: its key gone before it won), or no response and an error.
+
+The request's name and value are at most the server's receive limit long
+(`v3rpc.grpcRecvBytesOk`, the receive-size fact: grpc's server decoded the request under etcd's
+limit `v3rpc.etcdMaxRecvMsgSize maxReq`, `maxReq` the configuration's `MaxRequestBytes`, which
+meets `v3rpc.etcdMaxRequestBytesOk`; 2026-10-30, `notes/decisions.md`, "The receive-size
+fact"). -/
 abbrev electionServer.Campaign.spec : Prop :=
   ∀ (es c req : Loc) (nsl vsl : GoSlice) (name val : GoString) (lease : w64) (ctx : GoInterfaceOk)
-    (cs : context.ContextDesc (IProp GF)),
+    (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
       isElectionServer es c ∗ electionClientOk c ∗
+      ⌜v3rpc.etcdMaxRequestBytesOk maxReq⌝ ∗
       structFieldRef v3electionpb.CampaignRequest go!"Name" req ↦□ nsl ∗ nsl ↦*□ name ∗
       structFieldRef v3electionpb.CampaignRequest go!"Lease" req ↦□ lease ∗
       structFieldRef v3electionpb.CampaignRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
+      ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
+        v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
       context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Campaign"))
       (Val #(GoInterface.ok ctx))) (Val #req))

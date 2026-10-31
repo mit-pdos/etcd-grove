@@ -121,7 +121,9 @@ abbrev pbLeaseKeepAliveRequest : StreamMsg GF where
   ty := etcdserverpb.LeaseKeepAliveRequest.ty
   M := w64
   cnt := inferInstance
-  send l m := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v ∗ ⌜m = v.ID'⌝)
+  send l m := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v ∗
+    ⌜m = v.ID' ∧ v.unknownFields' = slice.nil⌝)
+  wireLen _ := wireSlack
   recv l m := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v ∗ ⌜m = v.ID'⌝)
   own l := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v)
 

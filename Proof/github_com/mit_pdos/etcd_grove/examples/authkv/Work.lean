@@ -48,6 +48,42 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
+/-- **A principal's key `x/who/n` is short** (`x` and `n` within `2 ^ 10`): within `2 ^ 20`. -/
+theorem keyOfK_principal_le {x who n : GoString} (hwho : who ∈ principals)
+    (hx : x.length ≤ 2 ^ 10) (hn : n.length ≤ 2 ^ 10) : (keyOfK x who n).length ≤ 2 ^ 20 := by
+  have hw : who.length ≤ 4 := (show ∀ w ∈ principals, w.length ≤ 4 by decide) who hwho
+  unfold keyOfK
+  simp only [List.length_append]
+  have h1 : (go!"/" : GoString).length = 1 := by decide
+  omega
+
+/-- `Work`'s puts fit in a gRPC message: a principal's key, a value within `2 ^ 28`. -/
+theorem akPut_sizeOk {x who n v : GoString} (hwho : who ∈ principals)
+    (hx : x.length ≤ 2 ^ 10) (hn : n.length ≤ 2 ^ 10) (hv : v.length ≤ 2 ^ 28) :
+    opSizeOk (opPutModel (keyOfK x who n) v []) :=
+  opSizeOk_opPutModel (K := 2 ^ 20) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
+    (keyOfK_principal_le hwho hx hn) hv (by decide)
+
+/-- `Work`'s deletes fit in a gRPC message: a principal's key. -/
+theorem akDelete_sizeOk {x who n : GoString} (hwho : who ∈ principals)
+    (hx : x.length ≤ 2 ^ 10) (hn : n.length ≤ 2 ^ 10) :
+    opSizeOk (opDeleteModel (keyOfK x who n) []) :=
+  opSizeOk_opDeleteModel (K := 2 ^ 20) (E := 0) (V := 0) (optsKeep_nil _ _ _)
+    (keyOfK_principal_le hwho hx hn) (by decide)
+
+/-- `Work`'s ranges `[key, e)` of literal bounds fit in a gRPC message. -/
+theorem akRange_sizeOk {key e : GoString} (hk : key.length ≤ 2 ^ 28) (he : e.length ≤ 2 ^ 28) :
+    opSizeOk (opGetModel key [withRangeM e]) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withRangeM_keep he) (optsKeep_nil _ _ _)) hk (by decide)
+
+/-- `Work`'s prefix ranges of a literal prefix fit in a gRPC message. -/
+theorem akPrefix_sizeOk {key : GoString} (hk : key.length ≤ 2 ^ 28) :
+    opSizeOk (opGetModel key [withPrefixM]) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _)) (optsKeep_nil _ _ _)) hk
+    (by decide)
+
 theorem Work.wp_proof
     (wp_keyOf : keyOf.spec (GF := GF) (hG := hG))
     (wp_reqCtx : reqCtx.spec (GF := GF) (hG := hG))
@@ -89,7 +125,8 @@ theorem Work.wp_proof
   (try wp_auto)
   wp_apply (work_put cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"0")
       go!"v0" hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
-      (opHistOk_put_a who go!"0" go!"v0" (by decide))) $$ [] as %resp %err %Herr
+      (opHistOk_put_a who go!"0" go!"v0" (by decide))
+      (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -122,7 +159,8 @@ theorem Work.wp_proof
   wp_apply (work_put cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"0")
       go!"v0" hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
       (fun h => absurd (akOpGranted_put who _ go!"v0" (keyOfK_ne_nil _ _ _ (by decide)) h)
-        (not_permitted_c who _))) $$ [] as %resp %err %Herr
+        (not_permitted_c who _))
+      (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -144,7 +182,8 @@ theorem Work.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply (work_get cl api conn s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM hi] hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) get_ab_ok.1 get_ab_ok.2.1) $$ []
+      (reqCtx_out who _ c0 Hout.1 Hout.2) get_ab_ok.1 get_ab_ok.2.1
+      (akRange_sizeOk (by decide) (by decide))) $$ []
     as %resp %err Hres
   · iframe #
   (try wp_auto)
@@ -190,7 +229,8 @@ theorem Work.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply (work_get cl api conn s E ρ cid mid γa Lset n who ci cd go!"c/" _ [withPrefixM] hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) get_c_ok.1 get_c_ok.2.1) $$ []
+      (reqCtx_out who _ c0 Hout.1 Hout.2) get_c_ok.1 get_c_ok.2.1
+      (akPrefix_sizeOk (by decide))) $$ []
     as %resp %err Hres
   · iframe #
   (try wp_auto)
@@ -216,7 +256,8 @@ theorem Work.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply (work_get cl api conn s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM go!"d"] hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) get_past_ok.1 get_past_ok.2.1) $$ []
+      (reqCtx_out who _ c0 Hout.1 Hout.2) get_past_ok.1 get_past_ok.2.1
+      (akRange_sizeOk (by decide) (by decide))) $$ []
     as %resp %err Hres
   · iframe #
   (try wp_auto)
@@ -289,7 +330,9 @@ theorem Work.wp_proof
       (by rw [show writerK (keyOfK go!"a" go!"u" go!"t") = go!"u" by decide]; exact ⟨rfl, hr⟩)
   wp_apply (work_commit cl api conn tp s E ρ cid mid γa Lset n who ci cd
       ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ hγa
-      (reqCtx_out who _ c0 Hout.1 Hout.2) hp1 hin1 hsh1 hro1 hpl1 hop1)
+      (reqCtx_out who _ c0 Hout.1 Hout.2) hp1 hin1
+      (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)) hsh1
+      hro1 hpl1 hop1)
     $$ [Hobj] as %resp %err ⟨%Herr, Hres⟩
   · iframe #
     iframe Hobj
@@ -381,7 +424,10 @@ theorem Work.wp_proof
       (by simp [t2M, txnWireOf, opWire]) h)
   wp_apply (work_commit cl api conn tp s E ρ cid mid γa Lset n who ci cd
       ⟨t2M (keyOfK go!"a" who go!"t1") (keyOfK go!"c" who go!"t1") go!"vt", false, true, false⟩
-      hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp2 hin2 hsh2 hro2 hpl2 (fun h => absurd h hng2))
+      hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp2 hin2
+      (t2M_size _ _ _ (keyOfK_principal_le hwho (by decide) (by decide))
+        (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
+      hsh2 hro2 hpl2 (fun h => absurd h hng2))
     $$ [Hobj] as %resp %err ⟨%Herr, -⟩
   · iframe #
     iframe Hobj
@@ -483,7 +529,13 @@ theorem Work.wp_proof
   wp_apply (work_commit cl api conn tp s E ρ cid mid γa Lset n who ci cd
       ⟨t3M (compareM (cmpKeyM .value (keyOfK go!"a" who go!"0")) .eq (.str go!"none"))
         (keyOfK go!"a" who go!"t2") (keyOfK go!"c" who go!"t2") go!"vt", true, true, true⟩
-      hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp3 hin3 hsh3 hro3 hpl3 (fun h => absurd h hng3))
+      hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp3 hin3
+      (t3M_size _ _ _ _ ⟨by simpa [compareM, cmpKeyM] using
+          keyOfK_principal_le (x := go!"a") (n := go!"0") hwho (by decide) (by decide),
+          by simp [compareM, cmpKeyM], by simp [compareM, cmpKeyM]⟩
+        (keyOfK_principal_le hwho (by decide) (by decide))
+        (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
+      hsh3 hro3 hpl3 (fun h => absurd h hng3))
     $$ [Hobj] as %resp %err ⟨%Herr, -⟩
   · iframe #
     iframe Hobj
@@ -548,7 +600,8 @@ theorem Work.wp_proof
       hkd hγa (reqCtx_out who _ c0 Hout.1 Hout.2) (fun h => by
         obtain ⟨rfl, hr⟩ := akOpGranted_delete who _ hkd h
         exact opHistOk_delete_point _
-          (by rw [show writerK (keyOfK go!"a" go!"u" go!"d") = go!"u" by decide]; exact ⟨rfl, hr⟩)))
+          (by rw [show writerK (keyOfK go!"a" go!"u" go!"d") = go!"u" by decide]; exact ⟨rfl, hr⟩))
+      (akDelete_sizeOk hwho (by decide) (by decide)))
     $$ [] as %resp %err %Herr
   · iframe #
   (try wp_auto)
@@ -584,7 +637,8 @@ theorem Work.wp_proof
   have hkc : keyOfK go!"c" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
   wp_apply (work_delete cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"d")
       hkc hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
-      (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _)))
+      (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
+      (akDelete_sizeOk hwho (by decide) (by decide)))
     $$ [] as %resp %err %Herr
   · iframe #
   (try wp_auto)

@@ -39,7 +39,7 @@ W-Q; never `(nil, nil)`). Never `ErrNoWatcher`: the watcher's channel is a chann
 abbrev WaitEvents.spec : Prop :=
   ∀ (c : Loc) (pfx key : GoString) (rev : w64) (sl : GoSlice) (ts : List w32) (typ : w32),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ context.isClosedchanInit ∗ isEtcdRecipesClient c pfx ∗ sl ↦*□ ts ∗
-      ⌜ts.getLast? = some typ ∧ pfx <+: key ∧ 0 ≤ sint.Z rev⌝ }}
+      ⌜ts.getLast? = some typ ∧ pfx <+: key ∧ 0 ≤ sint.Z rev ∧ key.length ≤ 2 ^ 28⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.WaitEvents)) (Val #c))
       (Val #key)) (Val #rev)) (Val #sl))
   {{ (ev : Loc) (err : GoInterface), RET (PairV #ev #err);

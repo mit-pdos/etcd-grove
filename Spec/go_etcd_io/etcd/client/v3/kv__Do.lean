@@ -44,13 +44,15 @@ def doRunOk (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) 
 that is a range, a put or a delete (`doRunOk`): the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
 or `DeleteRange`, with the client's call options; `doOut` with the reply's fields as functions of
-the state the update fired at (`rangeStOk`, `putStOk`, `delStOk`). -/
+the state the update fired at (`rangeStOk`, `putStOk`, `delStOk`). The request fits a gRPC message
+(`opSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
 abbrev kv.Do.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (op : go_etcd_io.etcd.client.v3.Op) (op_m : OpFull)
     (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
-      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ opFullAt op op_m ∗ doRunOk γ dup op_m Q }}
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ opFullAt op op_m ∗ doRunOk γ dup op_m Q ∗
+      ⌜opSizeOk op_m⌝ }}
     (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
       (Val #(GoInterface.ok ctx))) (Val #op))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);

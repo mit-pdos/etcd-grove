@@ -41,7 +41,7 @@ theorem watcher.Watch.wp_proof
     watcher.Watch.spec (GF := GF) (hG := hG) := by
   intro w V γ ctx cs key sl gs rev Q n
   wp_start as ⟨#Hw, %Hkst, #Hctx, #Hopts, %Hreq, #Hbound, #Hau⟩
-  obtain ⟨Hrw, Hnp, Hrev1⟩ := Hreq
+  obtain ⟨Hrw, Hnp, Hrev1, Hsz⟩ := Hreq
   have Hrev : 0 ≤ sint.Z rev := by omega
   -- (D47) a first firing of the read update (at the start log), for the responses that report nothing
   ihave #Hw0 := Hw
@@ -141,9 +141,11 @@ theorem watcher.Watch.wp_proof
     · iapply ownSlice_nil
     isplitr
     · ipureintro
-      refine ⟨HrwN, HnpN, Hrev, (OpFull.watchNorm_key _).symm, by rw [HbaseN], ?_, ?_⟩
+      refine ⟨HrwN, HnpN, Hrev, (OpFull.watchNorm_key _).symm, by rw [HbaseN], ?_, ?_, ?_⟩
       · rw [HbaseN]; exact Hfcn
       · rw [HbaseN]; exact Hfpn
+      · show (opWatchModel key gs).key.length + (opWatchModel key gs).base.rangeEnd.length ≤ 2 ^ 30
+        exact Hsz
     isplitr
     · unfold wsAu; iexact Hau
     isplitr

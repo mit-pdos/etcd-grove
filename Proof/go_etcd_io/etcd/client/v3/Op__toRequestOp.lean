@@ -27,6 +27,7 @@ theorem Op.toRequestOp.wp_proof (wp_toRangeRequest : Op.toRangeRequest.spec (GF 
     Op.toRequestOp.spec (GF := GF) (hG := hG) := by
   intro opv o
   wp_start as ⟨#Hat, %Ht⟩
+  obtain ⟨Ht, Hpv⟩ := Ht
   ihave #Hat' := Hat
   iunfold opFullAt at Hat'
   icases Hat' with ⟨Hat0, #Hkey, %Hf2, #Hval, -⟩
@@ -45,6 +46,7 @@ theorem Op.toRequestOp.wp_proof (wp_toRangeRequest : Op.toRangeRequest.spec (GF 
     iapply wp_fupd
     wp_apply wp_toRangeRequest opv o $$ [] as %r ⟨%req, Hr, #Hk, #He, %Hreq⟩
     · iframe #; ipureintro; exact h1
+    obtain ⟨Hreq, -⟩ := Hreq
     irename «$r0» => Hp
     ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
     ihave %Hrn := typedPointsto_not_null _ _ _ $$ Hr
@@ -86,7 +88,7 @@ theorem Op.toRequestOp.wp_proof (wp_toRangeRequest : Op.toRangeRequest.spec (GF 
     have hlw : leafWire o = txn.putTxnOp (putWireOf o) := by
       simp [leafWire, h2, show (W64 2 = W64 1) = False by decide]
     rw [hlw]
-    iapply reqOpAt_put
+    iapply reqOpAt_put _ _ _ _ (by simpa [putWireOf, txn.putOpOf] using Hpv h2)
     iframe #
     isplitl []
     · ipureintro; exact Hpn

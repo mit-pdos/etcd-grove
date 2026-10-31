@@ -56,6 +56,18 @@ def waitersOp (wp : GoString) : OpFull := opGetModel wp [withPrefixM, withSortM 
 /-- `Leave`'s get `OpGet(wp, WithPrefix())`. -/
 def leaveOp (wp : GoString) : OpFull := opGetModel wp [withPrefixM]
 
+/-- `enteredClients`' get fits (2026-10-30, `notes/invoke-size-b.md`). -/
+theorem waitersOp_size {wp : GoString} (hk : wp.length ≤ 2 ^ 28) : opSizeOk (waitersOp wp) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+      (optsKeep_cons (withSortM_keep _ _) (optsKeep_nil _ _ _))) hk (by decide)
+
+/-- `Leave`'s get fits. -/
+theorem leaveOp_size {wp : GoString} (hk : wp.length ≤ 2 ^ 28) : opSizeOk (leaveOp wp) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _)) (optsKeep_nil _ _ _)) hk
+    (by decide)
+
 theorem waitersOp_fields (wp : GoString) (hp : wp ≠ []) :
     (waitersOp wp).key = wp ∧ (waitersOp wp).base.rangeEnd = prefixRangeEnd wp ∧
     (waitersOp wp).effSortOrder = W64 1 ∧ (waitersOp wp).sortTarget = W64 2 ∧
@@ -212,7 +224,7 @@ def isDoubleBarrier (b s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (k
   iprop(structFieldRef DoubleBarrier go!"s" b ↦□ s ∗
     structFieldRef DoubleBarrier go!"ctx" b ↦□ GoInterface.ok todoCtxVal ∗
     structFieldRef DoubleBarrier go!"key" b ↦□ key ∗
-    structFieldRef DoubleBarrier go!"count" b ↦□ count ∗ ⌜0 < sint.Z count⌝ ∗
+    structFieldRef DoubleBarrier go!"count" b ↦□ count ∗ ⌜0 < sint.Z count ∧ key.length ≤ 2 ^ 27⌝ ∗
     isSession s γ client id ∗ isEtcdRecipesClient client (key ++ go!"/") ∗ context.isClosedchanInit)
 
 instance isDoubleBarrier_persistent (b s : Loc) (γ : SessionNames) (client : Loc) (id : w64)

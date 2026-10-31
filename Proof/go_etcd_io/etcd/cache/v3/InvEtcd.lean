@@ -786,12 +786,13 @@ instance kvGetResultC_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp 
 of its `Get(ctx, key, opts...)` (a range request: `OpGet(key, opts...)` must not panic and must
 be a range), with any context, options with model transformers `gs`, and any revision `lo` the
 caller knows etcd has reached (`etcdReached lo`; `0` is free): the response is
-`kvGetResult pfx lo`, at least `lo` unless serializable (linearizability). -/
+`kvGetResult pfx lo`, at least `lo` unless serializable (linearizability). The request fits a gRPC message (`opSizeOk` of the get; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
-        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -809,14 +810,15 @@ KV state, so tells the client's model nothing); K3: etcd's state only for a pref
 `kvGetResultC`), and the `Error()` of a
 non-nil error its `Get` returns returns some string (`errStrOk`: the cache's watch loop prints it
 with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
-`rpctypes` error, each an error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
+`rpctypes` error, each an error whose `Error` builds a string). A definition, like `isEtcdKV`. The request fits a gRPC message (`opSizeOk` of the get; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact ∧
           (opGetModel key gs).base.sortSet = false ∧
-          (opGetModel key gs).base.serializable = false⌝ }}
+          (opGetModel key gs).base.serializable = false ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -939,13 +941,14 @@ def etcdWatchConsumer (γ : EtcdWatchNames) (n : Nat) (cursor : w64) : IProp GF 
 /-- **The client's `Watcher`** `w`, for a cache of prefix `pfx` (a definition, like `isEtcdKV`: the
 assumption a caller makes of `client.Watcher`): `w.Watch(ctx, key, opts...)` with the options of a
 prefix watch on `pfx` from revision `rev > 0` (`isPrefixWatch`; the options must not make
-`OpWatch` panic) returns a channel of etcd's watch responses, starting at revision `rev - 1`. -/
+`OpWatch` panic) returns a channel of etcd's watch responses, starting at revision `rev - 1`. The request fits a gRPC message (`watchSizeOk` of the watch; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗
         ⌜(opWatchModel key gs).isPrefixWatch pfx rev = true ∧ ¬ opWatchPanics key gs ∧
-          0 < sint.Z rev⌝ ∗ etcdRead (rev - W64 1) }}
+          0 < sint.Z rev ∧ watchSizeOk (opWatchModel key gs)⌝ ∗ etcdRead (rev - W64 1) }}
       (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;

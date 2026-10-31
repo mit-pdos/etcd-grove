@@ -29,7 +29,7 @@ contracts at `kp`: a fresh `*Queue` holding the client, `context.TODO()` and `kp
 abbrev NewQueue.spec : Prop :=
   ∀ (client : Loc) (kp : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isEtcdRecipesClient client kp ∗ ⌜kp ≠ []⌝ }}
+      isEtcdRecipesClient client kp ∗ ⌜kp ≠ [] ∧ kp.length ≤ 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #client))
       (Val #kp))
   {{ (q : Loc), RET #q; isQueue q client kp }}

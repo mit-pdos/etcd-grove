@@ -238,9 +238,10 @@ instance watchLaws_persistent (V : WEnv GF) : Persistent (watchLaws V) := by
   unfold watchLaws; infer_instance
 
 /-- **The server's watched logs** (the watch contract's logs for a client of one server): a
-watched log of the server, small, at the server's store names. -/
+watched log of the server, small, (2026-10-30, `notes/keylen.md`) its keys short, at the server's
+store names. -/
 def srvWL (R : v3rpc.WSrv GF) (L : mvcc.Log) : IProp GF :=
-  iprop(mvcc.evLog R.γ.st L ∗ ⌜txn.LogSmall L ∧ R.γ.st = R.E.γ⌝)
+  iprop(mvcc.evLog R.γ.st L ∗ ⌜txn.LogSmall L ∧ mvcc.LogPutsLe etcdKeyMax L ∧ R.γ.st = R.E.γ⌝)
 
 instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL R L) := by
   unfold srvWL; infer_instance
@@ -250,57 +251,6 @@ abbrev srvWEnv (R : v3rpc.WSrv GF) (addr : GoString) (ics : List GoFunc) (conn w
     (pfx : GoString) (lg : Loc) (kst : GName) : WEnv GF :=
   ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R, fun _ => (addr, R), 1,
     kst⟩
-
-/-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
-the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
-the conversion the identity. -/
-theorem watchLaws_srv (V : WEnv GF) (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
-    (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : ⊢ watchLaws V := by
-  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
-  simp only at hWM hWL hst ⊢
-  subst hWM hWL
-  iunfold watchLaws
-  simp only
-  isplitr
-  · iintro !> %L %r #HL %h
-    iunfold srvWL at HL
-    icases HL with ⟨#He, -⟩
-    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
-    irevert Hc; rw [hst]; iintro #Hc
-    iapply v3rpc.etcdReached_of_certOk R.E L r h $$ Hc
-  isplitr
-  · iintro !> %L %r %pfx #HL %h
-    iunfold srvWL at HL
-    icases HL with ⟨#He, %Hs⟩
-    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
-    irevert Hsl; rw [hst]; iintro #Hsl
-    imodintro
-    rw [v3rpc.etcdModelOfServer_etcdState]
-    unfold v3rpc.srvEtcdState v3rpc.srvLog
-    iexists L
-    isplitl
-    · iframe Hsl; ipureintro; exact Hs.1
-    ipureintro; exact ⟨h.1, h.2, rfl⟩
-  isplitr
-  · iintro !> %L %r0 %r1 %pfx %evs #HL %h
-    iunfold srvWL at HL
-    icases HL with ⟨#He, %Hs⟩
-    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
-    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
-    irevert Hsl Hc; rw [hst]; iintro #Hsl #Hc
-    rw [v3rpc.etcdModelOfServer_EtcdStep]
-    unfold v3rpc.srvStep v3rpc.srvLog
-    iexists L
-    iframe Hsl Hc
-    isplitr
-    · ipureintro; exact Hs.1
-    ipureintro; exact h
-  · iintro !> %L #He %Hs
-    imodintro
-    imodintro
-    iunfold srvWL
-    iframe He
-    ipureintro; exact ⟨Hs, hst⟩
 
 /-! ## The premises about the server and the transport -/
 
@@ -449,6 +399,68 @@ theorem srvKVFacts_of_off (V : WEnv GF) (γr : ReadNames)
     srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
   rw [← srvKVCoreM_false]
   exact srvKVFacts_intro V false γr hst hlog hrb
+
+/-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
+the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
+the conversion the identity but for the keys' bound (2026-10-30, `notes/keylen.md`): from the
+member's KV facts (`srvKVFacts`, `srvKVCoreM_keys`). -/
+theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : WEnv GF)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
+    (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : srvKVFacts V ⊢ watchLaws V := by
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
+  simp only at hWM hWL hst ⊢
+  subst hWM hWL
+  iintro #Hfacts
+  iunfold watchLaws
+  simp only
+  isplitr
+  · iintro !> %L %r #HL %h
+    iunfold srvWL at HL
+    icases HL with ⟨#He, -⟩
+    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
+    irevert Hc; rw [hst]; iintro #Hc
+    iapply v3rpc.etcdReached_of_certOk R.E L r h $$ Hc
+  isplitr
+  · iintro !> %L %r %pfx #HL %h
+    iunfold srvWL at HL
+    icases HL with ⟨#He, %Hs⟩
+    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
+    irevert Hsl; rw [hst]; iintro #Hsl
+    imodintro
+    rw [v3rpc.etcdModelOfServer_etcdState]
+    unfold v3rpc.srvEtcdState v3rpc.srvLog
+    iexists L
+    isplitl
+    · iframe Hsl; ipureintro; exact ⟨Hs.1, Hs.2.1⟩
+    ipureintro; exact ⟨h.1, h.2, rfl⟩
+  isplitr
+  · iintro !> %L %r0 %r1 %pfx %evs #HL %h
+    iunfold srvWL at HL
+    icases HL with ⟨#He, %Hs⟩
+    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
+    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
+    irevert Hsl Hc; rw [hst]; iintro #Hsl #Hc
+    rw [v3rpc.etcdModelOfServer_EtcdStep]
+    unfold v3rpc.srvStep v3rpc.srvLog
+    iexists L
+    iframe Hsl Hc
+    isplitr
+    · ipureintro; exact ⟨Hs.1, Hs.2.1⟩
+    ipureintro; exact h
+  · iintro !> %L #He %Hs
+    ihave #Hsl : mvcc.idxSealed R.E.γ.idx L $$ [He]
+    · rw [← hst]; iapply mvcc.evLog_sealed $$ He
+    ihave #Hc : mvcc.certOk R.E.γ L $$ [He]
+    · rw [← hst]; iapply mvcc.evLog_certOk $$ He
+    iunfold srvKVFacts at Hfacts
+    icases Hfacts with ⟨%on, %γr, #Hcore, #H0, -⟩
+    imod srvKVCoreM_keys on R.E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
+      $$ Hcore H0 Hsl Hc with %Hk
+    imodintro
+    imodintro
+    iunfold srvWL
+    iframe He
+    ipureintro; exact ⟨Hs, Hk, hst⟩
 
 /-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
@@ -655,11 +667,22 @@ abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
 /-- **The request is one of the contract's** (pure): a range watch from `rev ≥ 0`
 (`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's, its key as
 the server reads it (G2, 2026-10-30: `P.o` is the range the watch's events are of,
-`OpFull.watchNorm`, an empty request key read as `"\x00"`). -/
+`OpFull.watchNorm`, an empty request key read as `"\x00"`), its key and range end fitting a gRPC
+message (2026-10-30: the creates `run` sends, `cliStreamIs`; from `watcher.Watch`'s `opSizeOk`). -/
 def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
   P.o.isRangeWatch P.rev = true ∧ ¬ P.o.watchPanics ∧ 0 ≤ sint.Z P.rev ∧
     (if P.key = [] then [W8 0] else P.key) = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧
-    P.cn = P.o.base.createdNotify ∧ P.pn = P.o.base.progressNotify
+    P.cn = P.o.base.createdNotify ∧ P.pn = P.o.base.progressNotify ∧
+    P.key.length + P.ed.length ≤ 2 ^ 30
+
+/-- **A watch's creates fit a gRPC message** (2026-10-30): the create `toPB` builds from the
+watch's request, at any start revision (a resume's), below `grpcMsgMax`. -/
+theorem wsReqOk_wire {pfx : GoString} {P : WsPrm GF} (h : wsReqOk pfx P) (rv : w64) (pn sr : Bool)
+    (bd : Nat) :
+    v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd)) < grpcMsgMax := by
+  obtain ⟨-, -, -, -, -, -, -, h⟩ := h
+  simp only [v3rpc.watchReqWireLen, createOf, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
 
 /-- **The row of a watch's responses with events** (persistent; G2, 2026-10-30): with one member,
 the server's check of the watch's create (`watchCheckOk` of `WatchCheck.lean`, unfolded: this file
@@ -997,6 +1020,14 @@ theorem wsIs_bd (V : WEnv GF) (P : WsPrm GF) :
   icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
   iapply wsBdOk_cur V P
   iframe Hc Hb
+
+/-- **A watch's creates fit a gRPC message** (`wsReqOk_wire`). -/
+theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : Nat) :
+    wsIs V P ⊢ ⌜v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd)) < grpcMsgMax⌝ := by
+  iintro #H
+  iunfold wsIs at H
+  icases H with ⟨-, -, -, -, -, -, %Hok, -⟩
+  ipureintro; exact wsReqOk_wire Hok.2.1 rv pn sr bd
 
 /-- **A watch's row from its create's check** (G2; `wsRow_of_authed`), at the watch's key and
 range end as its request has them. -/

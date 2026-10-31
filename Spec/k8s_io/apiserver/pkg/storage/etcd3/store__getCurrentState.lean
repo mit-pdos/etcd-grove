@@ -36,7 +36,7 @@ abbrev store.getCurrentState.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (verb key : GoString)
     (v : _root_.Perennial.reflect.Value) (p : Loc) (R : w64 → w64 → KVState → IProp GF),
-  c.pfx <+: key →
+  c.pfx <+: key → key.length ≤ 2 ^ 27 →
   (∀ R0 m σ, R R0 m σ ⊢ ⌜kvWf c σ⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ }}

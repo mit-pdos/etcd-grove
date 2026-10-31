@@ -54,7 +54,8 @@ reply with `putReplied` and the put's grant at the token of some attempt's metad
 error. -/
 theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
@@ -107,6 +108,8 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
       iexists md
       iframe Hg
       ipureintro; exact Hmd
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     iapply (kvReqPre_wand api [addr] (mvcc.idxCert E.γ.idx F) _ _ h)
     iframe HF
     unfold kvReqPre
@@ -145,7 +148,8 @@ read's check at the token of some attempt's metadata, or an error. -/
 theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
@@ -173,6 +177,8 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
     iframe Hopts HR Hsn
     isplitl []
     · ipureintro; exact Hg
+    isplitl []; rotate_left
+    · ipureintro; exact hsz
     imodintro
     inext
     unfold attemptPre
@@ -208,7 +214,8 @@ cache decides, `auth.reqShape`); the reply with `deleteReplied` and the delete's
 token of some attempt's metadata. -/
 theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ []) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
+    (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
@@ -269,6 +276,8 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       iexists md
       iframe Hg
       ipureintro; exact Hmd
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     iapply (kvReqPre_wand api [addr] (mvcc.idxCert E.γ.idx F) _ _ h)
     iframe HF
     unfold kvReqPre
@@ -310,6 +319,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     (ρ : ReqNames) (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
+    (hsz : txnSizeOk (txnWireOf b.model))
     (hsh : txn.txnReadonly (txnWireOf b.model) = false →
       ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -363,6 +373,8 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
         txnAuthOn s E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)))) $$ [Hobj Hnp]
   · iframe Hobj
     iframe #
+    isplitl [Hnp]; rotate_left
+    · ipureintro; exact hsz
     iapply (txnReqPre_wand tp [addr] _ _ _ h)
     isplitl []
     · iframe #

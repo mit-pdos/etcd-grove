@@ -222,7 +222,7 @@ revision is below `2 ^ 63`); a delete's event has the empty value, not `setup`. 
 theorem revEvents_setupPut_put (σ : KVState) (r m : Nat) (hok : kvLogOkTo σ r) (hm : m ≤ r)
     (ev : mvcc.EvM) (hev : ev ∈ σ.revEvents m) (hsp : setupPutK ev.kv.key ev.kv.value) :
     ev.del = false := by
-  obtain ⟨he, hr, hr63, hwf, hsm⟩ := hok
+  obtain ⟨he, hr, hr63, hwf, hsm, -⟩ := hok
   have hc : σ.compacted = 0 := by rw [he]; rfl
   have hlen : σ.log.length = σ.rev + 1 := by
     simp only [KVState.log, KVState.rev, List.length_cons, hc]; omega

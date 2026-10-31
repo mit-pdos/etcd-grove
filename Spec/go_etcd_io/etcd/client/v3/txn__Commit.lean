@@ -32,7 +32,7 @@ if the client's writes may be delivered more than once (`□?dup`): `nil` and th
 reply's verdict, responses and revision as the run's at `σ`, `σ` a well-formed small log's state
 (`kvLogOk`, D48), and so the state after a writing transaction's changes; or a client error (`kvErr`, through
 `ContextError`) and no reply. The builder is spent (its slices are now the
-request's). -/
+request's). The request fits a gRPC message (`txnSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
 abbrev txn.Commit.spec : Prop :=
   ∀ (txn_ptr : Loc) (addr : List GoString) (kv : Loc) (γ : KVNames) (dup : Bool)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (b : TxnBuild)
@@ -46,7 +46,8 @@ abbrev txn.Commit.spec : Prop :=
             <{ etcdKV γ σ, COMM □ Q σ }>) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) }}
+            <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) ∗
+      ⌜txnSizeOk (txnWireOf b.model)⌝ }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

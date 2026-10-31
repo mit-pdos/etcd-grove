@@ -31,7 +31,7 @@ an error. -/
 abbrev Queue.Enqueue.spec : Prop :=
   ∀ (q client : Loc) (kp val : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isQueue q client kp ∗ etcdReached lo }}
+      isQueue q client kp ∗ etcdReached lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
     (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64), etcdReached r ∗

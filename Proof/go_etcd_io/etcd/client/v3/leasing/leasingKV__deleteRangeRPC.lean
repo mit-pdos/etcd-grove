@@ -58,7 +58,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     (hGRD : EtcdGrove.ResponseOp.GetResponseDeleteRange.spec (GF := GF) (hG := hG)) :
     leasingKV.deleteRangeRPC.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs maxLeaseRev key e lo
-  wp_start as ⟨#Hlkv, #Hctx, #Hlo⟩
+  wp_start as ⟨#Hlkv, #Hctx, #Hlo, %Hke⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, #Hkv, #Hp, -, -, -, -, -,
@@ -184,7 +184,11 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (TxnBuild.mk (drpcTxn pfx key e maxLeaseRev) true true false) (by rfl) $$ HB
   wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
-  · ipureintro; exact TxnModel.under_nil _
+  · ipureintro
+    refine ⟨TxnModel.under_nil _, ?_⟩
+    simp [txnSizeOk, txnWireLen, drpcTxn, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, compareM,
+      cmpKeyM, cmpWithRangeM, rangeDeleteOp, op_simps]
+    omega
   inext
   iintro %resp %err Hres
   iunfold txnCommitResultO at Hres

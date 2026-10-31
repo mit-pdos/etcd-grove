@@ -29,7 +29,7 @@ a fresh `*Barrier` holding the client, `context.TODO()` and the key (`isBarrier`
 abbrev NewBarrier.spec : Prop :=
   ∀ (client : Loc) (key : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isEtcdRecipesClient client key }}
+      isEtcdRecipesClient client key ∗ ⌜key.length ≤ 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewBarrier)) (Val #client))
       (Val #key))
   {{ (b : Loc), RET #b; isBarrier b client key }}

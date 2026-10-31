@@ -93,14 +93,15 @@ theorem RWMutex.waitOnLastRev.wp_proof
   icases Hkvc with ⟨#HKV, -, -, -⟩
   iunfold isEtcdKVTodo at HKV
   have hbp : bp ≠ [] := by
-    intro h; subst h; exact Hpfx (List.prefix_nil.1 Hp.1)
+    intro h; subst h; exact Hpfx.1 (List.prefix_nil.1 Hp.1)
   ihave #HG := HKV $$ %bp %gsl %(withTopM (W64 3) (W64 2) ++ [withMaxModRevM (st.rev - W64 1)])
     %iprop(True) %lo
   wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨lastRevOp_not_panics _, lastRevOp_t bp _, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      topOp_size (W64 3) (W64 2) _ (optsKeep_cons (withMaxModRevM_keep _) (optsKeep_nil _ _ _)) Hp.2.2⟩
   have Hop : opGetModel bp (withTopM (W64 3) (W64 2) ++ [withMaxModRevM (st.rev - W64 1)]) =
       lastRevOp bp (st.rev - W64 1) := rfl
   rw [Hop]
@@ -164,6 +165,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
       | cons _ _ => simp at Hgl
     | cons w _ => exact ⟨w, rfl⟩
   have Hws : w ∈ s' := Hmem w (List.mem_of_getElem? Hw)
+  ihave %Hkeys := etcdState_keys _ _ _ $$ Hs'
   rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z gsl'.len by
     constructor
     · word
@@ -188,7 +190,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   ipersist Hesl
   wp_apply wp_WaitEvents client pfx w.key st.rev _ [W32 1] (W32 1) $$ [$Hclosed $Hcl $Hesl]
     as %ev %werr Hwr
-  · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by omega⟩
+  · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by have hk := Hkeys w Hws; unfold etcdKeyMax at hk; omega⟩
   icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
   rotate_left
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

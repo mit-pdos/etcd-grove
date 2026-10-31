@@ -296,7 +296,7 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
-  · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2
+  · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2.1
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro

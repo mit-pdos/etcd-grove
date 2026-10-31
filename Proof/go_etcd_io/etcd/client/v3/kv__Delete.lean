@@ -33,7 +33,7 @@ theorem kv.Delete.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci cd key sl gs Sd Qd
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
@@ -42,6 +42,8 @@ theorem kv.Delete.wp_generic
       (fun _ => iprop(True)) (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd $$ [Hrun]
     as %r %err Hout
   · iframe #
+    isplitl [Hrun]; rotate_left
+    · ipureintro; exact Hsz
     unfold doRunGen
     iright
     iright
@@ -86,7 +88,7 @@ theorem kv.Delete.wp_members
     (wp_Delete : kv.Delete.specG (GF := GF) (hG := hG)) :
     kv.Delete.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs Q F
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
   obtain ⟨Hnp, Ht, Hz⟩ := Hnp
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
@@ -98,6 +100,8 @@ theorem kv.Delete.wp_members
   · ipureintro; exact ⟨Hnp, Ht⟩
   isplitl []
   · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcDelete ms) $$ Hregs
+  isplitl [Hrun]; rotate_left
+  · ipureintro; exact Hsz
   iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
     ((deleteSpec_of ms F (deleteWireOf (opDeleteModel key gs)) Q Hz).trans
       (attemptPre_md conn (GoInterface.ok ci) (kvDeleteSpec ms) _ _)))
@@ -109,7 +113,7 @@ theorem kv.Delete.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht, Hz⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
@@ -117,6 +121,8 @@ theorem kv.Delete.wp_proof
   wp_apply wp_Do api γ dup ci cd opv (opDeleteModel key gs) Q $$ [Hrun]
     as %r %err Hout
   · iframe #
+    isplitl [Hrun]; rotate_left
+    · ipureintro; exact Hsz
     unfold doRunOk
     iright
     iright

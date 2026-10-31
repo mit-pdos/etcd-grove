@@ -38,7 +38,7 @@ theorem stmSerializable.commit.wp_proof
   unfold stmState stmStale
   rw [hb]
   simp only [Hser, ite_true]
-  icases Hst with ⟨#Henv, Hrs, Hws, ⟨%gs, Hopts, %Hgs⟩, #Hcf, ⟨%pre, Hpre, %Hpre⟩⟩
+  icases Hst with ⟨#Henv, Hrs, Hws, ⟨%gs, Hopts, %Hgs⟩, #Hcf, ⟨%pre, Hpre, %Hpre⟩, %Hsz⟩
   wp_auto
   wp_apply hGets p pfx st.reads $$ [$Hpkg $Hrs] as %ksl %osl ⟨Hrs, %ks, #Hks, #Hosl, %Hksl⟩
   ihave #Henv' := Henv
@@ -91,7 +91,9 @@ theorem stmSerializable.commit.wp_proof
     obtain ⟨e, he⟩ := Option.isSome_iff_exists.1 ((Hksl.2 k).1 hk)
     exact Hru k e he
   wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (keyOps_under pfx ks hks)
+  · ipureintro
+    exact ⟨stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (keyOps_under pfx ks hks),
+      stmCommit_size Hsz Hms Hops.2 (.inr ⟨ks, Hksl, rfl⟩)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)

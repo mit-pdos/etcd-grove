@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 `r ≥ lo` (`keyCreatedAt`); a nil pointer with the error otherwise. -/
 abbrev newUniqueKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ 2 ^ 27 + 2 ^ 10 ∧ val.length ≤ 2 ^ 28⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV))
       (Val #(GoInterface.ok kv))) (Val #kp)) (Val #val))
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);

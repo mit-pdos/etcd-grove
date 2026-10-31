@@ -31,7 +31,7 @@ prefix (the queue's items are under `key ++ "/"`, `newSequentialKV`'s bookkeepin
 abbrev NewPriorityQueue.spec : Prop :=
   ∀ (client : Loc) (key : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isEtcdRecipesClient client [] }}
+      isEtcdRecipesClient client [] ∗ ⌜key.length ≤ 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewPriorityQueue))
       (Val #client)) (Val #key))
   {{ (q : Loc), RET #q; isPriorityQueue q client key }}

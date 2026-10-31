@@ -36,7 +36,7 @@ WithLease(leaseID)))` (`newKeyTxn`):
   transaction contract at `context.TODO()`). -/
 abbrev putNewKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key val : GoString) (lease lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ 2 ^ 28 ∧ val.length ≤ 2 ^ 28⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.putNewKV))
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #val)) (Val #lease))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err);

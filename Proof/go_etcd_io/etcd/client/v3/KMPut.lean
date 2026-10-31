@@ -261,7 +261,7 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
   iintro ⟨#Pc, #Hkv, #Hinv, #Hrest⟩
   unfold isEtcdPutKVTodo
   iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
-  obtain ⟨hpan, hop, hu, ht⟩ := Hp
+  obtain ⟨hpan, hop, hu, ht, hsz⟩ := Hp
   have hw := putTxnOp_wire _ _ hop ht
   by_cases hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0 ∧
     txn.needsPrev (putWireOf (opPutModel key val gs)) = false
@@ -285,7 +285,9 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
   · iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht, hl.1⟩
-    iexact Hau
+    isplitl [Hau]
+    · iexact Hau
+    ipureintro; exact hsz
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -311,7 +313,7 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
   iintro ⟨#Pc, #Hkv, #Hinv, #H1⟩
   unfold isEtcdDeleteKVTodo
   iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
-  obtain ⟨hpan, hu, hz, ht⟩ := Hp
+  obtain ⟨hpan, hu, hz, ht, hsz⟩ := Hp
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
   -- the longer of the floor and the first revision's changes
@@ -334,7 +336,9 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
   · iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht, by simpa [deleteWireOf, txn.deleteOpOf] using hz⟩
-    iexact Hau
+    isplitl [Hau]
+    · iexact Hau
+    ipureintro; exact hsz
   inext
   iintro %resp %err Hout
   iapply HΦ
