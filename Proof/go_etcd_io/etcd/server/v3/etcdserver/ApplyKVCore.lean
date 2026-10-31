@@ -79,6 +79,52 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
   · iexact Har
   iexact Hw
 
+
+/-- (2026-10-31, the snapshot track: #11's S6) **`s.KV().Commit()`'s resources, lent by the
+shared row**: the store writer's fragment and its reader token of the backend (`txn.kvWriter`'s
+and `apply.kvOwn`'s), and a write token from the budget for the commit's write-back
+(`srvWTPool_take_extra`, for a receipt), given back after the commit. -/
+theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (ua : GoInterface) (γp : GName) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
+      mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ mvcc.storeWT E.γ ∗
+      (mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ -∗ srvApplyKVCore s E γw x ua) := by
+  iintro #Hp Hr Hc
+  iunfold srvApplyKVCore at Hc
+  icases Hc with ⟨Hua, #Hap, Hkv, Hbo, Hra, Hw⟩
+  imod srvWTPool_take_extra s E γp $$ Hp Hr Hbo with ⟨Hwt, Hbo⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hpe, Huo, Hko⟩
+  iunfold apply.kvOwn at Hko
+  icases Hko with ⟨Hsr, Hkw, Hll, Hrd, Hwo⟩
+  iunfold txn.kvWriter at Hkw
+  icases Hkw with ⟨Hsw, Hwl, Hwf⟩
+  imodintro
+  iframe Hwf Hwo Hwt
+  iintro ⟨Hwf, Hwo⟩
+  ihave Hkv : apply.applyKV E ua x $$ [Huo Hsr Hsw Hwl Hwf Hll Hrd Hwo]
+  · iunfold apply.applyKV
+    iexists p
+    isplitr
+    · ipureintro; exact Hpe
+    iframe Huo
+    iunfold apply.kvOwn
+    iframe Hsr Hll Hrd Hwo
+    iunfold txn.kvWriter
+    iframe Hsw Hwl Hwf
+  iunfold srvApplyKVCore
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  isplitl [Hbo]
+  · iexact Hbo
+  isplitl [Hra]
+  · iexact Hra
+  iexact Hw
+
 end core
 
 end EtcdGrove

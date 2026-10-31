@@ -35,8 +35,11 @@ the apply thread's state as the old `spec` said; the storage's stored snapshot p
 (`srvSnapState … ai ai`). What the body needs:
 * the server's view (`isServer`: the logger, the member id, the consistent index's field) and
   `applyAll`'s (`isServerApplyAll`: `SnapshotCount`);
-* with `toDisk`, `s.KV().Commit()`'s contract (`srvKVCommitOk kv RC RC'`, as the merged snapshot's
-  sender has it, `SnapSendBranch.lean`) and its `RC`, `RC'` after;
+* with `toDisk`, `s.KV().Commit()`: the server's KV over the store (`txn.isKV`, `NewServer`'s) and
+  the write budget (`srvWTPool`) for the commit's write-back, the writer's tokens lent by the
+  applier row (`srvApplyKVCore_commit`; 2026-10-31, the snapshot track's S6: until then a contract
+  `srvKVCommitOk kv RC RC'` with its `RC`, which no caller could give: the writer's tokens are the
+  row's, which the spec also takes);
 * `CreateSnapshot`'s premises (2026-10-30, the repair): the storage's invariant, the node's
   delivered log past `ai`, the cluster's registry and a committed log of length `ai` ending at
   `at'` (`srvSnapStor`), the frozen entry at `ai` (`srvSnapFrozen`, P8); (2026-10-31, the
@@ -52,8 +55,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
-    (ms : Loc) (γs : MemStorNames) (nid : w64) (sl : w64) (kv : GoInterface) (RC RC' : IProp GF)
-    (ua : GoInterface),
+    (ms : Loc) (γs : MemStorNames) (nid : w64) (sl : w64) (γp : GName) (ua : GoInterface),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
   -- fewer than `2^61` (`SnapListsOk`)
@@ -64,14 +66,13 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       srvSnapStor ms γs γr nid ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
       epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
-      srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ (if toDisk then RC else iprop(True)) ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvWTPool E γp ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
       srvApplyKVCore s E γw x ua }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
-      (if toDisk then RC' else iprop(True)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
       ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}

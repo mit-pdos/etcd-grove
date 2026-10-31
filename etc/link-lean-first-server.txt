@@ -337,6 +337,7 @@ txn_IsTxnReadonly: @
 txn_IsTxnSerializable: @
 apply_CheckTxnAuth: @
 mvcc_store__Rev: @
+mvcc_store__Commit: @
 traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
 traceutil_Get: traceutil_TODO
 traceutil_Trace__Step:
@@ -397,7 +398,7 @@ backend_VerifyBackendConsistency:
 # rewired), no longer the trust boundary
 MemoryStorage__CreateSnapshot: @
 verifyConsistentIndexIsLatest: verify_Verify SnapshotMetadata__GetIndex
-EtcdServer__snapshot: EtcdServer__Logger EtcdServer__MemberID types_ID__String EtcdServer__KV MemoryStorage__CreateSnapshot errors_Is consistentIndex__ConsistentIndex verifyConsistentIndexIsLatest storage_storage__Release SnapshotMetadata__GetIndex zap_Logger__Info zap_Uint64 zap_String zap_Bool
+EtcdServer__snapshot: EtcdServer__Logger EtcdServer__MemberID types_ID__String EtcdServer__KV mvcc_store__Commit MemoryStorage__CreateSnapshot errors_Is consistentIndex__ConsistentIndex verifyConsistentIndexIsLatest storage_storage__Release SnapshotMetadata__GetIndex zap_Logger__Info zap_Uint64 zap_String zap_Bool
 # (2026-10-26) translated and proved: the compaction over raft's `MemoryStorage.Compact` (linked
 # in raft's Link)
 MemoryStorage__Compact: @

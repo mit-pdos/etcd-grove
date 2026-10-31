@@ -146,3 +146,16 @@ Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant
   frozen `memLog`, `srvFrozenTerms_of_memLog`) through `rnApN`, `run` and `applyAll`'s spec.
   Left: `srvFrozenTerm γs ai' at'` from it and `termAfter` in `applyAll` (and, for an empty batch,
   from the previous batch's: `run`'s loop carries it).
+- **S4, the delivered log, done**: `raftAdvancedC`'s close carries `storDL nid |pre ++ A ++ batch|`
+  (`rn_storDL`, from `isNode` and the ready receive's `deliveredLogLb`), through `rnApN`, `run`
+  and `applyAll`'s spec. Left for S4: `memStorInv` (the boot's) and the committed prefix
+  (`run_job_body`'s `srvRLogLb`) to `applyAll`; `srvRaftLogInv` is `isServer`'s (`srvKVInvs`).
+- **S6, the KV's commit, done at `snapshot`**: `snapshot.spec` took `srvKVCommitOk kv RC RC'` and
+  `RC`, which no caller could give: `Commit()` needs the store writer's tokens (`writerFrag`,
+  `writerOwn`), which are inside `srvApplyKVCore`, which the spec also takes. Now `snapshot` (and
+  `specFull`, `specFullOff/On`) take the KV's static facts (`∃ kv, srvKVAddr s ↦□ kv ∗ txn.isKV kv
+  E.s E.γ`, `NewServer`'s `srvBuilt` `Hkv`) and the write budget (`srvWTPool`); the proof takes a
+  receipt at a Go step (`wp_apply_core` on `ID.String`, so `zap.String`'s `FuncResolve` is left
+  for it), the writer's tokens and a write token from the row (`srvApplyKVCore_commit`) and calls
+  `store.Commit`'s proved spec (`srvKVCommitOk_of_kv`, a new callee in the server's link). Left
+  for S6: the KV's facts and `srvSnapDisk` from the start through `run` to `applyAll`.

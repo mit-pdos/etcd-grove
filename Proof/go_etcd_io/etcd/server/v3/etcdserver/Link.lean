@@ -2197,7 +2197,7 @@ theorem storage.storage.wp_Release :
 
 theorem EtcdServer.wp_snapshot :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdServer.snapshot.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String EtcdServer.wp_KV MemoryStorage.wp_CreateSnapshot errors.wp_Is consistentIndex.wp_ConsistentIndex wp_verifyConsistentIndexIsLatest storage.storage.wp_Release raftpb.SnapshotMetadata.wp_GetIndex zap.Logger.wp_Info zap.wp_Uint64 zap.wp_String zap.wp_Bool
+  EtcdServer.snapshot.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String EtcdServer.wp_KV mvcc.store.wp_Commit MemoryStorage.wp_CreateSnapshot errors.wp_Is consistentIndex.wp_ConsistentIndex wp_verifyConsistentIndexIsLatest storage.storage.wp_Release raftpb.SnapshotMetadata.wp_GetIndex zap.Logger.wp_Info zap.wp_Uint64 zap.wp_String zap.wp_Bool
 
 theorem EtcdServer.wp_compactRaftLog :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) :=

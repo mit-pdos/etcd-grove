@@ -31,6 +31,8 @@ public import Spec.go_uber_org.zap.Uint64
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Bool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapCert
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBranch
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit
 
 @[expose] public section
 
@@ -76,6 +78,7 @@ theorem EtcdServer.snapshot.wp_proof
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hIDS : types.ID.String.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
+    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
     (hCS : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hCI : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -87,11 +90,11 @@ theorem EtcdServer.snapshot.wp_proof
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nid sl kv RC RC' ua Hloop Hci Hrel
+  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nid sl γp ua Hloop Hci Hrel
     Hpos Hsz
-  cases toDisk <;> simp only [Bool.false_eq_true, ↓reduceIte]
+  cases toDisk
   all_goals (
-  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, #Hkvf, Hkc, HRC, Hai,
+  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv⟩, #Hwp, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl'⟩, #Hat0, -, #Hrn⟩
@@ -160,7 +163,7 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       iapply HΦ
       iexists st
-      iframe HRC Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, m, f
@@ -185,7 +188,7 @@ theorem EtcdServer.snapshot.wp_proof
       iapply HΦ
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
-      iframe HRC Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, ai, f
@@ -199,7 +202,20 @@ theorem EtcdServer.snapshot.wp_proof
     wp_apply hMID s sv.memberID $$ []
     · iframe #
     (try wp_auto)
-    wp_apply hIDS sv.memberID as %ids -
+    -- (`wp_apply_core`: `wp_apply` would resolve `zap.String` too, the receipt's step)
+    wp_apply_core hIDS sv.memberID
+    · iPkgInit
+    iintro %ids -
+    -- (S6) a Go step gives a time receipt, for the commit's write token
+    repeat (
+      fail_if_success wp_bind (App (Val (GoInstruction _)) (Val _))
+      first | wp_pure | wp_load | wp_store | wp_alloc_auto)
+    wp_bind (App (Val (GoInstruction _)) (Val _))
+    iapply wp_go_step_receipt'
+    case hv => first | rfl | simp [val.isPanic] | decide | exact isPanic_intoVal _
+    inext
+    iintro Hr -
+    iapply wp_value'
     wp_apply hStr as %f0 -
     (try wp_auto)
     wp_apply hU64 as %f1 -
@@ -222,14 +238,24 @@ theorem EtcdServer.snapshot.wp_proof
     (try wp_auto)
     wp_apply hKV s kv $$ []
     · iframe #
+    -- (S6) `Commit()`: the writer's tokens lent by the row, a write token from the budget
+    imod srvApplyKVCore_commit s E γw x ua γp $$ Hwp Hr HKV with ⟨Hwf, Hwo, Hwt, HKVc⟩
+    ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+    · iPkgInit
+    ihave Hkc := srvKVCommitOk_of_kv hC kv E.s E.γ iprop(True) iprop(True) iprop(True)
+      $$ [$Hmpkg $Hiskv]
+    ihave Hsrq := mvcc.storeReq_true (GF := GF) E.γ
     iunfold srvKVCommitOk at Hkc
     icases Hkc with ⟨%ki, %Hki, #Hkct⟩
     subst Hki
     (try wp_auto)
     wp_bind (App (Val #(methods ki.ty go!"Commit" ki.v)) (Val #()))
-    iapply Hkct $$ HRC
+    iapply Hkct $$ [Hwf Hwo Hwt Hsrq]
+    · iframe Hwf Hwo Hwt Hsrq
     inext
-    iintro HRC
+    iintro ⟨Hwf, Hwo, -, -⟩
+    ihave HKV := HKVc $$ [Hwf Hwo]
+    · iframe Hwf Hwo
     (try wp_auto)
     -- `CreateSnapshot(ep.appliedi, ep.confState, nil)`
     iunfold epConfState at Hcs
@@ -267,7 +293,7 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       iapply HΦ
       iexists st
-      iframe HRC Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, m, false
@@ -336,7 +362,7 @@ theorem EtcdServer.snapshot.wp_proof
       iapply HΦ
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
-      iframe HRC Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists ai, ai, false
