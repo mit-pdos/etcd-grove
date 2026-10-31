@@ -122,12 +122,13 @@ theorem srv_frozen_of_terms (γs : MemStorNames) (L : List EntryModel) (ai at' :
     (hn : uint.nat ai = L.length) (hlt : lastTermIs L at') :
     srvFrozenTerms (GF := GF) γs 1 L ⊢ srvSnapFrozen γs (uint.nat ai) ∗ srvFrozenTerm γs ai at' := by
   have hget : ∀ j m, L[j]? = some m → srvFrozenTerms (GF := GF) γs 1 L ⊢
-      ∃ e : EntryM, memLog γs (j + 1) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝ := by
+      (∃ e : EntryM, memLog γs (j + 1) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝) ∨
+        (⌜j + 1 < L.length⌝ ∗ memCompacted γs (j + 1)) := by
     intro j m hm
     unfold srvFrozenTerms
     refine (BigSepL.bigSepL_lookup
-      (Φ := fun k m => iprop(∃ e : EntryM, memLog (GF := GF) γs (1 + k) DFrac.discard [e] ∗
-        ⌜e.Term' = m.term⌝)) hm).trans ?_
+      (Φ := fun k m => iprop((∃ e : EntryM, memLog (GF := GF) γs (1 + k) DFrac.discard [e] ∗
+        ⌜e.Term' = m.term⌝) ∨ (⌜k + 1 < L.length⌝ ∗ memCompacted γs (1 + k)))) hm).trans ?_
     rw [Nat.add_comm 1 j]
   have hB : □ srvFrozenTerms (GF := GF) γs 1 L ⊢ srvFrozenBelow γs (uint.nat ai) := by
     unfold srvFrozenBelow
@@ -139,13 +140,16 @@ theorem srv_frozen_of_terms (γs : MemStorNames) (L : List EntryModel) (ai at' :
     iintro #H
     rcases Nat.eq_zero_or_pos k with h0 | hpos
     · iright; iunfold memCompacted; ileft; ipureintro; exact h0
-    · ileft
-      obtain ⟨m, hm⟩ : ∃ m, L[k - 1]? = some m :=
+    · obtain ⟨m, hm⟩ : ∃ m, L[k - 1]? = some m :=
         ⟨_, List.getElem?_eq_getElem (by omega)⟩
-      ihave ⟨%e, #He, -⟩ := hget (k - 1) m hm $$ H
-      iexists e
-      iExactEq He
-      rw [show k - 1 + 1 = k by omega]
+      icases hget (k - 1) m hm $$ H with (⟨%e, #He, -⟩ | ⟨-, #Hc⟩)
+      · ileft
+        iexists e
+        iExactEq He
+        rw [show k - 1 + 1 = k by omega]
+      · iright
+        iExactEq Hc
+        rw [show k - 1 + 1 = k by omega]
   iintro #H
   by_cases h0 : uint.nat ai = 0
   · iunfold srvSnapFrozen
@@ -156,7 +160,9 @@ theorem srv_frozen_of_terms (γs : MemStorNames) (L : List EntryModel) (ai at' :
     iunfold srvFrozenTerm; ileft; ipureintro; exact h0
   obtain ⟨m, hm⟩ : ∃ m, L[uint.nat ai - 1]? = some m :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
-  ihave ⟨%e, #He, %Ht⟩ := hget (uint.nat ai - 1) m hm $$ H
+  icases hget (uint.nat ai - 1) m hm $$ H with (⟨%e, #He, %Ht⟩ | ⟨%hc, -⟩)
+  rotate_left
+  · exfalso; omega
   rw [show uint.nat ai - 1 + 1 = uint.nat ai by omega] at *
   have hmt : m.term = at' := by
     rcases hlt with hL | hL

@@ -47,6 +47,27 @@ theorem cum_extend (γc : GName) (cums : List (List EntryModel)) (L ce : List En
   imodintro
   iframe Hauth H1 H2
 
+/-- (2026-10-31, #3) `cum` extended with any log (a snapshot `Ready`'s `A'`, which need not
+extend the last as a list of the server's entries). -/
+theorem cum_push (γc : GName) (cums : List (List EntryModel)) (L A : List EntryModel)
+    (n : Nat) (hlen : cums.length = n + 1) (hlast : cums.getLast? = some L) :
+    ⊢ monoListAuthOwn (GF := GF) γc 1 cums ==∗
+      monoListAuthOwn γc 1 (cums ++ [A]) ∗ monoListIdxOwn γc n L ∗ monoListIdxOwn γc (n + 1) A := by
+  iintro Hauth
+  imod monoListAuthOwn_update_app [A] $$ Hauth with ⟨Hauth, #Hlb⟩
+  have hn : (cums ++ [A])[n]? = some L := by
+    rw [List.getElem?_append_left (by omega)]
+    rw [List.getLast?_eq_getElem?] at hlast
+    rw [hlen] at hlast
+    simpa using hlast
+  have hn1 : (cums ++ [A])[n + 1]? = some A := by
+    rw [List.getElem?_append_right (by omega)]
+    simp [hlen]
+  ihave #H1 := monoListIdxOwn_get n L hn $$ Hlb
+  ihave #H2 := monoListIdxOwn_get (n + 1) A hn1 $$ Hlb
+  imodintro
+  iframe Hauth H1 H2
+
 /-- **The apply side's receive** of the payload at its position: the batch extends exactly the
 log `A` it got so far, and its token moves to `A ++ ce`. -/
 theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
@@ -71,7 +92,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         ownSnapM ap.snapshot' DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γ.node
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
-        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
            iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗ storDL γ.node.cl γ.id (γ.pre ++ A').length ∗

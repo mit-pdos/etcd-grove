@@ -75,11 +75,10 @@ auth buckets: `authInv` of the image). Not started.
 on the apply side (`applySnapshot`'s `<-toApply.notifyc`, `server.go:1056`, and `applyAll`'s
 `<-apply.notifyc`, `:995`; line numbers of the pinned fork), and the raft loop sends twice: after
 `SaveSnap`/`ApplySnapshot` (`raft.go:284`) and, for a follower, after `processMessages` (`:307`;
-a leader sends once, in the `else` branch). `rnApSnap`
-states the payload's notify with the entries' one receive until a two-receive variant exists
-(`InvRaftNode.lean`, `rnApSnap`'s comment). #3's branch, #7's `applySnapshot` call and #8's job
-need it: a `notifyRcv2` token pair (two receive tokens, the sends two) in `NotifyC`, `rnApSnap`
-holding both.
+a leader sends once, in the `else` branch). (2026-10-31, done with #3) The two-receive notify is
+`NotifyC2.lean` (`isNotify2 γ ch S1 S2`, sends `notifySnd` 0 → 1 → 2, receives `notifyRcvN γ k`);
+`rnApSnap` holds `isNotify2 … True True ∗ notifyRcvN γ 0`, for #7's `applySnapshot` call and #8's
+job.
 
 ### Proposal (for the user): `rnBusyS` carries the snapshot's facts
 
@@ -103,8 +102,14 @@ inside an exported contract: done on the branch, to be approved before the merge
   `snapshot.spec` and `snapshotIfNeededAndCompactRaftLog.specFull` (and `specFullOff`/`On`) take
   `0 < ai` (specFull: from its trigger), `GMap.size cfg < 2^61`, `epCsCfg γr cs`, `srvFrozenTerm γs
   ai at'`.
-- Left: #3, #7, #8 (the two-receive notify; with auth on, a mode-`on` `applySnapshot`). (#11 done:
-  "#11 progress" below.)
+- 2026-10-31: #3 proved (`raftNode.start`'s snapshot `Ready`; `notes/decisions.md`, "The raft
+  loop's snapshot `Ready`"): the two-receive notify (`NotifyC2.lean`: `isNotify2`, `notifyRcvN`),
+  `srvFrozenTerms` allowing compacted indices below the last, `rnReadySnap`'s committed entries,
+  fits, last term and `snapshotValid`, `updateCommittedIndex.spec` over the snapshot's model,
+  `raftNode.start.spec`'s `memStorInv`/`memSnapLb γs 0`. `rnApSnap` now hands the apply side
+  `isNotify2 … ∗ notifyRcvN γ 0`: #7/#8 receive twice with it.
+- Left: #7, #8 (the two receives, `wp_notify2_receive1`/`2`; with auth on, a mode-`on`
+  `applySnapshot`). (#11 done: "#11 progress" below.)
 
 ## #11: what `applyAll` must hand `specFull` (design, 2026-10-31)
 

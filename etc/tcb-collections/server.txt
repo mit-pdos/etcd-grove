@@ -191,7 +191,6 @@ axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
-axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
@@ -313,4 +312,3 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
-sorry raftNode.start.wp_proof

@@ -519,8 +519,11 @@ registered in the cluster's registry, `srv_snap_make`, then `CreateSnapshot`,
 `snapshotIfNeededAndCompactRaftLog.spec` (then `specFull`) take `0 < ai`, fewer than `2^61` voters, `ep.confState`
 the voters' (`epCsCfg`) and the entry at `ai` of term `at'` (`srvFrozenTerm`). Proved too: #11 (`applyAll` calls the snapshot spec, the former `specFull`; the no-snapshot spec and its
 `sorry` gone; S1-S7 as in the plan file's "#11 progress"; `releaseOk` and `walSaveOk` from the
-exported results' `storage.diskOk`). Left: #3/#7/#8 (a two-receive notify; with auth on, an
-`applySnapshot` spec in the mode `on`).
+exported results' `storage.diskOk`). Proved too: #3 (`raftNode.start`'s snapshot `Ready`:
+`SaveSnap`, `Save`, `Sync`, `ApplySnapshot`, `Append`, `Advance`'s snapshot clause, `rnApSnap` on
+`applyc`; the two-receive notify `NotifyC2.lean`; `notes/decisions.md`, "The raft loop's snapshot
+`Ready`"). Left: #7/#8 (the apply side's two receives; with auth on, an `applySnapshot` spec in the
+mode `on`).
 
 **The WAL contract repaired** (2026-10-31, `notes/axiom-review/savesnap.md`, the user's decisions;
 `notes/decisions.md`, "The WAL's readiness and one disk premise"): `rnNewStorageOk`, a premise of

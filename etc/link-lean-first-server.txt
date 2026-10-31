@@ -203,7 +203,10 @@ IsEmptyHardState: @
 IsEmptySnap: @
 zap_Duration:
 zap_Logger__Fatal:
-proto_Clone:
+# (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
+# NodeApiLink's `srvApi_wp_MemAppend`)
+proto_CloneSnapshot: @
+MemoryStorage__ApplySnapshot: @
 updateCommittedIndex: Entry__GetIndex SnapshotMetadata__GetIndex
 raftNode__tick:
 raftNode__advanceTicks: raftNode__tick
@@ -213,7 +216,7 @@ raftNode__apply:
 raftNode__onStop:
 raftNode__stop:
 raftNode__processMessages: raftpb_Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
-raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_Clone zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_CloneSnapshot zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn MemoryStorage__ApplySnapshot =srvApi_wp_MemAppend SnapshotMetadata__GetIndex zap_Uint64 zap_Logger__Info
 # raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
 raftNode__ReadIndex:
 #

@@ -15,12 +15,18 @@ public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
-public import Spec.google_golang_org.protobuf.proto.Clone
+public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import Spec.go_uber_org.zap.Uint64
+public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.raft.v3.Linked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 
 @[expose] public section
 
@@ -56,12 +62,19 @@ theorem raftNode.start.wp_proof
     (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
-    (wp_Clone : proto.Clone.spec (GF := GF) (hG := hG))
+    (wp_CloneS : proto.CloneSnapshot.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Fatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
-    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    -- (2026-10-31, #3) a snapshot `Ready`'s `ApplySnapshot`, `Append`, and its log line
+    (wp_ApplySnapshot : MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG))
+    (wp_MSAppend : MemoryStorage.Append.spec (GF := GF) (hG := hG))
+    (wp_SMGetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_Uint64 : zap.Uint64.spec (GF := GF) (hG := hG))
+    (wp_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
+  have wp_IsEmptySnapG := wp_IsEmptySnap
   have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap
   have wp_IsEmptyHardState := wp_hardStateAt_IsEmptyHardState wp_IsEmptyHardState
   have wp_GetCommit := wp_hardStateAt_GetCommit wp_GetCommit
@@ -69,7 +82,7 @@ theorem raftNode.start.wp_proof
   have wp_GetType := wp_entryAt_GetType wp_GetType
   intro E γ r rh L R Hwco
   letI := srvStor (GF := GF) γ.node
-  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, HS, Hwt⟩
+  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, HS, Hwt, #Hmsinv, #Hslb0⟩
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
   iNamed Hr'
@@ -82,7 +95,7 @@ theorem raftNode.start.wp_proof
   iunfold isRNTicker at Htki
   icases Htki with ⟨%tc, #Htc, #Htcb, #HtkStop⟩
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, -, #HTick, #HStop, #HRI, #Hisn⟩
+  icases Hni with ⟨%ni, %Hnieq, -, #HReady, #HAdv, #HAdvS, #HTick, #HStop, #HRI, #Hisn⟩
   subst Hnieq
   iunfold isRNTransport at Htri
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
@@ -188,11 +201,701 @@ theorem raftNode.start.wp_proof
       imod rn_ready_recv E γ L' p rd ce0 es0 h0 Lo HLi $$ Henv Hrsb Hcfg Hcea0 Hcom0 Hrs0 Hrest
         Hdrv with (⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb, %HidxN⟩ | Hsnap)
       rotate_left
-      · -- SNAPSHOT-SORRY: the Ready-snapshot branch (raft.go:256-282): `SaveSnap`,
-        -- `MemoryStorage.ApplySnapshot` from `readySnap (some l)` (ranges, `snapGiven` for
-        -- `J.B`/`J.DL`, `snapshotCert_valid` for `J.SV`), notifyc's two sends, `Advance`'s snapshot
-        -- clause over `snapReceipt`, the `rnApSnap` payload
-        sorry
+      · -- (2026-10-31, #3) **The `Ready`-snapshot branch** (raft.go:256-342): the snapshot cloned
+        -- twice (`raftSnap`, the apply thread's), the batch on `applyc` (`rnApSnap`), `SaveSnap`,
+        -- `Save`, `Sync`, notifyc's first send, `MemoryStorage.ApplySnapshot` (`readySnap`'s range,
+        -- `snapGiven` for `J.B`, `rn_storDL` for `J.DL`, `snapshotValid` for `J.SV`), the entries'
+        -- `Append`, notifyc's second send, `Advance`'s snapshot clause over `snapReceipt`, and
+        -- `raftAdvancedC` closed with the frozen dummy entry
+        letI : MemStorReg GF := ⟨γ.reg⟩
+        icases Hsnap with ⟨%es, %A', %p', %l, Hdata, Hbusy, %HidxN⟩
+        iunfold rnBusyS at Hbusy
+        icases Hbusy with ⟨Hbdrv, Hbcv, %Hbs⟩
+        obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
+        ihave ⟨Hbdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hbdrv
+        iunfold rnReadySnap at Hdata
+        icases Hdata with ⟨%ceL, %esL, %msL, %hs, HrS, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
+          #Hmsl, Hmsok, #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
+        obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
+        iunfold readySnap at HrS
+        icases HrS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven⟩
+        obtain ⟨-, Hptr, -, -, -, -, -, -, -, Hli⟩ := Hl
+        -- the snapshot's log `A'`, `pre ++ A'` the snapshot's index long
+        have hlenA : (γ.pre ++ A').length = uint.nat l.snap.Metadata'.Index' := by
+          have h := congrArg List.length HbA
+          simp only [srvLE, strip, List.length_map] at h
+          rw [← HbD]; exact h
+        wp_auto
+        -- the `SoftState`: the leader, the gauges, the ready handler
+        wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r)
+          at next with [islead rd rh r] as ⟨%b', islead, rd, rh, r⟩
+        · wp_if_destruct
+          · -- nil
+            isplitr
+            · itrivial
+            iexists _; iframe islead rd rh r
+          · iunfold softStateAt at Hss
+            iunfold softStateRO at Hss
+            icases Hss with (%Hssn | ⟨%lead, %rs, #Hlead, #Hrs⟩)
+            · exact absurd Hssn Hif
+            simp only [None']
+            wp_auto
+            -- `newLeader`
+            wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))
+              with [rh rd]
+            · iexists false
+              iframe
+              ipureintro; rfl
+            · wp_apply Hglt as %gv -
+              iexists _
+              iframe
+              ipureintro; rfl
+            iintro ⟨%nl, %Hv, rh, rd⟩
+            subst Hv
+            wp_auto
+            -- `leaderChanges.Inc()`
+            wp_join with [rh rd]
+            · wp_apply HlcInc
+              wp_join_done
+            -- `hasLeader.Set(0 or 1)`
+            wp_join with [rh rd]
+            · wp_apply Hghls
+              wp_join_done
+            · wp_apply Hghls
+              wp_join_done
+            wp_apply Hult
+            -- `isLeader.Set(1 or 0)`
+            wp_join with [rh rd]
+            · wp_apply Hgils
+              wp_join_done
+            · wp_apply Hgils
+              wp_join_done
+            wp_apply Hulst
+            wp_apply HtdReset
+            isplitr
+            · itrivial
+            iexists _
+            iframe islead rd rh r
+        irename Hlc3 => HlcA
+        irename Hlc4 => HlcB
+        -- the read states: the last one to `readStateC` (or a timeout, or `<-r.stopped`: return)
+        ihave %Hrsl := ownSlice_len _ _ _ $$ Hrs
+        ihave #Hrsci' := Hrsci
+        iunfold isRNReadStateC at Hrsci'
+        iunfold isReadStateC at Hrsci'
+        icases Hrsci' with ⟨%γrs, #Hrsb⟩
+        wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r) ∨
+            (⌜v = returnVal #()⌝ ∗ E.ST ∗ nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half ∗
+              storage.walOpen (storage.walOf (GoInterface.ok si)) (1 : Qp).half)))
+          with [rd r]
+        · -- no read states
+          ileft
+          iframe
+          try (ipureintro; rfl)
+        · -- `len(rd.ReadStates) != 0`: send the last one (or time out, or return on `r.stopped`)
+          have hlen : 0 < rsL.length := by
+            have h1 := Hrsl.1
+            have hne : rd.ReadStates'.len ≠ W64 0 := by
+              intro h; apply Hif; rw [h]
+            have h3 : sint.Z rd.ReadStates'.len ≠ 0 := by
+              intro h; apply hne; word
+            have h2 := Hrsl.2
+            have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
+            omega
+          obtain ⟨rs, Hrs_lookup⟩ : ∃ rs, rsL[rsL.length - 1]? = some rs :=
+            ⟨_, List.getElem?_eq_getElem (by omega)⟩
+          have hpos : 0 < sint.Z rd.ReadStates'.len := by
+            have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
+            have h2 := Hrsl.2
+            have h1 := Hrsl.1
+            omega
+          have hz : sint.Z (rd.ReadStates'.len - W64 1) = sint.Z rd.ReadStates'.len - 1 := by word
+          rw [if_pos ⟨by omega, by omega⟩]
+          wp_apply wp_load_slice_index rd.ReadStates' (sint.Z (rd.ReadStates'.len - W64 1)) rsL
+            DFrac.discard rs (by omega) $$ [] as -
+          · iframe Hrs
+            ipureintro
+            rw [← Hrs_lookup]
+            congr 1
+            have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
+            have h1 := Hrsl.1
+            omega
+          wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
+          ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
+            Hrs_lookup) $$ Hrsok
+          wp_apply_core chan.wp_select_blocking
+          -- `r.readStateC <- rs`
+          iapply BigAndL.bigAndL_cons.2
+          isplit
+          · simp only [chan.blockingClausePre]
+            iexists ReadState, inferInstance, inferInstance, inferInstance, inferInstance, rsc, γrs, rs
+            isplitr
+            · ipureintro; exact ⟨rfl, rfl⟩
+            isplitr
+            · iapply is_bag_is_chan $$ Hrsb
+            iapply bag_send_au γrs rsc _ rs _ $$ [$Hlc1 $Hlc2] Hrsb Hrsk
+            inext
+            try wp_auto
+            ileft
+            iframe
+            try (ipureintro; rfl)
+          -- `<-time.After(internalTimeout)`: a warning
+          iapply BigAndL.bigAndL_cons.2
+          isplit
+          · simp only [chan.blockingClausePre]
+            iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, ach, γa
+            isplitr
+            · ipureintro; rfl
+            isplitr
+            · iapply is_bag_is_chan $$ Ha
+            iapply bag_recv_au γa ach _ _ $$ [$Hlc1 $Hlc2] Ha
+            inext
+            iintro %t -
+            wp_auto
+            wp_apply wp_Duration _ _ $$ [$Hzap] as %f1 -
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %fsl -
+            wp_auto
+            wp_apply wp_Warn lg _ _ $$ [$Hzap]
+            · ipureintro; exact Hlgnn
+            try wp_auto
+            ileft
+            iframe
+            try (ipureintro; rfl)
+          -- `<-r.stopped`: return
+          iapply BigAndL.bigAndL_cons.2
+          isplit
+          · simp only [chan.blockingClausePre]
+            iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stc, γst
+            isplitr
+            · ipureintro; rfl
+            isplitr
+            · iapply is_bag_is_chan $$ Hstb
+            iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
+            inext
+            iintro %u ⟨HST, Hrun2, Hwo2⟩
+            try wp_auto
+            iright
+            iframe HST Hrun2 Hwo2
+            ipureintro; rfl
+          iapply BigAndL.bigAndL_nil.2
+          itrivial
+        iintro (⟨%Hv, rd, r⟩ | ⟨%Hv, HST, Hrun2, Hwo2⟩)
+        rotate_left
+        · -- returned (`<-r.stopped`): the deferred `onStop`, with the running token's two halves
+          subst Hv
+          wp_auto
+          wp_for_post
+          ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
+          ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
+          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+          itrivial
+        subst Hv
+        wp_auto_lc 3
+        -- (D22a) `if !raft.IsEmptyHardState(rd.HardState) { raftTerm = rd.HardState.GetTerm() }`
+        wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs0 %Hehs0
+        -- (D22l) the term recorded is `0` or `prevHardSt`'s after the `Ready` (`p'`)
+        wp_join iprop(∃ rt' : w64, raftTerm_ptr ↦ rt' ∗ rd_ptr ↦ rd ∗
+            ⌜uint.Z rt' = 0 ∨ rt' = p'.Term'⌝) at next
+          with [raftTerm rd] as ⟨%rt', raftTerm, rd, %Hrt'⟩
+        · cases ehs0
+          · -- a non-empty hard state: `prevHardSt`'s now, its term recorded
+            have Hne : hs ≠ HardStateModel.empty := fun h => absurd (Hehs0.2 h) (by decide)
+            wp_auto
+            wp_apply wp_GetTerm rd.HardState' hs $$ [$Hpbpkg $Hhs]
+            (try wp_auto)
+            isplitr
+            · itrivial
+            iexists _
+            iframe
+            ipureintro; right
+            rw [Hp', phsNext_toM_ne p hs Hne]; rfl
+          · (try wp_auto)
+            isplitr
+            · itrivial
+            iexists _
+            iframe
+            ipureintro
+            rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
+        -- `notifyc` (2026-10-31, #3: two sends, after `Sync` and after the messages, the
+        -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
+        wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
+        · ipureintro; decide
+        imod start_notify2 iprop(True) iprop(True) nc γnc0 (by rw [Hncap]; rfl) $$ Hncch Hncown with
+          ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
+        wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
+        · ipureintro; decide
+        -- its close carries the node's applied index at the snapshot's and the frozen dummy entry
+        imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
+            storDL γ.node.cl γ.id (γ.pre ++ A').length ∗
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) γac ac
+          $$ Hacch Hacown with Hacp
+        icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
+        -- `proto.Clone(rd.Snapshot)`, twice (`raftSnap`, the apply thread's): both frozen
+        ihave #Hppkg : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+        · iPkgInit
+        rw [← Hptr]
+        wp_apply wp_CloneS.2.2.2.1 l.ptr _ l.snap $$ [$Hppkg $Hsn] as %c1 ⟨Hsn, Hc1⟩
+        rw [← Hptr]
+        wp_apply wp_CloneS.2.2.2.1 l.ptr _ l.snap $$ [$Hppkg $Hsn] as %c2 ⟨Hsn, Hc2⟩
+        imod ownSnapS_persist _ _ _ $$ Hc1 with #Hc1
+        imod ownSnapS_persist _ _ _ $$ Hc2 with #Hc2
+        ihave #Hc2M := ownSnapS_M _ _ _ $$ Hc2
+        irename notifyc => Hncl
+        irename raftAdvancedC => Hacl
+        irename raftTerm => Hrtl
+        ipersist ap
+        ihave #Hapf := ap
+        iStructNamed Hapf
+        -- the snapshot's log `A'` committed with its indices (`E.C A'`, `rnEnvOk`)
+        ihave #Henv' := Henv
+        iunfold rnEnvOk at Henv'
+        icases Henv' with ⟨-, -, -, -, -, -, #HCback, -⟩
+        ihave #HCl := HCback $$ %A' HC
+        icases HCl with ⟨#HLb, %HidxOk⟩
+        wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
+          (Val #ap_ptr)) (Val #rh))
+        iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL A' [] R E.γr c2 l.snap)
+          $$ [HR]
+        · rw [List.append_nil]
+          iframe HR; iframe #
+          isplitr
+          · ipureintro; exact HidxOk
+          ipureintro
+          right
+          refine ⟨rfl, ?_⟩
+          simp only [List.length_append] at hlenA
+          word
+        inext
+        iintro ⟨HR, -, Hcal⟩
+        icases Hcal with (%Hnull | #Hcal)
+        · iexfalso
+          ihave #Hc2M' := Hc2M
+          iunfold ownSnapM at Hc2M'
+          icases Hc2M' with ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd, #HM, #Hm, #Hpb⟩
+          exact absurd Hnull Hnn
+        wp_auto
+        -- `cum` extended with `A'`, then `applyc <- ap` (or `<-r.stopped`)
+        imod cum_push γ.cum cums L' A' sent.length Hcums.1 Hcums.2 $$ Hauth with ⟨Hauth, #Hcn, #Hcn1⟩
+        wp_apply_core chan.wp_select_blocking_nil
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · ileft
+          simp only [chan.blockingClausePre]
+          iexists toApply, inferInstance, inferInstance, inferInstance, inferInstance, apc,
+            γ.ap.chanName, _
+          isplitr
+          · ipureintro; exact ⟨rfl, rfl⟩
+          ihave #Hsp := Hapci
+          iunfold isRNApplyc at Hsp
+          ihave #Hapci' := Hsp
+          iunfold isSpsc at Hapci'
+          icases Hapci' with ⟨#Hapch, -⟩
+          isplitr
+          · iexact Hapch
+          iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
+            [$Hprod Hnrcv]
+          · iunfold rnApP
+            iright
+            iunfold rnApSnap
+            iexists L', A', l.snap
+            simp only [Int.toNat_natCast]
+            iframe Hcn Hcn1 HC Hc2M Hcert Hcal
+            isplitr
+            · ipureintro; exact ⟨HLA, hlenA⟩
+            isplitl [Hnrcv]
+            · iexists γnc
+              iframe Hncb Hnrcv
+            isplitr
+            · iunfold rnAdvChan
+              iexists γac
+              iexact HacU
+            iunfold rnRtOk; itrivial
+          inext
+          iintro Hprod
+          wp_auto
+          -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
+          -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
+          wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
+              (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ m))
+            with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
+          -- the cases that reach the join with nothing sent close by framing (`ileft` once the
+          -- bundles went to the transport)
+          all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
+          · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hmsl $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
+            -- (`wp_apply HSend` here trips over an unknown free variable inside the join's case)
+            wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+            iapply HSend $$ [Hout Houtok HS]
+            · iframe
+            inext
+            iintro HS
+            (try wp_auto)
+            wp_join_done
+            all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
+          -- `if !raft.IsEmptySnap(raftSnap)`: not empty (its index past `0`)
+          have hidx0 : decide (l.snap.Metadata'.Index' = W64 0) = false := by
+            apply decide_eq_false; intro h; rw [h] at HbPos; simp at HbPos
+          ihave #Hc1M := ownSnapS_M _ _ _ $$ Hc1
+          wp_apply wp_IsEmptySnapG c1 DFrac.discard (some l.snap) $$ [$Hrpkg] as %b0 ⟨%Hb0, -⟩
+          · simp only [snapOpt]; iexact Hc1M
+          simp only [Option.elim, hidx0] at Hb0
+          subst Hb0
+          wp_auto
+          -- `r.storage.SaveSnap(raftSnap)` (its metadata's pointers set: `ownSnapS`), `lg.Fatal` on an
+          -- error
+          ihave ⟨%pm1, #HM1, #Hm1⟩ := srv_ownSnapS_meta _ _ _ $$ Hc1
+          ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
+          wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1] as %err ⟨Hwo, -, -, -⟩
+          ihave Hwt : rnWalTok r (1 : Qp).half $$ [Hwo]
+          · iunfold rnWalTok; iexists _; iframe Hst Hwo
+          rcases err with ei | _
+          · wp_auto
+            wp_apply wp_Error $$ [$Hzap] as %f -
+            wp_apply wp_slice_literal
+            try (isplitr; (ipureintro; rfl))
+            try iintro %_ ⟨_, -⟩
+            try wp_auto
+            -- (focused: `wp_apply` overflows the stack on the long continuation)
+            wp_bind (App (App (Val _) (Val _)) (Val _))
+            iapply wp_Fatal lg $$ [$Hzap]
+            · ipureintro; exact Hlgnn
+            inext
+            iintro %v Hf
+            iexfalso
+            iexact Hf
+          wp_auto
+          -- `r.storage.Save(rd.HardState, rd.Entries)`, `lg.Fatal` on an error
+          ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
+          wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa] as %err Hwo
+          ihave Hwt : rnWalTok r (1 : Qp).half $$ [Hwo]
+          · iunfold rnWalTok; iexists _; iframe Hst Hwo
+          rcases err with ei | _
+          · wp_auto
+            wp_apply wp_Error $$ [$Hzap] as %f -
+            wp_apply wp_slice_literal
+            try (isplitr; (ipureintro; rfl))
+            try iintro %_ ⟨_, -⟩
+            try wp_auto
+            -- (focused: `wp_apply` overflows the stack on the long continuation)
+            wp_bind (App (App (Val _) (Val _)) (Val _))
+            iapply wp_Fatal lg $$ [$Hzap]
+            · ipureintro; exact Hlgnn
+            inext
+            iintro %v Hf
+            iexfalso
+            iexact Hf
+          wp_auto
+          -- `if !raft.IsEmptyHardState(rd.HardState) { proposalsCommitted.Set(..) }`
+          wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs -
+          wp_join at next with [rh rd r islead]
+          · cases ehs
+            · wp_auto
+              wp_apply wp_GetCommit rd.HardState' hs $$ [$Hpbpkg $Hhs]
+              wp_apply Hgpcs
+              wp_join_done
+            · wp_auto
+              wp_join_done
+          -- `if !raft.IsEmptySnap(raftSnap)`: `Sync`, notifyc's first send, `ApplySnapshot`
+          wp_apply wp_IsEmptySnapG c1 DFrac.discard (some l.snap) $$ [$Hrpkg] as %b1 ⟨%Hb1, -⟩
+          · simp only [snapOpt]; iexact Hc1M
+          simp only [Option.elim, hidx0] at Hb1
+          subst Hb1
+          wp_auto
+          -- `r.storage.Sync()`, `lg.Fatal` on an error
+          ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
+          wp_apply HSync $$ [$Hwo] as %err Hwo
+          ihave Hwt : rnWalTok r (1 : Qp).half $$ [Hwo]
+          · iunfold rnWalTok; iexists _; iframe Hst Hwo
+          rcases err with ei | _
+          · wp_auto
+            wp_apply wp_Error $$ [$Hzap] as %f -
+            wp_apply wp_slice_literal
+            try (isplitr; (ipureintro; rfl))
+            try iintro %_ ⟨_, -⟩
+            try wp_auto
+            -- (focused: `wp_apply` overflows the stack on the long continuation)
+            wp_bind (App (App (Val _) (Val _)) (Val _))
+            iapply wp_Fatal lg $$ [$Hzap]
+            · ipureintro; exact Hlgnn
+            inext
+            iintro %v Hf
+            iexfalso
+            iexact Hf
+          wp_auto
+          -- `notifyc <- struct{}{}`: the first send
+          wp_apply wp_notify2_send1 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+          (try wp_auto)
+          -- `r.raftStorage.ApplySnapshot(raftSnap)`: at node `id`'s justifications
+          ihave #Hinit := isInitialized_access $$ Hrpkg
+          iunfold isInitialized at Hinit
+          iNamed Hinit
+          icases ErrSnapOOD with ⟨%eood, #Heood⟩
+          ihave #HmsP : memStorInvP ms γ.γs (memStorJ γ.node.cl γ.id) $$ []
+          · rw [Hmsγ]; iunfold memStorInv at Hmsinv; iexact Hmsinv
+          ihave #HmsP' := HmsP
+          iunfold memStorInvP at HmsP'
+          icases HmsP' with ⟨#Hlock, -, -⟩
+          ihave Hlog : storLog (memStorIface γ.ms) k (DFrac.own 1) old $$ [Hlog]
+          · iExactEq Hlog; rfl
+          ihave Hend : storEnd (memStorIface γ.ms) (k + old.length) $$ [Hend]
+          · iExactEq Hend; rfl
+          ihave Hlog := memStorLog_to γ.ms γ.γs _ _ _ $$ Hreg Hlog
+          ihave Hend := memStorEnd_to γ.ms γ.γs _ $$ Hreg Hend
+          ihave #HBJ : (memStorJ γ.node.cl γ.id).B (uint.nat l.snap.Metadata'.Index') $$ []
+          · unfold memStorJ; iright; iexact Hgiven
+          ihave #HsvJ : (memStorJ γ.node.cl γ.id).SV l.snap $$ []
+          · unfold memStorJ; iexact HsvV
+          ihave #HDLJ : (memStorJ γ.node.cl γ.id).DL (uint.nat l.snap.Metadata'.Index') $$ []
+          · unfold memStorJ; rw [← hlenA]; iapply rn_storDL γ A'; iframe Hisn Hdl
+          wp_apply wp_ApplySnapshot ms γ.γs (memStorJ γ.node.cl γ.id) k old c1 DFrac.discard l.snap
+              eood Hk (by word) $$ [$Hrpkg $HmsP $Hlog $Hend $HBJ $HsvJ $HDLJ $Hslb0 $Heood]
+            as ⟨-, #HcpS, #Hdum, HendS, -⟩
+          · unfold snapArg; iright; iexact Hc1
+          (try wp_auto)
+          -- `r.lg.Info(.., zap.Uint64("snapshot-index", raftSnap.Metadata.GetIndex()))`
+          ihave #Hm1o : smOpt pm1 DFrac.discard l.snap.Metadata' $$ []
+          · iunfold smOpt; iright; iapply smPtsV_smPts _ _ _ $$ Hm1
+          wp_apply wp_SMGetIndex pm1 DFrac.discard l.snap.Metadata' $$ [$Hpbpkg $Hm1o] as -
+          wp_apply wp_Uint64 _ _ $$ [$Hzap] as %f1 -
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %fsl -
+          wp_auto
+          wp_apply wp_Info lg _ _ $$ [$Hzap]
+          · ipureintro; exact Hlgnn
+          (try wp_auto)
+          -- `r.raftStorage.Append(rd.Entries)`, after the snapshot's index
+          ihave ⟨Hrange, Hkeep⟩ := srv_snapAppend_pre γ.γs (uint.nat l.snap.Metadata'.Index' + 1)
+            (es.map EntryModel.toM) $$ HendS
+          have h1 : ∀ (j : Nat) (e : EntryM), (es.map EntryModel.toM)[j]? = some e →
+              uint.nat e.Index' = (uint.nat l.snap.Metadata'.Index' + 1) + j := by
+            intro j e hj
+            have := Hli j e hj
+            simp only [snapId] at this
+            word
+          have h2 : uint.nat l.snap.Metadata'.Index' + 1 + (es.map EntryModel.toM).length ≤ 2 ^ 61 := by
+            cases hes : es.map EntryModel.toM with
+            | nil => simp only [List.length_nil, Nat.add_zero]; word
+            | cons e0 rest =>
+              have Hf := Hfit e0 (by rw [hes]; rfl)
+              have He0 := h1 0 e0 (by rw [hes]; rfl)
+              rw [hes] at Hf
+              simp only [List.length_cons] at Hf ⊢
+              word
+          ihave #Hpts : entsPts rd.Entries' DFrac.discard (es.map EntryModel.toM) $$ []
+          · iunfold entsPts; iexists esL; iframe Hes; iapply entRO_of_entriesAt esL es $$ Hesa
+          wp_apply wp_MSAppend ms γ.γs (uint.nat l.snap.Metadata'.Index' + 1) []
+              (es.map EntryModel.toM) rd.Entries' DFrac.discard h1 h2
+            $$ [$Hrpkg $Hlock $Hrange $Hpts] as ⟨-, Hb⟩
+          ihave ⟨Hb, HendB⟩ := srv_snapAppend_post γ.γs _ _ $$ [Hb Hkeep]
+          · iframe Hb Hkeep
+          -- `Advance`'s receipt (`snapReceipt`), the frozen state and `storDL` at the snapshot's index
+          ihave HsnM := ownSnapS_M _ _ _ $$ Hsn
+          ihave Hrcpt := rn_snapReceipt γ.ms γ.γs l (es.map EntryModel.toM) $$ Hreg HsnM HcpS Hdum
+            Hb HendB
+          ihave #HftA : srvFrozenTerms γ.γs (γ.pre.length + 1) A' $$ []
+          · iapply srvFrozenTerms_snap γ.γs (γ.pre.length + 1) A' l.snap
+              (by simp only [List.length_append] at hlenA; omega) Hlast
+            iframe HcpS Hdum
+          ihave Hbusy : rnBusyS γ L' A' es p' l $$ [Hbdrv Hbcv]
+          · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61⟩
+          -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
+          ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
+          ihave #Hcea' := Hcea
+          iunfold entriesAt at Hcea'
+          icases Hcea' with ⟨%Hcl, #Hcef⟩
+          -- (D43 M3) its result: whether the batch has a `ConfChange` entry (`ccIn`)
+          wp_join iprop(∃ cc : Bool, confChanged_ptr ↦ cc ∗ ⌜cc = ccIn ([] : List EntryModel)⌝) at next
+              with [i confChanged ent]
+            as ⟨%cc, confChanged, %Hcc⟩
+          · ihave IH : iprop(∃ (n : w64) (e : Loc),
+                "i" ∷ i_ptr ↦ n ∗ "confChanged" ∷ confChanged_ptr ↦ false ∗ "ent" ∷ ent_ptr ↦ e ∗
+                "%Hn" ∷ ⌜0 ≤ sint.Z n⌝ ∗
+                "%Hnc" ∷ ⌜∀ (k : Nat) (m : EntryModel), k < sint.nat n → ([] : List EntryModel)[k]? = some m →
+                  m.typ ≠ W32 1⌝) $$ [i confChanged ent]
+            · iexists W64 0, _
+              iframe
+              ipureintro
+              refine ⟨by decide, fun k m hk _ => absurd hk (by simp [sint.nat])⟩
+            wp_for IH
+            wp_if_destruct
+            · have Hif : sint.Z n < sint.Z rd.CommittedEntries'.len := by
+                first | exact Hif | simpa using Hif | (simp at Hif; exact Hif)
+              rw [ite_eq_left ⟨Hn, Hif⟩]
+              have hlt : sint.nat n < ceL.length := by word
+              obtain ⟨e, He⟩ : ∃ e, ceL[sint.nat n]? = some e := ⟨_, List.getElem?_eq_getElem hlt⟩
+              obtain ⟨m, Hm⟩ : ∃ m, ([] : List EntryModel)[sint.nat n]? = some m :=
+                ⟨_, List.getElem?_eq_getElem (by rw [← Hcl]; exact hlt)⟩
+              wp_apply wp_load_slice_index rd.CommittedEntries' (sint.Z n) ceL DFrac.discard e Hn $$ [] as -
+              · iframe Hce
+                ipureintro; exact He
+              ihave #He' := Hcef $$ %(sint.nat n) %e %m %He %Hm
+              wp_apply wp_GetType e m $$ [$Hpbpkg $He']
+              wp_if_destruct
+              · -- a conf change: `confChanged = true; break`
+                wp_for_post
+                isplitr
+                · itrivial
+                iexists true
+                iframe
+                ipureintro
+                symm
+                unfold ccIn
+                refine List.any_eq_true.2 ⟨m, List.mem_of_getElem? Hm, ?_⟩
+                simp only [decide_eq_true_eq]
+                first | exact Hif | (simp at Hif; exact Hif) | word
+              · wp_for_post
+                iframe
+                iexists _, e
+                iframe
+                ipureintro
+                refine ⟨by word, fun k m' hk hm' => ?_⟩
+                have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by
+                  show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1
+                  have : sint.Z (n + W64 1) = sint.Z n + 1 := by word
+                  rw [this]; omega
+                rw [hn1] at hk
+                rcases Nat.lt_or_ge k (sint.nat n) with hk' | hk'
+                · exact Hnc k m' hk' hm'
+                · have hkn : k = sint.nat n := by omega
+                  subst hkn
+                  rw [Hm] at hm'
+                  cases hm'
+                  intro hty
+                  apply Hif
+                  first | exact hty | (simp; exact hty) | (rw [hty]; rfl) | word
+            · isplitr
+              · itrivial
+              iexists false
+              iframe
+              ipureintro
+              symm
+              unfold ccIn
+              refine List.any_eq_false.2 fun m hm => ?_
+              obtain ⟨k, hk⟩ := List.getElem?_of_mem hm
+              have hkl : k < ([] : List EntryModel).length := (List.getElem?_eq_some_iff.1 hk).1
+              have hge : ([] : List EntryModel).length ≤ sint.nat n := by
+                have : ¬ (sint.Z n < sint.Z rd.CommittedEntries'.len) := by
+                  first | exact Hif | (intro h; exact Hif ⟨Hn, h⟩) | word
+                rw [← Hcl]; word
+              simpa using Hnc k m (by omega) hk
+          -- `if !islead { .. } else { .. }`: notifyc's second send (no conf change: a snapshot
+          -- `Ready` has no committed entries)
+          cases b'
+          · -- a follower: `msgs := r.processMessages(rd.Messages)`, `notifyc <- `,
+            -- `r.transport.Send(msgs)`
+            wp_auto
+            icases Hmsok with (%Hlead | Hmsok)
+            · cases Hlead
+            wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hmsl $Hmsok] as %out
+              ⟨%outL, Hout, Houtok⟩
+            wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+            cases cc
+            · wp_auto
+              wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+              iapply HSend $$ [Hout Houtok HS]
+              · iframe
+              inext
+              iintro HS
+              (try wp_auto)
+              rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
+              wp_auto
+              rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
+              wp_auto
+              -- `r.Advance()`: the snapshot clause, the driver at `A'`
+              ihave HAdvS' := HAdvS $$ %L' %A' %es %p' %l
+              wp_apply HAdvS' $$ [$Hbusy $Hrcpt $Hcert $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+              -- `close(raftAdvancedC)`, with the applied index and the frozen dummy entry
+              wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+              · -- (persistent: `storDL` from `rn_storDL`, the frozen dummy from `ApplySnapshot`'s)
+                imodintro
+                iframe Hfl
+                isplitr
+                · iapply rn_storDL γ A'; iframe Hisn Hdl
+                rw [hlenA]; iapply srv_snap_frozen γ.γs _ l.snap; iframe HcpS Hdum
+              (try wp_auto)
+              wp_for_post
+              iframe
+              iexists A', false, rt', p'
+              iframe
+              isplitr
+              · ipureintro; exact Hrt'
+              iunfold rnLoopTokP
+              iexists _, cums ++ [A']
+              iframe
+              isplitr
+              · ipureintro
+                simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+                constructor
+                · omega
+                · rfl
+              isplitr
+              · ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+              iexact HftA
+            · exfalso; simp [ccIn] at Hcc
+          · -- the leader: `notifyc <- struct{}{}`
+            wp_auto
+            wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+            cases cc
+            · wp_auto
+              rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
+              wp_auto
+              rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
+              wp_auto
+              -- `r.Advance()`: the snapshot clause, the driver at `A'`
+              ihave HAdvS' := HAdvS $$ %L' %A' %es %p' %l
+              wp_apply HAdvS' $$ [$Hbusy $Hrcpt $Hcert $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+              -- `close(raftAdvancedC)`, with the applied index and the frozen dummy entry
+              wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+              · -- (persistent: `storDL` from `rn_storDL`, the frozen dummy from `ApplySnapshot`'s)
+                imodintro
+                iframe Hfl
+                isplitr
+                · iapply rn_storDL γ A'; iframe Hisn Hdl
+                rw [hlenA]; iapply srv_snap_frozen γ.γs _ l.snap; iframe HcpS Hdum
+              (try wp_auto)
+              wp_for_post
+              iframe
+              iexists A', true, rt', p'
+              iframe
+              isplitr
+              · ipureintro; exact Hrt'
+              iunfold rnLoopTokP
+              iexists _, cums ++ [A']
+              iframe
+              isplitr
+              · ipureintro
+                simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+                constructor
+                · omega
+                · rfl
+              isplitr
+              · ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+              iexact HftA
+            · exfalso; simp [ccIn] at Hcc
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · ileft
+          simp only [chan.blockingClausePre]
+          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stc, γst
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iapply is_bag_is_chan $$ Hstb
+          iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
+          inext
+          iintro %u ⟨HST, Hrun2, Hwo2⟩
+          wp_auto
+          wp_for_post
+          ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
+          ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
+          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+          itrivial
+        iapply BigAndL.bigAndL_nil.2
+        itrivial
       -- (D43 M3) the driver's view after `L'`, apart
       iunfold rnBusy at Hbusy
       icases Hbusy with ⟨Hbusy, Hcv⟩
@@ -422,9 +1125,9 @@ theorem raftNode.start.wp_proof
       rw [Hsnapnil]
       ihave #Hppkg : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
       · iPkgInit
-      wp_apply wp_Clone.2 $$ [$Hppkg]
+      wp_apply wp_CloneS.2.1 $$ [$Hppkg]
       rw [Hsnapnil]
-      wp_apply wp_Clone.2 $$ [$Hppkg]
+      wp_apply wp_CloneS.2.1 $$ [$Hppkg]
       irename notifyc => Hncl
       irename raftAdvancedC => Hacl
       irename raftTerm => Hrtl
@@ -440,7 +1143,8 @@ theorem raftNode.start.wp_proof
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
         (Val #ap_ptr)) (Val #rh))
-      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr null) $$ [HR]
+      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr null
+        (zero_val SnapshotM)) $$ [HR]
       · iframe HR; iframe #
         isplitr
         · ipureintro; exact HidxOk

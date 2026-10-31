@@ -316,7 +316,6 @@ public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__W
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
-public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.ClonePb
 public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
@@ -975,10 +974,6 @@ theorem consistentIndex.wp_ConsistentApplyingIndex :
 theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
   backend.VerifyBackendConsistency.wp_proof
-
-theorem proto.wp_Clone :
-    proto.Clone.spec (GF := GF) (hG := hG) :=
-  proto.Clone.wp_proof
 
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
@@ -2241,7 +2236,7 @@ theorem raftNode.wp_onStop :
 
 theorem raftNode.wp_start :
     raftNode.start.spec (GF := GF) (hG := hG) :=
-  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.Entry.wp_GetType proto.wp_Clone zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn
+  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.Entry.wp_GetType proto.wp_CloneSnapshot zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn MemoryStorage.wp_ApplySnapshot srvApi_wp_MemAppend raftpb.SnapshotMetadata.wp_GetIndex zap.wp_Uint64 zap.Logger.wp_Info
 
 theorem raftNode.wp_apply :
     raftNode.apply.spec (GF := GF) (hG := hG) :=

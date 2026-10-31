@@ -372,4 +372,3 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
-sorry raftNode.start.wp_proof

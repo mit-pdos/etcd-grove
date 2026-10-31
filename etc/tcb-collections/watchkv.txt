@@ -469,7 +469,6 @@ axiom prometheus.counterOpts
 axiom prometheus.nameFree
 axiom prometheus.namesUnclaimed
 axiom prometheus.wp_counterOptsLit
-axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
@@ -589,4 +588,3 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint64.wp_proof
 sorry EtcdServer.applyAll.wp_proof
 sorry EtcdServer.run.wp_proof
-sorry raftNode.start.wp_proof

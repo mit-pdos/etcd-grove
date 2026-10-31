@@ -646,4 +646,3 @@ sorry EtcdServer.run.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry raftNode.start.wp_proof

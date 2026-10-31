@@ -45,6 +45,8 @@ public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Perennial.Ghost.MonoList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 
 @[expose] public section
 
@@ -220,9 +222,12 @@ def srvFrozenRange (γs : MemStorNames) (lo hi : Nat) : IProp GF :=
 /-- (2026-10-31, the snapshot track: #11's S3) **The entries of `L` frozen from `lo` on, with
 their terms** (persistent; the raft loop's hand-over with `raftAdvancedC`, next to
 `srvFrozenRange`): the storage's entry at `lo + k` is frozen and has `L[k]`'s term, so a snapshot
-`CreateSnapshot` names after it has the applied term (`srvFrozenTerm`). -/
+`CreateSnapshot` names after it has the applied term (`srvFrozenTerm`); (2026-10-31, #3) or, for
+any entry but the last, compacted (a snapshot `Ready`'s `ApplySnapshot` compacts the storage below
+the snapshot's index and leaves its dummy entry, frozen with the snapshot's term, the last). -/
 def srvFrozenTerms (γs : MemStorNames) (lo : Nat) (L : List EntryModel) : IProp GF :=
-  [∗list] k ↦ m ∈ L, iprop(∃ e : EntryM, memLog γs (lo + k) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝)
+  [∗list] k ↦ m ∈ L, iprop((∃ e : EntryM, memLog γs (lo + k) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝) ∨
+    (⌜k + 1 < L.length⌝ ∗ memCompacted γs (lo + k)))
 
 instance srvFrozenTerms_persistent (γs : MemStorNames) (lo : Nat) (L : List EntryModel) :
     Persistent (srvFrozenTerms (GF := GF) γs lo L) := by
@@ -234,8 +239,15 @@ theorem srvFrozenTerms_app (γs : MemStorNames) (lo : Nat) (L1 L2 : List EntryMo
       srvFrozenTerms γs lo (L1 ++ L2) := by
   unfold srvFrozenTerms
   refine Entails.trans ?_ BigSepL.bigSepL_append.2
-  refine sep_mono .rfl (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
-  rw [show lo + L1.length + k = lo + (k + L1.length) by omega]
+  refine sep_mono (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
+    (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
+  · iintro (H | ⟨%h, H⟩)
+    · ileft; iexact H
+    · iright; iframe H; ipureintro; simp only [List.length_append]; omega
+  · rw [show lo + L1.length + k = lo + (k + L1.length) by omega]
+    iintro (H | ⟨%h, H⟩)
+    · ileft; iexact H
+    · iright; iframe H; ipureintro; simp only [List.length_append]; omega
 
 /-- (2026-10-31, the snapshot track: #11's S4) The committed log delivered through `L`, at the
 node: the storage contract's `DL` (`storDL`) at its length (`CreateSnapshot`'s `J.DL`). -/
@@ -462,13 +474,23 @@ a snapshot gives the driver**, after the committed log `d`: the node API's snaps
 (`readySnap … (some l)`: the loan's snapshot, half owned, its certificate, the storage's range from
 an index at most the snapshot's with the end, `snapGiven`), the committed log `A'` the snapshot
 jumps to (raft's `strip l.dlv`, past `d`), `E.C A'`, the entries `es` to append after it with the
-right to, the messages, soft state, hard state (`p'` after `p`) and read states as `rnReadyData`'s. -/
+right to, the messages, soft state, hard state (`p'` after `p`) and read states as `rnReadyData`'s;
+(2026-10-31, #3) the entries' index bound (`MemoryStorage.Append`'s, the node API's
+`readyRest_fits`), the empty committed entries (`updateCommittedIndex`'s) and the last term of
+`A'` the snapshot's (its certificate's, `snapshotValid`: the loop's `srvFrozenTerms` after it),
+and the snapshot valid (`ApplySnapshot`'s `J.SV`). -/
 def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
     (p p' : HardStateM) (l : SnapLoan) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(∃ (esL msL : List Loc) (hs : HardStateModel),
+  iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     readySnap γ.node.cl srvClusterN γ.id rd (rnDrvSt γ d p) [] (es.map EntryModel.toM) (some l) ∗
-    ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length⌝ ∗ □ E.C A' ∗
+    -- (2026-10-31, #3) no committed entries
+    rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL [] ∗
+    ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length ∧
+      (∀ e0, (es.map EntryModel.toM).head? = some e0 →
+        uint.Z e0.Index' + ((es.map EntryModel.toM).length : Int) ≤ 2 ^ 61) ∧
+      Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term'⌝ ∗ □ E.C A' ∗
+    snapshotValid γ.node.cl l.snap ∗
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgR E γ m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗ ⌜p' = phsNext p hs.toM⌝ ∗
@@ -731,6 +753,11 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   | some l =>
     -- a snapshot `Ready`: the snapshot's log `A'` (the loan's delivered log after the start log),
     -- committed, so `E.C A'`; the messages as without a snapshot
+    ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
+    · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
+    icases readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h (some l) $$ [Hfits Hrest]
+      with ⟨Hrest, %Hfit61⟩
+    · iframe Hfits Hrest
     simp only [readyRest, readySnap]
     icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
       Hgiv⟩⟩
@@ -789,7 +816,34 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         word
     have HsrvLE : srvLE E.γr.raft A' = srvLE γ.srv A' := by
       unfold srvLE RNNames.srv; rw [Hpre]
+    -- (2026-10-31, #3) the last term of `A'`: the snapshot's (its certificate's committed log)
+    ihave #HisCl : isCluster γ.node.cl srvClusterN $$ []
+    · iunfold srvClusterOk at Hcl; icases Hcl with ⟨#H, -⟩; rw [Hraft]; iexact H
+    ihave #HsvV := snapshotCert_valid γ.node.cl srvClusterN l.snap Hpos H61 $$ [HisCl Hcert]
+    · iframe HisCl Hcert
+    ihave #HsvV0 := HsvV
+    iunfold snapshotValid at HsvV
+    icases HsvV with ⟨%lc, %mc, #Hlc, -, -, %Hlcf⟩
+    ihave %Hag := isCommittedLogLb_agree γ.node.cl lc (strip l.dlv) $$ [Hlc Hcom2]
+    · iframe Hlc Hcom2
+    have hlastA : Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term' := by
+      have hl1 : lc.length = (strip l.dlv).length := by
+        rw [Hlcf.1]; unfold strip; rw [List.length_map, Hdl]
+      have hlc : lc = strip l.dlv := by
+        rcases Hag with hp | hp
+        · exact hp.eq_of_length hl1
+        · exact (hp.eq_of_length hl1.symm).symm
+      have hlast := Hlcf.2.2.1
+      rw [hlc, ← hA'] at hlast
+      have hne : A' ≠ [] := by intro h; rw [h] at hLA; simp at hLA
+      obtain ⟨Ai, a, hAeq⟩ : ∃ Ai a, A' = Ai ++ [a] :=
+        ⟨A'.dropLast, A'.getLast hne, (List.dropLast_concat_getLast hne).symm⟩
+      rw [hAeq] at hlast ⊢
+      simp only [srvLE, ← List.append_assoc, List.map_append, List.map_cons, List.map_nil,
+        List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.map_some] at hlast ⊢
+      exact hlast
     icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
+    icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
     imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
     imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
     ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft A') $$ []
@@ -809,14 +863,19 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     iexists es.map EntryModel.ofM, A', phsNext p h, l
     isplitl [Hown Hold Hgiv Hmok]
     · iunfold rnReadySnap
-      iexists esL, ms.map QMsg.loc, HardStateModel.ofM h
+      iexists ceL, esL, ms.map QMsg.loc, HardStateModel.ofM h
       rw [EntryModel.map_toM_ofM]
       simp only [readySnap, rnDrvSt]
-      iframe Hown Hcom2 Hcert Hold Hgiv Hmsgs Hmok HEC HesL
+      iframe Hown Hcom2 Hcert Hold Hgiv Hmsgs Hmok HEC HesL HceL HsvV0
       isplitr
       · ipureintro; exact ⟨Hdlv, Hptr, trivial, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩
       isplitr
-      · ipureintro; exact ⟨hA', hLA⟩
+      · have h0 : (LogEntry.toEntries [] (srvLE γ.srv L).length).map EntryModel.ofM = [] := by
+          simp [LogEntry.toEntries]
+        rw [← h0]
+        iapply entriesAt_of_entRO ceL _ $$ Hcero
+      isplitr
+      · ipureintro; exact ⟨hA', hLA, Hfit61, hlastA⟩
       isplitr
       · iapply entriesAt_of_entRO esL es $$ Hesro
       isplitr
@@ -1290,9 +1349,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗
     snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗ □ E.C A' ∗
-    -- `notifyc`: two sends for a snapshot batch (raft.go:274,302); stated with the entries' one
-    -- receive until the two-receive notify is written with the branch's proof (SNAPSHOT-SORRY)
-    (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+    -- `notifyc`: two sends for a snapshot batch (raft.go:274,302), two receives (`applySnapshot`'s,
+    -- `applyAll`'s): the two-receive notify (`NotifyC2.lean`; 2026-10-31, #3)
+    (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
     rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗ storDL γ.node.cl γ.id (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)

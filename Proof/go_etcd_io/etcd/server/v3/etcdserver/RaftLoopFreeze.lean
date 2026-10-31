@@ -118,6 +118,7 @@ theorem srvFrozenTerms_of_memLog (γs : MemStorNames) (k n : Nat) (ce : List Ent
     have hg := srv_toEntries_get (ce.map EntryModel.toLE) n i m.toLE (by
       rw [List.getElem?_map, hm]; rfl)
     iintro #H
+    ileft
     iexists (m.toLE.toEntryM (W64 (n + i + 1)))
     isplitl
     · iapply srv_memLog_get γs k _ i _ hg $$ H
@@ -323,6 +324,146 @@ theorem rnRun_join [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) :
   rw [Qp.half_add_half] at h
   iapply h
   iframe H1 H2
+
+/-! ### A snapshot `Ready` (2026-10-31, #3)
+
+The server's copies of kv's `snapAppend_pre`/`snapAppend_post`/`kv_snapReceipt`
+(`examples/kv/KvRunSnap.lean`; kvreconf has copies of the first two), at the `MemoryStorage`'s
+interface. -/
+
+/-- Before `Append` after a snapshot: the range lent to it (empty, after the dummy), and what is
+kept. -/
+theorem srv_snapAppend_pre (γs : MemStorNames) (j : Nat) (es : List EntryM) :
+    memEnd (GF := GF) γs j ⊢
+      (if es = [] then emp else memLog γs j (DFrac.own 1) [] ∗ memEnd γs (j + ([] : List EntryM).length)) ∗
+      (if es = [] then memEnd γs j else emp) := by
+  iintro He
+  by_cases h : es = []
+  · simp only [h, ↓reduceIte]
+    iframe He
+  · simp only [h, ↓reduceIte, List.length_nil, Nat.add_zero]
+    iframe He
+    iapply memLog_nil
+
+/-- After `Append` after a snapshot: the batch's range, owned, and the storage's end after it. -/
+theorem srv_snapAppend_post (γs : MemStorNames) (j : Nat) (es : List EntryM) :
+    (if es = [] then emp else memLog (GF := GF) γs j (DFrac.own 1) es ∗ memEnd γs (j + es.length)) ∗
+      (if es = [] then memEnd γs j else emp) ⊢
+      memLog γs j (DFrac.own 1) es ∗ memEnd γs (j + es.length) := by
+  by_cases h : es = []
+  · subst h
+    simp only [↓reduceIte, List.length_nil, Nat.add_zero]
+    iintro ⟨-, He⟩
+    iframe He
+    iapply memLog_nil
+  · simp only [h, ↓reduceIte]
+    iintro ⟨⟨Hl, He⟩, -⟩
+    iframe Hl He
+
+/-- **`Advance`'s receipt for a snapshot loan** (`snapReceipt`), from `ApplySnapshot`'s and
+`Append`'s posts. -/
+theorem rn_snapReceipt [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (l : SnapLoan)
+    (es : List EntryM) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ ownSnapM l.ptr (DFrac.own (Qp.half 1)) l.snap -∗
+      memCompacted γs (uint.nat l.snap.Metadata'.Index') -∗
+      memLog γs (uint.nat l.snap.Metadata'.Index') DFrac.discard [memDummy l.snap] -∗
+      memLog γs (uint.nat l.snap.Metadata'.Index' + 1) (DFrac.own 1) es -∗
+      memEnd γs (uint.nat l.snap.Metadata'.Index' + 1 + es.length) -∗
+      snapReceipt (memStorIface ms) l es := by
+  iintro #Hrec Hs #Hc #Hd Hl He
+  unfold snapReceipt
+  iframe Hs
+  isplitl []
+  · iapply memStorCompacted_of ms γs _ $$ Hrec Hc
+  isplitl []
+  · iexists memDummy l.snap
+    isplitr
+    · ipureintro; rfl
+    iapply memStorLog_of ms γs _ _ _ $$ Hrec Hd
+  ihave Hl := memStorLog_of ms γs _ _ _ $$ Hrec Hl
+  ihave He := memStorEnd_of ms γs _ $$ Hrec He
+  iframe Hl He
+
+/-- After `ApplySnapshot` at `s`: the snapshot's dummy entry frozen and everything below it
+compacted (`raftAdvancedC`'s payload for a snapshot batch, `rnApSnap`). -/
+theorem srv_snap_frozen (γs : MemStorNames) (s : Nat) (sv : SnapshotM) :
+    memCompacted (GF := GF) γs s ∗ memLog γs s DFrac.discard [memDummy sv] ⊢
+      srvFrozenAt γs s ∗ srvFrozenBelow γs s := by
+  have hB : □ memCompacted (GF := GF) γs s ⊢ srvFrozenBelow γs s := by
+    unfold srvFrozenBelow
+    refine BigSepL.bigSepL_intro fun k j hk => ?_
+    have hk' : k < s := by
+      have := (List.getElem?_eq_some_iff.1 hk).1; simpa using this
+    rw [List.getElem?_range hk', Option.some.injEq] at hk
+    subst hk
+    iintro #Hc
+    iright
+    iapply memCompacted_mono γs s k (by omega) $$ Hc
+  iintro ⟨#Hc, #Hd⟩
+  isplitl []
+  · unfold srvFrozenAt; iright; iexists memDummy sv; iexact Hd
+  iapply hB
+  imodintro
+  iexact Hc
+
+/-- (2026-10-31, #3) **The frozen terms after a snapshot `Ready`**: the log `A` the snapshot jumps
+to, from `lo`, ending at the snapshot's index, its last entry of the snapshot's term:
+`ApplySnapshot` compacted everything below the index and froze the dummy entry there, of the
+snapshot's term. -/
+theorem srvFrozenTerms_snap (γs : MemStorNames) (lo : Nat) (A : List EntryModel) (sv : SnapshotM)
+    (hlen : lo + A.length = uint.nat sv.Metadata'.Index' + 1)
+    (hlast : Option.map EntryModel.term A.getLast? = some sv.Metadata'.Term') :
+    memCompacted (GF := GF) γs (uint.nat sv.Metadata'.Index') ∗
+      memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ⊢
+      srvFrozenTerms γs lo A := by
+  have h : □ (memCompacted (GF := GF) γs (uint.nat sv.Metadata'.Index') ∗
+      memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv]) ⊢
+      srvFrozenTerms γs lo A := by
+    unfold srvFrozenTerms
+    refine BigSepL.bigSepL_intro fun k m hm => ?_
+    have hk : k < A.length := (List.getElem?_eq_some_iff.1 hm).1
+    iintro #H
+    icases H with ⟨#Hc, #Hd⟩
+    by_cases hl : k + 1 < A.length
+    · iright
+      isplitr
+      · ipureintro; exact hl
+      iapply memCompacted_mono γs _ _ (by omega) $$ Hc
+    · ileft
+      iexists memDummy sv
+      have hk' : lo + k = uint.nat sv.Metadata'.Index' := by omega
+      rw [hk']
+      iframe Hd
+      ipureintro
+      have hA : A.getLast? = some m := by
+        rw [List.getLast?_eq_getElem?, show A.length - 1 = k by omega, hm]
+      rw [hA] at hlast
+      simp only [Option.map_some, Option.some.injEq] at hlast
+      simp only [memDummy]
+      exact hlast.symm
+  iintro ⟨#Hc, #Hd⟩
+  iapply h
+  imodintro
+  iframe Hc Hd
+
+/-- (2026-10-31, #3) A snapshot with every pointer set (`ownSnapS`, a `Ready`'s) has what the WAL's
+`SaveSnap` takes: its metadata with the pointer fields set (`smPtsV`). -/
+theorem srv_ownSnapS_meta (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    ownSnapS (GF := GF) p dq s ⊢
+      ∃ pm : Loc, p.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} pm ∗
+        smPtsV pm dq s.Metadata' := by
+  iintro H
+  iNamed H
+  iexists pm
+  iframe HM
+  iclear Hpb
+  iNamed Hm
+  ihave Hc := csSet_A _ _ _ $$ Hc
+  iunfold smPtsV
+  iexists pc, pi, pt, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HC HI HT cI cT Hpb Hc
 
 end ghost
 

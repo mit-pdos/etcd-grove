@@ -27763,3 +27763,44 @@ its proof and corollaries are deleted. What `applyAll` gained to call it, and wh
   `isServerRun` had and `start` already passed; both gain the KV's facts (`start`'s
   `srvReadBuilt`).
 
+
+## The raft loop's snapshot `Ready` (2026-10-31, #3 · the user's "#3")
+
+**2026-10-31 · accepted (internal statements; no trusted or exported statement changed)**
+
+SNAPSHOT-SORRY #3, the `Ready`-snapshot branch of `raftNode.start` (`raft.go:256-342`), is proved.
+What the proof needed changed five internal statements:
+
+- **A two-receive notify** (`NotifyC2.lean`): a snapshot batch's `notifyc` is sent twice by the raft
+  loop (after `SaveSnap`/`ApplySnapshot`, and after `processMessages`) and received twice on the
+  apply side (`applySnapshot`'s and `applyAll`'s). `isNotify2 γ ch S1 S2` with the send token
+  `notifySnd` going 0 → 1 → 2 and the receive token `notifyRcvN γ k`; `rnApSnap`'s notify is
+  `isNotify2 … True True ∗ notifyRcvN γ 0` (until then the entries' one-receive notify, which could
+  not be proved here). #7/#8 consume it.
+- **`srvFrozenTerms`** (the loop invariant's terms of the delivered log) allows, at every index but
+  the last, `memCompacted` instead of a discarded `memLog` entry: after `ApplySnapshot` everything
+  below the snapshot's index is compacted, and only the dummy entry at the index stays
+  (`srvFrozenTerms_snap`). `srv_frozen_of_terms` refutes the compacted case at the last index.
+- **`rnReadySnap`** also gives what the branch reads off the `Ready`: the committed entries (empty:
+  `rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL []`), the entries' fits (`readyRest_fits`), that
+  `A'`'s last term is the snapshot's (from `isCommittedLogLb_agree`), and `snapshotValid` of the
+  snapshot (`snapshotCert_valid`), which `ApplySnapshot`'s `J.SV` needs.
+- **`updateCommittedIndex.spec`** quantifies the snapshot's model `sv`: the pre's snapshot disjunct
+  is `ownSnapM sn discard sv` with `A'` reaching its index, the post gives `committedAtLeast` of the
+  snapshot's index (the payload's `committedAtLeast` in `rnApSnap`). The entries call passes `null`
+  and `zero_val`.
+- **`raftNode.start.spec`**'s pre adds `memStorInv` of the raft storage and `memSnapLb γs 0` (what
+  `ApplySnapshot` needs; `EtcdServer.run`/`runOn` have both from `isServerRun`), and its callees
+  `proto.CloneSnapshot` (in place of `proto.Clone`), `MemoryStorage.ApplySnapshot`,
+  `MemoryStorage.Append` (linked as `NodeApiLink`'s `srvApi_wp_MemAppend`, raft's result at the
+  server's any-storage model, like the other `MemoryStorage` methods the server links),
+  `SnapshotMetadata.GetIndex`, `zap.Uint64`, `zap.Logger.Info`.
+
+`SaveSnap` needed no new clause: a `Ready`'s snapshot is `ownSnapS` (its pointers set), so
+`srv_ownSnapS_meta` gives the `smPtsV` that `isRNWal`'s `SaveSnap` takes. The weaker `SaveSnap`
+clause the user approved for this was not needed and is not in the tree.
+
+Proof detail: `wp_apply` of `zap.Logger.Fatal` overflows Lean's stack in this branch (its
+continuation, the rest of the branch, is longer than the entries branch's); the three `Fatal`
+calls are focused with `wp_bind` and `iapply`. Errors earlier in a proof can make later,
+unchanged parts of it fail (here the entries branch's conf-change scan): fix the first error first.
