@@ -543,6 +543,114 @@ theorem chainClass_alarm (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.a
   · iintro H; ihave H := H $$ %h2; ihave H := H $$ %h1; iexact H
   · iintro H; ihave H := H $$ %h3; ihave H := H $$ %h2; ihave H := H $$ %h1; iexact H
 
+/-! ## The lease class of a request through the chain (the lease-keys plan, 2026-10-31) -/
+
+/-- **The lease class a run of `rq` through `c` with the outcome `oc` establishes** for the
+principal `info` in the mode `M`, at the lease owner's item map `I` (persistent): as `chainClass`,
+with the auth layer's `reqLeaseClass` (`checkLeasePuts`: the keys of a put's, a transaction's puts'
+or a revocation's lease writable by `info`). A conjunct of its own beside `chainClass` (in `kvPost`
+and `kvPostF`, not the auth-on track's `kvPostFL`, whose lessor finds no lease:
+`notes/lease-keys-plan.md`, Q5). -/
+def chainLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) : Chain → IRRModel → Outcome → IProp GF
+  | .backend, _, _ => iprop(True)
+  | .auth _ _, rq, oc => iprop(∀ _ : oc ≠ .rejected .auth, reqLeaseClass M info I rq)
+  | .quota c, rq, oc => chainLeaseClass M info I c rq oc
+  | .capped c, rq, oc => iprop(∀ _ : oc ≠ .rejected .noSpace, chainLeaseClass M info I c rq oc)
+  | .corrupt c, rq, oc => iprop(∀ _ : oc ≠ .rejected .corrupt, chainLeaseClass M info I c rq oc)
+
+instance chainLeaseClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    Persistent (chainLeaseClass (GF := GF) M info I c rq oc) := by
+  induction c with
+  | backend => simp only [chainLeaseClass]; infer_instance
+  | auth on c ih => simp only [chainLeaseClass]; infer_instance
+  | quota c ih => simp only [chainLeaseClass]; exact ih
+  | capped c ih => simp only [chainLeaseClass]; infer_instance
+  | corrupt c ih => simp only [chainLeaseClass]; infer_instance
+
+/-- The request's lease class gives the chain's, whatever the outcome. -/
+theorem chainLeaseClass_of_req (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    reqLeaseClass (GF := GF) M info I rq ⊢ chainLeaseClass M info I c rq oc := by
+  induction c with
+  | backend => simp only [chainLeaseClass]; iintro -; itrivial
+  | auth on c ih => simp only [chainLeaseClass]; iintro #H %_; iexact H
+  | quota c ih => simp only [chainLeaseClass]; exact ih
+  | capped c ih => simp only [chainLeaseClass]; iintro #H %_; iapply ih $$ H
+  | corrupt c ih => simp only [chainLeaseClass]; iintro #H %_; iapply ih $$ H
+
+/-- A request with no lease to check has the trivial lease class. -/
+theorem chainLeaseClass_noLease (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) (oc : Outcome)
+    (h : dispatchKind rq ≠ .put ∧ dispatchKind rq ≠ .txn ∧ dispatchKind rq ≠ .leaseRevoke) :
+    ⊢ chainLeaseClass (GF := GF) M info I c rq oc := by
+  iintro; iapply chainLeaseClass_of_req
+  unfold reqLeaseClass
+  split
+  · exact absurd ‹_› h.1
+  · exact absurd ‹_› h.2.1
+  · exact absurd ‹_› h.2.2
+  · itrivial
+
+theorem chainLeaseClass_backend {M : auth.AuthMode} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
+    {I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64} {rq : IRRModel} {oc : Outcome} :
+    ⊢ chainLeaseClass (GF := GF) M info I .backend rq oc := by
+  simp only [chainLeaseClass]; iintro; itrivial
+
+theorem chainLeaseClass_auth_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (on : Bool) (c : Chain) (rq : IRRModel) :
+    ⊢ chainLeaseClass (GF := GF) M info I (.auth on c) rq (.rejected .auth) := by
+  simp only [chainLeaseClass]; iintro %h; exact absurd rfl h
+
+theorem chainLeaseClass_auth_pass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (on : Bool) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    reqLeaseClass (GF := GF) M info I rq ⊢ chainLeaseClass M info I (.auth on c) rq oc := by
+  simp only [chainLeaseClass]; iintro #H %_; iexact H
+
+theorem chainLeaseClass_quota (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainLeaseClass (GF := GF) M info I c rq oc ⊢ chainLeaseClass M info I (.quota c) rq oc := by
+  simp only [chainLeaseClass]; iintro H; iexact H
+
+theorem chainLeaseClass_capped (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainLeaseClass (GF := GF) M info I c rq oc ⊢ chainLeaseClass M info I (.capped c) rq oc := by
+  simp only [chainLeaseClass]; iintro #H %_; iexact H
+
+theorem chainLeaseClass_capped_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) :
+    ⊢ chainLeaseClass (GF := GF) M info I (.capped c) rq (.rejected .noSpace) := by
+  simp only [chainLeaseClass]; iintro %h; exact absurd rfl h
+
+theorem chainLeaseClass_corrupt (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainLeaseClass (GF := GF) M info I c rq oc ⊢ chainLeaseClass M info I (.corrupt c) rq oc := by
+  simp only [chainLeaseClass]; iintro #H %_; iexact H
+
+theorem chainLeaseClass_corrupt_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (c : Chain) (rq : IRRModel) :
+    ⊢ chainLeaseClass (GF := GF) M info I (.corrupt c) rq (.rejected .corrupt) := by
+  simp only [chainLeaseClass]; iintro %h; exact absurd rfl h
+
+/-- Through the uber-applier's chain, an outcome that passed the auth layer's checks has the
+request's lease class. -/
+theorem chainLeaseClass_alarm (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (on ns cr : Bool) (rq : IRRModel) (oc : Outcome) (h : authPassed oc) :
+    chainLeaseClass (GF := GF) M info I (alarmChain on ns cr) rq oc ⊢ reqLeaseClass M info I rq := by
+  have h1 : oc ≠ .rejected .auth := by
+    intro e; subst e; simp [authPassed] at h
+  have h2 : oc ≠ .rejected .noSpace := by
+    intro e; subst e; simp [authPassed] at h
+  have h3 : oc ≠ .rejected .corrupt := by
+    intro e; subst e; simp [authPassed] at h
+  unfold alarmChain baseChain
+  cases ns <;> cases cr <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> simp only [chainLeaseClass]
+  · iintro H; ihave H := H $$ %h1; iexact H
+  · iintro H; ihave H := H $$ %h3; ihave H := H $$ %h1; iexact H
+  · iintro H; ihave H := H $$ %h2; ihave H := H $$ %h1; iexact H
+  · iintro H; ihave H := H $$ %h3; ihave H := H $$ %h2; ihave H := H $$ %h1; iexact H
+
 /-- **The admin check of `Apply` passed for the request's principal** (persistent): a request
 that needs admin permission (`needAdminPermission`) ran its `applyFunc` only after
 `IsAdminPermitted(principalOf rq)` answered `nil`, whose verdict this is (A0); stated for a chain
@@ -787,11 +895,13 @@ def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
   iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post)
 
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
-it commits, and the request's class for the principal `info` (A3, `chainClass`). -/
+it commits, and the request's class for the principal `info` (A3, `chainClass`) and its lease class
+at the owner's item map of the state before it (`chainLeaseClass`, the lease-keys plan). -/
 def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc)
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- **A floor met** (the vertical slice's unit V2): an outcome where the backend ran (`applied`)
 ran at a log extending the floor `F` (a certified log the request's client saw: the backend
@@ -804,7 +914,8 @@ meeting the floor. -/
 def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc)
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `Put(r)`'s precondition: `r` is `rq`'s put `o`. -/
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -867,7 +978,9 @@ theorem kvPostF_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.
   iframe HR Hkv Hres HPP
   isplitr
   · ipureintro; exact H
-  iapply chainClass_backend
+  isplitl
+  · iapply chainClass_backend
+  · iapply chainLeaseClass_backend
 
 theorem rangePost_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
     {rq : IRRModel} {o : OpFull} {log : mvcc.Log} {resp : Loc} {err : GoInterface} :

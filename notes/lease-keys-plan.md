@@ -227,3 +227,29 @@ touching the auth-on track; (a) can follow when that track models leases.
 **Decided (the user, 2026-10-31): (b).** Items 6-12 as amended: `reqClass`/`putClass`/`txnClass`
 unchanged; `reqLeaseClass` and `chainLeaseClass` new (`AuthClass.lean`, `Chain.lean`); `kvPost`/
 `kvPostF` gain the conjunct; the auth layer's checks give `reqLeaseClass`.
+
+### Part A, the Draft as written (2026-10-31, after Q4 and Q5)
+
+Drafted (statements compile; proofs to follow):
+- `apply.leaseKeysClass M info I id` (`AuthClass.lean`): in `on γa`, an admin at a recorded state
+  (`adminOk`), or `∀ k, I.lookup ⟨k⟩ = some id → classOk γa info [(k, [], .write)]`; `True` in the
+  other modes.
+- `apply.opLeaseClass`/`opsLeaseClass`/`txnLeaseClass` (a put's lease, `putIgnVal`'s `some` lease,
+  nested branches; `putKeep` and a lease-keeping `putIgnVal` are `True`: `TxnOp` forgets their wire
+  `Lease`, the same gap as their `PrevKv`), `apply.reqLeaseClass M info I rq` (a put's
+  `o.leaseID`, a transaction's, a revocation's id).
+- **The lease view** (`Contracts.lean`, `AuthClass.lean`), found while drafting:
+  `CheckTxnAuth.spec` is also the server's read path's (`EtcdServer.Txn`, `ReadOn`), which holds
+  no owner's resource. So the checks take `U : apply.LeaseView = Option (List w64 × GMap …)`:
+  `apply.lessorView γl U` (`lessorUser γl L I` for `some (L, I)`, `True` for `none`) lent and given
+  back, `apply.leaseAtView γl U id l` (`leaseOwnOpen` and short keys, or the old `leaseIs`), and
+  the classes under `apply.viewClass U C` (`C I`, or `True`). One spec and one proof per function;
+  the read path instantiates `none`, the apply thread `some`.
+- Specs: `checkLeasePutsKeys` (pre/post `leaseAtView`; post `viewClass U (leaseKeysClass · id)`),
+  `checkLeasePuts` (+ `lessorView`), `checkPutAuth` (+ `lessorView`; `putClass ∗ viewClass U
+  (leaseKeysClass · o.leaseID)`), `checkTxnReqsPermission` (`opsClass ∗ viewClass U (opsLeaseClass
+  · ops)`), `checkTxnPermission`/`CheckTxnAuth` (`txnClass ∗ viewClass U (txnLeaseClass · t)`).
+- `apply.chainLeaseClass M info I c rq oc` (`Chain.lean`, with `chainClass`'s lemmas mirrored), a
+  conjunct of `kvPost`/`kvPostF` at `I = mvcc.leaseItemsOf (mvcc.stateAfter log)`.
+- To add: `Results.lean`'s `chain_put`/`chain_txn` (and the revocation's) state `reqLeaseClass` beside
+  `reqClass` for an outcome that passed the auth layer.

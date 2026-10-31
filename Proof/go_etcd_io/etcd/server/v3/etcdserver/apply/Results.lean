@@ -208,7 +208,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **A put through the uber-applier's chain** (`alarmChain E.authOn ns cr`; `baseChain` at
 `ns = cr = false`): the outcome `alarmPut` (the txn package's `putModel`), its answer, the log it
-commits. -/
+commits; an outcome that passed the auth layer has the request's class and its lease's (the keys
+the lease held before the put writable by the principal, `reqLeaseClass`). -/
 theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
@@ -219,7 +220,8 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
               kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗
-              (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
+              (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
+                reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -252,13 +254,15 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hpost with ⟨%oc, %Hst0, HR⟩
   have Hst := Hst0.1
   iexists oc
-  icases HR with ⟨H1, H2, H3, H4, #Hcls⟩
+  icases HR with ⟨H1, H2, H3, H4, #Hcls, #Hlc⟩
   iframe H1 H2 H3 H4 Htr
   isplitr
   · ipureintro
     exact chainStep_alarm_put E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
   iintro %hp
-  iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
+  isplitl
+  · iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
+  · iapply (chainLeaseClass_alarm _ _ _ _ _ _ _ _ hp) $$ Hlc
 /-- **A delete through the uber-applier's chain** (`alarmChain E.authOn ns cr`; `baseChain` at
 `ns = cr = false`): the outcome `alarmDelete` (the txn package's `deleteModel`), its answer, the log it
 commits. -/
@@ -305,7 +309,7 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hpost with ⟨%oc, %Hst0, HR⟩
   have Hst := Hst0.1
   iexists oc
-  icases HR with ⟨H1, H2, H3, H4, #Hcls⟩
+  icases HR with ⟨H1, H2, H3, H4, #Hcls, -⟩
   iframe H1 H2 H3 H4 Htr
   isplitr
   · ipureintro
@@ -359,7 +363,8 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
 
 /-- **A transaction through the uber-applier's chain**: the outcome `alarmTxn` (the txn
 package's `txnModel`: `checkTxn`'s error or the server's run `srvRunTxn`), its answer, the log it
-commits. -/
+commits; an outcome that passed the auth layer has the request's class and its puts' leases'
+(`reqLeaseClass`, at the item map before the transaction). -/
 theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
@@ -370,7 +375,8 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
               kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗
-              (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
+              (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
+                reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -403,13 +409,15 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hpost with ⟨%oc, %Hst0, HR⟩
   have Hst := Hst0.1
   iexists oc
-  icases HR with ⟨H1, H2, H3, H4, #Hcls⟩
+  icases HR with ⟨H1, H2, H3, H4, #Hcls, #Hlc⟩
   iframe H1 H2 H3 H4 Htr
   isplitr
   · ipureintro
     exact chainStep_alarm_txn E.authOn ns cr rq t log oc Hk.2.1 Hk.1 Hst
   iintro %hp
-  iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
+  isplitl
+  · iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
+  · iapply (chainLeaseClass_alarm _ _ _ _ _ _ _ _ hp) $$ Hlc
 
 end triples
 

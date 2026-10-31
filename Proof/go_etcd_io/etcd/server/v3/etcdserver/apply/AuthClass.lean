@@ -234,6 +234,86 @@ instance txnClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.
     (t : TxnModel) : Persistent (txnClass (GF := GF) M info t) := by
   unfold txnClass; infer_instance
 
+/-! ## The class of a lease's keys (the lease-keys plan, 2026-10-31) -/
+
+/-- **The class of the lease `id`'s keys** (`checkLeasePuts(id)`) for the principal `info` in the
+mode `M`: in `on γa`, the principal an admin at a recorded state (`checkLeasePutsKeys`'s early
+return, `IsAdminPermitted`), or the write of every key the item map `I` attaches to `id`
+(`IsPutPermitted` of each of `l.Keys()`); nothing in the other modes. `I` is the lease owner's
+item map when the check runs (`lease.lessorUser`): the state before the request, which the auth
+layer checks before it applies anything. A lease the lessor does not have attaches no key. -/
+def leaseKeysClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : IProp GF :=
+  match M with
+  | .on γa => iprop((∃ (i : Nat) (st : auth.AuthState), auth.authStateAt γa i st ∗
+        ⌜auth.adminOk st (some (auth.authInfoM info))⌝) ∨
+      (∀ k : GoString, ∀ _ : I.lookup ⟨k⟩ = some id, classOk γa info [(k, [], .write)]))
+  | _ => iprop(True)
+
+instance leaseKeysClass_persistent (M : auth.AuthMode)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) :
+    Persistent (leaseKeysClass (GF := GF) M info I id) := by
+  unfold leaseKeysClass; cases M <;> infer_instance
+
+mutual
+/-- **The lease class of a transaction's operation** (`checkTxnReqsPermission`'s puts'
+`checkLeasePuts`): a put's lease's keys, for the puts whose lease `TxnOp` keeps (`put`, and
+`putIgnVal` with a lease); `putKeep`'s and a lease-keeping `putIgnVal`'s are not stated (`TxnOp`
+forgets their wire `Lease`, as their `PrevKv`); a nested transaction's two branches. -/
+def opLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) : TxnOp → IProp GF
+  | .get _ => iprop(True)
+  | .put _ _ le => leaseKeysClass M info I le
+  | .putKeep _ _ => iprop(True)
+  | .putIgnVal _ none => iprop(True)
+  | .putIgnVal _ (some le) => leaseKeysClass M info I le
+  | .delete _ => iprop(True)
+  | .txn _ ts es => iprop(□ (opsLeaseClass M info I ts ∗ opsLeaseClass M info I es))
+
+/-- The lease class of a list of operations. -/
+def opsLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) : List TxnOp → IProp GF
+  | [] => iprop(True)
+  | op :: ops => iprop(opLeaseClass M info I op ∗ opsLeaseClass M info I ops)
+end
+
+/-- **The lease class of a transaction** `t` (`checkTxnPermission`): both branches' puts'. -/
+def txnLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (t : TxnModel) : IProp GF :=
+  iprop(opsLeaseClass M info I t.thenOps ∗ opsLeaseClass M info I t.elseOps)
+
+instance opLeaseClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (op : TxnOp) :
+    Persistent (opLeaseClass (GF := GF) M info I op) := by
+  cases op with
+  | putIgnVal k le => cases le <;> unfold opLeaseClass <;> infer_instance
+  | _ => unfold opLeaseClass; infer_instance
+
+instance opsLeaseClass_persistent (M : auth.AuthMode)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ops : List TxnOp) :
+    Persistent (opsLeaseClass (GF := GF) M info I ops) := by
+  induction ops with
+  | nil => unfold opsLeaseClass; infer_instance
+  | cons op ops ih => unfold opsLeaseClass; infer_instance
+
+instance txnLeaseClass_persistent (M : auth.AuthMode)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (t : TxnModel) :
+    Persistent (txnLeaseClass (GF := GF) M info I t) := by
+  unfold txnLeaseClass; infer_instance
+
+/-- **The lease class `C I` at the view's item map `I`**; nothing without a view. -/
+def viewClass (U : LeaseView) (C : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF) : IProp GF :=
+  match U with
+  | none => iprop(True)
+  | some (_, I) => C I
+
+instance viewClass_persistent (U : LeaseView) (C : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 → IProp GF)
+    [hC : ∀ I, Persistent (C I)] : Persistent (viewClass (GF := GF) U C) := by
+  unfold viewClass; cases U <;> infer_instance
+
 theorem opClass_get (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (o : OpFull) : rangeClass (GF := GF) M info o ⊢ opClass M info (.get o) := by
   unfold opClass; iintro H; iexact H
@@ -337,6 +417,24 @@ def reqClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo
 instance reqClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) : Persistent (reqClass (GF := GF) M info rq) := by
   unfold reqClass; split <;> infer_instance
+
+/-- **The lease class of the request `rq`** for the principal `info` in the mode `M`, at the
+lease owner's item map `I` (`checkLeasePuts`): a put's lease's keys (its wire `Lease`, which Go
+checks whatever `IgnoreLease` says), a transaction's puts' (`txnLeaseClass`), a lease revocation's
+lease's keys; nothing for the other requests. -/
+def reqLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (rq : IRRModel) : IProp GF :=
+  match dispatchKind rq with
+  | .put => iprop(∃ o : OpFull, ⌜rq.put = some o⌝ ∗ leaseKeysClass M info I o.leaseID)
+  | .txn => iprop(∃ t : TxnModel, ⌜rq.txn = some t⌝ ∗ txnLeaseClass M info I t)
+  | .leaseRevoke => iprop(∃ id : w64, ⌜rq.leaseRevoke = some id⌝ ∗ leaseKeysClass M info I id)
+  | _ => iprop(True)
+
+instance reqLeaseClass_persistent (M : auth.AuthMode)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (rq : IRRModel) :
+    Persistent (reqLeaseClass (GF := GF) M info I rq) := by
+  unfold reqLeaseClass; split <;> infer_instance
 
 /-- A request the auth layer's KV methods do not check has the trivial class. -/
 theorem reqClass_nonKV (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)

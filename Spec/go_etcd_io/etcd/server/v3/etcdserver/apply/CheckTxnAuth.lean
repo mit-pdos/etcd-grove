@@ -30,14 +30,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`CheckTxnAuth(as, ai, lessor, rt)`**: `checkTxnPermission`. -/
 abbrev apply.CheckTxnAuth.spec : Prop :=
   ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : TxnModel),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : TxnModel)
+    (U : apply.LeaseView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
-      txn.txnRequestIs rt t }}
+      apply.lessorView γ.leases U ∗ txn.txnRequestIs rt t }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
-      ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
-      (∀ _ : err = GoInterface.nil, apply.txnClass on info t) }}
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.lessorView γ.leases U ∗
+      authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.txnClass on info t ∗
+        apply.viewClass U (fun I => apply.txnLeaseClass on info I t)) }}
 
 end spec
 
