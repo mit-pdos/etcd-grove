@@ -74,7 +74,9 @@ abbrev EtcdServer.applyAll.spec : Prop :=
           (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
           -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
           srvFrozenRange γs (uint.nat ai + 1)
-            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
+          -- (2026-10-31, the snapshot track: #11's S3) with their terms
+          srvFrozenTerms γs (uint.nat ai + 1) (unapplied ai ms))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -107,6 +109,8 @@ abbrev EtcdServer.applyAll.spec : Prop :=
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨
             uint.Z (ciEff γ' st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
+          -- (2026-10-31, the snapshot track: S1) the consistent index stays at least the applied one
+          (uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ' st'.k)) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
 
@@ -143,7 +147,9 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
           -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
           srvFrozenRange γs (uint.nat ai + 1)
-            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
+          -- (2026-10-31, the snapshot track: #11's S3) with their terms
+          srvFrozenTerms γs (uint.nat ai + 1) (unapplied ai ms))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -180,6 +186,8 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨
             uint.Z (ciEff γ' st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
+          -- (2026-10-31, the snapshot track: S1) the consistent index stays at least the applied one
+          (uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ' st'.k)) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
 

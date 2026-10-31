@@ -89,6 +89,47 @@ instance srvFrozenRange_persistent (γs : MemStorNames) (lo hi : Nat) :
     Persistent (srvFrozenRange (GF := GF) γs lo hi) := by
   unfold srvFrozenRange; infer_instance
 
+instance srvFrozenTerms_persistent (γs : MemStorNames) (lo : Nat) (L : List EntryModel) :
+    Persistent (srvFrozenTerms (GF := GF) γs lo L) := by
+  unfold srvFrozenTerms; infer_instance
+
+/-- An entry of a frozen range, alone. -/
+theorem srv_memLog_get (γs : MemStorNames) (k : Nat) (l : List EntryM) (i : Nat) (x : EntryM)
+    (h : l[i]? = some x) :
+    memLog (GF := GF) γs k DFrac.discard l ⊢ memLog γs (k + i) DFrac.discard [x] := by
+  have hi : i < l.length := (List.getElem?_eq_some_iff.1 h).1
+  have hx : l[i] = x := by
+    have := List.getElem?_eq_getElem hi; rw [this] at h; exact Option.some.inj h
+  have hl : l = l.take i ++ ([x] ++ l.drop (i + 1)) := by
+    have h3 := List.take_append_drop i l
+    rw [List.drop_eq_getElem_cons hi, hx] at h3
+    exact h3.symm
+  have h1 := (memLog_app (GF := GF) γs k DFrac.discard (l.take i) ([x] ++ l.drop (i + 1))).1
+  have h2 := (memLog_app (GF := GF) γs (k + (l.take i).length) DFrac.discard [x]
+    (l.drop (i + 1))).1
+  rw [List.length_take_of_le (Nat.le_of_lt hi)] at h2
+  rw [← hl, List.length_take_of_le (Nat.le_of_lt hi)] at h1
+  exact h1.trans (sep_elim_right.trans (h2.trans sep_elim_left))
+
+/-- (#11's S3) The committed entries frozen at `k` give their terms entry by entry. -/
+theorem srvFrozenTerms_of_memLog (γs : MemStorNames) (k n : Nat) (ce : List EntryModel) :
+    memLog (GF := GF) γs k DFrac.discard (LogEntry.toEntries (ce.map EntryModel.toLE) n) ⊢
+      srvFrozenTerms γs k ce := by
+  have h : □ memLog (GF := GF) γs k DFrac.discard (LogEntry.toEntries (ce.map EntryModel.toLE) n)
+      ⊢ srvFrozenTerms γs k ce := by
+    unfold srvFrozenTerms
+    refine BigSepL.bigSepL_intro fun i m hm => ?_
+    have hg := srv_toEntries_get (ce.map EntryModel.toLE) n i m.toLE (by
+      rw [List.getElem?_map, hm]; rfl)
+    iintro #H
+    iexists (m.toLE.toEntryM (W64 (n + i + 1)))
+    isplitl
+    · iapply srv_memLog_get γs k _ i _ hg $$ H
+    ipureintro; rfl
+  iintro #H
+  iapply h
+  iexact H
+
 /-- A range from its two parts. -/
 theorem srv_memLog_take_drop (γs : MemStorNames) (k : Nat) (dq : DFrac) (l : List EntryM)
     (m : Nat) (hm : m ≤ l.length) :
@@ -208,6 +249,7 @@ theorem rn_freeze_receipt [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (n : N
       ceFrozen (memStorIface ms) n (LogEntry.toEntries ce n) es -∗
       appendReceipt (memStorIface ms) es [] ==∗
       srvFrozenRange γs (n + 1) (n + 1 + ce.length) ∗
+      memLog γs (n + 1) DFrac.discard (LogEntry.toEntries ce n) ∗
       advReceipt (memStorIface ms) (n + ce.length) es none := by
   iintro #Hreg #Hcf Hrc
   iunfold ceFrozen at Hcf
@@ -243,6 +285,8 @@ theorem rn_freeze_receipt [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (n : N
     rw [show n + 1 + ce.length = n + 1 + (LogEntry.toEntries ce n).length by
       rw [srv_toEntries_length]]
     iexact H
+  isplitr
+  · iexact Hall
   unfold advReceipt
   iexists a
   isplitl

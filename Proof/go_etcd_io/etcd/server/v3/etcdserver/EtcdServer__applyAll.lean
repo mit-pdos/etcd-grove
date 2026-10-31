@@ -84,6 +84,11 @@ theorem EtcdServer.applyAll.wp_proof
   iunfold srvFS at Hfs
   icases Hfs with ⟨%sf1, Hsf1⟩
   obtain ⟨hok', hai', hlen', hci', hat'⟩ := Hpost
+  have hciL : uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ st'.k) := by
+    intro h
+    rcases hci' with ⟨hun, hc⟩ | hc
+    · rw [hun, List.length_nil] at hlen'; rw [hc]; omega
+    · rw [hc]; omega
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
@@ -149,7 +154,7 @@ theorem EtcdServer.applyAll.wp_proof
       · iexact HWA'
       isplitl [HKV Hka HRS]
       · iexists x'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
-      ipureintro; exact ⟨hok', hai', hci', hat'⟩
+      ipureintro; exact ⟨hok', hai', hci'.imp_left And.right, hciL, hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
   ileft
@@ -223,7 +228,8 @@ theorem EtcdServer.applyAll.wp_proof
     · iexact HWA'
     isplitl [HKV Hka HRS]
     · iexists x'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
-    ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci', hat'⟩
+    ipureintro
+    exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'.imp_left And.right, by rw [Hst''.2]; exact hciL, hat'⟩
 
 
 /-- **`applyAll.specOn`** (the auth plan's E3p): `wp_proof` over the callees' mode-`on` specs. -/
@@ -274,6 +280,11 @@ theorem EtcdServer.applyAll.wp_proofOn
   iunfold srvFS at Hfs
   icases Hfs with ⟨%sf1, Hsf1⟩
   obtain ⟨hok', hai', hlen', hci', hat'⟩ := Hpost
+  have hciL : uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ st'.k) := by
+    intro h
+    rcases hci' with ⟨hun, hc⟩ | hc
+    · rw [hun, List.length_nil] at hlen'; rw [hc]; omega
+    · rw [hc]; omega
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
@@ -339,7 +350,7 @@ theorem EtcdServer.applyAll.wp_proofOn
       · iexact HWA'
       isplitl [HKV Hka HRS]
       · iexists x', sa'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
-      ipureintro; exact ⟨hok', hai', hci', hat'⟩
+      ipureintro; exact ⟨hok', hai', hci'.imp_left And.right, hciL, hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
   ileft
@@ -415,7 +426,8 @@ theorem EtcdServer.applyAll.wp_proofOn
     · iexact HWA'
     isplitl [HKV Hka HRS]
     · iexists x', sa'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
-    ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci', hat'⟩
+    ipureintro
+    exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'.imp_left And.right, by rw [Hst''.2]; exact hciL, hat'⟩
 
 end proof
 

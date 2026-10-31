@@ -62,6 +62,7 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
+      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       entriesStep C.c₀ A C.x₀ x ∧ lastTermIs A at'⌝)
 
 /-- **The apply thread's resources when `run` starts, in the mode `on`** (`applyStart`'s; the

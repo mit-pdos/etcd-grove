@@ -56,6 +56,64 @@ theorem srvFrozen_get (γs : MemStorNames) (n k : Nat) (h1 : 1 ≤ k) (h2 : k �
       (Φ := fun _ j => iprop((∃ e, memLog (GF := GF) γs j DFrac.discard [e]) ∨ memCompacted γs j)) hl
       $$ Hb
 
+instance srvFrozenRange_persistent_SD (γs : MemStorNames) (lo hi : Nat) :
+    Persistent (srvFrozenRange (GF := GF) γs lo hi) := by
+  unfold srvFrozenRange srvFrozenAt; infer_instance
+
+/-- (2026-10-31, the snapshot track: #11's S2) An index of the batch's frozen range, past `0`, has
+a frozen entry. -/
+theorem srvFrozenRange_at (γs : MemStorNames) (lo hi j : Nat) (h0 : 0 < j) (h1 : lo ≤ j)
+    (h2 : j < hi) :
+    srvFrozenRange (GF := GF) γs lo hi ⊢ ∃ e, memLog γs j DFrac.discard [e] := by
+  iintro Hr
+  have hl : (List.range' lo (hi - lo))[j - lo]? = some j := by
+    rw [List.getElem?_range' (by omega)]; congr 1; omega
+  iunfold srvFrozenRange at Hr
+  ihave Ha := BigSepL.bigSepL_lookup (Φ := fun _ j => srvFrozenAt (GF := GF) γs j) hl $$ Hr
+  iunfold srvFrozenAt at Ha
+  icases Ha with (%h | Ha)
+  · exfalso; omega
+  · iexact Ha
+
+/-- (2026-10-31, the snapshot track: #11's S2) **The frozen state moves with a batch**: frozen
+through `ai`, and the batch's range `ai + 1 .. ai'` frozen (`raftAdvancedC`'s receipt), frozen
+through `ai'`. Index `0` is compacted (`memCompacted`'s `c = 0`). -/
+theorem srvSnapFrozen_extend (γs : MemStorNames) (ai ai' : Nat) (h : ai ≤ ai') :
+    srvSnapFrozen (GF := GF) γs ai ∗ srvFrozenRange γs (ai + 1) (ai' + 1) ⊢
+      srvSnapFrozen γs ai' := by
+  have hB : □ (srvFrozenAt (GF := GF) γs ai ∗ srvFrozenBelow γs ai ∗
+      srvFrozenRange γs (ai + 1) (ai' + 1)) ⊢ srvFrozenBelow γs ai' := by
+    unfold srvFrozenBelow
+    refine BigSepL.bigSepL_intro fun k j hk => ?_
+    have hk' : k < ai' := by
+      have := (List.getElem?_eq_some_iff.1 hk).1; simpa using this
+    rw [List.getElem?_range hk', Option.some.injEq] at hk
+    subst hk
+    iintro #H
+    icases H with ⟨#Ha, #Hb, #Hr⟩
+    rcases Nat.lt_trichotomy k ai with hlt | heq | hgt
+    · iapply BigSepL.bigSepL_lookup
+        (Φ := fun _ j => iprop((∃ e, memLog (GF := GF) γs j DFrac.discard [e]) ∨ memCompacted γs j))
+        (List.getElem?_range hlt) $$ Hb
+    · subst heq
+      iunfold srvFrozenAt at Ha
+      icases Ha with (%h0 | ⟨%e, He⟩)
+      · iright; iunfold memCompacted; ileft; ipureintro; exact h0
+      · ileft; iexists e; iexact He
+    · ileft
+      iapply srvFrozenRange_at γs (ai + 1) (ai' + 1) k (by omega) (by omega) (by omega) $$ Hr
+  iintro ⟨Hf, #Hr'⟩
+  iunfold srvSnapFrozen at Hf
+  icases Hf with ⟨#Ha, #Hb⟩
+  iunfold srvSnapFrozen
+  isplitr
+  · by_cases hEq : ai' = ai
+    · subst hEq; iexact Ha
+    · iunfold srvFrozenAt; iright
+      iapply srvFrozenRange_at γs (ai + 1) (ai' + 1) ai' (by omega) (by omega) (by omega) $$ Hr'
+  iapply hB
+  iframe Ha Hb Hr'
+
 end lemmas
 
 end EtcdGrove

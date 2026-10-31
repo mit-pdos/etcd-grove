@@ -72,7 +72,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
           iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
             srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
-              (uint.nat C.ai₀ + (A ++ ce).length + 1))) ∗
+              (uint.nat C.ai₀ + (A ++ ce).length + 1) ∗
+            srvFrozenTerms C.γs (uint.nat C.ai₀ + A.length + 1) ce)) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
         isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
         dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
@@ -91,7 +92,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, ⟨%w, #HWA, %Hw⟩, %Hpure⟩
   rw [hw]
-  obtain ⟨Hloop, Hai0, HJ, Hstep, Hlt⟩ := Hpure
+  obtain ⟨Hloop, Hai0, HJ, Hci, Hstep, Hlt⟩ := Hpure
   iunfold schedule.schedRunning at Hrun
   icases Hrun with ⟨Hrt, Htok⟩
   have habove := srvIdxOk_batch_above C.ai₀ ai A ce hidx Hai0
@@ -154,7 +155,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
       iprop(nodeAppliedLb C.ρ.raft.raft.cl nid
         (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
         srvFrozenRange C.γs (uint.nat ai + 1)
-          ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) $$ []
+          ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
+        srvFrozenTerms C.γs (uint.nat ai + 1) ce)) $$ []
   · rw [e1, e2]; iexact Hracc
   ihave #HWc' : iprop(srvWTPool B.E C.wt) $$ []
   · rw [srvWTPool_beSucc HB]; iexact HWc
@@ -172,7 +174,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   inext
   iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
-  obtain ⟨hloop', hai', hci', hat'⟩ := Hpost
+  obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
   iapply HΦ
@@ -210,7 +212,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     omega
   ipureintro
   rw [hun] at Hx'
-  refine ⟨hloop', by rw [hai', hlast], ?_, ?_, ?_⟩
+  refine ⟨hloop', by rw [hai', hlast], ?_, hciN Hci, ?_, ?_⟩
   · apply ciJ_step _ _ _ ai ai' HJ (by rw [hai']; omega) hci'
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
   · rw [hun] at hat'; exact lastTermIs_append Hlt hat'
@@ -271,7 +273,8 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
           iprop(nodeAppliedLb C.ρ.raft.raft.cl nid (uint.nat C.ai₀ + (A ++ ce).length) ∗
             srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
-              (uint.nat C.ai₀ + (A ++ ce).length + 1))) ∗
+              (uint.nat C.ai₀ + (A ++ ce).length + 1) ∗
+            srvFrozenTerms C.γs (uint.nat C.ai₀ + A.length + 1) ce)) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
         isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
         dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
@@ -290,7 +293,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, ⟨%w, #HWA, %Hw⟩, HtokR, %Hpure⟩
   rw [hw]
-  obtain ⟨Hloop, Hai0, HJ, Hstep, Hlt⟩ := Hpure
+  obtain ⟨Hloop, Hai0, HJ, Hci, Hstep, Hlt⟩ := Hpure
   iunfold schedule.schedRunning at Hrun
   icases Hrun with ⟨Hrt, Htok⟩
   have habove := srvIdxOk_batch_above C.ai₀ ai A ce hidx Hai0
@@ -353,7 +356,8 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
       iprop(nodeAppliedLb C.ρ.raft.raft.cl nid
         (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
         srvFrozenRange C.γs (uint.nat ai + 1)
-          ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) $$ []
+          ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
+        srvFrozenTerms C.γs (uint.nat ai + 1) ce)) $$ []
   · rw [e1, e2]; iexact Hracc
   ihave #HWc' : iprop(srvWTPool B.E C.wt) $$ []
   · rw [srvWTPool_beSucc HB]; iexact HWc
@@ -371,7 +375,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   inext
   iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
-  obtain ⟨hloop', hai', hci', hat'⟩ := Hpost
+  obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
   iapply HΦ
@@ -409,7 +413,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     omega
   ipureintro
   rw [hun] at Hx'
-  refine ⟨hloop', by rw [hai', hlast], ?_, ?_, ?_⟩
+  refine ⟨hloop', by rw [hai', hlast], ?_, hciN Hci, ?_, ?_⟩
   · apply ciJ_step _ _ _ ai ai' HJ (by rw [hai']; omega) hci'
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
   · rw [hun] at hat'; exact lastTermIs_append Hlt hat'
@@ -756,7 +760,8 @@ theorem EtcdServer.run.wp_proof
       iframe HWA0
       ipureintro; have := uint_nat_eq ai₀; omega
     ipureintro
-    refine ⟨Hloop0, by simp, Or.inl Hc0.symm, rfl, Or.inl rfl⟩
+    refine ⟨Hloop0, by simp, Or.inl Hc0.symm, ?_, rfl, Or.inl rfl⟩
+    rw [← Hc0, Hc0a.2.2]; have := uint_nat_eq c₀; word
   -- the loop: the log `A` received, the scheduler's queue ending with the name of `Q`, the last
   -- tracked job's `Post` (the initial `True` before the first job) and the resource `R` the next
   -- job gets from `run` (`applyRes []` before the first job), together `applyRes A`
@@ -873,7 +878,8 @@ theorem EtcdServer.run.wp_proof
       ihave #Hrac' : rnAdvChan apv.raftAdvancedC' (letI := srvStor (GF := GF) ρ.raft.raft
           iprop(nodeAppliedLb ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗
             srvFrozenRange γn.γs (uint.nat ai₀ + A.length + 1)
-              (uint.nat ai₀ + (A ++ ce).length + 1))) $$ []
+              (uint.nat ai₀ + (A ++ ce).length + 1) ∗
+            srvFrozenTerms γn.γs (uint.nat ai₀ + A.length + 1) ce)) $$ []
       · rw [hnd0, show uint.nat ai₀ + (A ++ ce).length = (γn.pre ++ A ++ ce).length by
             simp [hp0, ha0],
           show uint.nat ai₀ + A.length + 1 = (γn.pre ++ A).length + 1 by simp [hp0, ha0]]
@@ -1277,7 +1283,8 @@ theorem EtcdServer.run.wp_proofOn
       iframe HWA0
       ipureintro; have := uint_nat_eq ai₀; omega
     ipureintro
-    refine ⟨Hloop0, by simp, Or.inl Hc0.symm, rfl, Or.inl rfl⟩
+    refine ⟨Hloop0, by simp, Or.inl Hc0.symm, ?_, rfl, Or.inl rfl⟩
+    rw [← Hc0, Hc0a.2.2]; have := uint_nat_eq c₀; word
   -- the loop: the log `A` received, the scheduler's queue ending with the name of `Q`, the last
   -- tracked job's `Post` (the initial `True` before the first job) and the resource `R` the next
   -- job gets from `run` (`applyRes []` before the first job), together `applyRes A`
@@ -1394,7 +1401,8 @@ theorem EtcdServer.run.wp_proofOn
       ihave #Hrac' : rnAdvChan apv.raftAdvancedC' (letI := srvStor (GF := GF) ρ.raft.raft
           iprop(nodeAppliedLb ρ.raft.raft.cl γn.id (uint.nat ai₀ + (A ++ ce).length) ∗
             srvFrozenRange γn.γs (uint.nat ai₀ + A.length + 1)
-              (uint.nat ai₀ + (A ++ ce).length + 1))) $$ []
+              (uint.nat ai₀ + (A ++ ce).length + 1) ∗
+            srvFrozenTerms γn.γs (uint.nat ai₀ + A.length + 1) ce)) $$ []
       · rw [hnd0, show uint.nat ai₀ + (A ++ ce).length = (γn.pre ++ A ++ ce).length by
             simp [hp0, ha0],
           show uint.nat ai₀ + A.length + 1 = (γn.pre ++ A).length + 1 by simp [hp0, ha0]]

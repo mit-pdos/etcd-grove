@@ -109,7 +109,7 @@ theorem EtcdServer.applyEntries.wp_proofOff
       iframe Hlog
       rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iframe Hka HRS
     ipureintro
-    refine ⟨Hok, ?_, by simp [unapplied], Or.inl rfl, Or.inl ⟨by simp [unapplied], rfl⟩⟩
+    refine ⟨Hok, ?_, by simp [unapplied], Or.inl ⟨by simp [unapplied], rfl⟩, Or.inl ⟨by simp [unapplied], rfl⟩⟩
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     have : (0 : Int) ≤ uint.Z ai := by word
     omega
@@ -272,7 +272,7 @@ theorem EtcdServer.applyEntries.wp_proofOff
       iframe Hlog
       rw [hun, List.append_nil]; iframe Hka HRS
     ipureintro
-    refine ⟨Hok, ?_, by rw [hun]; simp, Or.inl rfl, Or.inl ⟨hun, rfl⟩⟩
+    refine ⟨Hok, ?_, by rw [hun]; simp, Or.inl ⟨hun, rfl⟩, Or.inl ⟨hun, rfl⟩⟩
     rw [hmL]
     simp only [Option.map_some, Option.getD_some]
     have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif
@@ -319,7 +319,7 @@ theorem EtcdServer.applyEntries.wp_proofOn
       iframe Hlog
       rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iframe Hka HRS
     ipureintro
-    refine ⟨Hok, ?_, by simp [unapplied], Or.inl rfl, Or.inl ⟨by simp [unapplied], rfl⟩⟩
+    refine ⟨Hok, ?_, by simp [unapplied], Or.inl ⟨by simp [unapplied], rfl⟩, Or.inl ⟨by simp [unapplied], rfl⟩⟩
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     have : (0 : Int) ≤ uint.Z ai := by word
     omega
@@ -482,7 +482,7 @@ theorem EtcdServer.applyEntries.wp_proofOn
       iframe Hlog
       rw [hun, List.append_nil]; iframe Hka HRS
     ipureintro
-    refine ⟨Hok, ?_, by rw [hun]; simp, Or.inl rfl, Or.inl ⟨hun, rfl⟩⟩
+    refine ⟨Hok, ?_, by rw [hun]; simp, Or.inl ⟨hun, rfl⟩, Or.inl ⟨hun, rfl⟩⟩
     rw [hmL]
     simp only [Option.map_some, Option.getD_some]
     have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif

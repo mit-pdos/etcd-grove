@@ -216,6 +216,13 @@ hand-over with `raftAdvancedC`). -/
 def srvFrozenRange (γs : MemStorNames) (lo hi : Nat) : IProp GF :=
   [∗list] j ∈ List.range' lo (hi - lo), srvFrozenAt γs j
 
+/-- (2026-10-31, the snapshot track: #11's S3) **The entries of `L` frozen from `lo` on, with
+their terms** (persistent; the raft loop's hand-over with `raftAdvancedC`, next to
+`srvFrozenRange`): the storage's entry at `lo + k` is frozen and has `L[k]`'s term, so a snapshot
+`CreateSnapshot` names after it has the applied term (`srvFrozenTerm`). -/
+def srvFrozenTerms (γs : MemStorNames) (lo : Nat) (L : List EntryModel) : IProp GF :=
+  [∗list] k ↦ m ∈ L, iprop(∃ e : EntryM, memLog γs (lo + k) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝)
+
 /-- (2026-10-30, the repair) **Every entry below `n` frozen or compacted** (persistent;
 `Compact`'s premise at any compaction index below the applied index: `ApplySnapshot` compacts
 below a snapshot). -/
@@ -704,13 +711,13 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
     have Hpre' : γ.pre.map EntryModel.toLE <+: strip l.dlv := by
       refine List.IsPrefix.trans ?_ Hpfx
-      simp only [srvLE, RNNames.srv, List.map_append]
+      simp only [srvLE, List.map_append]
       exact List.prefix_append _ _
     have hA' : srvLE γ.srv A' = strip l.dlv := by
       have ht := List.prefix_iff_eq_take.1 Hpre'
       rw [List.length_map] at ht
       rw [HA']
-      simp only [srvLE, RNNames.srv, List.map_append, List.map_map]
+      simp only [srvLE, List.map_append, List.map_map]
       have hc : (EntryModel.toLE ∘ EntryModel.ofM) = LogEntry.ofEntryM := rfl
       rw [hc, List.map_drop, ht]
       exact List.take_append_drop _ _
@@ -1161,7 +1168,9 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
       (letI := srvStor (GF := GF) γ.node
        iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ F ++ ce).length ∗
         -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
-        srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1))) ∗
+        srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1) ∗
+        -- (2026-10-31, the snapshot track: #11's S3) with their terms
+        srvFrozenTerms γ.γs ((γ.pre ++ F).length + 1) ce)) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
     rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)

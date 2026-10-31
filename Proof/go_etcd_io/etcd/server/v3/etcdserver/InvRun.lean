@@ -269,6 +269,8 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
+      -- (2026-10-31, the snapshot track: #11's S1) the consistent index at least the applied one
+      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       entriesStep C.c₀ A C.x₀ x ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)

@@ -410,7 +410,8 @@ theorem raftNode.start.wp_proof
       -- (D19i part 1) `raftAdvancedC`: a broadcast channel, closed after `Advance`
       -- its close carries the storage's floor past the batch (`node.Advance`'s)
       imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗
-          srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1)) γac ac
+          srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1) ∗
+          srvFrozenTerms γ.γs ((γ.pre ++ L').length + 1) ce) γac ac
         $$ Hacch Hacown with Hacp
       icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
       -- `proto.Clone(rd.Snapshot)` of the nil snapshot, twice
@@ -545,7 +546,7 @@ theorem raftNode.start.wp_proof
         imod (letI : MemStorReg GF := ⟨γ.reg⟩;
           rn_freeze_receipt γ.ms γ.γs (srvLE γ.srv L').length (ce.map EntryModel.toLE)
             (es.map EntryModel.toM) (fun e0 h => (Hcfp e0 h).2) (fun e0 h => (Hcfp e0 h).1))
-          $$ Hreg Hcf Hrcpt with ⟨#Hfr, Hrcpt⟩
+          $$ Hreg Hcf Hrcpt with ⟨#Hfr, #Hall, Hrcpt⟩
         have hlenL : (srvLE γ.srv L').length = (γ.pre ++ L').length := by simp [srvLE]
         have hlenLce : (srvLE γ.srv L').length + (ce.map EntryModel.toLE).length =
             (srvLE γ.srv (L' ++ ce)).length := by simp [srvLE]; omega
@@ -557,6 +558,9 @@ theorem raftNode.start.wp_proof
         ihave #Hfr : srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1)
           $$ []
         · rw [← hlenR, ← hlenL]; iexact Hfr
+        ihave #Hft : srvFrozenTerms γ.γs ((γ.pre ++ L').length + 1) ce $$ []
+        · rw [← hlenL]
+          iapply srvFrozenTerms_of_memLog γ.γs _ (srvLE γ.srv L').length ce $$ Hall
         -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
         ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
         ihave #Hcea' := Hcea
@@ -665,7 +669,7 @@ theorem raftNode.start.wp_proof
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-            · imodintro; iframe Hfl Hfr
+            · imodintro; iframe Hfl Hfr Hft
             (try wp_auto)
             wp_for_post
             iframe
@@ -715,7 +719,7 @@ theorem raftNode.start.wp_proof
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-              · imodintro; iframe Hfl Hfr
+              · imodintro; iframe Hfl Hfr Hft
               (try wp_auto)
               wp_for_post
               iframe
@@ -769,7 +773,7 @@ theorem raftNode.start.wp_proof
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-            · imodintro; iframe Hfl Hfr
+            · imodintro; iframe Hfl Hfr Hft
             (try wp_auto)
             wp_for_post
             iframe
@@ -813,7 +817,7 @@ theorem raftNode.start.wp_proof
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-              · imodintro; iframe Hfl Hfr
+              · imodintro; iframe Hfl Hfr Hft
               (try wp_auto)
               wp_for_post
               iframe

@@ -106,3 +106,37 @@ inside an exported contract: done on the branch, to be approved before the merge
 - Left: #11's `spec` branch (`applyAll` calling `specFull`: its premises, the sources of
   `epCsCfg`, `srvFrozenTerm`, `ai ≤ ciEff`, `releaseOk`, `GMap.size cfg < 2^61`), #3, #7, #8
   (the two-receive notify; with auth on, a mode-`on` `applySnapshot`).
+
+## #11: what `applyAll` must hand `specFull` (design, 2026-10-31)
+
+At `applyAll`'s call of `snapshotIfNeededAndCompactRaftLog` (after `applyEntries`, the
+`notifyc` receive and the `raftAdvancedC` receive), at the new applied index `ai'` and term `at'`:
+
+| `specFull` needs | `applyAll` has / the source to add |
+|---|---|
+| `isServerM E.authOn`, `isServerApplyAll`, `srvWTPool`, `srvWTTaken` with `ai' ≤ w'` | has (`isServer` is `isServerM false`; `HW`, `HWA'`, `hlen'`) |
+| `appliedAtLeast γr ai'` | has (`srvAppliedOwn_lb`) |
+| `nodeAppliedLb nid ai'` | has: `raftAdvancedC`'s receipt (today dropped, `iintro ⟨-, -⟩`) |
+| `uint.Z ai' ≤ uint.Z (ciEff st')` | **S1** a pre `ai ≤ ciEff st` and the post `ai' ≤ ciEff st'`; `applyEntries`' "ci unchanged" disjunct strengthened to the empty batch (every `Or.inl` in its proof is one), `apply`'s `max`; `run`'s loop carries it (Go: `applyEntryNormal`'s `SetConsistentIndex` when below the entry's index) |
+| `srvSnapFrozen γs ai'` | **S2** a pre `srvSnapFrozen γs ai` and the post at `ai'`: the receipt's `srvFrozenRange (ai+1) (ai'+1)` with it (a lemma) |
+| `srvFrozenTerm γs ai' at'` | **S3** `srvFrozenRange` naming the batch's entries (`memLog γs j □ [m.toM]` for the entry `m` at `j`), so the entry at `ai'` has the applied term (`termAfter`); the raft loop's freeze (`RaftLoopFreeze`, `srv_batch_tail`) knows them |
+| `srvSnapStor mst γs γr nid ai' at'` | **S4** `memStorInv` (the raft node's, persistent), `srvRaftLogInv` (the server's), the committed prefix of length `ai'` ending at `at'` (`batchCommittedIdx`/`kvApplied`'s log), `storDL nid ai'` (the delivered log past `ai'`: with the batch's receipt) |
+| `epCsCfg γr cs'` | **S5** an apply-thread invariant through `apply`/`applyConfChange` (raft's answer `confStateIs cs m'` at `simple cfg`, D3) and at the start (`server.go:809`) |
+| `srvSnapDisk s γr`, `srvKVAddr ↦□ kv`, `srvKVCommitOk kv RC RC'`, `RC` | **S6** from `run`/the start (the merged snapshot's sender has the KV commit contract, `SnapSendBranch`) |
+| `storage.releaseOk`, `GMap.size cfg < 2^61` | **S7** premises; `releaseOk` up to the exported results (a proposal, above) |
+
+Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant, S7 last.
+
+### #11 progress (2026-10-31)
+
+- **S1 done** for `applyAll` and `run`: `applyEntries`' "ci unchanged" disjunct is the empty batch's;
+  `applyAll`'s post `ai ≤ ciEff st → ai' ≤ ciEff st'`; `run`'s loop invariant (`applyRes`,
+  `applyResOn`) carries `ai ≤ ciEff`, at the start from `isServerRun`'s fresh start (`ai₀ = 0`).
+  Left: `applyAll` taking it as a premise once it calls `specFull`.
+- **S2**: `srvSnapFrozen_extend` (`SDSnapLemmas.lean`); not yet threaded (`applyAll` must take
+  `srvSnapFrozen γs ai` and `run`'s loop carry it).
+- **S3 done** for the receipt: `srvFrozenTerms` (`InvRaftNode.lean`) next to `srvFrozenRange` in
+  `raftAdvancedC`'s payload, from `raftNode.start`'s freeze (`rn_freeze_receipt` returns the
+  frozen `memLog`, `srvFrozenTerms_of_memLog`) through `rnApN`, `run` and `applyAll`'s spec.
+  Left: `srvFrozenTerm γs ai' at'` from it and `termAfter` in `applyAll` (and, for an empty batch,
+  from the previous batch's: `run`'s loop carries it).

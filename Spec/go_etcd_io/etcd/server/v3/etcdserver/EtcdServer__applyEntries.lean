@@ -72,7 +72,8 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           -- (D22 J5) one index per entry applied
           uint.Z ai' = uint.Z ai + (unapplied ai ms).length ∧
-          (ciEff γ st'.k = ciEff γ st.k ∨
+          -- (2026-10-31, the snapshot track: S1) the consistent index unchanged only for an empty batch
+          ((unapplied ai ms = [] ∧ ciEff γ st'.k = ciEff γ st.k) ∨
             uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
