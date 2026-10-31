@@ -108,6 +108,10 @@ inside an exported contract: done on the branch, to be approved before the merge
   fits, last term and `snapshotValid`, `updateCommittedIndex.spec` over the snapshot's model,
   `raftNode.start.spec`'s `memStorInv`/`memSnapLb γs 0`. `rnApSnap` now hands the apply side
   `isNotify2 … ∗ notifyRcvN γ 0`: #7/#8 receive twice with it.
+- 2026-10-31: #7's raft part: `nodeDriver_hardStateCommitted` (the hard state's `committedAtTerm`
+  bounding the delivered log, also after a snapshot `Ready`), for `rnRtOk` and the merge branch's
+  `sentMsg_replaceSnapshot`; `notes/decisions.md`, "The driver's hard-state witness after a snapshot
+  `Ready`". Next for #7: `rnRtOk` real (branch `snap-rt`), then the merge branch.
 - Left: #7, #8 (the two receives, `wp_notify2_receive1`/`2`; with auth on, a mode-`on`
   `applySnapshot`). (#11 done: "#11 progress" below.)
 

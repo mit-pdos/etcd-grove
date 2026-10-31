@@ -27804,3 +27804,30 @@ Proof detail: `wp_apply` of `zap.Logger.Fatal` overflows Lean's stack in this br
 continuation, the rest of the branch, is longer than the entries branch's); the three `Fatal`
 calls are focused with `wp_bind` and `iapply`. Errors earlier in a proof can make later,
 unchanged parts of it fail (here the entries branch's conf-change scan): fix the first error first.
+
+## The driver's hard-state witness after a snapshot `Ready` (2026-10-31, #7's raft part)
+
+**2026-10-31 · accepted (the user approved the API law; supersedes stage U3d's escape in `hsCommitted`)**
+
+#7's merge branch (`applyAll`: `case m := <-s.r.msgSnapC: if m.GetTerm() == apply.raftTerm`, the
+merged snapshot sent with `sentMsg_replaceSnapshot`) needs `committedAtTerm γ N raftTerm c` with the
+merged snapshot's index at most `c`. Raft's API had it, `nodeDriver`'s `hsCommitted` (the last
+non-empty hard state handed out, which is Go's `raftTerm`, `raft.go:222`), but since U3d it was
+vacuous outside the no-snapshot mode (a third disjunct `reNoSnap = false`): the witness a `Ready`
+handed out (`hsWit`) bounded the committed log before the `Ready`'s snapshot, not the log up to it
+that the driver is then handed (`dlvAfter`).
+
+The bound held all along: `restore` sets `committed` to the snapshot's index, and
+`readyWithoutAccept` already had it (`Hcmle`, from the raft log's invariant). Now:
+
+- `readyWithoutAccept` builds `phsWit` of `phsNext rs.phs h` with the commit index at least the
+  node's (`committed ≤ (phsNext rs.phs h).Commit'`, in the three cases), and states `hsWit` at
+  `(dlvAfter rs.delivered ce L).length` (`RawNode.readyWithoutAccept.spec`, `RawNode.Ready.spec`,
+  `freshOk`, `readySnapData`: `l.dlv.length`); `hsWit_mono` gives the old length where a `Ready` is
+  abandoned (`runMid_head`).
+- `hsCommitted` loses the escape; both `readyRecv_open` producers derive it with
+  `hsCommitted_of_raft` from the `Ready`'s witness (the entries producer had it too and dropped it).
+- **New API law** (`InvNode.lean`, `interface/` regenerated): `nodeDriver_hardStateCommitted`:
+  `nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N
+  st.hardState.Term' st.hardState.Commit' ∗ ⌜|st.delivered| ≤ st.hardState.Commit'⌝)`. The server's
+  raft loop uses it for `rnRtOk` (branch `snap-rt`, in progress).

@@ -523,7 +523,10 @@ exported results' `storage.diskOk`). Proved too: #3 (`raftNode.start`'s snapshot
 `SaveSnap`, `Save`, `Sync`, `ApplySnapshot`, `Append`, `Advance`'s snapshot clause, `rnApSnap` on
 `applyc`; the two-receive notify `NotifyC2.lean`; `notes/decisions.md`, "The raft loop's snapshot
 `Ready`"). Left: #7/#8 (the apply side's two receives; with auth on, an `applySnapshot` spec in the
-mode `on`).
+mode `on`). For #7's merge branch, raft's driver now carries its hard state's commit witness in
+snapshot mode too (`nodeDriver_hardStateCommitted`, a new API law; `notes/decisions.md`, "The
+driver's hard-state witness after a snapshot `Ready`"); the server's `rnRtOk` over it is in progress
+(branch `snap-rt`).
 
 **The WAL contract repaired** (2026-10-31, `notes/axiom-review/savesnap.md`, the user's decisions;
 `notes/decisions.md`, "The WAL's readiness and one disk premise"): `rnNewStorageOk`, a premise of

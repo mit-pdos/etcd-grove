@@ -303,6 +303,11 @@ theorem sentMsg_shape [package_sem : Assumptions] (γ : Cluster) (N : Namespace)
     MsgSt) : sentMsg γ N src st ⊢ ⌜SentMsgShape st ∧ (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some
     sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61)⌝
 
+theorem nodeDriver_hardStateCommitted [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
+    Namespace) (st : NodeDriverState) : nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ (⌜st.hardState =
+    hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗ ⌜↑st.delivered.length ≤
+    uint.Z st.hardState.Commit'⌝)
+
 def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState) (ce :
     List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF :=
   match x✝ with

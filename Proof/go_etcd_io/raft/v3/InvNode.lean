@@ -683,6 +683,18 @@ theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := by
   unfold committedAtTerm isCommittedLogLb; exact ApiImpl.committedAtTerm_committed_impl γ N t c
 
+/-- (2026-10-31) **The `Ready` loop's hard state is committed**: the last non-empty hard state
+handed out (`st.hardState`, what etcd's raft loop records as `raftTerm`) is zero, or a leader of its
+term committed the log through its commit index (`committedAtTerm`), which bounds the committed log
+delivered, after a snapshot `Ready` the log up to the snapshot. -/
+theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
+        ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := by
+  unfold nodeDriver committedAtTerm
+  exact ApiImpl.nodeDriver_hardStateCommitted_impl n γ N st
+
 /-! ### A snapshot the client builds (the snapshot track; open) -/
 
 /-- (open) **A raft `MsgSnap` with the client's snapshot in place of raft's** (today

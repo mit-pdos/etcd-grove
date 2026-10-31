@@ -864,7 +864,7 @@ theorem node.run.wp_proof
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
-          hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length) ∗
+          hsWit γ.raft (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length) ∗
         rdSnapOut γ.raft rs rdv' ce es L ∗
         ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ (rs.psnap = false → L = none)⌝)
       $$ [Hst]
@@ -917,6 +917,7 @@ theorem node.run.wp_proof
           iframe Hrs Hrs_ok
         isplitr
         · iexists hrd
+          simp only [dlvAfter]
           iframe Hrdh Hhsw
         isplitr
         · simp only [rdSnapOut]; ipureintro; exact Hrdz
@@ -998,7 +999,9 @@ theorem node.run.wp_proof
       | none =>
         simp only [readyDataL, readyData, rdSnapOut]
         icases Hsnz with %Hrdz
-        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri
+        ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length $$ []
+        · iExactEq Hhw; rfl
+        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri
         isplitl [Happ]
         · rw [← Hstor, ← Hsnγ]
           iexact Happ
@@ -1016,7 +1019,9 @@ theorem node.run.wp_proof
         · rw [Hgid]; iapply Hlloc $$ %l %rfl
         ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
         · iapply Hcert $$ %l %rfl
-        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri Hhalf Hdc Hll Hcl
+        ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
+        · iExactEq Hhw; rfl
+        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
         isplitr
         · iexists h; iframe Hhh; ipureintro; rfl
         isplitr

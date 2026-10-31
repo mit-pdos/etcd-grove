@@ -1137,12 +1137,11 @@ theorem committedAtTerm_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE 
   ipureintro; rw [strip_length]; exact Hlen
 
 /-- (2026-10-27) What a hard state says, the committed log delivered with it of length `n` (raft's
-`hsWit`, as the client sees it). (2026-10-28, stage U3d) Or nothing outside raft's no-snapshot mode:
-after a snapshot `Ready` the witness bounds the log before the snapshot, not the one delivered up to
-it (a dynamic cluster in the no-snapshot mode keeps `nodeDriver_hardStateCommitted`). -/
+`hsWit`, as the client sees it). (2026-10-28, stage U3d, until 2026-10-31: or nothing outside raft's
+no-snapshot mode, the witness of a snapshot `Ready` bounding the log before the snapshot; it now
+bounds the one delivered up to it, the snapshot's index being at most the commit index.) -/
 def hsCommitted (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) : IProp GF :=
-  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝ ∨
-    ⌜γ.raft.reNoSnap = false⌝)
+  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝)
 
 instance hsCommitted_persistent (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) :
     Persistent (hsCommitted (GF := GF) γ N h n) := by
@@ -1158,7 +1157,7 @@ theorem hsCommitted_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   · imodintro; ileft; ipureintro; exact H
   imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw with #Hc
   imodintro
-  iright; ileft
+  iright
   iframe Hc
   ipureintro; exact Hn
 
@@ -1877,7 +1876,7 @@ storage's certificate link and raft's view of the configuration (`nodeCfg`), whi
 dynamic node's (2026-10-27) its configuration names (`nodeTabOk`: its view of the configuration is
 `nodeConfig`, which the application holds apart), the witness of its hard state
 (`hsCommitted`) and (2026-10-28, stage U3d) outside raft's no-snapshot mode the storage's certificate
-link. -/
+link. (2026-10-31) The witness also after a snapshot `Ready`, bounding the log up to the snapshot. -/
 def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
@@ -2176,12 +2175,14 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readyData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, -, Hss, %Hnull, #Hidx, %Hix⟩
+      ⟨%h, Hhs, %Hp'⟩, #Hhw, Hss, %Hnull, #Hidx, %Hix⟩
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
     · rw [← Hγr]; iexact Hrs
     imod api_msgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms $$ Hci Hpool Hmo Htks with Hms
+    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' (ds ++ ce).length $$ Hci [Hhw] with #Hhc
+    · rw [← Hγr]; iexact Hhw
     rw [Hid0]
     iunfold readyIdx at Hidx
     icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
@@ -2248,7 +2249,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     isplitr
     · ipureintro; exact Hdyn
     isplitr
-    · unfold hsCommitted; iright; iright; ipureintro; exact HU.noSnap
+    · have Hn : (st.delivered ++ strip ce).length = (ds ++ ce).length := by
+        rw [List.length_append, List.length_append, strip_length, Hlen]
+      rw [← Hp', Hn]; iexact Hhc
     iright
     iexists es, none
     isplitr
@@ -2260,7 +2263,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, -, Hss, #Hidx, Hsnap, #Hdlv, -, #HD, -, %Hfacts, Hout⟩
+      ⟨%h, Hhs, %Hp'⟩, #Hhw, Hss, #Hidx, Hsnap, #Hdlv, -, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
@@ -2274,6 +2277,8 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
     · rw [← Hγr]; iexact Hrs
     imod api_msgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms $$ Hci Hpool Hmo Htks with Hms
+    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' l.dlv.length $$ Hci [Hhw] with #Hhc
+    · rw [← Hγr]; iexact Hhw
     imod snapshotCert_of_raft γ N ⊤ CoPset.subseteq_top HU.noSnap _ $$ Hci [HD] with #Hcert
     · rw [← Hγr]; iexact HD
     ihave #Hsn := nodeTabOk_storNames γ id γn $$ Htab
@@ -2330,7 +2335,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     isplitr
     · ipureintro; exact Hdyn
     isplitr
-    · unfold hsCommitted; iright; iright; ipureintro; exact HU.noSnap
+    · rw [← Hp', strip_length]; iexact Hhc
     iright
     iexists es, some l
     isplitr
