@@ -76,23 +76,23 @@ Rerun for the public issue (2026-10-31, at 511703d7b from a `git archive` copy, 
 
 `check.py` (2026-10-31, the public issue; `--worktree /shared/etcd-fixes/etcd-txn-keysonly-reply-alloc-panic`,
 since `meta.md` names the worktree under `/shared`, not `~/etcd-fixes`, and `go` on `PATH` for `gofmt`): the commit
-and PR checks pass. Left:
-- FAIL `issue: links into the code`: the user asked for the cause, with permalinks at the base, in the issue (as a
-  raft issue has since the 2026-10-23 review); without it the reader cannot see why one request of 30 MiB costs
-  2^48 bytes. The skill's rule for etcd issues ("no root cause, code links") predates this; if the user keeps it,
-  SKILL.md and `check.py` should allow it for etcd issues too.
-- WARN `issue: 347 words`: over the 250 for an etcd issue, under the 380 for a raft issue, which explains its cause
-  as this one now does; without the cause paragraph it is about 250.
-- WARN `issue: names code the fix touches: checkTxnRequest`: the cause paragraph names it (its link).
+and PR checks pass; the issue is 249 words of prose. Left:
 - WARN on the doc comment of the new `txnOps`: Go convention for a new function; kept.
+
+The issue has no cause paragraph: a draft had one with code permalinks, at the coordinator's request, and it was
+withdrawn (the skill: an etcd issue has only the symptom, the expectation and the reproduction). The PR keeps the
+cause it fixes (`checkTxnRequest`'s per-level budget, linked). The rest of the explanation stays here, for a
+reviewer who asks why one 30 MiB request costs 2^48 bytes: a nested txn is not read-only by `IsTxnReadonly`
+(`txn/txn.go#L352-L364` at the base), so every member applies it through raft and builds its reply; keys-only
+ranges share the index's key buffers (`mvcc/kvstore_txn.go#L90-L106`), so the reply is small in memory but huge
+encoded; and the codec (`v3rpc/codec.go#L21-L25`) allocates the encoded size before grpc's send-limit check.
 
 The crash program in the issue is linked at an etcd-grove commit (d1bafb95f), not named by its test name: it is not
 on the fix branch, and it builds the member from the fork's 249d76bea (whose code on this path is `main`'s, above),
 which the issue's version section says. The release-branch note (3.4 to 3.6 copy the keys, so no 2^48 panic, but
 the same request still builds a reply of leaves times keyspace on every member; by code reading, not run) stays
 here, above, not in the issue: the bug-report form has no room for it and the issue makes no claims about other
-releases. The grpc-go codec bug (`issues/upstream/grpc-codec-alloc-before-size-check/`, not filed) is not mentioned;
-the cause paragraph says only that the codec allocates before grpc's send-limit check.
+releases. The grpc-go codec bug (`issues/upstream/grpc-codec-alloc-before-size-check/`, not filed) is not mentioned.
 
 The commit messages need no change for the public route.
 
