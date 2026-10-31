@@ -1,8 +1,8 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
-**the Probe**: item 18, G2, the commit step's compaction arm and S3-3's transfer lemma done ("The
-Probe", the last section); next G1. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+**the Probe: done** (item 18, G2, the commit step's compaction arm, S3-3's transfer lemma, G1:
+"The Probe", the last section); next the switch. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -13,8 +13,9 @@ Probe", the last section); next G1. Before: review rounds done (round 7: nothing
    so dropping the premise from mvcc's specs gates the switch (F-5).
 2. *Approved* (2026-10-31, the user: "approve the items; start the Probe with item 18").
 3. *The Probe*: item 18, G2 (the user's (a')), the commit step's compaction arm
-   (`kv_prop_au_cmp`) and S3-3's transfer lemma (`kv_entry_claim`), both in `M2ApplyProbe.lean`,
-   done ("The Probe", below). **Next: G1.**
+   (`kv_prop_au_cmp`), S3-3's transfer lemma (`kv_entry_claim`) and G1 (`clusterWorkloadOk_ofD`),
+   all in `M2ApplyProbe.lean`, done ("The Probe", below). **The Probe is done; next: the switch**
+   (the items in place; what it still needs is listed at the end of "The Probe").
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -242,7 +243,8 @@ such a statement is written in. "Snapshot track" = the collaborator's (D22).
 
 ## Gaps (not cheap; for the Probe/Prove steps)
 
-- **G1, the committed log's claims** (`clusterWorkloadOk` with `cmpLogOk`): `kvInvD` keeps
+- **G1, the committed log's claims** (`clusterWorkloadOk` with `cmpLogOk`; superseded by S3-3, item 8
+  dropped: the Probe's G1 is only the shapes, "The Probe"): `kvInvD` keeps
   `cmpLogOk` of the *requested* log; the apply loop needs it of the *committed* logs, as
   `clusterWorkloadOk_of` (`BuildGap.lean`) transfers `logShape` through `kvModel_eqv`. Per-entry
   shape transfers entry by entry; `cmpLogOk` refers to the model of the prefix, so the transfer is
@@ -639,3 +641,23 @@ entries has length `|opsOf A|`, `L`'s next entry has `m`'s type and data, `cmpLo
 gives the claim at `A'`, and `kvModel_eqv` moves it to `A` (under the invariant's `c0 ≤ ai0`). No
 surprise. What the switch still needs there: the mode `γr.kv.cmp` read as `E.cmp` (S-5's law, by
 item 19's tie), for `cmpAdmit_of_entry`.
+
+**G1: done (2026-10-31), smaller than stated.** With S3-3 adopted (item 8 dropped), no clause
+carries `cmpLogOk`: `applyEntryNormal` gets each entry's claim from the invariant (`kv_entry_claim`).
+What remained of G1 is that `clusterWorkloadOk_of` still holds over the switch's invariant, with
+`clusterWorkloadOk`'s `logShape` read under item 1 (a compaction admitted): `clusterWorkloadOk_ofD`
+(`M2ApplyProbe.lean`: `kvInvD ρ.raft ρ.kv cmp ∗ srvRaftLogInv ∗ idNoZero ⊢ □ ∀ L, srvRLogLb L ={⊤}=∗
+⌜logShapeD L⌝ ∗ batchWaitOk ρ E L`), the same proof over `kvWorkD`/`entryShapeD`, with
+`batchWaitOk_of_workD` (`batchWaitOk_of_work` reads only a conf change's id `0`). At the switch both
+are today's lemmas, unchanged in text (their copies here only because the Probe cannot redefine).
+
+**The Probe is done** (no surprise in any step; every proof in `M2ApplyProbe.lean`, no
+`axiom`/`sorry`). **What the switch still needs** (none of it a risk found by the Probe): the
+redefinitions of the item list in place, and their proofs moved (`kvInvD`'s users, the `plainLogM`
+versions of item 5's model lemmas); the commit step's three plain arms over the new invariant and
+the auth-on twin `kv_prop_au_M` (with `kvCertInvM`, `srvRaftLogInv`); in `applyEntryNormal`'s proof
+the call `kv_entry_claim` beside `kv_log_plain` and the mode read as `E.cmp` by item 19's tie (S-5's
+law); the apply package's compaction arm (items 2-4, 9-11, 21) proved over the Drafts' statements;
+`CompactMode.lean`'s family retired (items 5, 15). Still blocked elsewhere: `applyAll`/`run`'s
+merge (the auth-mode merge, after the snapshot track's SNAPSHOT-SORRYs #7/#8) and item 14's
+`NewServer.specD` (its on arm's proof).

@@ -13,6 +13,8 @@ that they are provable before the switch.
 * **The transfer (S3-3, item 8)**: an entry of the committed log gets its compaction claim from the
   KV invariant's (`kv_entry_claim`, at `kv_log_plain`'s hypotheses, which `applyEntryNormal`'s proof
   holds; its pure core `cmpEntryOk_transfer`).
+* **G1**: the workload clause over the switch's invariant (`clusterWorkloadOk_ofD`, with
+  `batchWaitOk_of_workD`): `clusterWorkloadOk_of`'s proof over `kvInvD` and the drafted shapes.
 
 Lean-first (no Rocq counterpart).
 -/
@@ -20,6 +22,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.M2ApplyDraft
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 
 @[expose] public section
 
@@ -297,6 +300,107 @@ theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames) (cmp : Bool)
   ipureintro
   obtain ⟨-, -, hc0, -, -, hcl⟩ := Hok
   exact cmpEntryOk_transfer γ γk cmp A L m HBi Hp.1 Hp.2.1 Hp.2.2 hc0 hcl
+
+/-- `batchWaitOk_of_work` over the drafted shapes (item 1): it reads only a conf change's id `0`,
+which `entryShapeD` keeps. -/
+theorem batchWaitOk_of_workD (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
+    (hs : logShapeD L) (hcl : ccLogOk ρ.raft.raft L) :
+    ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
+      batchWaitOk ρ E L := by
+  iintro #Hcl #HNZ #HL
+  iunfold batchWaitOk
+  iintro !> %m %hm
+  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+  ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ m => entryClaim (GF := GF) ρ.ids m) hn) $$ Hcl
+  have hsh := hs m hm
+  unfold entryWaitOk
+  split
+  · rename_i ht
+    isplitr
+    · iintro %rq %id %hrq
+      obtain ⟨hd, hdec, hid⟩ := hrq
+      iunfold entryClaim at Hc
+      icases Hc with (%hc | ⟨%rq', %id', %γf, %hrq', #Hcl', #Hreg⟩)
+      · exfalso; rcases hc with hc | hc
+        · exact hc ht
+        · exact hd hc
+      · obtain ⟨hdec', hid'⟩ := hrq'
+        rw [hdec] at hdec'
+        cases hdec'
+        rw [hid] at hid'
+        cases hid'
+        iframe Hreg
+        iexists γf
+        iexact Hcl'
+    · iexists L
+      iframe HL
+      ipureintro; exact hm
+  · rename_i ht
+    have h0 := hsh.2 ht
+    rw [h0]
+    isplitr
+    rotate_left
+    · ipureintro; exact hcl m hm ht
+    iintro !> %Ψ HR
+    iunfold reqWaitR at HR
+    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0
+
+/-- **G1: the workload clause over the switch's invariant** (`clusterWorkloadOk_of` over `kvInvD`,
+with `clusterWorkloadOk`'s `logShape` read under item 1 as `logShapeD`): a committed log's entries
+have the drafted shapes (a compaction admitted) and claimed ids. The claims `cmpLogOk` are not in
+it: S3-3 (`kv_entry_claim`) gives `applyEntryNormal` each entry's from the invariant, so the
+clause does not carry them (item 8 dropped). -/
+theorem clusterWorkloadOk_ofD (ρ : ReqNames) (E : apply.AEnv GF) (cmp : Bool) :
+    kvInvD (GF := GF) ρ.raft ρ.kv cmp ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
+      □ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeD L⌝ ∗ batchWaitOk ρ E L := by
+  iintro ⟨#Hkv, #Hr, #HNZ⟩
+  iintro !> %L #HL
+  ihave #HLc : isCommittedLogLb ρ.raft.raft.cl (srvLE ρ.raft L) $$ []
+  · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 ρ.raft (srvLE ρ.raft L) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HLc
+  have hnv : ∀ m ∈ L, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
+  iunfold kvInvD at Hkv
+  iinv Hkv with >Hi Hclose
+  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
+  imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
+  ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
+  imod Hclose $$ [HL' Hσ] with -
+  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+  iunfold kvWorkD at Hw
+  icases Hw with ⟨%Hsh, #Hcl⟩
+  obtain ⟨Hsh, Hccl⟩ := Hsh
+  have hshL : logShapeD L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      have := Hsh m' hm'
+      unfold entryShapeD at this ⊢
+      rw [← h1, ← h2]; exact this
+  have hcclL : ccLogOk ρ.raft.raft L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · intro h; exact absurd ht h
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      rw [← h1, ← h2]; exact Hccl m' hm'
+  ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
+  imodintro
+  isplitr
+  · ipureintro; exact hshL
+  iapply batchWaitOk_of_workD ρ E L hshL hcclL $$ HclL HNZ HL
 
 end probe
 
