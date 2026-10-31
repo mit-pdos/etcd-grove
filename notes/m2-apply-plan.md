@@ -1,8 +1,8 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
-**the Probe**: item 18 done ("The Probe", the last section); next G2 by Q3's (a) (the user's
-order), then the commit step and S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+**the Probe**: item 18 and G2 done ("The Probe", the last section); next the commit step and
+S3-3's transfer lemma. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -12,11 +12,8 @@ order), then the commit step and S3-3's transfer lemma. Before: review rounds do
    fork fix is on `lean` since 2026-10-28; the Drafts are now stated in its form (no `NoDelPutAt`),
    so dropping the premise from mvcc's specs gates the switch (F-5).
 2. *Approved* (2026-10-31, the user: "approve the items; start the Probe with item 18").
-3. *The Probe*: item 18 done (mvcc, below). **Next (the user, 2026-10-31): G2 by Q3's (a)**: check
-   the mvcc law that every log the server's store certifies is `certOk` (`revMuBody` keeps `certOk`
-   of the committed log; every `idxCert` is a prefix of it, `idxLogAuth_cert_prefix`; the questions:
-   `certOk` prefix-closed, and reachable from an invariant the proposer can open, not only under
-   `revMu`); if it fails, back to the user for (b). Then the commit step (G4: `kv_prop_au` over
+3. *The Probe*: item 18 done; G2 done by the user's (a') (`store.Rev` returns `certOk`, `srvRevLb`
+   carries it, `cmpReach_of_srvRevLb`; "The Probe", below). **Next: the commit step (G4: `kv_prop_au` over
    `kvInvD`/`reqPropOkD` with `kvCertInv`), S3-3's transfer lemma (item 8), G1.
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
@@ -599,3 +596,19 @@ Probe (the first proofs: item 18's re-proof, the commit step, S3-3's transfer le
   `CompactMode.lean`'s interim `irrNoDelPut` (the switch replaces that family: items 15, 19);
   v3rpc's `check_gives_nodup`'s `noFromKeyDelL` (no longer needed by compaction; a separate cleanup).
 - Cost: as estimated (G6 cheap; the model's case about 30 lines).
+
+**G2 by Q3's (a), checked (2026-10-31).** (a) as stated (an invariant law `idxCert γ.idx l ⊢ ∃ l',
+certOk γ l' ∗ ⌜l <+: l'⌝`) is not available: the only `certOk` of the committed log outside a
+transaction is `revMuBody`'s, under the `revMu` lock, and no invariant ties the index's log
+(`monoListLbOwn γ.log`) to the `γ.cok` map. **A variant (a') closes it cheaply**: `store.Rev`'s proof
+already holds `certOk γ log` of the log it read (`store.Read`'s post, `#Hrok` in
+`store__Rev.lean`), so (1) `store.Rev.spec`'s post gains `mvcc.certOk γ log` (a strengthening; one
+`iframe`; its reader corollary `specR` follows), and (2) `srvRevLb γ n` gains `certOk γ log` beside the
+`idxCert` (its definition, `CompactMode.lean`; `EtcdServer.Compact.spec`'s text unchanged, the frozen
+`v3compactor` specs unchanged: `RevLb` is their parameter). The server's step is then the existing
+`kv_cert_read` (`KVLemmas.lean`, `hγ : γs.cok = γk.cok`), which is the commit route's (item 6)
+already: `cmpReach` could be `srvRevLb`'s form directly. **The user approved (a') (2026-10-31); done:**
+`store.Rev.spec`'s post `idxCert ∗ certOk ∗ ⌜…⌝` (proof: `iframe Hrok`; `spec_R` drops it, `specR`
+unchanged), `srvRevLb`'s definition with `certOk` (`srvRevLb_mono`), `EtcdServer.Compact`'s proof's
+pattern; the law `cmpReach_of_srvRevLb` (server Draft, proved: `kvCertInv γ γk -∗ srvRevLb γs (sint.Z r)
+={E}=∗ cmpReach γk r`, the free certificate excluded as in `kv_cert_read`). G2 closed.

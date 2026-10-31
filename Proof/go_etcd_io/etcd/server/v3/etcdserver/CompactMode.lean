@@ -127,9 +127,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **A revision the store has reached** (persistent): a certificate of a log longer than it. -/
+/-- **A revision the store has reached** (persistent): a certificate of a log longer than it,
+certified by the caller's map (`certOk`: `store.Rev` gives both; M2, the apply side, G2 by the
+user's (a'), 2026-10-31: the server reads it as a KV certificate, `cmpReach_of_srvRevLb`). -/
 def srvRevLb (γ : mvcc.StoreNames) (n : Int) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜n < log.length⌝)
+  iprop(∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗ ⌜n < log.length⌝)
 
 instance srvRevLb_persistent (γ : mvcc.StoreNames) (n : Int) :
     Persistent (srvRevLb (GF := GF) γ n) := by
@@ -140,10 +142,10 @@ theorem srvRevLb_mono (γ : mvcc.StoreNames) (n m : Int) (h : n ≤ m) :
     srvRevLb (GF := GF) γ m ⊢ srvRevLb γ n := by
   iintro H
   iunfold srvRevLb at H
-  icases H with ⟨%log, #Hc, %Hl⟩
+  icases H with ⟨%log, #Hc, #Hok, %Hl⟩
   iunfold srvRevLb
   iexists log
-  iframe Hc
+  iframe Hc Hok
   ipureintro; omega
 
 /-- **Every committed compaction's revision reached** (persistent, store `γs`): the apply's

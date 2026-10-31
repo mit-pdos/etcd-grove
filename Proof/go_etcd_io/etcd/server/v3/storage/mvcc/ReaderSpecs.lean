@@ -137,10 +137,14 @@ theorem mvcc.store.Rev.spec_R (h : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
   iapply (h s rv γ m log₀) $$ %Φ [Hrd Htoks]
   · iframe Hrd Htoks; iframe #
   inext
-  iintro %v ⟨Hrd, Hpost⟩
+  iintro %v ⟨Hrd, Htoks, %log, #Hc, -, %Hp⟩
   iapply HΦ
-  iframe Hpost
-  iapply mvcc.storeReader_of $$ Hrd
+  iframe Htoks
+  isplitl [Hrd]
+  · iapply mvcc.storeReader_of $$ Hrd
+  iexists log
+  iframe Hc
+  ipureintro; exact Hp
 
 /-! ### `storeTxnCommon__Range` -/
 

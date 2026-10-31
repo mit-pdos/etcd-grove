@@ -93,7 +93,7 @@ theorem mvcc.store.Rev.wp_proof
   iframe Hrd Htoks
   iexists log
   withPhys_simp
-  iframe HcertT
+  iframe HcertT Hrok
   ipureintro
   exact ⟨Hpin.1, Hpin.2.1, HneT, HrevT⟩
 

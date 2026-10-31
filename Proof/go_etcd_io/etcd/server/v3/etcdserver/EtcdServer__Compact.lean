@@ -61,7 +61,7 @@ local macro "compact_ok_tail" : tactic => `(tactic| (
   wp_bind (App (Val #(methods kty _ kvv)) _)
   iapply mvcc.kvOver_rev_wp kty kvv E.s
   iframe Hko
-  wp_apply hRevS E.s v.rv E.γ 0 [] $$ [Hrdr Hnone] as %rev ⟨Hrdr, -, %log, #Hlc, %Hl⟩
+  wp_apply hRevS E.s v.rv E.γ 0 [] $$ [Hrdr Hnone] as %rev ⟨Hrdr, -, %log, #Hlc, -, %Hl⟩
   · iframe #; iframe
   (try wp_auto)
   -- `trace.AddField(response_revision)`
