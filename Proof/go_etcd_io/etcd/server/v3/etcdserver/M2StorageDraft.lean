@@ -2,8 +2,9 @@
 **M2, the storage side: the server's glue, still Draft** (`notes/m2-storage-plan.md`). The step-1
 statements are switched (2026-10-30, "The switch of the approved items": `apply.AEnv.cmp`,
 `envAgree`'s mode clause, `NewServer.spec`'s `E₀.cmp` premise, `mvcc.New.spec`'s `crevRightM`); what
-stays here is the glue for the compacting server (`NewServer.specCompact`, whose proof is still the
-skeleton's `sorry`), imported by nothing but the server's step-2 Draft:
+stays here is the glue for the compacting server (`NewServer.specCompact`, proved 2026-10-31 over
+`BuildLemmas.lean`'s `server_kv_watchable_ofM`, this Draft's lemma in either mode, and
+`CmpSupply.lean`'s stock), imported by nothing but the server's step-2 Draft:
 
 - `server_kv_watchable_ofD`: the server's KV from `New.spec` over the backend `d` in either mode
   (nothing deletable off, the store's keys on: `storeDlReg`), the post at `kb = some d` with

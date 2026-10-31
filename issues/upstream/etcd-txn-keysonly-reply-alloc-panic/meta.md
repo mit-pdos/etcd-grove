@@ -1,26 +1,20 @@
 # etcd-txn-keysonly-reply-alloc-panic
 
-## Security classification: for the user to decide before anything is public
+## Security classification: decided, the public route (the user, 2026-10-31)
 
-Decision pending (the user's); the upstream route is on hold: nothing filed, pushed or commented. A public filing
-(issue, PR, or the fix branch pushed to `upamanyus/etcd`) would expose that one `Txn` from any client that can send
-one (with auth enabled, a user with permission on the keys it reads) can crash the member serving it on `main`
-(with `--max-request-bytes` of about 10 MiB or more and a long enough request timeout), and that on every branch it
-makes every member build a reply of many GiB, because nested transactions bypass `--max-txn-ops`. The PR's title and
-test alone already reveal the bypass.
+The user chose a public issue and PR on etcd-io/etcd over a private report through the security advisory form, for
+two reasons:
+- everything is already public: mit-pdos/etcd-grove has the finding (`issues/etcd-txn-keysonly-reply-alloc-panic.md`)
+  and the end-to-end reproduction (`examples/etcdbugs/keysonlyreply/repro_test.go`), and the fix branch is on the
+  fork;
+- etcd's `THREAT_MODEL.md` (2026-07) classes crashes and memory exhaustion caused by an authenticated client as
+  robustness defects, not vulnerabilities, and reports that need a non-default flag as configuration hardening,
+  "welcome through normal issues and pull requests". This one needs a client with write access (inside the mTLS
+  perimeter) and, for the crash, `--max-request-bytes` of about 10 MiB or more (non-default; borderline at the
+  default 1.5 MiB).
 
-Options:
-1. A private report through the GitHub security advisory form
-   (https://github.com/etcd-io/etcd/security/advisories/new, per `security/README.md`): `issue.md` is drafted as
-   its text (Summary, Details, PoC, Impact); the fix goes in the advisory's temporary private fork, not on
-   `upamanyus/etcd`; `pr.md` is for after disclosure.
-2. A public issue and PR. etcd's `THREAT_MODEL.md` (2026-07) says crashes and memory exhaustion triggered by an
-   authenticated client are robustness defects, not vulnerabilities, and that reports predicated on a non-default
-   flag are configuration hardening; a report outside it is "welcome through normal issues and pull requests". By
-   that text this finding is most likely a robustness defect (the client is inside the mTLS perimeter; the crash
-   needs a non-default `--max-request-bytes`), and the PSC may redirect a private report to the public route. The
-   public route would then rewrite `issue.md` into the bug-report form (as `example/issue.md`) and push the branch.
-3. Leaving it.
+`issue.md` is rewritten from the advisory shape (Summary, Details, PoC, Impact) into etcd's bug-report form;
+`pr.md` is the public PR as drafted.
 
 ## Candidate
 
@@ -30,7 +24,7 @@ Options:
   commits (signed off, no trailers): 511703d7b (`etcdserver: test the operation limit of nested txns`) adds the
   tests; 7a63f2b96 (`etcdserver: count nested txns' operations toward --max-txn-ops`) is the fix. Pushed to `origin` (upamanyus/etcd) on 2026-10-31 by the user, at 7a63f2b96: https://github.com/upamanyus/etcd/tree/fix/etcd-txn-keysonly-reply-alloc-panic.
 - **Base**: upstream `main` 1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28).
-- **State**: draft; the fix branch is public on the fork (2026-10-31), the route (advisory or public issue and PR) still the user's decision; issue.md and pr.md are still in the advisory shape
+- **State**: draft for the public route; not filed
 - **Upstream issue**: —
 - **PR**: —
 
@@ -76,13 +70,31 @@ The full crash reproduction (`examples/etcdbugs/keysonlyreply/repro_test.go`, 12
 fix its request (2,560,000 leaf ranges, fan-outs summing to 96) is rejected by `checkTxnRequest` before it is
 proposed (by code reading: its operation count is far above 128).
 
-`check.py` (2026-10-31): the commit and PR checks pass (two commits, tests first, signed off, no trailers, gofmt
-clean, PR title = fix subject). Two FAILs come from the advisory shape and are kept while the route is private: no
-link to the test on `upamanyus/etcd` (a private report must not point at a public branch; the test is inline) and no
-"Anything else we need to know?" section (the advisory form's sections instead). WARNs kept: the doc comment of the
-new `txnOps` (Go convention for a new function); the issue at 487 words and naming `checkTxnRequest` (an advisory
-carries details and code names; if the public route is chosen, the issue is rewritten in the bug-report form
-without them).
+Rerun for the public issue (2026-10-31, at 511703d7b from a `git archive` copy, go1.27.3):
+`go test ./etcdserver/api/v3rpc/ -run TestCheckTxnRequestNestedOps` (server) and `go test ./integration/ -run
+'TestV3TxnNestedTooManyOps$'` (tests) both fail as quoted in `issue.md`.
+
+`check.py` (2026-10-31, the public issue; `--worktree /shared/etcd-fixes/etcd-txn-keysonly-reply-alloc-panic`,
+since `meta.md` names the worktree under `/shared`, not `~/etcd-fixes`, and `go` on `PATH` for `gofmt`): the commit
+and PR checks pass; the issue is 249 words of prose. Left:
+- WARN on the doc comment of the new `txnOps`: Go convention for a new function; kept.
+
+The issue has no cause paragraph: a draft had one with code permalinks, at the coordinator's request, and it was
+withdrawn (the skill: an etcd issue has only the symptom, the expectation and the reproduction). The PR keeps the
+cause it fixes (`checkTxnRequest`'s per-level budget, linked). The rest of the explanation stays here, for a
+reviewer who asks why one 30 MiB request costs 2^48 bytes: a nested txn is not read-only by `IsTxnReadonly`
+(`txn/txn.go#L352-L364` at the base), so every member applies it through raft and builds its reply; keys-only
+ranges share the index's key buffers (`mvcc/kvstore_txn.go#L90-L106`), so the reply is small in memory but huge
+encoded; and the codec (`v3rpc/codec.go#L21-L25`) allocates the encoded size before grpc's send-limit check.
+
+The crash program in the issue is linked at an etcd-grove commit (d1bafb95f), not named by its test name: it is not
+on the fix branch, and it builds the member from the fork's 249d76bea (whose code on this path is `main`'s, above),
+which the issue's version section says. The release-branch note (3.4 to 3.6 copy the keys, so no 2^48 panic, but
+the same request still builds a reply of leaves times keyspace on every member; by code reading, not run) stays
+here, above, not in the issue: the bug-report form has no room for it and the issue makes no claims about other
+releases. The grpc-go codec bug (`issues/upstream/grpc-codec-alloc-before-size-check/`, not filed) is not mentioned.
+
+The commit messages need no change for the public route.
 
 Not run: the whole `tests/integration` suite, `tests/e2e`, `make verify`, release branches.
 

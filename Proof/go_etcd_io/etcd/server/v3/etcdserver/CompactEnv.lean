@@ -7,7 +7,9 @@ S3-3): the laws that make the server what the frozen compactor contracts take, s
   the compactor's `errors.Is(err, ErrCompacted)` can test (`v3compactor.errTreeOk`);
 * `compactableOk_server`: the server is a `Compactable` for the compactor's revision permit over
   `srvRevLb` (a permit's `□ RevLb (r + ret)` gives `r` reached, what `Compact.spec` takes), with the
-  resource every call gives back (the caller's reader slots and the store's reader).
+  resource every call gives back (the caller's reader slots and the store's reader);
+* `revGetterOk_server`: the server's KV (`s.kv`) is the compactor's `RevGetter` over `srvRevLb`
+  (`mvcc.store.Rev.spec`), borrowing the same resource.
 
 Lean-first (no Rocq counterpart).
 -/
@@ -15,6 +17,9 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Compact
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 
 @[expose] public section
 
@@ -98,6 +103,57 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   iunfold srvCompactR
   iframe Hlt Hlr Hrd Hst
   iapply errTreeOk_of_compactOutIs; iexact Hout
+
+/-- **The server's KV is the compactor's `RevGetter`** (M2, `NewServer.specCompact`): `s.kv.Rev()`
+(`mvcc.store.Rev.spec`, through the watchable store) reaches a revision past every lower bound
+`srvRevLb` gave, and gives its own; it borrows `srvCompactR` (the store's reader). -/
+theorem revGetterOk_server (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (kv : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      srvKVAddr s ↦□ kv ∗ isServerRead s E γr ⊢
+      v3compactor.revGetterOk (srvRevLb E.γ) kv (srvCompactR s E) := by
+  iintro ⟨#Pmv, #HkvA0, #Hsrd⟩
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%v, #Hf⟩
+  iunfold srvReadFieldsAt at Hf
+  icases Hf with ⟨-, -, #HkvA, #Hkv, #HrvA, #Hrv, -⟩
+  ihave %Hkveq0 := typedPointsto_agree_wand _ _ _ _ _ $$ HkvA HkvA0
+  subst Hkveq0
+  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
+  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
+  ihave ⟨#Hko0, -⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
+  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
+  · rw [← Hkveq]; iexact Hko0
+  iunfold v3compactor.revGetterOk
+  rw [Hkveq]
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %n %Φ !> ⟨HR, #Hlb⟩ HΦ
+  iunfold srvCompactR at HR
+  icases HR with ⟨Hlt, Hlr, Hrd, Hrdr⟩
+  iunfold srvRevLb at Hlb
+  icases Hlb with ⟨%log₀, #Hc0, -, %Hn⟩
+  imod ownToks_0 (GF := GF) E.γ.revs with Hnone
+  iapply mvcc.kvOver_rev_wp kty kvv E.s
+  iframe Hko
+  wp_apply hRev E.s v.rv E.γ 0 log₀ $$ [Hrdr Hnone] as %rev ⟨Hrdr, -, %log, #Hlc, #Hcok, %Hl⟩
+  · iframe #; iframe
+  obtain ⟨Hpre, Hlen, Hne, Hrev⟩ := Hl
+  have hpos : 0 < log.length := List.length_pos_iff.mpr Hne
+  have hle := Hpre.length_le
+  have hz : sint.Z rev = (log.length : Int) - 1 := by subst Hrev; word
+  iapply HΦ
+  iunfold srvCompactR
+  iframe Hlt Hlr Hrd Hrdr
+  isplitl
+  · imodintro
+    iunfold srvRevLb
+    iexists log
+    iframe Hlc Hcok
+    ipureintro; omega
+  ipureintro; omega
 
 end laws
 
