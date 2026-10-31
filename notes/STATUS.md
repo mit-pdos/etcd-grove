@@ -548,10 +548,14 @@ documentation does not say that `InitialState`'s `ConfState` must be the configu
 a node elects itself alone). etcd leaves `Applied` unset.
 
 **The durable node API: a spec candidate, not adopted** (the `spec` skill). It is outside the
-repository, `/home/ubuntu/spec-scratch/raft-durability/candidate.md` (candidate 4, not yet
-reviewed). The `spec-reviewer` agent's reviews of candidates 1-3 are beside it (`review-1.md` to
-`review-3.md`). It extends raft's node API so that one spec serves clients with and without
-durability:
+repository, `/home/ubuntu/spec-scratch/raft-durability/candidate.md`. The current one is
+candidate 5, rebuilt after the user's critique of candidate 4: the Ready returns an atomic update
+that the client fires when it enters the new raft state. The permission to send the batch's
+messages is that update's post. Nothing in raft is named after a disk or an incarnation; the node
+object serves as the incarnation. Candidate 5's open questions Q1-Q3 are for the user, and it is
+not reviewed. Candidate 4 (`candidate-4.md`) and the `spec-reviewer` agent's reviews of candidates
+1-3 (`review-1.md` to `review-3.md`) are beside it; their Go findings stand. Candidate 4, described
+below, extended raft's node API so that one spec serves clients with and without durability:
 - **The durable state.** It is client-owned ghost state, `nodeDisk γ N id ι D`.
 - **The Ready.** Each Ready hands out a write obligation (`readyWrite`), fired when the write is
   durable or at once. Its messages are gated (`readyMsgs`), released by the batch's write or, at
