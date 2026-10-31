@@ -41,7 +41,7 @@ theorem watcher.Watch.wp_proof
     watcher.Watch.spec (GF := GF) (hG := hG) := by
   intro w V γ ctx cs key sl gs rev Q n
   wp_start as ⟨#Hw, %Hkst, #Hctx, #Hopts, %Hreq, #Hbound, #Hau⟩
-  obtain ⟨Hrw, Hnp, Hrev1⟩ := Hreq
+  obtain ⟨Hrw, Hnp, Hrev1, Hsz⟩ := Hreq
   have Hrev : 0 ≤ sint.Z rev := by omega
   -- (D47) a first firing of the read update (at the start log), for the responses that report nothing
   ihave #Hw0 := Hw
@@ -51,10 +51,11 @@ theorem watcher.Watch.wp_proof
   icases Hf0 with ⟨-, #Hcf0⟩
   ihave ⟨#Hmf0, -⟩ := watchConnFacts_cur V $$ Hcf0
   iunfold watchMemberFacts at Hmf0
-  icases Hmf0 with ⟨-, -, -, -, #Hkf0⟩
+  icases Hmf0 with ⟨-, -, -, -, #Hkf0, -⟩
   iunfold srvKVFacts at Hkf0
-  icases Hkf0 with ⟨%γr0, #Hinvs0, #H00, %Hkr0⟩
-  imod (watch_fire V.R.E γr0 γ (by rw [Hkr0.1, Hkst]) Hkr0.2.1 [[], []] Q) $$ Hinvs0 H00 H00 [] Hau
+  icases Hkf0 with ⟨%on0, %γr0, #Hinvs0, #H00, %Hkr0⟩
+  imod (srvKVCoreM_fire on0 V.R.E γr0 γ (by rw [Hkr0.1, Hkst]) Hkr0.2.1 [[], []] Q)
+    $$ Hinvs0 H00 H00 [] Hau
     with ⟨%C0, #HQ0, -⟩
   · unfold mvcc.certOk; ileft; ipureintro; simp
   -- (G2) the watch's events are of its range with an empty key read as `"\x00"`, which the
@@ -140,9 +141,11 @@ theorem watcher.Watch.wp_proof
     · iapply ownSlice_nil
     isplitr
     · ipureintro
-      refine ⟨HrwN, HnpN, Hrev, (OpFull.watchNorm_key _).symm, by rw [HbaseN], ?_, ?_⟩
+      refine ⟨HrwN, HnpN, Hrev, (OpFull.watchNorm_key _).symm, by rw [HbaseN], ?_, ?_, ?_⟩
       · rw [HbaseN]; exact Hfcn
       · rw [HbaseN]; exact Hfpn
+      · show (opWatchModel key gs).key.length + (opWatchModel key gs).base.rangeEnd.length ≤ 2 ^ 30
+        exact Hsz
     isplitr
     · unfold wsAu; iexact Hau
     isplitr

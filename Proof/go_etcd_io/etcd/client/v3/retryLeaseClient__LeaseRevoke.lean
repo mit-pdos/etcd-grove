@@ -33,7 +33,7 @@ theorem retryLeaseClient.LeaseRevoke.wp_proof
     (wp_stub : leaseClient.LeaseRevoke.spec (GF := GF) (hG := hG)) :
     retryLeaseClient.LeaseRevoke.spec (GF := GF) (hG := hG) := by
   intro rlc conn addr Spec Q ctx cd inp req opts vs
-  wp_start as ⟨#Hrlc, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, %Hcap, #Hok⟩
+  wp_start as ⟨#Hrlc, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, %Hcap, #Hok, %Hsz⟩
   iunfold retryLeaseAt at Hrlc
   icases Hrlc with ⟨%lc, #Hlc, #Hstub⟩
   wp_auto
@@ -60,6 +60,7 @@ theorem retryLeaseClient.LeaseRevoke.wp_proof
   wp_apply wp_stub lc conn addr Spec Q ctx cd inp req copts _ $$ [Hin] as %resp %err Hres
   · iframe #
     iframe
+    try (ipureintro; exact Hsz)
   iapply HΦ
   iexact Hres
 

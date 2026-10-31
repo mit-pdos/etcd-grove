@@ -32,6 +32,24 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver mvcc
 section pure
 variable [GooseExts]
 
+/-! ### The requests' sizes (2026-10-30, `notes/invoke-size-b.md`) -/
+
+open linkvtxn in
+/-- The optimistic transactions' payload: the key three times at most (comparison, operation,
+`GetOnFailure`'s get) and the value. -/
+theorem clientTxn_size {cs : List (linkv.MCmp GoString GoString)}
+    {t e : List (linkv.MOp GoString GoString)} {key val : GoString} (rev : w64)
+    (hcs : cs = [.mod key rev]) (ht : t = [.put key val] ∨ t = [.del key])
+    (he : e = [] ∨ e = [.get key]) (hk : key.length ≤ 2 ^ 27) (hv : val.length ≤ 2 ^ 28) :
+    txnSizeOk (txnWireOf (clientTxn cs t e)) := by
+  apply txnSizeOk_wireOf
+  subst hcs
+  unfold txnSizeOk txnWireLen clientTxn
+  rcases ht with rfl | rfl <;> rcases he with rfl | rfl <;>
+    simp [linkv.cmpOf, clientTOp, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, opGetModel,
+      opDeleteModel, opFold, OpFull.getInit, OpFull.deleteInit, OpFull.newOp, OpModel.zero] <;>
+    omega
+
 /-- `Get`'s range on the wire: `OpGet(key, WithRev(0), WithLimit(1))`. -/
 abbrev getKey1Op (key : GoString) : OpFull :=
   txn.rangeOpOf key [] (W64 0) (W64 1) (W32 0) (W32 0) false false false (W64 0) (W64 0) (W64 0)

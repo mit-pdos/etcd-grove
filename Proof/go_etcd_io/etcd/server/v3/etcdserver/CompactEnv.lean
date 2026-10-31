@@ -88,7 +88,8 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   icases HR with ⟨Hlt, Hlr, Hrd, Hst⟩
   ihave #Hlb' : srvRevLb E.γ r $$ []
   · iapply srvRevLb_mono E.γ r (r + ret) (by omega); iexact Hlb
-  iapply (hC s E ρ γr ctx cd p r) $$ [Hlt Hlr Hrd Hst Hreq]
+  -- (M2, the storage side, item 35) the permit's revision is past `0`: the scope premise
+  iapply (hC s E ρ γr ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hst Hreq]
   · iframe Hlt Hlr Hrd Hst Hreq; iframe #
   inext
   iintro %resp %err ⟨Hlt, Hlr, Hrd, Hst, Hout⟩

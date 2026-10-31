@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem txn.Then.wp_proof (wp_isWrite : Op.isWrite.spec (GF := GF) (hG := hG))
     (wp_toRequestOp : Op.toRequestOp.spec (GF := GF) (hG := hG)) :
     txn.Then.spec (GF := GF) (hG := hG) := by
-  -- the proof before: git show 51b0f7adad:Proof/go_etcd_io/etcd/client/v3/txn__Then.lean
+  -- the proof before: git show 91ba4e9267:Proof/go_etcd_io/etcd/client/v3/txn__Then.lean (invoke-size; before it, 51b0f7adad)
   sorry -- txn-nested: prove after freeze
 
 end proof

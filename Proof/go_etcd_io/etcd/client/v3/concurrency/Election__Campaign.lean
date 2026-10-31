@@ -119,7 +119,7 @@ revision `wr` is reached. Its three uses: the key already held, with the value (
 created by the transaction (`lr = wr`, its revision). -/
 local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tactic => `(tactic| (
     wp_apply hWD ctx cs client pfx (($lr) - W64 1) ($wr) $$ [$(frameH `Hcl) $(frameH `Hctx) $(frameH `Hcc) $(frameH Hr.getId)] as %werr Hwd
-    · ipureintro; exact ⟨Hpfx, by have := HREV.1; word⟩
+    · ipureintro; exact ⟨Hpfx, Hpl, by have := HREV.1; word⟩
     icases Hwd with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
     · obtain ⟨e', rfl⟩ : ∃ e', werr = GoInterface.ok e' := by
         cases werr with
@@ -162,7 +162,7 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
           · iapply etcdReached_zero
           wp_apply hResign e s γ client id pfx ⟨key, ($lr), s, ($hd)⟩ cctx ccs (W64 0)
             $$ [$(frameH `Hpkg) $(frameH `He) Hk Hrv Hls Hh $(frameH `Hcctx) $(frameH `H0)] as %rerr Hres
-          · unfold electionState; iframe; ipureintro; right; rfl
+          · unfold electionState; iframe; ipureintro; exact ⟨Or.inr rfl, Hkey28⟩
           (try wp_auto)
           icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst'
         · iframe
@@ -172,7 +172,7 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
         iapply HΦ' $$ %(⟨key, ($lr), null, ($hd)⟩ : ElectionSt)
         unfold electionState
         iframe
-        ipureintro; left; rfl
+        ipureintro; exact ⟨Or.inl rfl, Hkey28⟩
     subst Hwnil
     (try wp_auto)
     iapply HΦ
@@ -181,7 +181,7 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
     · ipureintro; rfl
     iexists key, ($lr), r, ($wr), R, hdr
     isplitl [Hk Hrv Hls Hh]
-    · unfold electionState; iframe; ipureintro; right; rfl
+    · unfold electionState; iframe; ipureintro; exact ⟨Or.inr rfl, Hkey28⟩
     isplitr
     · unfold hdrRevAt; iframe HRev; ipureintro; exact Hhdr
     iframe HRR HKV'
@@ -213,10 +213,10 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     (hSp : EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG)) :
     Election.Campaign.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs pv lo
-  wp_start as ⟨#He, Hst, #Hctx, #Hcc, #Hlo⟩
+  wp_start as ⟨#He, Hst, #Hctx, #Hcc, #Hlo, %Hvl⟩
   ihave #He' := He
   iunfold isElection at He'
-  icases He' with ⟨#Hes, #Hepfx, %Hpfx, #Hsess, #Hcl⟩
+  icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   iunfold electionState at Hst
   icases Hst with ⟨Hk, Hrv, Hls, Hh, %Hsess0⟩
   wp_auto
@@ -246,6 +246,14 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hpk : pfx <+: key := _root_.Perennial.fmt.SprintfOut.str_x_prefix pfx _ _ Hkey
+  -- the key is the prefix and the lease in hexadecimal: at most `pfx.length + 17` bytes
+  have Hkb : key.length ≤ pfx.length + 17 :=
+    (_root_.Perennial.fmt.SprintfOut.str_x_named_int64 pfx go_etcd_io.etcd.client.v3.LeaseID.ty id
+      (by simp [_root_.Perennial.fmt.IsIntType, go_etcd_io.etcd.client.v3.LeaseID.ty, go.int,
+        go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8])
+      go.IsUnderlying.is_underlying
+      (_root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil _) key Hkey).2
+  have Hkey28 : key.length ≤ 2 ^ 28 := by omega
   (try wp_auto)
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -364,7 +372,8 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact campaignTxn_under pfx key pv id Hpk
+  · ipureintro
+    exact ⟨campaignTxn_under pfx key pv id Hpk, campaignTxn_size key pv id (by omega) Hvl⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
@@ -450,9 +459,10 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       campaign_wait v.createRev r st.hdr Hr
     · -- a different value: `Proclaim`
       ihave Hst : electionState (GF := GF) e s ⟨key, v.createRev, s, st.hdr⟩ $$ [Hk Hrv Hls Hh]
-      · unfold electionState; iframe; ipureintro; right; rfl
+      · unfold electionState; iframe; ipureintro; exact ⟨Or.inr rfl, Hkey28⟩
       wp_apply hProclaim e s γ client id pfx ⟨key, v.createRev, s, st.hdr⟩ ctx cs pv r
         $$ [$Hpkg $He $Hst $Hctx $Hr] as %perr Hpr
+      · ipureintro; exact Hvl
       icases Hpr with (⟨%Hpn, %hdr', Hst, Hfact⟩ | ⟨#Herr, Hrest⟩ | ⟨%Hpne, Hst⟩)
       · obtain ⟨rfl, -⟩ := Hpn
         icases Hfact with (%Hnp | ⟨%r', #Hhr', #Hr', #Hpc, %Hrr'⟩)

@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 theorem callDel.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     callDel.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs key Q
+  intro _ CRE CEC cl ms V hAs key Q hkl
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -49,7 +49,8 @@ theorem callDel.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   (try wp_auto)
   ihave #Hrr := client.kvRegs_del ms $$ Hregs
   ihave #Hst' := client.srvStart_idx ms $$ Hst
-  wp_apply (client.client_Delete_st cl ms V cctx ccd key slice.nil Q) $$ [Hau]
+  wp_apply (client.client_Delete_st cl ms V cctx ccd key slice.nil Q
+      (opSizeOk_opDeleteModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iexact Hau

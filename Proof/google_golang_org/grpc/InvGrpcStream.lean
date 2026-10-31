@@ -103,6 +103,11 @@ structure StreamMsg (GF : BundledGFunctors) where
   M : Type
   cnt : Pos.Countable M
   send : Loc → M → IProp GF
+  /-- **An upper bound on the length of the encoding** of every message `send` holds at `m`
+  (as `ProtoMsg.wireLen`; the same scope: the unknown fields of a message `send` holds field by
+  field are not pinned). `grpcMsgMax` or more: no bound known (the default; responses), so the
+  message cannot be sent (`cliStreamIs`). Part of the instance's trusted wire model. -/
+  wireLen : M → Nat := fun _ => grpcMsgMax
   recv : Loc → M → IProp GF
   own : Loc → IProp GF
 
@@ -390,7 +395,9 @@ instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep :
 /-! ## The client end -/
 
 /-- **The client end of a stream, raw** (persistent): grpc's `ClientStream` `cs` that
-`ClientConn.NewStream` returns. `SendMsg(&l)` of a request `Req.send l m` (given back) with the
+`ClientConn.NewStream` returns. `SendMsg(&l)` of a request `Req.send l m` (given back; its
+encoding below `grpcMsgMax`, `Req.wireLen`, since 2026-10-30: grpc marshals before it checks a
+size, the unary call's defect, `grpcInvokerOk`) with the
 client's content `Up i m` for its position `i` grows the sender's token, or fails, the request
 delivered or not (the token at the old or the new list); `RecvMsg(&out)` into an owned message
 (`Rep.own out`) decodes the next response into it (`Rep.recv out m`) with the server's content
@@ -403,7 +410,8 @@ def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
     □ (∀ (L : List Req.M) (l : Loc) (m : Req.M),
-      {{ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m }}
+      {{ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
+          ⌜Req.wireLen m < grpcMsgMax⌝ }}
         (App (Val #(methods ci.ty go!"SendMsg" ci.v)) (Val #(msgAny Req.ty l)))
       {{ (err : GoInterface), RET #err; Req.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ cliSendTok (Req := Req) γ (L ++ [m])) ∨
@@ -443,7 +451,8 @@ def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
     □ (∀ (L : List Req.M) (l : Loc) (m : Req.M),
-      {{ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m }}
+      {{ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
+          ⌜Req.wireLen m < grpcMsgMax⌝ }}
         (App (Val #(methods ci.ty go!"Send" ci.v)) (Val #l))
       {{ (err : GoInterface), RET #err; Req.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ cliSendTok (Req := Req) γ (L ++ [m])) ∨
@@ -579,12 +588,12 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %L %l %m %Φ !> ⟨Htok, Hs, HUp⟩ HΦ
+  · iintro !> %L %l %m %Φ !> ⟨Htok, Hs, HUp, #Hsz⟩ HΦ
     iapply (wp_Send Req.ty Rep.ty V W p ci l Φ)
     isplitr
     · iexact Hf
     iapply HSend $$ %L %l %m [Htok Hs HUp]
-    · iframe
+    · iframe; iexact Hsz
     iexact HΦ
   isplitr
   · iintro !> %L %Φ !> Htok HΦ

@@ -32,8 +32,8 @@ def rangeKvsRO (p : Loc) (kvs : List EtcdKv) : IProp GF :=
     structFieldRef etcdserverpb.RangeResponse go!"Kvs" rr ↦□ sl ∗ sl ↦*□ ps ∗ kvPtrsAt ps kvs)
 
 /-- **`txn.revokeFallback(fbResps)`** for the responses of the fallback gets (read-only): revokes
-the lease keys each lists (`revokeLeaseKvs`): an error, or `nil`. The context must be
-cancelable. -/
+the lease keys each lists (`revokeLeaseKvs`; etcd's keys, at most `etcdKeyMax` bytes): an error,
+or `nil`. The context must be cancelable. -/
 abbrev txnLeasing.revokeFallback.spec : Prop :=
   ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (dq : DFrac) (sl : GoSlice) (ps : List Loc)
@@ -41,7 +41,7 @@ abbrev txnLeasing.revokeFallback.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗
       sessionReady γ ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
-      sl ↦*□ ps ∗ ⌜ps.length = kvss.length⌝ ∗
+      sl ↦*□ ps ∗ ⌜ps.length = kvss.length⌝ ∗ ⌜∀ kvs ∈ kvss, ∀ v ∈ kvs, v.key.length ≤ etcdKeyMax⌝ ∗
       [∗list] i ↦ p ∈ ps, ∃ kvs, ⌜kvss[i]? = some kvs⌝ ∗ rangeKvsRO p kvs }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"revokeFallback")) (Val #sl))
   {{ (err : GoInterface), RET #err; structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗

@@ -158,6 +158,7 @@ theorem etcd_putHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       icases Hap with ⟨Hlt, Hap⟩
       iunfold v3rpc.putApplied at Hap
       icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, HQv⟩
+      imod readM_keys true s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
       iunfold apply.putOutcomeIs at Hout
       icases Hout with ⟨#Hpr, -⟩
       iunfold txn.putResponseIs at Hpr
@@ -192,7 +193,7 @@ theorem etcd_putHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe Htok HQv
         iframe #
         ipureintro
-        exact ⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩
+        exact ⟨⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩, Hkeys⟩
     · iunfold v3rpc.putErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -282,6 +283,7 @@ theorem etcd_rangeHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.rangeAnsOkOn at Hans
       icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+      imod readM_keys true s E γr log $$ Hsrd Hcert Hcok with %Hkeys
       ihave #HQl' := readQ_of_ansOn γr d Q o.base.serializable log Hdd $$ HQl
       icases Hres with ⟨%crev, Hres⟩
       iunfold txn.rangeResult at Hres
@@ -322,7 +324,7 @@ theorem etcd_rangeHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         iexists log
         iframe #
         ipureintro
-        exact ⟨Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
+        exact ⟨Hkeys, Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
     · imodintro
       iapply HΨ
       isplitl [Hlt Hcr]
@@ -403,6 +405,7 @@ theorem etcd_deleteHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
       iunfold v3rpc.deleteApplied at Hap
       icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok,
         HQv⟩
+      imod readM_keys true s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
       simp only [v3rpc.opDepQ] at *
       iunfold apply.deleteOutcomeIs at Hout
       icases Hout with ⟨#Hdr, -⟩
@@ -441,7 +444,8 @@ theorem etcd_deleteHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         iframe Htok HQv
         iframe #
         ipureintro
-        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩
+        exact ⟨⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩,
+          Hkeys⟩
     · iunfold v3rpc.deleteErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -573,6 +577,7 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         icases Hans with ⟨-, Hans, Hau⟩
         iunfold v3rpc.txnReadAnsOn at Hans
         icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+        imod readM_keys true s E γr log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q := by
           rcases HdQ with ⟨-, h⟩ | ⟨h, -⟩
           · exact h
@@ -598,7 +603,7 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe #
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        refine ⟨Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
+        refine ⟨Hkeys, Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
         · rw [h1]
         · rw [h4]; exact h5
       | false =>
@@ -609,6 +614,7 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iunfold v3rpc.txnAppliedAns at Hans
         icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
           #Hcok, HQv⟩
+        imod readM_keys true s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : d = .op1 (.txn t) Q := by
           rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
           · rw [hro] at h; cases h
@@ -636,7 +642,7 @@ theorem etcd_txnHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
         obtain ⟨s0, s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
-        refine ⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
+        refine ⟨⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩, Hkeys⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr

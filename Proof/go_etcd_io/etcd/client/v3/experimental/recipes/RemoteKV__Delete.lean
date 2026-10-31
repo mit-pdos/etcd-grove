@@ -31,13 +31,13 @@ theorem RemoteKV.Delete.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF)
   intro rk st pfx lo
   rcases st with ⟨kv, key, rev, val⟩
   unfold ownRemoteKV RemoteKVSt.val'
-  wp_start as ⟨Hrk, #Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨⟨Hrk, %Hkl⟩, #Hkv, #Hlo, %Hk⟩
   cases kv with
   | nil =>
     wp_auto
     iapply HΦ
     iframe Hrk
-    ipureintro; rfl
+    ipureintro; exact ⟨Hkl, rfl⟩
   | ok kv =>
     simp only at Hk
     iunfold isRecipesKV at Hkv
@@ -50,12 +50,12 @@ theorem RemoteKV.Delete.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF)
     obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
     wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hnil $Hlo] as %resp %err #Hres
     · ipureintro
-      refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl⟩
+      refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl, deleteOp_size Hkl⟩
       rw [hkk, hke]; exact concurrency.keyRangeUnder_key pfx key Hk
     (try wp_auto)
     iapply HΦ
-    iframe Hrk
-    iexact Hres
+    iframe Hrk Hres
+    ipureintro; exact Hkl
 
 end proof
 

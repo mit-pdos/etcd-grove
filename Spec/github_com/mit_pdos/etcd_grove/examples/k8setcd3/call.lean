@@ -44,7 +44,7 @@ abbrev call.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
   c.pathPrefix ++ storeKeyL x.Key' = mkeyL x.Key' →
-  InOk x →
+  InOk x → x.Val'.length ≤ 2 ^ 20 →
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ k8s.isStore sp c ∗

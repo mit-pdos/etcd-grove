@@ -47,10 +47,43 @@ variable [sem : go.Semantics]
 /-! ## The compaction keys' resources -/
 
 /-- **What the constructor gives of the compaction keys** (`fkCl`, its parts): the client's half of
-their flag at `fkInit D` and the bit at `fkWInit P D`. -/
+their flag at `fkInit D` and the bit at `fkWInit P D`. (Until the M2 storage plan's items 27/29,
+2026-10-30, an equivalence: `fkCl` now also records the open, `fkCl_open`.) -/
 theorem fkCl_parts (γ : BNames) (P : BParams) (D : Data) :
-    fkCl (GF := GF) γ P D ⊣⊢ fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D) := by
-  unfold fkCl; exact .rfl
+    fkCl (GF := GF) γ P D ⊢ fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D) := by
+  unfold fkCl fkV fkVR
+  iintro ⟨Ho, #Hv⟩
+  iframe Ho
+  iexists fkInit D, fkVals D
+  iexact Hv
+
+/-- **What the constructor gives of the compaction keys, with the open** (the M2 storage plan's
+items 27/29, 2026-10-30): the client's half of their flag at `fkInit D`, the bit at `fkWInit P D`,
+and the open's record: the flag stood at `fkInit D` over `D`'s compaction-key values
+(`fkOpen`, `fkVals`), so that while the client's half stays there every state of the backend
+holds them (`fkRd_open`). -/
+theorem fkCl_open (γ : BNames) (P : BParams) (D : Data) :
+    fkCl (GF := GF) γ P D ⊢
+      fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D) ∗ fkOpen γ (fkInit D) (fkVals D) := by
+  unfold fkCl fkV fkOpen fkVR
+  iintro ⟨Ho, #Hv⟩
+  iframe Ho
+  isplitr
+  · iexists fkInit D, fkVals D
+    iexact Hv
+  · iexists fkWInit P D
+    iexact Hv
+
+/-- The bit of an open record, at `true` (the merged ghost: `fkV` and `fkOpen` are one ghost). -/
+theorem fkOpen_fkV (γ : BNames) (n : Nat) (v : FkVals) :
+    fkOpen (GF := GF) γ n v ∗ fkV γ true ⊢ fkVR γ (true, n, v) := by
+  unfold fkOpen fkV fkVR
+  iintro ⟨⟨%w, #H1⟩, %n', %v', #H2⟩
+  ihave %Hag := dghostVar_agree γ.fkv ((w, n, v) : FkG) DFrac.discard ((true, n', v') : FkG)
+    DFrac.discard $$ H1 H2
+  have hw : w = true := congrArg Prod.fst Hag
+  subst hw
+  iexact H1
 
 /-- A put of a compaction key needs the client's half of the flag (`fkPut`), at some value. -/
 theorem fkPut_of_fk (γ : BNames) (n k : GoString) (h : fkKey n k) :

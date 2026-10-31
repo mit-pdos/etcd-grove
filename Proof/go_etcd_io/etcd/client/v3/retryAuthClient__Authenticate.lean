@@ -26,7 +26,7 @@ theorem retryAuthClient.Authenticate.wp_proof
     (wp_authClient_Authenticate : etcdserverpb.authClient.Authenticate.spec (GF := GF) (hG := hG)) :
     retryAuthClient.Authenticate.spec (GF := GF) (hG := hG) := by
   intro rac conn addr Spec Q ctx cd inp m opts vs
-  wp_start as ⟨#Hrac, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok⟩
+  wp_start as ⟨#Hrac, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   iunfold retryAuthAt at Hrac
   icases Hrac with ⟨%ac, #Hac, #Hstub⟩
   wp_auto
@@ -34,6 +34,7 @@ theorem retryAuthClient.Authenticate.wp_proof
     as %resp %err Hres
   · iframe #
     iframe
+    try (ipureintro; exact Hsz)
   iapply HΦ
   simp only [pbAuthenticateRequest]
   iexact Hres

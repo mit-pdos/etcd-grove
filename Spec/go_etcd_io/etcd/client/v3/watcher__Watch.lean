@@ -31,6 +31,11 @@ stored key is empty). The row is of the request's own key and range end, as the 
 them. With the normalization, `Watch(ctx, "")` with no options is the single key `"\x00"`: the
 premise that excluded it (`notes/decisions.md`, "G2's freeze: `Watch` excludes the empty key's
 single-key watch") was dropped once unused (2026-10-30).
+
+**The request fits a gRPC message** (2026-10-30, `notes/decisions.md`, "The encoded-size bound at
+grpc's send side"): the key and the range end at most `2 ^ 30` bytes together (`watchSizeOk`), so
+that the create request the watch sends stays below the bound the stream's `Send` takes
+(`grpcMsgMax`).
 -/
 module
 
@@ -69,7 +74,7 @@ abbrev watcher.Watch.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
       context.isContext ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
-        1 ≤ sint.Z rev⌝ ∗
+        1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ, COMM □ Q σ }>) }}

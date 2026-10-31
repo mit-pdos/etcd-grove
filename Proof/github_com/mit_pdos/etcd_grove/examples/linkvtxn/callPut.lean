@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     callPut.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs key val Q
+  intro _ CRE CEC cl ms V hAs key val Q hkl hvl
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -49,7 +49,8 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   (try wp_auto)
   ihave #Hrr := client.kvRegs_put ms $$ Hregs
   ihave #Hst' := client.srvStart_idx ms $$ Hst
-  wp_apply (client.client_Put_st cl ms V cctx ccd key val slice.nil Q) $$ [Hau]
+  wp_apply (client.client_Put_st cl ms V cctx ccd key val slice.nil Q
+      (opSizeOk_opPutModel (K := inMax) (E := 0) (V := inMax) (optsKeep_nil _ _ _) hkl hvl (by decide))) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iexact Hau

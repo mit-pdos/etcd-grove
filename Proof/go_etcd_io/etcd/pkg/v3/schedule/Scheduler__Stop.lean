@@ -29,7 +29,7 @@ theorem schedule.Scheduler.Stop.wp_proof
     (wp_fifo_Stop : schedule.fifo.Stop.spec (GF := GF) (hG := hG)) :
     schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) := by
   intro fi γ Ps
-  iintro %Φ ⟨#Hpkg, #Hf, Htok, Hq⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hf, Htok, Hq, #Hpay⟩ HΦ
   iunfold isFifo at Hf
   icases Hf with ⟨-, -, #Hof⟩
   iunfold isFifoOf at Hof

@@ -45,7 +45,9 @@ theorem lessor.Revoke.wp_proof
     iframe
     simp only
     iframe #
-    ipureintro; exact Hcap
+    isplitl []
+    · ipureintro; exact Hcap
+    ipureintro; trivial
   iunfold leaseRevokeCallOut at Hres
   icases Hres with (⟨%Herr, %m, #Hm, HQ⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr

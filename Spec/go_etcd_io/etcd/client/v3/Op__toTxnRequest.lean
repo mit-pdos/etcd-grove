@@ -29,7 +29,8 @@ abbrev Op.toTxnRequest.spec : Prop :=
   ∀ (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (cs : List CmpModel) (ts es : List OpT),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       opTAtC false opv (.txn o cs ts es) ∗
-      ⌜∀ x ∈ (OpT.txn o cs ts es).leaves, x.t = W64 1 ∨ x.t = W64 2 ∨ x.t = W64 3⌝ }}
+      ⌜∀ x ∈ (OpT.txn o cs ts es).leaves, (x.t = W64 1 ∨ x.t = W64 2 ∨ x.t = W64 3) ∧
+        (x.t = W64 2 → x.ignoreValue = true → x.val = [])⌝ }}
     (App (Val (opv @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"toTxnRequest")) (Val #()))
   {{ (r : Loc), RET #r; ⌜r ≠ null⌝ ∗ txnReqFieldsAt r cs (OpT.wireL ts) (OpT.wireL es) }}
 

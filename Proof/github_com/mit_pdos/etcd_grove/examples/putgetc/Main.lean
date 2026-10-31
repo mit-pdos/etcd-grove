@@ -100,7 +100,7 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
-      (by omega) (by omega)) $$ Hmarsh
+      (by omega) (by omega) (cmp := true)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -186,7 +186,9 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl go!"127.0.0.1:23791" _ E ρ.rd γf cid mid
-      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
+        (by decide))) as %presp %perr Hput
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -210,7 +212,8 @@ theorem Main.wp_proof
   -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl go!"127.0.0.1:23791" _ E ρ.rd γf (W64 0) cid mid
-      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl

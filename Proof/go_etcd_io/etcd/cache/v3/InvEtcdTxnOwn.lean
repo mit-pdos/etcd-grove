@@ -471,7 +471,8 @@ def txnCommitResultO (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) (er
 
 /-- **The builder** `t` with abstract state `B`, with nested operations and owned responses (see
 the module docstring; `txnBuilderSpec`'s `If`, its `Then`/`Else` on operation trees, its `Commit`
-with `txnCommitResultO`). -/
+with `txnCommitResultO`). The request fits a gRPC message (`Commit`: `txnSizeOk`; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def txnBuilderSpecO (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -492,7 +493,7 @@ def txnBuilderSpecO (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
+      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultO pfx lo b.model resp err }}))
@@ -519,11 +520,12 @@ instance isEtcdTxnKVO_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 
 /-- **The client's `Do` of a get** (`clientv3.KV`'s `Do(ctx, op)`; a definition, the assumption a
 caller makes of `client.KV`): for a get `op` (modelled by `o`), the `OpResponse`'s `get` field and
-the error are what `Get` returns (`kvGetResult`). -/
+the error are what `Get` returns (`kvGetResult`). The request fits a gRPC message (`opSizeOk` of the get; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdDoKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (lo : w64),
-    {{ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 1⌝ }}
+    {{ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 1 ∧ opSizeOk o⌝ }}
       (App (App (Val #(methods kv.ty go!"Do" kv.v)) (Val #(GoInterface.ok ctx))) (Val #opv))
     {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
         kvGetResult pfx lo o r.get' err }})

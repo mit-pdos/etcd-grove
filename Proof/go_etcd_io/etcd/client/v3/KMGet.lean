@@ -47,7 +47,7 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
     (Hx : (opGetModel key gs).getExact)
-    (Hlin : (opGetModel key gs).base.serializable = false) :
+    (Hlin : (opGetModel key gs).base.serializable = false) (Hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv dup ∗
         kmInv γ ∗ sortNamesIf (opGetModel key gs).base.sortSet ∗ ctxOk ci cd ∗
         ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
@@ -68,6 +68,8 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
     iframe
     isplitl []
     · ipureintro; exact ⟨Hnp, Ht⟩
+    isplitl []; rotate_left
+    · ipureintro; exact Hsz
     imodintro
     iright
     isplitl []
@@ -206,10 +208,10 @@ theorem isEtcdKVTodo_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoStri
   iintro ⟨#Pc, #Hkv, #Hinv, #Hsn⟩
   unfold isEtcdKVTodo
   iintro !> %key %sl %gs %R %lo %Φ !> ⟨#Hopts, HR, #Hlo, %Hpre⟩ HΦ
-  obtain ⟨Hnp, Ht, Hx, Hlin⟩ := Hpre
+  obtain ⟨Hnp, Ht, Hx, Hlin, Hsz⟩ := Hpre
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
-  iapply (kv_get_km api γ dup pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hlin)
+  iapply (kv_get_km api γ dup pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hlin Hsz)
     $$ [HR] [HΦ]
   · iframe #; iframe
   inext
@@ -230,14 +232,14 @@ theorem isEtcdKVE_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
   iintro ⟨#Pc, #Hkv, #Hinv, #Hall⟩
   unfold isEtcdKVE
   iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #Hopts, #Hlo, %Hpre⟩ HΦ
-  obtain ⟨Hnp, Ht, Hx, Hss, Hlin⟩ := Hpre
+  obtain ⟨Hnp, Ht, Hx, Hss, Hlin, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   iunfold ctxErrClientAll at Hall
   ihave #Hce := Hall $$ %ctx %cs Hctx
   ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
-  iapply (kv_get_km api γ dup pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hlin)
+  iapply (kv_get_km api γ dup pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hlin Hsz)
     $$ [] [HΦ]
   · iframe #
   inext

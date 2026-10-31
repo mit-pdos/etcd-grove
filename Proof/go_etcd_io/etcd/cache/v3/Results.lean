@@ -144,7 +144,8 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 the adapter's invariant `kmInv γ`, `client.kmInv_alloc` from the KV state's half): the cache's
 `Get`s and `Watch`es then speak of etcd's KV state. -/
 theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bool)
-    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (sl : GoSlice)
+    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0])
+    (hpl : pfx.length ≤ 2 ^ 28) (sl : GoSlice)
     (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -165,7 +166,7 @@ theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bo
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb⟩
+  ipureintro; exact ⟨Hcfg, Hb, hpl⟩
 
 /-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D48): `cache_end_to_end_client`
 for the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition):
@@ -180,7 +181,8 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (γ : client.KMNames) (hV : V.addr = ep)
     (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hk : V.kst = γ.kv.st)
     (hst : γr.kv.st = γ.kv.st) (hrb : receiptBound GF ≤ 2 ^ 62)
-    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
+    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (hpl : V.pfx.length ≤ 2 ^ 28) (sl : GoSlice)
+    (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -214,7 +216,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb⟩
+  ipureintro; exact ⟨Hcfg, Hb, hpl⟩
 
 /-- **etcd's server, started for a cache** (the started-server step; as `client.etcd_kv_started`,
 the ghost step between `net.Listen` and `go gs.Serve(lis)`): the server `v3rpc.Server` built and a
@@ -237,7 +239,10 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
       interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
     -- (W3) the watch contract at the server's model
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R) :
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
+    -- (M2, the storage side, review round 2's N1, the approval's item 13) the server off: its store
+    -- does not compact, so its watchers' create requests carry the "no compactor" fact
+    (hoff : V.R.E.γ.cm = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -267,10 +272,11 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
   · iframe; iframe #
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
+  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd
-  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
+  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink $$ Hkf
   imodintro
   iframe Htok'
   isplitl []

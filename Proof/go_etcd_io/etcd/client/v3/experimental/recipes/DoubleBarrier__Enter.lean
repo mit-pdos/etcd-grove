@@ -39,7 +39,7 @@ local macro "enter_wait" : tactic => `(tactic| (
     wp_auto
     wp_apply wp_Revision (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
       $$ [Hek] as Hek
-    · unfold ownRemoteKV RemoteKVSt.val'; iexact Hek
+    · unfold ownRemoteKV RemoteKVSt.val'; iframe Hek; ipureintro; exact Hkl'
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -47,7 +47,7 @@ local macro "enter_wait" : tactic => `(tactic| (
     ipersist Hesl
     wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
       $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
-    · ipureintro; exact ⟨rfl, hpr, by word⟩
+    · ipureintro; exact ⟨rfl, hpr, by word, by simp; omega⟩
     icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
     rotate_left
     · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
@@ -108,7 +108,9 @@ theorem DoubleBarrier.Enter.wp_proof
   wp_start as ⟨#Hb, Hmk, #Hlo⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
-  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %Hcount, #Hsess, #Hcl, #Hclosed⟩
+  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
+  have Hcount := HcountB.1
+  have Hkl := HcountB.2
   ihave #Hcp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency $$ []
   · iPkgInit
   ihave Hci : (recipesInit : IProp GF) $$ []
@@ -151,7 +153,7 @@ theorem DoubleBarrier.Enter.wp_proof
     exact List.prefix_append _ _
   wp_apply wp_newUniqueEphemeralKey s γ client id (key ++ go!"/") (key ++ go!"/waiters") lo
     $$ [$Hsess $Hcl $Hlo] as %ek %err Hres
-  · ipureintro; exact hpw
+  · ipureintro; exact ⟨hpw, by simp; omega⟩
   icases Hres with (⟨%Hnil, %kv, %k, %r, #HKVf, Hek, #Hr, #Hc, %Hkr⟩ | %Hne)
   rotate_left
   · obtain ⟨Hne, -⟩ := Hne
@@ -197,6 +199,7 @@ theorem DoubleBarrier.Enter.wp_proof
   simp only [dbMyKey]
   icases Hmk with ⟨Hmk, Hek, #Hkv, %Hk⟩
   unfold ownEphemeralKV ownRemoteKV RemoteKVSt.val'
+  icases Hek with ⟨Hek, %Hkl'⟩
   wp_auto
   wp_if_destruct
   · -- at least `count` waiters: the `count`-th
@@ -223,7 +226,7 @@ theorem DoubleBarrier.Enter.wp_proof
         (key ++ go!"/") r $$ [Hek] as %derr ⟨Hek, -⟩
       · unfold ownRemoteKV RemoteKVSt.val'
         iframe Hek Hkv Hr
-        ipureintro; exact Hk
+        ipureintro; exact ⟨Hkl', Hk⟩
       (try wp_auto)
       rcases derr with _ | _ <;> (try wp_auto) <;>
       · iapply HΦ
@@ -247,7 +250,7 @@ theorem DoubleBarrier.Enter.wp_proof
       wp_apply HP $$ [] as %presp %perr Hpres
       · iframe Hnil HR2
         ipureintro
-        exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr, rfl⟩
+        exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr, rfl, putOp_size (by simp; omega) (by simp)⟩
       iunfold putResult at Hpres
       icases Hpres with (%Hpne | ⟨%Hpnil, -⟩)
       · obtain ⟨e, rfl⟩ : ∃ e, perr = GoInterface.ok e := by
@@ -275,7 +278,7 @@ theorem DoubleBarrier.Enter.wp_proof
       iframe Hmk Hc
       isplitl [Hek]
       · unfold ownEphemeralKV ownRemoteKV RemoteKVSt.val'; iframe Hek Hkv
-        ipureintro; exact Hk
+        ipureintro; exact ⟨Hkl', Hk⟩
       isplitr
       · unfold enterReady
         ileft

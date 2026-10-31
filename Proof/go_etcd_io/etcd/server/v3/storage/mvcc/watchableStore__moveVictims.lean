@@ -138,7 +138,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
   ihave Hnilc : ownSliceCap (GF := GF) GoMap slice.nil (DFrac.own 1) $$ []
   · iapply ownSliceCap_nil
   icases mvcc.body_take s γ σ Hok slice.nil $$
-    [$Hσ $Hwlog $Hcert $Hsynced $Hunsynced $Hvf $Hnil $Hnilc $Hst $Hwo $Hmeta $Hwt $Hmfix $Hmem $Hout]
+    [$Hσ $Hwlog $Hcert $Hwfz $Hsynced $Hunsynced $Hvf $Hnil $Hnilc $Hst $Hwo $Hmeta $Hwt $Hmfix $Hmem $Hout]
     with ⟨Hbody, Hmov⟩
   ihave Hmov2 := (BigSepL.bigSepL_sep_eqv (Φ := fun _ x => mvcc.ownWatcherBatch (GF := GF) x.1 x.2)
     (Ψ := fun _ x => iprop([∗map] w ↦ b ∈ x.2, mvcc.outW (GF := GF) γ w b))

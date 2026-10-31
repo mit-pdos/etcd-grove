@@ -87,7 +87,8 @@ abbrev newServer.specCompact : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      -- (M2, the storage side, N1) the member's boot bundle in compaction mode
+      memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id }}

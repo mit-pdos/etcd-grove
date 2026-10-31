@@ -268,11 +268,140 @@ theorem OpT.wireL_txnOps (ts : List OpT) (ops : List TxnOp) (h : OpT.txnOps ts =
     OpT.wireL ts = ops.map opWire := by
   sorry -- txn-nested: prove after freeze
 
+/-- The builder's puts ignoring the value carry none (`txnOpOf`: etcd rejects such a put with a
+value; 2026-10-30, `reqOpAt`'s put case). -/
+theorem txnOpOf_put_val {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op) :
+    o.t = W64 2 → o.ignoreValue = true → o.val = [] := by
+  intro h2 hv
+  unfold txnOpOf at h
+  have h1 : o.t ≠ W64 1 := by rw [h2]; decide
+  rw [if_neg h1, if_pos h2] at h
+  by_cases hz : o.val = []
+  · exact hz
+  · simp [hv, hz] at h
+
 /-- **A tree with a transaction operation has gets, puts and deletes as leaves** (L5: `Then`'s
 premise gives `Op.toRequestOp`'s). -/
 theorem OpT.txnOp_leaves (t : OpT) (op : TxnOp) (h : OpT.txnOp t = some op) :
-    ∀ o ∈ t.leaves, o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3 := by
+    ∀ o ∈ t.leaves, (o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3) ∧
+      (o.t = W64 2 → o.ignoreValue = true → o.val = []) := by
   sorry -- txn-nested: prove after freeze
+/-! ## The encoded size of the client's requests (2026-10-30)
+
+The bounds the request instances' `wireLen` are (`ProtoMsg.wireLen`: grpc marshals before it checks
+a size, `grpcInvokerOk`), and the predicates the client's API asks of its callers
+(`notes/decisions.md`, "The encoded-size bound at grpc's send side"). -/
+
+theorem opSizeOk.wire_lt {o : OpFull} (h : opSizeOk o) : opWireLen o < grpcMsgMax := by
+  unfold opSizeOk at h; unfold opWireLen wireSlack grpcMsgMax; omega
+
+theorem txnSizeOk.wire_lt {t : TxnModel} (h : txnSizeOk t) : txnWireLen t < grpcMsgMax := by
+  unfold txnSizeOk at h; unfold grpcMsgMax; omega
+
+/-- A put's wire model keeps the key and the value, and has no range end. -/
+theorem opSizeOk_putWireOf {o : OpFull} (h : opSizeOk o) : opSizeOk (putWireOf o) := by
+  unfold opSizeOk at h ⊢
+  simp only [putWireOf, txn.putOpOf, OpModel.zero, List.length_nil]
+  omega
+
+/-- A get's wire model keeps the key and the range end, and has no value. -/
+theorem opSizeOk_rangeWireOf {o : OpFull} (h : opSizeOk o) : opSizeOk (rangeWireOf o) := by
+  unfold opSizeOk at h ⊢
+  simp only [rangeWireOf, txn.rangeOpOf, OpFull.newOp, List.length_nil]
+  omega
+
+/-- A delete's wire model keeps the key and the range end, and has no value. -/
+theorem opSizeOk_deleteWireOf {o : OpFull} (h : opSizeOk o) : opSizeOk (deleteWireOf o) := by
+  unfold opSizeOk at h ⊢
+  simp only [deleteWireOf, txn.deleteOpOf, OpFull.newOp, List.length_nil]
+  omega
+
+/-- The wire model of an operation drops a get's and a delete's value: its bound does not grow. -/
+theorem TxnOp.wireLen_opWire : ∀ op : TxnOp, (opWire op).wireLen ≤ op.wireLen
+  | .get o => by
+    simp only [opWire, TxnOp.wireLen, opWireLen, rangeWireOf, txn.rangeOpOf, OpFull.newOp,
+      List.length_nil]
+    omega
+  | .delete o => by
+    simp only [opWire, TxnOp.wireLen, opWireLen, deleteWireOf, txn.deleteOpOf, OpFull.newOp,
+      List.length_nil]
+    omega
+  | .put _ _ _ => by simp only [opWire, Nat.le_refl]
+  | .putKeep _ _ => by simp only [opWire, Nat.le_refl]
+  | .putIgnVal _ _ => by simp only [opWire, Nat.le_refl]
+  | .txn cs ts es => by
+    have e : ∀ l : List TxnOp,
+        (l.attach.map fun x => match x with | ⟨t, _⟩ => opWire t) = l.map opWire := by
+      intro l; simp
+    have hs : ∀ (l : List TxnOp), (∀ t ∈ l, (opWire t).wireLen ≤ t.wireLen) →
+        ((l.map opWire).map TxnOp.wireLen).sum ≤ (l.map TxnOp.wireLen).sum := by
+      intro l hl
+      induction l with
+      | nil => simp
+      | cons a l ih =>
+        simp only [List.map_cons, List.sum_cons]
+        have ha := hl a (List.mem_cons_self ..)
+        have ih' := ih (fun t ht => hl t (List.mem_cons_of_mem _ ht))
+        omega
+    have h1 := hs ts (fun t ht => TxnOp.wireLen_opWire t)
+    have h2 := hs es (fun t ht => TxnOp.wireLen_opWire t)
+    simp only [opWire, TxnOp.wireLen_txn, e]
+    omega
+
+/-- The put request `kv.Do` sends for an `Op` whose payload fits (its key and value): below
+`grpcMsgMax`. -/
+theorem opSizeOk.put_lt {o : OpFull} (h : opSizeOk o) (req : etcdserverpb.PutRequest) :
+    opWireLen (putReqOp req o.key o.val) < grpcMsgMax := by
+  unfold opSizeOk at h
+  simp only [opWireLen, putReqOp, txn.putOpOf, OpModel.zero, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
+
+/-- The range request `kv.Do` sends (its key and range end): below `grpcMsgMax`. -/
+theorem opSizeOk.range_lt {o : OpFull} (h : opSizeOk o) (req : etcdserverpb.RangeRequest) :
+    opWireLen (rangeReqOp req o.key o.base.rangeEnd) < grpcMsgMax := by
+  unfold opSizeOk at h
+  simp only [opWireLen, rangeReqOp, txn.rangeOpOf, OpFull.newOp, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
+
+/-- The delete request `kv.Do` sends (its key and range end): below `grpcMsgMax`. -/
+theorem opSizeOk.delete_lt {o : OpFull} (h : opSizeOk o) (req : etcdserverpb.DeleteRangeRequest) :
+    opWireLen (deleteReqOp req o.key o.base.rangeEnd) < grpcMsgMax := by
+  unfold opSizeOk at h
+  simp only [opWireLen, deleteReqOp, txn.deleteOpOf, OpFull.newOp, List.length_nil]
+  unfold wireSlack grpcMsgMax; omega
+
+/-- One string's request (the fixed part besides), below `grpcMsgMax`. -/
+theorem strsSizeOk.lt_1 {a : GoString} (h : strsSizeOk [a]) : a.length + wireSlack < grpcMsgMax := by
+  unfold strsSizeOk at h; simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  unfold wireSlack grpcMsgMax; omega
+
+/-- Two strings' request, below `grpcMsgMax`. -/
+theorem strsSizeOk.lt_2 {a b : GoString} (h : strsSizeOk [a, b]) :
+    a.length + b.length + wireSlack < grpcMsgMax := by
+  unfold strsSizeOk at h; simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  unfold wireSlack grpcMsgMax; omega
+
+/-- Three strings' request, below `grpcMsgMax`. -/
+theorem strsSizeOk.lt_3 {a b c : GoString} (h : strsSizeOk [a, b, c]) :
+    a.length + b.length + c.length + wireSlack < grpcMsgMax := by
+  unfold strsSizeOk at h; simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h
+  unfold wireSlack grpcMsgMax; omega
+
+/-- The transaction's wire model (`txnWireOf`) keeps its bound. -/
+theorem txnSizeOk_wireOf {t : TxnModel} (h : txnSizeOk t) : txnSizeOk (txnWireOf t) := by
+  unfold txnSizeOk txnWireLen at h ⊢
+  have hs : ∀ (l : List TxnOp), ((l.map opWire).map TxnOp.wireLen).sum ≤ (l.map TxnOp.wireLen).sum := by
+    intro l
+    induction l with
+    | nil => simp
+    | cons a l ih =>
+      simp only [List.map_cons, List.sum_cons]
+      have := TxnOp.wireLen_opWire a
+      omega
+  have h1 := hs t.thenOps
+  have h2 := hs t.elseOps
+  simp only [txnWireOf]
+  omega
 
 end model
 
@@ -462,7 +591,9 @@ mutual
 /-- **The `*pb.RequestOp` `p` of the client's memory holds the operation `op`** (its wire
 model; read-only): a get, a put or a delete (`Op.toRequestOp`'s); a nested transaction's request
 (`Op.toTxnRequest`'s) with its comparisons and its operations' requests, recursively (until
-2026-10-30, `False`: `notes/txn-nested.md`, D1). -/
+2026-10-30, `False`: `notes/txn-nested.md`, D1). A put that ignores the value carries none
+(2026-10-30: `putTxnOp` forgets it, and the request's bound, `TxnOp.wireLen`, reads the model;
+etcd rejects such a put with a value, and the builder makes none, `txnOpOf`). -/
 def reqOpAt (p : Loc) : TxnOp → IProp GF
   | .get o => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
       structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
@@ -493,7 +624,7 @@ def reqOpAt (p : Loc) : TxnOp → IProp GF
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
           GoInterface) ∗
       structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
-      putReqAt r o ∗ ⌜op = txn.putTxnOp o⌝)
+      putReqAt r o ∗ ⌜op = txn.putTxnOp o ∧ (o.ignoreValue = true → o.val = [])⌝)
 
 /-- The `*pb.RequestOp`s `ps` hold, in order, the operations `ops` (structural since 2026-10-30;
 the index form is `reqOpsAt_index`). -/
@@ -585,8 +716,10 @@ instance txnReqAt_persistent (req : etcdserverpb.TxnRequest) (t : TxnModel) :
     Persistent (txnReqAt (GF := GF) req t) := by
   unfold txnReqAt; infer_instance
 
-/-- A put's `*pb.RequestOp` (`reqOpAt` of the server's put `txn.putTxnOp o`). -/
-theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
+/-- A put's `*pb.RequestOp` (`reqOpAt` of the server's put `txn.putTxnOp o`), of no value if it
+ignores the value (2026-10-30: `putTxnOp` then forgets the value, which the request's bound,
+`TxnOp.wireLen`, must not). -/
+theorem reqOpAt_put (p w r : Loc) (o : OpFull) (hv : o.ignoreValue = true → o.val = []) :
     ⌜p ≠ null⌝ ∗
       structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
         (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
@@ -601,7 +734,7 @@ theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
           (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
             GoInterface) ∗
         structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
-        putReqAt r o' ∗ ⌜op = txn.putTxnOp o'⌝) := by
+        putReqAt r o' ∗ ⌜op = txn.putTxnOp o' ∧ (o'.ignoreValue = true → o'.val = [])⌝) := by
     intro op h1 h2 h3 _
     unfold reqOpAt
     cases op with
@@ -616,7 +749,7 @@ theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
   · ipureintro; exact Hp
   iexists w, r, o
   iframe #
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, hv⟩
 
 /-- The deletes of a transaction's operations, at every depth (`v3rpc.delCount`'s, over the
 transaction model). -/
@@ -760,7 +893,8 @@ def pbPutRequest : ProtoMsg GF where
   ty := etcdserverpb.PutRequest.ty
   M := OpFull
   send inp o := iprop(∃ (req : etcdserverpb.PutRequest) (k v : GoString), inp ↦ req ∗
-    req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗ ⌜o = putReqOp req k v⌝)
+    req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗ ⌜o = putReqOp req k v ∧ req.unknownFields' = slice.nil⌝)
+  wireLen := opWireLen
   recv r o := txn.putRequestIs r o
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.PutRequest))
@@ -772,7 +906,8 @@ def pbRangeRequest : ProtoMsg GF where
   ty := etcdserverpb.RangeRequest.ty
   M := OpFull
   send inp o := iprop(∃ (req : etcdserverpb.RangeRequest) (k e : GoString), inp ↦ req ∗
-    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = rangeReqOp req k e⌝)
+    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = rangeReqOp req k e ∧ req.unknownFields' = slice.nil⌝)
+  wireLen := opWireLen
   recv r o := txn.rangeRequestIs r o
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.RangeRequest))
@@ -807,7 +942,9 @@ def pbDeleteRangeRequest : ProtoMsg GF where
   ty := etcdserverpb.DeleteRangeRequest.ty
   M := OpFull
   send inp o := iprop(∃ (req : etcdserverpb.DeleteRangeRequest) (k e : GoString), inp ↦ req ∗
-    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = deleteReqOp req k e⌝)
+    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+    ⌜o = deleteReqOp req k e ∧ req.unknownFields' = slice.nil⌝)
+  wireLen := opWireLen
   recv r o := txn.deleteRangeRequestIs r o
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.DeleteRangeRequest))
@@ -837,7 +974,9 @@ of the message). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty
   M := TxnModel
-  send inp t := iprop(∃ req : etcdserverpb.TxnRequest, inp ↦ req ∗ txnReqAt req t)
+  send inp t := iprop(∃ req : etcdserverpb.TxnRequest, inp ↦ req ∗ txnReqAt req t ∗
+    ⌜req.unknownFields' = slice.nil⌝)
+  wireLen := txnWireLen
   recv r t := iprop(txn.txnRequestIs r t ∗ txnWireOk r t)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.TxnRequest))
@@ -958,7 +1097,8 @@ connection to `addr` (`grpcConn`, any interceptors) with an invoker making one a
 request `inp` (`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
 (`callOptsOk`) and the caller's `□ ▷ attemptPre conn ctx Spec m Φ` (persistent: the request may be
 delivered several times, the attempts; at every metadata an attempt may deliver, `clientAttemptMd`),
-it returns
+for a request whose encoding is below `grpcMsgMax` (`Req.wireLen`, since 2026-10-30: the attempt
+contract's premise, `grpcInvokerOk`), it returns
 * `nil`: an attempt succeeded, the last one (the loop returns at the first `nil`), and `out` holds
   its reply's copy of a response (`Rep.recv out m'`) with its run's `Φ m'`; other attempts may
   have run the handler: an attempt that failed with a gRPC `Canceled` or `DeadlineExceeded` while
@@ -973,7 +1113,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
-        opts ↦*□ vs ∗ callOptsOk vs }}
+        opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
@@ -1015,7 +1155,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
-        Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+        Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
@@ -1047,7 +1187,7 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
     iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
-      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
     iapply H0 $$ [Hsend Hblank] HΨ
     unfold modePre
     iframe #

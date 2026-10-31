@@ -48,7 +48,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_elseOf : elseOf.spec (GF := GF) (hG := hG)) (wp_txnRes : txnRes.spec (GF := GF) (hG := hG))
     (wp_withRes : withRes.spec (GF := GF) (hG := hG)) :
     callTxn.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs x cs t e Q hx hne
+  intro _ CRE CEC cl ms V hAs x cs t e Q hx hne hb
   obtain ⟨hn, hcs, ht, he⟩ := decIn_txn x cs t e hx
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -100,7 +100,11 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     simp [TxnModel.empty, clientTxn]
   (try wp_auto)
   wp_apply (txn_Commit_st tp ms cctx ccd
-      ⟨clientTxn cs t e, true, true, true⟩ Q cs t e rfl hne) $$ [Hobj Hau Hkt]
+      ⟨clientTxn cs t e, true, true, true⟩ Q cs t e rfl hne
+      (by
+        show txnSizeOk (txnWireOf (clientTxn cs t e))
+        rw [txnWireOf_clientTxn]
+        exact txnSizeOk_txnOf cs t e (decIn_txn_length x cs t e hx) hb)) $$ [Hobj Hau Hkt]
     as %resp %err Hout
   · iframe #
     iframe
@@ -109,7 +113,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   wp_apply Hccancel
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
-    obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
+    obtain ⟨hok, hrel, hrev, hb, -⟩ := Hσ
     iunfold txnRespMsg at Hm
     icases Hm with ⟨%Hnn, %h, %sl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hsl, #Hms⟩
     iunfold hdrFull at Hhf

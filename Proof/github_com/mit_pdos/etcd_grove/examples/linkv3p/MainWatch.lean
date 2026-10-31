@@ -163,6 +163,8 @@ theorem MainWatch.wp_proof
     simp only [pairOf]
     simp only [genKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with h | h | h <;> rw [h] <;> decide
+  have hsz : ∀ p ∈ trs, common.wkvSizeOk p := fun p hp =>
+    common.GenKv.sizeOk (by decide) (Htrs.2 p hp)
   (try wp_auto)
   -- the cluster, its clients' watch prefix `wk/`
   wp_apply wp_NewNop as %lg %Hlg
@@ -188,9 +190,9 @@ theorem MainWatch.wp_proof
     %HR₂, #Hstr₂, %Hp₂⟩
   icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
     %HR₃, #Hstr₃, %Hp₃⟩
-  obtain ⟨hr₁, hc₁, hch₁, hlog₁⟩ := Hp₁
-  obtain ⟨hr₂, hc₂, hch₂, hlog₂⟩ := Hp₂
-  obtain ⟨hr₃, hc₃, hch₃, hlog₃⟩ := Hp₃
+  obtain ⟨hr₁, hc₁, hch₁, hlog₁, hoff₁⟩ := Hp₁
+  obtain ⟨hr₂, hc₂, hch₂, hlog₂, hoff₂⟩ := Hp₂
+  obtain ⟨hr₃, hc₃, hch₃, hlog₃, hoff₃⟩ := Hp₃
   -- the members' names are the history's (the first member's)
   -- (2026-10-27, the server port) the members' raft names are the cluster's but for each one's
   -- storage registry
@@ -221,21 +223,21 @@ theorem MainWatch.wp_proof
     · iexact Hrd₁
     isplitr
     · iexists pw₁; iexact Hws₁
-    ipureintro; exact ⟨HR₁.2, hm₁, rfl⟩
+    ipureintro; exact ⟨HR₁.2, hm₁, rfl, hoff₁⟩
   ihave #Hmw₂ : memberWatch ρ₁.rd s₂ E₂ ρ₂ R₂ $$ []
   · iunfold memberWatch
     isplitr
     · iexact Hrd₂
     isplitr
     · iexists pw₂; iexact Hws₂
-    ipureintro; exact ⟨HR₂.2, hm₂, hst₂⟩
+    ipureintro; exact ⟨HR₂.2, hm₂, hst₂, hoff₂⟩
   ihave #Hmw₃ : memberWatch ρ₁.rd s₃ E₃ ρ₃ R₃ $$ []
   · iunfold memberWatch
     isplitr
     · iexact Hrd₃
     isplitr
     · iexists pw₃; iexact Hws₃
-    ipureintro; exact ⟨HR₃.2, hm₃, hst₃⟩
+    ipureintro; exact ⟨HR₃.2, hm₃, hst₃, hoff₃⟩
   -- each member's `Watch` stream at its bridge
   ihave #Hb₁ := isGrpcStream_forwards bridgeAddr₁ clientAddr₁ _ _ _ $$ [Hfw₁ Hstr₁]
   · iframe #
@@ -521,7 +523,7 @@ theorem MainWatch.wp_proof
               rw [hmul]; exact Int.mul_nonneg H0 Hops
             have e : ((sint.nat (nw * nops) : Nat) : Int) = sint.Z (nw * nops) := by word
             rw [e, hmul]
-            omega)) $$ []
+            omega) hsz) $$ []
       · iframe #
       (try wp_auto)
       wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)

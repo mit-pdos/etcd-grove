@@ -283,6 +283,17 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
+  (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
+  `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
+  handler. Reproduced at the mvcc level with a test; a narrow window (a compaction queued behind
+  another, plus a snapshot install), a liveness effect only, and a one-line fix in
+  `compactBarrier`.
+- **[etcd-restore-scheduled-compact-zero](etcd-restore-scheduled-compact-zero.md)** (2026-10-30):
+  `restore()` ignores a scheduled, unfinished compaction at revision 0, so after a snapshot install
+  or a restart a member's compaction revision is `-1` where its peers have `0`. Reproduced at the
+  mvcc level; needs a client `Compact(0)` (the auto-compactors never issue it) and observable only
+  through a re-issued `Compact(0)` or `HashKV`.
 - **[etcd-watch-stream-key-collision](etcd-watch-stream-key-collision.md)** (2026-10-29): the
   client keys its watch streams by `%+v` of the outgoing metadata, which collides, so a watch can
   go out with another context's metadata (its token). Needs a metadata value with a space; etcd's

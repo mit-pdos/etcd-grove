@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
     (hMk : mkSTM.spec (GF := GF) (hG := hG)) (hRun : runSTM.spec (GF := GF) (hG := hG)) :
     NewSTM.spec (GF := GF) (hG := hG) := by
-  intro c pfx apply Q sl os lo
-  wp_start as ⟨#Hcl, #Hap, #Hopts, #Hlo, %Hpre⟩
+  intro c pfx P apply Q sl os lo
+  wp_start as ⟨#Hcl, #Hap, #Hopts, #Hlo, %Hpre, %Hsz⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdSTMClient at Hcl'
   icases Hcl' with ⟨%kv, %cctx, %ccs, #Hkv, #Htxn, #Hrtxn, #Hcf, #Hcc⟩
@@ -85,7 +85,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
     ipureintro; constructor <;> word
   have Hge : sint.nat n = os.length := by rw [← Hlen]; word
   rw [Hge, List.take_length]
-  generalize hO : stmOptsFold os STMOpts.init = O at Hpre ⊢
+  generalize hO : stmOptsFold os STMOpts.init = O at Hpre Hsz ⊢
   unfold stmOptionsOwn
   icases Hop with ⟨%octx, %ocs, %psl, Hr, Hpsl, -, #Hoctx⟩
   ipersist Hr
@@ -100,7 +100,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
     wp_apply hMk c pfx «$r0_ptr» _ octx ocs $$ [$Hpkg $Hcl $Hr $Hoctx] as %stmv ⟨%sp, %Hs, #Hms, Hstale⟩
     · ipureintro; exact ⟨rfl, Hpre.1⟩
     subst Hs
-    wp_apply hRun O.iso pfx sp apply Q lo $$ [$Hpkg $Hms $Hstale $Hap $Hlo] as %resp %err #Hres
+    wp_apply hRun O.iso pfx sp P apply Q lo $$ [$Hpkg $Hms $Hstale $Hap $Hlo] as %resp %err #Hres
     iapply HΦ
     iexact Hres
   · -- a prefetch list: `apply` wrapped in a closure that gets the keys first
@@ -108,11 +108,11 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
     wp_apply hMk c pfx «$r0_ptr» _ octx ocs $$ [$Hpkg $Hcl $Hr $Hoctx] as %stmv ⟨%sp, %Hs, #Hms, Hstale⟩
     · ipureintro; exact ⟨rfl, Hpre.1⟩
     subst Hs
-    wp_apply hRun O.iso pfx sp _ Q lo $$ [$Hpkg $Hms $Hstale $Hlo] as %resp %err #Hres
+    wp_apply hRun O.iso pfx sp 0 _ Q lo $$ [$Hpkg $Hms $Hstale $Hlo] as %resp %err #Hres
     · unfold applySpec
       imodintro
       iintro %lvl %p %st #Hm
-      wp_start_folded as Hst
+      wp_start_folded as ⟨Hst, %Hn0⟩
       ihave #Hm' := Hm
       iunfold stmMethods at Hm'
       icases Hm' with ⟨#HGet, -⟩
@@ -121,9 +121,11 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
       simp only [stmIface]
       wp_auto
       wp_apply HGet1 $$ [$Hst $Hpsl] as %r Hr
-      · ipureintro; exact Hpre.2
+      · ipureintro
+        refine ⟨Hpre.2, ?_, Hsz.2.2, by simp⟩
+        have := Hsz.1; have := Hsz.2.1; omega
       iunfold stmRet at Hr
-      icases Hr with (⟨%v, %Hv, %st', Hst, -⟩ | %Hab)
+      icases Hr with (⟨%v, %Hv, %st', Hst, %Hgp⟩ | %Hab)
       rotate_left
       · -- the prefetch aborted: so does the closure
         obtain ⟨err, Hne, rfl⟩ := Hab
@@ -135,6 +137,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
       wp_auto
       ihave #Hap3 := Hap1 $$ %st' Hm
       wp_apply Hap3 $$ [$Hst] as %r' Hres
+      · ipureintro; have := Hgp.2.2.1; have := Hsz.1; omega
       iunfold stmRet at Hres
       icases Hres with (⟨%err, %Herr, Hres⟩ | %Hab)
       rotate_left

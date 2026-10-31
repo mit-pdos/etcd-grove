@@ -110,13 +110,44 @@ def WriteM.op (k : GoString) : WriteM → TxnOp
   | .put v l => .put k v l
   | .del => .delete (opDeleteModel k [])
 
-/-- An attempt's reads and writes (the read set and the write set). -/
+/-- An attempt's reads and writes (the read set and the write set), and the number `n` of keys its
+calls named so far (`Get(keys...)` counts its keys, `Put`, `Rev`, `Del` one each; 2026-10-30: the
+size of the commit's request is bounded by it, `STMSizeOk`). -/
 structure STMSt where
   reads : GMap GoString ReadM
   writes : GMap GoString WriteM
+  n : Nat := 0
 
 /-- A fresh attempt (after `reset`). -/
-def STMSt.empty : STMSt := { reads := ∅, writes := ∅ }
+def STMSt.empty : STMSt := { reads := ∅, writes := ∅, n := 0 }
+
+/-! ### The size of an attempt (2026-10-30, `notes/decisions.md`, "The STM's sizes")
+
+`commit` sends one transaction with the read set's comparisons, the write set's comparisons and
+operations, and (serializable levels) a get per read key: its request fits a gRPC message when
+every key and value is at most `stmKeyMax` bytes and the attempt names at most `stmCallMax` keys
+(`stmCallMax * (3 * stmKeyMax + 2 * wireSlack) ≤ 2 ^ 30`). -/
+
+/-- The longest key or value an STM call may take: `2 ^ 20` bytes. -/
+def stmKeyMax : Nat := 2 ^ 20
+
+/-- The most keys an attempt's calls may name: `2 ^ 8`. -/
+def stmCallMax : Nat := 2 ^ 8
+
+/-- **A call naming the keys `ks` with the values `vs` fits the attempt `st`**: the count stays
+within `stmCallMax`, every key and value within `stmKeyMax`. -/
+def STMCallOk (st : STMSt) (ks vs : List GoString) : Prop :=
+  st.n + ks.length ≤ stmCallMax ∧ (∀ k ∈ ks, k.length ≤ stmKeyMax) ∧
+    ∀ v ∈ vs, v.length ≤ stmKeyMax
+
+/-- **The attempt's sizes** (kept by `stmState`): its count within `stmCallMax`, and keys `rk` (the
+read keys) and `wk` (the written keys), `rk.length + wk.length ≤ n`, each within `stmKeyMax`, as the
+written values. -/
+def STMSizeOk (st : STMSt) : Prop :=
+  st.n ≤ stmCallMax ∧ ∃ rk wk : List GoString, rk.length + wk.length ≤ st.n ∧
+    (∀ k, (st.reads !! k).isSome → k ∈ rk) ∧ (∀ k, (st.writes !! k).isSome → k ∈ wk) ∧
+    (∀ k ∈ rk, k.length ≤ stmKeyMax) ∧ (∀ k ∈ wk, k.length ≤ stmKeyMax) ∧
+    ∀ k w, st.writes !! k = some w → w.val.length ≤ stmKeyMax
 
 /-- The key-value of `k` in the state `s` (`none`: absent). -/
 def kvAt (s : List EtcdKv) (k : GoString) : Option EtcdKv := s.find? (fun v => decide (v.key = k))
@@ -192,17 +223,17 @@ def ReadsGrow (reads reads' : GMap GoString ReadM) (ks : List GoString) : Prop :
 
 /-- What `Get(keys...)` did, from `st` to `st'`, returning `v`: the writes are unchanged, the
 reads grow (by keys of `keys` only); for no key `""`; otherwise `v` is, for some key `k` of
-`keys`, its write's value, or (not written) its read's value. -/
+`keys`, its write's value, or (not written) its read's value; the count grows by the keys. -/
 def GetPost (ks : List GoString) (st : STMSt) (v : GoString) (st' : STMSt) : Prop :=
-  st'.writes = st.writes ∧ ReadsGrow st.reads st'.reads ks ∧
+  st'.writes = st.writes ∧ ReadsGrow st.reads st'.reads ks ∧ st'.n = st.n + ks.length ∧
     (ks = [] → v = []) ∧
     (ks ≠ [] → ∃ k ∈ ks, (∃ w, st.writes !! k = some w ∧ v = w.val) ∨
       (st.writes !! k = none ∧ ∃ e, st'.reads !! k = some e ∧ v = e.value))
 
 /-- What `Rev(k)` did, from `st` to `st'`, returning `r`: the writes are unchanged, the reads
-grow (by `k` only) and hold `k`, read with mod revision `r` (`0`: absent). -/
+grow (by `k` only) and hold `k`, read with mod revision `r` (`0`: absent); the count grows by one. -/
 def RevPost (k : GoString) (st : STMSt) (r : w64) (st' : STMSt) : Prop :=
-  st'.writes = st.writes ∧ ReadsGrow st.reads st'.reads [k] ∧
+  st'.writes = st.writes ∧ ReadsGrow st.reads st'.reads [k] ∧ st'.n = st.n + 1 ∧
     ∃ e, st'.reads !! k = some e ∧ r = e.modRev
 
 /-- The options of `Put(k, v, opts...)` the STM supports: `OpPut` does not panic and the
@@ -465,7 +496,8 @@ def stmState (lvl : w64) (pfx : GoString) (p : Loc) (st : STMSt) : IProp GF :=
     stmWsetOwn pfx (stmBase lvl p) st.writes ∗
     (∃ gs : List (OpFull → OpFull), stmOptsOwn (stmBase lvl p) gs ∗ ⌜GetOptsOk lvl gs⌝) ∗
     stmConflictsAt lvl pfx (stmBase lvl p) ∗
-    (if isoSer lvl then iprop(∃ pre, stmPreOwn pfx p pre ∗ ⌜PreOk st pre⌝) else iprop(True)))
+    (if isoSer lvl then iprop(∃ pre, stmPreOwn pfx p pre ∗ ⌜PreOk st pre⌝) else iprop(True)) ∗
+    ⌜STMSizeOk st⌝)
 
 /-- **The STM's state before `reset`**: as `stmState`, but the read and write set fields hold
 anything (nil maps after `mkSTM`; the prefetch map after a failed serializable commit). -/
@@ -533,29 +565,34 @@ theorem stmRet_abort {V : Type} (err : GoInterface) (h : err ≠ GoInterface.nil
 `Put(k, v, opts...)`: the write set gets the put; `Rev(k)`: `RevPost`; `Del(k)`: the write set
 gets the delete; `commit()`: `nil` (failed) or a response with `stmOutcome`, leaving the state
 stale; `reset()`: from a stale state, a fresh attempt. A client error aborts `Get`, `Rev` and
-`commit` (`stmRet`: the panic `runSTM` recovers). -/
+`commit` (`stmRet`: the panic `runSTM` recovers). Each of `Get`, `Put`, `Rev`, `Del` takes a call
+that fits the attempt (`STMCallOk`: keys and values within `stmKeyMax`, the count within
+`stmCallMax`) and advances the count by the keys it names. -/
 def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
   iprop(
     (□ ∀ (st : STMSt) (sl : GoSlice) (ks : List GoString),
-      {{ stmState lvl pfx p st ∗ sl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ }}
+      {{ stmState lvl pfx p st ∗ sl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗ ⌜STMCallOk st ks []⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Get" (stmIface lvl p).v)) (Val #sl))
       {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
           ∃ st', stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝) }}) ∗
     (□ ∀ (st : STMSt) (k v : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)),
-      {{ stmState lvl pfx p st ∗ optsAt sl gs ∗ ⌜pfx <+: k ∧ PutOptsOk k v gs⌝ }}
+      {{ stmState lvl pfx p st ∗ optsAt sl gs ∗ ⌜pfx <+: k ∧ PutOptsOk k v gs⌝ ∗
+          ⌜STMCallOk st [k] [v]⌝ }}
         (App (App (App (Val #(methods (stmIface lvl p).ty go!"Put" (stmIface lvl p).v))
           (Val #k)) (Val #v)) (Val #sl))
       {{ RET #(); stmState lvl pfx p
-          { st with writes := GMap.insert k (.put v (opPutModel k v gs).leaseID) st.writes } }}) ∗
+          { st with writes := GMap.insert k (.put v (opPutModel k v gs).leaseID) st.writes,
+                    n := st.n + 1 } }}) ∗
     (□ ∀ (st : STMSt) (k : GoString),
-      {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ }}
+      {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ ∗ ⌜STMCallOk st [k] []⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Rev" (stmIface lvl p).v)) (Val #k))
       {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
           ∃ st', stmState lvl pfx p st' ∗ ⌜RevPost k st rev st'⌝) }}) ∗
     (□ ∀ (st : STMSt) (k : GoString),
-      {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ }}
+      {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ ∗ ⌜STMCallOk st [k] []⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Del" (stmIface lvl p).v)) (Val #k))
-      {{ RET #(); stmState lvl pfx p { st with writes := GMap.insert k .del st.writes } }}) ∗
+      {{ RET #(); stmState lvl pfx p
+          { st with writes := GMap.insert k .del st.writes, n := st.n + 1 } }}) ∗
     (□ ∀ (st : STMSt) (lo : w64),
       {{ stmState lvl pfx p st ∗ etcdReached lo }}
         (App (Val #(methods (stmIface lvl p).ty go!"commit" (stmIface lvl p).v)) (Val #()))
@@ -573,19 +610,222 @@ instance stmMethods_persistent (lvl : w64) (pfx : GoString) (p : Loc) :
 attempt): on any STM with the methods' triples, from any state, it returns an error or `nil`, in
 some state, and `nil` means the attempt's reads and writes satisfy `Q`; or it aborts, by a
 method's abort (`stmRet`), which it does not recover. It may only use the STM through `Get`,
-`Put`, `Rev`, `Del` (it has no triple of `commit`/`reset`). -/
-def applySpec (pfx : GoString) (apply : GoFunc) (Q : STMSt → Prop) : IProp GF :=
+`Put`, `Rev`, `Del` (it has no triple of `commit`/`reset`). It starts from an attempt whose count is
+at most `P` (`NewSTM`'s `WithPrefetch` keys are fetched in the attempt before the closure runs). -/
+def applySpec (pfx : GoString) (P : Nat) (apply : GoFunc) (Q : STMSt → Prop) : IProp GF :=
   iprop(□ ∀ (lvl : w64) (p : Loc) (st : STMSt), stmMethods lvl pfx p -∗
-    {{ stmState lvl pfx p st }}
+    {{ stmState lvl pfx p st ∗ ⌜st.n ≤ P⌝ }}
       (App (Val #apply) (Val #(GoInterface.ok (stmIface lvl p))))
     {{ (r : val), RET r; stmRet r fun err : GoInterface => iprop(
         ∃ st', stmState lvl pfx p st' ∗ ⌜err = GoInterface.nil → Q st'⌝) }})
 
-instance applySpec_persistent (pfx : GoString) (apply : GoFunc) (Q : STMSt → Prop) :
-    Persistent (applySpec (GF := GF) (hG := hG) pfx apply Q) := by
+instance applySpec_persistent (pfx : GoString) (P : Nat) (apply : GoFunc) (Q : STMSt → Prop) :
+    Persistent (applySpec (GF := GF) (hG := hG) pfx P apply Q) := by
   unfold applySpec; infer_instance
 
 end defs
+
+/-! ## The attempt's sizes (pure, 2026-10-30) -/
+
+theorem STMSizeOk_empty : STMSizeOk STMSt.empty :=
+  ⟨by simp [STMSt.empty, stmCallMax], [], [], by simp [STMSt.empty],
+    by simp [STMSt.empty], by simp [STMSt.empty], by simp, by simp, by simp [STMSt.empty]⟩
+
+/-- Reads by a call naming `ks` (the reads grow by keys of `ks` only). -/
+theorem STMSizeOk_reads {st : STMSt} {ks : List GoString} {reads' : GMap GoString ReadM}
+    (hsz : STMSizeOk st) (hc : STMCallOk st ks []) (hg : ReadsGrow st.reads reads' ks) :
+    STMSizeOk { reads := reads', writes := st.writes, n := st.n + ks.length } := by
+  obtain ⟨-, rk, wk, hl, hr, hw, hrk, hwk, hv⟩ := hsz
+  obtain ⟨hn, hks, -⟩ := hc
+  refine ⟨hn, rk ++ ks, wk, ?_, ?_, hw, ?_, hwk, hv⟩
+  · simp only [List.length_append]; omega
+  · intro k hk
+    rcases hg.2 k hk with h | h
+    · exact List.mem_append_left _ (hr k h)
+    · exact List.mem_append_right _ h
+  · intro k hk
+    rcases List.mem_append.1 hk with h | h
+    · exact hrk k h
+    · exact hks k h
+
+/-- A write of `k` by a call naming it. -/
+theorem STMSizeOk_write {st : STMSt} {k : GoString} {w : WriteM} (hsz : STMSizeOk st)
+    (hn : st.n + 1 ≤ stmCallMax) (hk : k.length ≤ stmKeyMax) (hv : w.val.length ≤ stmKeyMax) :
+    STMSizeOk { st with writes := GMap.insert k w st.writes, n := st.n + 1 } := by
+  obtain ⟨-, rk, wk, hl, hr, hw, hrk, hwk, hvs⟩ := hsz
+  refine ⟨hn, rk, k :: wk, ?_, hr, ?_, hrk, ?_, ?_⟩
+  · simp only [List.length_cons]; omega
+  · intro k' hk'
+    by_cases h : k' = k
+    · subst h; exact List.mem_cons_self ..
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at hk'
+      exact List.mem_cons_of_mem _ (hw k' hk')
+  · intro k' hk'
+    rcases List.mem_cons.1 hk' with h | h
+    · subst h; exact hk
+    · exact hwk k' h
+  · intro k' w' hk'
+    by_cases h : k' = k
+    · subst h; rw [GMap.lookup_insert] at hk'; cases hk'; exact hv
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at hk'; exact hvs k' w' hk'
+
+/-- `Put`'s write, by a call that fits. -/
+theorem STMSizeOk_put {st : STMSt} {k v : GoString} (l : w64) (hsz : STMSizeOk st)
+    (hc : STMCallOk st [k] [v]) :
+    STMSizeOk { st with writes := GMap.insert k (.put v l) st.writes, n := st.n + 1 } :=
+  STMSizeOk_write hsz (by simpa using hc.1) (hc.2.1 k (List.mem_singleton_self _))
+    (hc.2.2 v (List.mem_singleton_self _))
+
+/-- `Del`'s write, by a call that fits. -/
+theorem STMSizeOk_del {st : STMSt} {k : GoString} (hsz : STMSizeOk st)
+    (hc : STMCallOk st [k] []) :
+    STMSizeOk { st with writes := GMap.insert k .del st.writes, n := st.n + 1 } :=
+  STMSizeOk_write hsz (by simpa using hc.1) (hc.2.1 k (List.mem_singleton_self _))
+    (by simp [WriteM.val])
+
+/-- A sum over a list, each term at most `B`. -/
+theorem sum_map_le_mul {α : Type _} (l : List α) (f : α → Nat) (B : Nat)
+    (h : ∀ x ∈ l, f x ≤ B) : (l.map f).sum ≤ l.length * B := by
+  induction l with
+  | nil => simp
+  | cons a l ih =>
+    simp only [List.map_cons, List.sum_cons, List.length_cons, Nat.succ_mul]
+    have := h a (List.mem_cons_self ..)
+    have := ih (fun x hx => h x (List.mem_cons_of_mem _ hx))
+    omega
+
+/-- A sum over a `filterMap`, each term of an element's image at most `B`. -/
+theorem sum_filterMap_le_mul {α β : Type _} (l : List α) (g : α → Option β) (f : β → Nat)
+    (B : Nat) (h : ∀ x ∈ l, ∀ y, g x = some y → f y ≤ B) :
+    ((l.filterMap g).map f).sum ≤ l.length * B := by
+  induction l with
+  | nil => simp
+  | cons a l ih =>
+    have ih' := ih (fun x hx => h x (List.mem_cons_of_mem _ hx))
+    simp only [List.filterMap_cons, List.length_cons, Nat.succ_mul]
+    cases hg : g a with
+    | none => simp only; omega
+    | some y =>
+      simp only [List.map_cons, List.sum_cons]
+      have := h a (List.mem_cons_self ..) y hg
+      omega
+
+/-- The keys of a map in the domain of the attempt's keys: no more of them. -/
+theorem mapKeys_length_le {V : Type} {m : GMap GoString V} {ks rk : List GoString}
+    (hm : MapKeysList m ks) (h : ∀ k, (m !! k).isSome → k ∈ rk) : ks.length ≤ rk.length :=
+  List.Nodup.length_le_of_subset hm.1 (fun k hk => h k ((hm.2 k).1 hk))
+
+/-- A comparison of `readCmp` or `writeCmp`. -/
+theorem cmpWireLen_readCmp (k : GoString) (e : ReadM) :
+    cmpWireLen (readCmp k e) = k.length + wireSlack := by
+  simp [cmpWireLen, readCmp, compareM, cmpKeyM]
+
+theorem cmpWireLen_writeCmp (rev : w64) (k : GoString) :
+    cmpWireLen (writeCmp rev k) = k.length + wireSlack := by
+  simp [cmpWireLen, writeCmp, compareM, cmpKeyM]
+
+theorem wireLen_writeOp (k : GoString) (w : WriteM) :
+    (w.op k).wireLen ≤ k.length + w.val.length + wireSlack := by
+  cases w with
+  | put v l => simp [WriteM.op, WriteM.val, TxnOp.wireLen]
+  | del =>
+    simp [WriteM.op, WriteM.val, TxnOp.wireLen, opWireLen, opDeleteModel, opFold,
+      OpFull.deleteInit, OpFull.newOp, OpModel.zero]
+
+theorem wireLen_keyOp (k : GoString) : (TxnOp.get (keyOp k)).wireLen = k.length + wireSlack := by
+  simp [TxnOp.wireLen, opWireLen, keyOp, opGetModel, opFold, OpFull.getInit, OpFull.newOp,
+    OpModel.zero]
+
+/-- **The commit's request fits a gRPC message**: the conflicts' comparisons, the write set's
+operations and (serializable levels) a get per read key, for an attempt within its sizes. -/
+theorem stmCommit_size {lvl : w64} {st : STMSt} {ms : List CmpModel} {ops es : List TxnOp}
+    (hsz : STMSizeOk st) (hms : ConflictsOk lvl st.reads st.writes ms)
+    (hops : WriteOpsOk st.writes ops)
+    (hes : es = [] ∨ ∃ ks, MapKeysList st.reads ks ∧ es = (ks.map keyOp).map TxnOp.get) :
+    txnSizeOk { cmps := ms, thenOps := ops, elseOps := es } := by
+  obtain ⟨hn, rk, wk, hl, hr, hw, hrk, hwk, hv⟩ := hsz
+  have hN : stmKeyMax = 2 ^ 20 := rfl
+  have hM : stmCallMax = 2 ^ 8 := rfl
+  have hS : wireSlack = 256 := rfl
+  -- the read keys' comparisons
+  have hR : ∀ m1, ReadCmpsOk st.reads m1 → (m1.map cmpWireLen).sum ≤ rk.length * (stmKeyMax + wireSlack) := by
+    rintro m1 ⟨ks1, hk1, rfl⟩
+    have h1 := sum_filterMap_le_mul ks1 (fun k => (st.reads !! k).map (readCmp k)) cmpWireLen (stmKeyMax + wireSlack) (by
+      intro k hk c hc
+      obtain ⟨e, he, rfl⟩ := Option.map_eq_some_iff.1 hc
+      rw [cmpWireLen_readCmp]
+      have := hrk k (hr k (by rw [he]; rfl)); omega)
+    have := mapKeys_length_le hk1 hr
+    exact Nat.le_trans h1 (Nat.mul_le_mul_right _ this)
+  have hW : ∀ rev m2, WriteCmpsOk st.writes rev m2 → (m2.map cmpWireLen).sum ≤ wk.length * (stmKeyMax + wireSlack) := by
+    rintro rev m2 ⟨ks2, hk2, rfl⟩
+    rw [List.map_map]
+    have h1 := sum_map_le_mul ks2 (cmpWireLen ∘ writeCmp rev) (stmKeyMax + wireSlack) (by
+      intro k hk
+      simp only [Function.comp, cmpWireLen_writeCmp]
+      have := hwk k (hw k ((hk2.2 k).1 hk)); omega)
+    have := mapKeys_length_le hk2 hw
+    exact Nat.le_trans h1 (Nat.mul_le_mul_right _ this)
+  have hC : (ms.map cmpWireLen).sum ≤ (rk.length + wk.length) * (stmKeyMax + wireSlack) := by
+    rw [Nat.add_mul]
+    rcases hms with ⟨-, f, m1, m2, -, h1, h2, rfl⟩ | ⟨-, h1⟩ | ⟨-, rfl⟩
+    · rw [List.map_append, List.sum_append]
+      have := hR m1 h1; have := hW _ m2 h2; omega
+    · have := hR ms h1; omega
+    · simp
+  have hO : (ops.map TxnOp.wireLen).sum ≤ wk.length * (2 * stmKeyMax + wireSlack) := by
+    obtain ⟨ks2, hk2, rfl⟩ := hops
+    have h1 := sum_filterMap_le_mul ks2 (fun k => (st.writes !! k).map (WriteM.op k)) TxnOp.wireLen (2 * stmKeyMax + wireSlack) (by
+      intro k hk o ho
+      obtain ⟨w, hw', rfl⟩ := Option.map_eq_some_iff.1 ho
+      have := wireLen_writeOp k w
+      have := hwk k (hw k (by rw [hw']; rfl))
+      have := hv k w hw'
+      omega)
+    have := mapKeys_length_le hk2 hw
+    exact Nat.le_trans h1 (Nat.mul_le_mul_right _ this)
+  have hE : (es.map TxnOp.wireLen).sum ≤ rk.length * (stmKeyMax + wireSlack) := by
+    rcases hes with rfl | ⟨ks, hk, rfl⟩
+    · simp
+    · rw [List.map_map, List.map_map]
+      have h1 := sum_map_le_mul ks (TxnOp.wireLen ∘ TxnOp.get ∘ keyOp) (stmKeyMax + wireSlack) (by
+        intro k hk'
+        simp only [Function.comp, wireLen_keyOp]
+        have := hrk k (hr k ((hk.2 k).1 hk')); omega)
+      have := mapKeys_length_le hk hr
+      exact Nat.le_trans h1 (Nat.mul_le_mul_right _ this)
+  unfold txnSizeOk txnWireLen
+  simp only
+  have hn' : rk.length + wk.length ≤ 2 ^ 8 := by omega
+  rw [hN, hS] at hC hO hE
+  have h3 : rk.length * (2 ^ 20 + 256) + (rk.length + wk.length) * (2 ^ 20 + 256) +
+      wk.length * (2 * 2 ^ 20 + 256) ≤ (rk.length + wk.length) * (3 * 2 ^ 20 + 512) := by
+    rw [Nat.add_mul (rk.length) (wk.length)]
+    simp only [Nat.mul_add, Nat.add_mul]
+    omega
+  have h4 : (rk.length + wk.length) * (3 * 2 ^ 20 + 512) ≤ 2 ^ 8 * (3 * 2 ^ 20 + 512) :=
+    Nat.mul_le_mul_right _ hn'
+  omega
+
+/-- **A read transaction's request fits** (`stm.fetch`'s gets of `ks`, at most `stmCallMax` keys
+within `stmKeyMax`). -/
+theorem fetchTxn_size {ks : List GoString} {gs : List (OpFull → OpFull)}
+    (hf : ∀ k, (opGetModel k gs).key = k ∧ (opGetModel k gs).base.rangeEnd = [] ∧
+      (opGetModel k gs).val = [])
+    (hn : ks.length ≤ stmCallMax) (hk : ∀ k ∈ ks, k.length ≤ stmKeyMax) :
+    txnSizeOk (readTxn (ks.map fun k => opGetModel k gs)) := by
+  unfold txnSizeOk txnWireLen readTxn
+  simp only [List.map_nil, List.sum_nil, Nat.zero_add, Nat.add_zero, List.map_map]
+  have h1 := sum_map_le_mul ks (TxnOp.wireLen ∘ TxnOp.get ∘ fun k => opGetModel k gs)
+    (stmKeyMax + wireSlack) (by
+      intro k hk'
+      obtain ⟨h1, h2, h3⟩ := hf k
+      simp only [Function.comp, TxnOp.wireLen, opWireLen, h1, h2, h3, List.length_nil]
+      have := hk k hk'; omega)
+  have h2 : ks.length * (stmKeyMax + wireSlack) ≤ stmCallMax * (stmKeyMax + wireSlack) :=
+    Nat.mul_le_mul_right _ hn
+  have : stmCallMax * (stmKeyMax + wireSlack) ≤ 2 ^ 30 := by decide
+  omega
 
 section lemmas
 open Iris.ProofMode
@@ -594,6 +834,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
+
+/-- The STM's state keeps the attempt's sizes. -/
+theorem stmState_sizeOk (lvl : w64) (pfx : GoString) (p : Loc) (st : STMSt) :
+    stmState (GF := GF) lvl pfx p st ⊢ stmState lvl pfx p st ∗ ⌜STMSizeOk st⌝ := by
+  unfold stmState
+  iintro ⟨H1, H2, H3, H4, H5, H6, %Hsz⟩
+  iframe
+  ipureintro; exact ⟨Hsz, Hsz⟩
 
 /-- A read added to the read set. -/
 theorem readsAt_insert (pfx k : GoString) (rsMap : GMap GoString Loc)

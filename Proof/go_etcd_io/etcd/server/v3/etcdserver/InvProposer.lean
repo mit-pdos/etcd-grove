@@ -35,6 +35,7 @@ process serves fewer than `2 ^ 48` requests).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
@@ -420,7 +421,8 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
-    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
+      v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqFieldsAt s E ρ v) := by

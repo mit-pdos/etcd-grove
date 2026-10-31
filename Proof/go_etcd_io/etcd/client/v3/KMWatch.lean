@@ -214,13 +214,13 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem kmLog_take (γ : KMNames) (σ : KVState) (r : Nat) (h : kvLogOkTo σ r) :
     monoListLbOwn (GF := GF) γ.ch σ.changes ⊢ kmLog γ (σ.log.take (r + 1)) := by
   obtain ⟨hl, -⟩ := kvLogOkTo_len h
-  obtain ⟨-, hr, hr63, hw, hs⟩ := h
+  obtain ⟨-, hr, hr63, hw, hs, hk⟩ := h
   iintro #Hlb
   unfold kmLog
   iexists σ.changes
   iframe Hlb
   ipureintro
-  refine ⟨List.take_prefix _ _, hw, ?_, hs⟩
+  refine ⟨List.take_prefix _ _, hw, ?_, hs, hk⟩
   rw [List.length_take]; omega
 
 /-- etcd has reached every revision of a log the client saw. -/
@@ -613,7 +613,7 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   iintro ⟨#P1, #P2, #P3, #Hw, #Hinv⟩
   unfold isEtcdWatcher
   iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre, #Hrd⟩ HΦ
-  obtain ⟨hpw, hnp, hrev⟩ := Hpre
+  obtain ⟨hpw, hnp, hrev, hsz⟩ := Hpre
   unfold OpFull.isPrefixWatch at hpw
   simp only [decide_eq_true_eq, hp, if_false] at hpw
   obtain ⟨ht, hr, -, -, hpk, hfr, hfp, hfd, hkey, hend⟩ := hpw
@@ -630,9 +630,10 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     · ipureintro; exact Hkst
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by omega⟩
-      unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
-      exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      refine ⟨?_, hnp, by omega, ?_⟩
+      · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
+        exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      · exact hsz
     isplitr
     · iintro !> %h
       exact absurd h.2 (Nat.lt_irrefl 0)

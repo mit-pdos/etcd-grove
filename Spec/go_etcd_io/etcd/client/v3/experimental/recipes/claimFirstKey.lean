@@ -36,7 +36,7 @@ abbrev claimFirstKey.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx : GoString) (sl : GoSlice) (ps : List Loc) (vs : List EtcdKv)
     (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ sl ↦*□ ps ∗
-      kvPtrsAt ps vs ∗ ⌜∀ v ∈ vs, pfx <+: v.key ∧ 0 < sint.Z v.modRev⌝ }}
+      kvPtrsAt ps vs ∗ ⌜∀ v ∈ vs, pfx <+: v.key ∧ 0 < sint.Z v.modRev ∧ v.key.length ≤ 2 ^ 28⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.claimFirstKey))
       (Val #(GoInterface.ok kv))) (Val #sl))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);

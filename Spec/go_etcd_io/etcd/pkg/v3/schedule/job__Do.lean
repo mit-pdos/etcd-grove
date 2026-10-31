@@ -22,12 +22,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-/-- `j.Do(ctx)` of a `job` value whose closure has a job's triple: the closure's. -/
+/-- `j.Do(ctx)` of a `job` value whose closure has a job's triple: the closure's (with the
+context's payload premise, M2's storage side, passed on). -/
 abbrev schedule.job.Do.spec : Prop :=
   ∀ (γ : schedule.SchedNames) (jv : go_etcd_io.etcd.pkg.v3.schedule.job) (ctx : GoInterfaceOk)
     (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (Pre Prev Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ schedule.jobFnSpec γ jv.do' Pre Prev Post ∗ schedule.schedRunning γ ∗ Pre ∗ Prev ∗
-      _root_.Perennial.context.isContext ctx cd }}
+      _root_.Perennial.context.isContext ctx cd ∗ □ (cd.PDone -∗ schedule.schedPay γ) }}
     (App (Val (jv @!! go_etcd_io.etcd.pkg.v3.schedule.job.ty @!! go!"Do")) (Val #(GoInterface.ok ctx)))
   {{ RET #(); schedule.schedRunning γ ∗ Post }}
 

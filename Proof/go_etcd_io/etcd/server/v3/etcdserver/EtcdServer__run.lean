@@ -528,7 +528,7 @@ theorem EtcdServer.run.wp_proof
   have Hcs0 : cs ≠ null := Hcs0n
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
-  wp_apply hFifo fv.lg $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0⟩
+  wp_apply hFifo fv.lg iprop(True) $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0, -⟩
   · ipureintro; exact Hlg0
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
@@ -861,7 +861,7 @@ theorem EtcdServer.run.wp_proof
         iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
-      iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -⟩ HΦj
+      iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -, -⟩ HΦj
       ihave ⟨Hres, Hhalf⟩ := HQR $$ [HQ HR']
       · iframe
       icases srvRunH_lend γn ρ.raft hnd0 ce $$ Hhalf with ⟨Hrh, Hrhb⟩
@@ -1049,7 +1049,7 @@ theorem EtcdServer.run.wp_proofOn
   have Hcs0 : cs ≠ null := Hcs0n
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
-  wp_apply hFifo fv.lg $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0⟩
+  wp_apply hFifo fv.lg iprop(True) $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0, -⟩
   · ipureintro; exact Hlg0
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
@@ -1382,7 +1382,7 @@ theorem EtcdServer.run.wp_proofOn
         iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce) ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half)) $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
-      iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -⟩ HΦj
+      iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -, -⟩ HΦj
       ihave ⟨Hres, Hhalf⟩ := HQR $$ [HQ HR']
       · iframe
       icases srvRunH_lend γn ρ.raft hnd0 ce $$ Hhalf with ⟨Hrh, Hrhb⟩

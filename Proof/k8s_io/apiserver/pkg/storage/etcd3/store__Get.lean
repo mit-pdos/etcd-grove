@@ -59,7 +59,7 @@ theorem store.Get.wp_proof
     (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k Q hk hrv hQ
+  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k Q hk hkl hrv hQ
   wp_start as ⟨#Hst, #Hctx, #Hce, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,

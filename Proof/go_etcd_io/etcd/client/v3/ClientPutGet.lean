@@ -79,7 +79,8 @@ theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString
 `nil`, the reply and the put's flag; or an error. -/
 theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
     (γr : ReadNames) (γf : GName) (cid mid : w64) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
+    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
@@ -102,7 +103,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   -- (2026-10-19, D21 M6) a persistent update, its result persistent
   ihave Hau' := putAuOk_of_box api [ep] γr.kv _ _ $$ Hau
   wp_apply (client_put_end_to_end api [ep] E γr cid mid ci cd key val sl
-    (fun _ => iprop(□ monoNatLbOwn γf 1)) F) $$ [Hau'] as %resp %err Hout
+    (fun _ => iprop(□ monoNatLbOwn γf 1)) F hsz) $$ [Hau'] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, %m, Hm, Hp⟩ | %Herr)
@@ -111,7 +112,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     ileft
     ihave #Hlb : monoNatLbOwn γf 1 $$ [Hp]
     · iunfold putReplied at Hp
-      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, #Hq⟩
+      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, -, #Hq⟩
       iexact Hq
     isplitr
     · ipureintro; exact Herr
@@ -125,7 +126,8 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
 at `getAu_of_putGetInv`, then `client_get_value`, through the `KV` field): `nil` and a reply whose first key-value's value is `val`; or an error. -/
 theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
     (γr : ReadNames) (γf : GName) (c cid mid : w64) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
+    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
@@ -146,7 +148,7 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   ihave #Hau := getAu_of_putGetInv γr γf key val $$ [Hinv Hlb]
   · iframe #
   wp_apply (client_get_end_to_end api [ep] E γr c cid mid ci cd key sl
-    (fun σ => iprop(⌜(mvcc.findKey key σ.kvs).map EtcdKv.value = some val⌝)) F) $$ []
+    (fun σ => iprop(⌜(mvcc.findKey key σ.kvs).map EtcdKv.value = some val⌝)) F hsz) $$ []
     as %resp %err Hout
   · iframe #
   iapply HΦ
@@ -185,10 +187,12 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
     (hr : o.base.rev = W64 0) :
     rangeReplyOk E γr c F o cid mid Q m ⊢
       ∃ σ : KVState, □ Q σ ∗ ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧
-        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ := by
+        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧
+        -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
+        ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ := by
   iintro #H
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, %Hlk, %Hl, -, #HQ⟩
   simp only [hs, Bool.false_eq_true, ↓reduceIte]
   obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
   have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
@@ -204,13 +208,14 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
-  refine ⟨hsel, ?_, ?_⟩
+  refine ⟨hsel, ?_, ?_, ?_⟩
   · rw [hrev]
     simp only [kvStateOf_rev, kvStateOf_kvs]
     congr 1
     omega
   · simp only [kvStateOf_rev, kvStateOf_kvs]
     omega
+  · exact mvcc.stateAfter_vals Hlk
 
 /-- **The members' read updates, persistent** (each is: a read update, or none). -/
 theorem readUpds_box (ms : List (SrvAt GF)) (Q : KVState → IProp GF) :
@@ -225,7 +230,8 @@ theorem readUpds_box (ms : List (SrvAt GF)) (Q : KVState → IProp GF) :
 the file header). -/
 theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) :
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗
         ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
@@ -255,7 +261,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q []) $$ []
+  wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q [] hsz) $$ []
     as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
@@ -272,7 +278,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     · ipureintro; exact Herr
     ihave Hs := rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrev, hb⟩ := Hσ
+    obtain ⟨hsel, hrev, hb, -⟩ := Hσ
     iexists m, σ
     iframe Hm HQ
     ipureintro
@@ -297,7 +303,8 @@ once, with an update fired at most once, one per member (see the file header): `
 message and some member's `putReplied`; or an error. -/
 theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) :
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗ clientWriteOnce cl (ms.map SrvAt.addr) ∗
         ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
@@ -317,7 +324,7 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_any api ms ci cd key val sl Q []) $$ [Hau] as %resp %err Hout
+  wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [Hau] as %resp %err Hout
   · iframe #
     iright
     iframe #
@@ -341,7 +348,8 @@ write-once premise nor refusal-free members are needed (the persistent case of
 error. -/
 theorem client_Put_any (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) :
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗
         ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
@@ -359,7 +367,7 @@ theorem client_Put_any (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_any api ms ci cd key val sl Q []) $$ [] as %resp %err Hout
+  wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -378,7 +386,8 @@ once, with an update fired at most once, one per member (see the file header): `
 the reply's header revision, the put's at `σ`; or an error. -/
 theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) :
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗ clientWriteOnce cl (ms.map SrvAt.addr) ∗
         ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
@@ -391,7 +400,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
           ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ H HΦ
-  wp_apply (client_Put_rep cl ms V ci cd key val sl Q) $$ [H] as %resp %err Hout
+  wp_apply (client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [H] as %resp %err Hout
   · iexact H
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -399,7 +408,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     isplitl []
     · ipureintro; exact Herr
     iunfold putReplied at Hr
-    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
     obtain ⟨-, hrev, -, -, -, -, hlen, hb⟩ := Hp
     iexists m, kvStateOf y.log
     iframe Hm HQ
@@ -416,7 +425,8 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
 with an update fired at most once, one per member (see the file header). -/
 theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) :
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗ clientWriteOnce cl (ms.map SrvAt.addr) ∗
         ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
@@ -439,7 +449,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_any api ms ci cd key sl Q []) $$ [Hau] as %resp %err Hout
+  wp_apply (client_delete_any api ms ci cd key sl Q [] hsz) $$ [Hau] as %resp %err Hout
   · iframe #
     iright
     iframe #
@@ -450,7 +460,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     isplitl []
     · ipureintro; exact Herr
     iunfold deleteReplied at Hr
-    icases Hr with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
     obtain ⟨-, -, Hz, -, hrev, -, -, hdel, -, -, hlen, hb⟩ := Hp
     have hnz : irrNoZeroEnd (irrDeleteRange (txn.deleteOpOf key [] false)) := by
       refine ⟨fun o' h => by simp [irrDeleteRange, apply.irrEmpty] at h, fun o' h => ?_,
@@ -522,7 +532,8 @@ caller's update of `γ`'s state by the put (persistent if `dup`), and the reply 
 update fired at says. -/
 theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) :
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
         isKv api γ dup ∗
@@ -543,10 +554,12 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
   wp_apply (v3.kv.wp_Put api γ dup ci cd key val sl [] Q) $$ [Hau] as %resp %err Hout
   · iframe #
     iframe Hau
-    ipureintro
-    refine ⟨?_, rfl, rfl⟩
-    unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
-    simp
+    isplitl []
+    · ipureintro
+      refine ⟨?_, rfl, rfl⟩
+      unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
+      simp
+    ipureintro; exact hsz
   iapply HΦ
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
   · ileft

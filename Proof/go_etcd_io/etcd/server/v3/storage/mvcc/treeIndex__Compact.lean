@@ -245,9 +245,8 @@ theorem mvcc.treeIndex.Compact.wp_proof
       mvcc.idxGet_of_mem _ HsL (z.2.1, z.2.2) (List.mem_of_getElem? HzI)
     have HbL := HwfL.logB
     have HcmL : cmax ≤ sint.Z rev := Hcc.1
-    have HcmB : cmax < 2 ^ 63 := by omega
-    have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRep.gensOk HbL HLL.1 HcmB Hget
-    obtain ⟨cz, -, -, -, Hzne⟩ := mvcc.IdxCRep.get_some HLL.1 Hget
+    have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRepN.gensOk HLL.1 Hget
+    have Hzne := (mvcc.IdxCRepN.get_facts HLL.1 Hget).1
     -- borrow the entry
     icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hj |>.1 $$ HkisL
       with ⟨Hz, Hback⟩
@@ -275,7 +274,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
         mvcc.kiAvail (W64 (sint.Z rev)) (mvcc.kiOfKey (mvcc.evsOf log) zi.2.1) := by
       rw [← Hk, ← mvcc.reader_avail log ilog pend Hcmpf Hcntf (by have := HwfL.2.1; omega) HbLog
         z.2.1 (sint.Z rev) (by omega) Hrl,
-        ← mvcc.IdxCRep.avail_some HbL HLL.1 (sint.Z rev) HcmL Hrz Hget, HW]
+        ← mvcc.IdxCRepN.avail_some HbL HLL.1 (sint.Z rev) HcmL Hrz Hget, HW]
     have HA' : ∀ r, ((mvcc.availAdd A (mvcc.kiAvail rev z.2.2)).lookup (mvcc.revVal r)).isSome ↔
         ∃ z' ∈ L0.take (i + 1),
           mvcc.kiAvail (W64 (sint.Z rev)) (mvcc.kiOfKey (mvcc.evsOf log) z'.2.1) = some r := by
@@ -302,9 +301,9 @@ theorem mvcc.treeIndex.Compact.wp_proof
       wp_call
       (try wp_auto)
       have hset := mvcc.itemsOfEntries_set L j z (z.1, z.2.1, mvcc.kiCompact rev z.2.2) hj rfl rfl
-      have hidx : mvcc.IdxCRep (sint.Z rev) (mvcc.evsOf (ilog ++ [pend]))
+      have hidx : mvcc.IdxCRepN (sint.Z rev) (mvcc.evsOf (ilog ++ [pend]))
           (mvcc.idxOfEntries (L.set j (z.1, z.2.1, mvcc.kiCompact rev z.2.2))) := by
-        have := mvcc.IdxCRep.compactAt HbL HLL.1 HcmL Hrz j z.2.1 z.2.2 HzI
+        have := mvcc.IdxCRepN.compactAt HbL HLL.1 HcmL Hrz j z.2.1 z.2.2 HzI
         rw [HW, Hemp] at this
         simp only [Bool.false_eq_true, ↓reduceIte] at this
         rw [mvcc.idxOfEntries_set]; exact this
@@ -368,8 +367,8 @@ theorem mvcc.treeIndex.Compact.wp_proof
       wp_call
       (try wp_auto)
       have hdel := mvcc.btDelete_items_eraseIdx L HsE j z z.1 hj
-      have hidx : mvcc.IdxCRep (sint.Z rev) (mvcc.evsOf (ilog ++ [pend])) (mvcc.idxOfEntries (L.eraseIdx j)) := by
-        have := mvcc.IdxCRep.compactAt HbL HLL.1 HcmL Hrz j z.2.1 z.2.2 HzI
+      have hidx : mvcc.IdxCRepN (sint.Z rev) (mvcc.evsOf (ilog ++ [pend])) (mvcc.idxOfEntries (L.eraseIdx j)) := by
+        have := mvcc.IdxCRepN.compactAt HbL HLL.1 HcmL Hrz j z.2.1 z.2.2 HzI
         rw [HW, Hemp] at this
         simp only [↓reduceIte] at this
         rw [mvcc.idxOfEntries_eraseIdx]; exact this

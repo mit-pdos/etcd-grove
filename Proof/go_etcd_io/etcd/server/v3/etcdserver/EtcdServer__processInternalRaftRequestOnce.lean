@@ -168,7 +168,12 @@ local macro "piro_tail" : tactic => `(tactic| (
     rw [Hid0]
     (try wp_auto)
     rw [Hhvid]
-    obtain ⟨Hdec, Hwire, Hbsne⟩ := Hbsdec
+    obtain ⟨Hdec, Hwire, Hbsne, Hkeys⟩ := Hbsdec
+    have Hk : apply.irrPutsLe etcdKeyMax rq' := by
+      refine Hkeys.mono ?_
+      unfold v3rpc.etcdMaxRequestBytesOk v3rpc.etcdMaxRecvMsgSize v3rpc.grpcOverheadBytes at Hmrbv
+      unfold etcdKeyMax
+      word
     have Hidrq : apply.irrId rq' = some id := by
       obtain ⟨h1, h2, -, -⟩ := Hwire
       unfold apply.irrId
@@ -224,7 +229,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     · iintro !> %hon; subst hon; iexact Hhb
     imod kv_prop_au_M on ρ.raft ρ.kv bs (hdrBoundM true s E (GoInterface.ok ctx)) rq rq'
       ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
-      (Hbsne (by simp [apply.withHeader])) Hdec Hwire id γf Hidrq ⊤
+      (Hbsne (by simp [apply.withHeader])) Hdec Hwire Hk id γf Hidrq ⊤
       CoPset.subseteq_top $$ Hclog Hclaim Hireg Hgb Hok with ⟨Hau, #Hqi⟩
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     -- (2026-10-27) a later credit for the node API's `Propose` (its registry's invariant)
@@ -519,7 +524,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
   ihave #Hv' := Hv
   iunfold srvReqFieldsAtM at Hv'
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
-    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %Hcfgnn⟩
+    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %HcfgnnP⟩
+  obtain ⟨Hcfgnn, Hmrbv⟩ := HcfgnnP
   ihave #Pidutil : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
   · iPkgInit
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []

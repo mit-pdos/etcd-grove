@@ -25,11 +25,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`NewElection(s, pfx)`**, for a session `s` whose client answers for the prefix `pfx + "/"`
-(`isEtcdMutexClient`): an election on that prefix, in its initial state (every field zero). -/
+(`isEtcdMutexClient`), and a prefix shorter than `2 ^ 27` bytes (2026-10-30, kept in `isElection`):
+an election on that prefix, in its initial state (every field zero). -/
 abbrev NewElection.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client (pfx ++ go!"/") }}
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < 2 ^ 27⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewElection)) (Val #s)) (Val #pfx))
   {{ (e : Loc), RET #e; isElection e s γ client id (pfx ++ go!"/") ∗
       electionState e s ElectionSt.init }}

@@ -94,7 +94,9 @@ instance leaseRevokeRespMsg_persistent (l : Loc) (m : LeaseRevokeRespM) :
 def pbLeaseGrantRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseGrantRequest.ty
   M := w64 × w64
-  send inp m := iprop(∃ req : etcdserverpb.LeaseGrantRequest, inp ↦ req ∗ ⌜m = (req.TTL', req.ID')⌝)
+  send inp m := iprop(∃ req : etcdserverpb.LeaseGrantRequest, inp ↦ req ∗
+    ⌜m = (req.TTL', req.ID') ∧ req.unknownFields' = slice.nil⌝)
+  wireLen _ := wireSlack
   recv r m := iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1 ∗
     structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦□ m.2)
   recv_persistent _ _ := inferInstance
@@ -117,7 +119,9 @@ def pbLeaseGrantResponse : ProtoMsg GF where
 def pbLeaseRevokeRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseRevokeRequest.ty
   M := w64
-  send inp m := iprop(∃ req : etcdserverpb.LeaseRevokeRequest, inp ↦ req ∗ ⌜m = req.ID'⌝)
+  send inp m := iprop(∃ req : etcdserverpb.LeaseRevokeRequest, inp ↦ req ∗
+    ⌜m = req.ID' ∧ req.unknownFields' = slice.nil⌝)
+  wireLen _ := wireSlack
   recv r m := iprop(structFieldRef etcdserverpb.LeaseRevokeRequest go!"ID" r ↦□ m)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.LeaseRevokeRequest))

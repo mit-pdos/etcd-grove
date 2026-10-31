@@ -163,6 +163,7 @@ theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) :
   imod mvcc.wlog_update_halves γ σ.Lmu L hpre $$ Hwlog Hwl with ⟨Hwlog, Hwl⟩
   imodintro
   iframe Hwl
+  ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ { σ with Lmu := L } (fun h => h) $$ Hwfz
   iunfold mvcc.watchStoreBody
   simp only [named]
   iframe Hσ

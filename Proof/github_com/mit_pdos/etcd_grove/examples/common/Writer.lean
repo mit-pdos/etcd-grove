@@ -35,7 +35,7 @@ theorem Writer.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC cl api γk QW OkF w tsl tried lo hi hP hAs hlo hlh hhi
+  intro CS CRE CEC cl api γk QW OkF w tsl tried lo hi hP hAs hlo hlh hhi hsz
   wp_start as ⟨#Hkvf, #Hkv, #Ht, #Hau, #Hconv, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -76,7 +76,7 @@ theorem Writer.wp_proof
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
     (try wp_auto)
     wp_apply (client.client_Put_kv cl api γk false cctx cd x.Key' x.Val' slice.nil
-        (QW x.Key' x.Val')) $$ [Hau1] as %resp %err Hout
+        (QW x.Key' x.Val') (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [Hau1] as %resp %err Hout
     · iframe #
     -- `cancel()`
     (try wp_auto)

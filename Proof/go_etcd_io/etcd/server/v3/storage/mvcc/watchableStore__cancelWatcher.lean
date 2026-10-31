@@ -346,6 +346,7 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     (hσ' : σ' = cancelState σ wa st Ws Wu VB)
     (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (hm : σ.M !! wa = some γw) :
     ghostVar (GF := GF) γ.wst 1 σ' ∗ wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
+      wsWatchFrozen γ σ ∗
       ownWatcherGroup (syncedAddr s) Ws ∗ ownWatcherGroup (unsyncedAddr s) Wu ∗
       typedPointsto (victimsAddr s) σ.vs (DFrac.own 1) ∗ ownSlice σ.vs σ.vbs (DFrac.own 1) ∗
       ownSliceCap GoMap σ.vs (DFrac.own 1) ∗ ⌜σ.vbs.length = VB.length⌝ ∗
@@ -373,12 +374,13 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
   have hVB : σ'.VB = VB := by rw [hσ']; rfl
   have hST : σ'.ST = <[wa := { st with ch := null }]> σ.ST := by rw [hσ']; rfl
   have hWo : σ'.Wo = σ.Wo := by rw [hσ']; rfl
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsynced, Hunsynced, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwa, Hwo,
+  iintro ⟨Hσ, Hwlog, #Hcert, #Hwfz, Hsynced, Hunsynced, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwa, Hwo,
     Hmeta, Hwt, #Hmfix, Hmem, #Hm, #Hf, #Hc, #Hout⟩
+  ihave #Hwfz2 := wsWatchFrozen_mono γ σ σ' (fun h => by rw [hM]; exact h) $$ Hwfz
   unfold watchStoreBody
   rw [hL, hWs', hWu', hvs, hvbs, hVB, hST, hWo, hM]
   simp only [named]
-  iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
+  iframe Hσ Hwlog Hcert Hwfz2 Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
   isplitr
   · ipureintro; exact Hvlen
   isplitl [Hst Hwa]

@@ -40,6 +40,7 @@ abbrev store.GetCurrentResourceVersion.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (k : GoString) (Q : w64 → w64 → KVState → IProp GF),
   prepareKeyM c.resourcePrefix c.resourcePrefix false = some k →
+  (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
       (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨

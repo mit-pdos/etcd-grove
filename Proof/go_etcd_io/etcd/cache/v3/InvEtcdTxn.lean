@@ -157,6 +157,215 @@ structure TxnModel where
 /-- The empty transaction (what `kv.Txn(ctx)` starts from). -/
 def TxnModel.empty : TxnModel := { cmps := [], thenOps := [], elseOps := [] }
 
+/-! ### The size of a transaction's request (2026-10-30, `opWireLen`) -/
+
+/-- A comparison's (`*pb.Compare`): key, range end, value operand. -/
+def cmpWireLen (c : CmpModel) : Nat := c.key.length + c.rangeEnd.length + c.val.length + wireSlack
+
+/-- A transaction operation's (its `RequestOp`), a nested transaction's recursively (each
+reference counted: a shared request is encoded at each). -/
+def TxnOp.wireLen : TxnOp → Nat
+  | .get o => opWireLen o
+  | .delete o => opWireLen o
+  | .put k v _ => k.length + v.length + wireSlack
+  | .putKeep k v => k.length + v.length + wireSlack
+  | .putIgnVal k _ => k.length + wireSlack
+  | .txn cs ts es => (cs.map cmpWireLen).sum + (ts.map TxnOp.wireLen).sum +
+      (es.map TxnOp.wireLen).sum + wireSlack
+
+/-- **A bound on a `*pb.TxnRequest`'s encoding**, from its model. -/
+def txnWireLen (t : TxnModel) : Nat :=
+  (t.cmps.map cmpWireLen).sum + (t.thenOps.map TxnOp.wireLen).sum +
+    (t.elseOps.map TxnOp.wireLen).sum
+
+/-- **A transaction's request fits a gRPC message**: its encoding's bound (`txnWireLen`) at most
+`2 ^ 30` (`txnSizeOk.wire_lt`: below `grpcMsgMax`). -/
+def txnSizeOk (t : TxnModel) : Prop := txnWireLen t ≤ 2 ^ 30
+
+instance (t : TxnModel) : Decidable (txnSizeOk t) := by unfold txnSizeOk; infer_instance
+
+/-- A nested transaction's bound, each branch's operations summed. -/
+theorem TxnOp.wireLen_txn (cs : List CmpModel) (ts es : List TxnOp) :
+    (TxnOp.txn cs ts es).wireLen = (cs.map cmpWireLen).sum + (ts.map TxnOp.wireLen).sum +
+      (es.map TxnOp.wireLen).sum + wireSlack := by
+  rw [TxnOp.wireLen]
+
+/-! ### Bounding a transaction's size by its shape (L-s4)
+
+A transaction whose every key, range end, operand and value is at most `N` bytes (`bytesLe N`), with
+at most `M` comparisons and operations at every depth (`nodes`), has a request of at most
+`M * (3 * N + 256)` bytes (`txnSizeOk_of_bounds`). -/
+
+/-- A comparison's key, range end and operand at most `N` bytes. -/
+def CmpModel.bytesLe (N : Nat) (c : CmpModel) : Prop :=
+  c.key.length ≤ N ∧ c.rangeEnd.length ≤ N ∧ c.val.length ≤ N
+
+/-- An operation's key, range end and value at most `N` bytes, a nested transaction's at every
+depth. -/
+def TxnOp.bytesLe (N : Nat) : TxnOp → Prop
+  | .get o => o.key.length ≤ N ∧ o.base.rangeEnd.length ≤ N ∧ o.val.length ≤ N
+  | .delete o => o.key.length ≤ N ∧ o.base.rangeEnd.length ≤ N ∧ o.val.length ≤ N
+  | .put k v _ => k.length ≤ N ∧ v.length ≤ N
+  | .putKeep k v => k.length ≤ N ∧ v.length ≤ N
+  | .putIgnVal k _ => k.length ≤ N
+  | .txn cs ts es => (∀ c ∈ cs, c.bytesLe N) ∧ (∀ o ∈ ts.attach, TxnOp.bytesLe N o.1) ∧
+      (∀ o ∈ es.attach, TxnOp.bytesLe N o.1)
+decreasing_by
+  all_goals (have := List.sizeOf_lt_of_mem o.2; simp only [TxnOp.txn.sizeOf_spec]; omega)
+
+mutual
+/-- **Every key and value the operation puts is at most `N` bytes** (a put's, at every depth of a
+nested transaction; 2026-10-31, `notes/vallen.md`). A put that keeps the stored value
+(`putIgnVal`) bounds only its key: the value it writes is the state's. -/
+def TxnOp.putsLe (N : Nat) : TxnOp → Prop
+  | .put k v _ => k.length ≤ N ∧ v.length ≤ N
+  | .putKeep k v => k.length ≤ N ∧ v.length ≤ N
+  | .putIgnVal k _ => k.length ≤ N
+  | .txn _ ts es => TxnOp.opsPutsLe N ts ∧ TxnOp.opsPutsLe N es
+  | .get _ => True
+  | .delete _ => True
+
+/-- Every key and value the operations put is at most `N` bytes (`TxnOp.putsLe` of each). -/
+def TxnOp.opsPutsLe (N : Nat) : List TxnOp → Prop
+  | [] => True
+  | op :: ops => op.putsLe N ∧ TxnOp.opsPutsLe N ops
+end
+
+mutual
+theorem TxnOp.putsLe_mono {N M : Nat} (h : N ≤ M) : ∀ op : TxnOp, op.putsLe N → op.putsLe M
+  | .put .., ho | .putKeep .., ho => by
+    simp only [TxnOp.putsLe] at ho ⊢; omega
+  | .putIgnVal .., ho => by
+    simp only [TxnOp.putsLe] at ho ⊢; omega
+  | .get _, _ | .delete _, _ => trivial
+  | .txn _ ts es, ho => ⟨TxnOp.opsPutsLe_mono h ts ho.1, TxnOp.opsPutsLe_mono h es ho.2⟩
+
+theorem TxnOp.opsPutsLe_mono {N M : Nat} (h : N ≤ M) :
+    ∀ ops : List TxnOp, TxnOp.opsPutsLe N ops → TxnOp.opsPutsLe M ops
+  | [], _ => trivial
+  | op :: ops, ho => ⟨TxnOp.putsLe_mono h op ho.1, TxnOp.opsPutsLe_mono h ops ho.2⟩
+end
+
+/-- **Every key and value the transaction puts is at most `N` bytes**, in either branch, at every
+depth. -/
+def TxnModel.putsLe (N : Nat) (t : TxnModel) : Prop :=
+  TxnOp.opsPutsLe N t.thenOps ∧ TxnOp.opsPutsLe N t.elseOps
+
+theorem TxnModel.putsLe_mono {N M : Nat} (h : N ≤ M) {t : TxnModel} (ht : t.putsLe N) :
+    t.putsLe M :=
+  ⟨TxnOp.opsPutsLe_mono h _ ht.1, TxnOp.opsPutsLe_mono h _ ht.2⟩
+
+/-- The number of comparisons and operations of an operation: one, a nested transaction itself
+and its comparisons and operations at every depth. -/
+def TxnOp.nodes : TxnOp → Nat
+  | .txn cs ts es => 1 + cs.length + (ts.map TxnOp.nodes).sum + (es.map TxnOp.nodes).sum
+  | _ => 1
+
+/-- **A transaction's bytes at most `N`**: its comparisons' and operations', at every depth. -/
+def TxnModel.bytesLe (N : Nat) (t : TxnModel) : Prop :=
+  (∀ c ∈ t.cmps, c.bytesLe N) ∧ (∀ o ∈ t.thenOps, o.bytesLe N) ∧ (∀ o ∈ t.elseOps, o.bytesLe N)
+
+/-- **A transaction's comparisons and operations**, at every depth. -/
+def TxnModel.nodes (t : TxnModel) : Nat :=
+  t.cmps.length + (t.thenOps.map TxnOp.nodes).sum + (t.elseOps.map TxnOp.nodes).sum
+
+theorem TxnOp.bytesLe_txn (N : Nat) (cs : List CmpModel) (ts es : List TxnOp) :
+    (TxnOp.txn cs ts es).bytesLe N ↔
+      (∀ c ∈ cs, c.bytesLe N) ∧ (∀ o ∈ ts, o.bytesLe N) ∧ (∀ o ∈ es, o.bytesLe N) := by
+  rw [TxnOp.bytesLe]
+  constructor
+  · rintro ⟨hc, ht, he⟩
+    exact ⟨hc, fun o ho => ht ⟨o, ho⟩ (List.mem_attach _ _),
+      fun o ho => he ⟨o, ho⟩ (List.mem_attach _ _)⟩
+  · rintro ⟨hc, ht, he⟩
+    exact ⟨hc, fun o _ => ht o.1 o.2, fun o _ => he o.1 o.2⟩
+
+theorem TxnOp.nodes_txn (cs : List CmpModel) (ts es : List TxnOp) :
+    (TxnOp.txn cs ts es).nodes = 1 + cs.length + (ts.map TxnOp.nodes).sum +
+      (es.map TxnOp.nodes).sum := by
+  rw [TxnOp.nodes]
+
+theorem cmpWireLen_le {N : Nat} {c : CmpModel} (h : c.bytesLe N) : cmpWireLen c ≤ 3 * N + 256 := by
+  obtain ⟨h1, h2, h3⟩ := h; unfold cmpWireLen wireSlack; omega
+
+theorem cmpWireLen_sum_le {N : Nat} :
+    ∀ cs : List CmpModel, (∀ c ∈ cs, c.bytesLe N) →
+      (cs.map cmpWireLen).sum ≤ cs.length * (3 * N + 256)
+  | [], _ => by simp
+  | c :: cs, h => by
+    have h1 := cmpWireLen_le (h c (List.mem_cons_self ..))
+    have h2 := cmpWireLen_sum_le cs (fun c hc => h c (List.mem_cons_of_mem _ hc))
+    simp only [List.map_cons, List.sum_cons, List.length_cons]
+    rw [Nat.succ_mul]; omega
+
+theorem TxnOp.wireLen_sum_le_of {N : Nat} :
+    ∀ os : List TxnOp, (∀ o ∈ os, o.wireLen ≤ o.nodes * (3 * N + 256)) →
+      (os.map TxnOp.wireLen).sum ≤ (os.map TxnOp.nodes).sum * (3 * N + 256)
+  | [], _ => by simp
+  | o :: os, h => by
+    have h1 := h o (List.mem_cons_self ..)
+    have h2 := TxnOp.wireLen_sum_le_of os (fun o ho => h o (List.mem_cons_of_mem _ ho))
+    simp only [List.map_cons, List.sum_cons]
+    rw [Nat.add_mul]; omega
+
+/-- An operation's bound by its shape. -/
+theorem TxnOp.wireLen_le (N : Nat) : ∀ o : TxnOp, o.bytesLe N → o.wireLen ≤ o.nodes * (3 * N + 256)
+  | .get o, h | .delete o, h => by
+    rw [TxnOp.bytesLe] at h; obtain ⟨h1, h2, h3⟩ := h; simp only [TxnOp.wireLen, TxnOp.nodes, opWireLen, wireSlack]; omega
+  | .put k v _, h | .putKeep k v, h => by
+    rw [TxnOp.bytesLe] at h; obtain ⟨h1, h2⟩ := h; simp only [TxnOp.wireLen, TxnOp.nodes, wireSlack]; omega
+  | .putIgnVal k _, h => by
+    rw [TxnOp.bytesLe] at h; simp only [TxnOp.wireLen, TxnOp.nodes, wireSlack]; omega
+  | .txn cs ts es, h => by
+    obtain ⟨hc, ht, he⟩ := (TxnOp.bytesLe_txn N cs ts es).1 h
+    have h1 := cmpWireLen_sum_le cs hc
+    have h2 := TxnOp.wireLen_sum_le_of ts (fun o ho =>
+      have : sizeOf o < 1 + sizeOf cs + sizeOf ts := by
+        have := List.sizeOf_lt_of_mem ho; omega
+      TxnOp.wireLen_le N o (ht o ho))
+    have h3 := TxnOp.wireLen_sum_le_of es (fun o ho =>
+      have : sizeOf o < 1 + sizeOf cs + sizeOf ts + sizeOf es := by
+        have := List.sizeOf_lt_of_mem ho; omega
+      TxnOp.wireLen_le N o (he o ho))
+    rw [TxnOp.wireLen_txn, TxnOp.nodes_txn]
+    simp only [Nat.add_mul, Nat.one_mul, wireSlack]
+    omega
+
+/-- **A transaction's size by its shape** (L-s4): every byte string at most `N`, at most `M`
+comparisons and operations. -/
+theorem txnSizeOk_of_bounds {t : TxnModel} {N M : Nat} (hN : t.bytesLe N) (hM : t.nodes ≤ M)
+    (h : M * (3 * N + 256) ≤ 2 ^ 30) : txnSizeOk t := by
+  obtain ⟨hc, ht, he⟩ := hN
+  have h1 := cmpWireLen_sum_le t.cmps hc
+  have h2 := TxnOp.wireLen_sum_le_of t.thenOps (fun o ho => TxnOp.wireLen_le N o (ht o ho))
+  have h3 := TxnOp.wireLen_sum_le_of t.elseOps (fun o ho => TxnOp.wireLen_le N o (he o ho))
+  have h4 : t.nodes * (3 * N + 256) ≤ M * (3 * N + 256) := Nat.mul_le_mul_right _ hM
+  unfold txnSizeOk txnWireLen
+  unfold TxnModel.nodes at h4
+  simp only [Nat.add_mul] at h4
+  omega
+
+theorem TxnModel.bytesLe_empty (N : Nat) : TxnModel.empty.bytesLe N := by
+  simp [TxnModel.bytesLe, TxnModel.empty]
+
+theorem TxnModel.nodes_empty : TxnModel.empty.nodes = 0 := by
+  simp [TxnModel.nodes, TxnModel.empty]
+
+/-- The builder's steps (`If`, `Then`, `Else`: appending comparisons or operations). -/
+theorem TxnModel.bytesLe_append {N : Nat} {t : TxnModel} {cs : List CmpModel} {ts es : List TxnOp}
+    (h : t.bytesLe N) (hc : ∀ c ∈ cs, c.bytesLe N) (ht : ∀ o ∈ ts, o.bytesLe N)
+    (he : ∀ o ∈ es, o.bytesLe N) :
+    ({ cmps := t.cmps ++ cs, thenOps := t.thenOps ++ ts, elseOps := t.elseOps ++ es } :
+      TxnModel).bytesLe N := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨?_, ?_, ?_⟩ <;> intro x hx <;> simp only [List.mem_append] at hx <;> grind
+
+theorem TxnModel.nodes_append (t : TxnModel) (cs : List CmpModel) (ts es : List TxnOp) :
+    ({ cmps := t.cmps ++ cs, thenOps := t.thenOps ++ ts, elseOps := t.elseOps ++ es } :
+      TxnModel).nodes = t.nodes + cs.length + (ts.map TxnOp.nodes).sum + (es.map TxnOp.nodes).sum := by
+  simp only [TxnModel.nodes, List.length_append, List.map_append, List.sum_append]; omega
+
+
 /-- The result of an operation: a get's selected key-values (in key order) and the number of keys
 in its range; a put; a delete's number of deleted keys; a nested transaction's outcome (whether its
 comparisons held) and its chosen branch's results. -/
@@ -184,6 +393,13 @@ def txnOpOf (o : OpFull) : Option TxnOp :=
      else none)
   else if o.t = W64 3 then some (.delete o)
   else none
+
+/-- A plain operation's request is at most its `Op`'s (`txnOpOf` keeps or drops its strings). -/
+theorem txnOpOf_wireLen_le {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op) :
+    op.wireLen ≤ opWireLen o := by
+  unfold txnOpOf at h
+  repeat' (first | (split at h) | (simp only [Option.some.injEq, reduceCtorEq] at h))
+  all_goals (subst h; simp only [TxnOp.wireLen, opWireLen]; omega)
 
 attribute [op_simps] txnOpOf
 
@@ -557,7 +773,8 @@ def TxnBuild.empty : TxnBuild := { model := .empty, cif := false, cthen := false
 `Else`, once), `Then(ops...)` (before `Else`, once), `Else(ops...)` (once) append the comparisons
 or operations (each `Op` one a transaction can run, `txnOpOf`) and return `t`; `Commit()`, for a
 transaction under `pfx`, returns `txnCommitResult` with the token of the revision it made if it
-wrote (`txnCommitResultTok`), and for any transaction `txnAnyResult`. -/
+wrote (`txnCommitResultTok`), and for any transaction `txnAnyResult`. The request fits a gRPC message (`Commit`: `txnSizeOk` of the transaction; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -579,12 +796,12 @@ def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp 
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
+      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultTok pfx lo b.model resp err }}) ∗
     (□ ∀ (b : TxnBuild),
-      {{ B b }}
+      {{ B b ∗ ⌜txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
 
@@ -625,7 +842,8 @@ theorem TxnModel.exactGets_of_noGets (t : TxnModel)
 
 /-- **The builder, for transactions etcd's server answers as the model says**
 (`txnBuilderSpec` with `Commit` for `exactGets` transactions only; the vertical slice's unit V2:
-what a real `*kv` over a connection to etcd's server meets, `client/v3/ServerKVTxn.lean`). -/
+what a real `*kv` over a connection to etcd's server meets, `client/v3/ServerKVTxn.lean`). The request fits a gRPC message (`Commit`: `txnSizeOk`; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def txnBuilderSpecX (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -647,12 +865,12 @@ def txnBuilderSpecX (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets⌝ }}
+      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultTok pfx lo b.model resp err }}) ∗
     (□ ∀ (b : TxnBuild),
-      {{ B b ∗ ⌜b.model.exactGets⌝ }}
+      {{ B b ∗ ⌜b.model.exactGets ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
 
@@ -681,6 +899,11 @@ omit EM in
 (`WithRev(rev)`), serializable or not, with any of the response options `rangeKvsOk` covers. -/
 def readOpOk (pfx : GoString) (o : OpFull) : Prop :=
   o.t = W64 1 ∧ KeyRangeUnder pfx o.key o.base.rangeEnd
+
+omit EM in
+/-- The transaction of a read transaction's gets `os` (its `Then`, no comparison; the request whose
+size `readTxnBuilderSpec`'s `Commit` bounds). -/
+def readTxn (os : List OpFull) : TxnModel := { cmps := [], thenOps := os.map TxnOp.get, elseOps := [] }
 
 omit EM in
 /-- The revision a get `o` of a read transaction answered at `r` reads: `r` for `rev = 0`,
@@ -719,7 +942,8 @@ instance readTxnResult_persistent (pfx : GoString) (lo : w64) (os : List OpFull)
 
 /-- **A read transaction's builder** `t` with abstract state `B` (`none` before `Then`, the gets
 after it): `Then(ops...)` of gets under `pfx` (`readOpOk`), then `Commit()`, returning
-`readTxnResult`. -/
+`readTxnResult`. The request fits a gRPC message (`Commit`: `txnSizeOk` of `readTxn os`; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def readTxnBuilderSpec (t : GoInterfaceOk) (pfx : GoString)
     (B : Option (List OpFull) → IProp GF) : IProp GF :=
   iprop(
@@ -728,7 +952,7 @@ def readTxnBuilderSpec (t : GoInterfaceOk) (pfx : GoString)
         (App (Val #(methods t.ty go!"Then" t.v)) (Val #sl))
       {{ RET #(GoInterface.ok t); B (some os) }}) ∗
     (□ ∀ (os : List OpFull) (lo : w64),
-      {{ B (some os) ∗ etcdReached lo }}
+      {{ B (some os) ∗ etcdReached lo ∗ ⌜txnSizeOk (readTxn os)⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           readTxnResult pfx lo os resp err }}))
@@ -777,13 +1001,15 @@ instance deleteResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (err :
 /-- **The client's deletes** (`clientv3.KV`'s `Delete(ctx, key, opts...)`; a definition, the
 assumption a caller makes of `client.KV`, as `isEtcdKV` for `Get`): for options with which
 `OpDelete` does not panic, of a range under `pfx`, the result is `deleteResult` (linearizable, as
-`Get` and `Commit`). -/
+`Get` and `Commit`). The request fits a gRPC message (`opSizeOk` of the delete; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdDeleteKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ opDeletePanics key gs ∧
-          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd⌝ }}
+          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
+          opSizeOk (opDeleteModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -874,13 +1100,14 @@ the caller's goroutine), which the call gives back (`WithFirstKey()`'s sort opti
 variable it captured; `optsAt_res` for the others). (The vertical slice's unit V2 restricted it
 to `getExact` gets and `kvGetResultR`, what a real `*kv` meets: `client/v3/ServerKVGet.lean`; D48
 to linearizable ones, `serializable = false`, which fire an update of the KV state:
-`client/v3/KMGet.lean`.) -/
+`client/v3/KMGet.lean`.) The request fits a gRPC message (`opSizeOk` of the get; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
       (lo : w64),
     {{ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact ∧
-          (opGetModel key gs).base.serializable = false⌝ }}
+          (opGetModel key gs).base.serializable = false ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -916,11 +1143,12 @@ instance clientErrIs_persistent (err : GoInterface) :
 /-- **`Commit()` at `context.TODO()`, its error** (the recipes' addition): `txnBuilderSpec`'s
 `Commit` for a transaction under `pfx` (`txnCommitResultTok`: with the token of the revision it
 made if it wrote), whose error, if any, is a client error as `errors.Is` sees it
-(`clientErrIs`). -/
+(`clientErrIs`). The request fits a gRPC message (`txnSizeOk`; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def txnCommitErrTodo (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) :
     IProp GF :=
   iprop(□ ∀ (b : TxnBuild) (lo : w64),
-    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets⌝ }}
+    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets ∧ txnSizeOk b.model⌝ }}
       (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         txnCommitResultTok pfx lo b.model resp err ∗ (⌜err = GoInterface.nil⌝ ∨ clientErrIs err) }})
@@ -947,13 +1175,15 @@ instance isEtcdTxnKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 `deleteResult`. The recipes' addition, as `isEtcdKVTodo`. (The vertical slice's unit V2 restricted
 it to a range end other than `[0]`, `WithFromKey`'s: the server's proof models the request the
 proposed data decode to only up to such range ends, `irrWireOf`; every delete the recipes make
-is of a single key.) -/
+is of a single key.) The request fits a gRPC message (`opSizeOk` of the delete; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdDeleteKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ opDeletePanics key gs ∧
           KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
-          (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3⌝ }}
+          (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3 ∧
+          opSizeOk (opDeleteModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -966,13 +1196,14 @@ instance isEtcdDeleteKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 /-- **`isEtcdPutKV` at `context.TODO()`**: `kv.Put(context.TODO(), key, val, opts...)` returns
 `putResult`. The recipes' addition, as `isEtcdKVTodo`. (The vertical slice's unit V2 added that the
 options leave the `Op` a put, `t = 2`, as Go's options, which cannot write the unexported `t`,
-do; the model's option transformers are arbitrary functions. Likewise `t = 3` for a delete.) -/
+do; the model's option transformers are arbitrary functions. Likewise `t = 3` for a delete.) The request fits a gRPC message (`opSizeOk` of the put; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdPutKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
       (lo : w64),
     {{ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
-          op.Under pfx ∧ (opPutModel key val gs).t = W64 2⌝ }}
+          op.Under pfx ∧ (opPutModel key val gs).t = W64 2 ∧ opSizeOk (opPutModel key val gs)⌝ }}
       (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
@@ -1087,14 +1318,16 @@ theorem rangeWatchElem_closeErr (γ : EtcdWatchNames) (pfx : GoString) (o : OpFu
 for the cache's prefix watch): a watch of a range under `pfx` (a key, or a sub-prefix with
 `WithPrefix`) from revision `rev ≥ 0` (`isRangeWatch`; the options must not make `OpWatch` panic)
 returns an SPSC channel (the caller consumes it) whose responses satisfy `rangeWatchRespOk`
-from position `rev - 1`, and which may be closed at any time. -/
+from position `rev - 1`, and which may be closed at any time. The request fits a gRPC message (`watchSizeOk` of the watch; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗
         ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
           0 ≤ sint.Z rev ∧
-          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ }}
+          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd ∧
+          watchSizeOk (opWatchModel key gs)⌝ }}
       (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
@@ -1200,6 +1433,12 @@ theorem keyWatch_opts (key : GoString) (rev : w64) :
       (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
   simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isRangeWatch]
+
+/-- `Watch(key, WithRev(rev))`'s request fits a gRPC message when the key does. -/
+theorem keyWatch_size (key : GoString) (rev : w64) (h : key.length ≤ 2 ^ 30) :
+    watchSizeOk (opWatchModel key [withRevM rev]) := by
+  obtain ⟨-, -, h3, h4⟩ := keyWatch_opts key rev
+  unfold watchSizeOk; rw [h3, h4]; simpa using h
 
 section pointwise
 variable {GF : BundledGFunctors}

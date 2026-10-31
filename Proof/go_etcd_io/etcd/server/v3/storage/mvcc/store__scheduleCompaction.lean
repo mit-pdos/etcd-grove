@@ -213,10 +213,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (h15 : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (h16 : time.Time.Unix.spec (GF := GF) (hG := hG)) :
     mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) := by
-  intro s γ rev prev
-  wp_start as ⟨#Hjob, Htok⟩
+  intro s γ rev prev q o
+  wp_start as ⟨#Hjob, Hfs, #Hstopch, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, #Hnevc, %Hrev'⟩
+  icases Hjob with ⟨#Hs, -, %Hcmp, #Hlb, #HsupM, %log, #Hcert, #Hnevc, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
   have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
@@ -225,17 +225,20 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
-  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
-  -- `isStore`'s, pinned)
-  icases mvcc.storeStop_open s γ $$ Hstop with
-    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  -- the compaction's objects, read through the job's leased share (M2, the storage side, item 17)
+  icases mvcc.fieldShareAt_acc s γ q o $$ Hfs with ⟨Hflds, #Hph, Hfclose⟩
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
+  obtain ⟨b, ti, ssched, sstop⟩ := o
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
   -- (question 5's core stage) the store's compaction facts: the write right's invariant (the swap
   -- of the key for the compaction keys' write right), its registration, the write-back supply
   have hcmpM : mvcc.kbCmpM γ.kb := mvcc.storeCmp_cmpM γ Hcmp
-  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg, #Hsup⟩
+  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg⟩
+  -- (M2, the storage side, Q1 (a)) the supply from the job's premise
+  ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcmpM).1 $$ HsupM
   ihave #Hswk := mvcc.mwSwap_of_inv γ iprop(True) $$ Hmwi
   -- the store's contract with its compaction on (its tokens, lock resource, slots, write right)
   ihave #Hbk' := mvcc.isKeyBackendG_cmpOn _ s γ _ _ _ Hcmp $$ Hbk
@@ -677,6 +680,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe Htok
+    isplitl [Hfclose Hfb Hfidx Hfsch Hfstop]
+    · iapply Hfclose; iunfold mvcc.storeFields; simp only [named]; iframe
     isplitl [HRT HSR]
     · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
     ileft
@@ -712,7 +717,6 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   wp_apply +noauto time.wp_After as %tch %γt #Hbag
   wp_auto_lc 2
-  ihave #Hstc := Hstopc
   ihave #Hstcc := Hstopch
   iunfold mvcc.isStopChan at Hstcc
   icases Hstcc with ⟨%γs, #Hstcc⟩
@@ -779,13 +783,18 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe Htok
+    isplitl [Hfclose Hfb Hfidx Hfsch Hfstop]
+    · iapply Hfclose; iunfold mvcc.storeFields; simp only [named]; iframe
     isplitl [HRT HSR]
     · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
     iright
     iframe Herr
     iunfold mvcc.storeStopped
     iexists sstop, γs
-    iframe Hstc Hdone
+    iframe Hdone
+    iunfold mvcc.stopPayAt at Hpay
+    icases Hpay with ⟨#Hx, -⟩
+    iexact Hx
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

@@ -70,7 +70,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
     ipersist Hesl
     wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
       $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
-    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
+    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; have hk := Hkeys wl Hwls; unfold etcdKeyMax at hk; omega⟩
     icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
     rotate_left
     · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
@@ -123,7 +123,9 @@ theorem DoubleBarrier.Leave.wp_proof
   wp_start as ⟨#Hb, Hmk, #Hlo, %Hst⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
-  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %Hcount, #Hsess, #Hcl, #Hclosed⟩
+  icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
+  have Hcount := HcountB.1
+  have Hkl := HcountB.2
   ihave ⟨%kv, #HKVf, #Hkvc⟩ := isEtcdRecipesClient_kv client (key ++ go!"/") $$ Hcl
   ihave #Hcp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency $$ []
   · iPkgInit
@@ -168,7 +170,8 @@ theorem DoubleBarrier.Leave.wp_proof
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
+      leaveOp_size (by simp; omega)⟩
   iclear HG HKV
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM] = leaveOp (key ++ go!"/waiters") := rfl
   rw [Hop]
@@ -320,6 +323,7 @@ theorem DoubleBarrier.Leave.wp_proof
   have Hwhs : wh ∈ s' := by
     have := List.mem_of_getElem? Hwh; rw [Hkvs, List.mem_filter] at this; exact this.1
   ihave %Hrevs := etcdState_revs R _ s' $$ Hs'
+  ihave %Hkeys := etcdState_keys R _ s' $$ Hs'
   wp_if_destruct
   · (try wp_auto)
     wp_if_destruct
@@ -332,7 +336,8 @@ theorem DoubleBarrier.Leave.wp_proof
       wp_apply HDel $$ %(key ++ go!"/ready") %slice.nil %([] : List (OpFull → OpFull)) %lo
         [$Hnilo $Hlo] as %dresp %derr #Hdres
       · ipureintro
-        refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl⟩
+        refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl,
+          deleteOp_size (by simp; omega)⟩
         rw [hdk, hde]; exact concurrency.keyRangeUnder_key _ _ hpr
       iunfold deleteResult at Hdres
       icases Hdres with (%Hdne | ⟨%Hdnil, -⟩)
@@ -382,7 +387,7 @@ theorem DoubleBarrier.Leave.wp_proof
       ipersist Hesl
       wp_apply wp_WaitEvents client (key ++ go!"/") wh.key wh.modRev _ [W32 1] (W32 1)
         $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-      · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; omega⟩
+      · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; have hk := Hkeys wh Hwhs; unfold etcdKeyMax at hk; omega⟩
       icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
       rotate_left
       · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

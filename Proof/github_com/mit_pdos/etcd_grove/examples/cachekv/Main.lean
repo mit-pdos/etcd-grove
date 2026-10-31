@@ -176,6 +176,8 @@ theorem Main.wp_proof
     simp only [pairOf]
     simp only [genKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with h | h | h <;> rw [h] <;> decide
+  have hsz : ∀ p ∈ trs, common.wkvSizeOk p := fun p hp =>
+    common.GenKv.sizeOk (by decide) (Htrs.2 p hp)
   (try wp_auto)
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -201,6 +203,8 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (ckDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
+  ihave ⟨%Hcmp0, Hmb⟩ := common.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
   -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes = [[]] := by
@@ -242,6 +246,7 @@ theorem Main.wp_proof
   icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
+  have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
@@ -280,16 +285,13 @@ theorem Main.wp_proof
       rw [sync.rwmutex.actualMaxReaders_unseal]
       omega
     -- the watch server's facts: the members' KV facts (`srvKVFacts`, D47), `io.EOF`
-    ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
+    ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := watchkv.cert0_of_server pw R $$ Hws
     ihave #Hkf : client.srvKVFacts
         (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) $$ []
-    · iunfold client.srvKVFacts
-      iexists ρ.rd
+    · iapply client.srvKVFacts_of_off _ ρ.rd rfl hlog (by omega)
       iframe Hinvs
-      isplitl
-      · iapply mvcc.idxCert_sealed; iexact H00
-      ipureintro; exact ⟨rfl, hlog, by omega⟩
+      iapply mvcc.idxCert_sealed; iexact H00
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
@@ -299,7 +301,7 @@ theorem Main.wp_proof
     · iframe Hgsn Hlis; iframe #
     imod (watchkv.wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) go!"127.0.0.1:23873"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl)
+        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hoff)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
@@ -320,7 +322,7 @@ theorem Main.wp_proof
   obtain ⟨hRE, Hnr⟩ := HRQ
   -- the watch server's environment is the server's: `E` is `R.E` from here on
   subst hRE
-  ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
+  ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23873" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) Hlg
@@ -385,7 +387,7 @@ theorem Main.wp_proof
   · iframe #
     isplitr
     · ipureintro; intro _; exact cfgDefault_bounded
-    ipureintro; unfold cacheWgOwedMax; omega
+    ipureintro; unfold cacheWgOwedMax; have : ckPfx.length = 3 := rfl; omega
   irevert Hnew
   unfold newCacheResult
   rw [if_pos cfgDefault_valid]
@@ -518,7 +520,7 @@ theorem Main.wp_proof
               rw [hmul]; exact Int.mul_nonneg H0 Hops
             have e : ((sint.nat (nw * nops) : Nat) : Int) = sint.Z (nw * nops) := by word
             rw [e, hmul]
-            omega)) $$ []
+            omega) hsz) $$ []
       · iframe #
         isplitr
         · iintro !> %k' %v' %hkv

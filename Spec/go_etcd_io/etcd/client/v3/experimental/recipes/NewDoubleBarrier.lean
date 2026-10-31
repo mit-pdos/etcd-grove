@@ -32,7 +32,7 @@ abbrev NewDoubleBarrier.spec : Prop :=
   ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (key : GoString)
     (count : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗
-      isEtcdRecipesClient client (key ++ go!"/") ∗ context.isClosedchanInit ∗ ⌜0 < sint.Z count⌝ }}
+      isEtcdRecipesClient client (key ++ go!"/") ∗ context.isClosedchanInit ∗ ⌜0 < sint.Z count ∧ key.length ≤ 2 ^ 27⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewDoubleBarrier))
       (Val #s)) (Val #key)) (Val #count))
   {{ (b : Loc), RET #b; isDoubleBarrier b s γ client id key count ∗
