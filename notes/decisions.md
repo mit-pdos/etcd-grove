@@ -27587,3 +27587,53 @@ server serves it.
   `etcd_kv_auth_served_on`'s, `authnStoreOk (GoInterface.ok ast) E.RD`, its conclusion unchanged;
   it replaces `etcd_kv_auth_served_on`, which no proof used, and takes its name. The handler's run
   slot is `authnSlot` (a part of the KV's `etcdGrpcSlot`, `etcdGrpcSlot_authn`).
+
+## A depth premise for `proto.MarshalIRR`, discharged from a `MaxTxnOps` bound (2026-10-31 · accepted, the user's approval of the draft's seven recommendations · `notes/irr-depth.md`)
+
+**Context.** `proto.MarshalIRR.wp_proof` (trusted) said: for any `InternalRaftRequest` model `rq`,
+`proto.Marshal` returns an error the gRPC layer can take, or fresh bytes `bs` with `irrDecode bs =
+some rq'` (`irrWireOf rq rq'`, `rq.header ≠ none → bs ≠ []`, `irrPutsLe bs.length rq'`). The axiom
+review `axiom/txn-nested-wire` (attack 9) found it false: protobuf-go's `proto.Unmarshal` refuses a
+message more than 10000 levels deep (`protowire.DefaultRecursionLimit`, every message counted, the
+top one included), and a transaction nested 4999 times passes gRPC's decoding (10000 levels) while
+its `InternalRaftRequest` (10001) does not: `pbutil.MustUnmarshalMessage` panics at apply, on every
+member, again on replay (`issues/etcd-txn-nested-depth-apply-panic.md`). The user chose "depth
+premise + config" (2026-10-30), then approved the draft's statements (2026-10-31).
+
+**Decision** (the seven recommendations of the draft's §10, all accepted):
+
+1. **A premise, not a weakened post**: `proto.MarshalIRR.spec` takes `apply.irrDepthOk rq →` (its
+   transaction, if any, at most 9999 messages deep: `TxnModel.msgDepth t + 1 ≤ 10000`), the post
+   unchanged (`irrPutsLe` stays). Rejected: a weakened post (bytes always, their decoding only
+   under the bound), stronger as a whole but a trusted claim that `Marshal` returns at any depth,
+   which Go's stack (a recursion per level, a fatal error past 1 GB) does not give, and which no
+   caller uses; the old axiom's claim at such depths was false too.
+2. **The bound's value**: `v3rpc.maxTxnOpsOk n := n ≤ 4999` of `sint.Z MaxTxnOps`, exact:
+   `checkTxnRequest` at the budget `n` admits a transaction `2n + 1` deep
+   (`v3rpc.txnCheck_msgDepth`, tight), so at 5000 the issue's chain passes the check and panics the
+   apply; a negative budget (a `uint` of at least `2^63`) refuses every transaction and meets it.
+   Rejected: a rounder `≤ 4096`; `uint.nat ≤ 4999` (excludes the safe `≥ 2^63` budgets).
+3. **Where the bound lives in v3rpc**: the object. `kvServerIs`/`kvServerAt` keep
+   `⌜maxTxnOpsOk (sint.Z n)⌝`, `NewKVServer.spec`/`NewQuotaKVServer.spec` take it as a premise
+   (`NewKVServer` copies the budget once). Rejected (D2): a premise of `kvServer.Txn.spec` only,
+   which about ten exported statements above it (`txn_end_to_end(_on)`, `etcd_kv_served(_on)`, ...)
+   would have to carry by hand.
+4. **Where the configuration premise enters**: `NewServer.spec`, `specCompact`, `specM` take
+   `v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →` (the `etcdMaxRequestBytesOk` precedent);
+   `srvServeCfg` and `grpcCfgOk` carry it to `v3rpc.Server`. Rejected: a hypothesis of
+   `grpcCfgOk_of_started*` (as `hlg`), which three statements of the examples' serving glue would
+   take too, where `cfg` is abstract.
+5. **The server's premise is on the request**: `apply.irrDepthOk rq` on
+   `processInternalRaftRequestOnce`/`raftRequest` (and their mode forms), `apply.txnDepthOk t` on a
+   writing `EtcdServer.Txn` (`spec`: gated on `txnReadonly t = false`; `specOn`); `txn_applied`
+   takes it. Rejected: a server-level configuration fact (`isServerReq` carrying the budget bound),
+   which would tie the server's spec to v3rpc's check.
+6. **The `kvTxnOk` contract is over the depth of the request's model**: `∀ t, txnModelOf cs ts es =
+   some t → apply.txnDepthOk t` beside `txnReqOk n …` (`txnModelOf` moved to `InvKV`). Rejected:
+   `maxTxnOpsOk n` (round 1's form), weaker for the server: a flat transaction of 5000 comparisons
+   checks only at `n ≥ 5000` and is 3 deep.
+7. **No upstream etcd fix now**: the configuration premise is the scope restriction (etcd accepts
+   any `--max-txn-ops`; its default, 128, meets it) until a depth check in `checkTxnRequest`
+   (the issue's fix) would make it a checked error instead.
+
+**The axiom review** of the restated axiom (`notes/axiom-review/marshalirr-depth.md`): survives.

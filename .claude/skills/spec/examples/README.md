@@ -15,6 +15,7 @@ principles match your target.
 | [apply-uber-contract.md](apply-uber-contract.md) | a function calling through an interface, three specs of it at three contracts; a server that needs the on contracts | one spec parametric in the method's contract; the constructor establishes the contract; store it at the level called, for every object the field may hold |
 | [apply-loop-merge.md](apply-loop-merge.md) | a pair of specs (mode off and on) merged into one at the environment's mode, callers in another track's proof | the restoring corollary states the old spec exactly, deriving the merged premises from the old precondition; check a "callers untouched" claim against the order the caller's proof obtains its facts |
 | [member-auth-facts.md](member-auth-facts.md) | a getter over a read-only field, and a fact exported up a constructor chain to a started member | export where Go makes it true, gated by the mode; keep an exported restatement unchanged by dropping the new conjunct |
+| [irr-depth.md](irr-depth.md) | a trust-boundary axiom false at deep inputs, repaired by a premise carried up to a configuration bound | a premise, not a post that claims termination Go does not give; a contract states the receiver's need, not the supplier's mechanism; a configuration bound exactly as strict as the code; a fact kept in the object that copied it |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).
