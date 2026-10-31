@@ -1,8 +1,13 @@
-// Package twoways holds boot programs for which both answers are behaviours
-// of the model of notes/osfs-ext-plan.md, so that neither
-// {{ True }} bootX(dir) {{ RET true }} nor {{ RET false }} is provable.
+// Package twoways holds programs for which both answers are behaviours of the
+// model of notes/osfs-ext-plan.md, so that neither
+// {{ True }} testX(dir) {{ RET true }} nor {{ RET false }} is provable.
 //
-// Each is a boot program: it runs when the node starts and again after every
+// Two are racing programs (testReadAtRacingWriteAt, testStatRacingExtend):
+// a racing pread or fstat returns any answer ReadSees or StatSees allows
+// (plan D8), and the program asks for one of them. The others are boot
+// programs.
+//
+// Each boot program runs when the node starts and again after every
 // crash, and works out from the files which phase it is in. A setup phase ends
 // in waitForCrash, which never returns, so only a crash ends it and only the
 // observing phase returns. Its answer depends on what the crash kept, and the
@@ -16,7 +21,10 @@ package twoways
 import (
 	"io"
 	"os"
+	"sync"
 )
+
+const pageSize = 4096
 
 // waitForCrash ends a boot that has set up what a later boot observes.
 func waitForCrash() bool {
@@ -237,4 +245,63 @@ func bootUnsyncedTruncate(dir string) bool {
 		_ = p.Sync()
 	}
 	return waitForCrash()
+}
+
+// ReadAt racing an overlapping WriteAt (WriteTo's data copy against a writer
+// reusing a free page): does the read see one version of the two pages, the
+// old (all 1) or the new (all 9)? Without overlap it does; Linux (ext4) may
+// return a mix. Model: each byte under the in-flight write is arbitrary
+// (ReadSees).
+func testReadAtRacingWriteAt(dir string) bool {
+	f, err := os.OpenFile(dir+"/db", os.O_RDWR|os.O_CREATE, 0o666)
+	if err != nil {
+		return true
+	}
+	old := make([]byte, 2*pageSize)
+	for i := range old {
+		old[i] = 1
+	}
+	if _, err := f.WriteAt(old, 0); err != nil {
+		return true
+	}
+	newData := make([]byte, 2*pageSize)
+	for i := range newData {
+		newData[i] = 9
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		_, _ = f.WriteAt(newData, 0)
+		wg.Done()
+	}()
+	buf := make([]byte, 2*pageSize)
+	_, err = f.ReadAt(buf, 0)
+	wg.Wait()
+	if err != nil {
+		return true
+	}
+	return buf[0] == buf[2*pageSize-1]
+}
+
+// Stat racing a WriteAt that extends the empty file by three pages: is the
+// size the old or the new one? Linux: possibly one in between
+// (generic_perform_write moves i_size page by page). Model: any size between
+// the two (StatSees). The bound itself is a target (testStatRacingExtendBounded).
+func testStatRacingExtend(dir string) bool {
+	f, err := os.OpenFile(dir+"/db", os.O_RDWR|os.O_CREATE, 0o666)
+	if err != nil {
+		return true
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		_, _ = f.WriteAt(make([]byte, 3*pageSize), 0)
+		wg.Done()
+	}()
+	info, err := f.Stat()
+	wg.Wait()
+	if err != nil {
+		return true
+	}
+	return info.Size() == 0 || info.Size() == 3*pageSize
 }

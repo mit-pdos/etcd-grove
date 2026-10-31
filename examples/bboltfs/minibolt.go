@@ -1,6 +1,7 @@
 package bboltfs
 
 import (
+	"errors"
 	"os"
 	"sync"
 	"syscall"
@@ -35,6 +36,10 @@ type DB struct {
 	filesz  int
 	meta0   *Meta
 	meta1   *Meta
+	// failed: a commit failed. Its writes may be in the page cache (and so in
+	// the mapping) without being durable, or durable in part, so the handle
+	// refuses every later transaction (guarded by metalock).
+	failed bool
 
 	rwlock   sync.Mutex   // one writer at a time
 	metalock sync.Mutex   // the meta pages
@@ -163,10 +168,17 @@ func (db *DB) meta() *Meta {
 	return m
 }
 
+// errFailed is what a handle answers after a failed commit.
+var errFailed = errors.New("minibolt: an earlier commit failed")
+
 // Get is a read transaction (beginTx, then the root page through the mapping):
 // the current txid, and the value if the root page holds one.
-func (db *DB) Get() (uint64, uint64, bool) {
+func (db *DB) Get() (uint64, uint64, bool, error) {
 	db.metalock.Lock()
+	if db.failed {
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
 	db.mmaplock.RLock()
 	m := *db.meta()
 	db.metalock.Unlock()
@@ -177,17 +189,36 @@ func (db *DB) Get() (uint64, uint64, bool) {
 		v = *(*uint64)(unsafe.Pointer(&db.dataref[off+int(pageHeaderSize)]))
 	}
 	db.mmaplock.RUnlock()
-	return m.txid, v, has
+	return m.txid, v, has, nil
 }
 
 // Commit is a write transaction storing v: a new root page at the high water
-// mark, then the meta.
+// mark, then the meta. An error means the outcome is unknown: after a failed
+// fdatasync of the meta, the new meta is in the page cache, and a crash may
+// keep it or not (its bytes are lost, plan D2). bbolt goes on serving it; minibolt
+// marks the handle failed instead, so that it never reads or builds on a
+// commit that may not be durable.
 func (db *DB) Commit(v uint64) error {
 	db.rwlock.Lock()
 	defer db.rwlock.Unlock()
 	db.metalock.Lock()
+	if db.failed {
+		db.metalock.Unlock()
+		return errFailed
+	}
 	m := *db.meta()
 	db.metalock.Unlock()
+	if err := db.commit(m, v); err != nil {
+		db.metalock.Lock()
+		db.failed = true
+		db.metalock.Unlock()
+		return err
+	}
+	return nil
+}
+
+// commit writes the transaction after m (a copy of the current meta).
+func (db *DB) commit(m Meta, v uint64) error {
 	m.txid++
 	pg := m.pgid
 	m.pgid = pg + 1
@@ -259,13 +290,17 @@ func (db *DB) close() {
 // (init's two transactions have no value). Each boot checks that, commits the
 // next transaction, and checks that it is visible. Its panics must never fire
 // under the model's crash relation, however often the node crashes, given the
-// premises of README.md. On an error it stops.
+// premise of README.md. On an error it stops.
 func BootMinibolt(dir string) {
 	db, err := Open(dir + "/db")
 	if err != nil {
 		return
 	}
-	txid, v, has := db.Get()
+	txid, v, has, err := db.Get()
+	if err != nil {
+		db.Close()
+		return
+	}
 	if txid <= 1 {
 		if has {
 			panic("minibolt: init's root page holds a value")
@@ -277,7 +312,11 @@ func BootMinibolt(dir string) {
 		db.Close()
 		return
 	}
-	txid2, v2, has2 := db.Get()
+	txid2, v2, has2, err := db.Get()
+	if err != nil {
+		db.Close()
+		return
+	}
 	if txid2 != txid+1 || !has2 || v2 != txid2 {
 		panic("minibolt: a commit is not visible")
 	}

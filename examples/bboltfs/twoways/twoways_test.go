@@ -88,3 +88,12 @@ func boot(t *testing.T, name, dir string) string {
 		return ""
 	}
 }
+
+// The racing probes have no fixed answer on Linux. This only runs them, under
+// -race too, to check that they terminate and race on no Go memory.
+func TestRacingRuns(t *testing.T) {
+	for i := 0; i < 20; i++ {
+		_ = testReadAtRacingWriteAt(t.TempDir())
+		_ = testStatRacingExtend(t.TempDir())
+	}
+}

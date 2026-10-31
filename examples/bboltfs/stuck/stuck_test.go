@@ -42,7 +42,6 @@ func TestGo(t *testing.T) {
 		"testOutsidePath":         {testOutsidePath, true},
 		"testAppend":              {testAppend, true},
 		"testWriteReadOnly":       {testWriteReadOnly, true},
-		"testNegativeOffset":      {testNegativeOffset, true},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if got := c.f(t.TempDir()); got != c.want {

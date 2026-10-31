@@ -148,52 +148,6 @@ func testLoadRacingWriteAt(dir string) bool {
 	return v == 0x0202020202020202 || v == 0x0909090909090909
 }
 
-// ReadAt racing an overlapping WriteAt (WriteTo's data copy against a writer
-// reusing a free page). Linux: ext4 may return a mix of old and new pages.
-// Model: PRead's range meets an in-flight write's affected range: stuck.
-func testReadAtRacingWriteAt(dir string) bool {
-	f := newFile(dir, 4)
-	if f == nil {
-		return true
-	}
-	newData := make([]byte, 2*pageSize)
-	for i := range newData {
-		newData[i] = 9
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		_, _ = f.WriteAt(newData, 0)
-		wg.Done()
-	}()
-	buf := make([]byte, 2*pageSize)
-	_, _ = f.ReadAt(buf, 0)
-	wg.Wait()
-	return buf[0] == buf[2*pageSize-1]
-}
-
-// Stat racing a WriteAt that extends the file by three pages. Linux: the old
-// size, the new size, or one in between (generic_perform_write moves i_size
-// page by page). Model: stuck (plan D8).
-func testStatRacingExtend(dir string) bool {
-	f, err := os.OpenFile(dir+"/db", os.O_RDWR|os.O_CREATE, 0o666)
-	if err != nil {
-		return true
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		_, _ = f.WriteAt(make([]byte, 3*pageSize), 0)
-		wg.Done()
-	}()
-	info, err := f.Stat()
-	wg.Wait()
-	if err != nil {
-		return true
-	}
-	return info.Size() == 0 || info.Size() == 3*pageSize
-}
-
 // Mmap with PROT_WRITE. Linux: allowed on an O_RDWR fd, and a store through it
 // is seen by ReadAt (true). Model: prot must be PROT_READ.
 func testMmapWritable(dir string) bool {
@@ -335,20 +289,4 @@ func testCASMapped(dir string) bool {
 		return true
 	}
 	return !atomic.CompareAndSwapUint64((*uint64)(unsafe.Pointer(&b[0])), 0, 1)
-}
-
-// Negative offsets, which the plan does not mention. Go: ReadAt and WriteAt
-// return "negative offset" without a system call, and Truncate(-1) gets EINVAL
-// (true). Model: the trusted Go models must return an error here (as Go) or be
-// stuck; they must not reach the extension with an offset that is not a Nat.
-func testNegativeOffset(dir string) bool {
-	f := newFile(dir, 1)
-	if f == nil {
-		return true
-	}
-	var buf [1]byte
-	_, err1 := f.ReadAt(buf[:], -1)
-	_, err2 := f.WriteAt(buf[:], -1)
-	err3 := f.Truncate(-1)
-	return err1 != nil && err2 != nil && err3 != nil
 }

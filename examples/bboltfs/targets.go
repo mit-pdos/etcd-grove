@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -639,4 +640,213 @@ func testConcurrentDisjoint(dir string) bool {
 	}
 	_ = f.Close()
 	return ok
+}
+
+// Negative offsets. Go's ReadAt and WriteAt return "negative offset" without a
+// system call, and Truncate(-1) gets EINVAL. The plan's trusted models return
+// Go's error first (the primitives are stuck on a negative offset).
+func testNegativeOffset(dir string) bool {
+	f, err := os.OpenFile(dir+"/db", os.O_RDWR|os.O_CREATE, 0o666)
+	if err != nil {
+		return envFailure()
+	}
+	var buf [1]byte
+	_, err1 := f.ReadAt(buf[:], -1)
+	_, err2 := f.WriteAt(buf[:], -1)
+	err3 := f.Truncate(-1)
+	_ = f.Close()
+	return err1 != nil && err2 != nil && err3 != nil
+}
+
+// Stat racing a WriteAt that extends the empty file by three pages: whatever
+// it sees lies between the old and the new size (StatSees, plan D8). Linux may
+// show an intermediate size, so "the old or the new size" is not a target
+// (twoways.testStatRacingExtend).
+func testStatRacingExtendBounded(dir string) bool {
+	f, err := os.OpenFile(dir+"/db", os.O_RDWR|os.O_CREATE, 0o666)
+	if err != nil {
+		return envFailure()
+	}
+	var wg sync.WaitGroup
+	wrote := false
+	wg.Add(1)
+	go func() {
+		if _, err := f.WriteAt(make([]byte, 3*pageSize), 0); err == nil {
+			wrote = true
+		}
+		wg.Done()
+	}()
+	info, err := f.Stat()
+	wg.Wait()
+	if err != nil || !wrote {
+		return envFailure()
+	}
+	sz := info.Size()
+	_ = f.Close()
+	return 0 <= sz && sz <= 3*pageSize
+}
+
+// WriteTo (etcd's snapshot) against a concurrent writer. The read
+// transaction copies its meta (beginTx), generates the two meta pages from it,
+// and copies pages 2 up to tx.Size() with ReadAt on the read-write fd
+// (WriteFlag 0: f = tx.db.file, through an io.SectionReader). The writer
+// meanwhile reuses pages that are free in the reader's view (5 and 6, freed
+// before the reader began), fdatasyncs, and commits txid 3 to slot 1. The copy
+// of a free page may be any mix of old and new bytes (ReadSees); the claim is
+// only about the pages the reader's meta reaches, its root and its freelist,
+// which no in-flight write touches.
+func testWriteTo(dir string) bool {
+	f, err := os.OpenFile(dir+"/db", os.O_RDWR|os.O_CREATE, 0o666)
+	if err != nil {
+		return envFailure()
+	}
+	if err := initDB(f); err != nil {
+		return envFailure()
+	}
+	if err := f.Truncate(int64(8 * pageSize)); err != nil {
+		return envFailure()
+	}
+	if err := f.Sync(); err != nil {
+		return envFailure()
+	}
+	// txid 2: root 3, a freelist at page 4 listing pages 2, 5, 6 and 7, pgid 8
+	if _, err := f.WriteAt(freelistPage(4, []Pgid{2, 5, 6, 7}), 4*pageSize); err != nil {
+		return envFailure()
+	}
+	if err := syscall.Fdatasync(int(f.Fd())); err != nil {
+		return envFailure()
+	}
+	m2 := Meta{magic: magic, version: version, pageSize: pageSize,
+		root: InBucket{root: 3}, freelist: 4, pgid: 8, txid: 2}
+	mbuf := make([]byte, pageSize)
+	m2.write(pageAt(mbuf, 0))
+	if _, err := f.WriteAt(mbuf, 0); err != nil {
+		return envFailure()
+	}
+	if err := syscall.Fdatasync(int(f.Fd())); err != nil {
+		return envFailure()
+	}
+	b, err := unix.Mmap(int(f.Fd()), 0, minMmapSize, syscall.PROT_READ, syscall.MAP_SHARED)
+	if err != nil {
+		return envFailure()
+	}
+	var metalock sync.Mutex
+	var mmaplock sync.RWMutex
+	var wg sync.WaitGroup
+	readOk := false
+	readFailed := false
+	wg.Add(1)
+	go func() {
+		// beginTx
+		metalock.Lock()
+		mmaplock.RLock()
+		cur := pickMeta(pageAt(b, 0).meta(), pageAt(b, pageSize).meta())
+		ok := cur != nil
+		var tm Meta
+		if ok {
+			tm = *cur
+		}
+		metalock.Unlock()
+		if ok {
+			// WriteTo: the two meta pages, generated from tm
+			out := make([]byte, int(tm.pgid)*pageSize)
+			page := pageAt(out, 0)
+			page.flags = metaPageFlag
+			*page.meta() = tm
+			page.meta().checksum = page.meta().sum64()
+			page1 := pageAt(out, pageSize)
+			page1.id = 1
+			page1.flags = metaPageFlag
+			m1 := tm
+			m1.txid--
+			*page1.meta() = m1
+			page1.meta().checksum = page1.meta().sum64()
+			// the data pages, copied with ReadAt
+			dataOffset := int64(pageSize * 2)
+			n, err := f.ReadAt(out[dataOffset:], dataOffset)
+			if err != nil {
+				readFailed = true
+			} else {
+				root := pageAt(out, int(tm.root.root)*pageSize)
+				fl := pageAt(out, int(tm.freelist)*pageSize)
+				readOk = n == len(out)-int(dataOffset) &&
+					page.meta().validate() && page1.meta().validate() &&
+					root.id == tm.root.root && root.flags == leafPageFlag &&
+					fl.id == tm.freelist && fl.flags == freelistPageFlag &&
+					(tm.txid == 2 && fl.count == 4 || tm.txid == 3 && fl.count == 3)
+			}
+		}
+		mmaplock.RUnlock()
+		wg.Done()
+	}()
+
+	// the writer: beginRWTx, then free pages 5 (new root) and 6 (new freelist)
+	metalock.Lock()
+	cur := pickMeta(pageAt(b, 0).meta(), pageAt(b, pageSize).meta())
+	ok := cur != nil
+	var m Meta
+	if ok {
+		m = *cur
+	}
+	metalock.Unlock()
+	failed := !ok
+	if !failed {
+		pages := make([]byte, 2*pageSize)
+		root := pageAt(pages, 0)
+		root.id = 5
+		root.flags = leafPageFlag
+		copy(pages[pageSize:], freelistPage(6, []Pgid{2, 4, 7}))
+		if _, err := f.WriteAt(pages, 5*pageSize); err != nil {
+			failed = true
+		}
+	}
+	if !failed {
+		if err := syscall.Fdatasync(int(f.Fd())); err != nil {
+			failed = true
+		}
+	}
+	if !failed {
+		m.txid++
+		m.root.root = 5
+		m.freelist = 6
+		wbuf := make([]byte, pageSize)
+		mp := pageAt(wbuf, 0)
+		m.write(mp)
+		metalock.Lock()
+		if _, err := f.WriteAt(wbuf, int64(mp.id)*pageSize); err != nil {
+			failed = true
+		}
+		metalock.Unlock()
+	}
+	if !failed {
+		if err := syscall.Fdatasync(int(f.Fd())); err != nil {
+			failed = true
+		}
+	}
+	wg.Wait()
+	if !ok {
+		return false
+	}
+	if failed || readFailed {
+		return envFailure()
+	}
+	if err := unix.Munmap(b); err != nil {
+		return envFailure()
+	}
+	_ = f.Close()
+	return readOk
+}
+
+// freelistPage is a freelist page with id id listing ids (Freelist.Write, for
+// fewer than 0xFFFF ids).
+func freelistPage(id Pgid, ids []Pgid) []byte {
+	buf := make([]byte, pageSize)
+	p := pageAt(buf, 0)
+	p.id = id
+	p.flags = freelistPageFlag
+	p.count = uint16(len(ids))
+	for i, x := range ids {
+		*(*Pgid)(unsafe.Pointer(&buf[int(pageHeaderSize)+8*i])) = x
+	}
+	return buf
 }

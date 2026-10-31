@@ -38,6 +38,10 @@ var targets = map[string]func(string) bool{
 	"testTrivialCalls":       testTrivialCalls,
 	"testWriteAtEmpty":       testWriteAtEmpty,
 	"testConcurrentDisjoint": testConcurrentDisjoint,
+
+	"testNegativeOffset":          testNegativeOffset,
+	"testStatRacingExtendBounded": testStatRacingExtendBounded,
+	"testWriteTo":                 testWriteTo,
 }
 
 // The targets hold in Go, each in a fresh directory, and meet no
@@ -56,16 +60,53 @@ func TestTargets(t *testing.T) {
 	}
 }
 
-// The concurrent target, many times (and under -race).
-func TestConcurrentDisjointRepeated(t *testing.T) {
-	for i := 0; i < 50; i++ {
-		before := atomic.LoadUint64(&envErrors)
-		if !testConcurrentDisjoint(t.TempDir()) {
-			t.Fatalf("run %d returned false", i)
+// The concurrent targets, many times (and under -race).
+func TestConcurrentRepeated(t *testing.T) {
+	for name, f := range map[string]func(string) bool{
+		"testConcurrentDisjoint":      testConcurrentDisjoint,
+		"testStatRacingExtendBounded": testStatRacingExtendBounded,
+		"testWriteTo":                 testWriteTo,
+	} {
+		for i := 0; i < 100; i++ {
+			before := atomic.LoadUint64(&envErrors)
+			if !f(t.TempDir()) {
+				t.Fatalf("%s: run %d returned false", name, i)
+			}
+			if atomic.LoadUint64(&envErrors) != before {
+				t.Fatalf("%s: run %d met an environmental failure", name, i)
+			}
 		}
-		if atomic.LoadUint64(&envErrors) != before {
-			t.Fatalf("run %d met an environmental failure", i)
-		}
+	}
+}
+
+// A failed commit poisons the handle: later reads and commits refuse.
+func TestMiniboltFailedCommit(t *testing.T) {
+	path := t.TempDir() + "/db"
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Commit(2); err != nil {
+		t.Fatal(err)
+	}
+	_ = db.file.Close() // every later system call on the file fails
+	if err := db.Commit(3); err == nil {
+		t.Fatal("commit on a closed file succeeded")
+	}
+	if _, _, _, err := db.Get(); err != errFailed {
+		t.Fatalf("Get after a failed commit: %v, want errFailed", err)
+	}
+	if err := db.Commit(3); err != errFailed {
+		t.Fatalf("Commit after a failed commit: %v, want errFailed", err)
+	}
+	db.Close()
+	db, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if txid, v, has, err := db.Get(); err != nil || txid != 2 || !has || v != 2 {
+		t.Fatalf("reopened: txid %d, value %d, has %v, err %v", txid, v, has, err)
 	}
 }
 
@@ -76,7 +117,7 @@ func TestMiniboltRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if txid, _, has := db.Get(); txid != 1 || has {
+	if txid, _, has, err := db.Get(); err != nil || txid != 1 || has {
 		t.Fatalf("fresh db: txid %d, has %v", txid, has)
 	}
 	const last = 60 // 62 pages: the mapping grows 32 -> 64 -> 128 -> 256 KiB
@@ -84,7 +125,7 @@ func TestMiniboltRoundTrip(t *testing.T) {
 		if err := db.Commit(v); err != nil {
 			t.Fatal(err)
 		}
-		if txid, got, has := db.Get(); txid != v || !has || got != v {
+		if txid, got, has, err := db.Get(); err != nil || txid != v || !has || got != v {
 			t.Fatalf("after commit %d: txid %d, value %d, has %v", v, txid, got, has)
 		}
 	}
@@ -103,7 +144,7 @@ func TestMiniboltRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if txid, got, has := db.Get(); txid != last || !has || got != last {
+	if txid, got, has, err := db.Get(); err != nil || txid != last || !has || got != last {
 		t.Fatalf("reopened: txid %d, value %d, has %v", txid, got, has)
 	}
 	db.Close()
@@ -120,7 +161,7 @@ func TestMiniboltReinit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if txid, _, has := db.Get(); txid != 1 || has {
+	if txid, _, has, err := db.Get(); err != nil || txid != 1 || has {
 		t.Fatalf("reinitialized db: txid %d, has %v", txid, has)
 	}
 	db.Close()
@@ -139,7 +180,7 @@ func TestBootMinibolt(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if txid, v, has := db.Get(); txid != 1+boots || !has || v != txid {
+	if txid, v, has, err := db.Get(); err != nil || txid != 1+boots || !has || v != txid {
 		t.Fatalf("after %d boots: txid %d, value %d, has %v", boots, txid, v, has)
 	}
 }
@@ -176,7 +217,7 @@ func TestBootMiniboltKilled(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	if txid, v, has := db.Get(); txid < 2 || !has || v != txid {
+	if txid, v, has, err := db.Get(); err != nil || txid < 2 || !has || v != txid {
 		t.Fatalf("after the killed boots: txid %d, value %d, has %v", txid, v, has)
 	}
 }
