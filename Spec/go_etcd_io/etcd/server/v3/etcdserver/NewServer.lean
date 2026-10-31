@@ -283,8 +283,10 @@ abbrev NewServer.spec : Prop :=
 with the compactor in revision mode at a positive retention (phase 0's scope) in place of the
 compactor off. The server's built part then holds the compactor (`compactorOk`, `compactorRun`:
 `v3compactor.New`'s contract and run token, over the store's `Rev` and the server's own `Compact`).
-Kept apart from `NewServer.spec` until it is proved (its `sorry` reaches `putgetc` alone), as
-`newServer.specCompact`. -/
+Kept apart from `NewServer.spec` (Q4: until the compaction-on case was proved), as
+`newServer.specCompact`; proved (2026-10-31) as `NewServer.specG`'s compaction case
+(`NewServer.wp_proofCompact`), `bootstrap`'s contract at `N + N` write tokens: `N` more for the
+compaction's write-back stock. -/
 abbrev NewServer.specCompact : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
     (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
@@ -349,7 +351,9 @@ abbrev NewServer.specCompact : Prop :=
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      -- (2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
+      -- (`srvCmpStock`, `CmpSupply.lean`; the pool's `N` and the stock's are separate supplies)
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs (N + N) dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
@@ -522,6 +526,187 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
+      -- storage registry's authority, empty (the caller allocates it)
+      "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
+      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
+      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
+      -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
+      -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
+      -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
+      -- credits (`srvMemberBoot_alloc`)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+      -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
+      "Hids" ∷ idShare ρ.ids ∗
+      -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
+      "Hwtok" ∷ idWaitTok ρ.ids ∗
+      -- the names chosen before the call (D13a), fresh
+      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
+      "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
+      "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
+      -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
+      -- whose standing update `noopAu` it gives, `srvRaftBoot_alloc`)
+      "#Hkvinv" ∷ kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
+      -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
+      -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
+      -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
+      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
+      -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
+      -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
+      "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
+      -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
+      -- checkpointer's effects and the auth store's record bound
+      "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
+      -- (D22 S-j2, 2026-10-20; an environment assumption the user approved) bbolt's `Open`
+      -- succeeds on the database files the server opens after its start (`storage.OpenBackend`'s
+      -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
+      -- the server's snapshot path once S-j wires it in (today nothing opens one)
+      "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
+      -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
+      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- snapshot backend
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
+      -- `NodeStartSpec`'s trust-boundary premises
+      "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
+      "#Hns" ∷ rnNewStorageOk ∗
+      -- the packages' init facts `start` needs
+      "#Hcci" ∷ context.isClosedchanInit }}
+    (App (Val (@! NewServer)) (Val #cfg))
+  {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
+      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
+      ⌜err = GoInterface.nil⌝ ∗
+        ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+          (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
+          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
+          ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
+          srvWatchBuilt srv E ∗
+          -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
+          srvKVCloserW srv E ∗
+          -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
+          -- `applySnapshot`'s `OpenSnapshotBackend`
+          backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk))
+            γrn b (W64 0)
+            (W64 0) (bootKVOf on) N ∗
+          -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
+          srvBuildGap srv γrn (W64 0) (W64 0) ∗
+          -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
+          -- watchable store, the progress interval's field, and the request slots
+          srvServeBuilt srv E cfg 64 ∗
+          -- (D19i part 2) the storage version monitor's backend access
+          srvSVRes srv E ∗
+          -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
+          -- `monitorDowngrade`'s `lgMu` reader slot
+          srvMonitorCfg srv cfg ∗
+          -- (2026-10-23) the right to close `readych`, for `publishV3`
+          srvReadyCloser srv ∗
+          -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
+          -- started there: what `RaftHandler` takes, to serve the member's raft handler;
+          -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,
+          -- `MendPeer`) and what each request the handler serves borrows (`http.Serve`)
+          srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
+          ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+          -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
+          -- service's run slots (`v3rpc.watchRunSlot`)
+          srvWatchReaders srv E 64 ∗
+          -- (the auth plan's E3zb, 2026-10-28) its lessor finds no lease (the grant guard
+          -- `False`, D45; `lookupNil_of_guard`): what `start.specOn`'s apply thread takes
+          srvLessorNil srv ∗
+          -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
+          -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
+          -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
+          -- `Authenticate` side at the server's reader resource (`srvAuthStoreOn`)
+          srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) }}
+
+
+/-- **`NewServer(cfg)` in either auth mode and either compaction mode** (M2, 2026-10-31; what
+`NewServer.wp_proofG` proves): `NewServer.specM on` at `cmp = false` (`NewServer.wp_proofM`), and
+with `cmp = true` (auth off) `NewServer.specCompact`'s premises: the compactor in revision mode at a
+positive retention, the stand-in's mode on, and `bootstrap`'s contract at `N + N` write tokens, `N`
+for the compaction's write-back stock (`NewServer.wp_proofCompact`). The post is `specM`'s. -/
+abbrev NewServer.specG (on cmp : Bool) : Prop :=
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
+    (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    -- (D21 M2, 2026-10-19) the raft network and its URL directory
+    (γn : NetNames GF) (dir : w64 → List GoString)
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (`SrvRaft.snapLoc`;
+    -- raft's `RaftNames.reSnapLoc` until 2026-10-27)
+    (γd : GName),
+  -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
+  -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
+  -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
+  -- (2026-10-30, the repair: raft's one mode; until then the cluster static, `γ.dyn = false`)
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
+  -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
+  γ.rule = srvRule (W64 0) γ.boot →
+  ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
+  ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
+  ρ.rd.kv.cmp = cmp →
+  -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
+  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  -- (2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`) the transaction budget
+  -- (`MaxTxnOps`) within protobuf's recursion limit (`v3rpc.maxTxnOpsOk`: at most 4999): a scope
+  -- restriction, the code accepts any budget and from 5000 on one nested transaction panics every
+  -- member's apply; etcd's default (128) meets it
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
+  -- the compactor by the mode: on, in revision mode at a positive retention (M2's phase 0), auth
+  -- off; off, not configured (`AutoCompactionRetention = 0`: `v3compactor.New` not reached)
+  (if cmp then cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
+      on = false
+    else cfg.AutoCompactionRetention' = 0) →
+  -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
+  E₀.cmp = cmp →
+  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
+  threadBound GF ≤ 2 ^ 31 →
+  -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
+  -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
+  -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
+  receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-10-30, the repair: snapshots allowed, the user's decision) no run-length premise (until
+  -- then `receiptBound ≤ SnapshotCatchUpEntries + 1`, which kept the compaction at index `1`)
+  -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
+  -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
+  γ.boot.length ≤ 2 ^ 60 →
+  -- (D21e (A), stage M4) the member's prefix in the cluster's claims is its member id's
+  -- (`NewGenerator`'s `uint16(id) << 48`), and the claimers' facts at it are the server's
+  -- (`srvFloorFact`, unit V2)
+  ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) → Φs ρ.ids.pfx = srvFloorFact E₀ →
+  (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
+    (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
+  -- (2026-10-24, rafthttp stage 6d) the network's directory well formed
+  netDirOk dir →
+  -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
+  -- transport sends in `X-PeerURLs`)
+  peerURLsDir dir id U.peer →
+  -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
+  -- `time.Duration(cfg.TokenTTL) * time.Second`
+  (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
+    uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
+      -- `bootstrap`'s contract (D13b)
+      -- (M2, `NewServer.specCompact`) in compaction mode at `N + N` write tokens: `N` more, the
+      -- compaction's write-back stock (`srvCmpStock`)
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs (N + if cmp then N else 0) dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗

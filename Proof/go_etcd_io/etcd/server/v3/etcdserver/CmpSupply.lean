@@ -8,11 +8,17 @@ never swapped (a snapshot is installed only with the mode off, the interim restr
 the write budget's pattern (a receipt in for a token out, `receiptBound ≤ a + n + 1`), its own
 receipts. (The storage side's draft, `srvWTStockInv`, shares the pool's receipt counter so that one
 stock per backend serves after a swap: what restore in compaction mode needs, the collaborator's.)
+The closer's split (`srvKVCloserW_cmpRight_of_new`): in compaction mode, `NewServer` hands out the
+KV's closer without the right (`srvKVCloserW`) and gives the apply thread the compaction right at
+`-1`, from the store's closer and its half of the compaction revision's authority (`crevRightM`).
+
 Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
 
 @[expose] public section
 
@@ -78,6 +84,44 @@ theorem kbWTSupplyM_of_cmpStock (d : mvcc.KBReal) :
     imodintro
     iexact Ht
   · itrivial
+
+/-- **The new store's closer, split** (compaction mode): the watchable store's closer and the
+compaction revision's half (`mvcc.New`'s `crevRightM`) make the server's closer without the right and
+the apply thread's compaction right at `-1` (the storage side's `srvKVCloserM_of_new` and
+`srvKVCloserM_split`, at once). -/
+theorem srvKVCloserW_cmpRight_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.kb)
+    (hc : E.γ.cm = true) :
+    ⊢ srvKVCloser (GF := GF) s E -∗ mvcc.crevRightM E.γ ={⊤}=∗
+      srvKVCloserW s E ∗ apply.cmpRight E (-1) := by
+  iintro Hcl Hcr
+  iunfold srvKVCloser at Hcl
+  icases Hcl with ⟨%wsl, #Hkv, Hcl⟩
+  imod mvcc.wsCloserR_of_wsCloser wsl E.s E.γ hc ⊤ $$ Hcl Hcr with Hr
+  icases (mvcc.wsCloserR_iff wsl E.s E.γ (-1)).1 $$ Hr with ⟨%stc, #Hstc, Hsc, Hw, Hr⟩
+  imodintro
+  unfold srvKVCloserW apply.cmpRight
+  simp only [h, ↓reduceIte]
+  iframe Hr
+  isplitl [Hsc Hw]
+  · iexists wsl
+    iframe Hkv
+    iexists stc
+    iframe Hstc Hsc Hw
+  · ipureintro; omega
+
+/-- **The new store's closer by the mode, at `-1`** (`watchableStore.Close`'s, for `NewServer`'s error
+returns): off the closer as it is; on, with the compaction revision's half (`crevRightM`). -/
+theorem wsCloserM_of_new (s st : Loc) (γ : mvcc.StoreNames) (h : mvcc.kbCmpM γ.kb ↔ γ.cm = true) :
+    ⊢ mvcc.wsCloser (GF := GF) s st γ -∗ mvcc.crevRightM γ ={⊤}=∗ mvcc.wsCloserM s st γ (-1) := by
+  iintro Hcl Hcr
+  by_cases hk : mvcc.kbCmpM γ.kb
+  · imod mvcc.wsCloserR_of_wsCloser s st γ (h.1 hk) ⊤ $$ Hcl Hcr with Hr
+    imodintro
+    iapply (mvcc.wsCloserM_on s st γ (-1) hk).2
+    iexact Hr
+  · imodintro
+    iapply (mvcc.wsCloserM_off s st γ (-1) hk).2
+    iexact Hcl
 
 end supply
 

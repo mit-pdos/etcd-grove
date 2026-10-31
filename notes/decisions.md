@@ -27819,3 +27819,48 @@ ahead". For the collaborator to review (the snapshot track's draft, switched her
   ErrNoSpace)` is false (`applyResultIs_notNoSpace_M`).
 - **Still deferred**: `kvApplied`'s `x.crev = crevOf γk A` (no consumer until the restore's #8;
   with (a) the installed state is at `-1` on a plain log anyway).
+
+## M2: `NewServer.specCompact` proved, over one proof in both compaction modes (2026-10-31, branch `m2-newsc`)
+
+The user: "yes, go ahead with specCompact", then on the plan "yes, go ahead with both" (switch D22's
+`srvWTPool`/`srvKVCloser` side as `srvEnvOkD` was, and build the compactor's run contract in
+`start`), then offline. The `sorry` of `NewServer.wp_proofCompact` is gone (trust base: one `sorry`
+fewer). For the collaborator to review where it touches the snapshot track (`srvKVCloserW` in the
+post, the compaction's supply).
+- **One proof, two modes** (`NewServer.wp_proofG on cmp`, `NewServer.specG`): `wp_proofM` (the
+  auth modes) generalized over the compaction mode, not copied (1700 lines); `wp_proofM` and
+  `wp_proofCompact` are its instances. The mode-dependent steps: the store at `{ d with cm := cmp }`
+  (`server_kv_watchable_ofM`, the storage Draft's `server_kv_watchable_ofD` made one lemma with
+  today's: on, the store's keys deletable and its backend contract the compacting one, a job reader
+  kept back, the right `crevRightM`), the error returns' closer (`wsCloserM_of_new`), the
+  compactor (a `wp_join` over `if num != 0`: on, `v3compactor.New` in revision mode, no error), the
+  post's closer and the apply thread's right (`srvKVCloserW_cmpRight_of_new`), the write-back
+  supply, the KV tie's mode law. `specG`'s mode premise is an `if cmp` (on: revision mode, positive
+  retention, auth off); item 14's `NewServer.specD` (Q4) can be read off it once both are wanted.
+- **The KV's closer without the right in the post (`srvKVCloserW`, item 20 in place)**, not the
+  Draft's `srvKVCloserM srv E (-1)`: since A1 the right is the boot `applyKV`'s (`cmpOwn`), so
+  `NewServer` splits the new store's closer at once. Off it is `srvKVCloser` (`srvKVCloserW_off`).
+- **The compaction's write-back supply: a stock of its own (`srvCmpStock`, `CmpSupply.lean`)**, not
+  `srvWTPool` restated: the apply thread's boot state needs `kbWTSupplyM` at `NewServer`, while the
+  pool is made by `start`, and the Draft's `kbWTSupplyM_of_srvWTPool` needs a discarded share of
+  `E.γbe`, which the pool's owners (bemu, the apply thread, the pool) do not leave. With no snapshot
+  in compaction mode (the interim restriction) the backend is never swapped, so a stock of the boot
+  backend's tokens, with receipts of its own, serves for good. **Its cost: `N` more tokens**, the
+  stock's separate receipt bound: `NewServer.specCompact` takes `bootstrap`'s contract at `N + N`
+  (`specG` at `N + if cmp then N else 0`), and the compaction chain with it (`newServer.specCompact`,
+  `StartCompactingServer.spec`, putgetc's premises, its adequacy's `n + n + 7 ≤ wbInit`). The
+  storage Draft's `srvWTStockInv` shares the pool's receipt counter, for a stock per backend across
+  swaps (restore in compaction mode, the collaborator's (b)); it would make the extra tokens
+  unnecessary only with the two supplies sharing one token count, which neither draft does.
+- **The compactor's run contract built in `start`** (the S4 problem: the run precondition's
+  contracts, the server's `Rev` and `Compact`, need the request and read views, which only `start`
+  builds): `compactorRun s E c` holds, besides the compactor's contract and run token, a wand from
+  the views (`isServerReq`, `isServerRead`, `idCred`, at any request names: `start` changes the wait
+  name) to the run precondition; `start` (auth off) builds its views before `Run`, `start` (auth
+  on) has no compactor (`compactorRun`'s run is auth off's). `NewServer` makes the wand from
+  `revGetterOk_server` (new, `CompactEnv.lean`: `s.kv`'s `Rev` over `srvRevLb`) and
+  `compactableOk_server`, with one reader slot of each kind (`srvCompactR`: the lead-time and `lgMu`
+  mutexes', the auth store's, the store's) and the boot log's certificate (`srvRevLb … 0`).
+- **Callees**: `NewServer.wp_proofCompact` takes `wp_proof`'s and the compacting server's own (the
+  compacting store's backend contract's `LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`,
+  `UnsafePut`; the store's `Rev`; the server's `Compact`); putgetc's `MainLinked` links them by hand.
