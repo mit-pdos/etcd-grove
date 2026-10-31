@@ -6,8 +6,9 @@ counterpart).
 * **`authkv_Main`** (`Link.lean`'s `authkv.wp_Main`): `Main()` -- one member with the simple token
   provider, auth set up and enabled, four principals' workloads inside and outside `[a, b)`, and
   checks that panic if the server let a principal do what the auth state does not permit -- does
-  not panic and returns `Ok`, `Failed` or `WatchEnded` (`Spec/.../authkv/Main.lean`). **Not proved:
-  a `sorry`** (`Main.lean` lists what its proof needs).
+  not panic and returns `Ok`, `Failed` or `WatchEnded` (`Spec/.../authkv/Main.lean`). `Main.wp_proof`
+  is proved (2026-10-31); the result rests on the `sorry`s its callees' proofs reach
+  (`Main.lean`'s header lists them).
 * **`authkv_Permitted`** (`Link.lean`'s `authkv.wp_Permitted`): the program's verdict
   `Permitted(who, k)` is `permittedK who k`; and **`authkv_granted_iff`** (`Model.lean`'s
   `granted_setupSt_iff`): that is the model's verdict at the set-up's state for the workload's

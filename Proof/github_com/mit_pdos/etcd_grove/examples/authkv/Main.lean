@@ -1,50 +1,31 @@
 /-
-`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved up to u's watch**
-(`CheckHistory` of root's watch done), the rest a `sorry` (2026-10-30). Lean-first (no Rocq counterpart).
+`Main()` (`examples/authkv/authkv.go`; the auth plan's E2b): **proved** (2026-10-31), over its
+callees' specs. Lean-first (no Rocq counterpart).
 
-Proved: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
+The steps: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
 (`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.specOn`) with the
-ghost step `ak_served_kv` (`MainServe.lean`: the KV methods with auth on, the Auth service's admin
-methods and `Authenticate`); `NewClient` (no user name, no token); `SetUp` (its puts under the
+ghost steps `ak_served_kv` and `ak_served_watch` (`MainServe.lean`: the KV methods with auth on,
+the Auth service's admin methods and `Authenticate`; the watch server's facts at the clients'
+watcher environment `akV R`); `NewClient` (no user name, no token); `SetUp` (its puts under the
 history invariant, `akHist_setupAu`; the TLS fallback off and the auth store's cost from
-`memberUpOn`), and every error's return of `Failed`. `ak_served_watch` gives the watch server's
-facts (`watchAddrFacts`) at the clients' watcher environment `akV R`, for the workloads and the
-watches. Then the user clients (`newUserClient` for root, u and v, over the registration of
-`Authenticate` that `ak_served_kv` gives: `authTokReg_of`). Then the workloads: the auth state
-fixed after the set-up (`akAuthFixed_alloc` from `SetUp`'s post), the principals' loop
-(`Principals`; `c` the client of `u`, of `v`, or the set-up's, with its tokens as `akTokP`), each
-`Work(c, who)` in a goroutine under a wait group, and `wg.Wait()`. Then root's last write, in a
-timeout context (`client.wp_WithTimeout_bg`; the token does not matter, so no metadata fact), through
-root's client (`client_Put_on`), its update admitted by the history from any state
-(`akHist_endAu`); its reply's revision is `Collect`'s bound. Then root's watch of every key from
-revision 1 (`watcher.Watch`, with the history's read update `akHist_readAu`, no auth bound), its
-`Collect` at the per-event fact `rootEvOk` (`root_resp`, `RootWatch.lean`: each event is one of a
-state the invariant holds at), and `CheckHistory`'s premise from it (`histOk_of_collected`). Not
-yet: u's watch of `[lo, hi)` and its `Permitted` checks (`notes/authkv-main-plan.md`, "Main: what
-blocks it").
+`memberUpOn`); the user clients (`newUserClient` for root, u and v, over the registration of
+`Authenticate`: `authTokReg_of`); the workloads: the auth state fixed after the set-up
+(`akAuthFixed_alloc` from `SetUp`'s post), the principals' loop (`c` the client of `u`, of `v`, or
+the set-up's, its tokens `akTokP`), each `Work(c, who)` in a goroutine under a wait group, and
+`wg.Wait()`; root's last write in a timeout context (`client_Put_on`), admitted by the history from
+any state (`akHist_endAu`), its reply's revision `Collect`'s bound; root's watch of every key from
+revision 1 (`watcher.Watch` with the history's read update `akHist_readAu`, no auth bound), its
+`Collect` at the per-event fact `rootEvOk` (`root_resp`, `RootWatch.lean`) and `CheckHistory`
+(`histOk_of_collected`); u's watch of `[a, b)` from revision 1 up to `LastIn` of root's events, its
+`Collect` at `permittedK u` of each key (`u_resp`: the watch's events are of its range, the range u
+may read; no auth fact is needed, a refused watch having no events), and the loop of `Permitted`
+checks, which never panics; every error's return of `Failed`, a watch that ends early
+`WatchEnded`.
 
-What the proof needs, as the auth plan put it (`notes/decisions.md`, "E2b", "E2e" and "E2f of the auth plan"):
-- **the server in the mode `on γa`** (E2e's next step, E2g): `NewServer.spec` generic in the auth
-  mode, the store from `auth.newAuthStore_boot` (D22's part the named premise
-  `auth.authSchemaBoot`, the provider's `auth.tokenProviderBoot`), `srvAuthBound` from
-  `srvAuthBound_of_authInv`, the apply thread admitting auth requests with the authority
-  `authOwn`;
-- **`SetUp`'s premises** (the auth-mode merge's 5b): `clientTokAt cl [ep] (fun _ => False)` (G1's
-  `NewClient`), `setupAuthServed` (`etcd_kv_auth_served_on`), `□ (srvTLSId s -∗ False)` (the
-  started member's `ClientCertAuthEnabled` is the config's `false`: `memberUpOn` does not yet
-  export it), the client's view `authHistView ρ.kv [srvAuthSt0]` and `c0 ≤ ai0` (the boot,
-  `server_cluster_alloc_on`); its post, the history frozen at `setupSt r`, then gives `setupSt` at
-  every later position (`authHistFrozen_prefix`);
-- **the client's auth contract** over the contexts' metadata (`ClientAuth.lean`): C1
-  (`userAttemptOk`) and C2/C4 (`deliversOutgoing`) in the client's attempt contract
-  (`grpcInvokerOk` says nothing of metadata today), C3 the spec
-  `metadata.AppendToOutgoingContext.spec` (a trust-boundary axiom; `reqCtx` proved over it), and
-  that `reqCtx`'s timeout context has no outgoing token (Perennial's context model does not
-  describe values at other keys); the bad principal is then unbound (`badCtx_unbound`);
-- **the workload** (`Work`): each call's reply at the server's verdict -- an error for a refused
-  principal (A1, A4), the persistent-update case of the client's write results for the bad
-  principal's resent writes (E2d) -- and the checks, proved (`refused`, `checkKVs`,
-  `checkTxnReads`, `CheckHistory`, `Writer`, `LastIn`, `keyOf`: E2f).
+What the result still rests on (`etc/tcb-collections/authkv.txt`): `startServer`, linked as pending
+(`Results.lean`'s `authkv_Main` takes its premises); `Work`'s nested-transaction part
+(`then_commit_nested_refused`, T4); the registration of `Authenticate`
+(`client.etcd_kv_auth_served_onA`, C1's A5); and the server's apply thread and raft node loop.
 -/
 module
 
@@ -76,6 +57,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.go_etcd_io.etcd.client.v3.WithPrefix
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
+public import Spec.go_etcd_io.etcd.client.v3.WithRange
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Permitted
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.RootWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.WorkCalls
 
@@ -118,7 +101,9 @@ theorem Main.wp_proof
     (wp_Collect : common.Collect.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
-    (wp_WithRev : WithRev.spec (GF := GF) (hG := hG)) :
+    (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
+    (wp_WithRange : WithRange.spec (GF := GF) (hG := hG))
+    (wp_Permitted : Permitted.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
@@ -511,8 +496,102 @@ theorem Main.wp_proof
   wp_apply (wp_CheckHistory esl evs (DFrac.own 1) endKey Hhist') $$ [Hes] as Hes
   · iframe; try iframe #
   (try wp_auto)
-  -- the rest (`notes/authkv-main-plan.md`, "Main: what blocks it"): u's watch
-  sorry
+  -- u's watch of `[lo, hi)` from revision 1 (`uctx, ucancel := context.WithCancel(...)`;
+  -- `ucli.Watcher.Watch(uctx, lo, WithRange(hi), WithRev(1))`): its events are of `[a, b)`, the
+  -- range u may read (`u_resp`)
+  wp_apply context.wp_Background
+  wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
+    as %uctx %γuctx %ucancel ⟨#Hucancel, #Huctx, -⟩
+  (try wp_auto)
+  wp_apply wp_WithRange hi as %g1 #Hg1
+  wp_apply wp_WithRev (W64 1) as %g2 #Hg2
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %uosl ⟨Huosl, -⟩
+  ipersist Huosl
+  ihave #Huopts := optsAt_two (GF := GF) _
+      ([g1, zero_val GoFunc].set (sint.nat (W64 (0 + 1))) g2) g1 g2 (withRangeM hi) (withRevM (W64 1))
+      rfl $$ [Huosl Hg1 Hg2]
+  · iframe #
+  ihave ⟨%uw, %uwconn, %uwwc, %uwlg, %uwics, #Huwf, #Hucw, -⟩ :=
+    client.watcher_of_clientTokAt wp_ErrAny hAs ucl _ (akV R)
+      (fun t => auth.tokIssued γa t go!"u") rfl rfl rfl $$ [Pcl Pctx Ppb Hunc HWF Hutk]
+  · iframe #
+  (try wp_auto)
+  wp_apply (wp_Watch uw { akV R with conn := uwconn, ics := uwics, wc := uwwc, lg := uwlg }
+      ρ.rd.kv uctx ({ Values := ∅, Deadline := none, Done_gn := γuctx, PDone := iprop(True) } :
+        context.ContextDesc (IProp GF))
+      _ _ [withRangeM hi, withRevM (W64 1)] (W64 1) (fun σ => iprop(⌜stateHistOk σ⌝)) 0) $$ []
+    as %uch %γu ⟨#Husp, Hucons, Hucur⟩
+  · iframe #
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; exact ⟨watch_ab_ok.1.1, watch_ab_ok.1.2, by decide⟩
+    iintro !> %h
+    exact absurd h.2 (Nat.lt_irrefl 0)
+  rw [OpFull.watchNorm_of_ne (opWatchModel lo [withRangeM hi, withRevM (W64 1)])
+    (by rw [watch_ab_ok.2.1]; decide)]
+  ihave #Huch := common.isRespChan_of_state uch γu _ (fun σ => iprop(⌜stateHistOk σ⌝)) _ $$ Husp
+  (try wp_auto)
+  -- `uevs, ok := common.Collect(uch, LastIn(evs))`
+  wp_apply (wp_LastIn esl evs (DFrac.own 1)) $$ [Hes] as Hes
+  · iframe; try iframe #
+  ihave Hucons : etcdWatchConsumer γu 0 (W64 0) $$ [Hucons Hucur]
+  · unfold etcdWatchConsumer
+    iexists []
+    rw [← h10]
+    iframe Hucons Hucur
+    ipureintro; rfl
+  wp_apply (wp_Collect (common.stateOk _ (fun σ => iprop(⌜stateHistOk σ⌝))) (fun _ _ => True)
+      (fun _ e => iprop(⌜permittedK go!"u" e.Key'⌝)) iprop(True) uch γu _ trivial
+      (fun _ _ _ _ => inferInstance)
+      (fun c c' v r => common.stateOk_closeErr _ _ c c' v r)
+      (fun n c c' v r hne hI => u_resp _ ⟨watch_ab_ok.2.1, watch_ab_ok.2.2⟩ _ n c c' v r hne hI))
+    $$ [Hucons] as %usl %uok Hucol
+  · iframe; iframe #
+    iintro !>; itrivial
+  (try wp_auto)
+  wp_apply Hucancel $$ [] as -
+  · itrivial
+  (try wp_auto)
+  cases uok
+  · -- the watch ended before the history's last event in `[lo, hi)`
+    (try wp_auto)
+    iapply HΦ; ipureintro; right; right; rfl
+  ihave ⟨%uevs, Hues, -, #Huevs⟩ := Hucol $$ %rfl
+  (try wp_auto)
+  -- `for _, e := range uevs { if !Permitted("u", e.Key) { panic(...) } }; return Ok`: every
+  -- event's key is u's (`Huevs`)
+  ihave %Huel := ownSlice_len $$ Hues
+  ihave HU : (∃ (j : w64) (e0 : common.wev),
+      "i" ∷ i_ptr ↦ j ∗ "e" ∷ e_ptr ↦ e0 ∗ "Hues" ∷ usl ↦* uevs ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z usl.len⌝ : IProp GF) $$ [i e Hues]
+  · iexists W64 0, _
+    iframe
+    ipureintro; constructor <;> word
+  wp_for HU
+  wp_if_destruct
+  · have Hlt : sint.Z j < sint.Z usl.len :=
+      Classical.byContradiction fun h => by simp [h] at Hif
+    have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z usl.len := ⟨Hj.1, Hlt⟩
+    simp only [Hb', _root_.and_self, ↓reduceIte]
+    list_elem uevs (sint.nat j) as x
+    wp_apply wp_load_slice_index usl (sint.Z j) uevs (DFrac.own 1) x Hj.1 $$ [Hues] as Hues
+    · iframe; ipureintro; exact Hx_lookup
+    ihave %Hux := Huevs $$ %(sint.nat j) %x %Hx_lookup
+    (try wp_auto)
+    wp_apply wp_Permitted
+    rw [decide_eq_true Hux]
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists j + W64 1, x
+    iframe
+    ipureintro; constructor <;> word
+  · (try wp_auto)
+    iapply HΦ; ipureintro; left; rfl
 
 end proof
 

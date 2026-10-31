@@ -68,4 +68,4 @@ zap_NewNop:
 authkv_startServer: ?
 common_NewClient: @
 # `Main`: its proof over the stubs (notes/authkv-main-plan.md)
-authkv_Main: zap_NewNop authkv_startServer =common.wp_ServeOn common_NewClient =auth.authStore.wp_BcryptCost context_ErrAny authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn context_WithTimeoutBackground common_Collect watcher__Watch WithPrefix WithRev
+authkv_Main: zap_NewNop authkv_startServer =common.wp_ServeOn common_NewClient =auth.authStore.wp_BcryptCost context_ErrAny authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn context_WithTimeoutBackground common_Collect watcher__Watch WithPrefix WithRev WithRange authkv_Permitted
