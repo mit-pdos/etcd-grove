@@ -25,11 +25,11 @@ the index answers what the uncompacted index does (`IdxCRep.kiAt`, `IdxCRep.rang
 
 **The bucket** (`KeyDel log c key`): the bucket keys compaction at `c` may delete: a revision
 with main at or below `c` that compaction does not keep. A read at or above `c` never names one
-(`named_not_del`), provided revision `c` does not delete a key and put it again
-(`NoDelPutAt`): when it does, `doCompact` keeps the tombstone and drops the put that follows it
-in the same revision, the key's live revision (`issues/etcd-compaction-delete-then-put.md`); the
-premise is asserted by the one who compacts (`store.Compact`'s, since unit 6a) and carried by the
-keys compaction deletes, so the compacted store's readers have it (`rangeAnswers_not_del`).
+(`named_not_del`), also when revision `c` deletes a key and puts it again: the fixed `doCompact`
+(etcd-io/etcd#22377) steps past the tombstone to the put that follows it in the same revision
+(before the fix it kept the tombstone and dropped the key's live revision,
+`issues/etcd-compaction-delete-then-put.md`, and the premise `NoDelPutAt` excluded the case, until
+M2's item 18); so the compacted store's readers name no deleted key (`rangeAnswers_not_del`).
 -/
 module
 
@@ -1648,9 +1648,8 @@ def keepAt (log : Log) (c : Int) (r : Rev) : Prop :=
 /-- **A bucket key compaction at `c` may delete** (of a log with revision `c`): a revision's
 bytes, with a main at or below `c`, that compaction does not keep (what the job deletes: the
 keys of the range `[_, c + 1)` not in `treeIndex.Compact`'s `available`). A read at or above
-`c` never names one when revision `c` does not delete and put a key again (`named_not_del`'s
-premise `NoDelPutAt`); when it does, the read can name one: the bug of
-`issues/etcd-compaction-delete-then-put.md`. -/
+`c` never names one (`named_not_del`; before the fork's fix, etcd-io/etcd#22377, it could when
+revision `c` deletes and puts a key again: `issues/etcd-compaction-delete-then-put.md`). -/
 def KeyDel (log : Log) (c : Int) (key : GoString) : Prop :=
   c < log.length ∧
     ∃ (r : Rev) (t : Bool), key = revBytes r t ∧ 0 ≤ sint.Z r.main ∧ sint.Z r.main ≤ c ∧
@@ -1664,13 +1663,11 @@ theorem KeyDel_neg {log : Log} {c : Int} {key : GoString} (h : c < 0) : ¬ KeyDe
 /-- **What a read names is kept**: the revision a read at or above `c` answers, if its main is at
 or below `c`, is the one compaction keeps for the key. -/
 theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc : c < log.length)
-    (hnd : NoDelPutAt log c) (k : GoString) (atRev : w64) (hca : c ≤ sint.Z atRev)
+    (k : GoString) (atRev : w64) (hca : c ≤ sint.Z atRev)
     (r : Rev) (cr v : w64) (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v))
     (hr : sint.Z r.main ≤ c) :
     kiAvail (W64 c) (kiOfKey (evsOf log) k) = some r := by
   have hs := kiOfKey_KiS log hb k
-  have hev := (kiOfKey_struct k (evsOf log)).2.2
-  have hord := evsOf_ord log hb
   have hcw : sint.Z (W64 c) = c := by have := hb.1; word
   generalize hki : kiOfKey (evsOf log) k = ki at *
   unfold kiGet at hget
@@ -1691,67 +1688,48 @@ theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc :
   rw [getD_lt _ hj] at hrj
   subst hrj
   have hrmem : g.revs[j] ∈ (ki.gens.getD gx Gen.empty).revs := by rw [hg]; exact List.getElem_mem hj
-  -- `r` is not a tombstone
-  have hnottomb : ¬ (gx + 1 < ki.gens.length ∧ j + 1 = g.revs.length) := by
-    rintro ⟨h1, h2⟩
-    apply hnot
-    refine ⟨by omega, ?_⟩
-    have hl : g.revs.getLastD Rev.zero = g.revs[j] := by
-      rw [List.getLastD_eq_getLast?, List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]
-      simp only [show g.revs.length - 1 = j by omega]; rfl
-    rw [hl]; exact hjm
   have hidx : compactGenIdx (W64 c) ki.gens = gx := by
     apply compactGenIdx_eq _ _ _ hgxlt
     · intro j' hj'
       have hne' : (ki.gens.getD j' Gen.empty).revs ≠ [] := hs.wf.nonlast j' (by omega)
       have htm := getLastD_mem _ Rev.zero hne'
       have hlt := hs.cross hj' hgxlt htm hrmem
-      apply genAdv_of_lt
-      unfold tombZ
-      rw [hcw]
       have hle := Rev.lt_main_le hlt
       rcases Int.lt_or_eq_of_le (Int.le_trans hle hr) with h1 | h1
-      · exact h1
-      exfalso
-      -- a delete and a put of the key in revision `c`
-      generalize ht : (ki.gens.getD j' Gen.empty).revs.getLastD Rev.zero = tomb at *
-      have hlenj := List.length_pos_iff.2 hne'
-      have hgj : ki.gens[j']? = some (ki.gens.getD j' Gen.empty) := by
-        rw [List.getElem?_eq_getElem (by omega), getD_lt _ (by omega)]
-      have htp : (ki.gens.getD j' Gen.empty).revs[(ki.gens.getD j' Gen.empty).revs.length - 1]? = some tomb := by
-        rw [← ht, List.getLastD_eq_getLast?, List.getLast?_eq_getElem?]
-        rw [List.getElem?_eq_getElem (by omega)]; rfl
-      obtain ⟨e1, he1, he1r, he1k, he1t⟩ := hev j' _ _ tomb hgj htp
-      have he1t' : e1.tomb = true := he1t.2 ⟨by omega, by omega⟩
-      have hgx : ki.gens[gx]? = some g := by rw [← hg, List.getElem?_eq_getElem hgxlt, getD_lt _ hgxlt]
-      obtain ⟨e2, he2, he2r, he2k, he2t⟩ := hev gx j g _ hgx (List.getElem?_eq_getElem hj)
-      have he2t' : e2.tomb = false := by
-        cases h' : e2.tomb
-        · rfl
-        · exact absurd (he2t.1 h') hnottomb
-      have hc1 := change_of_tomb he1k he1t'
-      obtain ⟨v2, l2, hc2⟩ := change_of_not_tomb he2k he2t'
-      obtain ⟨-, -, hs1, cs1, hl1, hcs1⟩ := hord.2 e1 he1
-      obtain ⟨-, -, hs2, cs2, hl2, hcs2⟩ := hord.2 e2 he2
-      rw [he1r] at hl1 hcs1 hs1
-      rw [he2r] at hl2 hcs2 hs2
-      have hmeq : tomb.main = g.revs[j].main := by
-        have : sint.Z tomb.main = sint.Z g.revs[j].main := by omega
-        word
-      rw [hmeq] at hl1
-      rw [hl1] at hl2; cases hl2
-      have hsub : sint.Z tomb.sub < sint.Z g.revs[j].sub := by
-        rcases hlt with h3 | ⟨-, h3⟩
-        · omega
-        · exact h3
-      have hcn : c.toNat = g.revs[j].main.toNat := by
-        have : sint.Z g.revs[j].main = c := by omega
-        have h0 : 0 ≤ c := by have := hs.mem_nonneg hgxlt hrmem; omega
-        word
-      rw [hc1] at hcs1
-      rw [hc2] at hcs2
-      exact hnd cs1 tomb.sub.toNat g.revs[j].sub.toNat k v2 l2
-        (by have := hs.mem_nonneg hgxlt hrmem; omega) (by rw [hcn]; exact hl1) (by word) hcs1 hcs2
+      · apply genAdv_of_lt
+        unfold tombZ
+        rw [hcw]
+        exact h1
+      -- the tombstone at `c`: the key is re-created in revision `c` (the next generation's first
+      -- revision is above the tombstone and at or below `r`), which the fixed loop steps past
+      -- (etcd-io/etcd#22377; until then, the delete-then-put premise `NoDelPutAt` excluded it)
+      have hn1 : j' + 1 < ki.gens.length := by omega
+      obtain ⟨f, fs, hf⟩ : ∃ f fs, (ki.gens.getD (j' + 1) Gen.empty).revs = f :: fs := by
+        rcases Nat.lt_or_eq_of_le (show j' + 1 ≤ gx by omega) with h | h
+        · exact List.exists_cons_of_ne_nil (hs.wf.nonlast (j' + 1) (by omega))
+        · rw [h]; exact List.exists_cons_of_ne_nil (List.ne_nil_of_mem hrmem)
+      have hfmem : f ∈ (ki.gens.getD (j' + 1) Gen.empty).revs := by rw [hf]; exact List.mem_cons_self
+      have hlo := Rev.lt_main_le (hs.cross (Nat.lt_succ_self j') hn1 htm hfmem)
+      have hhi : sint.Z f.main ≤ sint.Z g.revs[j].main := by
+        rcases Nat.lt_or_eq_of_le (show j' + 1 ≤ gx by omega) with h | h
+        · exact Rev.lt_main_le (hs.cross h hgxlt hfmem hrmem)
+        · have hf' : (ki.gens.getD gx Gen.empty).revs = f :: fs := by rw [← h]; exact hf
+          have hgs := hs.gen_sorted hgxlt
+          rw [hf'] at hgs
+          have hrm := hrmem
+          rw [hf'] at hrm
+          rcases List.mem_cons.1 hrm with he | hm
+          · rw [he]; exact Int.le_refl _
+          · exact Rev.lt_main_le ((List.pairwise_cons.1 hgs).1 _ hm)
+      unfold genAdv
+      simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+      right
+      refine ⟨by unfold tombZ; rw [hcw]; exact h1, ?_⟩
+      unfold genRecreatedAt
+      rw [hf]
+      simp only [decide_eq_true_eq]
+      rw [hcw]
+      omega
     · by_cases hl : gx + 1 = ki.gens.length
       · exact Or.inl hl
       · right
@@ -1774,18 +1752,18 @@ theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc :
   simp only [Int.toNat_natCast]
   rw [getD_lt _ hj]
 
-/-- **A read at or above the compaction revision never names a key compaction may delete**, when
-the compaction revision does not delete a key and put it again (`NoDelPutAt`: else it can,
+/-- **A read at or above the compaction revision never names a key compaction may delete** (also
+when the compaction revision deletes a key and puts it again: the fixed `doCompact`, etcd-io/etcd#22377;
+until M2's item 18, 2026-10-30, under the premise `NoDelPutAt`,
 `issues/etcd-compaction-delete-then-put.md`). -/
-theorem named_not_del (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c)
-    (hnd : NoDelPutAt log c) (k : GoString)
+theorem named_not_del (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (k : GoString)
     (atRev : w64) (hca : c ≤ sint.Z atRev) (r : Rev) (cr v : w64)
     (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v)) (t : Bool) :
     ¬ KeyDel log c (revBytes r t) := by
   rintro ⟨hc, r', t', hk, h0, h1, hkeep⟩
   have := revBytes_rev_inj hk
   subst this
-  exact hkeep ⟨k, kiGet_avail log hb c hc0 hc hnd k atRev hca r cr v hget h1⟩
+  exact hkeep ⟨k, kiGet_avail log hb c hc0 hc k atRev hca r cr v hget h1⟩
 
 /-- What compaction at `c` keeps depends only on the log up to `c` (later revisions, above it,
 do not change any key's choice). -/
@@ -1832,12 +1810,13 @@ theorem kiAvail_kiCompact (log : Log) (hb : LogB log) (k : GoString) (c c' : Int
 
 /-! ### Compaction-aware readers (2026-10-13, unit 6a)
 
-`NoDelPutAt log c` depends only on revision `c` of the log (`NoDelPutAt_prefix`); a read at or
+A read at or
 above a compaction revision `c'` names no key compaction at `c'` deletes, of any certified log
 agreeing with the reader's up to `c'` (`rangeAnswers_not_del`: `named_not_del` through the
 prefix order). -/
 
-/-- No compaction (`c < 0`) needs nothing. -/
+/-- No compaction (`c < 0`) needs nothing. (`NoDelPutAt` is no longer a premise of compaction since
+M2's item 18; `M2StorageDraftRestore`'s Draft still names it.) -/
 theorem NoDelPutAt_neg {log : Log} {c : Int} (h : c < 0) : NoDelPutAt log c := by
   intro _ _ _ _ _ _ h0; omega
 
@@ -1892,12 +1871,11 @@ theorem rangeAnswers_get (log : Log) (endNil : Bool) (k e : GoString) (atRev : w
 
 /-- **A read at or above a compaction revision names no key that compaction deletes** (unit 6a):
 the reader's log `log` extends a log `lc` with revision `c'`, the deleter's certified log `log'`
-is in prefix order with `lc`, and revision `c'` of it does not delete then put a key
-(`NoDelPutAt`, what the compactor asserted): an answer of a read of `log` at `atRev ≥ c'`, at
+is in prefix order with `lc`: an answer of a read of `log` at `atRev ≥ c'`, at
 revision bytes of its modification, is not a key compaction at `c'` deletes (`KeyDel log' c'`). -/
 theorem rangeAnswers_not_del (lc log log' : Log) (hpre : lc <+: log) (hb : LogB log)
     (hb' : LogB log') (hcmp : lc <+: log' ∨ log' <+: lc) (c' : Int) (hc0 : -1 ≤ c')
-    (hc' : c' < lc.length) (hnd : NoDelPutAt log' c') (endNil : Bool) (k e : GoString)
+    (hc' : c' < lc.length) (endNil : Bool) (k e : GoString)
     (atRev : w64) (hca : c' ≤ sint.Z atRev) (a : GoString × Rev × w64 × w64)
     (ha : a ∈ rangeAnswers log endNil k e atRev) (t : Bool) :
     ¬ KeyDel log' c' (revBytes a.2.1 t) := by
@@ -1908,14 +1886,9 @@ theorem rangeAnswers_not_del (lc log log' : Log) (hpre : lc <+: log) (hb : LogB 
     rcases hcmp with h | h
     · exact (KeyDel_prefix lc log' h hb' c' hc0 hc' _).1 hdel
     · exact (KeyDel_prefix log' lc h hblc c' hc0 hdel.1 _).2 hdel
-  have hnd_lc : NoDelPutAt lc c' := by
-    rcases hcmp with h | h
-    · exact (NoDelPutAt_prefix h hc').1 hnd
-    · exact (NoDelPutAt_prefix h hdel.1).2 hnd
   have hdel_log : KeyDel log c' (revBytes a.2.1 t) :=
     (KeyDel_prefix lc log hpre hb c' hc0 hc' _).2 hdel_lc
-  have hnd_log : NoDelPutAt log c' := (NoDelPutAt_prefix hpre hc').2 hnd_lc
-  exact named_not_del log hb c' hc0 hnd_log a.1 atRev hca a.2.1 a.2.2.1 a.2.2.2
+  exact named_not_del log hb c' hc0 a.1 atRev hca a.2.1 a.2.2.1 a.2.2.2
     (rangeAnswers_get log endNil k e atRev a ha) t hdel_log
 
 end mvcc

@@ -138,8 +138,10 @@ local macro "call_tail_admin" : tactic => `(tactic| (
   · ipureintro; rfl
   iexists x', out
   iframe Hres Hauth HW Hdone
-  isplitl [Hown Hkv]
-  · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
+  isplitl [Hown Hkv Hco]
+  · iunfold apply.applyKV; iexists p
+    rw [apply.applyStep_crev_nonCmp rq v3 x x' out (fun h => by simp [apply.adminKindOk, h] at Hadm) Hst.1]
+    iframe Hown Hkv Hco; ipureintro; rfl
   isplitr
   · ipureintro; exact Hst.1
   icases Hwv with (%Hsk | HG)
@@ -235,7 +237,7 @@ theorem apply.Apply.wp_admin
   iunfold apply.uberAuthSteps at Hfor
   icases Hfor with ⟨%p, %opts, %Hua, #Hu, #Hsteps⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p', %Hua', Hown, Hkv⟩
+  icases Hkv with ⟨%p', %Hua', Hown, Hkv, Hco⟩
   subst Hua
   have := apply.mkOk_ptr_inj _ _ _ Hua'
   subst this
@@ -276,8 +278,8 @@ theorem apply.Apply.wp_admin
       iexists x, .skipped
       simp only [apply.applyResultIs, apply.adminOut, apply.applyAuthRes]
       iframe HW Ho Hrc
-      isplitl [Hown Hkv]
-      · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
+      isplitl [Hown Hkv Hco]
+      · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
       isplitr
       · ipureintro; simp [apply.applyStep, hns]
       iright; iexact HG

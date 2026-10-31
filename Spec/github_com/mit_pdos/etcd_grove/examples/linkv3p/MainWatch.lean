@@ -47,7 +47,7 @@ abbrev MainWatch.spec : Prop :=
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
   BootFacts id₁ id₂ id₃ ctxs boot →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →

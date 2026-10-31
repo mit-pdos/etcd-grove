@@ -23,8 +23,8 @@ checks, which never panics; every error's return of `Failed`, a watch that ends 
 `WatchEnded`.
 
 What the result still rests on (`etc/tcb-collections/authkv.txt`): `startServer`, linked as pending
-(`Results.lean`'s `authkv_Main` takes its premises); `Work`'s nested-transaction part
-(`then_commit_nested_refused`, T4); and the server's apply thread and raft node loop.
+(`Results.lean`'s `authkv_Main` takes its premises); and the server's apply thread and raft node
+loop.
 -/
 module
 
@@ -104,7 +104,7 @@ theorem Main.wp_proof
     (wp_WithRange : WithRange.spec (GF := GF) (hG := hG))
     (wp_Permitted : Permitted.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -203,7 +203,7 @@ theorem Main.wp_proof
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     imod (ak_served_kv go!"127.0.0.1:23916" gs q p pa srv lis E { ρ with wait := γw } cid mid C.n
-        il im iu ims is svcs regs sregs 1 γa HEo Hregs1 HregsA wp_BcryptCost)
+        il im iu ims is svcs regs sregs 1 γa HEo Hregs1 HregsA wp_BcryptCost Hrf)
       $$ [Hgsn Hlis Hslots] with ⟨Hserv, Hss, #HKV, #HSA, #HAu⟩
     · iframe; iframe #
       iintro !>

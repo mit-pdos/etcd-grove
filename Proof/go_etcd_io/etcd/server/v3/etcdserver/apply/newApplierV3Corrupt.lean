@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__Txn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__LeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__LeaseRevoke
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__Compaction
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 
 @[expose] public section
@@ -38,7 +39,8 @@ theorem apply.newApplierV3Corrupt.wp_proof
     (hDel : apply.applierV3Corrupt.DeleteRange.spec (GF := GF) (hG := hG))
     (hTxn : apply.applierV3Corrupt.Txn.spec (GF := GF) (hG := hG))
     (hLG : apply.applierV3Corrupt.LeaseGrant.spec (GF := GF) (hG := hG))
-    (hRev : apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG)) :
+    (hRev : apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG))
+    (hCompaction : apply.applierV3Corrupt.Compaction.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG) := by
   intro base
   wp_start
@@ -59,7 +61,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
   subst Hbi
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
-    #HApply⟩
+    #HApply, -⟩
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType applierV3Corrupt.ty, #p⟩
   isplitr
@@ -230,6 +232,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
       icases Hpost with ⟨Hkv, Hres, HPP⟩
       iframe Hkv HPP
       iapply apply.chainRes_corrupt_in c p (.ok bi) info $$ applierV3 Hres
+  isplitr
   · -- `Apply`: the inner applier's (promoted), its `applyFunc` under the inner's resources
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
@@ -260,7 +263,29 @@ theorem apply.newApplierV3Corrupt.wp_proof
       iapply apply.adminPass_wrap E.authMode c (.corrupt c) rq rfl $$ Hadm
     · iright
       iexact Hrej
-
+  · -- `Compaction`: the corrupt applier's (`ErrCorrupt`, nothing done)
+    iunfold apply.cmpTriple
+    imodintro
+    iintro %cr %rev %log %crev %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨#Hcr, %Hadm, Hm, Hc⟩ HΦ'
+    iunfold apply.compactionIs at Hcr
+    icases Hcr with ⟨%Hcrn, -⟩
+    iapply (hCompaction p cr) $$ []
+    · iframe #
+    inext
+    iintro %resp %ch %trace %err ⟨%Hn, #He⟩
+    iapply HΦ'
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    iunfold mvcc.csContract at Hcs
+    icases Hcs with ⟨HPre, -, -⟩
+    iframe Hkv Hres
+    isplitl [HPre]
+    · iright; iexact HPre
+    simp only [apply.chainCompacts, Bool.false_eq_true, ↓reduceIte, apply.cmpAnswerIs]
+    iframe Hc He
+    ipureintro; exact Hn
 
 end proof
 

@@ -86,10 +86,22 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, Review)
+- **A size argument from fresh copies checks every path for aliasing**: an encoding counts each
+  reference, a heap counts each allocation; one fast path that reuses a buffer (etcd's keys-only
+  ranges reuse the index's key slices) turns "Go runs out of memory first" into a reachable panic.
+  (`reply-size.md`, critique 2)
 - **One spec, a gated row, not two specs**: a stronger variant that holds only under a condition the
   caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
   the condition is there only because a trust-boundary axiom is too weak to give the row
   unconditionally, the docstring names that axiom as the margin. (`authinfo.md`)
+- **A new mode redefines the shared predicates in place, not mode-indexed copies**: when a mode widens
+  what a family of predicates admits (compaction entries in the KV invariant), redefine the few that
+  change, keep the text of the specs and predicates that carry them (read under the redefinition), and
+  prove that the old mode means the old statements (laws, not `rfl`). Copies indexed by the mode must
+  cover every carrier, and each review round finds one more that was missed. (`compaction-in-place.md`)
+- **No arm the precondition excludes**: an error case of the code that the caller's premises rule out
+  (`ErrFutureRev` under a certificate of the revision) is a sentence in the docstring, not a disjunct
+  every caller must discharge; its proof branch is a contradiction. (`compaction-in-place.md`)
 
 ## Preferences: abstraction
 
@@ -106,6 +118,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A workload premise about a resource's later operations goes on the resource's only producer**,
+  carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
+  quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'
+  statements stay, and the premise is taken where a proof reaches the producer, not beside a sibling
+  premise wherever that one sits. No law extracts the premise back from the resource; the docstrings
+  of the results consuming it say they are conditional on it. (`reply-size.md`)
 - **A contract between packages states the receiver's need, not the supplier's mechanism**: the
   server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
   implies it; the supplier proves the law from its mechanism to the need. The need is weaker to

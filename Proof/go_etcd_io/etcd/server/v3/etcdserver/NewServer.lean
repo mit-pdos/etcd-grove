@@ -319,7 +319,7 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
@@ -1459,7 +1459,7 @@ theorem NewServer.wp_proofM (on : Bool)
     isplitr
     · ipureintro; exact Hlgnn
     ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := false } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
-      rfl⟩
+      Hcmp0.symm⟩
   isplitr
   · -- `#Hreqb`
     iexists ⟨gen, GoInterface.nil, cfg.MaxRequestBytes', cfg.ServerFeatureGate',
@@ -1516,7 +1516,11 @@ theorem NewServer.wp_proofM (on : Bool)
     cases on
     · simp only [srvKVInvsM, srvKVInvs, kvInvM, kvCertInvM]
       iframe Hkci Hsrl Hkvinv
-      ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
+      ipureintro
+      refine ⟨Hγw.2.2.2.2.trans Hcok.symm, Hkcmp.trans Hcmp0.symm, fun h => absurd h Hkbw, ?_⟩
+      intro h
+      have h' : E₀.cmp = true := h
+      rw [Hcmp0] at h'; cases h'
     · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
       isplit
       · iframe Hkci Hsrl Hkvinv Htie
@@ -1861,6 +1865,9 @@ theorem NewServer.wp_proofM (on : Bool)
   · icases HM with %HM'
     iExactEq Huo
     simp only [apply.AEnv.authOn, HM'.1]
+  -- (M2's apply side, A1) the store does not compact: the compaction resources at `-1`
+  isplitl; rotate_left
+  · iapply apply.cmpOwn_of_off _ Hkbw
   iunfold apply.kvOwn
   ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
   · iapply (mvcc.writerOwn_off γw.st (by rw [Hγw.2.2.1]; rfl)).2; iframe HrtA HtrA
@@ -2004,11 +2011,11 @@ theorem NewServer.wp_proof
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto
+    Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
   -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in
   -- `srvBuilt`'s `applyBuiltNA` since E2m)
-  have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn
+  have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn
     Hcbl Hmrb Hmto Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU (fun h => absurd h (by decide))
   rw [bootKVOf_false] at h'
   -- (the auth plan's E2w) the mode-indexed rows at `false` are today's

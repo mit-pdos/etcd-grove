@@ -77,7 +77,7 @@ theorem apply.newAuthApplierV3.wp_proof
   subst Hbi
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
-    #HApply⟩
+    #HApply, #HCmp⟩
   ihave #Hauth : apply.authIs E p (.ok bi) $$ []
   · iunfold apply.authIs
     rw [hRD]
@@ -269,6 +269,7 @@ theorem apply.newAuthApplierV3.wp_proof
       iframe Hkv HPP
       ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
       iapply apply.chainRes_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
+  isplitr
   · -- `Apply`: the auth applier's
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
@@ -277,6 +278,35 @@ theorem apply.newAuthApplierV3.wp_proof
     iapply (hApply E c (.ok bi) p r rq skip v3 af A B) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
+  · -- `Compaction`: the inner applier's (promoted; the auth layer checks nothing)
+    iunfold apply.cmpTriple
+    iunfold apply.cmpTriple at HCmp
+    imodintro
+    iintro %cr %rev %log %crev %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨#Hcr, %Hadm, Hm, Hc⟩ HΦ'
+    rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"Compaction")]
+    wp_call
+    wp_auto
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
+    iunfold apply.chainResAny at Hres
+    icases Hres with ⟨%info', Hres⟩
+    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info' [Hkv Hres Hcs Hc]
+    · iunfold apply.mPre; iframe; iframe #; ipureintro; exact Hadm
+    inext
+    iintro %resp %ch %trace %err ⟨Hkv, Hres, HPP, Hc, Hans⟩
+    iapply HΦ'
+    rw [apply.chainCompacts_auth E.authOn c, apply.cmpAnswerIs_congr (.auth E.authOn c) c (apply.chainCompacts_auth E.authOn c)]
+    iframe Hkv HPP
+    isplitr [Hc Hans]
+    rotate_left
+    · isplitl [Hc]
+      · iexact Hc
+      · iexact Hans
+    ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
+    iapply apply.chainRes_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
 
 end proof
 

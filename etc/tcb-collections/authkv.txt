@@ -108,6 +108,7 @@ axiom clockwork.realClock
 axiom clockwork.stampAt
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
+axiom context.Err.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
@@ -230,6 +231,10 @@ axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
+axiom mvcc.hashStorage.Store.wp_proof
+axiom mvcc.kvHasher.Hash.wp_proof
+axiom mvcc.kvHasher.WriteKeyValue.wp_proof
+axiom mvcc.newKVHasher.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
@@ -319,6 +324,7 @@ axiom time.Ticker.Reset.wp_proof
 axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
+axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
@@ -367,13 +373,13 @@ axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
+axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
 sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
-sorry authkv.then_commit_nested_refused
 sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
 sorry rnApplyTok_recv

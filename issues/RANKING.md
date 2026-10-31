@@ -143,7 +143,22 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
     128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
     `checkTxnRequest`). Upstream not searched.
-15. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+15. **[etcd-txn-keysonly-reply-alloc-panic](etcd-txn-keysonly-reply-alloc-panic.md)** (2026-10-31): a
+    `Txn` of nested keys-only whole-range reads builds a reply whose encoding exceeds 2^48 bytes while
+    using only about 11 GiB of heap (keys-only aliases the index's key slices), and the gRPC codec's
+    `make([]byte, size)` panics (`makeslice`) marshalling it, exiting the member; `checkTxnRequest`
+    budgets `maxTxnOps` per nesting level, so nesting multiplies the leaf count. Any client with
+    read+write access (any client with auth off). Needs `--max-request-bytes` raised to about 10 MiB
+    (borderline at the 1.5 MiB default), and the clean crash needs a wide election timeout so the
+    handler waits for the apply to finish (at the default timing the client times out first, but the
+    apply loop still builds the multi-GB reply on every member and replays it on each restart);
+    reproduced end to end through `clientv3`. Same codec root cause as
+    [grpc-codec-alloc-before-size-check](grpc-codec-alloc-before-size-check.md) (the client send side)
+    and the known-false server reply-size axioms (`notes/audit.md:338`). Upstream searched
+    2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
+    (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
+    toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
+16. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
     with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
     its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
     read them; the revision re-check sees no auth change. An information leak of key names (not

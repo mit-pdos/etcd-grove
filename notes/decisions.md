@@ -5001,7 +5001,8 @@ where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu`
 
 ### Compaction-aware readers (unit 6a): the delete-then-put premise on `Compact`, the frozen reader a corollary
 
-**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 6a)
+**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 6a); **Decision 1
+superseded 2026-10-31** ("mvcc compaction: no `NoDelPutAt`, no `ErrFutureRev` arm", below)
 
 **Decision 1: the one who compacts asserts `NoDelPutAt` at its revision.** `store.Compact`
 (`compactLockfree`, `updateCompactRev`) takes `idxCert γ.idx log`, `sint.Z rev < log.length` and
@@ -27271,6 +27272,115 @@ approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFac
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
 
+## M2 apply side: the switch stated in place (2026-10-30, the user's Q6 (a) · `notes/m2-apply-plan.md`, "The switch in place")
+
+Review rounds 1-3 showed that mode-indexed copies of the shape vocabulary (`dispatchOkM`,
+`rqShapeD cmp`, ...) and of the KV invariant's carriers do not converge: each round found more
+carriers of the compaction-off `logShape` or `kvInv` (`srvC`, `clusterWorkloadOk`, `srvKVInvs`,
+`isServerRead`, the apply-loop premises). Decided: `dispatchOk` and `kvInv` (with `KVNames.cmp`)
+are redefined in place, their carriers keep their text, and a compaction is gated by the
+invariant's `plainLogM` and the entry's claim, not by the shapes. Given up: compaction-off texts
+reading as today by `rfl` (round 1's S-1); in its place, the off laws (`kvInvD_off`, an
+equivalence; `logShapeD_plain`; `dispatchOkD_iff`). Supersedes the round-1 repair of S-1 (the
+`dispatchOkM` family).
+
+
+## mvcc compaction: no `NoDelPutAt`, no `ErrFutureRev` arm (2026-10-31, the user's approval of M2 apply's items · `notes/m2-apply-plan.md`, "The Probe")
+
+Supersedes "Decision 1: the one who compacts asserts `NoDelPutAt` at its revision" (unit 6a, above).
+With the fork's fixed `doCompact` (etcd-io/etcd#22377) a compaction at a revision that deletes a key and
+puts it again keeps the put, so the premise is not needed: `store.Compact`, `compactLockfree` and
+`updateCompactRev` drop it, and the store keeps only the certificate (`crevSafe`). Their
+`ErrFutureRev` arm goes as well, because the caller's certificate is of a prefix of the committed log.
+Both changes were approved as item 18 of the M2 apply batch, and the proofs went through as the Drafts
+predicted.
+
+## M2 apply side, G2: the store's `Rev` returns `certOk` (2026-10-31, the user's Q3 (a') · `notes/m2-apply-plan.md`, "The Probe")
+
+The compaction proposer's `srvRevLb` (an `idxCert`) had to become a KV certificate (`cmpReach`).
+Q3's (a), a law under the store's invariant, is not available: `certOk` of the committed log lives
+only in `revMuBody`, under the `revMu` lock. Instead `store.Rev` passes on the `certOk` its
+`store.Read` already gives (a strengthening of its post), and `srvRevLb` carries it. With that,
+`EtcdServer.Compact.spec`'s text and the frozen compactor specs stay as they are. Not taken: (b),
+restating `Compact.spec`'s premise as `cmpReach` and building the compactor's `RevLb` through a read view.
+
+## M2 apply side, the switch's stage 1: three repairs to the approved `Compaction` draft (2026-10-31)
+
+Taken by the agent while the user was offline ("keep going"), each reversible; `notes/m2-apply-plan.md`,
+"The switch". The approved `applierV3backend.Compaction.specD` (item 10) was not provable over the
+callees' specs:
+1. **Translation**: `*watchableStore`'s promoted `Compact` had no `MethodUnfold` (goose emits the
+   promoted wrappers the configuration lists): `"watchableStore.Compact"` added to the mvcc
+   configuration, as `watchableStore.Commit` was for `applyAll`'s merge. No trust added.
+2. **`mvcc.readView.Range.spec` strengthened** with `metricsTxnWrite.Range.spec`'s `todo` flag: at a
+   never-done context the result is not `nil` (Go's `Compaction` reads `rr.Rev` ignoring `Range`'s
+   error; without the flag the spec's context-done arm, a `nil` result, could not be excluded). Its
+   callers take `todo = false` (today's statement). Rejected: a corollary (it needs the proof, not the
+   spec); weakening `Compaction`'s post (the dereference is a panic, not an outcome).
+3. **`cmpRespOk` without the header's revision**: the draft's `Revision = |log| - 1` needs a lower
+   bound of the log `readView.Range` reads, which its spec does not take; no caller reads the value
+   (`compactResultIs` owns the header only). Rejected: a lower-bound premise on `readView.Range`
+   (another change to a frozen mvcc spec, for a value nobody reads).
+
+
+## M2 apply side, the switch's stage 3: three readings of the approved items (2026-10-31)
+
+The agent's, reversible, for the user to review with stage 1's.
+- **`uberApplier.Apply.spec` at `x.crev`, not a separate `crev`.** The approved Draft (item 11) took a
+  revision `crev` beside the record `x`, with `cmpOwn` out at `applyCrev rq v3 x.chain crev out`. With
+  A1 (item 4) the record has the revision (`ApplyKV.crev`) and `applyStep` relates `x'.crev`, so the
+  separate argument was redundant: the spec takes `cmpOwn E x.crev` and gives `cmpOwn E x'.crev`.
+  `applyCrev` is then not used by any statement; it stays in the apply Draft (`applyStep_crev`) for the
+  server Draft's `crevOf_step` (stage 4).
+- **`dispatchAnswer`'s trace argument, and `null` where no error.** Item 2 passes the result's trace
+  to the answer (a compaction's error arm has no trace). The request path's `appliedOk(M)` state the
+  answer without an error, where the trace is irrelevant (`dispatchAnswer_nil_tr`); they name it
+  `null` rather than gaining an existential (no change to their destructurings).
+- **The snapshot track's `snap_applyKV` takes `d'.cm = false`** (the user's (b)): its caller
+  `SnapApplyPost` already has it from the walk; the old store's `cmpOwn` is dropped in `SnapApplyWalk`
+  (no restore in compaction mode, Q5-3; item 17's `restorePre_of_applyM` is the collaborator's).
+
+## M2 apply side, the switch's stage 4b: S-5's law in the tie, and the compaction arm of `applyEntryNormal` waits on `srvEnvOkD` (2026-10-31)
+
+The agent's, reversible, for the user to review.
+- **`srvKVInvs`' tie carries S-5's law**: `⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝`
+  (item 19 approved the first half; S-5/S-6, "the `kbCmpM E.γ.kb ↔ E.cmp` law to export", was open
+  in the second tier). Reason: the apply thread's view (`isServer`) holds D22's `srvEnvOk`, whose
+  backend has `d.cm = false`; with the law, `applyEntryNormal` derives the cluster's mode off
+  (`srvKV_mode_off`), so the KV log is plain (`plainLogM false = plainLog`) and today's proof stands.
+  Without it, nothing in the apply thread's view ties `E.cmp` to the store's backend, and a
+  compaction entry (admitted by `kvInv` when `γk.cmp = true`) would need `cmpAdmit`'s `kbCmpM`,
+  which `srvEnvOk` refutes. Producers: `NewServer` (its store's backend does not compact, its mode
+  off) and the snapshot track's install (`srvAtomics_snapE`, now an entailment: both backends off,
+  the old by `srvEnvOk`, the received by `d'.cm = false`; a mechanical change of the kind the user's
+  (b) allowed).
+- **Hence `applyEntryNormal`'s compaction arm (items 8, 12) is not proved in stage 4b**: it is
+  unreachable while `srvEnvOk` says `d.cm = false`. It becomes reachable, and is owed, when the
+  snapshot track's `srvEnvOkD` (`d.cm = E.cmp`, D22's draft in `M2StorageDraftRestore.lean`; the plan's
+  S-4: "`srvEnvOkD` switches first") is switched by the collaborator; `kv_entry_claim` (the Probe,
+  now over the in-place `kvInv`) and `cmpAdmit_of_entry` are ready for it.
+- **`compactPropOk` redefined in place with the scope** (the Draft's `compactPropOkD`: no
+  side-effect-free or admin field), rather than a second name; its one producer, `irrCompaction`,
+  meets both (moved to `InvProposer.lean`, beside `irrEmpty`).
+
+## M2 apply side, the switch's stage 4c: `Compact` over the one request-path spec; `kvApplied`'s `crevOf` clause deferred (2026-10-31)
+
+- **`EtcdServer.Compact`'s proof over `processInternalRaftRequestOnce.spec`** (through `spec_off`) at
+  `reqPropOk`'s compaction form (item 6): the mode from the request view's tie, the reached revision
+  from `srvRevLb` by `cmpReach_of_srvRevLb` over the readers' view's `kvCertInv` and certificate map
+  (`isServerRead s E ρ.rd`, item 15's F5-2), its `compactResultIs` from the result's `resultIsW`
+  (`compactResultIs_of`: a compaction in M2's scope is dispatched; item 2's answer). So
+  `processInternalRaftRequestOnce.specCompact` and its `sorry` went (trust base: 19 `sorry`s);
+  `Compact`'s trust base is now the request path's (the collections `server`, `compactor-pilot`
+  gained its standard-library axioms, already in the baseline). `EtcdServer.Compact.spec` is the
+  Draft's `specD` (checked `rfl`), `compactableOk_server` follows (premise `E.cmp = true`).
+  `CompactMode.lean` keeps `srvRevLb`, `cmpReach_of_srvRevLb` and `compactResultIs`; its family
+  (`kvInvC`, `isServerReqC`, `reqPropOkC`, the `…C` shapes, `irrNoDelPut`) went.
+- **`kvApplied`'s `x.crev = crevOf γk A` (item 4's last clause) deferred** (the agent's, reversible):
+  while the apply thread's mode is off (stage 4b's law), the clause is `-1 = -1` on every log it
+  applies; its consumer is the snapshot track's restore (#8, `c ≤ c'`), whose re-tie is item 17's
+  (the collaborator's). Adding it now would move the snapshot track's `kvApplied` producers for no
+  use; it lands with `applyEntryNormal`'s compaction arm, after `srvEnvOkD`.
 ## The encoded-size bound at grpc's send side (2026-10-30 · accepted, the user's approval Q1-Q6 · `notes/invoke-size.md`)
 
 **Why:** the axiom review `axiom/txn-nested-wire` refuted `grpc.ClientConn.Invoke.wp_proof`. Its
@@ -27637,3 +27747,75 @@ premise + config" (2026-10-30), then approved the draft's statements (2026-10-31
    (the issue's fix) would make it a checked error instead.
 
 **The axiom review** of the restated axiom (`notes/axiom-review/marshalirr-depth.md`): survives.
+
+## The replies' size: a workload premise on `grpc.start` (2026-10-31 · accepted, the user's approval of the draft's design and four decisions · `notes/reply-size.md`)
+
+**Context.** `grpc.serve` and `grpc.serveStream` (trusted) say serving never panics, whatever the
+handler returns. grpc v1.84 marshals a reply before any size check (`prepareMsg` → `encode` →
+`codec.Marshal`), and protobuf-go's and grpc's codecs `make` the encoded length, which panics above
+Go's `maxAlloc = 2^48` (`notes/audit.md`: known-false since 2026-10-30, deferred from the send-side
+repair). The axiom review of the reply-size draft found it reachable in etcd: a transaction whose
+nested transactions hold many keys-only ranges over a few long keys builds a reply that shares the
+index's key slices and encodes to more than `2^48` bytes; the member serving the client panics
+(`issues/etcd-txn-keysonly-reply-alloc-panic.md`, reproduced). Such a transaction is not read-only
+(`IsTxnReadonly` checks only the top level), so it goes through raft under `--max-request-bytes`.
+
+**Decision** (the draft, round 4, after three spec reviews; the user's four decisions):
+
+1. **An opaque workload premise**, `grpcRepliesFit : Prop` (every reply a gRPC server of the run
+   marshals encodes to at most `grpcReplyMax = 2^48`), D19a's first kind, as
+   `apply.backendUnderQuota` and `authRecordsFit`. Rejected: a configuration bound
+   (`irr-depth`-style, request size times stored keys), which fails slightly at etcd's defaults,
+   needs the quota to bound the stored keys (it does not, in the model) and would change
+   `NewServer` and every served result; per-method checked bounds (a handler contract, a
+   per-method law), which cannot be discharged for Range/Txn/Watch (the model does not bound the
+   state) and buy nothing for the small replies; a heap lemma (an encoding bounded by the memory a
+   reply references), which cannot hold for etcd's keys-only replies, which share memory.
+2. **Global**, one premise for the run, not one per server: every closed theorem's servers run
+   etcd's handlers, so a per-server form buys nothing.
+3. **On `grpc.start`, carried by its tokens.** `grpc.start` is the only producer of
+   `grpcServerAt`, `grpcStreamServerAt` and `grpcServeTok`; it takes the premise as its first
+   hypothesis, and in the intended model the tokens carry `⌜grpcRepliesFit⌝`, which makes
+   `grpc.serve`, `grpc.serveStream` and `grpc.Server.Serve.wp_proof` (statements unchanged) true.
+   Whoever calls `grpc.start` takes the premise: the start-path lemmas (`etcd_kv_started`,
+   `etcd_cache_served`, `kv_served`, `wk_served`, `ak_served_kv`, linkv3p's
+   `startMember`/`startCluster`), each example's `Main.spec`, and the closed theorems, next to
+   `backendUnderQuota`. Rejected: the premise on `grpc.serve`/`grpc.serveStream`, which would change
+   every served result's statement and about a quarter more files. **No law turns a token back
+   into the premise**: a proof could otherwise discharge it from inside the logic.
+4. **Visibility in docstrings and file headers only**, as for `backendUnderQuota`: the served
+   results (`etcd_kv_served*`, `ServedOn`, `AuthnServedOn`, v3rpc's) depend on the premise only
+   through the opaque token, so neither their statements nor `#print axioms` show it; their
+   headers say so. Rejected: a transparent carrier (`grpcServerAt := tok ∗ ⌜grpcRepliesFit⌝`,
+   visible in `interface/`, but it makes the premise derivable from the token and adds three axioms
+   to review); the premise on every served result (~13 more files).
+
+Each new program argues the premise for its own workload (the docstring of `grpcRepliesFit` does
+for the closed theorems'); a program registering its own service argues it for that service's
+replies.
+
+## M2 apply side: `srvEnvOkD` in place, a snapshot only with the mode off; `applyEntryNormal` applies compactions (2026-10-31)
+
+The user: "can we proceed on srvEnvOkD without asking? we can fix later if needed?", then "(a), go
+ahead". For the collaborator to review (the snapshot track's draft, switched here).
+- **`srvEnvOk` in place as `srvEnvOkD`**: the store's backend at the server's mode, `d.cm = E.cmp`
+  (was `d.cm = false`); laws `srvEnvOk_kbCmp` (S-5's `kbCmpM E.γ.kb ↔ E.cmp`) and `srvEnvOk_off`.
+  `NewServer` gives it (its store's mode is the stand-in's).
+- **The interim restriction (a): a snapshot is installed only with the mode off.**
+  `applySnapshot.specSnap` keeps its premise `d.cm = false` (now: its caller's mode off, by
+  `srvEnvOk`); the install re-establishes `srvEnvOk` at the new environment from it
+  (`snap_isServer` takes the old backend's `d.cm = false`, `srvEnvOk_off`, and `srvSnapApplied_of_walk`
+  passes `specSnap`'s). Lifting it is the storage side's restore-in-compaction-mode drafts
+  (`srvKVCloserM`, `restorePre_of_applyM`, the supply's stocks): option (b), the collaborator's.
+- **`applyEntryNormal` (auth off) applies a compaction entry** (items 8, 12; the spec unchanged):
+  an entry plain in the mode is a covered request or a compaction (`plainOrCmp`); the compaction's
+  `cmpAdmit` from the KV invariant's claim (`kv_entry_claim`) and the store compacting
+  (`srvEnvOk_kbCmp` with the tie); the helpers over `plainOrCmp` (`ApplyCmpArm.lean`). Stage 4b's
+  derivation of the mode off (`srvKV_mode_off`) went.
+- **What that needed of the apply package** (the agent's): the compaction's outcome is the chain's
+  (`storeKind` includes it, `backendStep`'s case "applied, the log as it is", `cmpOutcome`: the
+  corrupt applier's rejection), and its answer names its error (the backend's `ErrCompacted`,
+  `txn.errVarIs`; `ErrCorrupt` only with the corrupt rejection), so the apply thread's `errors.Is(ar.Err,
+  ErrNoSpace)` is false (`applyResultIs_notNoSpace_M`).
+- **Still deferred**: `kvApplied`'s `x.crev = crevOf γk A` (no consumer until the restore's #8;
+  with (a) the installed state is at `-1` on a plain log anyway).

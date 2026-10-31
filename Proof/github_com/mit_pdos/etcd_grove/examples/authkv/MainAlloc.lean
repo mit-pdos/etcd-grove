@@ -60,12 +60,12 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, hkc⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod (srvMemberBootOn_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist⟩ := Hρ
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc'⟩ := Hρ
   imod (netNames_alloc (srvNet γ) (akDir id) (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #HregN⟩
   ihave #Hnet := netHttpOk_single γn id
     (fun f hf => dirOne_member id _ f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
@@ -87,7 +87,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     isplitr
     · ipureintro
       exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
-        hpfx, rfl, trivial⟩
+        hpfx, rfl, trivial, by rw [hkc', hkc]⟩
     iunfold idNoZero
     rw [hiss', hiss]
     iexact H0

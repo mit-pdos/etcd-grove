@@ -581,6 +581,15 @@ theorem watch_c_ok :
   · simp [opWatchModel, op_simps]
   · simp [opWatchModel, op_simps]; decide
 
+/-- **A principal's key `x/who/n` is short** (`x` and `n` within `2 ^ 10`): within `2 ^ 20`. -/
+theorem keyOfK_principal_le {x who n : GoString} (hwho : who ∈ principals)
+    (hx : x.length ≤ 2 ^ 10) (hn : n.length ≤ 2 ^ 10) : (keyOfK x who n).length ≤ 2 ^ 20 := by
+  have hw : who.length ≤ 4 := (show ∀ w ∈ principals, w.length ≤ 4 by decide) who hwho
+  unfold keyOfK
+  simp only [List.length_append]
+  have h1 : (go!"/" : GoString).length = 1 := by decide
+  omega
+
 end pure
 
 section calls
@@ -590,6 +599,113 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-! ### `Work`'s T4: a nested transaction putting outside `[a, b)` -/
+
+/-- T4's transaction: one nested transaction in the then-branch, putting `k`. -/
+def t4M (k v : GoString) : TxnModel :=
+  { cmps := [], thenOps := [.txn [] [.put k v (W64 0)] []], elseOps := [] }
+
+theorem t4M_wire (k v : GoString) : txnWireOf (t4M k v) = t4M k v := by
+  simp [t4M, txnWireOf, opWire]
+
+theorem t4M_ro (k v : GoString) : txn.txnReadonly (t4M k v) = false := by
+  simp [t4M, txn.txnReadonly, txn.opIsGet]
+
+/-- T4 is a writing transaction of the shape the server's handler needs. -/
+theorem t4M_upd (k v : GoString) :
+    txn.txnPlain (t4M k v) ∧ txnNoZeroEnd (t4M k v) ∧ txnNestOk (t4M k v) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp [t4M, txn.txnPlain, txn.opsPlain, txn.opPlain]
+  · simp [t4M, txnNoZeroEnd, txnOpsNoZeroEnd, txnOpNoZeroEnd]
+  · simp [t4M, txn.OpsNoCut, txn.OpNoCut]
+  · simp [t4M, txn.OpsNoCut]
+  · exact txnSibSafeL_of_noDel _ (by simp [t4M, opsDelOps, opDelOps])
+  · exact txnSibSafeL_of_noDel _ (by simp [t4M, opsDelOps])
+
+/-- **T4's request fits a gRPC message** (its key and value within `2 ^ 20`). -/
+theorem t4M_size (k v : GoString) (hk : k.length ≤ 2 ^ 20) (hv : v.length ≤ 2 ^ 20) :
+    txnSizeOk (t4M k v) := by
+  refine txnSizeOk_of_bounds (N := 2 ^ 20) (M := 3) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+  · intro c hc; simp [t4M] at hc
+  · intro o ho
+    simp [t4M] at ho
+    subst ho
+    rw [TxnOp.bytesLe_txn]
+    refine ⟨by simp, ?_, by simp⟩
+    intro o ho
+    simp at ho
+    subst ho
+    simp only [TxnOp.bytesLe]; exact ⟨hk, hv⟩
+  · intro o ho; simp [t4M] at ho
+  · simp [TxnModel.nodes, t4M, TxnOp.nodes]
+
+/-- **A wire transaction of T4's has every permission of the shape the cache decides**: the one
+put's, on its non-empty key. -/
+theorem t4M_shape (k v : GoString) (hk : k ≠ []) (tw : txn.TxnModelW)
+    (h : tw.toModel = t4M k v) : kvShapeAll (irrTxn tw) := by
+  obtain ⟨cs, ths, els⟩ := tw
+  simp only [txn.TxnModelW.toModel, t4M, TxnModel.mk.injEq] at h
+  obtain ⟨rfl, hth, hel⟩ := h
+  have hel' : els = [] := by
+    cases els with
+    | nil => rfl
+    | cons _ _ => simp [txn.TxnOpW.toOps] at hel
+  subst hel'
+  obtain ⟨w, rfl⟩ : ∃ w, ths = [w] := by
+    match ths, hth with
+    | [w], _ => exact ⟨w, rfl⟩
+    | [], h => simp [txn.TxnOpW.toOps] at h
+    | _ :: _ :: _, h => simp [txn.TxnOpW.toOps] at h
+  simp only [txn.TxnOpW.toOps, List.cons.injEq, and_true] at hth
+  cases w with
+  | get o => simp [txn.TxnOpW.toOp] at hth
+  | delete o => simp [txn.TxnOpW.toOp] at hth
+  | put o =>
+    simp only [txn.TxnOpW.toOp, txn.putTxnOp] at hth
+    split at hth
+    · cases hth
+    split at hth <;> cases hth
+  | txn cs' ts' es' =>
+    simp only [txn.TxnOpW.toOp, TxnOp.txn.injEq] at hth
+    obtain ⟨rfl, hts, hes⟩ := hth
+    have hes' : es' = [] := by
+      cases es' with
+      | nil => rfl
+      | cons _ _ => simp [txn.TxnOpW.toOps] at hes
+    subst hes'
+    obtain ⟨w2, rfl⟩ : ∃ w2, ts' = [w2] := by
+      match ts', hts with
+      | [w2], _ => exact ⟨w2, rfl⟩
+      | [], h => simp [txn.TxnOpW.toOps] at h
+      | _ :: _ :: _, h => simp [txn.TxnOpW.toOps] at h
+    simp only [txn.TxnOpW.toOps, List.cons.injEq, and_true] at hts
+    cases w2 with
+    | get o => simp [txn.TxnOpW.toOp] at hts
+    | delete o => simp [txn.TxnOpW.toOp] at hts
+    | txn _ _ _ => simp [txn.TxnOpW.toOp] at hts
+    | put o =>
+      simp only [txn.TxnOpW.toOp, txn.putTxnOp] at hts
+      split at hts
+      · cases hts
+      split at hts
+      · cases hts
+      obtain ⟨hko, -, -⟩ := TxnOp.put.inj hts
+      intro x hx
+      simp [reqPerms, irrTxn, apply.dispatchKind, apply.irrEmpty, opsPerms, opPerms,
+        apply.putPerms] at hx
+      rcases hx with rfl | ⟨-, rfl⟩ <;> exact ⟨by rw [hko]; exact hk, Or.inl rfl⟩
+
+/-- **No principal is granted T4 on a key under `c/`** (`not_permitted_c`: its nested put needs the
+write permission on the key, `reqPerms_irrTxn_nestedPut`). -/
+theorem t4M_not_granted (who n v : GoString) :
+    ¬ akOpGranted who (.txn (t4M (keyOfK go!"c" who n) v)) := by
+  intro ⟨tw, htw, hg⟩
+  refine not_permitted_c who n (akGranted_point who _ _ .write hg ?_
+    (keyOfK_ne_nil _ _ _ (by decide)))
+  exact reqPerms_irrTxn_nestedPut tw [] [.put (keyOfK go!"c" who n) v (W64 0)] [] _ v (W64 0)
+    (by rw [htw]; simp [t4M]) (by simp)
+
 
 /-- The set-up's requested log, a lower bound (`akAuthFixed`'s). -/
 theorem akAuthFixed_lb (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) :
@@ -898,16 +1014,15 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     · ipureintro; intro h; exact absurd h Herr.1
     ileft; ipureintro; exact Herr.1
 
-/-- **T4, a nested transaction putting outside `[a, b)`, is refused** (`sorry`, until the client's
-builder and `Commit` specs cover nested transactions: branch `txn-nested`, the plan's T4):
-`t.Then(OpTxn(nil, [OpPut(c/who/t3, "vt")], nil))` returns the builder, whose `Commit` replies
-with an error (no principal may write `c/...`: `not_permitted_c`; etcd checks a nested
-transaction's operations, `checkTxnReqsPermission`). Today's `txn.Then.spec` takes only plain
-operations (`txnOpOf` of a transaction is `none`), and `reqOpAt` of one is `False`. -/
+/-- **T4, a nested transaction putting outside `[a, b)`, is refused**: `t.Then(OpTxn(nil,
+[OpPut(c/who/t3, "vt")], nil))` returns the builder, whose `Commit` replies with an error (no
+principal may write `c/...`: `t4M_not_granted`; etcd checks a nested transaction's operations,
+`checkTxnReqsPermission`). `hwho`: `who` is a principal of the program, so the request fits a gRPC
+message (`t4M_size`; `Commit`'s size premise, 2026-10-30, postdates this statement). -/
 theorem then_commit_nested_refused (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat)
     (who : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl tsl : GoSlice)
-    (op : go_etcd_io.etcd.client.v3.Op) (hγa : E.authMode = .on γa)
+    (op : go_etcd_io.etcd.client.v3.Op) (hwho : who ∈ principals) (hγa : E.authMode = .on γa)
     (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who) :
     {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗
         txnObjAt tp [go!"127.0.0.1:23916"] ci cd TxnBuild.empty ∗ txnKvIs tp api ∗
@@ -922,7 +1037,78 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (s : Loc) (E : apply.A
             Φ (PairV #resp #err)) -∗
           WP (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!!
             go!"Commit")) (Val #())) {{ Φ }} }} := by
-  sorry
+  iintro %Φ ⟨#Henv, Hobj, #Hkt, #Hsl, #Hof, #Hcm, %Hs, #Hops⟩ HΦ
+  ihave #Hts := opsAt_leaves (GF := GF) tsl [opPutModel (keyOfK go!"c" who go!"t3") go!"vt" []]
+      [.put (keyOfK go!"c" who go!"t3") go!"vt" (W64 0)] (by simp [txnOpOf_put]) $$ Hops
+  ihave #Hnil := opsTAt_nil (GF := GF)
+  ihave #Htop := opTAtC_opTxn (GF := GF) op [] tsl slice.nil _ [] Hs $$ [Hof Hcm Hts Hnil]
+  · iframe #
+  ihave #Hsl1 := opsTAt_one (GF := GF) sl op _ $$ [Hsl Htop]
+  · iframe #
+  iunfold akCallEnv at Henv
+  icases Henv with ⟨#Pc, #Hkvf, #Hobjc, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Honil⟩
+  wp_apply (v3.txn.wp_Then tp _ ci cd TxnBuild.empty sl _
+      [.txn [] [.put (keyOfK go!"c" who go!"t3") go!"vt" (W64 0)] []]) $$ [Hobj] as Hobj
+  · iframe #
+    iframe Hobj
+    ipureintro
+    exact ⟨by simp [OpT.txnOps, OpT.txnOp, txnOpOf_put], rfl, rfl⟩
+  ihave Hobj : txnObjAt (GF := GF) tp [go!"127.0.0.1:23916"] ci cd
+      ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩ $$ [Hobj]
+  · iExactEq Hobj
+    simp [TxnModel.empty, t4M]
+  iapply HΦ
+  iintro %Φ' HΦ'
+  have hw := t4M_wire (keyOfK go!"c" who go!"t3") go!"vt"
+  have hro : txn.txnReadonly (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) = false := by
+    rw [hw]; exact t4M_ro _ _
+  have hk : keyOfK go!"c" who go!"t3" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
+  have hsz : txnSizeOk (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) := by
+    rw [hw]; exact t4M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)
+  have hng : ¬ akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt"))) := by
+    rw [hw]; exact t4M_not_granted who go!"t3" go!"vt"
+  have hupd : txn.txnPlain (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) ∧
+      txnNoZeroEnd (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) ∧
+      txnNestOk (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) := by
+    rw [hw]; exact t4M_upd _ _
+  ihave #Hau := akWriteAu s E γa ρ Lset n who conn (GoInterface.ok ci)
+    (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt"))) hγa hout
+    (fun h => absurd h hng) $$ []
+  · iframe #
+  iunfold akKVOn at Hkv
+  icases Hkv with ⟨-, -, -, #Htxn⟩
+  ihave #Hpub : auth.authPubLbM E.authMode n $$ []
+  · rw [hγa]
+    iunfold akAuthFixed at Hf
+    icases Hf with ⟨#Hp, -⟩
+    unfold auth.authPubLbM
+    iexact Hp
+  imod (monoNatLbOwn_0 (GF := GF) ρ.rd.committed) with #H0
+  ihave #Hc0 : committedAtLeast ρ.rd (W64 0) $$ []
+  · unfold committedAtLeast
+    rw [show uint.nat (W64 0) = 0 from rfl]
+    iexact H0
+  wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci cd
+      ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩
+      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")))⌝))
+      [] (fun h => absurd h (by rw [hro]; decide)) hsz
+      (fun _ tw htw => t4M_shape _ _ hk tw (htw.trans hw))) $$ [Hobj] as %resp %err Hout
+  · iframe #
+    iframe Hobj
+    ileft
+    iintro !>
+    unfold txnUpdAtOn
+    iright
+    iright
+    isplitl []
+    · ipureintro
+      exact ⟨hro, hupd⟩
+    iexact Hau
+  icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)
+  · ihave %Hq := txnReplied_Q _ _ _ _ _ _ _ _ _ _ hro $$ Hr
+    exact absurd Hq hng
+  · iapply HΦ'
+    ipureintro; exact Herr.1
 
 /-- **One option** (a `Get(k, opt)`'s variadic slice). -/
 theorem optsAt_one (sl : GoSlice) (f : GoFunc) (g : OpFull → OpFull) :

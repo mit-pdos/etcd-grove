@@ -74,7 +74,7 @@ theorem EtcdServer.Start.wp_proof
   iunfold isServerReq at Hreq'
   icases Hreq' with ⟨⟨%vq, #Hvq⟩, -⟩
   iunfold srvReqFieldsAt at Hvq
-  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, %HcfgP⟩
+  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HcfgP⟩
   obtain ⟨Hcfg, -⟩ := HcfgP
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
@@ -219,7 +219,7 @@ theorem EtcdServer.Start.wp_proofOn
   iunfold isServerReqM at Hreq'
   icases Hreq' with ⟨⟨%vq, #Hvq⟩, -⟩
   iunfold srvReqFieldsAtM at Hvq
-  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, %HcfgP⟩
+  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HcfgP⟩
   obtain ⟨Hcfg, -⟩ := HcfgP
   ihave #Hrd' := Hrd
   iunfold isServerReadM at Hrd'
