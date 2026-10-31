@@ -28,9 +28,10 @@ gogoproto), Go `go1.27.3`.
 `proto.MarshalIRR` takes the depth premise `apply.irrDepthOk rq`, discharged from `MaxTxnOps ≤ 4999`
 on `NewServer` (branch `irr-depth`, `notes/irr-depth.md`; its own review
 `marshalirr-depth.md` survives). The unknown-fields gap (attack 2) is still open: pinning
-`unknownFields' = slice.nil` is deferred. This report landed on `lean` without the counterexample:
-the program, its tests and `Attack.lean` (the "Files" below) stay on branch `axiom/txn-nested-wire`
-(its Goose project would add to CI).
+`unknownFields' = slice.nil` is deferred. This report landed on `lean` without the counterexample
+(its Goose project would add to CI): the program, its tests and `Attack.lean` (the "Files" below)
+were on branch `axiom/txn-nested-wire`, deleted on 2026-10-31 at the user's request (last commit
+`b157b99a97`, unreachable).
 
 **Verdict.**
 
