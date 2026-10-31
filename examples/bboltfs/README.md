@@ -214,8 +214,10 @@ pread/fstat (D8)`), and point 4 is recorded as an issue.
 8. **Outside the file model, open:** the fork's `mmap` still sets
    `db.data = (*[common.MaxMapSize]byte)(unsafe.Pointer(&b[0]))`. That is the oversized
    array view that `unsafememory` replaces by `unsafe.Slice`, and it needs the same patch.
-9. **New, bbolt (not the model): a commit that reported an error can become effectively
-   durable.** After `writeMeta`'s fdatasync fails, the new meta stays in the page cache and so
+9. **bbolt (not the model): a commit that reported an error can become effectively durable.**
+   This is the second consequence of the known issue
+   [`issues/bbolt-commit-meta-error-frees-reader-pages.md`](../../issues/bbolt-commit-meta-error-frees-reader-pages.md)
+   (etcd-io/bbolt#1311, our fix PR #1312), not a new one. After `writeMeta`'s fdatasync fails, the new meta stays in the page cache and so
    in the mapping. bbolt serves it to later transactions and builds on it (minibolt above).
    A spec of bbolt's `Commit` that reads an error as "not committed" is therefore false. Either
    the spec says "unknown", or the fork must stop using the handle after a failed sync, as etcd
