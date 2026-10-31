@@ -56,10 +56,10 @@ theorem isLessor_of_lessorInv
     iapply (hGL lp γl item L I) $$ [Hrd Hown] HΦ
     iframe Hpkg Hinv Hrd Hown
   isplitr
-  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, Hitems⟩ HΦ
+  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, %Hsh, Hitems⟩ HΦ
     iapply (hAt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
     iframe Hpkg Hinv Hown Hitems
-    ipureintro; exact ⟨Hin, Hl⟩
+    ipureintro; exact ⟨Hin, Hl, Hsh⟩
   isplitr
   · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hne, %Hl, Hitems⟩ HΦ
     iapply (hDt lp γl id items l dq L I) $$ [Hown Hitems] HΦ

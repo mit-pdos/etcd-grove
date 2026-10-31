@@ -30,7 +30,8 @@ abbrev lease.lessor.Attach.spec : Prop :=
     (L : List w64) (I : GMap LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
       leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
-      ⌜∀ it ∈ xs, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} xs }}
+      ⌜∀ it ∈ xs, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
+      ⌜∀ it ∈ xs, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} xs }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Attach")) (Val #id)) (Val #items))
   {{ RET #GoInterface.nil; leaseOwn γl L (insertAll I xs id) ∗ items ↦*{dq} xs }}
 

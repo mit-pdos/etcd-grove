@@ -151,6 +151,40 @@ theorem deleteAll_lookup {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List 
       · subst hx; simp [hk]
       · simp [hk, hx, Ne.symm hx]
 
+/-- **Every key of the item map `I` is shorter than `2 ^ 63 - 1` bytes** (the lease-keys plan, Q4
+(b), 2026-10-31): what the auth store's checks take of each key `Keys()` returns
+(`IsPutPermitted`); a key gets it from the request that put it (`Attach`'s premise). -/
+def itemKeysShort (I : GMap LeaseItem w64) : Prop :=
+  ∀ (it : LeaseItem) (id : w64), I.lookup it = some id → (it.Key'.length : Int) < 2 ^ 63 - 1
+
+/-- A map whose keys are keys of `I` keeps `I`'s short keys. -/
+theorem itemKeysShort_of_sub {I J : GMap LeaseItem w64}
+    (h : ∀ (it : LeaseItem) (id : w64), J.lookup it = some id → ∃ id', I.lookup it = some id')
+    (hI : itemKeysShort I) : itemKeysShort J := by
+  intro it id hj
+  obtain ⟨id', h'⟩ := h it id hj
+  exact hI it id' h'
+
+/-- `Detach`'s item map keeps the short keys. -/
+theorem itemKeysShort_deleteAll (I : GMap LeaseItem w64) (xs : List LeaseItem)
+    (hI : itemKeysShort I) : itemKeysShort (deleteAll I xs) := by
+  apply itemKeysShort_of_sub _ hI
+  intro it id h
+  rw [deleteAll_lookup] at h
+  by_cases hi : it ∈ xs
+  · simp [hi] at h
+  · simp only [hi, ↓reduceIte] at h; exact ⟨id, h⟩
+
+/-- `Attach`'s item map of short keys, from short items. -/
+theorem itemKeysShort_insertAll (I : GMap LeaseItem w64) (xs : List LeaseItem) (v : w64)
+    (hI : itemKeysShort I) (hxs : ∀ it ∈ xs, (it.Key'.length : Int) < 2 ^ 63 - 1) :
+    itemKeysShort (insertAll I xs v) := by
+  intro it id h
+  rw [insertAll_lookup] at h
+  by_cases hi : it ∈ xs
+  · exact hxs it hi
+  · simp only [hi, ↓reduceIte] at h; exact hI it id h
+
 /-- **The lease owner's half of the item set of the lease `l`** (of id `id`), which is what the
 item map `I` attaches to `id` (unit T3, L2b). -/
 def leaseItemsOwn (l : Loc) (I : GMap LeaseItem w64) (id : w64) : IProp GF :=
@@ -371,13 +405,13 @@ def closerAt (γcl : GName) (I : GMap LeaseItem w64) (id : w64) (l : Loc) : IPro
 /-- **The lease owner's closers and items** (unit T3, 2026-10-24): for every lease of the live
 set `L`, the closers' map's element (its `*Lease`, which the lessor's map agrees with), the right
 to close its `revokec` and (L2b, 2026-10-25) the owner's half of its item set, the items the item
-map `I` attaches to it; the owner's half of the item map `I`, every lease of which is live.
+map `I` attaches to it; the owner's half of the item map `I`, every lease of which is live, (Q4 (b), 2026-10-31) every key of which is short.
 Exclusive, so outside `le.mu`'s fractional invariant. -/
 def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
   iprop(∃ (lp : Loc) (γga γcl : GName) (C : GMap w64 Loc) (im : Loc), lessorPinG γl lp γga γcl ∗
     ⌜∀ id : w64, id ∈ L ↔ (C.lookup id).isSome⌝ ∗
     lF go!"itemMap" lp ↦{DFrac.own (1 : Qp).half} im ∗ im ↦${DFrac.own (1 : Qp).half} I ∗
-    ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ ∗
+    ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ ∗ ⌜itemKeysShort I⌝ ∗
     [∗map] id ↦ l ∈ C, closerAt γcl I id l)
 
 /-- **The lease owner's revokers** (unit T3, 2026-10-25): for every lease of the live set `L`,
@@ -483,13 +517,25 @@ theorem leaseOwn_items_live (γl : GName) (L : List w64) (I : GMap LeaseItem w64
     leaseOwn (GF := GF) γl L I ⊢
       leaseOwn γl L I ∗ ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ := by
   unfold leaseOwn leaseClosers
-  iintro ⟨Hfr, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, Hcm⟩
+  iintro ⟨Hfr, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcm⟩
   isplitl
   · iframe Hfr
     iexists lp, γga, γcl, C, im
     iframe Hp Him HI Hcm
-    ipureintro; exact ⟨HC, HIL⟩
+    ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIL
+
+/-- **Every key of the owner's item map is short** (Q4 (b)). -/
+theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L I ∗ ⌜itemKeysShort I⌝ := by
+  unfold leaseOwn leaseClosers
+  iintro ⟨Hfr, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcm⟩
+  isplitl
+  · iframe Hfr
+    iexists lp, γga, γcl, C, im
+    iframe Hp Him HI Hcm
+    ipureintro; exact ⟨HC, HIL, HIS⟩
+  · ipureintro; exact HIS
 
 end defs
 

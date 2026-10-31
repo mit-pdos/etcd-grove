@@ -44,7 +44,7 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs⟩
   icases lessorAuth_pin γl 1 lp lp' L0 M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
   subst Hlp'
   ihave ⟨%Him_eq, Him⟩ := ptsto_halves_combine (lF go!"itemMap" lp) im im' $$ [$Him $Him']
@@ -142,6 +142,8 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
       by_cases hi : it ∈ ys
       · simp only [hi, ↓reduceIte, reduceCtorEq] at h
       · simp only [hi, ↓reduceIte] at h; exact HIL it id' h
+    isplitr
+    · ipureintro; exact itemKeysShort_deleteAll I ys HIS
     iapply Hcs $$ %(deleteAll I ys) [] He
     · ipureintro
       intro id' hne it

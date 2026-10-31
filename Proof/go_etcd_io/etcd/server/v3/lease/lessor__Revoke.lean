@@ -104,7 +104,7 @@ theorem lease.lessor.Revoke.wp_proof
     simp only [Hnn, decide_false]
     -- the owner's closer of the lease (its element agrees with the lessor's map)
     iunfold leaseClosers at Hcls
-    icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, Hcm⟩
+    icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcm⟩
     icases lessorAuth_pin γw.st.leases 1 lp lp' L M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
     subst Hlp'
     obtain ⟨l', hCl⟩ : ∃ l', C.lookup id = some l' := Option.isSome_iff_exists.1 ((HC id).1 hidL)
@@ -165,7 +165,7 @@ theorem lease.lessor.Revoke.wp_proof
       iunfold leaseClosers
       iexists lp, γga, γcl, C, im'
       iframe Hp Him' HI' Hcm
-      ipureintro; exact ⟨HC, HIL⟩
+      ipureintro; exact ⟨HC, HIL, HIS⟩
     (try wp_auto)
     -- `sort.StringSlice(keys).Sort()`: the keys are keys of the state, so few enough
     have hkst : ∀ k ∈ ks, k ∈ (mvcc.stateAfter log).map EtcdKv.key := by
@@ -300,7 +300,7 @@ theorem lease.lessor.Revoke.wp_proof
       ihave %Hag := leaseFrag_agree _ _ _ _ _ $$ [$Hfr $Hg]
       subst Hag
       iunfold leaseClosers at Hcls
-      icases Hcls with ⟨%lp4, %γga4, %γcl4, %C4, %im4, #Hp4, %HC4, Him4, HI4, %HIL4, Hcm⟩
+      icases Hcls with ⟨%lp4, %γga4, %γcl4, %C4, %im4, #Hp4, %HC4, Him4, HI4, %HIL4, %HIS4, Hcm⟩
       ihave %Hpp := lessorPinG_agree _ lp lp4 γga γga4 γcl γcl4 $$ [$Hp $Hp4]
       obtain ⟨rfl, rfl, rfl⟩ := Hpp
       icases lessorAuth_pin _ 1 lp lp L M2 γga γcl $$ [$Ha $Hp] with ⟨-, Hcl, Hback⟩
@@ -451,7 +451,7 @@ theorem lease.lessor.Revoke.wp_proof
         iexists lp, γga, γcl, (C4.delete id), im4
         iframe Hp Him4 HI4 Hcm
         ipureintro
-        constructor
+        refine ⟨?_, ?_, ?_⟩
         · intro x
           rw [hfilt, HC4 x, GMap.lookup_delete_iff]
           by_cases hx : id = x
@@ -469,6 +469,7 @@ theorem lease.lessor.Revoke.wp_proof
             apply Hperm.mem_iff.1
             apply (Hks.1 it.Key').2
             cases it; exact hit
+        · exact HIS4
       iunfold leaseRevokers
       iexists lp, γga, γcl, (C3.delete id)
       iframe Hp Hrs

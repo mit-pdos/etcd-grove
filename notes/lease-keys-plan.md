@@ -3,8 +3,11 @@
 Status (2026-10-31): **Scope decided** (the user's: Q1 (b) A then B, Q2 the lessor's item map, Q3
 lower bounds; to follow the spec-first plan, `notes/spec-first-plan.md`). Part A's Draft in progress: items 1-4
 done and proved (`ec422e5167`: the owner's `Lookup` opens its resource at the lease, the Probe);
-item 5 deferred (it touches `UberOn`/`SnapRO`, other tracks' files); **stopped at a question for the
-user, Q4** (the lease keys' length bound, below). Started at
+item 5 deferred (it touches `UberOn`/`SnapRO`, other tracks' files); Q4 (the lease keys' length
+bound, below) decided by the user, (b): `lease.itemKeysShort I` a conjunct of `leaseClosers`, kept
+by `Attach` (a new premise) and `Detach`/`Revoke`, passed by mvcc's put path (`storeTxnWrite.put`/`Put`,
+`metricsTxnWrite.Put`, `writeView.Put`: a premise on the key's length) from the request
+(`txn.put`, `putRequestIs`); `leaseOwn_items_short` reads it. Next: items 6-12. Started at
 the user's request: the first of the three items that would let the repository answer
 etcd-io/etcd#22595 ("Plan to revert Auth to Beta"), whose requirement "an audit to verify that RBAC
 covers all etcd operations" `notes/auth-matrix.md` answers for every row but the lease keys.
@@ -184,3 +187,43 @@ store's `put` (whose spec takes no key bound) carries one; only the request's ow
   every chain layer's precondition grows by one pure conjunct.
 Recommended: (b): the bound travels with the key from the request that put it, in the package
 that keeps the item map, and the server's other statements do not change.
+
+**Decided (the user, 2026-10-31): (b).** No `Recover` change was needed: `store.restore` attaches
+nothing (the restored `keyToLease` is empty).
+
+### Draft finding: where the lease class lives (Q5, for the user)
+
+Item 10 as drafted puts the lease class into `putClass`/`txnClass`/`reqClass` and so into
+`chainClass`. Two consumers make that wrong:
+- `txnClass` is also the read path's (`EtcdServer.Txn`, `doSerialize`, `ReadOn`, `ServerKVOn`: a
+  read-only transaction checked at the server), which has no lessor owner and no item map. A
+  read-only transaction has no put, so its lease class is `True`, but the definitions would need
+  an `I` there. Hence the lease class is its own definition (`reqLeaseClass M info I rq`: a put's
+  lease, every put of a transaction's two branches, a `LeaseRevoke`'s id), and `reqClass` stays.
+- `chainClass` is also in the auth-on track's posts (`kvPostFL`, `AuthApplyLatest*`, through
+  `UberKVLBase`/`DispatchKVL` to `ServerOn`), which are proved over `apply.lessorNil` (a lessor
+  whose `Lookup` finds no lease: `checkLeasePuts` checks nothing). There the class holds only if
+  the state has no lease items, which that track does not track (its `kvOwn`'s `L` is
+  existential). The class in `chainClass` makes that track prove it.
+Options:
+- (a) **`chainClass` gains `I`**, its auth case `reqClass ∗ reqLeaseClass I`: the class through
+  the whole chain and every result that states `chainClass`, including the auth-on server's. The
+  auth-on track then needs "no lease items" (an invariant: no `LeaseGrant` reaches its model, so
+  `L = []`), in its files (`AuthApplyLatest*`, `DispatchKVL`, `UberKVLBase`, `ServerOn`).
+- (b) **a separate conjunct `chainLeaseClass E.authMode info I c rq oc` in `kvPost`/`kvPostF`**
+  (not `kvPostFL`), with `I = mvcc.leaseItemsOf (mvcc.stateAfter log)`: the class through the
+  chain's generic contract (`applierSpec`) to `Results.lean`'s `chain_put`/`chain_txn` (and a
+  `LeaseRevoke` row if its method has `kvPost`); the auth-on track's statements and proofs do not
+  change (its lessor finds no lease, and its posts say nothing of the lease's keys, as today). Every
+  layer's KV-method proof that builds `kvPost`/`kvPostF` passes one persistent conjunct (backend:
+  `True`; the wrappers: a lemma per layer, as `chainClass_quota`): mechanical, about 20 files of
+  `apply/`.
+- (c) **the method level only** (as `UserGet`'s `userGetClass`): `authApplierV3.Put`/`Txn`/
+  `LeaseRevoke`'s own triples state it, the generic contract drops it. Smallest; the chain's
+  results do not say it.
+Recommended: (b): the class reaches the chain's results, as the matrix's other KV rows, without
+touching the auth-on track; (a) can follow when that track models leases.
+
+**Decided (the user, 2026-10-31): (b).** Items 6-12 as amended: `reqClass`/`putClass`/`txnClass`
+unchanged; `reqLeaseClass` and `chainLeaseClass` new (`AuthClass.lean`, `Chain.lean`); `kvPost`/
+`kvPostF` gain the conjunct; the auth layer's checks give `reqLeaseClass`.

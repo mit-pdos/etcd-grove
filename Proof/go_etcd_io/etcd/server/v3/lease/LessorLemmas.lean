@@ -250,7 +250,7 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
         leaseRevokers γl (L ++ [id]) := by
   iintro ⟨Ha, Hcls, Hrvk, #Hrc, Hrcl, Hsm, HS, Hslot⟩
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs⟩
   iunfold leaseRevokers at Hrvk
   icases Hrvk with ⟨%lp'', %γga', %γcl', %C', #Hp', %HC', Hrs⟩
   ihave %Hpp := lessorPinG_agree γl lp' lp'' γga γga' γcl γcl' $$ [$Hp $Hp']
@@ -316,6 +316,8 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
   · ipureintro
     intro it x h
     exact List.mem_append_left _ (HIL it x h)
+  isplitr
+  · ipureintro; exact HIS
   iapply (BigSepM.bigSepM_insert (Φ := fun (i : w64) (x : Loc) => closerAt (GF := GF) γcl I i x) hC).2
   iframe Hcs
   iunfold closerAt

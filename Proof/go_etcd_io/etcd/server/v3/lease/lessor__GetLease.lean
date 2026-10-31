@@ -41,7 +41,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hown, Hcls⟩
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs⟩
   ihave %Hpl := lessorPin_agree γl lp lp' $$ [$Hpin]
   · iunfold lessorPin; iexists γga, γcl; iexact Hp
   subst Hpl
@@ -67,7 +67,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   iunfold leaseClosers
   iexists lp, γga, γcl, C, im
   iframe Hp Him' HI' Hcs
-  ipureintro; exact ⟨HC, HIL⟩
+  ipureintro; exact ⟨HC, HIL, HIS⟩
 
 end proof
 

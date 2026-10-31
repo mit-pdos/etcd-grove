@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG := hG) := by
   intro lp γl id items xs dq L0 I0
-  wp_start as ⟨#Hinv, Hown, %HidL, %Hxs0, Hxs⟩
+  wp_start as ⟨#Hinv, Hown, %HidL, %Hxs0, %Hshort, Hxs⟩
   iunfold lessorInv at Hinv
   icases Hinv with ⟨%Hlp, #Hpin, #Hmu⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -44,7 +44,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs⟩
   icases lessorAuth_pin γl 1 lp lp' L0 M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
   subst Hlp'
   ihave ⟨%Him_eq, Him⟩ := ptsto_halves_combine (lF go!"itemMap" lp) im im' $$ [$Him $Him']
@@ -139,6 +139,9 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       by_cases hi : it ∈ ys
       · simp only [hi, ↓reduceIte, Option.some.injEq] at h; subst h; exact HidL
       · simp only [hi, ↓reduceIte] at h; exact HIL it id' h
+    isplitr
+    · ipureintro
+      exact itemKeysShort_insertAll I ys id HIS Hshort
     iapply Hcs $$ %(insertAll I ys id) [] He
     · ipureintro
       intro id' hne it

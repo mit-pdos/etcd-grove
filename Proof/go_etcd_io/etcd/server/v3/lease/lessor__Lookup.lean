@@ -74,7 +74,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
     icases Hlo' with ⟨%Hnn, #Hlmu⟩
     -- the owner's closer of `id` is the map's lease (the closers' map's authority agrees)
     iunfold leaseClosers at Hcls
-    icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, Hcm⟩
+    icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcm⟩
     icases lessorAuth_pin γl _ lp lp' L M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
     subst Hlp'
     obtain ⟨l', hCl⟩ : ∃ l', C.lookup id = some l' := Option.isSome_iff_exists.1 ((HC id).1 hidL)
@@ -113,6 +113,8 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
     · ipureintro; exact HC
     isplitr
     · ipureintro; exact HIL
+    isplitr
+    · ipureintro; exact HIS
     iapply Hcw
     iunfold closerAt; iframe He Hio Hslot
 
