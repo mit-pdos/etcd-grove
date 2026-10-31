@@ -56,19 +56,19 @@ func TestGo(t *testing.T) {
 // "[signal SIGBUS", exit 2. Under -race the CAS faults inside the race
 // runtime, and gc's report is a garbled "SIGSEGV: segmentation violation".
 var killers = map[string]func(string) bool{
-	"testStoreMapped":     testStoreMapped,
+	"fatalStoreMapped":    fatalStoreMapped,
 	"testLoadPastEOF":     testLoadPastEOF,
 	"testLoadAfterMunmap": testLoadAfterMunmap,
 	"testLoadAfterShrink": testLoadAfterShrink,
-	"testCASMapped":       testCASMapped,
+	"fatalCASMapped":      fatalCASMapped,
 }
 
 var killedBy = map[string]string{
-	"testStoreMapped":     "SIGSEGV",
+	"fatalStoreMapped":    "SIGSEGV",
 	"testLoadPastEOF":     "SIGBUS",
 	"testLoadAfterMunmap": "SIGSEGV",
 	"testLoadAfterShrink": "SIGBUS",
-	"testCASMapped":       "SIGSEGV",
+	"fatalCASMapped":      "SIGSEGV",
 }
 
 func TestSignals(t *testing.T) {

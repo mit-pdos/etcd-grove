@@ -11,8 +11,7 @@ wrapper package, whose signatures are the same.
 The extension is enough for bbolt when:
 - every target below is proved;
 - minibolt's boot program is proved crash-safe under the premise below;
-- no probe in `stuck/` can be proved (except `testCASMapped`, until the Perennial prerequisite
-  lands);
+- no probe in `stuck/` can be proved (the two `fatal*` programs there are not probes: see below);
 - no probe in `twoways/` can be proved with `RET true` or with `RET false`.
 
 `go test ./bboltfs/...` (from `examples/`, also under `-race`) checks the Go side:
@@ -49,7 +48,7 @@ bbolt's `Page`/`Meta` layout and its FNV-64a `Sum64`, as in `unsafememory`.
 | `testInit` | `db.init`: 4 pages, one `WriteAt` at 0, `fdatasync` | PWriteStart/Finish (extending an empty file), Fsync, Fstat | the affected range of an extending write; D3: fdatasync makes size durable | the extending write's effect on `cur` and on the dirty set; Fsync moves dirty bytes to the durable ghost state |
 | `testReadPageSize` | `getPageSizeFromFirstMeta`, `getPageSizeFromSecondMeta` (page sizes from 1 KiB up, `bw == len(buf)` or `io.EOF && bw == fileSize-pos`) | PRead, Fstat | PRead returns `cur[off, min(off+n, size))` | reading a file's bytes back into a Go buffer and validating a meta there; a loop over candidate offsets, with a case split on what each holds |
 | `testShortReadAt` | the `io.EOF` branch of `getPageSizeFromSecondMeta` | PRead across, at and past EOF | the `min(off+n, size)` cut; a short `ReadAt` is `io.EOF` | the trusted `ReadAt`'s short-read rule |
-| `testMmapMeta` | `db.mmap`, `mmap(db, sz)`: 32 KiB mapping over a 16 KiB file, `Madvise(MADV_RANDOM)` with ENOSYS ignored; `db.page(0/1).Meta()`, `Validate`, `db.meta()`, `tx.init`'s copy; `munmap` | Mmap (longer than the file), Munmap | `render`: cells below EOF are `(Reading 1, byte)`, cells past EOF are holes | a points-to for phantom-reader cells (load-only); unsafe `Page`/`Meta` views and FNV over them; holes are never touched |
+| `testMmapMeta` | `db.mmap`, `mmap(db, sz)`: 32 KiB mapping over a 16 KiB file, `Madvise(MADV_RANDOM)` with ENOSYS ignored; `db.page(0/1).Meta()`, `Validate`, `db.meta()`, `tx.init`'s copy; `munmap` | Mmap (longer than the file), Munmap | `render`: cells below EOF are ordinary byte cells, cells past EOF are holes | the ordinary byte points-to for mapped cells, held by the extension's ghost state; unsafe `Page`/`Meta` views and FNV over them; holes are never touched |
 | `testWriteVisibleInMap` | `tx.write`'s pages, read by later transactions through `db.page` (no sync between); `NoGrowSync`'s extending write | PWrite under a live mapping | the one heap rule: every step re-renders the mapping, with no sync needed (MAP_SHARED coherence); an extending write turns the holes up to its end (and the zero gap) into cells | the per-byte file ghost state owns the mapped cells, so that a write's update of `cur` is its update of the mapping |
 | `testGrowRemap` | `db.allocate`'s remap (Munmap, then Mmap at 64 KiB) before `db.grow`'s `Truncate` + `Sync` | Munmap, Mmap, FtruncateStart/Finish (extend), Fsync | Ftruncate zero-fills and marks dirty; the holes in the larger mapping become zero cells | giving the cells back at Munmap and getting fresh ones at Mmap; an extending Ftruncate under a mapping |
 | `testOpenTrunc` | `CopyFile`: `O_RDWR\|O_CREATE\|O_TRUNC` | Open with TRUNC | TRUNC sets the size to 0 | TRUNC on an existing file |
@@ -136,12 +135,10 @@ fails"). It is gone since D2 became precise (13578e6e19).
 ## Probes (`stuck/`): each `{{ True }} testX(dir) {{ RET true }}` must be unprovable
 
 "Deliberately incomplete" means that Linux defines the result, but the model is stuck on
-purpose. Every probe here except `testCASMapped` is less defined in the model than in Go,
-which is sound.
+purpose. Every probe here is less defined in the model than in Go, which is sound.
 
 | probe | Go/Linux | why the model is stuck |
 |---|---|---|
-| `testStoreMapped` | **SIGSEGV** (gc: "unexpected fault address", exit 2) | the phantom reader on every mapped cell makes every store stuck |
 | `testLoadPastEOF` | **SIGBUS** (a mapped page wholly past EOF) | the cell is a hole |
 | `testLoadPastEOFSamePage` | true (the EOF page's tail reads 0) | a hole: deliberately incomplete; bbolt's files are whole pages |
 | `testLoadAfterMunmap` | **SIGSEGV** | Munmap removes the cells; this is the stale-page-after-remap bug that `tx.root.dereference` prevents |
@@ -157,7 +154,20 @@ which is sound.
 | `testOutsidePath` | true (`dir/../outside` is created) | the path is not allowed |
 | `testAppend` | true (the open succeeds; `WriteAt` refuses O_APPEND) | O_APPEND is not an allowed flag |
 | `testWriteReadOnly` | true (EBADF) | misuse: the fd is not writable (D6) |
-| `testCASMapped` | **SIGSEGV** (amd64 `LOCK CMPXCHG` writes even when the compare fails; `code=0x2`, SEGV_ACCERR) | **not stuck today**: `CmpXchgBytesFailS` accepts cells with readers, so this probe is provable (unsound) until the plan's Perennial prerequisite lands |
+
+## Fatal programs (`stuck/fatal*`): every Go run dies; the model is unconstrained
+
+A mapping is not read-only in the model. A mapped cell is an ordinary byte cell, so a store
+or CAS on it succeeds until the extension's next step renders the file over it. On Linux,
+both are a SIGSEGV, which gc makes a fatal error (not a panic). The model only has to contain
+the run up to the fault, as for out-of-memory. Their `RET true` may be provable, and that is
+sound, because no Go run returns (`notes/osfs-ext-plan.md`, "Mappings are not read-only in the
+model"). The Go test checks that each one dies of the signal.
+
+| program | Go/Linux | model |
+|---|---|---|
+| `fatalStoreMapped` | **SIGSEGV** (gc: "unexpected fault address", fatal error, exit 2) | the store succeeds |
+| `fatalCASMapped` | **SIGSEGV** (amd64 `LOCK CMPXCHG` writes even when the compare fails; `code=0x2`, SEGV_ACCERR) | the CAS fails and returns false |
 
 ## Probes (`twoways/`): neither `RET true` nor `RET false` may be provable
 

@@ -27,15 +27,26 @@ path resolution is never modelled.
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`) is two steps
   (`PWriteStart`/`PWriteFinish`, `FtruncateStart`/`FtruncateFinish`), and between them any
   mapped load that could see part of it is stuck (a hole), so a real overlap in time is a stuck
-  model interleaving, while a racing `pread` or `fstat` returns any mix (`ReadSees`, `StatSees`). A write of `n` bytes at `off` *affects* `[min off size, off + n)`,
+  model interleaving, while a racing `pread` or `fstat` returns any mix (`ReadSees`,
+  `StatSees`). A write of `n` bytes at `off` *affects* `[min off size, off + n)`,
   including the zero gap an extending write creates; a truncate affects every byte from
   `min size sz` on, and excludes every other change to the file (`Affects`).
-* *Read-only mappings*: a mapped cell is a byte cell born with a phantom reader
-  (`Reading 1`), so every store to it is stuck and loads are allowed; a cell past EOF or
-  affected by an in-flight change holds a *hole* (`#()`, not a byte), so loads are stuck too
-  (SIGBUS, or a race). (Perennial's `CmpXchgBytesFailS` still accepts readers: a failing CAS
-  on a mapped word is defined in the model and faults on Linux. See the plan, "Perennial
-  prerequisite".)
+* *Mappings are not read-only in the model, and need not be*: a mapped cell is an ordinary
+  byte cell (`Free`), so the model lets a store or CAS on it succeed (until the next step of
+  the extension renders the file over it). On Linux, any store or `LOCK CMPXCHG` (even a
+  failing one) on a `PROT_READ` page is a SIGSEGV, which Go's runtime turns into a fatal error
+  (`unexpected fault address`), not a panic: the process dies. As for out-of-memory
+  (`AllocOOMS`), a fatal error only asks the model to contain the run up to it: the adequacy
+  theorems claim nothing of a run that dies (no panic fires, the postcondition holds if `main`
+  returns), and crash adequacy covers the restart, since a process death is a crash at that
+  step whose files keep the page cache, which `CrashImage` allows. The model's extra behaviours
+  after such a store are never Go's. This rests on the fault being fatal:
+  `runtime/debug.SetPanicOnFault(true)` would make it a recoverable panic, and Perennial does
+  not model `runtime/debug` (calling it is stuck).
+* *Holes*: a mapped cell past EOF, or affected by an in-flight change, holds `#()`, not a
+  byte, so a load of it is stuck (SIGBUS, or a mix of old and new bytes): less defined than
+  Linux, which is sound. The extension relies on no rule of the core semantics but that a byte
+  load needs a byte.
 
 **Heap.** The operations never touch user memory: the models pass buffers as Go strings. The
 one heap rule is `HeapRendered`, applied by every step: the cells of every mapping after the
@@ -224,12 +235,12 @@ noncomputable def cellVal [GooseExts] [GoGlobalContext] (p : GoString) (i : Nat)
 end derived
 
 /-- The heap after a step from `st` to `st'`: every mapping of `st'` shows its file (a cell
-that was already mapped keeps its mode; a new one is born with a phantom reader, so no store
-succeeds); a cell mapped in `st` only is gone; every other cell is unchanged. -/
+that was already mapped keeps its mode; a new one is an ordinary byte cell, `Free`); a cell
+mapped in `st` only is gone; every other cell is unchanged. -/
 def HeapRendered [GooseExts] [GoGlobalContext] (st st' : OsState) (h h' : GMap Loc (NonAtomic val)) : Prop :=
   (∀ l p i, MapsTo st' l p i → Mapped st l →
     ∃ m v0, h !! l = some (m, v0) ∧ h' !! l = some (m, cellVal st' p i)) ∧
-  (∀ l p i, MapsTo st' l p i → ¬ Mapped st l → h' !! l = some (Reading 1, cellVal st' p i)) ∧
+  (∀ l p i, MapsTo st' l p i → ¬ Mapped st l → h' !! l = some (Free (cellVal st' p i))) ∧
   (∀ l, ¬ Mapped st' l → Mapped st l → h' !! l = none) ∧
   (∀ l, ¬ Mapped st' l → ¬ Mapped st l → h' !! l = h !! l)
 

@@ -6,9 +6,11 @@
 // answer), or the program dies of a signal. ../README.md records each one's
 // Go/Linux behaviour and why the model is stuck.
 //
-// One probe, testCASMapped, is not stuck in today's Perennial semantics: it
-// is the plan's Perennial prerequisite, and stays provable (unsoundly) until
-// that lands.
+// Two programs here are not probes but fatal programs, named fatalX: on Linux
+// every run dies of a signal before returning, and the model is NOT stuck on
+// them (a mapped cell is an ordinary byte cell). Their RET true may be
+// provable, which is sound: the claim is vacuous in Go (notes/osfs-ext-plan.md,
+// "Mappings are not read-only in the model").
 package stuck
 
 import (
@@ -44,9 +46,9 @@ func newFile(dir string, n int) *os.File {
 }
 
 // A store to a mapped byte: the mapping is PROT_READ. Linux: SIGSEGV (Go:
-// "unexpected fault address", exit 2). Model: every mapped cell has a phantom
-// reader, so every store is stuck.
-func testStoreMapped(dir string) bool {
+// "unexpected fault address", a fatal error, exit 2). Model: the store
+// succeeds; a fatal error only asks the model to contain the run up to it.
+func fatalStoreMapped(dir string) bool {
 	f := newFile(dir, 4)
 	if f == nil {
 		return true
@@ -275,11 +277,9 @@ func testWriteReadOnly(dir string) bool {
 }
 
 // A CAS on a mapped word whose compare fails. Linux/amd64: LOCK CMPXCHG writes
-// even when the compare fails, so it faults on the PROT_READ page: SIGSEGV.
-// Model: NOT stuck in today's semantics, which lets CmpXchgBytesFailS read
-// cells with readers and return false, so this probe is provable until the
-// plan's Perennial prerequisite lands.
-func testCASMapped(dir string) bool {
+// even when the compare fails, so it faults on the PROT_READ page: SIGSEGV, a
+// fatal error. Model: the CAS fails and returns false, as on any byte cell.
+func fatalCASMapped(dir string) bool {
 	f := newFile(dir, 4)
 	if f == nil {
 		return true

@@ -77,9 +77,10 @@ a wrong access mode, a bad fd, or an unsupported flag.
   `LoadBytes 8` or `pread` can tear. With a start and a finish step, any real overlap in time
   maps to a model interleaving that is stuck.
 - **One heap rule.** Every step ends with `h' := render st' (h minus the cells of st.maps)`.
-  `render` sets mapping cell i to `(Reading 1, LitByte cur[i])`, or to `(Reading 1, #())` (a
-  *hole*) when i is past EOF or in an in-flight write's affected range. The phantom reader makes
-  every store stuck. A hole makes every load stuck (SIGBUS, or a race). No operation spells out
+  `render` sets mapping cell i to the byte `cur[i]`, or to `#()` (a *hole*) when i is past EOF
+  or under an in-flight change. A new cell is an ordinary byte cell (`Free`). A hole makes every
+  load stuck (SIGBUS, or a race). A store to a mapped byte succeeds until the next render: on
+  Linux it is fatal (see "Mappings are not read-only in the model"). No operation spells out
   its own heap update.
 - **The extension never touches user buffers.** The trusted models marshal them with ordinary
   Go: `WriteAt(b, off)` passes `string(b)`, and `ReadAt` `copy`s the returned data into `b`.
@@ -114,14 +115,27 @@ becomes an image, which is then both `cur` and `durable`:
   - `Exit` is `AngelicExit`.
   - `Stderr.Write` returns some `(n, err)`.
 
-## Perennial prerequisite
+## Mappings are not read-only in the model (2026-10-31)
 
-`CmpXchgBytesFailS` accepts cells with readers (`BytesAt … true`). On a `PROT_READ` page, x86
-`LOCK CMPXCHG` faults even when the compare fails, so the model is more defined than Go there.
-It should require `BytesAt … false`. Only the phantom reader gives byte cells readers, so
-nothing else should change. This goes through Perennial's `/fix-semantics` with the user's
-sign-off; until then, avoid CAS on mapped memory (a probe records it). Recorded in
-`notes/perennial-changes.md`.
+A store or CAS on a mapped byte succeeds in the model: mapped cells are ordinary byte cells
+(`Free`), and the next extension step renders the file over them. The first design made them
+read-only with a phantom reader (`Reading 1`). That relied on Perennial's failing byte CAS
+(`CmpXchgBytesFailS`) refusing cells with readers, which it does not. The user did not want a
+core-semantics change shaped by this extension.
+
+Read-only-ness needs no model because violating it is fatal on Linux. A store, or any `LOCK
+CMPXCHG`, on a `PROT_READ` page is a SIGSEGV, and Go's runtime makes that a fatal error
+(`unexpected fault address`), not a panic. The model then only has to contain the run up to
+the fault, as for out-of-memory (`AllocOOMS`):
+- plain adequacy claims nothing of a run that dies;
+- crash adequacy covers the restart, because a process death is a crash at that step, and the
+  files keep the page cache, which the crash image allows.
+
+The condition is that the fault stays fatal. `runtime/debug.SetPanicOnFault(true)` would make
+it a recoverable panic, and Perennial does not model `runtime/debug`.
+
+Holes stay. A load past EOF, or racing an in-flight change, is stuck, because a byte load needs
+a byte.
 
 ## Decisions (recommended option first; taken until the user says otherwise)
 
@@ -147,10 +161,9 @@ sign-off; until then, avoid CAS on mapped memory (a probe records it). Recorded 
 
 ## Work
 
-0. The Perennial prerequisite above.
 1. `GooseLang/Ext/OsFs/Impl.lean`: state, `render`, step, crash.
 2. The wrapper package, its trusted models (`TrustedCode/...`), its `.toml`; constants.
 3. Test programs: `examples/bboltfs` (targets, stuck probes, unprovable probes, a minibolt).
-4. `Specs.lean` (untrusted): a points-to for phantom-reader cells; per-byte file ghost state
+4. `Specs.lean` (untrusted): mapped cells use the ordinary byte points-to; per-byte file ghost state
    that owns the mapped cells; the durable/dirty ghost state; `ExtCrashInterp`.
 5. Adequacy with the environment assumptions as premises.
