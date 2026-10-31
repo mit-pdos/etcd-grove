@@ -251,6 +251,63 @@ theorem TxnModel.putKeysLe_mono {N M : Nat} (h : N ≤ M) {t : TxnModel} (ht : t
     t.putKeysLe M :=
   ⟨TxnOp.opsPutKeysLe_mono h _ ht.1, TxnOp.opsPutKeysLe_mono h _ ht.2⟩
 
+mutual
+/-- **Every key and value the operation puts is at most `N` bytes** (a put's, at every depth of a
+nested transaction; 2026-10-31, `notes/vallen.md`). A put that keeps the stored value
+(`putIgnVal`) bounds only its key: the value it writes is the state's. -/
+def TxnOp.putsLe (N : Nat) : TxnOp → Prop
+  | .put k v _ => k.length ≤ N ∧ v.length ≤ N
+  | .putKeep k v => k.length ≤ N ∧ v.length ≤ N
+  | .putIgnVal k _ => k.length ≤ N
+  | .txn _ ts es => TxnOp.opsPutsLe N ts ∧ TxnOp.opsPutsLe N es
+  | .get _ => True
+  | .delete _ => True
+
+/-- Every key and value the operations put is at most `N` bytes (`TxnOp.putsLe` of each). -/
+def TxnOp.opsPutsLe (N : Nat) : List TxnOp → Prop
+  | [] => True
+  | op :: ops => op.putsLe N ∧ TxnOp.opsPutsLe N ops
+end
+
+mutual
+theorem TxnOp.putsLe_mono {N M : Nat} (h : N ≤ M) : ∀ op : TxnOp, op.putsLe N → op.putsLe M
+  | .put .., ho | .putKeep .., ho => by
+    simp only [TxnOp.putsLe] at ho ⊢; omega
+  | .putIgnVal .., ho => by
+    simp only [TxnOp.putsLe] at ho ⊢; omega
+  | .get _, _ | .delete _, _ => trivial
+  | .txn _ ts es, ho => ⟨TxnOp.opsPutsLe_mono h ts ho.1, TxnOp.opsPutsLe_mono h es ho.2⟩
+
+theorem TxnOp.opsPutsLe_mono {N M : Nat} (h : N ≤ M) :
+    ∀ ops : List TxnOp, TxnOp.opsPutsLe N ops → TxnOp.opsPutsLe M ops
+  | [], _ => trivial
+  | op :: ops, ho => ⟨TxnOp.putsLe_mono h op ho.1, TxnOp.opsPutsLe_mono h ops ho.2⟩
+end
+
+mutual
+theorem TxnOp.putsLe_keys {N : Nat} : ∀ op : TxnOp, op.putsLe N → op.putKeysLe N
+  | .put .., ho | .putKeep .., ho => by
+    simp only [TxnOp.putsLe] at ho; simp only [TxnOp.putKeysLe]; exact ho.1
+  | .putIgnVal .., ho => by
+    simp only [TxnOp.putsLe] at ho; simp only [TxnOp.putKeysLe]; exact ho
+  | .get _, _ | .delete _, _ => trivial
+  | .txn _ ts es, ho => ⟨TxnOp.opsPutsLe_keys ts ho.1, TxnOp.opsPutsLe_keys es ho.2⟩
+
+theorem TxnOp.opsPutsLe_keys {N : Nat} :
+    ∀ ops : List TxnOp, TxnOp.opsPutsLe N ops → TxnOp.opsPutKeysLe N ops
+  | [], _ => trivial
+  | op :: ops, ho => ⟨TxnOp.putsLe_keys op ho.1, TxnOp.opsPutsLe_keys ops ho.2⟩
+end
+
+/-- **Every key and value the transaction puts is at most `N` bytes**, in either branch, at every
+depth. -/
+def TxnModel.putsLe (N : Nat) (t : TxnModel) : Prop :=
+  TxnOp.opsPutsLe N t.thenOps ∧ TxnOp.opsPutsLe N t.elseOps
+
+theorem TxnModel.putsLe_mono {N M : Nat} (h : N ≤ M) {t : TxnModel} (ht : t.putsLe N) :
+    t.putsLe M :=
+  ⟨TxnOp.opsPutsLe_mono h _ ht.1, TxnOp.opsPutsLe_mono h _ ht.2⟩
+
 /-- The number of comparisons and operations of an operation: one, a nested transaction itself
 and its comparisons and operations at every depth. -/
 def TxnOp.nodes : TxnOp → Nat

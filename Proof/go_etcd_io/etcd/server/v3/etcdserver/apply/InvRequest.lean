@@ -161,6 +161,22 @@ theorem irrKeysLe.mono {n m : Nat} (h : n ≤ m) {rq : IRRModel} (hk : irrKeysLe
     irrKeysLe m rq :=
   ⟨fun o ho => Nat.le_trans (hk.1 o ho) h, fun t ht => TxnModel.putKeysLe_mono h (hk.2 t ht)⟩
 
+/-- **Every key and value the request `rq` puts is at most `n` bytes** (2026-10-31,
+`notes/vallen.md`): its `Put`'s key and value, and its transaction's puts' at any depth
+(`TxnModel.putsLe`; a put keeping the stored value bounds its key only). -/
+def irrPutsLe (n : Nat) (rq : IRRModel) : Prop :=
+  (∀ o, rq.put = some o → o.key.length ≤ n ∧ o.val.length ≤ n) ∧
+    (∀ t, rq.txn = some t → t.putsLe n)
+
+theorem irrPutsLe.mono {n m : Nat} (h : n ≤ m) {rq : IRRModel} (hk : irrPutsLe n rq) :
+    irrPutsLe m rq :=
+  ⟨fun o ho => ⟨Nat.le_trans (hk.1 o ho).1 h, Nat.le_trans (hk.1 o ho).2 h⟩,
+    fun t ht => TxnModel.putsLe_mono h (hk.2 t ht)⟩
+
+theorem irrPutsLe.keys {n : Nat} {rq : IRRModel} (hk : irrPutsLe n rq) : irrKeysLe n rq :=
+  ⟨fun o ho => (hk.1 o ho).1,
+    fun t ht => ⟨TxnOp.opsPutsLe_keys _ (hk.2 t ht).1, TxnOp.opsPutsLe_keys _ (hk.2 t ht).2⟩⟩
+
 @[simp] theorem IRRModel.txnW_map (rq : IRRModel) :
     rq.txnW.map txn.TxnModelW.toModel = rq.txn := rfl
 
