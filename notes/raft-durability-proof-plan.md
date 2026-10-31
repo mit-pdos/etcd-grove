@@ -9,6 +9,16 @@ surveys). Its repairs R2-R9 are adopted below. R1 and R10 await the user.
 
 ## Review 1 and what it changed (2026-10-31)
 
+- **Candidate 12 (2026-10-31).** Three deletions from the spec:
+  - *check* (approved by the user): its two outputs are given at the receive. The proof handles
+    currency internally, by I-2's one-node-per-id and the `nodeRunning` gate, plus R9's
+    leader-outbox invariant.
+  - `storFresh`/`storFresh_alloc`: raft names a fresh key at the attach, in the continuation of
+    `restartStorage`.
+  - the driver's `batch` field.
+
+  So I-4's once-register is allocated by raft inside `newRaft`'s proof. And `raft_enter`'s order
+  needs no client-visible counter.
 - **R1, resolved by the user (2026-10-31).**
   - **The resolution.** `RestartNode`'s precondition is the abstract `raftState` alone.
     `RaftState` gains `commit` (as of the last entered batch). The sealed body holds that index's
