@@ -10,10 +10,9 @@ has the details): phase 1's contract, phase 2's model, phase 3's client (`Get`, 
 `store.Create`, `store.Delete` and `store.GuaranteedUpdate` (D30l: the read-or-write update;
 `reflect` through local axioms, the user's choice), linked, with restrictions (`notes/STATUS.md`).
 
-Next steps: phase 6's driver on unary traffic, lifting phase 4's restrictions as its traffic needs.
-Merging `k8s-etcd3` into `lean` waits on an OK from the etcd client proof's owner (the survey
-changes the etcd project's configuration: it translates `client/v3/kubernetes` and owns only
-`k8s_io/utils/third_party`).
+(2026-10-23) Phase 6's closed theorem `k8setcd3_safe` done and merged into `lean`, on restricted
+traffic. (2026-10-31) **Next: phase 7**, the etcd3 subtest of `TestCorrectness` itself (below);
+stage 7a done (`store.GetList` translated, branch `worktree-k8s-etcd3-correctness`).
 
 ## Goal
 
@@ -236,6 +235,88 @@ revision bound, D30n), `client_ctx_field` (item 6), and the store's `kvIs_ne_nul
 `clientErr_other` (item 5 below) was a fourth until 2026-10-26 (D37b: proved, over the new
 method-set premise `storageErrTyOk`).
 
+## Phase 7: `TestCorrectness`'s etcd3 subtest (planned 2026-10-31)
+
+The target: the `etcd3` case of `TestCorrectness`
+(`k8s.io/kubernetes/test/integration/apiserver/storage/correctness_test.go`, at the DaemonSet pin
+`878cfa6c4cc7`; README: "Inspired by etcd robustness testing"), the test Kubernetes uses as the
+storage layer's robustness test: 8 concurrent clients run 10 000 random unary operations
+(`RunUnaryTraffic`, `traffic.go`) while 16 watchers run (`RunWatchTraffic`), then porcupine checks
+the unary history against `correctness.Model`, `Replay.Validate` checks every operation along
+porcupine's linearization, and `WatchValidator.ValidateWatch` checks every watch against the
+replay. The cacher cases are out of scope (the watch cache is a later target).
+
+**What `k8setcd3_safe` already covers, and what the test does beyond it** (weights from
+`requestDistribution`):
+
+| Test traffic | `k8setcd3_safe` | Missing |
+| --- | --- | --- |
+| Create 15% | yes (`ttl = 0`) | - |
+| Delete 20%: preconditions UID/RV 25% each, cached object 25%, `validateDeletion` 25% | `validateDeletion` only | preconditions; cached (stale) object |
+| Update 30%: preconditions 20%/20%, no-op 15%, cached 15%, `ignoreNotFound` 15%, validate 25% | no-op, validate | preconditions; cached object; `ignoreNotFound` |
+| Get 10%: `IgnoreNotFound` 50%; RV empty 30%, `0`, `1`, cached, current, past, future | consistent (RV empty) | `IgnoreNotFound`; every RV mode |
+| List 25%: scope, recursive, field/label selectors, RV and RV-match modes, limit 0/1/2 | none (`GetList` names-only) | all |
+| Watches (16 concurrent) | none | all (the watcher) |
+| Check: porcupine, then `Replay.Validate` along the linearization, then the watch validator | porcupine (`lintest.Run`) | the replay; the watch validator |
+
+The cached-object and precondition paths are where most of the README's etcd3 bugs live (#35415,
+#43152, #54780, #77619, #89828), lists are #94002, watches #135452. The real Pod codec stays out
+(D30b: the contract, with the driver's non-canonical codec), as does `TestCorrectness`'s single
+real etcd process (the driver runs in-process members).
+
+**Why stale reads need the replay.** `Model.validateGet`/`validateList` check only the response's
+resource version for a non-consistent read (RV `0`, past, `NotOlderThan`, `Exact`): "contents are
+validated later during replay". So porcupine's `Ok` alone says nothing about a stale read's
+contents; the theorem must cover `Replay.Validate` on porcupine's linearization, which needs the
+verified porcupine (`examples/lintest`, `Run`) to return the linearization it found
+(`info.PartialLinearizations()`), with a spec saying it is one.
+
+**Stages**, each closing with the driver extended to the new traffic and `k8setcd3_safe` still
+closed (the Go copy of the Model and the Lean model, `KModel.lean`/`Refine.lean`, extended as the
+traffic grows):
+
+- **7a. `GetList` translated** (done 2026-10-31): the pinned Perennial supports range over a
+  function (`caa9d07ee`, pin `edcadb1e5`), so `!store.GetList` is dropped from `etcd3.toml`;
+  476 lines of `Code`, elaborates. G2 closed.
+- **7b. The unary paths without new etcd capabilities**: `Preconditions.Check` non-nil (UID, RV),
+  `cachedExistingObject` on `Delete`/`GuaranteedUpdate` (`getStateFromObject`, the
+  `!origStateIsCurrent` re-read and retry: the stale-suggestion class), `ignoreNotFound` on
+  `GuaranteedUpdate`, `IgnoreNotFound` on a consistent `Get`. The store's specs already state the
+  outcome as the model's at one linearization point whatever the suggestion; the work is the
+  proofs of the lifted branches, the model's preconditions, and the driver's traffic.
+- **7c. Reads at a revision.** `kubernetes.Client.Get` with `opts.Revision ≠ 0` (its spec is at
+  the latest revision only: "the only revision the server's specs serve"), over the server's
+  `Range` at a revision, which M2 specified (`txn.executeRange`: `stateAt` of the read log, or
+  `ErrFutureRev`, or `ErrCompacted` below the compaction revision); the client-layer specs
+  (linkvtxn's `client_*`) carry it up, with the error identities ("From the etcd client proof",
+  item 1). Then `store.Get`'s RV modes (`validateMinimumResourceVersion` with a minimum,
+  `NotOlderThan`, RV `0`), and the driver's history: the store's states by revision (D30j's
+  `kvSeen` extended to whole states).
+- **7d. The replay.** The verified porcupine returns its linearization; a Go copy of `Replay`
+  (or the real one, with 7g) in the driver's `Check`, proved against the history.
+- **7e. `GetList`**, the paginated path (`EtcdRangeStream` off, so no `streamChunks`): a spec of
+  `kubernetes.Client.List` (new; recursive ranges at a revision, limit, continue), `pagedChunks`'
+  iterator, `appendChunk`/`processListItem` (`reflect`'s slice operations: `MakeSlice`, `Append`,
+  `Set`, `Len`, `Cap`, `Copy`, as local trust-boundary specs like the store's other `reflect`
+  axioms), `storage.ValidateListOptions`, `PrepareContinueToken` (continue tokens: `encoding/json`
+  and `base64`, names-only now), `SelectionPredicate.Matches` for the test's selectors (labels and
+  fields: names-only apimachinery), `versioner.UpdateList` (the contract grows a list half),
+  `listReadError` (error identity, from 7c), and the model's `list` with pages at one revision.
+- **7f. Watches.** The etcd3 watcher (`watcher.go`; G1's alias fix in Goose first, a small
+  Perennial change, `notes/perennial-changes.md`), over the etcd client's `Watch` (the watch
+  specs of `watchkv`/G2), the test's watcher behaviours (slow, hiccup, stalled consumers), and the
+  watch validator. The largest stage; last.
+- **7g. The maintainers' checker.** Translate `correctness` itself (`Model`, `Replay`,
+  `WatchValidator`) in place of the Go copy (D30m, "Open" below), with D30g's fix as a patch
+  until upstream takes it; `reflect.DeepEqual` and the list/meta accessors at the trust boundary.
+
+Also, independent of the stages: the three `sorry`s of `k8setcd3_safe`'s own (`revRoom`,
+`client_ctx_field`, `kvIs_ne_null`); the server's `sorry`s it rests on (`EtcdServer.run`, ...) are
+the server repair's (Stage P), not this plan's.
+
+Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c and 7d together
+(stale `Get`s are the smallest traffic needing both), 7e, 7f, 7g.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
@@ -257,7 +338,8 @@ So phases 1-4 never wait on it; phase 5 does, in two strengths:
 A driver without list traffic (phase 6 first, then lists) does not need it at all.
 
 **Translation (the survey).**
-- G2, range over a function: `store.GetList` loops over an `iter.Seq2` (`store.go:825`) on
+- G2, range over a function (**closed 2026-10-31**, stage 7a: Perennial `caa9d07ee`; `GetList`
+  translated): `store.GetList` loops over an `iter.Seq2` (`store.go:825`) on
   every path, the ordinary `pagedChunks` included. Goose does not translate it, so phase 5 is
   blocked on it before error identity: Goose support (the general fix, a Perennial change), a
   Goose fork of k8s.io/apiserver rewriting the loop (as the etcd fork), or a trusted model.

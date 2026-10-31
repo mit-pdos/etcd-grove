@@ -964,8 +964,8 @@ elaborate:
   `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
   called after it returned `false` (Go panics).
 - **Landed.** Perennial `caa9d07ee` (2026-10-26), after uniform function results (`2b17d5f09`);
-  reached by the pin `edcadb1e5` (2026-10-27). Nothing here uses it yet: `store.GetList` is still
-  names-only.
+  reached by the pin `edcadb1e5` (2026-10-27). (2026-10-31) `store.GetList` translated with it
+  (`notes/k8s-etcd3-plan.md`, stage 7a).
 
 ### The type set of an interface with an embedded interface
 
