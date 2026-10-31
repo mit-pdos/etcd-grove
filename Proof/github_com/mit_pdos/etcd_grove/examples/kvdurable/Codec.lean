@@ -124,9 +124,10 @@ def u64sLe : List w64 → List w8
 /-- `putIDs`: the ids' number, then each. -/
 def encIDs (ids : List w64) : List w8 := u64Le (W64 ids.length) ++ u64sLe ids
 
-/-- `putEntry`: the entry's term, index and type (8 bytes each), then its data. -/
+/-- `putEntry`: the entry's term, index and type (8 bytes each; the type, an `int32`, sign-extended
+as Go's `uint64(e.GetType())`), then its data. -/
 def encEntry [GooseExts] (e : EntryM) : List w8 :=
-  u64Le e.Term' ++ (u64Le e.Index' ++ (u64Le (W64 (uint.Z e.Type')) ++ putB e.Data'))
+  u64Le e.Term' ++ (u64Le e.Index' ++ (u64Le (W64 (sint.Z e.Type')) ++ putB e.Data'))
 
 /-- The entries, each as `putEntry` writes it (`encode`'s loop). -/
 def encEntries [GooseExts] : List EntryM → List w8
@@ -340,9 +341,9 @@ theorem decEntry_enc [GooseExts] (e : EntryM) (r : List w8) (h : EntWf e) :
   obtain ⟨hty, hd⟩ := h
   unfold decEntry encEntry
   simp only [List.append_assoc, decU64_enc]
-  have hty' : uint.Z (W64 (uint.Z e.Type')) ≤ 2 := by word
+  have hty' : uint.Z (W64 (sint.Z e.Type')) ≤ 2 := by word
   rw [if_pos hty', decB_putB _ _ hd]
-  have : W32 (uint.Z (W64 (uint.Z e.Type'))) = e.Type' := by word
+  have : W32 (uint.Z (W64 (sint.Z e.Type'))) = e.Type' := by word
   rw [this]
 
 theorem decEntries_enc [GooseExts] (es : List EntryM) (r : List w8) (h : ∀ e ∈ es, EntWf e) :
