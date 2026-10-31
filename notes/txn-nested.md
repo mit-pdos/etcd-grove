@@ -1,9 +1,39 @@
 # Nested transactions in the client's specs (`clientv3.OpTxn` under `Then`/`Else`, `Commit` with auth on)
 
-**Status** (2026-10-30): the design below is approved (the user, 2026-10-30) and in code over named
-stubs (branch `txn-nested`, off `lean` `51b0f7adad`; "In code", below); the new obligations are
-not proved yet. It was drafted spec-first (the `spec` skill), reviewed by the `spec-reviewer` twice
-(round 1: findings 1-10; round 2: B1-B3, C1-C3), and every finding fixed.
+**Status** (2026-10-31): the design below is approved (the user, 2026-10-30), in code, and **frozen**
+("The freeze", below; branch `txn-nested`, off `lean` `51b0f7adad`, with `invoke-size` merged); the
+new obligations are not proved yet. It was drafted spec-first (the `spec` skill), reviewed by the
+`spec-reviewer` twice (round 1: findings 1-10; round 2: B1-B3, C1-C3), and every finding fixed.
+
+## The freeze (2026-10-31)
+
+The statements are approved (the user, 2026-10-30) and the wire model's axiom review
+(`notes/axiom-review/txn-nested-wire.md`, branch `axiom/txn-nested-wire`: grpc `Invoke`'s send side
+refuted, an unbounded encoded size) is resolved by `invoke-size`'s encoded-size premise, merged here
+(`a095a3b5e5`) with its folds (`notes/invoke-size.md`, "What txn-nested must fold": D1 `reqOpAt`'s
+put clause, S2/S4's leaf premise, L5's conjunct, R1 `client_txn_on`'s `hsz`, the auth-off
+`txn.Commit`'s `txnSizeOk`, `txnBuilderSpecO`'s `Commit`). At the freeze the full build is green with
+only the named stubs ("In code", below) as `sorry`s; `etc/tcb-report.py --check` matches the
+baseline (the stubs the only new `sorry`s), every collection `--check` passes, `api-check`,
+`gen-interface --check --layout` (0 new violations) pass.
+
+**Frozen** (the exported statements; a change goes to the user):
+- the specs `txn.Then.spec` (`Spec/go_etcd_io/etcd/client/v3/txn__Then.lean:28`), `txn.Else.spec`
+  (`txn__Else.lean:28`), `Op.toRequestOp.spec`, `Op.isWrite.spec`, `Op.toTxnRequest.spec`, and the
+  corollaries `txn.Then.spec_plain`/`txn.Else.spec_plain` (`client/v3/TxnPlain.lean`);
+- the vocabulary D1 (`reqOpAt`, `reqOpsAt`, `txnReqFieldsAt`), D2 (`txnWireOk`, `delWireAtT`,
+  `delWiresAtT`), N1 (`OpT.wire`, `OpT.isWrite`), D3 (`etcdTxnSpecOn`), D4 (`txnUpdAtOn`),
+  `txnNestOk`;
+- R1 `client_txn_on` (`Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean:319`);
+- the laws the other packages use: `reqPerms_irrTxn_put`, `reqPerms_irrTxn_nestedPut`
+  (`KVServiceOn.lean:180`; authkv's), `txnAuthOn_write`, `txnUpdAtOn_write`, `txnNestOk_of_plain`,
+  `opTAtC_leaf`, `opTAtC_opTxn`, `opsTAt_nil`, `opsTAt_of_list`, `opsTAt_one`.
+
+**Frozen pending** (internals whose only users are still stubs; final once those proofs are in):
+`OpT.wire_txnOp`, `OpT.wireL_txnOps`, `OpT.txnOp_leaves`, `reqOpAt_txn`, `reqOpsAt_index` (users:
+`Then`/`Else`, `toRequestOp`, `toTxnRequest`); `txnReadonly_plain`, `txnSibSafeL_of_noDel`
+(`txnNestOk_of_plain`'s); `v3rpc.inRange_of_hits`, `siblingSafeL_of_model` (the handler's sibling
+fact); `delCount_toTxnOps`, `delWiresAtT_reqOpsWire`, `txnReq_of_requestIs` (the bridge).
 
 ## The user's decisions (2026-10-30)
 

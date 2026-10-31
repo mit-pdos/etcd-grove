@@ -27487,3 +27487,15 @@ re-encoding (`v0:` to `v1:`, both three bytes) is as long as the value read
 **Alternatives rejected:** `storedSizeOk` of every result (unprovable for a no-op of a long value);
 the written-result condition without the value bound (a stale reading is written even when its
 encoding is equal, and the re-encoding is as long as the stored value, which needs a bound).
+
+## txn-nested's freeze (2026-10-31 · `notes/txn-nested.md`, "The freeze")
+
+**What.** The nested-transaction statements (S1-S4, D1-D4, R1, the laws) are frozen: approved by
+the user (2026-10-30, Q1), and the axiom review of their wire model (grpc `Invoke`'s send side,
+refuted for an unbounded encoded size) resolved by the encoded-size premise of `invoke-size`
+(`notes/decisions.md`, "The encoded-size bound at grpc's send side"), folded into the nested
+statements as `notes/invoke-size.md`, "What txn-nested must fold", lists (the user approved those
+folds with the size design). Nothing else moved at the freeze. The internals used only by stubbed
+proofs are "frozen pending" (the note's list): a proof may still restate one of them, not an
+exported statement.
+
