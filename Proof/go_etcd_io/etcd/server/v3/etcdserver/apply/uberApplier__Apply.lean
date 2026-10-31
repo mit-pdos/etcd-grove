@@ -38,7 +38,7 @@ theorem apply.uberApplier.Apply.wp_proof
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply⟩
+  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply HApply $$ %r %rq %skip %v3

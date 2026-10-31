@@ -173,10 +173,6 @@ theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof
 
-theorem storage.BackendQuota.wp_Cost :
-    EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.BackendQuota.Cost.wp_proof
-
 theorem traceutil.wp_TODO :
     EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.TODO.wp_proof
@@ -192,6 +188,10 @@ theorem traceutil.Trace.wp_IsEmpty :
 theorem traceutil.wp_newTrace :
     EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.newTrace.wp_proof
+
+theorem storage.BackendQuota.wp_Cost :
+    EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.BackendQuota.Cost.wp_proof
 
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
@@ -373,9 +373,17 @@ theorem applierV3backend.wp_DowngradeInfoSet :
     EtcdGrove.apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.DowngradeInfoSet.wp_proof
 
+theorem traceutil.wp_EnsureTrace :
+    EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
+
+theorem applierV3backend.wp_Compaction [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.Compaction.wp_proof context.wp_TODO traceutil.wp_EnsureTrace mvcc.store.wp_Compact mvcc.readView.wp_Range
+
 theorem wp_newApplierV3Backend [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.newApplierV3Backend.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.newApplierV3Backend.wp_proof applierV3backend.wp_Apply applierV3backend.wp_Put applierV3backend.wp_DeleteRange applierV3backend.wp_Range applierV3backend.wp_Txn applierV3backend.wp_LeaseRevoke applierV3backend.wp_LeaseGrant applierV3backend.wp_LeaseCheckpoint applierV3backend.wp_Alarm applierV3backend.wp_Authenticate applierV3backend.wp_UserAdd applierV3backend.wp_UserDelete applierV3backend.wp_UserChangePassword applierV3backend.wp_UserGrantRole applierV3backend.wp_UserGet applierV3backend.wp_UserRevokeRole applierV3backend.wp_RoleAdd applierV3backend.wp_RoleGrantPermission applierV3backend.wp_RoleGet applierV3backend.wp_RoleRevokePermission applierV3backend.wp_RoleDelete applierV3backend.wp_UserList applierV3backend.wp_RoleList applierV3backend.wp_AuthEnable applierV3backend.wp_AuthDisable applierV3backend.wp_AuthStatus applierV3backend.wp_ClusterVersionSet applierV3backend.wp_ClusterMemberAttrSet applierV3backend.wp_DowngradeInfoSet
+  EtcdGrove.apply.newApplierV3Backend.wp_proof applierV3backend.wp_Apply applierV3backend.wp_Put applierV3backend.wp_DeleteRange applierV3backend.wp_Range applierV3backend.wp_Txn applierV3backend.wp_LeaseRevoke applierV3backend.wp_LeaseGrant applierV3backend.wp_LeaseCheckpoint applierV3backend.wp_Alarm applierV3backend.wp_Authenticate applierV3backend.wp_UserAdd applierV3backend.wp_UserDelete applierV3backend.wp_UserChangePassword applierV3backend.wp_UserGrantRole applierV3backend.wp_UserGet applierV3backend.wp_UserRevokeRole applierV3backend.wp_RoleAdd applierV3backend.wp_RoleGrantPermission applierV3backend.wp_RoleGet applierV3backend.wp_RoleRevokePermission applierV3backend.wp_RoleDelete applierV3backend.wp_UserList applierV3backend.wp_RoleList applierV3backend.wp_AuthEnable applierV3backend.wp_AuthDisable applierV3backend.wp_AuthStatus applierV3backend.wp_ClusterVersionSet applierV3backend.wp_ClusterMemberAttrSet applierV3backend.wp_DowngradeInfoSet applierV3backend.wp_Compaction
 
 theorem storage.wp_NewBackendQuota :
     EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
@@ -481,9 +489,13 @@ theorem applierV3Corrupt.wp_LeaseRevoke :
     EtcdGrove.apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3Corrupt.LeaseRevoke.wp_proof
 
+theorem applierV3Corrupt.wp_Compaction :
+    EtcdGrove.apply.applierV3Corrupt.Compaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3Corrupt.Compaction.wp_proof
+
 theorem wp_newApplierV3Corrupt :
     EtcdGrove.apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.newApplierV3Corrupt.wp_proof applierV3Corrupt.wp_Put applierV3Corrupt.wp_Range applierV3Corrupt.wp_DeleteRange applierV3Corrupt.wp_Txn applierV3Corrupt.wp_LeaseGrant applierV3Corrupt.wp_LeaseRevoke
+  EtcdGrove.apply.newApplierV3Corrupt.wp_proof applierV3Corrupt.wp_Put applierV3Corrupt.wp_Range applierV3Corrupt.wp_DeleteRange applierV3Corrupt.wp_Txn applierV3Corrupt.wp_LeaseGrant applierV3Corrupt.wp_LeaseRevoke applierV3Corrupt.wp_Compaction
 
 theorem uberApplier.wp_restoreAlarms :
     EtcdGrove.apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG) :=
@@ -492,18 +504,6 @@ theorem uberApplier.wp_restoreAlarms :
 theorem wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.NewUberApplier.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.NewUberApplier.wp_proof wp_newApplierV3 uberApplier.wp_restoreAlarms
-
-theorem applierV3Corrupt.wp_Compaction :
-    EtcdGrove.apply.applierV3Corrupt.Compaction.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3Corrupt.Compaction.wp_proof
-
-theorem traceutil.wp_EnsureTrace :
-    EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
-
-theorem applierV3backend.wp_Compaction [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.Compaction.wp_proof context.wp_TODO traceutil.wp_EnsureTrace mvcc.store.wp_Compact mvcc.readView.wp_Range
 
 theorem wp_checkTxnReqsPermission :
     EtcdGrove.apply.checkTxnReqsPermission.spec (GF := GF) (hG := hG) :=

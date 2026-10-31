@@ -53,7 +53,7 @@ theorem apply.newApplierV3Capped.wp_proof
   subst Hbi
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
-    #HApply⟩
+    #HApply, #HCmp⟩
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType applierV3Capped.ty, #p⟩
   isplitr
@@ -280,6 +280,7 @@ theorem apply.newApplierV3Capped.wp_proof
       icases Hpost with ⟨Hkv, Hres, HPP⟩
       iframe Hkv HPP
       iapply apply.chainRes_capped_in c p (.ok bi) info $$ applierV3 Hres
+  isplitr
   · -- `Apply`: the inner applier's (promoted), its `applyFunc` under the inner's resources
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
@@ -310,7 +311,32 @@ theorem apply.newApplierV3Capped.wp_proof
       iapply apply.adminPass_wrap E.authMode c (.capped c) rq rfl $$ Hadm
     · iright
       iexact Hrej
-
+  · -- `Compaction`: the inner applier's (promoted)
+    iunfold apply.cmpTriple
+    iunfold apply.cmpTriple at HCmp
+    imodintro
+    iintro %cr %rev %log %crev %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨#Hcr, %Hadm, Hm, Hc⟩ HΦ'
+    rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"Compaction")]
+    wp_call
+    wp_auto
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
+    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info [Hkv Hres Hcs Hc]
+    · iunfold apply.mPre; iframe; iframe #; ipureintro; exact Hadm
+    inext
+    iintro %resp %ch %trace %err ⟨Hkv, Hres, HPP, Hc, Hans⟩
+    iapply HΦ'
+    rw [apply.chainCompacts_capped c, apply.cmpAnswerIs_congr (.capped c) c (apply.chainCompacts_capped c)]
+    iframe Hkv HPP
+    isplitr [Hc Hans]
+    rotate_left
+    · isplitl [Hc]
+      · iexact Hc
+      · iexact Hans
+    iapply apply.chainRes_capped_in c p (.ok bi) info $$ applierV3 Hres
 
 end proof
 

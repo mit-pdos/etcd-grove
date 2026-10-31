@@ -57,6 +57,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeModel
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -317,6 +318,39 @@ theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk 
 
 theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq) :
     rqOkM M log rq := Or.inl h
+
+/-! ## The compaction arm, pure (M2, the apply side, 2026-10-31) -/
+
+/-- **The chains whose `Compaction` reaches the backend**: the auth, quota and capped wrappers pass
+it on (they do not override it), the corrupt applier answers `ErrCorrupt` (`corrupt.go`). -/
+def chainCompacts : Chain → Bool
+  | .backend => true
+  | .auth _ c => chainCompacts c
+  | .quota c => chainCompacts c
+  | .capped c => chainCompacts c
+  | .corrupt _ => false
+
+/-- **The compaction revision after `Compact(rev)`** at `crev` (`updateCompactRev`): `rev` when
+above, else unchanged (`ErrCompacted`). -/
+def cmpRevAfter (crev : Int) (rev : w64) : Int :=
+  if crev < sint.Z rev then sint.Z rev else crev
+
+theorem cmpRevAfter_ge (crev : Int) (rev : w64) : crev ≤ cmpRevAfter crev rev := by
+  unfold cmpRevAfter; split <;> omega
+
+/-- **What a compaction at `rev` needs at the log `log`** (pure; written once, review round 1's
+S-8): the store compacting (its backend in compaction mode: the KV invariant admits compaction
+entries only in the cluster's compaction mode, and `envAgree`/`srvEnvOkD` tie the store's mode to
+it) and the revision one of the log's (the committed log's claim, `cmpLogOk`). No `NoDelPutAt`:
+the fork has etcd-io/etcd#22377 (review round 1's F-5; mvcc's specs drop the premise before the
+switch). -/
+def cmpAdmitRev (kb : Option mvcc.KBReal) (log : mvcc.Log) (rev : w64) : Prop :=
+  mvcc.kbCmpM kb ∧ sint.Z rev < log.length
+
+theorem chainCompacts_auth (on : Bool) (c : Chain) : chainCompacts (.auth on c) = chainCompacts c := rfl
+theorem chainCompacts_quota (c : Chain) : chainCompacts (.quota c) = chainCompacts c := rfl
+theorem chainCompacts_capped (c : Chain) : chainCompacts (.capped c) = chainCompacts c := rfl
+
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -977,11 +1011,95 @@ theorem ciSplit_of_at (E : AEnv GF) (Pre : IProp GF) (x : w64) :
   iframe HC Hb
   ipureintro; exact h
 
+/-! ## The compaction arm (M2, the apply side, 2026-10-31) -/
+
+/-! ## The apply thread's compaction resources -/
+
+/-- **The store's compaction right at `c`, by the mode**: a compacting store's restorable right
+(`mvcc.compactRightR`: half the compaction revision's authority, the jobs' queue, the closer's and
+the jobs' shares of the fields), at least `-1`; a store that does not compact, none, at `-1`. -/
+def cmpRight (E : AEnv GF) (c : Int) : IProp GF :=
+  if mvcc.kbCmpM E.γ.kb then iprop(mvcc.compactRightR E.s E.γ c ∗ ⌜-1 ≤ c⌝) else iprop(⌜c = -1⌝)
+
+/-- **The apply thread's compaction resources at `c`**: the right by the mode and the compaction's
+write-back supply (persistent; `True` off). -/
+def cmpOwn (E : AEnv GF) (c : Int) : IProp GF :=
+  iprop(cmpRight E c ∗ mvcc.kbWTSupplyM E.γ.kb)
+
+theorem cmpOwn_off (E : AEnv GF) (c : Int) (h : ¬ mvcc.kbCmpM E.γ.kb) :
+    cmpOwn (GF := GF) E c ⊢ ⌜c = -1⌝ := by
+  unfold cmpOwn cmpRight
+  simp only [h, ↓reduceIte]
+  iintro ⟨%hc, -⟩
+  ipureintro; exact hc
+
+theorem cmpOwn_ge (E : AEnv GF) (c : Int) : cmpOwn (GF := GF) E c ⊢ ⌜-1 ≤ c⌝ := by
+  unfold cmpOwn cmpRight
+  split
+  · iintro ⟨⟨-, %h⟩, -⟩; ipureintro; exact h
+  · iintro ⟨%h, -⟩; ipureintro; omega
+
+
+
+/-- **A successful compaction's response** `rp` (owned: `EtcdServer.Compact` writes it): its
+header, owned (`Compaction`'s last lines, `rr.Rev` of `KV.Range(context.TODO(), "compaction", …)`).
+(2026-10-31, the switch: the draft's header revision `|log| - 1` dropped: no caller reads it,
+`compactResultIs` only owns the header, and `readView.Range` takes no lower bound of the log it
+reads, so the revision is that of some certified log, not provably the apply thread's.) -/
+def cmpRespOk (rp : Loc) : IProp GF :=
+  iprop(⌜rp ≠ null⌝ ∗ ∃ cv : etcdserverpb.CompactionResponse, rp ↦ cv ∗
+    ∃ hv : etcdserverpb.ResponseHeader, cv.Header' ↦ hv)
+
+/-- **The answer of the chain `c`'s `Compaction(rev)`** at the compaction revision
+`crev`: through a chain that reaches the backend, a response at the current revision with its trace
+(`rev` above `crev`), or `ErrCompacted` with no response and no trace (`rev` at or below `crev`); the
+corrupt applier's `ErrCorrupt`. The channel (`Physc`) is not stated: the request path reads it only
+of a physical compaction, which the proposers never send (`compactReqIs`). -/
+def cmpAnswerIs (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
+    (trace : Loc) (err : GoInterface) : IProp GF :=
+  if chainCompacts c then
+    iprop((⌜crev < sint.Z rev ∧ err = GoInterface.nil⌝ ∗ cmpRespOk resp ∗ traceRes trace) ∨
+      (⌜sint.Z rev ≤ crev ∧ resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
+  else
+    iprop(⌜resp = null ∧ ch = chan.nil ∧ trace = null⌝ ∗
+      txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err)
+
+/-- **The chain `c`'s `Compaction` triple** (M2, the apply side, item 9; `applierTriples`' last
+conjunct): `Compaction(cr)` for the request's `*pb.CompactionRequest` `cr` at the
+revision `rev` (`compactionIs`), admitted (`cmpAdmit`'s facts at `rev`), with the apply thread's KV
+at `log` and the critical-section contract (`mPre`: `store.Compact`'s `SetScheduledCompact` writes
+under the batch lock), and its compaction resources at `crev`: the KV and the chain's resources as
+they were, the contract's `Post` or `Pre`, the compaction resources at the revision after it
+(`cmpRevAfter crev rev` through a chain that reaches the backend), the answer (`cmpAnswerIs`).
+Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` arm, which
+`cmpAnswerIs` has no case for). -/
+def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
+  iprop(□ (∀ (cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev E.γ.kb log rev⌝ ∗
+          mPre E c (.ok ai) info log Pre Q Post ∗ cmpOwn E crev }}
+        (App (Val #(methods ai.ty go!"Compaction" ai.v)) (Val #cr))
+      {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
+          RET (PairV (PairV (PairV #resp #ch) #trace) #err);
+          kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
+          cmpOwn E (if chainCompacts c then cmpRevAfter crev rev else crev) ∗
+          cmpAnswerIs c crev rev resp ch trace err }}))
+
+/-- A wrapper that passes `Compaction` on answers as its inner chain. -/
+theorem cmpAnswerIs_congr (c c' : Chain) (h : chainCompacts c = chainCompacts c') (crev : Int)
+    (rev : w64) (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface) :
+    cmpAnswerIs (GF := GF) c crev rev resp ch trace err = cmpAnswerIs c' crev rev resp ch trace err := by
+  unfold cmpAnswerIs; rw [h]
+
+instance cmpTriple_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
+    Persistent (cmpTriple E c ai) := by
+  unfold cmpTriple; infer_instance
+
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
 `E` (each persistent: `dispatch` calls one per request). Each takes the principal `info` the
 chain's resources hold (A3, 2026-10-23); `Apply` hands its `applyFunc` the resources at the
 request's principal (`principalOf rq`), takes them back at any, and says its admin check passed
-for it (`adminPass`). -/
+for it (`adminPass`); `Compaction` (`cmpTriple`, M2's apply side, 2026-10-31). -/
 def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(
     -- the KV methods
@@ -1051,7 +1169,9 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (App (App (Val #(methods ai.ty go!"Apply" ai.v)) (Val #r)) (Val #v3)) (Val #af))
       {{ (ar : Loc), RET #ar;
           (B ar ∗ adminPass E.authMode c rq) ∨
-            (⌜needAdminPermission rq = true⌝ ∗ A ∗ rejectResultIs ar) }}))
+            (⌜needAdminPermission rq = true⌝ ∗ A ∗ rejectResultIs ar) }}) ∗
+    -- (M2, the apply side, item 9) `Compaction`
+    cmpTriple E c ai)
 
 instance applierTriples_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
     Persistent (applierTriples E c ai) := by

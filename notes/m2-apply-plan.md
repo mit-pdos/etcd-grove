@@ -15,8 +15,8 @@ Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The
 3. *The Probe*: item 18, G2 (the user's (a')), the commit step's compaction arm
    (`kv_prop_au_cmp`), S3-3's transfer lemma (`kv_entry_claim`) and G1 (`clusterWorkloadOk_ofD`),
    all in `M2ApplyProbe.lean`, done ("The Probe", below). The Probe is done. **The switch** ("The
-   switch", the last section): stage 1 (the backend's `Compaction`) done; **next: stage 2** (the
-   chain's `Compaction` triple in `applierTriples`).
+   switch", the last section): stages 1 (the backend's `Compaction`) and 2 (the chain's
+   `Compaction` triple) done; **next: stage 3** (`dispatch`/`Apply` in place).
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -673,7 +673,8 @@ merge (the auth-mode merge, after the snapshot track's SNAPSHOT-SORRYs #7/#8) an
 2. **The chain's `Compaction` triple** (item 9): `applierTriples` gains `cmpTriple`; each chain's
    construction proves it (`newApplierV3Backend` from stage 1; the auth, quota and capped wrappers
    pass the method on, `chainCompacts`; the corrupt applier's `ErrCorrupt`, `applierV3Corrupt__Compaction`
-   already proved); the consumers' positional destructurings of `applierTriples` move.
+   already proved); the consumers' positional destructurings of `applierTriples` move. **Done**
+   (below).
 3. **`dispatch`/`Apply` in place** (items 1-4, 11, 21): `dispatchOk` redefined, the answers with the
    compaction's case, `ApplyKV.crev` and `applyKV`'s `cmpOwn` (A1), `dispatch`'s compaction arm; the
    apply loop's carriers follow.
@@ -699,3 +700,14 @@ not provable over today's callees), each settled by the agent, reversible, for t
   `cmpRespOk` dropped it (and `cmpAnswerIs` its log argument).
 Also: WP transfers `mvcc.kvOver_compact_wp`, `kvOver_range_wp` (`KVView.lean`). Checked: `lean-check
 -a` of every changed file; the full build (below).
+
+**Stage 2: done (2026-10-31).** The compaction vocabulary moved into `Chain.lean` (the pure part
+above `section defs`: `chainCompacts` with its equations `chainCompacts_auth`/`_quota`/`_capped`,
+`cmpRevAfter`, `cmpAdmitRev`; then `cmpRight`, `cmpOwn`, `cmpRespOk`, `cmpAnswerIs` with
+`cmpAnswerIs_congr`, and `cmpTriple`); `applierTriples`' last conjunct is `cmpTriple E c ai`;
+`CompactArm.lean` keeps the glue `cmp_store_pre`. The five chain constructions prove it: the
+backend's from stage 1's spec, the quota/capped/auth wrappers pass the promoted method on (the auth
+layer checks nothing; its inner chain at any principal), the corrupt applier's from its proved
+`applierV3Corrupt.Compaction.spec` (`ErrCorrupt`, its `Pre` back). New hypotheses: `newApplierV3Backend`
+and `newApplierV3Corrupt` take the `Compaction` specs (link list). Four positional consumers gained a
+`-`. Checked: full build (11252 jobs), tcb unchanged (766 axioms, 20 sorries).

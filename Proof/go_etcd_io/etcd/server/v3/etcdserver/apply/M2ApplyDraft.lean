@@ -168,31 +168,6 @@ def applyResultIsD (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (ar : Loc) : App
 
 /-! ## The statements -/
 
-/-- **The chain `c`'s `Compaction` triple** (draft; a conjunct to add to `applierTriples`, the
-methods `dispatch` calls): `Compaction(cr)` for the request's `*pb.CompactionRequest` `cr` at the
-revision `rev` (`compactionIs`), admitted (`cmpAdmit`'s facts at `rev`), with the apply thread's KV
-at `log` and the critical-section contract (`mPre`: `store.Compact`'s `SetScheduledCompact` writes
-under the batch lock), and its compaction resources at `crev`: the KV and the chain's resources as
-they were, the contract's `Post` or `Pre`, the compaction resources at the revision after it
-(`cmpRevAfter crev rev` through a chain that reaches the backend), the answer (`cmpAnswerIs`).
-Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` arm, which
-`cmpAnswerIs` has no case for). -/
-def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
-  iprop(□ (∀ (cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
-        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev E.γ.kb log rev⌝ ∗
-          mPre E c (.ok ai) info log Pre Q Post ∗ cmpOwn E crev }}
-        (App (Val #(methods ai.ty go!"Compaction" ai.v)) (Val #cr))
-      {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
-          RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-          kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
-          cmpOwn E (if chainCompacts c then cmpRevAfter crev rev else crev) ∗
-          cmpAnswerIs c crev rev resp ch trace err }}))
-
-instance cmpTriple_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
-    Persistent (cmpTriple E c ai) := by
-  unfold cmpTriple; infer_instance
-
 end defs
 
 /-! ## The glue: `store.Compact`'s precondition from the backend's -/
