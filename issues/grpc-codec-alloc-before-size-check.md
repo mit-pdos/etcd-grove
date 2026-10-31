@@ -25,3 +25,7 @@ links: []
   (`grpcInvokerOk`'s pre takes `Req.wireLen ≤ grpcMsgMax`, `grpcMsgMax = 2^32`; landed 2026-10-30,
   `notes/invoke-size.md`) excludes these messages: the client's callers bound their keys, values and
   operations (`txnSizeOk`, ...).
+- **Related**: [etcd-txn-keysonly-reply-alloc-panic](etcd-txn-keysonly-reply-alloc-panic.md) is the
+  same codec allocation panic on the **server** reply side, reachable from etcd through a `Txn` of
+  nested keys-only whole-range reads (whose reply aliases the index's key slices); the server reply
+  side is still known-false in the proof (`notes/audit.md:338`).
