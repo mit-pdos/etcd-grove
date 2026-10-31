@@ -36,6 +36,14 @@ are about the calls `addr` answers; a call before `Serve` accepts waits, or fail
 the client). After it the server can no longer register a service (grpc's `RegisterService`
 after `Serve` is fatal).
 
+**The replies' size** (`grpcRepliesFit`, a premise of `grpc.start`, 2026-10-31,
+`notes/reply-size.md`): grpc marshals a reply before any size check, and the codec's `make` panics
+above Go's `maxAlloc` (`grpcReplyMax`). The start takes the named workload premise that no reply of
+the run exceeds it; the three tokens it makes exist only in such a run, so `grpc.serve`,
+`grpc.serveStream` and `grpc.Server.Serve.wp_proof`, which consume them, are true under it, and so is
+every result built on the tokens (the served results `etcd_kv_served`, `ServedOn`, `AuthnServedOn`,
+v3rpc's, whose statements do not show it). No law turns a token back into the premise.
+
 **The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
 `hs` (`health.NewServer()`), whose `SetServingStatus` is safe from any goroutine.
 
@@ -103,7 +111,8 @@ axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List
   (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) : IProp GF
 
 /-- **The right to serve `gs` on the listener `lis`** (exclusive; `grpc.start`'s, what
-`gs.Serve(lis)` takes). -/
+`gs.Serve(lis)` takes). Exists only in a run satisfying `grpcRepliesFit`: made only by
+`grpc.start`, which takes it. -/
 axiom grpcServeTok {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) : IProp GF
 
 /-- **grpc's health server `hs`** (persistent; see the file header). -/
@@ -196,13 +205,63 @@ instance grpcDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
     Persistent (grpcDescIs (GF := GF) sd sn ht mds sds) := by
   unfold grpcDescIs; infer_instance
 
+/-- **Go's `maxAlloc` on linux/amd64** (`runtime/malloc.go:213,220`): grpc's codecs `make` a
+reply's encoded length before any size check (protobuf-go `proto/encode.go:184-194`; grpc's default
+codec `internal/mem/buffer_pool.go:354-356`, page-rounded), and `make` panics above this. A reply
+at most this long marshals; in `(2 ^ 31 - 1, 2 ^ 48]` it then fails with `ResourceExhausted`
+(etcd's `MaxSendMsgSize`, `encode`'s `MaxUint32` check), which the client's attempt contract
+allows. Running out of memory below it is outside the model. -/
+def grpcReplyMax : Nat := 2 ^ 48
+
+/-- **The replies fit** (opaque; a named workload premise, D19a's first kind, as
+`apply.backendUnderQuota` and `authRecordsFit`): in every run of the theorem's program, every reply
+message a gRPC server marshals for sending (a unary reply after its handler returns, a stream
+handler's `SendMsg`/`Send`) has an encoded length, as a natural number, of at most `grpcReplyMax`,
+counting a submessage, or a byte slice's contents, once per reference (`notes/reply-size.md`).
+Global, one for the run, not per server.
+
+**What makes it true**: each byte slice and submessage is referenced a bounded number of times
+per reply, so the encoding is at most a small multiple of the memory the reply references, and Go's
+user address space on linux/amd64 is `2 ^ 47` bytes (out of memory comes first); or the workload's
+replies are small outright.
+
+**True of the closed theorems' programs**, whose replies are a few kilobytes:
+- putget, putget3, putgetc: one point `Get`;
+- linkvtxn: point operations and one bounded range;
+- authkv: fixed literals, its one nested transaction a write;
+- k8setcd3: a bounded loop. k8s' keys-only `getKeys` runs only with the cacher's size estimation,
+  which this program never builds;
+- the watch examples (watchkv, cachekv, linkv3p's `MainWatch`): small literal prefixes.
+None of them sends a transaction of many keys-only ranges.
+
+**False of** etcd under a client that sends a transaction whose nested transactions hold many
+keys-only ranges over long keys (`issues/etcd-txn-keysonly-reply-alloc-panic.md`, reproduced: 4
+keys under a 32 MiB `--max-request-bytes`, a 12.8 GiB member, the panic). A keys-only range's
+`KeyValue`s share the index's key slices (`mvcc/index.go:181`, `kvstore_txn.go:88-106`), and
+`checkTxnRequest` bounds the operations per nesting level, not the tree, so the reply's encoding
+grows with the leaves times the keys' bytes and can pass `grpcReplyMax`, which panics the member
+marshalling it. Such a transaction is not read-only (`IsTxnReadonly` looks at the top level only,
+where its operations are transactions), so it goes through raft, bounded by `--max-request-bytes`,
+and every member builds the reply in apply; the member serving the client marshals it. A flat
+read-only transaction is served locally, without the proposal's `--max-request-bytes` check, but
+holds at most `--max-txn-ops` ranges (128 by default), so its reply is at most that many copies of
+the stored keys: below `grpcReplyMax` unless that limit times the stored keys' bytes passes it
+(at the defaults, 2 TiB of keys; the suggested maximum quota is 8 GiB). Also false of a program whose handler
+returns a reply sharing a submessage or byte slice many times. A theorem taking this premise says
+nothing about such runs. The client's send side has its own checked premise (`grpcInvokerOk`'s
+`Req.wireLen m < grpcMsgMax`). -/
+opaque grpcRepliesFit : Prop
+
 /-- **The start** (an axiom; see the file header): the server being built and a listener bound
 at `addr` become the server at `addr`, with its chains and registrations, and the right to serve
 it on the listener. True of grpc: `Serve(lis)` serves every call accepted on `lis` with the
 server's chains and its registered methods (`handleStream`: the method of the call's path
-`/<service>/<method>` in `services[service]`), and no registration is made after it. -/
+`/<service>/<method>` in `services[service]`), and no registration is made after it. Under the
+named workload premise `grpcRepliesFit` (2026-10-31, `notes/reply-size.md`), which the three
+tokens carry: what makes `grpc.serve`, `grpc.serveStream` and `grpc.Server.Serve.wp_proof` true. -/
 axiom grpc.start (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) :
+  grpcRepliesFit →
   grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
     |={⊤}=> grpcServerAt addr ics regs ∗ grpcStreamServerAt addr sics sregs ∗ grpcServeTok gs lis
 

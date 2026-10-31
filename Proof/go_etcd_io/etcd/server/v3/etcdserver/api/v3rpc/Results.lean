@@ -34,6 +34,11 @@ Unit 3a (2026-10-12): the server's contract discharged for `Put` and `DeleteRang
 * **`put_end_to_end_model`**, **`deleteRange_end_to_end_model`** (pure): through the
   uber-applier's chain, such a put appends the client's put change to the log (a delete commits
   its changes), no alarm raised.
+
+**The replies' size** (2026-10-31, `notes/reply-size.md`): the served results here that take a
+server token (`grpcServerAt`, `grpcStreamServerAt`: the auth and watch services served) are
+conditional, through it, on the workload premise `grpcRepliesFit`, which `grpc.start`, the token's
+only producer, takes; their statements do not show it.
 -/
 module
 

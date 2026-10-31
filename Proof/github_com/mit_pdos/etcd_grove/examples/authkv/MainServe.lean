@@ -63,13 +63,14 @@ theorem bcryptCostOk_of_field (wp : auth.authStore.BcryptCost.spec (GF := GF)) (
   iapply HΦ
   itrivial
 
-/-- **etcd's server, started for authkv: its KV and Auth services** (see the file header). -/
+/-- **etcd's server, started for authkv: its KV and Auth services** (see the file header); under
+`grpcRepliesFit`, which it gives `grpc.start`. -/
 theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
     (E : apply.AEnv GF) (ρ : ReqNames) (cid mid n : w64) (il im iu ims is : GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) (N : Nat)
     (γa : auth.AuthNames) (hγa : E.authMode = .on γa)
     (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (hregsA : ∀ x ∈ v3rpc.authRegs pa, x ∈ regs)
-    (wpBC : auth.authStore.BcryptCost.spec (GF := GF)) :
+    (wpBC : auth.authStore.BcryptCost.spec (GF := GF)) (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM true s E ρ ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
@@ -88,7 +89,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hpa, #HBF, #Hil, #Him, #Hiu, Hgs,
     Hlis, Hslots⟩
-  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis]
+  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf) $$ [Hgs Hlis]
     with ⟨Hat', Hss, Htok⟩
   · iframe
   iunfold srvAuthStoreOn at HBF
