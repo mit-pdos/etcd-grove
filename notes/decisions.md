@@ -27066,3 +27066,18 @@ responses' `rangeKvsOk` and `etcdState_keys` (`notes/keylen.md`, "Leasing's revo
 
 **Alternatives rejected:** a premise on each client function (the keys come from etcd, not from
 the caller); a sealed-start-log premise on the read side (the floor already carries the log).
+
+## The examples' sizes (2026-10-31 · pass 4 of the encoded-size bound, the coordinator's scope · `notes/invoke-size.md`, "Pass 4")
+
+**Context.** The examples' closed theorems must not change; the client calls they make now take
+size premises.
+
+**Decision:** each example discharges them inside: a writer takes `wkvSizeOk` of the pairs it
+tries (a per-pair bound, which `GenKv` gives); a program's internal call functions take their
+strings' bounds; linkvtxn's and k8setcd3's `GenIn` (what `Gen` returns) bound the inputs' strings,
+which their `genFrom` proofs show from the workload's literals. linkvtxn bounds every string of
+the decoded input (`minBytesLe`), a comparison's key included, which `inKeys` did not bound.
+
+**Not done:** k8setcd3's no-op update (`GuaranteedUpdate`'s premise quantifies over any object
+read; `notes/invoke-size.md`).
+

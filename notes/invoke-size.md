@@ -257,3 +257,29 @@ maxReq⌝`, plus `⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) b�
   definition, so the fold is its `Commit`'s pure gaining `∧ txnSizeOk b.model`.
 - **Unchanged:** D3 `etcdTxnSpecOn`, D4 `txnUpdAtOn`, S1, S3, S5, D2 and N1–N4. The size is the
   sender's obligation to grpc, not part of the registered spec.
+
+## Pass 4: the examples (2026-10-31)
+
+The size facts are discharged inside each closed theorem; no closed theorem's statement changes.
+
+- `common.wkvSizeOk` (`common/WatchBase.lean`): a pair whose key and value are at most `2 ^ 28`
+  bytes, `wkvSizeOk.put` its put's `opSizeOk`, `GenKv.sizeOk` from `GenKv` with short keys. The
+  writers (`common.Writer.spec`, `linkv3p.writer.spec`) take it of every pair tried; watchkv's,
+  cachekv's and linkv3p's Mains prove it from `GenAll`'s `GenKv`.
+- `linkv3p.client_Put_km` and `authkv.client_Put_on` take their put's `opSizeOk`; authkv's `SetUp`
+  proves it of its keys (`setupKeys`, by `decide`) and the admin calls' `strsSizeOk`.
+- putget, putget3, putgetc: their literals; cachekv: its prefix's length (`New`).
+- linkvtxn: `GenIn` gains `minBytesLe inMax` of the decoded input (`inMax = 2 ^ 20`: every key and
+  value, a comparison's key and value too), which `genFrom` proves; `callGet`, `callPut`,
+  `callDel` take their strings' bounds and `callTxn` `minBytesLe` of its transaction, from `GenIn`
+  in `call`; `txnSizeOk_txnOf` bounds the transaction (`txnSizeOk_of_bounds`, at most five
+  nodes, `decIn_txn_length`). linkvtxn builds.
+- k8setcd3: `GenIn` gains `x.Val'.length ≤ 2 ^ 20` (`genFrom`: the workload's values); `call`
+  takes it (from `Apply`) and proves the store's key bound (from `InOk`) and `Create`'s
+  `storedSizeOk`; `seedOne` its put.
+- **Left, k8setcd3's `call`, the Update branch** (`call.lean`, BLOCKED): `GuaranteedUpdate.spec`
+  takes `storedSizeOk` of every result of the update function from any object. `call`'s
+  function on a no-op input returns the object it read, whose value nothing bounds. Closing it
+  needs a change to `GuaranteedUpdate`'s exported premise (e.g. only for an object whose stored
+  value fits, or only for a result that is written), beyond what pass 4 may change.
+

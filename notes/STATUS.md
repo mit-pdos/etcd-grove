@@ -527,8 +527,11 @@ conjunct of `proto.MarshalIRR`'s post (commit `0d43bc2dd8`, for an axiom review 
   `Election.observe`'s watch.
 - **Leasing:** `revokeLeaseKvs` and `revokeFallback` (internal) take the bound of the keys they
   revoke, which `revokeRange` and `serverTxn` prove from their responses; leasing builds.
-- **Left:** the other red modules of `invoke-size` are its earlier gaps (concurrency's
-  `Mutex`/`Election` sizes, the examples' sizes).
+- **Pass 4, the examples** (`notes/invoke-size.md`, "Pass 4"): done but for k8setcd3's `call`
+  (the Update branch: `GuaranteedUpdate`'s premise on a no-op update). No closed theorem's
+  statement changes; linkvtxn's and k8setcd3's `GenIn` bound their inputs' strings.
+- **Left:** concurrency's `Mutex`/`Election` sizes (`%x`, waiting for the pin bump), and
+  k8setcd3's `call`.
 
 ## Perennial pin `6da88b280` (2026-10-30, branch `pin-6da88b2`)
 
