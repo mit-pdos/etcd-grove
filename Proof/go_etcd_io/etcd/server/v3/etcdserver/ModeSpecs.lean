@@ -392,7 +392,7 @@ abbrev EtcdServer.apply.specOff : Prop :=
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp w ∗ srvFS s ∗
@@ -405,7 +405,8 @@ abbrev EtcdServer.apply.specOff : Prop :=
       srvApRes s γr (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
           appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗ srvRest E γr (A ++ ms)) ∗
@@ -437,7 +438,7 @@ abbrev EtcdServer.apply.specOn : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
       entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp w ∗ srvFS s ∗
@@ -454,7 +455,8 @@ abbrev EtcdServer.apply.specOn : Prop :=
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
         ciApplying ci a' at' ∗
-        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvAppliedOwn γr appliedi ∗
         srvWTTaken γp (w + ms.length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
@@ -499,7 +501,7 @@ abbrev EtcdServer.applyEntries.specOff : Prop :=
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvFS s ∗
@@ -511,6 +513,7 @@ abbrev EtcdServer.applyEntries.specOff : Prop :=
       srvApRes s γr (A ++ unapplied ai ms) ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗
         srvAppliedOwn γr ai' ∗ srvWTTaken γp (w + (unapplied ai ms).length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
@@ -544,7 +547,7 @@ abbrev EtcdServer.applyEntries.specOn : Prop :=
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvFS s ∗
@@ -558,6 +561,7 @@ abbrev EtcdServer.applyEntries.specOn : Prop :=
       srvApRes s γr (A ++ unapplied ai ms) ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
         ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗
         srvAppliedOwn γr ai' ∗ srvWTTaken γp (w + (unapplied ai ms).length) ∗
@@ -583,7 +587,7 @@ theorem EtcdServer.apply.spec_off
   unfold EtcdServer.apply.spec at h
   simp only [srvRunH_apply_spec] at h
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok hdv
-  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
+  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hcv, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
     HWP, HWA0, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
   have hm : E.authMode = .off := by
@@ -596,16 +600,16 @@ theorem EtcdServer.apply.spec_off
     (by rw [hoff]; exact hEok) hdv
   rw [hoff] at h'
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT] at h'
-  iapply h' $$ [Hbw Hes Hents Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS Hkb
+  iapply h' $$ [Hbw Hes Hents Hst Hbe Happ Hcs Hcv Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS Hkb
     Hdv Hdvr Hrun HAR] [HΦ]
-  · iframe Hpkg Hsrv Hbw Hes Hents Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS
+  · iframe Hpkg Hsrv Hbw Hes Hents Hst Hbe Happ Hcs Hcv Hlr Hgr HKV Hao Hlog0 Hbc HWP HWA0 Hfs Hka HRS
       Hkb Hdv Hdvr Hrun HAR
   iintro !> %appliedt %appliedi %shouldStop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, Hst, -,
-    Hbe, Hci, Hcs, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
+    Hbe, Hci, Hcs, Hcv, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
   iapply HΦ
   iframe Hfs Hdv Hrun HAR
   iexists st', a', at', csl
-  iframe Hst Hbe Hci Hcs Hlr Hgr Hao HWT
+  iframe Hst Hbe Hci Hcs Hcv Hlr Hgr Hao HWT
   isplitl [HKV Hlog Hka HRS]
   · iexists x'; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
   ipureintro; exact Hp
@@ -633,7 +637,7 @@ theorem EtcdServer.applyEntries.spec_off
   unfold EtcdServer.applyEntries.spec at h
   simp only [srvRunH_applyEntries_spec] at h
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
-  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr,
+  iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hcv, Hst, Hbe, Happ, Hlr, Hgr,
     HKV, Hao, Hlog, Hbc, HW, HWA, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
   have hm : E.authMode = .off := by
@@ -646,16 +650,16 @@ theorem EtcdServer.applyEntries.spec_off
     (by rw [hoff]; exact hEok) hdv
   rw [hoff] at h'
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT] at h'
-  iapply h' $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW HWA
+  iapply h' $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW HWA
     Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR] [HΦ]
-  · iframe Hpkg Hsrv Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW
+  · iframe Hpkg Hsrv Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW
       HWA Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR
-  iintro !> ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, -, Hbe,
+  iintro !> ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hcv, Hst, -, Hbe,
     Hci, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
   iapply HΦ
   iframe Hfs Hdv Hrun HAR
   iexists st', ai', at', a', t', cs'
-  iframe Hai Hat Hcs Hst Hbe Hci Hlr Hgr Hao HWT
+  iframe Hai Hat Hcs Hcv Hst Hbe Hci Hlr Hgr Hao HWT
   isplitl [HKV Hlog Hka HRS]
   · iexists x'; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
   ipureintro; exact Hp

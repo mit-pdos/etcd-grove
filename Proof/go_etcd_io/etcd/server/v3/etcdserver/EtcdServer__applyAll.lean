@@ -49,7 +49,7 @@ theorem EtcdServer.applyAll.wp_proof
   simp only [srvRunH_applyAll_spec]
   have hAE := EtcdServer.applyEntries.spec_off hAE
   unfold EtcdServer.applyEntries.specOff at hAE
-  wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
+  wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
@@ -77,8 +77,8 @@ theorem EtcdServer.applyAll.wp_proof
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok
     hEok hdv
-    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR]
-    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
+    $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR]
+    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, #Hcv', Hst, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
       ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   · iframe #; iframe
   iunfold srvFS at Hfs
@@ -145,7 +145,7 @@ theorem EtcdServer.applyAll.wp_proof
       iframe Hsrv
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr HAR Hrun
+      iframe Hai Hat Hcs Hcv' Hss Hst Hbe Happ Hlr Hgr Hbr HAR Hrun
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -219,7 +219,7 @@ theorem EtcdServer.applyAll.wp_proof
     iframe Hsrv
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr HAR Hrun
+    iframe Hai Hat Hcs Hcv' Hss Hst Hbe Happ Hlr Hgr Hbr HAR Hrun
     isplitl [Hao]
     · iexact Hao
     isplitr
@@ -245,7 +245,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     Hms Hai1 Hok hEok hdv haw hAL hAT
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE
-  wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
+  wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
@@ -273,8 +273,8 @@ theorem EtcdServer.applyAll.wp_proofOn
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB
     Hms Hai1 Hok hEok hdv
-    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
-    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
+    $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
+    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, #Hcv', Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
       ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   · iframe #; iframe
   iunfold srvFS at Hfs
@@ -341,7 +341,7 @@ theorem EtcdServer.applyAll.wp_proofOn
       iframe Hsrv
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe Hai Hat Hcs Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+      iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -417,7 +417,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     iframe Hsrv
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe Hai Hat Hcs Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+    iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
     isplitl [Hao]
     · iexact Hao
     isplitr

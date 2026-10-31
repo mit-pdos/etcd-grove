@@ -164,9 +164,7 @@ read-only conf state of the cluster's simple membership (D3: the membership at e
 membership. In Go `ep.confState` is raft's answer to the last validated conf change
 (`server.go:2052`), or the stored snapshot's (`:808`) or an applied one's (`:1174`).
 `notes/snapshot-sorries-plan.md`, #9. -/
-def epCsCfg (γr : ReadNames) (cs : Loc) : IProp GF :=
-  iprop(∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
-    ⌜confStateIs c (Membership.simple γr.raft.raft.cfg)⌝)
+def epCsCfg (γr : ReadNames) (cs : Loc) : IProp GF := epCsVoters γr.raft cs
 
 instance epCsCfg_persistent (γr : ReadNames) (cs : Loc) : Persistent (epCsCfg (GF := GF) γr cs) := by
   unfold epCsCfg; infer_instance

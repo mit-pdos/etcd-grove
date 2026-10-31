@@ -224,6 +224,7 @@ axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
+axiom membership.membersOfBk_empty
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof

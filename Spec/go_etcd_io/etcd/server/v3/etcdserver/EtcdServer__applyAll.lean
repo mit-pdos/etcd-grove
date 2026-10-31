@@ -84,7 +84,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
@@ -103,6 +103,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         srvWTTaken γp (w + (unapplied ai ms).length) ∗
@@ -161,7 +162,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
@@ -182,6 +183,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ srvTokRights E' (ciEff γ' st'.k) ∗
         applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗

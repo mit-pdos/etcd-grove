@@ -129,7 +129,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     with ⟨%cl, ⟨%Hdup, %Hbl⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots
-  icases Hboots with ⟨-, Hboots⟩
+  icases Hboots with ⟨#Hbl0c, Hboots⟩
   imod confPolicy_alloc cl srvConfN (srvRule (W64 0) (LogEntry.toEntries boot 0)) ⊤ $$ Hdec
     with #Hpol
   imod (inv_alloc srvSnapsN ⊤ iprop(∃ S, ownSnapsMade (GF := GF) cl S)) $$ [Hsm] with #Hsinv
@@ -153,7 +153,19 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0
-    ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
+    -- (2026-10-31, S5) the bootstrap log committed first
+    isplitr
+    · iunfold srvRLogLb
+      isplitl
+      · have he : srvLE (⟨γ, [], W64 0⟩ : ServerRaftNames) (γ.boot.map EntryModel.ofM) = boot := by
+          simp only [srvLE, List.nil_append]; rw [hbt]; exact bootEntries_toLE boot
+        rw [he]; simp only [hcl]; iexact Hbl0c
+      · ipureintro; rw [hbt]; exact hidx
+    ipureintro; exact ⟨ps, Hne, by rw [hbt]; exact hboot⟩
   -- the mode-`on` KV invariant at the bootstrap log
   imod (mono_list_own_alloc (GF := GF) [srvAuthSt0]) with ⟨%γh, Hh, -⟩
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain true false false, [[], []], 0, 0,

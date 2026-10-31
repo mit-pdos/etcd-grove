@@ -259,7 +259,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- (D22 receiver epochs, S7f, 2026-10-23) the current backend `B`, at the start's logical names,
     -- with the server's view at it
     ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServer C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
+    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗

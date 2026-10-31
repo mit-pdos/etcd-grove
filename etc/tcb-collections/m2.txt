@@ -336,6 +336,7 @@ axiom httpProtoFree
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
+axiom membership.membersOfBk_empty
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof

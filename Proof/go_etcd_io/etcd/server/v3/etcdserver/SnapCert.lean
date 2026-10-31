@@ -60,7 +60,7 @@ theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
   iintro ⟨#Hinv, #Hlb⟩
   ihave #Hinv' := Hinv
   iunfold srvRaftLogInv at Hinv'
-  icases Hinv' with ⟨-, #Hcl, -, -, %Hpre⟩
+  icases Hinv' with ⟨-, #Hcl, -, -, %Hpre, -⟩
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨#Hc, -, -, -, -, #Hreg, -⟩
   iunfold srvRLogLb at Hlb
@@ -125,6 +125,7 @@ theorem wp_srv_createSnapshot
   iunfold srvSnapStor at Hstor
   icases Hstor with ⟨#Hmsi, Hdl, #Hrli, ⟨%A, #HA, %HAp⟩⟩
   iunfold epCsCfg at Hecs
+  iunfold epCsVoters at Hecs
   icases Hecs with ⟨%c, #Hc, %Hcs⟩
   iunfold srvFrozenTerm at Hft
   icases Hft with (%H0 | ⟨%e, #He, %Hterm⟩)

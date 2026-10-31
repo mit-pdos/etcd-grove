@@ -177,14 +177,18 @@ Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant
   snapshot (`ownSnapV`; its clone by a fifth conjunct of the `proto.CloneSnapshot` axiom, approved),
   so `snapshot`'s `at' ≠ 0` and `0 < size cfg` premises are dropped. `srvMemOk`'s voter bound is
   `< 2^61` (from `NewServer`'s `ps.length ≤ 2^20`), which gives `specFull`'s.
-- **S5, `ep.confState` the voters'** (plan): Go updates `ep.confState` only on a validated change
+- **S5, `ep.confState` the voters'** (done 2026-10-31, before `specFull`'s switch): Go updates `ep.confState` only on a validated change
   (raft's answer, `confStateIs cs m'`; `m'` is the voters' by `nodeConfig_confAt` and
   `srv_confAt_simple`); a failed one leaves it. A fresh start's is the empty storage snapshot's, so
   it is the voters' once the first boot entry validated, on the fresh backend: the approved law
-  `membership.membersOfBk_empty` (empty buckets decode to no members; under review,
+  `membership.membersOfBk_empty` (empty buckets decode to no members; reviewed: survives,
   `notes/axiom-review/members-empty.md`) gives `ccValidOn restBootBk m` for the boot AddNode. Steps:
   `srvRaftLogInv` carries the boot entries committed (`srvRLogLb γ (bootEntries boot)`), so a
   non-empty applied log starts with the boot's first entry; `applyConfChange`'s post says
   `ep.confState` is the voters' after a validated change, unchanged otherwise; `apply`'s loop,
   `applyEntries` and `applyAll` keep `⌜L = []⌝ ∨ epCsCfg γr cs` for the applied log `L`; `run`'s
-  `applyRes` carries it.
+  `applyRes` carries it. As built: `epCsVoters γs cs` (`InvApplier`; `epCsCfg γr` is it at `γr.raft`) and
+  `epCsAt γs L cs := ⌜L = []⌝ ∨ epCsVoters γs cs`; `srv_first_entry` (the loop's first entry is the
+  boot AddNode), `ccValidOn_boot`; `applyConfChange`'s post `epCsVoters γs csl ∨ ⌜ccValidOn rs.bk m =
+  false ∧ csl = cs⌝`; `apply`/`applyEntries`/`applyAll` take `epCsAt ρ.raft A cs` and give it at
+  `A ++ ms`; `applyRes`/`applyResOn` carry `epCsAt C.ρ.raft A cs`.

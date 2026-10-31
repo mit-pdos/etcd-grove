@@ -91,7 +91,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyRes at HR
-  icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
+  icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, ⟨%w, #HWA, %Hw⟩, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hci, Hstep, Hlt⟩ := Hpure
@@ -167,15 +167,15 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
       C.ms C.γs C.wt dv γnc w nid hms hb1 Hloop hok' hdv Hw (by have := uint_nat_eq C.ai₀; omega) Hlt)
-    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR Hrh]
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR Hrh]
   · rw [hun]
-    iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
+    iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
     iframe
     iunfold srvGoRes
     iframe
     iexact Hdvr
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
@@ -203,6 +203,9 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact beSucc_trans HB HB'
   iframe Hsrv'
+  ihave #Hcv'' : epCsAt C.ρ.raft (A ++ ce) cs' $$ []
+  · rw [show A ++ ce = A ++ unapplied ai ce by rw [hun]]; iexact Hcv'
+  iframe Hcv''
   iframe
   iframe Hlog'
   have hlast := srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0
@@ -295,7 +298,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyResOn at HR
-  icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
+  icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, ⟨%w, #HWA, %Hw⟩, HtokR, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hci, Hstep, Hlt⟩ := Hpure
@@ -371,15 +374,15 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
       C.ms C.γs C.wt dv γnc w nid γa sa (by rw [beSucc_authMode HB]; exact hM) hRB hms hb1 Hloop hok' hdv Hw (by have := uint_nat_eq C.ai₀; omega) Hlt)
-    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh]
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh]
   · rw [hun]
-    iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
+    iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
     iframe
     iunfold srvGoRes
     iframe
     iexact Hdvr
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
@@ -407,6 +410,9 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact beSucc_trans HB HB'
   iframe Hsrv'
+  ihave #Hcv'' : epCsAt C.ρ.raft (A ++ ce) cs' $$ []
+  · rw [show A ++ ce = A ++ unapplied ai ce by rw [hun]]; iexact Hcv'
+  iframe Hcv''
   iframe
   iframe Hlog'
   have hlast := srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0
@@ -750,6 +756,9 @@ theorem EtcdServer.run.wp_proof
     -- (D19i part 1) `ep.confState`'s first value, read-only; the snapshot token
     ihave confState : epConfState ep_ptr cs $$ [confState]
     · iunfold epConfState; iframe confState Hcsok
+    ihave #Hcv0 : epCsAt ρ.raft [] cs $$ []
+    · iunfold epCsAt; ileft; ipureintro; rfl
+    iframe Hcv0
     iframe
     isplitl
     · iunfold srvSnapState; rw [← Hmsγ]; iexists ai₀, ai₀, f₀; iframe
@@ -1274,6 +1283,9 @@ theorem EtcdServer.run.wp_proofOn
     -- (D19i part 1) `ep.confState`'s first value, read-only; the snapshot token
     ihave confState : epConfState ep_ptr cs $$ [confState]
     · iunfold epConfState; iframe confState Hcsok
+    ihave #Hcv0 : epCsAt ρ.raft [] cs $$ []
+    · iunfold epCsAt; ileft; ipureintro; rfl
+    iframe Hcv0
     iframe
     isplitl
     · iunfold srvSnapState; rw [← Hmsγ]; iexists ai₀, ai₀, f₀; iframe
