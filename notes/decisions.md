@@ -28092,3 +28092,25 @@ the backend path `bp` after `ss` and hold `backend.pathOwn bp`; their callers pa
 `config.backendPathOf cfg.DataDir'`. The trust base keeps the same axiom, restated. The user
 approved the change (a trusted statement).
 
+## The merged snapshot's image with auth on: one image per cluster, after durability (2026-10-31, the user's decision)
+
+**2026-10-31 · accepted** (settles "Open (mode on)" of "`applyAll`'s merge branch (S1)")
+
+`SNAPSHOT-SORRY #7-on`: `srvNet`'s `img` is `srvImage`, the mode-off model, so with auth on the
+merged image cannot be certified. **Target (b): one image per cluster, in the mode the cluster
+runs.** In Go auth is not a per-member setting but replicated state (the auth bucket, applied through
+raft), so a cluster's members agree on it and no member receives a snapshot of the other mode. The
+model's mode (`E.authMode`, fixed at `NewServer`) is per member; it becomes a cluster-wide
+parameter in the cluster's names (`SrvRaft` or the network payload), and `srvNet γ`'s `img` is
+`srvImage` in `γ`'s mode (`kvModelOn`'s state when on). Mixed-mode clusters are excluded by
+construction. J8a's receiver (`applySnapshot.specSnap`, mode off today) gets a mode-on variant
+that handles only its own mode.
+
+Not taken: (a) a mode-indexed image that every receiver accepts in either mode: it matches no Go
+behaviour and doubles the receiver's work.
+
+**Timing (c):** not now. The change is to the same certificate the user's durability work is
+reshaping (`srvImage(R)`), so `#7-on` stays a named `sorry` until that lands, and (b) is done then.
+Tying a member's mode to the cluster's adds a premise to `NewServer.spec`, which feeds the exported
+mode-on results (`server_start_on`, `server_apply_all_on`, the mode-on examples' closed theorems):
+that change goes to the user for approval when it is made.
