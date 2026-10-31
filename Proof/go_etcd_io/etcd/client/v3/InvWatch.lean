@@ -464,13 +464,52 @@ theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : 
 
 /-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
-model sees them (`watchLaws`). -/
+model sees them (`watchLaws`); and (M2, the storage side, 2026-10-30: review round 1's F1, the
+user's: no watchers in compaction mode) its store's "no compactor" fact, which the client's create
+requests carry (`watchUp`). -/
 def watchMemberFacts (V : WEnv GF) : IProp GF :=
   iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗
-    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V)
+    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.noCompactor V.R.γ.st)
 
 instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFacts V) := by
   unfold watchMemberFacts; infer_instance
+
+/-- **The member's "no compactor" fact** (a projection, so no site destructures the facts by
+position). -/
+theorem watchMemberFacts_noCompactor (V : WEnv GF) :
+    watchMemberFacts V ⊢ mvcc.noCompactor V.R.γ.st := by
+  iintro #H
+  iunfold watchMemberFacts at H
+  icases H with ⟨-, -, -, -, -, #Hf⟩
+  iexact Hf
+
+/-- **The member's KV facts** (a projection). -/
+theorem watchMemberFacts_kv (V : WEnv GF) : watchMemberFacts V ⊢ srvKVFacts V := by
+  iintro #H
+  iunfold watchMemberFacts at H
+  icases H with ⟨-, -, -, -, #Hk, -⟩
+  iexact Hk
+
+/-- **The member's names link** (a projection). -/
+theorem watchMemberFacts_st (V : WEnv GF) : watchMemberFacts V ⊢ ⌜V.R.γ.st = V.R.E.γ⌝ := by
+  iintro #H
+  iunfold watchMemberFacts at H
+  icases H with ⟨-, -, %h, -⟩
+  ipureintro; exact h
+
+/-- **A create request's content, from the member's facts** (M2, the storage side; the client's
+create sites in `watchGRPCStream.run`, each with a token from the pool and, G2, the create's bound
+at the member's mode): a restricted create with a watch token and its bound is `watchUp`'s. -/
+theorem watchUp_create (V : WEnv GF) (i : Nat) (c : v3rpc.CreateReqM)
+    (h : v3rpc.watchReqOk (.create c)) :
+    watchMemberFacts V ∗ mvcc.watchTok V.R.γ ∗ □ auth.authPubLbM V.R.E.authMode c.bound ⊢
+      v3rpc.watchUp V.R i (.create c) := by
+  iintro ⟨#Hm, Ht, #Hb⟩
+  ihave #Hf := watchMemberFacts_noCompactor V $$ Hm
+  unfold v3rpc.watchUp
+  dsimp only
+  iframe Ht Hf Hb
+  ipureintro; exact h
 
 /-- **The facts about the servers, the transport and the packages a watcher rests on, but the
 stub** (persistent; see the file header; W3b, 2026-10-22: of every member): the connection to

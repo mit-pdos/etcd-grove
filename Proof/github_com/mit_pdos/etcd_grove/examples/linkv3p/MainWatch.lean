@@ -190,9 +190,9 @@ theorem MainWatch.wp_proof
     %HR₂, #Hstr₂, %Hp₂⟩
   icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
     %HR₃, #Hstr₃, %Hp₃⟩
-  obtain ⟨hr₁, hc₁, hch₁, hlog₁⟩ := Hp₁
-  obtain ⟨hr₂, hc₂, hch₂, hlog₂⟩ := Hp₂
-  obtain ⟨hr₃, hc₃, hch₃, hlog₃⟩ := Hp₃
+  obtain ⟨hr₁, hc₁, hch₁, hlog₁, hoff₁⟩ := Hp₁
+  obtain ⟨hr₂, hc₂, hch₂, hlog₂, hoff₂⟩ := Hp₂
+  obtain ⟨hr₃, hc₃, hch₃, hlog₃, hoff₃⟩ := Hp₃
   -- the members' names are the history's (the first member's)
   -- (2026-10-27, the server port) the members' raft names are the cluster's but for each one's
   -- storage registry
@@ -223,21 +223,21 @@ theorem MainWatch.wp_proof
     · iexact Hrd₁
     isplitr
     · iexists pw₁; iexact Hws₁
-    ipureintro; exact ⟨HR₁.2, hm₁, rfl⟩
+    ipureintro; exact ⟨HR₁.2, hm₁, rfl, hoff₁⟩
   ihave #Hmw₂ : memberWatch ρ₁.rd s₂ E₂ ρ₂ R₂ $$ []
   · iunfold memberWatch
     isplitr
     · iexact Hrd₂
     isplitr
     · iexists pw₂; iexact Hws₂
-    ipureintro; exact ⟨HR₂.2, hm₂, hst₂⟩
+    ipureintro; exact ⟨HR₂.2, hm₂, hst₂, hoff₂⟩
   ihave #Hmw₃ : memberWatch ρ₁.rd s₃ E₃ ρ₃ R₃ $$ []
   · iunfold memberWatch
     isplitr
     · iexact Hrd₃
     isplitr
     · iexists pw₃; iexact Hws₃
-    ipureintro; exact ⟨HR₃.2, hm₃, hst₃⟩
+    ipureintro; exact ⟨HR₃.2, hm₃, hst₃, hoff₃⟩
   -- each member's `Watch` stream at its bridge
   ihave #Hb₁ := isGrpcStream_forwards bridgeAddr₁ clientAddr₁ _ _ _ $$ [Hfw₁ Hstr₁]
   · iframe #

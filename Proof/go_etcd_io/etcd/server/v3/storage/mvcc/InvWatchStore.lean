@@ -1442,11 +1442,65 @@ theorem wlogQ_auth_agree (γ : WsNames) (q q' : Qp) (L C : Log) :
   ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ Hc Ha
   ipureintro; exact H.2
 
+/-- **No watcher, or no compactor** (M2, the storage side, 2026-10-30: review round 1's F1, the
+user's: no watchers in compaction mode; a conjunct of the lock's body, `watchStoreBody`): no
+watcher is registered, or the inner store is frozen. `watch` (registration) has the fact from the
+create token (`storeWatchParams`'s `T`, through `noCompactor_frozen`); `syncWatchers`' non-empty
+branch (`Wu ≠ ∅`, so `M ≠ ∅`: `wsOk_M_ne_of_Wu`) takes it here; every other step keeps `M` empty or
+the fact. -/
+def wsWatchFrozen (γ : WsNames) (σ : WsState) : IProp GF :=
+  iprop(⌜σ.M = ∅⌝ ∨ crevFrozen γ.st)
+
+instance wsWatchFrozen_persistent (γ : WsNames) (σ : WsState) :
+    Persistent (wsWatchFrozen (GF := GF) γ σ) := by
+  unfold wsWatchFrozen; infer_instance
+
+omit package_sem in
+/-- With the frozen fact, any state. -/
+theorem wsWatchFrozen_of_frozen (γ : WsNames) (σ : WsState) :
+    crevFrozen (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
+  iintro #H; iunfold wsWatchFrozen; iright; iexact H
+
+omit package_sem in
+/-- A step that registers no watcher keeps it (the new names empty if the old ones were). -/
+theorem wsWatchFrozen_mono (γ : WsNames) (σ σ' : WsState) (h : σ.M = ∅ → σ'.M = ∅) :
+    wsWatchFrozen (GF := GF) γ σ ⊢ wsWatchFrozen γ σ' := by
+  iunfold wsWatchFrozen
+  iintro (%Hm | #H)
+  · ileft; ipureintro; exact h Hm
+  · iright; iexact H
+
+omit package_sem in
+/-- **An unsynced watcher has names** (review round 1's open check, `WsOk`): `Wu ≠ ∅` gives `M ≠ ∅`
+(an unsynced watcher is live, so it has a state, so names), which is why `wsWatchFrozen`'s
+`crevFrozen` is there in `syncWatchers`' non-empty branch. -/
+theorem wsOk_M_ne_of_Wu (σ : WsState) (h : WsOk σ) (w : Loc)
+    (hw : (σ.Wu !! w).isSome) : σ.M ≠ ∅ := by
+  intro hM
+  have hl : σ.live w := Or.inr (Or.inl hw)
+  have := h.st_m w (h.live_st w hl)
+  rw [hM] at this
+  simp at this
+
+omit package_sem in
+/-- **`syncWatchers`' frozen fact** (M2, the storage side): with an unsynced watcher, the store is
+frozen (`wsWatchFrozen`'s second arm: the first, no watcher, is excluded by `wsOk_M_ne_of_Wu`). -/
+theorem wsWatchFrozen_of_Wu (γ : WsNames) (σ : WsState) (h : WsOk σ) (hsz : GMap.size σ.Wu ≠ 0) :
+    wsWatchFrozen (GF := GF) γ σ ⊢ crevFrozen γ.st := by
+  obtain ⟨w, v, hw⟩ := (GMap.map_size_ne_0_lookup σ.Wu).mp hsz
+  have hM := wsOk_M_ne_of_Wu σ h w (by rw [hw]; rfl)
+  iintro H
+  iunfold wsWatchFrozen at H
+  icases H with (%Hm | #H)
+  · exact absurd Hm hM
+  · iexact H
+
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
   iprop("Hσ" ∷ ghostVar γ.wst q σ ∗
     "Hwlog" ∷ wlogQ γ q σ.Lmu ∗
     "#Hcert" ∷ idxCert γ.st.idx σ.Lmu ∗
+    "#Hwfz" ∷ wsWatchFrozen γ σ ∗
     "Hsynced" ∷ ownWatcherGroup (syncedAddr s) σ.Ws q ∗
     "Hunsynced" ∷ ownWatcherGroup (unsyncedAddr s) σ.Wu q ∗
     "Hvf" ∷ typedPointsto (victimsAddr s) σ.vs (DFrac.own q) ∗
@@ -1539,8 +1593,9 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hstop" ∷ isStopChan stc ∗
     -- (M2, `notes/m2-plan.md`, S1) the inner store never compacted, as `newWatchableStore` makes
     -- it (`crevFrozen_alloc`): what `syncWatchers`' snapshot (`rangeEvents`) needs, which until M2
-    -- the store's reader carried
-    "#Hfrz" ∷ crevFrozen γ.st ∗
+    -- the store's reader carried; (M2, the storage side, P3) by the mode: in compaction mode not
+    -- (`wsFrozenM`), and `syncWatchers` finds it with a watcher instead (`wsWatchFrozen`)
+    "#Hfrz" ∷ wsFrozenM γ.st ∗
     "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
 /-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**
@@ -1576,6 +1631,68 @@ instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
     Persistent (isWatchableStore (GF := GF) s st γ) := by
   unfold isWatchableStore; simp only [named]; infer_instance
 
+omit package_sem in
+/-- **The frozen fact of an off store** (persistent; internal: clients use
+`isWatchableStore_noCompactor`). -/
+theorem isWatchableStore_frozen (s st : Loc) (γ : WsNames) (h : γ.st.cm = false) :
+    isWatchableStore (GF := GF) s st γ ⊢ crevFrozen γ.st := by
+  unfold isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iapply (wsFrozenM_off γ.st h).1 $$ Hfrz
+
+omit package_sem in
+/-- **The watchable store's inner store** (a law, so the server's glue does not unfold the
+predicate). -/
+theorem isWatchableStore_isStore (s st : Loc) (γ : WsNames) :
+    isWatchableStore (GF := GF) s st γ ⊢ isStore st γ.st := by
+  unfold isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iexact Hs
+
+omit package_sem in
+/-- **The inner store's read view, over the watchable store** (a law, so the server's glue does not
+unfold the predicate). -/
+theorem isWatchableStore_readView (s st : Loc) (γ : WsNames) :
+    isWatchableStore (GF := GF) s st γ ⊢
+      ∃ rv : Loc, st.[store, go!"ReadView"] ↦□
+          (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+        isReadView rv st γ.st := by
+  unfold isWatchableStore
+  iintro ⟨%vc, %stc, %rv, %γv, H⟩
+  iNamed H
+  iexists rv
+  iframe Hrv
+  iunfold isReadView
+  iexists _
+  iframe Hrvkv Hs
+  iunfold kvOver; iright; iexists s; iframe Hst; ipureintro; rfl
+
+omit package_sem in
+/-- **An off store has no compactor** (persistent; the law the watch server's exports, v3rpc's
+`isWatchServer_noCompactor`). -/
+theorem isWatchableStore_noCompactor (s st : Loc) (γ : WsNames) (h : γ.st.cm = false) :
+    isWatchableStore (GF := GF) s st γ ⊢ noCompactor γ.st :=
+  (isWatchableStore_frozen s st γ h).trans (noCompactor_of_frozen γ.st)
+
+/-- **A creator that will not compact freezes the store** (M2, the storage side, review round 1's
+S5; any mode): with the authority's half it was handed (`crevRightM`, in compaction mode, mvcc's
+assumed backend's included) or the frozen fact the store already has (off), the "no compactor"
+fact, so that it can watch (the create token's). In compaction mode it spends the half: such a
+creator gives up compacting. -/
+theorem noCompactor_of_new (s st : Loc) (γ : WsNames) (E : CoPset) :
+    isWatchableStore (GF := GF) s st γ ∗ crevRightM γ.st ={E}=∗ noCompactor γ.st := by
+  iintro ⟨#Hws, Hcr⟩
+  by_cases h : γ.st.cm = true
+  · unfold crevRightM
+    simp only [h, ↓reduceIte]
+    imod crevFrozen_alloc γ.st E $$ Hcr with #Hf
+    imodintro
+    iapply noCompactor_of_frozen $$ Hf
+  · imodintro
+    iapply isWatchableStore_noCompactor s st γ (by simpa using h) $$ Hws
+
 /-- **What a registration says of the watcher `w`** (persistent; the store's `IWF`): its
 names (`watcherMeta`), its fixed fields (range `r`, filters `fcs`), and its first revision `lo`:
 the start revision, or, for a start revision `0`, the length of a committed log `C` at the
@@ -1594,7 +1711,9 @@ instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : G
 (`IW`), cancelled (`WC`), nothing of the channel (`C`: the close right has its invariant),
 filters deciding predicates (`F`), the close right (`CR`: the channel, its invariant, the
 stream's half of the registered watchers), the reader slots (`R`) and a watch token (`T`: a
-registration's cost, `watchTok`), and what a registration says of its watcher (`IWF`:
+registration's cost, `watchTok`; and, M2's storage side, review round 1's F1, the user's: the "no
+compactor" fact, `noCompactor`, so that a watcher is registered only by a caller that shows the
+store frozen: no watchers in compaction mode), and what a registration says of its watcher (`IWF`:
 `watcherIs`). -/
 def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW w := iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
@@ -1606,7 +1725,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
-  T := watchTok γ
+  T := iprop(watchTok γ ∗ noCompactor γ.st)
   IWF := watcherIs γ
   OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   WS w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw)

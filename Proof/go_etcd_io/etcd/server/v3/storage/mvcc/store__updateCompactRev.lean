@@ -62,16 +62,21 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h2 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c P f Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs, HRTok⟩
-  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, HwFrag⟩
+  intro s γ rev c P hk Pre Q Post logc hcmp
+  wp_start as ⟨#Hs, HmuA, Hright, #HcertC, %HndC, Hctx, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
-  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
-  -- `isStore`'s, pinned)
-  icases mvcc.storeStop_open s γ $$ Hstop with
-    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  -- the restorable right (M2, the storage side, item 17): its queue, the closer's eighth of the
+  -- fields (which read `s.b` and `s.fifoSched`) and the jobs' share
+  icases (mvcc.compactRightR_iff s γ c).1 $$ Hright with
+    ⟨Hcr, Hq, %o, ⟨Hfs, #Hsc, Hstc, Htok⟩, #Hstop⟩
+  iunfold mvcc.fieldShareAt at Hfs
+  iNamed Hfs
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
+  obtain ⟨b, ti, ssched, sstop⟩ := o
+  ihave #Hph0 := Hph
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
@@ -84,15 +89,13 @@ theorem mvcc.store.updateCompactRev.wp_proof
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨Hwl, HR⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HR with HR
-  icases mvcc.revMuInv_open_cur s γ _ _ _ _ $$ [HR Hrstd Hcurd] with ⟨HR, HrstR, -, -⟩
-  · iframe HR Hrstd Hcurd
+  icases mvcc.revMuInv_open_cur s γ _ _ _ _ $$ [HR Hfrst Hcur] with ⟨HR, HrstR, Hfrst, Hcur⟩
+  · iframe HR Hfrst Hcur
   iunfold mvcc.revMuBody at HR
   icases HR with ⟨%log, %ntok, %c', HR⟩
   iNamed HR
   iunfold mvcc.muInvAt at HmuA
   iNamed HmuA
-  iunfold mvcc.compactRight at Hright
-  icases Hright with ⟨Hcr, Hq, #Hlive⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c Hc.1 HcM $$ Hcrev Hcr
   subst Hcc
   ihave Hinit : (mvccInit : IProp GF) $$ []
@@ -104,6 +107,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hnn, -⟩
+  cases ssched with
+  | nil => exact absurd rfl Hnn
+  | ok sci =>
   wp_auto
   wp_if_destruct
   · -- `rev <= s.compactMainRev`: `ErrCompacted`, a barrier job
@@ -112,15 +118,22 @@ theorem mvcc.store.updateCompactRev.wp_proof
     ihave #Hbc0 := ownBroadcastChan_Unknown _ _ _ _ $$ Hbc
     (try wp_auto)
     ipersist ch
+    -- the barrier, tracked (item 17: the right's queue; the last job's `Post` passed through)
+    iunfold mvcc.compactQueue at Hq
+    icases Hq with ⟨%Ps, %p, %Qq, %Rq, Hq, #Hp, HRq, Hwq⟩
+    imod (schedule.savedProp_alloc Qq) with ⟨%post, #Hpost⟩
     wp_func_lits
     (try wp_auto)
-    wp_apply h0 γ.sch _ _ iprop(mvcc.compactCloser ch iprop(True) ∗ □ iprop(True)) iprop(True) iprop(True)
+    wp_apply h0 γ.sch _ _ iprop(mvcc.compactCloser ch iprop(True) ∗ □ iprop(True)) Qq Qq
       $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
-      iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', -⟩, -, #Hctx'⟩ HΦj
-      wp_auto
-      wp_apply (h1 s γ ctx' cd' ch iprop(True)) $$ [$Hcl']
+      iintro !> %ctx' %cd' !> %Φj ⟨Hrun, ⟨Hcl', -⟩, HQp, #Hctx', #HPD'⟩ HΦj
+      iapply wp_fupd
+      wp_auto_lc 2
+      -- the barrier leases the fields' eighth for its run (item 17)
+      imod mvcc.storeStopR_lease s γ _ $$ Hstop Hrun Hlc1 with ⟨Hfj, Hlease⟩
+      wp_apply (h1 s γ ctx' cd' ch iprop(True) mvcc.q8 _) $$ [$Hcl' $Hfj] as Hfj
       · iframe #
         isplitl []
         · iunfold mvcc.barrierCtx
@@ -128,14 +141,13 @@ theorem mvcc.store.updateCompactRev.wp_proof
           iexact Hctx'
         imodintro; itrivial
       (try wp_auto)
+      imod mvcc.jobLease_return s γ _ $$ Hlease Hfj Hlc2 with Hrun
+      imodintro
       iapply HΦj
-      iframe Hrun
-    cases ssched with
-    | nil => exact absurd rfl Hnn
-    | ok sci =>
-      wp_auto
-      wp_apply h2 sci γ.sch j iprop(mvcc.compactCloser ch iprop(True) ∗ □ iprop(True)) iprop(True)
-          iprop(True) none $$ [Hbc] as -
+      iframe Hrun HQp
+    · (try wp_auto)
+      wp_apply h2 sci γ.sch j iprop(mvcc.compactCloser ch iprop(True) ∗ □ iprop(True)) Qq Qq
+          (some (Ps, p, post)) $$ [Hbc Hq] as Hq
       · iframe #
         isplitl [Hbc]
         · iunfold mvcc.compactCloser
@@ -143,8 +155,13 @@ theorem mvcc.store.updateCompactRev.wp_proof
           · iexists γch; iexact Hbc
           imodintro; itrivial
         simp only [schedule.schedPre]
-        iframe #
-        ipureintro; trivial
+        iframe Hq Hp Hpost
+      simp only [schedule.schedPost]
+      ihave Hq : mvcc.compactQueue γ c' $$ [Hq HRq Hwq]
+      · iunfold mvcc.compactQueue
+        iexists Ps ++ [p], post, Qq, Rq
+        simp only [List.append_assoc, List.cons_append, List.nil_append]
+        iframe Hq Hpost HRq Hwq
       (try wp_auto)
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
@@ -156,10 +173,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe #
         ipureintro; exact ⟨Hne, Hbudget, Hc⟩
       (try wp_auto)
+      icases mvcc.lockCtxM_pre γ P hk Pre Q Post $$ Hctx with ⟨Hback, HPre⟩
       iapply HΦ
-      iframe HRTok
-      isplitl [HwFrag]
-      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
+      iframe HRTok Hback
       iright; ileft
       isplitr
       · ipureintro; exact ⟨by word, rfl⟩
@@ -167,10 +183,15 @@ theorem mvcc.store.updateCompactRev.wp_proof
       · iexists ecp; iframe Hcomp; ipureintro; rfl
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
-      isplitl [Hcr Hq]
-      · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
-      isplitl [Hcs]
-      · iunfold mvcc.csContract at Hcs; icases Hcs with ⟨HPre, -, -⟩; iexact HPre
+      isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
+      · iapply (mvcc.compactRightR_iff s γ _).2
+        iframe Hcr Hq
+        iexists ⟨b, ti, GoInterface.ok sci, sstop⟩
+        iframe Hsc Hstc Htok Hstop
+        iunfold mvcc.fieldShareAt; simp only [named]; iframe Hcur Hfrst Hph0
+        iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
+      isplitl [HPre]
+      · iexact HPre
       iunfold mvcc.compactChan
       iexists γch
       iexact Hbc0
@@ -199,10 +220,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe #
         ipureintro; exact ⟨Hne, Hbudget, Hc⟩
       (try wp_auto)
+      icases mvcc.lockCtxM_pre γ P hk Pre Q Post $$ Hctx with ⟨Hback, HPre⟩
       iapply HΦ
-      iframe HRTok
-      isplitl [HwFrag]
-      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
+      iframe HRTok Hback
       iright; iright
       isplitr
       · ipureintro; exact ⟨Hgt, rfl, rfl⟩
@@ -212,9 +232,14 @@ theorem mvcc.store.updateCompactRev.wp_proof
       · iexists log; iframe Hcert; ipureintro; omega
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
-      isplitl [Hcr Hq]
-      · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
-      iunfold mvcc.csContract at Hcs; icases Hcs with ⟨HPre, -, -⟩; iexact HPre
+      isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
+      · iapply (mvcc.compactRightR_iff s γ _).2
+        iframe Hcr Hq
+        iexists ⟨b, ti, GoInterface.ok sci, sstop⟩
+        iframe Hsc Hstc Htok Hstop
+        iunfold mvcc.fieldShareAt; simp only [named]; iframe Hcur Hfrst Hph0
+        iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
+      iexact HPre
     · -- `s.compactMainRev = rev`, under both locks: the field and the revision's authority
       have hrl : sint.Z rev < log.length := by omega
       ihave Hcmpf : (s.[store, go!"compactMainRev"] ↦ (W64 c' : w64) : IProp GF) $$ [Hcmp HcmpM]
@@ -230,25 +255,14 @@ theorem mvcc.store.updateCompactRev.wp_proof
           (W64 (sint.Z rev) : w64) : IProp GF) $$ [Hcmpf]
       · rw [← dfrac_own_half_half 1, hrw]; iexact Hcmpf
       icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcmpf2 with ⟨Hcmp, HcmpM⟩
-      -- the caller's hook is the store's
-      imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc2 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
-      ihave #HhookC' := HhookC
-      iunfold mvcc.hookOk at HhookC'
-      icases HhookC' with ⟨-, #Hhf⟩
-      iunfold mvcc.csContract at Hcs
-      icases Hcs with ⟨HPre, #Htriple, Hupd⟩
-      ihave #Htr0 : □ ({{ Ph ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
-      · iintro !> %Φ' !> ⟨HP0, Hpre⟩ HΦ'
-        iapply Htriple $$ %Φ' [HP0 Hpre] HΦ'
-        iframe Hpre
-        iapply HP0P
-        iexact HP0
       -- `SetScheduledCompact(s.b.BatchTx(), rev)`, over the store's contract with its compaction on
       -- (question 5's core stage, parts (2)-(4): its tokens, lock resource and write right)
       have hcM := mvcc.storeCmp_cmpM γ hcmp
       ihave #Hbk' := mvcc.isKeyBackendG_cmpOn b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
       ihave #Hsw := mvcc.mwSwap_of_physOk s γ hcM $$ HmwP
-      icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg, #Hsup⟩
+      icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg⟩
+      -- (M2, the storage side, Q1 (a)) the supply from the pre
+      ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcM).1 $$ HsupM
       iunfold mvcc.isKeyBackendG at Hbk'
       icases Hbk' with ⟨%bi, %Hbi, -, -, #HB, #HForce, -⟩
       subst Hbi
@@ -264,46 +278,101 @@ theorem mvcc.store.updateCompactRev.wp_proof
       (try wp_auto)
       iunfold mvcc.isBatchTxG at Hbt
       icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
+      ihave #HbtN := mvcc.batchTxSpecG_noNil _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbt
       have hrev0 : 0 ≤ sint.Z rev := by omega
       -- (`wp_apply` of a triple over `Locked`, a variable from an existential, leaves a synthetic
       -- `sorry`: bind and apply)
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
         (Val #(GoInterface.ok bt))) (Val #rev))
-      -- (question 5's core stage) the store's swap of its lock's resource for the right
-      iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
-          (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-          (mvcc.kbMW γ.kb γ.bucket) f rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
-      · iframe #
-        iframe HPre HRTok Hwt1
-        iintro ⟨HQ, HW⟩
-        imod Hupd $$ HQ with ⟨HP, HPost⟩
-        ihave HP0 := HPP0 $$ HP
-        ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
-        iunfold mvcc.writerRes at HW
-        icases HW with ⟨%ilog, HW⟩
-        iNamed HW
-        iunfold mvcc.compactRes at Hcres
-        icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn, Hmk⟩
-        iunfold mvcc.metaCompact at Hmeta
-        imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
-        imodintro
-        iframe HP0 HPost
-        iapply mvcc.storeW_put s γ
-        iframe Hreg
-        iunfold mvcc.writerRes
-        iexists ilog
-        simp only [named]
-        iframe
-        iframe #
-        isplitr
-        · ipureintro; exact Hne
-        iunfold mvcc.compactRes
-        iexists (some rev), fin, n
-        iunfold mvcc.metaCompact
-        iframe
-        ipureintro; exact Hn
-      inext
-      iintro ⟨HRTok, HPost⟩
+      -- (M2, item 31) by the hook's state: set, the caller's contract; unset (`restore()`'s resumed
+      -- compaction), `LockInsideApply`'s nil arm (`batchTxSpecG`'s `lockNilSpec`, the unset hook lent)
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ mvcc.storeRT γ ∗ Post ∗ mvcc.lockBackM γ P hk)))
+        $$ [Hctx HRTok Hwt1 Hlc2]
+      · cases hk with
+        | some f =>
+          rw [mvcc.lockCtxM_some, mvcc.lockBackM_some]
+          icases Hctx with ⟨HhookC, Hcs⟩
+          icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, HwFrag⟩
+          -- the caller's hook is the store's
+          imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc2 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
+          ihave #HhookC' := HhookC
+          iunfold mvcc.hookOk at HhookC'
+          icases HhookC' with ⟨-, #Hhf⟩
+          iunfold mvcc.csContract at Hcs
+          icases Hcs with ⟨HPre, #Htriple, Hupd⟩
+          ihave #Htr0 : □ ({{ Ph ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
+          · iintro !> %Φ' !> ⟨HP0, Hpre⟩ HΦ'
+            iapply Htriple $$ %Φ' [HP0 Hpre] HΦ'
+            iframe Hpre
+            iapply HP0P
+            iexact HP0
+
+          -- (question 5's core stage) the store's swap of its lock's resource for the right
+          iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
+              (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
+              (mvcc.kbMW γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
+          · rw [mvcc.lockArmS_some]
+            iframe #
+            iframe HPre HRTok Hwt1
+            iintro ⟨HQ, HW⟩
+            imod Hupd $$ HQ with ⟨HP, HPost⟩
+            ihave HP0 := HPP0 $$ HP
+            ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
+            iunfold mvcc.writerRes at HW
+            icases HW with ⟨%ilog, HW⟩
+            iNamed HW
+            iunfold mvcc.compactRes at Hcres
+            icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn, Hmk⟩
+            iunfold mvcc.metaCompact at Hmeta
+            imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
+            imodintro
+            iframe HP0 HPost
+            iapply mvcc.storeW_put s γ
+            iframe Hreg
+            iunfold mvcc.writerRes
+            iexists ilog
+            simp only [named]
+            iframe
+            iframe #
+            isplitr
+            · ipureintro; exact Hne
+            iunfold mvcc.compactRes
+            iexists (some rev), fin, n
+            iunfold mvcc.metaCompact
+            iframe
+            ipureintro; exact Hn
+
+          inext
+          iintro ⟨HRTok, HPost⟩
+          iframe HRTok HPost
+          isplitr
+          · ipureintro; rfl
+          iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
+        | none =>
+          rw [mvcc.lockCtxM_none, mvcc.lockBackM_none]
+          icases Hctx with ⟨#HhP, HwFrag, Hnil, HPre, Hupd⟩
+          ihave #Hbt' := Hbt
+          iunfold mvcc.batchTxSpecG at Hbt'
+          icases Hbt' with ⟨-, -, -, -, -, -, -, -, -, #HLN⟩
+          iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
+              (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
+              (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbHookNil γ.kb) none rev Pre Q
+              iprop(Post ∗ mvcc.kbHookNil γ.kb) hrev0) $$ [HPre Hupd HRTok Hwt1 Hnil]
+          · rw [mvcc.lockArmS_none]
+            iframe #
+            iframe HPre HRTok Hwt1 Hnil
+            iintro ⟨Hpre, Hn⟩
+            imod Hupd $$ Hpre with HPost
+            imodintro
+            iframe HPost Hn
+          inext
+          iintro ⟨HRTok, HPost, Hnil⟩
+          iframe HRTok HPost
+          isplitr
+          · ipureintro; rfl
+          iframe HhP HwFrag Hnil
+      iintro %v ⟨%Hv, HRTok, HPost, Hback⟩
+      subst Hv
       -- `s.b.ForceCommit()`, with a write-back token from the supply
       imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2
       (try wp_auto)
@@ -327,9 +396,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         ipureintro; exact ⟨Hne, Hbudget, by omega, by omega⟩
       (try wp_auto)
       iapply HΦ
-      iframe HRTok
-      isplitl [HwFrag]
-      · iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
+      iframe HRTok Hback
       ileft
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, Hgt⟩
@@ -340,10 +407,15 @@ theorem mvcc.store.updateCompactRev.wp_proof
         isplitr
         · iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HndC
         ipureintro; omega
-      isplitl [Hcr Hq]
-      · iunfold mvcc.compactRight
-        iframe Hcr Hlive
-        iapply mvcc.compactQueue_mono γ c' (sint.Z rev) (by omega) $$ Hq
+      ihave Hq := mvcc.compactQueue_mono γ c' (sint.Z rev) (by omega) $$ Hq
+      isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
+      · iapply (mvcc.compactRightR_iff s γ _).2
+        iframe Hcr Hq
+        iexists ⟨GoInterface.ok bi, ti, GoInterface.ok sci, sstop⟩
+        iframe Hsc Hstc Htok Hstop
+        iunfold mvcc.fieldShareAt; simp only [named]; iframe Hcur Hfrst Hph0
+        iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
+
       iframe HPost
       -- the caller's `NoDelPutAt`, for the committed log (`crevSafe_cert`)
       ihave %Hnd' : ⌜mvcc.NoDelPutAt log (sint.Z rev)⌝ $$ []

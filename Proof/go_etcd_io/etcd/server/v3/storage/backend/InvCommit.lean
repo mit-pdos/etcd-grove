@@ -63,7 +63,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     · ipureintro; rfl
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOk_commit hC') $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -90,7 +90,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     · ipureintro; rfl
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOk_commit hC') $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -114,7 +114,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     · ipureintro; rfl
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOk_commit hC') $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -142,7 +142,7 @@ theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
   iframe Ht Hown Hph Hv
   isplitl [Hr Ha Hm Hu Ho Hk Hfk]
   · iexists n, w, u
-    ihave Hfk := fkHalf_mono γ P (st' := st.setHw true) (fkOk_setHw true) $$ Hfk
+    ihave Hfk := fkHalf_mono γ P (st' := st.setHw true) (fkOkG_setHw true) $$ Hfk
     iframe
     ipureintro
     exact bgOk_setHw true Hok

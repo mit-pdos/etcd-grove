@@ -34,15 +34,18 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h2 : traceutil.TODO.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c P f Pre Q Post log hcmp
-  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs, HRTok⟩
+  intro s γ rev c P hk Pre Q Post log hcmp
+  wp_start as ⟨#Hs, Hmu, Hright, #HcertC, %HndC, Hctx, HRTok, #HsupM⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (h0 s γ hcmp) $$ [$HRTok] as %pcc HRTok
+  -- `s.b`, read through the right's closer's eighth (M2, the storage side, item 17)
+  icases mvcc.compactRightR_take s γ c $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
+  wp_apply (h0 s γ mvcc.q8 o hcmp) $$ [$HRTok $Hfs] as %pcc ⟨Hfs, HRTok⟩
   · iframe #
+  ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
+  wp_apply (h1 s γ rev c P hk Pre Q Post log hcmp) $$ [$Hmu $Hright $Hctx $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
@@ -52,9 +55,10 @@ theorem mvcc.store.compactLockfree.wp_proof
     (try wp_auto)
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
     (try wp_auto)
-    iunfold mvcc.compactRight at Hright
-    icases Hright with ⟨Hcrev, Hq, #Hlive⟩
-    wp_apply (h3 s γ t rev prev pcc true Ht) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, -⟩
+    icases mvcc.compactRightR_take s γ (sint.Z rev) $$ Hright with ⟨%o', Hfs, Hq, Hrclose⟩
+    wp_apply (h3 s γ t rev prev pcc true mvcc.q8 o' Ht) $$ [$Hjob $Hq $Htrc $Hfs]
+      as %ch' ⟨#Hch', Hq, -, Hfs⟩
+    ihave Hright := Hrclose $$ Hfs Hq
     (try wp_auto)
     iapply HΦ
     iframe HRTok Hhook
@@ -62,10 +66,9 @@ theorem mvcc.store.compactLockfree.wp_proof
     iframe Hmu HPost Hch'
     isplitr
     · ipureintro; exact ⟨rfl, Hlt⟩
-    isplitl [Hcrev Hq]
-    · iunfold mvcc.compactRight; iframe Hcrev Hq Hlive
+    iframe Hright
     iunfold mvcc.compactJobPre at Hjob
-    icases Hjob with ⟨-, -, -, -, #Hlb, -⟩
+    icases Hjob with ⟨-, -, -, #Hlb, -, -⟩
     iexact Hlb
   · subst Herr
     (try wp_auto)

@@ -65,7 +65,7 @@ omit package_sem in
 theorem bkNoCmp_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ bkNoCmp γ := by
   iintro H
-  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨H, -⟩
+  icases fkCl_parts (GF := GF) γ P D $$ H with ⟨H, -⟩
   rw [fkInit_of_abs (fkAbsD_of_noCmp h)]
   unfold bkNoCmp
   iexact H
@@ -75,7 +75,7 @@ omit package_sem in
 theorem fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ fkV γ true := by
   iintro H
-  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨-, H⟩
+  icases fkCl_parts (GF := GF) γ P D $$ H with ⟨-, H⟩
   rw [fkWInit_of_wf (fkWfD_of_abs P (fkAbsD_of_noCmp h))]
   iexact H
 
@@ -86,7 +86,7 @@ bit at `true`. -/
 theorem bkNoCmp_fkV_of_fkCl (γ : BNames) (P : BParams) {D : Data} (h : noCmpData D) :
     fkCl (GF := GF) γ P D ⊢ bkNoCmp γ ∗ fkV γ true := by
   iintro H
-  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨H, Hv⟩
+  icases fkCl_parts (GF := GF) γ P D $$ H with ⟨H, Hv⟩
   rw [fkInit_of_abs (fkAbsD_of_noCmp h), fkWInit_of_wf (fkWfD_of_abs P (fkAbsD_of_noCmp h))]
   unfold bkNoCmp
   iframe H Hv
@@ -97,7 +97,7 @@ records a compaction): the client's half of the flag at `fkInit D` and the bit a
 theorem fkCl_wf (γ : BNames) (P : BParams) {D : Data} (h : fkWfD P D) :
     fkCl (GF := GF) γ P D ⊢ fkOwn γ (fkInit D) ∗ fkV γ true := by
   iintro H
-  icases (fkCl_parts (GF := GF) γ P D).1 $$ H with ⟨H, Hv⟩
+  icases fkCl_parts (GF := GF) γ P D $$ H with ⟨H, Hv⟩
   rw [fkWInit_of_wf h]
   iframe H Hv
 

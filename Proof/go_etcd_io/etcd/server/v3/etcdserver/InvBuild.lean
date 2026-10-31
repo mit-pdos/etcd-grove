@@ -60,9 +60,27 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Two apply environments agree on the names** the raft contract's `E.C` reads (`srvC`: the
 store's index names, through the results' certificates `idxCert`; its certificate map, `certOk`;
-the revisions' tokens, `revMinted`). -/
+the revisions' tokens, `revMinted`), and (M2, the storage side, review round 2's N1, the
+approval's item 10) on the compaction mode, the first one's mode its store's (`E.γ.cm = E.cmp`:
+one reading of the mode, the store's logical one, which a restore keeps). -/
 def envAgree (E E' : apply.AEnv GF) : Prop :=
-  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev
+  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧ E.γ.cm = E.cmp
+
+/-- **The mode, read at the stand-in** (N1): the server's store compacts exactly when the stand-in
+says so. -/
+theorem envAgree_mode (E E₀ : apply.AEnv GF) (h : envAgree E E₀) : E.γ.cm = E₀.cmp := by
+  rw [h.2.2.2.2, h.2.2.2.1]
+
+/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
+`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
+theorem envAgree_off (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = false) :
+    E.γ.cm = false := by
+  rw [envAgree_mode E E₀ h, h0]
+
+/-- A compacting stand-in, a compacting server. -/
+theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = true) :
+    E.γ.cm = true := by
+  rw [envAgree_mode E E₀ h, h0]
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
 base chain with auth disabled and no alarm. -/
@@ -387,7 +405,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr⟩ := h
+  obtain ⟨hi, hc, hr, -, -⟩ := h
   have hres : resultΨ (GF := GF) E = resultΨ E' := by
     funext ρ' rq F x
     unfold resultΨ resultIsW revMinted revTok mvcc.certOk

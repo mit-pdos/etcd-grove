@@ -207,17 +207,48 @@ def isWatchServer (p : Loc) (R : WSrv GF) : IProp GF :=
 instance isWatchServer_persistent (p : Loc) (R : WSrv GF) : Persistent (isWatchServer p R) := by
   unfold isWatchServer; infer_instance
 
+/-- The watch server's store names are its environment's (a law, in place of the clients'
+unfold). -/
+theorem isWatchServer_link (p : Loc) (R : WSrv GF) : isWatchServer p R ⊢ ⌜R.γ.st = R.E.γ⌝ := by
+  iintro #H
+  iunfold isWatchServer at H
+  icases H with ⟨-, -, -, -, -, -, -, -, Hok⟩
+  iunfold watchSrvOk at Hok
+  icases Hok with ⟨-, %h, -⟩
+  ipureintro; exact h
+
+/-- **The watch server's "no compactor" fact, given the server's mode** (M2, the storage side,
+review round 2's N1: clients take the fact from the server state they already hold). -/
+theorem isWatchServer_noCompactor (p : Loc) (R : WSrv GF) (h : R.γ.st.cm = false) :
+    isWatchServer p R ⊢ mvcc.noCompactor R.γ.st := by
+  iintro #H
+  iunfold isWatchServer at H
+  icases H with ⟨-, -, -, -, -, -, -, -, Hok⟩
+  iunfold watchSrvOk at Hok
+  icases Hok with ⟨#Hws, -⟩
+  iapply mvcc.isWatchableStore_noCompactor _ _ R.γ h $$ Hws
+
+/-- **The fact at the server's mode** (N1): the mode read at the server's environment, where the
+examples know it (`envAgree E E₀` with the stand-in's mode). -/
+theorem isWatchServer_noCompactor_env (p : Loc) (R : WSrv GF) (h : R.E.γ.cm = false) :
+    isWatchServer p R ⊢ mvcc.noCompactor R.γ.st := by
+  iintro #H
+  ihave %hl := isWatchServer_link p R $$ H
+  iapply isWatchServer_noCompactor p R (by rw [hl]; exact h) $$ H
+
 /-! ## The client's restrictions and budget -/
 
 /-- **What the client's content of a request gives the server** (persistent): the request is
 restricted (`watchReqOk`) and, for a create request, comes with a watch token of the store
-(`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends) and (G2's
+(`mvcc.watchTok γ`: the watchable store's watcher budget, which mvcc's `Watch` spends), (G2's
 freeze, 2026-10-30) the client's bound on the auth store's published index in the server's mode `M`
-(`authPubLbM M c.bound`, `watchUp`'s: what `recvLoop` checks the create at). -/
+(`authPubLbM M c.bound`, `watchUp`'s: what `recvLoop` checks the create at), and (M2, the storage
+side, 2026-10-30: review round 1's F1, the user's: no watchers in compaction mode) the "no
+compactor" fact (`mvcc.noCompactor γ.st`, the create token's in mvcc's watch parameters). -/
 def upOk (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
     (match m with
-     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound
+     | .create c => mvcc.watchTok γ ∗ □ auth.authPubLbM M c.bound ∗ mvcc.noCompactor γ.st
      | _ => iprop(True)))
 
 instance upOk_persistent (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → WatchReqM → IProp GF) :
@@ -226,13 +257,15 @@ instance upOk_persistent (γ : mvcc.WsNames) (M : auth.AuthMode) (Up : Nat → W
 
 /-- **The client's content of the watch method's requests** (unit W-W: what the client's `Send`
 gives with each request, `Up` of the registered method): the request is restricted
-(`watchReqOk`) and a create request comes with a watch token of the store and (G2, 2026-10-30) the
+(`watchReqOk`) and a create request comes with a watch token of the store, (G2, 2026-10-30) the
 client's bound on the auth store's published index (`authPubLbM` of the create's ghost `bound`,
-at the server's mode: the check is fresh at it). -/
+at the server's mode: the check is fresh at it), and (M2, the storage side) the "no compactor"
+fact. -/
 def watchUp (R : WSrv GF) (_i : Nat) (m : WatchReqM) : IProp GF :=
   iprop(⌜watchReqOk m⌝ ∗
     (match m with
-     | .create c => mvcc.watchTok R.γ ∗ □ auth.authPubLbM R.E.authMode c.bound
+     | .create c => mvcc.watchTok R.γ ∗ □ auth.authPubLbM R.E.authMode c.bound ∗
+         mvcc.noCompactor R.γ.st
      | _ => iprop(True)))
 
 /-- The registered content meets the watch server's restrictions and budget (`upOk`). -/

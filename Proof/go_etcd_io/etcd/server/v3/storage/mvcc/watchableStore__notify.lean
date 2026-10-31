@@ -940,9 +940,10 @@ theorem mvcc.watchableStore.notify.wp_proof
     iframe Hevs
     iexists { σ with vs := vs' }
     simp only [GMap.map_size_empty, ↓reduceIte]
+    ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ { σ with vs := vs' } (fun h => h) $$ Hwfz
     iunfold mvcc.watchStoreBody
     simp only [named]
-    iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
+    iframe Hσ Hwlog Hcert Hwfz2 Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
     have em : ∀ w st, mvcc.memberRes (GF := GF) γ 1 { σ with vs := vs' } w st = mvcc.memberRes γ 1 σ w st :=
       fun _ _ => rfl
     have eo : ∀ w st, mvcc.outRes (GF := GF) γ { σ with vs := vs' } w st = mvcc.outRes γ σ w st :=
@@ -1248,8 +1249,11 @@ theorem mvcc.watchableStore.notify.wp_proof
     have eo : ∀ w st, mvcc.outRes (GF := GF) γ
         (mvcc.notifyState σ N STi Wsi (GMap.fmap Prod.snd PBv) Out vs' vm) w st =
         mvcc.outRes γ σ w st := fun _ _ => rfl
+    ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ
+      (mvcc.notifyState σ N STi Wsi (GMap.fmap Prod.snd PBv) Out vs' vm) (fun h => by rw [e9]; exact h)
+      $$ Hwfz
     simp only [e1, e2, e3, e4, e5, e6, e7, e8, e9, eo, named]
-    iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hst Hwo Hmeta Hwt Hmfix Hmem' Hout
+    iframe Hσ Hwlog Hcert Hwfz2 Hsynced Hunsynced Hvf Hvs Hvcap Hst Hwo Hmeta Hwt Hmfix Hmem' Hout
     by_cases h0 : (GMap.fmap Prod.snd PBv).size = 0
     · simp only [h0, ↓reduceIte]
       iframe Hvbs

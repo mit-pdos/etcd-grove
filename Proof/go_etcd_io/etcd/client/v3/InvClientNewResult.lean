@@ -51,7 +51,9 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
     -- (W3) the watch contract's model, from the watcher's logs
     watchLaws V ∗
     -- (D47) the members run the KV at `V.kst`
-    srvKVFacts V)
+    srvKVFacts V ∗
+    -- (M2, the storage side, review round 1's F1) the server's "no compactor" fact
+    mvcc.noCompactor V.R.γ.st)
 
 instance watchAddrFacts_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : Persistent (watchAddrFacts V) := by
@@ -117,7 +119,7 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
       fun _ => (addr, R), 1, kst⟩ i = ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1, kst⟩ :=
     fun _ => rfl
   simp only [ha, hat]
-  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H7, %H11, #H12, #H13⟩
+  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H7, %H11, #H12, #H13, #H14⟩
   ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
   ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
   ihave #H2 := watchDescOk_of_init $$ P2

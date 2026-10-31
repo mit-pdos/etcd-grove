@@ -363,6 +363,11 @@ structure AEnv (GF : BundledGFunctors) where
   /-- (D22 receiver epochs, S7b, 2026-10-23) the server's ghost variable of its current backend
   (`s.be`'s, `bemuP`), which the apply package does not use (as `γrev`) -/
   γbe : GName
+  /-- (M2, the storage side, 2026-10-30: review round 2's N1, the approval's item 9) the server's
+  compaction mode: whether its store compacts (the auto-compactor on), which `envAgree` ties to the
+  store's logical mode (`E.γ.cm`) and the stand-in `E₀` carries to the examples; the apply package
+  does not use it (as `γrev`) -/
+  cmp : Bool := false
 
 /-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
 `false` exactly in the mode `off`. -/

@@ -25,12 +25,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.UnsafeDeleteBucket(bucket)` under the lock: the bucket deleted (absent or not); a pending
-delete. Not a safe-range bucket (`P.SB`), nor one with a hook's own key (`P.hk`); a tracked bucket
+delete. Not a safe-range bucket (`P.SB`), nor one with a hook's own key (`P.hk`) or a compaction
+key (`fkKey`: the `meta` bucket, the M2 storage plan's items 27/29, 2026-10-30); a tracked bucket
 (`P.RB`, D22, 2026-10-23) with the client's half of the tracked buckets (`rbPut`), given back
 updated. -/
 abbrev backend.batchTxBuffered.UnsafeDeleteBucket.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo),
   P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false → (∀ k, P.hk bi.name k = false) →
+  (∀ k, ¬ fkKey bi.name k) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ rbPut γ P bi.name st.S }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDeleteBucket")) (Val #bk))
   {{ RET #(); batchLocked γ P b (st.delBucket bi) ∗ rbPut γ P bi.name (st.delBucket bi).S }}

@@ -52,12 +52,13 @@ negative, on a backend that records no compaction (`bkNoCmp`, D19l (v) (A), D22 
 returns a store of that instance (with the right to close it, holding the scheduler's stop token,
 and the compaction right's half of the revision's authority: D19m (C)). In compaction mode (`d.cm`,
 question 5's core stage) the creator also gives the backend's safe-range slot (`kbSRM`, from
-`newPost`'s `srSlot`), its write-back supply (`kbWTSupplyM`; discharged only by M2, R2-7) and the
+`newPost`'s `srSlot`) and the
 compaction keys' values tracked (`fkV d.γB true`, from `newPost`'s `fkCl`), and gets one reader fewer
 (`nJobRd`: the compaction job's, kept back; the pool's retired count starts there, `retiredAt`,
 whose half lets the creator retire a reader for its own reader token: Probe P2, 2026-10-30); the store registers its deletable keys in the backend
 (`storeDlReg`) and its contract has the compaction (`storeCmp`, part (4): the new bridge,
-`storeBackend_of_backendC`). Otherwise the slot and supply are `True` (`cmOff_res`), the
+`storeBackend_of_backendC`); the write-back supply is `store.Compact`'s (M2's Q1 (a)). Otherwise
+the slot is `True` (`cmOff_res`), the
 registration is "nothing deletable" (`dlNoDel`) and the contract the old bridge's. -/
 theorem mvcc.NewStore_backend
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
@@ -102,7 +103,7 @@ theorem mvcc.NewStore_backend
         -- (the backend's constructor's `fkCl`)
         □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗ mvcc.kbWTSupplyM (some d) ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -125,7 +126,7 @@ theorem mvcc.NewStore_backend
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
         mvcc.retiredAt γ (mvcc.nJobRd (some d)) }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hwts, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   -- the deletable keys fixed by the mode (question 5's core stage, part (4)): a compacting store's
@@ -157,8 +158,8 @@ theorem mvcc.NewStore_backend
   imod Hbk with #Hbk
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg hrb)
-    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro Hifresh Hok0]
-  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Hwts
+    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hifresh Hok0]
+  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm
     isplitr
     · iexact Hbk
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,

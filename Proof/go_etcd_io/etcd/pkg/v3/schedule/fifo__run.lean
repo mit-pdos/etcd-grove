@@ -139,6 +139,7 @@ theorem schedule.fifo.run.wp_proof
       iapply _root_.Perennial.context.isContextDone_receive _ _ _ _ $$ Hdone1
       iintro ⟨#HPD, -⟩
       simp only [fifoCtxDesc]
+      icases HPD with ⟨#HPD, -⟩
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HL⟩
       iunfold fifoLockInv at HL
@@ -296,11 +297,17 @@ theorem schedule.fifo.run.wp_proof
         dsimp only
         iintro Hch
         imod Hmask with -
-        imod Hclose $$ [Hch Hdc Hqw Hbaton] with -
-        · inext; iunfold donecInv; iright; iframe
+        iunfold schedRunning at Hrun
+        icases Hrun with ⟨Hrun, Htok⟩
+        imod Hclose $$ [Hch Hdc Hqw Hbaton Hrun] with -
+        · inext; iunfold donecInv; iright; iframe Hch Hdc
           iunfold donecCarry
           iexists L, q.half
-          iframe
+          iframe Hqw
+          ileft
+          iframe Hbaton
+          iunfold schedDone
+          iexact Hrun
         imodintro
         (try wp_auto)
         wp_bind (App (Val #(functions go.close _)) _)
@@ -326,8 +333,6 @@ theorem schedule.fifo.run.wp_proof
         · inext; iunfold resumeInv; iexists bl; iright; iframe; iframe #
         imodintro
         (try wp_auto)
-        iunfold schedRunning at Hrun
-        icases Hrun with ⟨-, Htok⟩
         iapply HΦ $$ Htok
 
     iapply BigAndL.bigAndL_nil.2

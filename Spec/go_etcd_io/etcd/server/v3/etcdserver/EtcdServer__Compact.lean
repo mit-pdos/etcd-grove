@@ -49,10 +49,22 @@ call's last line reads `s.kv.Rev()`).
 (Phase 1's statement: what the apply does with the compaction, C2/C3, is not stated yet. The
 compactor's C1 permit stops here until then: a per-call permit parameter would be vacuous, since each
 caller picks it (round 3 of the review); C3 needs a server-wide permit, fixed at `NewServer` and
-recorded by the compaction form of the proposal permit, designed with the model step.) -/
+recorded by the compaction form of the proposal permit, designed with the model step.) 
+
+**M2's scope restriction** (2026-10-30, the user's Q7 (a), the approval's item 35): the revision is
+at least `1`, no compaction at revision `0` (`issues/etcd-restore-scheduled-compact-zero.md`: a
+member that applied `Compact(0)` and installs an image with that compaction scheduled but unfinished
+goes from compaction revision `0` back to `-1`). A client's `Compact(0)` RPC is out of M2's scope;
+M2's compactor never issues it (both of its permits carry `0 < r`: `compactableOk_server`). The
+premise is stricter than the decision by a margin (review round 5's S4): it also excludes the
+negative revisions, which Go handles harmlessly (`updateCompactRev` answers `ErrCompacted` for
+`rev ≤ compactMainRev`, which is at least `-1`, and writes no record); no caller issues one. -/
 abbrev EtcdServer.Compact.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
+  -- (M2, the storage side, 2026-10-30: M2's scope restriction, the user's Q7 (a), the approval's
+  -- item 35) a revision past `0`
+  1 ≤ r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqC s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗

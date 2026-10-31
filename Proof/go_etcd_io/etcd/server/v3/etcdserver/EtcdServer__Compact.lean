@@ -115,7 +115,7 @@ theorem EtcdServer.Compact.wp_proof
     (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hAddField : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd p r
+  intro s E ρ γr ctx cd p r Hr1
   wp_start as ⟨#Hsrv, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
   -- (Perennial 25bd32450) the named results are allocated before the defer frame
   wp_auto
@@ -244,7 +244,8 @@ theorem EtcdServer.Compact.wp_proof
   ihave #Hlb' : srvRevLb E.γ (sint.Z rv.Revision') $$ []
   · rw [Hrv.1]; iexact Hlb
   wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') rv.Revision' rfl
-      (compactPropOk_irrCompaction _) rfl $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
+      (compactPropOk_irrCompaction _ (by rw [Hrv.1]; exact Hr1)) rfl $$ [Hlt Hrd Header]
+      as %res %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd
     iexists _; iexact Header
   (try wp_auto)
