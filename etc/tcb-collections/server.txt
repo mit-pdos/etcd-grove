@@ -312,9 +312,5 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
-sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
-sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
-sorry rnApplyTok_recv
-sorry rn_ready_recv

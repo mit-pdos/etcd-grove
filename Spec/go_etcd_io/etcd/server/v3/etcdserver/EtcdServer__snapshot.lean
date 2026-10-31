@@ -26,9 +26,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.snapshot(ep, toDisk)`** (D22 J4b, 2026-10-27, as `specFull`, proved on lean,
-`SnapTakeProof.lean`; 2026-10-30, the repair: the spec, in place of the trust-boundary axiom over
-the old storage token; its proof SNAPSHOT-SORRY until `SnapTakeProof`'s is rewired). It commits the
+/-- **`s.snapshot(ep, toDisk)`** (D22 J4b, 2026-10-27, as `specFull`, proved on lean; 2026-10-30,
+the repair: the spec, in place of the trust-boundary axiom over the old storage token; 2026-10-31,
+the snapshot track: proved again, the snapshot certified by `srv_snap_make`). It commits the
 KV, creates a raft snapshot at the applied index in the `MemoryStorage`
 (`CreateSnapshot(ep.appliedi, ep.confState, nil)`) and with `toDisk` saves it to the WAL, leaving
 the apply thread's state as the old `spec` said; the storage's stored snapshot past `ai` afterwards
@@ -39,7 +39,10 @@ the apply thread's state as the old `spec` said; the storage's stored snapshot p
   sender has it, `SnapSendBranch.lean`) and its `RC`, `RC'` after;
 * `CreateSnapshot`'s premises (2026-10-30, the repair): the storage's invariant, the node's
   delivered log past `ai`, the cluster's registry and a committed log of length `ai` ending at
-  `at'` (`srvSnapStor`), the frozen entry at `ai` (`srvSnapFrozen`, P8);
+  `at'` (`srvSnapStor`), the frozen entry at `ai` (`srvSnapFrozen`, P8); (2026-10-31, the
+  snapshot track, `notes/snapshot-sorries-plan.md`) and what certifying the snapshot takes
+  (`snapshotCert_make`): `ep.confState` the voters' (`epCsCfg`), the frozen entry of term `at'`
+  (`srvFrozenTerm`), `ai` positive, fewer than `2^61` voters;
 * `verifyConsistentIndexIsLatest`'s check: the consistent index at least `ai`;
 * with `toDisk`, the disk's storage (`srvSnapDisk`: `SaveSnap`, and `Release`'s directory at a
   removal fact the applied index past `j` gives) with the applied index at least `ai`, and
@@ -52,10 +55,15 @@ abbrev EtcdServer.snapshot.spec : Prop :=
     (ms : Loc) (γs : MemStorNames) (nid : w64) (sl : w64) (kv : GoInterface) (RC RC' : IProp GF)
     (ua : GoInterface),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
+  -- fewer than `2^61` (`SnapListsOk`)
+  0 < uint.Z ai → GMap.size γr.raft.raft.cfg < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
       srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
       srvSnapStor ms γs γr nid ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
+      epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ (if toDisk then RC else iprop(True)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗

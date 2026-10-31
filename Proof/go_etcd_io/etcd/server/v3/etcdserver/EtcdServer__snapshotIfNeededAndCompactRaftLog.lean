@@ -71,9 +71,9 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' sa hok haw hci hrel
-  wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, Hcok, HRC, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hapl, Hai, Hat,
-    Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' sa hok haw hci hrel hsz
+  wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, Hcok, HRC, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
+    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu⟩, #Hinf,
@@ -122,7 +122,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     first
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nid (W64 0) kv RC RC' ua
-            hok hci hrel $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV HRC Hcok]
+            hok hci hrel (by omega) hsz $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV HRC Hcok]
           as ⟨%st', HSS, -, HRC, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
          · iframe #
            iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok
@@ -134,7 +134,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
          ihave HRC : iprop(RC ∨ RC') $$ [HRC]
          · iright; iexact HRC)
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nid (W64 0) kv RC RC' ua
-            hok hci hrel $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok]
+            hok hci hrel (by omega) hsz $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok]
           as ⟨%st', HSS, -, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
          · iframe #
            iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok

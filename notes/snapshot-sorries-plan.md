@@ -1,0 +1,108 @@
+# The SNAPSHOT-SORRY track (2026-10-31, branch `snap-sorries`)
+
+The user's "go ahead with the snapshot sorries" (2026-10-31), after the merge of `auth-a4`. The
+list is `notes/raft-unified-plan.md`, "Repair: snapshot sorries" (#1-#3, #6-#11; `grep -rn
+SNAPSHOT-SORRY Proof Spec`). This file records what each needs beyond what that table says, as
+found, and the order of the work. The user was away during the first part: statement changes to
+trusted or exported results are recorded here as proposals, not made.
+
+## Findings
+
+### #9 `EtcdServer.snapshot`: what `CreateSnapshot` takes that `snapshot.spec` does not give
+
+`MemoryStorage.CreateSnapshot.spec` (the repair's) takes `memLog γs ai □ [e]`, `J.SV (memSnapMade ai
+e.Term' c nil)` (`snapshotValid cl`), `J.DL ai` (`storDL`), `memSnapLb γs 0`, and the conf state
+**owned or read-only, non-`nil`** (`ownCSM cs dq c`). `snapshotValid` comes from
+`snapshotCert_make` + `snapshotCert_valid` (as kv's `kv_snap_make`), which take:
+
+1. **The conf state at the applied index.** `confStateIs c m` with `confAt cl ai m`. The membership
+   is the boot configuration at every index (`srv_confAt_simple`: the rule keeps `simple cfg`), so
+   what is missing is only **`ep.confState` reports `simple cfg`** once an entry is applied.
+   `snapshot.spec` has `epConfState ep cs` (`epCsOk`: `nil` or some read-only conf state), nothing
+   about its content. In Go (`server.go:808`), `ep.confState` starts as the storage snapshot's
+   (empty at a fresh start) and `applyConfChange` sets it to raft's answer (`server.go:2052`) **only
+   when the change validates**; a failed validation leaves it (`:2035-2045`). So the invariant
+   needs: the first conf entry validates (the boot entries: an `AddNode` per peer on a fresh
+   backend, `ValidateConfigurationChange` passes), and raft's answer reports `simple cfg`
+   (`raftApplyCC`'s `confStateIs cs m'`, `nodeConfig ⟨k+1, m'⟩`, `nodeConfig_confAt`,
+   `srv_confAt_simple`, `confAt_agree`).
+   Shape: an apply-thread invariant `epCfgOk` (`ai = 0`, or the conf state reports `simple cfg`),
+   threaded through `apply`/`applyEntries`/`applyAll`/`applyConfChange` (post), `applySnapshot`
+   (a snapshot's conf state is valid, `snapshotValid`), and `run`'s loop invariant (`InvRun`).
+2. **The term of the frozen entry.** `CreateSnapshot` names the snapshot's term `e.Term'`, the
+   storage entry's (`ms.ents[i-offset].Term`, `storage.go:257`); `snapshotCert_make` needs it to be
+   the last term of a committed prefix of length `ai`. `srvSnapStor` gives a committed `A` with
+   `lastTermIs A at'`, `srvFrozenAt γs ai` only `∃ e, memLog γs ai □ [e]`: nothing ties `e` to
+   `A`. The raft loop knows the frozen entries are the `Ready`'s committed ones
+   (`RaftLoopFreeze.lean`, `srv_batch_tail`), and `srvFrozenAt` drops it. Options: strengthen
+   `srvFrozenAt` to name the committed entry (it would take the cluster's names), or a raft-API law
+   relating the storage's entries at committed indices to the committed log.
+3. **`SnapListsOk`**: `Membership.Valid.snapListsOk` (raft) from `confAt_valid`/`confAt_restorable`,
+   `GMap.size cfg < 2^61` (the boot log has fewer than `2^61` entries, `srvBootLogOk`; `cfg`'s
+   relation to it to be found), and `uint.Z ai < 2^61` (`memLog`'s own bound: `k + 1 ≤ 2^61`).
+4. **`0 < ai`** (`snapshotCert_valid`): from `snapshotIfNeeded…`'s guards (`appliedi - snapi >
+   count` or `appliedi > diskSnapshotIndex`), so a premise of `snapshot.spec`.
+5. **`storage.releaseOk`** (the `toDisk` branch's `Release`): an opaque environment premise
+   (`InvOpen.lean`), so ultimately a premise of the exported results that run the apply thread
+   (`server_run`, `server_Start`, ...) and of the examples' closed theorems: **a trusted statement
+   change, for the user** (cf. `snapOpensOk`, `applySnapshot`'s, "not yet a premise of any closed
+   theorem").
+
+### #11 and `applyAll`
+
+`snapshotIfNeededAndCompactRaftLog.specFull` adds to `spec`: `isServerM`, `srvSnapDisk`,
+`appliedAtLeast γr ai`, the KV commit contract with `RC`, `srvSnapStor`, `srvWTPool`/`srvWTTaken`
+with `ai ≤ w`, `srvSnapFrozen`, `nodeAppliedLb ai`, `ai ≤ ciEff`, `releaseOk`; `applyAll` must hold
+them at its call (stage P: `releaseOk` from nowhere, `run`'s `ciJ` gives `ci ≤ ai`). In Go the
+consistent index is at least the applied index after every entry (`applyEntryNormal`'s deferred
+`SetConsistentIndex` when `ConsistentIndex() < e.Index`, the conf change's on a failed
+validation), so `ai ≤ ciEff` is an invariant to add to the apply thread's (`loopOk` has `p = max
+ciEff ai`).
+
+### #7/#8 under auth on: `applySnapshot.specSnap` is auth-off only
+
+`EtcdServer.applySnapshot.specSnap` (proved on lean) has the premise `E.authMode = .off`: its
+restore rebuilds the applier's off row. With auth on (authkv's server) a snapshot batch's
+`applySnapshot` also restores the auth store (`server.go:1126`, `s.authStore.Recover(newbe)`),
+which the on row's `srvApplyKVOn` must be re-established over. So #7's snapshot branch and #8's
+job have an off proof once the two-receive notify exists, and an on proof only after a new
+`applySnapshot` spec in the mode `on` (the auth store's `Recover` over the restored backend's
+auth buckets: `authInv` of the image). Not started.
+
+### #3, #7, #8: the notify protocol takes two receives for a snapshot batch
+
+`NotifyC.lean`'s protocol has one receive and at most two sends. A snapshot batch is received twice
+on the apply side (`applySnapshot`'s `<-toApply.notifyc`, `server.go:1056`, and `applyAll`'s
+`<-apply.notifyc`, `:995`; line numbers of the pinned fork), and the raft loop sends twice: after
+`SaveSnap`/`ApplySnapshot` (`raft.go:284`) and, for a follower, after `processMessages` (`:307`;
+a leader sends once, in the `else` branch). `rnApSnap`
+states the payload's notify with the entries' one receive until a two-receive variant exists
+(`InvRaftNode.lean`, `rnApSnap`'s comment). #3's branch, #7's `applySnapshot` call and #8's job
+need it: a `notifyRcv2` token pair (two receive tokens, the sends two) in `NotifyC`, `rnApSnap`
+holding both.
+
+### Proposal (for the user): `rnBusyS` carries the snapshot's facts
+
+`rnBusyS` (`InvRaftNode.lean`, the driver's state while a snapshot `Ready` is out) is part of the
+node contract `isRaftNodeIfc`, which `node_contract_ifc` exports. #1/#6 added the pure conjunct
+`srvLE A' = strip l.dlv ∧ srvLE d <+: strip l.dlv ∧ l.dlv.length = idx ∧ 0 < idx < 2^61` (what
+`Advance`'s snapshot clause needs and `rn_ready_recv` has from `readySnap`). It is a definition
+inside an exported contract: done on the branch, to be approved before the merge.
+
+### Go detail for the `epCsCfg` invariant
+
+`ep.confState` is set at `server.go:809` (the storage snapshot's at start) and by
+`applyConfChange` only when the change validates (`:2035-2052`); a failed validation leaves it.
+(`applySnapshot` sets it to the snapshot's, `:1174`.)
+
+## Progress (branch `snap-sorries`)
+
+- 2026-10-31: #1 (`rn_ready_recv`'s `some l` case), #2 (`rnApplyTok_recv`'s snapshot case), #6
+  (the snapshot `Advance` clause) proved; #9 proved (`SnapCert.lean`: `srv_snap_make`, the
+  registry's certificate, and `wp_srv_createSnapshot`), #10 gone (`SnapTakeProof.lean` deleted).
+  `snapshot.spec` and `snapshotIfNeededAndCompactRaftLog.specFull` (and `specFullOff`/`On`) take
+  `0 < ai` (specFull: from its trigger), `GMap.size cfg < 2^61`, `epCsCfg γr cs`, `srvFrozenTerm γs
+  ai at'`.
+- Left: #11's `spec` branch (`applyAll` calling `specFull`: its premises, the sources of
+  `epCsCfg`, `srvFrozenTerm`, `ai ≤ ciEff`, `releaseOk`, `GMap.size cfg < 2^61`), #3, #7, #8
+  (the two-receive notify; with auth on, a mode-`on` `applySnapshot`).

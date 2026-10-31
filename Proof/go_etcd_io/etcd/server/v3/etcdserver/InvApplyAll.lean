@@ -158,6 +158,30 @@ instance srvSnapFrozen_persistent (γs : MemStorNames) (ai : Nat) :
     Persistent (srvSnapFrozen (GF := GF) γs ai) := by
   unfold srvSnapFrozen srvFrozenAt srvFrozenBelow; infer_instance
 
+/-- (2026-10-31, the snapshot track) **`ep.confState` reports the voters** (persistent): a
+read-only conf state of the cluster's simple membership (D3: the membership at every index,
+`srv_confAt_simple`), what `CreateSnapshot` takes non-`nil` and `snapshotCert_make` at the
+membership. In Go `ep.confState` is raft's answer to the last validated conf change
+(`server.go:2052`), or the stored snapshot's (`:808`) or an applied one's (`:1174`).
+`notes/snapshot-sorries-plan.md`, #9. -/
+def epCsCfg (γr : ReadNames) (cs : Loc) : IProp GF :=
+  iprop(∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜confStateIs c (Membership.simple γr.raft.raft.cfg)⌝)
+
+instance epCsCfg_persistent (γr : ReadNames) (cs : Loc) : Persistent (epCsCfg (GF := GF) γr cs) := by
+  unfold epCsCfg; infer_instance
+
+/-- (2026-10-31, the snapshot track) **The storage's entry at the applied index `ai`, frozen, of
+the applied term `at'`** (persistent): `CreateSnapshot` names the snapshot's term the storage
+entry's (`storage.go:257`), which `snapshotCert_make` needs to be the committed log's last
+(`srvSnapStor`'s `A`). `notes/snapshot-sorries-plan.md`, #9. -/
+def srvFrozenTerm (γs : MemStorNames) (ai at' : w64) : IProp GF :=
+  iprop(∃ e : EntryM, memLog γs (uint.nat ai) DFrac.discard [e] ∗ ⌜e.Term' = at'⌝)
+
+instance srvFrozenTerm_persistent (γs : MemStorNames) (ai at' : w64) :
+    Persistent (srvFrozenTerm (GF := GF) γs ai at') := by
+  unfold srvFrozenTerm; infer_instance
+
 /-- A lower bound of the stored snapshot index is one of every smaller index. -/
 theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)
     (h : uint.Z sl' ≤ uint.Z sl) :

@@ -442,13 +442,19 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List Entry
 
 /-- (D22 J6a; 2026-10-30, the repair: until then `False`) **The driver with a snapshot `Ready` in
 hand**: the node API's `nodeDriver` busy with the loan, delivered the snapshot's log `A'`, its view
-after the log before (`rnCfgAt γ d`, replaced by `Advance`'s answer at the snapshot). -/
+after the log before (`rnCfgAt γ d`, replaced by `Advance`'s answer at the snapshot).
+(2026-10-31, the snapshot track) With `readySnap`'s facts `Advance` needs: the snapshot's log is
+`A'` (the loan's delivered log, as long as the snapshot's index) past the log before, the index in
+`(0, 2^61)`. -/
 def rnBusyS (γ : RNNames) (d A' es : List EntryModel) (p : HardStateM) (l : SnapLoan) :
     IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(nodeDriver γ.nl γ.node.cl srvClusterN
       ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l)⟩ ∗
-    rnCfgAt γ d)
+    rnCfgAt γ d ∗
+    ⌜srvLE γ.srv A' = strip l.dlv ∧ srvLE γ.srv d <+: strip l.dlv ∧
+      l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
+      0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61⌝)
 
 /-- **The `raft.Node` `n`** (see the file header; 2026-10-30, the repair: raft's unified node API):
 its `ApplyConfChange` (the apply thread's, `raftApplyCC`); `Ready` returns the node API's `Ready`
@@ -688,9 +694,117 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
   cases Lo with
   | some l =>
-    -- SNAPSHOT-SORRY: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from
-    -- the driver
-    sorry
+    -- a snapshot `Ready`: the snapshot's log `A'` (the loan's delivered log after the start log),
+    -- committed, so `E.C A'`; the messages as without a snapshot
+    simp only [readyRest, readySnap]
+    icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
+      Hgiv⟩⟩
+    obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
+    subst Hce0
+    obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
+    have Hpre' : γ.pre.map EntryModel.toLE <+: strip l.dlv := by
+      refine List.IsPrefix.trans ?_ Hpfx
+      simp only [srvLE, RNNames.srv, List.map_append]
+      exact List.prefix_append _ _
+    have hA' : srvLE γ.srv A' = strip l.dlv := by
+      have ht := List.prefix_iff_eq_take.1 Hpre'
+      rw [List.length_map] at ht
+      rw [HA']
+      simp only [srvLE, RNNames.srv, List.map_append, List.map_map]
+      have hc : (EntryModel.toLE ∘ EntryModel.ofM) = LogEntry.ofEntryM := rfl
+      rw [hc, List.map_drop, ht]
+      exact List.take_append_drop _ _
+    have hlen' : (γ.pre ++ A').length = l.dlv.length := by
+      have h := congrArg List.length hA'
+      simp only [srvLE, strip, List.length_map] at h
+      exact h
+    have hLA : L.length < A'.length := by
+      have h := Hlt
+      simp only [srvLE, List.length_map, List.length_append] at h hlen'
+      omega
+    -- the indices of the loan's delivered log: `k + 1` at `k`
+    have hkI : ∀ (k : Nat) (e : EntryM), l.dlv[k]? = some e → e.Index' = W64 (k + 1) := by
+      intro k e he
+      rw [Hdlv] at he
+      unfold LogEntry.toEntries at he
+      rw [List.getElem?_mapIdx] at he
+      cases hx : (strip l.dlv)[k]? with
+      | none => rw [hx] at he; cases he
+      | some x =>
+        rw [hx] at he
+        simp only [Option.map_some, Option.some.injEq] at he
+        subst he
+        simp only [LogEntry.toEntryM]
+        congr 1; omega
+    have HidxA : ∀ (n : Nat) (m : EntryModel), A'[n]? = some m →
+        uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
+      intro n m hm
+      rw [HA', List.getElem?_map, List.getElem?_drop] at hm
+      cases hx : l.dlv[γ.pre.length + n]? with
+      | none => rw [hx] at hm; cases hm
+      | some x =>
+        rw [hx] at hm
+        simp only [Option.map_some, Option.some.injEq] at hm
+        subst hm
+        have hb : γ.pre.length + n < l.dlv.length := (List.getElem?_eq_some_iff.1 hx).1
+        have hI := hkI _ x hx
+        simp only [EntryModel.ofM, hI, Hai0]
+        have : ((γ.pre.length + n + 1 : Nat) : Int) < 2 ^ 61 := by
+          have := Hdl; have := uint_nat_eq l.snap.Metadata'.Index'; omega
+        word
+    have HsrvLE : srvLE E.γr.raft A' = srvLE γ.srv A' := by
+      unfold srvLE RNNames.srv; rw [Hpre]
+    icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
+    imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
+    imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
+    ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft A') $$ []
+    · rw [HsrvLE, hA', Hraft]; iexact Hcom2
+    imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) A'
+        HidxA $$ Hinv Hcom' with #HLb
+    ihave %HLiW := srvRLogLb_idx E.γr.raft _ $$ HLb
+    imod HC $$ %A' HLb [] with #HEC
+    · ipureintro
+      rw [Hai0]
+      have h := hlen'
+      have := Hdl; have := uint_nat_eq l.snap.Metadata'.Index'
+      simp only [List.length_append] at h
+      omega
+    imodintro
+    iright
+    iexists es.map EntryModel.ofM, A', phsNext p h, l
+    isplitl [Hown Hold Hgiv Hmok]
+    · iunfold rnReadySnap
+      iexists esL, ms.map QMsg.loc, HardStateModel.ofM h
+      rw [EntryModel.map_toM_ofM]
+      simp only [readySnap, rnDrvSt]
+      iframe Hown Hcom2 Hcert Hold Hgiv Hmsgs Hmok HEC HesL
+      isplitr
+      · ipureintro; exact ⟨Hdlv, Hptr, trivial, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩
+      isplitr
+      · ipureintro; exact ⟨hA', hLA⟩
+      isplitr
+      · iapply entriesAt_of_entRO esL es $$ Hesro
+      isplitr
+      · iunfold softStateAt; iexact Hss
+      isplitr
+      · iunfold hardStateAt
+        rw [HardStateModel.toM_ofM]
+        iexact Hhs
+      isplitr
+      · rw [HardStateModel.toM_ofM]; ipureintro; rfl
+      iunfold readStatesPts at Hrs
+      icases Hrs with ⟨%vs, #Hvs, #Hrs2⟩
+      iexists vs
+      iframe Hvs
+      iapply rnReadStates_of_api E γ vs sts $$ Hbr Hrs2 Hrsok
+    isplitl [Hcfg Hdrv]
+    · iunfold rnBusyS
+      iframe Hcfg
+      rw [EntryModel.map_toM_ofM, hA']
+      iframe Hdrv
+      ipureintro
+      exact ⟨rfl, Hpfx, Hdl, Hpos, H61⟩
+    ipureintro; exact HLiW
   | none =>
   ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
   · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H

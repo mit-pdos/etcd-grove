@@ -80,9 +80,22 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
   iunfold rnApP at HP
   icases HP with (HP | HP)
   rotate_left
-  · -- SNAPSHOT-SORRY: the snapshot payload's components, `cum`'s agreement at `rcv.length`
-    -- (`A` is `F`) and the consumer's token at `A'`
-    sorry
+  · -- a snapshot payload: `cum`'s agreement at `rcv.length` (`A` is `F`), the token at `A'`
+    iright
+    iunfold rnApSnap at HP
+    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hsn, #Hcert, #HC, Hn, #Hrac, #Hcl, -⟩
+    simp only [Int.toNat_natCast] at *
+    ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+    subst Heq
+    iexists A', sv
+    iframe Hsn Hcert HC Hn Hrac Hcl
+    isplitl [Hcons]
+    · iunfold rnApplyTok
+      iexists rcv ++ [ap]
+      iframe Hcons
+      simp only [List.length_append, List.length_singleton]
+      iexact HFA
+    ipureintro; exact Hlen
   ileft
   iunfold rnApN at HP
   icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩

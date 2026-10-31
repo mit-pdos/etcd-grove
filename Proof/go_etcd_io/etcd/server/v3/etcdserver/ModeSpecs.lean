@@ -112,11 +112,15 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing
   uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
+  GMap.size γr.raft.raft.cfg < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM false s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗ srvSnapStor ms γs γr nid ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
+      -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'` (`snapshot`'s)
+      epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
       -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
       (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
@@ -144,11 +148,15 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing
   uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
+  GMap.size γr.raft.raft.cfg < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗ srvSnapStor ms γs γr nid ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
+      -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'` (`snapshot`'s)
+      epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
       -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
       (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
