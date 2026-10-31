@@ -308,13 +308,13 @@ plan's key; root's history has a DELETE), `akHist_events` (an event of `σ.revEv
 |---|---|---|
 | `zap.NewNop` | `zap.NewNop.spec` | exists |
 | `startServer` | `startServer.spec` (gives `common.memberUpOn … γa`) | exists, proved |
-| `common.Serve` | `common.Serve.specOn` (from `memberUpOn`'s parts; its `grpcUpOn` step gives `akKVOn` through `etcd_kv_auth_served_on`, with the Auth registrations and `Authenticate`'s `authTokReg`) | exists; the merge folds it into `Serve.spec` |
+| `common.Serve` | `common.Serve.specOn` (from `memberUpOn`'s parts; its `grpcUpOn` step gives `akKVOn` through `etcd_kv_auth_served_onA`, with the Auth registrations and `Authenticate`'s `authTokReg`) | exists; the merge folds it into `Serve.spec` |
 | `common.NewClient` | `common.NewClient.spec` (G1: `clientTokAt … False`) | exists |
 | `SetUp` | S5 | restated after the refusal fact (F-S1, F-S2) |
 | `newUserClient` ×3 | S3 | drafted |
 | `Principals`, `Work` ×4, `sync.WaitGroup` | `Principals.spec`, S2, Perennial's | S2 waits on 5b and G2 |
 | `context.WithTimeout`, `ErrAny` | `context.WithTimeoutBackground.spec` (now with no values), `context.ErrAny.spec` | exist |
-| `root.Put(z/end)` | `client_Put_on` (local wrapper, not frozen: F-C1) at a persistent update (`akHist_endAu`: `z/end` is admitted from any state, so no refusal fact is needed) | done (2026-10-30) |
+| `root.Put(z/end)` | `client_Put_on` (local wrapper, not frozen: F-C1) at a non-persistent update once the refusal fact lands | exists |
 | `context.WithCancel` | `context.WithCancelBackground.spec` | exists |
 | `root.Watcher.Watch("", WithPrefix, WithRev(1))`, `ucli.Watcher.Watch(lo, WithRange(hi), WithRev(1))` | G2's `watcher.Watch.spec` (the merge session's); `WithPrefix.spec`, `WithRange.spec`, `WithRev.spec` | G2 pending |
 | `common.Collect` ×2 | `draft.Collect_spec` (`Drafts.lean`): general in a per-event fact `F`. Root's: `F i e := ⌜sint.Z setupRev < sint.Z e.Rev' → keyHistOk e.Key'⌝`, from the watch's events at states `akHist_readAu` fires at. u's: `F i e := ⌜permittedK u e.Key'⌝`, from G2's no events refused to u | drafted; restating `common.Collect.spec` changes a spec of `common` (watchkv, linkv3p use it, through the corollary at their plan): the user's call |
@@ -511,76 +511,3 @@ from `"\x00"` (the user's, 2026-10-30, on `g2-freeze`): every authkv key is non-
 (over the others and G2's frozen `watcher.Watch.spec`). Still open, not statements: F-C1 (`ClientOn`'s
 second `Put` spec, temporary), round 2's item 8 (`ctxErrClientAll`'s law, the thread bound).
 
-
-## Proving the stubs (2026-10-30, branch `authkv-hist`)
-
-Proved: `akHist_writeAu`, `akHist_readAu`, `newUserClient.wp_proof`. `Work.wp_proof`, in layers:
-
-1. **The principal of an attempt** (`WorkAuth.lean`): from `clientTokAt cl [addr] (akTokP γa who)`'s
-   `attemptTokOk`, `reqCtx`'s context facts (no outgoing token; `bad`'s `badtoken`) and the TLS
-   refutation, a header or auth info bound to an attempt's token (`hdrBoundT`, `infoBoundT`) has the
-   user `""` or, for `u`/`v`, `who`.
-2. **Refusals at `setupSt`**: a write's grant (`clientGrant` at `Lset`, through `akAuthFixed_write`)
-   or a read's check (`rangeAuthed`, `txnAuthOn`, `watchCheckOk`, through `akAuthFixed`'s read row)
-   for such a principal covers only keys `permittedK who`; the write's update is
-   `akHist_writeAu` with `Q` the permission (so a refused write's reply cannot exist).
-3. **The `*Client` methods with auth on** (`ClientOn.lean`): `Get`, `Delete`, `Txn`'s builder, a
-   `Put` told its grant (F-C1's second `Put` spec), the `Watcher` field.
-4. **`Work` itself**, one call at a time.
-
-Progress (2026-10-30): `WorkCalls.lean` holds the per-call lemmas: `akWriteAu`, `work_put`,
-`work_delete`, `work_get` (with `srvRangeOk_keys`), `work_commit`, and the pure facts of the
-three ranges. **The nested transaction (T4)** is outside client/v3's proved specs: `txn.Then`
-needs every op's `txnOpOf` (an `OpTxn` has none), and `client_txn_on` needs `TxnModel.plain`. The
-user chose to extend client/v3's specs to nested transactions; that is handed to the G2 session
-(etcd-grove-83). Until it lands, Work's T4 call is a named `sorry`.
-
-**`Work` proved** (2026-10-30), over the per-call lemmas, but for T4: `then_commit_nested_refused`
-(`sorry`; a triple of `Then` with the nested op whose post is the refused `Commit`, so that it does
-not depend on how client/v3 will model a nested op: today's `reqOpAt` of one is `False`). Next:
-`Main`.
-
-## Main: what blocks it (2026-10-30)
-
-Proved: `ak_alloc` (`MainAlloc.lean`): `memberBootOn`, the client's `etcdKV` at an admitted boot
-state (for `akHist_alloc`) and `authHistView … [srvAuthSt0]` (for `SetUp`), from the mode-`on`
-cluster and member allocations. The serve step (`wk_served`'s analog) needs four facts nothing gives:
-
-1. **`watchAddrFacts V` with auth on** (first-tier). Its `srvKVFacts` is `srvKVInvs`, the auth-off
-   KV invariant (`kvInv`), and the watch client's proofs fire the read update through it
-   (`watch_fire`, `raw_to_state`, `WatchFire.lean`; `WatchRun.lean`). An auth-on member has
-   `srvKVInvsOn` only, so `Work.spec`'s premise and `Main`'s two watches cannot be met. **Fixed**
-   (G2's follow-up, on `lean` `8a4cba9dc6`): `srvKVFacts V = ∃ on γr, srvKVCoreM on V.R.E γr ∗ …`
-   (`client/v3/InvWatch.lean`), from `memberUpOn`'s `isServerReadM true` by `srvKVCoreM_of_readM`
-   (`etcdserver/ReadOn.lean`), `srvKVFacts_intro`; `watchAddrFacts`' `srvLogsSmall` by
-   `srvLogsSmall_of_receipts` (`ServerWatcher.lean`, any mode). The watch half of the serve step is
-   proved (`ak_served_watch`, `MainServe.lean`: `watchAddrFacts` and the watch server's `modeTag`)
-   and in `Main.wp_proof`, at the clients' watcher environment `akV R` (`srvWEnv` with the
-   prefix `"a"`: `watchAddrFacts` asks a non-empty one, nothing reads it).
-2. **`Authenticate`'s registration** in `grpcUpOn`: `v3rpc.authRegs` holds the five admin methods,
-   not `Authenticate` (C1's A5, "Q9"); `etcd_kv_auth_served_on` takes it as `hreg`.
-3. **The auth store's `BcryptCost()`** (`bcryptCostOk`, a premise of `etcd_kv_auth_served_on(A)`):
-   no spec of `authStore.BcryptCost`, `NewAuthStore`'s post and `memberUpOn` do not export it.
-4. **`ClientCertAuthEnabled = false`** (`SetUp`'s and `Work`'s `□ (srvTLSId s -∗ False)`, by
-   `srvTLSId_false`): `memberUpOn` has the field at an unknown value (`watchSrvOk`'s `cca`), not
-   the config's `false`.
-
-3 and 4 are an export from `NewServer` through `startServer`'s post (`memberUpOn`).
-
-**Done (2026-10-30): 3 and 4** (`notes/decisions.md`, "The started member exports its auth store's
-cost field and its TLS fallback off"): `memberUpOn` gives `srvBcryptField s` and
-`□ (srvTLSId s -∗ False)`. **2** is left to C1's A5: `etcd_kv_auth_served_on` dropped `hreg`
-(it is a `sorry` meanwhile). The serve step's KV and Auth half is proved over them
-(`ak_served_kv`, `MainServe.lean`: `akKVOn`, `setupAuthServed`, `Authenticate`); its watch half
-waits on 1.
-
-**`Main.wp_proof` up to `SetUp` (2026-10-30)**: the logger, `ak_alloc` and `akHist_alloc`,
-`startServer`, `Serve.specOn` with `ak_served_kv`, `NewClient`, `SetUp` (its puts by
-`akHist_setupAu`), every error's `Failed`; then (same day) the watch half (`ak_served_watch`) and the user clients (`newUserClient` ×3 over `authTokReg_of`, `ctxErrClientAll` from `ctxErrClientAllW_of`, the callee `context.ErrAny`), and the workloads (`akAuthFixed_alloc` from `SetUp`'s post; the principals' loop, each `Work(c, who)` forked under a wait group, `akTokP` reduced per branch; `wg.Wait()`), and root's last write (`client_Put_on` with the persistent update `akHist_endAu`: `z/end` is admitted from any state, so a late firing is harmless; the callee `context.WithTimeoutBackground`); and root's watch (`watcher.Watch` with `akHist_readAu`, `Collect` at `rootEvOk` by `root_resp`, `CheckHistory` by `histOk_of_collected`: `RootWatch.lean`); and (2026-10-31) u's watch (`u_resp`: its events are of `[a, b)`, the range u may read, so no auth fact is needed) and the `Permitted` loop: **`Main.wp_proof` is proved**, with the callees `Collect`, `Watch`, `WithPrefix`, `WithRev`, `WithRange`, `Permitted` added. Linking: the
-callees `zap.NewNop`, `startServer` (pending in `Link.lean`, `?`: `Results.lean`'s `authkv_Main`
-passes `authkv_startServer`, so it takes its premises `auth.ValidSpec`, `authSchemaSrv` and the
-semantics' `Float64ToInt64Semantics`, `ErrorStringLeaf`; the user's choice), `Serve.specOn`
-(`=common.wp_ServeOn`, `common/LinkOn.lean`), `NewClient`, `authStore.BcryptCost`. `startServer.spec`
-takes `bootstrap`'s contract at authkv's `cfgOk`/`urlsOk` (Main's premise; was `common.bootPremise`,
-whose `common.cfgOk` leaves out the simple token provider, so Main could not meet it; the user's
-choice). `ak_alloc` also gives `ρ.rd.kv.c0 = 0` (`SetUp`'s `c0 ≤ ai0`).

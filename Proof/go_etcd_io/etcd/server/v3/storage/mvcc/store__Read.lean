@@ -140,6 +140,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       withPhys_simp
       rw [Hbi]
       iframe #
+      ipureintro; simpa using Hcmt
     ihave Hmul : sync.ownRWMutexRLocked (mvcc.muAddr s) (mvcc.muInv s (γ.withPhys p)) $$ [Hmul]
     · rw [mvcc.muInv_withPhys]; iexact Hmul
     ihave Hmuh : mvcc.muHeld s (γ.withPhys p) cm o.ti $$ [Hmul HcmpM HcrevM Hfs]

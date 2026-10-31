@@ -207,7 +207,7 @@ theorem watchGRPCStream.run.wp_proof
     ihave ⟨#Hmf, %Hpre⟩ := watchConnFacts_cur V $$ Hconn
     ihave #Hmf' := Hmf
     iunfold watchMemberFacts at Hmf'
-    icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf⟩
+    icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf, #Hnoc⟩
     ihave #Hconn' := Hconn
     iunfold watchConnFacts at Hconn'
     icases Hconn' with ⟨#Hgc, #Hgs, #Hdesc, -, #Heof, #HerrNew, #Hcea, #Hvars, -⟩
@@ -530,7 +530,7 @@ theorem watchGRPCStream.run.wp_proof
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
           dsimp only [createOf]
-          iframe Hwt
+          iframe Hwt Hnoc
           iexact Hbdc
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
             cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗ ⌜client.addCase S L' si si⌝ ∗
@@ -1653,7 +1653,7 @@ theorem watchGRPCStream.run.wp_proof
             isplitr
             · ipureintro; simp [v3rpc.watchReqOk, createOf]
             dsimp only [createOf]
-            iframe Hwt
+            iframe Hwt Hnoc
             iapply wsIs_bd V P2
             iframe Hconn HP2
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
@@ -2662,7 +2662,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave ⟨#Hmf, %Hpre⟩ := watchConnFacts_cur V $$ Hconn
         ihave #Hmf' := Hmf
         iunfold watchMemberFacts at Hmf'
-        icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf⟩
+        icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf, #Hnoc⟩
         ihave #Hconn' := Hconn
         iunfold watchConnFacts at Hconn'
         icases Hconn' with ⟨#Hgc, #Hgs, #Hdesc, -, #Heof, #HerrNew, #Hcea, #Hvars, -⟩
@@ -2759,7 +2759,7 @@ theorem watchGRPCStream.run.wp_proof
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
           dsimp only [createOf]
-          iframe Hwt
+          iframe Hwt Hnoc
           iapply wsIs_bd V P2
           iframe Hconn HP2
         have hne2 : (S.reconnect l').l.dropWhile (fun y => decide (y = null)) ≠ [] := by

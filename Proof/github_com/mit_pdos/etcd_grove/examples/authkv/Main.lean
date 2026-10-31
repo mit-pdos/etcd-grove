@@ -132,6 +132,7 @@ theorem Main.wp_proof
   imod (ak_alloc id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %σ₀, %Hal, Hmb, #Hnet, Hetcd, Hview⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hσ₀, hc0, hlog⟩ := Hal
+  ihave ⟨%Hcmp0, Hmb⟩ := common.memberBootOn_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
   imod (akHist_alloc ρ.rd.kv σ₀ hσ₀) $$ Hetcd with #Hhist
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
@@ -157,6 +158,7 @@ theorem Main.wp_proof
   icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, #Htls, #HBF⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
+  have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost steps `ak_served_kv` (the KV methods with auth on, the
   -- Auth service's admin methods and `Authenticate` at the address) and `ak_served_watch` (the
   -- watch server's facts there, for the clients' watcher environment `akV R`)
@@ -209,7 +211,7 @@ theorem Main.wp_proof
       iunfold idCred
       ipureintro; exact Hrb48
     imod (ak_served_watch (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
-        (by simp) rfl hlog (by omega) Hms.watch_impl Hregs2 rfl rfl)
+        (by simp) rfl hlog (by omega) Hms.watch_impl Hregs2 rfl rfl (by rw [hRE]; exact Hoff))
       $$ [Hss Hwslots] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro

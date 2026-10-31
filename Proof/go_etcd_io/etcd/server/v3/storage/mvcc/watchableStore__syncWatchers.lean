@@ -140,6 +140,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
     simp only [named]
     iframe
+  -- (M2, the storage side) an unsynced watcher: the store is frozen (`wsWatchFrozen`; until then
+  -- `isWatchableStore`'s `crevFrozen`, now by the mode)
+  have hszne : GMap.size σ.Wu ≠ 0 := fun h => Hif (by rw [h]; rfl)
+  iclear Hfrz
+  ihave #Hfrz := mvcc.wsWatchFrozen_of_Wu γ σ Hok hszne $$ Hwfz
   ihave #Hs0 : mvcc.isStore st γ.st $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -1127,11 +1132,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         show (if v.Bv.size = 0 then σ.VB else σ.VB ++ [v.Bv]) = σ.VB ++ [v.Bv]; rw [if_neg h0]
       rw [this]; exact Hl.ok.v_one
   imod ghostVar_update σf γ.wst σ $$ Hσ with Hσ
+  ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ σf (fun h => by first | exact h | simpa using h) $$ Hwfz
   ihave HPf : mvcc.watchStoreBody s γ 1 σf $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo
       Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody
     simp only [named]
-    iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmfix
+    iframe Hσ Hwlog Hcert Hwfz2 Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmfix
     isplitr
     · ipureintro; exact hlen'
     isplitl [Hmem]

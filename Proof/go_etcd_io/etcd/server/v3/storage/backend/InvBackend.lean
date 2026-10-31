@@ -110,9 +110,11 @@ structure BNames where
   `0` while no state of the backend has one, `1` once one may. Half its authority the batch
   lock's (`fkHalf`), half the client's (`fkOwn`); the readers keep a lower bound (`fkRd`). -/
   fk : GName
-  /-- `dghostVar Bool`, discarded at allocation: whether the compaction keys hold only
+  /-- `dghostVar FkG`, discarded at allocation: whether the compaction keys hold only
   well-formed values (`P.FV`) in every state of the backend (question 4, 2026-10-29: true when the
-  data at creation does, `fkWInit`; a put of one needs a well-formed value, so it never changes) -/
+  data at creation does, `fkWInit`; a put of one needs a well-formed value, so it never changes),
+  and (M2 storage plan, items 27/29, 2026-10-30) the flag's value and the keys' values at the open
+  (`fkInit`, `fkVals`) -/
   fkv : GName
 
 section phys
@@ -352,25 +354,47 @@ every state of the backend holds only well-formed values (`P.FV`) at the compact
 constructor gives it (`fkWInit`); it never changes. With the flag it is the three levels of the
 user's question 4: `fkOwn γ 0` (no compaction key), `fkV γ true` (only well-formed ones), else
 nothing known. -/
-def fkV (γ : BNames) (w : Bool) : IProp GF := dghostVar γ.fkv DFrac.discard w
+def fkV (γ : BNames) (w : Bool) : IProp GF :=
+  iprop(∃ (n : Nat) (v : FkVals), dghostVar γ.fkv DFrac.discard ((w, n, v) : FkG))
 
 instance fkV_persistent (γ : BNames) (w : Bool) : Persistent (fkV (GF := GF) γ w) := by
   unfold fkV; infer_instance
 
+/-- **The compaction keys' ghost value** (persistent; the M2 storage plan's merged ghost, items
+27/29, 2026-10-30): the bit `g.1` (`fkV`) and, at the open, the flag's value `g.2.1` and the keys'
+values `g.2.2` (`fkOpen`). -/
+def fkVR (γ : BNames) (g : FkG) : IProp GF := dghostVar γ.fkv DFrac.discard g
+
+instance fkVR_persistent (γ : BNames) (g : FkG) : Persistent (fkVR (GF := GF) γ g) := by
+  unfold fkVR; infer_instance
+
+/-- **The compaction keys as opened** (persistent; the M2 storage plan's `fkOpenD`, items 27/29):
+the client's flag stood at `n` when the backend was opened over data whose compaction keys hold
+`v` (finished, scheduled). While the client's half of the flag is still at `n`, every state of the
+backend holds `v` there (`fkHalf`'s and `fkRd`'s `fkOkG`, `fkRd_open`). -/
+def fkOpen (γ : BNames) (n : Nat) (v : FkVals) : IProp GF :=
+  iprop(∃ w : Bool, fkVR γ (w, n, v))
+
+instance fkOpen_persistent (γ : BNames) (n : Nat) (v : FkVals) :
+    Persistent (fkOpen (GF := GF) γ n v) := by
+  unfold fkOpen; infer_instance
+
 /-- **What the constructor gives the client of the compaction keys** over bbolt's data `D`: the
-client's half of their flag, at `0` if `D` has none (`fkInit`), and the bit, `true` if `D`'s are
-well formed (`fkWInit`). -/
+client's half of their flag, at `0` if `D` has none (`fkInit`), and the ghost value: the bit,
+`true` if `D`'s are well formed (`fkWInit`), with (items 27/29, 2026-10-30) the flag's value and
+`D`'s compaction-key values at the open (`fkVals`): `fkV` and `fkOpen` (`fkCl_parts`, `fkCl_open`). -/
 def fkCl (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
-  iprop(fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D))
+  iprop(fkOwn γ (fkInit D) ∗ fkVR γ (fkWInit P D, fkInit D, fkVals D))
 
-/-- The batch lock's half of the flag, with what it and the bit say of its state (`fkOk`). -/
+/-- The batch lock's half of the flag, with what it and the ghost value say of its state
+(`fkOkG`). -/
 def fkHalf (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
-  iprop(∃ (f : Nat) (w : Bool), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkV γ w ∗ ⌜fkOk P f w st⌝)
+  iprop(∃ (f : Nat) (g : FkG), monoNatAuthOwn γ.fk (1 : Qp).half f ∗ fkVR γ g ∗ ⌜fkOkG P f g st⌝)
 
-/-- A reader's lower bound of the flag, taken when its state `rv` was set, with the bit
+/-- A reader's lower bound of the flag, taken when its state `rv` was set, with the ghost value
 (persistent). -/
 def fkRd (γ : BNames) (P : BParams) (rv : RView) : IProp GF :=
-  iprop(∃ (f : Nat) (w : Bool), monoNatLbOwn γ.fk f ∗ fkV γ w ∗ ⌜fkOkRv P f w rv⌝)
+  iprop(∃ (f : Nat) (g : FkG), monoNatLbOwn γ.fk f ∗ fkVR γ g ∗ ⌜fkOkRvG P f g rv⌝)
 
 instance fkRd_persistent (γ : BNames) (P : BParams) (rv : RView) :
     Persistent (fkRd (GF := GF) γ P rv) := by

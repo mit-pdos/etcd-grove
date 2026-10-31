@@ -101,7 +101,7 @@ theorem server_kv_watchable_of
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws);
         ∃ (st : Loc) (γw : mvcc.WsNames),
         ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧ γw.st.kb = some ({ d with cm := false } : mvcc.KBReal) ∧ γw.st.idx = γi ∧
-          γw.st.cok = γok⌝ ∗
+          γw.st.cok = γok ∧ γw.st.cm = false⌝ ∗
         txn.isKV (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws) st γw.st ∗
         (∃ rv : Loc, st.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
@@ -128,14 +128,12 @@ theorem server_kv_watchable_of
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  obtain ⟨-, hj, -, hws, hsr⟩ := mvcc.cmOff_res (GF := GF) ({ d with cm := false } : mvcc.KBReal) rfl
+  obtain ⟨-, hj, -, -, hsr⟩ := mvcc.cmOff_res (GF := GF) ({ d with cm := false } : mvcc.KBReal) rfl
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
   · iapply hsr.2; itrivial
-  ihave Hwts : mvcc.kbWTSupplyM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
-  · iapply hws.2; itrivial
   iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg hrb)
-    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hwts Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm Hwts
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
+  · iframe Hpkg Hle Hro Hif Hok Hsrm
     isplitr
     · iintro %s %γ %hγ
       iapply Hsb
@@ -146,8 +144,9 @@ theorem server_kv_watchable_of
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   rw [hj, Nat.sub_zero]
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag, Hret⟩
-  obtain ⟨hb, hl, hk, hi, hc, ht⟩ := Hγ
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, -, Hfrag, Hret⟩
+  obtain ⟨hb, hl, hk, hi, hc, ht, hcmw⟩ := Hγ
+  have hcmw' : γw.st.cm = false := by rw [hcmw]; simp [mvcc.kbCmpM]
   ihave #Hws' := Hws
   iunfold mvcc.isWatchableStore at Hws'
   icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
@@ -158,7 +157,7 @@ theorem server_kv_watchable_of
   iframe Hws Hhk Hwt Hcok Hrds Hcl Hro Hret
   iframe Htag
   isplitr
-  · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
+  · ipureintro; exact ⟨hb, hl, hk, hi, hc, hcmw'⟩
   isplitr
   · iunfold txn.isKV; iright; iexists ws, γw; iframe Hws; ipureintro; exact ⟨rfl, rfl⟩
   isplitr

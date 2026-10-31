@@ -26590,6 +26590,22 @@ needs. No axiom, no `sorry`.
   raise law.
 - **Locked in:** a snapshot is never restored with auth on (already true; the tie needs it).
 
+## M2: the frozen fact stays in `isWatchableStore` (2026-10-30, M2's storage side, review round 1's S6)
+
+**2026-10-30 · accepted**
+
+The review (S6) proposed dropping `isWatchableStore`'s `Hfrz` (and `wsFrozenM`), `New`'s post giving
+one mode-gated conjunct instead, since the watch-store invariant's `wsWatchFrozen` is what
+`syncWatchers` reads after the switch. **Decision: keep `Hfrz`, gated by the mode (`wsFrozenM`).**
+With F1 decided on the client side (the create token carries `crevFrozen`), the off server still
+has two readers of the frozen fact: `NewServer.spec`'s post, which hands it to its watch clients,
+and D22's `RestorePre.restorePre_of_apply` (its `sorry` on `crevFrozen E.γ`). Both hold the
+watchable store's facts already (`srvWatchBuilt`), so with `Hfrz` they read it by a law
+(`isWatchableStoreD_frozen`, at `cm = false`); without it, `crevFrozen` would have to be kept in the
+server's state, a D22 predicate (the collaborator's). The cost is a fact carried twice in off mode
+(the predicate's and the invariant's, once a watcher exists). Revisit if the server's state is
+reworked for the merged `NewServer` spec anyway.
+
 ## Step 6: one `apply.Apply.spec`; the uber-applier's contracts with auth on built by `NewServer` (2026-10-30, the auth-mode merge's step 6, candidate 3)
 
 The user approved candidate 3 (three review rounds), which aimed to give `applyEntryNormal` one
@@ -26673,6 +26689,341 @@ holds the channel, the `snapDone` handoff and `memSnapLb γs 0` (`newReplica` op
 `runInv` no longer holds the stored snapshot (`snapIndex` is the latest one asked for or installed,
 `c ≤ snapIndex` kept). Tests: `go test ./kvreconf/ -race` passes; the non-short `TestRounds`
 takes ~300-1400 snapshots and compactions per round.
+
+
+## M2's storage side, the switch: the scheduler's payload and run token (2026-10-30, the approval's item 19)
+
+**2026-10-30 · taken (the user's approval of review round 5's list; `notes/m2-storage-plan.md`, "The
+switch of the approved items")**
+
+`schedule.SchedNames` gains `pay`, the name of a saved proposition its creator fixes
+(`NewFIFOScheduler.spec`'s new argument `Pay`, `schedPayIs γ Pay` in its post). The scheduler's
+context is done with `stopped F ∗ schedPay γ` (`fifoCtxDesc γ F`), so `Scheduler.Stop.spec`, which
+cancels it, takes `schedPay γ`; a job's `Do` (`jobDoSpec`/`jobFnSpec`) gets
+`□ (cd.PDone -∗ schedPay γ)` for its context, so a job finding the context cancelled learns the
+payload (`schedPay_elim`). `Stop` returns the run token's ghost part (`schedDone γ`): the worker puts
+it in `donecCarry` with the last baton when it closes `donec`. Why a field and not an extension
+(round 4's S2.1): `isFifo sc γ` must pin `γ.pay`, else `Stop` cannot produce the context's real
+`PDone`. mvcc's store gives the payload "its stop channel is closed" (`stopPay`, through the
+agreement name `StoreNames.sx`, item 34), the server's `run` `True`.
+
+## M2's storage side: the store's logical mode `StoreNames.cm` (2026-10-30, the approval's item 26)
+
+**2026-10-30 · taken (review round 3's S2.5, approved)**
+
+`StoreNames.cm : Bool` (logical: `withPhys` keeps it), set by `NewStore` to `decide (kbCmpM kb)` and
+tied to the current backend by `physOk`'s `⌜kbCmpM γ.kb ↔ γ.cm = true⌝`. The logical predicates gated
+by the mode read it (`wsFrozenM`, `crevRightM`); the backend-keyed ones stay on `kb` (`physCmp`,
+`nJobRd`, `kbSRM`, `kbWTSupplyM`, `compactJobResM`). Two consequences decided at the switch:
+- the creation posts (`NewStore.spec`, `newWatchableStore.spec`, `New.spec`) expose the mode in
+  their pure facts (`γ.cm = decide (kbCmpM kb)`): the tie is in `physOk`, under the fields' shares,
+  not in the persistent `isStore` (which reads only logical names: `isStore_withPhys` stays `rfl`),
+  so a client learns `γ.cm` from the post;
+- the client-facing mode facts are stated over `γ.cm`: `envAgree`'s clause is `E.γ.cm = E.cmp`
+  (round 2's N1 drafted `kbCmpM E.γ.kb ↔ E.cmp = true`; the plan's item 10 said "at the switch
+  `E.γ.cm = E.cmp`"), the watch laws take `R.γ.st.cm = false` / `R.E.γ.cm = false`
+  (`isWatchServer_noCompactor(_env)`), and the examples' premise is `hoff : V.R.E.γ.cm = false`
+  (`etcd_cache_served`, watchkv's `wk_served`; linkv3p's `memberWatch`/`memberAt`: `E.γ.cm =
+  false`). Equal to the drafted `¬ kbCmpM …` under the tie; read off `envAgree` (`envAgree_off`)
+  with no backend fact, and a snapshot install (`withPhys`) does not move it.
+
+## M2's storage side: the compaction chain over the restorable right is not provable as drafted (2026-10-30, the approval's item 17)
+
+**2026-10-30 · stopped at the switch (for the user)** · *superseded* the same day by repair (b),
+"M2's storage side: the jobs' share of the fields, leased", below.
+
+Drafted (round 4's S3): the jobs read the four fields `store.Restore` writes through
+`storeStopR s γ o := inv (fieldShareAt s γ q8 o ∨ schedDone γ.sch)`, "the per-read invariant
+opening (an atomic load each, the job holding the run token)". Perennial's loads are not atomic:
+`GoLoad` of a primitive type reduces to `Read`, i.e. `StartRead` then `FinishRead`
+(`Perennial/GooseLang/Lang.lean`, `Golang/Defn/PostLang.lean`), the non-atomic read of the race
+detector, and its only spec
+(`IntoValTyped.wp_load`) needs the points-to before the call and gives it back after: an invariant can
+be opened around one atomic step, not around a load. The other route, leasing the eighth out of
+the invariant for the job's run in exchange for the run token (`schedDone`), is unsound locally: at
+the job's end the invariant may hold an eighth again (any holder of a `fieldShareAt q8 o`, the
+closer's `storeCloserR`, can swap it in and take the run token), and the job cannot return
+`schedRunning`. So the chain's reads have no permission under the drafted `storeStopR`, and item 17
+(with what is stated over `compactRightR`: item 4's step-2 text, items 20, 23, 24, and item 31's
+`lockCtxM`, whose only users are item 17's specs) stays a Draft. Repairs for the user (each changes
+the internal `storeStopR`/`compactRightR`, not a client's text): (a) the eighth carried along the
+tracked jobs' baton (`compactQueue`'s `Q`/`R`: every barrier is tracked under the approved design, so
+each job holds it for its run and `Stop` returns the last `Post` with it); (b) a third state of the
+invariant, "leased to the running job", with a lease token the job keeps, so no other holder can
+swap the eighth back while it runs.
+
+## M2's storage side: the jobs' share of the fields, leased (2026-10-30, the approval's item 17)
+
+**2026-10-30 · accepted (an internal predicate design, chosen by the coordinating agent, not by the
+user; no client-facing text changed)**
+
+Repair (b) of the entry above. The jobs' invariant `jobFieldsInv s γ o gl` (`InvCompact.lean`) has
+three states: *free* (an eighth of the fields at the objects `o`, `fieldShareAt s γ q8 o`, and the
+lease token `dghostVar gl 1 ()`), *leased* (half the scheduler's run token, `dghostVar γ.sch.run ½
+()`) and *reclaimed* (the run token, `schedDone γ.sch`). `storeStopR s γ o` (persistent, sealed) is
+`∃ gl, inv jobFieldsN (jobFieldsInv s γ o gl)` with the stop channel's `isStopChan o.sstop` (the
+job's loop receives from it; step 1's `storeStop` had it). Laws: `storeStopR_lease` (a job, with
+its run token `schedRunning` and a later credit, takes the eighth and the lease, `jobLease`,
+leaving half its run token: the free state is the only consistent one, leased and reclaimed make the
+run token more than whole), `jobLease_return` (at its end, with a credit: the eighth and the token
+back, the half returned; the job's lease token excludes the free state), `storeStopR_reclaim` (the
+stopper, with `schedDone` from `Scheduler.Stop` and a credit: the eighth, the invariant reclaimed).
+Nobody else changes the state: free needs the lease token to enter, leased and reclaimed the run
+token's fractions, which the running job or the stopper holds; this closes the hole the drafted
+two-state invariant had (the closer's eighth swapped in mid-job).
+
+**Against Go.** `fifo.Stop` (`pkg/schedule/schedule.go:150-156`) cancels the context and waits on
+`donec`, which `run`'s deferred close fires only after the pending jobs ran (`:158-185`), so the run
+token comes back after every job's `Do` returned, as `Scheduler.Stop.spec` (item 19) says; each job's
+`Do` holds the run token for its whole run (`jobFnSpec`, item 19), so a job's lease spans its loads
+of `s.b`, `s.kvindex`, `s.stopc` (`scheduleCompaction`, `compactBarrier`). `Restore`
+(`kvstore.go`) and `Close` close `stopc` before `Stop`, and write the fields only after it. A job
+finding its context cancelled learns the scheduler's payload (`□ (cd.PDone -∗ schedPay γ.sch)`, the
+job contract's), the stop channel closed (`stopPayAt_done`), so `compactBarrier`'s receive is ready
+and its re-scheduling branch (`s.mu`, `fifoSched.Schedule`) is dead: `compactBarrier.spec` no longer
+needs the never-stopped scheduler `schedLive`, and `updateCompactRev`'s `ErrCompacted` barrier is
+scheduled tracked on the right's queue (its `Prev` and `Post` the last job's `Post`, passed
+through).
+
+**What the chain's functions take.** The job's functions read the fields through a share at its
+objects, given back (`scheduleCompaction.spec`, `compactBarrier.spec`: `fieldShareAt s γ q o`; the
+former also `isStopChan o.sstop`); the caller's functions read `s.b` and `s.fifoSched` through the
+right's closer's eighth (`checkPrevCompactionCompleted.spec`, `compact.spec`: a share at `o`, given
+back; `compactRightR_take`). The store's stop is named by the payload's name (`storeStopped γ`:
+`γ.sx` records a closed channel), not by the field's `↦□`, which nobody has any more
+(`compactDone`'s body; its text is unchanged).
+
+**Not taken.** Repair (a), the eighth along the tracked jobs' queue, would put the fields into every
+tracked job's `Prev`/`Post` and thread them through `compactQueue`'s `Q`/`R` and the server's
+chain; the lease keeps them out of the queue and needs no job's cooperation beyond its own run.
+
+## M2's storage side: the index invariant at a full revision (2026-10-30, the user's decision B1; item 32)
+
+**2026-10-30 · accepted (B1); switched on branch `m2-index`**
+
+Round 4 repaired the index invariant for `restore()` over a compacted bucket by comparing key indexes up
+to an unread header (`kiNorm`) but kept the per-key level a *main* revision, which forced a premise on
+the image (`KeyOnceAt`: each key changed once per revision up to the compaction), justified as an etcd
+guarantee. Round 5 (B1) showed it is not one (`issues/etcd-txn-check-intervals-sibling.md`: sibling
+transactions put and delete a key in one revision) and that a compaction job's batch can stop between
+two sub-revisions of one revision; the rebuilt key index then starts at the key's first surviving
+sub-revision, which no compaction at a main revision gives (`M2StorageDraftIndex.lean`:
+`cx3_not_compacted`, and the reviewer's log checked, `cxr_not_compacted`).
+
+**Decision (B1):** the per-key level is a full revision. Representation (`InvIndexCut.lean`): a key
+index cut at a *position* `(gi, j)` (generation `gi`, its `j`-th revision; a position names exactly
+one revision of the key), `kiCutAt`, with `CutLe c ki gi j`: at or before the position compaction at
+`c` cuts at. `IdxCRepN cmax evs idx`: every key's tree index is, up to `kiNorm`, the log's key index
+cut at a `CutLe` position for some `c ∈ [-1, cmax]` (absent if the cut is empty). Why a position and
+not a `Rev` value with "drop the revisions below it": compaction is literally a cut at the position
+`doCompact` picks (`kiCompact_eq_cutAt`, `rfl` up to `cutGen`), so every compaction lemma's proof
+carried over by replacing `cutGen c` with `genDrop j` (compaction above the cut erases it, reads,
+`kiAvail`, `kiKeep` cannot tell it, the writer's step commutes with it); a value-based cut would need
+sortedness to locate the revision and a separate "a compaction is such a cut" proof, and a level past
+every revision for the empty case. `CutLe` is stated against `c`, not as `ℓ ≤ avail`, so the levels
+of compacted keys (`c' ≥ cmax`) are the old ones unchanged (`IdxCRepN_of`).
+
+`kiNorm` kept (the restored tombstone-only generation's header `{created 0, ver 1}` differs from the
+log's), now defined over `dropLast`/`getLast?` rather than `mapIdx` (the step lemmas rewrite
+`kiPut`/`kiTombstone`'s `dropLast ++ [_]` shape), with "`f (kiNorm ki) = f ki`" laws for every
+reader (`kiGet`, `kiAvail`, `kiKeep`, `kiLastEmpty`, `kiIsEmpty`, `gensOk`) and "`kiNorm ∘ F ∘ kiNorm =
+kiNorm ∘ F`" for every writer (`kiPut`, `kiTombstone`, `kiCompact`), so the invariant's lemmas
+transport through it without a general congruence.
+
+The rebuild theorem (`InvIndexRestore.lean`, `idxRestore_cut`): over `entsCutAt L c ents`, the
+rebuilt index is `IdxCRepN c (evsOf L)`, by induction over the log's changes with a per-key invariant
+(`KeyCut`: nothing rebuilt and no surviving revision so far, or the cut at the first surviving one,
+every earlier revision dropped), the first surviving put's `restore` matched to its generation through
+`rev_step`'s `KvMatch` (the key-value's create revision and version), and the level `c` from the
+dropped revisions' deletability (`cutLe_of_dropped`). No premise on how often a revision changes a
+key; `KeyOnceAt` is gone (item 33), with its apply-side obligation.
+
+The switch (item 32) is internal: `idxLockInv`'s `HL` is `IdxCRepN`; `idx_publish` still takes the
+private index's `IdxCRep (-1)` (a compaction-free rebuild) and converts it. No exported statement
+changed.
+
+## M2's storage side: `store.restore` over a compacted image, switched (2026-10-30, item 18; with item 27)
+
+**2026-10-30 · accepted (internal statement, decided at the switch); switched on branch `m2-storage`**
+
+`store.restore.spec` is the drafted `specR` (approved design, item 18), with three changes found by the
+proof, all internal:
+- **The records' resource is a parameter `NC`**, not `kbRecs γ.kb γ.bucket r`: `restore()` only
+  lends it to the read transaction's meta clause and gives it back, and `kbRecs` names the backend's
+  merged compaction-key ghost (item 29's backend part, the backend side's). `restoreViewR` (item 27)
+  takes `NC` likewise. The caller (`store.Restore` in compaction mode) instantiates it with `kbRecs`;
+  `kbMW` from it is the caller's (`kbRecs_MW`, `kbNoCmp_MW`).
+- **The index's lock at the restored level is one predicate**, `idxLockGAt γ n c` (`IdxPriv.lean`):
+  `idxLockG`'s, with the compaction revision's lower bound at `c`, a lower bound of the committed log
+  past `c`, and the compactor's state at `c` (`idxLockG_at`: at `-1` it is `idxLockG`). The draft's
+  `idxLockG ∗ crevLb γ r.crev` was not enough: the lock invariant also needs `c < |log₀|` and the
+  compactor's revision `≥ c` (`idxCmpOwn`). Publishing at `c`: `idx_publishAt`, with
+  `idxRestore_cut` as its input.
+- **The found record's write needs the whole `compactMainRev`**: the premise `∀ x, r.fin = some x →
+  dqc • dql = DFrac.own 1` (restore's part and the first lock round's).
+
+Item 27's vocabulary (`keyReadLockedR`, `keyReadSnapR`, `keyReadSnapCR`, `keyCleanReadR`,
+`isKeyBackendGR`, `restoreViewR`) is switched **beside** today's (`RestoreRecs.lean`), with the `_empty`
+equations, not in their place as the approval list's "with `r` a parameter of default `empty`" says:
+today's are the backend bridge's vocabulary (`BackendBridge.lean`), which the backend side changes on
+its own branch; replacing them is a rename once both land.
+
+One spec per function: today's text is kept as a derived statement, `store.restore.specNC`
+(`RestoreNC.lean`), with `specNC_of_spec`; `NewStore` and `store.Restore` take the spec and convert it
+in one line, so their statements and proofs are otherwise unchanged.
+
+## M2's storage side: `SetScheduledCompact` by the hook's state (2026-10-30, item 31, in part)
+
+**2026-10-30 · accepted (internal statement); switched on branch `m2-storage`**
+
+`SetScheduledCompact.spec` takes the hook's state `hk : Option val` and the critical section's context
+`lockArmS` (`LockArm.lean`): `some f`, today's (`HF f`, the hook's triple, `Q ∗ W ={⊤}=∗ P ∗ W ∗
+Post`); `none`, the unset hook `HN` with `lockNilSpec` (moved from the Draft) and `Pre ∗ HN ={⊤}=∗
+Post` (`P` passes from `LockInsideApply` to `Unlock`). The nil arm takes `lockNilSpec` in its own
+pre rather than from `batchTxSpecG`: `SetScheduledCompact` is generic over the batch transaction, and
+`lockNilSpec` is all it needs. The store's chain (`lockCtxM`, `updateCompactRev`/`compactLockfree`
+by the hook's state, `resumeHookM`) is **not** switched: at the store, `lockNilSpec` for the store's
+batch transaction can only come from its backend contract, i.e. `batchTxSpecG`'s new clause, whose
+proof is the backend bridge's (`isKeyBackendG_of_backendC`, `BackendBridge.lean`, the backend side's
+branch; its one new step is `bt_lockInNil`, proved). It waits for that.
+
+## M2's storage side: B2, the receipt bound as a premise of `NewServer.specCompact` (2026-10-30, drafted)
+
+**2026-10-30 · drafted for the user (trusted statement); superseded the same day** by "M2's storage
+side: B2 by sealed logs, persistent receipts" (below): the user chose no premise.
+
+The user's B2 (Q8 (b)) supersedes Q8 (a) (`restoreBoundM` from the apply side; "M2's storage side"
+entries above that assume it). Drafted (`etcdserver/M2StorageDraftB2.lean`): `srvChBound γ γk st₀ :=
+□ ∀ L, srvReqLogLb γ L -∗ ⌜logCh (kvModelOn γk st₀ L) < receiptBound GF⌝`, a premise of
+`NewServer.specCompact` only, at `ρ.rd.raft ρ.rd.kv srvAuthSt0`. Why over the request log's prefixes:
+they are the server's view of the cluster's committed history (`srvReqLogLb_of_rlogLb`: every committed
+log is equivalent to one, `kvRaftOfOn_eqv`), so one statement covers both the images a member installs
+(the leader's logs) and every log its own store reaches after one. Why compaction mode only: off, every
+image is a whole bucket and the rebuild's receipts refill the writer (today's). Glue proved:
+`restoreBoundM_of_chBound`, `srvChBound_small` (`< receiptBound` and `< 2^48`), and the mvcc side's
+seal with the caller's bound (`mvcc.idxWriterNR_seal`: the sealed log is today's `idxSealed`).
+**Open:** the premise is an Iris fact about the future history; the closed theorems take pure
+hypotheses, and `putgetc`'s `Main` (the one compacting example, one member) has no way to establish it.
+A pure form needs a bound on the cluster's committed history in terms of the workload; or a gate that
+drops it where no image is ever installed. For the user.
+
+## M2's restore chain, the backend part: the open's records clause, and two premises on deletes (2026-10-30, items 27/29/30/37)
+
+**2026-10-30 · item 29's backend part switched on branch `m2-backend`; items 30 and 37 drafted**
+
+The restore chain reads a compacting image's compaction records through the new backend while the
+client's half of the compaction-key flag is unmoved since the open (`kbRecs`). The backend had to say
+what an unmoved flag means.
+
+**Decision: one ghost, the open's value and the keys' values in it, and the clause "at the open's
+flag, the open's values".** `γ.fkv` (already discarded at allocation, holding the well-formedness bit)
+now holds `(bit, flag at the open, values at the open)`; `fkV` is its first component (text and users
+unchanged), `fkOpen` the other two (round 4's S4: one name at one type). The batch lock's and the
+readers' facts gain `fkOkG`: the flag is never below the open's value, and while equal to it the
+states hold the open's values at the two keys with no buffered entry there. Why "never below" and
+not just "`f = n →`": a reader keeps only a *lower bound* of the flag, taken when its state was set;
+with the batch lock's `n ≤ f`, a reader's `f ≤ n` gives `f = n` at that time, so its state holds the
+values (`fkOkRvG`'s `f ≤ n →`). Why the flag is raised by one at a compaction-key put (`f + 1`, until
+now `max f 1`): `max f 1` leaves a flag at `1` unmoved, and a store opened over data with a record
+(flag `1` at the open) would keep the clause after writing a new record.
+
+Why the values clause includes "no buffered entry" rather than "the readers' view reads `v`": the
+buffers start empty and only puts fill them; with the flag unmoved no put of a compaction key
+happened, so absence from both buffers is what is preserved operation by operation (`fkAbsB`, the
+lemmas `fkAbsD`'s proofs already had), and the view's value follows (`vOf_fkVal`).
+
+**Two premises the approved design missed**: "kept by every operation but a compaction-key put" was
+false of the backend's specs, which let `UnsafeDelete` delete a compaction key and
+`UnsafeDeleteBucket` delete `meta`. Chosen: pure premises on those specs (`¬ fkKey bi.name kb`;
+`∀ k, ¬ fkKey bi.name k`), like `P.hk … = false` already there. Rejected: the client's half of the
+flag for such a delete (as `fkPut`): a resource no caller has a use for (only mvcc writes the keys, it
+never deletes them; nothing deletes `meta`), and every delete's caller would carry it.
+
+**The constructor's post**: `fkCl`'s body holds the merged ghost at `D`'s values; `newPost`/`newPostK`'s
+text is unchanged, so `storage.OpenBackend`'s and `OpenSnapshotBackend`'s axiom texts are unchanged;
+their posts now include the open record, which is `backend.New`'s proved post (the justification the
+axiom review of the compaction-keys post gave for `fkCl`). Flagged for the user, not hidden: if the
+user counts a body change of a definition an axiom's post names as an axiom change, the open record
+must instead be drafted as a `newPostK` conjunct and reviewed with the `axiom` skill.
+
+**Item 30, not provable as drafted** (the plan section): the clean read is exact, but over a
+registered backend reads are only thin of the clients' view (any deleting session); recommended
+repair: `Restore` fixes the new backend's registration after `restore()`'s reads (`dlInit` lent to the
+clean read, `dlInit_noDel` for exactness), as `NewStore` does. Also the records' sign must be a premise.
+
+**Item 37, round 4's ghost law refutable**: the view's other half is in the two locks' resources, so
+only an operation holding both can widen (`Unlock.specW`, drafted); whether to widen at the store's
+first `Unlock` or to let mvcc's writer relation be "thin of the log's bucket" is the chain's choice.
+
+---
+
+## M2's restore chain, round 2
+
+**2026-10-30 · accepted (internal; `notes/m2-storage-plan.md`, "The restore chain, round 2")**
+
+**`etc/gen-link.py` emits raft's assumptions variable.** Since server Stage F (`b1542227ac`) files
+over raft's unified API declare `variable [raftAsm : go_etcd_io.raft.v3.Assumptions]`, and four
+Links got the variable by hand. Decision: the generator emits it when the mode's package assumptions
+do not already import raft's (Goose's `import_*_Assumption` fields, followed transitively: then the
+instance is there, as in the server's Link) and a linked spec or proof file, or an `@` callee's Link,
+declares it. Rejected: a fixed list of modes (drifts as packages start using raft's API). read's
+hand-added line, redundant under the rule, is dropped.
+
+**The nil-hook clause is `batchTxSpecG`'s, with `HN` a parameter defaulting to `False`.** The store's
+contracts pass `kbHookNil γ.kb`; the specs that never lock with the hook unset keep the contract
+without the clause, reached by `*_noNil` laws (the clause at `False` holds of anything). Rejected:
+`HN` computed from a `kb` argument (the contract is generic in its backend and has no `kb`), and
+changing `SetScheduledCompact.spec` to take the clause from the contract (its `lockArmS` already
+carries `lockNilSpec`, approved).
+
+**The clean read lends the unfixed registration with the reader's token** (`RT ∗ dlInit`), riding on
+the lock token until `RUnlock` (`keyReadLockedR_frame`). Why there: the read's exactness is needed at
+`RLock` (the reader's state is fixed then, `rtHeld_clean`'s `thinV` persistent), and `ReadTx`'s and
+`RLock`'s pres hold only the view and the token. Rejected: `dlInit` inside the records' resource `NC`
+(only the meta clause sees `NC`). The records' sign is a premise (`recsSign`, from `recsOk`), not a
+change of `metaReadSpecR` (switched, shared with the `UnsafeRead*Compact` specs).
+
+**Item 37 deferred to item 15.** The coordinator's choice (the writer's relation thin of the log's
+bucket) is designed, not implemented: its users are twenty files of the store's invariant and its
+only consumer, `store.Restore.specM`'s proof, is not written. The refuted widening Draft is dropped.
+
+**B2's pure form, glued at a model bound `B`.** The user's `logCh ≤ 2·MaxTxnOps·|entries|` is not a
+fact of the model (the apply side checks no `--max-txn-ops`, nesting multiplies the budget, the start
+log counts); the glue (`srvChBound_of_len`) takes any monotone `B`, so the form the user approves
+(the request's size bound `K` in place of `MaxTxnOps`, or none, by a gate) plugs in.
+
+## M2's storage side: B2 by sealed logs, persistent receipts (2026-10-30, drafted)
+
+**2026-10-30 · drafted (snapshot-track and mvcc statements; nothing switched)**
+
+The user's decision: no `NewServer` premise; every installed image's log is some member's sealed log,
+carried with the snapshot. Supersedes "B2, the receipt bound as a premise of `NewServer.specCompact`"
+and the `Nc`/`K` form.
+
+**Why persistent receipts (`⧖`), not the pure bound.** Carrying the sealed log's pure fact `logCh L <
+receiptBound` restores the image but not the induction: the restored writer must pay its *later*
+changes, and its exclusive receipts (`⧗`) count from zero, so its next seal is bounded by
+`logCh L + |new| < 2·receiptBound` (review round 5's B2). The image's `⧗` cannot travel (they are the
+sender's writer's, still needed there). Perennial's persistent receipt `⧖ n` ("the one global step
+counter is at least `n`", shared by every member, `⧖ n ⊢ n < receiptBound`) can, and a Go step raises
+it by one whoever holds it (`wp_go_step_preceipt`, our `wp_raise_receipt`, already used by raft). So a
+sealed/certified log carries `⧖ (logCh log)` (from the writer's `⧗` by `receipt_snapshot` at the
+seal/commit); the image's certificate carries it (`dbImageR`/`srvImageR`, the network's `img`); the
+installer's restore takes it (`restoreRcptM`, `store.Restore.specMR`); the restored writer holds
+`⧖ (logCh ilog + |pend|)` (`idxWriterP`) and each index change's Go step raises it
+(`treeIndex.Put.specP`/`Tombstone.specP`, today's proofs with `wp_raise_receipt` for
+`wp_take_receipt`); its commit certifies with the receipt again (`idxWriterP_commit`): the induction
+closes. No Perennial change, no new ghost state.
+
+**Why the image's certificate, not raft's registry or `snapshot()`.** etcd's raft snapshot has no data
+(`ownSnapsMade` in `srvClusterOk` has no KV content); the KV image is made at send time
+(`createMergedSnapshotMessage`'s `be.Snapshot()`, the apply thread's `msgSnapC` branch) and travels
+with `srvImage`, kept in the receiver's snapshot directory. `EtcdServer.snapshot`, `srvSnapStor`,
+`srvSnapFrozen`, `snapTakenLb` do not change.
+
+**Cost.** The writer's receipts stop being exclusive, so they no longer add up with another pool's;
+nothing uses that (`idxWriter_split` has no user). Drafts: `storage/mvcc/M2StorageDraftSealed.lean`,
+`etcdserver/M2StorageDraftB2.lean`; the plan's "B2 by sealed logs".
 
 ## G2's freeze: the client's watch internals frozen pending (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze")
 

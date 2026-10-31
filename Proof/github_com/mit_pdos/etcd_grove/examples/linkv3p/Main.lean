@@ -87,7 +87,7 @@ theorem Main.wp_proof
   icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, -, -, -, %Hp₁⟩
   icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, -, -, -, -⟩
   icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, -, -, -, -⟩
-  obtain ⟨-, -, -, hlog₁⟩ := Hp₁
+  obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network
   ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, common.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
   · iapply (BigSepL.bigSepL_cons

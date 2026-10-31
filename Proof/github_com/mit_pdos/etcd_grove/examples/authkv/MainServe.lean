@@ -128,7 +128,8 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
       (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
       interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R) :
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
+    (hoff : V.R.E.γ.cm = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isServerReadM true s E γr ∗ v3rpc.isWatchServer pw V.R ∗
@@ -150,6 +151,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
   ihave #Hsm := client.srvLogsSmall_of_receipts V.R Hlink hrb
   ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
+  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
   ihave #Hcore := srvKVCoreM_of_readM true s E γr $$ Hrd
   ihave #Hkf := client.srvKVFacts_intro V true γr hst hlog hrb $$ [Hcore H0]
   · rw [← Hlink, hE]; iframe #

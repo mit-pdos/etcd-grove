@@ -59,14 +59,13 @@ theorem mvcc.wp_wsWg_Wait (s : Loc) (γwg : sync.WaitGroupNames) (γd : GName) :
 theorem mvcc.watchableStore.Close.wp_proof
     (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Close.spec (GF := GF) (hG := hG) := by
-  intro s st γ
+  intro s st γ c
   wp_start as ⟨#Hws, Hcl⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
-  iunfold mvcc.wsCloser at Hcl
-  icases Hcl with ⟨%stc, #Hstc, Hstop, Hwait, Hsc⟩
+  icases mvcc.wsCloserM_close s st γ.st c $$ Hcl with ⟨%stc, #Hstc, Hstop, Hwait, Hsc⟩
   iunfold mvcc.stopCloser at Hstop
   icases Hstop with ⟨%γc, Hstop⟩
   iunfold mvcc.wsWaiter at Hwait
@@ -84,7 +83,7 @@ theorem mvcc.watchableStore.Close.wp_proof
   wp_apply mvcc.wp_wsWg_Wait s γwg γd $$ [$Htok]
   · iframe #
   (try wp_auto)
-  wp_apply hClose st γ.st $$ [$Hsc]
+  wp_apply hClose st γ.st c $$ [$Hsc]
   · iframe #
   iapply HΦ
   itrivial

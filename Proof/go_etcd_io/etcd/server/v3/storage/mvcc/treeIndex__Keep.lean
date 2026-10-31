@@ -100,7 +100,7 @@ theorem mvcc.treeIndex.Keep.wp_proof
     have Hget : mvcc.idxGet (mvcc.idxOfEntries L) z.2.1 = some z.2.2 :=
       mvcc.idxGet_of_mem _ Hsrt (z.2.1, z.2.2)
         (by unfold mvcc.idxOfEntries; exact List.mem_map.2 ⟨z, List.mem_of_getElem? hz, rfl⟩)
-    have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRep.gensOk HbL HLL.1 Hcm Hget
+    have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRepN.gensOk HLL.1 Hget
     wp_auto
     wp_apply (h1 z.1 gs z.2.2 (DFrac.own sync.rfrac) rev m _ Hok) $$ [Hzki Hm] as ⟨Hzki, Hm⟩
     · iframe Hzki Hm

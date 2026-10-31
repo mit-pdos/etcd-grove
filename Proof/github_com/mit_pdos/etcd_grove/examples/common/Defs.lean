@@ -162,25 +162,30 @@ instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := b
   unfold commonPremises; infer_instance
 
 /-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`): the store's index names, its
-certificate map and the revisions' map; `envAgree` reads nothing else. -/
-def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
+certificate map and the revisions' map, and (M2, the storage side, review round 2's N1) the member's
+compaction mode (`cmp`, `false` by default); `envAgree` reads nothing else. -/
+def env₀ (idx : mvcc.IdxNames) (cok rev : GName) (cmp : Bool := false) : apply.AEnv GF :=
   { s := null,
     γ := { idx := idx, bucket := 0, clog := 0, leases := 0, revs := 0, hook := 0, hookFn := 0,
-           kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0⟩, cok := cok, watchQ := false },
+           kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0, 0⟩, cok := cok, watchQ := false },
     P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authMode := .off,
     FS := iprop(True), ciC := fun _ _ => True, RO := fun _ => iprop(True), RW := iprop(True),
-    γbe := 0 }
+    γbe := 0, cmp := cmp }
+
+theorem env₀_cmp (idx : mvcc.IdxNames) (cok rev : GName) (cmp : Bool) :
+    (env₀ (GF := GF) idx cok rev cmp).cmp = cmp := rfl
 
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
-premises'. -/
+premises'; and (M2, the storage side, review round 2's N1, the approval's item 12) the member's
+compaction mode `cmp` (default `false`), recorded as the stand-in's (`E₀.cmp = cmp`). -/
 def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
-    (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
-    IProp GF :=
+    (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64)
+    (cmp : Bool := false) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
@@ -197,6 +202,22 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
     -- cluster gives it (`SrvRaft.snapLoc`, `NewServer`'s)
     ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
+
+/-- **The member's compaction mode, read off its boot bundle** (M2, the storage side, N1: what a
+`Main` keeps before `newServer` takes the bundle; `newServer` gives it to `NewServer.spec`'s
+premise). -/
+theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
+    memberBoot γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBoot γ ctxs ρ E₀ Φs id cmp := by
+  iintro H
+  iunfold memberBoot at H
+  icases H with ⟨%Hρ, Hr⟩
+  isplitr
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2
+  iunfold memberBoot
+  isplitr
+  · ipureintro; exact Hρ
+  iexact Hr
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
@@ -287,12 +308,12 @@ E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain wit
 enabled and the KV invariant in the mode `on` from the auth store's start state (`kvInvM true`, at
 `srvAuthSt0`). -/
 def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
-    (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
-    IProp GF :=
+    (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64)
+    (cmp : Bool := false) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp⌝ ∗
     nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
@@ -303,6 +324,20 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     srvReadNamesFreshNK ρ.rd ∗ kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
     ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
     ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
+
+/-- **The member's compaction mode, read off its boot bundle with auth on** (`memberBoot_cmp`'s). -/
+theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
+    memberBootOn γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBootOn γ ctxs ρ E₀ Φs id cmp := by
+  iintro H
+  iunfold memberBootOn at H
+  icases H with ⟨%Hρ, Hr⟩
+  isplitr
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2
+  iunfold memberBootOn
+  isplitr
+  · ipureintro; exact Hρ
+  iexact Hr
 
 /-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
 `NewServer.specM true` and `Start.specOn`): at an apply environment in the mode `.on γa`, the
