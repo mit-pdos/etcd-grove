@@ -285,19 +285,24 @@ instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF 
   unfold compactorOk; infer_instance
 
 /-- **The compactor's run, once** (M2, S4; not persistent): what `start`'s `s.compactor.Run()`
-spends: nil, or the compactor's contract with its run token `T` and its run precondition `P`
-(`NewServer` makes them: the run token from `v3compactor.New`, `P` the environment's contracts,
-`v3compactor.runPre`). -/
-def compactorRun (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ (T P : IProp GF), v3compactor.compactorOk c T P ∗ T ∗ P)
+spends: nil, or (auth off) the compactor's contract with its run token `T` and how to make its run
+precondition `P` from the server's views, which `start` builds (`NewServer` makes the token, from
+`v3compactor.New`, and the wand: `P` is `v3compactor.runPre` of the server's `Rev` and `Compact`,
+whose contracts need the request and read views, `CompactEnv.lean`; the wand holds the rest, the
+reader slots the compactor's calls borrow). -/
+def compactorRun (s : Loc) (E : apply.AEnv GF) (c : GoInterface) : IProp GF :=
+  iprop(⌜c = GoInterface.nil⌝ ∨ ⌜E.authOn = false⌝ ∗ ∃ (T P : IProp GF),
+    v3compactor.compactorOk c T P ∗ T ∗
+    (∀ ρ : ReqNames, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 -∗ |={⊤}=> P))
 
 /-- The run's contract is the compactor's. -/
-theorem compactorRun_ok (c : GoInterface) :
-    compactorRun (GF := GF) c ⊢ compactorOk c := by
+theorem compactorRun_ok (s : Loc) (E : apply.AEnv GF) (c : GoInterface) :
+    compactorRun (GF := GF) s E c ⊢ compactorOk c := by
   iintro H
   iunfold compactorRun at H
   iunfold compactorOk
-  icases H with (%H | ⟨%T, %P, #Hc, -, -⟩)
+  icases H with (%H | ⟨-, %T, %P, #Hc, -, -⟩)
   · ileft; ipureintro; exact H
   · iright; iexists T, P; iexact Hc
 
