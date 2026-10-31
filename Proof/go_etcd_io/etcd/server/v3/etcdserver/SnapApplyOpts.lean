@@ -70,6 +70,7 @@ theorem snap_backendOptsOk
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -81,6 +82,7 @@ theorem snap_backendOptsOk
     (opts' : apply.ApplierOptions) (lg : Loc) (al ast lp cl : Loc)
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
     (hgnn : g ≠ func.nil) (hoff : E.authMode = auth.AuthMode.off)
+    (hlp : mvcc.leaseParams d'.P)
     (hopts : opts'.Logger' = lg ∧
       opts'.KV' = interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws ∧
       opts'.AlarmStore' = al ∧ opts'.AuthStore' = auth.authIface ast ∧
@@ -118,9 +120,12 @@ theorem snap_backendOptsOk
   · rw [← hγw]
     iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
   isplitr
-  · iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL al ast lp cl E.s d'
-      (E.γ.withPhys p') hk _ g hgnn
-    iframe Hpkg HleA Hlcfg Hllk HB Hhook
+  · ihave #Hhok : mvcc.hookOk (E.γ.withPhys p') _ #g $$ []
+    · rw [← hγw]
+      iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
+    iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv al ast lp cl E.s d'
+      (E.γ.withPhys p') hk _ g hgnn (by simp only [mvcc.StoreNames.withPhys_watchQ]; exact hwq) hlp
+    iframe Hpkg HleA Hlcfg Hllk HB Hhook Hhok
     rw [mvcc.StoreNames.withPhys_leases]; iexact Hlinv
   isplitr
   · iapply snap_isAuthStore al ast lp cl E.RD d' (E.γ.withPhys p') hk _ g hgnn

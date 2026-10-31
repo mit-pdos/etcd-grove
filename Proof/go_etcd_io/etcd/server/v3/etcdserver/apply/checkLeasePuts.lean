@@ -33,7 +33,7 @@ theorem apply.checkLeasePuts.wp_proof
   ihave ⟨Hu, %HI⟩ := lease.lessorUser_items γ.leases L I $$ Hu
   ihave #Hle' := Hle
   iunfold apply.isApplyLessorAny at Hle'
-  icases Hle' with ⟨%sk, Hle'⟩
+  icases Hle' with ⟨%sk, %RO, Hle'⟩
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨Htl, -⟩
   iunfold txn.isTxnLessor at Htl

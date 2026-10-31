@@ -1365,3 +1365,13 @@ for a `w64` field (`w64_own_discard_false`, `Proof/.../lease/InvLessor.lean`: th
 byte's heap points-to). Proposed change: `TypedPointsto` gains (or derives, for the byte and heap
 instances) `typedPointstoDef l v1 dq1 ∗ typedPointstoDef l v2 dq2 ⊢ ⌜✓ (dq1 • dq2)⌝` for a
 non-empty representation, and `typedPointsto`'s `CombineSepGives` returns it with the agreement.
+
+## Strictly sorted lists with the same members are equal (2026-10-31, lease-revoke)
+
+`go.GoStringLt` (Perennial's order on Go strings, which `sort.StringSlice.Sort`'s model sorts by)
+has no law that two lists strictly increasing for it, with the same members, are equal. The
+lessor's `Revoke` needs it: the sorted item set it deletes is the lease's keys in key order
+(`mvcc.leaseDelKeys_eq`). Worked around locally (`eq_of_lt_sorted_mem`,
+`Proof/.../storage/mvcc/LeaseItems.lean`, from irreflexivity and transitivity). Proposed change: a
+general `List.eq_of_pairwise_lt_mem` for a strict order (in Perennial's list lemmas, or the
+`GoStringLt` instance of one), so that the local copy goes.

@@ -27837,3 +27837,28 @@ The premise is `□ certOkNext γ log (leaseDels (stateAfter log) id)`; the live
 
 **Why.** A weaker premise (one certificate) and a determined post: both stronger for every caller.
 The other `lessor.Revoke` (the client's, `Spec/go_etcd_io/etcd/client/v3/`) is a different function.
+
+## The server's backend names the `Lease` bucket: `leaseParams` a boot fact (2026-10-31 · accepted, the user's choice · `notes/lease-revoke-plan.md`)
+
+**Context.** The lease-revoke plan derives `isApplyLessor`'s `Revoke` clause of the real lessor
+(`apply.isApplyLessor_of_lessorInv`). `lessor.Revoke` deletes the lease's record from the `Lease`
+bucket through the store's batch transaction, whose right is `mvcc.storeRb γ` (for a real backend
+`d`: `backend.rbOwn d.γB r ∗ ⌜mvcc.leaseParams d.P⌝`, the table naming `lease`, tracked, no hook
+keys; leases L2d). The server lends it from its rest resource (`srvRestOwnH`: `rbOwn` at the model's
+buckets), so it needs `leaseParams d.P` of its backend. Nothing in hand gave it: `bootOk`'s backend
+facts were `bridgeParams`, `ciKeys`, `hooksParams` of `d.P`, and the snapshot path's backend
+(`EtcdServer.applySnapshot.specSnap`) has the boot backend's parameters (`d'.P = d.P`), with
+`bridgeParams` as a named premise (`hbr`). The leases plan had put it there ("`leaseParams` from
+the boot facts is L3's").
+
+**Decision.** `bootOk`'s `%Hbe` adds `mvcc.leaseParams d.P` (a premise of `NewServer.spec`), and
+`applySnapshot.specSnap` takes it as a named premise `hlp` beside `hbr`, carried to the new
+backend by `d'.P = d.P` (`srvSnapApplied_of_walk`, `snap_backendOptsOk`, `snap_isApplyLessor`).
+`SnapRO.lean`'s `srvRestOwnH_lens_revoke` is the lens. `NewServer.wp_proof` and the snapshot's
+proof take `lease.lessor.Revoke.spec` (proved, unit T3; `etc/link-lean-first-server.txt`).
+
+**Why.** A fact of the same kind as the three already there (the backend's bucket table), true of
+etcd: `NewLessor`'s `initAndRecover` creates the `Lease` bucket, which is tracked (D22), and the
+server's hooks write only `Meta`. Folding it into `bridgeParams` would change a definition every
+bridge lemma is stated in and mix the lessor's bucket into the KV store's bridge; leaving the server
+out would leave the branch unbuilt until L3c.

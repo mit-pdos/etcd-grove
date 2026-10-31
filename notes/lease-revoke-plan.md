@@ -259,3 +259,31 @@ Left for Prove (laws, no statement change): F4 `kvWriter_open` moved to txn with
 `stateAfter_length_le`, `leaseDels_clears`, `leasesKnown_revoke`; F5 `rdAt` into mvcc with intro/use
 laws; F8 `eq_of_lt_sorted_mem` proposed to Perennial (`notes/perennial-changes.md`), `stateAfter`
 forms. F10 (auth off, an admin request's rejection) is older, noted for L3c.
+
+## Freeze (2026-10-31, the user's approval)
+
+Frozen at `46726f0b33`: `apply/LeaseRevokeDraft.lean`'s statements (with the second review's F2, F3,
+F7) and `lease.lessor.Revoke.spec` at `mvcc.leaseDels`. Prove swaps them into `Chain.lean` /
+`Contracts.lean` (`backendStep`'s case, `authMayReject`, `revokePre`, `revokeOutcomeIs`,
+`isApplyLessor`'s clause and its `RO`) and proves them.
+
+## Prove (2026-10-31)
+
+Swapped in and proved, no `sorry`, no new axiom:
+- `Chain.lean`: `backendStep .leaseRevoke`, `authMayReject` (a revocation rejected only with auth
+  on or admin needed), `revokeErrIs`, `revokeRes`/`revokeResAfter`, `revokePre`, `revokeOutcomeIs`
+  (the response's `Header`), the `applierTriples` revoke triple with the rest; `Contracts.lean`:
+  `revokeLog`, `revokeClause`, `isApplyLessor`'s `RO`.
+- The layers: `applierV3backend.LeaseRevoke` (both cases), `authApplierV3.LeaseRevoke`
+  (`checkLeasePuts`, then the inner; `AuthLemmas`' `auth_reject_kvPost`/`auth_pass_kvPost`, the
+  floorless `kvPost` forms), `applierV3Corrupt.LeaseRevoke`, the capped and quota promotions, the
+  three constructors; `chain_revoke` (`apply/Results.lean`, the frozen `chainRevokeStmt`).
+- The derivation `revokeClause_of_lessorInv` / `isApplyLessor_of_lessorInv` (new premises: the
+  store watchable, mvcc's init, `hookOk`, the bk-only lens over `RO`).
+- The review's F4/F5: `txn.kvWriter_open` in `txn/KVWrite.lean`; `lease.rdAt` with
+  `rdAt_intro`/`rdAt_elim`/`rdAt_open` in `lease/RangeDeleter.lean`. F8: the sorted-lists law
+  proposed (`notes/perennial-changes.md`). Not done: `stateAfter_length_le`/`leaseDels_clears`
+  as separate laws (the derivation's `leasesKnown_revoke`, `leaseDels_notLive` cover them).
+- The server (the user's choice at the gate, `notes/decisions.md`): `mvcc.leaseParams d.P` in
+  `bootOk`, `hlp` in `applySnapshot.specSnap`; `SnapRO.lean`'s `srvRestOwnH_lens_revoke`;
+  `NewServer.wp_proof` and the snapshot's proof take `lessor.Revoke.spec` (the server's `Link`).

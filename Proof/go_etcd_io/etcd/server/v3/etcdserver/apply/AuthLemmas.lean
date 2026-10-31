@@ -93,6 +93,62 @@ theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain
   · iapply apply.chainClass_auth_pass $$ Hcls
   · iapply apply.chainLeaseClass_auth_pass $$ Hlc
 
+/-- `auth_reject_kvPostF` without a floor (`LeaseRevoke`, the lease-revoke plan). -/
+theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
+    (inner : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
+    (log : mvcc.Log) (R : apply.Outcome → IProp GF)
+    (Pre Q Post : IProp GF) (hk : apply.authChecks (dispatchKind rq) = true)
+    (hm : apply.authMayReject on rq) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      R (.rejected .auth) -∗ apply.kvOwn E log -∗
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗
+      apply.chainResAny c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
+      apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
+        log R Pre Post := by
+  iintro #Happ HR Hkv Hinfo Hres Hcs
+  ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
+  iunfold apply.kvPost
+  iexists (.rejected .auth)
+  isplitr
+  · ipureintro
+    simp [apply.chainStep, hk, hm]
+  simp only [apply.Outcome.logAfter]
+  iframe HR Hkv
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
+  isplitl [HPre]
+  · iright; iexact HPre
+  isplitl []
+  · iapply apply.chainClass_auth_rejected
+  · iapply apply.chainLeaseClass_auth_rejected
+
+/-- `auth_pass_kvPostF` without a floor (`LeaseRevoke`, the lease-revoke plan). -/
+theorem apply.auth_pass_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
+    (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
+    (log : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      apply.kvPost E c inner info' rq log R Pre Post -∗
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
+      apply.reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
+      apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
+        log R Pre Post := by
+  iintro #Happ Hpost Hinfo #Hcls #Hlc
+  iunfold apply.kvPost at Hpost
+  iunfold apply.kvPost
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -, -⟩
+  iexists oc
+  iframe HR Hkv HPP
+  isplitr
+  · ipureintro
+    simp only [apply.chainStep]
+    split <;> simp [Hst]
+  ihave Hres := apply.chainResAny_of c inner info' $$ Hres
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
+  isplitl []
+  · iapply apply.chainClass_auth_pass $$ Hcls
+  · iapply apply.chainLeaseClass_auth_pass $$ Hlc
+
 /-- `checkTxnPermission`'s triple, as a hypothesis (the Löb induction's). -/
 def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac)

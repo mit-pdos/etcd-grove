@@ -142,10 +142,10 @@ theorem apply.newApplierV3Backend.wp_proof
     iframe #
   isplitr
   · imodintro
-    iintro %r %rq %id %log %Pre %Q %Post %info
+    iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hLeaseRevoke E p r rq id log Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hLeaseRevoke E p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr

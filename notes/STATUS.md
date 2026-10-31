@@ -507,17 +507,31 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
-## LeaseRevoke through the apply chain (2026-10-31, branch `lease-revoke`; Draft reviewed, awaiting Freeze)
+## LeaseRevoke through the apply chain (2026-10-31, branch `lease-revoke`; frozen at `46726f0b33`, proved)
 
 `notes/lease-revoke-plan.md`. Scope: the apply chain (the server's `plainCover`, rest model and
-entry point stay out, L3c/L4). Done: `lease.lessor.Revoke.spec` restated at its actual deletions
-(`mvcc.leaseDels`, re-proved; `notes/decisions.md`); the apply-side statements in
-`apply/LeaseRevokeDraft.lean` (the exact revocation, the Revoke clause over the rest resource `RO`
-and the range deleter `rdAt`, `chain_revoke`), probes in `apply/LeaseRevokeProbe.lean`; two
-independent reviews (`notes/spec-review/lease-revoke-draft{,-r2}.md`; no blocker in the second);
-etcd's revoke tests pass at the pin. Found: `lease.lessor.Recover`'s axiom is false about `le.rd`
-(Go stores the new deleter, the model keeps the old one; a Go test shows `Revoke` calls `Recover`'s;
-`notes/audit.md`), the fix deferred to L3c (the user's choice: the range deleter a premise).
+entry point stay out, L3c/L4). `lease.lessor.Revoke.spec` is restated at its actual deletions
+(`mvcc.leaseDels`, re-proved; `notes/decisions.md`). The backend's `LeaseRevoke` is no longer
+vacuous: `backendStep .leaseRevoke` is the lease's deletions committed (`apply.revokeLog`), the
+not-found case `ErrLeaseNotFound`; the auth layer's `checkLeasePuts` gives the lease's class
+(`reqLeaseClass .leaseRevoke`, `leaseKeysClass`); the corrupt, capped and quota layers pass it on.
+`apply/Results.lean`'s `chain_revoke` states it through the uber-applier's chain, with the rest
+after it (`revokeResAfter`: `E.RO` at `restRevoke`). `isApplyLessor` takes `RO`, and its `Revoke`
+clause (`revokeClause`) is derived of the real lessor (`apply.revokeClause_of_lessorInv`). The
+server builds it (`NewServer`, the snapshot path's `snap_isApplyLessor`) from the store watchable,
+its hook and a lens over its rest resource (`srvRestOwnH_lens_revoke`), which needs a new boot fact,
+`mvcc.leaseParams d.P` (`bootOk`; a named premise `hlp` of `applySnapshot.specSnap`; the user's
+choice, `notes/decisions.md`). `lease.rdAt` (the range deleter held, `lease/RangeDeleter.lean`)
+and `txn.kvWriter_open` moved to their packages. No new axiom or `sorry` (769 axioms, 16 sorries,
+as before); the eight collections over the server (authkv, cachekv, k8setcd3, linkv3p, linkvtxn,
+putget, putget3, watchkv) now reach `lessor.Revoke`'s two trust-boundary axioms,
+`schema.UnsafeDeleteLease` and `sort.StringSlice.Sort` (their baselines updated).
+
+Found: `lease.lessor.Recover`'s axiom is false about `le.rd` (Go stores the new deleter, the model
+keeps the old one; a Go test shows `Revoke` calls `Recover`'s; `notes/audit.md`), the fix deferred
+to L3c (the user's choice: the range deleter a premise). Open: nothing gives `rdAt` yet (mvcc's
+constructors give the deleter's contract at their own names only; L3c), so no server result
+reaches a revocation; `rqOk .leaseRevoke` stays `False` (the dispatch's KV path excludes it).
 
 ## The lease rows' key checks, Part A: the apply layer (2026-10-31, branch `lease-keys`; frozen at `97c2e6d92d`, the user's approval)
 

@@ -72,6 +72,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Grant
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Checkpoint
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
 public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__TTL
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Promote
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Demote
@@ -317,7 +318,9 @@ theorem NewServer.wp_proofM (on : Bool)
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
     -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
-    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
+    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg
@@ -519,7 +522,7 @@ theorem NewServer.wp_proofM (on : Bool)
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HlP⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -1197,12 +1200,28 @@ theorem NewServer.wp_proofM (on : Bool)
   ihave #Hlok : lessorOk (lease.lessorIface lp) $$ []
   · iapply lessorOk_of_lessorInv h57 h58 h59 lp γl
     iframe Hlexp Hlcfg Hlinv Hlspkg
+  ihave %Hwq0 : ⌜γw.st.watchQ = true⌝ $$ []
+  · ihave #Hws' := Hws
+    iunfold mvcc.isWatchableStore at Hws'
+    icases Hws' with ⟨%vc, %stc, %rv', %γv, Hws'⟩
+    iNamed Hws'
+    ipureintro; exact Hwq
   ihave #Hapl : apply.isApplyLessor (lease.lessorIface lp) kst γw.st
-      (batchLockInv γA (metaTM d.γB d.P)) #hook (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
-  · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 lp kst γw.st _ _ _
+      (batchLockInv γA (metaTM d.γB d.P)) #hook
+      (srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be))
+      (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
+  · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 h95 lp kst γw.st _ _
+      (srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be)) _
       (lease.lessorBeOn lp d.be) (backend.rbOwn d.γB)
     rw [Hγw.2.1]
-    iframe Hllk Hlcfg Hlinv Hlspkg
+    iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg
+    isplitr
+    · ipureintro; exact Hwq0
+    isplitr
+    · iapply (mvcc.hookOk_of_init γw.st _ #func.nil ({ d with cm := false } : mvcc.KBReal) Hγw.2.2.1 hook Hhknn)
+      iframe Hhook HhkI
+    isplitr
+    · iapply (srvRestOwnH_lens_revoke γw.st ({ d with cm := false } : mvcc.KBReal) Hγw.2.2.1 HlP alst astl lp bc.cl')
     isplitl []
     · unfold mvcc.storeWT mvcc.storeRT
       rw [Hγw.2.2.1]
@@ -2004,13 +2023,15 @@ theorem NewServer.wp_proof
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
-    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
+    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   have h := NewServer.wp_proofM false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94
+    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto
     Hacr Hcmp0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
   -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in

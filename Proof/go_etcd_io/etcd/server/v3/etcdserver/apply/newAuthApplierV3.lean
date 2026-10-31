@@ -129,10 +129,10 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- LeaseRevoke: the auth applier's
     imodintro
-    iintro %r %rq %id %log %Pre %Q %Post %info
+    iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr

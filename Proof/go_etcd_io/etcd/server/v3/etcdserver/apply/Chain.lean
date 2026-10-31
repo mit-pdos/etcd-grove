@@ -164,7 +164,7 @@ the user and role gets') are not followed. -/
 def authMayReject (on : Bool) (rq : IRRModel) : Prop :=
   on = true ∨ needAdminPermission rq = true ∨
     (dispatchKind rq ≠ .put ∧ dispatchKind rq ≠ .range ∧ dispatchKind rq ≠ .deleteRange ∧
-      dispatchKind rq ≠ .txn)
+      dispatchKind rq ≠ .txn ∧ dispatchKind rq ≠ .leaseRevoke)
 
 /-- **The outcome relation** of the chain `c` on `rq` at `log`, over the backend's `B`. -/
 def chainStep (B : IRRModel → mvcc.Log → Outcome → Prop) :
@@ -223,8 +223,7 @@ def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
         (txn.txnReadonly t = true →
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []) ∧
         txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))))
-  | .leaseRevoke => ∃ pend : List mvcc.Change, (∀ ch ∈ pend, ch.isDel = true) ∧
-      o = .applied (mvcc.commitLog log pend) false
+  | .leaseRevoke => ∃ id, rq.leaseRevoke = some id ∧ o = .applied (revokeLog log id) false
   | .compaction => o = .applied log false
   | .none => False
   | _ => o = .applied log false ∨ o = .rejected .backend
@@ -827,11 +826,25 @@ def txnAnswerIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc) (err 
   | .applied l ns => iprop(txnOutcomeIs log t skip resp err (.applied l ns) ∗
       appliedHdr log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))
 
-/-- **A revocation's answer**: rejected, no response; applied, the lessor's error (one
-`errors.Is` can take, the contract's). -/
+/-- **The lessor's error of a revocation** (the lease-revoke plan, F3): none, or
+`ErrLeaseNotFound` (what the gRPC layer maps to its own code, L4). -/
+def revokeErrIs (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ ∃ e : GoInterfaceOk,
+    globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e ∗
+      ⌜err = GoInterface.ok e⌝)
+
+instance revokeErrIs_persistent (err : GoInterface) : Persistent (revokeErrIs (GF := GF) err) := by
+  unfold revokeErrIs; infer_instance
+
+/-- **A revocation's answer** (the lease-revoke plan, R7, F3): rejected, no response and the
+layer's error; applied, a response whose header is `newHeader`'s (not nil; its fields are the
+server's, `newHeader`'s spec says no more), the lessor's error (one `errors.Is` can take, and none
+or `ErrLeaseNotFound`). -/
 def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
   | .rejected k => iprop(⌜resp = null⌝ ∗ rejErrIs (fun _ => iprop(False)) k err)
-  | .applied _ _ => applyErrIs err
+  | .applied _ _ => iprop(⌜resp ≠ null⌝ ∗ (∃ h : Loc,
+      structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" resp ↦ h ∗ ⌜h ≠ null⌝) ∗
+      applyErrIs err ∗ revokeErrIs err)
 
 /-- The result of `authApplierV3.Apply`'s admin check failing: a fresh `&Result{Err: err}`, the
 auth store's error. -/
@@ -1004,13 +1017,27 @@ def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.s
     txn.txnRequestIs r t ∗
     mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
 
-/-- `LeaseRevoke(r)`'s precondition. -/
+/-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the
+range deleter held and the rest at `rs`. -/
+def revokeRes (E : AEnv GF) (rs : RestM) : IProp GF :=
+  iprop(lease.rdAt E.γ.leases E.s ∗ E.RO rs)
+
+/-- **What it gives back** (R6): the range deleter, the rest with the lease's record deleted when
+the revocation succeeded (`err = nil`: the lease was live), else as it was. Which of "not live"
+and "live with no key" the apply layer cannot tell (the same log): the server's model can (L3c). -/
+def revokeResAfter (E : AEnv GF) (id : w64) (rs : RestM) (err : GoInterface) : IProp GF :=
+  iprop(lease.rdAt E.γ.leases E.s ∗ E.RO (if err = GoInterface.nil then restRevoke id rs else rs))
+
+/-- `LeaseRevoke(r)`'s precondition (the lease-revoke plan, R3, 2026-10-31): the request's, room
+for a revision (`putOk`: `rqOk` keeps excluding the kind for `dispatch`), the certificate, the
+write token, the method's resources and the revocation's (`revokeRes`). -/
 def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ rqOk log rq⌝ ∗
+    (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (rs : RestM) (Pre Q Post : IProp GF) :
+    IProp GF :=
+  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ putOk log⌝ ∗
     certPre E c rq log ∗
     leaseRevokeIs r id ∗
-    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ revokeRes E rs)
 
 /-! ### The backend's posts: no chain resources, the trivial class -/
 
@@ -1274,12 +1301,13 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostF E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (rs : RestM) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ revokePre E c (.ok ai) info r rq id log Pre Q Post }}
+      {{ revokePre E c (.ok ai) info r rq id log rs Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          kvPost E c (.ok ai) info rq log (revokeOutcomeIs resp err) Pre Post }}) ∗
+          kvPost E c (.ok ai) info rq log (revokeOutcomeIs resp err) Pre Post ∗
+            revokeResAfter E id rs err }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗
@@ -1339,7 +1367,7 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookOk E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.s E.γ E.P E.f E.RW ∗
+    isApplyLessor opts.Lessor' E.s E.γ E.P E.f E.RO E.RW ∗
     isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authMode E.RW ∗
     isAlarmStore opts.AlarmStore' E.γ E.P E.f E.RW ∗ isCluster opts.Cluster' E.γ E.P E.f E.RO E.RW ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗
@@ -1398,7 +1426,7 @@ def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
       isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
-      isApplyLessor le E.s E.γ E.P E.f E.RW) ∗
+      isApplyLessor le E.s E.γ E.P E.f E.RO E.RW) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoIdle p ∗ E.RD))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :
