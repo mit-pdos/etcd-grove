@@ -535,7 +535,7 @@ review (`axiom/lessor-reader`, `881a927f93`: survives), the Probe (`Keys` proved
 reader; `Grant`'s registration of a fresh lease, `itemSet_register`; it found `setsOk`'s coverage
 conjunct and the `threadBound ≤ 2^30 - 1` premise). The lessor's other proofs (`LessorLemmas`,
 `Grant`, `Attach`, `Detach`, `Revoke`, `Lookup`, `LessorContract`) are broken until the Prove step;
-the build is red on this branch. Next: the freeze (the user's approval), then Prove. Found:
+the build is red on this branch. **Frozen** at `211662f7ba` (the user's approval); next: Prove. Found:
 `issues/etcd-lease-timetolive-keys-toctou.md` (LeaseTimeToLive returns keys it did not check).
 Perennial: a typed points-to's fraction validity (`notes/perennial-changes.md`).
 

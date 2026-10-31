@@ -459,3 +459,8 @@ prefix of it).
 `tests/integration` `TestV3AuthWithLease*`, `TestPutWithLeaseInTXN`; `tests/common` (`-tags
 integration`) `TestAuthLease*`. The TOCTOU the checks' specs leave as their gap is reproduced in
 `issues/etcd-lease-timetolive-keys-toctou.md`.
+
+**Part B frozen** (the user's approval, 2026-10-31, at `211662f7ba`): the three checks' specs, the
+unified `Lookup`/`Keys` specs, the readers' vocabulary (`InvLessor.lean`), the restated
+`NewLessor`/`Recover`. A change to them now needs a `notes/decisions.md` entry with its cause.
+Next: Prove.
