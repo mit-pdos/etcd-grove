@@ -90,12 +90,12 @@ theorem EtcdServer.snapshot.wp_proof
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nid sl γp ua Hloop Hci Hrel
-    Hpos Hsz
+  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nid sl γp ua q Hloop Hci Hrel
+    Hpos Hsz Hwso Hatnz Hcfgp
   cases toDisk
   all_goals (
   wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv⟩, #Hwp, Hai,
-    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
+    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt⟩
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl'⟩, #Hat0, -, #Hrn⟩
   ihave #Hsci' := Hsci
@@ -143,7 +143,7 @@ theorem EtcdServer.snapshot.wp_proof
     wp_apply (wp_srv_createSnapshot hCS ms γs γr nid ai at' cs _ Hpos Hsz) $$ [Hstor]
       as %snap' %err ⟨#Hlbi, Hres⟩
     · iframe #; iframe Hstor
-    icases Hres with (⟨%Herr, %c, Hsnap⟩ | %Herr)
+    icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap⟩ | %Herr)
     rotate_left
     · -- `ErrSnapOutOfDate`: `errors.Is` is `true`, return
       obtain ⟨-, Herr⟩ := Herr
@@ -163,7 +163,7 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       iapply HΦ
       iexists st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, m, f
@@ -188,7 +188,7 @@ theorem EtcdServer.snapshot.wp_proof
       iapply HΦ
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, ai, f
@@ -273,7 +273,7 @@ theorem EtcdServer.snapshot.wp_proof
     wp_apply (wp_srv_createSnapshot hCS ms γs γr nid ai at' cs _ Hpos Hsz) $$ [Hstor]
       as %snap' %err ⟨#Hlbi, Hres⟩
     · iframe #; iframe Hstor
-    icases Hres with (⟨%Herr, %c, Hsnap⟩ | %Herr)
+    icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap⟩ | %Herr)
     rotate_left
     · -- `ErrSnapOutOfDate`: `errors.Is` is `true`, return
       obtain ⟨-, Herr⟩ := Herr
@@ -293,7 +293,7 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       iapply HΦ
       iexists st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, m, false
@@ -319,17 +319,53 @@ theorem EtcdServer.snapshot.wp_proof
       iunfold srvSnapDisk at Hdisk
       icases Hdisk with ⟨%stp, %ss, %γd, %img, %Rm, %Hstp, #Hstf, #Hsave, #Hdinv, #Hrm⟩
       (try wp_auto)
-      wp_bind (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty)
-        go!"SaveSnap" #stp)) (Val #snap'))
-      iunfold saveSnapOk at Hsave
-      iapply Hsave $$ []
-      · iexact Hsnap
-      inext
-      iintro -
-      (try wp_auto)
       ihave #Hsnap' := Hsnap
       iunfold ownSnapM at Hsnap'
       icases Hsnap' with ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd', #HM, #Hm', #Hpb⟩
+      -- (2026-10-31) the WAL contract's `SaveSnap`, at the apply thread's share of the WAL
+      iunfold isRNWal at Hsave
+      icases Hsave with ⟨%si, %Hsieq, -, -, #HSaveSnap, -⟩
+      simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
+      subst Hsieq
+      iunfold rnWalTok at Hwt
+      icases Hwt with ⟨%st0, #Hst0, Hwo⟩
+      icombine Hstf Hst0 gives %Hsteq
+      have Hsteq' : st0 = interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
+        first | exact Hsteq.symm | exact Hsteq.2.symm
+      subst Hsteq'
+      iunfold smOpt at Hm'
+      icases Hm' with (%Hmnil | #Hmp)
+      · exfalso
+        have h := congrArg SnapshotMetadataM.Index' Hmnil.2
+        simp only [memSnapMade] at h
+        subst h
+        simp at Hpos
+      ihave #Hm' : smOpt pm DFrac.discard (memSnapMade ai at' c []).Metadata' $$ []
+      · iunfold smOpt; iright; iexact Hmp
+      have hmd : (memSnapMade ai at' c []).Metadata'.Index' ≠ W64 0 ∧
+          (memSnapMade ai at' c []).Metadata'.Term' ≠ W64 0 ∧
+          (memSnapMade ai at' c []).Metadata'.ConfState' ≠ ConfStateM.mk [] [] [] [] false := by
+        simp only [memSnapMade]
+        refine ⟨?_, Hatnz, confStateIs_ne_empty c _ Hcsc Hcfgp⟩
+        intro h; subst h; simp at Hpos
+      ihave HSS := HSaveSnap
+      ispecialize HSS $$ %q %snap' %pm %DFrac.discard %DFrac.discard
+        %(memSnapMade ai at' c []).Metadata' %hmd
+      wp_bind (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty)
+        go!"SaveSnap" #stp)) (Val #snap'))
+      iapply HSS $$ [Hwo]
+      · iframe Hwo; iframe #
+      inext
+      iintro %serr ⟨Hwo, -, -, %Hserr⟩
+      have hserr : serr = GoInterface.nil := by
+        rcases Hserr with h | h
+        · exact h
+        · exact absurd Hwso h
+      subst hserr
+      ihave Hwt : rnWalTok (srvRAddr s) q $$ [Hwo]
+      · iunfold rnWalTok; iexists _; iframe Hst0 Hwo
+      (try wp_auto)
       wp_apply hRel stp ss snap' pm DFrac.discard DFrac.discard
           (memSnapMade ai at' c []).Metadata' γd img Rm Hstp $$ [] as %rerr ⟨-, -, %Hrerr⟩
       · iframe #
@@ -362,7 +398,7 @@ theorem EtcdServer.snapshot.wp_proof
       iapply HΦ
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists ai, ai, false

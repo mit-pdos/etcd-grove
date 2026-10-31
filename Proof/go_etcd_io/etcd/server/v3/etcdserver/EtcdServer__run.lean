@@ -683,8 +683,8 @@ theorem EtcdServer.run.wp_proof
         iunfold srvCommittedOwn
         iexact Hown
   -- `s.r.start(rh)`: the raft loop, owning the committed index's writer half
-  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c)
-    $$ [Hloop Hrdone Hcomm Hsend]
+  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.2
+    $$ [Hloop Hrdone Hcomm Hsend Hwtl]
   · rw [HEγr]; iframe Hrh Hrn; iframe
   (try wp_auto)
   -- `ep`: the snapshot's conf state (the field `cs`, loaded), index and term (the getters, over
@@ -1207,8 +1207,8 @@ theorem EtcdServer.run.wp_proofOn
         iunfold srvCommittedOwn
         iexact Hown
   -- `s.r.start(rh)`: the raft loop, owning the committed index's writer half
-  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c)
-    $$ [Hloop Hrdone Hcomm Hsend]
+  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.2
+    $$ [Hloop Hrdone Hcomm Hsend Hwtl]
   · rw [HEγr]; iframe Hrh Hrn; iframe
   (try wp_auto)
   -- `ep`: the snapshot's conf state (the field `cs`, loaded), index and term (the getters, over

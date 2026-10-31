@@ -88,7 +88,9 @@ theorem newRaftNode.wp_proof :
   imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd⟩) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
-      nodeRunning nl node.cl srvClusterN (1 : Qp).half))) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
+      nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
+      storage.walOpen (storage.walOf cv.storage') (1 : Qp).half)) _ stc γst (by trivial)
+    $$ Hstc Hsto with #Hstb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
   ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd iprop(True) .Unknown $$ []

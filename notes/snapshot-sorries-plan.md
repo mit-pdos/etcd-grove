@@ -159,3 +159,14 @@ Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant
   for it), the writer's tokens and a write token from the row (`srvApplyKVCore_commit`) and calls
   `store.Commit`'s proved spec (`srvKVCommitOk_of_kv`, a new callee in the server's link). Left
   for S6: the KV's facts and `srvSnapDisk` from the start through `run` to `applyAll`.
+- **The WAL's open token and `diskOk`** (`notes/decisions.md`, "The WAL's readiness and one disk
+  premise", settled): `snapshot`'s `SaveSnap` is `isRNWal`'s, at the apply thread's half
+  (`rnWalTok (srvRAddr s) q`, pre and post of `snapshot`, `specFull`, `specFullOff/On`), with
+  `walSaveOk`; the token is built at `NewServer` and rides `isServerRun` (`Hwth`), with
+  `⌜storage.diskOk⌝` (`Hdisk`). `snapshot` and `specFull` take two new obligations of `SaveSnap`'s:
+  the snapshot's term non-zero (`specFull`: `0 < ai → at' ≠ 0`) and a voter (`0 < GMap.size cfg`).
+  Left for the switch: `Hwth` from `isServerRun` through `run`'s job chain to `applyAll` (beside
+  the `nodeRunning` half, `HQR`), and back to `raftNode.stop` in `run`'s defer (its spec takes it);
+  `at' ≠ 0` (the applied entry's term: raft's terms are positive past index 0) and `0 < size cfg`
+  (the boot voters, `γ.vs = ps ≠ []`) at `applyAll`; `walSaveOk`, `releaseOk` from `Hdisk`. The
+  raft loop's `SaveSnap` (#3) has its half (`rnWalTok`, the loop invariant).

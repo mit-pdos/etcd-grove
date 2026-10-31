@@ -61,7 +61,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull : Prop :=
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
-    (sa : auth.AuthState),
+    (sa : auth.AuthState) (q : Qp),
   loopOk γ st ai →
   -- (D22 J5) the applied index at most the write tokens taken (no snapshot installed)
   uint.Z ai ≤ w →
@@ -70,6 +70,8 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull : Prop :=
   uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
   GMap.size γr.raft.raft.cfg < 2 ^ 61 →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
+  storage.walSaveOk → (0 < uint.Z ai → at' ≠ W64 0) → 0 < GMap.size γr.raft.raft.cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗
@@ -81,12 +83,13 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull : Prop :=
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
       (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa }}
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗
+      rnWalTok (srvRAddr s) q }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 end spec
 

@@ -31,7 +31,11 @@ the node; it stops (`onStop`) on `stopped`. The loop owns the ready handler's re
 unit 4c), and (2026-10-24, rafthttp stage 6d) what the transport's `Send` borrows (`E.S`). -/
 abbrev raftNode.start.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r rh : Loc) (L : List EntryModel) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R E.γr ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗ E.S }}
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) `onStop`'s `Close` not failing (I/O)
+  storage.walCloseOk →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R E.γr ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗ E.S ∗
+      -- (2026-10-31) the loop's half of the WAL's open token (its `Save`s, `onStop`'s `Close`)
+      rnWalTok r (1 : Qp).half }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"start")) (Val #rh))
   {{ RET #(); True }}
 

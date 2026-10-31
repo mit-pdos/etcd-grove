@@ -257,6 +257,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`bootstrapWAL`'s `ReadAll`),
     -- which `NewStorage`'s contract takes
     "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
+    -- (2026-10-31, the user's decision) and its open token, whole: the WAL `bootstrap` opened is the
+    -- server's (`storage.walOpen`; the raft loop's `Save`s and `Close`, the apply thread's `SaveSnap`)
+    "Hwalo" ∷ storage.walOpen bw.w' 1 ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗

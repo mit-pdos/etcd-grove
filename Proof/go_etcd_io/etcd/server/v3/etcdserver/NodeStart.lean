@@ -360,7 +360,9 @@ abbrev NodeStartSpec : Prop :=
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
             rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
             -- (D22 J1a) the storage a `*storage` over the snapshotter `ss`
-            rnStorageOf rv.raftNodeConfig'.storage' ss⌝ ∗
+            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
+            -- (2026-10-31) over the WAL `wal` (whose open token `bootstrap`'s contract gives)
+            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           -- (D21 M2) the node's inbound methods (`Process`'s), from the start
@@ -522,7 +524,11 @@ theorem raftNode_of_StartNode
     iNamed Hparts
     simp only [named]
     iframe #
-    ipureintro; exact Hlgnn
+    isplitr
+    · ipureintro; exact Hlgnn
+    -- (2026-10-31) `stopped`'s bag at the storage's WAL
+    iExactEq Hstci
+    first | rfl | simp [Hrvcfg]
   imodintro
   iframe Hrn Hdone Htrf Hprop
   have hn : rnNodeIface γw =

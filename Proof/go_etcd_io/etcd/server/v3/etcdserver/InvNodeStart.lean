@@ -123,12 +123,13 @@ def rnStorageOf (st : GoInterface) (ss : Loc) : Prop :=
 (`isRNWal`); (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`NewStorage` returns
 `&storage{lg: lg, w: w, s: s}`, `storage.go`). (2026-10-31, `notes/axiom-review/savesnap.md`) Over a WAL ready to write
 (`storage.walReady`): until then over any `w`, false for a nil one (`isRNWal`'s `Close` panics on
-it). -/
+it). The storage is over `w`'s open token (`storage.walOpen w`, shared by every storage over `w`;
+2026-10-31, the user's decision), which `bootstrap`'s contract gives. -/
 def rnNewStorageOk : IProp GF :=
   iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
       (Val #ss))
-    {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss⌝ }})
+    {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
 
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance
@@ -168,7 +169,7 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
     "#Htki" ∷ isRNTicker E rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
-    "#Hstci" ∷ rnStopBag E γ rv.stopped' ∗
+    "#Hstci" ∷ rnStopBag E γ (storage.walOf rv.raftNodeConfig'.storage') rv.stopped' ∗
     "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Unknown)
 
 instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :

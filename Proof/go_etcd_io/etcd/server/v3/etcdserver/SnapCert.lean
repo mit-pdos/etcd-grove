@@ -103,6 +103,19 @@ theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
   rw [hal]
   iexact Hcert
 
+/-- (2026-10-31) A conf state of a membership with voters is not the empty one (the WAL's
+`SaveSnap` takes it: `walpb.ValidateSnapshotForWrite` refuses a nil conf state past index 0). -/
+theorem confStateIs_ne_empty (c : ConfStateM) (cfg : GSet w64)
+    (h : confStateIs c (Membership.simple cfg)) (hpos : 0 < GMap.size cfg) :
+    c ≠ ConfStateM.mk [] [] [] [] false := by
+  intro hc
+  subst hc
+  have hl := h.1.length_eq
+  simp only [List.length_nil, Membership.simple] at hl
+  rw [length_elements] at hl
+  have h0 : GMap.size cfg = 0 := by first | exact hl.symm | simpa using hl.symm
+  omega
+
 /-- **`CreateSnapshot(ai, ep.confState, nil)` by the apply thread** (`EtcdServer.snapshot`'s): the
 snapshot certified first (`srv_snap_make`), `CreateSnapshot.spec` at the node's justifications
 (`memStorJ`, `srvSnapStor`'s `memStorInv`); afterwards the stored snapshot past `ai`, and the
@@ -118,6 +131,7 @@ theorem wp_srv_createSnapshot
         (Val #ai)) (Val #cs)) (Val #slice.nil))
     {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err); memSnapLb γs (uint.nat ai) ∗
         ((⌜err = interface.nil⌝ ∗ ∃ c : ConfStateM,
+            ⌜confStateIs c (Membership.simple γr.raft.raft.cfg)⌝ ∗
             ownSnapM snap (DFrac.own 1) (memSnapMade ai at' c [])) ∨
          ⌜snap = null ∧ err = eood⌝) }} := by
   iintro %Φ ⟨#Hpkg, Hstor, #Hecs, #Hft, #Hlb0, #Heood⟩ HΦ
@@ -153,7 +167,8 @@ theorem wp_srv_createSnapshot
     isplitr
     · ipureintro; exact Herr
     iexists c
-    iexact Hsn
+    iframe Hsn
+    ipureintro; exact Hcs
   · iright
     ipureintro; exact Herr
 

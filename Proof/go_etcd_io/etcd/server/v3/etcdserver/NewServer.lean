@@ -806,7 +806,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15, Hrnwal⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -822,6 +822,16 @@ theorem NewServer.wp_proofM (on : Bool)
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexact NodeC
+  -- (2026-10-31) the WAL's open token (`bootOk`'s) at the wrapper's storage, split: the raft
+  -- loop's half and the apply side's
+  ihave Hwt : rnWalTok (srvRAddr s) 1 $$ [Hwalo]
+  · iunfold rnFixed at Hfix
+    iNamed Hfix
+    iunfold rnWalTok
+    iexists rvr.raftNodeConfig'.storage'
+    iframe storageC
+    rw [Hrnwal]; iexact Hwalo
+  icases rnWalTok_split (srvRAddr s) $$ Hwt with ⟨Hwth, Hwtl⟩
   ipersist memberID
   ipersist beHooks
   ipersist stats
@@ -1306,7 +1316,7 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe HalS HalA HisAuth HauR Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
-        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdbo, Hmmap, Hbuq, ?_, Hdirps.1⟩
+        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
@@ -1530,6 +1540,12 @@ theorem NewServer.wp_proofM (on : Bool)
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
+  isplitl [Hwth]
+  · iexact Hwth
+  isplitl [Hwtl]
+  · iexact Hwtl
+  isplitr
+  · ipureintro; exact Hdisk
   isplitr
   · ipureintro; rfl
   isplitl [Hsend]

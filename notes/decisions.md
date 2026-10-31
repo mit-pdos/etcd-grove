@@ -27578,6 +27578,21 @@ storage over any WAL, nil included, where Go panics: false, the results vacuous.
   (`releaseOk` approved onto the exported results through it); no `SaveSnap` axiom: `isRNWal`'s
   `SaveSnap` triple strengthened (metadata set, `err = nil ∨ ¬ walSaveOk`). Pending: the `Close`
   question below.
-- Open (2026-10-31): `isRNWal` is persistent, so its `SaveSnap` and `Close` triples also cover calls
-  after `Close`, where Go returns errors (a closed file's flush; `dirFile.Close` twice); `Close` also
-  fails on I/O. etcd closes once, after the apply thread stops (`server.go:819-831`).
+- Settled (2026-10-31, the user's "option 1" and its correction): `isRNWal` is persistent, so as
+  stated its triples also covered calls after `Close` (`wal.Save` past its shortcut `cut()`s through
+  `w.fp`, nil after `Close`) and a second `Close`. The WAL's open token, a fractional ghost variable:
+  `storage.walOpen w q` (`InvOpen.lean`, over an opaque `walGName w`), **keyed by the WAL, not by the
+  storage**: a token handed out by `NewStorage`'s contract (option 1 as first approved) would be
+  false, since two `NewStorage`s over one WAL would give two tokens, one storage closed while the
+  other saves. `bootOk` gives the whole of the bootstrapped WAL's (`Hwalo`); `rnNewStorageOk` gives
+  `walOf st = w` (`storage.walOf`, opaque: the storage's WAL); `isRNWal st`'s `Save`/`SaveSnap`/`Sync`
+  take and return a fraction of `walOpen (walOf st)`, `Close` the whole, its post `err = nil ∨
+  ¬ walCloseOk`; `SaveSnap` requires the metadata's index and term non-zero and its conf state not
+  the empty one (`ValidateSnapshotForWrite`'s errors otherwise), its post `err = nil ∨ ¬ walSaveOk`.
+  The halves (`rnWalTok r q`, keyed by the wrapper's address, `InvRaftNode.lean`): `NewServer` splits
+  the whole at the installed wrapper; the loop's goes to `raftNode.start` (its `Save`s), the apply
+  side's rides `isServerRun` (`Hwth`, for `snapshot`'s `SaveSnap`) and goes back to the loop through
+  `stopped` (`rnStopBag`'s payload, keyed by the WAL since the struct is copied) for `onStop`'s
+  `Close`. `storage.diskOk := dbOpensOk ∧ snapOpensOk ∧ walSaveOk ∧ walCloseOk` replaced
+  `dbOpensOk` in `NewServer.spec` and every example's result; `isServerRun` carries it (`Hdisk`).
+  `saveSnapOk` (the refuted `nil` for any snapshot) is gone: `srvSnapDisk` holds `isRNWal`.

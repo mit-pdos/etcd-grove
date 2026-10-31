@@ -113,8 +113,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         nodeRunning n γr.cl srvClusterN 1 ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
-        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
-        ⌜rnStorageOf st ss⌝ ∗
+        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s); (2026-10-31)
+        -- over the WAL `wal`
+        ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗

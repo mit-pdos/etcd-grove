@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Perennial.Ghost.MonoList
 
 @[expose] public section
@@ -984,34 +985,98 @@ instance isRNMemStor_persistent (γ : RNNames) (ms : Loc) :
     Persistent (isRNMemStor (GF := GF) γ ms) := by
   unfold isRNMemStor; infer_instance
 
-/-- **The WAL `st`** (`serverstorage.Storage`, trust boundary: names-only): `Save` of a hard
-state and entries returns some error (on which the loop exits the process, `lg.Fatal`);
-`Close` succeeds (otherwise `onStop` panics in the loop's goroutine, which crashes etcd: the
-contract assumes it does not). -/
+/-- **The WAL `st`** (`serverstorage.Storage` over the WAL `w`, trust boundary: names-only; the
+contract `rnNewStorageOk`'s): while its WAL `w` (`storage.walOf st`) is open (some fraction of
+`storage.walOpen w`, which every storage over `w` shares), `Save` of a hard state and entries returns some error (on which the loop
+exits the process, `lg.Fatal`), `SaveSnap` of a well-formed snapshot's metadata (its index and term
+non-zero, its conf state not the empty one: `walpb.ValidateSnapshotForWrite`'s nil cells and nil
+conf state, `walpb/record.go:45-57`) fails only on I/O (`storage.walSaveOk`), and `Sync` returns
+some error; `Close` takes the whole token and fails only on I/O (`storage.walCloseOk`; `onStop`
+panics otherwise). (2026-10-31, `notes/axiom-review/savesnap.md`: until then no token, `Close` at
+`True` always `nil`, `SaveSnap` over any metadata with any error.) -/
 def isRNWal (st : GoInterface) : IProp GF :=
+  letI w := storage.walOf st
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
+    □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
         (es : List EntryModel),
-      {{ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es }}
+      {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
-      {{ (err : GoInterface), RET #err; True }}) ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ RET #(GoInterface.nil); True }}) ∗
+      {{ (err : GoInterface), RET #err; storage.walOpen w q }}) ∗
+    □ ({{ storage.walOpen w 1 }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ¬ storage.walCloseOk⌝ }}) ∗
     -- (D22 J1a, 2026-10-26) `SaveSnap(snap)`: reads the snapshot's metadata (`snap.Metadata.Index`,
     -- `.Term`, `GetConfState()`: the metadata pointer must be set) and writes the WAL's snapshot
     -- record (`storage.go`: `st.w.SaveSnapshot`; at the pin it no longer writes a `.snap` file),
     -- for the raft loop's snapshot branch and the apply thread's disk snapshot
-    □ (∀ (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
-      {{ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md }}
+    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
+      ⌜md.Index' ≠ W64 0 ∧ md.Term' ≠ W64 0 ∧ md.ConfState' ≠ ConfStateM.mk [] [] [] [] false⌝ -∗
+      {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
+          smPts mp dq' md }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
-      {{ (err : GoInterface), RET #err;
-          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md }}) ∗
+      {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md ∗
+          ⌜err = GoInterface.nil ∨ ¬ storage.walSaveOk⌝ }}) ∗
     -- (D22 J1a) `Sync()`: syncs the WAL
-    □ ({{ True }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; True }}))
+    □ (∀ q : Qp, {{ storage.walOpen w q }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; storage.walOpen w q }}))
 
-instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) st) := by
+instance isRNWal_persistent (st : GoInterface) :
+    Persistent (isRNWal (GF := GF) st) := by
   unfold isRNWal; infer_instance
+
+/-- (2026-10-31) **The wrapper `r`'s WAL open, at the fraction `q`**: the open token
+(`storage.walOpen`) of the WAL of `r`'s storage. The raft loop holds a half, the apply thread the
+other (for its disk snapshot's `SaveSnap`), which `stopped` brings back to the loop for `Close`. -/
+def rnWalTok (r : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ storage.walOpen (storage.walOf st) q)
+
+theorem rnWalTok_half (r : Loc) :
+    rnWalTok (GF := GF) r (1 : Qp).half ∗ rnWalTok r (1 : Qp).half ⊢ rnWalTok r 1 := by
+  unfold rnWalTok
+  iintro ⟨⟨%st1, #H1, T1⟩, ⟨%st2, #H2, T2⟩⟩
+  icombine H1 H2 gives %Heq
+  have Heq' : st1 = st2 := by first | exact Heq | exact Heq.2
+  subst Heq'
+  iexists st1
+  iframe H1
+  have h := ((storage.walOpen_fractional (GF := GF) (storage.walOf st1)).fractional
+    (1 : Qp).half (1 : Qp).half).2
+  rw [Qp.half_add_half] at h
+  iapply h
+  iframe T1 T2
+
+/-- The token at the storage `st` the wrapper `r` holds. -/
+theorem rnWalTok_open (r : Loc) (st : GoInterface) (q : Qp) :
+    rnStorageAddr r ↦□ st ∗ rnWalTok (GF := GF) r q ⊢ storage.walOpen (storage.walOf st) q := by
+  unfold rnWalTok
+  iintro ⟨#Hst, ⟨%st', #Hst', T⟩⟩
+  icombine Hst Hst' gives %Heq
+  have Heq' : st' = st := by first | exact Heq.symm | exact Heq.2.symm
+  subst Heq'
+  iexact T
+
+/-- The loop's half and the half `stopped` brings back (`rnStopBag`'s, at the WAL of `r`'s
+storage `st`) make the whole token (`onStop`'s `Close`). -/
+theorem rnWalTok_join (r : Loc) (st : GoInterface) :
+    rnStorageAddr r ↦□ st ∗ rnWalTok (GF := GF) r (1 : Qp).half ∗
+      storage.walOpen (storage.walOf st) (1 : Qp).half ⊢ rnWalTok r 1 := by
+  iintro ⟨#Hst, T1, T2⟩
+  iapply rnWalTok_half r
+  iframe T1
+  iunfold rnWalTok
+  iexists st
+  iframe Hst T2
+
+theorem rnWalTok_split (r : Loc) :
+    rnWalTok (GF := GF) r 1 ⊢ rnWalTok r (1 : Qp).half ∗ rnWalTok r (1 : Qp).half := by
+  unfold rnWalTok
+  iintro ⟨%st, #H, T⟩
+  icases ((storage.walOpen_fractional (GF := GF) (storage.walOf st)).fractional (1 : Qp).half
+      (1 : Qp).half).1 $$ [T] with ⟨T1, T2⟩
+  · rw [Qp.half_add_half]; iexact T
+  isplitl [T1]
+  · iexists st; iframe H T1
+  · iexists st; iframe H T2
 
 /-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
 raft may send, borrowing `E.S` (2026-10-24); `Stop` returns, taking `E.ST` (D43 M5c). -/
@@ -1110,12 +1175,15 @@ instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) :=
 the transport, which the loop's `onStop` uses; and (2026-10-30, the repair) the apply side's half
 of the node's running token (`rnRunHalf`'s other half: `raftNode.stop` is called once the scheduler
 is drained, so the apply thread no longer needs it), which with the loop's makes the whole token
-`node.Stop` takes. -/
-def rnStopBag (E : RNEnv GF) (γ : RNNames) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half))))
+`node.Stop` takes; (2026-10-31) and the apply side's half of the WAL `w`'s open token, which with
+the loop's makes the whole `Close` takes (etcd closes the WAL only once the apply thread is done,
+`server.go:819-831`). -/
+def rnStopBag (E : RNEnv GF) (γ : RNNames) (w : Loc) (c : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
+    storage.walOpen w (1 : Qp).half)))
 
-instance rnStopBag_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
-    Persistent (rnStopBag E γ c) := by
+instance rnStopBag_persistent (E : RNEnv GF) (γ : RNNames) (w : Loc) (c : Loc) :
+    Persistent (rnStopBag E γ w c) := by
   unfold rnStopBag; infer_instance
 
 /-- `raftAdvancedC` (D19i part 1, 2026-10-18: the fork closes it after every `Advance`, and
@@ -1346,7 +1414,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rsc ∗
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
-    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ stc ∗
+    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ (storage.walOf st) stc ∗
     "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
