@@ -988,9 +988,11 @@ instance isRNMemStor_persistent (γ : RNNames) (ms : Loc) :
 /-- **The WAL `st`** (`serverstorage.Storage` over the WAL `w`, trust boundary: names-only; the
 contract `rnNewStorageOk`'s): while its WAL `w` (`storage.walOf st`) is open (some fraction of
 `storage.walOpen w`, which every storage over `w` shares), `Save` of a hard state and entries returns some error (on which the loop
-exits the process, `lg.Fatal`), `SaveSnap` of a well-formed snapshot's metadata (its index and term
-non-zero, its conf state not the empty one: `walpb.ValidateSnapshotForWrite`'s nil cells and nil
-conf state, `walpb/record.go:45-57`) fails only on I/O (`storage.walSaveOk`), and `Sync` returns
+exits the process, `lg.Fatal`), `SaveSnap` of a snapshot's metadata whose conf state, index and term
+pointers are set (`smPtsV`: `walpb.ValidateSnapshotForWrite` rejects a nil index or term and a nil
+conf state at a non-zero index, `walpb/record.go:45-57`; 2026-10-31, approved by the user: until
+then over the model, the index and term non-zero, the conf state not the empty one, which nothing
+proved of the term) fails only on I/O (`storage.walSaveOk`), and `Sync` returns
 some error; `Close` takes the whole token and fails only on I/O (`storage.walCloseOk`; `onStop`
 panics otherwise). (2026-10-31, `notes/axiom-review/savesnap.md`: until then no token, `Close` at
 `True` always `nil`, `SaveSnap` over any metadata with any error.) -/
@@ -1009,12 +1011,11 @@ def isRNWal (st : GoInterface) : IProp GF :=
     -- record (`storage.go`: `st.w.SaveSnapshot`; at the pin it no longer writes a `.snap` file),
     -- for the raft loop's snapshot branch and the apply thread's disk snapshot
     □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
-      ⌜md.Index' ≠ W64 0 ∧ md.Term' ≠ W64 0 ∧ md.ConfState' ≠ ConfStateM.mk [] [] [] [] false⌝ -∗
       {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          smPts mp dq' md }}
+          smPtsV mp dq' md }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
-          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
           ⌜err = GoInterface.nil ∨ ¬ storage.walSaveOk⌝ }}) ∗
     -- (D22 J1a) `Sync()`: syncs the WAL
     □ (∀ q : Qp, {{ storage.walOpen w q }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))

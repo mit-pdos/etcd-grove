@@ -27619,6 +27619,28 @@ storage over any WAL, nil included, where Go panics: false, the results vacuous.
   `dbOpensOk` in `NewServer.spec` and every example's result; `isServerRun` carries it (`Hdisk`).
   `saveSnapOk` (the refuted `nil` for any snapshot) is gone: `srvSnapDisk` holds `isRNWal`.
 
+**SaveSnap at the pointer level** (2026-10-31, the user's decisions). `isRNWal`'s `SaveSnap` took the
+metadata's model with `Index ≠ 0 ∧ Term ≠ 0 ∧ ConfState ≠ empty`. Nothing proved the term non-zero
+(raft exports no "committed terms are positive" law), and Go does not need it:
+`walpb.ValidateSnapshotForWrite` checks that the index and term *pointers* are set (and the conf state
+past index 0). So the premise moved to the pointer level: `SaveSnap` takes `smPtsV` (the metadata
+with its conf state, index and term pointers set; `InvPbSnapSet.lean`). `MemoryStorage.CreateSnapshot`
+returns `ownSnapV` (it allocates all three), and `proto.CloneSnapshot`'s axiom gained a fifth
+conjunct, the clone of an `ownSnapV` is one (as its W and S conjuncts; true of protobuf-go's
+`mergeMessage`, which copies every set field). Requiring the conf state set at index 0 too is
+stronger than Go's check, which only makes the assumed WAL contract weaker. `snapshot`'s
+`at' ≠ 0` and `0 < size cfg` premises are gone. The alternatives were a raft invariant on committed
+terms (large) or a premise on the exported results.
+
+**`ep.confState` and the first boot entry** (2026-10-31, the user's decision). S5 needs the conf state
+`CreateSnapshot` is given to be the voters'. Go sets `ep.confState` only on a validated conf change, so
+on a fresh start it becomes the voters' when the first boot entry validates on the fresh backend.
+The validation reads the members buckets through the opaque `membership.membersOfBk`, so a law was
+added: buckets with no records decode to no members (`membersOfBk_empty`). It survived the
+`axiom` skill (`notes/axiom-review/members-empty.md`). Its reviewer's suggestion, to define
+`membersOfBk` as a fold with an opaque per-record decode so that the law becomes a theorem, is left
+for later.
+
 ## A depth premise for `proto.MarshalIRR`, discharged from a `MaxTxnOps` bound (2026-10-31 · accepted, the user's approval of the draft's seven recommendations · `notes/irr-depth.md`)
 
 **Context.** `proto.MarshalIRR.wp_proof` (trusted) said: for any `InternalRaftRequest` model `rq`,

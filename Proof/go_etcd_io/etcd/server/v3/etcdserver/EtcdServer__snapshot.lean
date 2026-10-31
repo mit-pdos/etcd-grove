@@ -91,7 +91,7 @@ theorem EtcdServer.snapshot.wp_proof
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nid sl γp ua q Hloop Hci Hrel
-    Hpos Hsz Hwso Hatnz Hcfgp
+    Hpos Hsz Hwso
   cases toDisk
   all_goals (
   wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv⟩, #Hwp, Hai,
@@ -174,7 +174,8 @@ theorem EtcdServer.snapshot.wp_proof
       ipureintro; exact ⟨Hloop, rfl⟩
     · -- created at `ai`
       subst Herr
-      imod ownSnapM_persist _ _ _ $$ Hsnap with #Hsnap
+      imod ownSnapV_persist _ _ _ $$ Hsnap with #HsnapV
+      ihave #Hsnap := ownSnapV_M _ _ _ $$ HsnapV
       (try wp_auto)
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
@@ -304,7 +305,8 @@ theorem EtcdServer.snapshot.wp_proof
       ipureintro; exact ⟨Hloop, rfl⟩
     · -- created at `ai`
       subst Herr
-      imod ownSnapM_persist _ _ _ $$ Hsnap with #Hsnap
+      imod ownSnapV_persist _ _ _ $$ Hsnap with #HsnapV
+      ihave #Hsnap := ownSnapV_M _ _ _ $$ HsnapV
       (try wp_auto)
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
@@ -319,9 +321,9 @@ theorem EtcdServer.snapshot.wp_proof
       iunfold srvSnapDisk at Hdisk
       icases Hdisk with ⟨%stp, %ss, %γd, %img, %Rm, %Hstp, #Hstf, #Hsave, #Hdinv, #Hrm⟩
       (try wp_auto)
-      ihave #Hsnap' := Hsnap
-      iunfold ownSnapM at Hsnap'
-      icases Hsnap' with ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd', #HM, #Hm', #Hpb⟩
+      ihave #Hsnap' := HsnapV
+      iunfold ownSnapV at Hsnap'
+      icases Hsnap' with ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd', #HM, #HmV, #Hpb⟩
       -- (2026-10-31) the WAL contract's `SaveSnap`, at the apply thread's share of the WAL
       iunfold isRNWal at Hsave
       icases Hsave with ⟨%si, %Hsieq, -, -, #HSaveSnap, -⟩
@@ -334,24 +336,11 @@ theorem EtcdServer.snapshot.wp_proof
           go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
         first | exact Hsteq.symm | exact Hsteq.2.symm
       subst Hsteq'
-      iunfold smOpt at Hm'
-      icases Hm' with (%Hmnil | #Hmp)
-      · exfalso
-        have h := congrArg SnapshotMetadataM.Index' Hmnil.2
-        simp only [memSnapMade] at h
-        subst h
-        simp at Hpos
       ihave #Hm' : smOpt pm DFrac.discard (memSnapMade ai at' c []).Metadata' $$ []
-      · iunfold smOpt; iright; iexact Hmp
-      have hmd : (memSnapMade ai at' c []).Metadata'.Index' ≠ W64 0 ∧
-          (memSnapMade ai at' c []).Metadata'.Term' ≠ W64 0 ∧
-          (memSnapMade ai at' c []).Metadata'.ConfState' ≠ ConfStateM.mk [] [] [] [] false := by
-        simp only [memSnapMade]
-        refine ⟨?_, Hatnz, confStateIs_ne_empty c _ Hcsc Hcfgp⟩
-        intro h; subst h; simp at Hpos
+      · iunfold smOpt; iright; iapply smPtsV_smPts $$ HmV
       ihave HSS := HSaveSnap
       ispecialize HSS $$ %q %snap' %pm %DFrac.discard %DFrac.discard
-        %(memSnapMade ai at' c []).Metadata' %hmd
+        %(memSnapMade ai at' c []).Metadata'
       wp_bind (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty)
         go!"SaveSnap" #stp)) (Val #snap'))
       iapply HSS $$ [Hwo]

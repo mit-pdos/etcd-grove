@@ -72,7 +72,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hok haw hci hrel hsz
-    hwso hatnz hcfgp
+    hwso
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt⟩
   ihave #Hsa' := Hsa
@@ -121,7 +121,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     first
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nid (W64 0) γp ua q
-            hok hci hrel (by omega) hsz hwso (hatnz (by omega)) hcfgp
+            hok hci hrel (by omega) hsz hwso
             $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt]
           as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, %hst'⟩
          · iframe #
@@ -129,7 +129,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nid (W64 0) γp ua q
-            hok hci hrel (by omega) hsz hwso (hatnz (by omega)) hcfgp
+            hok hci hrel (by omega) hsz hwso
             $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt]
           as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, %hst'⟩
          · iframe #

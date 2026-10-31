@@ -115,7 +115,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
   -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
   GMap.size γr.raft.raft.cfg < 2 ^ 61 →
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
-  storage.walSaveOk → (0 < uint.Z ai → at' ≠ W64 0) → 0 < GMap.size γr.raft.raft.cfg →
+  storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM false s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗
@@ -154,7 +154,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
   -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
   GMap.size γr.raft.raft.cfg < 2 ^ 61 →
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
-  storage.walSaveOk → (0 < uint.Z ai → at' ≠ W64 0) → 0 < GMap.size γr.raft.raft.cfg →
+  storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗

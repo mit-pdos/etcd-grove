@@ -170,3 +170,21 @@ Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant
   `at' ≠ 0` (the applied entry's term: raft's terms are positive past index 0) and `0 < size cfg`
   (the boot voters, `γ.vs = ps ≠ []`) at `applyAll`; `walSaveOk`, `releaseOk` from `Hdisk`. The
   raft loop's `SaveSnap` (#3) has its half (`rnWalTok`, the loop invariant).
+- **SaveSnap at the pointer level** (2026-10-31, the user's decisions): the two obligations above are
+  gone. `isRNWal`'s `SaveSnap` takes the metadata with its conf state, index and term pointers set
+  (`smPtsV`, `InvPbSnapSet.lean`; what `walpb.ValidateSnapshotForWrite` checks, a nil conf state
+  included, slightly stronger than Go's "nil only at index 0"), `CreateSnapshot` returns such a
+  snapshot (`ownSnapV`; its clone by a fifth conjunct of the `proto.CloneSnapshot` axiom, approved),
+  so `snapshot`'s `at' ≠ 0` and `0 < size cfg` premises are dropped. `srvMemOk`'s voter bound is
+  `< 2^61` (from `NewServer`'s `ps.length ≤ 2^20`), which gives `specFull`'s.
+- **S5, `ep.confState` the voters'** (plan): Go updates `ep.confState` only on a validated change
+  (raft's answer, `confStateIs cs m'`; `m'` is the voters' by `nodeConfig_confAt` and
+  `srv_confAt_simple`); a failed one leaves it. A fresh start's is the empty storage snapshot's, so
+  it is the voters' once the first boot entry validated, on the fresh backend: the approved law
+  `membership.membersOfBk_empty` (empty buckets decode to no members; under review,
+  `notes/axiom-review/members-empty.md`) gives `ccValidOn restBootBk m` for the boot AddNode. Steps:
+  `srvRaftLogInv` carries the boot entries committed (`srvRLogLb γ (bootEntries boot)`), so a
+  non-empty applied log starts with the boot's first entry; `applyConfChange`'s post says
+  `ep.confState` is the voters' after a validated change, unchanged otherwise; `apply`'s loop,
+  `applyEntries` and `applyAll` keep `⌜L = []⌝ ∨ epCsCfg γr cs` for the applied log `L`; `run`'s
+  `applyRes` carries it.

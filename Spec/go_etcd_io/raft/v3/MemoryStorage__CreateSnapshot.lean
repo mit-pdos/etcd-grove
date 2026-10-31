@@ -7,6 +7,7 @@ kvreconf-snapshot-thread (2026-10-30): the exclusive `memSnapExact γs sv0` repl
 module
 
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 @[expose] public section
 
@@ -24,7 +25,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `ms.CreateSnapshot(i, cs, data)`. -/
+/-- `ms.CreateSnapshot(i, cs, data)`. (2026-10-31, `notes/axiom-review/savesnap.md`) The snapshot
+returned with its metadata's conf state, index and term pointers set (`ownSnapV`; until then
+`ownSnapM`), what the WAL's `SaveSnapshot` validates. -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (i : w64) (e : EntryM) (cs : Loc)
     (dq : DFrac) (c : ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
@@ -36,7 +39,7 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot")) (Val #i)) (Val #cs)) (Val #data))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
-      ((⌜err = interface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
+      ((⌜err = interface.nil⌝ ∗ ownSnapV snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
        (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs)) }}
 
 end spec

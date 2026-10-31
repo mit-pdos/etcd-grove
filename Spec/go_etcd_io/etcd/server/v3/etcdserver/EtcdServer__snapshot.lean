@@ -61,8 +61,8 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   -- fewer than `2^61` (`SnapListsOk`)
   0 < uint.Z ai → GMap.size γr.raft.raft.cfg < 2 ^ 61 →
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes: the WAL's write
-  -- not failing (I/O), the snapshot's term non-zero, a voter (the conf state not the empty one)
-  storage.walSaveOk → at' ≠ W64 0 → 0 < GMap.size γr.raft.raft.cfg →
+  -- not failing (I/O)
+  storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
       srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗

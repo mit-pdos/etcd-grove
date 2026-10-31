@@ -1658,7 +1658,7 @@ theorem NewServer.wp_proofM (on : Bool)
         rw [Hrvs, GMap.elem_of_list_to_set] at hf
         exact (Hdirps.1 f).2 hf
       · exact srvMemOk_boot _ _ ps (by rw [HρRaft]) (by rw [hργ]; unfold SrvRaft.cfg; rw [Hrvs])
-          Hrnodup (by omega) (by rw [hργ]; exact Hrbok)
+          Hrnodup (by have := Hdirps.2; omega) (by rw [hργ]; exact Hrbok)
       · unfold SrvRaft.cfg
         rw [Hrvs, GMap.elem_of_list_to_set, Hid, ← Hrid]
         exact Hrmem

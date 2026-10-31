@@ -25,7 +25,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof [package_sem : Assumptions] (wp_Ge
               ∀ snap err,
                 ownCSM cs dq c ∗
                     memSnapLb γs (uint.nat i) ∗
-                      (⌜err = GoInterface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∨
+                      (⌜err = GoInterface.nil⌝ ∗ ownSnapV snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∨
                         ⌜snap = null ∧ err = eood⌝ ∗ ownSlice data bs (DFrac.own 1)) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP
