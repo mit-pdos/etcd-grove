@@ -165,6 +165,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
       | cons _ _ => simp at Hgl
     | cons w _ => exact ⟨w, rfl⟩
   have Hws : w ∈ s' := Hmem w (List.mem_of_getElem? Hw)
+  ihave %Hkeys := etcdState_keys _ _ _ $$ Hs'
   rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z gsl'.len by
     constructor
     · word
@@ -189,7 +190,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   ipersist Hesl
   wp_apply wp_WaitEvents client pfx w.key st.rev _ [W32 1] (W32 1) $$ [$Hclosed $Hcl $Hesl]
     as %ev %werr Hwr
-  · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by omega⟩
+  · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by have hk := Hkeys w Hws; unfold etcdKeyMax at hk; omega⟩
   icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
   rotate_left
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

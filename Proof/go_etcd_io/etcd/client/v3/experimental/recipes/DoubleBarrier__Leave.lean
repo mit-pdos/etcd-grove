@@ -70,7 +70,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
     ipersist Hesl
     wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
       $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
-    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
+    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; have hk := Hkeys wl Hwls; unfold etcdKeyMax at hk; omega⟩
     icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
     rotate_left
     · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
@@ -323,6 +323,7 @@ theorem DoubleBarrier.Leave.wp_proof
   have Hwhs : wh ∈ s' := by
     have := List.mem_of_getElem? Hwh; rw [Hkvs, List.mem_filter] at this; exact this.1
   ihave %Hrevs := etcdState_revs R _ s' $$ Hs'
+  ihave %Hkeys := etcdState_keys R _ s' $$ Hs'
   wp_if_destruct
   · (try wp_auto)
     wp_if_destruct
@@ -386,7 +387,7 @@ theorem DoubleBarrier.Leave.wp_proof
       ipersist Hesl
       wp_apply wp_WaitEvents client (key ++ go!"/") wh.key wh.modRev _ [W32 1] (W32 1)
         $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-      · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; omega⟩
+      · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; have hk := Hkeys wh Hwhs; unfold etcdKeyMax at hk; omega⟩
       icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
       rotate_left
       · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

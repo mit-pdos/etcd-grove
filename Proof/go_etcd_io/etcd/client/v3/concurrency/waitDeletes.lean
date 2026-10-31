@@ -86,7 +86,8 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   wp_apply HG $$ [] as %gresp %gerr #Hgres
   · iframe Hctx Hopts Hlo'
     ipureintro
-    exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev⟩
+    exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev,
+      lastCreateOp_size maxCreateRev Hp.2.1⟩
   iunfold kvGetResult at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, -, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
@@ -157,13 +158,15 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   iunfold getRespRev at HgRev
   icases HgRev with ⟨%ghdr, #Hgh, %Hghnn, #HghR⟩
   ihave %Hrevs := etcdState_revs R pfx s' $$ Hs'
+  ihave %Hkeys := etcdState_keys R pfx s' $$ Hs'
   wp_auto
   wp_apply wp_bytes_to_string keySl w.key DFrac.discard $$ [$HkeySl] as -
   have HR0 : 0 ≤ sint.Z R := by
     have := Hrevs w Hws
     omega
   wp_apply wp_waitDelete ctx cs client pfx w.key R $$ [$Hcl $Hctx $Hcc] as %werr Hwd
-  · ipureintro; exact ⟨Hwf'.2 w Hws, HR0⟩
+  · ipureintro
+    exact ⟨Hwf'.2 w Hws, HR0, by have hk := Hkeys w Hws; unfold etcdKeyMax at hk; omega⟩
   icases Hwd with (%Hwne | ⟨%Hwnil, -⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
       cases werr with

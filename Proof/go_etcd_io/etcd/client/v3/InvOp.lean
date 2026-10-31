@@ -673,6 +673,12 @@ theorem watchSizeOk_opWatchModel {K E V : Nat} {key : GoString} {gs : List (OpFu
     by simp [OpFull.getInit, OpFull.newOp, OpModel.zero], Nat.zero_le _⟩
   unfold OpShape at h; unfold watchSizeOk opWatchModel; omega
 
+/-- **A key watch fits** (`Watch(key, WithRev(r))`: no range end). -/
+theorem watchSizeOk_keyWatch {key : GoString} (rev : w64) (h : key.length ≤ 2 ^ 30) :
+    watchSizeOk (opWatchModel key [withRevM rev]) :=
+  watchSizeOk_opWatchModel (K := 2 ^ 30) (E := 0) (V := 0)
+    (optsKeep_cons (withRevM_keep rev) (optsKeep_nil _ _ _)) h (by decide)
+
 /-- `OpPut(key, val, opts...)`'s: the value within `V` too. -/
 theorem opSizeOk_opPutModel {K E V : Nat} {key val : GoString} {gs : List (OpFull → OpFull)}
     (hg : optsKeep K E V gs) (hk : key.length ≤ K) (hv : val.length ≤ V)

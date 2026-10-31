@@ -96,6 +96,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   have Hmem := prefixGet_sel_mem kp (firstRevOp kp) s0 Hkp Hk He Hf1 Hf2 Hf3 Hf4
   obtain ⟨Hlen1, -, Hfirst, Hall⟩ := firstRevOp_kvs kp Hkp _ gkvs Hgok
   ihave %Hrevs := etcdState_revs R kp s0 $$ Hs0
+  ihave %Hkeys := etcdState_keys R kp s0 $$ Hs0
   have Hgsub : ∀ v ∈ gkvs, v ∈ s0 ∧ kp <+: v.key := by
     intro v hv
     match gkvs, Hlen1, Hfirst, hv with
@@ -108,7 +109,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   · ipureintro
     intro v hv
     obtain ⟨h1, h2⟩ := Hgsub v hv
-    exact ⟨h2, by have := Hrevs v h1; omega⟩
+    exact ⟨h2, by have := Hrevs v h1; have hk := Hkeys v h1; unfold etcdKeyMax at hk; omega⟩
   icases Hcres with (⟨%Hcnil, %n, #Hcb, Hcase⟩ | %Hcne)
   rotate_left
   · obtain ⟨Hcne, rfl⟩ := Hcne
@@ -211,6 +212,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       obtain ⟨Hwk1, Hwk2⟩ := Hwk Hkp
       rw [Hwk1, Hwk2, inRange_prefix kp e.key Hkp] at Hin
       ihave %Hrevse := etcdState_revs e.rev kp se $$ Hse
+      ihave %Hkse := etcdState_keys e.rev kp se $$ Hse
       have Hepos : 0 < sint.Z e.rev := by
         have := Hrevse v Hvse; rw [Hvm] at this; omega
       iunfold eventAt at Hev
@@ -219,7 +221,9 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       wp_apply wp_bytes_to_string ekeySl e.key DFrac.discard $$ [$HeKs] as -
       (try wp_auto)
       wp_apply hDRK kv kp e.key e.rev rd $$ [$Hpkg $Hkv $Hrd] as %ok %derr Hdres
-      · ipureintro; exact ⟨Hin, Hepos⟩
+      · ipureintro; exact ⟨Hin, Hepos, by
+        have hk := Hkse v Hvse; unfold etcdKeyMax at hk
+        rw [Hvk] at hk; omega⟩
       icases Hdres with (⟨%Hdnil, %r, #Hr, %Hrr, Hc⟩ | %Hdne)
       rotate_left
       · obtain ⟨Hdne, rfl⟩ := Hdne

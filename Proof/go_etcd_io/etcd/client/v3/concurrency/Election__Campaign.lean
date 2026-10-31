@@ -119,7 +119,7 @@ revision `wr` is reached. Its three uses: the key already held, with the value (
 created by the transaction (`lr = wr`, its revision). -/
 local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tactic => `(tactic| (
     wp_apply hWD ctx cs client pfx (($lr) - W64 1) ($wr) $$ [$(frameH `Hcl) $(frameH `Hctx) $(frameH `Hcc) $(frameH Hr.getId)] as %werr Hwd
-    · ipureintro; exact ⟨Hpfx, by have := HREV.1; word⟩
+    · ipureintro; exact ⟨Hpfx, Hpl, by have := HREV.1; word⟩
     icases Hwd with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
     · obtain ⟨e', rfl⟩ : ∃ e', werr = GoInterface.ok e' := by
         cases werr with

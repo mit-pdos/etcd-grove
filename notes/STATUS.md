@@ -513,6 +513,22 @@ bound at grpc's send side").
 
 Details, the departures from the draft and what `txn-nested` must fold: `notes/invoke-size.md`.
 
+## The key-length law (2026-10-31, branch `invoke-size`)
+
+`EtcdModel.etcdState_keys`: every key of etcd's state is at most `etcdKeyMax = 2 ^ 27` bytes, from
+etcd's `MaxRequestBytes` check (`NewServer` takes `v3rpc.etcdMaxRequestBytesOk`) and one trusted
+conjunct of `proto.MarshalIRR`'s post (commit `0d43bc2dd8`, for an axiom review before landing).
+`notes/keylen.md`; `notes/decisions.md`, "The key-length law".
+
+- **Done:** the server (the KV invariant, the read view's floor, `readM_keys`), the client's
+  instances and reply predicates, and its users: recipes' `Queue`/`PriorityQueue.Dequeue`,
+  `RWMutex.waitOnLastRev`, `DoubleBarrier.Leave`; concurrency's `waitDelete` (premise
+  `key.length ≤ 2 ^ 30`), `waitDeletes` (premise `pfx.length ≤ 2 ^ 27`, its own get),
+  `Election.observe`'s watch.
+- **Left:** `leasingKV.revokeLeaseKvs` (its keys have no `etcdState` fact: a spec premise, beyond
+  the approved draft). The other red modules of `invoke-size` are its earlier gaps (concurrency's
+  `Mutex`/`Election` sizes, the examples' sizes).
+
 ## Perennial pin `6da88b280` (2026-10-30, branch `pin-6da88b2`)
 
 The pin `ad74ee4f6` -> `6da88b280` (Perennial `lean`, 54 commits), for `wp_slice_literal_nonnull`

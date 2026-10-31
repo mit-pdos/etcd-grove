@@ -654,13 +654,19 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       · cases Hf'; cases Hg; iexact Hfr
       · simp at Hf'
     obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatch_opts v.key (R + W64 1)
+    ihave %Hvk : ⌜v.key.length ≤ etcdKeyMax⌝ $$ [Hobs]
+    · iunfold observedAt at Hobs
+      icases Hobs with ⟨%so, #Hso, %Hvso, -⟩
+      ihave %Hks := etcdState_keys R pfx so $$ Hso
+      ipureintro; exact Hks v Hvso
     ihave #HWa := HW $$ %ctx' %({ cs with PDone := iprop(cs.PDone ∨ True), Done_gn := γ' })
       %v.key %optsSl %([withRevM (R + W64 1)] : List (OpFull → OpFull)) %(R + W64 1)
     (try wp_auto)
     wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hwcons, #Hcur0⟩
     · iframe Hctx' Hopts
       ipureintro
-      refine ⟨Hw1, Hw2, by word, ?_⟩
+      refine ⟨Hw1, Hw2, by word, ?_,
+        watchSizeOk_keyWatch (R + W64 1) (by unfold etcdKeyMax at Hvk; omega)⟩
       rw [Hw3, Hw4]; exact keyRangeUnder_key pfx v.key HJ.1
     (try wp_auto)
     have HcR : R + W64 1 - W64 1 = R := by word
