@@ -9,6 +9,15 @@ surveys). Its repairs R2-R9 are adopted below. R1 and R10 await the user.
 
 ## Review 1 and what it changed (2026-10-31)
 
+- **Approved by the user (2026-10-31):**
+  - candidate 12's deletions;
+  - the rename `storDL` → `nodeCommitLb γ K i`;
+  - `snapGiven` merged into `nodeAppliedLb` ("compacting up to `k` is safe", already raft's
+    `raftBnd` disjunction), so the receive gives `nodeAppliedLb ∗ nodeCommitLb` at a Ready
+    snapshot's index.
+
+  For I-4, that means `snapGivenU` is folded into `nodeAppliedLbU`'s body, and `storDL`'s
+  replacement is named `nodeCommitLb`.
 - **Candidate 12 (2026-10-31).** Three deletions from the spec:
   - *check* (approved by the user): its two outputs are given at the receive. The proof handles
     currency internally, by I-2's one-node-per-id and the `nodeRunning` gate, plus R9's
