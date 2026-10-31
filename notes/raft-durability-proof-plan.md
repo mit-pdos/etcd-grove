@@ -9,6 +9,14 @@ surveys). Its repairs R2-R9 are adopted below. R1 and R10 await the user.
 
 ## Review 1 and what it changed (2026-10-31)
 
+- **R1, resolved by the user (2026-10-31).**
+  - **The resolution.** `RestartNode`'s precondition is the abstract `raftState` alone.
+    `RaftState` gains `commit` (as of the last entered batch). The sealed body holds that index's
+    certificate at a term `≤ S.term` and its committed log. `StorageHolds` allows
+    `σ.commit ≤ S.commit`, and the AU loses its committed-log conjunct.
+  - No `commitAt` predicate.
+  - A commit-only batch's *enter* changes only `S.commit`, so a durable client applies it at once.
+  - The candidate file records the amendment. The original finding follows.
 - **R1 (design error; an API change for the user).** Amendment 2's derivation is false. A
   restarted node's `commitIn … σ.commit S.term` needs a commit fact at a term `≤ S.term`. A
   committed-log lower bound does not give one: a node at term 5 may write commit 10, which only
@@ -55,6 +63,10 @@ surveys). Its repairs R2-R9 are adopted below. R1 and R10 await the user.
 - **R9.** F3 is a conjunct of `ownRaftGhost`'s body, stated in stage I: "a non-self message in the
   outbox that depends on pending promises implies `role ≠ leader`, and at a candidate, a pending
   campaign at `s.term`". (plan-review-1.md §R9 has the argument.)
+- **R10, dissolved (2026-10-31).** `ResultsDyn.lean` holds only the allocation lemmas, which the
+  code-level allocation uses and I-1 restates. `RefinementDyn`'s step lemmas are machinery for the
+  Go-code proofs, which do have Readys and *enter*. No model-only result is left without an
+  *enter*, so there is nothing to keep or retire. The original finding follows.
 - **R10 (for the user).** The dynamic protocol model (`RefinementDyn`/`ResultsDyn`,
   `raft_dyn_alloc`) has no *enter*. Under I-1, pending promises would accumulate in it forever.
   Either:
