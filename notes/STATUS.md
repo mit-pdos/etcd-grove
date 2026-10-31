@@ -525,6 +525,20 @@ Gaps (recorded in the plan): `putKeep`/lease-keeping `putIgnVal` in transactions
 the wire lease, as their `PrevKv`); a revocation's class reaches no chain result (`rqOk` excludes
 it); the dispatch (`uberApplier.dispatch`, `Apply`) drops the lease class. Next: Part B, the API layer (`LeaseTimeToLive`, `LeaseLeases`, `LeaseKeepAlive`).
 
+**Part B, the API layer (in progress, 2026-10-31).** The user's scope: the checks only
+(`checkLeaseRenew`, `checkLeaseTimeToLive`, `checkLeaseLeases`; the entry points stay names-only),
+a reader-side model of the lessor (a monotone history of its (lease map, item map) snapshots, lower
+bounds), and the restated `NewLessor`/`Recover` axioms (text unchanged, definitions grown; the
+user's approval with an axiom review). Done: the Draft (statements of the three checks, the
+unified `Lookup`/`Keys` specs, the readers' vocabulary in `InvLessor.lean`), its Review, the axiom
+review (`axiom/lessor-reader`, `881a927f93`: survives), the Probe (`Keys` proved for owner and
+reader; `Grant`'s registration of a fresh lease, `itemSet_register`; it found `setsOk`'s coverage
+conjunct and the `threadBound ≤ 2^30 - 1` premise). The lessor's other proofs (`LessorLemmas`,
+`Grant`, `Attach`, `Detach`, `Revoke`, `Lookup`, `LessorContract`) are broken until the Prove step;
+the build is red on this branch. Next: the freeze (the user's approval), then Prove. Found:
+`issues/etcd-lease-timetolive-keys-toctou.md` (LeaseTimeToLive returns keys it did not check).
+Perennial: a typed points-to's fraction validity (`notes/perennial-changes.md`).
+
 ## A depth premise for `proto.MarshalIRR` (2026-10-31, branch `irr-depth`)
 
 The repair of `proto.MarshalIRR.wp_proof`, false of a request deeper than protobuf-go's recursion

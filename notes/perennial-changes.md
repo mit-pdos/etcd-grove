@@ -1353,3 +1353,15 @@ P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
 
+
+## A typed points-to's fraction validity (2026-10-31, lease-keys Part B)
+
+`typedPointsto l v dq` has value agreement (`typedPointsto_combine_sep_gives`, `⌜v1 = v2⌝`) but
+not the fractions' validity that the heap points-to's `CombineSepGives` gives
+(`⌜✓ (dq1 • dq2) ∧ v1 = v2⌝`): so a points-to owned whole and a read-only one of the same field
+cannot be shown to exclude each other. The lessor's `Grant` needs it: a fresh `*Lease` (its `ID`
+owned whole) is not one the item sets' map already has (each with `ID ↦□`). Worked around locally
+for a `w64` field (`w64_own_discard_false`, `Proof/.../lease/InvLessor.lean`: through the first
+byte's heap points-to). Proposed change: `TypedPointsto` gains (or derives, for the byte and heap
+instances) `typedPointstoDef l v1 dq1 ∗ typedPointstoDef l v2 dq2 ⊢ ⌜✓ (dq1 • dq2)⌝` for a
+non-empty representation, and `typedPointsto`'s `CombineSepGives` returns it with the agreement.

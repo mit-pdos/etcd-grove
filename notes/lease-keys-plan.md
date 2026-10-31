@@ -342,7 +342,7 @@ reach a spec. B1: **the history, with lower bounds**, as recommended.
 vocabulary in `Proof/.../etcdserver/LeaseCheck.lean`), each for a caller with the auth store's
 reader resource `RD` and a lower bound `n` of the published auth index (`auth.authPubLbM`, as
 `CheckTxnAuth.specLb`), a reader slot of the lessor's lock (`lease.lessorRdOf γl`), its thread token
-(`threadTok`, under `threadBound GF ≤ 2^30`: `Keys()` borrows a slot of the lease's lock from the
+(`threadTok`, under `threadBound GF ≤ 2^30 - 1`: `Keys()` borrows a slot of the lease's lock from the
 lease's thread pool) and a lower bound `m` of the lessor's history (`lease.lessorLb γl m`); on `nil`
 (`leaseCheckFrom`): auth disabled at a state `≥ n`, or the principal an admin at one, or the keys'
 verdicts:
@@ -370,7 +370,7 @@ verdicts:
   `lease.leaseAbsentFrom γl m id`: `id` is not live at one; `leaseKeysFrom γl m id l ks`: `ks` are
   `id`'s keys at an index `≥ m` where the lease map has `l`.
 - The leases' reader slots: `isLeaseObj γl l` holds a thread pool (Perennial's `threadPool`) of
-  `l.mu`'s slots under `threadBound GF ≤ 2^30` (as logkvrw), so a reader with its thread token
+  `l.mu`'s slots under `threadBound GF ≤ 2^30 - 1` (as logkvrw), so a reader with its thread token
   borrows a slot for one `Keys()` and gives it back.
 - **One spec per function** (the Review's finding 3): `lessor.Lookup.spec` takes a lower bound and
   an optional owner's view (`lookupView`: none for a reader, the owner's `leaseOwn` otherwise) and
@@ -436,3 +436,26 @@ lease to its id; the revision re-check named as the margin; docstrings of `lesso
 `leaseClosers`, `NewLessor`, `Recover` extended. Left as recorded: `IsAdminPermitted` at a lower
 bound unproved (Not in Part B); `srvAuthLeaseLb` separate from `srvAuthLb` (it adds the lease
 checks' methods `IsAdminPermitted`/`IsPutPermitted`, which no read-path check needs).
+
+**The axiom review** (2026-10-31, the `axiom` skill on the restated `NewLessor`/`Recover`, branch
+`axiom/lessor-reader`, `881a927f93`, report `notes/axiom-review/lessor-reader.md` there): **survives**
+(eight attacks: two history authorities, keys a lease never had, item sets after `Recover` (a Go
+test at the pin), `setsOk`'s new conjunct, more readers than the lock allows, unallocatable ghost
+state, a client forging lease state, `Recover` racing readers). Collections resting on the two
+axioms: authkv, linkvtxn, cachekv, linkv3p, server, putget, k8setcd3, putget3, watchkv.
+
+**The Probe** (2026-10-31): `Lease.Keys.wp_proof` re-proved for both callers (`itemSet_keysFrom`:
+under the read lock, the reader's element of the item sets' map is its id's items at the last
+index the lease map has `l`, `≥ m`); `itemSet_register`, `Grant`'s step that registers a fresh
+`*Lease` with the empty set. It found two Draft errors, fixed: `setsOk` must also say every lease
+of the history has a set (else a fresh `l` could not be shown absent from the history), and the
+pool's premise is `threadBound GF ≤ 2^30 - 1` (`actualMaxReaders = 2^30 - 1`, less the owner's slot;
+the axiom review found it too). A Perennial gap worked around locally: a typed points-to's fraction
+validity (`w64_own_discard_false`; `notes/perennial-changes.md`). The `Lookup` reader case needs no
+invariant opening (`lessorMu`'s share of the history has the last snapshot, the lower bound is a
+prefix of it).
+
+**Test** (2026-10-31): etcd's own tests of the lease checks pass at the pin (go1.27.3):
+`tests/integration` `TestV3AuthWithLease*`, `TestPutWithLeaseInTXN`; `tests/common` (`-tags
+integration`) `TestAuthLease*`. The TOCTOU the checks' specs leave as their gap is reproduced in
+`issues/etcd-lease-timetolive-keys-toctou.md`.

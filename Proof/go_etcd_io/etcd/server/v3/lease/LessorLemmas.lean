@@ -100,9 +100,6 @@ theorem ptsto_halves_split {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v 
   rw [dfrac_own_half_half 1]
   iapply ((typedPointsto_dfractional (GF := GF) l v).dfractional _ _).1 $$ H
 
-instance unit_intoValInj : go.IntoValInj Unit where
-  intoVal_inj x y _ := by cases x; cases y; rfl
-
 /-- What a lease's `mu` guards is fractional. -/
 instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) where
   fractional q1 q2 := by
