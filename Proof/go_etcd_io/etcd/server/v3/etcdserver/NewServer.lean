@@ -1441,7 +1441,8 @@ theorem NewServer.wp_proofM (on : Bool)
     simp only
     iframe Hpool kv Hws Htag
   isplitl [Hwcl]
-  · -- (D22 S-g) the KV's closer, kept (until then dropped here)
+  · -- (D22 S-g) the KV's closer, kept (until then dropped here); (M2) the store does not compact
+    rw [srvKVCloserW_off _ _ Hkbw]
     unfold srvKVCloser
     iexists ws
     iframe kv

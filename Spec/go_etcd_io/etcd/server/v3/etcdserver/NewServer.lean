@@ -250,7 +250,7 @@ abbrev NewServer.spec : Prop :=
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
-          srvKVCloser srv E ∗
+          srvKVCloserW srv E ∗
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
@@ -411,7 +411,7 @@ abbrev NewServer.specCompact : Prop :=
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
-          srvKVCloser srv E ∗
+          srvKVCloserW srv E ∗
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
@@ -585,7 +585,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           srvWatchBuilt srv E ∗
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
-          srvKVCloser srv E ∗
+          srvKVCloserW srv E ∗
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗

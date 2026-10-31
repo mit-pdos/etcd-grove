@@ -73,6 +73,25 @@ def srvKVCloser (s : Loc) (E : apply.AEnv GF) : IProp GF :=
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
     mvcc.wsCloser wsl E.s E.γ)
 
+/-- **The KV's closer without the compaction right** (M2's apply side, item 20; review round 1's
+F-6): off, `srvKVCloser`; on, the watchable store's own parts (its stop channel's close and its
+waiter), the inner store's compaction right being the apply thread's (`apply.cmpOwn` in
+`apply.applyKV`, A1). What `NewServer` hands out (in compaction mode after giving the right to the
+boot state). -/
+def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  if mvcc.kbCmpM E.γ.kb then
+    iprop(∃ wsl : Loc,
+      srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+      ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
+  else srvKVCloser s E
+
+/-- Off, the closer. -/
+theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) :
+    srvKVCloserW (GF := GF) s E = srvKVCloser s E := by
+  unfold srvKVCloserW; simp only [h, ↓reduceIte]
+
 end defs
 
 end EtcdGrove

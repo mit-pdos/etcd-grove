@@ -45,20 +45,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The KV's closer without the compaction right** (review round 1's F-6; A2: the right lives
-with the apply thread, `apply.cmpOwn`): off, today's `srvKVCloser`; on, the watchable store's own
-parts of `mvcc.wsCloserR` (its stop channel's close and its waiter), without the inner store's
-right. What `start` keeps after splitting `NewServer`'s `srvKVCloserM srv E (-1)`, and what the
-snapshot track's `restorePre_of_applyM` takes beside `apply.cmpOwn` (the collaborator's draft,
-item 17). -/
-def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  if mvcc.kbCmpM E.γ.kb then
-    iprop(∃ wsl : Loc,
-      srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-      ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
-  else srvKVCloser s E
+/- (`srvKVCloserW` in place, `InvWatchBuilt.lean`, 2026-10-31.) -/
 
 /-- **`start`'s split** (G5, review round 1's F-6): the closer by the mode at `c` (at least `-1`)
 is the closer without the right and the apply thread's compaction right at `c`; and back (for the
