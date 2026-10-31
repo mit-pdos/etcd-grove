@@ -328,10 +328,12 @@ theorem objAtD_pt (p : Loc) (o : DObj) (n : w64) :
   ipureintro; exact ⟨rfl, Hn, rfl⟩
 
 /-- **An input `Gen` may return**, as far as `Apply` needs: its name one of the workload's keys
-(`workloadKeys`), its kind one of the four. -/
+(`workloadKeys`), its kind one of the four, its value at most `2 ^ 20` bytes (an object it creates
+or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4). -/
 def GenIn (x : Input) : Prop :=
   (x.Key' = go!"a" ∨ x.Key' = go!"b" ∨ x.Key' = go!"c") ∧
-    (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3)
+    (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3) ∧
+    x.Val'.length ≤ 2 ^ 20
 
 /-- A sentinel's value (`errors.New`'s `*errorString`). -/
 abbrev sentV (l : Loc) : GoInterface :=
