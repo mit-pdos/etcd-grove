@@ -270,43 +270,7 @@ is today's `kvWork`, and the off law is `kv_log_plain_off`.) -/
 
 /- (Stage 4c: `cmpReach` in place, `InvRequest.lean`.) -/
 
-/-- **G2, the proposer's reach** (Q3's (a'), the user's, 2026-10-31): a revision the server's store has
-reached (`srvRevLb`, the compactor's `RevLb` and `EtcdServer.Compact.spec`'s premise) is a
-compaction's revision reached (`cmpReach`): the log's `certOk` is a KV certificate, the store's free
-one (`0 ↦ []`) excluded by the certificates' invariant (no model log is empty), as in
-`kv_cert_read`. -/
-theorem cmpReach_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
-    (hγ : γs.cok = γk.cok) (E : CoPset) (hE : ↑kvcN ⊆ E) (r : w64) :
-    ⊢ kvCertInv (GF := GF) γ γk -∗ srvRevLb γs (sint.Z r) ={E}=∗ cmpReach γk r := by
-  iintro #Hinv #Hlb
-  iunfold srvRevLb at Hlb
-  icases Hlb with ⟨%l, -, #Hok, %Hl⟩
-  iunfold mvcc.certOk at Hok
-  rw [hγ] at *
-  icases Hok with (%h | #He | #He)
-  · imodintro
-    iunfold cmpReach
-    iexists l
-    isplitr
-    · iunfold kvCert; ileft; ipureintro; exact h
-    ipureintro; exact Hl
-  · imodintro
-    iunfold cmpReach
-    iexists l
-    isplitr
-    · iunfold kvCert; iright; iexact He
-    ipureintro; exact Hl
-  · iunfold kvCertInv at Hinv
-    iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-    ihave %Hm := ghost_map_lookup $$ HC He
-    obtain ⟨-, -, -, A, -, hm⟩ := Hok.1 _ _ Hm
-    have h0 := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 A
-    unfold kvModel at hm
-    rw [hm] at h0
-    have := h0.length_le
-    simp only [List.length_nil] at this
-    omega
+/- (Stage 4c: `cmpReach_of_srvRevLb` moved to `CompactMode.lean`.) -/
 
 /-- **Draft of `reqPropOk`** (`InvRequest.lean`), in the cluster's compaction mode `cmp`: today's
 forms (no `irrNoDelPut`: review round 1's F-5, the fork fix's form); or, in compaction mode, a

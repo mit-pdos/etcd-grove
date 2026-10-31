@@ -767,7 +767,6 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
-sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
 sorry EtcdServer.snapshot.wp_proof

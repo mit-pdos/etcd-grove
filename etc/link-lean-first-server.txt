@@ -596,10 +596,11 @@ auth_NewAuthStore:
 # (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock is the trust boundary.
 clockwork_NewRealClock:
 # `EtcdServer.Compact` (the compactor's Compactable) and the request's getters (its trace attributes);
-# (M2's S3) over the request path's compaction variant (`wp_proofCompact`, by term)
+# (M2's S3; the apply side's stage 4c, 2026-10-31: over the request path's one spec, at
+# `reqPropOk`'s compaction form)
 CompactionRequest__GetPhysical:
 CompactionRequest__GetRevision:
-EtcdServer__Compact: traceutil_Tracer__Start trace_WithAttributes attribute_Bool attribute_Int64 CompactionRequest__GetPhysical CompactionRequest__GetRevision EtcdServer__Logger traceutil_EnsureTrace =EtcdServer.processInternalRaftRequestOnce.wp_proofCompact traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong mvcc_store__Rev traceutil_Trace__AddField
+EtcdServer__Compact: traceutil_Tracer__Start trace_WithAttributes attribute_Bool attribute_Int64 CompactionRequest__GetPhysical CompactionRequest__GetRevision EtcdServer__Logger traceutil_EnsureTrace EtcdServer__processInternalRaftRequestOnce traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong mvcc_store__Rev traceutil_Trace__AddField
 v3compactor_New: zap_NewNop clockwork_NewRealClock v3compactor_newPeriodic v3compactor_newRevision fmt_Errorf v3compactor_Periodic__Run v3compactor_Periodic__Stop v3compactor_Periodic__Pause v3compactor_Periodic__Resume v3compactor_Revision__Run v3compactor_Revision__Stop v3compactor_Revision__Pause v3compactor_Revision__Resume
 v3compactor_newPeriodic: v3compactor_Periodic__getRetentions
 v3compactor_newRevision:

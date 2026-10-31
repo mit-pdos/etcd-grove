@@ -2,7 +2,8 @@
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
 **the Probe: done** (item 18, G2, the commit step's compaction arm, S3-3's transfer lemma, G1:
-"The Probe"); **the switch: stages 1-3 done** ("The switch", the last section); next stage 4. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+"The Probe"); **the switch: stages 1-4 done** but for what waits on the snapshot track's `srvEnvOkD`
+("The switch", the last section). Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -782,7 +783,16 @@ the Probe's `kv_prop_au_cmp` with `cmpReach_reqLb`, moved to `KVLemmas.lean`), s
 `processInternalRaftRequestOnce` passes the request path's (4a's `kvCertInvM`, `raftPropose`'s
 `srvRaftLogInv`); `reqPropOk_wire`/`reqPropOk_shape` cover the compaction.
 
-**Left of stage 4 (4c (2)):** `processInternalRaftRequestOnce.specCompact` (a `sorry`) retired:
+**Stage 4c (2): done (2026-10-31).** `EtcdServer.Compact` over the one request-path spec (item 6:
+`specCompact` and its `sorry` retired; trust base 19 `sorry`s), `EtcdServer.Compact.spec` the Draft's
+(item 15, `rfl`), `compactableOk_server` at `E.cmp = true`, `CompactMode.lean`'s family retired (it
+keeps `srvRevLb`, `cmpReach_of_srvRevLb`, `compactResultIs`). `kvApplied`'s `crevOf` clause deferred to
+the compaction arm (`notes/decisions.md`, "stage 4c"). **Stage 4 is done but for what waits on
+`srvEnvOkD`** (the snapshot track's, the collaborator's): `applyEntryNormal`'s compaction arm and
+`kvApplied`'s `crevOf` clause. Next: stage 5 (blocked: Q4, the auth-mode merge), or `NewServer.specD`
+(item 14) when Q4 is answered.
+
+**(Superseded) Left of stage 4 (4c (2)):** `processInternalRaftRequestOnce.specCompact` (a `sorry`) retired:
 `EtcdServer.Compact`'s proof over the general spec, the compaction form from `srvRevLb` by
 `cmpReach_of_srvRevLb` (Draft, to move) and the request view's `kvCertInv`, its `compactResultIs`
 from `resPostM`'s `applyResultIs` (the dispatched compaction's answer, item 2); `EtcdServer.Compact.spec`

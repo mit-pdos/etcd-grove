@@ -27316,3 +27316,22 @@ The agent's, reversible, for the user to review.
 - **`compactPropOk` redefined in place with the scope** (the Draft's `compactPropOkD`: no
   side-effect-free or admin field), rather than a second name; its one producer, `irrCompaction`,
   meets both (moved to `InvProposer.lean`, beside `irrEmpty`).
+
+## M2 apply side, the switch's stage 4c: `Compact` over the one request-path spec; `kvApplied`'s `crevOf` clause deferred (2026-10-31)
+
+- **`EtcdServer.Compact`'s proof over `processInternalRaftRequestOnce.spec`** (through `spec_off`) at
+  `reqPropOk`'s compaction form (item 6): the mode from the request view's tie, the reached revision
+  from `srvRevLb` by `cmpReach_of_srvRevLb` over the readers' view's `kvCertInv` and certificate map
+  (`isServerRead s E ρ.rd`, item 15's F5-2), its `compactResultIs` from the result's `resultIsW`
+  (`compactResultIs_of`: a compaction in M2's scope is dispatched; item 2's answer). So
+  `processInternalRaftRequestOnce.specCompact` and its `sorry` went (trust base: 19 `sorry`s);
+  `Compact`'s trust base is now the request path's (the collections `server`, `compactor-pilot`
+  gained its standard-library axioms, already in the baseline). `EtcdServer.Compact.spec` is the
+  Draft's `specD` (checked `rfl`), `compactableOk_server` follows (premise `E.cmp = true`).
+  `CompactMode.lean` keeps `srvRevLb`, `cmpReach_of_srvRevLb` and `compactResultIs`; its family
+  (`kvInvC`, `isServerReqC`, `reqPropOkC`, the `…C` shapes, `irrNoDelPut`) went.
+- **`kvApplied`'s `x.crev = crevOf γk A` (item 4's last clause) deferred** (the agent's, reversible):
+  while the apply thread's mode is off (stage 4b's law), the clause is `-1 = -1` on every log it
+  applies; its consumer is the snapshot track's restore (#8, `c ≤ c'`), whose re-tie is item 17's
+  (the collaborator's). Adding it now would move the snapshot track's `kvApplied` producers for no
+  use; it lands with `applyEntryNormal`'s compaction arm, after `srvEnvOkD`.

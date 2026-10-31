@@ -2,7 +2,8 @@
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Compact.lean`. Lean-first (no Rocq
 counterpart). The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`) and M2's S3
 (`notes/m2-plan.md`): the glue over `processInternalRaftRequestOnce`'s compaction variant
-(`specCompact`, the compaction form of the proposal permit), the span and the trace (`EnsureTrace`,
+(M2's apply side, stage 4c, 2026-10-31: the one spec, `specOff`, at `reqPropOk`'s compaction form;
+until then `specCompact`, a `sorry`), the span and the trace (`EnsureTrace`,
 from a context carrying no trace), and the response's header at the store's revision.
 -/
 module
@@ -15,6 +16,8 @@ public import Spec.go_opentelemetry_io.otel.attribute.Int64
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__GetStartTime
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__SetStartTime
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__InsertStep
@@ -42,6 +45,92 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- The request path's view ties the KV names' mode to the server's (`srvReqFieldsAt`, item 19). -/
+theorem isServerReq_cmp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ ⌜ρ.kv.cmp = E.cmp⌝ ∗ kvCertInv ρ.raft ρ.kv := by
+  unfold isServerReq srvReqFieldsAt
+  iintro ⟨⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %h, #Hc, -⟩⟩, -⟩
+  iframe Hc
+  ipureintro; exact h
+
+/-- The readers' view holds the KV invariants at its names (`srvReadFieldsAt`). -/
+theorem isServerRead_kvInvs (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
+  unfold isServerRead srvReadFieldsAt
+  iintro ⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #H, -⟩⟩
+  iexact H
+
+/-- **`Compact`'s request is a compaction of a good shape** with no range end `[0]`. -/
+theorem irrCompaction_shape (rev : w64) :
+    rqShape (irrCompaction rev) ∧ irrNoZeroEnd (irrCompaction rev) := by
+  have hk : apply.dispatchKind (irrCompaction rev) = .compaction := by
+    simp [apply.dispatchKind, irrCompaction, apply.irrEmpty]
+  refine ⟨⟨fun on => ⟨by rw [hk]; decide, fun h => by rw [hk] at h; cases h⟩, fun log _ => ?_⟩,
+    by refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp_all [irrCompaction, apply.irrEmpty]⟩
+  unfold apply.rqOk; rw [hk]; trivial
+
+/-- **The result of a compaction the request path reports** (`compactResultIs`, item 2's answer): a
+compaction in M2's scope is neither skipped nor rejected, so `Apply` dispatched it; the answer is
+the response, owned, or an error with no trace; the trace, on success, the result's. -/
+theorem compactResultIs_of (E : apply.AEnv GF) (γr : ReadNames) (rq rq' : apply.IRRModel)
+    (hm : apply.HeaderModel) (F : mvcc.Log) (res : Loc) (lb : mvcc.Log) (hc : compactPropOk rq)
+    (hz : irrNoZeroEnd rq) (hw : irrWireOf (apply.withHeader rq hm) rq') :
+    apply.resTrace (GF := GF) res ∗ resultIsW E γr rq' F res lb ⊢ compactResultIs res := by
+  have he := irrWireOf_eq rq rq' hm hw hz
+  subst he
+  have hk : apply.dispatchKind (apply.withHeader rq hm) = .compaction := hc.1.1
+  have hna : apply.needAdminPermission (apply.withHeader rq hm) = false := hc.2.2
+  iintro ⟨Htr, Hres⟩
+  iunfold resultIsW at Hres
+  icases Hres with ⟨%Hnn, %y, %y', %out, %Hst, Hres, -⟩
+  obtain ⟨hstep, -, -, hwv⟩ := Hst
+  cases out with
+  | skipped => simp [apply.ApplyOut.waived] at hwv
+  | rejected =>
+    have h1 : apply.needAdminPermission (apply.withHeader rq hm) = true := hstep.1
+    rw [hna] at h1; cases h1
+  | dispatched o sk =>
+    isimp only [apply.applyResultIs, apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true,
+      ↓reduceIte] at Hres
+    icases Hres with ⟨-, %v, #Hv, Hans, #HeI⟩
+    isimp only [apply.dispatchAnswer, hk] at Hans
+    icases Hans with ⟨%rp, %Hrp, Hc⟩
+    iunfold compactResultIs
+    isplitr
+    · ipureintro; exact Hnn
+    iexists v
+    iframe Hv
+    icases Hc with (⟨%He, Hok⟩ | %Hrr)
+    · iunfold apply.resTrace at Htr
+      icases Htr with (%h | ⟨%v', #Hv', Ht⟩)
+      · exact absurd h Hnn
+      icombine Hv Hv' gives %Hvv
+      subst Hvv
+      icases Ht with (%h | Ht)
+      · exact absurd He h
+      iframe Ht
+      ileft
+      isplitr
+      · ipureintro; exact He
+      iexists rp
+      isplitr
+      · ipureintro; exact Hrp
+      iright
+      iunfold apply.cmpRespOk at Hok
+      icases Hok with ⟨-, %cv, Hcv, %hv, Hh⟩
+      iexists cv
+      iframe Hcv
+      iright
+      iexists hv
+      iexact Hh
+    · obtain ⟨-, hne, ht⟩ := Hrr
+      rw [ht]
+      isplitr
+      · iapply apply.traceRes_null
+      iright
+      iframe HeI
+      ipureintro; exact hne
 
 set_option hygiene false in
 /-- A compaction's response `Hrsp` with its header `Hhdr` (both owned): the store's revision
@@ -107,7 +196,7 @@ theorem EtcdServer.Compact.wp_proof
     (hRev : CompactionRequest.GetRevision.spec (GF := GF) (hG := hG))
     (hLogger : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
-    (hPIRRO : EtcdServer.processInternalRaftRequestOnce.specCompact (GF := GF) (hG := hG))
+    (hPIRRO0 : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG))
     (hGetStart : traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG))
     (hSetStart : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG))
     (hInsert : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
@@ -115,8 +204,9 @@ theorem EtcdServer.Compact.wp_proof
     (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hAddField : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd p r Hr1
-  wp_start as ⟨#Hsrv, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
+  have hPIRRO := EtcdServer.processInternalRaftRequestOnce.spec_off hPIRRO0
+  intro s E ρ ctx cd p r Hr1
+  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
   -- (Perennial 25bd32450) the named results are allocated before the defer frame
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -243,15 +333,36 @@ theorem EtcdServer.Compact.wp_proof
   -- (review round 1, S2-3) the revision reached, at the request's value
   ihave #Hlb' : srvRevLb E.γ (sint.Z rv.Revision') $$ []
   · rw [Hrv.1]; iexact Hlb
-  wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') rv.Revision' rfl
-      (compactPropOk_irrCompaction _ (by rw [Hrv.1]; exact Hr1)) rfl $$ [Hlt Hrd Header]
-      as %res %err ⟨Hlt, Hrd, Hres⟩
+  -- (M2's apply side, item 6) `reqPropOk`'s compaction form: the cluster's mode on (the request
+  -- view's tie), the revision reached as a KV certificate (`cmpReach_of_srvRevLb`, G2)
+  ihave ⟨%Hkcmp, #Hkci⟩ := isServerReq_cmp s E ρ $$ Hsrv
+  ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd
+  iunfold srvKVInvs at Hkvi
+  icases Hkvi with ⟨-, -, -, %Hcok, -⟩
+  imod (cmpReach_of_srvRevLb ρ.raft ρ.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) rv.Revision')
+    $$ Hkci Hlb' with #Hreach
+  have hcp := compactPropOk_irrCompaction rv.Revision' (by rw [Hrv.1]; exact Hr1)
+  have hsh := irrCompaction_shape rv.Revision'
+  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HcF0
+  wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') (fun _ => iprop(True)) []
+      rfl $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd
+    isplitr
+    · iunfold reqPropOk
+      iright
+      isplitr
+      · ipureintro; exact ⟨Hkcmp.trans Hcmp, hcp, hsh.1, hsh.2, rfl⟩
+      iexists rv.Revision'
+      isplitr
+      · ipureintro; rfl
+      iexact Hreach
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, Hcr⟩ | ⟨⟨%Hrn, %Hne⟩, #HaE, -⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hw, Htrr0, %lb, Hres0, -⟩ | ⟨⟨%Hrn, %Hne⟩, #HaE, -⟩)
   · -- proposed: the apply thread's result, with its trace
     subst Herr
+    ihave Hcr := compactResultIs_of E ρ.rd (irrCompaction rv.Revision') rq' hm [] res lb hcp hsh.2 Hw
+      $$ [$Htrr0 $Hres0]
     iunfold compactResultIs at Hcr
     icases Hcr with ⟨%Hresnn, %av, #Hav, Htrr, Hbr⟩
     simp only [show decide (res = null) = false from decide_eq_false Hresnn]

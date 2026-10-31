@@ -633,34 +633,6 @@ theorem traceutil.wp_newTrace :
     traceutil.newTrace.spec (GF := GF) (hG := hG) :=
   traceutil.newTrace.wp_proof
 
-theorem traceutil.Trace.wp_GetStartTime :
-    traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.GetStartTime.wp_proof
-
-theorem traceutil.Trace.wp_SetStartTime :
-    traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.SetStartTime.wp_proof
-
-theorem traceutil.Trace.wp_InsertStep :
-    traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.InsertStep.wp_proof
-
-theorem traceutil.Trace.wp_LogWithStepThreshold :
-    traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.LogWithStepThreshold.wp_proof
-
-theorem traceutil.Trace.wp_LogIfLong :
-    traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.LogIfLong.wp_proof traceutil.Trace.wp_LogWithStepThreshold
-
-theorem traceutil.Trace.wp_updateFieldIfExist :
-    traceutil.Trace.updateFieldIfExist.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.updateFieldIfExist.wp_proof
-
-theorem traceutil.Trace.wp_AddField :
-    traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.AddField.wp_proof traceutil.Trace.wp_updateFieldIfExist
-
 theorem idutil.wp_lowbit :
     idutil.lowbit.spec (GF := GF) (hG := hG) :=
   idutil.lowbit.wp_proof
@@ -740,6 +712,34 @@ theorem time.Duration.wp_Seconds :
 theorem prometheus.HistogramVec.wp_WithLabelValues :
     prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
   prometheus.HistogramVec.WithLabelValues.wp_proof
+
+theorem traceutil.Trace.wp_GetStartTime :
+    traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.GetStartTime.wp_proof
+
+theorem traceutil.Trace.wp_SetStartTime :
+    traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.SetStartTime.wp_proof
+
+theorem traceutil.Trace.wp_InsertStep :
+    traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.InsertStep.wp_proof
+
+theorem traceutil.Trace.wp_LogWithStepThreshold :
+    traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.LogWithStepThreshold.wp_proof
+
+theorem traceutil.Trace.wp_LogIfLong :
+    traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.LogIfLong.wp_proof traceutil.Trace.wp_LogWithStepThreshold
+
+theorem traceutil.Trace.wp_updateFieldIfExist :
+    traceutil.Trace.updateFieldIfExist.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.updateFieldIfExist.wp_proof
+
+theorem traceutil.Trace.wp_AddField :
+    traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.AddField.wp_proof traceutil.Trace.wp_updateFieldIfExist
 
 theorem «attribute».wp_String :
     «attribute».String.spec (GF := GF) (hG := hG) :=
@@ -1612,26 +1612,6 @@ theorem traceutil.wp_EnsureTrace :
     traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
   traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
 
-theorem EtcdServer.wp_Compact :
-    EtcdServer.Compact.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Compact.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Bool «attribute».wp_Int64 CompactionRequest.wp_GetPhysical CompactionRequest.wp_GetRevision EtcdServer.wp_Logger traceutil.wp_EnsureTrace EtcdServer.processInternalRaftRequestOnce.wp_proofCompact traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong mvcc.store.wp_Rev traceutil.Trace.wp_AddField
-
-theorem rafthttp.streamReader.wp_pause :
-    rafthttp.streamReader.pause.spec (GF := GF) (hG := hG) :=
-  rafthttp.streamReader.pause.wp_proof
-
-theorem rafthttp.peer.wp_Pause :
-    rafthttp.peer.Pause.spec (GF := GF) (hG := hG) :=
-  rafthttp.peer.Pause.wp_proof rafthttp.streamReader.wp_pause
-
-theorem rafthttp.Transport.wp_CutPeer :
-    rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.CutPeer.wp_proof rafthttp.peer.wp_Pause
-
-theorem EtcdServer.wp_CutPeer :
-    EtcdServer.CutPeer.spec (GF := GF) (hG := hG) :=
-  EtcdServer.CutPeer.wp_proof rafthttp.Transport.wp_CutPeer
-
 theorem EtcdServer.wp_FeatureEnabled :
     EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG) :=
   EtcdServer.FeatureEnabled.wp_proof
@@ -1663,6 +1643,26 @@ theorem EtcdServer.wp_parseProposeCtxErr :
 theorem EtcdServer.wp_processInternalRaftRequestOnce :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) :=
   EtcdServer.processInternalRaftRequestOnce.wp_proof EtcdServer.wp_getAppliedIndex EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext EtcdServer.wp_parseProposeCtxErr context.wp_ErrDone strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
+
+theorem EtcdServer.wp_Compact :
+    EtcdServer.Compact.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Compact.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Bool «attribute».wp_Int64 CompactionRequest.wp_GetPhysical CompactionRequest.wp_GetRevision EtcdServer.wp_Logger traceutil.wp_EnsureTrace EtcdServer.wp_processInternalRaftRequestOnce traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong mvcc.store.wp_Rev traceutil.Trace.wp_AddField
+
+theorem rafthttp.streamReader.wp_pause :
+    rafthttp.streamReader.pause.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.pause.wp_proof
+
+theorem rafthttp.peer.wp_Pause :
+    rafthttp.peer.Pause.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.Pause.wp_proof rafthttp.streamReader.wp_pause
+
+theorem rafthttp.Transport.wp_CutPeer :
+    rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.CutPeer.wp_proof rafthttp.peer.wp_Pause
+
+theorem EtcdServer.wp_CutPeer :
+    EtcdServer.CutPeer.spec (GF := GF) (hG := hG) :=
+  EtcdServer.CutPeer.wp_proof rafthttp.Transport.wp_CutPeer
 
 theorem context.wp_ValueStartTime :
     context.ValueStartTime.spec (GF := GF) (hG := hG) :=

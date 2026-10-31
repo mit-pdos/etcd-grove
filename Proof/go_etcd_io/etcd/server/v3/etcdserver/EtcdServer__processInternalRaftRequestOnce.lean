@@ -690,12 +690,6 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     s E ρ ctx cd p rq Qh F Hid0
   exact h
 
-/-- **A compaction through the request path** (M2, S2): the skeleton's statement, no callee
-hypotheses yet. -/
-theorem EtcdServer.processInternalRaftRequestOnce.wp_proofCompact :
-    EtcdServer.processInternalRaftRequestOnce.specCompact (GF := GF) (hG := hG) := by
-  sorry -- M2 S2: the uber-applier's compaction arm (store.Compact, the apply thread's compaction right) in compaction mode
-
 end proof
 
 end EtcdGrove
