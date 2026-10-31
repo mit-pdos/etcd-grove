@@ -12,6 +12,10 @@ server's `Authenticate` with auth on (`server_authenticate_on`), at its run slot
 four readers `EtcdServer.Authenticate` takes, a part of the KV's `etcdGrpcSlot`:
 `etcdGrpcSlot_authn`); its auth store's `Authenticate` side (`authnStoreOk`) is the one premise it
 adds.
+
+**The replies' size** (2026-10-31, `notes/reply-size.md`): these results take a server token
+(`grpcServerAt`), made only by `grpc.start`, which takes the workload premise `grpcRepliesFit`;
+they are conditional on it through the token, which their statements do not show.
 -/
 module
 

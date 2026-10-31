@@ -17,6 +17,7 @@ principles match your target.
 | [compaction-in-place.md](compaction-in-place.md) | a new mode (compaction) in a family of shared predicates and the specs over them; a library spec with an unreachable error arm | redefine in place, not mode-indexed copies; no arm the precondition excludes |
 | [member-auth-facts.md](member-auth-facts.md) | a getter over a read-only field, and a fact exported up a constructor chain to a started member | export where Go makes it true, gated by the mode; keep an exported restatement unchanged by dropping the new conjunct |
 | [irr-depth.md](irr-depth.md) | a trust-boundary axiom false at deep inputs, repaired by a premise carried up to a configuration bound | a premise, not a post that claims termination Go does not give; a contract states the receiver's need, not the supplier's mechanism; a configuration bound exactly as strict as the code; a fact kept in the object that copied it |
+| [reply-size.md](reply-size.md) | two trust-boundary axioms false at huge replies, repaired by an opaque workload premise on the constructor of the tokens they consume | a workload premise on the resource's only producer, carried by the resource; take it where the proof reaches the producer, not beside a sibling premise; check fast paths for aliasing before a fresh-copies size argument |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

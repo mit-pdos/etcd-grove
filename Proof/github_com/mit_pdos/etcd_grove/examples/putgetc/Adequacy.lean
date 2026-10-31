@@ -24,7 +24,8 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 **Its hypotheses** (D19a; `notes/decisions.md`, D19r):
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
   bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
-  `apply.backendUnderQuota`, `storage.dbOpensOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
+  `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
+  `storage.dbOpensOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
   and the execution's length (`n + 2 ≤ 2 ^ 31`: the thread bound and, with `N = n + 1`, the
   time-receipt bounds; `n + 7 ≤ backend.wbInit`: the backend's write-back budget `bootstrap`'s
   contract gives);
@@ -126,7 +127,7 @@ theorem putgetc_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putgetc.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
     (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
     (n : Nat)
@@ -153,7 +154,7 @@ theorem putgetc_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := putgetc.wp_Main (GF := putgetcGF) n id ctxs boot Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #
   ipureintro

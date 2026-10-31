@@ -52,7 +52,8 @@ theorem cert0_of_server (p : Loc) (R : v3rpc.WSrv GF) :
   rw [← h]
   iexact Hc0
 
-/-- **etcd's server, started for watchkv** (see the file header). -/
+/-- **etcd's server, started for watchkv** (see the file header); under `grpcRepliesFit`
+(`grpc.start`'s). -/
 theorem wk_served (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -68,7 +69,7 @@ theorem wk_served (V : client.WEnv GF) (addr : GoString)
     -- (W3) the watch contract at the server's model
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
     -- (M2, the storage side, review round 2's N1) the server off (its watchers' "no compactor")
-    (hoff : V.R.E.γ.cm = false) :
+    (hoff : V.R.E.γ.cm = false) (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -91,7 +92,7 @@ theorem wk_served (V : client.WEnv GF) (addr : GoString)
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
     #Hws, #Hims, #His, Hwslots, #Hnd, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
+    hregs Hrf) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst

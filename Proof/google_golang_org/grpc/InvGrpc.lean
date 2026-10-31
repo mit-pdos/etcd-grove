@@ -529,8 +529,9 @@ end defs
 
 /-- **The gRPC server listening at `addr`, built with the unary interceptor chain `ics`, its
 services' methods `regs` registered** (exclusive; an axiomatized predicate, unit P3b; it was
-`grpcListener addr`): one registration per address (urpc's `host c↦ ∅`); `ics` the interceptors
-`grpc.NewServer`'s options chain (`UnaryInterceptor`'s, then `ChainUnaryInterceptor`'s, in
+`grpcListener addr`). Exists only in a run satisfying `grpcRepliesFit`: made only by
+`grpc.start`, which takes it. One registration per address (urpc's `host c↦ ∅`); `ics` the
+interceptors `grpc.NewServer`'s options chain (`UnaryInterceptor`'s, then `ChainUnaryInterceptor`'s, in
 order), `regs` the `(full method name, MethodDesc.Handler, service value)` of every unary method
 of the `ServiceDesc`s registered with `RegisterService`. Established by the server's unverified
 construction (etcd's `v3rpc.Server`, `grpc.NewServer`, the `Register*Server` calls, `Serve`): a
@@ -755,7 +756,12 @@ methods `ms` (distinct names), each meeting its spec with the per-run resource `
 it (`grpcMethodOk`: its `MethodDesc.Handler` on the registered service value, the call's context
 (`isContext`, and `grpcRunCtx`: no value under etcd's keys), grpc's `dec` for the request, the
 interceptor for `ics`), and that hands the runtime `n` copies of `S`, is served at `addr`: a run
-holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time). -/
+holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time).
+
+Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
+codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
+`grpcStreamServerAt`, `grpcServeTok`) comes only from `grpc.start`, under `grpcRepliesFit`, so no
+reply exceeds it. A reply in `(2 ^ 31 - 1, 2 ^ 48]` fails with `ResourceExhausted`. -/
 axiom grpc.serve (addr : GoString) (ics : List GoFunc) (regs : List (GoString × val × GoInterface))
     (ms : List (GrpcMethod GF)) (S : IProp GF) (n : Nat) :
   (ms.map GrpcMethod.name).Nodup → (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →

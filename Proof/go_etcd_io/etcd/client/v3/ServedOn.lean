@@ -6,6 +6,10 @@ metadata of the run's context, from the server's answers with auth on (`v3rpc.*_
 at the run's token `auth.ctxTokenOf`, which is `auth.mdTokenOf` of the context's incoming metadata
 by definition); grpc runs them through the quota wrapper and the interceptor chain as with auth
 off. Lean-first (no Rocq counterpart).
+
+**The replies' size** (2026-10-31, `notes/reply-size.md`): these results take a server token
+(`grpcServerAt`), made only by `grpc.start`, which takes the workload premise `grpcRepliesFit`;
+they are conditional on it through the token, which their statements do not show.
 -/
 module
 

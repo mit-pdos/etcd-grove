@@ -72,7 +72,8 @@ hypothesis on the semantics every client-building `Main` has (`DialWithBalancerB
 `newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
 (`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s): its named premises
 (`isValidSimpleToken`'s spec `auth.ValidSpec`, D22's `authSchemaSrv`) and hypotheses on the
-semantics (`Float64ToInt64Semantics`, `ErrorStringLeaf`). -/
+semantics (`Float64ToInt64Semantics`, `ErrorStringLeaf`). `Main.spec`'s named workload premises
+include `grpcRepliesFit` (2026-10-31, `grpc.start`'s: the replies' encoded size). -/
 theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
     (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :

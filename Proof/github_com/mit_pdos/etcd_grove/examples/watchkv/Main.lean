@@ -97,7 +97,7 @@ theorem Main.wp_proof
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN Hck Haf
-    Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
+    Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -262,7 +262,7 @@ theorem Main.wp_proof
     · iframe Hgsn Hlis; iframe #
     imod (wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) go!"127.0.0.1:23872"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hoff)
+        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hoff Hrf)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>

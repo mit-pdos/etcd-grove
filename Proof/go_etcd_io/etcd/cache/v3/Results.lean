@@ -225,7 +225,8 @@ with its stream registration in `sregs`, the stream chain `[ims, is]`'s contract
 slots: `etcd_watch_served_chain`'s) give the right to serve `gs` on `lis`, etcd's KV methods
 at `addr` (`kvRegs`, the server's request names' read names `γr`), and the watch server's facts at `addr` (`watchAddrFacts V`), given the wire's and the
 packages' facts `watchAddrFacts` lists beyond the stream's. With `clientv3.New`'s result at `addr`
-these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). -/
+these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). Under
+`grpcRepliesFit` (`grpc.start`'s, 2026-10-31). -/
 theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -242,7 +243,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
     -- (M2, the storage side, review round 2's N1, the approval's item 13) the server off: its store
     -- does not compact, so its watchers' create requests carry the "no compactor" fact
-    (hoff : V.R.E.γ.cm = false) :
+    (hoff : V.R.E.γ.cm = false) (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -265,7 +266,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
     #Hws, #Hims, #His, Hwslots, #Hkf, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
+    hregs Hrf) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst
