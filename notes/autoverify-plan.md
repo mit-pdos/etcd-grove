@@ -66,6 +66,18 @@ Each point is a rule below; the sources have the details.
 - Reviews before proofs find most spec problems (the compactor: 18 of 19 first-tier revisions from
   fresh-reviewer rounds; the 19th from glue); repairs introduce defects. The freeze leaked once,
   through a caller that did not exist yet: freeze only when every caller's glue proves.
+- Review depth has to match how new the abstraction is. raft's unified node API (Storage,
+  Ready/Advance, snapshots, reconfiguration; `notes/raft-unified-plan.md`) took 11 review rounds to
+  freeze, then had its storage contract redesigned after the freeze; of its 162 changes after the
+  freeze, classified (`notes/spec-first-plan.md`, "The change log after the freeze, classified"),
+  140 were real and 59 of those (about 40%) were fixes and redesigns review had missed, against 36
+  conformance edits and 12 adaptations of callers. Eight of the fixes were facts of the Go code no
+  review saw and proofs found: `MemoryStorage.InitialState` unlocked, `newRaft` reading
+  `FirstIndex`/`LastIndex` before `InitialState`, `Restore` needing `Restorable`, a bare
+  `MemoryStorage`'s empty `ConfState`, a new leader's commit index lagging a snapshot, an empty
+  `ConfChangeV2` against etcd's `apply` panic, the concurrent `ApplyConfChange`, `run` panicking on
+  a `Snapshot()` error. All are about the order, thread or state in which Go calls an interface the
+  library calls back, which a protocol trace does not show.
 - Mode families are the most expensive mistake: auth's on/off copies, about 7k lines, every other
   track editing both (`notes/auth-mode-merge-plan.md`). One spec per function; a mode is state.
 - Unproved triples are unchecked claims ("an `Admitted` is not a placeholder for work",
@@ -324,9 +336,19 @@ work fans out to agents over fixed statements.
   (`etc/gen-k8s-deep.py`): a real start-up cost of a new system, budgeted.
 - The Perennial pin and the base commit are frozen for the run; `lean` is merged only at stage
   gates, with a porting budget (merging `lean` once brought three Perennial pins to port).
-- `.lake/build` seeded by a copy-on-write copy; a machine-wide memory budget fixes the number of
-  `lean-check` servers (each holds the prelude, 2-3 GB; three sessions were OOM-killed by parallel
-  builds).
+- A Perennial checkout of the run's own at the pin (`/shared/perennial-<rev>`, built once) and a
+  manifest copy pointing at it, passed to every `lake` command (`--packages=<file>`): worktrees
+  share `.lake/packages`, so a plain `lake` command at another pin checks the shared Perennial out
+  under every other session (it happened four times, 2026-10-23 to 10-30). `etc/lean-check.py`'s
+  workers run `lake setup-file` without `--packages` and move it too: fixed before the first run. A
+  gate checks the shared checkout's revision before and after each build.
+- `.lake/build` seeded from a *fresh* build (stale `.olean`s gave false proof failures on modules
+  that build: "unknown hypothesis", "the goal is not a WP"), by a real copy (`cp -a`, about 16 GB:
+  `/shared` has no reflink), never hard links (`cp -al`: Lake rewrites `.trace` and `.setup.json` in
+  place, and corrupted the source build). Never a build in the main checkout (it blocked other
+  sessions). A machine-wide memory budget fixes the number of `lean-check` servers (each holds the
+  prelude, 2-3 GB; three sessions were OOM-killed by parallel builds), and a disk budget the number
+  of seeded worktrees (several copies landing together filled `/shared` to 98%).
 - Exit: the translation builds; the *stuck-code smoke test* over the driver's call graph (`wp_auto`
   each function to its end or its first stuck point: `IndexRef` on an array value) passes, or the run
   aborts early with the gaps in `notes/perennial-changes.md` (a Perennial gap on the driver's path is
@@ -423,8 +445,16 @@ checks no precondition: only proved glue does.
 - *Shared statements first*: a function one track axiomatizes and another proves has its statement
   agreed by both and fingerprinted before either writes against it; a divergence is a thaw (D22 W3).
 - *Review rounds*: a fresh `spec-reviewer` each round with a generated context bundle (the unfolded
-  statements, the Go functions, the call sites, the previous repair's diff); **at most four rounds**,
-  then the remaining findings are listed and the freeze goes ahead.
+  statements, the Go functions, the call sites, the previous repair's diff). The cap on rounds is
+  set by novelty, not by tier: four for a spec that follows a template or an existing one, more
+  (raft-unified needed 11, and still missed 40%) for a new abstraction, stopping when a round finds
+  no fix (only conformance); then the remaining findings are listed and the freeze goes ahead.
+- *Call-order traces of callback interfaces*: for every interface the library calls back (a
+  Storage, Ready/Advance, an apply callback), a trace of which methods Go calls, in what order, from
+  which goroutine and in which state, recorded from the upstream tests and the driver, against which
+  the interface's spec (its preconditions, its locking, its ownership) is checked before the freeze:
+  Stage 2's trace validation for the interfaces between packages, where raft-unified's eight Go
+  facts were.
 
 Exit (the freeze): every caller's glue proves, the unfold list is empty, the probes are proved, the
 rounds are done; the `Spec/` statements fingerprinted. After it, a spec change is a thaw.
@@ -517,7 +547,15 @@ for a human to read in a batch afterwards.
 
 **Termination: the ledger** (`notes/<run>/state.json`, rebuilt from git on resume):
 
-- review rounds at most four per freeze; thaws at most two per function;
+- review rounds per freeze as Stage 3 sets them; thaws at most two per function, counting only
+  fixes and redesigns (below);
+- every change to a frozen spec is classified as `notes/spec-first-plan.md` does (F fix, R
+  redesign, W weakening, E extension, D decision, A adaptation, C conformance; found by proof, Go,
+  test or check; public/trusted or internal), first by a classifier over the `interface/*.txt` diff
+  (a statement changed in a caller only is A or C; a premise removed is W; a new export is E),
+  then by an agent for what it cannot decide. Conformance, adaptations and extensions are not thaws:
+  a cap on every edit would have stopped raft-unified's storage redesign and hundreds of harmless
+  edits;
 - a blocked task climbs a ladder: blocked once, a fresh prover with the goal; twice, the
   adjudicator; three times, the `sorry` stays with its report and the run moves on;
 - the run stops when two prover waves in a row do not reduce the count of `sorry`s on the closed
@@ -534,6 +572,12 @@ its file, with the commit that set its status and its attempt count; the `sorry`
 session can end at any point, not only at stage boundaries; after a death, the files it touched are
 re-checked).
 
+- **State on durable disk.** The run directory, scratch directories and resume state live under
+  the repository or `/shared`, never `/tmp` (tmpfs, wiped at every restart).
+- **Environment failures are not gate failures.** Every gate script exits with a distinct status
+  when a tool is missing (`go` not on `PATH` makes `etc/goose.py` fail with `FileNotFoundError`,
+  which reads as a failed `--check`), and the orchestrator checks the tools at start; the
+  adjudicator never sees an environment failure as evidence.
 - **Worktrees and branches.** The run's branch off `lean` at the frozen base; one worktree per
   parallel track; tracks merge into the run's branch within a day (none becomes a trunk); generated
   files regenerated after a merge, never hand-merged; notes are per-run files.
@@ -564,7 +608,11 @@ re-checked).
 6. Findings: `issues/` files (Go bugs with reproductions, after nonissue triage), fork fixes, spec
    bugs (`notes/`).
 7. Decisions taken by the adjudicator; thaws with their witnesses.
-8. Costs: wall time, tokens, build time per stage; spec revisions after the freeze.
+8. Costs: wall time, tokens, build time per stage; spec changes after the freeze, classified, with
+   the metric (fixes and redesigns, by how found, against the size of the frozen spec). The run
+   writes its own costs to `notes/<run>/costs.json` as it goes: tokens and agent time are
+   otherwise only in session transcripts, which Claude Code deletes after 30 days
+   (`/shared/transcripts-archive` keeps copies).
 
 ## What to build
 
@@ -601,7 +649,22 @@ by a proof or a gated axiom.
 3. **A new distributed package**: the first run of Stage 2 without a human, on a protocol whose
    messages carry monotone knowledge (a lease protocol needs a time model first): a Paxos-like
    register, or raft refactored onto the PSM library and re-proved.
-4. **Measured**: zero human interventions during the run; spec revisions after the freeze; refuted
+4. **The gates, one by one: a spec-mutation benchmark.** Plant defects in frozen specs (a premise
+   dropped, a postcondition strengthened past the code, an ownership swapped, a call-order fact
+   reversed; drawn from the classified history) and record which gate catches each (review, glue,
+   tester, probe, call-order trace, proof) and at what cost. The replays measure the result; this
+   measures each gate, and whether a cheaper gate could stand in for a dearer one.
+5. **The algorithm itself: an ablation.** The same target (a held-out tier-M package) run
+   spec-first and code-first (each function proved bottom-up, specs revised as callers need), by
+   the same agents and budget: spec changes, rework (proof lines deleted), time to the closed
+   theorem, bugs found.
+6. **The human's part, measured.** Every decision the user took in the stages so far is classified
+   as *intent* (the top-level statement, what may be trusted: the driver, an axiom) or *judgment*
+   (a design fork, a merge order, a fix); the claim is that only intent needs a human. A ready data
+   point: seven trusted changes of raft-unified's repair (Stage P's P2, P4, P5, P6, P8, P9, P10) were
+   approved by the coordinating agent while the user was away; the user's review of them is a
+   measurement of how often a human reverses such a decision.
+7. **Measured**: zero human interventions during the run; spec revisions after the freeze; refuted
    axioms that reached Stage 5 (should be none); mutation scores; the costs; and, afterwards, whether
    a human reading the report reverses an adjudicated decision or reclassifies a fork fix as a
    nonissue (each becomes a sharper gate).
