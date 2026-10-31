@@ -70,7 +70,7 @@ theorem auth.authStore.Authenticate.wp_core
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
-  icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign⟩
+  icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign, -⟩
   subst Htpi
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'

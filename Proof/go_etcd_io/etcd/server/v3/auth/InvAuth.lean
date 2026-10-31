@@ -669,7 +669,8 @@ in; C1's A2, 2026-10-28: `Value` is promised at those two keys only, not "any ke
 but for those two", since `context.WithValue`'s trust-boundary axiom does not speak of a key of
 one of the stored keys' types but a different value), and the caller holds the right to issue the token they make
 (`freshOk M (simpleTok pre idx)`: a token is `<prefix>.<raft index>`, issued once; the simple
-provider panics on a token issued twice, `assignSimpleTokenToUser`). -/
+provider panics on a token issued twice, `assignSimpleTokenToUser`); the prefix one the provider
+makes (`tokPrefixOk`, no space; 2026-10-30). -/
 def authnCtx (M : AuthMode) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (idx : w64) (pre : GoString), ⌜ctx = GoInterface.ok ci⌝ ∗
     □ (∀ x : AuthenticateParamIndex,
@@ -680,7 +681,7 @@ def authnCtx (M : AuthMode) (ctx : GoInterface) : IProp GF :=
       {{ True }} (App (Val #(methods ci.ty go!"Value" ci.v))
         (Val #(interface.mkOk AuthenticateParamSimpleTokenPrefix.ty #x)))
       {{ (v : GoInterface), RET #v; ⌜v = interface.mkOk go.string #pre⌝ }}) ∗
-    freshOk M (simpleTok pre idx))
+    freshOk M (simpleTok pre idx) ∗ ⌜tokPrefixOk pre⌝)
 
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract) in the mode `M`, with the
 admin side's resource `A` (the auth plan's S5d, 2026-10-25):
@@ -695,6 +696,9 @@ admin side's resource `A` (the auth plan's S5d, 2026-10-25):
   token was issued to `username` (`tokOk`), else the error is one of the package's (`authErrOf`,
   C1's A2: `Authenticate` returns it as its own); on an `Authenticate` context (`authnCtx`: its
   index and prefix, and the right to issue the token; S5b).
+- `genTokenPrefix()` (appended, C1's A4, 2026-10-29) returns a prefix with no space (`tokPrefixOk`,
+  2026-10-31) and no error (the simple provider's draws random letters,
+  `tokenSimple.genTokenPrefix`'s trust-boundary axiom; the no-op and JWT providers' return `""`).
 The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d) but for `info`'s context premise:
 its `info` waits on the raft index its token names and on the context's `Done()`, which this
 module (generic in the later credits, Perennial's contexts are not) cannot state; the JWT
@@ -718,7 +722,10 @@ def tokenProviderOkA (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
           (⌜err = GoInterface.nil⌝ ∗ tokOk M t user) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}))
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}) ∗
+    □ ({{ True }} (App (Val #(methods ti.ty go!"genTokenPrefix" ti.v)) (Val #()))
+      {{ (s : GoString) (err : GoInterface), RET (PairV #s #err);
+          ⌜err = GoInterface.nil ∧ tokPrefixOk s⌝ }}))
 
 instance tokenProviderOkA_persistent (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
     Persistent (tokenProviderOkA (GF := GF) tp M A) := by
@@ -744,7 +751,10 @@ def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
           (⌜err = GoInterface.nil⌝ ∗ tokOk M t user) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}))
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}) ∗
+    □ ({{ True }} (App (Val #(methods ti.ty go!"genTokenPrefix" ti.v)) (Val #()))
+      {{ (s : GoString) (err : GoInterface), RET (PairV #s #err);
+          ⌜err = GoInterface.nil ∧ tokPrefixOk s⌝ }}))
 
 instance tokenProviderOk_persistent (tp : GoInterface) (M : AuthMode) :
     Persistent (tokenProviderOk (GF := GF) tp M) := by

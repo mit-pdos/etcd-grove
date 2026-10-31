@@ -301,8 +301,9 @@ EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
-# (`reqPropOk` has no auth request), so they have no callee. Authenticate (auth's
-# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved. UserAdd (the auth
+# (`reqPropOk` has no auth request), so they have no callee. Authenticate (C1's A4, 2026-10-31)
+# is proved in the mode `on` only, over `raftRequest.specM true`: it is linked in `Results.lean`
+# (`server_authenticate_on`), as the admin entries' mode-`on` proofs are. UserAdd (the auth
 # plan's E2x, 2026-10-26) hashes the password, bcrypt's `GenerateFromPassword` the trust boundary
 # (D-AU6), and base64-encodes the hash (`StdEncoding`'s `EncodeToString`: base64's package fact,
 # `encoding/base64/Base.lean`); UserChangePassword is translated, not proved.
@@ -495,6 +496,8 @@ auth_getMergedPerms: NewIntervalTree NewBytesAffineInterval NewBytesAffinePoint
 auth_authStore__refreshRangePermCache: zap_Logger__Debug zap_String zap_Logger__Error auth_getMergedPerms
 # (the auth plan's E2a) the metrics reporter NewAuthStore installs, under the package's lock
 auth_authStore__setupMetricsReporter:
+# (authkv's Main, 2026-10-30) the cost getter, one load of the read-only field
+auth_authStore__BcryptCost:
 auth_isValidPermissionRange: auth_isOpenEnded BytesAffineComparable__Compare
 # The admin side (the auth plan's S4, 2026-10-24): each a step of the model's state appended to the
 # history (`auth/Steps.lean`), over the write side's contracts (`InvAuth.lean`, `authWR`). The trust
@@ -540,6 +543,11 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 zap_Logger__Check:
 zapcore_CheckedEntry__Write:
 auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
+# The token prefix (C1's A4, 2026-10-29): the store's, over the provider's contract
+# (`tokenProviderOk`'s `genTokenPrefix` clause); the trust boundary: the simple provider's
+# (`crypto/rand`, `math/big`: names only).
+auth_tokenSimple__genTokenPrefix:
+auth_authStore__GenTokenPrefix:
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec and Perennial's `time.Now`),
 # and the new cluster's `bootstrappedRaft.newRaftNode` over the node API's `StartNode` (2026-10-27:
