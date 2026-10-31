@@ -772,7 +772,25 @@ proof stands; its compaction arm (items 8, 12) is owed once the snapshot track's
 (both backends off). Drafts: the server Draft and the Probe over the in-place names (their copies
 gone); kept for later, `crevOf` and its laws, `cmpAdmit_of_entry`, `cmpReach`, `reqPropOkD`
 (Draft), `kv_entry_claim`, `kv_prop_au_cmp`, `cmpReach_reqLb`, `cmpEntryOk_transfer` (Probe).
-Checked: full build, tcb unchanged. **Next, 4c:** `reqPropOk` in place with the compaction form and
+Checked: full build, tcb unchanged.
+
+**Stage 4c (1): done (2026-10-31; `689aac745d`).** `reqPropOk := reqPropOkW ∨` the compaction form
+(`γk.cmp = true`, `compactPropOk`, `rqShape`, `irrNoZeroEnd`, `Qr` trivial, `cmpReach` of its
+revision; item 6), `cmpReach` in place; the commit step `kv_prop_au` takes both (`kv_prop_auW`, and
+the Probe's `kv_prop_au_cmp` with `cmpReach_reqLb`, moved to `KVLemmas.lean`), so it and
+`kv_prop_au_M` take `kvCertInv(M)` and `srvRaftLogInv` at a mask with `kvcN` and `srvRaftN`;
+`processInternalRaftRequestOnce` passes the request path's (4a's `kvCertInvM`, `raftPropose`'s
+`srvRaftLogInv`); `reqPropOk_wire`/`reqPropOk_shape` cover the compaction.
+
+**Left of stage 4 (4c (2)):** `processInternalRaftRequestOnce.specCompact` (a `sorry`) retired:
+`EtcdServer.Compact`'s proof over the general spec, the compaction form from `srvRevLb` by
+`cmpReach_of_srvRevLb` (Draft, to move) and the request view's `kvCertInv`, its `compactResultIs`
+from `resPostM`'s `applyResultIs` (the dispatched compaction's answer, item 2); `EtcdServer.Compact.spec`
+over `isServerReq`/`isServerRead` with `⌜E.cmp = true⌝` (item 15), `compactableOk_server`,
+`NewServer.specCompact`'s post and the examples' `newServer.specCompact` with it; `CompactMode.lean`'s
+family retired. Then `kvApplied`'s `crevOf` clause (item 4's rest) with the snapshot track's
+re-tie. **Waiting on the collaborator** (S-4): `applyEntryNormal`'s compaction arm, reachable once
+`srvEnvOkD` (`d.cm = E.cmp`) is switched. **Next (old text):** `reqPropOk` in place with the compaction form and
 the commit step's compaction arm (`kv_prop_au_cmp`), `processInternalRaftRequestOnce.specCompact` and
 `EtcdServer.Compact.spec` over the request path's view (items 6, 15), `CompactMode.lean`'s family
 retired; `kvApplied`'s `crevOf` clause (item 4's rest) with the snapshot track's re-tie.
