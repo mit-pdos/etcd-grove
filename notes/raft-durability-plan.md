@@ -1,5 +1,24 @@
 # Durability for raft: plan (2026-10-28)
 
+> **Kept for its findings, not as the plan to follow** (the user, 2026-10-31). The durability proof
+> will be done differently. What stays useful:
+> - the survey of what exists (§1): Perennial's crash semantics, and what the raft proof and
+>   etcd's server assume today;
+> - why plain invariants suffice without a crash WP (§3);
+> - the spec review's findings against the candidate node API (§4.6). These are traps any design
+>   meets:
+>   - a still-running old incarnation serves a stale `ReadIndex`;
+>   - the empty state is not a restart point in a cluster started from a bootstrap log;
+>   - `Applied` at restart;
+>   - a `SoftState` that is nil after a role's first `Ready`;
+>   - compaction against a per-batch target;
+> - etcd's durability facts (§1.4, §5.2): the leader sends before `Save`; a commit-only
+>   `HardState` change is not fsynced;
+> - the open questions (§7).
+>
+> The issue it found, `issues/nonissues/raft-doc-send-before-same-batch-persist.md`, stands on
+> its own.
+
 This is a plan only. No proof work starts until the raft cleanup in progress (snapshots and
 reconfiguration) lands. This plan names where the cleanup's specs will move. It does not
 depend on how the cleanup does them.
