@@ -309,3 +309,8 @@ The size facts are discharged inside each closed theorem; no closed theorem's st
   or a premise of `GuaranteedUpdate` that the stored value fits, which its caller cannot prove
   either without such a law. Not changed; a question for the user.
 
+  **Closed (2026-10-31, the user's choice of the value-length law; `notes/vallen.md`):**
+  `etcdState_vals` bounds every stored value, `GuaranteedUpdate`'s premise is the faithful
+  "stale or different" with the value read within `2 ^ 27`, and the re-encoding of a decoded
+  object is as long as its data (`decodeObjD_encode_length`).
+
