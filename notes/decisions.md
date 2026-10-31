@@ -27986,3 +27986,33 @@ and not taken: an image certificate with its own index `j ≥ i` (the user's fir
 when the case looked reachable): the receiver's apply model ties the KV to the applied log exactly
 (`kvApplied`), so it would generalize the apply side for a case the model lacks. Revisit with
 restarts.
+
+## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
+
+**2026-10-31 · accepted**
+
+`applyAll`'s `msgSnapC` branch merges the queued `MsgSnap` only if
+`m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi`, next to the term check (etcd fork
+`goose-lean-snapguard`, 633036387, on 249d76bea; the getters read a nil snapshot or metadata as
+`0`). **A guard added for the proof, not a bug fix**: no `issues/` file.
+
+Why the proof needs it: the merge replaces the message's snapshot through raft's
+`sentMsg_replaceSnapshot`, whose premise `sv.Index ≤ sv'.Index` raft's internals use
+(`isMessage_snap_recontent`, `m.index ≤ ai`: the merged snapshot is at least raft's). Nothing the
+server holds bounds the message's snapshot index by its applied index: `rnSnapMsg` has no index
+fact, `SentMsgShape` gives only `< 2^61`, the snapshot certificate is cluster-wide, the memory
+storage has no upper bound, and `rnRtOk` bounds in the other direction. The deleted
+`snapBranch_send` took the bound as a premise.
+
+Why upstream does not need it (an argument, not checked): raft's `MsgSnap` carries the storage
+snapshot, which the apply loop created at or below its applied index, or which was installed in an
+earlier term and applied before any batch of the current term (a leader installs no snapshot in its
+own term); batches apply in order. With the term check, the guard should never fire. Like the term
+check, dropping the message costs only liveness: the leader retries.
+
+Precedent: the term check (de825d8c6, `issues/etcd-merged-snapshot-stale-term.md`, the user's
+decision 2026-10-19). Considered and not taken: (A) a raft API law on where a `MsgSnap`'s snapshot
+comes from (changes raft's exported API); (C) a third hole in `SnapSendBranch.lean` (not provable
+from today's definitions); (D) term-tagged ghost state across the raft loop, the storage and the
+apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
+declined (the user, 2026-10-31).

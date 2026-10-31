@@ -192,12 +192,15 @@ PROJECTS = [
         # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
         # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
         # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
-        # issues/etcd-compaction-delete-then-put.md).
+        # issues/etcd-compaction-delete-then-put.md). Then (S1, the snapshot plan's #7, 2026-10-31)
+        # branch `goose-lean-snapguard` (on 249d76bea): the queued MsgSnap merged only if its
+        # snapshot is at or below the applied index (633036387; a guard for the proof, not a bug
+        # fix: notes/decisions.md, "The merged snapshot's index guard").
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="249d76bea78d0c8980251d5fa7b26c35ef21263a",
+        rev="633036387c667023e2d044735b1887f4b04b84a1",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
