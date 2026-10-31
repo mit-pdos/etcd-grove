@@ -8,6 +8,19 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
+public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
+public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.OpPut
+public import Proof.go_etcd_io.etcd.client.v3.OpTxn
+public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
+public import Proof.go_etcd_io.etcd.client.v3.Value
+public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.WithRange
+public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.CheckHistory
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.InRange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.LastIn
@@ -24,10 +37,20 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.keyOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.newUserClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.refused
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
+public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.WithTimeoutBackground
 public import Proof.context.WithTimeoutBackgroundMd
+public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.google_golang_org.grpc.metadata.AppendToOutgoingContext
+public import Proof.go_etcd_io.etcd.client.v3.mustInt64
+public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
+public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.go_etcd_io.etcd.client.v3.Compare
+public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.LinkOn
+public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.startServer
 public import Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
@@ -46,6 +69,70 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
+
+theorem proto.wp_Clone :
+    EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.Clone.wp_proof
+
+theorem v3.wp_cloneCompare :
+    EtcdGrove.cloneCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cloneCompare.wp_proof proto.wp_Clone
+
+theorem v3.Cmp.wp_Clone :
+    EtcdGrove.Cmp.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.Clone.wp_proof v3.wp_cloneCompare
+
+theorem v3.Cmp.wp_ensureCompare :
+    EtcdGrove.Cmp.ensureCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.ensureCompare.wp_proof
+
+theorem v3.wp_NewOp :
+    EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewOp.wp_proof
+
+theorem v3.wp_IsOptsWithFromKey :
+    EtcdGrove.IsOptsWithFromKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithFromKey.wp_proof v3.wp_NewOp
+
+theorem v3.wp_IsOptsWithPrefix :
+    EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
+
+theorem v3.Op.wp_applyOpts :
+    EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Op.applyOpts.wp_proof
+
+theorem v3.wp_OpGet :
+    EtcdGrove.OpGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpGet.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+
+theorem v3.wp_OpPut :
+    EtcdGrove.OpPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpPut.wp_proof v3.Op.wp_applyOpts
+
+theorem v3.wp_OpTxn :
+    EtcdGrove.OpTxn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpTxn.wp_proof v3.Cmp.wp_Clone
+
+theorem v3.wp_Value :
+    EtcdGrove.Value.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Value.wp_proof
+
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_WithPrefix :
+    EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
+
+theorem v3.wp_WithRange :
+    EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRange.wp_proof
+
+theorem v3.wp_WithRev :
+    EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRev.wp_proof
 
 theorem wp_Principals :
     EtcdGrove.authkv.Principals.spec (GF := GF) (hG := hG) :=
@@ -79,6 +166,10 @@ theorem wp_LastIn :
     EtcdGrove.authkv.LastIn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.LastIn.wp_proof wp_InRange
 
+theorem zap.wp_NewNop :
+    EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.NewNop.wp_proof
+
 theorem wp_refused :
     EtcdGrove.authkv.refused.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.refused.wp_proof
@@ -86,6 +177,18 @@ theorem wp_refused :
 theorem wp_checkKVs :
     EtcdGrove.authkv.checkKVs.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.checkKVs.wp_proof wp_Permitted
+
+theorem v3.wp_mustInt64 :
+    EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mustInt64.wp_proof
+
+theorem v3.wp_mustInt64orLeaseID :
+    EtcdGrove.mustInt64orLeaseID.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mustInt64orLeaseID.wp_proof v3.wp_mustInt64
+
+theorem v3.wp_Compare :
+    EtcdGrove.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Compare.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_ensureCompare v3.wp_mustInt64 v3.wp_mustInt64orLeaseID
 
 end links
 
@@ -122,19 +225,32 @@ theorem wp_checkTxnReads :
     EtcdGrove.authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.checkTxnReads.wp_proof wp_checkKVs
 
+theorem wp_Work :
+    EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted context.wp_WithTimeoutBackgroundMd context.wp_ErrAny metadata.wp_AppendToOutgoingContext v3.wp_OpPut v3.wp_OpGet v3.wp_OpTxn v3.wp_Compare v3.wp_Value v3.wp_WithRange v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_Watch
+
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
 
-theorem wp_Work :
-    EtcdGrove.authkv.Work.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted context.wp_WithTimeoutBackground context.wp_ErrAny metadata.wp_AppendToOutgoingContext
+end links_hasLC
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
+variable (h_authkv_startServer : EtcdGrove.authkv.startServer.spec (GF := GF) (hG := hG))
+include h_authkv_startServer
 
 theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authkv.Main.wp_proof wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn
+  EtcdGrove.authkv.Main.wp_proof zap.wp_NewNop h_authkv_startServer common.wp_ServeOn common.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground common.wp_Collect client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithRange wp_Permitted
 
-end links_hasLC
+end links_pending
 
 end authkv
 end EtcdGrove

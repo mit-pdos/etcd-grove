@@ -1,6 +1,6 @@
 # Plan: C1, a user client's attempts carry its user's token (spec-first)
 
-Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
+Status (2026-10-31): C1 done: A4 and A5 proved (branch `auth-a4`; `notes/decisions.md`, "C1's A4 and A5"): `EtcdServer.Authenticate` in the mode `on γa`, the handler in `authRegs`, the stub `etcd_kv_auth_served_onA` proved; it replaced the old `etcd_kv_auth_served_on`, taking its name. (2026-10-28: the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left.) Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
 (2026-10-28, "Phase 1: the statements" below); next: the spec-review round (phase 1b), then the
 proofs. (Phase 1's note "not to be merged into `lean` before the proofs" held while its `sorry`s
 sat under `New` and the retry interceptor; phase 2 proved them. A1-A3 merged into `lean`

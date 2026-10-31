@@ -181,7 +181,7 @@ theorem newAuthStore_boot
   wp_apply (newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg ab tp cost bi
       γa R P f T A Pre Q Post [bootState] bootState rfl bootState_permsFit
       ⟨bootState, List.mem_singleton_self _, rfl⟩) $$ [$Hpkg $Hrd $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
-    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, Hslots⟩
+    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, -, Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
     ipureintro; exact Hab

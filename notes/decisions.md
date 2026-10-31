@@ -27183,6 +27183,41 @@ accepted with no token: `anon` and `bad` share the set-up client) would go unnot
 the skip can then go.
 
 
+## The simple token's prefix has no space (2026-10-30, branch `authkv-hist`)
+
+User-approved ("Strengthen auth model"). The client sends a token as gRPC metadata and etcd's server
+reads it back with `strings.TrimPrefix(token, "Bearer ")` (`v3rpc`'s token reader); authkv's `Work`
+proof needs the token it sent to be the one the server checks. With the simple token's prefix
+unconstrained, `simpleTok pre idx` could begin with `"Bearer "`, and the trim would change it.
+Go: the prefix is `genTokenPrefix`'s 16 letters (`tokenSimple`, `[a-zA-Z]`), never a space.
+- **The model** (`auth/Model.lean`): `tokPrefixOk pre := W8 32 ∉ pre`; `authnCtx` carries it, and
+  `tokShape token := ∃ pre idx, token = simpleTok pre idx ∧ tokPrefixOk pre` (`Tokens.lean`), so
+  `tokIssued_shape` gives `tokShape_trimBearer`: the trim is the identity on an issued token.
+- **Who owes it**: the served `Authenticate` (`Authenticate.specX`'s premise
+  `auth.tokPrefixOk am.simpleToken`), from the admission chain (`adminKindOk`'s `.authenticate`
+  conjunct, `AdminReq.nameOk`); in turn C1's A4-A5 (the request's `simpleToken` from
+  `genTokenPrefix`) owe it, an obligation they did not have before.
+- Rejected: an axiom on the token reader, or a `Work.spec` premise naming the trim: the fact is the
+  token provider's, where Go establishes it.
+
+## The started member exports its auth store's cost field and its TLS fallback off (2026-10-30, branch `authkv-hist`)
+
+User-approved ("Approve, prove it"; the draft of authkv Main's blockers 3 and 4,
+`notes/authkv-main-plan.md`, "Main: what blocks it"). The served Auth service's `UserAdd` needs the
+auth store's `BcryptCost()` (`bcryptCostOk`), and `SetUp`/`Work` need `□ (srvTLSId s -∗ False)`;
+the started member (`memberUpOn`) gave neither.
+- **`authStore.BcryptCost`** translated (`Code/.../auth.toml`) and proved (one load), its spec over
+  the field `bcryptCost` read-only; `bcryptCostOk_of_field` (`authkv/MainServe.lean`) turns the
+  field into `bcryptCostOk`.
+- **Exported along the chain**: `auth.newAuthStore_on`'s post gains the field (`↦□`, made
+  read-only before the store is returned); `authStoreKit`'s, under `M.isOn = true`;
+  `NewServer.specM`'s post gains the configuration's `ClientCertAuthEnabled` field and
+  `□ (⌜on = true⌝ → srvBcryptField srv)`; `common.memberUpOn` gains `□ (srvTLSId s -∗ False)`
+  (`srvTLSId_false` at the composite literal's `false`) and `srvBcryptField s`. `startServer`
+  stays proved. `etcdserver/Results.lean`'s `auth_store_new_on` keeps its statement (drops the
+  new conjunct).
+- Only in the mode `on`: `auth.NewAuthStore`'s axiom (the auth-off store) is untouched.
+
 ## G2's freeze: `srvKVFacts` in either auth mode (2026-10-30 · `notes/g2-watch-auth.md`, "The freeze"; the user's approval)
 
 **What.** `watcher.Watch.spec`'s premise `isClientWatcher V w` (and `watchAddrFacts V`, which
@@ -27477,3 +27512,56 @@ re-encoding (`v0:` to `v1:`, both three bytes) is as long as the value read
 **Alternatives rejected:** `storedSizeOk` of every result (unprovable for a no-op of a long value);
 the written-result condition without the value bound (a stale reading is written even when its
 encoding is equal, and the re-encoding is as long as the stored value, which needs a bound).
+
+## authkv's `Main` up to `SetUp`: `startServer`'s boot premise, and its start linked as pending (2026-10-30, branch `authkv-hist`)
+
+Both changes are the user's choices.
+- **`startServer.spec` takes `bootstrap`'s contract at authkv's `cfgOk`/`urlsOk`** (the first
+  conjunct of `Main`'s `premises`), not `common.bootPremise`. The latter asks for the contract at
+  every configuration with `common.cfgOk`, which does not fix `AuthToken`, while `Main`'s premise
+  gives it only at `AuthToken = "simple"`: `Main` could not meet it. The weaker premise is all
+  `startServer`'s proof uses (its composite literal's configuration), so `authkv_startServer` is
+  stronger. Rejected: strengthening `Main`'s premise to `common.cfgOk` (changes `Main.spec`, and
+  assumes the contract for configurations `Main` never builds).
+- **`startServer` is pending in authkv's `Link.lean`** (`authkv_startServer: ?`), since its proof
+  takes named premises (`auth.ValidSpec`, D22's `authSchemaSrv`) a `Link.lean` cannot supply.
+  `Results.lean`'s `authkv_Main` passes `authkv_startServer`, so it takes those premises, and the
+  semantics' `Float64ToInt64Semantics` and `ErrorStringLeaf`, as `authkv_startServer` does.
+- `Serve.specOn` (`Serve`'s second spec until the merge folds it into `Serve.spec`) is linked by
+  hand in `common/LinkOn.lean` (`common.wp_ServeOn`), an `=` callee of authkv's `Link.lean`.
+
+## C1's A4 and A5: the served `Authenticate` with auth on (2026-10-31, branch `auth-a4`)
+
+User-approved ("Approve all three"; the draft in the session's scratch file, two rounds of the
+`spec-reviewer`). `EtcdServer.Authenticate` (`v3_server.go`) gets a spec and proof, and the gRPC
+server serves it.
+- **`tokenSimple.genTokenPrefix`'s axiom is stronger**: its post was `True` of the prefix and the
+  error; it is now `err = nil ∧ auth.tokPrefixOk s`. Go: 16 letters of `[a-zA-Z]` read through
+  `crypto/rand`'s `Reader`, whose `Read` never returns an error at the pinned toolchain (an OS
+  failure crashes the program instead); it holds while no code reassigns `crypto/rand.Reader`.
+  `authStore.GenTokenPrefix`'s spec, and `tokenProviderOk`'s clause, carry the same post. Why:
+  the proposal's admission (`adminKindOk .authenticate`) needs `tokPrefixOk` of the token prefix
+  (the entry of 2026-10-30, "The simple token's prefix has no space": A4-A5 owe it), and with the
+  error possible the spec would need a case Go never takes.
+- **`EtcdServer.Authenticate.spec` is in the mode `on γa` only** (`E.authMode = .on γa`, a scope
+  restriction: with auth off `CheckPassword` returns `ErrAuthNotEnabled` and the call fails, which
+  a spec could state, but no client needs it). Its premise on the auth store is `authnStoreOk`
+  (`AuthnStore.lean`): the triples of the store's `CheckPassword`, `GenTokenPrefix` and `Revision`
+  at the server's reader resource `E.RD`, the three methods the loop calls through the
+  `AuthStore` interface. It is had of the store's invariant (`authnStoreOk_of_authInv`) and only
+  with auth on, hence the scope. Post: the run's four readers back, the password field owned and
+  cleared on success (the `defer`, `CVE-2021-28235`), the error one the gRPC layer can take, and on
+  `nil` an `*AuthenticateResponse` whose token was issued to the user named (`auth.tokIssued`).
+  The proposal is one round of `raftRequest.specM true` on `irrAuthenticate ⟨name, [], pre⟩`
+  (`AuthnOn.lean`: admitted by `reqPropOkOn`'s pure case, its answer read by `appliedOkM_authn`).
+  The revision loop's earlier rounds issue tokens nobody returns: harmless.
+- **The start chain exports the store's `Authenticate` side**: `authStoreKit`'s auth-on clause
+  holds `authnStoreOk st RD` beside the cost field (`authStoreKit_on`, `authSrvTP_on` gain
+  `CheckPassword`'s and `GenTokenPrefix`'s specs); `NewServer.specM`'s post and `memberUpOn` hold
+  `srvAuthStoreOn s E.RD` (the cost field and `authnStoreOk`) in place of `srvBcryptField s`, which
+  stays as its weakening (`srvBcryptField_of_authStoreOn`).
+- **A5**: `Authenticate` joins `v3rpc.authRegs`; `etcd_kv_auth_served_onA` (the stub of
+  2026-10-28, `client/v3/AuthnServedOn.lean`) is proved, with one premise more than
+  `etcd_kv_auth_served_on`'s, `authnStoreOk (GoInterface.ok ast) E.RD`, its conclusion unchanged;
+  it replaces `etcd_kv_auth_served_on`, which no proof used, and takes its name. The handler's run
+  slot is `authnSlot` (a part of the KV's `etcdGrpcSlot`, `etcdGrpcSlot_authn`).

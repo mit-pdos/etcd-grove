@@ -76,7 +76,7 @@ theorem tokIssued_badToken {GF : BundledGFunctors} [AllG GF] (γa : auth.AuthNam
     auth.tokIssued (GF := GF) γa badToken u ⊢ False := by
   iintro H
   ihave %Hsh := auth.tokIssued_shape γa badToken u $$ H
-  obtain ⟨pre, idx, h⟩ := Hsh
+  obtain ⟨pre, idx, h, -⟩ := Hsh
   exact absurd h.symm (simpleTok_ne_badToken pre idx)
 
 /-! ## The contract over the contexts' metadata (C1, C2, C4) -/

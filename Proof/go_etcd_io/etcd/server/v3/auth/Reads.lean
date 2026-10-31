@@ -61,13 +61,15 @@ def roleListOut (sta : AuthState) (resp : Loc) (err : GoInterface) : IProp GF :=
     resp ↦ v ∗ v.Roles' ↦* names ∗
     ⌜names.Nodup ∧ ∀ n, n ∈ names ↔ (sta.roles.lookup n).isSome⌝)
 
-/-- **`CheckPassword`'s answer** for `username` in the mode `M`: an error; or no error, auth
+/-- **`CheckPassword`'s answer** for `username` in the mode `M`: an error, one of the package's
+(`authErrOf`; C1's A4, 2026-10-29: the server returns it as its own); or no error, auth
 enabled at some recorded state (`enabledVerdict`), and the revision `rev` of a recorded state that
 has the user (`authSnap`: the locked read transaction's). Nothing about the password: bcrypt's
 answer is the trust boundary (`bcrypt.CompareHashAndPassword`, D-AU6). -/
 def passwordChecked (M : AuthMode) (username : GoString) (rev : w64) (err : GoInterface) :
     IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ enabledVerdict M true ∗
+  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) ∨
+    (⌜err = GoInterface.nil⌝ ∗ enabledVerdict M true ∗
     ∃ sta : AuthState, authSnap M sta ∗
       ⌜uint.nat rev = sta.revision ∧ (sta.users.lookup username).isSome⌝))
 

@@ -52,7 +52,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
   iunfold tokenProviderOkA at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -, -⟩
   subst Htpi
   iunfold authWRxB at HWR
   icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
