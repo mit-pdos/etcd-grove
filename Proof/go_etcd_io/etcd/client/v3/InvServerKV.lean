@@ -273,7 +273,7 @@ theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : 
       ∃ n : Nat, monoNatLbOwn γm n ∗ ⌜l.length ≤ n + 1⌝ := by
   iintro #Hinvs #Hinv #Hc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
   iunfold kvClientInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%σ, Hσ, Hm⟩

@@ -370,8 +370,20 @@ instance srvIndexInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
 theorem srvIndexInvsM_false (s : Loc) (E : apply.AEnv GF) :
     srvIndexInvsM (GF := GF) false s E = srvIndexInvs s E := rfl
 
+/-- **The tie of the KV names' compaction mode, by the auth mode** (M2's apply side, item 19;
+review round 6's R6-1): the server's with auth off; nothing with auth on (auth-on servers keep
+retention `0`, and `start.specOn` has no producer for it). -/
+def kvTieM (on : Bool) (cmp : Bool) (E : apply.AEnv GF) : Prop :=
+  match on with
+  | false => cmp = E.cmp
+  | true => True
+
+theorem kvTieM_off (cmp : Bool) (E : apply.AEnv GF) : kvTieM (GF := GF) false cmp E = (cmp = E.cmp) :=
+  rfl
+
 /-- **The server as a proposer sees it, in the auth mode `on`** (`srvReqFieldsAt` with `waitInvM`,
-`kvInvM` from the server's start state, `srvAuthSt0`, and (E3r) `srvIndexInvsM`). -/
+`kvInvM` from the server's start state, `srvAuthSt0`, and (E3r) `srvIndexInvsM`; M2's apply side, item 19:
+the mode's tie `kvTieM` and certificates' invariant `kvCertInvM`). -/
 def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
@@ -391,7 +403,8 @@ def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvsM on s E ∗
-    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜kvTieM on ρ.kv.cmp E⌝ ∗
+    kvCertInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (v : ReqFields) : Persistent (srvReqFieldsAtM (GF := GF) on s E ρ v) := by

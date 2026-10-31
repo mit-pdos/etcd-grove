@@ -65,7 +65,7 @@ theorem isReadServer_of_serverM (on : Bool)
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨#Hgenf, #Hgen, -, -, -, -, -, -, -, #Het, #Htm, -, -, #Hdonef, #Hdone, -, -, -, -, -, -,
-    #Hm, -, %Hcfg⟩
+    #Hm, -, -, -, %Hcfg⟩
   iunfold srvMintInv at Hm
   icases Hm with ⟨-, #Hrf⟩
   iunfold isServerReadM at Hsrd

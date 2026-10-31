@@ -479,7 +479,16 @@ theorem EtcdServer.start.wp_proof
     have hmint : srvMintInv (GF := GF) { ρ with wait := γw } = srvMintInv ρ := rfl
     rw [hmint]
     iframe Q17
-    ipureintro; exact Q19
+    -- (M2's apply side, item 19) the KV names' mode and the certificates' invariant, the apply
+    -- side's (`srvKVInvs`)
+    ihave #Hkvt := Hkvi
+    iunfold srvKVInvs at Hkvt
+    icases Hkvt with ⟨-, #HkcI, -, -, %Hktie⟩
+    have hkv : ({ ρ with wait := γw } : ReqNames).kv = γr.kv := by subst Hρrd; rfl
+    have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
+    rw [hkv, hrf]
+    iframe HkcI
+    ipureintro; exact ⟨Hktie, Q19⟩
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
   icases Hvd with ⟨#R1, #R2, #R3, #R4, #R5, #R6, #R7, #R8, #R9, %R10, #R11, #R12, #R13, #R14, #R15⟩
@@ -1006,6 +1015,16 @@ theorem EtcdServer.start.wp_proofOn
     have hmint : srvMintInv (GF := GF) { ρ with wait := γw } = srvMintInv ρ := rfl
     rw [hmint]
     iframe Q17
+    -- (M2's apply side, item 19) no tie with auth on; the certificates' invariant, the apply
+    -- side's (`srvKVInvsOn`)
+    ihave #Hkvt := srvKVInvsM_true _ _ _ $$ Hkvi
+    iunfold srvKVInvsOn at Hkvt
+    icases Hkvt with ⟨-, #HkcI, -, -, -⟩
+    have hkv : ({ ρ with wait := γw } : ReqNames).kv = γr.kv := by subst Hρrd; rfl
+    have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
+    rw [hkv, hrf]
+    simp only [kvTieM, kvCertInvM]
+    iframe HkcI
     ipureintro; exact Q19
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd

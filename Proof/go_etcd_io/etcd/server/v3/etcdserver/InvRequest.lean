@@ -143,6 +143,9 @@ structure KVNames where
   /-- The auth history's mono-list (the auth-mode merge's 5b: `kvInvOn`'s half and a client's
   view, `authHistView`; unused with auth off). -/
   hist : GName := 0
+  /-- The cluster's compaction mode (M2's apply side, item 5: one for every member; `srvKVInvs` and
+  `srvReqFieldsAt` tie each member's `E.cmp` to it). -/
+  cmp : Bool := false
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"

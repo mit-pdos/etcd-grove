@@ -401,7 +401,9 @@ instance srvPeersOk_persistent (cl : Loc) (cid : w64) (tr : GoInterface) :
 
 /-- **The server `s` as a proposer sees it** at the fields' values `v` (persistent; see the file
 header), the applier's environment `E` (whose store's certificates the results carry), the
-request path's ghost names `ρ`. -/
+request path's ghost names `ρ`; (M2's apply side, item 19) the KV names' compaction mode the
+server's, and the certificates' invariant (the commit step reads a compaction's reached revision
+through it). -/
 def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
     structFieldRef EtcdServer go!"w" s ↦□ v.w ∗ waitInv v.w ρ E ∗
@@ -420,7 +422,8 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
-    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜ρ.kv.cmp = E.cmp⌝ ∗ kvCertInv ρ.raft ρ.kv ∗
+    ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqFieldsAt s E ρ v) := by

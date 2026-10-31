@@ -141,6 +141,8 @@ abbrev NewServer.spec : Prop :=
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
+  ρ.rd.kv.cmp = false →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
@@ -293,6 +295,8 @@ abbrev NewServer.specCompact : Prop :=
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
+  ρ.rd.kv.cmp = true →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
@@ -448,6 +452,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
+  ρ.rd.kv.cmp = false →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →

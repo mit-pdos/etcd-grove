@@ -337,7 +337,7 @@ theorem histLog_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv G
   obtain ⟨hr, hc0, hch, hlog⟩ := hm
   iintro #Hinvs #Hl #Hc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #Hcinv, -, %Hcok⟩
+  icases Hinvs with ⟨-, #Hcinv, -, %Hcok, -⟩
   iunfold srvLog at Hl
   icases Hl with ⟨#Hs, %Hsm⟩
   ihave %Hw := sealed_pure E.γ.idx log $$ Hs
@@ -378,7 +378,7 @@ theorem histReached_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AE
   obtain ⟨hr, hc0, hch, hlog⟩ := hm
   iintro #Hinvs #Hc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #Hcinv, -, %Hcok⟩
+  icases Hinvs with ⟨-, #Hcinv, -, %Hcok, -⟩
   unfold etcdReached
   by_cases hle : sint.Z r ≤ 0
   · imodintro; ileft; ipureintro; exact hle
