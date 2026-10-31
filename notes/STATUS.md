@@ -539,8 +539,18 @@ checking the role before the Ready fails).
   each incarnation, so a delayed `MsgReadIndexResp` meant for a crashed incarnation's read could
   answer the next incarnation's read, with the old key at the old index: a stale read. Now one
   counter serves the whole cluster (`readSeqs`).
+- **B3, a data race** (found by review 8). `encode` read the hard state back through
+  `MemoryStorage.InitialState`, which reads its fields without the lock
+  (`issues/raft-memorystorage-initialstate-unlocked.md`, which now cites this), while raft's
+  goroutine writes the snapshot field in `Snapshot`. `go test -race -run TestRounds` reported it.
+  Now `Storage` shadows `SetHardState` and keeps a copy under the replica's `dmu`.
 
-Neither was hit by the random tests, which gives a measure of what the proof adds.
+`examples/durablekv`'s `Encode` (`storage.go:72`) has B3's pattern: it calls
+`MemoryStorage.InitialState()` while a node runs. Review 9 flagged it, but `-race` has not
+reproduced it, so it is unconfirmed and not fixed here.
+
+None was hit by the plain random tests: B3 only by the race detector, in full rounds. That gives a
+measure of what the proof adds.
 
 **Found in raft:** `issues/raft-applied-above-snapshot-confstate.md`. `Config.Applied`'s
 documentation does not say that `InitialState`'s `ConfState` must be the configuration at
@@ -548,47 +558,72 @@ documentation does not say that `InitialState`'s `ConfState` must be the configu
 a node elects itself alone). etcd leaves `Applied` unset.
 
 **The durable node API: a spec candidate, not adopted** (the `spec` skill). It is outside the
-repository, `/home/ubuntu/spec-scratch/raft-durability/candidate.md`. The current one is
-candidate 6 (the user's answers on candidate 5: the client-owned state is the durable part only, the update's post is what Advance takes, a detached storage needs no bounds), built after the user's critique of candidate 4: the Ready returns an atomic update
-that the client fires when it enters the new raft state. The permission to send the batch's
-messages is that update's post. Nothing in raft is named after a disk or an incarnation; the node
-object serves as the incarnation. Candidate 6's open questions Q4-Q5 are for the user, and it is
-not reviewed. Candidate 4 (`candidate-4.md`) and the `spec-reviewer` agent's reviews of candidates
-1-3 (`review-1.md` to `review-3.md`) are beside it; their Go findings stand. Candidate 4, described
-below, extended raft's node API so that one spec serves clients with and without durability:
-- **The durable state.** It is client-owned ghost state, `nodeDisk γ N id ι D`.
-- **The Ready.** Each Ready hands out a write obligation (`readyWrite`), fired when the write is
-  durable or at once. Its messages are gated (`readyMsgs`), released by the batch's write or, at
-  role leader, at once.
-- **Advance** takes the batch's `batchSafe`.
-- **The restart.** It starts from the *current* durable state through `nodeDisk_rebind`, which
-  needs the old incarnation halted and binds the new one *before* it steps. It takes `Applied` in
-  `{0} ∪ [log base, configuration point]` and a configuration point named by the client (its
-  `confAt`: the snapshot's index in kvdurable, the consistent index in etcd).
-- **Per incarnation.** The applied and committed lower bounds and the storage contract are keyed
-  by the incarnation.
+repository, `/home/ubuntu/spec-scratch/raft-durability/candidate.md`: candidate 11, one clean
+text. Candidates 4-10 and the `spec-reviewer` agent's nine reviews (`review-1.md` to `review-9.md`)
+are beside it.
 
-The candidate needs the user's decisions D1-D7 (candidate §8: new client-owned ghost state and
-new premises on specs that have clients). D6 is a scope restriction: a bootstrapped cluster's
-node restarts only once it holds the bootstrap entries. D7 is kvdurable's exact restore, which
-needs a MemoryStorage spec for a log base. Nothing in the repository's specs has changed.
+The user set its shape:
+- the Ready hands the client an update it applies when it enters the batch's state (at its
+  durable write, or at once);
+- the permission to send, and what `Advance` takes, are in that update's post;
+- the client owns only the durable part of the node's state;
+- raft has no incarnation type and no disk predicate;
+- a storage that no node is attached to needs no bounds.
+
+The user then asked for the open questions to be resolved with as few new predicates and as much
+locality as possible. The result:
+- **New sealed predicates:**
+  - `raftState γ id S`: term, vote, and the log from a base, moved only by the Readys' updates;
+  - `nodeVacant γ id`: no node of `id` runs; allocation and `Stop` give it, the starts take it;
+  - `storFresh K`: a storage key not yet attached.
+- **Gone:** `nodeFounder`, `nodeJoin`.
+- **Re-keyed** from the node id to the storage key: `nodeAppliedLb`, `snapGiven`, `isStorage`,
+  `memStorJ`, and `storDL`, which becomes sealed.
+- **Generalized:** `memStorFresh`, which now means a detached `MemoryStorage`. It records its
+  compaction point and snapshot, and is consumed at the attach.
+- **Unchanged:** the rest of the API, including `Stop`'s precondition, `Step`, `Propose` and
+  `nodeRunning`.
+
+Each Ready gives two updates, both from the exact durable state the batch started from, and both
+gated by the node's `nodeRunning`:
+- *enter* moves the client's `raftState` to the batch's state. Its post holds the messages'
+  `sentMsg`, the read states and the driver (so `Advance`'s precondition is unchanged).
+- *check* leaves the state unchanged. Its post holds the read states, and the messages at role
+  leader (etcd's send-before-write).
+
+The committed-log facts are not gated, because only one node of an id ever runs.
+
+`RestartNode` takes `nodeVacant`, an AU checking that the storage holds the client's current state
+(so a stale file fails), a configuration point named by the client (`confAt`), and a detached
+storage that it attaches.
+
+Three scope restrictions are to be filed in `notes/decisions.md` when the candidate is adopted:
+- `a ≤ commit`;
+- a bootstrapped node restarts only once it holds the bootstrap entries;
+- a `MemoryStorage` is attached once.
+
+Inside raft's proof, promises move from `Step` to *enter*, and the node table is keyed by the
+node object (candidate §7).
+
+The reviews' main findings, in the order they shaped the design:
+- **Unbound or stale incarnations are not inert** (review 1). A restart from a stale or concurrent
+  state can win with delayed vote grants and commit with delayed acks, without sending anything.
+- **`Applied` above the snapshot is unsafe** (review 1). Filed as
+  `issues/raft-applied-above-snapshot-confstate.md`.
+- **The per-node keys are unsound after a restart.** They would let the next incarnation's storage
+  compact entries raft still hands back.
+- **The restart's configuration is the client's to name** (reviews 2-3). A bootstrapped node
+  restarted empty at the bootstrap configuration elects itself alone.
+- **Stale updates survive a restart** (review 4), so every output is gated.
+- **Two nodes of one id are never harmless** (review 6, reproduced in Go: two leaders of a term in
+  memory with a false committed entry, and a panic in `Step`). Hence `nodeVacant` and the
+  `nodeRunning` gate, after candidates 7-8 had tried to do without them.
+- **`InitialState` has no attached-mode spec** (review 8): the B3 race above.
 
 Unverified lead (review 3): etcd applies the first Ready's bootstrap entries before the WAL save.
 A crash in between may restart a one-member cluster at its members' `ConfState` with an empty WAL,
 where it could elect itself and commit a different index 1. To confirm with a gofail test before
 filing.
-
-The reviews' main findings, which shaped candidates 2-4:
-- **Unbound incarnations are not inert.** A restart from a stale or concurrent state can win with
-  delayed vote grants and commit with delayed acks, without sending anything. Hence the bind
-  before the first step.
-- **`Applied` above the snapshot is unsafe**, not only out of raft's panic range.
-- **The per-node keys are unsound after a restart (F8).** `storBnd`/`storDL` over
-  `nodeAppliedLb γ id` and `deliveredLogLb` of any node object of the id would let the next
-  incarnation's storage compact entries raft still hands back.
-- **The restart's configuration is the client's to name** (reviews 2-3). A bootstrapped node
-  restarted empty at the bootstrap configuration elects itself alone. The empty configuration
-  contradicts `nodeConfig`'s `confAt`, and is not what etcd does either.
 
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 

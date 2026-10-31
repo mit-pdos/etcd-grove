@@ -21,7 +21,8 @@ type Storage struct {
 	// hs is the hard state last set (SetHardState), the replica's own copy: MemoryStorage's
 	// InitialState reads its fields without the lock (issues/raft-memorystorage-initialstate-unlocked.md),
 	// so once a node runs on the storage it is called by raft only (at the node's start), never by
-	// the replica. Written and read under the replica's dmu, or before any node runs.
+	// the replica. Written and read under the replica's dmu, or before the replica's run loop
+	// starts (openStorage, newReplica), the only writer once it runs.
 	hs *pb.HardState
 }
 

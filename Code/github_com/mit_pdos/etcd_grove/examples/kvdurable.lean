@@ -5891,7 +5891,7 @@ noncomputable def Cluster.Disrupt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- SetHardState sets the storage's hard state, and the replica's copy (hs).
 
-    go: storage.go:29:19 -/
+    go: storage.go:30:19 -/
 noncomputable def Storage.SetHardState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "hs"
@@ -5909,7 +5909,7 @@ noncomputable def Storage.SetHardState.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- snapIndex is the index of the storage's snapshot (0 if it has none).
 
-    go: storage.go:35:19 -/
+    go: storage.go:36:19 -/
 noncomputable def Storage.snapIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5939,7 +5939,7 @@ noncomputable def Storage.snapIndex.impl [GooseExts] [GoGlobalContext] : val :=
 /-- InitialState is the MemoryStorage's hard state, with the snapshot's configuration, or the
     bootstrap one if the storage has no snapshot.
 
-    go: storage.go:42:19 -/
+    go: storage.go:43:19 -/
 noncomputable def Storage.InitialState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5993,7 +5993,7 @@ noncomputable def Storage.InitialState.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.
 
-    go: storage.go:51:19 -/
+    go: storage.go:52:19 -/
 noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -6033,7 +6033,7 @@ noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putUint64 appends x to buf (8 bytes, little-endian).
 
-    go: storage.go:59:6 -/
+    go: storage.go:60:6 -/
 noncomputable def putUint64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "x"
@@ -6062,7 +6062,7 @@ noncomputable def putUint64.impl [GooseExts] [GoGlobalContext] : val :=
 /-- getUint64 reads back what putUint64 wrote at the start of b, and the rest of b; ok is false if
     b is too short.
 
-    go: storage.go:67:6 -/
+    go: storage.go:68:6 -/
 noncomputable def getUint64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -6112,7 +6112,7 @@ noncomputable def getUint64.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putIDs appends ids to buf: their number, then each (putUint64).
 
-    go: storage.go:75:6 -/
+    go: storage.go:76:6 -/
 noncomputable def putIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "ids"
@@ -6154,7 +6154,7 @@ noncomputable def putIDs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getIDs reads back what putIDs wrote at the start of b.
 
-    go: storage.go:84:6 -/
+    go: storage.go:85:6 -/
 noncomputable def getIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -6260,7 +6260,7 @@ noncomputable def getIDs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putEntry appends e to buf: its term, index and type (8 bytes each), then its data (putBytes).
 
-    go: storage.go:98:6 -/
+    go: storage.go:99:6 -/
 noncomputable def putEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "e"
@@ -6298,7 +6298,7 @@ noncomputable def putEntry.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getEntry reads back what putEntry wrote at the start of b.
 
-    go: storage.go:106:6 -/
+    go: storage.go:107:6 -/
 noncomputable def getEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
@@ -6449,7 +6449,7 @@ noncomputable def getEntry.impl [GooseExts] [GoGlobalContext] : val :=
     outgoing voters and next learners, each as putIDs writes them, then auto-leave, 1 byte), then
     its data (putBytes).
 
-    go: storage.go:123:6 -/
+    go: storage.go:124:6 -/
 noncomputable def putSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "snap"
@@ -6529,7 +6529,7 @@ noncomputable def putSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getSnapshot reads back what putSnapshot wrote at the start of b.
 
-    go: storage.go:141:6 -/
+    go: storage.go:142:6 -/
 noncomputable def getSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "snap" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Val #())))
@@ -6760,7 +6760,7 @@ noncomputable def getSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
     it, their number then each (putEntry). The caller holds the replica's dmu, so that the contents
     are those of a moment between two groups of the replica's writes to the storage.
 
-    go: storage.go:167:19 -/
+    go: storage.go:168:19 -/
 noncomputable def Storage.encode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -6916,7 +6916,7 @@ noncomputable def Storage.encode.impl [GooseExts] [GoGlobalContext] : val :=
     contents raft would not restart from: entries not consecutive from the log's start, a snapshot
     below the log's start or past its end, a commit index outside the log.
 
-    go: storage.go:197:6 -/
+    go: storage.go:198:6 -/
 noncomputable def openStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "boot"
   (Lam "b"
