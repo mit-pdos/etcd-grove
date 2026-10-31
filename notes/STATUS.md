@@ -534,7 +534,9 @@ the mode-on branch is open (a design question). Next: #8's J1b (branch `snap-j1b
 mode off its `sorry` is replaced by two named holes for S2 in `SnapSendBranch.lean`,
 `mergedCreate_window` (the commit and snapshot window of `createMergedSnapshotMessage`) and
 `merged_image` (the merged image at `ai'`); in mode on, besides these, the image itself stays open
-(`sorry -- SNAPSHOT-SORRY #7-on`: `srvNet`'s image is the mode-off model), a design question.
+(`sorry -- SNAPSHOT-SORRY #7-on`: `srvNet`'s image is the mode-off model); the user chose one image
+per cluster in the cluster's mode, done after the durability work (`notes/decisions.md`, "The merged
+snapshot's image with auth on").
 
 **The WAL contract repaired** (2026-10-31, `notes/axiom-review/savesnap.md`, the user's decisions;
 `notes/decisions.md`, "The WAL's readiness and one disk premise"): `rnNewStorageOk`, a premise of
