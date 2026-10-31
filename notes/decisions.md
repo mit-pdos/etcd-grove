@@ -28061,3 +28061,17 @@ index guard (previous entry). What changed, and why:
   in the sender's mode), a design question for the user.
 - `chanBag_nbRecv` (`SnapSendBranch.lean`, a bag's nonblocking receive) is general: proposed for
   Perennial (`notes/perennial-changes.md`).
+
+## The merged snapshot's observation with compactions (2026-10-31, the user's decision)
+
+**2026-10-31 · accepted**
+
+`mergedObs` (S1's statement of what `createMergedSnapshotMessage`'s backend snapshot observes) said
+`mvcc.keyImage`, which includes "no compaction key in `Meta`": false of a snapshot taken while the
+store applies compactions (`lean`'s M2, `E.cmp`). Now `mergedObs γr cmp …` states the `Key` bucket
+alone and `cmp = false → noCmpData D`; how a compacted image is certified is the image certificate's
+(`merged_image`, waiting on the durability work's `srvImageR`). The window lemma's other need, that
+the backend's `Key` bucket is the writer's log (`bucketMap x.log`), goes to the durability work too
+(the user's decision; M2's item 37, `bucketViewL`, has its first consumer here). #7's holes:
+`mergedCreate_window`, `merged_image`, and the mode-on branch (`SNAPSHOT-SORRY #7-on`: the network's
+image is the mode-off model's, a design question).

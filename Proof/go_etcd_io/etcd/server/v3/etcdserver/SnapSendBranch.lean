@@ -432,13 +432,17 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   exact ⟨by simp only [mergedSt]; exact hty, rfl, Hsh.1.2.2.2.2.2.2.2⟩
 
 /-- **What the merged snapshot's image observes** (`createMergedSnapshotMessage`'s `Qd`): the
-backend's data `D` holds the KV log `log` (`keyImage`), the consistent index `ai` and some term in
-`Meta`, the other buckets of the committed log `A` (`bkRestAt`), and `log` is a well-formed
+backend's data `D` holds the KV log `log` in its `Key` bucket, the consistent index `ai` and some
+term in `Meta`, the other buckets of the committed log `A` (`bkRestAt`), and `log` is a well-formed
 committed log (`IdxWf`): `imageAt`'s clauses, over the apply thread's KV log in place of the model
-(`merged_image` relates them). -/
-def mergedObs (γr : ReadNames) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
+(`merged_image` relates them). (2026-10-31, the user's decision) No compaction key in `Meta` only
+with the store's compaction mode `cmp` off (`noCmpData`; until then unconditionally, `keyImage`,
+which is false of a snapshot taken with compactions applied): a compacted image is the image
+certificate's to state (`merged_image`, the durability work's `srvImageR`). -/
+def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
     (D : backend.Data) : Prop :=
-  mvcc.keyImage log D ∧
+  (∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketMap log).lookup k) ∧
+    (cmp = false → mvcc.noCmpData D) ∧
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
       go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
@@ -476,7 +480,7 @@ theorem mergedCreate_window
       srvRest E γr A ⊢
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF),
       srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
-      srvBeSnapOk be RS RS' (mergedObs γr ai A x.log) ∗ (RC' -∗ RS) ∗
+      srvBeSnapOk be RS RS' (mergedObs γr E.cmp ai A x.log) ∗ (RC' -∗ RS) ∗
       (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
         applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
         ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
@@ -494,7 +498,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
     (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
     (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
-    ⌜mergedObs γr ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
+    ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
       |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
   sorry
 

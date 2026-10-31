@@ -526,7 +526,10 @@ exported results' `storage.diskOk`). Proved too: #3 (`raftNode.start`'s snapshot
 mode `on`). For #7's merge branch, raft's driver now carries its hard state's commit witness in
 snapshot mode too (`nodeDriver_hardStateCommitted`, a new API law; `notes/decisions.md`, "The
 driver's hard-state witness after a snapshot `Ready`"); the server's `rnRtOk` over it is in progress
-(branch `snap-rt`). **#7's merge branch proved (S1, 2026-10-31, branch `snap-s1`)** over the fork's index guard
+(branch `snap-rt`, merged). #7's merge branch (auth off) is proved behind the fork's index guard
+(`goose-lean-snapguard`) up to two named holes, `mergedCreate_window` (the backend's `Key` bucket as
+the writer's log: the durability work) and `merged_image` (the certificate: `srvImageR`, durability);
+the mode-on branch is open (a design question). Next: #8's J1b (branch `snap-j1b`, etcd-grove-83). **#7's merge branch proved (S1, 2026-10-31, branch `snap-s1`)** over the fork's index guard
 (`notes/decisions.md`, "The merged snapshot's index guard", "`applyAll`'s merge branch (S1)"): in
 mode off its `sorry` is replaced by two named holes for S2 in `SnapSendBranch.lean`,
 `mergedCreate_window` (the commit and snapshot window of `createMergedSnapshotMessage`) and

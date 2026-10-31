@@ -371,7 +371,7 @@ theorem EtcdServer.applyAll.wp_proof
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf Hkvi HW Hlog' HlbB Hr1 Hr2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr ai' (A ++ unapplied ai ms) x'.log))
+                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
@@ -757,7 +757,7 @@ theorem EtcdServer.applyAll.wp_proofOn
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog' HlbB Hr1 Hr2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr ai' (A ++ unapplied ai ms) x'.log))
+                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
