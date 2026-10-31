@@ -16,7 +16,8 @@ Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The
    (`kv_prop_au_cmp`), S3-3's transfer lemma (`kv_entry_claim`) and G1 (`clusterWorkloadOk_ofD`),
    all in `M2ApplyProbe.lean`, done ("The Probe", below). The Probe is done. **The switch** ("The
    switch", the last section): stages 1 (the backend's `Compaction`) and 2 (the chain's
-   `Compaction` triple) done; **next: stage 3** (`dispatch`/`Apply` in place).
+   `Compaction` triple) done; **stage 3 waits on a question** (A1 reaches the snapshot track's
+   producers of `applyKV`: "Stage 3: stopped", the last paragraph).
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -711,3 +712,20 @@ layer checks nothing; its inner chain at any principal), the corrupt applier's f
 `applierV3Corrupt.Compaction.spec` (`ErrCorrupt`, its `Pre` back). New hypotheses: `newApplierV3Backend`
 and `newApplierV3Corrupt` take the `Compaction` specs (link list). Four positional consumers gained a
 `-`. Checked: full build (11252 jobs), tcb unchanged (766 axioms, 20 sorries).
+
+**Stage 3: stopped before starting (2026-10-31), a question for the user.** A1 (the approved item 4)
+puts the compaction resources in the apply thread's state: `applyKV E ua x` gains `cmpOwn E x.crev`.
+Every producer of `applyKV` then owes it, and two of them are the snapshot track's proofs (the state
+after an install: `SnapApplyKV.lean`, `SnapApplyWalk.lean`; item 17 says the collaborator switches
+that track). `dispatch`/`Apply`'s compaction arm cannot be reached without it: `applyEntryNormal`
+calls `Apply` through `specRec`, which would take `cmpOwn` from `applyKV`; and stage 4 (the KV
+invariant admitting compaction entries) needs stage 3's arm. Options:
+- (a) The collaborator moves the snapshot track's producers first (after an install the new backend
+  is compaction-off, `KBReal.cm = false`, so `cmpOwn E' (-1)` is free there by `cmpOwn_off`'s converse:
+  a small change), then stage 3 as approved.
+- (b) The user lets this branch make that mechanical change to `SnapApplyKV`/`SnapApplyWalk` (the
+  install's `cmpOwn E' (-1)` from the received backend's mode; no statement of the track changes but
+  `applyKV`'s meaning).
+- (c) An interim form without A1: `cmpOwn` a separate conjunct of `Apply.specRec` and the uber's
+  specs, threaded by `applyEntryNormal`'s proof only (A1's rejected alternative, as an interim).
+Recommended: (b) if the collaborator agrees, else (a).

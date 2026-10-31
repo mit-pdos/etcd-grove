@@ -574,7 +574,7 @@ specified, proved and linked (vocabulary in `apply/CompactArm.lean`); three repa
 draft, the agent's (`notes/decisions.md`, "M2 apply side, the switch's stage 1"): `watchableStore.Compact`
 added to the mvcc Goose configuration (translation regenerated), `mvcc.readView.Range.spec`
 strengthened with `todo` (no `nil` result at a never-done context), `cmpRespOk` without the
-header's revision. Stage 2 done: `applierTriples` gains the chain's `Compaction` triple (`cmpTriple`), proved by the five chain constructions. Next: stage 3 (`dispatch`/`Apply` in place).
+header's revision. Stage 2 done: `applierTriples` gains the chain's `Compaction` triple (`cmpTriple`), proved by the five chain constructions. Stage 3 (`dispatch`/`Apply` in place) waits on a question for the user: A1's `cmpOwn` in `applyKV` reaches the snapshot track's producers (`SnapApplyKV`, `SnapApplyWalk`), the collaborator's to switch (options in `m2-apply-plan.md`, "Stage 3: stopped").
 
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 
