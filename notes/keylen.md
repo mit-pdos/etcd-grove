@@ -65,3 +65,21 @@ takes into raft. Two facts make that a bound on the keys:
 
 `etcdState_keys`, the three instances' proofs (`srvEtcdState_keys`, `kmEtcdState_keys`,
 `histEtcdState_keys`). The callers: see `notes/STATUS.md`.
+
+## Leasing's revocations (2026-10-31, the coordinator's authorization of an internal change)
+
+`leasingKV.revokeLeaseKvs` gets the get of each data key it revokes to fit from a new premise,
+`∀ v ∈ kvs, v.key.length ≤ etcdKeyMax`; `txnLeasing.revokeFallback` takes the same of every
+response's key-values (`∀ kvs ∈ kvss, ...`). Both specs are internal to leasing, with no API
+list. Their callers prove it from the response they got:
+
+- `revokeRange`: from its get's `getRespRange` (`etcdState_keys` of the selected state and
+  `rangeKvsOk_keys`, `InvLeasingKV.lean`: a sort, a limit, keys-only or count-only keep a bound on
+  the selection's keys).
+- `serverTxn`: `fallbackResps_ro` (`InvLeasingCommitLemmas.lean`) takes a bound on the keys of the
+  fallback gets' selections and returns it of their key-values; the gets select from the
+  transaction's state (`runOps_gets`, `runOps_gets_keys`), whose keys `txnStates` bounds through
+  `etcdState_keys`.
+
+No exported statement changes.
+

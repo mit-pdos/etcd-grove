@@ -525,8 +525,9 @@ conjunct of `proto.MarshalIRR`'s post (commit `0d43bc2dd8`, for an axiom review 
   `RWMutex.waitOnLastRev`, `DoubleBarrier.Leave`; concurrency's `waitDelete` (premise
   `key.length ≤ 2 ^ 30`), `waitDeletes` (premise `pfx.length ≤ 2 ^ 27`, its own get),
   `Election.observe`'s watch.
-- **Left:** `leasingKV.revokeLeaseKvs` (its keys have no `etcdState` fact: a spec premise, beyond
-  the approved draft). The other red modules of `invoke-size` are its earlier gaps (concurrency's
+- **Leasing:** `revokeLeaseKvs` and `revokeFallback` (internal) take the bound of the keys they
+  revoke, which `revokeRange` and `serverTxn` prove from their responses; leasing builds.
+- **Left:** the other red modules of `invoke-size` are its earlier gaps (concurrency's
   `Mutex`/`Election` sizes, the examples' sizes).
 
 ## Perennial pin `6da88b280` (2026-10-30, branch `pin-6da88b2`)

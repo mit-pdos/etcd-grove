@@ -331,10 +331,22 @@ theorem txnLeasing.serverTxn.wp_proof
 
       | false =>
         simp only [TxnModel.branch, Bool.false_eq_true, ↓reduceIte]
-        imod fallbackResps_ro $$ Hops with ⟨%kvss, %Hkl, Hro⟩
+        ihave %Hks : ⌜∀ w ∈ s, w.key.length ≤ etcdKeyMax⌝ $$ [Hst]
+        · unfold txnStates
+          split
+          · icases Hst with ⟨#H0, -⟩
+            iapply etcdState_keys $$ H0
+          · iapply etcdState_keys $$ Hst
+        imod fallbackResps_ro etcdKeyMax _ _ _ (by
+            intro x hx
+            have hok' := hok
+            simp only [runTxn] at hok'
+            simp only [runTxn, TxnModel.branch, hok', Bool.false_eq_true, ↓reduceIte] at hx
+            exact runOps_gets_keys r s fos etcdKeyMax Hks x hx) $$ Hops
+          with ⟨%kvss, %Hkl, %Hkk, Hro⟩
         wp_auto
         wp_apply hrfb $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $Hcc $Hps $Hro] as %ferr ⟨Hl, Hc, Hrd⟩
-        · ipureintro; exact Hkl
+        · ipureintro; exact ⟨Hkl, Hkk⟩
         cases ferr with
         | ok e =>
           wp_auto

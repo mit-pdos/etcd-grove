@@ -27059,9 +27059,10 @@ by no proof) take the server's read view and conclude under an update, since the
 needs the keys' bound; `histWL_of_sealed` takes the bound as an argument (the draft had it at `⊤`);
 `irrKeysLe` is over the request's model transaction; `kvWorkC` (no proposer) is unchanged.
 
-**Not done:** `leasingKV.revokeLeaseKvs` revokes keys it holds as bare `kvPtrsAt` values, with no
-`etcdState` fact (its caller `txnLeasing.revokeFallback` gets them from a transaction's response);
-bounding them needs a premise on its spec, a statement beyond the draft (`notes/keylen.md`).
+**Leasing** (2026-10-31, an internal change the coordinator authorized): `leasingKV.revokeLeaseKvs`
+holds the keys it revokes as bare `kvPtrsAt` values, with no `etcdState` fact; it and
+`txnLeasing.revokeFallback` take their bound as a premise, which their callers prove from the
+responses' `rangeKvsOk` and `etcdState_keys` (`notes/keylen.md`, "Leasing's revocations").
 
 **Alternatives rejected:** a premise on each client function (the keys come from etcd, not from
 the caller); a sealed-start-log premise on the read side (the floor already carries the log).

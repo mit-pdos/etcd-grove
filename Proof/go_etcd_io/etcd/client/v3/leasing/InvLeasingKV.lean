@@ -514,5 +514,21 @@ abbrev txnIface (txn : Loc) : GoInterfaceOk :=
 
 end defs
 
+/-- A response's key-values have the keys of its selection: a bound on the selection's keys bounds
+them (`rangeKvsOk`: a sort, a limit, keys-only or count-only change no key). -/
+theorem rangeKvsOk_keys {o : OpFull} {sel kvs : List EtcdKv} {n : Nat} (h : rangeKvsOk o sel kvs)
+    (hs : ∀ w ∈ sel, w.key.length ≤ n) : ∀ v ∈ kvs, v.key.length ≤ n := by
+  obtain ⟨l, hp, -, -, -, rfl⟩ := h
+  intro v hv
+  split at hv
+  · simp at hv
+  · obtain ⟨w, hw, rfl⟩ := List.mem_map.1 hv
+    have hwl : w ∈ l := by
+      split at hw
+      · exact List.mem_of_mem_take hw
+      · exact hw
+    have hws := hs w (hp.mem_iff.1 hwl)
+    split <;> simpa using hws
+
 end EtcdGrove
 end Perennial

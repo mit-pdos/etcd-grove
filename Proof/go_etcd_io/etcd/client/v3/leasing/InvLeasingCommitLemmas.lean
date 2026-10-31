@@ -452,28 +452,34 @@ theorem cachedKvOwns_kvPtrsAt : ∀ (cs : List CachedKv),
     · simp only [List.map_cons, List.getElem?_cons_succ] at hp hv
       iapply Hall $$ %i %p %v %hp %hv
 
-/-- The owned responses of the fallback gets, read-only (`revokeFallback`'s premise). -/
-theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List TxnOpResult),
+/-- The owned responses of the fallback gets, read-only (`revokeFallback`'s premise), with a bound
+`n` on the keys of the gets' selections bounding the keys they list. -/
+theorem fallbackResps_ro (n : Nat) : ∀ (ps : List Loc) (fos : List OpFull) (rs : List TxnOpResult),
+    (∀ x ∈ rs, ∀ sel c, x = .range sel c → ∀ w ∈ sel, w.key.length ≤ n) →
     txnOpsRespOwn (GF := GF) ps (fos.map TxnOp.get) rs ⊢
       |==> ∃ kvss : List (List EtcdKv), ⌜ps.length = kvss.length⌝ ∗
+        ⌜∀ kvs ∈ kvss, ∀ v ∈ kvs, v.key.length ≤ n⌝ ∗
         [∗list] i ↦ p ∈ ps, ∃ kvs, ⌜kvss[i]? = some kvs⌝ ∗ rangeKvsRO p kvs
-  | [], [], [] => by
+  | [], [], [], _ => by
     iintro -
     imodintro
     iexists []
     isplitr
     · ipureintro; rfl
+    isplitr
+    · ipureintro; simp
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
-  | p :: ps, o :: fos, r :: rs => by
+  | p :: ps, o :: fos, r :: rs, hrs => by
     simp only [List.map_cons, txnOpsRespOwn]
     iintro ⟨H1, H2⟩
-    imod fallbackResps_ro ps fos rs $$ H2 with ⟨%kvss, %hl, H2⟩
+    imod fallbackResps_ro n ps fos rs (fun x hx => hrs x (List.mem_cons_of_mem _ hx)) $$ H2
+      with ⟨%kvss, %hl, %hk, H2⟩
     cases r with
-    | range sel n =>
+    | range sel c =>
       simp only [txnOpRespOwn]
       icases H1 with ⟨%hp, %w, %rr, #Hu, #Hw, %hrr, H1⟩
       unfold rangeRespOwn rangeBodyOwn
-      icases H1 with ⟨%h, -, %sl, %cs, %more, Hk, Hsl, -, Hcs, -, -, -⟩
+      icases H1 with ⟨%h, -, %sl, %cs, %more, Hk, Hsl, -, Hcs, %Hok, -, -⟩
       ipersist Hk
       imod ownSlice_persist $$ Hsl with #Hsl
       imod cachedKvOwns_kvPtrsAt cs $$ Hcs with #Hcs
@@ -481,6 +487,12 @@ theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List Tx
       iexists (cs.map CachedKv.kv) :: kvss
       isplitr
       · ipureintro; simp [hl]
+      isplitr
+      · ipureintro
+        intro kvs hkvs
+        rcases List.mem_cons.1 hkvs with rfl | hkvs
+        · exact rangeKvsOk_keys Hok (hrs _ List.mem_cons_self sel c rfl)
+        · exact hk kvs hkvs
       iapply BigSepL.bigSepL_cons.2
       isplitr
       · iexists cs.map CachedKv.kv
@@ -497,10 +509,28 @@ theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List Tx
       iframe
       ipureintro; simpa using hk
     | _ => simp only [txnOpRespOwn]; iexfalso; iexact H1
-  | [], [], _ :: _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
-  | [], _ :: _, _ => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
-  | _ :: _, [], _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
-  | _ :: _, _ :: _, [] => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | [], [], _ :: _, _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | [], _ :: _, _, _ => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | _ :: _, [], _, _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+  | _ :: _, _ :: _, [], _ => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
+
+/-- A run of gets leaves the state and selects from it. -/
+theorem runOps_gets (r : w64) (s : List EtcdKv) : ∀ fos : List OpFull,
+    runOps r s (fos.map TxnOp.get) = (s, fos.map fun o => .range (rangeSel s o) (rangeIn s o).length)
+  | [] => by simp [runOps]
+  | o :: fos => by simp [runOps, applyTxnOp, runOps_gets r s fos]
+
+/-- The gets' selections have the state's keys. -/
+theorem runOps_gets_keys (r : w64) (s : List EtcdKv) (fos : List OpFull) (n : Nat)
+    (hs : ∀ w ∈ s, w.key.length ≤ n) :
+    ∀ x ∈ (runOps r s (fos.map TxnOp.get)).2, ∀ sel c, x = .range sel c →
+      ∀ w ∈ sel, w.key.length ≤ n := by
+  rw [runOps_gets]
+  intro x hx sel c hxe w hw
+  obtain ⟨o, -, rfl⟩ := List.mem_map.1 hx
+  cases hxe
+  unfold rangeSel rangeIn at hw
+  exact hs w ((List.mem_filter.1 (List.mem_filter.1 hw).1).1)
 
 /-- The user's transaction `OpTxn(cs, opst, opse)` as an operation tree. -/
 theorem userTxn_tree (uv : go_etcd_io.etcd.client.v3.Op) (ms : List CmpModel) (tsl esl : GoSlice)

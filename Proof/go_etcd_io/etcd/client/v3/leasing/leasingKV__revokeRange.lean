@@ -105,10 +105,14 @@ theorem leasingKV.revokeRange.wp_proof
         (opGetModel (pfx ++ b) [withRangeM L]).base.rangeEnd from
     ⟨by simp [op_simps],
      fun _ _ => List.nil_prefix⟩)]
-  icases Hgr with ⟨%s', %gsl, %gps, %gkvs, -, -, #Hgsl, #Hgps, #Hgkvs, -⟩
+  icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', -, #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
+  ihave %Hks := etcdState_keys _ _ s' $$ Hs'
   wp_auto
   wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $Hcc $Hgps $Hgkvs]
     as %m %err ⟨Hrd, -⟩
+  · ipureintro
+    exact rangeKvsOk_keys Hgok (fun w hw =>
+      Hks w ((List.mem_filter.1 (List.mem_filter.1 hw).1).1))
   iapply HΦ $$ Hrd
 
 end proof
