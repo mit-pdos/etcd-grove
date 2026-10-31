@@ -164,7 +164,7 @@ theorem raftNode.start.wp_proof
     · ileft
       simp only [chan.blockingClausePre]
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, Hdrv, Hrun, Hprod, Hauth, %Hcums, %Hix⟩
+      icases Htok with ⟨%sent, %cums, Hdrv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt⟩
       iunfold rnDrv at Hdrv
       icases Hdrv with ⟨Hdrv, Hcfg⟩
       icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p) _ rfl
@@ -411,7 +411,7 @@ theorem raftNode.start.wp_proof
       -- its close carries the storage's floor past the batch (`node.Advance`'s)
       imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗
           srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1) ∗
-          srvFrozenTerms γ.γs ((γ.pre ++ L').length + 1) ce) γac ac
+          srvFrozenTerms γ.γs (γ.pre.length + 1) (L' ++ ce)) γac ac
         $$ Hacch Hacown with Hacp
       icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
       -- `proto.Clone(rd.Snapshot)` of the nil snapshot, twice
@@ -558,9 +558,14 @@ theorem raftNode.start.wp_proof
         ihave #Hfr : srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1)
           $$ []
         · rw [← hlenR, ← hlenL]; iexact Hfr
-        ihave #Hft : srvFrozenTerms γ.γs ((γ.pre ++ L').length + 1) ce $$ []
+        ihave #Hftb : srvFrozenTerms γ.γs ((γ.pre ++ L').length + 1) ce $$ []
         · rw [← hlenL]
           iapply srvFrozenTerms_of_memLog γ.γs _ (srvLE γ.srv L').length ce $$ Hall
+        ihave #Hft : srvFrozenTerms γ.γs (γ.pre.length + 1) (L' ++ ce) $$ []
+        · iapply srvFrozenTerms_app γ.γs (γ.pre.length + 1) L' ce
+          iframe Hfzt
+          rw [show γ.pre.length + 1 + L'.length = (γ.pre ++ L').length + 1 by simp; omega]
+          iexact Hftb
         -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
         ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
         ihave #Hcea' := Hcea
@@ -686,7 +691,9 @@ theorem raftNode.start.wp_proof
               constructor
               · omega
               · rfl
-            ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+            isplitr
+            · ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+            iexact Hft
           · wp_auto
             wp_apply_core chan.wp_select_blocking_nil
             iapply BigAndL.bigAndL_cons.2
@@ -736,7 +743,9 @@ theorem raftNode.start.wp_proof
                 constructor
                 · omega
                 · rfl
-              ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+              isplitr
+              · ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+              iexact Hft
             iapply BigAndL.bigAndL_cons.2
             isplit
             · ileft
@@ -790,7 +799,9 @@ theorem raftNode.start.wp_proof
               constructor
               · omega
               · rfl
-            ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+            isplitr
+            · ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+            iexact Hft
           · wp_auto
             wp_apply_core chan.wp_select_blocking_nil
             iapply BigAndL.bigAndL_cons.2
@@ -834,7 +845,9 @@ theorem raftNode.start.wp_proof
                 constructor
                 · omega
                 · rfl
-              ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+              isplitr
+              · ipureintro; exact ⟨E.γr.raft.ai0, HEai, HidxN⟩
+              iexact Hft
             iapply BigAndL.bigAndL_cons.2
             isplit
             · ileft

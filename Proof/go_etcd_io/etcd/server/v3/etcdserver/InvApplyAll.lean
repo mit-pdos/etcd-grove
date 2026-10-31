@@ -174,9 +174,10 @@ instance epCsCfg_persistent (γr : ReadNames) (cs : Loc) : Persistent (epCsCfg (
 /-- (2026-10-31, the snapshot track) **The storage's entry at the applied index `ai`, frozen, of
 the applied term `at'`** (persistent): `CreateSnapshot` names the snapshot's term the storage
 entry's (`storage.go:257`), which `snapshotCert_make` needs to be the committed log's last
-(`srvSnapStor`'s `A`). `notes/snapshot-sorries-plan.md`, #9. -/
+(`srvSnapStor`'s `A`); or nothing applied (`ai = 0`, where no snapshot is taken).
+`notes/snapshot-sorries-plan.md`, #9. -/
 def srvFrozenTerm (γs : MemStorNames) (ai at' : w64) : IProp GF :=
-  iprop(∃ e : EntryM, memLog γs (uint.nat ai) DFrac.discard [e] ∗ ⌜e.Term' = at'⌝)
+  iprop(⌜uint.nat ai = 0⌝ ∨ ∃ e : EntryM, memLog γs (uint.nat ai) DFrac.discard [e] ∗ ⌜e.Term' = at'⌝)
 
 instance srvFrozenTerm_persistent (γs : MemStorNames) (ai at' : w64) :
     Persistent (srvFrozenTerm (GF := GF) γs ai at') := by

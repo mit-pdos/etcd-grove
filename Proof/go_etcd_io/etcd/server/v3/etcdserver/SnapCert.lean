@@ -126,7 +126,8 @@ theorem wp_srv_createSnapshot
   iunfold epCsCfg at Hecs
   icases Hecs with ⟨%c, #Hc, %Hcs⟩
   iunfold srvFrozenTerm at Hft
-  icases Hft with ⟨%e, #He, %Hterm⟩
+  icases Hft with (%H0 | ⟨%e, #He, %Hterm⟩)
+  · exfalso; have := uint_nat_eq ai; omega
   subst Hterm
   ihave %Hb := memLog_bound γs (uint.nat ai) DFrac.discard [e] $$ He
   have h61 : uint.Z ai < 2 ^ 61 := by

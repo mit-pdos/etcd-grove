@@ -135,7 +135,13 @@ Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant
   Left: `applyAll` taking it as a premise once it calls `specFull`.
 - **S2**: `srvSnapFrozen_extend` (`SDSnapLemmas.lean`); not yet threaded (`applyAll` must take
   `srvSnapFrozen γs ai` and `run`'s loop carry it).
-- **S3 done** for the receipt: `srvFrozenTerms` (`InvRaftNode.lean`) next to `srvFrozenRange` in
+- **S2/S3, revised**: the raft loop's token (`rnLoopTokP`) carries the frozen terms of its whole
+  log (`srvFrozenTerms γs (pre.length+1) L`, empty at `NodeStart`), so `raftAdvancedC`'s payload
+  and `applyAll`'s spec carry those of the applied log `A ++ batch` from index `1` (a fresh start:
+  `applyAll` takes `ai = |A|`, `lastTermIs A at0`); `srv_frozen_of_terms` gives `srvSnapFrozen γs
+  ai'` and `srvFrozenTerm γs ai' at'` from it at any applied index (an empty batch too), with no
+  state threaded between batches. `srvFrozenTerm` has an `ai = 0` disjunct.
+- (superseded by the revision above) **S3 done** for the receipt: `srvFrozenTerms` (`InvRaftNode.lean`) next to `srvFrozenRange` in
   `raftAdvancedC`'s payload, from `raftNode.start`'s freeze (`rn_freeze_receipt` returns the
   frozen `memLog`, `srvFrozenTerms_of_memLog`) through `rnApN`, `run` and `applyAll`'s spec.
   Left: `srvFrozenTerm γs ai' at'` from it and `termAfter` in `applyAll` (and, for an empty batch,

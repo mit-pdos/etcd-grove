@@ -89,10 +89,6 @@ instance srvFrozenRange_persistent (γs : MemStorNames) (lo hi : Nat) :
     Persistent (srvFrozenRange (GF := GF) γs lo hi) := by
   unfold srvFrozenRange; infer_instance
 
-instance srvFrozenTerms_persistent (γs : MemStorNames) (lo : Nat) (L : List EntryModel) :
-    Persistent (srvFrozenTerms (GF := GF) γs lo L) := by
-  unfold srvFrozenTerms; infer_instance
-
 /-- An entry of a frozen range, alone. -/
 theorem srv_memLog_get (γs : MemStorNames) (k : Nat) (l : List EntryM) (i : Nat) (x : EntryM)
     (h : l[i]? = some x) :

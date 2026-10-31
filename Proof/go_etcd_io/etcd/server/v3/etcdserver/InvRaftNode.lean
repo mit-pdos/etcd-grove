@@ -223,6 +223,19 @@ their terms** (persistent; the raft loop's hand-over with `raftAdvancedC`, next 
 def srvFrozenTerms (γs : MemStorNames) (lo : Nat) (L : List EntryModel) : IProp GF :=
   [∗list] k ↦ m ∈ L, iprop(∃ e : EntryM, memLog γs (lo + k) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝)
 
+instance srvFrozenTerms_persistent (γs : MemStorNames) (lo : Nat) (L : List EntryModel) :
+    Persistent (srvFrozenTerms (GF := GF) γs lo L) := by
+  unfold srvFrozenTerms; infer_instance
+
+/-- The frozen terms of a log from those of its two parts. -/
+theorem srvFrozenTerms_app (γs : MemStorNames) (lo : Nat) (L1 L2 : List EntryModel) :
+    srvFrozenTerms (GF := GF) γs lo L1 ∗ srvFrozenTerms γs (lo + L1.length) L2 ⊢
+      srvFrozenTerms γs lo (L1 ++ L2) := by
+  unfold srvFrozenTerms
+  refine Entails.trans ?_ BigSepL.bigSepL_append.2
+  refine sep_mono .rfl (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
+  rw [show lo + L1.length + k = lo + (k + L1.length) by omega]
+
 /-- (2026-10-30, the repair) **Every entry below `n` frozen or compacted** (persistent;
 `Compact`'s premise at any compaction index below the applied index: `ApplySnapshot` compacts
 below a snapshot). -/
@@ -1170,7 +1183,7 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
         -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
         srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1) ∗
         -- (2026-10-31, the snapshot track: #11's S3) with their terms
-        srvFrozenTerms γ.γs ((γ.pre ++ F).length + 1) ce)) ∗
+        srvFrozenTerms γ.γs (γ.pre.length + 1) (F ++ ce))) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
     rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
@@ -1261,7 +1274,9 @@ def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF 
     rnDrv γ L p ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
     ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝ ∗
     -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
-    ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝)
+    ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝ ∗
+    -- (2026-10-31, the snapshot track: #11's S3) the log handed out so far frozen, with its terms
+    srvFrozenTerms γ.γs (γ.pre.length + 1) L)
 
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
 the raft term it records). -/

@@ -114,6 +114,64 @@ theorem srvSnapFrozen_extend (γs : MemStorNames) (ai ai' : Nat) (h : ai ≤ ai'
   iapply hB
   iframe Ha Hb Hr'
 
+/-- (2026-10-31, the snapshot track: #11's S3) **The frozen state at the applied index, from the
+log's frozen terms**: the applied log `L`, `ai` long, frozen from index `1` with its terms
+(`raftAdvancedC`'s payload, a fresh start's) gives the storage frozen through `ai` and its entry at
+`ai` of `L`'s last term. -/
+theorem srv_frozen_of_terms (γs : MemStorNames) (L : List EntryModel) (ai at' : w64)
+    (hn : uint.nat ai = L.length) (hlt : lastTermIs L at') :
+    srvFrozenTerms (GF := GF) γs 1 L ⊢ srvSnapFrozen γs (uint.nat ai) ∗ srvFrozenTerm γs ai at' := by
+  have hget : ∀ j m, L[j]? = some m → srvFrozenTerms (GF := GF) γs 1 L ⊢
+      ∃ e : EntryM, memLog γs (j + 1) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝ := by
+    intro j m hm
+    unfold srvFrozenTerms
+    refine (BigSepL.bigSepL_lookup
+      (Φ := fun k m => iprop(∃ e : EntryM, memLog (GF := GF) γs (1 + k) DFrac.discard [e] ∗
+        ⌜e.Term' = m.term⌝)) hm).trans ?_
+    rw [Nat.add_comm 1 j]
+  have hB : □ srvFrozenTerms (GF := GF) γs 1 L ⊢ srvFrozenBelow γs (uint.nat ai) := by
+    unfold srvFrozenBelow
+    refine BigSepL.bigSepL_intro fun k j hk => ?_
+    have hk' : k < uint.nat ai := by
+      have := (List.getElem?_eq_some_iff.1 hk).1; simpa using this
+    rw [List.getElem?_range hk', Option.some.injEq] at hk
+    subst hk
+    iintro #H
+    rcases Nat.eq_zero_or_pos k with h0 | hpos
+    · iright; iunfold memCompacted; ileft; ipureintro; exact h0
+    · ileft
+      obtain ⟨m, hm⟩ : ∃ m, L[k - 1]? = some m :=
+        ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      ihave ⟨%e, #He, -⟩ := hget (k - 1) m hm $$ H
+      iexists e
+      iExactEq He
+      rw [show k - 1 + 1 = k by omega]
+  iintro #H
+  by_cases h0 : uint.nat ai = 0
+  · iunfold srvSnapFrozen
+    isplitr
+    · isplitr
+      · iunfold srvFrozenAt; ileft; ipureintro; exact h0
+      iapply hB; iexact H
+    iunfold srvFrozenTerm; ileft; ipureintro; exact h0
+  obtain ⟨m, hm⟩ : ∃ m, L[uint.nat ai - 1]? = some m :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  ihave ⟨%e, #He, %Ht⟩ := hget (uint.nat ai - 1) m hm $$ H
+  rw [show uint.nat ai - 1 + 1 = uint.nat ai by omega] at *
+  have hmt : m.term = at' := by
+    rcases hlt with hL | hL
+    · subst hL; simp at hn; omega
+    rw [List.getLast?_eq_getElem?, show L.length - 1 = uint.nat ai - 1 by omega, hm] at hL
+    simpa using hL
+  iunfold srvSnapFrozen
+  isplitr
+  · isplitr
+    · iunfold srvFrozenAt; iright; iexists e; iexact He
+    iapply hB; iexact H
+  iunfold srvFrozenTerm; iright; iexists e
+  iframe He
+  ipureintro; rw [Ht, hmt]
+
 end lemmas
 
 end EtcdGrove

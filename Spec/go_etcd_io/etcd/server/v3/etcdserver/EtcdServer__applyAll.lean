@@ -63,6 +63,9 @@ abbrev EtcdServer.applyAll.spec : Prop :=
   -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
   -- `snapshotIfNeededAndCompactRaftLog`'s)
   uint.Z ai ≤ w →
+  -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
+  -- `ai`, `at0` its last term (the frozen terms' indices)
+  uint.Z ai = A.length → lastTermIs A at0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
@@ -76,7 +79,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
           srvFrozenRange γs (uint.nat ai + 1)
             ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
           -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs (uint.nat ai + 1) (unapplied ai ms))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+          srvFrozenTerms γs 1 (A ++ unapplied ai ms))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -135,6 +138,9 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
   -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
   -- `snapshotIfNeededAndCompactRaftLog`'s)
   uint.Z ai ≤ w →
+  -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
+  -- `ai`, `at0` its last term (the frozen terms' indices)
+  uint.Z ai = A.length → lastTermIs A at0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ isServerApplyAll s γr ∗
       batchWaitOk ρ E ms ∗
@@ -149,7 +155,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           srvFrozenRange γs (uint.nat ai + 1)
             ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
           -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs (uint.nat ai + 1) (unapplied ai ms))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+          srvFrozenTerms γs 1 (A ++ unapplied ai ms))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
       taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗

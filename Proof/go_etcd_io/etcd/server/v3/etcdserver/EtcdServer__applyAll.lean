@@ -45,7 +45,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid Hms Hai1
-    Hok hEok hdv haw
+    Hok hEok hdv haw hAL hAT
   simp only [srvRunH_applyAll_spec]
   have hAE := EtcdServer.applyEntries.spec_off hAE
   unfold EtcdServer.applyEntries.specOff at hAE
@@ -242,7 +242,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid γa sa hM hRB
-    Hms Hai1 Hok hEok hdv haw
+    Hms Hai1 Hok hEok hdv haw hAL hAT
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,

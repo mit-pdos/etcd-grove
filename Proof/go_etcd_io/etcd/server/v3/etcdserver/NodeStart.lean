@@ -204,8 +204,12 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     iframe Hrun Hprod Hcum
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
-    ipureintro
-    exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
+    isplitr
+    · ipureintro
+      exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
+    iunfold srvFrozenTerms
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
   · iunfold rnApplyTok
     iexists []
     iframe Hcons
