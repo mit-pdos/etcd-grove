@@ -23,8 +23,8 @@ checks, which never panics; every error's return of `Failed`, a watch that ends 
 `WatchEnded`.
 
 What the result still rests on (`etc/tcb-collections/authkv.txt`): `startServer`, linked as pending
-(`Results.lean`'s `authkv_Main` takes its premises); `Work`'s nested-transaction part
-(`then_commit_nested_refused`, T4); and the server's apply thread and raft node loop.
+(`Results.lean`'s `authkv_Main` takes its premises); and the server's apply thread and raft node
+loop.
 -/
 module
 

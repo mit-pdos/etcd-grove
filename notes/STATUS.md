@@ -603,7 +603,7 @@ gRPC side (A5): `_Auth_Authenticate_Handler` translated and proved, `Authenticat
 (`client/v3/AuthnServedOn.lean`; it replaces the old `etcd_kv_auth_served_on`, taking its name), its new
 premise `authnStoreOk` from `memberUpOn`. Trust base: `tokenSimple.genTokenPrefix`'s axiom
 strengthened (no error, a prefix with no space; decisions.md, "C1's A4 and A5"); the `sorry` of the
-served `Authenticate` gone. authkv's `Main` now rests on `startServer` (pending), `Work`'s T4 and the
+served `Authenticate` gone. authkv's `Main` now rests on `startServer` (pending), `Work`'s T4 (proved 2026-10-31) and the
 server's apply/raft-node `sorry`s.
 
 ## Perennial pin `d62b13ac1` (2026-10-31, branch `pin-d62b`)
@@ -952,14 +952,18 @@ an attempt, `akOut`/`akTokSeen`; a write told its grant was granted at `setupSt`
 `Authenticate` owes it (C1's A4-A5). `Work.spec` gains `auth.modeTag V.R.γ.tag (.on γa)` (the watch's
 verdict is at the tagged mode; `Main` has it from the member's start), and `Work.wp_proof` takes the
 builders' and the watch's specs and `WithTimeoutBackgroundMd` (Link regenerated). **`Work` proved**
-(2026-10-30) but for T4, the nested transaction: `then_commit_nested_refused` (`WorkCalls.lean`,
-`sorry`) states that `Then(OpTxn(nil, [OpPut(c/who/t3)], nil))` returns the builder and its `Commit`
-replies with an error, until client/v3's builder and `Commit` specs cover nested transactions
-(branch `txn-nested`, etcd-grove-83). `Work.spec` gains `errors.AsTarget EtcdError` (as `Main.spec`).
+(2026-10-30), T4 included since 2026-10-31: `then_commit_nested_refused` (`WorkCalls.lean`) states
+that `Then(OpTxn(nil, [OpPut(c/who/t3)], nil))` returns the builder and its `Commit` replies with an
+error, proved over `txn.Then.spec`'s nested operations (`opTAtC_opTxn`), `client_txn_on` and
+`reqPerms_irrTxn_nestedPut` (`t4M_not_granted`: the nested put needs a write on `c/...`, which no
+principal has). Its statement gained `hwho : who ∈ principals` (2026-10-31): `Commit`'s size premise
+(`txnSizeOk`, 2026-10-30) postdates T4's statement, and without a bound on `who` the key `c/who/t3`
+is unbounded; T1-T3 get their bound from `hwho` the same way (`keyOfK_principal_le`, moved to
+`WorkCalls.lean`). `Work.spec` gains `errors.AsTarget EtcdError` (as `Main.spec`).
 The per-call lemmas are in `WorkCalls.lean` (`work_put`/`_delete`/`_get`/`_commit`, the last now also
 giving the reply's responses, `txnReplied_facts`; T1's reads in `[a, b)`, `t1_reads`); the refused
 watch's events refuted by `akWatch_c_refused`. The authkv results now reach G2's `streamKeyOf_none`
-and `streamKeyOf_single` (reviewed, approved axioms; `notes/audit.md`), through the watch. **`Main`** (2026-10-30): `ak_alloc` proved (`MainAlloc.lean`); the started member now exports its auth store's cost field and the TLS fallback off (`memberUpOn`; blockers 3, 4), and the serve step's KV and Auth half is proved (`ak_served_kv`, `MainServe.lean`, over `etcd_kv_auth_served_on`, proved 2026-10-31: see "C1's A4 and A5"); `Main.wp_proof` is proved up to the workloads (`SetUp`, `newUserClient` for root, u and v, the four `Work`s under a wait group, root's last write (`client_Put_on`, `akHist_endAu`), root's watch, `Collect` and `CheckHistory` (`RootWatch.lean`: `root_resp`, `histOk_of_collected`), u's watch and its `Permitted` checks (`u_resp`); **`Main.wp_proof` proved (2026-10-31)**, the result resting on `startServer` (pending), `Work`'s T4, `etcd_kv_auth_served_on` (A5) and the server's apply/raft-node `sorry`s; `authkv_Main` now takes `authkv_startServer`'s premises, `auth.ValidSpec` and `authSchemaSrv`); the serve step's watch half too (`ak_served_watch`: `watchAddrFacts` with auth on, over G2's mode-generic `srvKVFacts`); next, T4 once the nested-transaction statements are frozen; `Authenticate`'s registration is C1's A5; `notes/authkv-main-plan.md`, "Main: what blocks it". Open:
+and `streamKeyOf_single` (reviewed, approved axioms; `notes/audit.md`), through the watch. **`Main`** (2026-10-30): `ak_alloc` proved (`MainAlloc.lean`); the started member now exports its auth store's cost field and the TLS fallback off (`memberUpOn`; blockers 3, 4), and the serve step's KV and Auth half is proved (`ak_served_kv`, `MainServe.lean`, over `etcd_kv_auth_served_on`, proved 2026-10-31: see "C1's A4 and A5"); `Main.wp_proof` is proved up to the workloads (`SetUp`, `newUserClient` for root, u and v, the four `Work`s under a wait group, root's last write (`client_Put_on`, `akHist_endAu`), root's watch, `Collect` and `CheckHistory` (`RootWatch.lean`: `root_resp`, `histOk_of_collected`), u's watch and its `Permitted` checks (`u_resp`); **`Main.wp_proof` proved (2026-10-31)**, the result resting on `startServer` (pending), `etcd_kv_auth_served_on` (A5) and the server's apply/raft-node `sorry`s; `authkv_Main` now takes `authkv_startServer`'s premises, `auth.ValidSpec` and `authSchemaSrv`); the serve step's watch half too (`ak_served_watch`: `watchAddrFacts` with auth on, over G2's mode-generic `srvKVFacts`); T4 proved (2026-10-31); `Authenticate`'s registration is C1's A5; `notes/authkv-main-plan.md`, "Main: what blocks it". Open:
 `Main`.
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
