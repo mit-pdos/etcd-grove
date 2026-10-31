@@ -317,7 +317,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
       exact ⟨CoPset.mem_full, hp.2⟩
     iintro #Hinvs #H0 #HL #Hc #Hau
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
     imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L $$ HcI Hc with Hcase
     ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
     · iframe H0 HL
@@ -485,7 +485,7 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
   · rw [srvKVCoreM_false]
     iintro #Hinvs #HB #Hl #Hc
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
     imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l $$ HcI Hc with Hcase
     ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
     · iframe HB Hl

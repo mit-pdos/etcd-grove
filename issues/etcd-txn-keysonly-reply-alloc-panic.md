@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
+upstream: none
 checked: 2026-10-31
 links: []
+candidate: issues/upstream/etcd-txn-keysonly-reply-alloc-panic/
 ---
 
 # etcdserver: a Txn of nested keys-only whole-range reads builds a reply above 2^48 encoded bytes, and the gRPC codec's allocation panics the member (with `--max-request-bytes` ≥ about 10 MiB)

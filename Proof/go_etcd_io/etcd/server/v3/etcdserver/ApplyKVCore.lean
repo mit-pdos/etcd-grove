@@ -94,7 +94,7 @@ theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
   icases Hc with ⟨Hua, #Hap, Hkv, Hbo, Hra, Hw⟩
   imod srvWTPool_take_extra s E γp $$ Hp Hr Hbo with ⟨Hwt, Hbo⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hpe, Huo, Hko⟩
+  icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
   iunfold apply.kvOwn at Hko
   icases Hko with ⟨Hsr, Hkw, Hll, Hrd, Hwo⟩
   iunfold txn.kvWriter at Hkw
@@ -102,12 +102,12 @@ theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
   imodintro
   iframe Hwf Hwo Hwt
   iintro ⟨Hwf, Hwo⟩
-  ihave Hkv : apply.applyKV E ua x $$ [Huo Hsr Hsw Hwl Hwf Hll Hrd Hwo]
+  ihave Hkv : apply.applyKV E ua x $$ [Huo Hsr Hsw Hwl Hwf Hll Hrd Hwo Hcmp]
   · iunfold apply.applyKV
     iexists p
     isplitr
     · ipureintro; exact Hpe
-    iframe Huo
+    iframe Huo Hcmp
     iunfold apply.kvOwn
     iframe Hsr Hll Hrd Hwo
     iunfold txn.kvWriter

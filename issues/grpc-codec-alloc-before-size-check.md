@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-30
-links: []
+upstream: none
+checked: 2026-10-31
+links:
+  - grpc/grpc-go#9056 issue closed: the same panic message (makeslice: len out of range) from a message mutated while marshaled; not this bug
+candidate: issues/upstream/grpc-codec-alloc-before-size-check/
 ---
 
 # grpc-go: the codec allocates a message's full encoded size before the send-size check, so a huge request panics instead of failing with ResourceExhausted

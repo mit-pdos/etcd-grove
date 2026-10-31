@@ -2142,7 +2142,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
           γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
-          γk.ids.issued = issued⌝ ∗
+          γk.ids.issued = issued ∧ γk.cmp = false⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2166,7 +2166,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
-          ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist⌝ ∗
+          ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
   srvMemberBootOn_alloc γ cnt γk id cok

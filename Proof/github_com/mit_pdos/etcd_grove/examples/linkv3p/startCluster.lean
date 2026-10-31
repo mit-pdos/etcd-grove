@@ -328,9 +328,9 @@ theorem startCluster.wp_proof
     s₁, s₂, s₃, cl₁, cl₂, cl₃, br₁, br₂, br₃
   iframe Hetcd Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
   -- (M2, the storage side, N1) each member's server off: its stand-in's mode, through `envAgree`
-  have off₁ : E₁'.γ.cm = false := envAgree_off E₁' E₁ HE₁.1 Hp₁.2.2.2.2.2.2.2
-  have off₂ : E₂'.γ.cm = false := envAgree_off E₂' E₂ HE₂.1 Hp₂.2.2.2.2.2.2.2
-  have off₃ : E₃'.γ.cm = false := envAgree_off E₃' E₃ HE₃.1 Hp₃.2.2.2.2.2.2.2
+  have off₁ : E₁'.γ.cm = false := envAgree_off E₁' E₁ HE₁.1 Hp₁.2.2.2.2.2.2.2.1
+  have off₂ : E₂'.γ.cm = false := envAgree_off E₂' E₂ HE₂.1 Hp₂.2.2.2.2.2.2.2.1
+  have off₃ : E₃'.γ.cm = false := envAgree_off E₃' E₃ HE₃.1 Hp₃.2.2.2.2.2.2.2.1
   obtain ⟨hr₁, hc₁, hch₁, hl₁, -⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hl₂, -⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hl₃, -⟩ := Hp₃

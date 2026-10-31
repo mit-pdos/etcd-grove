@@ -332,7 +332,7 @@ def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRM
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
-    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
+    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log ∗
     authnAnsM on E rq' resp)
 
@@ -370,8 +370,20 @@ instance srvIndexInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
 theorem srvIndexInvsM_false (s : Loc) (E : apply.AEnv GF) :
     srvIndexInvsM (GF := GF) false s E = srvIndexInvs s E := rfl
 
+/-- **The tie of the KV names' compaction mode, by the auth mode** (M2's apply side, item 19;
+review round 6's R6-1): the server's with auth off; nothing with auth on (auth-on servers keep
+retention `0`, and `start.specOn` has no producer for it). -/
+def kvTieM (on : Bool) (cmp : Bool) (E : apply.AEnv GF) : Prop :=
+  match on with
+  | false => cmp = E.cmp
+  | true => True
+
+theorem kvTieM_off (cmp : Bool) (E : apply.AEnv GF) : kvTieM (GF := GF) false cmp E = (cmp = E.cmp) :=
+  rfl
+
 /-- **The server as a proposer sees it, in the auth mode `on`** (`srvReqFieldsAt` with `waitInvM`,
-`kvInvM` from the server's start state, `srvAuthSt0`, and (E3r) `srvIndexInvsM`). -/
+`kvInvM` from the server's start state, `srvAuthSt0`, and (E3r) `srvIndexInvsM`; M2's apply side, item 19:
+the mode's tie `kvTieM` and certificates' invariant `kvCertInvM`). -/
 def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
@@ -391,7 +403,8 @@ def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvsM on s E ∗
-    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
+    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜kvTieM on ρ.kv.cmp E⌝ ∗
+    kvCertInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
       v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
@@ -667,24 +680,28 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     (Gb : apply.HeaderModel → IProp GF) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (hd : d ≠ [])
     (hdec : apply.irrDecode d = some rq') (hw : irrWireOf (apply.withHeader rq hm) rq')
-    (hk : apply.irrPutsLe etcdKeyMax rq') (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
-    ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
+    (hk : apply.irrPutsLe etcdKeyMax rq') (id : w64) (γf : GName) (hid : apply.irrId rq' = some id)
+    (E : CoPset) (hE : ↑kvN ⊆ E) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
+    ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ kvCertInvM on γ γk srvAuthSt0 -∗ srvRaftLogInv γ -∗
+      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
       □ (⌜on = true⌝ → Gb hm) -∗
       reqPropOkM on γ γk Gb rq Qh ={E}=∗ srvPropAu1 γ d (Qh hm) ∗ srvQInv γ (Qh hm) := by
   cases on
   · rw [kvInvM_false]
-    iintro #Hinv #Hcl #Hreg - Hok
+    simp only [kvCertInvM]
+    iintro #Hinv #Hci #Hrl #Hcl #Hreg - Hok
     iunfold reqPropOkM at Hok
     icases Hok with ⟨%Qr, Hok, %HQh⟩
     subst HQh
     ihave Hok' := reqPropOk_wire γk rq rq' hm Qr hw $$ Hok
     ihave ⟨Hok', Hq⟩ := reqPropOk_qinv γ γk rq' Qr $$ Hok'
-    imod kv_prop_au γ γk d rq' Qr hd hdec hk id γf hid E hE $$ Hinv Hcl Hreg Hok' with Hau
+    imod kv_prop_au γ γk d rq' Qr hd hdec hk id γf hid E hE hE1 hE2 $$ Hinv Hci Hrl Hcl Hreg Hok'
+      with Hau
     imodintro
     iframe Hau
     iapply Hq $$ Hinv
   · rw [kvInvM_true]
-    iintro #Hinv #Hcl #Hreg #Hgb Hok
+    iintro #Hinv - - #Hcl #Hreg #Hgb Hok
     ihave #Hgb' : □ Gb hm $$ []
     · iintro !>; iapply Hgb; ipureintro; rfl
     iunfold reqPropOkM at Hok

@@ -337,7 +337,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hrr : γr.raft.raft = γ := by rw [hraft]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
   ihave #Hdb : dbImage γr.raft γr.kv i D $$ []
   · rw [hraft]; iapply (dbImage_of_srvImage hc0 hch hlog0); iexact Himg
   iunfold dbImage at Hdb
@@ -428,7 +428,7 @@ theorem snapRecv_kv_jump (E : apply.AEnv GF) (γr : ReadNames) (A A' : List Entr
       kvAppliedL γr.raft γr.kv A' (kvModel γr.kv A') := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #HcI, -, %Hcok⟩
+  icases Hinvs with ⟨-, #HcI, -, %Hcok, -⟩
   iunfold kvApplied at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_cert_jump γr.raft γr.kv ⊤ (fun _ _ => CoPset.mem_full) A A' x.log hA hlen

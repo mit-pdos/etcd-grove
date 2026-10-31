@@ -83,12 +83,12 @@ theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cm
   rw [envAgree_mode E E₀ h, h0]
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
-base chain with auth disabled and no alarm. -/
-def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
+base chain with auth disabled and no alarm, no compaction yet (`-1`). -/
+def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false, -1⟩
 
 /-- **The start with auth on or off** (the auth plan's E2i, 2026-10-26): the base chain's auth
 layer enabled when `on` (`NewServer.specM`); `bootKV` is its mode off (`bootKVOf_false`). -/
-def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false⟩
+def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false, -1⟩
 
 theorem bootKVOf_false : bootKVOf false = bootKV := rfl
 

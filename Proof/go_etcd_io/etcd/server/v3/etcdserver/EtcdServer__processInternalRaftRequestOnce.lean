@@ -230,7 +230,8 @@ local macro "piro_tail" : tactic => `(tactic| (
     imod kv_prop_au_M on ρ.raft ρ.kv bs (hdrBoundM true s E (GoInterface.ok ctx)) rq rq'
       ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
       (Hbsne (by simp [apply.withHeader])) Hdec Hwire Hk id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hgb Hok with ⟨Hau, #Hqi⟩
+      CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
+      $$ Hclog Hkci HrLog Hclaim Hireg Hgb Hok with ⟨Hau, #Hqi⟩
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     -- (2026-10-27) a later credit for the node API's `Propose` (its registry's invariant)
     wp_auto_lc 1
@@ -524,7 +525,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
   ihave #Hv' := Hv
   iunfold srvReqFieldsAtM at Hv'
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
-    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %HcfgnnP⟩
+    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %Hktie, #Hkci,
+    %HcfgnnP⟩
   obtain ⟨Hcfgnn, Hmrbv⟩ := HcfgnnP
   ihave #Pidutil : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
   · iPkgInit
@@ -694,12 +696,6 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     hAuth hRT hM hTO hSp (EtcdServer.parseProposeCtxErr.spec_M hPE E.authOn) hED hFB hSec hWL
     s E ρ ctx cd p rq Qh F Hid0 Hdpt
   exact h
-
-/-- **A compaction through the request path** (M2, S2): the skeleton's statement, no callee
-hypotheses yet. -/
-theorem EtcdServer.processInternalRaftRequestOnce.wp_proofCompact :
-    EtcdServer.processInternalRaftRequestOnce.specCompact (GF := GF) (hG := hG) := by
-  sorry -- M2 S2: the uber-applier's compaction arm (store.Compact, the apply thread's compaction right) in compaction mode
 
 end proof
 

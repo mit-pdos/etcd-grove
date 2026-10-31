@@ -53,7 +53,8 @@ local macro "rr_ok" : tactic => `(tactic| (
     isplitr
     · ipureintro; exact ⟨Hstep.1, Hstep.2.1, Hstep.2.2.1, Hstep.2.2.2, Hadm⟩
     isplitl [Hans]
-    · rw [← hve]
+    · iapply (apply.dispatchAnswer_nil_tr _ _ _ _ v.Trace' _ _)
+      rw [← hve]
       iexact Hans
     iexact Hau'
   iexact HQL))

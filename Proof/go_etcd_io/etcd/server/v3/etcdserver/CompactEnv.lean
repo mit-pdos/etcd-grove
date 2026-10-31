@@ -67,11 +67,12 @@ def srvCompactR (s : Loc) (E : apply.AEnv GF) : IProp GF :=
 
 /-- **The server is the compactor's `Compactable`** (review round 1, S3-3): from `Compact.spec`,
 for the revision compactor's permit over `srvRevLb` at a non-negative retention, borrowing
-`srvCompactR`. -/
+`srvCompactR`; (M2's apply side, item 15) at a server in compaction mode, over the request path's
+view and the readers' at its names. -/
 theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ret : Int) (hret : 0 ≤ ret) :
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ret : Int) (hret : 0 ≤ ret) (hcmp : E.cmp = true) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqC s E ρ ∗ isServerRead s E γr ∗ idCred ρ.ids 1 ⊢
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 ⊢
       v3compactor.compactableOk
         (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s)
         (v3compactor.revPermit (srvRevLb E.γ) ret) (srvCompactR s E) := by
@@ -89,8 +90,8 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   ihave #Hlb' : srvRevLb E.γ r $$ []
   · iapply srvRevLb_mono E.γ r (r + ret) (by omega); iexact Hlb
   -- (M2, the storage side, item 35) the permit's revision is past `0`: the scope premise
-  iapply (hC s E ρ γr ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hst Hreq]
-  · iframe Hlt Hlr Hrd Hst Hreq; iframe #
+  iapply (hC s E ρ ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hst Hreq]
+  · iframe Hlt Hlr Hrd Hst Hreq; iframe #; ipureintro; exact hcmp
   inext
   iintro %resp %err ⟨Hlt, Hlr, Hrd, Hst, Hout⟩
   iapply HΦ

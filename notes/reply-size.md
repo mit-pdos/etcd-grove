@@ -41,11 +41,17 @@ tree of nested transactions with keys-only ranges at the leaves encodes to leave
 - **Flat read-only** (`v3_server.go:325-351`): served locally after a linearizable read, without the
   proposal's `--max-request-bytes` check (only grpc's receive limit, `MaxRequestBytes + 512 KiB`),
   but one level holds at most `--max-txn-ops` ranges (128 by default), so its reply is at most that
-  many copies of the stored keys: below `2^48` unless that limit times the stored keys' bytes passes
-  it (2 TiB of keys at the default; the suggested maximum quota is 8 GiB).
+  many copies of the stored keys' keys-only encodings (each key's bytes plus at most 34 bytes of
+  revisions and framing, measured): below `2^48` unless that limit times the sum of those encodings
+  passes it (2 TiB of such encodings at the default; the suggested maximum quota is 8 GiB).
+- The closed theorems' workloads (the premise's docstring): putget, putget3, putgetc (a point
+  `Get`); linkvtxn and linkv3p's `Main` (linkvtxn's workload, over three members through bridges);
+  authkv; k8setcd3; the watch examples, whose replies batch at most 1000 revisions of one small put
+  (tens of kilobytes), cachekv's cache adding a prefix `Get`, a count-only `Get` and progress
+  requests. The premise is about the program's own clients: an outside process could connect to a
+  member's port and send the crashing request, which is outside every closed theorem's scope.
 - A single keys-only range does not amplify (its own key, `index.go:166-171`). Watch, Lease and Auth
-  replies: no amplification found (Watch events reference the Put's slices once per revision; not
-  traced line by line); the axiom review should attack them.
+  replies: no amplification (traced by the axiom review, `notes/axiom-review/grpc-start-replies.md`).
 
 ## What changed
 
@@ -93,5 +99,8 @@ tree of nested transactions with keys-only ranges at the leaves encodes to leave
 - `etc/api-check.py etc/api/raft.txt --check`: 0 errors; `etc/gen-interface.py etc/api/raft.txt
   --check --layout`: no interface moved, 0 new layout violations; `etc/gen-init.py --check`: clean;
   `etc/gen-link.py`: every Link identical (but the known lintest-logkvcompact/logkvsnap mismatch).
-- The axiom review of the restated `grpc.start` and the premise's docstring is the next step (not
-  run here).
+- The axiom review of the restated `grpc.start` and the premise's docstring (2026-10-31,
+  `notes/axiom-review/grpc-start-replies.md`): **survives**. Watch, Lease and Auth replies do not
+  amplify, and no closed workload comes near `2^48`. Four docstring inaccuracies were found, their
+  wording applied (docstrings only, no statement changed): the flat bound's per-key encoding,
+  linkv3p's `Main` and the cache's own requests, tens of kilobytes, outside clients.

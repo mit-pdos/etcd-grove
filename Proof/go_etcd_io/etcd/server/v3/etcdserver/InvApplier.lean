@@ -155,7 +155,7 @@ theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact hc _
   · obtain ⟨pend, -, rfl⟩ := h
     exact hc _
-  · exact h.elim
+  · subst h; exact List.prefix_refl _
   · exact h.elim
   · rcases h with rfl | rfl <;> exact List.prefix_refl _
 
@@ -328,10 +328,13 @@ structure SrvFields where
   tickMs : w64
 
 /-- The server's KV invariants (persistent; 2026-10-14, unit T1): the KV invariant, the
-certificates', raft's committed log's; the store's certificates at the KV's names. -/
+certificates', raft's committed log's; the store's certificates at the KV's names; and (M2's apply
+side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
+`kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
+track's `srvEnvOkD` makes the backend's mode the server's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-    ⌜E.γ.cok = γr.kv.cok⌝)
+    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝)
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -506,13 +509,30 @@ write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver
 2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
 alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
 (`srvObjsOn`). (Question 5's core stage, part (1), the user's Q5-4 and review round 16's M1,
-2026-10-29) The store's backend does not compact (`d.cm = false`: no restore in compaction mode,
-`store.Restore`'s premise; M2 turns the server's compaction on). -/
+2026-10-29: the store's backend did not compact, `d.cm = false`.) (M2's apply side, 2026-10-31, the
+user's (a): the snapshot track's draft `srvEnvOkD` in place) The store's backend compacts in the
+server's compaction mode (`d.cm = E.cmp`); a snapshot is installed only with the mode off (the
+interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode). -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
-        H = srvObjsOn al st lp cl d.be ∧ d.cm = false
+        H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
+
+/-- **The store compacts exactly in the server's mode** (S-5's law, from `srvEnvOk`). -/
+theorem srvEnvOk_kbCmp (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : mvcc.kbCmpM E.γ.kb ↔ E.cmp = true := by
+  obtain ⟨-, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
+  rw [hkb, ← hcm]; rfl
+
+/-- **At a store that does not compact, the server's mode is off** (`srvEnvOk`). -/
+theorem srvEnvOk_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (d : mvcc.KBReal) (h : srvEnvOk s γ ci E cl) (hkb : E.γ.kb = some d) (hcm : d.cm = false) :
+    E.cmp = false := by
+  obtain ⟨-, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := h
+  rw [hkb] at hkb0
+  cases hkb0
+  rw [← hcm0, hcm]
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
@@ -736,7 +756,7 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
   iintro H
   ihave #Hc : iprop(mvcc.idxCert E.γ.idx x.log) $$ [H]
   · iunfold apply.applyKV at H
-    icases H with ⟨%p, -, -, Hk⟩
+    icases H with ⟨%p, -, -, Hk, -⟩
     iunfold apply.kvOwn at Hk
     icases Hk with ⟨-, Hsw, -⟩
     iunfold txn.kvWriter at Hsw
@@ -793,7 +813,7 @@ theorem srvApplyKV_small' (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   iunfold srvApplyKV at H
   icases H with ⟨%ua, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk⟩
+  icases Hkv with ⟨%p, -, -, Hk, -⟩
   iunfold apply.kvOwn at Hk
   icases Hk with ⟨-, Hsw, -⟩
   iunfold txn.kvWriter at Hsw

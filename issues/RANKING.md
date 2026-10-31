@@ -154,9 +154,10 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     apply loop still builds the multi-GB reply on every member and replays it on each restart);
     reproduced end to end through `clientv3`. Same codec root cause as
     [grpc-codec-alloc-before-size-check](grpc-codec-alloc-before-size-check.md) (the client send side)
-    and the known-false server reply-size axioms (`notes/audit.md:338`). Fix: copy keys in the
-    keys-only branch, cap a transaction's total response or total leaves, or (grpc) check the size
-    before allocating. Upstream not searched.
+    and the known-false server reply-size axioms (`notes/audit.md:338`). Upstream searched
+    2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
+    (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
+    toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a

@@ -46,7 +46,7 @@ theorem apply.authApplierV3.Apply.wp_proof
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApplyI⟩
+  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApplyI, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
   icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩

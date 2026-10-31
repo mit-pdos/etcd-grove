@@ -330,7 +330,9 @@ theorem applySnapshot_walk
   iunfold srvApplyKV at HKV
   icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, %w0, %RD0, #Hwf, #Hwok, HRD0⟩
   iunfold apply.applyKV at HaKV
-  icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn⟩
+  -- (M2's apply side, A1) the old store's compaction resources are not needed again (no restore in
+  -- compaction mode, Q5-3)
+  icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn, -⟩
   ihave Hrp := etcdserver.restorePre_of_apply s E x.log hwq $$ [$HkvOwn $Hkvc]
   icases Hrp with ⟨%ws, %γw, %Hγw, #Hws, Hscl, Hfrag, HwOwn, #Hfrz, HwW, ⟨HsRd, HlLive, HERD⟩, ⟨%wsk, %stck, #Hkvfk, #Hstck, Hstclk, Hwswk⟩⟩
   icombine Hkvf Hkvfk gives %Hwk

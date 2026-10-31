@@ -39,9 +39,9 @@ after `Serve` is fatal).
 **The replies' size** (`grpcRepliesFit`, a premise of `grpc.start`, 2026-10-31,
 `notes/reply-size.md`): grpc marshals a reply before any size check, and the codec's `make` panics
 above Go's `maxAlloc` (`grpcReplyMax`). The start takes the named workload premise that no reply of
-the run exceeds it; the three tokens it makes exist only in such a run, so `grpc.serve`,
-`grpc.serveStream` and `grpc.Server.Serve.wp_proof`, which consume them, are true under it, and so is
-every result built on the tokens (the served results `etcd_kv_served`, `ServedOn`, `AuthnServedOn`,
+the run (the replies to the program's own clients' calls) exceeds it; the three tokens it makes
+exist only in such a run, so `grpc.serve`, `grpc.serveStream` and `grpc.Server.Serve.wp_proof`,
+which consume them, are true under it, and so is every result built on the tokens (the served results `etcd_kv_served`, `ServedOn`, `AuthnServedOn`,
 v3rpc's, whose statements do not show it). No law turns a token back into the premise.
 
 **The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
@@ -218,20 +218,28 @@ def grpcReplyMax : Nat := 2 ^ 48
 message a gRPC server marshals for sending (a unary reply after its handler returns, a stream
 handler's `SendMsg`/`Send`) has an encoded length, as a natural number, of at most `grpcReplyMax`,
 counting a submessage, or a byte slice's contents, once per reference (`notes/reply-size.md`).
-Global, one for the run, not per server.
+Global, one for the run, not per server. It is about the replies to the calls of the program's own
+clients: a process outside the program could connect to a member's port and send the request
+below that makes it false, which is outside the scope of every closed theorem (they model no
+outside peer).
 
 **What makes it true**: each byte slice and submessage is referenced a bounded number of times
 per reply, so the encoding is at most a small multiple of the memory the reply references, and Go's
 user address space on linux/amd64 is `2 ^ 47` bytes (out of memory comes first); or the workload's
 replies are small outright.
 
-**True of the closed theorems' programs**, whose replies are a few kilobytes:
+**True of the closed theorems' programs**, whose replies are at most tens of kilobytes:
 - putget, putget3, putgetc: one point `Get`;
-- linkvtxn: point operations and one bounded range;
+- linkvtxn, and linkv3p's `Main` (linkvtxn's workload over three members, through bridges): point
+  operations, flat transactions of at most three point operations, and one bounded range;
 - authkv: fixed literals, its one nested transaction a write;
 - k8setcd3: a bounded loop. k8s' keys-only `getKeys` runs only with the cacher's size estimation,
   which this program never builds;
-- the watch examples (watchkv, cachekv, linkv3p's `MainWatch`): small literal prefixes.
+- the watch examples (watchkv, cachekv, linkv3p's `MainWatch`): small literal prefixes; a watch
+  reply batches at most 1000 revisions (`watchBatchMaxRevs`) of one small put each, tens of
+  kilobytes. cachekv's `etcd/cache` library adds its own requests: a whole-prefix `Get`, a
+  count-only `Get` with limit 1, a prefix watch with progress and created notifications, and
+  `RequestProgress`, all over the same few small keys.
 None of them sends a transaction of many keys-only ranges.
 
 **False of** etcd under a client that sends a transaction whose nested transactions hold many
@@ -245,8 +253,9 @@ where its operations are transactions), so it goes through raft, bounded by `--m
 and every member builds the reply in apply; the member serving the client marshals it. A flat
 read-only transaction is served locally, without the proposal's `--max-request-bytes` check, but
 holds at most `--max-txn-ops` ranges (128 by default), so its reply is at most that many copies of
-the stored keys: below `grpcReplyMax` unless that limit times the stored keys' bytes passes it
-(at the defaults, 2 TiB of keys; the suggested maximum quota is 8 GiB). Also false of a program whose handler
+the stored keys' keys-only encodings (each key's bytes plus at most 34 bytes of revisions and
+framing): below `grpcReplyMax` unless that limit times the sum of those encodings passes it (at
+the defaults, 2 TiB of such encodings; the suggested maximum quota is 8 GiB). Also false of a program whose handler
 returns a reply sharing a submessage or byte slice many times. A theorem taking this premise says
 nothing about such runs. The client's send side has its own checked premise (`grpcInvokerOk`'s
 `Req.wireLen m < grpcMsgMax`). -/
