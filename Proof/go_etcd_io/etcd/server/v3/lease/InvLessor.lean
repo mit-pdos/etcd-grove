@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp
+public import Perennial.Ghost.MonoList
 
 @[expose] public section
 
@@ -36,6 +37,11 @@ namespace Perennial
 namespace go_etcd_io.etcd.server.v3.lease
 
 deriving instance DecidableEq for LeaseItem
+
+/-- A `LeaseItem` is countable through its key (ghost state stores item sets: Part B). -/
+instance LeaseItem.countable [GooseExts] : Pos.Countable LeaseItem :=
+  .ofInjective (fun it => Pos.Countable.encode it.Key')
+    (fun a b h => by cases a; cases b; simp only at h; rw [Pos.encode_inj h])
 
 end go_etcd_io.etcd.server.v3.lease
 
@@ -103,12 +109,72 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 def revokeCloser (c : GoChan) : IProp GF :=
   iprop(∃ γc : ChanNames, isChan c γc Unit ∗ ownChan γc Unit .Idle)
 
+/-- **The lessor's reader-side ghost names** (the lease-keys plan, Part B, 2026-10-31): the
+history of its snapshots (`γr.1`, a monotone list), the item sets' map (`γr.2.1`, each `*Lease` to
+its item set) and the slot pool (`γr.2.2`, each borrowing token to the lease it lent a reader slot
+of). -/
+abbrev LessorRdNames := GName × GName × GName
+
+/-- **A snapshot of the lessor**: its lease map (id to `*Lease`) and its item map (item to id). -/
+abbrev LSnap := GMap w64 Loc × GMap LeaseItem w64
+
+/-- The values of the lessor's ghost map `γl`: at `false` its location, the name of its grant
+guard (D19n), (unit T3) of its closers' map `γcl` (lease id to `*Lease`) and (Part B) its
+reader-side names, at `true` its live set. -/
+abbrev LessorGV := (Loc × GName × GName × LessorRdNames) ⊕ List w64
+
+/-- The lessor's ghost map `γl`'s contents: its location and its names at `false` (pinned for
+good), its live set at `true`. -/
+def lessorGhost (lp : Loc) (γga γcl : GName) (γr : LessorRdNames) (L : List w64) :
+    GMap Bool LessorGV :=
+  (((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga, γcl, γr))).insert true (Sum.inr L))
+
+/-- A share `q` of the live set `L` (the ghost map `γl`'s element `true`). -/
+def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
+  ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
+
+/-- The lessor of `γl` is at `lp`, its grant guard named `γga`, its closers' map `γcl` and its
+reader-side names `γr` (persistent: the ghost map's element `false`, discarded). -/
+def lessorPinAll (γl : GName) (lp : Loc) (γga γcl : GName) (γr : LessorRdNames) : IProp GF :=
+  ghostMapElem γl false DFrac.discard (Sum.inl (lp, γga, γcl, γr) : LessorGV)
+
+instance lessorPinAll_persistent (γl : GName) (lp : Loc) (γga γcl : GName) (γr : LessorRdNames) :
+    Persistent (lessorPinAll (GF := GF) γl lp γga γcl γr) := by
+  unfold lessorPinAll; infer_instance
+
+/-- The lessor of `γl` is at `lp`, its grant guard named `γga`, its closers' map `γcl`
+(persistent). -/
+def lessorPinG (γl : GName) (lp : Loc) (γga γcl : GName) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinAll γl lp γga γcl γr)
+
+instance lessorPinG_persistent (γl : GName) (lp : Loc) (γga γcl : GName) :
+    Persistent (lessorPinG (GF := GF) γl lp γga γcl) := by
+  unfold lessorPinG; infer_instance
+
+/-- The lessor of `γl` has the reader-side names `γr` (persistent). -/
+def lessorPinR (γl : GName) (γr : LessorRdNames) : IProp GF :=
+  iprop(∃ (lp : Loc) (γga γcl : GName), lessorPinAll γl lp γga γcl γr)
+
+instance lessorPinR_persistent (γl : GName) (γr : LessorRdNames) :
+    Persistent (lessorPinR (GF := GF) γl γr) := by
+  unfold lessorPinR; infer_instance
+
+/-- The lessor of `γl` is at `lp` (persistent). -/
+def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
+  iprop(∃ γga γcl : GName, lessorPinG γl lp γga γcl)
+
+instance lessorPin_persistent (γl : GName) (lp : Loc) : Persistent (lessorPin (GF := GF) γl lp) := by
+  unfold lessorPin; infer_instance
+
 /-- What a lease's lock `l.mu` guards: half of its item set (unit T3, L2b, 2026-10-25: the other
 half is the lease owner's, `leaseItemsOwn`, so that `Keys()` under the read lock returns the set
-the owner knows). -/
-def leaseItems (l : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own q.half} sm ∗
-    sm ↦${DFrac.own q.half} S)
+the owner knows) and (Part B, 2026-10-31) the lease's element of the lessor `γl`'s item sets' map
+at the same set, so that `Keys()` under a reader's read lock returns the set the lessor's history
+records (`lessorRdInv`). -/
+def leaseItems (γl : GName) (l : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit) (γr : LessorRdNames), lessorPinR γl γr ∗
+    lsF go!"itemSet" l ↦{DFrac.own q.half} sm ∗ sm ↦${DFrac.own q.half} S ∗
+    ghostMapElem γr.2.1 l (DFrac.own q) S)
 
 /-- **The item set `S` of the lease `id` is what the item map `I` attaches to it** (unit T3,
 L2b). -/
@@ -185,48 +251,122 @@ theorem itemKeysShort_insertAll (I : GMap LeaseItem w64) (xs : List LeaseItem) (
   · exact hxs it hi
   · simp only [hi, ↓reduceIte] at h; exact hI it id h
 
+/-! ### The lessor from a reader (the lease-keys plan, Part B, 2026-10-31)
+
+A goroutine other than the lease owner (the server's API layer: `checkLeaseRenew`, ...) looks a
+lease up and reads its keys. What it learns is stated over the **history** of the lessor's
+snapshots (lease map, item map), which the owner appends to at each change, under `le.mu`'s write
+lock: a reader with a lower bound `m` of the history (`lessorLb`) finds the lease map of an index
+`≥ m` (`leaseLiveFrom`, `leaseAbsentFrom`), and the keys of a lease `l` of `id` at an index `≥ m`
+where the lease map has `l` (`leaseKeysFrom`): each `*Lease`'s item set is its id's items at the
+last index the lease map has it (`setsOk`; frozen at its revocation: Go's `Revoke` does not clear
+`l.itemSet`, and the id can be granted again). -/
+
+/-- **`l` is the lease of `id` at the index `i` of `hs`, and at no later index.** -/
+def lastLiveAt (hs : List LSnap) (id : w64) (l : Loc) (i : Nat) : Prop :=
+  (∃ σ, hs[i]? = some σ ∧ σ.1.lookup id = some l) ∧
+    ∀ (j : Nat) (σ : LSnap), i < j → hs[j]? = some σ → σ.1.lookup id ≠ some l
+
+/-- **Every `*Lease` of the history is the lease of one id.** -/
+def oneIdPerLease (hs : List LSnap) : Prop :=
+  ∀ (i j : Nat) (σ τ : LSnap) (id id' : w64) (l : Loc), hs[i]? = some σ → hs[j]? = some τ →
+    σ.1.lookup id = some l → τ.1.lookup id' = some l → id = id'
+
+/-- **The item sets agree with the history**: each `*Lease`'s set is empty if no lease map of the
+history has it, and otherwise its id's items at the last index the lease map has it. -/
+def setsOk (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)) : Prop :=
+  ∀ (l : Loc) (S : GMap LeaseItem Unit), Sm.lookup l = some S →
+    ((∀ (i : Nat) (σ : LSnap) (id : w64), hs[i]? = some σ → σ.1.lookup id ≠ some l) ∧ S = ∅) ∨
+    ∃ (id : w64) (i : Nat) (σ : LSnap), lastLiveAt hs id l i ∧ hs[i]? = some σ ∧ itemsFor σ.2 id S
+
+/-- **The history's facts**: not empty, each lease under one id, every snapshot's keys short. -/
+def histOk (hs : List LSnap) : Prop :=
+  hs ≠ [] ∧ oneIdPerLease hs ∧ ∀ σ ∈ hs, itemKeysShort σ.2
+
+/-- **The number of borrowing tokens** of the slot pool: a lease's lock has
+`actualMaxReaders` reader slots, one of them the owner's (`closerAt`). -/
+def rdPoolSize : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 1
+
+def lessorRdN : Namespace := nroot .@ "lessor_rd"
+
+/-- **The lessor's reader-side invariant** at the names `γr`: a quarter of the history's
+authority (`hs`; the owner holds half, `leaseClosers`, and `le.mu`'s invariant a quarter, so that
+the owner appends holding the write lock), half of the item sets' map's authority (`Sm`; the owner
+the other half), `setsOk` and `histOk`; and the slot pool: each borrowing token `j <
+rdPoolSize`'s state `B j` (half here, half with the token's holder, `lessorReader`), the lease it
+has lent a slot of, and for every `*Lease` of the item sets' map, its slot for `j` unless lent. -/
+def lessorRdBody (γl : GName) (γr : LessorRdNames) : IProp GF :=
+  iprop(∃ (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)) (B : GMap Nat (Option Loc)),
+    monoListAuthOwn γr.1 Qp.quarter hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗
+    ⌜setsOk hs Sm ∧ histOk hs⌝ ∗
+    ghostMapAuth γr.2.2 1 B ∗ ⌜∀ j, (B.lookup j).isSome ↔ j < rdPoolSize⌝ ∗
+    [∗map] j ↦ b ∈ B, ghostMapElem γr.2.2 j (DFrac.own (1 : Qp).half) b ∗
+      [∗map] l ↦ _S ∈ Sm, (⌜b = some l⌝ ∨ sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)))
+
+/-- **The lessor `γl`'s reader-side invariant** (persistent). -/
+def lessorRdInv (γl : GName) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ inv lessorRdN (lessorRdBody γl γr))
+
+instance lessorRdInv_persistent (γl : GName) : Persistent (lessorRdInv (GF := GF) γl) := by
+  unfold lessorRdInv; infer_instance
+
+/-- **The index `i` of the lessor `γl`'s history is the snapshot `σ`** (persistent). -/
+def lessorAt (γl : GName) (i : Nat) (σ : LSnap) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ monoListIdxOwn γr.1 i σ)
+
+instance lessorAt_persistent (γl : GName) (i : Nat) (σ : LSnap) :
+    Persistent (lessorAt (GF := GF) γl i σ) := by
+  unfold lessorAt; infer_instance
+
+/-- **A lower bound `m` of the lessor's history** (persistent): its index `m` is recorded. What a
+reader holds of the history it has observed. -/
+def lessorLb (γl : GName) (m : Nat) : IProp GF :=
+  iprop(∃ σ : LSnap, lessorAt γl m σ)
+
+instance lessorLb_persistent (γl : GName) (m : Nat) : Persistent (lessorLb (GF := GF) γl m) := by
+  unfold lessorLb; infer_instance
+
+/-- **`l` is the lease of `id` at an index no earlier than `m`** (persistent). -/
+def leaseLiveFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) : IProp GF :=
+  iprop(∃ (i : Nat) (σ : LSnap), ⌜m ≤ i ∧ σ.1.lookup id = some l⌝ ∗ lessorAt γl i σ)
+
+instance leaseLiveFrom_persistent (γl : GName) (m : Nat) (id : w64) (l : Loc) :
+    Persistent (leaseLiveFrom (GF := GF) γl m id l) := by
+  unfold leaseLiveFrom; infer_instance
+
+/-- **No lease of `id` at an index no earlier than `m`** (persistent). -/
+def leaseAbsentFrom (γl : GName) (m : Nat) (id : w64) : IProp GF :=
+  iprop(∃ (i : Nat) (σ : LSnap), ⌜m ≤ i ∧ σ.1.lookup id = none⌝ ∗ lessorAt γl i σ)
+
+instance leaseAbsentFrom_persistent (γl : GName) (m : Nat) (id : w64) :
+    Persistent (leaseAbsentFrom (GF := GF) γl m id) := by
+  unfold leaseAbsentFrom; infer_instance
+
+/-- **`ks` are the keys of the lease `l` of `id` at an index no earlier than `m`** (persistent):
+the keys the item map attaches to `id` there, where the lease map has `l`; every key of that item
+map short. -/
+def leaseKeysFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) : IProp GF :=
+  iprop(∃ (i : Nat) (σ : LSnap),
+    ⌜m ≤ i ∧ σ.1.lookup id = some l ∧ (∀ k : GoString, k ∈ ks ↔ σ.2.lookup ⟨k⟩ = some id) ∧
+      itemKeysShort σ.2⌝ ∗ lessorAt γl i σ)
+
+instance leaseKeysFrom_persistent (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) :
+    Persistent (leaseKeysFrom (GF := GF) γl m id l ks) := by
+  unfold leaseKeysFrom; infer_instance
+
 /-- **The lease owner's half of the item set of the lease `l`** (of id `id`), which is what the
 item map `I` attaches to `id` (unit T3, L2b). -/
 def leaseItemsOwn (l : Loc) (I : GMap LeaseItem w64) (id : w64) : IProp GF :=
   iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own (1 : Qp).half} sm ∗
     sm ↦${DFrac.own (1 : Qp).half} S ∗ ⌜itemsFor I id S⌝)
 
-/-- A lease of the map: not nil, its lock guarding its item set (persistent). -/
-def isLeaseObj (l : Loc) : IProp GF :=
-  iprop(⌜l ≠ null⌝ ∗ sync.isRWMutexGuard (lsF go!"mu" l) (leaseItems l))
+/-- A lease of the map: not nil, its lock guarding its item set, the lessor's reader-side
+invariant (persistent). -/
+def isLeaseObj (γl : GName) (l : Loc) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ sync.isRWMutexGuard (lsF go!"mu" l) (leaseItems γl l) ∗ lessorRdInv γl)
 
-instance isLeaseObj_persistent (l : Loc) : Persistent (isLeaseObj (GF := GF) l) := by
+instance isLeaseObj_persistent (γl : GName) (l : Loc) : Persistent (isLeaseObj (GF := GF) γl l) := by
   unfold isLeaseObj; infer_instance
-
-/-- The values of the lessor's ghost map `γl`: at `false` its location, the name of its grant
-guard (D19n) and (unit T3) of its closers' map `γcl` (lease id to `*Lease`), at `true` its live
-set. -/
-abbrev LessorGV := (Loc × GName × GName) ⊕ List w64
-
-/-- The lessor's ghost map `γl`'s contents: its location and its grant guard's name `γga` at
-`false` (pinned for good), its live set at `true`. -/
-def lessorGhost (lp : Loc) (γga γcl : GName) (L : List w64) : GMap Bool LessorGV :=
-  (((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga, γcl))).insert true (Sum.inr L))
-
-/-- A share `q` of the live set `L` (the ghost map `γl`'s element `true`). -/
-def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
-  ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
-
-/-- The lessor of `γl` is at `lp`, its grant guard named `γga`, its closers' map `γcl`
-(persistent: the ghost map's element `false`, discarded). -/
-def lessorPinG (γl : GName) (lp : Loc) (γga γcl : GName) : IProp GF :=
-  ghostMapElem γl false DFrac.discard (Sum.inl (lp, γga, γcl) : LessorGV)
-
-instance lessorPinG_persistent (γl : GName) (lp : Loc) (γga γcl : GName) :
-    Persistent (lessorPinG (GF := GF) γl lp γga γcl) := by
-  unfold lessorPinG; infer_instance
-
-/-- The lessor of `γl` is at `lp` (persistent). -/
-def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
-  iprop(∃ γga γcl : GName, lessorPinG γl lp γga γcl)
-
-instance lessorPin_persistent (γl : GName) (lp : Loc) : Persistent (lessorPin (GF := GF) γl lp) := by
-  unfold lessorPin; infer_instance
 
 /-- **The lessor's grant guard** (D19n, 2026-10-18; persistent): the predicate `GA` its caller
 chose at `NewLessor`, a saved predicate pinned in the lessor's ghost map. A lease is granted only
@@ -252,7 +392,8 @@ instance leaseGranted_persistent (γl : GName) (id : w64) :
 /-- **The lessor's share `q` of its ghost map's authority**, at the live set `L`, every lease of
 which may be granted (D19n); (unit T3) and of its closers' map, at the lease map `M`. -/
 def lessorAuth (γl : GName) (q : Qp) (lp : Loc) (L : List w64) (M : GMap w64 Loc) : IProp GF :=
-  iprop(∃ γga γcl : GName, ghostMapAuth γl q (lessorGhost lp γga γcl L) ∗ ghostMapAuth γcl q M ∗
+  iprop(∃ (γga γcl : GName) (γr : LessorRdNames), ghostMapAuth γl q (lessorGhost lp γga γcl γr L) ∗
+    ghostMapAuth γcl q M ∗
     □ ([∗list] id ∈ L, leaseGranted γl id))
 
 /-! ### The lessor's apply-side state (2026-10-13, unit 9)
@@ -334,11 +475,14 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
     lessorAuth γl q lp L M ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
-    ([∗map] _id ↦ l ∈ M, isLeaseObj l) ∗ lessorExtra lp M q)
+    ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp M q ∗
+    (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
+      monoListAuthOwn γr.1 q.half.half hs ∗ ⌜hs.getLast? = some (M, I)⌝))
 
 /-- **The lessor** at `lp` with ghost map `γl` (persistent): pinned, its lock's guard. -/
 def lessorInv (lp : Loc) (γl : GName) : IProp GF :=
-  iprop(⌜lp ≠ null⌝ ∗ lessorPin γl lp ∗ sync.isRWMutexGuard (lF go!"mu" lp) (lessorMu lp γl))
+  iprop(⌜lp ≠ null⌝ ∗ lessorPin γl lp ∗ sync.isRWMutexGuard (lF go!"mu" lp) (lessorMu lp γl) ∗
+    lessorRdInv γl)
 
 instance lessorInv_persistent (lp : Loc) (γl : GName) :
     Persistent (lessorInv (GF := GF) lp γl) := by
@@ -398,9 +542,9 @@ def rdOwn (γl : GName) (rd : GoFunc) : IProp GF :=
 map's element (the other half is `leaseRevokers`'), (L2b) its half of the lease's item set (what
 the item map `I` attaches to `id`) and a reader slot of the lease's lock (`Keys()`, in
 `Revoke`). -/
-def closerAt (γcl : GName) (I : GMap LeaseItem w64) (id : w64) (l : Loc) : IProp GF :=
+def closerAt (γl γcl : GName) (I : GMap LeaseItem w64) (id : w64) (l : Loc) : IProp GF :=
   iprop(ghostMapElem γcl id (DFrac.own (1 : Qp).half) l ∗ leaseItemsOwn l I id ∗
-    sync.ownRWMutex (lsF go!"mu" l) (leaseItems l))
+    sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))
 
 /-- **The lease owner's closers and items** (unit T3, 2026-10-24): for every lease of the live
 set `L`, the closers' map's element (its `*Lease`, which the lessor's map agrees with), the right
@@ -412,7 +556,10 @@ def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp G
     ⌜∀ id : w64, id ∈ L ↔ (C.lookup id).isSome⌝ ∗
     lF go!"itemMap" lp ↦{DFrac.own (1 : Qp).half} im ∗ im ↦${DFrac.own (1 : Qp).half} I ∗
     ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ ∗ ⌜itemKeysShort I⌝ ∗
-    [∗map] id ↦ l ∈ C, closerAt γcl I id l)
+    ([∗map] id ↦ l ∈ C, closerAt γl γcl I id l) ∗
+    (∃ (γr : LessorRdNames) (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)),
+      lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗ ⌜hs.getLast? = some (C, I)⌝ ∗
+      ghostMapAuth γr.2.1 (1 : Qp).half Sm))
 
 /-- **The lease owner's revokers** (unit T3, 2026-10-25): for every lease of the live set `L`,
 the other half of the closers' map's element and the right to close its `revokec`. Apart from
@@ -440,6 +587,13 @@ theorem leaseOwn_eq {γl : GName} {L : List w64} {I J : GMap LeaseItem w64} (h :
 def lessorRdOf (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, lessorPin γl lp ∗ lessorRd lp γl)
 
+/-- **A reader of the lessor `γl`** (the lease-keys plan, Part B, 2026-10-31): a reader slot of its
+lock (`Lookup`) and a borrowing token `j` of the slot pool, at rest (`none`): with it, the reader
+borrows the slot `j` of a lease's lock for one `Keys()` (`lessorRdBody`). -/
+def lessorReader (γl : GName) : IProp GF :=
+  iprop(∃ (γr : LessorRdNames) (j : Nat), lessorPinR γl γr ∗ lessorRdOf γl ∗
+    ghostMapElem γr.2.2 j (DFrac.own (1 : Qp).half) (none : Option Loc))
+
 /-- **The lease owner's resource** at the txn layer: its half of the live set and a reader slot
 of the lessor's lock (`Lookup`); (unit T3) its revokers. -/
 def lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
@@ -454,9 +608,9 @@ and `id` can be granted again, so "`l` is the lease of `id`" holds only of the o
 at the time. -/
 def leaseOwnOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
     IProp GF :=
-  iprop(⌜itemKeysShort I⌝ ∗ isLeaseObj l ∗ leaseItemsOwn l I id ∗
-    sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ∗
-    (leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) -∗ leaseOwn γl L I))
+  iprop(⌜itemKeysShort I⌝ ∗ isLeaseObj γl l ∗ leaseItemsOwn l I id ∗
+    sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) ∗
+    (leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) -∗ leaseOwn γl L I))
 
 /-- **The txn layer's owner resource after `Lookup(id)` returned `l`**: `nil` and the resource as
 it was, or the reader slot, the revokers and the owner's resource opened at `l`. -/
@@ -468,8 +622,8 @@ def lessorUserOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w
 /-- Two pins of one ghost map agree. -/
 theorem lessorPin_agree (γl : GName) (lp lp' : Loc) :
     lessorPin (GF := GF) γl lp ∗ lessorPin γl lp' ⊢ ⌜lp = lp'⌝ := by
-  unfold lessorPin lessorPinG
-  iintro ⟨⟨%γ1, %γ1', H1⟩, ⟨%γ2, %γ2', H2⟩⟩
+  unfold lessorPin lessorPinG lessorPinAll
+  iintro ⟨⟨%γ1, %γ1', %γr1, H1⟩, ⟨%γ2, %γ2', %γr2, H2⟩⟩
   icombine H1 H2 gives %H
   ipureintro
   have h2 := H.2
@@ -479,12 +633,22 @@ theorem lessorPin_agree (γl : GName) (lp lp' : Loc) :
 theorem lessorPinG_agree (γl : GName) (lp lp' : Loc) (γga γga' γcl γcl' : GName) :
     lessorPinG (GF := GF) γl lp γga γcl ∗ lessorPinG γl lp' γga' γcl' ⊢
       ⌜lp = lp' ∧ γga = γga' ∧ γcl = γcl'⌝ := by
-  unfold lessorPinG
-  iintro ⟨H1, H2⟩
+  unfold lessorPinG lessorPinAll
+  iintro ⟨⟨%γr1, H1⟩, ⟨%γr2, H2⟩⟩
   icombine H1 H2 gives %H
   ipureintro
   have h2 := H.2
   cases h2; exact ⟨rfl, rfl, rfl⟩
+
+/-- Two pins of one ghost map agree on the reader-side names. -/
+theorem lessorPinR_agree (γl : GName) (γr γr' : LessorRdNames) :
+    lessorPinR (GF := GF) γl γr ∗ lessorPinR γl γr' ⊢ ⌜γr = γr'⌝ := by
+  unfold lessorPinR lessorPinAll
+  iintro ⟨⟨%lp1, %γa1, %γc1, H1⟩, ⟨%lp2, %γa2, %γc2, H2⟩⟩
+  icombine H1 H2 gives %H
+  ipureintro
+  have h2 := H.2
+  cases h2; rfl
 
 /-- Two shares of the live set agree. -/
 theorem leaseFrag_agree (γl : GName) (q1 q2 : Qp) (L1 L2 : List w64) :

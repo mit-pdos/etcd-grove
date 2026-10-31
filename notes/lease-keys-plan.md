@@ -399,3 +399,21 @@ docstrings' arguments extend directly (fresh ghost state, a ghost update under t
 is a trust-base change: the user's gate. `Promote`/`Demote`/`scheduleCheckpointIfNeeded` (axioms)
 do not touch the two maps. The pin gains the reader names (`LessorGV`'s first component), inside
 `lessorPinG` (its arity unchanged).
+**The user's decision (2026-10-31): approved**, with an axiom review (the `axiom` skill) of the
+restated `NewLessor`/`Recover` before the freeze.
+
+**The Draft's definitions** (`InvLessor.lean`):
+- The pin's first component gains `γr : LessorRdNames` (the history `γr.1`, a monotone list of
+  `LSnap = (lease map, item map)`; the item sets' ghost map `γr.2.1`, `*Lease` to its item set; the
+  slot pool `γr.2.2`, a ghost map from borrowing token to the lease it lent a slot of).
+- `leaseItems γl l q` (`l.mu`'s invariant) gains the item sets' map element of `l` at `q`; so
+  `isLeaseObj γl l` takes the lessor's name.
+- `lessorRdInv γl` (an Iris invariant, in `lessorInv`): a quarter of the history's authority, half
+  of the item sets' map's authority, `setsOk` (each `*Lease`'s set is its id's items at the last
+  index the lease map has it, or empty if it never had it), each lease under one id, every
+  snapshot's keys short; the pool's authority and, per token, its lent lease or every lease's slot.
+- `lessorMu` gains a quarter of the history's authority per unit of the lock's fraction, its last
+  snapshot the lock's maps; `leaseClosers` the owner's half of the history's and of the item sets'
+  authority, the last snapshot the owner's maps.
+- Readers' vocabulary: `lessorAt γl i σ`, `lessorLb γl m`, `leaseLiveFrom γl m id l`,
+  `leaseAbsentFrom γl m id`, `leaseKeysFrom γl m id l ks`, `lessorReader γl`.

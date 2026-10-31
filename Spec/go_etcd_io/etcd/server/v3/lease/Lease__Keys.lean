@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 slice, no key twice; by the lease owner (its half of the set, `leaseItemsOwn l I id`, and a
 reader slot of the lease's lock), so the keys are those the owner's item map `I` puts on `id`. -/
 abbrev lease.Lease.Keys.spec : Prop :=
-  ∀ (l : Loc) (I : GMap LeaseItem w64) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLeaseObj l ∗
-      sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ∗ leaseItemsOwn l I id }}
+  ∀ (γl : GName) (l : Loc) (I : GMap LeaseItem w64) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLeaseObj γl l ∗
+      sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) ∗ leaseItemsOwn l I id }}
     (App (Val (l @!! go.GoType.PointerType Lease.ty @!! go!"Keys")) (Val #()))
   {{ (s : GoSlice) (ks : List GoString), RET #s; s ↦* ks ∗
-      sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ∗ leaseItemsOwn l I id ∗
+      sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) ∗ leaseItemsOwn l I id ∗
       ⌜(∀ k : GoString, k ∈ ks ↔ I.lookup (LeaseItem.mk k) = some id) ∧ ks.Nodup⌝ }}
 
 end spec
