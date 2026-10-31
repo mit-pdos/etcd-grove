@@ -308,7 +308,7 @@ plan's key; root's history has a DELETE), `akHist_events` (an event of `σ.revEv
 |---|---|---|
 | `zap.NewNop` | `zap.NewNop.spec` | exists |
 | `startServer` | `startServer.spec` (gives `common.memberUpOn … γa`) | exists, proved |
-| `common.Serve` | `common.Serve.specOn` (from `memberUpOn`'s parts; its `grpcUpOn` step gives `akKVOn` through `etcd_kv_auth_served_onA`, with the Auth registrations and `Authenticate`'s `authTokReg`) | exists; the merge folds it into `Serve.spec` |
+| `common.Serve` | `common.Serve.specOn` (from `memberUpOn`'s parts; its `grpcUpOn` step gives `akKVOn` through `etcd_kv_auth_served_on`, with the Auth registrations and `Authenticate`'s `authTokReg`) | exists; the merge folds it into `Serve.spec` |
 | `common.NewClient` | `common.NewClient.spec` (G1: `clientTokAt … False`) | exists |
 | `SetUp` | S5 | restated after the refusal fact (F-S1, F-S2) |
 | `newUserClient` ×3 | S3 | drafted |
@@ -558,7 +558,7 @@ cluster and member allocations. The serve step (`wk_served`'s analog) needs four
    and in `Main.wp_proof`, at the clients' watcher environment `akV R` (`srvWEnv` with the
    prefix `"a"`: `watchAddrFacts` asks a non-empty one, nothing reads it).
 2. **`Authenticate`'s registration** in `grpcUpOn`: `v3rpc.authRegs` holds the five admin methods,
-   not `Authenticate` (C1's A5, "Q9"); `etcd_kv_auth_served_onA` takes it as `hreg`.
+   not `Authenticate` (C1's A5, "Q9"); `etcd_kv_auth_served_on` takes it as `hreg`.
 3. **The auth store's `BcryptCost()`** (`bcryptCostOk`, a premise of `etcd_kv_auth_served_on(A)`):
    no spec of `authStore.BcryptCost`, `NewAuthStore`'s post and `memberUpOn` do not export it.
 4. **`ClientCertAuthEnabled = false`** (`SetUp`'s and `Work`'s `□ (srvTLSId s -∗ False)`, by
@@ -569,7 +569,7 @@ cluster and member allocations. The serve step (`wk_served`'s analog) needs four
 
 **Done (2026-10-30): 3 and 4** (`notes/decisions.md`, "The started member exports its auth store's
 cost field and its TLS fallback off"): `memberUpOn` gives `srvBcryptField s` and
-`□ (srvTLSId s -∗ False)`. **2** is left to C1's A5: `etcd_kv_auth_served_onA` dropped `hreg`
+`□ (srvTLSId s -∗ False)`. **2** is left to C1's A5: `etcd_kv_auth_served_on` dropped `hreg`
 (it is a `sorry` meanwhile). The serve step's KV and Auth half is proved over them
 (`ak_served_kv`, `MainServe.lean`: `akKVOn`, `setupAuthServed`, `Authenticate`); its watch half
 waits on 1.

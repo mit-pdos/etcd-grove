@@ -206,6 +206,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
   RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
   _Auth_AuthEnable_Handler_unfold : FuncUnfold _Auth_AuthEnable_Handler [] _Auth_AuthEnable_Handler.impl
+  _Auth_Authenticate_Handler_unfold : FuncUnfold _Auth_Authenticate_Handler [] _Auth_Authenticate_Handler.impl
   _Auth_UserAdd_Handler_unfold : FuncUnfold _Auth_UserAdd_Handler [] _Auth_UserAdd_Handler.impl
   _Auth_UserGrantRole_Handler_unfold : FuncUnfold _Auth_UserGrantRole_Handler [] _Auth_UserGrantRole_Handler.impl
   _Auth_RoleAdd_Handler_unfold : FuncUnfold _Auth_RoleAdd_Handler [] _Auth_RoleAdd_Handler.impl
@@ -402,6 +403,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.NewAuthClient_unfold
   Assumptions.RegisterAuthServer_unfold
   Assumptions._Auth_AuthEnable_Handler_unfold
+  Assumptions._Auth_Authenticate_Handler_unfold
   Assumptions._Auth_UserAdd_Handler_unfold
   Assumptions._Auth_UserGrantRole_Handler_unfold
   Assumptions._Auth_RoleAdd_Handler_unfold

@@ -26925,3 +26925,39 @@ Both changes are the user's choices.
   semantics' `Float64ToInt64Semantics` and `ErrorStringLeaf`, as `authkv_startServer` does.
 - `Serve.specOn` (`Serve`'s second spec until the merge folds it into `Serve.spec`) is linked by
   hand in `common/LinkOn.lean` (`common.wp_ServeOn`), an `=` callee of authkv's `Link.lean`.
+
+## C1's A4 and A5: the served `Authenticate` with auth on (2026-10-31, branch `auth-a4`)
+
+User-approved ("Approve all three"; the draft in the session's scratch file, two rounds of the
+`spec-reviewer`). `EtcdServer.Authenticate` (`v3_server.go`) gets a spec and proof, and the gRPC
+server serves it.
+- **`tokenSimple.genTokenPrefix`'s axiom is stronger**: its post was `True` of the prefix and the
+  error; it is now `err = nil ∧ auth.tokPrefixOk s`. Go: 16 letters of `[a-zA-Z]` read through
+  `crypto/rand`'s `Reader`, whose `Read` never returns an error at the pinned toolchain (an OS
+  failure crashes the program instead); it holds while no code reassigns `crypto/rand.Reader`.
+  `authStore.GenTokenPrefix`'s spec, and `tokenProviderOk`'s clause, carry the same post. Why:
+  the proposal's admission (`adminKindOk .authenticate`) needs `tokPrefixOk` of the token prefix
+  (the entry of 2026-10-30, "The simple token's prefix has no space": A4-A5 owe it), and with the
+  error possible the spec would need a case Go never takes.
+- **`EtcdServer.Authenticate.spec` is in the mode `on γa` only** (`E.authMode = .on γa`, a scope
+  restriction: with auth off `CheckPassword` returns `ErrAuthNotEnabled` and the call fails, which
+  a spec could state, but no client needs it). Its premise on the auth store is `authnStoreOk`
+  (`AuthnStore.lean`): the triples of the store's `CheckPassword`, `GenTokenPrefix` and `Revision`
+  at the server's reader resource `E.RD`, the three methods the loop calls through the
+  `AuthStore` interface. It is had of the store's invariant (`authnStoreOk_of_authInv`) and only
+  with auth on, hence the scope. Post: the run's four readers back, the password field owned and
+  cleared on success (the `defer`, `CVE-2021-28235`), the error one the gRPC layer can take, and on
+  `nil` an `*AuthenticateResponse` whose token was issued to the user named (`auth.tokIssued`).
+  The proposal is one round of `raftRequest.specM true` on `irrAuthenticate ⟨name, [], pre⟩`
+  (`AuthnOn.lean`: admitted by `reqPropOkOn`'s pure case, its answer read by `appliedOkM_authn`).
+  The revision loop's earlier rounds issue tokens nobody returns: harmless.
+- **The start chain exports the store's `Authenticate` side**: `authStoreKit`'s auth-on clause
+  holds `authnStoreOk st RD` beside the cost field (`authStoreKit_on`, `authSrvTP_on` gain
+  `CheckPassword`'s and `GenTokenPrefix`'s specs); `NewServer.specM`'s post and `memberUpOn` hold
+  `srvAuthStoreOn s E.RD` (the cost field and `authnStoreOk`) in place of `srvBcryptField s`, which
+  stays as its weakening (`srvBcryptField_of_authStoreOn`).
+- **A5**: `Authenticate` joins `v3rpc.authRegs`; `etcd_kv_auth_served_onA` (the stub of
+  2026-10-28, `client/v3/AuthnServedOn.lean`) is proved, with one premise more than
+  `etcd_kv_auth_served_on`'s, `authnStoreOk (GoInterface.ok ast) E.RD`, its conclusion unchanged;
+  it replaces `etcd_kv_auth_served_on`, which no proof used, and takes its name. The handler's run
+  slot is `authnSlot` (a part of the KV's `etcdGrpcSlot`, `etcdGrpcSlot_authn`).

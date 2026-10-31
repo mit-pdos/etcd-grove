@@ -74,7 +74,10 @@ translate = ["!*", "AuthInfo",
   # `CompareHashAndPassword` stays names only (the trust boundary, D-AU6)
   "authStore.CheckPassword",
   # (authkv's Main, 2026-10-30) the cost getter the Auth service's `UserAdd` calls
-  "authStore.BcryptCost"]
+  "authStore.BcryptCost",
+  # (C1's A4, 2026-10-29) the store's token prefix, the provider's `genTokenPrefix` (the simple
+  # provider's stays names only: `crypto/rand`, `math/big`, the trust boundary)
+  "authStore.GenTokenPrefix"]
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",

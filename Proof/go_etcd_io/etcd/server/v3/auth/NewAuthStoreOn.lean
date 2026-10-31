@@ -184,7 +184,7 @@ theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : 
 theorem tokenProviderOk_of_A (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
     tokenProviderOkA (GF := GF) tp M A ⊢ tokenProviderOk tp M := by
   unfold tokenProviderOkA tokenProviderOk
-  iintro ⟨%ti, %Hti, #H1, #H2, #H3, #H4, #H5⟩
+  iintro ⟨%ti, %Hti, #H1, #H2, #H3, #H4, #H5, #H6⟩
   iexists A, ti
   iframe #
   ipureintro; exact Hti
@@ -429,7 +429,7 @@ theorem newAuthStore_on
   -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept
   ihave #HtpA' := HtpA
   iunfold tokenProviderOkA at HtpA'
-  icases HtpA' with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  icases HtpA' with ⟨%tpi, %Htpi, -, #HEnable, -, -, -, -⟩
   subst Htpi
   (try wp_auto)
   wp_join with [HA «as»]

@@ -3,9 +3,9 @@
 
 `ak_served_kv`: the ghost step between `net.Listen` and `go gs.Serve(l)` with auth on, watchkv's
 `wk_served` without the watch: from `v3rpc.Server`'s postcondition (`grpcUpOn`), the member's
-started facts (`memberUpOn`'s `srvBcryptField`), the listener and the run slots, the right to serve,
+started facts (`memberUpOn`'s `srvAuthStoreOn`: the store's cost field and `Authenticate` side), the listener and the run slots, the right to serve,
 etcd's KV methods with auth on at the address (`akKVOn`), the five Auth admin methods
-(`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_onA`). `ak_served_watch`: its watch
+(`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_on`). `ak_served_watch`: its watch
 half, from the stream server `ak_served_kv` returns, the watch server and its run slots: the watch
 server's facts at the address (`watchAddrFacts`) and its mode (`modeTag`, `Work`'s), the members' KV facts from the auth-on read view
 (`srvKVCoreM_of_readM`, G2's mode-generic `srvKVFacts`).
@@ -77,7 +77,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         □ (|==> idCred ρ.ids 1) ∗
         v3rpc.quotaKVServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
-        v3rpc.authServerIs pa s ∗ srvBcryptField s ∗
+        v3rpc.authServerIs pa s ∗ srvAuthStoreOn s E.RD ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
@@ -91,12 +91,12 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
   imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis]
     with ⟨Hat', Hss, Htok⟩
   · iframe
-  iunfold srvBcryptField at HBF
-  icases HBF with ⟨%stl, %c, #Hfld, #Hc⟩
+  iunfold srvAuthStoreOn at HBF
+  icases HBF with ⟨%stl, %c, #Hfld, #Hc, #Hau⟩
   ihave #Hbc := bcryptCostOk_of_field wpBC stl c $$ Hc
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
-  imod (client.etcd_kv_auth_served_onA addr p q pa s E ρ ρ.rd cid mid n il im iu
+  imod (client.etcd_kv_auth_served_on addr p q pa s E ρ ρ.rd cid mid n il im iu
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty, #stl⟩ regs N γa hγa
       (by
         intro x hx

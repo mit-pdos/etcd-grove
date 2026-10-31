@@ -39,6 +39,7 @@ axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
+axiom auth.tokenSimple.genTokenPrefix.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
@@ -90,6 +91,8 @@ axiom bbolt.Tx.DB_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom bcrypt.CompareHashAndPassword.wp_proof
+axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -117,6 +120,7 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
@@ -158,6 +162,7 @@ axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
+axiom grpc.serve
 axiom grpc.serveStream
 axiom grpc.start
 axiom grpcConn
@@ -369,7 +374,6 @@ sorry EtcdServer.run.wp_proofOn
 sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry authkv.then_commit_nested_refused
-sorry client.etcd_kv_auth_served_onA
 sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
 sorry rnApplyTok_recv

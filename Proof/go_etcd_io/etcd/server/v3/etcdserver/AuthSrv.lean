@@ -99,9 +99,11 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
         -- (authkv's Main, 2026-10-30) with auth on, the store's cost field, read-only
-        -- (`BcryptCost()`'s; `newAuthStore_on`'s)
+        -- (`BcryptCost()`'s; `newAuthStore_on`'s); (C1's A4, 2026-10-31) and its `Authenticate`
+        -- side (`authnStoreOk`, of its invariant: `authnStoreOk_of_authInv`)
         □ (⌜M.isOn = true⌝ →
-          ∃ c : w64, structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c) }})
+          (∃ c : w64, structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c) ∗
+          authnStoreOk st RD) }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
@@ -174,6 +176,29 @@ def srvBcryptField (s : Loc) : IProp GF :=
 
 instance srvBcryptField_persistent (s : Loc) : Persistent (srvBcryptField (GF := GF) s) := by
   unfold srvBcryptField; infer_instance
+
+/-- **The server's auth store with auth on** (persistent; C1's A4, 2026-10-31): `srvBcryptField`'s
+cost field, and the store's `Authenticate` side at the server's reader resource `RD`
+(`authnStoreOk`: `CheckPassword`, `GenTokenPrefix`, `Revision`, what `EtcdServer.Authenticate`
+calls). `NewServer.specM true`'s. -/
+def srvAuthStoreOn (s : Loc) (RD : IProp GF) : IProp GF :=
+  iprop(∃ (stl : Loc) (c : w64),
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"authStore" s ↦□ auth.authIface stl ∗
+    structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c ∗
+    authnStoreOk (auth.authIface stl) RD)
+
+instance srvAuthStoreOn_persistent (s : Loc) (RD : IProp GF) :
+    Persistent (srvAuthStoreOn (GF := GF) s RD) := by
+  unfold srvAuthStoreOn; infer_instance
+
+theorem srvBcryptField_of_authStoreOn (s : Loc) (RD : IProp GF) :
+    srvAuthStoreOn (GF := GF) s RD ⊢ srvBcryptField s := by
+  iintro H
+  iunfold srvAuthStoreOn at H
+  icases H with ⟨%stl, %c, #Hf, #Hc, -⟩
+  iunfold srvBcryptField
+  iexists stl, c
+  iframe Hf Hc
 
 end defs
 
@@ -271,6 +296,8 @@ theorem authStoreKit_on
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
     (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
+    (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
+    (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
@@ -391,7 +418,8 @@ theorem authStoreKit_on
   · iintro !> %Hm
     exfalso; cases Hm
   iintro !> -
-  iexact Hbc
+  iframe Hbc
+  iapply authnStoreOk_of_authInv hCP hGT h_Revision stp R (.on γa) $$ [$Hpkg $Hinv]
 
 /-- **`authSrvTP true`** (see the file header): the simple provider, its names the auth names'
 token names, the auth names allocated over the boot state, the kit in the mode `on`. -/
@@ -399,6 +427,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_GTP : auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG))
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Int : zap.Int'.spec (GF := GF) (hG := hG))
     (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG))
@@ -423,6 +452,8 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
     (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
+    (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
+    (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     authSrvTP (GF := GF) true := by
   intro lg opts iw ttl
@@ -443,14 +474,14 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   imod (auth.authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn⟩
   obtain ⟨hγt, hγf⟩ := Hγ
   subst hγt hγf
-  ihave #HtpA := auth.tokenSimple_okA_run hValid h_Debug h_String p γa $$ [$Hpkg $Hok]
+  ihave #HtpA := auth.tokenSimple_okA_run hValid h_Debug h_String h_GTP p γa $$ [$Hpkg $Hok]
   imodintro
   iexists (.on γa)
   isplitr
   · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-    hRoleGrantPermissionB hAuthnB hD22 _ γa (auth.simpleAdmin p))
+    hRoleGrantPermissionB hAuthnB hCP hGT hD22 _ γa (auth.simpleAdmin p))
     $$ [$HtpA $HA $Hown $Hcur $HI $Hfr $Hcap $Hcn]
 
 end proof

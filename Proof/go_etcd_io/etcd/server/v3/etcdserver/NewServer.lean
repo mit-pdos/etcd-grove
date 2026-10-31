@@ -1398,15 +1398,15 @@ theorem NewServer.wp_proofM (on : Bool)
   · iunfold srvLessorNil
     iexists (lease.lessorIface lp)
     iframe Hlnil lessor
-  -- (authkv's Main) with auth on, the store's cost field
-  ihave #HBF : iprop(□ (⌜on = true⌝ → srvBcryptField s)) $$ []
+  -- (authkv's Main) with auth on, the store's cost field; (C1's A4) and its `Authenticate` side
+  ihave #HBF : iprop(□ (⌜on = true⌝ → srvAuthStoreOn s RD)) $$ []
   · iintro !> %hon
     icases HM with %HM
-    ihave ⟨%c, #Hc⟩ := Hbc $$ %(by rw [HM.1]; exact hon)
-    iunfold srvBcryptField
+    ihave ⟨⟨%c, #Hc⟩, #Hau⟩ := Hbc $$ %(by rw [HM.1]; exact hon)
+    iunfold srvAuthStoreOn
     iexists astl, c
     rw [← Hastl]
-    iframe authStore Hc
+    iframe authStore Hc Hau
   imodintro
   wp_auto
   iapply HΦ

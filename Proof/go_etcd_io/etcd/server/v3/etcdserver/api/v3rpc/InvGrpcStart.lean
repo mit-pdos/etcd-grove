@@ -130,7 +130,8 @@ theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
 
 /-- The Auth service's methods `v3rpc.Server` registers that `examples/authkv`'s `SetUp` calls, with
 the `*AuthServer` `p` (the auth plan's E3zb): `UserAdd`, `UserGrantRole`, `RoleAdd`,
-`RoleGrantPermission`, `AuthEnable`. -/
+`RoleGrantPermission`, `AuthEnable`, and (C1's A5, 2026-10-31) `Authenticate`, which a client's `New`
+calls. -/
 def v3rpc.authRegs (p : Loc) : List (GoString × val × GoInterface) :=
   [(go!"/etcdserverpb.Auth/UserAdd", (@! etcdserverpb._Auth_UserAdd_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
@@ -141,6 +142,8 @@ def v3rpc.authRegs (p : Loc) : List (GoString × val × GoInterface) :=
    (go!"/etcdserverpb.Auth/RoleGrantPermission", (@! etcdserverpb._Auth_RoleGrantPermission_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
    (go!"/etcdserverpb.Auth/AuthEnable", (@! etcdserverpb._Auth_AuthEnable_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/Authenticate", (@! etcdserverpb._Auth_Authenticate_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p)]
 
 /-- **The Auth service's registration contains `authRegs`** (from the descriptor's methods). -/
@@ -152,8 +155,9 @@ theorem v3rpc.authRegs_sub (p : Loc) (mds : List google_golang_org.grpc.MethodDe
   rw [v3rpc.descRegs_eq, h]
   simp only [v3rpc.authRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
   simp only [v3rpc.authDescMethods, List.map_cons, List.map_nil]
-  -- the positions of UserAdd, UserGrantRole, RoleAdd, RoleGrantPermission, AuthEnable
-  rcases hx with rfl | rfl | rfl | rfl | rfl
+  -- the positions of UserAdd, UserGrantRole, RoleAdd, RoleGrantPermission, AuthEnable,
+  -- Authenticate
+  rcases hx with rfl | rfl | rfl | rfl | rfl | rfl
   · iterate 4 apply List.mem_cons_of_mem
     exact List.mem_cons_self ..
   · iterate 9 apply List.mem_cons_of_mem
@@ -163,6 +167,8 @@ theorem v3rpc.authRegs_sub (p : Loc) (mds : List google_golang_org.grpc.MethodDe
   · iterate 15 apply List.mem_cons_of_mem
     exact List.mem_cons_self ..
   · exact List.mem_cons_self ..
+  · iterate 3 apply List.mem_cons_of_mem
+    exact List.mem_cons_self ..
 
 /-- The Auth descriptor's names are distinct. -/
 theorem v3rpc.authDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)

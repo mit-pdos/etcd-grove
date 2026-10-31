@@ -288,6 +288,7 @@ axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
+axiom auth.tokenSimple.genTokenPrefix.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
@@ -778,7 +779,6 @@ sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry authkv.then_commit_nested_refused
-sorry client.etcd_kv_auth_served_onA
 sorry isRaftNodeIfc_of_isNode
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

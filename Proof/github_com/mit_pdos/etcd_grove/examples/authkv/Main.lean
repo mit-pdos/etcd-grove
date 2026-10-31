@@ -24,8 +24,7 @@ checks, which never panics; every error's return of `Failed`, a watch that ends 
 
 What the result still rests on (`etc/tcb-collections/authkv.txt`): `startServer`, linked as pending
 (`Results.lean`'s `authkv_Main` takes its premises); `Work`'s nested-transaction part
-(`then_commit_nested_refused`, T4); the registration of `Authenticate`
-(`client.etcd_kv_auth_served_onA`, C1's A5); and the server's apply thread and raft node loop.
+(`then_commit_nested_refused`, T4); and the server's apply thread and raft node loop.
 -/
 module
 

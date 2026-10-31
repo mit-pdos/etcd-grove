@@ -1,11 +1,11 @@
 # Plan: C1, a user client's attempts carry its user's token (spec-first)
 
-Status (2026-10-28): the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left. Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
+Status (2026-10-31): C1 done: A4 and A5 proved (branch `auth-a4`; `notes/decisions.md`, "C1's A4 and A5"): `EtcdServer.Authenticate` in the mode `on γa`, the handler in `authRegs`, `etcd_kv_auth_served_on` proved and swapped for `etcd_kv_auth_served_on`. (2026-10-28: the client side done (phase 2, `bdff5812a6`); the server's A1, A2 and A3 done (A2: phase 1 `3667ec323a`, phase 2 below; "A3 done" below), A4-A5 left.) Before: phase 0 decided (2026-10-28, the user's: 1 (a), 2 yes, 3 no: the anonymous client is a later stage). Phase 1 drafted
 (2026-10-28, "Phase 1: the statements" below); next: the spec-review round (phase 1b), then the
 proofs. (Phase 1's note "not to be merged into `lean` before the proofs" held while its `sorry`s
 sat under `New` and the retry interceptor; phase 2 proved them. A1-A3 merged into `lean`
 2026-10-29, at the user's request, for the auth-mode merge: C1's one open `sorry`,
-`etcd_kv_auth_served_onA`, has no consumer, so no result rests on it. A4's draft is parked on
+`etcd_kv_auth_served_on`, has no consumer, so no result rests on it. A4's draft is parked on
 branch `auth-a4-wip`.) The auth plan's item 2
 (`notes/decisions.md`, "E3zb of the auth plan", "What is left"; E2b's contract C1), run as a
 spec-first stage (`notes/spec-first-plan.md`).
@@ -174,7 +174,7 @@ New specs: `authClient.Authenticate`, `retryAuthClient.Authenticate`, the genera
 Glue (proved): `ClientUser.lean`'s `userClientAt` (C1), `clientAttempt_tok`, `userClientAt_of`,
 `clientTokAt_user`; `AuthnServedOn.lean`'s `etcdAuthenticateSpec γa` (the server's spec: a reply's
 token is issued to the user named) and `authTokReg_of` (`New`'s premise from it). So: a member
-serving `Authenticate` with auth on (`etcd_kv_auth_served_onA`) gives `authTokReg [addr] u pw
+serving `Authenticate` with auth on (`etcd_kv_auth_served_on`) gives `authTokReg [addr] u pw
 (tokIssued γa · u)`; `New` at that `P` gives `clientTokAt`; `clientTokAt_user` gives `KV`'s
 connection with `userClientAt conn γa u`.
 
@@ -188,7 +188,7 @@ The `sorry`s (phase 2): `getToken` (was an axiom); `authClient.Authenticate`,
 `authClient.Authenticate`, `retryAuthClient.Authenticate`, `etcdserverpb`'s
 `authClient.Authenticate`, and `credentials`' `perRPCCredentialBundle.UpdateAuthToken`, in the
 Goose configurations); the bundle's `UpdateAuthToken` (not translated yet);
-`etcd_kv_auth_served_onA` (the handler: `EtcdServer.Authenticate` has no spec yet; then it
+`etcd_kv_auth_served_on` (the handler: `EtcdServer.Authenticate` has no spec yet; then it
 replaces `etcd_kv_auth_served_on`); and finding 3's two holes. Axioms: +2 (the cell's
 `GetRequestMetadata`, `UpdateAuthToken`, finding 2), −1 (`getToken`).
 
@@ -284,7 +284,7 @@ The client side is proved; C1's chain rests on no `sorry` but the served `Authen
   it by `ctxErrClientAllW_of`, as `authkv`'s `Main` premises allow); `getToken` derives the call's
   `ctxErrClient` from `ctxOk`: an `isContext` by it, a quiet context at a fresh descriptor of its
   own (`quiet_ctx`, `InvClientAuth`). The interceptor's and `newClient`'s holes are gone.
-- Left: `etcd_kv_auth_served_onA` (`AuthnServedOn.lean`), a server-side stage of its own:
+- Left: `etcd_kv_auth_served_on` (`AuthnServedOn.lean`), a server-side stage of its own:
   `EtcdServer.Authenticate` (translated, unproved: `CheckPassword`, the raft request, the retry on
   `ErrAuthOldRevision`), the Authenticate request admitted by `reqPropOkOn` (as `adminPropOk`'s),
   the apply path's `authStore.Authenticate` (`authenticated`) tied to `auth.tokIssued`,
@@ -293,7 +293,7 @@ The client side is proved; C1's chain rests on no `sorry` but the served `Authen
 
 ## The served `Authenticate`: the stage plan (2026-10-28)
 
-`etcd_kv_auth_served_onA` needs the server's whole `Authenticate` path in the mode `on γa`, none of
+`etcd_kv_auth_served_on` needs the server's whole `Authenticate` path in the mode `on γa`, none of
 which a result reaches today. What exists: `authStore.Authenticate` (`authenticated M hs u resp err`,
 whose success gives `tokOk M tok u`, in `on γa` `tokIssued γa tok u`), its premise `authnCtx M ctx`
 (the context's index and prefix, and the right to issue `simpleTok pre idx`, `freshOk`), the
@@ -315,7 +315,7 @@ provider's contract (`TokenSimple`), `CheckPassword`, `Revision`, `LinearizableR
   loop (a retry keeps the earlier token's issue: harmless, the response is the last one), the
   `defer` clearing `Password`. Specs in the mode `on` as `UserAdd.specOn`.
 - **A5. The handler**: `authInnerOk` for `Authenticate` from A4, the registration in `authRegs`
-  (Q9: one registration for every mode), then `etcd_kv_auth_served_onA`'s proof and its swap for
+  (Q9: one registration for every mode), then `etcd_kv_auth_served_on`'s proof and its swap for
   `etcd_kv_auth_served_on`.
 
 Effort, by analogy with E3n/E3w (the admin entries, each several sessions): A1 and A2 are the

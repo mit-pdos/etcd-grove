@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Authenticate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthSteps
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthFuel
@@ -1924,7 +1925,8 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
         auth.simpleWaitOk p ⊢
       auth.tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
-  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof p γa
+  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof
+    auth.tokenSimple.wp_genTokenPrefix p γa
 
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
 `auth/NewAuthStoreOn.lean`): over the store's backend contracts and the token provider's, the
@@ -2023,6 +2025,7 @@ with auth on (`notes/decisions.md`, "E2i of the auth plan"). -/
 theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : authSrvTP (GF := GF) (hG := hG) true :=
   authSrvTP_on auth.wp_NewTokenProvider hValid zap.Logger.wp_Debug zap.String.wp_proof
+    auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
     auth.authStore.wp_AuthInfoFromCtx auth.authStore.wp_AuthInfoFromTLS
@@ -2044,7 +2047,8 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
       auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String
       zap.wp_ByteString zap.Logger.wp_Info)
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
-      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) hD22
+      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write)
+    auth.authStore.wp_CheckPassword auth.authStore.wp_GenTokenPrefix hD22
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
@@ -2335,6 +2339,14 @@ theorem server_user_grant_role_on : EtcdServer.UserGrantRole.specOn (GF := GF) (
 theorem server_role_grant_permission_on :
     EtcdServer.RoleGrantPermission.specOn (GF := GF) (hG := hG) :=
   EtcdServer.RoleGrantPermission.wp_proofOn server_raft_request_on
+
+/-- **`Authenticate` with auth on** (C1's A4, 2026-10-31): the read index, then the retry loop of
+`CheckPassword`, `GenTokenPrefix` and one proposal in the mode `on` (`server_raft_request_on`); on
+`nil` an `*AuthenticateResponse` whose token was issued to the request's user. Every callee
+linked; the auth store's side is the premise `authnStoreOk`. -/
+theorem server_authenticate_on : EtcdServer.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Authenticate.wp_proof server_raft_request_on EtcdServer.wp_Logger EtcdServer.wp_AuthStore
+    zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_String zap.wp_Error errors.wp_Is
 
 end serverProposeOn
 
