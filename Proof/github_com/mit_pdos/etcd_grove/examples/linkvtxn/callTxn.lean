@@ -112,7 +112,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   wp_apply Hccancel
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
-    obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
+    obtain ⟨hok, hrel, hrev, hb, -⟩ := Hσ
     iunfold txnRespMsg at Hm
     icases Hm with ⟨%Hnn, %h, %sl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hsl, #Hms⟩
     iunfold hdrFull at Hhf

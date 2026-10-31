@@ -147,7 +147,7 @@ def kmLog (γ : KMNames) (W : Log) : IProp GF :=
   iprop(∃ l : List (List Change), monoListLbOwn γ.ch l ∗
     ⌜W <+: [] :: l ∧ LogWf' W ∧ W.length < 2 ^ 63 ∧ LogSmall W ∧
       -- (2026-10-30, `notes/keylen.md`) its keys short (`kvLogOkTo`'s)
-      LogKeysLe etcdKeyMax W⌝)
+      LogPutsLe etcdKeyMax W⌝)
 
 instance kmLog_persistent (γ : KMNames) (W : Log) : Persistent (kmLog (GF := GF) γ W) := by
   unfold kmLog; infer_instance
@@ -250,6 +250,15 @@ theorem kmEtcdState_keys (γ : KMNames) (r : w64) (pfx : GoString) (s : List Etc
   obtain ⟨-, -, rfl⟩ := h
   intro v hv
   exact stateAt_keys Hw.2.2.2.2 _ v (mem_underPfx.1 hv).1
+
+theorem kmEtcdState_vals (γ : KMNames) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+    kmEtcdState (GF := GF) γ r pfx s ⊢ ⌜∀ v ∈ s, v.value.length ≤ etcdKeyMax⌝ := by
+  unfold kmEtcdState kmLog
+  iintro ⟨%L, ⟨%l, -, %Hw⟩, %h⟩
+  ipureintro
+  obtain ⟨-, -, rfl⟩ := h
+  intro v hv
+  exact stateAt_vals Hw.2.2.2.2 _ v (mem_underPfx.1 hv).1
 
 theorem kmEtcdState_create_persist (γ : KMNames) (r a : w64) (pfx : GoString)
     (s s' : List EtcdKv) :
@@ -393,6 +402,7 @@ def etcdModelOfKV (γ : KMNames) : EtcdModel GF where
   etcdState_agree := kmEtcdState_agree γ
   etcdState_revs := kmEtcdState_revs γ
   etcdState_keys := kmEtcdState_keys γ
+  etcdState_vals := kmEtcdState_vals γ
   etcdState_create_persist := kmEtcdState_create_persist γ
   etcdState_modrev_det := kmEtcdState_modrev_det γ
   etcdState_modrev_persist := kmEtcdState_modrev_persist γ

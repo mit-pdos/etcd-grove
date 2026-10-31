@@ -71,7 +71,7 @@ theorem store.conditionalDelete.wp_proof
   iunfold getStateOk at Hf
   wp_apply Hf $$ [Hmk] as %st %err Hr
   · iexact Hmk
-  icases Hr with (#Herr | ⟨%σ, #Hrq, Hat⟩)
+  icases Hr with (#Herr | ⟨%σ, #Hrq, -, Hat⟩)
   · ihave %Hne := unkErr_ne c err $$ Herr
     cases err with
     | nil => exact absurd rfl Hne

@@ -14,6 +14,14 @@ caller's callback, answering `f` (`tryUpdateOk`).
 
 For now the key is valid, `ignoreNotFound` is false, and there are no preconditions and no cached
 object; `tryUpdate` sets no TTL (D30d).
+
+**The written result fits etcd's request limit** (`notes/decisions.md`, "GuaranteedUpdate's size
+premise"): the premise bounds `tryUpdate`'s result `o'` (`storedSizeOk`) only where the store
+writes it, as Go does: `o'` from the object `o` decoded from a stored value `v` (the transformer's
+data `d`, stale or not), when that reading is stale or `o'`'s encoding differs from `d` (Go's
+no-op skip is `!origState.stale && bytes.Equal(data, origState.data)`). The value read is within
+etcd's limit (`v.length ≤ 2 ^ 27`, the server's `etcdState_vals`), which a caller whose result
+grows the value boundedly uses.
 -/
 module
 
@@ -46,7 +54,9 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
     [Timeless W] (Φ : KVState → IProp GF) (k : GoString),
   prepareKeyM c.resourcePrefix key false = some k →
   (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
-  (∀ o n o', f o n = .ok o' → c.S.storedSizeOk o') →
+  (∀ (v d : GoString) (stl : Bool) (o : Obj) (n : Nat) (o' : Obj), v.length ≤ 2 ^ 27 →
+    c.S.fromS v = some (d, stl) → c.S.decode d = some o → f o n = .ok o' →
+    (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt dest o0 rv0 ∗ W ∗
       ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) c.S.zero f) W Φ) ∗

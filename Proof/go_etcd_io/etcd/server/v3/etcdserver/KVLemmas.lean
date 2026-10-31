@@ -211,7 +211,7 @@ theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryM
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
 theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryKeysOk e) :
+    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWork at Hw
@@ -220,7 +220,7 @@ theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : E
   isplitr
   · ipureintro
     obtain ⟨hs0, hc0, hk0, hl0⟩ := Hsh
-    refine ⟨?_, fun m hm => ?_, logKeysOk_snoc L e hk0 hk, hl0⟩
+    refine ⟨?_, fun m hm => ?_, logPutsOk_snoc L e hk0 hk, hl0⟩
     · rw [logShape_append]
       refine ⟨hs0, fun m hm => ?_⟩
       rw [List.mem_singleton] at hm; subst hm; exact hs
@@ -236,7 +236,7 @@ theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : E
 the request's shape (`reqPropOk`'s `rqShape`). -/
 theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
-    (hk : apply.irrKeysLe etcdKeyMax rq)
+    (hk : apply.irrPutsLe etcdKeyMax rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE : ↑kvN ⊆ E) :
     ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗
@@ -291,7 +291,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         cases h
         exact hnw
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryKeysOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -351,7 +351,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryKeysOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -414,7 +414,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryKeysOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]

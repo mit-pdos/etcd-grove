@@ -169,8 +169,8 @@ local macro "piro_tail" : tactic => `(tactic| (
     (try wp_auto)
     rw [Hhvid]
     obtain ⟨Hdec, Hwire, Hbsne, Hkeys⟩ := Hbsdec
-    have Hk : apply.irrKeysLe etcdKeyMax rq' := by
-      refine Hkeys.keys.mono ?_
+    have Hk : apply.irrPutsLe etcdKeyMax rq' := by
+      refine Hkeys.mono ?_
       unfold v3rpc.etcdMaxRequestBytesOk v3rpc.etcdMaxRecvMsgSize v3rpc.grpcOverheadBytes at Hmrbv
       unfold etcdKeyMax
       word

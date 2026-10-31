@@ -215,7 +215,7 @@ shape (`logShape`: a request's premise at every log but for its size clauses; a 
 `0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
 audit phase B3), and every id claimed. -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logKeysOk L ∧ mvcc.LogKeysLe etcdKeyMax γk.log0⌝ ∗
+  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :

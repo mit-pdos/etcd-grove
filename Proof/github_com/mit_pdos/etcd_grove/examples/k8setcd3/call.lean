@@ -233,28 +233,32 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [← hz]; iexact Hr0
     ihave #Hupd := tryUpdateD_ok c hc eU x uf $$ [HvU HU Huf]
     · iframe #
+    have hsz : ∀ (w d : GoString) (stl : Bool) (o : DObj) (n : Nat) (o' : DObj),
+        w.length ≤ 2 ^ 27 → c.S.fromS w = some (d, stl) → c.S.decode d = some o →
+        updD eU x o n = .ok o' → (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o' := by
+      intro w d stl o n o' hw hfs hdec h _
+      rw [hc] at hfs hdec ⊢
+      unfold updD at h
+      split at h
+      · cases h
+      cases h
+      intro v hv
+      cases hv
+      show (encodeWith tagV1 (updObj x o).1.1 (updObj x o).1.2).length ≤ 2 ^ 28
+      have ho := o.2
+      simp only [updObj]
+      split
+      · -- a no-op update writes the object read, re-encoded (a `v0:` value as `v1:`): as long
+        -- as the stored value, within etcd's limit (`GuaranteedUpdate.spec`'s premise)
+        change some (w, false) = some (d, stl) at hfs
+        cases hfs
+        rw [decodeObjD_encode_length _ o hdec]
+        omega
+      · simp [encodeWith]; omega
     wp_apply (wp_Update DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0)
         (updD eU x) uf W Φu (storeKeyL x.Key') hkey hkl
-        (by
-          intro o n o' h
-          rw [hc]
-          unfold updD at h
-          split at h
-          · cases h
-          cases h
-          intro v hv
-          cases hv
-          show (encodeWith tagV1 (updObj x o).1.1 (updObj x o).1.2).length ≤ 2 ^ 28
-          have ho := o.2
-          simp only [updObj]
-          split
-          · -- BLOCKED (2026-10-31, `notes/invoke-size.md`, pass 4): a no-op update stores the
-            -- object it read, whose value `GuaranteedUpdate`'s premise (every result of the update
-            -- function, from any object) does not bound. The goal left is
-            -- `(encodeWith tagV1 o.1.1 o.1.2).length ≤ 2 ^ 28` for an arbitrary `o`.
-            skip
-          · simp [encodeWith]; omega)) $$ [Hout HW Haus] as %err0 Hres
+        hsz) $$ [Hout HW Haus] as %err0 Hres
     · iframe #
       iframe Hout HW
       rw [hpp, hz0]

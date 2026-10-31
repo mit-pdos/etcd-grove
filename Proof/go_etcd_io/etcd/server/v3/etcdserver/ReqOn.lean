@@ -667,7 +667,7 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     (Gb : apply.HeaderModel → IProp GF) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (hd : d ≠ [])
     (hdec : apply.irrDecode d = some rq') (hw : irrWireOf (apply.withHeader rq hm) rq')
-    (hk : apply.irrKeysLe etcdKeyMax rq') (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
+    (hk : apply.irrPutsLe etcdKeyMax rq') (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
     ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
       □ (⌜on = true⌝ → Gb hm) -∗
       reqPropOkM on γ γk Gb rq Qh ={E}=∗ srvPropAu1 γ d (Qh hm) ∗ srvQInv γ (Qh hm) := by

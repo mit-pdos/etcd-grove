@@ -156,7 +156,7 @@ theorem store.updateOnce.wp_proof
       iunfold rdFacts at Hfs'
       icases Hfs' with ⟨%Hw0, #Hseen⟩
       have Hσf : kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ sameAt key s.rev kv0 σ := ⟨Hw0.1, Hw0.2, HAσ⟩
-      obtain ⟨hsucc, hrevσ, hb⟩ := Hσ
+      obtain ⟨hsucc, hrevσ, hb, hvals⟩ := Hσ
       have hc := put_cases c σ Hσf.1 Hσf.2.1 key val s.rev hr (fun _ => by rw [hdv]; rfl)
       (try wp_auto)
       wp_apply wp_AddEvent span _ _ $$ []
@@ -210,6 +210,8 @@ theorem store.updateOnce.wp_proof
           iframe Hout
           iexists σ
           iframe Hfs Hres
+          isplitl []
+          · ipureintro; exact hvals
           unfold stAt
           rw [hfk, ← hrevσ]
           isplitr
@@ -235,6 +237,8 @@ theorem store.updateOnce.wp_proof
           iframe Hout
           iexists σ
           iframe Hfs Hres
+          isplitl []
+          · ipureintro; exact hvals
           unfold stAt
           rw [hfk]
           isplitr

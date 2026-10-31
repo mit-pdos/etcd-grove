@@ -158,7 +158,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       done
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, -, hrev, hb⟩ := Hσ
+      obtain ⟨hok, -, hrev, hb, hvals⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf
@@ -176,7 +176,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
         simp [callRes, linkv.MIn.isWrite, linkv.MOp.isWrite]
       isplitl []
       · ipureintro
-        exact ⟨hok, hrev, hb⟩
+        exact ⟨hok, hrev, hb, hvals⟩
       simp only [Bool.false_and, Bool.false_eq_true, ↓reduceIte]
       ipureintro; first | rfl | trivial
     · cases err with
@@ -236,7 +236,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       iframe
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
+      obtain ⟨hok, hrel, hrev, hb, hvals⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf
@@ -281,7 +281,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
             simp [callRes, linkv.MIn.isWrite, linkv.MOp.isWrite]
           isplitl []
           · ipureintro
-            exact ⟨hok, hrev, hb⟩
+            exact ⟨hok, hrev, hb, hvals⟩
           simp only [Bool.not_false, Bool.and_self, ↓reduceIte]
           iexact Hkv
       · -- the comparison held: no `KV`
@@ -296,7 +296,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
           simp [callRes, linkv.MIn.isWrite, linkv.MOp.isWrite]
         isplitl []
         · ipureintro
-          exact ⟨(hok.symm.trans hs).symm, hrev, hb⟩
+          exact ⟨(hok.symm.trans hs).symm, hrev, hb, hvals⟩
         simp only [Bool.not_true, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
         ipureintro; first | rfl | trivial
     · cases err with

@@ -241,7 +241,7 @@ instance watchLaws_persistent (V : WEnv GF) : Persistent (watchLaws V) := by
 watched log of the server, small, (2026-10-30, `notes/keylen.md`) its keys short, at the server's
 store names. -/
 def srvWL (R : v3rpc.WSrv GF) (L : mvcc.Log) : IProp GF :=
-  iprop(mvcc.evLog R.γ.st L ∗ ⌜txn.LogSmall L ∧ mvcc.LogKeysLe etcdKeyMax L ∧ R.γ.st = R.E.γ⌝)
+  iprop(mvcc.evLog R.γ.st L ∗ ⌜txn.LogSmall L ∧ mvcc.LogPutsLe etcdKeyMax L ∧ R.γ.st = R.E.γ⌝)
 
 instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL R L) := by
   unfold srvWL; infer_instance
@@ -454,7 +454,7 @@ theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : 
     · rw [← hst]; iapply mvcc.evLog_certOk $$ He
     iunfold srvKVFacts at Hfacts
     icases Hfacts with ⟨%on, %γr, #Hcore, #H0, -⟩
-    imod srvKVCoreM_keys on R.E γr [[], []] L (by decide) (mvcc.LogKeysLe.empties _)
+    imod srvKVCoreM_keys on R.E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
       $$ Hcore H0 Hsl Hc with %Hk
     imodintro
     imodintro

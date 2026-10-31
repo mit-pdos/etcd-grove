@@ -63,7 +63,8 @@ abbrev Client.Get.spec : Prop :=
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (err : GoInterface),
       RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) (modAt key σ) σ ∗
-        ⌜resp.Revision' = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ ∗
+        ⌜resp.Revision' = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧
+          ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗
         kvOut resp.KV' (mvcc.findKey key σ.kvs)) ∨
       ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
         go_etcd_io.etcd.cache.v3.errCellOk err }}

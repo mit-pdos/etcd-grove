@@ -894,7 +894,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
-    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogKeysLe etcdKeyMax γk.log0) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
@@ -985,7 +985,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     iunfold kvWorkOn
     iframe Hcl
     ipureintro
-    exact ⟨hshape, hccl, fun m hm => entryKeysOk_conf m (by rw [hty m hm]; decide), hlk⟩
+    exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (by rw [hty m hm]; decide), hlk⟩
   imodintro
   iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2

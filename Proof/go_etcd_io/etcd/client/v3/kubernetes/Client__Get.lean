@@ -113,7 +113,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   · subst Herr
     ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrevσ, hb⟩ := Hσ
+    obtain ⟨hsel, hrevσ, hb, hvals⟩ := Hσ
     rw [rangeWireOf_getKey1] at hsel
     have hkvs := srvRangeOk_getKey1 key σ.kvs m.kvs m.more hsel
     iunfold rangeRespMsg at Hm
@@ -149,7 +149,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         rw [e1, ← hrevσ]
         iframe HQ
         isplitl []
-        · ipureintro; exact ⟨rfl, hb⟩
+        · ipureintro; exact ⟨rfl, hb, hvals⟩
         rw [hk]
         simp only [kvOut]
         ipureintro; first | rfl | trivial
@@ -190,7 +190,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
           rw [e1, ← hrevσ]
           iframe HQ
           isplitl []
-          · ipureintro; exact ⟨rfl, hb⟩
+          · ipureintro; exact ⟨rfl, hb, hvals⟩
           rw [hk]
           iapply kvOut_some
           iexact Hkv

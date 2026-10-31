@@ -137,7 +137,7 @@ theorem Client.OptimisticDelete.wp_proof
       done
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, -, hrev, hb⟩ := Hσ
+      obtain ⟨hok, -, hrev, hb, -⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf
@@ -215,7 +215,7 @@ theorem Client.OptimisticDelete.wp_proof
       iframe
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
+      obtain ⟨hok, hrel, hrev, hb, -⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf

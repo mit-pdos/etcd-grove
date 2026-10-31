@@ -325,39 +325,40 @@ theorem stateAt_append_ge (log : Log) (cs : List Change) {r : Nat} (hr : log.len
   unfold stateAt
   rw [List.take_of_length_le (by simp; omega), stateAfter_append]
 
-/-! ### Key lengths (2026-10-30, `notes/keylen.md`) -/
+/-! ### Key and value lengths (2026-10-30, `notes/keylen.md`; values 2026-10-31,
+`notes/vallen.md`) -/
 
-/-- **Every key the changes put is at most `n` bytes.** -/
-def ChKeysLe (n : Nat) (cs : List Change) : Prop :=
-  ∀ (k v : GoString) (l : w64), Change.put k v l ∈ cs → k.length ≤ n
+/-- **Every key and value the changes put is at most `n` bytes.** -/
+def ChPutsLe (n : Nat) (cs : List Change) : Prop :=
+  ∀ (k v : GoString) (l : w64), Change.put k v l ∈ cs → k.length ≤ n ∧ v.length ≤ n
 
-/-- **Every key the log's puts write is at most `n` bytes.** -/
-def LogKeysLe (n : Nat) (log : Log) : Prop := ∀ cs ∈ log, ChKeysLe n cs
+/-- **Every key and value the log's puts write is at most `n` bytes.** -/
+def LogPutsLe (n : Nat) (log : Log) : Prop := ∀ cs ∈ log, ChPutsLe n cs
 
-theorem LogKeysLe.prefix {n : Nat} {l L : Log} (hp : l <+: L) (h : LogKeysLe n L) : LogKeysLe n l :=
+theorem LogPutsLe.prefix {n : Nat} {l L : Log} (hp : l <+: L) (h : LogPutsLe n L) : LogPutsLe n l :=
   fun cs hcs => h cs (hp.subset hcs)
 
-theorem LogKeysLe.take {n : Nat} {L : Log} (h : LogKeysLe n L) (k : Nat) : LogKeysLe n (L.take k) :=
+theorem LogPutsLe.take {n : Nat} {L : Log} (h : LogPutsLe n L) (k : Nat) : LogPutsLe n (L.take k) :=
   h.prefix (List.take_prefix k L)
 
-theorem LogKeysLe.snoc {n : Nat} {L : Log} {cs : List Change} (h : LogKeysLe n L)
-    (hc : ChKeysLe n cs) : LogKeysLe n (L ++ [cs]) := by
+theorem LogPutsLe.snoc {n : Nat} {L : Log} {cs : List Change} (h : LogPutsLe n L)
+    (hc : ChPutsLe n cs) : LogPutsLe n (L ++ [cs]) := by
   intro c hcs
   rcases List.mem_append.1 hcs with hcs | hcs
   · exact h c hcs
   · rw [List.mem_singleton] at hcs; subst hcs; exact hc
 
 /-- The start log (`NewStore`'s two empty revisions) puts no key. -/
-theorem LogKeysLe.empties (n : Nat) : LogKeysLe n [[], []] := by
+theorem LogPutsLe.empties (n : Nat) : LogPutsLe n [[], []] := by
   intro cs hcs k v l hk
   simp only [List.mem_cons, List.not_mem_nil, or_false, or_self] at hcs
   subst hcs; cases hk
 
-theorem LogKeysLe.mono {n m : Nat} (hnm : n ≤ m) {L : Log} (h : LogKeysLe n L) : LogKeysLe m L :=
-  fun cs hcs k v l hk => Nat.le_trans (h cs hcs k v l hk) hnm
+theorem LogPutsLe.mono {n m : Nat} (hnm : n ≤ m) {L : Log} (h : LogPutsLe n L) : LogPutsLe m L :=
+  fun cs hcs k v l hk => ⟨Nat.le_trans (h cs hcs k v l hk).1 hnm, Nat.le_trans (h cs hcs k v l hk).2 hnm⟩
 
 /-- The keys of a state after changes: the state's, or a put's. -/
-theorem applyChanges_keys {n : Nat} (r : w64) (cs : List Change) (hc : ChKeysLe n cs) :
+theorem applyChanges_keys {n : Nat} (r : w64) (cs : List Change) (hc : ChPutsLe n cs) :
     ∀ s : List EtcdKv, (∀ v ∈ s, v.key.length ≤ n) →
       ∀ v ∈ applyChanges r s cs, v.key.length ≤ n := by
   induction cs with
@@ -372,7 +373,7 @@ theorem applyChanges_keys {n : Nat} (r : w64) (cs : List Change) (hc : ChKeysLe 
     | put k v l =>
       simp only [applyChange, putKv] at hx
       rcases btInsert_mem hx with rfl | h
-      · have hk := hc k v l (List.mem_cons_self ..)
+      · have hk := (hc k v l (List.mem_cons_self ..)).1
         split
         · rename_i y hy
           have := List.find?_some hy
@@ -383,11 +384,11 @@ theorem applyChanges_keys {n : Nat} (r : w64) (cs : List Change) (hc : ChKeysLe 
     | del k => exact hs x (List.mem_filter.1 hx).1
 
 /-- **A state's keys are short** when its log's puts' are. -/
-theorem stateAfter_keys {n : Nat} {log : Log} (h : LogKeysLe n log) :
+theorem stateAfter_keys {n : Nat} {log : Log} (h : LogPutsLe n log) :
     ∀ v ∈ stateAfter log, v.key.length ≤ n := by
   unfold stateAfter
   have : ∀ (l : List (List Change × Nat)) (s : List EtcdKv), (∀ v ∈ s, v.key.length ≤ n) →
-      (∀ p ∈ l, ChKeysLe n p.1) →
+      (∀ p ∈ l, ChPutsLe n p.1) →
       ∀ v ∈ l.foldl (fun s p => applyChanges (W64 p.2) s p.1) s, v.key.length ≤ n := by
     intro l
     induction l with
@@ -400,9 +401,52 @@ theorem stateAfter_keys {n : Nat} {log : Log} (h : LogKeysLe n log) :
   intro p hp
   exact h p.1 (List.fst_mem_of_mem_zipIdx hp)
 
-theorem stateAt_keys {n : Nat} {log : Log} (h : LogKeysLe n log) (r : Nat) :
+theorem stateAt_keys {n : Nat} {log : Log} (h : LogPutsLe n log) (r : Nat) :
     ∀ v ∈ stateAt log r, v.key.length ≤ n :=
   stateAfter_keys (h.take (r + 1))
+
+/-- The values of a state after changes: the state's, or a put's. -/
+theorem applyChanges_vals {n : Nat} (r : w64) (cs : List Change) (hc : ChPutsLe n cs) :
+    ∀ s : List EtcdKv, (∀ v ∈ s, v.value.length ≤ n) →
+      ∀ v ∈ applyChanges r s cs, v.value.length ≤ n := by
+  induction cs with
+  | nil => intro s hs; exact hs
+  | cons c cs ih =>
+    intro s hs
+    unfold applyChanges
+    rw [List.foldl_cons]
+    apply ih (fun k v l h => hc k v l (List.mem_cons_of_mem _ h))
+    intro x hx
+    cases c with
+    | put k v l =>
+      simp only [applyChange, putKv] at hx
+      rcases btInsert_mem hx with rfl | h
+      · have hv := (hc k v l (List.mem_cons_self ..)).2
+        split <;> exact hv
+      · exact hs x h
+    | del k => exact hs x (List.mem_filter.1 hx).1
+
+/-- **A state's values are short** when its log's puts' are. -/
+theorem stateAfter_vals {n : Nat} {log : Log} (h : LogPutsLe n log) :
+    ∀ v ∈ stateAfter log, v.value.length ≤ n := by
+  unfold stateAfter
+  have : ∀ (l : List (List Change × Nat)) (s : List EtcdKv), (∀ v ∈ s, v.value.length ≤ n) →
+      (∀ p ∈ l, ChPutsLe n p.1) →
+      ∀ v ∈ l.foldl (fun s p => applyChanges (W64 p.2) s p.1) s, v.value.length ≤ n := by
+    intro l
+    induction l with
+    | nil => intro s hs _; exact hs
+    | cons p l ih =>
+      intro s hs hl
+      rw [List.foldl_cons]
+      exact ih _ (applyChanges_vals _ _ (hl p (by simp)) s hs) (fun p' hp => hl p' (by simp [hp]))
+  apply this _ [] (fun _ h => by cases h)
+  intro p hp
+  exact h p.1 (List.fst_mem_of_mem_zipIdx hp)
+
+theorem stateAt_vals {n : Nat} {log : Log} (h : LogPutsLe n log) (r : Nat) :
+    ∀ v ∈ stateAt log r, v.value.length ≤ n :=
+  stateAfter_vals (h.take (r + 1))
 
 theorem stateAt_last (log : Log) : stateAt log (log.length - 1) = stateAfter log := by
   unfold stateAt

@@ -187,10 +187,12 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
     (hr : o.base.rev = W64 0) :
     rangeReplyOk E γr c F o cid mid Q m ⊢
       ∃ σ : KVState, □ Q σ ∗ ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧
-        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ := by
+        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧
+        -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
+        ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ := by
   iintro #H
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, %Hlk, %Hl, -, #HQ⟩
   simp only [hs, Bool.false_eq_true, ↓reduceIte]
   obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
   have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
@@ -206,13 +208,14 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
-  refine ⟨hsel, ?_, ?_⟩
+  refine ⟨hsel, ?_, ?_, ?_⟩
   · rw [hrev]
     simp only [kvStateOf_rev, kvStateOf_kvs]
     congr 1
     omega
   · simp only [kvStateOf_rev, kvStateOf_kvs]
     omega
+  · exact mvcc.stateAfter_vals Hlk
 
 /-- **The members' read updates, persistent** (each is: a read update, or none). -/
 theorem readUpds_box (ms : List (SrvAt GF)) (Q : KVState → IProp GF) :
@@ -275,7 +278,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     · ipureintro; exact Herr
     ihave Hs := rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrev, hb⟩ := Hσ
+    obtain ⟨hsel, hrev, hb, -⟩ := Hσ
     iexists m, σ
     iframe Hm HQ
     ipureintro

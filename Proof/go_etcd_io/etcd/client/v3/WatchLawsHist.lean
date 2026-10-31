@@ -84,7 +84,7 @@ theorem watchLaws_hist (V : WEnv GF) (γ : ServerRaftNames) (γk : KVNames) (γr
     -- (2026-10-30, `notes/keylen.md`) the log's keys, from the KV invariant
     ihave #Hcore : srvKVCoreM false R.E γr $$ [Hinvs]
     · rw [srvKVCoreM_false]; iexact Hinvs
-    imod srvKVCoreM_keys false R.E γr [[], []] L (by decide) (mvcc.LogKeysLe.empties _)
+    imod srvKVCoreM_keys false R.E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
       $$ Hcore H0 Hsl Hc with %Hk
     imod v3rpc.histWL_of_sealed γ γk R.E γr hm hlog0 ⊤ (fun _ _ => CoPset.mem_full) L Hs Hk
       $$ Hinvs H0 Hsl Hc with #Hw

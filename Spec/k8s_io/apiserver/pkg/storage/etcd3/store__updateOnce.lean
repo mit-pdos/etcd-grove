@@ -12,8 +12,9 @@ the store did not skip the write (`o'` and `s` are not unchanged and canonical).
 
 - an error (the transformer's, or the client's: the update fired at most once);
 - success: the write at `σ`, `destination` the result at the new revision (`respIs`);
-- a conflict: a read at the state `σ` the transaction saw (`W` back), and the store's reading of
-  the key there (`stAt`).
+- a conflict: a read at the state `σ` the transaction saw (`W` back), its values no longer than
+  etcd's request limit (`Client.OptimisticPut.spec`'s), and the store's reading of the key there
+  (`stAt`).
 
 No TTL (D30d), and `ignoreNotFound` false.
 -/
@@ -64,7 +65,8 @@ abbrev store.updateOnce.spec : Prop :=
       (unkErr c err ∗ ∃ o rv, c.S.objAt dest o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err dest) ∨
-      (⌜ok = false⌝ ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdFacts c σ ∗ stAt c key σ st' err ∗
+      (⌜ok = false⌝ ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdFacts c σ ∗
+        ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key σ st' err ∗
         (if stepHand c (updStep key z f) σ then Φ σ else W)) }}
 
 end spec

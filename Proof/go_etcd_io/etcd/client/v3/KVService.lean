@@ -156,7 +156,7 @@ fired there; as `rangeReplyOk`'s). -/
 def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (cid mid : w64) (m : TxnRespM) : IProp GF :=
   if txn.txnReadonly t then
-    iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗ ⌜mvcc.LogKeysLe etcdKeyMax log⌝ ∗
+    iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗ ⌜mvcc.LogPutsLe etcdKeyMax log⌝ ∗
       ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧
         m.hdr.revision = W64 ((log.length : Int) - 1) ∧ m.hdr.clusterId = cid ∧
         m.hdr.memberId = mid ∧
@@ -181,7 +181,7 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         -- (linkv-txn stage B1, 2026-10-20) the ranges run
         skip = false⌝ ∗
       mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-      mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogKeysLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+      mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
 /-- **etcd's spec of the KV service's `Txn`** (the vertical slice's unit V2; a predicate
 transformer, as `etcdPutSpec`): a caller asking a transaction `t` of plain operations (no nested
@@ -231,7 +231,7 @@ def putReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log ∗
-    ⌜mvcc.LogKeysLe etcdKeyMax x'.log⌝)
+    ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝)
 
 instance putReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (m : PutRespM) : Persistent (putReplyOk E γr F o cid mid m) := by
@@ -244,7 +244,7 @@ whole state of the log read, `kvStateOf`); the log read extends the caller's flo
 vertical slice's unit V2); unit W-M3: the caller's certificate of the log read (`certOk`). -/
 def rangeReplyOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (Q : KVState → IProp GF) (m : RangeRespM) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗ ⌜mvcc.LogKeysLe etcdKeyMax log⌝ ∗
+  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗ ⌜mvcc.LogPutsLe etcdKeyMax log⌝ ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧
       m.hdr.revision = W64 ((log.length : Int) - 1) ∧ m.hdr.clusterId = cid ∧
       m.hdr.memberId = mid ∧ sint.Z o.base.rev ≤ sint.Z m.hdr.revision ∧
@@ -275,7 +275,7 @@ def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogKeysLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
 open Iris.ProofMode in
 /-- A delivered put's result, weakened (2026-10-19, D21 M6). -/
@@ -339,7 +339,7 @@ def deleteReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log ∗
-    ⌜mvcc.LogKeysLe etcdKeyMax x'.log⌝)
+    ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝)
 
 instance deleteReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (m : DelRespM) : Persistent (deleteReplyOk E γr F o cid mid m) := by
@@ -362,7 +362,7 @@ def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogKeysLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
 open Iris.ProofMode in
 /-- A delivered delete's result, weakened (2026-10-20, linkv-txn stage A). -/
@@ -1061,7 +1061,7 @@ theorem kvs_txn_applied_log (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.Hea
 committed, a certified log `C` extending it (`l` not empty). -/
 theorem kvLogOk_commit {l C : mvcc.Log} (cs : List mvcc.Change) (hp : mvcc.commitLog l cs <+: C)
     (hne : l ≠ [])
-    (hc : mvcc.LogWf' C ∧ C.length < 2 ^ 63 ∧ txn.LogSmall C ∧ mvcc.LogKeysLe etcdKeyMax C) :
+    (hc : mvcc.LogWf' C ∧ C.length < 2 ^ 63 ∧ txn.LogSmall C ∧ mvcc.LogPutsLe etcdKeyMax C) :
     kvLogOk ((kvStateOf l).commit cs) := by
   rw [← kvStateOf_commitLog l cs hne]
   refine kvLogOk_of_prefix hp hc.1 hc.2.2.1 hc.2.1 ?_ hc.2.2.2
@@ -1454,7 +1454,7 @@ theorem idxCert_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound 
 theorem kvLogOk_of_step {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV} {out : apply.ApplyOut}
     (h : apply.applyStep rq v3 x x' out) (hl : 2 ≤ x.log.length)
     (hc : mvcc.LogWf' x'.log ∧ x'.log.length < 2 ^ 63 ∧ txn.LogSmall x'.log ∧
-      mvcc.LogKeysLe etcdKeyMax x'.log) :
+      mvcc.LogPutsLe etcdKeyMax x'.log) :
     kvLogOk (kvStateOf x.log) :=
   kvLogOk_of_prefix (applyStep_prefix rq v3 x x' out h) hc.1 hc.2.2.1 hc.2.1
     (by intro he; rw [he] at hl; simp at hl) hc.2.2.2

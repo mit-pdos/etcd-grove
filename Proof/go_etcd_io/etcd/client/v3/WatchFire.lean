@@ -116,7 +116,7 @@ theorem raw_to_state (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (γ : KVN
     ihave #HLs := mvcc.evLog_sealed _ _ $$ HL
     ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
     ihave #HLc := mvcc.evLog_certOk _ _ $$ HL
-    imod srvKVCoreM_keys on E γr [[], []] L (by decide) (mvcc.LogKeysLe.empties _)
+    imod srvKVCoreM_keys on E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
       $$ Hinvs H0 HLs HLc with %Hk
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
@@ -142,7 +142,7 @@ theorem raw_to_state (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (γ : KVN
     ihave #HLs := mvcc.evLog_sealed _ _ $$ HL
     ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
     ihave #HLc := mvcc.evLog_certOk _ _ $$ HL
-    imod srvKVCoreM_keys on E γr [[], []] L (by decide) (mvcc.LogKeysLe.empties _)
+    imod srvKVCoreM_keys on E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
       $$ Hinvs H0 HLs HLc with %Hk
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; iright

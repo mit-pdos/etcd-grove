@@ -60,7 +60,7 @@ abbrev Client.OptimisticPut.spec : Prop :=
             (optPutTxn key val rev opts.GetOnFailure')).1 ∧
           resp.Revision' =
             W64 ((kvOpStep (.txn (optPutTxn key val rev opts.GetOnFailure')) σ).rev : Int) ∧
-          σ.rev + 3 < 2 ^ 63⌝ ∗
+          σ.rev + 3 < 2 ^ 63 ∧ ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗
         (if opts.GetOnFailure' && !resp.Succeeded' then
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨

@@ -214,44 +214,6 @@ decreasing_by
   all_goals (have := List.sizeOf_lt_of_mem o.2; simp only [TxnOp.txn.sizeOf_spec]; omega)
 
 mutual
-/-- **Every key the operation puts is at most `N` bytes** (a put's, at every depth of a nested
-transaction; 2026-10-30, `notes/keylen.md`). -/
-def TxnOp.putKeysLe (N : Nat) : TxnOp → Prop
-  | .put k _ _ => k.length ≤ N
-  | .putKeep k _ => k.length ≤ N
-  | .putIgnVal k _ => k.length ≤ N
-  | .txn _ ts es => TxnOp.opsPutKeysLe N ts ∧ TxnOp.opsPutKeysLe N es
-  | .get _ => True
-  | .delete _ => True
-
-/-- Every key the operations put is at most `N` bytes (`TxnOp.putKeysLe` of each). -/
-def TxnOp.opsPutKeysLe (N : Nat) : List TxnOp → Prop
-  | [] => True
-  | op :: ops => op.putKeysLe N ∧ TxnOp.opsPutKeysLe N ops
-end
-
-mutual
-theorem TxnOp.putKeysLe_mono {N M : Nat} (h : N ≤ M) : ∀ op : TxnOp, op.putKeysLe N → op.putKeysLe M
-  | .put .., ho | .putKeep .., ho | .putIgnVal .., ho => by
-    simp only [TxnOp.putKeysLe] at ho ⊢; omega
-  | .get _, _ | .delete _, _ => trivial
-  | .txn _ ts es, ho => ⟨TxnOp.opsPutKeysLe_mono h ts ho.1, TxnOp.opsPutKeysLe_mono h es ho.2⟩
-
-theorem TxnOp.opsPutKeysLe_mono {N M : Nat} (h : N ≤ M) :
-    ∀ ops : List TxnOp, TxnOp.opsPutKeysLe N ops → TxnOp.opsPutKeysLe M ops
-  | [], _ => trivial
-  | op :: ops, ho => ⟨TxnOp.putKeysLe_mono h op ho.1, TxnOp.opsPutKeysLe_mono h ops ho.2⟩
-end
-
-/-- **Every key the transaction puts is at most `N` bytes**, in either branch, at every depth. -/
-def TxnModel.putKeysLe (N : Nat) (t : TxnModel) : Prop :=
-  TxnOp.opsPutKeysLe N t.thenOps ∧ TxnOp.opsPutKeysLe N t.elseOps
-
-theorem TxnModel.putKeysLe_mono {N M : Nat} (h : N ≤ M) {t : TxnModel} (ht : t.putKeysLe N) :
-    t.putKeysLe M :=
-  ⟨TxnOp.opsPutKeysLe_mono h _ ht.1, TxnOp.opsPutKeysLe_mono h _ ht.2⟩
-
-mutual
 /-- **Every key and value the operation puts is at most `N` bytes** (a put's, at every depth of a
 nested transaction; 2026-10-31, `notes/vallen.md`). A put that keeps the stored value
 (`putIgnVal`) bounds only its key: the value it writes is the state's. -/
@@ -282,21 +244,6 @@ theorem TxnOp.opsPutsLe_mono {N M : Nat} (h : N ≤ M) :
     ∀ ops : List TxnOp, TxnOp.opsPutsLe N ops → TxnOp.opsPutsLe M ops
   | [], _ => trivial
   | op :: ops, ho => ⟨TxnOp.putsLe_mono h op ho.1, TxnOp.opsPutsLe_mono h ops ho.2⟩
-end
-
-mutual
-theorem TxnOp.putsLe_keys {N : Nat} : ∀ op : TxnOp, op.putsLe N → op.putKeysLe N
-  | .put .., ho | .putKeep .., ho => by
-    simp only [TxnOp.putsLe] at ho; simp only [TxnOp.putKeysLe]; exact ho.1
-  | .putIgnVal .., ho => by
-    simp only [TxnOp.putsLe] at ho; simp only [TxnOp.putKeysLe]; exact ho
-  | .get _, _ | .delete _, _ => trivial
-  | .txn _ ts es, ho => ⟨TxnOp.opsPutsLe_keys ts ho.1, TxnOp.opsPutsLe_keys es ho.2⟩
-
-theorem TxnOp.opsPutsLe_keys {N : Nat} :
-    ∀ ops : List TxnOp, TxnOp.opsPutsLe N ops → TxnOp.opsPutKeysLe N ops
-  | [], _ => trivial
-  | op :: ops, ho => ⟨TxnOp.putsLe_keys op ho.1, TxnOp.opsPutsLe_keys ops ho.2⟩
 end
 
 /-- **Every key and value the transaction puts is at most `N` bytes**, in either branch, at every

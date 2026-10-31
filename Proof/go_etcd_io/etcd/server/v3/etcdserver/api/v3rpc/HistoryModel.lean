@@ -55,7 +55,7 @@ of fewer than `2 ^ 63` revisions, small, (2026-10-30, `notes/keylen.md`) its key
 def histLog (γ : ServerRaftNames) (γk : KVNames) (log : Log) : IProp GF :=
   iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
     ⌜kvModel γk A = log ∧ LogWf' log ∧ log.length < 2 ^ 63 ∧ LogSmall log ∧
-      mvcc.LogKeysLe etcdKeyMax log⌝)
+      mvcc.LogPutsLe etcdKeyMax log⌝)
 
 instance histLog_persistent (γ : ServerRaftNames) (γk : KVNames) (log : Log) :
     Persistent (histLog (GF := GF) γ γk log) := by
@@ -163,6 +163,16 @@ theorem histEtcdState_keys (γ : ServerRaftNames) (γk : KVNames) (r : w64) (pfx
   obtain ⟨-, -, rfl⟩ := h
   intro v hv
   exact stateAt_keys HL.2.2.2.2 _ v (mem_underPfx.1 hv).1
+
+theorem histEtcdState_vals (γ : ServerRaftNames) (γk : KVNames) (r : w64) (pfx : GoString)
+    (s : List EtcdKv) :
+    histEtcdState (GF := GF) γ γk r pfx s ⊢ ⌜∀ v ∈ s, v.value.length ≤ etcdKeyMax⌝ := by
+  unfold histEtcdState histLog
+  iintro ⟨%L, ⟨%A, -, %HL⟩, %h⟩
+  ipureintro
+  obtain ⟨-, -, rfl⟩ := h
+  intro v hv
+  exact stateAt_vals HL.2.2.2.2 _ v (mem_underPfx.1 hv).1
 
 theorem histEtcdState_create_persist (γ : ServerRaftNames) (γk : KVNames) (r a : w64)
     (pfx : GoString) (s s' : List EtcdKv) :
@@ -298,6 +308,7 @@ def etcdModelOfHistory (γ : ServerRaftNames) (γk : KVNames) : EtcdModel GF whe
   etcdState_agree := histEtcdState_agree γ γk
   etcdState_revs := histEtcdState_revs γ γk
   etcdState_keys := histEtcdState_keys γ γk
+  etcdState_vals := histEtcdState_vals γ γk
   etcdState_create_persist := histEtcdState_create_persist γ γk
   etcdState_modrev_det := histEtcdState_modrev_det γ γk
   etcdState_modrev_persist := histEtcdState_modrev_persist γ γk
@@ -524,7 +535,7 @@ log (`histLog_of_cert`); one of at most two is a prefix of the start log `[[], [
 store sealed it, `NewStore`'s certificate), the history log of the empty committed prefix. -/
 theorem histWL_of_sealed (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
     (γr : ReadNames) (hm : memberOf γ γk γr) (hlog0 : γk.log0 = [[], []]) (Em : CoPset)
-    (hEm : ↑kvcN ⊆ Em) (L : Log) (hs : LogSmall L) (hk : mvcc.LogKeysLe etcdKeyMax L) :
+    (hEm : ↑kvcN ⊆ Em) (L : Log) (hs : LogSmall L) (hk : mvcc.LogPutsLe etcdKeyMax L) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ idxSealed E.γ.idx [[], []] -∗ idxSealed E.γ.idx L -∗
       certOk E.γ L ={Em}=∗ histWL γ γk L := by
   iintro #Hinvs #H0 #Hs #Hc
@@ -563,7 +574,7 @@ theorem histWL_of_sealed (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv 
     ihave #H0lb' := srvRLogLb_reg γr.raft γ.raft.reg [] $$ H0lb
     iframe H0lb'
     ipureintro
-    refine ⟨?_, startLog_ok.1, startLog_ok.2.1, startLog_ok.2.2, mvcc.LogKeysLe.empties _⟩
+    refine ⟨?_, startLog_ok.1, startLog_ok.2.1, startLog_ok.2.2, mvcc.LogPutsLe.empties _⟩
     unfold kvModel; rw [kvRaftOf_nil, hlog0]
   ipureintro; exact hp
 

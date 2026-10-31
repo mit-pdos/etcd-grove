@@ -377,7 +377,7 @@ theorem kvModelOn_snoc_nonwrite (γk : KVNames) (st₀ : auth.AuthState) (L : Li
 
 /-- **The mode-`on` workload facts, one entry on** (`kvWork_snoc`'s). -/
 theorem kvWorkOn_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryKeysOk e) :
+    (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
     ⊢ kvWorkOn (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkOn cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWorkOn at Hw
@@ -386,7 +386,7 @@ theorem kvWorkOn_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e :
   isplitr
   · ipureintro
     obtain ⟨hs0, hc0, hk0, hl0⟩ := Hsh
-    refine ⟨fun m hm => ?_, fun m hm => ?_, logKeysOk_snoc L e hk0 hk, hl0⟩
+    refine ⟨fun m hm => ?_, fun m hm => ?_, logPutsOk_snoc L e hk0 hk, hl0⟩
     · rw [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm
       · exact hs0 m hm
@@ -404,7 +404,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
     (Gb : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel) (hm : apply.HeaderModel)
     (Qr : List EntryModel → IProp GF) (hd : d ≠ [])
     (hdec : apply.irrDecode d = some (apply.withHeader rq₀ hm))
-    (hk : apply.irrKeysLe etcdKeyMax (apply.withHeader rq₀ hm)) (id : w64) (γf : GName)
+    (hk : apply.irrPutsLe etcdKeyMax (apply.withHeader rq₀ hm)) (id : w64) (γf : GName)
     (hid : apply.irrId (apply.withHeader rq₀ hm) = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
     ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ □ Gb hm -∗
       reqPropOkOn γ γk st₀ Gb rq₀ hm Qr ={E}=∗ srvPropAu1 γ d Qr := by
@@ -454,7 +454,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         kvModelOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec)
           (plainReq_noAdminP (apply.withHeader rq₀ hm) hplain) hnw
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryKeysOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ Hh] with -
       · inext
         iexists L ++ [e]
@@ -509,7 +509,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hdata : e.data ≠ [] := by rw [hed]; exact hd
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryKeysOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
       have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
         (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa)
       by_cases hg : grantedAt γk st₀ (apply.withHeader rq₀ hm) L
@@ -617,7 +617,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           ⟨fun _ => Or.inr ⟨(apply.withHeader rq₀ hm), by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
             fun h => absurd het h⟩
         ihave #Hw' := kvWorkOn_snoc γ.raft γk L e hshe (fun h => absurd het h)
-          (entryKeysOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+          (entryPutsOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
         have hc := commitOkOn_admin γk.c0 γk.ch0 st₀ γk.log0 L e d (apply.withHeader rq₀ hm) hed hdec hadm
         imod Hclose $$ [HL Hσ Hh] with -
         · inext
@@ -676,7 +676,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           ⟨fun _ => Or.inr ⟨(apply.withHeader rq₀ hm), by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
             fun h => absurd het h⟩
         ihave #Hw' := kvWorkOn_snoc γ.raft γk L e hshe (fun h => absurd het h)
-          (entryKeysOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+          (entryPutsOk_of_data e d _ hed hdec hk) $$ Hw (Hecl $$ %e %hed)
         have hc := commitOkOn_admin γk.c0 γk.ch0 st₀ γk.log0 L e d (apply.withHeader rq₀ hm) hed hdec hadm
         have hdec' : apply.irrDecode e.data = some (apply.withHeader rq₀ hm) := by
           rw [hed]; exact hdec

@@ -90,7 +90,7 @@ theorem store.getCurrentState.wp_proof
   wp_apply wp_RecordEtcdRequest
   icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse, #Hgcl⟩)
   · subst Hgerr
-    obtain ⟨hrevσ, hb⟩ := Hσ
+    obtain ⟨hrevσ, hb, hvals⟩ := Hσ
     ihave %Hwf := (hR _ _ σ) $$ HR
     have hdk : ∀ kv, mvcc.findKey key σ.kvs = some kv → ∃ o b, c.S.dec kv.value = some (o, b) :=
       fun kv hkv => c.dec_of_wf σ Hwf key hk kv hkv
@@ -104,6 +104,8 @@ theorem store.getCurrentState.wp_proof
     iright
     iexists σ
     iframe HR
+    isplitl []
+    · ipureintro; exact hvals
     unfold stAt
     rw [← hrevσ]
     iexact Hres

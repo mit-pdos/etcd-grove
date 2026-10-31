@@ -357,7 +357,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     · ipureintro; exact Herr
     ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrev, hb⟩ := Hσ
+    obtain ⟨hsel, hrev, hb, -⟩ := Hσ
     iexists m, σ
     iframe Hm HQ
     ipureintro
@@ -389,7 +389,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
               m.resps ∧
             m.hdr.revision = W64 ((if (linkv.MIn.txn cs t e).isWrite then
               (kvOpStep (opIn (.txn cs t e)) σ).rev else σ.rev : Nat) : Int) ∧
-            σ.rev + 3 < 2 ^ 63⌝) ∨
+            σ.rev + 3 < 2 ^ 63 ∧
+            -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
+            ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = linkv.txnOf cs t e := by rw [hb, txnWireOf_clientTxn]
@@ -431,7 +433,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, hser, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%log, -, -, -, %Hp, -, #HQ⟩
+      icases Hr with ⟨%log, -, -, %Hlk, %Hp, -, #HQ⟩
       obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
       have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := client.kvStateOf_rev_succ _ hlen
       have hs : (kvStateOf log).kvs = mvcc.stateAfter log := kvStateOf_kvs _
@@ -439,7 +441,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hm HQ
       ipureintro
       rw [hr, hs]
-      refine ⟨hok, hrel, ?_, ?_⟩
+      refine ⟨hok, hrel, ?_, ?_, mvcc.stateAfter_vals Hlk⟩
       · rw [hrev]
         (try simp only [Bool.false_eq_true, ↓reduceIte])
         rw [kvStateOf_rev]
@@ -482,8 +484,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
-      obtain ⟨Htw, -, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, %Hlk, HQ⟩
+      obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
       have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e tw Htw)
       subst ht hsk
       have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
@@ -492,7 +494,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hm HQ
       ipureintro
       rw [hr, hs]
-      refine ⟨hok, hrel, ?_, ?_⟩
+      refine ⟨hok, hrel, ?_, ?_,
+        mvcc.stateAfter_vals (Hlk.prefix (applyStep_prefix _ _ _ _ _ hap))⟩
       · (try simp only [↓reduceIte])
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
       · rw [kvStateOf_rev]; omega
