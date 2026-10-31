@@ -842,6 +842,7 @@ noncomputable instance Cluster_typed_pointsto :
     "dir" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"dir" l) v.dir' dq ∗
     "Stats" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"Stats" l) v.Stats' dq ∗
     "boot" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"boot" l) v.boot' dq ∗
+    "seqs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"seqs" l) v.seqs' dq ∗
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"mu" l) v.mu' dq ∗
     "replicas" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"replicas" l) v.replicas' dq ∗
     "nextID" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"nextID" l) v.nextID' dq ∗
@@ -919,6 +920,22 @@ noncomputable instance Cluster_access_store_boot (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
+noncomputable instance Cluster_access_load_seqs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"seqs" l) v.seqs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"seqs" l) v.seqs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Cluster_access_store_seqs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster) (seqs' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"seqs" l) v.seqs' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"seqs" l) seqs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with seqs' := seqs' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 noncomputable instance Cluster_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster go!"mu" l) v.mu' dq)
@@ -986,6 +1003,63 @@ noncomputable instance Cluster_access_store_nextOp (l : Loc) (v : github_com.mit
 end def_
 end Cluster
 
+namespace readSeqs
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
+
+noncomputable instance readSeqs_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"mu" l) v.mu' dq ∗
+    "last" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"last" l) v.last' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance readSeqs_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance readSeqs_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance readSeqs_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance readSeqs_access_load_last (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"last" l) v.last' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"last" l) v.last' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance readSeqs_access_store_last (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs) (last' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"last" l) v.last' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs go!"last" l) last' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := last' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end readSeqs
+
 namespace Replica
 section def_
 
@@ -1016,7 +1090,7 @@ noncomputable instance Replica_typed_pointsto :
     "cs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"cs" l) v.cs' dq ∗
     "index" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"index" l) v.index' dq ∗
     "waiters" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"waiters" l) v.waiters' dq ∗
-    "nextRead" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"nextRead" l) v.nextRead' dq ∗
+    "seqs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"seqs" l) v.seqs' dq ∗
     "reads" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"reads" l) v.reads' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -1331,19 +1405,19 @@ noncomputable instance Replica_access_store_waiters (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_load_nextRead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica) (dq : DFrac) :
+noncomputable instance Replica_access_load_seqs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"nextRead" l) v.nextRead' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"nextRead" l) v.nextRead' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"seqs" l) v.seqs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"seqs" l) v.seqs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_nextRead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica) (nextRead' : w64) :
+noncomputable instance Replica_access_store_seqs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica) (seqs' : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"nextRead" l) v.nextRead' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"nextRead" l) nextRead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextRead' := nextRead' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"seqs" l) v.seqs' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica go!"seqs" l) seqs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with seqs' := seqs' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -283,6 +283,12 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[raft-applied-above-snapshot-confstate](raft-applied-above-snapshot-confstate.md)**
+  (2026-10-31): `Config.Applied`'s documentation does not say that `InitialState`'s `ConfState` must
+  be the configuration as of `Applied`; with `Applied` above the snapshot, raft skips the conf
+  changes in between (reproduced: a node elects itself alone). Safety in principle, but etcd leaves
+  `Applied` unset, so it affects only other applications; a documentation sentence fixes it.
+
 - **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
   (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
   `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its

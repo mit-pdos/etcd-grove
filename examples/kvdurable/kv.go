@@ -261,10 +261,30 @@ func fits(es []*pb.Entry) bool {
 }
 
 // maxSeq is the last operation id and read sequence number: a cluster that has used up its
-// operation ids (Cluster.do), or a replica its read sequence numbers (read), stops issuing them,
-// so that an id is never reused (a reused one would be answered with another operation's
-// answer). 2^64 - 1 of them: it does not happen.
+// operation ids (Cluster.do), or its read sequence numbers (readSeqs), stops issuing them, so
+// that an id is never reused (a reused one would be answered with another operation's answer).
+// 2^64 - 1 of them: it does not happen.
 const maxSeq = ^uint64(0)
+
+// readSeqs issues the sequence numbers of the reads (Replica.read), one counter for the cluster's
+// every replica and incarnation: a read's context outlives its incarnation (a read index response
+// to a crashed incarnation's read may reach the next incarnation), so a number reused by the next
+// incarnation would answer its read with the old read's index and key.
+type readSeqs struct {
+	mu   sync.Mutex
+	last uint64
+}
+
+// next is a fresh sequence number; ok is false once they are used up (maxSeq).
+func (s *readSeqs) next() (uint64, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.last == maxSeq {
+		return 0, false
+	}
+	s.last++
+	return s.last, true
+}
 
 // Replica is one incarnation of a replica of the store: its id, its durable file, its raft node
 // and storage, and, under mu, its replicated state as of its applied index -- the store's
@@ -295,31 +315,33 @@ type Replica struct {
 	dmu     sync.Mutex
 	crashed bool
 
-	mu       sync.Mutex
-	kv       map[string]string
-	applied  map[string]string
-	cs       *pb.ConfState
-	index    uint64
-	waiters  map[string]chan string
-	nextRead uint64
-	reads    map[uint64]chan string
+	mu      sync.Mutex
+	kv      map[string]string
+	applied map[string]string
+	cs      *pb.ConfState
+	index   uint64
+	waiters map[string]chan string
+	seqs    *readSeqs
+	reads   map[uint64]chan string
 }
 
 // newReplica is an incarnation of replica id on node, a node just started on storage, whose
 // durable file is file, at the replicated state (kv, applied, cs) of index (its storage's
-// snapshot's: 0 and the bootstrap configuration if it has none), ticked every tick; send delivers
-// the node's messages. It starts the incarnation's loop, its node's clock and its snapshot
-// goroutine.
+// snapshot's: 0 and the bootstrap configuration if it has none), raft's applied index at start
+// rafted (Config.Applied, or the log's start if that is 0), ticked every tick; seqs issues its
+// reads' sequence numbers; send delivers the node's messages. It starts the incarnation's loop,
+// its node's clock and its snapshot goroutine.
 func newReplica(id uint64, file string, node raft.Node, storage *Storage, kv map[string]string, applied map[string]string,
-	cs *pb.ConfState, index uint64, tick time.Duration, stats *Stats, send func([]*pb.Message)) *Replica {
+	cs *pb.ConfState, index uint64, rafted uint64, tick time.Duration, stats *Stats, seqs *readSeqs,
+	send func([]*pb.Message)) *Replica {
 	hs, _, _ := storage.MemoryStorage.InitialState()
 	r := &Replica{id: id, file: file, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
 		snapc:   make(chan snapReq, 1),
 		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1), snapDone: make(chan struct{}, 1),
 		cs: proto.Clone(cs).(*pb.ConfState), index: index,
-		kv: kv, applied: applied,
+		kv: kv, applied: applied, seqs: seqs,
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
-	go r.run(send, index, hs)
+	go r.run(send, index, hs, rafted)
 	go r.ticker()
 	go r.snapshotter(index)
 	return r
@@ -383,7 +405,9 @@ func (r *Replica) persist() bool {
 // Node.ApplyConfChange, before the Advance that acknowledges it); answer the reads whose index is
 // applied; Advance. A Ready whose entries would take the log past maxIndex stops the loop (it does
 // not happen). snapIndex is the index of the latest snapshot asked for (the stored one's, at
-// start), hs the storage's hard state.
+// start), hs the storage's hard state, rafted raft's applied index (the last entry it handed back,
+// or snapshot it installed, before the last Advance: after a restart below the snapshot, below the
+// replicated state's index).
 //
 // Durability: a Ready that installs a snapshot, appends entries or changes the term or the vote
 // (raft.MustSync) is written before its messages are sent, and before it is applied and
@@ -399,8 +423,9 @@ func (r *Replica) persist() bool {
 // and installs them: after any entry it applies and after any Advance, the loop may ask for a
 // snapshot of its replicated state, and after any Advance for a compaction up to its applied
 // index as raft knows it (the bound MemoryStorage.Compact documents: what it applied before the
-// last Advance), without waiting (request).
-func (r *Replica) run(send func([]*pb.Message), snapIndex uint64, hs *pb.HardState) {
+// last Advance; after a restart, raft may still be handing back entries below the replicated
+// state's index), without waiting (request).
+func (r *Replica) run(send func([]*pb.Message), snapIndex uint64, hs *pb.HardState, rafted uint64) {
 	var pending []raft.ReadState
 	lead := false
 	for {
@@ -443,6 +468,7 @@ func (r *Replica) run(send func([]*pb.Message), snapIndex uint64, hs *pb.HardSta
 		if snap {
 			r.install(rd.Snapshot.GetMetadata(), kv, ops)
 			snapIndex = rd.Snapshot.GetMetadata().GetIndex()
+			rafted = snapIndex
 		}
 		write := sync
 		if !sync && changed {
@@ -468,13 +494,18 @@ func (r *Replica) run(send func([]*pb.Message), snapIndex uint64, hs *pb.HardSta
 		pending = append(pending, rd.ReadStates...)
 		for _, e := range rd.CommittedEntries {
 			r.applyEntry(e)
+			rafted = e.GetIndex()
 			if oneIn(8) {
-				snapIndex = r.request(snapIndex, true, false)
+				snapIndex = r.request(snapIndex, true, 0)
 			}
 		}
 		pending = r.answer(pending)
 		r.node.Advance()
-		snapIndex = r.request(snapIndex, oneIn(4), oneIn(4))
+		bound := uint64(0)
+		if oneIn(4) {
+			bound = rafted
+		}
+		snapIndex = r.request(snapIndex, oneIn(4), bound)
 	}
 }
 
@@ -490,10 +521,10 @@ type snapReq struct {
 
 // request asks the snapshot goroutine, without waiting, for a snapshot of the replicated state at
 // the applied index if snap (unless the latest one asked for is already that recent), and for a
-// compaction up to the applied index if compact (run calls it so only after an Advance); a request
-// is dropped if the goroutine has one pending. It returns the index of the latest snapshot asked
-// for.
-func (r *Replica) request(snapIndex uint64, snap bool, compact bool) uint64 {
+// compaction up to the least of the applied index and bound, unless bound is 0 (run passes raft's
+// applied index, after an Advance); a request is dropped if the goroutine has one pending. It
+// returns the index of the latest snapshot asked for.
+func (r *Replica) request(snapIndex uint64, snap bool, bound uint64) uint64 {
 	r.mu.Lock()
 	index := r.index
 	cs := r.cs
@@ -503,7 +534,8 @@ func (r *Replica) request(snapIndex uint64, snap bool, compact bool) uint64 {
 	}
 	r.mu.Unlock()
 	req := snapReq{index: index, cs: cs, data: data}
-	if compact {
+	req.compact = bound
+	if index < bound {
 		req.compact = index
 	}
 	if data == nil && req.compact == 0 {
@@ -756,16 +788,14 @@ func (r *Replica) propose(op []byte, timeout time.Duration) (string, bool) {
 }
 
 // read reads key by a read index here, waiting up to timeout; ok is false if no answer came (or
-// the replica's read sequence numbers are used up: maxSeq).
+// the read sequence numbers are used up: readSeqs).
 func (r *Replica) read(key string, timeout time.Duration) (string, bool) {
 	ch := make(chan string, 1)
-	r.mu.Lock()
-	if r.nextRead == maxSeq {
-		r.mu.Unlock()
+	seq, ok := r.seqs.next()
+	if !ok {
 		return "", false
 	}
-	r.nextRead++
-	seq := r.nextRead
+	r.mu.Lock()
 	r.reads[seq] = ch
 	r.mu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

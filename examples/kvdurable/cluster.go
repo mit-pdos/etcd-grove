@@ -53,7 +53,7 @@ type Stats struct {
 	Retries                    atomic.Uint64
 	Crashes                    atomic.Uint64
 	RestartsFromSnapshot       atomic.Uint64 // restarted from a stored snapshot
-	RestartsAppliedBelow       atomic.Uint64 // with Config.Applied below the stored snapshot's index
+	RestartsAppliedBelow       atomic.Uint64 // raft restarted at an applied index below the snapshot's
 	EntriesSkipped             atomic.Uint64 // handed back after a restart, covered by the snapshot
 	FileWrites                 atomic.Uint64
 	LeaderSentFirst            atomic.Uint64 // a leader's Ready sent before its write
@@ -129,6 +129,7 @@ type Cluster struct {
 	Stats Stats
 
 	boot     *pb.ConfState // the bootstrap configuration: every replica's before it applies anything
+	seqs     *readSeqs     // the reads' sequence numbers, of every replica and incarnation
 	mu       sync.Mutex
 	replicas map[uint64]*Replica
 	nextID   uint64
@@ -142,7 +143,7 @@ type Cluster struct {
 // that configuration.
 func StartCluster(opts Options, dir string) *Cluster {
 	c := &Cluster{opts: opts, dir: dir, replicas: make(map[uint64]*Replica), nextID: opts.Voters + 1,
-		boot: &pb.ConfState{}}
+		boot: &pb.ConfState{}, seqs: &readSeqs{}}
 	for id := uint64(1); id <= opts.Voters; id++ {
 		c.boot.Voters = append(c.boot.Voters, id)
 	}
@@ -204,14 +205,16 @@ func (c *Cluster) start(id uint64) *Replica {
 	}
 	first, _ := st.FirstIndex()
 	applied := uint64(0)
+	rafted := first - 1
 	if !oneIn(3) {
 		applied = first - 1 + below(index-(first-1)+1)
-		if applied < index {
-			c.Stats.add(&c.Stats.RestartsAppliedBelow)
-		}
+		rafted = applied
 	}
-	return newReplica(id, file, raft.RestartNode(c.config(id, st, applied)), st, kv, ops, cs, index, c.tick(),
-		&c.Stats, c.sender(id))
+	if rafted < index {
+		c.Stats.add(&c.Stats.RestartsAppliedBelow)
+	}
+	return newReplica(id, file, raft.RestartNode(c.config(id, st, applied)), st, kv, ops, cs, index, rafted, c.tick(),
+		&c.Stats, c.seqs, c.sender(id))
 }
 
 // restart crashes the current incarnation of replica id (Replica.crash: it loses everything but
