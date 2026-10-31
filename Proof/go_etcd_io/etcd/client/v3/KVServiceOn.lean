@@ -145,11 +145,67 @@ one place a writing transaction's caller still meets `txnModelIn`: the source of
 plain transaction. -/
 theorem txnNestOk_of_plain (t : TxnModel) (hp : TxnModel.plain t) (hin : txnModelIn t) :
     txnNestOk t := by
-  sorry -- txn-nested: prove after freeze
+  have hnc : ∀ ops : List TxnOp, (∀ op ∈ ops, TxnOp.plain op) →
+      (∀ o : OpFull, TxnOp.get o ∈ ops → ¬ txn.cutEarly o) → txn.OpsNoCut ops := by
+    intro ops hp hc
+    induction ops with
+    | nil => trivial
+    | cons op ops ih =>
+      refine ⟨?_, ih (fun op' h => hp op' (List.mem_cons_of_mem _ h))
+        (fun o h => hc o (List.mem_cons_of_mem _ h))⟩
+      cases op with
+      | get o => exact hc o List.mem_cons_self
+      | txn _ _ _ => exact (hp _ List.mem_cons_self).elim
+      | _ => trivial
+  have hss : ∀ ops : List TxnOp, (∀ op ∈ ops, TxnOp.plain op) → txnSibSafeL ops := by
+    intro ops hp
+    induction ops with
+    | nil => trivial
+    | cons op ops ih =>
+      have h0 := hp op List.mem_cons_self
+      refine ⟨fun v _ => ?_, ?_, ih (fun op' h => hp op' (List.mem_cons_of_mem _ h))⟩
+      · cases op with
+        | txn _ _ _ => exact h0.elim
+        | _ => trivial
+      · cases op with
+        | txn _ _ _ => exact h0.elim
+        | _ => trivial
+  exact ⟨hnc _ hp.1 (fun o h => (hin o (List.mem_append_left _ h)).2),
+    hnc _ hp.2 (fun o h => (hin o (List.mem_append_right _ h)).2), hss _ hp.1, hss _ hp.2⟩
+
+theorem opDelOps_nil_of_mem : ∀ (us : List TxnOp), opsDelOps us = [] → ∀ v ∈ us, opDelOps v = []
+  | [], _, v, hv => by cases hv
+  | u :: us, h, v, hv => by
+    simp only [opsDelOps, List.append_eq_nil_iff] at h
+    rcases List.mem_cons.mp hv with rfl | hv
+    · exact h.1
+    · exact opDelOps_nil_of_mem us h.2 v hv
+
+mutual
+theorem txnSibSafe_noDel_aux : ∀ op : TxnOp, opDelOps op = [] → txnSibSafe op
+  | .txn _ ts es, h => by
+    simp only [opDelOps, List.append_eq_nil_iff] at h
+    exact ⟨txnSibSafeL_noDel_aux ts h.1, txnSibSafeL_noDel_aux es h.2⟩
+  | .get _, _ => trivial
+  | .put _ _ _, _ => trivial
+  | .delete _, _ => trivial
+  | .putKeep _ _, _ => trivial
+  | .putIgnVal _ _, _ => trivial
+
+theorem txnSibSafeL_noDel_aux : ∀ ops : List TxnOp, opsDelOps ops = [] → txnSibSafeL ops
+  | [], _ => trivial
+  | u :: us, h => by
+    simp only [opsDelOps, List.append_eq_nil_iff] at h
+    refine ⟨fun v hv => ?_, txnSibSafe_noDel_aux u h.1, txnSibSafeL_noDel_aux us h.2⟩
+    have hv' := opDelOps_nil_of_mem us h.2 v hv
+    cases u with
+    | txn _ _ _ => intro k _ o ho; rw [hv'] at ho; cases ho
+    | _ => trivial
+end
 
 /-- **Operations with no delete at any depth are sibling-safe** (L8). -/
 theorem txnSibSafeL_of_noDel (ops : List TxnOp) (h : opsDelOps ops = []) : txnSibSafeL ops := by
-  sorry -- txn-nested: prove after freeze
+  exact txnSibSafeL_noDel_aux ops h
 
 /-- **A transaction's auth facts, as its reply carries them** (persistent): a read-only one's
 check (`txnAuthed`), a writing one's grant. -/
@@ -168,20 +224,79 @@ theorem txnAuthOn_write (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     (n : Nat) (tok : Option GoString) (t : TxnModel) (h : txn.txnReadonly t = false) :
     txnAuthOn (GF := GF) s E ρ γr c n tok t ⊣⊢
       ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ v3rpc.writeGrantOn s E ρ tok (irrTxn tw) := by
-  sorry -- txn-nested: prove after freeze
+  unfold txnAuthOn
+  rw [h]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  exact .rfl
+
+theorem opsPutKeys_append : ∀ (a b : List TxnOp), opsPutKeys (a ++ b) = opsPutKeys a ++ opsPutKeys b
+  | [], b => by simp [opsPutKeys]
+  | x :: a, b => by simp [opsPutKeys, opsPutKeys_append a b, List.append_assoc]
+
+theorem mem_opsPutKeys_of_mem : ∀ (ops : List TxnOp) (op : TxnOp), op ∈ ops →
+    ∀ k ∈ opPutKeys op, k ∈ opsPutKeys ops
+  | [], _, h, _, _ => by cases h
+  | x :: ops, op, h, k, hk => by
+    simp only [opsPutKeys, List.mem_append]
+    rcases List.mem_cons.mp h with rfl | h
+    · exact Or.inl hk
+    · exact Or.inr (mem_opsPutKeys_of_mem ops op h k hk)
+
+mutual
+theorem opPerms_put : ∀ (w : txn.TxnOpW) (k : GoString), k ∈ opPutKeys w.toOp →
+    ((k, [], .write) : apply.Perm3) ∈ opPerms w
+  | .get _, k, h => by simp [txn.TxnOpW.toOp, opPutKeys] at h
+  | .put o, k, h => by
+    have hk : k = o.key := by
+      simp only [txn.TxnOpW.toOp, txn.putTxnOp] at h
+      by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;>
+        simp_all [opPutKeys]
+    subst hk; simp [opPerms, apply.putPerms]
+  | .delete _, k, h => by simp [txn.TxnOpW.toOp, opPutKeys] at h
+  | .txn cs ts es, k, h => by
+    simp only [txn.TxnOpW.toOp, opPutKeys, List.mem_append] at h
+    simp only [opPerms, List.mem_append]
+    rcases h with h | h
+    · exact Or.inl (Or.inr (opsPerms_put ts k h))
+    · exact Or.inr (opsPerms_put es k h)
+
+theorem opsPerms_put : ∀ (ws : List txn.TxnOpW) (k : GoString),
+    k ∈ opsPutKeys (txn.TxnOpW.toOps ws) → ((k, [], .write) : apply.Perm3) ∈ opsPerms ws
+  | [], k, h => by simp [txn.TxnOpW.toOps, opsPutKeys] at h
+  | w :: ws, k, h => by
+    simp only [txn.TxnOpW.toOps, opsPutKeys, List.mem_append] at h
+    simp only [opsPerms, List.mem_append]
+    rcases h with h | h
+    · exact Or.inl (opPerms_put w k h)
+    · exact Or.inr (opsPerms_put ws k h)
+end
 
 /-- **A put at any depth of a transaction needs the write permission on its key** (L10). -/
 theorem reqPerms_irrTxn_put (tw : txn.TxnModelW) (k : GoString)
     (h : k ∈ opsPutKeys (tw.toModel.thenOps ++ tw.toModel.elseOps)) :
     ((k, [], .write) : apply.Perm3) ∈ reqPerms (irrTxn tw) := by
-  sorry -- txn-nested: prove after freeze
+  have hd : apply.dispatchKind (irrTxn tw) = .txn := by
+    simp [apply.dispatchKind, irrTxn, apply.irrEmpty, apply.IRRModel.txn]
+  unfold reqPerms
+  rw [hd]
+  simp only [irrTxn]
+  simp only [txn.TxnModelW.toModel, opsPutKeys_append, List.mem_append] at h
+  simp only [List.mem_append]
+  rcases h with h | h
+  · exact Or.inl (Or.inr (opsPerms_put _ k h))
+  · exact Or.inr (opsPerms_put _ k h)
 
 /-- `reqPerms_irrTxn_put` at a put one level down in the then-branch (L10). -/
 theorem reqPerms_irrTxn_nestedPut (tw : txn.TxnModelW) (cs : List CmpModel) (ts es : List TxnOp)
     (k v : GoString) (l : w64) (hm : TxnOp.txn cs ts es ∈ tw.toModel.thenOps)
     (hp : TxnOp.put k v l ∈ ts) :
     ((k, [], .write) : apply.Perm3) ∈ reqPerms (irrTxn tw) := by
-  sorry -- txn-nested: prove after freeze
+  apply reqPerms_irrTxn_put tw k
+  rw [opsPutKeys_append, List.mem_append]
+  left
+  refine mem_opsPutKeys_of_mem _ _ hm k ?_
+  simp only [opPutKeys, List.mem_append]
+  exact Or.inl (mem_opsPutKeys_of_mem _ _ hp k (by simp [opPutKeys]))
 
 /-- **etcd's `Txn` with auth on**: `etcdTxnSpec`'s (a writing transaction may nest transactions: plain, `txn.txnPlain`, at every
 depth; `txnNestOk`), a writing transaction's every permission of the
@@ -264,7 +379,12 @@ theorem txnUpdAtOn_write (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : L
     (h1 : txn.txnReadonly t = false) (h2 : txn.txnPlain t) (h3 : txnNoZeroEnd t)
     (h4 : txnNestOk t) :
     clientOpAuOn (GF := GF) s E ρ conn ctx (.txn t) Q ⊢ txnUpdAtOn s E ρ conn ctx γr t Q := by
-  sorry -- txn-nested: prove after freeze
+  iintro H
+  unfold txnUpdAtOn
+  iright; iright
+  isplitl []
+  · ipureintro; exact ⟨h1, h2, h3, h4⟩
+  iexact H
 
 end defs
 

@@ -17,7 +17,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.api.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -51,12 +51,20 @@ abbrev txn.Else.specPlain : Prop :=
 /-- `Then` at plain operations, from its spec (by `opsAt_leaves`, `txnOps_leaves`). -/
 theorem txn.Then.spec_plain (h : txn.Then.spec (GF := GF) (hG := hG)) :
     txn.Then.specPlain (GF := GF) (hG := hG) := by
-  sorry -- txn-nested: prove after freeze
+  intro tp addr ci cd b sl os ops
+  iintro %Φ ⟨#Hpkg, Htx, #Hos, %Hb⟩ HΦ
+  ihave #HosT := opsAt_leaves sl os ops Hb.1 $$ Hos
+  iapply (h tp addr ci cd b sl (os.map OpT.leaf) ops) $$ [Htx] HΦ
+  iframe #; iframe; ipureintro; exact ⟨txnOps_leaves os ops Hb.1, Hb.2.1, Hb.2.2⟩
 
 /-- `Else` at plain operations, from its spec (by `opsAt_leaves`, `txnOps_leaves`). -/
 theorem txn.Else.spec_plain (h : txn.Else.spec (GF := GF) (hG := hG)) :
     txn.Else.specPlain (GF := GF) (hG := hG) := by
-  sorry -- txn-nested: prove after freeze
+  intro tp addr ci cd b sl os ops
+  iintro %Φ ⟨#Hpkg, Htx, #Hos, %Hb⟩ HΦ
+  ihave #HosT := opsAt_leaves sl os ops Hb.1 $$ Hos
+  iapply (h tp addr ci cd b sl (os.map OpT.leaf) ops) $$ [Htx] HΦ
+  iframe #; iframe; ipureintro; exact ⟨txnOps_leaves os ops Hb.1, Hb.2⟩
 
 end spec
 

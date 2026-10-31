@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Op__toTxnRequest
 public import Spec.go_etcd_io.etcd.client.v3.Op__toRequestOp
 public import Spec.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Spec.go_etcd_io.etcd.client.v3.Cmp__GetCompare
+public import Proof.go_etcd_io.etcd.client.v3.OpTxnRequest
 
 @[expose] public section
 
@@ -29,7 +30,9 @@ theorem Op.toTxnRequest.wp_proof (wp_toRequestOp : Op.toRequestOp.spec (GF := GF
     (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG))
     (wp_GetCompare : Cmp.GetCompare.spec (GF := GF) (hG := hG)) :
     Op.toTxnRequest.spec (GF := GF) (hG := hG) := by
-  sorry -- txn-nested: prove after freeze
+  intro opv o cs ts es
+  exact toTxnRequest_core wp_Clone wp_GetCompare opv o cs ts es
+    (fun t _ v => wp_toRequestOp v t)
 
 end proof
 

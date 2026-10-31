@@ -68,12 +68,132 @@ theorem readQ_of_ansOn (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → I
       iexact HQ
   · simp only [↓reduceIte]; iintro -; itrivial
 
+mutual
+theorem allPuts_toTxnOp : ∀ (u : v3rpc.ReqOp) (op : TxnOp), v3rpc.ReqOp.toTxnOp u = some op →
+    u.allPuts = opPutKeys op
+  | .range o, op, h => by simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h; rfl
+  | .put o, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h
+    simp only [v3rpc.ReqOp.allPuts, txn.putTxnOp]
+    by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;> simp [h1, h2, opPutKeys]
+  | .delete o, op, h => by simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h; rfl
+  | .empty, op, h => by simp [v3rpc.ReqOp.toTxnOp] at h
+  | .txn cs ts es, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    simp only [v3rpc.ReqOp.allPuts, opPutKeys, allPutsL_toTxnOps ts a ha, allPutsL_toTxnOps es b hb]
+
+theorem allPutsL_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
+    v3rpc.ReqOp.toTxnOps us = some ops → v3rpc.ReqOp.allPutsL us = opsPutKeys ops
+  | [], ops, h => by simp only [v3rpc.ReqOp.toTxnOps, Option.some.injEq] at h; subst h; rfl
+  | u :: us, ops, h => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    simp only [v3rpc.ReqOp.allPutsL, opsPutKeys, allPuts_toTxnOp u a ha, allPutsL_toTxnOps us b hb]
+end
+
+mutual
+theorem allDels_toTxnOp : ∀ (u : v3rpc.ReqOp) (op : TxnOp), v3rpc.ReqOp.toTxnOp u = some op →
+    u.allDels = (opDelOps op).map v3rpc.delIvl
+  | .range o, op, h => by simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h; rfl
+  | .put o, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h
+    simp only [v3rpc.ReqOp.allDels, txn.putTxnOp]
+    by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;> simp [h1, h2, opDelOps]
+  | .delete o, op, h => by simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h; rfl
+  | .empty, op, h => by simp [v3rpc.ReqOp.toTxnOp] at h
+  | .txn cs ts es, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    simp only [v3rpc.ReqOp.allDels, opDelOps, allDelsL_toTxnOps ts a ha, allDelsL_toTxnOps es b hb,
+      List.map_append]
+
+theorem allDelsL_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
+    v3rpc.ReqOp.toTxnOps us = some ops → v3rpc.ReqOp.allDelsL us = (opsDelOps ops).map v3rpc.delIvl
+  | [], ops, h => by simp only [v3rpc.ReqOp.toTxnOps, Option.some.injEq] at h; subst h; rfl
+  | u :: us, ops, h => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    simp only [v3rpc.ReqOp.allDelsL, opsDelOps, allDels_toTxnOp u a ha, allDelsL_toTxnOps us b hb,
+      List.map_append]
+end
+
+theorem mem_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
+    v3rpc.ReqOp.toTxnOps us = some ops → ∀ v ∈ us, ∃ op ∈ ops, v3rpc.ReqOp.toTxnOp v = some op
+  | [], _, _, v, hv => by cases hv
+  | u :: us, ops, h, v, hv => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    rcases List.mem_cons.mp hv with rfl | hv
+    · exact ⟨a, List.mem_cons_self, ha⟩
+    · obtain ⟨op, hop, h'⟩ := mem_toTxnOps us b hb v hv
+      exact ⟨op, List.mem_cons_of_mem _ hop, h'⟩
+
+theorem hits_map_delIvl (L : List OpFull) (k : GoString)
+    (h : ∀ o ∈ L, inRange o.key o.base.rangeEnd k = false) : v3rpc.hits (L.map v3rpc.delIvl) k = false := by
+  unfold v3rpc.hits
+  rw [List.any_eq_false]
+  intro d hd hc
+  obtain ⟨o, ho, rfl⟩ := List.mem_map.mp hd
+  have h1 : v3rpc.hits [v3rpc.delIvl o] k = true := by
+    unfold v3rpc.hits; simpa using hc
+  have h2 := v3rpc.inRange_of_hits o k h1
+  rw [h o ho] at h2; cases h2
+
+mutual
+theorem siblingSafe_of_model : ∀ (u : v3rpc.ReqOp) (op : TxnOp), v3rpc.ReqOp.toTxnOp u = some op →
+    txnSibSafe op → v3rpc.ReqOp.siblingSafe u
+  | .txn cs ts es, op, h, hs => by
+    simp only [v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    exact ⟨siblingSafeL_of_model' ts a ha hs.1, siblingSafeL_of_model' es b hb hs.2⟩
+  | .range _, _, _, _ => trivial
+  | .put _, _, _, _ => trivial
+  | .delete _, _, _, _ => trivial
+  | .empty, _, _, _ => trivial
+
+theorem siblingSafeL_of_model' : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
+    v3rpc.ReqOp.toTxnOps us = some ops → txnSibSafeL ops → v3rpc.ReqOp.siblingSafeL us
+  | [], _, _, _ => trivial
+  | u :: us, ops, h, hs => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    obtain ⟨h1, h2, h3⟩ := hs
+    refine ⟨fun v hv => ?_, siblingSafe_of_model u a ha h2, siblingSafeL_of_model' us b hb h3⟩
+    obtain ⟨b', hb', hvb⟩ := mem_toTxnOps us b hb v hv
+    have hso := h1 b' hb'
+    cases u with
+    | txn cs ts es =>
+      intro k hk
+      rw [allPuts_toTxnOp _ _ ha] at hk
+      rw [allDels_toTxnOp v b' hvb]
+      simp only [v3rpc.ReqOp.toTxnOp] at ha
+      cases hc : v3rpc.ReqOp.toTxnOps ts <;> cases hd : v3rpc.ReqOp.toTxnOps es <;>
+        simp only [hc, hd] at ha <;> try cases ha
+      exact hits_map_delIvl _ k (hso k hk)
+    | _ => trivial
+end
+
 /-- **The model's sibling safety is the handler's** (`notes/txn-nested.md`, L7): request operations
 whose model is sibling-safe (`txnSibSafeL`, over the model's ranges) are (`ReqOp.siblingSafeL`, over
 the handler's intervals; by `v3rpc.inRange_of_hits`). -/
 theorem siblingSafeL_of_model (us : List v3rpc.ReqOp) (ops : List TxnOp)
     (h : v3rpc.ReqOp.toTxnOps us = some ops) (hs : txnSibSafeL ops) : v3rpc.ReqOp.siblingSafeL us := by
-  sorry -- txn-nested: prove after freeze
+  exact siblingSafeL_of_model' us ops h hs
 
 /-- **etcd's `Put` handler meets etcd's `Put` spec with auth on** (`grpcHandlerOkMd`; from
 `put_end_to_end_on`, at no lower bound of the published auth index): as `etcd_putHandlerOk`, the

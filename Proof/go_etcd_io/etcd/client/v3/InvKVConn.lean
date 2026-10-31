@@ -258,15 +258,57 @@ def OpT.isWriteL : List OpT → Bool
   | t :: ts => t.isWrite || OpT.isWriteL ts
 end
 
+-- `OpT.wire_txnOp`, `OpT.wireL_txnOps` (mutually recursive)
+mutual
+theorem OpT.wire_txnOp' : ∀ (t : OpT) (op : TxnOp), OpT.txnOp t = some op →
+    OpT.wire t = opWire op
+  | .leaf o, op, h => by
+    simp only [OpT.txnOp] at h
+    simp only [OpT.wire]
+    exact leafWire_txnOpOf o op h
+  | .txn _ cs ts es, op, h => by
+    simp only [OpT.txnOp] at h
+    cases ha : OpT.txnOps ts <;> cases hb : OpT.txnOps es <;> simp only [ha, hb] at h <;>
+      try cases h
+    rename_i a b
+    rw [OpT.wire, opWire_txn, OpT.wireL_txnOps' ts a ha, OpT.wireL_txnOps' es b hb]
+
+theorem OpT.wireL_txnOps' : ∀ (ts : List OpT) (ops : List TxnOp), OpT.txnOps ts = some ops →
+    OpT.wireL ts = ops.map opWire
+  | [], ops, h => by
+    simp only [OpT.txnOps, Option.some.injEq] at h; subst h; rfl
+  | t :: ts, ops, h => by
+    simp only [OpT.txnOps] at h
+    cases ha : t.txnOp <;> cases hb : OpT.txnOps ts <;> simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    simp only [OpT.wireL, List.map_cons, OpT.wire_txnOp' t a ha, OpT.wireL_txnOps' ts b hb]
+end
+
+/-- `OpT.isWriteL` is `List.any`. -/
+theorem OpT.isWriteL_any : ∀ ts : List OpT, OpT.isWriteL ts = ts.any OpT.isWrite
+  | [] => rfl
+  | t :: ts => by simp [OpT.isWriteL, OpT.isWriteL_any ts]
+
+/-- `OpT.wireL` is `List.map`. -/
+theorem OpT.wireL_map : ∀ ts : List OpT, OpT.wireL ts = ts.map OpT.wire
+  | [] => rfl
+  | t :: ts => by simp [OpT.wireL, OpT.wireL_map ts]
+
+/-- A leaf of a tree of the list is a leaf of the list. -/
+theorem mem_leavesL {t : OpT} {o : OpFull} : ∀ {ts : List OpT}, t ∈ ts → o ∈ t.leaves →
+    o ∈ OpT.leavesL ts
+  | _ :: _, .head _, h => by simp [OpT.leavesL, h]
+  | _ :: ts, .tail _ hm, h => by simp [OpT.leavesL, mem_leavesL hm h]
+
 /-- **A tree's transaction operation's wire model is its wire model** (L5). -/
 theorem OpT.wire_txnOp (t : OpT) (op : TxnOp) (h : OpT.txnOp t = some op) :
     OpT.wire t = opWire op := by
-  sorry -- txn-nested: prove after freeze
+  exact OpT.wire_txnOp' t op h
 
 /-- The lists' version of `OpT.wire_txnOp`. -/
 theorem OpT.wireL_txnOps (ts : List OpT) (ops : List TxnOp) (h : OpT.txnOps ts = some ops) :
     OpT.wireL ts = ops.map opWire := by
-  sorry -- txn-nested: prove after freeze
+  exact OpT.wireL_txnOps' ts ops h
 
 /-- The builder's puts ignoring the value carry none (`txnOpOf`: etcd rejects such a put with a
 value; 2026-10-30, `reqOpAt`'s put case). -/
@@ -280,12 +322,56 @@ theorem txnOpOf_put_val {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op) :
   · exact hz
   · simp [hv, hz] at h
 
+/-- The kind of a builder operation with a transaction operation (`txnOpOf`). -/
+theorem txnOpOf_t123 {o : OpFull} {op : TxnOp} (h : txnOpOf o = some op) :
+    o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3 := by
+  unfold txnOpOf at h
+  by_cases h1 : o.t = W64 1
+  · exact Or.inl h1
+  · by_cases h2 : o.t = W64 2
+    · exact Or.inr (Or.inl h2)
+    · by_cases h3 : o.t = W64 3
+      · exact Or.inr (Or.inr h3)
+      · rw [if_neg h1, if_neg h2, if_neg h3] at h; cases h
+
+-- `OpT.txnOp_leaves` and its lists' version (mutually recursive)
+mutual
+theorem OpT.txnOp_leaves' : ∀ (t : OpT) (op : TxnOp), OpT.txnOp t = some op →
+    ∀ o ∈ t.leaves, (o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3) ∧
+      (o.t = W64 2 → o.ignoreValue = true → o.val = [])
+  | .leaf o, op, h, x, hx => by
+    simp only [OpT.leaves, List.mem_singleton] at hx
+    subst hx
+    simp only [OpT.txnOp] at h
+    exact ⟨txnOpOf_t123 h, txnOpOf_put_val h⟩
+  | .txn _ cs ts es, op, h, x, hx => by
+    simp only [OpT.txnOp] at h
+    cases ha : OpT.txnOps ts <;> cases hb : OpT.txnOps es <;> simp only [ha, hb] at h <;>
+      try cases h
+    simp only [OpT.leaves, List.mem_append] at hx
+    rcases hx with hx | hx
+    · exact OpT.txnOps_leaves' ts _ ha x hx
+    · exact OpT.txnOps_leaves' es _ hb x hx
+
+theorem OpT.txnOps_leaves' : ∀ (ts : List OpT) (ops : List TxnOp), OpT.txnOps ts = some ops →
+    ∀ o ∈ OpT.leavesL ts, (o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3) ∧
+      (o.t = W64 2 → o.ignoreValue = true → o.val = [])
+  | [], _, _, x, hx => by simp [OpT.leavesL] at hx
+  | t :: ts, ops, h, x, hx => by
+    simp only [OpT.txnOps] at h
+    cases ha : t.txnOp <;> cases hb : OpT.txnOps ts <;> simp only [ha, hb] at h <;> try cases h
+    simp only [OpT.leavesL, List.mem_append] at hx
+    rcases hx with hx | hx
+    · exact OpT.txnOp_leaves' t _ ha x hx
+    · exact OpT.txnOps_leaves' ts _ hb x hx
+end
+
 /-- **A tree with a transaction operation has gets, puts and deletes as leaves** (L5: `Then`'s
 premise gives `Op.toRequestOp`'s). -/
 theorem OpT.txnOp_leaves (t : OpT) (op : TxnOp) (h : OpT.txnOp t = some op) :
     ∀ o ∈ t.leaves, (o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3) ∧
       (o.t = W64 2 → o.ignoreValue = true → o.val = []) := by
-  sorry -- txn-nested: prove after freeze
+  exact OpT.txnOp_leaves' t op h
 /-! ## The encoded size of the client's requests (2026-10-30)
 
 The bounds the request instances' `wireLen` are (`ProtoMsg.wireLen`: grpc marshals before it checks
@@ -646,16 +732,6 @@ def txnReqFieldsAt (r : Loc) (cs : List CmpModel) (ts es : List TxnOp) : IProp G
     structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl ∗ fsl ↦*□ fps ∗
       reqOpsAt fps es)
 
-/-- `reqOpAt`'s nested case through `txnReqFieldsAt`. -/
-theorem reqOpAt_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
-    reqOpAt (GF := GF) p (.txn cs ts es) ⊣⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
-      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
-          GoInterface) ∗
-      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗ ⌜r ≠ null⌝ ∗
-      txnReqFieldsAt r cs ts es := by
-  sorry -- txn-nested: prove after freeze
-
 /-- **The `pb.TxnRequest` value `req` of the client's memory holds the transaction `t`** (its
 wire model, `txnWireOf` of the builder's; its slices read-only). -/
 def txnReqAt (req : etcdserverpb.TxnRequest) (t : TxnModel) : IProp GF :=
@@ -706,12 +782,91 @@ instance txnReqFieldsAt_persistent (r : Loc) (cs : List CmpModel) (ts es : List 
     Persistent (txnReqFieldsAt (GF := GF) r cs ts es) := by
   unfold txnReqFieldsAt; infer_instance
 
+/-- `reqOpAt`'s nested case through `txnReqFieldsAt`. -/
+theorem reqOpAt_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
+    reqOpAt (GF := GF) p (.txn cs ts es) ⊣⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗ ⌜r ≠ null⌝ ∗
+      txnReqFieldsAt r cs ts es := by
+  unfold reqOpAt txnReqFieldsAt
+  constructor
+  · iintro ⟨%Hp, %w, %r, %csl, %ssl, %fsl, %cps, %sps, %fps, #H1, #H2, %Hr, #H3⟩
+    isplitl []
+    · ipureintro; exact Hp
+    iexists w, r
+    iframe #
+    ipureintro; exact Hr
+  · iintro ⟨%Hp, %w, %r, #H1, #H2, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #H3⟩
+    isplitl []
+    · ipureintro; exact Hp
+    iexists w, r, csl, ssl, fsl, cps, sps, fps
+    iframe #
+    ipureintro; exact Hr
+
+/-- `reqOpsAt_index`, by recursion on the lists. -/
+theorem reqOpsAt_index' : ∀ (ps : List Loc) (ops : List TxnOp),
+    reqOpsAt (GF := GF) ps ops ⊣⊢ ⌜ps.length = ops.length⌝ ∗
+      □ ∀ (i : Nat) (p : Loc) (op : TxnOp), ⌜ps[i]? = some p⌝ -∗ ⌜ops[i]? = some op⌝ -∗
+        reqOpAt p op
+  | [], [] => by
+    unfold reqOpsAt
+    constructor
+    · iintro -
+      isplitl []
+      · ipureintro; rfl
+      imodintro
+      iintro %i %p %op %h
+      simp at h
+    · iintro -; itrivial
+  | p :: ps, op :: ops => by
+    have ih := reqOpsAt_index' ps ops
+    unfold reqOpsAt
+    constructor
+    · iintro ⟨#H0, #H1⟩
+      ihave ⟨%Hl, #H2⟩ := ih.1 $$ H1
+      isplitl []
+      · ipureintro; simp [Hl]
+      imodintro
+      iintro %i %p' %op' %h1 %h2
+      cases i with
+      | zero =>
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
+        subst h1 h2; iexact H0
+      | succ i =>
+        simp only [List.getElem?_cons_succ] at h1 h2
+        iapply H2 $$ %i %p' %op' %h1 %h2
+    · iintro ⟨%Hl, #H⟩
+      isplitl []
+      · iapply H $$ %0 %p %op
+        · ipureintro; rfl
+        · ipureintro; rfl
+      iapply ih.2
+      isplitl []
+      · ipureintro; simpa using Hl
+      imodintro
+      iintro %i %p' %op' %h1 %h2
+      iapply H $$ %(i+1) %p' %op'
+      · ipureintro; simpa using h1
+      · ipureintro; simpa using h2
+  | [], _ :: _ => by
+    unfold reqOpsAt
+    constructor
+    · iintro %H; cases H
+    · iintro ⟨%Hl, -⟩; simp at Hl
+  | _ :: _, [] => by
+    unfold reqOpsAt
+    constructor
+    · iintro %H; cases H
+    · iintro ⟨%Hl, -⟩; simp at Hl
+
 /-- **`reqOpsAt` by index** (its definition until 2026-10-30; `notes/txn-nested.md`, L6). -/
 theorem reqOpsAt_index (ps : List Loc) (ops : List TxnOp) :
     reqOpsAt (GF := GF) ps ops ⊣⊢ ⌜ps.length = ops.length⌝ ∗
       □ ∀ (i : Nat) (p : Loc) (op : TxnOp), ⌜ps[i]? = some p⌝ -∗ ⌜ops[i]? = some op⌝ -∗
         reqOpAt p op := by
-  sorry -- txn-nested: prove after freeze
+  exact reqOpsAt_index' ps ops
 instance txnReqAt_persistent (req : etcdserverpb.TxnRequest) (t : TxnModel) :
     Persistent (txnReqAt (GF := GF) req t) := by
   unfold txnReqAt; infer_instance

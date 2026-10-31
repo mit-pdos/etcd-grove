@@ -122,7 +122,15 @@ def txnModelIn (t : TxnModel) : Prop :=
 
 /-- **A read-only transaction is flat** (`notes/txn-nested.md`, L9: every operation a get). -/
 theorem txnReadonly_plain (t : TxnModel) (h : txn.txnReadonly t = true) : TxnModel.plain t := by
-  sorry -- txn-nested: prove after freeze
+  unfold txn.txnReadonly at h
+  rw [List.all_eq_true] at h
+  constructor
+  · intro op hop
+    have := h op (List.mem_append_left _ hop)
+    cases op <;> simp_all [TxnOp.plain, txn.opIsGet]
+  · intro op hop
+    have := h op (List.mem_append_right _ hop)
+    cases op <;> simp_all [TxnOp.plain, txn.opIsGet]
 
 theorem txnWireOf_plain (t : TxnModel) (h : TxnModel.plain t) : TxnModel.plain (txnWireOf t) := by
   refine ⟨?_, ?_⟩

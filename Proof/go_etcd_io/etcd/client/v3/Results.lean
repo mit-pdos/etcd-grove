@@ -320,8 +320,38 @@ end pure
 /-- A delete's count: `delCountT` and `v3rpc.delCount` agree (nested transactions included). -/
 theorem delCount_toTxnOps (us : List v3rpc.ReqOp) (ops : List TxnOp)
     (h : v3rpc.ReqOp.toTxnOps us = some ops) : v3rpc.delCount us = delCountT ops := by
-  -- the proof before: git show 51b0f7adad:Proof/go_etcd_io/etcd/client/v3/Results.lean
-  sorry -- txn-nested: prove after freeze
+  induction us using v3rpc.delCount.induct generalizing ops with
+  | case1 => simp only [v3rpc.ReqOp.toTxnOps, Option.some.injEq] at h; subst h; simp [v3rpc.delCount, delCountT]
+  | case2 o us ih =>
+    simp only [v3rpc.ReqOp.toTxnOps, v3rpc.ReqOp.toTxnOp] at h
+    cases hb : v3rpc.ReqOp.toTxnOps us <;> simp only [hb] at h <;> try cases h
+    simp only [v3rpc.delCount, delCountT, ih _ hb]
+  | case3 cs ts es us ih1 ih2 ih3 =>
+    simp only [v3rpc.ReqOp.toTxnOps, v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      cases hc : v3rpc.ReqOp.toTxnOps us <;> simp only [ha, hb, hc] at h <;> try cases h
+    simp only [v3rpc.delCount, delCountT, ih1 _ ha, ih2 _ hb, ih3 _ hc]
+  | case4 u us hd ht ih =>
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    have e : v3rpc.delCount (u :: us) = v3rpc.delCount us := by
+      cases u with
+      | delete o => exact absurd rfl (hd o)
+      | txn cs ts es => exact absurd rfl (ht cs ts es)
+      | _ => simp [v3rpc.delCount]
+    have e' : delCountT (a :: b) = delCountT b := by
+      cases u with
+      | delete o => exact absurd rfl (hd o)
+      | txn cs ts es => exact absurd rfl (ht cs ts es)
+      | range o => simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ha; subst ha; simp [delCountT]
+      | put o =>
+        simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ha; subst ha
+        unfold txn.putTxnOp
+        by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;> simp [h1, h2, delCountT]
+      | empty => simp [v3rpc.ReqOp.toTxnOp] at ha
+    rw [e, e', ih _ hb]
 
 section bridge
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -329,14 +359,33 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **A plain operation of the server's copy is the handler's request operation**: the txn
-package's `requestOpIs` of a plain operation is `v3rpc.reqOpIs` of a request operation whose
-model it is. -/
-theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
-    txn.requestOpIs (GF := GF) p op ⊢ ∃ u : v3rpc.ReqOp, v3rpc.reqOpIs p u ∗ ⌜v3rpc.ReqOp.toTxnOp u = some op⌝ := by
-  cases op with
-  | txn cs ts es => exact hp.elim
-  | get o =>
+mutual
+/-- **An operation of the server's copy is the handler's request operation** (nested ones
+included, recursively): the txn package's `requestOpIs` of an operation is `v3rpc.reqOpIs` of a
+request operation whose model it is. -/
+theorem reqOp_of_requestOp (p : Loc) : ∀ op : TxnOp,
+    txn.requestOpIs (GF := GF) p op ⊢ ∃ u : v3rpc.ReqOp, v3rpc.reqOpIs p u ∗ ⌜v3rpc.ReqOp.toTxnOp u = some op⌝
+  | .txn cs ts es => by
+    iintro #H
+    iunfold txn.requestOpIs at H
+    icases H with ⟨%Hn, %w, %r, #Hu, #Hw, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm,
+      #Hs, #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+    ihave ⟨%ts', #Hts, %Hts'⟩ := reqOps_of_requestOps sps ts $$ Hsm
+    ihave ⟨%es', #Hes, %Hes'⟩ := reqOps_of_requestOps fps es $$ Hfm
+    iexists (v3rpc.ReqOp.txn cs ts' es')
+    isplitl
+    · unfold v3rpc.reqOpIs
+      imodintro
+      isplitl
+      · ipureintro; exact Hn
+      iexists w, r
+      isplitl []; · iexact Hu
+      isplitl []; · iexact Hw
+      isplitl []; · ipureintro; exact Hr
+      iexists csl, ssl, fsl, cps, sps, fps
+      iframe #
+    · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Hts', Hes']
+  | .get o => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩ | ⟨%Hx, -⟩)⟩
@@ -351,7 +400,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
       have := Hx.2
       unfold txn.putTxnOp at this; split at this <;> (try split at this) <;> simp at this
     · cases Hx.2
-  | delete o =>
+  | .delete o => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩)⟩
@@ -366,7 +415,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
       · unfold v3rpc.reqOpIs; imodintro; isplitl; · ipureintro; exact Hn
         iexists w, r; iframe #
       · ipureintro; rfl
-  | put k v l =>
+  | .put k v l => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩)⟩
@@ -378,7 +427,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
         iexists w, r; iframe #
       · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Ho]
     · cases Hx.2
-  | putKeep k l =>
+  | .putKeep k l => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩)⟩
@@ -390,7 +439,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
         iexists w, r; iframe #
       · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Ho]
     · cases Hx.2
-  | putIgnVal k l =>
+  | .putIgnVal k l => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩)⟩
@@ -403,105 +452,88 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
       · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Ho]
     · cases Hx.2
 
-/-- **The plain operations of the server's copy are the handler's request operations** (in
-order). -/
+/-- **The operations of the server's copy are the handler's request operations** (in order). -/
 theorem reqOps_of_requestOps : ∀ (ps : List Loc) (ops : List TxnOp),
-    (∀ op ∈ ops, TxnOp.plain op) →
     txn.requestOpsIs (GF := GF) ps ops ⊢
       ∃ us : List v3rpc.ReqOp, v3rpc.reqOpsIs ps us ∗ ⌜v3rpc.ReqOp.toTxnOps us = some ops⌝
-  | [], [], _ => by
+  | [], [] => by
     iintro -
     iexists []
     unfold v3rpc.reqOpsIs
     isplitl; · itrivial
     ipureintro; rfl
-  | p :: ps, op :: ops, hp => by
+  | p :: ps, op :: ops => by
     iintro H
     iunfold txn.requestOpsIs at H
     icases H with ⟨H1, H2⟩
-    ihave ⟨%u, H1, %Hu⟩ := reqOp_of_requestOp p op (hp op (List.mem_cons_self ..)) $$ H1
-    ihave ⟨%us, H2, %Hus⟩ := reqOps_of_requestOps ps ops
-      (fun o hm => hp o (List.mem_cons_of_mem _ hm)) $$ H2
+    ihave ⟨%u, H1, %Hu⟩ := reqOp_of_requestOp p op $$ H1
+    ihave ⟨%us, H2, %Hus⟩ := reqOps_of_requestOps ps ops $$ H2
     iexists u :: us
     rw [v3rpc.reqOpsIs.eq_2]
     iframe H1 H2
     ipureintro
     simp [v3rpc.ReqOp.toTxnOps, Hu, Hus]
-  | [], _ :: _, _ => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
-  | _ :: _, [], _ => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
+  | [], _ :: _ => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
+  | _ :: _, [] => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
+end
 
-/-- A request operation that is not a nested transaction. -/
-def reqNotTxn : v3rpc.ReqOp → Prop
-  | .txn _ _ _ => False
-  | _ => True
+/-- `delWireAtT` is persistent. -/
+instance delWireAtT_persistent (p : Loc) (op : TxnOp) :
+    Persistent (delWireAtT (GF := GF) p op) := by
+  cases op <;> unfold delWireAtT <;> infer_instance
 
-theorem reqNotTxn_of_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
-    v3rpc.ReqOp.toTxnOps us = some ops → (∀ op ∈ ops, TxnOp.plain op) → ∀ u ∈ us, reqNotTxn u
-  | [], _, _, _ => by simp
-  | u :: us, ops, h, hp => by
-    simp only [v3rpc.ReqOp.toTxnOps] at h
-    split at h
-    · rename_i t ts h1 h2
-      simp only [Option.some.injEq] at h
-      subst h
-      have ih := reqNotTxn_of_toTxnOps us ts h2 (fun op hm => hp op (List.mem_cons_of_mem _ hm))
-      intro u' hu'
-      rcases List.mem_cons.mp hu' with rfl | hm
-      · have ht := hp t (List.mem_cons_self ..)
-        cases u' with
-        | txn cs ts' es' =>
-          simp only [v3rpc.ReqOp.toTxnOp] at h1
-          split at h1 <;> simp at h1
-          subst h1; exact ht.elim
-        | _ => trivial
-      · exact ih u' hm
-    · cases h
+/-- `delWiresAtT` is persistent. -/
+instance delWiresAtT_persistent (ps : List Loc) (ops : List TxnOp) :
+    Persistent (delWiresAtT (GF := GF) ps ops) := by
+  induction ops generalizing ps with
+  | nil => cases ps <;> unfold delWiresAtT <;> infer_instance
+  | cons op ops ih => cases ps <;> unfold delWiresAtT <;> infer_instance
 
-/-- The deletes' range ends of the operations `ps` are `nil` or not empty (what `txnWireOk` says
-of each branch). -/
-def delWireAt (ps : List Loc) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (p w d : Loc) (esl : GoSlice), ⌜ps[i]? = some p⌝ -∗
-      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
-          GoInterface) -∗
-      structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ d -∗
-      structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" d ↦□ esl -∗
-      ⌜esl = slice.nil ∨ esl.len ≠ W64 0⌝)
-
-instance delWireAt_persistent (ps : List Loc) : Persistent (delWireAt (GF := GF) ps) := by
-  unfold delWireAt; infer_instance
-
-theorem reqOpsWire_of_delWireAt : ∀ (ps : List Loc) (us : List v3rpc.ReqOp),
-    (∀ u ∈ us, reqNotTxn u) → delWireAt (GF := GF) ps ⊢ v3rpc.reqOpsWire ps us
-  | [], [], _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
-  | [], _ :: _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
-  | _ :: _, [], _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
-  | p :: ps, u :: us, hu => by
+mutual
+/-- `delWiresAtT_reqOpsWire` at one operation. -/
+theorem delWireAtT_reqOpWire (p : Loc) : ∀ (u : v3rpc.ReqOp) (op : TxnOp),
+    v3rpc.ReqOp.toTxnOp u = some op → delWireAtT (GF := GF) p op ⊢ v3rpc.reqOpWire p u
+  | .delete o, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h
+    unfold delWireAtT v3rpc.reqOpWire
+    exact .rfl
+  | .txn cs ts es, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    unfold delWireAtT v3rpc.reqOpWire
     iintro #H
-    iunfold delWireAt at H
-    have ih := reqOpsWire_of_delWireAt ps us (fun u' hm => hu u' (List.mem_cons_of_mem _ hm))
-    rw [v3rpc.reqOpsWire.eq_2]
+    iintro !> %w %r %ssl %fsl %sps %fps #H1 #H2 #H3 #H4 #H5 #H6
+    ihave ⟨#A, #B⟩ := H $$ %w %r %ssl %fsl %sps %fps H1 H2 H3 H4 H5 H6
     isplitl
-    · cases u with
-      | delete o =>
-        unfold v3rpc.reqOpWire
-        iintro !> %w %d %esl #H1 #H2 #H3
-        iapply H $$ %0 %p %w %d %esl %rfl H1 H2 H3
-      | txn cs ts es => exact (hu _ (List.mem_cons_self ..)).elim
-      | range o => unfold v3rpc.reqOpWire; itrivial
-      | put o => unfold v3rpc.reqOpWire; itrivial
-      | empty => unfold v3rpc.reqOpWire; itrivial
-    · iapply ih
-      unfold delWireAt
-      iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
-      iapply H $$ %(i + 1) %q %w %d %esl %Hi H1 H2 H3
+    · iapply delWiresAtT_reqOpsWire sps ts a ha $$ A
+    · iapply delWiresAtT_reqOpsWire fps es b hb $$ B
+  | .range _, _, _ => by unfold v3rpc.reqOpWire; iintro -; itrivial
+  | .put _, _, _ => by unfold v3rpc.reqOpWire; iintro -; itrivial
+  | .empty, _, _ => by unfold v3rpc.reqOpWire; iintro -; itrivial
 
 /-- **The client's wire facts of a transaction's operations are the handler's** (`notes/txn-nested.md`,
 L12): `delWiresAtT` of the model is `v3rpc.reqOpsWire` of the request operations whose model it is. -/
 theorem delWiresAtT_reqOpsWire (ps : List Loc) (us : List v3rpc.ReqOp) (ops : List TxnOp)
     (h : v3rpc.ReqOp.toTxnOps us = some ops) :
-    delWiresAtT (GF := GF) ps ops ⊢ v3rpc.reqOpsWire ps us := by
-  sorry -- txn-nested: prove after freeze
+    delWiresAtT (GF := GF) ps ops ⊢ v3rpc.reqOpsWire ps us :=
+  match ps, us, ops, h with
+  | [], [], _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
+  | [], _ :: _, _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
+  | _ :: _, [], _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
+  | p :: ps, u :: us, ops, h => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    rw [v3rpc.reqOpsWire.eq_2]
+    unfold delWiresAtT
+    iintro ⟨#H1, #H2⟩
+    isplitl
+    · iapply delWireAtT_reqOpWire p u a ha $$ H1
+    · iapply delWiresAtT_reqOpsWire ps us b hb $$ H2
+end
 
 /-- **The transport's request is the gRPC handler's** (see the file header): the server's copy of
 a transaction `t` (nested ones included), as decoded (`txnRequestIs`, `txnWireOk`), is the handler's
@@ -510,8 +542,35 @@ theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) :
     txn.txnRequestIs (GF := GF) r t ∗ txnWireOk r t ⊢
       ∃ ts es : List v3rpc.ReqOp, v3rpc.txnReqIs r t.cmps ts es ∗ v3rpc.txnReqWire r ts es ∗
         ⌜v3rpc.txnModelOf t.cmps ts es = some t⌝ := by
-  -- the proof before: git show 51b0f7adad:Proof/go_etcd_io/etcd/client/v3/Results.lean
-  sorry -- txn-nested: prove after freeze
+  iintro ⟨#Hreq, #Hw⟩
+  iunfold txn.txnRequestIs at Hreq
+  icases Hreq with ⟨%Hrn, Hreq⟩
+  iunfold txn.txnFieldsIs at Hreq
+  icases Hreq with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm,
+    #Hf, #Hfs, #Hfm⟩
+  ihave ⟨%ts, #Hts, %Hts'⟩ := reqOps_of_requestOps sps t.thenOps $$ Hsm
+  ihave ⟨%es, #Hes, %Hes'⟩ := reqOps_of_requestOps fps t.elseOps $$ Hfm
+  iexists ts, es
+  iunfold txnWireOk at Hw
+  icases Hw with ⟨%Hcnt, #Hw⟩
+  isplitl
+  · unfold v3rpc.txnReqIs
+    isplitl; · ipureintro; exact Hrn
+    iexists csl, ssl, fsl, cps, sps, fps
+    iframe #
+  isplitl
+  · unfold v3rpc.txnReqWire
+    isplitl
+    · ipureintro
+      rw [delCount_toTxnOps ts _ Hts', delCount_toTxnOps es _ Hes']
+      exact Hcnt
+    iintro !> %ssl' %fsl' %sps' %fps' #Hs' #Hss' #Hf' #Hfs'
+    ihave ⟨#A, #B⟩ := Hw $$ %ssl' %fsl' %sps' %fps' Hs' Hss' Hf' Hfs'
+    isplitl
+    · iapply delWiresAtT_reqOpsWire sps' ts _ Hts' $$ A
+    · iapply delWiresAtT_reqOpsWire fps' es _ Hes' $$ B
+  · ipureintro
+    simp [v3rpc.txnModelOf, Hts', Hes']
 
 end bridge
 
