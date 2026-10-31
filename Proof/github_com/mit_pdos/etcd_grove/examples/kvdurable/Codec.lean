@@ -391,6 +391,11 @@ theorem encStor_inj [GooseExts] (f f' : StorFile) (h : StorWf f) (h' : StorWf f'
 
 /-! ## Lengths -/
 
+theorem u64sLe_snoc (xs : List w64) (x : w64) : u64sLe (xs ++ [x]) = u64sLe xs ++ u64Le x := by
+  induction xs with
+  | nil => simp [u64sLe]
+  | cons y xs ih => simp only [List.cons_append, u64sLe, ih, List.append_assoc]
+
 @[simp] theorem putB_length (x : List w8) : (putB x).length = 8 + x.length := by
   simp [putB, u64Le_length]
 
