@@ -1257,14 +1257,62 @@ instance rnAdvChan_persistent (c : Loc) (P : IProp GF) : Persistent (rnAdvChan (
   unfold rnAdvChan; infer_instance
 
 
-/-- (D22 S-b, item 2; 2026-10-27: trivial) The raft term a batch carries (`toApply.raftTerm`):
-until 2026-10-27 `0` or a term with raft's commit witness, for the snapshot sender's merged
-snapshot, which is unreachable on the node API (`rnSnapMsg`). -/
-def rnRtOk (_γ : RNNames) (_t : w64) (_n : Nat) : IProp GF := iprop(True)
+/-- (D22 S-b, item 2) **The raft term a batch carries** (`toApply.raftTerm`, the term of the last
+non-empty `HardState`, raft.go:222), for the snapshot sender's merged snapshot: `0` (no hard state
+yet), or a term the log through some index `c` was committed at (raft's `committedAtTerm`), `c` at
+least the batch's log, `n` entries long. (2026-10-27 to 2026-10-31 `True`; 2026-10-31, from the
+node API's `nodeDriver_hardStateCommitted`.) -/
+def rnRtOk (γ : RNNames) (t : w64) (n : Nat) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(⌜t = W64 0⌝ ∨ ∃ c : w64, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜(n : Int) ≤ uint.Z c⌝)
 
 instance rnRtOk_persistent (γ : RNNames) (t : w64) (n : Nat) :
     Persistent (rnRtOk (GF := GF) γ t n) := by
   unfold rnRtOk; infer_instance
+
+/-- (2026-10-31) The term the `Ready` loop records (`0` or the driver's hard state's) is good for a
+batch of the log the driver was delivered, `pre ++ L` (`nodeDriver_hardStateCommitted`). -/
+theorem rn_rtOk_st (γ : RNNames) (rt : w64) (L : List EntryModel) (st : NodeDriverState)
+    (hd : st.delivered = srvLE γ.srv L) (Hrt : uint.Z rt = 0 ∨ rt = st.hardState.Term') :
+    (letI := srvStor (GF := GF) γ.node; nodeDriver (GF := GF) γ.nl γ.node.cl srvClusterN st) ⊢
+      (letI := srvStor (GF := GF) γ.node; nodeDriver γ.nl γ.node.cl srvClusterN st) ∗
+        rnRtOk γ rt (rnLogOf γ L).length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro Hd
+  ihave ⟨Hd, #Hc⟩ := nodeDriver_hardStateCommitted _ _ _ _ $$ Hd
+  iframe Hd
+  iunfold rnRtOk
+  rcases Hrt with Hrt | Hrt
+  · ileft; ipureintro; word
+  · icases Hc with (%Hz | ⟨#Hc, %Hle⟩)
+    · ileft; ipureintro; rw [Hrt, Hz]
+    · iright
+      iexists st.hardState.Commit'
+      rw [Hrt]
+      iframe Hc
+      ipureintro
+      rw [hd] at Hle
+      simp only [srvLE, rnLogOf, RNNames.srv, List.length_map, List.length_append] at Hle ⊢
+      omega
+
+/-- `rn_rtOk_st` for the driver with a `Ready` of entries in hand (`rnBusyN`). -/
+theorem rn_rtOk_busyN (γ : RNNames) (rt : w64) (d ce es : List EntryModel) (p : HardStateM)
+    (Hrt : uint.Z rt = 0 ∨ rt = p.Term') :
+    rnBusyN (GF := GF) γ d ce es p ⊢ rnBusyN γ d ce es p ∗ rnRtOk γ rt (rnLogOf γ (d ++ ce)).length := by
+  unfold rnBusyN
+  exact rn_rtOk_st γ rt (d ++ ce) _ rfl Hrt
+
+/-- `rn_rtOk_st` for the driver with a snapshot `Ready` in hand (`rnBusyS`'s driver). -/
+theorem rn_rtOk_busyS (γ : RNNames) (rt : w64) (A' es : List EntryModel) (p : HardStateM)
+    (l : SnapLoan) (Hrt : uint.Z rt = 0 ∨ rt = p.Term') :
+    (letI := srvStor (GF := GF) γ.node
+     nodeDriver (GF := GF) γ.nl γ.node.cl srvClusterN
+      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l)⟩) ⊢
+    (letI := srvStor (GF := GF) γ.node
+     nodeDriver γ.nl γ.node.cl srvClusterN
+      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l)⟩) ∗
+    rnRtOk γ rt (rnLogOf γ A').length :=
+  rn_rtOk_st γ rt A' _ rfl Hrt
 
 /-- (D22l) `prevHardSt`'s update by a `Ready` of the server's hard state `hs`. -/
 theorem phsNext_toM_empty (p : HardStateM) (hs : HardStateModel) (h : hs = HardStateModel.empty) :

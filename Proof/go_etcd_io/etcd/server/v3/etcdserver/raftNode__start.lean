@@ -419,6 +419,9 @@ theorem raftNode.start.wp_proof
             iframe
             ipureintro
             rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
+        -- the batch's raft term, with the witness bounding the batch (`nodeDriver_hardStateCommitted`,
+        -- on the busy driver at `p'`)
+        ihave ⟨Hbdrv, #Hrtok⟩ := rn_rtOk_busyS γ rt' A' _ p' _ Hrt' $$ Hbdrv
         -- `notifyc` (2026-10-31, #3: two sends, after `Sync` and after the messages, the
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -512,7 +515,7 @@ theorem raftNode.start.wp_proof
             · iunfold rnAdvChan
               iexists γac
               iexact HacU
-            iunfold rnRtOk; itrivial
+            iexact Hrtok
           inext
           iintro Hprod
           wp_auto
@@ -1097,6 +1100,8 @@ theorem raftNode.start.wp_proof
           ipureintro
           rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
       -- (D22 S-b, D22l) the batch's raft term, with the witness bounding the batch
+      -- (`nodeDriver_hardStateCommitted`, on the busy driver at `p'`)
+      ihave ⟨Hbusy, #Hrtok⟩ := rn_rtOk_busyN γ rt' L' ce es p' Hrt' $$ Hbusy
       -- `notifyc` (D43 M3: the two-send idiom, depositing the view after the batch if it goes
       -- along, `rnApR`), `raftAdvancedC`
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -1191,7 +1196,7 @@ theorem raftNode.start.wp_proof
             iexact HacU
           isplitr
           · iexact Hclast
-          iunfold rnRtOk; itrivial
+          iexact Hrtok
         inext
         iintro Hprod
         wp_auto
