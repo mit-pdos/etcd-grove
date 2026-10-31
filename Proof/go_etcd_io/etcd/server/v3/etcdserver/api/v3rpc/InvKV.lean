@@ -50,6 +50,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 -- axiomatized field types (`InvRequest` imported it through `InvApplier` before unit 2).
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.IrrDepth
 
 @[expose] public section
 
@@ -82,6 +84,13 @@ def txnAllCheck (n : Int) (cs : List CmpModel) (ts es : List ReqOp) : Option Che
     match ivCheck ts, ivCheck es with
     | some _, some _ => none
     | _, _ => some .duplicateKey
+
+/-- **The transaction model of a checked transaction request** (`none` if an operation is
+empty: the check rejects it; moved from `ServerKV.lean` on 2026-10-31 for `kvTxnOk`). -/
+def txnModelOf (cs : List CmpModel) (ts es : List ReqOp) : Option TxnModel :=
+  match ReqOp.toTxnOps ts, ReqOp.toTxnOps es with
+  | some ts', some es' => some { cmps := cs, thenOps := ts', elseOps := es' }
+  | _, _ => none
 
 section srvM
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -378,11 +387,16 @@ def kvDeleteOk (s : Loc) (A : KVAns GF) : IProp GF :=
           kvAnswer A (.deleteRange o)
             (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) resp err }})
 
-/-- **The server's `Txn`** on a checked request (one conjunct of `raftKV`). -/
+/-- **The server's `Txn`** on a checked request (one conjunct of `raftKV`), (2026-10-31,
+`issues/etcd-txn-nested-depth-apply-panic.md`) whose model is within protobuf's recursion limit
+(`apply.txnDepthOk`: its `InternalRaftRequest` decodes at apply; the handler's check at a budget
+within `maxTxnOpsOk` gives it, `txnDepthOk_of_check`). -/
 def kvTxnOk (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(∀ (ctx : GoInterface) (r : Loc) (cs : List CmpModel) (ts es : List ReqOp) (n : Int),
       {{ A.call ctx ∗ txnReqIs r cs ts es ∗
-          ⌜txnReqOk n cs ts es ∧ intervalsOk ts ∧ intervalsOk es ∧ A.pre (.txn cs ts es)⌝ }}
+          ⌜txnReqOk n cs ts es ∧
+            (∀ t, txnModelOf cs ts es = some t → apply.txnDepthOk t) ∧
+            intervalsOk ts ∧ intervalsOk es ∧ A.pre (.txn cs ts es)⌝ }}
         (App (App (Val (srvM s go!"Txn")) (Val #ctx)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvAnswer A (.txn cs ts es) (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)
@@ -467,7 +481,9 @@ instance streamSendOk_persistent (stv : GoInterface) (Ψ : Loc → IProp GF)
   unfold streamSendOk; infer_instance
 
 /-- **The `*kvServer` `p`** that `NewKVServer(s)` built (read-only): its header (`hdrIs`), `kv`
-the server `s` (`isRaftKV`) with its contract, the transaction budget `n` (`MaxTxnOps`). -/
+the server `s` (`isRaftKV`) with its contract, the transaction budget `n` (`MaxTxnOps`), within
+protobuf's recursion limit (`maxTxnOpsOk`, 2026-10-31: `NewKVServer` copies it from the
+configuration once). -/
 def kvServerIs (p : Loc) (s : Loc) (A : KVAns GF) (cid mid n : w64) : IProp GF :=
   iprop(⌜p ≠ null⌝ ∗
     hdrIs (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"hdr" p)
@@ -475,6 +491,7 @@ def kvServerIs (p : Loc) (s : Loc) (A : KVAns GF) (cid mid n : w64) : IProp GF :
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"kv" p ↦□
       (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface) ∗
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"maxTxnOps" p ↦□ n ∗
+    ⌜maxTxnOpsOk (sint.Z n)⌝ ∗
     raftKV s A)
 
 instance kvServerIs_persistent (p s : Loc) (A : KVAns GF) (cid mid n : w64) :

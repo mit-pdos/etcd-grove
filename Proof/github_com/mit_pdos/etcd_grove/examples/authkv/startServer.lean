@@ -93,7 +93,8 @@ theorem startServer.wp_proof
         fun _ => [common.httpURL go!"127.0.0.1:23926"]⟩
       γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
-      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes]) rfl hcmp0 Htb Hrb48 HrbN
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
+      v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       (fun _ => ⟨rfl, by word, by word⟩))

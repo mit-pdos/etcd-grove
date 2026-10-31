@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.ServerKVTxn
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
 public import Proof.go_etcd_io.etcd.client.v3.Link
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section
 
@@ -586,7 +587,7 @@ theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
     · iintro !> %b %sl %os %ops %Φ' !> ⟨HB, Hos, %hf⟩ HΦ'
       iunfold txnB at HB
       icases HB with ⟨Hobj, %hp⟩
-      iapply (v3.txn.wp_Then tp addr todoCtxVal cd b sl os ops) $$ [Hobj Hos]
+      iapply (v3.txn.wp_Then_plain tp addr todoCtxVal cd b sl os ops) $$ [Hobj Hos]
       · iframe; iframe #; ipureintro; exact hf
       inext
       iintro Hobj
@@ -603,7 +604,7 @@ theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
     · iintro !> %b %sl %os %ops %Φ' !> ⟨HB, Hos, %hf⟩ HΦ'
       iunfold txnB at HB
       icases HB with ⟨Hobj, %hp⟩
-      iapply (v3.txn.wp_Else tp addr todoCtxVal cd b sl os ops) $$ [Hobj Hos]
+      iapply (v3.txn.wp_Else_plain tp addr todoCtxVal cd b sl os ops) $$ [Hobj Hos]
       · iframe; iframe #; ipureintro; exact hf
       inext
       iintro Hobj

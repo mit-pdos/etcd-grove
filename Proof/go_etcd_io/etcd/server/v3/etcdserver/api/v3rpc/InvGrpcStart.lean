@@ -255,13 +255,14 @@ structure v3rpc.GrpcCfg (GF : BundledGFunctors) [GooseExts] where
   mcs : w32
 
 /-- **The server's fields and contracts `v3rpc.Server` reads** (persistent; see the file header):
-read-only, as `NewServer` left them. -/
+read-only, as `NewServer` left them; (2026-10-31) the transaction budget within protobuf's
+recursion limit (`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
 def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
   iprop(v3rpc.raftKV s C.A ∗ v3rpc.watchSrvOk s C.E C.γ C.wsl ∗
     srvKVAddr s ↦□ v3rpc.wsIface C.wsl ∗ v3rpc.srvIdsOk s ∗
     srvCfgFieldAddr s go!"Logger" ↦□ C.lg0 ∗ ⌜C.lg0 ≠ null⌝ ∗ srvLgAddr s ↦□ C.lg ∗ ⌜C.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ C.qb ∗ srvMemberIDAddr s ↦□ C.mid ∗
-    srvCfgFieldAddr s go!"MaxTxnOps" ↦□ C.n ∗
+    srvCfgFieldAddr s go!"MaxTxnOps" ↦□ C.n ∗ ⌜v3rpc.maxTxnOpsOk (sint.Z C.n)⌝ ∗
     srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ C.wd ∗
     srvLeadInv s ∗ srvClusterAddr s ↦□ C.c ∗ membership.isRaftCluster C.c ∗
     membership.localKept C.c ∗ srvStoppingAddr s ↦□ C.ch ∗ stopChan C.ch ∗

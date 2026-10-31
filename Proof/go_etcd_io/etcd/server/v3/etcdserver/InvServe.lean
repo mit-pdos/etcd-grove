@@ -71,11 +71,13 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The configuration fields `v3rpc.Server` reads that `srvBuilt` does not hold** (persistent;
-see the file header). -/
+see the file header); (2026-10-31) the transaction budget within protobuf's recursion limit
+(`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
 def srvServeCfg (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ cfg.QuotaBackendBytes' ∗
     srvCfgFieldAddr s go!"MaxTxnOps" ↦□ cfg.MaxTxnOps' ∗
+    ⌜v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps')⌝ ∗
     srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ cfg.WarningUnaryRequestDuration' ∗
     srvCfgFieldAddr s go!"Metrics" ↦□ cfg.Metrics' ∗
     srvCfgFieldAddr s go!"EnableDistributedTracing" ↦□ cfg.EnableDistributedTracing' ∗

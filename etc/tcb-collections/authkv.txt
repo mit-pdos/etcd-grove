@@ -372,5 +372,4 @@ axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
-sorry authkv.then_commit_nested_refused
 sorry raftNode.start.wp_proof

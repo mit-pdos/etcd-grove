@@ -16,6 +16,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.txnRes
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withRes
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section
 
@@ -82,13 +83,13 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) cctx ccd _ tos (t.map clientOp)
+  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) cctx ccd _ tos (t.map clientOp)
       (t.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps t, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) cctx ccd _ eos (e.map clientOp)
+  wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) cctx ccd _ eos (e.map clientOp)
       (e.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj

@@ -592,7 +592,8 @@ context's).
 **`txn_readonly`** (linked `EtcdServer.Txn` at a read-only request): the server's run of the
 transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
 unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request,
-with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2): the apply
+with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2; within protobuf's
+recursion limit, `apply.txnDepthOk`, 2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`): the apply
 thread's application of the request the proposed data decode to (`txnAppliedOk`, with `□ Q` of the
 state the update linearized at: unit W-M3, the state of the log the transaction met),
 possibly with header-only ranges (`SkipRangeExecution`: the apply loops call the wait's
@@ -727,6 +728,8 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   · iframe #; iframe Hlt Hcr Hrc Hct Hot
     isplitr
     · ipureintro; exact fun _ => Hg
+    isplitr
+    · ipureintro; intro h; cases h
     iunfold kvDep; iright; ipureintro; rfl
   inext
   iintro %resp %err ⟨Hlt, Hrc, Hcr, H⟩
@@ -737,7 +740,7 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
 theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
     (Q : KVState → IProp GF) (ot : Option Loc) (te : Bool) (F : mvcc.Log)
-    (hw : txn.txnReadonly t = false) :
+    (hw : txn.txnReadonly t = false) (hd : apply.txnDepthOk t) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
@@ -753,7 +756,7 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
   have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F
   simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
-  · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact fun h => h.elim
+  · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact ⟨fun h => h.elim, fun _ => hd⟩
   inext
   iintro %resp %err ⟨Hlt, Hrc, H⟩
   iapply HΦ

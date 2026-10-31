@@ -7,6 +7,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Work
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.WorkCalls
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.keyOf
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
@@ -47,15 +48,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
-
-/-- **A principal's key `x/who/n` is short** (`x` and `n` within `2 ^ 10`): within `2 ^ 20`. -/
-theorem keyOfK_principal_le {x who n : GoString} (hwho : who ∈ principals)
-    (hx : x.length ≤ 2 ^ 10) (hn : n.length ≤ 2 ^ 10) : (keyOfK x who n).length ≤ 2 ^ 20 := by
-  have hw : who.length ≤ 4 := (show ∀ w ∈ principals, w.length ≤ 4 by decide) who hwho
-  unfold keyOfK
-  simp only [List.length_append]
-  have h1 : (go!"/" : GoString).length = 1 := by decide
-  omega
 
 /-- `Work`'s puts fit in a gRPC message: a principal's key, a value within `2 ^ 28`. -/
 theorem akPut_sizeOk {x who n v : GoString} (hwho : who ∈ principals)
@@ -307,7 +299,7 @@ theorem Work.wp_proof
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (v3.txn.wp_Then tp _ ci cd TxnBuild.empty _ _
+  wp_apply (v3.txn.wp_Then_plain tp _ ci cd TxnBuild.empty _ _
       [.put (keyOfK go!"a" who go!"t") go!"vt" (W64 0), .get (opGetModel lo [withRangeM hi])])
     $$ [Hobj] as Hobj
   · iframe #
@@ -401,7 +393,7 @@ theorem Work.wp_proof
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (v3.txn.wp_Then tp _ ci cd TxnBuild.empty _ _
+  wp_apply (v3.txn.wp_Then_plain tp _ ci cd TxnBuild.empty _ _
       [.put (keyOfK go!"a" who go!"t1") go!"vt" (W64 0),
         .put (keyOfK go!"c" who go!"t1") go!"vt" (W64 0)])
     $$ [Hobj] as Hobj
@@ -495,14 +487,14 @@ theorem Work.wp_proof
     iframe Hobj
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (v3.txn.wp_Then tp _ ci cd _ _ _ [.put (keyOfK go!"a" who go!"t2") go!"vt" (W64 0)])
+  wp_apply (v3.txn.wp_Then_plain tp _ ci cd _ _ _ [.put (keyOfK go!"a" who go!"t2") go!"vt" (W64 0)])
     $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro
     exact ⟨by simp [txnOpOf_put], rfl, rfl⟩
   (try wp_auto)
-  wp_apply (v3.txn.wp_Else tp _ ci cd _ _ _ [.put (keyOfK go!"c" who go!"t2") go!"vt" (W64 0)])
+  wp_apply (v3.txn.wp_Else_plain tp _ ci cd _ _ _ [.put (keyOfK go!"c" who go!"t2") go!"vt" (W64 0)])
     $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -578,7 +570,7 @@ theorem Work.wp_proof
   subst Htv
   (try wp_auto)
   wp_apply (then_commit_nested_refused cl api conn tp s E ρ cid mid γa Lset n who ci cd _ _ top
-      hγa (reqCtx_out who _ c0 Hout.1 Hout.2)) $$ [Hobj] as HC
+      hwho hγa (reqCtx_out who _ c0 Hout.1 Hout.2)) $$ [Hobj] as HC
   · iframe #
     iframe Hobj
     ipureintro; exact Htsl

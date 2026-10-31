@@ -137,6 +137,12 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
     key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
     range end too). Upstream not searched.
+14. **[etcd-txn-nested-depth-apply-panic](etcd-txn-nested-depth-apply-panic.md)** (2026-10-30): a
+    transaction nested 4999 deep passes gRPC's protobuf decoding (10000 levels) but its raft entry is
+    one level deeper, and every member panics applying it, again on every restart (as item 1, the
+    cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
+    128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
+    `checkTxnRequest`). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a

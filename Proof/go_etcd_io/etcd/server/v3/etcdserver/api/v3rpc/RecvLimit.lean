@@ -61,6 +61,19 @@ theorem grpcRecvBytesOk.lt {maxReq : Nat} {b : GoString} (hcfg : etcdMaxRequestB
     (h : grpcRecvBytesOk (etcdMaxRecvMsgSize maxReq) b) : b.length < 2 ^ 27 := by
   unfold etcdMaxRequestBytesOk at hcfg; unfold grpcRecvBytesOk at h; omega
 
+/-- **A transaction budget whose checked transactions fit protobuf's recursion limit** (2026-10-31;
+`issues/etcd-txn-nested-depth-apply-panic.md`, `notes/irr-depth.md`): `checkTxnRequest` at the
+budget `n` admits a transaction `2n + 1` messages deep (`txnCheck_msgDepth`, tight: a chain of `n`
+one-operation transactions over a put), whose `InternalRaftRequest` is `2n + 2`; it decodes at
+apply iff `2n + 2 ≤ 10000`. A scope restriction: etcd accepts any `--max-txn-ops`, and from 5000 on
+one request takes every member down. A negative budget (`int(maxTxnOps)` of a `uint` at least
+`2^63`) refuses every transaction and meets it. etcd's default (128) meets it. -/
+def maxTxnOpsOk (n : Int) : Prop := n ≤ 4999
+
+/-- etcd's default `MaxTxnOps` (128) meets the bound. -/
+theorem maxTxnOpsOk_default : maxTxnOpsOk (sint.Z (W64 128)) := by
+  unfold maxTxnOpsOk; decide
+
 end v3rpc
 end EtcdGrove
 end Perennial

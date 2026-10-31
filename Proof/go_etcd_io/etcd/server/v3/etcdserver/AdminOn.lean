@@ -50,6 +50,15 @@ def adminRespTy : apply.ReqKind → Option go.GoType
   | .authRoleGrantPermission => some etcdserverpb.AuthRoleGrantPermissionResponse.ty
   | _ => none
 
+/-- **An admin request is within protobuf's recursion limit** (`proto.MarshalIRR`'s premise):
+`dispatch` tests `.txn` before the admin kinds (`apply.dispatchKind`), so it has no
+transaction. -/
+theorem irrDepthOk_of_adminRespTy {rq : apply.IRRModel} {T : go.GoType}
+    (h : adminRespTy (apply.dispatchKind rq) = some T) : apply.irrDepthOk rq := by
+  apply apply.irrDepthOk_of_txn_none
+  apply apply.txn_none_of_dispatchKind
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> intro he <;> rw [he] at h <;> simp [adminRespTy] at h
+
 /-- The server's starting auth state has its users' roles sorted. -/
 theorem rolesSorted_srvAuthSt0 : rolesSorted srvAuthSt0 :=
   rolesSorted_bump _ rolesSorted_bootState
@@ -238,7 +247,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
     ihave Hau := hh $$ Hhh
     iunfold adminHistAu at Hau
     iexact Hau
-  wp_apply hRR s E ρ ctx cd p rq (adminQh ρ.kv rq Qa) F hid $$ [Hrd Hard Hcred Hirr Hh Hperm]
+  wp_apply hRR s E ρ ctx cd p rq (adminQh ρ.kv rq Qa) F hid (irrDepthOk_of_adminRespTy hT) $$ [Hrd Hard Hcred Hirr Hh Hperm]
       as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hirr Hperm Hh
   icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, #HL, Hok, #HpAf, #HQh, #Hhb⟩ | ⟨⟨%Hre, %Hne⟩, #HaE, Hfail⟩)

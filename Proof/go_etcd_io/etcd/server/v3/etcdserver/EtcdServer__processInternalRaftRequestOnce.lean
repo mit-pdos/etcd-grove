@@ -154,7 +154,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     rw [← Hhvid]
     iframe #
     ipureintro; exact Hhvn
-  wp_apply hM p (apply.withHeader rq ⟨id, hv.Username', hv.AuthRevision'⟩) $$ []
+  wp_apply hM p (apply.withHeader rq ⟨id, hv.Username', hv.AuthRevision'⟩) (by simpa using Hdpt) $$ []
     as %dsl %merr Hmres
   · iframe #
   (try wp_auto)
@@ -516,7 +516,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
-  intro s E ρ ctx cd p rq Qh F Hid0
+  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -689,10 +689,10 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qh F Hid0
+  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   have h := EtcdServer.processInternalRaftRequestOnce.wp_proofM E.authOn hAI hCI hFE hEx hNext
     hAuth hRT hM hTO hSp (EtcdServer.parseProposeCtxErr.spec_M hPE E.authOn) hED hFB hSec hWL
-    s E ρ ctx cd p rq Qh F Hid0
+    s E ρ ctx cd p rq Qh F Hid0 Hdpt
   exact h
 
 /-- **A compaction through the request path** (M2, S2): the skeleton's statement, no callee

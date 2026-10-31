@@ -715,6 +715,10 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
@@ -755,6 +759,10 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specOff : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
@@ -778,6 +786,10 @@ abbrev EtcdServer.raftRequest.specM (on : Bool) : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
@@ -808,6 +820,10 @@ abbrev EtcdServer.raftRequest.specOff : Prop :=
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
@@ -1103,21 +1119,21 @@ theorem EtcdServer.parseProposeCtxErr.spec_M
 theorem EtcdServer.processInternalRaftRequestOnce.spec_M
     (h : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG)) (on : Bool) :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
-  intro s E ρ ctx cd p rq Qh F Hid0
+  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   iintro %Φ ⟨#Hpkg, #Hsrv, Hrest⟩ HΦ
   ihave %hon := isServerReqM_authOn on s E ρ $$ Hsrv
   subst hon
-  iapply (h s E ρ ctx cd p rq Qh F Hid0) $$ [Hrest] HΦ
+  iapply (h s E ρ ctx cd p rq Qh F Hid0 Hdpt) $$ [Hrest] HΦ
   iframe Hpkg Hsrv Hrest
 
 theorem EtcdServer.raftRequest.spec_M
     (h : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) (on : Bool) :
     EtcdServer.raftRequest.specM (GF := GF) (hG := hG) on := by
-  intro s E ρ ctx cd p rq Qh F Hid0
+  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   iintro %Φ ⟨#Hpkg, #Hsrv, Hrest⟩ HΦ
   ihave %hon := isServerReqM_authOn on s E ρ $$ Hsrv
   subst hon
-  iapply (h s E ρ ctx cd p rq Qh F Hid0) $$ [Hrest] HΦ
+  iapply (h s E ρ ctx cd p rq Qh F Hid0 Hdpt) $$ [Hrest] HΦ
   iframe Hpkg Hsrv Hrest
 
 theorem EtcdServer.doSerialize.spec_M
@@ -1136,9 +1152,9 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
     (h : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.specOff (GF := GF) (hG := hG) := by
   have hM := EtcdServer.processInternalRaftRequestOnce.spec_M h false
-  intro s E ρ ctx cd p rq Qr F Hid0
+  intro s E ρ ctx cd p rq Qr F Hid0 Hdpt
   iintro %Φ Hpre HΦ
-  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
+  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt) $$ [Hpre] [HΦ]
   · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
     ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
     rw [isServerReqM_false]
@@ -1174,12 +1190,12 @@ theorem EtcdServer.raftRequest.spec_off
     (h : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.specOff (GF := GF) (hG := hG) := by
   have hM := EtcdServer.raftRequest.spec_M h false
-  intro s E ρ ctx cd p rq Qr F Hid0
+  intro s E ρ ctx cd p rq Qr F Hid0 Hdpt
   iintro %Φ Hpre HΦ
   icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
   ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr $$ Hok
   rw [← isServerReqM_false]
-  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Ha Hb Hc Hd He Hf Hg Hok' Hi Hj] [HΦ]
+  iapply (hM s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt) $$ [Ha Hb Hc Hd He Hf Hg Hok' Hi Hj] [HΦ]
   · iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ

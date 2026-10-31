@@ -106,6 +106,11 @@ def irrTxn (tw : txn.TxnModelW) : apply.IRRModel := { apply.irrEmpty with txnW :
 @[simp] theorem irrTxn_txnW (tw : txn.TxnModelW) : (irrTxn tw).txnW = some tw := rfl
 @[simp] theorem irrEmpty_txn : apply.irrEmpty.txn = none := rfl
 
+/-- `irrTxn tw` is within protobuf's recursion limit if its transaction is. -/
+theorem apply.irrDepthOk_irrTxn {tw : txn.TxnModelW} (h : apply.txnDepthOk tw.toModel) :
+    apply.irrDepthOk (irrTxn tw) := by
+  intro t ht; simp only [irrTxn_txn, Option.some.injEq] at ht; subst ht; exact h
+
 /-- **`exceedsRequestLimit(ai, ci, r, enable)`** (`util.go`), `prio` = `isPriorityRequest(r)`
 (a lease revocation): the committed index more than `maxNormalGap` (5000) past the applied one,
 unless a priority request with the feature enabled is within `maxPriorityGap` (10000); the sums
