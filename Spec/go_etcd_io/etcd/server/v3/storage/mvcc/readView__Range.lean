@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -24,18 +24,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `rv.Range(ctx, key, end, ro)`: a read transaction opened at the last revision of a
 committed log, its range, and closed: at the compaction revision `crev` it observed, at or above
 the caller's lower bound `c` (`rangeOutcomeC`; 2026-10-13, unit 6a). The readers' statement
-(`storeReader`, `rangeOutcome`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
+(`storeReader`, `rangeOutcome`) is `specR` (`spec_R`, `ReaderSpecs.lean`). At a context that is
+never done (`todo`, `rangeCtx`: `context.TODO()`'s) the result is not `nil`, as
+`metricsTxnWrite.Range`'s (2026-10-31, M2 apply side: `applierV3backend.Compaction` reads `rr.Rev`
+of `KV.Range(context.TODO(), …)` ignoring the error; at `todo = false` today's statement). -/
 abbrev mvcc.readView.Range.spec : Prop :=
   ∀ (rv s : Loc) (γ : mvcc.StoreNames)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key endk : GoSlice) (k e : GoString)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice) (k e : GoString)
     (ro : RangeOptions) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isReadView rv s γ ∗ mvcc.storeReaderC s γ ∗ mvcc.crevLb γ.idx c ∗
-      context.isContext ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (App (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      mvcc.storeReaderC s γ ∗
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.storeReaderC s γ ∗
       ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.crevLb γ.idx crev ∗
         ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1) ∧ c ≤ crev ∧ -1 ≤ crev⌝ ∗
         mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }}

@@ -158,6 +158,50 @@ theorem kvOver_commit_wp (ty : go.GoType) (v : val) (s : Loc) (Φ : val → IPro
     (try wp_auto)
     iexact Hwp
 
+/-- **`kv.Compact(trace, rev)` is the store's `Compact`** (a WP transfer; M2, the apply side: the
+watchable store's is promoted from its embedded `store`). -/
+theorem kvOver_compact_wp (ty : go.GoType) (v : val) (s : Loc) (trace : Loc) (rev : w64)
+    (Φ : val → IProp GF) :
+    kvOver (GF := GF) (interface.mkOk ty v) s ∗
+      WP (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace))
+        (Val #rev)) {{ Φ }} ⊢
+      WP (App (App (Val #(methods ty go!"Compact" v)) (Val #trace)) (Val #rev)) {{ Φ }} := by
+  iintro ⟨Hk, Hwp⟩
+  iunfold kvOver at Hk
+  icases Hk with (%H | ⟨%ws, %H, #Hst⟩)
+  · cases H
+    iexact Hwp
+  · cases H
+    rw [method_unfold (t := go.GoType.PointerType watchableStore.ty) (m := go!"Compact")]
+    wp_auto
+    iexact Hwp
+
+/-- **`kv.Range(ctx, key, end, ro)` is the store's read view's `Range`** (a WP transfer; M2, the
+apply side: the store's is promoted from its embedded `ReadView`, the watchable store's from its
+embedded `store`). -/
+theorem kvOver_range_wp (ty : go.GoType) (v : val) (s rv : Loc) (ctx : GoInterface)
+    (key endk : GoSlice) (ro : RangeOptions) (Φ : val → IProp GF) :
+    kvOver (GF := GF) (interface.mkOk ty v) s ∗
+      structFieldRef store go!"ReadView" s ↦□
+        (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+      WP (App (App (App (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"Range"))
+        (Val #ctx)) (Val #key)) (Val #endk)) (Val #ro)) {{ Φ }} ⊢
+      WP (App (App (App (App (Val #(methods ty go!"Range" v)) (Val #ctx)) (Val #key)) (Val #endk))
+        (Val #ro)) {{ Φ }} := by
+  iintro ⟨Hk, #Hrv, Hwp⟩
+  iunfold kvOver at Hk
+  icases Hk with (%H | ⟨%ws, %H, #Hst⟩)
+  · cases H
+    rw [method_unfold (t := go.GoType.PointerType store.ty) (m := go!"Range")]
+    wp_auto
+    iexact Hwp
+  · cases H
+    rw [method_unfold (t := go.GoType.PointerType watchableStore.ty) (m := go!"Range")]
+    wp_auto
+    rw [method_unfold (t := go.GoType.PointerType store.ty) (m := go!"Range")]
+    wp_auto
+    iexact Hwp
+
 /-- **`store.Read`'s spec at a KV over the store** (`kvOver_read_wp`). -/
 theorem kvOver_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
     (ty : go.GoType) (v : val) (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat)

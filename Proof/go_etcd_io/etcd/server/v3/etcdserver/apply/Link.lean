@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Authenticate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__ClusterMemberAttrSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__ClusterVersionSet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Compaction
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__DowngradeInfoSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__LeaseCheckpoint
@@ -86,6 +87,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__P
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Txn
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
@@ -170,6 +176,22 @@ theorem zap.Logger.wp_Info :
 theorem storage.BackendQuota.wp_Cost :
     EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.BackendQuota.Cost.wp_proof
+
+theorem traceutil.wp_TODO :
+    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.TODO.wp_proof
+
+theorem traceutil.wp_Get :
+    EtcdGrove.traceutil.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Get.wp_proof traceutil.wp_TODO
+
+theorem traceutil.Trace.wp_IsEmpty :
+    EtcdGrove.traceutil.Trace.IsEmpty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.IsEmpty.wp_proof
+
+theorem traceutil.wp_newTrace :
+    EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.newTrace.wp_proof
 
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
@@ -474,6 +496,14 @@ theorem wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem applierV3Corrupt.wp_Compaction :
     EtcdGrove.apply.applierV3Corrupt.Compaction.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3Corrupt.Compaction.wp_proof
+
+theorem traceutil.wp_EnsureTrace :
+    EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
+
+theorem applierV3backend.wp_Compaction [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.Compaction.wp_proof context.wp_TODO traceutil.wp_EnsureTrace mvcc.store.wp_Compact mvcc.readView.wp_Range
 
 theorem wp_checkTxnReqsPermission :
     EtcdGrove.apply.checkTxnReqsPermission.spec (GF := GF) (hG := hG) :=

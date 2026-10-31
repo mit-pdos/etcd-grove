@@ -372,10 +372,12 @@ theorem mvcc.readView.Range.spec_R (h : mvcc.readView.Range.spec (GF := GF) (hG 
   iintro %Φ ⟨#Hpkg, #Hrv, Hrd, #Hctx, #Hkey, #Hend⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  iapply (h rv s γ ctx cd key endk k e ro (-1)) $$ %Φ [Hrd]
+  ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
+  · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
+  iapply (h rv s γ ctx cd false key endk k e ro (-1)) $$ %Φ [Hrd]
   · iframe Hrd; iframe #
   inext
-  iintro %r %err ⟨Hrd, %log, %rev, %crev, #Hc, #Hlb', %Hp, Hout⟩
+  iintro %r %err ⟨-, Hrd, %log, %rev, %crev, #Hc, #Hlb', %Hp, Hout⟩
   iapply HΦ
   isplitl [Hrd]
   · iapply mvcc.storeReader_of $$ Hrd

@@ -27257,3 +27257,22 @@ only in `revMuBody`, under the `revMu` lock. Instead `store.Rev` passes on the `
 `store.Read` already gives (a strengthening of its post), and `srvRevLb` carries it. With that,
 `EtcdServer.Compact.spec`'s text and the frozen compactor specs stay as they are. Not taken: (b),
 restating `Compact.spec`'s premise as `cmpReach` and building the compactor's `RevLb` through a read view.
+
+## M2 apply side, the switch's stage 1: three repairs to the approved `Compaction` draft (2026-10-31)
+
+Taken by the agent while the user was offline ("keep going"), each reversible; `notes/m2-apply-plan.md`,
+"The switch". The approved `applierV3backend.Compaction.specD` (item 10) was not provable over the
+callees' specs:
+1. **Translation**: `*watchableStore`'s promoted `Compact` had no `MethodUnfold` (goose emits the
+   promoted wrappers the configuration lists): `"watchableStore.Compact"` added to the mvcc
+   configuration, as `watchableStore.Commit` was for `applyAll`'s merge. No trust added.
+2. **`mvcc.readView.Range.spec` strengthened** with `metricsTxnWrite.Range.spec`'s `todo` flag: at a
+   never-done context the result is not `nil` (Go's `Compaction` reads `rr.Rev` ignoring `Range`'s
+   error; without the flag the spec's context-done arm, a `nil` result, could not be excluded). Its
+   callers take `todo = false` (today's statement). Rejected: a corollary (it needs the proof, not the
+   spec); weakening `Compaction`'s post (the dereference is a panic, not an outcome).
+3. **`cmpRespOk` without the header's revision**: the draft's `Revision = |log| - 1` needs a lower
+   bound of the log `readView.Range` reads, which its spec does not take; no caller reads the value
+   (`compactResultIs` owns the header only). Rejected: a lower-bound premise on `readView.Range`
+   (another change to a frozen mvcc spec, for a value nobody reads).
+

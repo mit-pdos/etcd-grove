@@ -2,7 +2,7 @@
 
 Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
 **the Probe: done** (item 18, G2, the commit step's compaction arm, S3-3's transfer lemma, G1:
-"The Probe", the last section); next the switch. Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
+"The Probe"); **the switch: started** ("The switch", the last section: stage 1 done). Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
 (the user's Q6 (a)). Nothing switched but item 18 (mvcc).
 
 **Resume here.**
@@ -14,8 +14,9 @@ Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The
 2. *Approved* (2026-10-31, the user: "approve the items; start the Probe with item 18").
 3. *The Probe*: item 18, G2 (the user's (a')), the commit step's compaction arm
    (`kv_prop_au_cmp`), S3-3's transfer lemma (`kv_entry_claim`) and G1 (`clusterWorkloadOk_ofD`),
-   all in `M2ApplyProbe.lean`, done ("The Probe", below). **The Probe is done; next: the switch**
-   (the items in place; what it still needs is listed at the end of "The Probe").
+   all in `M2ApplyProbe.lean`, done ("The Probe", below). The Probe is done. **The switch** ("The
+   switch", the last section): stage 1 (the backend's `Compaction`) done; **next: stage 2** (the
+   chain's `Compaction` triple in `applierTriples`).
 4. *Still blocked elsewhere:* `applyAll`/`run`'s merge (the auth-mode merge, after the snapshot
    track's SNAPSHOT-SORRYs #7/#8); the snapshot track's drafts (the collaborator switches them:
    `notes/m2-storage-plan.md`; item 17 now takes `srvKVCloserW`, F-6).
@@ -661,3 +662,40 @@ law); the apply package's compaction arm (items 2-4, 9-11, 21) proved over the D
 `CompactMode.lean`'s family retired (items 5, 15). Still blocked elsewhere: `applyAll`/`run`'s
 merge (the auth-mode merge, after the snapshot track's SNAPSHOT-SORRYs #7/#8) and item 14's
 `NewServer.specD` (its on arm's proof).
+
+## The switch (2026-10-31, started; the user: "go on with the switch", then offline: "keep going")
+
+**Stages**, each leaving the full build green and committed on its own (no push):
+1. **The backend's `Compaction`** (item 10): the apply package's compaction vocabulary moved out of
+   the Draft into `apply/CompactArm.lean` (`chainCompacts`, `cmpRevAfter`, `cmpAdmitRev`,
+   `cmpRight`, `cmpOwn`, `cmpRespOk`, `cmpAnswerIs`, `cmp_store_pre`); `applierV3backend.Compaction.spec`
+   and its proof, linked (`etc/link-lean-first-apply.txt`). **Done** (below).
+2. **The chain's `Compaction` triple** (item 9): `applierTriples` gains `cmpTriple`; each chain's
+   construction proves it (`newApplierV3Backend` from stage 1; the auth, quota and capped wrappers
+   pass the method on, `chainCompacts`; the corrupt applier's `ErrCorrupt`, `applierV3Corrupt__Compaction`
+   already proved); the consumers' positional destructurings of `applierTriples` move.
+3. **`dispatch`/`Apply` in place** (items 1-4, 11, 21): `dispatchOk` redefined, the answers with the
+   compaction's case, `ApplyKV.crev` and `applyKV`'s `cmpOwn` (A1), `dispatch`'s compaction arm; the
+   apply loop's carriers follow.
+4. **The server side** (items 5-8, 12-15, 19, 20): `KVNames.cmp`, `kvInv`/`reqPropOk` in place, the
+   ties, `applyEntryNormal` (with `kv_entry_claim`), the commit step's arms (`kv_prop_au_cmp` and the
+   three plain ones over the new invariant), `CompactMode.lean`'s family retired; the Probe's copies
+   (`M2ApplyProbe.lean`) become today's lemmas.
+5. Item 14 (`NewServer.specD`) and `applyAll`/`run` stay blocked (Q4; the auth-mode merge).
+
+**Stage 1: done (2026-10-31).** Three findings of the Probe kind (the approved `Compaction.specD` was
+not provable over today's callees), each settled by the agent, reversible, for the user to review
+(`notes/decisions.md`, "M2 apply side, the switch's stage 1"):
+- *The promoted `Compact` was not translated*: goose emits a promoted method's wrapper only for the
+  ones the configuration lists; `watchableStore.Compact` added to `Code/.../mvcc.toml`, translation
+  regenerated (`etc/goose.py --project etcd`: one file, two `MethodUnfold` fields; `--check` clean).
+- *`readView.Range` admitted a `nil` result at a never-done context*: `Compaction` reads `rr.Rev` of
+  `KV.Range(ctx, …)` ignoring the error, and the spec's context-done arm returns `nil`.
+  `mvcc.readView.Range.spec` gained `metricsTxnWrite.Range.spec`'s `todo` flag (`rangeCtx todo`, and
+  `todo = true → r ≠ null`; `specR`/`spec_R` today's at `todo = false`): a strengthening. The context
+  is `EnsureTrace`'s over `context.TODO()` (at `neverCd`, so never done).
+- *The response's revision `|log| - 1` was not provable* (`readView.Range` takes no lower bound of the
+  log it reads) *and has no reader* (`EtcdServer.Compact`'s `compactResultIs` only owns the header):
+  `cmpRespOk` dropped it (and `cmpAnswerIs` its log argument).
+Also: WP transfers `mvcc.kvOver_compact_wp`, `kvOver_range_wp` (`KVView.lean`). Checked: `lean-check
+-a` of every changed file; the full build (below).

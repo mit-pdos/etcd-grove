@@ -93,6 +93,9 @@ translate = ["!*",
   "watchableStore.HashStorage",
   # (D22 S-l's sender items, 2026-10-22: `applyAll`'s merge calls `s.KV().Commit()`)
   "watchableStore.Commit",
+  # (M2, the apply side, 2026-10-31: `applierV3backend.Compaction` calls `a.kv.Compact(...)` on the
+  # watchable store)
+  "watchableStore.Compact",
   "watchableStoreTxnWrite.FirstRev", "watchableStoreTxnWrite.Rev",
   "watchableStoreTxnWrite.Range", "watchableStoreTxnWrite.DeleteRange",
   "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes"]
