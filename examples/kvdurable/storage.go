@@ -18,6 +18,17 @@ import (
 type Storage struct {
 	*raft.MemoryStorage
 	boot *pb.ConfState
+	// hs is the hard state last set (SetHardState), the replica's own copy: MemoryStorage's
+	// InitialState reads its fields without the lock (issues/raft-memorystorage-initialstate-unlocked.md),
+	// so once a node runs on the storage it is called by raft only (at the node's start), never by
+	// the replica. Written and read under the replica's dmu, or before any node runs.
+	hs *pb.HardState
+}
+
+// SetHardState sets the storage's hard state, and the replica's copy (hs).
+func (s *Storage) SetHardState(hs *pb.HardState) {
+	s.MemoryStorage.SetHardState(hs)
+	s.hs = hs
 }
 
 // snapIndex is the index of the storage's snapshot (0 if it has none).
@@ -154,7 +165,7 @@ func getSnapshot(b []byte) (snap *pb.Snapshot, rest []byte, ok bool) {
 // it, their number then each (putEntry). The caller holds the replica's dmu, so that the contents
 // are those of a moment between two groups of the replica's writes to the storage.
 func (s *Storage) encode() []byte {
-	hs, _, _ := s.MemoryStorage.InitialState()
+	hs := s.hs
 	snap, _ := s.MemoryStorage.Snapshot()
 	first, _ := s.MemoryStorage.FirstIndex()
 	last, _ := s.MemoryStorage.LastIndex()
@@ -223,6 +234,6 @@ func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	if si > prev {
 		s.MemoryStorage.CreateSnapshot(si, snap.GetMetadata().GetConfState(), snap.GetData())
 	}
-	s.MemoryStorage.SetHardState(&pb.HardState{Term: new(term), Vote: new(vote), Commit: new(commit)})
+	s.SetHardState(&pb.HardState{Term: new(term), Vote: new(vote), Commit: new(commit)})
 	return s, true
 }

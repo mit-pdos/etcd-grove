@@ -1544,6 +1544,7 @@ noncomputable instance Storage_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "MemoryStorage" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"MemoryStorage" l) v.MemoryStorage' dq ∗
     "boot" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"boot" l) v.boot' dq ∗
+    "hs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1582,6 +1583,22 @@ noncomputable instance Storage_access_store_boot (l : Loc) (v : github_com.mit_p
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"boot" l) v.boot' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"boot" l) boot' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with boot' := boot' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Storage_access_load_hs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Storage_access_store_hs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (hs' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) hs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hs' := hs' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -334,7 +334,7 @@ type Replica struct {
 func newReplica(id uint64, file string, node raft.Node, storage *Storage, kv map[string]string, applied map[string]string,
 	cs *pb.ConfState, index uint64, rafted uint64, tick time.Duration, stats *Stats, seqs *readSeqs,
 	send func([]*pb.Message)) *Replica {
-	hs, _, _ := storage.MemoryStorage.InitialState()
+	hs := storage.hs
 	r := &Replica{id: id, file: file, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
 		snapc:   make(chan snapReq, 1),
 		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1), snapDone: make(chan struct{}, 1),
