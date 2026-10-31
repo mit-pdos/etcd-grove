@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 
 @[expose] public section
 
@@ -55,7 +56,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nid : w64),
+    (w : Nat) (nid : w64) (q : Qp),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
@@ -66,6 +67,9 @@ abbrev EtcdServer.applyAll.spec : Prop :=
   -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
   -- `ai`, `at0` its last term (the frozen terms' indices)
   uint.Z ai = A.length → lastTermIs A at0 →
+  -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
+  -- disk cooperating, the consistent index at least the applied one
+  storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
@@ -91,7 +95,12 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
-      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }}
+      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
+      -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
+      -- the store, the storage's invariant at the node `nid`, the apply side's half of the WAL token
+      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nid) ∗
+      rnWalTok (srvRAddr s) q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -110,6 +119,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
         ⌜loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨
@@ -131,7 +141,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nid : w64) (γa : auth.AuthNames) (sa : auth.AuthState),
+    (w : Nat) (nid : w64) (γa : auth.AuthNames) (sa : auth.AuthState) (q : Qp),
   E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShapeOn (unapplied ai ms) →
@@ -143,6 +153,9 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
   -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
   -- `ai`, `at0` its last term (the frozen terms' indices)
   uint.Z ai = A.length → lastTermIs A at0 →
+  -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
+  -- disk cooperating, the consistent index at least the applied one
+  storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ isServerApplyAll s γr ∗
       batchWaitOk ρ E ms ∗
@@ -171,7 +184,12 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
       (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
-      srvTokRights E (ciEff γ st.k) }}
+      srvTokRights E (ciEff γ st.k) ∗
+      -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
+      -- the store, the storage's invariant at the node `nid`, the apply side's half of the WAL token
+      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nid) ∗
+      rnWalTok (srvRAddr s) q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -192,6 +210,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
           srvRest E' γr (A ++ unapplied ai ms)) ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
         ⌜loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨

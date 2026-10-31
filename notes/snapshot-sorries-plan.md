@@ -103,9 +103,8 @@ inside an exported contract: done on the branch, to be approved before the merge
   `snapshot.spec` and `snapshotIfNeededAndCompactRaftLog.specFull` (and `specFullOff`/`On`) take
   `0 < ai` (specFull: from its trigger), `GMap.size cfg < 2^61`, `epCsCfg γr cs`, `srvFrozenTerm γs
   ai at'`.
-- Left: #11's `spec` branch (`applyAll` calling `specFull`: its premises, the sources of
-  `epCsCfg`, `srvFrozenTerm`, `ai ≤ ciEff`, `releaseOk`, `GMap.size cfg < 2^61`), #3, #7, #8
-  (the two-receive notify; with auth on, a mode-`on` `applySnapshot`).
+- Left: #3, #7, #8 (the two-receive notify; with auth on, a mode-`on` `applySnapshot`). (#11 done:
+  "#11 progress" below.)
 
 ## #11: what `applyAll` must hand `specFull` (design, 2026-10-31)
 
@@ -192,3 +191,18 @@ Order: S1 (pure, self-contained), S2, S3, then S4-S6 with `run`'s loop invariant
   boot AddNode), `ccValidOn_boot`; `applyConfChange`'s post `epCsVoters γs csl ∨ ⌜ccValidOn rs.bk m =
   false ∧ csl = cs⌝`; `apply`/`applyEntries`/`applyAll` take `epCsAt ρ.raft A cs` and give it at
   `A ++ ms`; `applyRes`/`applyResOn` carry `epCsAt C.ρ.raft A cs`.
+- **#11 done** (2026-10-31): `applyAll` (`spec`, `specOn`) calls the snapshot spec (the former
+  `specFull`, now `snapshotIfNeededAndCompactRaftLog.spec`, with `specOff`/`specOn`; the no-snapshot
+  spec, its `wp_proof` with SNAPSHOT-SORRY #11, and their corollaries deleted). `applyAll` takes
+  `storage.diskOk`, `ai ≤ ciEff st` (`applyRes`'s), `srvSnapDisk s γr`, the KV's static facts at
+  `E` (returned at `E'`), `memStorInv` of the node's storage and the WAL's half `rnWalTok … q`
+  (returned); the voter bound comes from its own `srvApRes` (`srvApRes_cfg_size`), the committed
+  prefix, `srvSnapStor` and the frozen terms from the `raftAdvancedC` receipt
+  (`srv_frozen_of_terms`). The snapshot spec's `epCsCfg γr cs` premise is weakened to
+  `⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs` (nothing applied: `applyAll`'s `epCsAt` at an empty log; its
+  proof refutes `ai = 0` from the snapshot's trigger). The sources, in `run`: `rnSnapOnce`'s
+  continuation hands `memStorInv` (`InvBoot`'s `rnSnapOnce_of_tok` has it); `srvSnapDisk_of_RO`
+  (`InvRun`) builds `srvSnapDisk` from `isServerRun`'s `srvSnapBoot` and the node; `isServerRun`
+  and `isServerRunOn` gain `"#Hkvf"` (the KV's facts, `start`'s `srvReadBuilt`) and
+  `isServerRunOn` `"Hsnapb"` (as `isServerRun`'s); `applyRes`/`applyResOn` carry the KV's facts at
+  the batch's backend and `Hwth`; `run_job_body(On)` take `diskOk`, `srvSnapDisk`, `memStorInv`.

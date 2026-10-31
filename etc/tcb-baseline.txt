@@ -774,7 +774,6 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
-sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto

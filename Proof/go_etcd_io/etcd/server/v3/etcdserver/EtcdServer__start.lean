@@ -446,6 +446,11 @@ theorem EtcdServer.start.wp_proof
       · ipureintro; exact HEr
       isplitr
       · ipureintro; exact Hdisk
+      isplitr
+      · icases Hrdb with ⟨%vd, #Hvd⟩
+        iunfold srvReadBuilt at Hvd
+        icases Hvd with ⟨#R1, #R2, -⟩
+        iexists vd.kv; iframe R1 R2
       iexists γp
       iframe HWB
       rw [Hai0]; iexact HWA0
@@ -971,6 +976,11 @@ theorem EtcdServer.start.wp_proofOn
       · ipureintro; exact HEr
       isplitr
       · ipureintro; exact Hdisk
+      isplitr
+      · icases Hrdb with ⟨%vd, #Hvd⟩
+        iunfold srvReadBuilt at Hvd
+        icases Hvd with ⟨#R1, #R2, -⟩
+        iexists vd.kv; iframe R1 R2
       iexists γp
       iframe HWB
       rw [Hai0]; iexact HWA0

@@ -313,5 +313,4 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
-sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry raftNode.start.wp_proof

@@ -465,9 +465,10 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
-      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.id ms γs (W64 0) (W64 0) := by
   subst Hms0
   iintro #Hpkg #Hrn #Hinv Hnone
+  ihave #Hinv0 := Hinv
   iunfold memStorInv at Hinv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
@@ -492,11 +493,12 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   have Hsv0 := Hsv.2 rfl
   subst Hsv0
   subst Herr
-  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone]
+  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] []
   · ipureintro
     exact ⟨rfl, rfl, Hnn.1, Hnn.2⟩
   · iapply epCsOk_of_csOptA $$ Hcs
   · iexact Hnone
+  · iexact Hinv0
 
 end snap
 

@@ -50,59 +50,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames),
-  E.authOn = false →
-  loopOk γ st ai →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerApplyAll s γr ∗ srvSnapState s ep ms γs ai (W64 0) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
-      (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
-
-/-- **`spec` with auth on** (a corollary, `spec_on`; the auth plan's E3p, 2026-10-27): the row with the
-auth part at the model's auth state `sa` (`srvApplyKVOn`), kept. -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
-    (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (sa : auth.AuthState),
-  E.authOn = true →
-  loopOk γ st ai →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerApplyAll s γr ∗ srvSnapState s ep ms γs ai (W64 0) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
-      (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
-
-/-- **`specOff`**, `spec` with auth off (the auth-mode merge's corollary). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs hoff
-  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs srvAuthSt0
-  rw [hoff] at this
-  exact this
-
-/-- **`specOn`**, `spec` with the mode-`on` row (the auth-mode merge's corollary). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs sa hon
-  have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs sa
-  rw [hon] at this
-  exact this
-
-/-- **`specFull` with auth off** (a corollary, `spec_fullOff`; for the snapshot track): the off row (`srvApplyKV`). -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
-    (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames) (q : Qp),
   E.authOn = false →
@@ -121,8 +68,9 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
-      -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'` (`snapshot`'s)
-      epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
+      -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
+      -- entry at `ai` frozen at `at'` (`snapshot`'s)
+      (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
       -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
       (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
@@ -135,10 +83,10 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
-/-- **`specFull` with auth on** (a corollary, `spec_fullOn`; for the snapshot track; the auth plan's E3p, 2026-10-27): the row with the
+/-- **`spec` with auth on** (a corollary, `spec_on`; the auth plan's E3p, 2026-10-27): the row with the
 auth part at the model's auth state `sa` (`srvApplyKVOn`), kept (`snapshot` takes only the part both
 rows share, `srvApplyKVCore`). -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
@@ -160,8 +108,9 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
-      -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'` (`snapshot`'s)
-      epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
+      -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
+      -- entry at `ai` frozen at `at'` (`snapshot`'s)
+      (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
       -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
       (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
@@ -174,19 +123,19 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
-/-- **`specFullOff`**, `specFull` with auth off (the auth-mode merge's corollary). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_fullOff
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff (GF := GF) (hG := hG) := by
+/-- **`specOff`**, `spec` with auth off (the auth-mode merge's corollary). -/
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off
+    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ q hoff
   have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ srvAuthSt0 q
   rw [hoff] at this
   exact this
 
-/-- **`specFullOn`**, `specFull` with the mode-`on` row (the auth-mode merge's corollary). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_fullOn
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn (GF := GF) (hG := hG) := by
+/-- **`specOn`**, `spec` with the mode-`on` row (the auth-mode merge's corollary). -/
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on
+    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hon
   have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q
   rw [hon] at this

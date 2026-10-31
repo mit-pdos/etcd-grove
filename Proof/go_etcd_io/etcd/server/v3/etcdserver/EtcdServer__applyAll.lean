@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SDRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SDSnapLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 
 @[expose] public section
@@ -44,16 +45,17 @@ theorem EtcdServer.applyAll.wp_proof
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid Hms Hai1
-    Hok hEok hdv haw hAL hAT
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid q Hms Hai1
+    Hok hEok hdv haw hAL hAT Hdisk hciA
   simp only [srvRunH_applyAll_spec]
   have hAE := EtcdServer.applyEntries.spec_off hAE
   unfold EtcdServer.applyEntries.specOff at hAE
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT⟩
+  icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -, -⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave #Hsa' := Hsa
@@ -154,6 +156,10 @@ theorem EtcdServer.applyAll.wp_proof
       · iexact HWA'
       isplitl [HKV Hka HRS]
       · iexists x'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
+      isplitr
+      · iexact Hkv
+      isplitl [HwalT]
+      · iexact HwalT
       ipureintro; exact ⟨hok', hai', hci'.imp_left And.right, hciL, hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
@@ -165,14 +171,56 @@ theorem EtcdServer.applyAll.wp_proof
   isplitr
   · iapply ownStopChan_is_chan $$ Hracc
   iapply stop_chan_receive _ _ _ _ _ $$ Hracc
-  iintro ⟨-, -⟩
+  iintro ⟨#Hadv, -⟩
   (try wp_auto)
+  -- (#11) what the snapshot takes: `raftAdvancedC`'s payload (the node's applied index and the
+  -- storage's past `ai'`, the batch's entries frozen with their terms), the log invariant
+  -- (`raftPropose`'s), the batch's committed log (`kvBatch`'s), `ep.confState` the voters'
+  have hρr : ρ.raft = γr.raft := by rw [← Hρrd]
+  have hidx : (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat =
+      uint.nat ai' := by rw [← hai']; word
+  have hlenA : uint.nat ai' = (A ++ unapplied ai ms).length := by
+    rw [List.length_append]; have := hlen'; have := hAL; word
+  have hltA : lastTermIs (A ++ unapplied ai ms) at' := lastTermIs_append hAT hat'
+  icases Hadv with ⟨#Hnal, #Hsdl, -, #Hfts⟩
+  ihave #Hnal' : (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai')) $$ []
+  · rw [← hidx, ← hρr]; iexact Hnal
+  ihave #HrnS' := HrnS
+  iunfold srvRaftNode at HrnS'
+  icases HrnS' with ⟨%rn0, -, HrpS⟩
+  iunfold raftPropose at HrpS
+  icases HrpS with ⟨%rni0, -, #Hrli, -⟩
+  ihave #Hkb' := Hkb
+  iunfold kvBatch at Hkb'
+  icases Hkb' with ⟨#HlbB, -⟩
+  ihave Hstor : srvSnapStor mst γs γr nid ai' at' $$ []
+  · iunfold srvSnapStor
+    iframe Hmsi
+    isplitr
+    · rw [← hidx, ← hρr]; iexact Hsdl
+    isplitr
+    · rw [← hρr]; iexact Hrli
+    iexists A ++ unapplied ai ms
+    iframe HlbB
+    ipureintro; exact ⟨by rw [← hlenA]; try word, hltA⟩
+  ihave ⟨#Hfz, #Hft⟩ := srv_frozen_of_terms γs (A ++ unapplied ai ms) ai' at' hlenA hltA $$ Hfts
+  ihave #Hecs : iprop(⌜uint.Z ai' = 0⌝ ∨ epCsCfg γr cs') $$ []
+  · by_cases hL : A ++ unapplied ai ms = []
+    · ileft; ipureintro
+      have h0 := congrArg List.length hL
+      simp only [List.length_nil] at h0
+      rw [h0] at hlenA; word
+    · iright; iunfold epCsCfg; rw [← hρr]
+      iapply epCsAt_ne _ _ _ hL $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x' _ $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
+  ihave #HsrvM : isServerM false s γ ci TM E ρ γr $$ []
+  · rw [isServerM_false]; iexact Hsrv
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off hSINC s E ρ.wait γ ci b γr ep st'
-      ai' at' cs' a' t' x' mst γs Hoff hok'
-    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
-    as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
+      ai' at' cs' a' t' x' mst γs nid γp (w + (unapplied ai ms).length) TM ρ q Hoff hok'
+      (by have := hlen'; push_cast; omega) (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1
+    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]
+    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, %Hst''⟩
   · iframe #; iframe
   (try wp_auto)
   iunfold epConfState at Hcs
@@ -228,6 +276,10 @@ theorem EtcdServer.applyAll.wp_proof
     · iexact HWA'
     isplitl [HKV Hka HRS]
     · iexists x'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
+    isplitr
+    · iexact Hkv
+    isplitl [HwalT]
+    · iexact HwalT
     ipureintro
     exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'.imp_left And.right, by rw [Hst''.2]; exact hciL, hat'⟩
 
@@ -241,15 +293,16 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid γa sa hM hRB
-    Hms Hai1 Hok hEok hdv haw hAL hAT
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid γa sa q hM hRB
+    Hms Hai1 Hok hEok hdv haw hAL hAT Hdisk hciA
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR, #Hsd, #Hkv, #Hmsi, HwalT⟩
+  icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
-  icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -, -⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS⟩
   iunfold srvFieldsAtM at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave #Hsa' := Hsa
@@ -350,6 +403,10 @@ theorem EtcdServer.applyAll.wp_proofOn
       · iexact HWA'
       isplitl [HKV Hka HRS]
       · iexists x', sa'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
+      isplitr
+      · iexact Hkv
+      isplitl [HwalT]
+      · iexact HwalT
       ipureintro; exact ⟨hok', hai', hci'.imp_left And.right, hciL, hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
@@ -361,14 +418,54 @@ theorem EtcdServer.applyAll.wp_proofOn
   isplitr
   · iapply ownStopChan_is_chan $$ Hracc
   iapply stop_chan_receive _ _ _ _ _ $$ Hracc
-  iintro ⟨-, -⟩
+  iintro ⟨#Hadv, -⟩
   (try wp_auto)
+  -- (#11) what the snapshot takes: `raftAdvancedC`'s payload (the node's applied index and the
+  -- storage's past `ai'`, the batch's entries frozen with their terms), the log invariant
+  -- (`raftPropose`'s), the batch's committed log (`kvBatch`'s), `ep.confState` the voters'
+  have hρr : ρ.raft = γr.raft := by rw [← Hρrd]
+  have hidx : (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat =
+      uint.nat ai' := by rw [← hai']; word
+  have hlenA : uint.nat ai' = (A ++ unapplied ai ms).length := by
+    rw [List.length_append]; have := hlen'; have := hAL; word
+  have hltA : lastTermIs (A ++ unapplied ai ms) at' := lastTermIs_append hAT hat'
+  icases Hadv with ⟨#Hnal, #Hsdl, -, #Hfts⟩
+  ihave #Hnal' : (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai')) $$ []
+  · rw [← hidx, ← hρr]; iexact Hnal
+  ihave #HrnS' := HrnS
+  iunfold srvRaftNode at HrnS'
+  icases HrnS' with ⟨%rn0, -, HrpS⟩
+  iunfold raftPropose at HrpS
+  icases HrpS with ⟨%rni0, -, #Hrli, -⟩
+  ihave #Hkb' := Hkb
+  iunfold kvBatch at Hkb'
+  icases Hkb' with ⟨#HlbB, -⟩
+  ihave Hstor : srvSnapStor mst γs γr nid ai' at' $$ []
+  · iunfold srvSnapStor
+    iframe Hmsi
+    isplitr
+    · rw [← hidx, ← hρr]; iexact Hsdl
+    isplitr
+    · rw [← hρr]; iexact Hrli
+    iexists A ++ unapplied ai ms
+    iframe HlbB
+    ipureintro; exact ⟨by rw [← hlenA]; try word, hltA⟩
+  ihave ⟨#Hfz, #Hft⟩ := srv_frozen_of_terms γs (A ++ unapplied ai ms) ai' at' hlenA hltA $$ Hfts
+  ihave #Hecs : iprop(⌜uint.Z ai' = 0⌝ ∨ epCsCfg γr cs') $$ []
+  · by_cases hL : A ++ unapplied ai ms = []
+    · ileft; ipureintro
+      have h0 := congrArg List.length hL
+      simp only [List.length_nil] at h0
+      rw [h0] at hlenA; word
+    · iright; iunfold epCsCfg; rw [← hρr]
+      iapply epCsAt_ne _ _ _ hL $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on hSINC s E ρ.wait γ ci b γr ep st'
-      ai' at' cs' a' t' x' mst γs sa'
+      ai' at' cs' a' t' x' mst γs nid γp (w + (unapplied ai ms).length) TM ρ sa' q
       (by rw [apply.AEnv.authOn_eq, hM]; rfl) hok'
-    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
-    as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
+      (by have := hlen'; push_cast; omega) (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1
+    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]
+    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, %Hst''⟩
   · iframe #; iframe
   (try wp_auto)
   iunfold epConfState at Hcs
@@ -426,6 +523,10 @@ theorem EtcdServer.applyAll.wp_proofOn
     · iexact HWA'
     isplitl [HKV Hka HRS]
     · iexists x', sa'; iframe HKV Hlog' Hka HRS; ipureintro; exact Hx'
+    isplitr
+    · iexact Hkv
+    isplitl [HwalT]
+    · iexact HwalT
     ipureintro
     exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'.imp_left And.right, by rw [Hst''.2]; exact hciL, hat'⟩
 

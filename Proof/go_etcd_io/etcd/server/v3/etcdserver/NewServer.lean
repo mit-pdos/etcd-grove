@@ -1197,7 +1197,7 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
   ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Hsnone]
   · iunfold srvBuildGap
-    rw [Hrn8]
+    rw [Hrn8, show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
     iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn [] Hsnone
     rw [Hrn1, Hrn5, Hrid]; iexact Hminv
   ihave #Hrn' := Hrn

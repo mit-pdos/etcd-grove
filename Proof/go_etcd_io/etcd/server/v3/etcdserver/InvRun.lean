@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 public import Perennial.Proof.context
 public import Perennial.Ghost.Token
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
@@ -264,6 +265,9 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
+    -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken, at least the applied index (no snapshot
     -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
@@ -315,8 +319,11 @@ stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record; until then f
 (`optU64`), with the conf-state pointer's non-nilness stated; until stage R8b (2026-10-16) the
 pointers were non-nil by the conf state having a voter (`Voters' ≠ []`), which a new cluster's
 fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`) does not meet:
-`run` uses only the pointers. -/
-def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
+`run` uses only the pointers. (2026-10-31, #11) With the storage's invariant at the node `nid` of the
+cluster `cl` (`memStorInv`, at the registry `rg`; persistent), which `NewServer` allocated: what
+`CreateSnapshot` and `Compact` take (`srvSnapStor`). -/
+def rnSnapOnce (rg : GName) (cl : Cluster) (nid : w64) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) :
+    IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
       ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
@@ -328,6 +335,7 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
       -- empty snapshot; until then the application's snapshot token `memSnapTok`)
       epCsOk cs -∗ memSnapNone γs -∗
+      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nid) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -415,8 +423,10 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
@@ -430,6 +440,41 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 end defs
+
+section snapDisk
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (2026-10-31, #11) **The disk snapshot's storage, from the snapshot path's bundle and the raft
+wrapper**: the bundle's storage over the snapshotter (`srvSnapRO`) is the wrapper's, whose WAL
+contract is `isRaftNode`'s (`isRNWal`); a snapshot at `j` is removable once `j + 1` is applied
+(`srvSnapRm`'s right disjunct). -/
+theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName)
+    (Er : RNEnv GF) (γn : RNNames) :
+    srvSnapRO (GF := GF) s ci E γr γt ∗ isRaftNode Er γn (srvRAddr s) ⊢ srvSnapDisk s γr := by
+  iintro ⟨#Hro, #Hrn⟩
+  iunfold srvSnapRO at Hro
+  icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
+    #HL, #HD, #HF, #HFg, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
+  iunfold isRaftNode at Hrn
+  iNamed Hrn
+  icombine HSt Hst gives %Heq
+  iunfold srvSnapDisk
+  iexists stp, ss, γd, srvImage γr.raft.raft, srvSnapRm γt γr
+  iframe HSt Hinv
+  isplitr
+  · ipureintro; exact Hp.2.2.1
+  isplitr
+  · rw [Heq]; iexact Hsti
+  iintro !> %j #Hj
+  iunfold srvSnapRm
+  iright; iexact Hj
+
+end snapDisk
 
 end EtcdGrove
 end Perennial

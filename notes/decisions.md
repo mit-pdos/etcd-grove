@@ -27690,3 +27690,30 @@ premise + config" (2026-10-30), then approved the draft's statements (2026-10-31
    (the issue's fix) would make it a checked error instead.
 
 **The axiom review** of the restated axiom (`notes/axiom-review/marshalirr-depth.md`): survives.
+
+## `snapshotIfNeededAndCompactRaftLog` has one spec, the snapshot's (2026-10-31, #11 · the user's "#11")
+
+Stage P (decision B1) gave `snapshotIfNeededAndCompactRaftLog` two specs: `spec`, the no-snapshot
+path's (what `applyAll` held then), whose proof closed the branch where a snapshot is due with
+SNAPSHOT-SORRY #11, and `specFull`, over `snapshot`'s and `compactRaftLog`'s premises, proved.
+Now `applyAll` calls `specFull`, which is renamed `spec` (with `specOff`/`specOn`); the old one,
+its proof and corollaries are deleted. What `applyAll` gained to call it, and why each is where it is:
+
+- **Premises of `applyAll`**: `storage.diskOk` (the exported results' disk premise, `isServerRun`'s
+  `Hdisk`, whose parts give `releaseOk` and `walSaveOk`) and `ai ≤ ciEff st` (S1: an invariant of
+  `run`'s loop, `applyRes`). The voter bound is not one: `applyAll` already holds `srvApRes`, whose
+  `srvMemOk` has it (`srvApRes_cfg_size`).
+- **Resources** (`srvSnapDisk`, the KV's static facts, `memStorInv` of the node's storage, the WAL's
+  half `rnWalTok`): from `run`, which has them from the construction (`isServerRun`), not
+  per-batch state; the KV's facts and the WAL half ride `applyRes` (the KV's are at the batch's
+  backend `B.E`, which `applyAll` returns at `E'`), the others are `run_job_body`'s premises.
+  `memStorInv` comes from `rnSnapOnce`'s continuation (the node's `MemoryStorage.Snapshot()`
+  contract at the start, which `InvBoot`'s `rnSnapOnce_of_tok` proves from the invariant it opens).
+- **`epCsCfg γr cs` weakened** to `⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs` in the snapshot spec:
+  `applyAll`'s invariant (S5's `epCsAt`) says nothing at an empty applied log, and a snapshot is
+  never due at `ai = 0` (`specFull`'s proof refutes the disjunct from the trigger), so the weaker
+  premise costs the proof nothing and spares `applyAll` a case.
+- `isServerRunOn` (the mode-`on` `run`'s, built by `start.specOn`) gains `srvSnapBoot`, which
+  `isServerRun` had and `start` already passed; both gain the KV's facts (`start`'s
+  `srvReadBuilt`).
+

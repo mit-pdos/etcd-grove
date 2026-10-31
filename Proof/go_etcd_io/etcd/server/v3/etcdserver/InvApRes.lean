@@ -266,6 +266,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (2026-10-31, #11) **Fewer than `2^61` voters** (`srvMemOk`'s bound), the resource kept. -/
+theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg < 2 ^ 61⌝ := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+    Hmr, %Hp, #Hd⟩
+  isplitl
+  · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
+    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe
+    isplitr
+    · ipureintro; exact H7
+    ipureintro; exact Hp
+  ipureintro; exact Hp.2.2
+
 /-- **A normal entry keeps the resource** (the peers and the members as they are). -/
 theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (ht : m.typ = W32 0) :

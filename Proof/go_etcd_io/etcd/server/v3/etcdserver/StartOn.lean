@@ -91,7 +91,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗
     "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗

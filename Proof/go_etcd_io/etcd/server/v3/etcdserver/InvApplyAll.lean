@@ -150,7 +150,7 @@ def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :
 /-- (2026-10-30, stage P's P8) **The storage's entries frozen through the applied index `ai`**
 (persistent): the entry at `ai` frozen (`CreateSnapshot`'s), every entry below it frozen or
 compacted (`Compact`'s). Taken by the snapshot-only statements (`snapshot.spec`,
-`snapshotIfNeededAndCompactRaftLog.specFull`); until P8 a part of `srvSnapState`. -/
+`snapshotIfNeededAndCompactRaftLog.spec`); until P8 a part of `srvSnapState`. -/
 def srvSnapFrozen (γs : MemStorNames) (ai : Nat) : IProp GF :=
   iprop(srvFrozenAt γs ai ∗ srvFrozenBelow γs ai)
 

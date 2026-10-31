@@ -60,6 +60,8 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVOn C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunAtOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
@@ -95,15 +97,19 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStartOn s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀))
+    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 
 /-- **What `run` needs in the mode `on`** (the auth-mode merge's step 1, 2026-10-29):

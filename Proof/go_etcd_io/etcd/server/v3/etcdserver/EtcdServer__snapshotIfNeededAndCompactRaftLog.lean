@@ -38,39 +38,6 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs sa hok
-  wp_start as ⟨#Hsa, HSS, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
-  ihave #Hsa' := Hsa
-  iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -⟩
-  iunfold srvSnapState at HSS
-  icases HSS with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hslb⟩
-  (try wp_auto)
-  wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, -⟩
-  · iframe #; iframe
-  (try wp_auto)
-  wp_apply hM s ep ai m $$ [Hai Hm] as %r2 ⟨Hai, Hm, -⟩
-  · iframe #; iframe
-  (try wp_auto)
-  cases r1 <;> cases r2
-  · -- nothing due: return
-    (try wp_auto)
-    iapply HΦ
-    iexists st
-    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf]
-    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
-      ipureintro; exact Hdm
-    ipureintro; exact ⟨hok, rfl⟩
-  all_goals sorry -- SNAPSHOT-SORRY #11: snapshot is due (snapshot + compactRaftLog)
-
-/-- **`specFull`** (`snapshot`'s and `compactRaftLog`'s premises; for the snapshot track). -/
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
-    (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
-    (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG))
-    (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
-    (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hok haw hci hrel hsz
     hwso
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
@@ -116,6 +83,10 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
            have := Hdm.1
            have : 0 ≤ uint.Z d := by word
            omega)
+    ihave #Hecs' : epCsCfg γr cs $$ []
+    · icases Hecs with (%Hai0 | #H)
+      · exfalso; omega
+      · iexact H
     (try wp_auto)
     -- (E3p) `snapshot` takes the row's part shared by both auth modes
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
