@@ -90,6 +90,36 @@ def proclaimTxn (key : GoString) (rev : w64) (val : GoString) (lease : w64) : Tx
 def resignTxn (key : GoString) (rev : w64) : TxnModel :=
   { cmps := [createGuard key rev], thenOps := [.delete (opDeleteModel key [])], elseOps := [] }
 
+/-- **`Campaign`'s transaction fits** for a key of at most `2 ^ 27 + 17` bytes (the prefix and
+the lease in hexadecimal) and a value of at most `2 ^ 28`. -/
+theorem campaignTxn_size (key val : GoString) (lease : w64) (hk : key.length ≤ 2 ^ 27 + 17)
+    (hv : val.length ≤ 2 ^ 28) : txnSizeOk (campaignTxn key val lease) := by
+  have hq := keyOp_shape hk
+  unfold OpShape at hq
+  unfold txnSizeOk txnWireLen campaignTxn
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, TxnOp.wireLen, opWireLen,
+    cmpWireLen, createGuard, compareM, cmpKeyM, wireSlack, List.length_nil]
+  omega
+
+/-- **`Proclaim`'s transaction fits** for a key and a value of at most `2 ^ 28` bytes each. -/
+theorem proclaimTxn_size (key : GoString) (rev : w64) (val : GoString) (lease : w64)
+    (hk : key.length ≤ 2 ^ 28) (hv : val.length ≤ 2 ^ 28) :
+    txnSizeOk (proclaimTxn key rev val lease) := by
+  unfold txnSizeOk txnWireLen proclaimTxn
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, TxnOp.wireLen,
+    cmpWireLen, createGuard, compareM, cmpKeyM, wireSlack, List.length_nil]
+  omega
+
+/-- **`Resign`'s transaction fits** for a key of at most `2 ^ 28` bytes. -/
+theorem resignTxn_size (key : GoString) (rev : w64) (hk : key.length ≤ 2 ^ 28) :
+    txnSizeOk (resignTxn key rev) := by
+  have hq := deleteOp_shape hk
+  unfold OpShape at hq
+  unfold txnSizeOk txnWireLen resignTxn
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, TxnOp.wireLen, opWireLen,
+    cmpWireLen, createGuard, compareM, cmpKeyM, wireSlack, List.length_nil]
+  omega
+
 /-- **A successful `Proclaim`'s step**, at revision `r`, from the state `s0` (at `r - 1`) to `s`
 (at `r`): the guard held on `s0`, and `s` is `s0` with `key` put (value `val`, the lease). -/
 def ProclaimStep (key : GoString) (rev : w64) (val : GoString) (lease r : w64)
@@ -282,12 +312,15 @@ structure ElectionSt where
 def ElectionSt.init : ElectionSt := { key := [], rev := W64 0, sess := null, hdr := null }
 
 /-- **The election's state** (exclusive): its fields `leaderKey`, `leaderRev`, `leaderSession`,
-`hdr` hold `st`; `leaderSession` is nil or the session `s`. -/
+`hdr` hold `st`; `leaderSession` is nil or the session `s`; the key is at most `2 ^ 28` bytes
+(`Campaign`'s, the prefix and the lease in hexadecimal, or `ResumeElection`'s), so that `Proclaim`'s
+and `Resign`'s transactions on it fit a request. -/
 def electionState (e s : Loc) (st : ElectionSt) : IProp GF :=
   iprop(structFieldRef Election go!"leaderKey" e ↦ st.key ∗
     structFieldRef Election go!"leaderRev" e ↦ st.rev ∗
     structFieldRef Election go!"leaderSession" e ↦ st.sess ∗
-    structFieldRef Election go!"hdr" e ↦ st.hdr ∗ ⌜st.sess = null ∨ st.sess = s⌝)
+    structFieldRef Election go!"hdr" e ↦ st.hdr ∗ ⌜st.sess = null ∨ st.sess = s⌝ ∗
+    ⌜st.key.length ≤ 2 ^ 28⌝)
 
 /-- **The election** `e` (persistent): its session `s` (of `client`, with the lease `id`) and its
 key prefix `pfx` (`NewElection`'s argument with a `/`, `ResumeElection`'s as given), read-only, of

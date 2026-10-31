@@ -82,7 +82,9 @@ theorem electionServer.Proclaim.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %name
   wp_apply hRE s γ c id name key rev $$ [$Hcpkg $Hss $Hmc'] as %e ⟨#He, Hest⟩
-  · ipureintro; exact ⟨Hne, Nat.le_of_lt (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.1)⟩
+  · ipureintro
+    exact ⟨⟨Hne, Nat.le_of_lt (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.1)⟩,
+      Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.2) (by decide))⟩
   (try wp_auto)
   wp_apply wp_bytes_to_string vsl val DFrac.discard $$ [$Hvs] as -
   (try wp_auto)

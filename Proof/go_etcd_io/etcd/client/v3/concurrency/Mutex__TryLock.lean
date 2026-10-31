@@ -83,7 +83,8 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     have := len_eq_sint _ _ Hklen; simp at this; omega
   have hkne : ksl.len ≠ W64 0 := by intro h; rw [h] at hk1; exact absurd hk1 (by decide)
   unfold mutexState
-  icases Hst with ⟨Hk, Hrv, Hh⟩
+  icases Hst with ⟨Hk, Hrv, Hh, %Hkln⟩
+  simp only at Hkln
   wp_auto
   rw [decide_eq_false hkne]
   wp_auto
@@ -103,6 +104,8 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     iframe
     iframe Hhdr Hr
     isplitr
+    · ipureintro; exact Hkln
+    isplitr
     · unfold lockedAt
       iexists s0
       iframe Hs0
@@ -120,7 +123,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
   · ipureintro
     refine ⟨deleteOp_not_panics key, ?_⟩
     rw [(deleteOp_fields key).1, (deleteOp_fields key).2]
-    exact keyRangeUnder_key pfx key Hp.1
+    exact ⟨keyRangeUnder_key pfx key Hp.1, deleteOp_size Hkln⟩
   iunfold deleteResult at Hd
   icases Hd with (%Hne | ⟨%Heq, %r', %s', #Hr', %Hd, #Hts⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, derr = GoInterface.ok e := by
@@ -134,6 +137,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     · ipureintro; exact Hne
     iexists ⟨key, rev, st.hdr⟩
     iframe
+    ipureintro; exact Hkln
   subst Heq
   ihave #Habs := deleteTxn_absent pfx key r' s' $$ Hts
   ihave Hci : (concurrencyInit : IProp GF) $$ []
@@ -147,11 +151,11 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     iframe HeL
     ipureintro; simp
   iexists key, r'
-  unfold MutexSt.released
+  simp only [MutexSt.released]
   iframe
   iframe Hr' Habs
   ipureintro
-  exact ⟨Hp.1, by omega⟩
+  exact ⟨by decide, Hp.1, by omega⟩
 
 end proof
 

@@ -78,8 +78,8 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, -, -, ⟨%eNL, #HeNL⟩, -⟩
   unfold electionState
-  icases Hst with ⟨Hk, Hrv, Hls, Hh, %Hss⟩
-  simp only at Hss ⊢
+  icases Hst with ⟨Hk, Hrv, Hls, Hh, %Hss, %Hkl⟩
+  simp only at Hss Hkl ⊢
   wp_auto
   wp_if_destruct
   · -- no leader session
@@ -91,7 +91,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     isplitr
     · ipureintro; simp
     iframe
-    ipureintro; simp
+    ipureintro; simp [Hkl]
   have Hnn : sess ≠ null := Hif
   obtain rfl : sess = s := Hss.resolve_left Hnn
   wp_apply hCl sess γ client id $$ [$Hpkg $Hsess]
@@ -185,7 +185,8 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   ihave HB := txnBuild_conv B _ ({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   by_cases Hk : pfx <+: key
   · wp_apply HCommit $$ %({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-    · ipureintro; exact proclaimTxn_under pfx key rev val id Hk
+    · ipureintro
+      exact ⟨proclaimTxn_under pfx key rev val id Hk, proclaimTxn_size key rev val id Hkl Hvl⟩
     ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
     iunfold txnCommitResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
@@ -199,7 +200,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       isplitr
       · ipureintro; exact Hne
       iframe
-      ipureintro; simp
+      ipureintro; simp [Hkl]
     subst Heq
     have hm : ({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } :
         TxnBuild).model = proclaimTxn key rev val id := rfl
@@ -220,7 +221,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       iexists hdr
       iframe
       isplitr
-      · ipureintro; simp
+      · ipureintro; simp [Hkl]
       iright
       iexists r
       iframe Hr
@@ -259,6 +260,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         ipureintro; exact createGuard_false pfx key rev s0 Hrr.2.2.2 hok
       ipureintro; exact Hrr.1 rfl
   · wp_apply HCommitAny $$ %({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) [$HB] as %resp %err #Hres
+    · ipureintro; exact proclaimTxn_size key rev val id Hkl Hvl
     iunfold txnAnyResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %hdr, %ok, #HH, #HSucc⟩)
     · obtain ⟨g, rfl⟩ : ∃ g, err = GoInterface.ok g := by
@@ -271,7 +273,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       isplitr
       · ipureintro; exact Hne
       iframe
-      ipureintro; simp
+      ipureintro; simp [Hkl]
     subst Heq
     wp_auto
     cases ok
@@ -295,7 +297,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       iexists hdr
       iframe
       isplitr
-      · ipureintro; simp
+      · ipureintro; simp [Hkl]
       ileft; ipureintro; exact Hk
 
 end proof

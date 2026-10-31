@@ -369,6 +369,45 @@ theorem deleteOp_fields (key : GoString) :
     (opDeleteModel key []).key = key ∧ (opDeleteModel key []).base.rangeEnd = [] := by
   simp [ownerOp, lastCreateOp, keyOp, op_simps]
 
+/-! ## Sizes -/
+
+/-- The owner get's payload: the prefix (at most `2 ^ 27` bytes) and its range end. -/
+theorem ownerOp_shape {pfx : GoString} (h : pfx.length ≤ 2 ^ 27) :
+    OpShape (2 ^ 27) (2 ^ 27) 0 (ownerOp pfx) :=
+  opShape_opFold (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+      (optsKeep_cons (withSortM_keep _ _) (optsKeep_cons (withLimitM_keep _)
+        (optsKeep_nil _ _ _))))
+    ⟨h, by simp [OpFull.getInit, OpFull.newOp, OpModel.zero], by simp [OpFull.getInit, OpFull.newOp]⟩
+
+/-- A key get's payload: the key alone. -/
+theorem keyOp_shape {key : GoString} {K : Nat} (h : key.length ≤ K) : OpShape K 0 0 (keyOp key) :=
+  opShape_opFold (gs := []) (o := OpFull.getInit key) (optsKeep_nil _ _ _)
+    ⟨h, by simp [OpFull.getInit, OpFull.newOp, OpModel.zero], by simp [OpFull.getInit, OpFull.newOp]⟩
+
+/-- A key delete's payload: the key alone. -/
+theorem deleteOp_shape {key : GoString} {K : Nat} (h : key.length ≤ K) :
+    OpShape K 0 0 (opDeleteModel key []) :=
+  opShape_opFold (gs := []) (o := OpFull.deleteInit key) (optsKeep_nil _ _ _)
+    ⟨h, by simp [OpFull.deleteInit, OpFull.newOp, OpModel.zero],
+      by simp [OpFull.deleteInit, OpFull.newOp]⟩
+
+/-- `Unlock`'s delete of a held key (at most `2 ^ 28` bytes). -/
+theorem deleteOp_size {key : GoString} (h : key.length ≤ 2 ^ 28) : opSizeOk (opDeleteModel key []) :=
+  opSizeOk_of_shape (deleteOp_shape h) (by decide)
+
+/-- **`tryAcquire`'s transaction fits** for a prefix of at most `2 ^ 27` bytes and a key of at
+most `2 ^ 27 + 17` (the prefix and the lease in hexadecimal): the key three times, the owner get
+(prefix and range end) twice, under `2 ^ 30`. -/
+theorem acquireTxn_size (pfx key : GoString) (lease : w64) (hp : pfx.length ≤ 2 ^ 27)
+    (hk : key.length ≤ 2 ^ 27 + 17) : txnSizeOk (acquireTxn pfx key lease) := by
+  have ho := ownerOp_shape hp
+  have hq := keyOp_shape hk
+  unfold OpShape at ho hq
+  unfold txnSizeOk txnWireLen acquireTxn
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, TxnOp.wireLen, opWireLen,
+    cmpWireLen, compareM, cmpKeyM, wireSlack, List.length_nil]
+  omega
+
 section iprop
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

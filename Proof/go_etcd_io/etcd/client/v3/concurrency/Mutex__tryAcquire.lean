@@ -51,7 +51,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   unfold mutexState
-  icases Hst with ⟨Hk, Hrv, Hh⟩
+  icases Hst with ⟨Hk, Hrv, Hh, %Hkl⟩
   wp_auto
   wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
   (try wp_auto)
@@ -79,6 +79,13 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hpk : pfx <+: key := _root_.Perennial.fmt.SprintfOut.str_x_prefix pfx _ _ Hkey
+  -- the key is the prefix and the lease in hexadecimal: at most `pfx.length + 17` bytes
+  have Hkb : key.length ≤ pfx.length + 17 :=
+    (_root_.Perennial.fmt.SprintfOut.str_x_named_int64 pfx go_etcd_io.etcd.client.v3.LeaseID.ty id
+      (by simp [_root_.Perennial.fmt.IsIntType, go_etcd_io.etcd.client.v3.LeaseID.ty, go.int,
+        go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8])
+      go.IsUnderlying.is_underlying
+      (_root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil _) key Hkey).2
   (try wp_auto)
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -208,7 +215,8 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact acquireTxn_under pfx key id Hpfx Hpk
+  · ipureintro
+    exact ⟨acquireTxn_under pfx key id Hpfx Hpk, acquireTxn_size pfx key id Hpl (by omega)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
@@ -223,6 +231,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     · ipureintro; exact Hne
     iexists key
     iframe
+    ipureintro; show key.length ≤ 2 ^ 28; omega
   subst Heq
   have hm : ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } :
       TxnBuild).model = acquireTxn pfx key id := rfl
@@ -290,6 +299,8 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     iframe Hr
     obtain ⟨hc0, hc1, hc2, -⟩ := Hrevs v hv
     isplitr
+    · ipureintro; show key.length ≤ 2 ^ 28; omega
+    isplitr
     · unfold acquireResp hdrRevAt
       iexists s0, rsl, ps, p1, (rangeIn s0 (ownerOp pfx)).length
       ihave #Hop1 := Hops $$ %1 %p1 %(TxnOp.get (ownerOp pfx)) %(TxnOpResult.range (rangeSel s0 (ownerOp pfx)) (rangeIn s0 (ownerOp pfx)).length) %hp1 %rfl %rfl
@@ -318,6 +329,8 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     iexists key, r, r, hdr
     iframe
     iframe Hr
+    isplitr
+    · ipureintro; show key.length ≤ 2 ^ 28; omega
     isplitr
     · unfold acquireResp hdrRevAt
       iexists putKv r key [] id s0, rsl, ps, p1, (rangeIn (putKv r key [] id s0) (ownerOp pfx)).length

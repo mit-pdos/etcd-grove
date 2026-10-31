@@ -175,10 +175,12 @@ def MutexSt.released (hdr : Loc) : MutexSt := { key := go!"\x00", rev := W64 (-1
 def MutexSt.noKey (st : MutexSt) : Prop :=
   st.key = [] ∨ sint.Z st.rev ≤ 0 ∨ st.key = go!"\x00"
 
-/-- **The mutex's state** (exclusive): its fields `myKey`, `myRev`, `hdr` hold `st`. -/
+/-- **The mutex's state** (exclusive): its fields `myKey`, `myRev`, `hdr` hold `st`; the key is
+at most `2 ^ 28` bytes (the prefix, of at most `2 ^ 27`, and the lease in hexadecimal), so that
+`Unlock`'s delete and `Lock`'s get of it fit a request. -/
 def mutexState (m : Loc) (st : MutexSt) : IProp GF :=
   iprop(structFieldRef Mutex go!"myKey" m ↦ st.key ∗ structFieldRef Mutex go!"myRev" m ↦ st.rev ∗
-    structFieldRef Mutex go!"hdr" m ↦ st.hdr)
+    structFieldRef Mutex go!"hdr" m ↦ st.hdr ∗ ⌜st.key.length ≤ 2 ^ 28⌝)
 
 /-- **The mutex** `m` (persistent): its session `s` (of `client`, with the lease `id`) and its
 prefix `pfx` (with `NewMutex`'s `/`), read-only, of at most `2 ^ 27` bytes (2026-10-30, so that
