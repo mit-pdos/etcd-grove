@@ -1043,6 +1043,7 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       -- the revision's token (`revMinted`, exclusive) goes to the reply's `Φ` (`putReplied`),
       -- with the witness (`appliedWit`, persistent)
       icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, HQv⟩
+      imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
       iunfold apply.putOutcomeIs at Hout
       icases Hout with ⟨#Hpr, -⟩
       iunfold txn.putResponseIs at Hpr
@@ -1077,7 +1078,7 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe Htok HQv
         iframe #
         ipureintro
-        exact ⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩
+        exact ⟨⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩, Hkeys⟩
     · iunfold v3rpc.putErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -1164,6 +1165,7 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.rangeAnsOk at Hans
       icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+      imod read_keys s E γr log $$ Hsrd Hcert Hcok with %Hkeys
       ihave #HQl' := rangeQ_of_ans γr d Q o log Hdd $$ HQl
       icases Hres with ⟨%crev, Hres⟩
       iunfold txn.rangeResult at Hres
@@ -1204,7 +1206,7 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         iexists log
         iframe #
         ipureintro
-        exact ⟨Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
+        exact ⟨Hkeys, Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
     · imodintro
       iapply HΨ
       isplitl [Hlt Hcr]
@@ -1283,6 +1285,7 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
       -- the revision's token (`revMinted`) goes to the reply's `Φ` (`deleteReplied`)
       icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok,
         HQv⟩
+      imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
       simp only [v3rpc.opDepQ] at *
       iunfold apply.deleteOutcomeIs at Hout
       icases Hout with ⟨#Hdr, -⟩
@@ -1321,7 +1324,8 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         iframe Htok HQv
         iframe #
         ipureintro
-        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩
+        exact ⟨⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩,
+          Hkeys⟩
     · iunfold v3rpc.deleteErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -1449,6 +1453,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         icases Hans with ⟨-, Hans⟩
         iunfold v3rpc.txnReadAns at Hans
         icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+        imod read_keys s E γr log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q := by
           rcases HdQ with ⟨-, h⟩ | ⟨h, -⟩
           · exact h
@@ -1472,7 +1477,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe #
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        refine ⟨Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
+        refine ⟨Hkeys, Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
         · rw [h1]
         · rw [h4]; exact h5
       | false =>
@@ -1480,6 +1485,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iunfold v3rpc.txnAppliedAns at Hans
         icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
           #Hcok, HQv⟩
+        imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : d = .op1 (.txn t) Q := by
           rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
           · rw [hro] at h; cases h
@@ -1507,7 +1513,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
         obtain ⟨s0, s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
-        refine ⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
+        refine ⟨⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩, Hkeys⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr
@@ -2407,7 +2413,7 @@ theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv 
     rw [show (txn.rangeOpOf key [] (W64 0) (W64 0) (W32 0) (W32 0) false false false (W64 0)
       (W64 0) (W64 0) (W64 0)).base.serializable = false from rfl]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hq with ⟨%l, #Hcl, -, %Hl, #Hrl, -⟩
+    icases Hq with ⟨%l, #Hcl, -, -, %Hl, #Hrl, -⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨-, %ci₀, %L₀, %Hci₀, #HL₀, %HpL⟩
     iunfold appliedMono at Hmono
@@ -2457,7 +2463,7 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
         m.hdr.revision = W64 (σ.rev : Int)⌝ := by
   iintro #H
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
   have hs : (getKeyOp key).base.serializable = false := rfl
   have hk : (getKeyOp key).key = key := rfl
   simp only [hs, hk, Bool.false_eq_true, ↓reduceIte]
@@ -2494,7 +2500,7 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
   iintro #H
   iunfold rangeReplyOk at H
   simp only [hser, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
   obtain ⟨hlen, hlen', hr, -, -, -, hcount, hsel, -⟩ := Hl
   have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
       mvcc.stateAfter l := by

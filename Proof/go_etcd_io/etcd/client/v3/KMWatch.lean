@@ -214,13 +214,13 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 theorem kmLog_take (γ : KMNames) (σ : KVState) (r : Nat) (h : kvLogOkTo σ r) :
     monoListLbOwn (GF := GF) γ.ch σ.changes ⊢ kmLog γ (σ.log.take (r + 1)) := by
   obtain ⟨hl, -⟩ := kvLogOkTo_len h
-  obtain ⟨-, hr, hr63, hw, hs⟩ := h
+  obtain ⟨-, hr, hr63, hw, hs, hk⟩ := h
   iintro #Hlb
   unfold kmLog
   iexists σ.changes
   iframe Hlb
   ipureintro
-  refine ⟨List.take_prefix _ _, hw, ?_, hs⟩
+  refine ⟨List.take_prefix _ _, hw, ?_, hs, hk⟩
   rw [List.length_take]; omega
 
 /-- etcd has reached every revision of a log the client saw. -/

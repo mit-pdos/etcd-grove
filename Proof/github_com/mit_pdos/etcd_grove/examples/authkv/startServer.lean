@@ -93,7 +93,8 @@ theorem startServer.wp_proof
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [common.httpURL go!"127.0.0.1:23926"]⟩
       γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
-      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩ rfl Htb Hrb48 HrbN
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes]) rfl Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       (fun _ => ⟨rfl, by word, by word⟩))

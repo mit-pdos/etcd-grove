@@ -194,7 +194,7 @@ theorem putResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (lo :
       putResult (EM := v3rpc.etcdModelOfServer E) pfx lo (putTxnOp o) GoInterface.nil := by
   iintro ⟨#Hsm, Hrep⟩
   iunfold putReplied at Hrep
-  icases Hrep with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, %Hfl⟩
+  icases Hrep with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, %Hk, %Hfl⟩
   obtain ⟨Hst, -, -, -, -, -, H2, H4⟩ := Hp
   have hlog := put_applied_exact o hm x x' l skip Hst
   have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf_rev, kvStateOf_kvs] at Hfl; omega
@@ -214,9 +214,9 @@ theorem putResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (lo :
       (putTxnOp o) hg hd ht hu
     simp only [runTxn, putTxn, TxnModel.branch, List.all_nil, ↓reduceIte, runOps, this, hres]
   ihave #Hst1 := v3rpc.etcdState_of_cert E x'.log (W64 (x.log.length : Int) - W64 1) pfx
-    (by rw [hr1]; omega) (by rw [hr1, hlog]; simp; omega) $$ [$Hsm $Hcert]
+    (by rw [hr1]; omega) (by rw [hr1, hlog]; simp; omega) Hk $$ [$Hsm $Hcert]
   ihave #Hst2 := v3rpc.etcdState_of_cert E x'.log (W64 (x.log.length : Int)) pfx
-    (by rw [hr]; omega) (by rw [hr, hlog]; simp; omega) $$ [$Hsm $Hcert]
+    (by rw [hr]; omega) (by rw [hr, hlog]; simp; omega) Hk $$ [$Hsm $Hcert]
   icases Hst1 with ⟨#Hs1, %Hwf1⟩
   icases Hst2 with ⟨#Hs2, -⟩
   have e1 : stateAt x'.log (sint.Z (W64 (x.log.length : Int) - W64 1)).toNat = stateAfter x.log := by
@@ -395,7 +395,7 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
       deleteResult (EM := v3rpc.etcdModelOfServer E) pfx lo o GoInterface.nil := by
   iintro ⟨#Hsm, Hrep⟩
   iunfold deleteReplied at Hrep
-  icases Hrep with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hcert, -, -, #Hcok, %Hfl⟩
+  icases Hrep with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hcert, -, -, #Hcok, %Hk, %Hfl⟩
   obtain ⟨Hw, Hop, Hz, Hst, -, -, -, -, -, -, H2, H4⟩ := Hp
   have hnz : irrNoZeroEnd (irrDeleteRange (deleteWireOf o)) := by
     refine ⟨fun o' h => by simp [irrDeleteRange, apply.irrEmpty] at h, fun o' h => ?_,
@@ -431,7 +431,8 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
     simp only [commitLog, ↓reduceIte] at hlog
     rw [hlog]
     have hr : sint.Z (W64 ((x.log.length : Int) - 1)) = (x.log.length : Int) - 1 := by word
-    ihave #Hst1 := v3rpc.etcdState_of_cert_last E x.log pfx H2 (by omega) $$ [$Hsm $Hcert]
+    ihave #Hst1 := v3rpc.etcdState_of_cert_last E x.log pfx H2 (by omega)
+      (by rw [← hlog]; exact Hk) $$ [$Hsm $Hcert]
     icases Hst1 with ⟨#Hs1, %Hwf1⟩
     iexists (W64 ((x.log.length : Int) - 1)), (underPfx pfx (stateAfter x.log))
     rw [hrun]
@@ -452,9 +453,9 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
     have hr : sint.Z (W64 (x.log.length : Int)) = x.log.length := by word
     have hr1 : sint.Z (W64 (x.log.length : Int) - W64 1) = (x.log.length : Int) - 1 := by word
     ihave #Hst1 := v3rpc.etcdState_of_cert E x'.log (W64 (x.log.length : Int) - W64 1) pfx
-      (by rw [hr1]; omega) (by rw [hr1, hlog']; simp; omega) $$ [$Hsm $Hcert]
+      (by rw [hr1]; omega) (by rw [hr1, hlog']; simp; omega) Hk $$ [$Hsm $Hcert]
     ihave #Hst2 := v3rpc.etcdState_of_cert E x'.log (W64 (x.log.length : Int)) pfx
-      (by rw [hr]; omega) (by rw [hr, hlog']; simp; omega) $$ [$Hsm $Hcert]
+      (by rw [hr]; omega) (by rw [hr, hlog']; simp; omega) Hk $$ [$Hsm $Hcert]
     icases Hst1 with ⟨#Hs1, %Hwf1⟩
     icases Hst2 with ⟨#Hs2, -⟩
     have e1 : stateAt x'.log (sint.Z (W64 (x.log.length : Int) - W64 1)).toNat =

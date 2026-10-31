@@ -112,7 +112,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     ileft
     ihave #Hlb : monoNatLbOwn γf 1 $$ [Hp]
     · iunfold putReplied at Hp
-      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, #Hq⟩
+      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, -, #Hq⟩
       iexact Hq
     isplitr
     · ipureintro; exact Herr
@@ -190,7 +190,7 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
         m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ := by
   iintro #H
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
   simp only [hs, Bool.false_eq_true, ↓reduceIte]
   obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
   have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
@@ -405,7 +405,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     isplitl []
     · ipureintro; exact Herr
     iunfold putReplied at Hr
-    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
     obtain ⟨-, hrev, -, -, -, -, hlen, hb⟩ := Hp
     iexists m, kvStateOf y.log
     iframe Hm HQ
@@ -457,7 +457,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     isplitl []
     · ipureintro; exact Herr
     iunfold deleteReplied at Hr
-    icases Hr with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
     obtain ⟨-, -, Hz, -, hrev, -, -, hdel, -, -, hlen, hb⟩ := Hp
     have hnz : irrNoZeroEnd (irrDeleteRange (txn.deleteOpOf key [] false)) := by
       refine ⟨fun o' h => by simp [irrDeleteRange, apply.irrEmpty] at h, fun o' h => ?_,

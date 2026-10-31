@@ -642,7 +642,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
   cases hro : (t.thenOps ++ t.elseOps).all TxnOp.isGet with
   | true =>
     simp only [↓reduceIte]
-    icases Hrep with ⟨%log, #Hcert, #Hcok, %Hlog, -, #HQl⟩
+    icases Hrep with ⟨%log, #Hcert, #Hcok, %Hk, %Hlog, -, #HQl⟩
     obtain ⟨h2, h3, hFl, hrev, -, -, hok, hrel⟩ := Hlog
     ihave %Hfl : ⌜t.linearizable = true → lf.length ≤ log.length⌝ $$ []
     · cases hlin : t.linearizable
@@ -684,7 +684,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       unfold runTxn
       exact runOps_gets_noWrite _ _ _ (fun op ho => hall op (branch_mem t _ op ho))
     have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
-    ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $Hcert]
+    ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 Hk $$ [$Hsm $Hcert]
     unfold txnCommitResultTok
     iright
     isplitl []
@@ -710,7 +710,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     simp only [Bool.false_eq_true, ↓reduceIte]
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
-    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, HQ⟩
+    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, %Hk, HQ⟩
     obtain ⟨Htw, Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
     have hlin : t.linearizable = true :=
       linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
@@ -745,7 +745,8 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       simp only [mvcc.commitLog, ↓reduceIte] at hlog
       rw [hlog]
       have hr : sint.Z (W64 ((x.log.length : Int) - 1)) = (x.log.length : Int) - 1 := by word
-      ihave ⟨#Hs1, %Hwf1⟩ := v3rpc.etcdState_of_cert_last E x.log pfx H2 (by omega) $$ [$Hsm $Hcert]
+      ihave ⟨#Hs1, %Hwf1⟩ := v3rpc.etcdState_of_cert_last E x.log pfx H2 (by omega)
+        (by rw [← hlog]; exact Hk) $$ [$Hsm $Hcert]
       unfold txnCommitResultTok
       iright
       isplitl []
@@ -784,9 +785,9 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       have hr : sint.Z (W64 (x.log.length : Int)) = x.log.length := by word
       have hr1 : sint.Z ((W64 (x.log.length : Int)) - W64 1) = (x.log.length : Int) - 1 := by word
       ihave #Hst1 := v3rpc.etcdState_of_cert E x'.log ((W64 (x.log.length : Int)) - W64 1) pfx
-        (by rw [hr1]; omega) (by rw [hr1, hlog']; simp; omega) $$ [$Hsm $Hcert]
+        (by rw [hr1]; omega) (by rw [hr1, hlog']; simp; omega) Hk $$ [$Hsm $Hcert]
       ihave #Hst2 := v3rpc.etcdState_of_cert E x'.log (W64 (x.log.length : Int)) pfx
-        (by rw [hr]; omega) (by rw [hr, hlog']; simp; omega) $$ [$Hsm $Hcert]
+        (by rw [hr]; omega) (by rw [hr, hlog']; simp; omega) Hk $$ [$Hsm $Hcert]
       icases Hst1 with ⟨#Hs1, %Hwf1⟩
       icases Hst2 with ⟨#Hs2, -⟩
       have e1 : mvcc.stateAt x'.log (sint.Z ((W64 (x.log.length : Int)) - W64 1)).toNat = (mvcc.stateAfter x.log) := by

@@ -105,7 +105,7 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
     isplitl []
     · ipureintro; exact Herr
     iunfold client.putReplied at Hr
-    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
     obtain ⟨-, hrev, -, -, -, -, hlen, hb⟩ := Hp
     iexists m, kvStateOf y.log
     iframe Hm HQ

@@ -318,7 +318,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     · unfold getRespMore; ileft; ipureintro; exact Herr.1
     iexact Hse
   iunfold rangeReplyOk at Hq
-  icases Hq with ⟨%log, #Hcert, #Hcok, %Hlog, -, #HQl⟩
+  icases Hq with ⟨%log, #Hcert, #Hcok, %Hk, %Hlog, -, #HQl⟩
   obtain ⟨h2, h3, hrev, -, -, -, -, hsrv, hFl⟩ := Hlog
   -- the floor at the state read (a linearizable get's)
   ihave %Hfl : ⌜(opGetModel key gs).base.serializable = false →
@@ -340,7 +340,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
   rw [hrev] at hsrv; rw [hrev]
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
   ihave #Hreach := v3rpc.etcdReached_of_certOk E log (W64 ((log.length : Int) - 1)) (by omega) $$ Hcok
-  ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $Hcert]
+  ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 Hk $$ [$Hsm $Hcert]
   ihave #Hgr : getRespRev resp (W64 ((log.length : Int) - 1)) $$ []
   · unfold getRespRev
     iexists h

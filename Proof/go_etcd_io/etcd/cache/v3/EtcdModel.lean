@@ -97,6 +97,10 @@ class EtcdModel (GF : BundledGFunctors) where
     etcdState r pfx s ⊢
       ⌜∀ v ∈ s, 0 < sint.Z v.createRev ∧ sint.Z v.createRev ≤ sint.Z v.modRev ∧
         sint.Z v.modRev ≤ sint.Z r ∧ 0 < sint.Z v.version⌝
+  /-- **Keys are short** (2026-10-30, `notes/keylen.md`): every key-value of etcd's state at any
+  revision has a key of at most `etcdKeyMax` bytes. -/
+  etcdState_keys : ∀ (r : w64) (pfx : GoString) (s : List EtcdKv),
+    etcdState r pfx s ⊢ ⌜∀ v ∈ s, v.key.length ≤ etcdKeyMax⌝
   /-- **A key lives from its creation**: a key present at revision `r` with create revision `c`
   is present, with the same create revision, at every revision `a` in `[c, r]`. -/
   etcdState_create_persist : ∀ (r a : w64) (pfx : GoString) (s s' : List EtcdKv),
@@ -155,7 +159,8 @@ class EtcdModel (GF : BundledGFunctors) where
       ⌜∀ (i : Nat) (c : EtcdEv), cs[i]? = some c → c.typ = W32 1 →
         ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝
 
-export EtcdModel (etcdState etcdState_agree etcdState_revs etcdState_create_persist
+export EtcdModel (etcdState etcdState_agree etcdState_revs etcdState_keys
+  etcdState_create_persist
   etcdState_modrev_det etcdState_modrev_persist etcdReachedAt etcdReachedAt_timeless etcdReadAt
   etcdReadAt_persistent etcdReadAt_timeless etcdRevToken
   etcdRevToken_excl EtcdStep EtcdStep_persistent EtcdStep_timeless etcdStep_transfer

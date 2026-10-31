@@ -99,7 +99,7 @@ theorem wk_served (V : client.WEnv GF) (addr : GoString)
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd
-  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
+  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink $$ Hnd
   imodintro
   iframe Htok'
   isplitl []
