@@ -124,11 +124,3 @@ axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint.wp_proof
-sorry Op.isWrite.wp_proof
-sorry Op.toRequestOp.wp_proof
-sorry Op.toTxnRequest.wp_proof
-sorry client.delCount_toTxnOps
-sorry client.delWiresAtT_reqOpsWire
-sorry client.txnReq_of_requestIs
-sorry txn.Else.wp_proof
-sorry txn.Then.wp_proof

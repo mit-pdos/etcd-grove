@@ -507,23 +507,21 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
-## Nested transactions in the client: statements in code (2026-10-30, branch `txn-nested`)
+## Nested transactions in the client: proved (2026-10-31, branch `txn-nested`)
 
-The approved design (`notes/txn-nested.md`; the user's decisions there) is in code over named stubs:
+The approved design (`notes/txn-nested.md`; the user's decisions there) is frozen and proved:
 `Then`/`Else` take operation trees (`opsTAt`, `OpT.txnOps`), `Op.toRequestOp`/`isWrite` take a tree,
 the new `Op.toTxnRequest.spec` is linked; the trusted wire model of `*pb.TxnRequest` sends nested
 requests (`reqOpAt`'s nested case, structural `reqOpsAt`) and the decoded copy's delete facts reach
 every depth (`txnWireOk` over `delWiresAtT`); with auth on, `etcdTxnSpecOn`/`txnUpdAtOn`/
-`client_txn_on` admit writing transactions with nested ones under `txnNestOk` (`TxnModel.plain`
-dropped, `txnModelIn` for read-only ones only). The auth-off `Commit` stays plain-only, a recorded
-scope restriction (`notes/decisions.md`, "Nested transactions with auth on only"). The ten plain
-`Then`/`Else` calls use the corollaries `v3.txn.wp_Then_plain`/`wp_Else_plain`
-(`client/v3/TxnPlain.lean`). Stubs (`sorry -- txn-nested: prove after freeze`; the list and the
-departures in `notes/txn-nested.md`, "In code"): ten reached by results (`Then`, `Else`,
-`toRequestOp`, `isWrite`, `toTxnRequest`, the two `spec_plain`s, `txnReq_of_requestIs`,
-`delCount_toTxnOps`, `delWiresAtT_reqOpsWire`) and the new laws. Trust baseline and 14 collections
-updated with them; no new axiom. Next: the `axiom` skill on the `pbTxnRequest` wire model (Q4), then
-the proofs.
+`client_txn_on` admit writing transactions with nested ones under `txnNestOk`. The auth-off `Commit`
+stays plain-only, a recorded scope restriction (`notes/decisions.md`, "Nested transactions with auth
+on only"). The ten plain `Then`/`Else` calls use the corollaries `v3.txn.wp_Then_plain`/
+`wp_Else_plain` (`client/v3/TxnPlain.lean`). The wire model's axiom review (grpc `Invoke`'s send side)
+was resolved by invoke-size's encoded-size premise, folded in at the merge (`a095a3b5e5`); the
+freeze (`3c15ab5252`, `notes/txn-nested.md`, "The freeze") and the proofs ("Proved" there): no
+`txn-nested` stub left, no new axiom, the trust baseline back to `lean`'s `sorry`s.
+
 ## The encoded-size bound at grpc's send side (2026-10-30, branch `invoke-size`; partial)
 
 The repair of `Invoke`'s and `NewStream`'s refuted axioms (`notes/decisions.md`, "The encoded-size

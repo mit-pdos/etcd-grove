@@ -577,14 +577,7 @@ sorry EtcdServer.applyAll.wp_proof
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
-sorry Op.isWrite.wp_proof
-sorry Op.toRequestOp.wp_proof
-sorry client.txnReq_of_requestIs
 sorry isRaftNodeIfc_of_isNode
 sorry raftNode.start.wp_proof
 sorry rnApplyTok_recv
 sorry rn_ready_recv
-sorry txn.Else.spec_plain
-sorry txn.Else.wp_proof
-sorry txn.Then.spec_plain
-sorry txn.Then.wp_proof

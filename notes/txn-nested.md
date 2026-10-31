@@ -1,9 +1,11 @@
 # Nested transactions in the client's specs (`clientv3.OpTxn` under `Then`/`Else`, `Commit` with auth on)
 
-**Status** (2026-10-31): the design below is approved (the user, 2026-10-30), in code, and **frozen**
-("The freeze", below; branch `txn-nested`, off `lean` `51b0f7adad`, with `invoke-size` merged); the
-new obligations are not proved yet. It was drafted spec-first (the `spec` skill), reviewed by the
-`spec-reviewer` twice (round 1: findings 1-10; round 2: B1-B3, C1-C3), and every finding fixed.
+**Status** (2026-10-31): the design below is approved (the user, 2026-10-30), in code, frozen
+("The freeze", below) and **proved**: every `txn-nested: prove after freeze` stub is a proof, no
+frozen statement changed, no new axiom ("Proved", below; branch `txn-nested`, off `lean`
+`51b0f7adad`, with `lean` merged at `d304202ab7`). It was drafted spec-first (the `spec` skill),
+reviewed by the `spec-reviewer` twice (round 1: findings 1-10; round 2: B1-B3, C1-C3), and every
+finding fixed.
 
 ## The freeze (2026-10-31)
 
@@ -26,7 +28,7 @@ baseline (the stubs the only new `sorry`s), every collection `--check` passes, `
   `txnNestOk`;
 - R1 `client_txn_on` (`Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean:319`);
 - the laws the other packages use: `reqPerms_irrTxn_put`, `reqPerms_irrTxn_nestedPut`
-  (`KVServiceOn.lean:180`; authkv's), `txnAuthOn_write`, `txnUpdAtOn_write`, `txnNestOk_of_plain`,
+  (`KVServiceOn.lean:290` after the proofs, 180 at the freeze; authkv's), `txnAuthOn_write`, `txnUpdAtOn_write`, `txnNestOk_of_plain`,
   `opTAtC_leaf`, `opTAtC_opTxn`, `opsTAt_nil`, `opsTAt_of_list`, `opsTAt_one`.
 
 **Frozen pending** (internals whose only users are still stubs; final once those proofs are in):
@@ -34,6 +36,40 @@ baseline (the stubs the only new `sorry`s), every collection `--check` passes, `
 `Then`/`Else`, `toRequestOp`, `toTxnRequest`); `txnReadonly_plain`, `txnSibSafeL_of_noDel`
 (`txnNestOk_of_plain`'s); `v3rpc.inRange_of_hits`, `siblingSafeL_of_model` (the handler's sibling
 fact); `delCount_toTxnOps`, `delWiresAtT_reqOpsWire`, `txnReq_of_requestIs` (the bridge).
+
+## Proved (2026-10-31)
+
+Every stub of "In code" is proved, each against its frozen statement (none changed, none weakened):
+- `Op.toRequestOp.wp_proof` and `Op.isWrite.wp_proof` by strong induction on the tree's `sizeOf` (a
+  subtree of `.txn` is smaller, `List.sizeOf_lt_of_mem`), not Löb; the nested case of
+  `toRequestOp` is `toTxnRequest`'s body, proved once, `toTxnRequest_core` in the new
+  `client/v3/OpTxnRequest.lean`, over `Op.toRequestOp.specAt` (the triple at one tree) of the
+  subtrees; `Op.toTxnRequest.wp_proof` is the core at `wp_toRequestOp`.
+- `txn.Then`/`txn.Else`: invoke-size's proofs over the trees (`opListAtC_get`, `OpT.txnOps_getElem`,
+  `OpT.wire_txnOp`); `spec_plain` from the spec by `opsAt_leaves`/`txnOps_leaves`.
+- The bridge (`Results.lean`): `reqOp_of_requestOp`/`reqOps_of_requestOps` recursive (no plain
+  premise), `delWireAtT_reqOpWire`/`delWiresAtT_reqOpsWire` mutual, `delCount_toTxnOps` by
+  `v3rpc.delCount.induct`; the plain-only `reqNotTxn`, `delWireAt`, `reqOpsWire_of_delWireAt` deleted.
+- The pure laws by mutual structural recursion over `OpT`/`List OpT`, `TxnOp`/`List TxnOp` and
+  `v3rpc.ReqOp`/`List v3rpc.ReqOp` (`OpT.wire_txnOp'`, `OpT.txnOp_leaves'`, `txnSibSafe_noDel_aux`,
+  `opPerms_put`, `siblingSafe_of_model`, ...); `v3rpc.inRange_of_hits` by cases on the range end.
+
+Moved, no statement changed: the nested-operation part of `cache/v3/InvEtcdTxnOwn.lean` (`opTAtC`
+... `opsTAt_one`) is in a section without `[EtcdModel GF]`, so its instances and lemmas no longer take
+that unused instance argument (a theorem's instance arguments are fixed by its section, not by use)
+and the client's proofs, which have no `EtcdModel`, can use them; `opsAt_leaves` is `omit EM in`.
+Leasing's `opListAtC_length`/`_drop`/`_get`/`_append` and `OpT.txnOps_length`/`_getElem`
+(`leasing/InvLeasingTxnLemmas.lean`) moved beside `opListAtC`, as the draft planned (L3).
+
+After merging `lean` (`d304202ab7`: invoke-size, authkv's `Main`): authkv's callers, written against
+the plain statements, are adapted in their proofs only (no statement changed): `work_commit`
+(`authkv/WorkCalls.lean`) passes `client_txn_on` the gated `fun _ => hin` and gives the writing
+disjunct's `txnNestOk` by `txnNestOk_of_plain`; `authkv/Work.lean`'s four `Then`/`Else` calls take
+`v3.txn.wp_Then_plain`/`wp_Else_plain`. Checks at the end: full build green (11269 jobs);
+`etc/tcb-report.py --check` matches `lean`'s baseline (769 axioms, 18 `sorry`s: none of this
+branch's); the 43 collections pass (14 updated, only the stubs gone); `api-check`, `gen-interface
+--check --layout` (0 new), `gen-init --check`, `goose --check` pass; the links are as generated but
+for `lintest-logkvcompact`/`logkvsnap`'s docstring line, which `lean` has too.
 
 ## The user's decisions (2026-10-30)
 

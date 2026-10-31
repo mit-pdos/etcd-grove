@@ -873,7 +873,7 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci cd b
-      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] hp hin hsz
+      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] (fun _ => hin) hsz
       (fun _ => hsh)) $$ [Hobj] as %resp %err Hout
   · iframe #
     iframe Hobj
@@ -883,7 +883,7 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     iright
     iright
     isplitl []
-    · ipureintro; exact ⟨hro, hpl⟩
+    · ipureintro; exact ⟨hro, hpl.1, hpl.2, txnNestOk_of_plain _ hp hin⟩
     iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)

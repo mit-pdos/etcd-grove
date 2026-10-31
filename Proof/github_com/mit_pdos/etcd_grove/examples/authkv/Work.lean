@@ -7,6 +7,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.Work
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.WorkCalls
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.keyOf
 public import Spec.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
@@ -307,7 +308,7 @@ theorem Work.wp_proof
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (v3.txn.wp_Then tp _ ci cd TxnBuild.empty _ _
+  wp_apply (v3.txn.wp_Then_plain tp _ ci cd TxnBuild.empty _ _
       [.put (keyOfK go!"a" who go!"t") go!"vt" (W64 0), .get (opGetModel lo [withRangeM hi])])
     $$ [Hobj] as Hobj
   · iframe #
@@ -401,7 +402,7 @@ theorem Work.wp_proof
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (v3.txn.wp_Then tp _ ci cd TxnBuild.empty _ _
+  wp_apply (v3.txn.wp_Then_plain tp _ ci cd TxnBuild.empty _ _
       [.put (keyOfK go!"a" who go!"t1") go!"vt" (W64 0),
         .put (keyOfK go!"c" who go!"t1") go!"vt" (W64 0)])
     $$ [Hobj] as Hobj
@@ -495,14 +496,14 @@ theorem Work.wp_proof
     iframe Hobj
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (v3.txn.wp_Then tp _ ci cd _ _ _ [.put (keyOfK go!"a" who go!"t2") go!"vt" (W64 0)])
+  wp_apply (v3.txn.wp_Then_plain tp _ ci cd _ _ _ [.put (keyOfK go!"a" who go!"t2") go!"vt" (W64 0)])
     $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro
     exact ⟨by simp [txnOpOf_put], rfl, rfl⟩
   (try wp_auto)
-  wp_apply (v3.txn.wp_Else tp _ ci cd _ _ _ [.put (keyOfK go!"c" who go!"t2") go!"vt" (W64 0)])
+  wp_apply (v3.txn.wp_Else_plain tp _ ci cd _ _ _ [.put (keyOfK go!"c" who go!"t2") go!"vt" (W64 0)])
     $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj

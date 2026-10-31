@@ -85,10 +85,4 @@ axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint.wp_proof
-sorry Op.isWrite.wp_proof
-sorry Op.toRequestOp.wp_proof
 sorry kubernetes.kvIs_ne_null
-sorry txn.Else.spec_plain
-sorry txn.Else.wp_proof
-sorry txn.Then.spec_plain
-sorry txn.Then.wp_proof
