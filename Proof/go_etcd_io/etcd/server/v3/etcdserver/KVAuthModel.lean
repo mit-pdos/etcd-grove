@@ -764,7 +764,8 @@ theorem kvModelOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvModelOn γk s
 
 /-- **The workload facts of the committed log in the mode `on`** (`kvWork` with `logShapeOn`). -/
 def kvWorkOn (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShapeOn L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
+  iprop(⌜logShapeOn L ∧ ccLogOk cfg L ∧ logKeysOk L ∧ mvcc.LogKeysLe etcdKeyMax γk.log0⌝ ∗
+    [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWorkOn_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Persistent (kvWorkOn (GF := GF) cfg γk L) := by
@@ -937,6 +938,7 @@ the history's half at the start's state. So
 `kvInvOn` is satisfiable, unlike `kvInv` at a mode-`on` chain (`kvInv_ch0_on_false`). -/
 theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
     (hch : γk.ch0 = apply.alarmChain true false false) (hlog : γk.log0 ≠ [])
+    (hlk : mvcc.LogKeysLe etcdKeyMax γk.log0)
     (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) :
     ⊢ srvRLog (GF := GF) γ [] -∗ ghostVar γk.st (1 : Qp).half (kvStateOf γk.log0) -∗
       monoListAuthOwn γk.hist (1 : Qp).half [st₀] ={E}=∗ kvInvOn γ γk st₀ := by
@@ -959,7 +961,7 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · iunfold kvWorkOn
     isplitr
     · ipureintro
-      exact ⟨fun m hm => by simp at hm, fun m hm => by simp at hm⟩
+      exact ⟨fun m hm => by simp at hm, fun m hm => by simp at hm, fun m hm => by simp at hm, hlk⟩
     · iapply BigSepL.bigSepL_nil.2
       iempintro
 

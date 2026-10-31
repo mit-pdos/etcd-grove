@@ -143,7 +143,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl⟩ := Hsh
+  obtain ⟨Hsh, Hccl, -⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have hshL : logShape L := by
     intro m hm

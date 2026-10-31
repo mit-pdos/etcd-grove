@@ -440,6 +440,102 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     ipureintro; exact HpL
 
 
+/-- **The mode-`on` model of a log with short keys, from a start with none, has none**
+(`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
+theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logKeysOk A →
+      mvcc.LogKeysLe etcdKeyMax s₀.2 → mvcc.LogKeysLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
+  | s₀, [], _, hl => hl
+  | s₀, m :: A, hA, hl => by
+    have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
+    rw [hk]
+    apply kvRaftOfOn_keys c₀ ch _ A (fun m' h => hA m' (by simp [h]))
+    have hm := hA m (by simp)
+    unfold kvEntryOn
+    split
+    · split
+      · split
+        · exact hl
+        · split
+          · exact hl
+          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+      · exact hl
+    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+
+/-- **A certified sealed log has short keys, in either auth mode** (2026-10-30,
+`notes/keylen.md`): with the KV core in the mode `on` and a sealed log `B` of at least two
+revisions with short keys (the start log `[[], []]`), a sealed log `l` the server certified has
+short keys: `l` is the mode's model of a committed raft prefix (`kv_cert_read`,
+`kv_cert_read_on`), whose entries the KV invariant keeps short (`kvWork`'s `logKeysOk`, from the
+start log's), or has at most two revisions (then a prefix of `B`, the sealed logs being in prefix
+order). -/
+theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool)
+    (E : apply.AEnv GF) (γr : ReadNames) (B l : mvcc.Log) (hB : 2 ≤ B.length)
+    (hBk : mvcc.LogKeysLe etcdKeyMax B) :
+    ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx B -∗ mvcc.idxSealed E.γ.idx l -∗
+      mvcc.certOk E.γ l ={⊤}=∗ ⌜mvcc.LogKeysLe etcdKeyMax l⌝ := by
+  have hshort : l.length ≤ 2 → (B <+: l ∨ l <+: B) → mvcc.LogKeysLe etcdKeyMax l := by
+    intro hl h
+    rcases h with h | h
+    · have hlen := h.length_le
+      rw [← h.eq_of_length (by omega)]; exact hBk
+    · exact hBk.prefix h
+  cases on
+  · rw [srvKVCoreM_false]
+    iintro #Hinvs #HB #Hl #Hc
+    iunfold srvKVInvs at Hinvs
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l $$ HcI Hc with Hcase
+    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
+    · iframe HB Hl
+    icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+    · imodintro; ipureintro; exact hshort hl Hp0
+    iunfold kvInv at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    ihave #Hw2 := Hw
+    iunfold kvWork at Hw2
+    icases Hw2 with ⟨%Hws, -⟩
+    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+    imod Hclose $$ [HLf Hσ'] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imodintro
+    ipureintro
+    obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+    rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
+    unfold kvModel
+    exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2
+  · rw [srvKVCoreM_true]
+    iintro #Hinvs #HB #Hl #Hc
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l
+      $$ HcI Hc with Hcase
+    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
+    · iframe HB Hl
+    icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+    · imodintro; ipureintro; exact hshort hl Hp0
+    iunfold kvInvOn at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+    ihave #Hw2 := Hw
+    iunfold kvWorkOn at Hw2
+    icases Hw2 with ⟨%Hws, -⟩
+    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+    imod Hclose $$ [HLf Hσ' Hh] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+    imodintro
+    ipureintro
+    obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
+      (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+    rw [← hA]
+    unfold kvModelOn
+    rw [hAL]
+    exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2
+
 end defs
 
 section lemmas

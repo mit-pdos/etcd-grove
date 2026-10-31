@@ -144,6 +144,10 @@ abbrev NewServer.spec : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
   -- the compactor off (D14e: `v3compactor.New` not reached, and `start()`'s `Run` skipped: the
   -- spec-first pilot's glue lifts it, `notes/compactor-pilot-plan.md`)
   cfg.AutoCompactionRetention' = 0 →
@@ -293,6 +297,10 @@ abbrev NewServer.specCompact : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
   -- the compactor on: revision mode, a positive retention (M2's phase 0)
   cfg.AutoCompactionMode' = go!"revision" → 0 < sint.Z cfg.AutoCompactionRetention' →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
@@ -446,6 +454,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
+  -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
+  -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
   -- the compactor off (D14e: `v3compactor.New` not reached, and `start()`'s `Run` skipped: the
   -- spec-first pilot's glue lifts it, `notes/compactor-pilot-plan.md`)
   cfg.AutoCompactionRetention' = 0 →

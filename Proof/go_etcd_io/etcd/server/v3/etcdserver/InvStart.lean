@@ -103,7 +103,8 @@ def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : 
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
-    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
+      v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqBuilt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqBuilt (GF := GF) s E ρ v) := by

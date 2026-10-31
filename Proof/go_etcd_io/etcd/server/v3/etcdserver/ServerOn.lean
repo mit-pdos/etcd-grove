@@ -298,7 +298,8 @@ def srvReqBuiltM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : 
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
-    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧
+      v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqBuiltM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (v : ReqFields) : Persistent (srvReqBuiltM (GF := GF) on s E ρ v) := by
@@ -744,7 +745,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   · inext; iexists L'; iframe HL' Hσ Hh Hw; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl⟩ := Hsh
+  obtain ⟨Hsh, Hccl, -⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have HshL : logShapeOn L := srv_entry_transfer_nv _ L L' entryShapeOn
     (fun m m' he h => by
@@ -893,7 +894,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
-    (hlog : γk.log0 ≠ []) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogKeysLe etcdKeyMax γk.log0) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
@@ -983,7 +984,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     · ipureintro; exact hok
     iunfold kvWorkOn
     iframe Hcl
-    ipureintro; exact ⟨hshape, hccl⟩
+    ipureintro
+    exact ⟨hshape, hccl, fun m hm => entryKeysOk_conf m (by rw [hty m hm]; decide), hlk⟩
   imodintro
   iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2
