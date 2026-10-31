@@ -11,7 +11,9 @@ decisions (D1–D8) are in `notes/osfs-ext-plan.md`.
 
 **Environment** (hypotheses of the adequacy statement, not of this file): the paths in the
 domain of `files` name distinct regular files on a local ext4 or xfs filesystem; no other
-process touches them; the device honours cache flushes. Opening any other path is stuck, so
+process touches them; the device honours cache flushes, writes each sector atomically and has no
+media errors (a torn sector would garble durable neighbours of a dirty byte, and a read error on
+a mapped page is SIGBUS where the model's load succeeds). Opening any other path is stuck, so
 path resolution is never modelled.
 
 **Soundness discipline.** The model is never more defined than Linux:
@@ -20,11 +22,12 @@ path resolution is never modelled.
 * *Environmental failure is a nondeterministic errno*: every operation that makes a system call
   may fail with any nonzero errno. On failure, `Open`, `ftruncate` and `Munmap` may or may not
   have had their effect; a failed `pread` read a prefix; a failed `pwrite` wrote a prefix (as
-  `generic_perform_write` does, and Go's loop reports); a failed `fsync` poisons the file (D2).
-* *Races are stuck*: a change to a file's bytes or size (`pwrite`, `ftruncate`) is two steps
+  `generic_perform_write` does, and Go's loop reports); a failed `fsync` loses the
+  writeback of the dirty bytes, which later syncs do not redo (D2).
+* *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`) is two steps
   (`PWriteStart`/`PWriteFinish`, `FtruncateStart`/`FtruncateFinish`), and between them any
-  read, mapped load or `fstat` that could see part of it is stuck, so a real overlap in time is
-  a stuck model interleaving. A write of `n` bytes at `off` *affects* `[min off size, off + n)`,
+  mapped load that could see part of it is stuck (a hole), so a real overlap in time is a stuck
+  model interleaving, while a racing `pread` or `fstat` returns any mix (`ReadSees`, `StatSees`). A write of `n` bytes at `off` *affects* `[min off size, off + n)`,
   including the zero gap an extending write creates; a truncate affects every byte from
   `min size sz` on, and excludes every other change to the file (`Affects`).
 * *Read-only mappings*: a mapped cell is a byte cell born with a phantom reader
@@ -42,8 +45,8 @@ unchanged.
 **Crash** (`OsCrash`): fds, in-flight changes and mappings are gone (the heap is arbitrary
 anyway); each file becomes a crash image (`CrashImage`): a file created since boot may vanish
 (D4); the size is one the file had since its last successful sync, or that an in-flight change
-would give it; a byte is the durable one unless it is dirty, in-flight, past the durable image,
-or the file is poisoned, when it is arbitrary (D1).
+would give it; a byte is the durable one unless it is dirty, lost by a failed sync, in-flight, or
+past the durable image, when it is arbitrary (D1).
 -/
 module
 
@@ -66,15 +69,17 @@ structure OsFile where
   /-- The smallest and largest sizes since the last successful sync (including then). -/
   sizeLo : Nat
   sizeHi : Nat
-  /-- A sync failed since boot: the pages it lost are never written (D2). -/
-  poisoned : Bool
+  /-- The offsets whose writeback a failed sync lost (D2): the page cache still shows them, the
+  disk may not, and Linux marked them clean, so no later sync writes them unless they are written
+  again. -/
+  lost : Nat → Bool
   /-- The directory entry is durable: false for a file created since boot (D4). -/
   named : Bool
 
 /-- A file as a boot finds it: on disk, all of it durable. -/
 def OsFile.ofDisk (img : List w8) : OsFile :=
   { cur := img, durable := img, dirty := fun _ => false, sizeLo := img.length,
-    sizeHi := img.length, poisoned := false, named := true }
+    sizeHi := img.length, lost := fun _ => false, named := true }
 
 /-- An open file description: its path and access mode. -/
 structure OsFd where
@@ -185,6 +190,20 @@ def ResizingAt (p : GoString) : Prop :=
 /-- Some change is in flight on the file at `p`. -/
 def BusyAt (p : GoString) : Prop := ∃ t c, st.inflight !! t = some c ∧ c.path = p
 
+/-- What a `pread` of `n` bytes at `off` of the file at `p` may return: at most `n` bytes; exactly
+the bytes up to EOF unless a change is resizing the file; and each byte the file's, unless an
+in-flight change may change it, when it is arbitrary (Linux returns some mix). -/
+def ReadSees (p : GoString) (off n : Nat) (r : List w8) : Prop :=
+  r.length ≤ n ∧ (¬ ResizingAt st p → r.length = min n (st.size p - off)) ∧
+  ∀ i (h : i < r.length), ¬ InflightAt st p (off + i) →
+    ((st.file p).map (·.cur)).bind (·[off + i]?) = some r[i]
+
+/-- What `fstat` may give as the size of the file at `p`: its size, or, while a change resizes it,
+a size between its size and the change's target (an extending write grows it page by page). -/
+def StatSees (p : GoString) (sz : Nat) : Prop :=
+  sz = st.size p ∨ ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧
+    min (st.size p) c.target ≤ sz ∧ sz ≤ max (st.size p) c.target
+
 /-- `l` is byte `i` of a mapping of the file at `p`. Mappings are disjoint: each lies in cells
 that were free when it was made. -/
 def MapsTo (l : Loc) (p : GoString) (i : Nat) : Prop :=
@@ -235,14 +254,24 @@ def OsFile.truncate (f : OsFile) (sz : Nat) : OsFile :=
   f.change (resizeBytes f.cur sz) (min f.cur.length sz) (max f.cur.length sz)
 
 /-- `f` after a successful sync: every dirty byte not under an in-flight change (`busy`) is
-written, and the size is durable. Bytes under an in-flight change stay dirty. -/
+written (and so no longer lost), and the size is durable. Bytes under an in-flight change stay
+dirty. -/
 def OsFile.synced (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
   { f with
     durable := (List.range f.cur.length).map (fun i =>
       if (f.dirty i ∧ ¬ busy i) ∨ f.durable.length ≤ i then f.cur.getD i 0
       else f.durable.getD i 0),
     dirty := (fun i => f.dirty i && decide (busy i)),
+    lost := (fun i => f.lost i && !(f.dirty i && !decide (busy i))),
     sizeLo := f.cur.length, sizeHi := f.cur.length }
+
+/-- `f` after a failed sync: the writeback of the dirty bytes not under an in-flight change
+(`busy`) failed; Linux marks their pages clean, so they are lost (D2). Every other byte, and the
+durable image, is unchanged. -/
+def OsFile.syncFailed (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
+  { f with
+    dirty := (fun i => f.dirty i && decide (busy i)),
+    lost := (fun i => f.lost i || (f.dirty i && !decide (busy i))) }
 
 /-- The effect of opening `p` with `creat`/`trunc` on the files (no fd yet): `none` if the
 open cannot succeed (no file and no `O_CREAT`). -/
@@ -287,13 +316,13 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
           e' = osRes (#fd) 0) ∨
        (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
           (st' = st ∨ openEffect st p creat trunc = some st')))
-  /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`. -/
-  | "PRead" => ∃ (fd off n : w64) (d : OsFd) (f : OsFile), v = PairV (#fd) (PairV (#off) (#n)) ∧
-      FdOpen st fd d ∧ d.readable ∧ 0 ≤ off.toInt ∧ st.file d.path = some f ∧
-      (∀ i, inRange off.toNat (off.toNat + n.toNat) i → ¬ InflightAt st d.path i) ∧
+  /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`. It sees what `ReadSees` allows:
+  a racing change makes the bytes it may change arbitrary, not the read stuck (bbolt's `WriteTo`
+  copies pages a concurrent writer may be rewriting). On failure, a prefix. -/
+  | "PRead" => ∃ (fd off n : w64) (d : OsFd) (r : List w8), v = PairV (#fd) (PairV (#off) (#n)) ∧
+      FdOpen st fd d ∧ d.readable ∧ 0 ≤ off.toInt ∧ ReadSees st d.path off.toNat n.toNat r ∧
       st' = st ∧
-      let all := (f.cur.drop off.toNat).take n.toNat
-      (e' = osRes (#all) 0 ∨ ∃ (k : Nat) (e : w64), k ≤ all.length ∧ e ≠ 0 ∧ e' = osRes (#(all.take k)) e)
+      (e' = osRes (#r) 0 ∨ ∃ (k : Nat) (e : w64), k ≤ r.length ∧ e ≠ 0 ∧ e' = osRes (#(r.take k)) e)
   /- The first step of `pwrite(fd, data, off)`: `(#fd, #off, #data) ↦ #token`. It makes no
   system call and cannot fail. The bytes it may change must be clear of every other change. -/
   | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (t : w64),
@@ -312,10 +341,10 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
          st1.setFile p (f.change (writeBytes f.cur off (data.take k)) (min off f.cur.length)
            (off + k))) ∧
       e' = osRes (#(W64 k)) e
-  /- `fstat(fd)`'s size: `#fd ↦ (#size, #errno)`. -/
-  | "Fstat" => ∃ (fd : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧ ¬ ResizingAt st d.path ∧
-      st' = st ∧
-      (e' = osRes (#(W64 (st.size d.path))) 0 ∨ ∃ e : w64, e ≠ 0 ∧ e' = osRes (#(0 : w64)) e)
+  /- `fstat(fd)`'s size: `#fd ↦ (#size, #errno)`, as `StatSees` allows. -/
+  | "Fstat" => ∃ (fd : w64) (d : OsFd) (sz : Nat), v = #fd ∧ FdOpen st fd d ∧
+      StatSees st d.path sz ∧ st' = st ∧
+      (e' = osRes (#(W64 sz)) 0 ∨ ∃ e : w64, e ≠ 0 ∧ e' = osRes (#(0 : w64)) e)
   /- The first step of `ftruncate(fd, sz)`: `(#fd, #sz) ↦ #token`. It makes no system call
   and cannot fail. No other change may be in flight on the file. -/
   | "FtruncateStart" => ∃ (fd sz t : w64) (d : OsFd), v = PairV (#fd) (#sz) ∧ FdOpen st fd d ∧
@@ -332,7 +361,8 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `fsync(fd)` and `fdatasync(fd)` alike (D3): `#fd ↦ #errno`. -/
   | "Fsync" => ∃ (fd : w64) (d : OsFd) (f : OsFile), v = #fd ∧ FdOpen st fd d ∧ st.file d.path = some f ∧
       (st' = st.setFile d.path (f.synced (InflightAt st d.path ·)) ∧ e' = Val (#(0 : w64)) ∨
-       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st.setFile d.path { f with poisoned := true })
+       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
+         st' = st.setFile d.path (f.syncFailed (InflightAt st d.path ·)))
   /- `close(fd)`: `#fd ↦ #errno`. The fd is freed whatever the errno. -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = { st with fds := GMap.delete fd st.fds } ∧ e' = Val (#e)
@@ -370,16 +400,15 @@ end step
 /-! ## Crash -/
 
 /-- `img` is what a crash may leave of the file `f` at `p`: a size it had since its last
-successful sync, or between such a size and one an in-flight change would give it (any size if
-poisoned); a byte is the durable one unless it is dirty, under an in-flight change, past the
-durable image, or the file is poisoned. -/
+successful sync, or between such a size and one an in-flight change would give it; a byte is the
+durable one unless it is dirty, lost by a failed sync, under an in-flight change, or past the
+durable image. -/
 def CrashImage (st : OsState) (p : GoString) (f : OsFile) (img : List w8) : Prop :=
-  (f.poisoned ∨
-    ((f.sizeLo ≤ img.length ∨
+  ((f.sizeLo ≤ img.length ∨
       ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ c.target ≤ img.length) ∧
      (img.length ≤ f.sizeHi ∨
-      ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ img.length ≤ c.target))) ∧
-  ∀ i (hi : i < img.length), ¬ f.poisoned → ¬ f.dirty i → ¬ InflightAt st p i →
+      ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ img.length ≤ c.target)) ∧
+  ∀ i (hi : i < img.length), ¬ f.dirty i → ¬ f.lost i → ¬ InflightAt st p i →
     (hd : i < f.durable.length) → img[i] = f.durable[i]
 
 /-- A crash: fds, in-flight changes and mappings are gone; each file becomes a crash image, as

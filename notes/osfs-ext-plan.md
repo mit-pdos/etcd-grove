@@ -14,7 +14,8 @@ wrapper instead of `os`. Where the wrapper lives is open (W below).
 
 The files the program may open are a fixed set of paths (the domain of the state's `files`).
 These paths name distinct regular files on a local ext4 or xfs filesystem. No other process
-touches them. The device honours cache flushes. Opening any other path is stuck. Path
+touches them. The device honours cache flushes, writes each sector atomically, and has no media
+errors. Opening any other path is stuck. Path
 resolution is not modelled.
 
 ## State
@@ -25,7 +26,7 @@ structure File where
   durable  : List w8   -- the image known to be on disk
   dirty    : GSet Nat  -- offsets whose durable byte may differ from cur
   sizeLo sizeHi : Nat  -- smallest/largest size since the last successful sync
-  poisoned : Bool      -- a sync failed since boot (D2)
+  lost     : Nat → Bool -- offsets whose writeback a failed sync lost (D2)
   named    : Bool      -- the directory entry is durable (false if created since boot, D4)
 
 structure OsState where
@@ -50,19 +51,28 @@ a wrong access mode, a bad fd, or an unsupported flag.
 | op | needs (else stuck) | effect |
 |---|---|---|
 | `Open(path, flags)` | path allowed; flags ⊆ {RDONLY, WRONLY, RDWR, CREAT, TRUNC, CLOEXEC} | absent, no CREAT: ENOENT. Absent, CREAT: create (`named := false`). TRUNC: size 0. Fresh fd. |
-| `PRead(fd, off, n)` | fd readable; `[off, off+n)` misses every in-flight write's affected range | `cur[off, min(off+n, size))`, or a prefix of it with an errno |
+| `PRead(fd, off, n)` | fd readable, off ≥ 0 | `cur[off, min(off+n, size))`; a byte under an in-flight change is arbitrary, and while a change resizes the file the length is anything ≤ n (`ReadSees`). On failure, a prefix of that with an errno. |
 | `PWriteStart(fd, off, data)` | fd writable; affected range misses the other in-flight writes | records the write, returns a token |
 | `PWriteFinish(tok)` | – | writes a prefix of length k (k = len on success), marks it dirty |
-| `Fstat(fd)` | no in-flight change resizes the file (D8) | `cur.length` |
-| `FtruncateStart(fd, sz)` / `FtruncateFinish(tok)` | fd writable; no other change in flight on the file | resize, zero-fill; dirty from `min(old, new)` to `max(old, new)`. Two steps, like pwrite: a pread racing a shrink can stop anywhere between the sizes on Linux. While in flight, it affects every byte from `min(size, sz)` on, and `Fstat` is stuck. |
-| `Fsync(fd)` | – | success: `durable[i] := cur[i]` for dirty i outside in-flight writes; size durable. Failure: `poisoned := true` |
+| `Fstat(fd)` | – | `cur.length`, or while a change resizes the file, a size between it and the change's target (`StatSees`, D8) |
+| `FtruncateStart(fd, sz)` / `FtruncateFinish(tok)` | fd writable; no other change in flight on the file | resize, zero-fill; dirty from `min(old, new)` to `max(old, new)`. Two steps, like pwrite: a pread racing a shrink can stop anywhere between the sizes on Linux. While in flight, it affects every byte from `min(size, sz)` on. |
+| `Fsync(fd)` | – | success: `durable[i] := cur[i]` for dirty i outside in-flight changes (they stop being lost); size durable. Failure: those bytes become *lost* and clean (D2) |
 | `Close(fd)` | fd open | removes the fd; errno arbitrary (the fd is freed either way) |
 | `Mmap(fd, off, len, prot, flags)` | off = 0, prot = PROT_READ, flags ∈ {SHARED, SHARED\|POPULATE}, fd readable, len > 0, no in-flight write on the file | fresh page-aligned (4096) range of `len` cells, or an errno |
 | `Munmap(base, len, cap)` | `base` a mapping, `len = cap` = its length | removes the mapping and its cells |
 
 - **Affected range** of a write of n bytes at `off`: `[min(off, size), off+n)`. It includes the
-  zero gap that an extending write creates. Any read, load or stat that could see a partial
-  write is stuck. That is the only race rule.
+  zero gap that an extending write creates. A truncate affects every byte from `min(size, sz)`
+  on. A mapped load that could see a partial change is stuck (a hole). A racing `pread` or
+  `fstat` instead returns any mix. bbolt's `WriteTo` copies pages that a concurrent writer may
+  be rewriting, so its read must not be stuck.
+- **Edge cases.**
+  - A zero-length write changes nothing, even past EOF (Go makes no system call). A partial
+    write of k bytes at `off` past EOF leaves the size at `off + k`.
+  - Negative offsets are stuck in the primitives. The models return Go's error first, without a
+    system call (`ReadAt`/`WriteAt`), or pass the call through to an EINVAL (`Truncate`).
+  - `O_TRUNC` truncates whatever the access mode, as Linux does, and marks the file as
+    `Ftruncate` does.
 - **Two-step pwrite.** An atomic pwrite would be more defined than Linux, because a concurrent
   `LoadBytes 8` or `pread` can tear. With a start and a finish step, any real overlap in time
   maps to a model interleaving that is stuck.
@@ -80,9 +90,11 @@ a wrong access mode, a bad fd, or an unsupported flag.
 becomes an image, which is then both `cur` and `durable`:
 
 - **Existence.** If `¬named`, the file may vanish (D4).
-- **Size.** Any size in `[sizeLo, max(sizeHi, in-flight ends)]`, or any size if `poisoned`.
-- **Bytes.** Byte i is `durable[i]` unless i is dirty, in an in-flight write, `≥
-  durable.length`, or the file is poisoned. In those cases it is arbitrary (D1).
+- **Size.** Any size between `min(sizeLo, in-flight targets)` and `max(sizeHi, in-flight
+  targets)`.
+- **Bytes.** Byte i is `durable[i]` unless i is dirty, lost, under an in-flight change, or `≥
+  durable.length`. In those cases it is arbitrary (D1).
+- **Afterwards.** A file the crash keeps is named, and all of it is durable.
 
 ## Trusted Go models (the wrapper's functions)
 
@@ -115,9 +127,11 @@ sign-off; until then, avoid CAS on mapped memory (a probe records it). Recorded 
 
 - **D1:** unsynced bytes are arbitrary after a crash (vs old-or-written). Either way, bbolt's
   torn-meta argument needs a no-checksum-collision premise.
-- **D2:** a failed fsync poisons the file (vs a precise lost-pages set). The lost pages are not
-  rewritten by a later successful fsync, so "the next successful sync makes everything durable"
-  would be unsound.
+- **D2 (changed 2026-10-31):** a failed fsync marks the dirty bytes *lost*: arbitrary at a
+  crash until written again and synced. Linux marks failed pages clean, so a later successful
+  sync does not redo them. The first choice, a poisoned bit making the whole file arbitrary,
+  made every crash property unprovable once a sync can fail: `examples/bboltfs`'s minibolt
+  needed a premise "no fsync fails".
 - **D3:** `Fdatasync` = `Sync`: both flush contents and size. Linux flushes `i_size` in
   fdatasync. bbolt's `init` grows an empty file by `WriteAt`, then calls `fdatasync`.
 - **D4:** a created file is not durably named until a crash survives it (no dir fsync
@@ -127,8 +141,8 @@ sign-off; until then, avoid CAS on mapped memory (a probe records it). Recorded 
   integers.
 - **D6:** misuse is stuck, not an errno.
 - **D7:** `Flock` is trivial (single-process spec).
-- **D8:** `Stat` racing an extending write is stuck. This matters for bbolt only with
-  `NoGrowSync`.
+- **D8 (changed 2026-10-31):** a `Stat` or `pread` racing a change returns a nondeterministic
+  answer instead of being stuck. Only mapped loads are stuck on a race.
 - **W (open):** where the wrapper package lives.
 
 ## Work

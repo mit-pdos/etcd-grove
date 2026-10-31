@@ -476,6 +476,10 @@ one-line clamp fix; added 2026-10-29),
 `DeleteBucket` in the same transaction panics or silently misses data; documentation or an
 error return; added 2026-10-27),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
+[bbolt-init-not-crash-safe](bbolt-init-not-crash-safe.md) (added 2026-10-31) is the exception to
+this section's title. A crash during a new database's first `init` (for etcd, a member's first
+start) can leave a file that never opens. It comes from reasoning about writeback order, is not
+reproduced, and needs a search upstream before it is ranked.
 
 ## Kubernetes (the API server's etcd3 store, its test model, the DaemonSet controller; not etcd's)
 
