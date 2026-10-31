@@ -1,6 +1,8 @@
 # Plan: the lease rows' key checks (spec-first; branch `lease-keys`)
 
-Status (2026-10-31): **Scope**, for the user's decisions (Q1-Q3 below). Nothing drafted. Started at
+Status (2026-10-31): **Scope decided** (the user's: Q1 (b) A then B, Q2 the lessor's item map, Q3
+lower bounds; to follow the spec-first plan, `notes/spec-first-plan.md`). Next: Part A's Draft
+("Part A, Draft" below). Started at
 the user's request: the first of the three items that would let the repository answer
 etcd-io/etcd#22595 ("Plan to revert Auth to Beta"), whose requirement "an audit to verify that RBAC
 covers all etcd operations" `notes/auth-matrix.md` answers for every row but the lease keys.
@@ -91,3 +93,67 @@ today's statements would not exclude it.
   over `leaseItemsOf`.
 - **Q3, Part B's freshness.** As the other API rows: states recorded no earlier than the call's
   start (lower bounds), not the latest state. Recommended.
+
+## Part A, Draft (the statements, top-down)
+
+Found while drafting (Scope's survey refined):
+- The txn package's lessor contract (`txn.isTxnLessor`) already has an owner-form `Lookup`: by the
+  lease owner (`lease.lessorUser γl L I`), `nil` exactly when `id ∉ L`. It does not say the lease
+  returned is the owner's lease of `id` (the closers' map element), which `Keys()` needs.
+  The real `lessor.Lookup` can say it: under the read lock it reads the lease map `M`, whose
+  ghost authority `γcl` (in `lessorMu`) agrees with the owner's closers' element.
+- `apply.isApplyLessor`'s own `Lookup` clause (`leaseIs`: some keys, bounded) is redundant with
+  `isTxnLessor`'s, and a premise of `isApplyLessor_of_lessorInv`. It goes.
+- Txn's operations: `TxnOp.put k v lease`, `putKeep` (wire `Lease` 0), `putIgnVal k (lease : Option)`
+  carry the lease, so `opClass` can name the lease's keys. Their `PrevKv` read is not in `TxnOp`
+  (the other half of GHSA-x35m): **a related gap, not in this stage** (the model's put would need
+  `prevKV`; recorded for after Part A).
+- The keys' length bound (`IsPutPermitted` takes keys shorter than `2 ^ 63 - 1`): `leaseIs`'s
+  `Keys()` assumed it. With the item map the KV state's (`leaseItemsOf`), it follows from the
+  state's keys; to settle in Glue (a law over `leaseItemsOf`, or the key-length law).
+
+The items (vocabulary first; each statement drafted in its file with its proof a `sorry` until
+the glue):
+
+1. `lease.leaseOwnOpen γl L I id l` (lease package, `InvLessor.lean`): the owner's resource
+   `leaseOwn γl L I` opened at the live lease `l` of `id`: `isLeaseObj l`, the owner's half of its
+   item set (`leaseItemsOwn l I id`) and its lock's reader slot, and the wand closing it back.
+   Not persistent, on purpose: a revoked lease's object keeps its `ID`, and `id` can be granted
+   again, so "the lease of `id`" holds only of the owner's current closers. Laws:
+   `leaseOwnOpen_close` (back to `leaseOwn`), and the owner's `Keys()` over it
+   (`lease.Lease.Keys.wp_open`, a corollary of `Lease.Keys.spec`: exactly the keys `I` attaches to
+   `id`, no duplicates). `lessorUserOpen γl L I id l`, the same at the txn layer's `lessorUser`
+   (`⌜l = null⌝ ∗ lessorUser γl L I`, or the reader slot, the revokers and `leaseOwnOpen`), with
+   `lessorUserOpen_close`.
+2. Law `lease.leaseOwn_items_live : leaseOwn γl L I ⊢ ⌜∀ it id, I.lookup it = some id → id ∈ L⌝`
+   (`leaseClosers` has it): with `Lookup`'s `nil ↔ id ∉ L`, a `nil` lookup means no key has the lease.
+3. `lease.lessor.Lookup.spec`: by the owner (`leaseOwn γl L I` in place of a share `leaseFrag γl q
+   L`; every caller is the apply thread's, through `isTxnLessor`); post: `⌜l = null ↔ id ∉ L⌝` and
+   `(⌜l = null⌝ ∗ leaseOwn γl L I) ∨ leaseOwnOpen γl L I id l`. (Part B adds the reader's form: an
+   extension.)
+4. `txn.isTxnLessor`'s `Lookup` clause: post `lease.lessorUserOpen γl L I id l ∗ ⌜l = null ↔ id ∉ L⌝`
+   (for `lessorUser γl L I ∗ ⌜…⌝`); `txn.checkLease` closes it.
+5. `apply.isApplyLessor`: the `Lookup` clause removed (callers use `isTxnLessor`'s); `leaseIs`
+   removed if unused.
+6. `apply.leaseKeysClass M info I id` (persistent; `AuthClass.lean`): in `on γa`, an admin at a
+   recorded state (`adminOk`), or every key `k` with `I.lookup ⟨k⟩ = some id` write-permitted
+   (`classOk γa info [(k, [], .write)]`); `True` otherwise.
+7. `apply.checkLeasePutsKeys.spec`: pre `lease.leaseOwnOpen γ.leases L I id l` (for `leaseIs l id`),
+   post it back and `err = nil → leaseKeysClass M info I id`.
+8. `apply.checkLeasePuts.spec`: pre adds `lease.lessorUser γ.leases L I`; post adds the same class.
+9. `apply.checkPutAuth.spec`: pre adds `lease.lessorUser γ.leases L I`; post's `putClass` gains `I`.
+10. `apply.putClass M info I o := classRes M info (putPerms o) ∗ leaseKeysClass M info I o.leaseID`;
+    `opClass`/`opsClass`/`txnClass` gain `I` (a put's lease: `lease`, `0` for `putKeep`,
+    `lease.getD 0` for `putIgnVal`); `reqClass M info I rq` gains a `leaseRevoke` case
+    (`leaseKeysClass` of its id); `chainClass` passes `I`; `kvPost` instantiates it at
+    `mvcc.leaseItemsOf (mvcc.stateAfter log)` (the state before the request: Go checks before it
+    applies anything).
+11. `checkTxnReqsPermission`/`checkTxnPermission`/`CheckTxnAuth` specs (the transaction walk) take
+    the owner's resource and give `txnClass` at `I`.
+12. `authApplierV3.Put`/`Txn`/`LeaseRevoke` (and `UserGet`, which shares `kvPost`): statements
+    unchanged but for `kvPost`'s class; their proofs lend `kvOwn`'s `lessorUser` to the checks.
+
+Glue to prove before the freeze: 7 (`checkLeasePutsKeys`: the loop over `Keys()` with the class
+accumulated), 8, 9 over 7-8, `authApplierV3.Put` over 9 (the lend from `kvOwn`), and 3 (the
+`Lookup` agreement, a Probe: the one place the lessor's invariant is opened). Probe: also
+`authApplierV3.LeaseRevoke` (the class for a request no workload admits yet).

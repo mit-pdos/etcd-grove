@@ -411,6 +411,24 @@ of the lessor's lock (`Lookup`); (unit T3) its revokers. -/
 def lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
   iprop(leaseOwn γl L I ∗ lessorRdOf γl ∗ leaseRevokers γl L)
 
+/-- **The owner's resource opened at the live lease `l` of `id`** (the lease-keys plan, item 1,
+2026-10-31): the lease `l` (`isLeaseObj`), the owner's half of its item set (what `I` attaches to
+`id`) and a reader slot of its lock, which `Keys()` takes, and the wand that closes the owner's
+resource back. `Lookup(id)` by the owner gives it. Not persistent: a revoked lease keeps its `ID`
+and `id` can be granted again, so "`l` is the lease of `id`" holds only of the owner's closers
+at the time. -/
+def leaseOwnOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
+    IProp GF :=
+  iprop(isLeaseObj l ∗ leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ∗
+    (leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) -∗ leaseOwn γl L I))
+
+/-- **The txn layer's owner resource after `Lookup(id)` returned `l`**: `nil` and the resource as
+it was, or the reader slot, the revokers and the owner's resource opened at `l`. -/
+def lessorUserOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
+    IProp GF :=
+  iprop((⌜l = null⌝ ∗ lessorUser γl L I) ∨
+    (lessorRdOf γl ∗ leaseRevokers γl L ∗ leaseOwnOpen γl L I id l))
+
 /-- Two pins of one ghost map agree. -/
 theorem lessorPin_agree (γl : GName) (lp lp' : Loc) :
     lessorPin (GF := GF) γl lp ∗ lessorPin γl lp' ⊢ ⌜lp = lp'⌝ := by
@@ -441,6 +459,37 @@ theorem leaseFrag_agree (γl : GName) (q1 q2 : Qp) (L1 L2 : List w64) :
   ipureintro
   have h2 := H.2
   cases h2; rfl
+
+/-- The owner's resource, closed back from its opening at a lease. -/
+theorem leaseOwnOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
+    (l : Loc) : leaseOwnOpen (GF := GF) γl L I id l ⊢ leaseOwn γl L I := by
+  unfold leaseOwnOpen
+  iintro ⟨-, Hio, Hslot, Hback⟩
+  iapply Hback; iframe
+
+/-- The txn layer's owner resource, closed back after `Lookup`. -/
+theorem lessorUserOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
+    (l : Loc) : lessorUserOpen (GF := GF) γl L I id l ⊢ lessorUser γl L I := by
+  unfold lessorUserOpen
+  iintro (⟨-, Hu⟩ | ⟨Hrd, Hrvk, Ho⟩)
+  · iexact Hu
+  · unfold lessorUser
+    iframe Hrd Hrvk
+    iapply leaseOwnOpen_close $$ Ho
+
+/-- **Every lease of the owner's item map is live** (the lease-keys plan, item 2): so a lease not
+in `L` (a `nil` `Lookup`) holds no key. -/
+theorem leaseOwn_items_live (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    leaseOwn (GF := GF) γl L I ⊢
+      leaseOwn γl L I ∗ ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ := by
+  unfold leaseOwn leaseClosers
+  iintro ⟨Hfr, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, Hcm⟩
+  isplitl
+  · iframe Hfr
+    iexists lp, γga, γcl, C, im
+    iframe Hp Him HI Hcm
+    ipureintro; exact ⟨HC, HIL⟩
+  · ipureintro; exact HIL
 
 end defs
 

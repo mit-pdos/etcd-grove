@@ -99,13 +99,20 @@ theorem isTxnLessor_of_lessorInv
   subst Heq
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hown, Hcls⟩
-  iapply (hLk lp γl id _ L) $$ [Hrd Hown]
-  · iframe Hpkg Hinv Hrd Hown
-  iintro !> %l ⟨Hrd, Hown, %Hl, -⟩
+  iapply (hLk lp γl id L I) $$ [Hrd Hown Hcls]
+  · iframe Hpkg Hinv Hrd; iunfold leaseOwn; iframe Hown Hcls
+  iintro !> %l ⟨Hrd, %Hl, Ho⟩
   iapply HΦ
-  isplitl [Hrd Hown Hcls Hrvk]
-  · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls Hrvk
-    iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
+  isplitl [Hrd Ho Hrvk]
+  · iunfold lessorUserOpen
+    icases Ho with (⟨%Hn, Hown⟩ | Ho)
+    · ileft
+      isplitr
+      · ipureintro; exact Hn
+      iunfold lessorUser; iframe Hown Hrvk
+      iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
+    · iright; iframe Ho Hrvk
+      iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
   ipureintro; exact Hl
 
 end proof
