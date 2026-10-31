@@ -549,10 +549,10 @@ a node elects itself alone). etcd leaves `Applied` unset.
 
 **The durable node API: a spec candidate, not adopted** (the `spec` skill). It is outside the
 repository, `/home/ubuntu/spec-scratch/raft-durability/candidate.md`. The current one is
-candidate 5, rebuilt after the user's critique of candidate 4: the Ready returns an atomic update
+candidate 6 (the user's answers on candidate 5: the client-owned state is the durable part only, the update's post is what Advance takes, a detached storage needs no bounds), built after the user's critique of candidate 4: the Ready returns an atomic update
 that the client fires when it enters the new raft state. The permission to send the batch's
 messages is that update's post. Nothing in raft is named after a disk or an incarnation; the node
-object serves as the incarnation. Candidate 5's open questions Q1-Q3 are for the user, and it is
+object serves as the incarnation. Candidate 6's open questions Q4-Q5 are for the user, and it is
 not reviewed. Candidate 4 (`candidate-4.md`) and the `spec-reviewer` agent's reviews of candidates
 1-3 (`review-1.md` to `review-3.md`) are beside it; their Go findings stand. Candidate 4, described
 below, extended raft's node API so that one spec serves clients with and without durability:

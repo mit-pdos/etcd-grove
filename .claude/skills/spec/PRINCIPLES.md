@@ -130,6 +130,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   keep nothing durable. The state the update acts on is in the library's own terms (raft's state),
   and is exclusive only where soundness needs it. (raft's durable node API, 2026-10-31, the user's
   critique of candidate 4: `notes/STATUS.md`, "examples/kvdurable and the durable node API")
+  The client-owned state is only the part the client's choice is about: for durability, raft's
+  persistent fields (term, vote, log, snapshot), not the volatile ones, which stay in the library.
+  Then a restart is no transition of that state, only a fresh library-side half built over it.
+  (Same, the user's answer on candidate 5.)
 - **No identification handles for the proof's bookkeeping** (`nodeInc`, incarnation tokens): key
   facts by values the client already has (the node object, the storage object). A handle only the
   proof needs is a resource every caller threads. (Same critique; see also "Do not make callers
