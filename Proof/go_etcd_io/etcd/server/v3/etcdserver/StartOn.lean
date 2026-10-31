@@ -75,7 +75,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
     "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     "#Hai" ∷ srvAppliedInvM true s E γr ∗
     "#Hkvi" ∷ srvKVInvsM true s E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗

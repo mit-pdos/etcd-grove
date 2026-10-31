@@ -1512,14 +1512,19 @@ theorem NewServer.wp_proofM (on : Bool)
     iunfold compactorRun; ileft; ipureintro; rfl
   isplitr
   · -- `#Hsab`: `msgSnapC`, a bag of raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed)
+    -- (2026-10-31, S1) the raft node's bag and the started transport
     unfold srvApplyAllBuilt
     iexists _
-    iframe NHmsc
-    iunfold isRNMsgSnapC at NHmsci
-    icases NHmsci with ⟨%γmc, #Hmcb⟩
-    iframe Hinfl
-    iexists γmc, _
-    iframe Hmcb
+    iframe NHmsc Hinfl
+    isplitr
+    · iexists γrn
+      iframe NHmsci
+      ipureintro; simp [Hrn1, HρRaft]
+    isplitr
+    · iexists (transportIface t), γn, id, srvTrKey γn γk, iprop(False)
+      iframe Htrf Htrall
+      ipureintro; rw [Hγn.1, ← hργ]
+    ipureintro; exact ⟨Hc0, Hlog0⟩
   isplitr
   · -- `#Hkvi`
     unfold Perennial.named

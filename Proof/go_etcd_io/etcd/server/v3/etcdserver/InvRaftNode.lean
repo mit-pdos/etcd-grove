@@ -166,12 +166,14 @@ def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
   iprop(∃ (to : w64) (ty : w32), msgAt m to ty ∗ E.M m)
 
 /-- (D22 S-l sender, 2026-10-22; 2026-10-30, the repair: snapshots allowed, until then `False`)
-**A `MsgSnap` raft handed out, owned**: the message at some fraction (a `Ready`'s), of type
-`MsgSnap`, sent by the node, with its credits (`sentMsg_snapshot` gives its snapshot's
-certificate): what `processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. -/
+**A `MsgSnap` raft handed out, owned**: the message, whole (a `Ready`'s: `readyDq`, a
+`MsgSnap` being no response; 2026-10-31, S1: until then at some fraction, which
+`createMergedSnapshotMessage`'s write of `m.Snapshot` cannot take), of type `MsgSnap`, sent by the
+node, with its credits (`sentMsg_snapshot` gives its snapshot's certificate): what
+`processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. -/
 def rnSnapMsg (γ : RNNames) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
+  iprop(∃ st : MsgSt, msgOwn m (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
     sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st)
 
 /-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
@@ -612,7 +614,10 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
       iunfold rnMsgR
       iright
       iunfold rnSnapMsg
-      iexists (readyDq q.st), q.st
+      iexists q.st
+      have hdq : readyDq q.st = DFrac.own 1 := by
+        unfold readyDq; rw [hsn]; exact if_neg (by unfold RespType; decide)
+      rw [hdq] at *
       iframe Hm Hsm Hc
       ipureintro; exact hsn
     imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm

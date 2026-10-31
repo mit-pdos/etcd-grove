@@ -28016,3 +28016,48 @@ comes from (changes raft's exported API); (C) a third hole in `SnapSendBranch.le
 from today's definitions); (D) term-tagged ghost state across the raft loop, the storage and the
 apply thread (a project of its own). Dropping the premise from `sentMsg_replaceSnapshot` was
 declined (the user, 2026-10-31).
+
+## `applyAll`'s merge branch (S1) (2026-10-31)
+
+**2026-10-31 · accepted (the parent session's S1 plan; the two holes are S2's)**
+
+The `msgSnapC` branch of `applyAll` is proved (both modes' proofs step through it) over the fork's
+index guard (previous entry). What changed, and why:
+
+- **The spec** (`Spec/.../EtcdServer__applyAll.lean`, both `spec` and `specOn`, internal: no
+  interface, not exported): binders `γn rt n`, the premises `ciEff γ st.k ≤ ai` (with the
+  existing `ai ≤ ciEff`: the consistent index is the applied one, so the image is exact),
+  `γn.node = γr.raft.raft`, `(A ++ unapplied ai ms).length ≤ n`, and in the precondition the
+  batch's `raftTerm` field (`taRaftTermAddr ap ↦□ rt`) with `rnRtOk γn rt n` (the term the batch
+  was handed in is committed at a log of length `n`: `committedAtTerm`, or `rt = 0`). `run`'s
+  job body passes them: `rnApplyTok_recv`'s first case now also gives `rnRtOk` (it was in the
+  raft loop's apply token already), the start's `c₀ ≤ ai₀` gives the consistent-index bound.
+- **The bag**: `isServerApplyAll`/`srvApplyAllBuilt` (`InvApplyAll`, `InvStart`) now carry
+  `msgSnapC`'s `isRNMsgSnapC` at the raft node (the bag's element `rnSnapMsg`: the message
+  owned at `own 1`, a `MsgSnap`, `sentMsg` and its credits; the owning fraction was `readyDq`,
+  which is `own 1` for a non-response), the transport's `netTransport` at `srvNet`, and the KV's
+  start values (`c0 = 0`, `log0 = [[], []]`, for `merged_image`). `NewServer` builds them.
+  `srvNet` moved from `InvBuild` to `InvApplyAll`, which now needs it.
+- **The certificate**: `SnapCert.lean`'s `srv_snap_make` split into `srv_snap_cert` (the
+  `snapshotCert` and the committed log it is of) and `srv_snap_make` (its `valid`, statement
+  unchanged); `srv_merged_sent` gives the merged message's `sentMsg` by raft's
+  `sentMsg_replaceSnapshot` (statement unchanged): `committedAtTerm` from `rnRtOk` (its `rt = 0`
+  case refuted: after the term check `rt` is the message's term, nonzero for a `MsgSnap` by
+  `SentMsgShape`), the applied log's `isCommittedLogLb`, the cert, and `sv.Index ≤ ai'` from the
+  guard (`GetIndex` returns the `st.snap`'s index, `sentMsg_shape`).
+- **Two holes for S2** (`SnapSendBranch.lean`): `mergedCreate_window` (the commit before
+  `createMergedSnapshotMessage`'s `Snapshot`, and the snapshot's observation `mergedObs`: the
+  key image, the consistent and term keys, the rest at the applied log), which takes the nine
+  specs the window calls (store `Commit`, backend `Snapshot`, the pre-commit hook and what it
+  calls; added to `applyAll`'s callees in `etc/link-lean-first-server.txt`); and
+  `merged_image` (mode off: `mergedObs` and the server's state give `□ (srvNet γ).img ai' D`).
+  The image is reached only through `merged_image` and `srvMerged_bundle` (`netSnapBundle`), so
+  the durability work's change to `srvImage(R)` stays out of `applyAll`. Caveat for S2: with
+  compaction on, `mvcc.keyImage` of the KV's log must still hold of the snapshotted data.
+- **Open (mode on)**: `srvNet`'s `img` is `srvImage`, the mode-off model (`ch0 =
+  alarmChain false false false`), while with auth on the backend holds `kvModelOn`'s state, so the
+  merged image is not `srvImage` of it: `wp_proofOn` keeps an inline
+  `sorry -- SNAPSHOT-SORRY #7-on`. Closing it needs a mode-indexed `srvNet` (the receiver's image
+  in the sender's mode), a design question for the user.
+- `chanBag_nbRecv` (`SnapSendBranch.lean`, a bag's nonblocking receive) is general: proposed for
+  Perennial (`notes/perennial-changes.md`).

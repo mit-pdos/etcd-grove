@@ -341,6 +341,7 @@ txn_IsTxnSerializable: @
 apply_CheckTxnAuth: @
 mvcc_store__Rev: @
 mvcc_store__Commit: @
+backend__Snapshot: @
 traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
 traceutil_Get: traceutil_TODO
 traceutil_Trace__Step:
@@ -394,8 +395,9 @@ EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
 # raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
 # trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
 # and the names-only snapshot method. See InvApplyAll.lean. (The merged-snapshot
-# methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18:
-# `msgSnapC` never delivers in a one-member cluster.)
+# methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18,
+# and are again since S1, 2026-10-31: the merge branch proved, behind the fork's index guard,
+# with the getters it reads and the specs of `mergedCreate_window`'s commit-and-snapshot window.)
 backend_VerifyBackendConsistency:
 # (2026-10-30, the repair) `snapshot` proved (lean's `specFull`; its proof a SNAPSHOT-SORRY until
 # rewired), no longer the trust boundary
@@ -411,7 +413,7 @@ EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
 EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
-EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog
+EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog raftpb_Message__GetTerm raftpb_Message__GetSnapshot Snapshot__GetMetadata SnapshotMetadata__GetIndex EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap mvcc_store__Commit backend__Snapshot storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
@@ -845,6 +847,7 @@ binary_WriteUint64:
 pbutil_MustMarshalMessage: proto_MarshalPb
 raftpb_Message__GetIndex: @
 raftpb_Message__GetTerm: @
+raftpb_Message__GetSnapshot: @
 raftpb_MessageType__Enum: @
 proto_ClonePb:
 pbutil_MustUnmarshalMessagePb: proto_UnmarshalPb

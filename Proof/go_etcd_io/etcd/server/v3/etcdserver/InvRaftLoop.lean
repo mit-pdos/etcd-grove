@@ -69,7 +69,8 @@ theorem cum_push (γc : GName) (cums : List (List EntryModel)) (L A : List Entry
   iframe Hauth H1 H2
 
 /-- **The apply side's receive** of the payload at its position: the batch extends exactly the
-log `A` it got so far, and its token moves to `A ++ ce`. -/
+log `A` it got so far, and its token moves to `A ++ ce`; its term is good for that log
+(`rnRtOk`; 2026-10-31, S1: for `applyAll`'s merge). -/
 theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
     (ap : toApply) :
     ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
@@ -84,7 +85,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
            iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A ++ ce).length ∗ storDL γ.node.cl γ.id (γ.pre ++ A ++ ce).length ∗
             srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
             srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce))) ∗
-        committedLast E.γr ce) ∨
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
@@ -120,12 +121,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     ipureintro; exact Hlen
   ileft
   iunfold rnApN at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn HG Hrac Hcl
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]

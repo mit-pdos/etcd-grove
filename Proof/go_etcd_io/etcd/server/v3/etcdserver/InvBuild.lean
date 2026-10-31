@@ -146,23 +146,6 @@ def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
     msgCredits γ.cl srvClusterN st)
 
-/-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
-payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
-(`sentMsg`); once, the credits of a `MsgReadIndex` or a forwarded `MsgProp`, delivered at most
-once; any other message may be duplicated, its credits made anew (`msgCredits_intro`, any but a
-`MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
-D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
-the server's clusters send no snapshot). -/
-def srvNet (γ : SrvRaft) : NetPayload GF :=
-  letI := srvStor (GF := GF) γ
-  { P := fun st => iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
-    O := fun st => msgCredits γ.cl srvClusterN st
-    once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
-    P_pers := fun st => by infer_instance
-    dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
-    img := fun i D => srvImage γ i D
-    img_pers := fun i D => by infer_instance }
-
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
     msgOwn (GF := GF) m DFrac.discard st1 ∗ msgOwn m DFrac.discard st2 ⊢
@@ -324,7 +307,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
     "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     "#Hai" ∷ srvAppliedInv s E γr ∗
     "#Hkvi" ∷ srvKVInvs E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗

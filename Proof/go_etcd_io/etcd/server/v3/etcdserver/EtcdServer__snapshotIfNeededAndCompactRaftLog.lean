@@ -45,7 +45,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu⟩, #Hinf,
-    ⟨%lg, #Hlgf, %Hlgn⟩⟩
+    ⟨%lg, #Hlgf, %Hlgn⟩, -, -⟩
   ihave #Hss' := Hss
   iunfold srvSnapStor at Hss'
   icases Hss' with ⟨#Hmsi, -⟩

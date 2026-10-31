@@ -526,7 +526,12 @@ exported results' `storage.diskOk`). Proved too: #3 (`raftNode.start`'s snapshot
 mode `on`). For #7's merge branch, raft's driver now carries its hard state's commit witness in
 snapshot mode too (`nodeDriver_hardStateCommitted`, a new API law; `notes/decisions.md`, "The
 driver's hard-state witness after a snapshot `Ready`"); the server's `rnRtOk` over it is in progress
-(branch `snap-rt`).
+(branch `snap-rt`). **#7's merge branch proved (S1, 2026-10-31, branch `snap-s1`)** over the fork's index guard
+(`notes/decisions.md`, "The merged snapshot's index guard", "`applyAll`'s merge branch (S1)"): in
+mode off its `sorry` is replaced by two named holes for S2 in `SnapSendBranch.lean`,
+`mergedCreate_window` (the commit and snapshot window of `createMergedSnapshotMessage`) and
+`merged_image` (the merged image at `ai'`); in mode on, besides these, the image itself stays open
+(`sorry -- SNAPSHOT-SORRY #7-on`: `srvNet`'s image is the mode-off model), a design question.
 
 **The WAL contract repaired** (2026-10-31, `notes/axiom-review/savesnap.md`, the user's decisions;
 `notes/decisions.md`, "The WAL's readiness and one disk premise"): `rnNewStorageOk`, a premise of

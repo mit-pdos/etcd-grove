@@ -367,14 +367,14 @@ theorem EtcdServer.start.wp_proof
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab
-    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl⟩
+    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl, #Htrb, %Hkv0⟩
     iexists _, msc, sc1
     iframe #
     isplitr
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    ipureintro; exact Hlgn
+    ipureintro; exact ⟨Hlgn, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
@@ -877,14 +877,14 @@ theorem EtcdServer.start.wp_proofOn
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab
-    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl⟩
+    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl, #Htrb, %Hkv0⟩
     iexists _, msc, sc1
     iframe #
     isplitr
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    ipureintro; exact Hlgn
+    ipureintro; exact ⟨Hlgn, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩

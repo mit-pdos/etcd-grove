@@ -46,16 +46,22 @@ theorem srv_snapListsOk (γ : SrvRaft) (cs : ConfStateM) (t i : w64)
     simp [Membership.ids, Membership.simple, GMap.elem_of_union, GMap.not_elem_of_empty]
   rw [this]; exact hsz
 
-/-- **The server's snapshot at the applied index `ai` of term `at'`, valid** (see the file
+/-- **The server's snapshot at the applied index `ai` of term `at'`, certified** (see the file
 header): of the applied prefix `A` (committed, `ai` long, ending at `at'`), at the conf state `c`
-of the voters. A fancy update: it registers the snapshot in the cluster's registry. -/
-theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c : ConfStateM)
+of the voters: registered in the cluster's registry (a fancy update), with the committed log it is
+of (`srvLE γr.raft A`, `ai` long, ending at `at'`). (2026-10-31, S1: split out of `srv_snap_make`
+for `applyAll`'s merged snapshot, whose message takes the certificate, `sentMsg_replaceSnapshot`.) -/
+theorem srv_snap_cert (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c : ConfStateM)
     (hpos : 0 < uint.Z ai) (h61 : uint.Z ai < 2 ^ 61) (hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61)
     (hlen : uint.Z ai = A.length) (hlast : lastTermIs A at')
     (hcs : confStateIs c (Membership.simple γr.raft.raft.cfg)) :
     letI := srvStor (GF := GF) γr.raft.raft
     srvRaftLogInv (GF := GF) γr.raft ∗ srvRLogLb γr.raft A ⊢
-      |={⊤}=> snapshotValid γr.raft.raft.cl (memSnapMade ai at' c []) := by
+      |={⊤}=> snapshotCert γr.raft.raft.cl srvClusterN
+          (snapTrip (memSnapMade ai at' c []) (memSnapMade ai at' c []).Metadata'.ConfState'.lists) ∗
+        isCommittedLogLb γr.raft.raft.cl (srvLE γr.raft A) ∗
+        ⌜(srvLE γr.raft A).length = uint.nat ai ∧
+          Option.map LogEntry.term (srvLE γr.raft A).getLast? = some at'⌝ := by
   letI := srvStor (GF := GF) γr.raft.raft
   iintro ⟨#Hinv, #Hlb⟩
   ihave #Hinv' := Hinv
@@ -84,7 +90,7 @@ theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
   ihave %Hv := confAt_valid γr.raft.raft.cl _ _ $$ Ha
   ihave %Hr := confAt_restorable γr.raft.raft.cl _ _ $$ Ha
   have Hok := srv_snapListsOk γr.raft.raft c at' ai Hv Hr hcs hsz h61
-  -- registered in the cluster's registry, so valid
+  -- registered in the cluster's registry
   iinv Hreg with >Hb Hclose
   all_goals first | exact (fun _ _ => CoPset.mem_full) | skip
   icases Hb with ⟨%S, Hown⟩
@@ -96,12 +102,61 @@ theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
     iexists S ++ [⟨(srvLE γr.raft A).length, Membership.simple γr.raft.raft.cfg, []⟩]
     iexact Hown
   imodintro
+  iframe Hl
+  isplitl
+  · simp only [snapTrip, snapId, memSnapMade]
+    have hal : c.AutoLeave' = (Membership.simple γr.raft.raft.cfg).autoLeave := hcs.2.2.2.2
+    rw [hal]
+    iexact Hcert
+  ipureintro; exact ⟨hl, hlt⟩
+
+/-- **The server's snapshot at the applied index `ai` of term `at'`, valid** (see the file
+header): certified (`srv_snap_cert`), so valid (`snapshotCert_valid`). -/
+theorem srv_snap_make (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c : ConfStateM)
+    (hpos : 0 < uint.Z ai) (h61 : uint.Z ai < 2 ^ 61) (hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61)
+    (hlen : uint.Z ai = A.length) (hlast : lastTermIs A at')
+    (hcs : confStateIs c (Membership.simple γr.raft.raft.cfg)) :
+    letI := srvStor (GF := GF) γr.raft.raft
+    srvRaftLogInv (GF := GF) γr.raft ∗ srvRLogLb γr.raft A ⊢
+      |={⊤}=> snapshotValid γr.raft.raft.cl (memSnapMade ai at' c []) := by
+  letI := srvStor (GF := GF) γr.raft.raft
+  iintro ⟨#Hinv, #Hlb⟩
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -, -, -, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -, -, -, -, -, -⟩
+  imod (srv_snap_cert γr A ai at' c hpos h61 hsz hlen hlast hcs) $$ [Hinv Hlb] with ⟨#Hcert, -, -⟩
+  · iframe Hinv Hlb
+  imodintro
   iapply snapshotCert_valid γr.raft.raft.cl srvClusterN (memSnapMade ai at' c []) hpos h61
-  iframe Hc
-  simp only [snapTrip, snapId, memSnapMade]
-  have hal : c.AutoLeave' = (Membership.simple γr.raft.raft.cfg).autoLeave := hcs.2.2.2.2
-  rw [hal]
-  iexact Hcert
+  iframe Hc Hcert
+
+/-- **The merged snapshot's message, sent** (2026-10-31, S1: `applyAll`'s `msgSnapC` branch): a
+`MsgSnap` the node `sid` sent, of term `st.msg.Term'` committed through `ct`, with raft's
+snapshot `sv` replaced by the server's at the applied index `ai` (`srv_snap_cert`), at least `sv`'s
+index (the branch's guard) and at most `ct` (`sentMsg_replaceSnapshot`). -/
+theorem srv_merged_sent (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c : ConfStateM)
+    (sid ct : w64) (st : MsgSt) (sv : SnapshotM)
+    (hpos : 0 < uint.Z ai) (h61 : uint.Z ai < 2 ^ 61) (hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61)
+    (hlen : uint.Z ai = A.length) (hlast : lastTermIs A at')
+    (hcs : confStateIs c (Membership.simple γr.raft.raft.cfg))
+    (hty : st.msg.Type' = MsgSnap) (hsv : st.snap = some sv)
+    (hle : uint.Z sv.Metadata'.Index' ≤ uint.Z ai) (hct : uint.Z ai ≤ uint.Z ct) :
+    letI := srvStor (GF := GF) γr.raft.raft
+    srvRaftLogInv (GF := GF) γr.raft ∗ srvRLogLb γr.raft A ∗
+      sentMsg γr.raft.raft.cl srvClusterN sid st ∗
+      committedAtTerm γr.raft.raft.cl srvClusterN st.msg.Term' ct ⊢
+      |={⊤}=> sentMsg γr.raft.raft.cl srvClusterN sid
+        { st with snap := some (memSnapMade ai at' c []) } := by
+  letI := srvStor (GF := GF) γr.raft.raft
+  iintro ⟨#Hinv, #Hlb, Hs, Hct⟩
+  imod (srv_snap_cert γr A ai at' c hpos h61 hsz hlen hlast hcs) $$ [Hinv Hlb]
+    with ⟨#Hcert, #Hl, %Hlf⟩
+  · iframe Hinv Hlb
+  iapply (sentMsg_replaceSnapshot γr.raft.raft.cl srvClusterN sid st sv (memSnapMade ai at' c [])
+    ct (srvLE γr.raft A) ⊤ (fun _ _ => CoPset.mem_full) hty hsv hle hct Hlf.1 Hlf.2)
+    $$ Hs Hct Hl Hcert
 
 /-- **`CreateSnapshot(ai, ep.confState, nil)` by the apply thread** (`EtcdServer.snapshot`'s): the
 snapshot certified first (`srv_snap_make`), `CreateSnapshot.spec` at the node's justifications

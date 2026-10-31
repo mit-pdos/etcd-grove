@@ -47,16 +47,19 @@ taken from `w` to `w` plus the entries applied (`srvWTTaken`; until J5 at the ap
 `srvWTAt γp ai`), with `uint.Z ai ≤ w` for the compaction's bound. **The KV model**
 (2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). (D22 S-h, 2026-10-20, S-0's
 amendment) The applied term: `ep.appliedt` the last applied entry's term, unchanged with none
-(`termAfter`), which the merged snapshot's metadata carries. (D22 S-h) The `msgSnapC` branch stays
-dead (`isServerApplyAll`'s bag carries nothing); `SnapSendBranch.lean`'s `snapBranch_send` is its
-two calls, proved for S-l. -/
+(`termAfter`), which the merged snapshot's metadata carries. **The merged snapshot** (2026-10-31,
+S1; until then the branch was dead, D22 S-h): a `MsgSnap` raft handed to `msgSnapC`
+(`isServerApplyAll`'s bag, `rnSnapMsg`) of the batch's term `rt` (`apply.raftTerm`, `rnRtOk`) and
+of a snapshot at most the applied index (the fork's guard, `notes/decisions.md`, "The merged
+snapshot's index guard") is rewritten to carry the backend's image at the applied index
+(`createMergedSnapshotMessage`) and sent (`sendMergedSnap`, over `isServerApplyAll`'s transport). -/
 abbrev EtcdServer.applyAll.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nid : w64) (q : Qp),
+    (w : Nat) (nid : w64) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
@@ -70,6 +73,10 @@ abbrev EtcdServer.applyAll.spec : Prop :=
   -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
   -- disk cooperating, the consistent index at least the applied one
   storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
+  -- (2026-10-31, S1: the merged snapshot) the consistent index at most the applied one (so equal:
+  -- the merged snapshot's image is exact at the applied index), the raft node's names those of the
+  -- server's raft, and the batch's term good for a log at least the applied log after the batch
+  uint.Z (ciEff γ st.k) ≤ uint.Z ai → γn.node = γr.raft.raft → (A ++ unapplied ai ms).length ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
@@ -100,7 +107,10 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       -- the store, the storage's invariant at the node `nid`, the apply side's half of the WAL token
       srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
       (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nid) ∗
-      rnWalTok (srvRAddr s) q }}
+      rnWalTok (srvRAddr s) q ∗
+      -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
+      -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -141,7 +151,8 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nid : w64) (γa : auth.AuthNames) (sa : auth.AuthState) (q : Qp),
+    (w : Nat) (nid : w64) (γa : auth.AuthNames) (sa : auth.AuthState) (q : Qp) (γn : RNNames)
+    (rt : w64) (n : Nat),
   E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShapeOn (unapplied ai ms) →
@@ -156,6 +167,10 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
   -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
   -- disk cooperating, the consistent index at least the applied one
   storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
+  -- (2026-10-31, S1: the merged snapshot) the consistent index at most the applied one (so equal:
+  -- the merged snapshot's image is exact at the applied index), the raft node's names those of the
+  -- server's raft, and the batch's term good for a log at least the applied log after the batch
+  uint.Z (ciEff γ st.k) ≤ uint.Z ai → γn.node = γr.raft.raft → (A ++ unapplied ai ms).length ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ isServerApplyAll s γr ∗
       batchWaitOk ρ E ms ∗
@@ -189,7 +204,10 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       -- the store, the storage's invariant at the node `nid`, the apply side's half of the WAL token
       srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
       (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nid) ∗
-      rnWalTok (srvRAddr s) q }}
+      rnWalTok (srvRAddr s) q ∗
+      -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
+      -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();

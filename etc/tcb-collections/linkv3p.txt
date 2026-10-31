@@ -257,6 +257,7 @@ axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.backend.Snapshot.wp_proof
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -275,6 +276,9 @@ axiom backend.rtxSnap_persistent
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
+axiom backend.snapshot.Close.wp_proof
+axiom backend.snapshot.Size.wp_proof
+axiom backend.snapshot.WriteTo.wp_proof
 axiom backend.txBytes
 axiom backend.txBytes_acc
 axiom backend.txBytes_persistent
@@ -454,6 +458,8 @@ axiom httputil.GracefulClose.wp_proof
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
+axiom io.Pipe.wp_proof
+axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -535,6 +541,7 @@ axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
+axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
@@ -545,8 +552,11 @@ axiom semver.Version.Major.wp_proof
 axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
+axiom snap.Message.CloseNotify.wp_proof
 axiom snap.Message.CloseWithError.wp_proof
+axiom snap.Message.GetTo.wp_proof
 axiom snap.Message.fields.wp_proof
+axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
@@ -620,5 +630,6 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry EtcdServer.applyAll.wp_proof
 sorry EtcdServer.run.wp_proof
+sorry mergedCreate_window
+sorry merged_image

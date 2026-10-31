@@ -975,6 +975,42 @@ theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
   backend.VerifyBackendConsistency.wp_proof
 
+theorem io.wp_Pipe :
+    io.Pipe.spec (GF := GF) (hG := hG) :=
+  io.Pipe.wp_proof
+
+theorem io.PipeWriter.wp_CloseWithError :
+    io.PipeWriter.CloseWithError.spec (GF := GF) (hG := hG) :=
+  io.PipeWriter.CloseWithError.wp_proof
+
+theorem snap.Message.wp_GetTo :
+    snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
+  snap.Message.GetTo.wp_proof
+
+theorem snap.Message.wp_CloseNotify :
+    snap.Message.CloseNotify.spec (GF := GF) (hG := hG) :=
+  snap.Message.CloseNotify.wp_proof
+
+theorem schema.wp_MustUnsafeSaveConfStateToBackend :
+    schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
+  schema.MustUnsafeSaveConfStateToBackend.wp_proof
+
+theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
+    storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
+  storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.wp_unsafeUpdateConsistentIndex :
+    schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
+  schema.unsafeUpdateConsistentIndex.wp_proof binary.bigEndian.wp_PutUint64 verify.wp_Verify schema.wp_UnsafeReadConsistentIndex
+
+theorem schema.wp_UnsafeUpdateConsistentIndex :
+    schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
+  schema.UnsafeUpdateConsistentIndex.wp_proof schema.wp_unsafeUpdateConsistentIndex
+
+theorem consistentIndex.wp_UnsafeSave :
+    consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
+  consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
   zap.Logger.Fatal.wp_proof
@@ -1007,14 +1043,6 @@ theorem bcrypt.wp_GenerateFromPassword :
     bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG) :=
   bcrypt.GenerateFromPassword.wp_proof
 
-theorem io.wp_Pipe :
-    io.Pipe.spec (GF := GF) (hG := hG) :=
-  io.Pipe.wp_proof
-
-theorem io.PipeWriter.wp_CloseWithError :
-    io.PipeWriter.CloseWithError.spec (GF := GF) (hG := hG) :=
-  io.PipeWriter.CloseWithError.wp_proof
-
 theorem consistentIndex.wp_UnsafeConsistentIndex :
     consistentIndex.UnsafeConsistentIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeConsistentIndex.wp_proof consistentIndex.wp_SetConsistentIndex schema.wp_UnsafeReadConsistentIndex
@@ -1026,14 +1054,6 @@ theorem EtcdServer.wp_getTxPostLockInsideApplyHook :
 theorem schema.wp_NewAlarmBackend :
     schema.NewAlarmBackend.spec (GF := GF) (hG := hG) :=
   schema.NewAlarmBackend.wp_proof
-
-theorem snap.Message.wp_GetTo :
-    snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
-  snap.Message.GetTo.wp_proof
-
-theorem snap.Message.wp_CloseNotify :
-    snap.Message.CloseNotify.spec (GF := GF) (hG := hG) :=
-  snap.Message.CloseNotify.wp_proof
 
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -1275,18 +1295,6 @@ theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
 
-theorem schema.wp_unsafeUpdateConsistentIndex :
-    schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
-  schema.unsafeUpdateConsistentIndex.wp_proof binary.bigEndian.wp_PutUint64 verify.wp_Verify schema.wp_UnsafeReadConsistentIndex
-
-theorem schema.wp_UnsafeUpdateConsistentIndex :
-    schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
-  schema.UnsafeUpdateConsistentIndex.wp_proof schema.wp_unsafeUpdateConsistentIndex
-
-theorem consistentIndex.wp_UnsafeSave :
-    consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
-  consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
-
 theorem v2stats.wp_NewServerStats :
     v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewServerStats.wp_proof
@@ -1459,10 +1467,6 @@ theorem proto.wp_UnmarshalUser :
     proto.UnmarshalUser.spec (GF := GF) (hG := hG) :=
   proto.UnmarshalUser.wp_proof
 
-theorem schema.wp_MustUnsafeSaveConfStateToBackend :
-    schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
-  schema.MustUnsafeSaveConfStateToBackend.wp_proof
-
 theorem schema.wp_NewMembershipBackend :
     schema.NewMembershipBackend.spec (GF := GF) (hG := hG) :=
   schema.NewMembershipBackend.wp_proof
@@ -1526,10 +1530,6 @@ theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
 theorem snap.Snapshotter.wp_DBFilePath :
     snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=
   snap.Snapshotter.DBFilePath.wp_proof
-
-theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
-    storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
-  storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
@@ -2202,9 +2202,25 @@ theorem EtcdServer.wp_snapshotIfNeededAndCompactRaftLog :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) :=
   EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof EtcdServer.wp_shouldSnapshotToDisk EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog
 
+theorem wp_newSnapshotReaderCloser :
+    newSnapshotReaderCloser.spec (GF := GF) (hG := hG) :=
+  newSnapshotReaderCloser.wp_proof io.wp_Pipe backend.snapshot.wp_WriteTo zap.wp_Int64 go_humanize.wp_Bytes zap.wp_String zap.Logger.wp_Info zap.wp_Error zap.Logger.wp_Warn io.PipeWriter.wp_CloseWithError backend.snapshot.wp_Close
+
+theorem snap.wp_NewMessage :
+    snap.NewMessage.spec (GF := GF) (hG := hG) :=
+  snap.NewMessage.wp_proof
+
+theorem EtcdServer.wp_createMergedSnapshotMessage :
+    EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
+  EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage
+
+theorem EtcdServer.wp_sendMergedSnap :
+    EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
+  EtcdServer.sendMergedSnap.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String snap.Message.wp_GetTo zap.wp_Int64 go_humanize.wp_Bytes zap.Logger.wp_Info EtcdServer.wp_GoAttach snap.Message.wp_CloseNotify zap.wp_Duration zap.Logger.wp_Warn
+
 theorem EtcdServer.wp_applyAll :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog
+  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap mvcc.store.wp_Commit backend.backend.wp_Snapshot storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
 theorem EtcdServer.wp_setLead :
     EtcdServer.setLead.spec (GF := GF) (hG := hG) :=
@@ -2362,18 +2378,6 @@ theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
 
-theorem wp_newSnapshotReaderCloser :
-    newSnapshotReaderCloser.spec (GF := GF) (hG := hG) :=
-  newSnapshotReaderCloser.wp_proof io.wp_Pipe backend.snapshot.wp_WriteTo zap.wp_Int64 go_humanize.wp_Bytes zap.wp_String zap.Logger.wp_Info zap.wp_Error zap.Logger.wp_Warn io.PipeWriter.wp_CloseWithError backend.snapshot.wp_Close
-
-theorem snap.wp_NewMessage :
-    snap.NewMessage.spec (GF := GF) (hG := hG) :=
-  snap.NewMessage.wp_proof
-
-theorem EtcdServer.wp_createMergedSnapshotMessage :
-    EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
-  EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage
-
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
@@ -2385,10 +2389,6 @@ theorem v3alarm.wp_NewAlarmStore :
 theorem EtcdServer.wp_restoreAlarms :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) :=
   EtcdServer.restoreAlarms.wp_proof schema.wp_NewAlarmBackend v3alarm.wp_NewAlarmStore
-
-theorem EtcdServer.wp_sendMergedSnap :
-    EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
-  EtcdServer.sendMergedSnap.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String snap.Message.wp_GetTo zap.wp_Int64 go_humanize.wp_Bytes zap.Logger.wp_Info EtcdServer.wp_GoAttach snap.Message.wp_CloseNotify zap.wp_Duration zap.Logger.wp_Warn
 
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=

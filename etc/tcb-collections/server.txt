@@ -49,6 +49,7 @@ axiom auth.tokenSimple.genTokenPrefix.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.backend.Snapshot.wp_proof
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -314,7 +315,8 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.applyAll.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
+sorry mergedCreate_window
+sorry merged_image
