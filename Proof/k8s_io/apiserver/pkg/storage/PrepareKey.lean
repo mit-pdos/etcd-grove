@@ -24,13 +24,11 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- A string argument of `fmt.Errorf` (`%q`) is well formed. -/
-theorem argWf_string [GooseExts] [GoGlobalContext] (x : GoString) :
-    _root_.Perennial.fmt.ArgWf ⟨go.string, #x⟩ := by
-  refine ⟨fun _ => ⟨x, rfl⟩, fun h => ?_, Or.inl rfl⟩
-  exfalso
-  simp only [_root_.Perennial.fmt.IsIntType, go.string, go.int, go.int64, go.int32, go.int16,
-    go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8] at h
-  rcases h with h | h | h | h | h | h | h | h | h | h <;> cases h
+theorem argWf_string [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+    [go.string ↓u go.string] (x : GoString) :
+    _root_.Perennial.fmt.ArgWf ⟨go.string, #x⟩ :=
+  ⟨fun _ => ⟨x, rfl⟩, fun h => absurd h _root_.Perennial.fmt.not_isIntArgType_string,
+    Or.inl (Or.inl rfl)⟩
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

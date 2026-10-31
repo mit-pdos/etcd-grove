@@ -52,8 +52,9 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
 /-- `fmt.Sprintf(format, args...)` with every argument `fmt.SprintfArgOk` returns a string `s`
-with `fmt.SprintfOut format xs s`, as Perennial's `fmt.wp_Sprintf` states it (an argument of a
-named type is formatted as an unknown directive: the rest of the output is arbitrary), and gives
+with `fmt.SprintfOut format xs s`, as Perennial's `fmt.wp_Sprintf` states it (since Perennial
+`d62b13ac1`, `SprintfOut` formats an argument of a named integer type without formatting methods,
+`fmt.NoFmtMethods`, as an integer: `LeaseID`'s `%x` is its hexadecimal), and gives
 the arguments' slice back. At the trust boundary (`fmt.SprintfNamed.wp_proof`,
 `Proof/fmt/SprintfNamed.lean`). -/
 abbrev fmt.SprintfNamed.spec : Prop :=

@@ -352,7 +352,7 @@ theorem seqNext_order (kp : GoString) (sg : List EtcdKv) (key : GoString) (hkp :
     exact seqKey_lt kp mw (mv + 1) hmw (by omega)
 
 section sprintf
-variable [GooseExts] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `Sprintf("%s/%016d", x, n)` for a string `x` and an `int` `n` (of any sign) is `x/` then
 `decimalPad 16 n` (`SprintfOut.str_slash_016d_int` for `n ≥ 0`). -/
