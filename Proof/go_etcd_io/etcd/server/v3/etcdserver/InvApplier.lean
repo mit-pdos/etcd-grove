@@ -155,7 +155,7 @@ theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact hc _
   · obtain ⟨pend, -, rfl⟩ := h
     exact hc _
-  · exact h.elim
+  · subst h; exact List.prefix_refl _
   · exact h.elim
   · rcases h with rfl | rfl <;> exact List.prefix_refl _
 

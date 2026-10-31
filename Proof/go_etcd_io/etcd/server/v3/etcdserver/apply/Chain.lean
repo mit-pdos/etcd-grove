@@ -198,8 +198,9 @@ is never done, so the `PrevKv` range read does not fail); a range reads `log`; a
 find the previous key-value it needs) or, every such put finding it (`PathsIgnOk`), the server's
 run `srvRunTxn` committed (nothing for a read-only one); a revocation commits the lessor's
 deletions of the lease's keys; the other requests do not touch the KV (applied, or the
-component's error). Compaction is out of the model (`False`), and so is a request with no field
-set (`dispatch` panics). 2026-10-15 (unit T2): the put's, the delete's and the transaction's cases
+component's error). A compaction leaves the log as it is (M2's apply side, 2026-10-31: until then
+out of the model, `False`; the store compacts its index, changing no value at a revision it
+keeps); a request with no field set is out of the model (`dispatch` panics). 2026-10-15 (unit T2): the put's, the delete's and the transaction's cases
 made exact, so that the KV model is a function of the state (`KVModelDefs.lean`). -/
 def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
   match dispatchKind rq with
@@ -224,7 +225,7 @@ def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
         txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))))
   | .leaseRevoke => ∃ pend : List mvcc.Change, (∀ ch ∈ pend, ch.isDel = true) ∧
       o = .applied (mvcc.commitLog log pend) false
-  | .compaction => False
+  | .compaction => o = .applied log false
   | .none => False
   | _ => o = .applied log false ∨ o = .rejected .backend
 
@@ -1072,7 +1073,8 @@ def cmpAnswerIs (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
     (trace : Loc) (err : GoInterface) : IProp GF :=
   if chainCompacts c then
     iprop((⌜crev < sint.Z rev ∧ err = GoInterface.nil⌝ ∗ cmpRespOk resp ∗ traceRes trace) ∨
-      (⌜sint.Z rev ≤ crev ∧ resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
+      (⌜sint.Z rev ≤ crev ∧ resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗
+        txn.errVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted err))
   else
     iprop(⌜resp = null ∧ ch = chan.nil ∧ trace = null⌝ ∗
       txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err)

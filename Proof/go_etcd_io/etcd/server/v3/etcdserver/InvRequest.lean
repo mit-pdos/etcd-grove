@@ -971,7 +971,7 @@ theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outco
     · rw [h.1]; exact commitLog_grow _ _
   · obtain ⟨pend, -, h⟩ := h
     rw [h]; exact commitLog_grow _ _
-  · exact h.elim
+  · rw [h]; left; rfl
   · exact h.elim
   · rcases h with h | h <;> (rw [h]; left; rfl)
 

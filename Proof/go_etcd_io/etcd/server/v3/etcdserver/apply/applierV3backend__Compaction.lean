@@ -219,13 +219,9 @@ theorem apply.applierV3backend.Compaction.wp_proof
     wp_auto
     ihave Hkvo := Hback $$ Hr %Hc1 Hhi Hrt
     icases Hkvo with ⟨Hkvo, Hc⟩
-    ihave #Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
-    · iapply isPkgInit_access $$ Hpkg
-    icases Hai with ⟨-, -, #Hev⟩
-    ihave #HeC : applyErrIs (GoInterface.ok ec) $$ []
-    · icases Hev with ⟨-, -, -, -, -, #HeL, -⟩
-      iapply errVar_applyErrIs _ (GoInterface.ok ec) $$ HeL
-      iexists ec; iframe Hec; ipureintro; rfl
+    ihave #HeC : txn.errVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted
+        (GoInterface.ok ec) $$ []
+    · iunfold txn.errVarIs; iexists ec; iframe Hec; ipureintro; rfl
     iapply HΦ
     iframe Hkvo
     isplitr [Hc]

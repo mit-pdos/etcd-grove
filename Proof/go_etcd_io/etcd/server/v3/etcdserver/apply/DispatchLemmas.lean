@@ -124,6 +124,55 @@ Each KV answer (`putOutcomeIs`, ...) names its error: `nil`, an error variable (
 `ErrCompacted`: `errors.New` errors, `applyErrVars`), or the auth store's or the lessor's (their
 contracts': `applyErrIs`). So the error is one `errors.Is` can take (`applyErrIs`). -/
 
+/-- **A compaction's outcome through the chain `c`**: applied, the log as it is, through a chain
+that reaches the backend; the corrupt applier's rejection otherwise (`corruptRejects`). -/
+def cmpOutcome (c : Chain) (log : mvcc.Log) : Outcome :=
+  if chainCompacts c then .applied log false else .rejected .corrupt
+
+theorem cmpOutcome_logAfter (c : Chain) (log : mvcc.Log) : (cmpOutcome c log).logAfter log = log := by
+  unfold cmpOutcome; split <;> rfl
+
+/-- **A compaction's step through the chain is `cmpOutcome`** (the auth and capped layers pass it
+on: no check, not capped). -/
+theorem chainStep_cmpOutcome (rq : IRRModel) (hk : dispatchKind rq = .compaction) (log : mvcc.Log) :
+    ∀ c : Chain, chainStep backendStep c rq log (cmpOutcome c log)
+  | .backend => by simp [chainStep, backendStep, hk, cmpOutcome, chainCompacts]
+  | .corrupt c => by simp [chainStep, corruptRejects, hk, cmpOutcome, chainCompacts]
+  | .capped c => by
+    have ih := chainStep_cmpOutcome rq hk log c
+    have h' : cmpOutcome (.capped c) log = cmpOutcome c log := rfl
+    rw [h']
+    simp only [chainStep, cappedRejects, hk, Bool.false_eq_true, ↓reduceIte, reduceCtorEq]
+    exact ih
+  | .auth on c => by
+    have ih := chainStep_cmpOutcome rq hk log c
+    have h' : cmpOutcome (.auth on c) log = cmpOutcome c log := rfl
+    rw [h']
+    simp only [chainStep]
+    split
+    · exact Or.inr ih
+    · exact ih
+  | .quota c => by
+    have ih := chainStep_cmpOutcome rq hk log c
+    have h' : cmpOutcome (.quota c) log = cmpOutcome c log := rfl
+    rw [h']
+    exact ih
+
+/-- **A compaction's step through the chain changes no log.** -/
+theorem chainStep_cmp_log (rq : IRRModel) (hk : dispatchKind rq = .compaction) (hna : needAdminPermission rq = false)
+    (log : mvcc.Log) : ∀ (c : Chain) (o : Outcome), chainStep backendStep c rq log o → o.logAfter log = log
+  | .backend, o, h => by simp only [chainStep, backendStep, hk] at h; rw [h]; rfl
+  | .corrupt c, o, h => by simp only [chainStep, corruptRejects, hk] at h; rw [h]; rfl
+  | .capped c, o, h => by
+    simp only [chainStep, cappedRejects, hk] at h
+    exact chainStep_cmp_log rq hk hna log c o (by simpa using h)
+  | .auth on c, o, h => by
+    simp only [chainStep, authChecks, hk, hna] at h
+    exact chainStep_cmp_log rq hk hna log c o (by simpa using h)
+  | .quota c, o, h => by
+    simp only [chainStep] at h
+    exact chainStep_cmp_log rq hk hna log c o h
+
 section errIs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -279,40 +328,56 @@ theorem cmpAnswerIs_errIs [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumption
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
       cmpAnswerIs c crev rev resp ch trace err -∗ applyErrIs err := by
   iintro #Hv H
-  icases Hv with ⟨#HC, -⟩
+  icases Hv with ⟨#HC, -, -, -, -, #HCp, -⟩
   unfold cmpAnswerIs
   split
   · icases H with (⟨%h, -, -⟩ | ⟨%h, #He⟩)
     · rw [h.2]; iapply applyErrIs_nil
-    · iexact He
+    · iapply errVarIs_errIs _ _ $$ HCp He
   · icases H with ⟨%h, #He⟩
     iapply errVarIs_errIs _ _ $$ HC He
 
 /-- **A compaction's answer, as `dispatch` stores it** (M2's apply side, item 2): the trace owned
 (`traceRes`: `nil` on an error), and the response owned without an error (`cmpRespOk`) or, with
-one, no response and no trace. -/
+one, no response and no trace, the error mvcc's `ErrCompacted` or, at a chain that does not reach
+the backend (the corrupt applier's rejection, `cmpOutcome`), `ErrCorrupt`. -/
 theorem cmpAnswerIs_split [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
-    (trace : Loc) (err : GoInterface) :
+    (trace : Loc) (err : GoInterface) (log : mvcc.Log) :
     cmpAnswerIs (GF := GF) c crev rev resp ch trace err ⊢
       traceRes trace ∗ ((⌜err = GoInterface.nil⌝ ∗ cmpRespOk resp) ∨
-        ⌜resp = null ∧ err ≠ GoInterface.nil ∧ trace = null⌝) := by
+        (⌜resp = null ∧ err ≠ GoInterface.nil ∧ trace = null⌝ ∗
+          (txn.errVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted err ∨
+            (⌜cmpOutcome c log = .rejected .corrupt⌝ ∗
+              txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err)))) := by
   unfold cmpAnswerIs
   split
-  · iintro (⟨%h, Hr, Ht⟩ | ⟨%h, -⟩)
+  · iintro (⟨%h, Hr, Ht⟩ | ⟨%h, #He⟩)
     · iframe Ht; ileft; iframe Hr; ipureintro; exact h.2
     · obtain ⟨-, hr, ht, he⟩ := h
       subst ht
       isplitr
       · iapply traceRes_null
-      iright; ipureintro; exact ⟨hr, he, rfl⟩
-  · iintro ⟨%h, #He⟩
+      iright
+      isplitr
+      · ipureintro; exact ⟨hr, he, rfl⟩
+      ileft; iexact He
+  · rename_i hc
+    iintro ⟨%h, #He⟩
     obtain ⟨hr, -, ht⟩ := h
     subst ht
-    iunfold txn.errVarIs at He
-    icases He with ⟨%e, -, %he⟩
+    ihave #He' := He
+    iunfold txn.errVarIs at He'
+    icases He' with ⟨%e, -, %he⟩
     isplitr
     · iapply traceRes_null
-    iright; ipureintro; exact ⟨hr, by rw [he]; nofun, rfl⟩
+    iright
+    isplitr
+    · ipureintro; exact ⟨hr, by rw [he]; nofun, rfl⟩
+    iright
+    iframe He
+    ipureintro
+    unfold cmpOutcome
+    simp [hc]
 
 end errIs
 

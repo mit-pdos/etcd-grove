@@ -101,7 +101,7 @@ theorem compactResultIs_of (E : apply.AEnv GF) (γr : ReadNames) (rq rq' : apply
     · ipureintro; exact Hnn
     iexists v
     iframe Hv
-    icases Hc with (⟨%He, Hok⟩ | %Hrr)
+    icases Hc with (⟨%He, Hok⟩ | ⟨%Hrr, -⟩)
     · iunfold apply.resTrace at Htr
       icases Htr with (%h | ⟨%v', #Hv', Ht⟩)
       · exact absurd h Hnn
