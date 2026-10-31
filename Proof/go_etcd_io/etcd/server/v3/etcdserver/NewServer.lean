@@ -1294,13 +1294,34 @@ theorem NewServer.wp_proofM (on : Bool)
   have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 2 ^ 22 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
+  -- (D22 J1b) the alarm store's `Get`, from its apply contract on the backend (`Tal = True`)
+  ihave #HalG : apply.alarmGetIs alst iprop(True) false $$ []
+  · iapply apply.alarmGetIs_of_ok
+    iapply apply.alarmGetOk_of _ γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook
+      (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be))
+    iunfold alarmApplyOk at HalA
+    iapply HalA $$ %({ d with cm := false } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := false } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
+      %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] []
+    · ipureintro; exact Hγw.2.2.1
+    · ipureintro; exact Hhknn
+    · iunfold rwLens
+      iintro !> Hrw
+      iunfold srvRestRWH at Hrw
+      iunfold srvObjsOn at Hrw
+      icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
+      isplitl [Hrw Hal]
+      · iframe Hrw Hal
+      iintro ⟨Hrw, Hal⟩
+      iunfold srvRestRWH
+      iunfold srvObjsOn
+      iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt HRDstock Hlgstock]
+      ρ.rd $$ [Hγt HRDstock Hlgstock Hopen]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
-    isplitr [HRDstock Hlgstock]
+    isplitr [HRDstock Hlgstock Hopen]
     · icases Hbh with ⟨%lgh, #Hbh'⟩
       ihave #Hfix' := Hfix
       iunfold rnFixed at Hfix'
@@ -1326,10 +1347,17 @@ theorem NewServer.wp_proofM (on : Bool)
       isplitr
       · iexists _; iexact Hvcn
       iunfold srvMembersDir; iexact Hmembers
+    isplitl [HRDstock Hlgstock]
     · iunfold srvSnapStock
       iexists _, _
       iframe HRDstock Hlgstock
       ipureintro; constructor <;> omega
+    -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
+    -- alarm store's `Get`
+    iunfold srvSnapRes
+    iexists ({ d with cm := false } : mvcc.KBReal), alst, iprop(True), false
+    iframe HSC Hopen alarmStore HalG
+    ipureintro; exact Hγw.2.2.1
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
   ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]
   · iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact Hbmr2

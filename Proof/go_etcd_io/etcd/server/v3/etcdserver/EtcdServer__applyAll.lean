@@ -73,7 +73,7 @@ theorem EtcdServer.applyAll.wp_proof
   have hAE := EtcdServer.applyEntries.spec_off hAE
   unfold EtcdServer.applyEntries.specOff at hAE
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso⟩
   icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
@@ -115,6 +115,8 @@ theorem EtcdServer.applyAll.wp_proof
     · rw [hun, List.length_nil] at hlen'; rw [hc]; omega
     · rw [hc]; omega
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
+  -- (D22 J1b) the snapshot resources at the new applied index
+  ihave Hso := srvSnapOwn_mono s ci E γr ai ai' Hai' $$ Hso
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
@@ -183,6 +185,8 @@ theorem EtcdServer.applyAll.wp_proof
       · iexact Hkv
       isplitl [HwalT]
       · iexact HwalT
+      isplitl [Hso]
+      · iexact Hso
       ipureintro; exact ⟨hok', hai', hci'.imp_left And.right, hciL, hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
@@ -254,7 +258,7 @@ theorem EtcdServer.applyAll.wp_proof
       epAppliedIAddr ep ↦ ai' -∗ epAppliedTAddr ep ↦ at' -∗ epConfStateAddr ep ↦ cs' -∗
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
       srvGoRes s -∗ srvApplyKV s E ρ.wait x' -∗ kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' -∗
-      srvRest E γr (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT]
+      srvRest E γr (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT Hso]
   · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
@@ -276,6 +280,8 @@ theorem EtcdServer.applyAll.wp_proof
     · iexact Hkv
     isplitl [HwalT]
     · iexact HwalT
+    isplitl [Hso]
+    · iexact Hso
     ipureintro
     exact ⟨HF.1, hai', by rw [HF.2]; exact hci'.imp_left And.right, by rw [HF.2]; exact hciL, hat'⟩
   -- `select { case m := <-s.r.msgSnapC: ...; default: }` (2026-10-31, S1: a `MsgSnap` raft handed
@@ -458,7 +464,7 @@ theorem EtcdServer.applyAll.wp_proofOn
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE
   wp_start as ⟨#Hsrv, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, HtokR, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso⟩
   icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
@@ -500,6 +506,8 @@ theorem EtcdServer.applyAll.wp_proofOn
     · rw [hun, List.length_nil] at hlen'; rw [hc]; omega
     · rw [hc]; omega
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
+  -- (D22 J1b) the snapshot resources at the new applied index
+  ihave Hso := srvSnapOwn_mono s ci E γr ai ai' Hai' $$ Hso
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
@@ -568,6 +576,8 @@ theorem EtcdServer.applyAll.wp_proofOn
       · iexact Hkv
       isplitl [HwalT]
       · iexact HwalT
+      isplitl [Hso]
+      · iexact Hso
       ipureintro; exact ⟨hok', hai', hci'.imp_left And.right, hciL, hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
@@ -638,7 +648,7 @@ theorem EtcdServer.applyAll.wp_proofOn
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
       srvGoRes s -∗ srvApplyKVOn s E ρ.wait x' sa' -∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' -∗
-      srvRest E γr (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR]
+      srvRest E γr (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
   · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
@@ -662,6 +672,8 @@ theorem EtcdServer.applyAll.wp_proofOn
     · iexact Hkv
     isplitl [HwalT]
     · iexact HwalT
+    isplitl [Hso]
+    · iexact Hso
     ipureintro
     exact ⟨HF.1, hai', by rw [HF.2]; exact hci'.imp_left And.right, by rw [HF.2]; exact hciL, hat'⟩
   -- `select { case m := <-s.r.msgSnapC: ...; default: }` (2026-10-31, S1: a `MsgSnap` raft handed

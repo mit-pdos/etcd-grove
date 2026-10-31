@@ -101,7 +101,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
   iunfold applyRes at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HKVf, Hwal, ⟨%w, #HWA, %Hw⟩, %Hpure⟩
+    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HKVf, Hwal, ⟨%w, #HWA, %Hw⟩, Hso, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hci, Hstep, Hlt⟩ := Hpure
   -- (S1) the consistent index at most the applied one (a fresh start's at most its applied index)
@@ -183,7 +183,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
       C.ms C.γs C.wt dv γnc w nid (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length hms hb1 Hloop hok' hdv Hw (by have := uint_nat_eq C.ai₀; omega) Hlt
       hdisk Hci hcia hγn (by rw [hun]; simp [rnLogOf]))
-    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR Hrh Hwal]
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR Hrh Hwal Hso]
   · rw [hun]
     iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok
     iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
@@ -193,7 +193,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     iexact Hdvr
   inext
   iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
-      #Hlb, #HWA', ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, %Hpost⟩
+      #Hlb, #HWA', ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
@@ -325,7 +325,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
   iunfold applyResOn at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HKVf, Hwal, ⟨%w, #HWA, %Hw⟩, HtokR, %Hpure⟩
+    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HKVf, Hwal, ⟨%w, #HWA, %Hw⟩, HtokR, Hso, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hci, Hstep, Hlt⟩ := Hpure
   -- (S1) the consistent index at most the applied one (a fresh start's at most its applied index)
@@ -407,7 +407,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
       C.ms C.γs C.wt dv γnc w nid γa sa (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length (by rw [beSucc_authMode HB]; exact hM) hRB hms hb1 Hloop hok' hdv Hw (by have := uint_nat_eq C.ai₀; omega) Hlt
       hdisk Hci hcia hγn (by rw [hun]; simp [rnLogOf]))
-    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal]
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso]
   · rw [hun]
     iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok
     iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
@@ -417,7 +417,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     iexact Hdvr
   inext
   iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
-      #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, %Hpost⟩
+      #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
@@ -556,8 +556,7 @@ theorem EtcdServer.run.wp_proof
   inext
   iintro %sn %pm0 %cs0 %sv %Hsv #Hsn #Hpm0 #Hcs0' #Hcsok Hnone #Hmsinv
   -- (2026-10-31, #11) the snapshot's disk side, from the construction's bundle and the node
-  iunfold srvSnapBoot at Hsnapb
-  icases Hsnapb with ⟨%γt, #Hsro, -, -⟩
+  icases Hsnapb with ⟨%γt, #Hsro⟩
   ihave #Hsd : srvSnapDisk s γr $$ []
   · iapply srvSnapDisk_of_RO s ci E γr γt Er γn
     iframe Hsro Hrn
@@ -776,7 +775,7 @@ theorem EtcdServer.run.wp_proof
   irename appliediE => appliedi
   iunfold applyStart at Hstart
   icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
-    #Hlog0, Hkr, HRS, HAR, Hfs⟩
+    #Hlog0, Hkr, HRS, HAR, Hfs, Hso⟩
   obtain ⟨Hloop0, Hc0⟩ := Hst0
   -- (D19i part 1) the start index is the raft log's start (`kvRun`'s, `rnEnvOk`'s)
   iunfold kvRun at Hkr
@@ -790,7 +789,7 @@ theorem EtcdServer.run.wp_proof
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao Hkr HRS HAR Hwth]
+        HKV Hao Hkr HRS HAR Hwth Hso]
   · iunfold applyRes
     iexists ⟨γ, TM, E, b⟩, st₀, ai₀, at₀, a₀, t₀, cs, x₀
     isplitr
@@ -801,7 +800,7 @@ theorem EtcdServer.run.wp_proof
     · iunfold epConfState; iframe confState Hcsok
     ihave #Hcv0 : epCsAt ρ.raft [] cs $$ []
     · iunfold epCsAt; ileft; ipureintro; rfl
-    iframe Hcv0 Hkvf
+    iframe Hcv0 Hkvf Hso
     iframe
     isplitl
     · iunfold srvSnapState; rw [← Hmsγ]; iexists ai₀, ai₀, f₀; iframe
@@ -1096,8 +1095,7 @@ theorem EtcdServer.run.wp_proofOn
   inext
   iintro %sn %pm0 %cs0 %sv %Hsv #Hsn #Hpm0 #Hcs0' #Hcsok Hnone #Hmsinv
   -- (2026-10-31, #11) the snapshot's disk side, from the construction's bundle and the node
-  iunfold srvSnapBoot at Hsnapb
-  icases Hsnapb with ⟨%γt, #Hsro, -, -⟩
+  icases Hsnapb with ⟨%γt, #Hsro⟩
   ihave #Hsd : srvSnapDisk s γr $$ []
   · iapply srvSnapDisk_of_RO s ci E γr γt Er γn
     iframe Hsro Hrn
@@ -1316,7 +1314,7 @@ theorem EtcdServer.run.wp_proofOn
   irename appliediE => appliedi
   iunfold applyStartOn at Hstart
   icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
-    #Hlog0, Hkr, HRS, HAR, Hfs, HtokR⟩
+    #Hlog0, Hkr, HRS, HAR, Hfs, HtokR, Hso⟩
   obtain ⟨Hloop0, Hc0⟩ := Hst0
   -- (D19i part 1) the start index is the raft log's start (`kvRun`'s, `rnEnvOk`'s)
   iunfold kvRunAtOn at Hkr
@@ -1330,7 +1328,7 @@ theorem EtcdServer.run.wp_proofOn
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao Hkr HRS HAR HtokR Hwth]
+        HKV Hao Hkr HRS HAR HtokR Hwth Hso]
   · iunfold applyResOn
     iexists ⟨γ, TM, E, b⟩, st₀, ai₀, at₀, a₀, t₀, cs, x₀, srvAuthSt0
     isplitr
@@ -1341,7 +1339,7 @@ theorem EtcdServer.run.wp_proofOn
     · iunfold epConfState; iframe confState Hcsok
     ihave #Hcv0 : epCsAt ρ.raft [] cs $$ []
     · iunfold epCsAt; ileft; ipureintro; rfl
-    iframe Hcv0 Hkvf
+    iframe Hcv0 Hkvf Hso
     iframe
     isplitl
     · iunfold srvSnapState; rw [← Hmsγ]; iexists ai₀, ai₀, f₀; iframe

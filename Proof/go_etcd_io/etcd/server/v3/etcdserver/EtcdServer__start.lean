@@ -389,10 +389,12 @@ theorem EtcdServer.start.wp_proof
     #Hlog, Hkr, Hfs⟩
   -- (the auth-mode merge) auth off: the reader view's gated row holds trivially
   imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hAuthOff, Hkv, Hkr⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr]
+  -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
+  icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr Hso]
   · iunfold applyStart
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog Hkr
+    iframe Hth Hbe Hca Halg Hbm Hao Hso Hfs Hwg1 Hlog Hkr
     isplitr
     · ipureintro; exact Hlo
     iunfold srvApplyKV
@@ -435,10 +437,10 @@ theorem EtcdServer.start.wp_proof
     · iframe HT HP
     (try wp_auto)
     wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh Hwth Hwtl]
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh Hwth Hwtl]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
     · iunfold isServerRun
       iframe
       iframe Hrf Hsa Hsrv Hrn
@@ -451,6 +453,7 @@ theorem EtcdServer.start.wp_proof
         iunfold srvReadBuilt at Hvd
         icases Hvd with ⟨#R1, #R2, -⟩
         iexists vd.kv; iframe R1 R2
+      iframe Hsnapb
       iexists γp
       iframe HWB
       rw [Hai0]; iexact HWA0
@@ -923,8 +926,10 @@ theorem EtcdServer.start.wp_proofOn
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
   ihave Hkr := kvRunOn_nil_at γr ai₀ c₀ x₀ $$ Hkr
+  -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
+  icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
   ihave Hstart : applyStartOn s γ ci b E γr ai₀ c₀ x₀ γw $$
-      [Hth Hbe Hca Halg Hbm Hwg1 Hrow Hao Hkr Hrest Hap Hfs]
+      [Hth Hbe Hca Halg Hbm Hwg1 Hrow Hao Hkr Hrest Hap Hfs Hso]
   · iunfold applyStartOn
     iexists st₀, a, t, f
     isplitl [Hth]
@@ -953,7 +958,7 @@ theorem EtcdServer.start.wp_proofOn
     · iexact Hrest
     isplitl [Hap]
     · iexact Hap
-    iexact Hfs
+    iframe Hso Hfs
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
@@ -974,10 +979,10 @@ theorem EtcdServer.start.wp_proofOn
     · iframe HT HP
     (try wp_auto)
     wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh Hwth Hwtl]
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ γa hM hRB
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh Hwth Hwtl]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
     · iunfold isServerRunOn
       iframe
       iframe Hrf Hsa Hsrv Hrn Hlnil
@@ -990,6 +995,7 @@ theorem EtcdServer.start.wp_proofOn
         iunfold srvReadBuilt at Hvd
         icases Hvd with ⟨#R1, #R2, -⟩
         iexists vd.kv; iframe R1 R2
+      iframe Hsnapb
       iexists γp
       iframe HWB
       rw [Hai0]; iexact HWA0

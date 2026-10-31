@@ -28114,3 +28114,63 @@ reshaping (`srvImage(R)`), so `#7-on` stays a named `sorry` until that lands, an
 Tying a member's mode to the cluster's adds a premise to `NewServer.spec`, which feeds the exported
 mode-on results (`server_start_on`, `server_apply_all_on`, the mode-on examples' closed theorems):
 that change goes to the user for approval when it is made.
+## D22 J1b: the snapshot path's spatial resources threaded into the apply thread (2026-10-31 · the user's decisions)
+
+Stage J1b of `notes/snapshot-sj-plan.md`. `SnapRO.lean` gains two definitions:
+- `srvSnapRes s E`: the current backend's own resources (`E.γ.kb = some d`): W7's
+  `backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB ½`, and the alarm store's
+  `apply.alarmGetIs al Tal zal ∗ Tal`. `NewServer` gives `Tal = True` and `zal = false`, taken from
+  the store's apply contract (`alarmGetOk_of`), because its `alarmFresh` goes to the first
+  `NewUberApplier`. Its `bOpen ½` was dropped after `SetTxPostLockInsideApplyHook` until now.
+- `srvSnapOwn s ci E γr ai := ∃ γt nt, srvSnapRO s ci E γr γt ∗ ⌜nt ≤ uint.nat ai⌝ ∗
+  monoNatAuthOwn γt 1 nt ∗ srvSnapStock s E ∗ srvSnapRes s E`. This is the apply thread's share: the
+  counter's authority (`specSnap`'s `hnt`), J1a's stocks (the second `E.RD` and the `lgMu` slots) and
+  `srvSnapRes`. Lemmas: `srvSnapOwn_mono` (holds at a larger applied index) and `srvSnapOwn_of_boot`
+  (from `srvSnapBoot`, at any index, together with the persistent bundle).
+
+**Where it goes.** `srvSnapBoot`'s body gains `srvSnapRes s E` (so `NewServer`'s built part and
+`isServerBuilt` carry it). `start` splits `srvSnapBoot` with `srvSnapOwn_of_boot`. `applyStart` and
+`applyStartOn` gain `srvSnapOwn s ci E γr ai₀`. `isServerRun` and `isServerRunOn` keep only the
+persistent bundle (`"#Hsnapb" ∷ ∃ γt, srvSnapRO s ci E γr γt`; `run` reads it for `srvSnapDisk`).
+`applyRes` and `applyResOn` gain `srvSnapOwn C.s C.ci B.E C.γr ai`, at the current backend's
+environment `B.E`. `run`'s jobs hand it to `applyAll` and back.
+
+**`applyAll.spec` and `applyAll.specOn` changed (the user's decision (A), 2026-10-31).** The pre
+gains `srvSnapOwn s ci E γr ai`, the post `srvSnapOwn s ci E' γr ai'`. This changes the statements
+of `applyAll_model` and `server_apply_all_on`. Framing the bundle around the call in `run`'s jobs
+would have left the spec unchanged, but it does not work: the bundle is stated at the backend's
+environment, and the post only gives `beSucc γ E γ' E'`. Nothing there ties `E'.γ.kb` to `E.γ.kb`,
+and the only tie that survives `beSucc` (the ghost variable `E.γbe`) is fully held already. The
+alternative (B), a post pinning `E' = E` (true without a snapshot), was rejected because J8a's
+snapshot case would undo it. The proofs pass it through with `E' = E` and `srvSnapOwn_mono`
+(`ai ≤ ai'`).
+
+**Definition-only changes (the user's decision, 2026-10-31).** The bodies behind `isServerBuilt`,
+`isServerRun` and `applyStart` may change, as in J1a. The texts of `run.spec`, `start.spec`,
+`Start.spec` and `NewServer.spec` do not change, nor does anything in `interface/`.
+
+**Already threaded, not repeated:** the live transport `trLive` is in `srvApRes`'s `ccMembRes`
+(J-T), which `applyRes` and `applyAll` already carry.
+
+**Not threaded: `srvKVCloser` and the backend file's `pathOwn` (a question for the user).**
+`NewServer.spec`'s post has them as conjuncts of their own, beside `srvBuilt` and `srvBuildGap`, and
+the examples drop them (`examples/common/newServer.lean`, the `-, -`). Every route to
+`isServerBuilt` changes the text of an exported statement:
+- moving them into `srvBuilt` or `srvBuildGap` changes `NewServer.spec`, `specM` and `specCompact`;
+- having `isServerBuilt_of_gap` and its mode-`on` analogue take them changes
+  `server_built_gap_on` (`Results.lean`), `srvBuiltG on … ∗ srvBuildGap … ⊢ isServerBuiltM on …`.
+
+Either way the examples' glue (`newServer`, `authkv/startServer`) passes them on. The second route
+also needs `srvCfgFieldAddr s "DataDir" ↦□ cfg.DataDir'` beside them, tying the path to
+`srvSnapRO`'s `DataDir`. `NewServer`'s post does not expose it yet; it could go in `srvServeCfg`'s
+body. Once decided, they join `srvSnapOwn`'s body as a definition-only change. The `pathOwn` to
+thread is `pathOwn (backendPathOf cfg.DataDir')`, one for every install: J8a's `os.Rename`
+restatement gives it back.
+
+**The stocks** (counted, not solved: plan item 5). `srvSnapStock` holds at least `2^28` copies of
+`E.RD` (`actualMaxReaders - 66`: 1 for the auth applier, 1 for the KV, 64 for requests) and at
+least `2^28` `lgMu` reader slots. Each install's `specSnap` takes one `E.RD` (the second, for
+`NewUberApplier`; the alternative of borrowing `kvOwn`'s per call was not tried, the stock being
+enough for J8a) and `8·|ps|` slots. `srvSnapApplied` gives none of them back.
+
+No axiom or `sorry` added or removed.

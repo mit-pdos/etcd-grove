@@ -289,10 +289,64 @@ def srvSnapStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ n m : Nat, ⌜2 ^ 28 ≤ n ∧ 2 ^ 28 ≤ m⌝ ∗
     ([∗list] _x ∈ List.replicate n (), E.RD) ∗ ([∗list] _x ∈ List.replicate m (), srvLgReader s))
 
+/-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
+what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
+the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
+token (W7: the old backend's `Close` goroutine takes them), and the alarm store's `Get` under a
+resource `Tal`, with `Tal` (`NewServer` gives `Tal = True`, `zal = false`: the store's `Get` from
+its apply contract). -/
+def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ (d : mvcc.KBReal) (al : Loc) (Tal : IProp GF) (zal : Bool), ⌜E.γ.kb = some d⌝ ∗
+    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
+    srvAlarmStoreAddr s ↦□ al ∗ apply.alarmGetIs al Tal zal ∗ Tal)
+
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh
-snapshot-taken counter, its authority at `0`, the stocks. -/
+snapshot-taken counter, its authority at `0`, the stocks; (D22 J1b) the backend's own resources
+(`srvSnapRes`). -/
 def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapStock s E)
+  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapStock s E ∗
+    srvSnapRes s E)
+
+/-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
+`notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the snapshot-taken counter
+`γt`, the counter's authority at most `ai` (`specSnap`'s `hnt`), the reader-slot stocks (the
+second `E.RD` of each install's `NewUberApplier`, the `lgMu` slots of its `AddPeer`s) and the
+backend's own resources (`srvSnapRes`). `run`'s loop invariant holds it (`applyRes`), at the
+current backend's environment `E`; `applyAll` passes it through a batch. The transport's live
+state is `srvApRes`'s (J-T). Not yet here: the KV's closer and the backend file's directory entry
+(`NewServer.spec`'s post has them beside the built part; see `notes/decisions.md`, "D22 J1b"). -/
+def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) : IProp GF :=
+  iprop(∃ (γt : GName) (nt : Nat), srvSnapRO s ci E γr γt ∗ ⌜nt ≤ uint.nat ai⌝ ∗
+    monoNatAuthOwn γt 1 nt ∗ srvSnapStock s E ∗ srvSnapRes s E)
+
+/-- The resources hold at any larger applied index. -/
+theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai ai' : w64)
+    (h : uint.Z ai ≤ uint.Z ai') :
+    srvSnapOwn (GF := GF) s ci E γr ai ⊢ srvSnapOwn s ci E γr ai' := by
+  iintro H
+  iunfold srvSnapOwn at H
+  icases H with ⟨%γt, %nt, #Hro, %Hnt, Ha, Hst, Hres⟩
+  iunfold srvSnapOwn
+  iexists γt, nt
+  iframe Hro Ha Hst Hres
+  ipureintro
+  have : uint.nat ai ≤ uint.nat ai' := by word
+  omega
+
+/-- **`run`'s start from `NewServer`'s**: the boot resources give the apply thread's at any
+applied index (the counter at `0`), and the persistent bundle. -/
+theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) :
+    srvSnapBoot (GF := GF) s ci E γr ⊢
+      srvSnapOwn s ci E γr ai ∗ ∃ γt : GName, srvSnapRO s ci E γr γt := by
+  iintro H
+  iunfold srvSnapBoot at H
+  icases H with ⟨%γt, #Hro, Ha, Hst, Hres⟩
+  isplitl [Ha Hst Hres]
+  · iunfold srvSnapOwn
+    iexists γt, 0
+    iframe Hro Ha Hst Hres
+    ipureintro; exact Nat.zero_le _
+  · iexists γt; iexact Hro
 
 end defs
 

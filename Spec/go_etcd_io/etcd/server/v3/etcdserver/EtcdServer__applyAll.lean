@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 
 @[expose] public section
 
@@ -52,7 +53,10 @@ S1; until then the branch was dead, D22 S-h): a `MsgSnap` raft handed to `msgSna
 (`isServerApplyAll`'s bag, `rnSnapMsg`) of the batch's term `rt` (`apply.raftTerm`, `rnRtOk`) and
 of a snapshot at most the applied index (the fork's guard, `notes/decisions.md`, "The merged
 snapshot's index guard") is rewritten to carry the backend's image at the applied index
-(`createMergedSnapshotMessage`) and sent (`sendMergedSnap`, over `isServerApplyAll`'s transport). -/
+(`createMergedSnapshotMessage`) and sent (`sendMergedSnap`, over `isServerApplyAll`'s transport).
+**The snapshot resources** (D22 J1b, 2026-10-31, the user's decision): what each snapshot install
+takes and gives back (`srvSnapOwn`, `SnapRO.lean`) at the backend's environment, passed through
+(no snapshot here: `E' = E`, the counter's bound raised to `ai'`), for J8a's snapshot case. -/
 abbrev EtcdServer.applyAll.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -110,7 +114,10 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       rnWalTok (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n }}
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
+      -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
+      -- (`srvSnapOwn`), passed through the batch
+      srvSnapOwn s ci E γr ai }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -130,6 +137,8 @@ abbrev EtcdServer.applyAll.spec : Prop :=
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
+        -- (D22 J1b) the snapshot resources, at the batch's end
+        srvSnapOwn s ci E' γr ai' ∗
         ⌜loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨
@@ -207,7 +216,10 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
       rnWalTok (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n }}
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
+      -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
+      -- (`srvSnapOwn`), passed through the batch
+      srvSnapOwn s ci E γr ai }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -229,6 +241,8 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
           srvRest E' γr (A ++ unapplied ai ms)) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
+        -- (D22 J1b) the snapshot resources, at the batch's end
+        srvSnapOwn s ci E' γr ai' ∗
         ⌜loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨

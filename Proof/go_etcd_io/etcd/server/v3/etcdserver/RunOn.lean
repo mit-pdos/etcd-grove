@@ -63,6 +63,8 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
     rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
+    -- (D22 J1b, 2026-10-31) `applyRes`'s snapshot resources
+    srvSnapOwn C.s C.ci B.E C.γr ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       entriesStep C.c₀ A C.x₀ x ∧ lastTermIs A at'⌝)
@@ -76,7 +78,9 @@ def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗
     srvApplyKVOn s E γw x₀ srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunAtOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
-    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
+    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k) ∗
+    -- (D22 J1b, 2026-10-31) `applyStart`'s snapshot resources
+    srvSnapOwn s ci E γr ai₀)
 
 /-- **What `run` needs in the mode `on`** (`isServerRun`'s, see the file header). -/
 def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -108,8 +112,9 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hstart" ∷ applyStartOn s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
-    -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s; D22 J1b:
+    -- the persistent bundle, the rest in `applyStartOn`)
+    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt))
 
 
 /-- **What `run` needs in the mode `on`** (the auth-mode merge's step 1, 2026-10-29):

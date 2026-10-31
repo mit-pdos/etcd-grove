@@ -272,6 +272,8 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- 2026-10-26) a count `w` of the tokens taken, at least the applied index (no snapshot
     -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
+    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back, at the current backend
+    srvSnapOwn C.s C.ci B.E C.γr ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       -- (2026-10-31, the snapshot track: #11's S1) the consistent index at least the applied one
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
@@ -397,7 +399,9 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗
+    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
+    srvSnapOwn s ci E γr ai₀)
 
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
@@ -435,9 +439,9 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
     "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
-    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`):
-    -- its persistent bundle, the snapshot-taken counter's authority, the reader-slot stocks
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
+    -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
+    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt))
 
 end defs
 
