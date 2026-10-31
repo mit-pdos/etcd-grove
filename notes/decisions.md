@@ -27637,3 +27637,49 @@ premise + config" (2026-10-30), then approved the draft's statements (2026-10-31
    (the issue's fix) would make it a checked error instead.
 
 **The axiom review** of the restated axiom (`notes/axiom-review/marshalirr-depth.md`): survives.
+
+## The replies' size: a workload premise on `grpc.start` (2026-10-31 · accepted, the user's approval of the draft's design and four decisions · `notes/reply-size.md`)
+
+**Context.** `grpc.serve` and `grpc.serveStream` (trusted) say serving never panics, whatever the
+handler returns. grpc v1.84 marshals a reply before any size check (`prepareMsg` → `encode` →
+`codec.Marshal`), and protobuf-go's and grpc's codecs `make` the encoded length, which panics above
+Go's `maxAlloc = 2^48` (`notes/audit.md`: known-false since 2026-10-30, deferred from the send-side
+repair). The axiom review of the reply-size draft found it reachable in etcd: a transaction whose
+nested transactions hold many keys-only ranges over a few long keys builds a reply that shares the
+index's key slices and encodes to more than `2^48` bytes; the member serving the client panics
+(`issues/etcd-txn-keysonly-reply-alloc-panic.md`, reproduced). Such a transaction is not read-only
+(`IsTxnReadonly` checks only the top level), so it goes through raft under `--max-request-bytes`.
+
+**Decision** (the draft, round 4, after three spec reviews; the user's four decisions):
+
+1. **An opaque workload premise**, `grpcRepliesFit : Prop` (every reply a gRPC server of the run
+   marshals encodes to at most `grpcReplyMax = 2^48`), D19a's first kind, as
+   `apply.backendUnderQuota` and `authRecordsFit`. Rejected: a configuration bound
+   (`irr-depth`-style, request size times stored keys), which fails slightly at etcd's defaults,
+   needs the quota to bound the stored keys (it does not, in the model) and would change
+   `NewServer` and every served result; per-method checked bounds (a handler contract, a
+   per-method law), which cannot be discharged for Range/Txn/Watch (the model does not bound the
+   state) and buy nothing for the small replies; a heap lemma (an encoding bounded by the memory a
+   reply references), which cannot hold for etcd's keys-only replies, which share memory.
+2. **Global**, one premise for the run, not one per server: every closed theorem's servers run
+   etcd's handlers, so a per-server form buys nothing.
+3. **On `grpc.start`, carried by its tokens.** `grpc.start` is the only producer of
+   `grpcServerAt`, `grpcStreamServerAt` and `grpcServeTok`; it takes the premise as its first
+   hypothesis, and in the intended model the tokens carry `⌜grpcRepliesFit⌝`, which makes
+   `grpc.serve`, `grpc.serveStream` and `grpc.Server.Serve.wp_proof` (statements unchanged) true.
+   Whoever calls `grpc.start` takes the premise: the start-path lemmas (`etcd_kv_started`,
+   `etcd_cache_served`, `kv_served`, `wk_served`, `ak_served_kv`, linkv3p's
+   `startMember`/`startCluster`), each example's `Main.spec`, and the closed theorems, next to
+   `backendUnderQuota`. Rejected: the premise on `grpc.serve`/`grpc.serveStream`, which would change
+   every served result's statement and about a quarter more files. **No law turns a token back
+   into the premise**: a proof could otherwise discharge it from inside the logic.
+4. **Visibility in docstrings and file headers only**, as for `backendUnderQuota`: the served
+   results (`etcd_kv_served*`, `ServedOn`, `AuthnServedOn`, v3rpc's) depend on the premise only
+   through the opaque token, so neither their statements nor `#print axioms` show it; their
+   headers say so. Rejected: a transparent carrier (`grpcServerAt := tok ∗ ⌜grpcRepliesFit⌝`,
+   visible in `interface/`, but it makes the premise derivable from the token and adds three axioms
+   to review); the premise on every served result (~13 more files).
+
+Each new program argues the premise for its own workload (the docstring of `grpcRepliesFit` does
+for the closed theorems'); a program registering its own service argues it for that service's
+replies.
