@@ -505,6 +505,29 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## kvdurable's raft-independent pieces (2026-10-31, branch `kvdurable-ext-work`)
+
+What kvdurable's adequacy needs that does not wait for raft's node API
+(`/home/ubuntu/spec-scratch/raft-durability/survey-adequacy.md`), proved, no `sorry`, no axiom:
+
+- **The `durable` package**: `Proof/.../examples/durable/{Base,Init}.lean` (fact `True`; `Init`
+  generated, the package a root of `etc/gen-init.py` until kvdurable is), the specs of the trusted
+  `Read`/`Write` (`Spec/.../durable/`: the extension's logically atomic updates on `durableOwn`) and
+  their proofs (the trusted model unfolds to the extension's operation); `durableExts_hasExt`
+  (`GooseLang/Ext/Durable/Specs.lean`, was an `example`).
+- **Per-file ownership**: `GooseLang/Ext/Durable/Files.lean` (`durableFilesInv γ N`, `dfile γ f o`,
+  allocation over a list of names chosen at allocation, per-file read/write updates) and the Go
+  functions' per-file forms, `Proof/.../durable/Files.lean`.
+- **Adequacy with the extensions' start resources**: `examples/common/AdequacyStart.lean`
+  (`init_adequate_start`, any extensions), `examples/common/DurableExt.lean` (`durableGF`,
+  `durable_localStart`, `durable_init_adequate`).
+- **kvdurable's codec**: `Proof/.../kvdurable/{Base,Codec}.lean` (`isPkgInit`; the pure encoders,
+  decoders, round trips, `encStor_inj`) and the specs and proofs of `putBytes`, `getBytes`, `less`,
+  `sortStrings`, `putMap`, `getMap`, `encodeState`, `decodeState` (kvreconf's, ported), `putUint64`,
+  `getUint64`, `putIDs`, `getIDs`, `putEntry`, `getEntry`, `putSnapshot`, `getSnapshot`.
+  `Codec.lean` holds kvreconf's `putB`/`encMap`/`encState`/`KVsWf`/`KVsOf`: kvdurable's port of
+  kvreconf's `Base` must take them from there, not copy them again.
+
 ## examples/kvdurable and the durable node API (2026-10-31, branch `worktree-kvdurable`)
 
 **The example** (`examples/kvdurable`, Goose project `kvdurable`; Code and GeneratedProof build; no
