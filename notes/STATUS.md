@@ -518,7 +518,12 @@ registered in the cluster's registry, `srv_snap_make`, then `CreateSnapshot`,
 `wp_srv_createSnapshot`); #10 gone (`SnapTakeProof.lean` deleted). `snapshot.spec` and
 `snapshotIfNeededAndCompactRaftLog.specFull` take `0 < ai`, fewer than `2^61` voters, `ep.confState`
 the voters' (`epCsCfg`) and the entry at `ai` of term `at'` (`srvFrozenTerm`). Left: #11 (`applyAll`
-must call `specFull`: its premises' sources), #3/#7/#8 (a two-receive notify; with auth on, an
+must call `specFull`: its premises' sources; done so far: S1-S3, S4's delivered log through
+`raftAdvancedC`, and S6 at `snapshot`, which now proves `s.KV().Commit()` over `store.Commit`'s
+proved spec, the old `srvKVCommitOk … RC` premise being one no caller could give; left: S4's
+`memStorInv` and committed prefix, S5 `epCsCfg`, `srvSnapDisk` and the KV's facts from the start,
+and S7's `releaseOk` at the exported results, for the user's approval; the plan file's "#11
+progress"), #3/#7/#8 (a two-receive notify; with auth on, an
 `applySnapshot` spec in the mode `on`).
 
 ## The encoded-size bound at grpc's send side (2026-10-30, branch `invoke-size`; partial)
