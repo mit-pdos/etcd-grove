@@ -21,6 +21,8 @@ module
 public import Spec.go_etcd_io.raft.v3.RawNode__Ready
 public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
+-- (2026-11-01, durability stage II (k)) *enter* (`raft_enter`)
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
@@ -43,19 +45,38 @@ theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs q g Hsteps0 Hunp0
   wp_start as H
   iNamed H
   wp_auto
   wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
-  imod ownRawNodeReady_handout γ rn id rs rd ce es ms L $$ Hrn with ⟨Hrn, Happ, #Hfrz, #Hdk, Hcr, -⟩
-  wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms h L $$ [$Hrn $Hhard] as %steps %ss H
+  -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`
+  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
+    $$ Hhard Hlive Hfree Hrn
+    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml⟩
+  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L $$ [$Hrn $Hhard]
+    as %steps %ss H
   iNamed H
-  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss
-  iframe Hss Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard Hhsw
-    Hsnapz Hfrz Hdk
+  -- the soft state the node records is the cut's
+  ihave %Hsseq := softStateIs_agree rd.SoftState' ss0 ss Hssn0 Hssn $$ [Hss0 Hss]
+  · iframe Hss0 Hss
+  subst Hsseq
+  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss0 %W
+  iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hcr Happ Hrs Hrs_ok Hhard Hhsw
+    Hsnapz Hfrz Hdk Hlive
+  isplitl [Hrn]
+  · iExactEq Hrn; rfl
+  isplitl [Hpb]
+  · iintro %E %q' %HE ⟨Hd, Hl⟩
+    imod raft_enter E γ id rs.dur q' g _ W HE $$ Hd Hl Hpb with ⟨Hd, Hl, Hf, #Hfr⟩
+    imodintro
+    iframe Hd Hl Hf Hfr
+    iapply bigSepL_wand_pers (durFrags (GF := GF) γ id W) (fun q : QMsg => isRaftMsg γ id q.st) ms
+      $$ Hmw Hfr
+  isplitr
+  · iexact Hml
   ipureintro; exact ⟨Hmsgs_term, Hpsn⟩
 
 end proof

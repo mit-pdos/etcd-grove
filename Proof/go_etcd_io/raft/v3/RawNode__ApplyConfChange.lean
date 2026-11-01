@@ -187,7 +187,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       isplitr
       · ipureintro; exact Hsh
       iexists (domSet s.progress \ γ.reCfg), c', s, s'
-      ihave Hpown := lentPend_forget γ id rs.slent steps rs.steps $$ Hpend
+      ihave Hpown := lentPend_forget γ id rs.bw rs.slent steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
       · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps rs.slent Hasync
           $$ Hrn Hphys Hsoft [Hhard] Hsteps Hsteps_cap Hpown
@@ -276,7 +276,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       isplitr
       · ipureintro; exact Hsh
       iexists (domSet s.progress \ γ.reCfg), c', s, s'
-      ihave Hpown := lentPend_forget γ id rs.slent steps rs.steps $$ Hpend
+      ihave Hpown := lentPend_forget γ id rs.bw rs.slent steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
       · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps rs.slent Hasync
           $$ Hrn Hphys Hsoft [Hhard] Hsteps Hsteps_cap Hpown

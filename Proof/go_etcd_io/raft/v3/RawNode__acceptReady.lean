@@ -301,7 +301,7 @@ theorem RawNode.acceptReady.wp_proof
       exact h1 (uint_Z_inj.mp (by rw [h0]; rfl))
   icases Hrdrs with ⟨%sts, #Hrdsts, %Hsts⟩
   ihave %Hstl := readStatesPts_len _ _ $$ Hrdsts
-  icases Hrdhard with ⟨%hrd, #Hrdhard, #Hrdw⟩
+  icases Hrdhard with ⟨%hrd, #Hrdhard, #Hrdw, -⟩
   -- (D22l) the caller's hard state is the `Ready`'s
   ihave %Hhh := hsOpt_agree rd.HardState' hrd h $$ [Hrdhard Hh]
   · isplitl [] <;> iassumption
@@ -342,7 +342,7 @@ theorem RawNode.acceptReady.wp_proof
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       ∃ (psp : Loc) (v : SoftState), rawNodeOwn rn { rnv with prevSoftSt' := psp } ∗ psp ↦□ v ∗
         ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
-          ⌜roleAfter rs.role ss = v.RaftState'⌝)
+          ⌜roleAfter rs.role ss = v.RaftState' ∧ (rd.SoftState' = null → ss = none)⌝)
     with [Hrn rn rd] as ⟨rn, rd, %psp, %v, Hrn, #Hpsp, Hss0⟩
   · iframe rn rd
     iexists rnv.prevSoftSt', sv
@@ -351,7 +351,7 @@ theorem RawNode.acceptReady.wp_proof
     iexists none
     unfold softStateIs
     ipureintro
-    exact ⟨Hif, Hrole⟩
+    exact ⟨Hif, Hrole, fun _ => rfl⟩
   · icases Hrdsoft with (%Hn | ⟨%v, #Hv⟩)
     · exact absurd Hn Hif
     iframe rn rd
@@ -364,7 +364,7 @@ theorem RawNode.acceptReady.wp_proof
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hv'
     iframe Lead RaftState
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, fun h => absurd h Hif⟩
   -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`: either way
   -- `prevHardSt` points to a read-only hard state
   wp_apply wp_IsEmptyHardState $$ [$Hrdhard]
@@ -546,7 +546,7 @@ theorem RawNode.acceptReady.wp_proof
         stl' ↦* ((selfmsgs id ms2).map QMsg.loc ++ acks) ∗
         ownSliceCap Loc stl' (DFrac.own 1) ∗
         (snapOpt rd.Snapshot' (DFrac.own 1) (L.map SnapLoan.snap) -∗
-          pendList γ id acks (if s.logst.uents = [] ∧ L = none then []
+          pendList γ id rs.bw acks (if s.logst.uents = [] ∧ L = none then []
             else [Pending.appendAck s.term s.logst.prev
               (if s.logst.uents ≠ [] then some (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
                else none) (L.map SnapLoan.snap)])))
@@ -572,7 +572,7 @@ theorem RawNode.acceptReady.wp_proof
     iintro Hs1
     ihave Hml := Hml $$ Hs1
     iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id st p))).2
+        pendingRel γ id rs.bw st p))).2
     iexists _
     iframe Hml
     unfold pendingRel
@@ -599,7 +599,7 @@ theorem RawNode.acceptReady.wp_proof
         rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
         stl' ↦* ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks) ∗
         ownSliceCap Loc stl' (DFrac.own 1) ∗
-        pendList γ id acks (if ce = [] then [] else [Pending.applyAck ce]))
+        pendList γ id rs.bw acks (if ce = [] then [] else [Pending.applyAck ce]))
     with [rn rd Hrn Hsteps Hsteps_cap]
     as ⟨rn, rd, %stl4, %acks2, Hrn, Hsteps, Hsteps_cap, Hpc⟩
   · -- committed entries: `newStorageApplyRespMsg(r, rd.CommittedEntries)`
@@ -619,7 +619,7 @@ theorem RawNode.acceptReady.wp_proof
     rw [ite_neg' Hce0]
     iframe Hrn Hsteps Hsteps_cap
     iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id st p))).2
+        pendingRel γ id rs.bw st p))).2
     iexists _
     iframe Hml
     unfold pendingRel
@@ -717,7 +717,7 @@ theorem RawNode.acceptReady.wp_proof
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term { s with outbox := [] } s.outbox ms1 ms2 Houtbox ms2 Hsub2
-    HmsgsAA_ok Hnsout (Hxf.of_fields rfl rfl rfl) $$ Hout Hqc Hxw Hself
+    HmsgsAA_ok Hnsout (Hxf.of_fields rfl rfl rfl) rs.bw $$ Hout Hqc Hxw Hself
   -- (D22 S-d3a) the log after the `Ready`: what it keeps of `ls0` and `s.logst`
   have Haf := accept_fields ls0 ce sz
   have Hsip00 : s.logst.sip = false := by
@@ -915,7 +915,7 @@ theorem RawNode.acceptReady.wp_proof
     (by rw [Hlogst, Haf11, Hf_sents, Hf_uents]; rfl) $$ Hlr
   -- the queue: the self-addressed responses, then the acknowledgements; (D22 S-d3a) with a
   -- snapshot, its acknowledgement whole once the application gives its half back (`lentPend`)
-  ihave Hpend : lentPend L (pendList γ id ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks2)
+  ihave Hpend : lentPend L (pendList γ id rs.bw ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks2)
       (readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce))
     $$ [Hps Hpa Hpc Hsno]
   · unfold readySteps
@@ -925,9 +925,9 @@ theorem RawNode.acceptReady.wp_proof
       icases Hsno with %Hn
       ihave Hpa := Hpa $$ %Hn
       iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ [Hps Hpa] [Hpc]
+          pendingRel γ id rs.bw st p))) $$ [Hps Hpa] [Hpc]
       · iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ Hps Hpa
+          pendingRel γ id rs.bw st p))) $$ Hps Hpa
       · iexact Hpc
     | some l =>
       simp only [lentPend, snapOpt, Option.map_some]
@@ -937,14 +937,15 @@ theorem RawNode.acceptReady.wp_proof
       iintro Hs1
       ihave Hpa := Hpa $$ Hs1
       iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ [Hps Hpa] [Hpc]
+          pendingRel γ id rs.bw st p))) $$ [Hps Hpa] [Hpc]
       · iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))) $$ Hps Hpa
+          pendingRel γ id rs.bw st p))) $$ Hps Hpa
       · iexact Hpc
   -- (D19i part 1) the floor and `applied` unmoved; `applying` moved to the last committed entry
   -- handed out, whose acknowledgement is queued
   -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
-  icases Hss0 with ⟨%ss, #Hss, %HroleN⟩
+  icases Hss0 with ⟨%ss, #Hss, %HroleN'⟩
+  obtain ⟨HroleN, Hssn⟩ := HroleN'
   let rsN : RNState :=
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
@@ -1043,6 +1044,8 @@ theorem RawNode.acceptReady.wp_proof
   iapply HΦ $$ %(readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce) %ss
   simp only [named]
   iframe Hss
+  isplitr
+  · ipureintro; exact Hssn
   ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.snap)
     (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
   -- (U8 v2) the certified height after the `Ready`: the committed log handed out

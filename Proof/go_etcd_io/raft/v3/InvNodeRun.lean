@@ -233,7 +233,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdhard
-    Hrdrs Hce Hce_cap Hents Hrdz Hsloc Hdur
+    Hrdrs Hce Hce_cap Hents Hrdz Hsloc Hdur Hmsgl Hrdlead
   isplitl
   · iunfold ownRaftPhysReady
     iexists rsl, sl1, sl2, ms1, ms2
@@ -457,7 +457,8 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   isplitr
   · iexact Hrdsoft
   isplitr
-  · iexact Hrdhard
+  · icases Hrdhard with ⟨%hrd, #Hh, #Hw, -⟩
+    iexists hrd; iframe Hh Hw
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
@@ -486,7 +487,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
-  ihave Hpend : lentPend rs.slent (pendList γ id ([] : List Loc) rs.steps) $$ []
+  ihave Hpend : lentPend rs.slent (pendList γ id rs.bw ([] : List Loc) rs.steps) $$ []
   · iapply lentPend_none Hloan.2; rw [Hsteps0]; iapply pendList_nil
   ihave #Hlc := loanCom_none γ Hloan.2
   iexists ms1.length + ms2.length, decide (nextUnstable s.logst ≠ [] ∨ L.isSome = true),
@@ -1326,7 +1327,7 @@ theorem wp_applyConf_dyn
         sdrOk rnv.raft' rs.mode ∗ rnv.prevSoftSt' ↦□ sv ∗ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
         rnv.stepsOnAdvance' ↦* steps ∗
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
-        lentPend rs.slent (pendList γ id steps rs.steps) ∗
+        lentPend rs.slent (pendList γ id rs.bw steps rs.steps) ∗
         isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
         loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 ∗
         isCommitted γ D ∗ durTie γ rs s }}
@@ -1518,7 +1519,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      lentPend rs.slent (pendList γ id steps rs.steps) -∗
+      lentPend rs.slent (pendList γ id rs.bw steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
       ackInv γ rs s -∗
       loanCom γ rs.slent -∗

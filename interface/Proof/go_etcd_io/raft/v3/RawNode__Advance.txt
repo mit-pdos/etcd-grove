@@ -23,7 +23,8 @@ theorem RawNode.Advance.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                 "Hrn" ∷ ownRawNode γ rn id rs ∗
                   "Hret" ∷ loanRet rs ∗
-                    "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) -∗
+                    "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
+                      "#Hbw" ∷ durFrags γ id rs.bw -∗
               (▷
                   ∀ t ca,
                     ownRawNode γ rn id (advRS rs t ca) ∗

@@ -84,6 +84,13 @@ abbrev RestartNode.spec : Prop :=
         ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode n γ N cv.ID' ∗
         isCommittedLogLb γ l ∗ ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
+        -- (2026-11-01, durability stage II (k), addendum S1b) the delivered log is the stored
+        -- entries up to its length (raft read them from the storage)
+        ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
+        -- (2026-11-01, durability stage II (k), addendum S1) the stored entries up to the applied
+        -- index, frozen: committed (at or below `A ≤ σ.commit`), raft never rewrites them
+        storLog (interface.ok si) (σ.b + 1) DFrac.discard
+          (σ.ents.take (max σ.b (uint.nat cv.Applied') - σ.b)) ∗
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
         nodeRunning n γ N 1 ∗

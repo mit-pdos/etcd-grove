@@ -1147,15 +1147,17 @@ context, so the abstraction is at `[]`, `[]`. (Until 2026-10-10 `msgAbs m a ∗ 
 which `Step`'s spec could not use.) (2026-10-16, stage R5: on the message's state `st`, whose
 pointer `ownRawNode` holds (`msgIn`); the pure part is `pendSt`; the apply acknowledgement's
 entries are `st.ents`, read through `msgIn`, rather than a slice `sl ↦*□ ents`.) -/
-def pendingRel (γ : RaftNames) (id : w64) (st : MsgSt) (p : Pending) : IProp GF :=
+def pendingRel (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (p : Pending) : IProp GF :=
   iprop(⌜pendSt id st p⌝ ∗
     match p with
-    | .self _ _ => iprop(□ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
+    -- (2026-11-01, durability stage II (k), fix C) behind the fragments of the maps `W` of the
+    -- batch the `Ready` cut (`RNState.bw`): a response is legitimate once its promise is entered
+    | .self _ _ => iprop(□ (durFrags γ id W -∗ ∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
         isMessage γ (absMsg ty st.msg [] [])))
     | _ => iprop(True))
 
-instance pendingRel_pers (γ : RaftNames) (id : w64) (st : MsgSt) (p : Pending) :
-    Persistent (pendingRel (GF := GF) γ id st p) := by
+instance pendingRel_pers (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (p : Pending) :
+    Persistent (pendingRel (GF := GF) γ id W st p) := by
   cases p <;> unfold pendingRel <;> infer_instance
 
 -- (2026-10-26, raft's signature, stage 1) `msgDat` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
@@ -1932,14 +1934,15 @@ instance sdrOk_pers (r : Loc) (md : RNMode) : Persistent (sdrOk (GF := GF) r md)
 
 /-- The pending queue's messages, owned, with their records (2026-10-16, stage R5): `ownRawNode`'s
 `Hpend`. -/
-abbrev pendList (γ : RaftNames) (id : w64) (steps : List Loc) (ps : List Pending) : IProp GF :=
-  iprop([∗list] _k ↦ l;p ∈ steps;ps, ∃ st, msgIn l DFrac.discard st ∗ pendingRel γ id st p)
+abbrev pendList (γ : RaftNames) (id : w64) (W : DurMaps) (steps : List Loc) (ps : List Pending) :
+    IProp GF :=
+  iprop([∗list] _k ↦ l;p ∈ steps;ps, ∃ st, msgIn l DFrac.discard st ∗ pendingRel γ id W st p)
 
 /-- The empty queue. -/
-theorem pendList_nil (γ : RaftNames) (id : w64) :
-    ⊢ pendList (GF := GF) γ id [] [] := by
+theorem pendList_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
+    ⊢ pendList (GF := GF) γ id W [] [] := by
   iapply (BigSepL2.bigSepL2_nil (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-    pendingRel γ id st p))).2
+    pendingRel γ id W st p))).2
   iempintro
 
 /-- (D22l) `prevHardSt`: a pointer to a read-only hard state `h` (`hsRO`), the record `ph`
@@ -2403,7 +2406,7 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- (2026-10-16, stage R5) each queued message owned, with its record (until then
   -- `pendingRel` of the Goose value, persistent, and `pendingOwn`)
   -- (D22 S-d3a) while a snapshot is lent, half of it, the queue once it is whole (`lentPend`)
-  "Hpend" ∷ lentPend rs.slent (pendList γ id steps rs.steps) ∗
+  "Hpend" ∷ lentPend rs.slent (pendList γ id rs.bw steps rs.steps) ∗
   "#Hdeliv" ∷ isCommitted γ rs.delivered ∗
   -- the records of what the storage holds (2026-10-10), for the acknowledgement
   -- `Advance` steps (`PendingOk`, `stableOk_of_stored`)
@@ -2468,7 +2471,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      lentPend rs.slent (pendList γ id steps rs.steps) -∗
+      lentPend rs.slent (pendList γ id rs.bw steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
       ackInv γ rs s -∗
       loanCom γ rs.slent -∗
@@ -2542,7 +2545,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      lentPend rs.slent (pendList γ id steps rs.steps) -∗
+      lentPend rs.slent (pendList γ id rs.bw steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
       ackInv γ rs s -∗
       loanCom γ rs.slent -∗

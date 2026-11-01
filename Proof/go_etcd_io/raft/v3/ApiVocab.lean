@@ -309,6 +309,11 @@ structure RNState [GooseExts] where
   `DurFull` premise; see the stage I-3 worklist). -/
   dur : RaftState := RaftState.init
   role : StateType := W64 0
+  /-- (2026-11-01, durability stage II (k), fix C) the virtual maps of the batch the last `Ready`
+  cut (`ownRawNodeReady_handout`, `ownRaftGhost_cut`): the self-addressed responses `acceptReady`
+  queues for `Advance` have their facts behind these maps' fragments (`pendingRel`), which
+  *enter* mints and `Advance` takes (`RawNode.Advance.spec`'s `durFrags γ id rs.bw`). -/
+  bw : DurMaps := DurMaps.empty
 
 end
 

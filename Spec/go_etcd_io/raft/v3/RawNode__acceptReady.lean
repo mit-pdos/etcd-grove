@@ -56,6 +56,8 @@ abbrev RawNode.acceptReady.spec : Prop :=
   {{ (steps : List Pending) (ss : Option (w64 × StateType)), RET #();
       -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+      -- (2026-11-01, durability stage II (k)) `none` at a `nil` pointer
+      "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,

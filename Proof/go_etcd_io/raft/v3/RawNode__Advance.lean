@@ -199,7 +199,7 @@ premises: `PreFacts`, and for the `MsgStorageApplyResp` the caller's (`Hpre`: A1
 private theorem wp_step_pending
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (md : GMode) (r : Loc) (id : w64) (s : NState)
-    (ml : Loc) (st : MsgSt) (p : Pending)
+    (ml : Loc) (st : MsgSt) (p : Pending) (W : DurMaps)
     (Hwf : NStateWf s) (Hok : PendingOk s p)
     -- (D22 S-d3a) an acknowledgement of no snapshot (a snapshot's is `wp_step_snapack`'s); (D22
     -- S-d3b) its `StableOk` the caller's (`stableOk_of_stored`, or after a restore its miss,
@@ -212,7 +212,9 @@ private theorem wp_step_pending
     (Hpre : ∀ ce (m' : MessageM), p = .applyAck ce → m'.Type' = MsgStorageApplyResp →
       md.Pre m' ce s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        ownStepGhost γ md c id s ∗ msgIn ml DFrac.discard st ∗ pendingRel γ id st p ∗ £ 1 }}
+        ownStepGhost γ md c id s ∗ msgIn ml DFrac.discard st ∗ pendingRel γ id W st p ∗ £ 1 ∗
+        -- (2026-11-01, durability stage II (k), fix C) the cut batch's fragments (*enter*'s)
+        durFrags γ id W }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (md' : GMode), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ownStepGhost γ md' c id s' ∗
@@ -237,13 +239,14 @@ private theorem wp_step_pending
          SnapRoleBack s s' ∧
          -- (2026-10-28, stage U3) an append acknowledgement does not move `applied`
          (st.msg.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied)⌝ }} := by
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc, #Hfrg⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
   | self pv t =>
     rcases st with ⟨m, ents, sn, ctx, rsp⟩
     unfold pendingRel
-    icases Hp with ⟨%Hsm, #Hmsg⟩
+    icases Hp with ⟨%Hsm, #Hmsg0⟩
+    ihave #Hmsg := Hmsg0 $$ Hfrg
     obtain ⟨⟨Hty, Hfr, Hto, Hnz, Hen, Hcn, Hrj⟩, rfl, rfl⟩ := Hsm
     simp only at Hty Hfr Hto Hnz Hen Hcn Hrj ⊢
     subst Hen Hcn
@@ -965,7 +968,7 @@ theorem RawNode.Advance.wp_proof
     unfold snapReceipt
     icases Hret with ⟨Hsv2, #Hcomp, ⟨%eR, %HeR, #HdR⟩, HoR, HendR⟩
     ihave Hpend : iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
-        (ownSnapM l.ptr (DFrac.own 1) l.snap -∗ pendList γ id steps rs.steps)) $$ [Hpend]
+        (ownSnapM l.ptr (DFrac.own 1) l.snap -∗ pendList γ id rs.bw steps rs.steps)) $$ [Hpend]
     · iExactEq Hpend; unfold lentPend; rw [hsl]
     icases Hpend with ⟨Hsv1, Hpw⟩
     ihave Hsv := ownSnapM_combine l.ptr _ _ l.snap $$ [Hsv1 Hsv2]
@@ -1106,7 +1109,7 @@ theorem RawNode.Advance.wp_proof
         -- the snapshot's after it (`appliedSnap`); a node with a snapshot pending a follower
         "%Hcf1" ∷ ⌜sint.nat n ≤ pre.length → cf1 = cf⌝ ∗
         "%Hsf1" ∷ ⌜SnapFol s1⌝ ∗
-        "Hpend" ∷ pendList γ id (steps.drop (sint.nat n)) (rs.steps.drop (sint.nat n)))
+        "Hpend" ∷ pendList γ id rs.bw (steps.drop (sint.nat n)) (rs.steps.drop (sint.nat n)))
       $$ [i m ib Hphys Hghost Hsteps Hpend]
     · iexists W64 0, s0, steps, null, zero_val w64, cf, rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩
       have H0 : sint.nat (W64 0) = 0 := rfl
@@ -1155,7 +1158,7 @@ theorem RawNode.Advance.wp_proof
       rw [drop_cons_of_lookup Hp_lookup] at Hok1 Hsb1 Hti1
       rw [drop_cons_of_lookup Hmm_lookup, drop_cons_of_lookup Hp_lookup]
       icases (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id st p))).1 $$ Hpend with ⟨⟨%st, Hmin, #Hpm⟩, Hpend⟩
+          pendingRel γ id rs.bw st p))).1 $$ Hpend with ⟨⟨%st, Hmin, #Hpm⟩, Hpend⟩
       have HnS : sint.nat n + 1 = sint.nat (n + W64 1) := by word
       rw [HnS] at Hok1 Hsb1 Hti1 ⊢
       obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1
@@ -1176,11 +1179,11 @@ theorem RawNode.Advance.wp_proof
         icases ownRaftPhysC_preFacts cf rnv.raft' id s1
             (RNMode.guard_of (fun _ => preGuardF_of_fol Hfol1) rs.capplied rs.cfg) $$ Hphys
           with ⟨%Hpf1, Hphys⟩
-        wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st (.self pv0 t0) Hwf1
+        wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st (.self pv0 t0) rs.bw Hwf1
           Hpok (fun _ _ _ _ h => by cases h) Hs1.1 Hnw1
           (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst) Hpf1
           (fun _ _ h => by cases h)
-          $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+          $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
         obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
           -, Hfl2, Hap2, Hack2, Hsrb2, Hapa2⟩ := Hst2
         have Hc12 := Hout2.commit_mono
@@ -1663,7 +1666,7 @@ theorem RawNode.Advance.wp_proof
       "%Hpg1" ∷ ⌜∀ fp, PreGuardF fp s → PreGuardF fp s1⌝ ∗
       -- (2026-10-28, stage U0) a node with a snapshot pending a follower
       "%Hsf1" ∷ ⌜SnapFol s1⌝ ∗
-      "Hpend" ∷ pendList γ id (steps.drop (sint.nat n)) (rs.steps.drop (sint.nat n)))
+      "Hpend" ∷ pendList γ id rs.bw (steps.drop (sint.nat n)) (rs.steps.drop (sint.nat n)))
     $$ [i m ib Hphys Hghost Hsteps Hpend]
   · iexists W64 0, s, steps, null, zero_val w64, rs.capplied
     have H0 : sint.nat (W64 0) = 0 := rfl
@@ -1707,7 +1710,7 @@ theorem RawNode.Advance.wp_proof
     rw [drop_cons_of_lookup Hp_lookup] at Hok1 Hsb1 Hti1 Hfl1
     rw [drop_cons_of_lookup Hmm_lookup, drop_cons_of_lookup Hp_lookup]
     icases (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id st p))).1 $$ Hpend with ⟨⟨%st, Hmin, #Hpm⟩, Hpend⟩
+        pendingRel γ id rs.bw st p))).1 $$ Hpend with ⟨⟨%st, Hmin, #Hpm⟩, Hpend⟩
     have HnS : sint.nat n + 1 = sint.nat (n + W64 1) := by word
     rw [HnS] at Hok1 Hsb1 Hti1 Hfl1 ⊢
     obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1
@@ -1811,10 +1814,10 @@ theorem RawNode.Advance.wp_proof
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
     icases Hres with ⟨%Hpre1, Hghost⟩
-    wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st p Hwf1 Hpok
+    wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st p rs.bw Hwf1 Hpok
       Hack (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
-      $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+      $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
     obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
       Hpg2, Hfl2, Hap2, Hack2, Hsrb2, Hapa2⟩ := Hst2
     have Hsg2 := And.intro Hsg2 (And.intro Hsg2' Hsg2'')

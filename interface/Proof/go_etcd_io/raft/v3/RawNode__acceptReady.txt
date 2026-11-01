@@ -88,12 +88,14 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
           (▷
               ∀ steps ss,
                 "#Hss" ∷ softStateIs rd.SoftState' ss ∗
-                    "Hrn" ∷
-                      ownRawNode γ rn id
-                        { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
-                          storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := rs.cfg,
-                          capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
-                          dur := readyDurable rs.dur (phsNext rs.phs h) L es, role := roleAfter rs.role ss } -∗
+                    "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
+                      "Hrn" ∷
+                        ownRawNode γ rn id
+                          { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
+                            storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
+                            cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
+                            dur := readyDurable rs.dur (phsNext rs.phs h) L es, role := roleAfter rs.role ss,
+                            bw := rs.bw } -∗
                   Φ (intoVal ())) -∗
             WP
               ((intoVal

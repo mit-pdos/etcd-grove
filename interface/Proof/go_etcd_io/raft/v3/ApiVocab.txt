@@ -278,6 +278,7 @@ structure RNState : Type where
   phs : HardStateM
   dur : RaftState
   role : StateType
+  bw : DurMaps
 
 def softStateIs (p : Loc) : Option (w64 × StateType) → IProp GF :=
   match x✝ with
