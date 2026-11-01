@@ -72,8 +72,49 @@ theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : 
     (m.term = ps.term → ps.role ≠ .leader) →
     ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
       ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
-  -- PORT(durability stage II): proof (restated: a fancy update, the acknowledgement looked up in the slot (durability R2))
-  sorry
+  intro HE Hty Hto Hle Hrole
+  simp only [isMessage, Hty]
+  unfold ownRaftGhost isAcked
+  iintro ⟨%γs, %V, %πc, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
+  iNamed H
+  icases persistent_entails_right (wand_entails (ownLogGhost_recs (GF := GF) γ id ps kl (virt V πc))) $$ Hlg
+    with ⟨⟨%Hlog_ok, -⟩, Hlg⟩
+  obtain ⟨-, -, Hcl⟩ := Hlog_ok
+  have := plogLastIndexZ_nonneg ps.base ps.log
+  icases Hack with (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩)
+  · imodintro
+    isplitl
+    · iexists γs, V, πc, kl
+      iframe % # ∗
+    · ipureintro; omega
+  rw [Hto] at Hγa'
+  imod slot_open E γ id γs V Hsname HE $$ Hslot Hvirt with ⟨%E0, %HEV, Hsh, Hvirt, Hcl'⟩
+  icases durShares_ack γ id _ E0 γa' m.term i Hγa' $$ Hsh Hfrag with ⟨%Hk0, Hsh⟩
+  imod Hcl' $$ Hsh with -
+  have Hk' := virt_acks_isSome V πc (m.term, i) (HEV.2.1 _ (by rw [Hk0]; rfl))
+  obtain ⟨u, Hk⟩ := Option.isSome_iff_exists.mp Hk'
+  icases persistent_entails_right (wand_entails (ownLogGhost_acks_ok (GF := GF) γ id ps kl (virt V πc))) $$ Hlg
+    with ⟨#Hacks_ok, Hlg⟩
+  icases persistent_entails_right (wand_entails (ownLogGhost_acks_term (GF := GF) γ id ps kl (virt V πc))) $$ Hlg
+    with ⟨%Hacks_term, Hlg⟩
+  have Hkt : uint.Z m.term ≤ uint.Z ps.term := Hacks_term _ (by rw [Hk]; rfl)
+  have Heq : m.term = ps.term := by word
+  have Hr := Hrole Heq
+  imodintro
+  isplitl
+  · iexists γs, V, πc, kl
+    iframe % # ∗
+  unfold acksOk
+  rcases Hr' : ps.role
+  rotate_left 2
+  · exact absurd Hr' Hr
+  all_goals
+    ihave #Hk' := BigSepM.bigSepM_lookup (Φ := fun k _ => ackOk (GF := GF) γ ps k) Hk $$ Hacks_ok
+    by_cases Hlt : uint.Z ps.commit < uint.Z i
+    · unfold ackOk ackAgree
+      ihave ⟨%Hil, -⟩ := Hk' $$ %(⟨Heq, Hlt⟩ : (m.term, i).1 = ps.term ∧ uint.Z ps.commit < uint.Z (m.term, i).2)
+      ipureintro; simp only at Hil; omega
+    · ipureintro; omega
 
 /-- What `raftLog.maybeAppend` needs of a received `app`'s batch: carried by the message
 (`AppPayloadOk`). No premise on the terms: it is a fact of the message alone (until
@@ -685,8 +726,84 @@ private theorem ownLogGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM)
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
       ownLogGhost γ id (initPStateAt t L) none DurMaps.empty := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hγm Hγa Hγc Hγl Hγw Hγe HL HwfL Hlen Hones Ht
+  iintro #Hinv #Hc0 #HrL Hm Ha Hc Hl Hw He
+  iclear Ha Hc Hl He
+  have HWL : uint.Z (W64 (L.length : Int)) = L.length := uint_Z_W64 _ (by omega) Hlen
+  have Hcommit : (initPStateAt t L).commit = W64 (L.length : Int) := rfl
+  have Hlog : (initPStateAt t L).log = L := rfl
+  have Hbase : (initPStateAt t L).base = base0 := rfl
+  have Hterm : (initPStateAt t L).term = t := rfl
+  have Hrole : (initPStateAt t L).role = .follower := rfl
+  have Hcp : cprefix [] (initPStateAt t L) = L := by
+    unfold cprefix; rw [Hlog, Hcommit, List.nil_append, HWL]; simp
+  unfold ownLogGhost
+  simp only [DurMaps.empty]
+  iexists γm, ∅, [], γw, ∅
+  iframe Hm Hw Hinv
+  isplitr; · ipureintro; exact Hγm
+  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · ipureintro; intro t Ht; simp at Ht
+  isplitr; · unfold leadLogOwn; rw [Hrole]; iempintro
+  isplitr; · ipureintro; intro k Hk; simp at Hk
+  isplitr; · unfold acksOk; rw [Hrole]; iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr
+  · ipureintro
+    unfold LogOk plogLastIndexZ
+    rw [Hlog, Hbase, Hcommit, base0_index, HWL]
+    exact ⟨PlogWf_wfR _ _ HwfL, Int.natCast_nonneg _, by omega⟩
+  isplitr; · rw [Hlog, Hbase]; iexact HrL
+  isplitr; · unfold matchedOk; rw [Hrole]; iempintro
+  isplitr
+  · unfold commitIn
+    isplitr
+    · unfold commitJ; ileft; ipureintro
+      rw [Hlog, Hcommit, HL, HWL, List.nil_append]; exact ⟨Int.le_refl _, rfl⟩
+    · unfold dynOn
+      iright; unfold witsB; iintro %k %Hk %Hb; exfalso
+      have := Hk.2
+      rw [Hcommit, HWL] at this
+      rw [HL] at Hb
+      simp at this
+      omega
+  isplitr; · unfold baseOk; ileft; ipureintro; rfl
+  isplitr
+  · ipureintro
+    rw [Hlog, Hbase]
+    refine ⟨FullOk_base0, HwfL, ?_⟩
+    intro j x Hx
+    rw [List.nil_append] at Hx
+    refine ⟨?_, fun h => by rw [Hrole] at h; cases h⟩
+    rw [Hterm]
+    have := uint_Z_nonneg j
+    by_cases Hj0 : uint.Z j = 0
+    · have Hj : j = base0.index' := uint_Z_inj.mp (by rw [base0_index]; exact Hj0)
+      subst Hj
+      rw [plogTermAt_base] at Hx
+      cases Hx
+      rw [show uint.Z (base0 : entryID).term' = 0 from rfl]; exact uint_Z_nonneg t
+    · obtain ⟨e, He, -, Hxt⟩ := plogTermAt_some_entry _ _ _ _ (PlogWf_wfR _ _ HwfL) Hx
+        (by rw [base0_index]; omega)
+      have Hne : L ≠ [] := by intro h; subst h; simp at He
+      rw [← Hxt, Hones e (List.mem_of_getElem? He), show uint.Z (W64 1) = 1 from rfl]
+      exact Ht Hne
+  isplitr; · unfold logRecs; iapply (BigSepL.bigSepL_nil).2; iempintro
+  isplitr; · ipureintro; intro T HT; simp at HT
+  isplitr; · unfold campOwn; rw [Hrole]; iempintro
+  isplitr; · unfold vlogsOk; iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · unfold histsOk; iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · ipureintro; exact Hγw
+  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · ipureintro; intro t Ht; simp at Ht
+  isplitr; · unfold klOk; ipureintro; rw [Hrole]; intro h; cases h
+  isplitr
+  · ipureintro
+    refine ⟨fun p1 p2 e1 e2 _ H1 _ => by simp at H1, fun e He => by simp at He,
+      fun t i Hi => by simp at Hi⟩
+  isplitr; · rw [Hcp]; iexact Hc0
+  ipureintro
+  refine ⟨⟨fun h => (by rw [Hrole] at h; cases h), fun h => (by rw [Hrole] at h; cases h)⟩, ?_⟩
+  rw [Hcommit, HWL, HL]; exact Int.le_refl _
 
 private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF) :
     ∀ m : GMap w64 GName, (∀ k v, m !! k = some v → nv !! k = some v) →
