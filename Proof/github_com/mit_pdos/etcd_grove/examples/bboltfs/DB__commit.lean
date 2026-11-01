@@ -43,6 +43,43 @@ def commitErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat) 
       writerStF (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)))
 
+/-- An error exit of `commit` while the handle is not yet failed, with a mapping. -/
+theorem commitErr_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
+    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m2 : OsMeta)
+    (mxc tail : List (w8 × Bool)) (fsz t n : Nat)
+    (h : m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
+      4096 * hwm ≤ m2.size ∧ mxc.length = 8192 ∧ tail.length = m2.size - 4096 * hwm) :
+    dbOwner (GF := GF) γ t n ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
+      ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
+      mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
+      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      mapInv (GF := GF) γ p base len γm ∗ writerCells (GF := GF) base hwm len ∗
+      db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
+      os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ⊢
+      commitErr (GF := GF) γ db f fd p t n := by
+  iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail⟩
+  unfold commitErr writerStF writerFile
+  iframe
+  dsimp only [mapLen]
+  iframe; iframe #
+  isplitr
+  · ipureintro
+    exact ⟨⟨h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2, fun h => by cases h⟩,
+      h.1, h.2.1, h.2.2.1, h.2.2.2.1⟩
+  · ileft; ipureintro; rfl
+
+/-- The writer's cells, with their top part. -/
+theorem writerCells_top (base : Loc) (hwm len : Nat) :
+    writerCells (GF := GF) base hwm len ⊣⊢
+      ((∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
+        (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf)) ∗
+      cellsAny (GF := GF) base (4096 * hwm) (len - 4096 * hwm) := by
+  unfold writerCells cellsAny
+  exact ⟨by iintro ⟨H0, H1, H2, H3, H4⟩; iframe, by iintro ⟨⟨H0, H1, H2, H3⟩, H4⟩; iframe⟩
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))

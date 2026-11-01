@@ -361,6 +361,25 @@ theorem fail_cur (γ : DBNames) (mp : List w8) (hwm : Nat) :
   imodintro
   iframe
 
+theorem mcellsAny_single (b : Loc) (l lo hi : Nat) (hlo : lo ≤ hi) (hhi : hi ≤ l) :
+    mcellsAny (GF := GF) {[b := l]} lo hi ⊣⊢ cellsAny (GF := GF) b lo (hi - lo) := by
+  unfold mcellsAny cellsAny
+  refine BigSepM.bigSepM_singleton.trans ?_
+  rw [Nat.min_eq_left hhi, Nat.min_eq_left (by omega : lo ≤ l)]
+  exact .rfl
+
+theorem mcells_single (b : Loc) (l lo hi : Nat) (vf : Nat → val) (hlo : lo ≤ hi) (hhi : hi ≤ l) :
+    mcells (GF := GF) {[b := l]} lo hi vf ⊣⊢ cellsR (GF := GF) b lo (hi - lo) vf := by
+  unfold mcells
+  refine BigSepM.bigSepM_singleton.trans ?_
+  rw [Nat.min_eq_left hhi, Nat.min_eq_left (by omega : lo ≤ l)]
+  exact .rfl
+
+theorem osBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
+    osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
+      osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
+  unfold osBytes; exact bytesG_append _ _ _ _ _ _
+
 /-- `rwR`'s open branch, from the writer's part. -/
 theorem rwR_of_writerSt (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
     (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (hok : fl = false → m.ok = true) :
