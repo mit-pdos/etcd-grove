@@ -707,10 +707,11 @@ Findings for the rest of 5b:
   the obligation needs `commitClean` (i.e. `fl = false`, which `DB.mmap.spec` already assumes).
 
 Open, in order:
-5b. (a) **`DB.munmap.specCrash` and `DB.mmap.specCrash`** (new files): copies of `DB__munmap.lean`
-   and `DB__mmap.lean` with `mappingResC`/`unmappedResC` (`csOwn p γc (some ⟨m, bs, fa, fb,
-   .idle⟩)` plus `⌜bs.length = m.size ∧ commitClean m bs⌝` in place of `osMeta 1 m`), `writerFileC`,
-   and the `*.specCrashS` of `Mmap`/`Munmap` with `writer_okS`. `mmap_prep`/`mmap_unmapped`
+5b. (a) **`DB.mmap.specCrash`** (new files; `DB.munmap.specCrash` is done: `DB__munmapCrash.lean`
+   in Spec and Proof, `DB.munmap.wp_proof_crash`, no `sorryAx`, with `mappingResC`/`unmappedResC`:
+   `csOwn p γc (some ⟨m, bs, fa, fb, .idle⟩)` plus `⌜bs.length = m.size ∧ commitClean m bs⌝` in
+   place of `osMeta 1 m`, and `dbCrashN_disj : ↑osN ⊆ ⊤ \ ↑dbCrashN`): a copy of `DB__mmap.lean`
+   with `writerFileC`, `DB.munmap.specCrash` and `Mmap.specCrashS` with `writer_okS`. `mmap_prep`/`mmap_unmapped`
    (`DB__mmap.lean`) have `osMeta` in their statements: crash copies needed.
    (b) **`Open.specCrash`**: pre `csInv dbCrashN p γc (dbOk p) ∗ csOwn p γc s` with `s = none` or an
    idle state all clean whose bytes are a `goodImg` (`csStart (some f)` with `Good (some f)`, as
