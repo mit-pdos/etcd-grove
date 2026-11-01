@@ -1472,6 +1472,58 @@ theorem wp_Open (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE :
       rw [if_neg he]; iempintro
 
 
+/-- A mapped cell the client holds part of shows the byte it maps, while the client holds a
+fraction of that byte: a load through the mapping reads the page cache. -/
+theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac) (m : OsMeta)
+    (base : Loc) (len i : Nat) (hb : m.maps !! base = some len) (hi : i < len) (dqb : DFrac)
+    (x : w8 × Bool) (dqc : DFrac) (v : val) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osMeta (L := L) p dqm (some m) -∗ osByte (L := L) p i dqb x -∗
+      heapPointsto (base +ₗ (i : Int)) dqc v -∗
+      (⌜v = LitV (LitByte x.1)⌝ -∗ osMeta (L := L) p dqm (some m) -∗ osByte (L := L) p i dqb x -∗
+        heapPointsto (base +ₗ (i : Int)) dqc v -∗ WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }} := by
+  iintro #Hinv Hm Hb Hc HΦ
+  iapply wp_ext_acc (X := osFsExt) e Φ htv
+  iintro %σ %g Hl Hg
+  icases (os_local_ctx_eq σ).mp $$ Hl with Hl
+  unfold osCtx
+  icases Hl with ⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osInv
+  imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%cv, %n, Hv', Hcells, Hth⟩
+  icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
+  simp only [Prod.mk.injEq] at Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  unfold osMeta osByte
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAb Hb with %Hbl
+  icases tokRes_byte_free _ hcoh Hbl $$ Htok Hb with %Hn
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hmt : MapsTo σ (base +ₗ (i : Int)) p i := ⟨base, ⟨p, len⟩, (hmo.maps base len).1 hb, rfl, hi, rfl⟩
+  have hcv := cellView_mapsTo hwf hmt
+  rw [cellByte_noinfl hf Hn] at hcv
+  obtain ⟨f1, hf1, hbx, -⟩ := hcoh.bytes p i x Hbl
+  rw [hf] at hf1; cases hf1
+  rw [hbx] at hcv
+  unfold cellsRes
+  icases BigSepM.bigSepM_lookup_acc (Φ := fun l (x : Option w8 × Bool) =>
+    heapPointsto l (cellFrac x.2) (toCellVal x.1)) hcv $$ Hcells with ⟨Hl, Hcl⟩
+  icombine Hl Hc gives %Hvv
+  ihave Hcells := Hcl $$ Hl
+  imod Hclose $$ [Hv' Hcells Hth] with -
+  · inext; iexists (cellView σ), (GMap.size σ.inflight); iframe
+  imodintro
+  isplitl [HAb HAm HAf HAt Htok Hv]
+  · iapply (os_local_ctx_eq σ).mpr
+    unfold osCtx
+    iexists Γb, Γm, Γf, Γt
+    iframe
+    ipureintro; exact ⟨hwf, hcoh⟩
+  iframe Hg
+  iapply HΦ $$ %Hvv.2.symm Hm Hb Hc
+
 end specs
 
 end Perennial
