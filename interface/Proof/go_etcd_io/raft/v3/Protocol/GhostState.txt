@@ -101,6 +101,10 @@ theorem raftN_open_sub {γ : RaftNames} : ⊤ \ ↑(raftN γ) ⊆ (⊤ \ ↑(raf
 theorem votesTbl_just [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : ⊢ votesTbl γ -∗ isVote γ v T c
     -∗ voteJust γ v T c
 
+theorem ackInF_intro_le [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp
+    : List EntryM) (i : w64) : uint.Z i ≤ plogLastIndexZ bL l → ⊢ leadPrefix γ ldr t bL l -∗ lpfull
+    γ ldr t bL l fp -∗ ackInF γ t i
+
 theorem rLog_timeless (γ : RaftNames) (L : List EntryM) : Timeless (rLog γ L)
 
 theorem rdOwn_rdFacts [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role
@@ -198,9 +202,7 @@ theorem ev_pair [ReceiptGS GF] (γ : RaftNames) (v t i T : w64) (d : Bool) (F : 
     t < uint.Z T → ⊢ ackEv γ v t i -∗ voteEv γ v T d F -∗ hist γ F t i (vbnd T d)
 
 def ackInF [ReceiptGS GF] (γ : RaftNames) (t i : w64) : IProp GF :=
-  iprop(⌜uint.Z i = 0⌝ ∨
-      ∃ ldr bL l fp,
-        leadPrefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗ ⌜uint.Z bL.index' ≤ uint.Z i ∧ uint.Z i ≤ plogLastIndexZ bL l⌝)
+  iprop(⌜uint.Z i = 0⌝ ∨ ∃ X, leadFull γ t X ∗ ⌜uint.Z i ≤ plogLastIndexZ base0 X⌝)
 
 theorem noopAu_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (e : EntryM) (Hidx :
     uint.Z e.Index' = ↑l.length + 1) (Hrb : uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length)

@@ -2239,22 +2239,35 @@ instance durFrags_persistent (γ : RaftNames) (id : w64) (W : DurMaps) :
     Persistent (durFrags (GF := GF) γ id W) := by
   unfold durFrags; infer_instance
 
-/-- (2026-11-01, durability stage II(d), approved repair 1) **An acknowledgement's leader**: `(t, i)`
-is `0`, or within a prefix `(bL, l)` of the term-`t` leader's log, at or above its base (which is
-the leader's base at its win, the same for every prefix of the term: `leadPrefix_base`), with its
-full log (`lpfull`). Stronger than `ackIn` by the base and the full log: what the restart's
-`ackAgree` of an acknowledgement in `(c, S.commit]` needs (`durPers_restart_acks`). Every step that
-makes an acknowledgement has it, from the leader's message or its own log; it is the pending
+/-- (2026-11-01, durability stage II(d), approved repair 1; round 9 in full-log coordinates)
+**An acknowledgement's leader**: `(t, i)` is `0`, or within the full log of a prefix of the term-`t`
+leader's log (`leadFull`). Stronger than `ackIn` by the full log: what the restart's `ackAgree` of
+an acknowledgement in `(c, S.commit]` needs (`durPers_restart_acks`). Every step that makes an
+acknowledgement has it, from the leader's message or its own log; it is the pending
 acknowledgement's justification (`promNeed`), and the entered ones' are kept by the slot and
 `durPers`. -/
 def ackInF (γ : RaftNames) (t i : w64) : IProp GF :=
-  iprop(⌜uint.Z i = 0⌝ ∨ ∃ ldr bL l fp, leadPrefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗
-    ⌜uint.Z bL.index' ≤ uint.Z i ∧ uint.Z i ≤ plogLastIndexZ bL l⌝)
+  iprop(⌜uint.Z i = 0⌝ ∨ ∃ X, leadFull γ t X ∗ ⌜uint.Z i ≤ plogLastIndexZ base0 X⌝)
 
 instance ackInF_persistent (γ : RaftNames) (t i : w64) : Persistent (ackInF (GF := GF) γ t i) := by
   unfold ackInF; infer_instance
 instance ackInF_timeless (γ : RaftNames) (t i : w64) : Timeless (ackInF (GF := GF) γ t i) := by
   unfold ackInF; infer_instance
+
+/-- `ackInF` from a leader prefix reaching `i`. -/
+theorem ackInF_intro_le (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List EntryM) (i : w64) :
+    uint.Z i ≤ plogLastIndexZ bL l →
+    ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackInF γ t i := by
+  intro Hi
+  iintro #Hp #Hpf
+  ihave %Hf : ⌜FullOk bL fp⌝ $$ []
+  · iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, -, -, %H⟩
+    ipureintro; exact H.1
+  unfold ackInF; iright
+  iexists fp ++ l
+  isplitr; · iapply leadFull_intro $$ Hp Hpf
+  ipureintro; rw [full_last_index _ _ _ Hf]; exact Hi
 
 /-- `ackInF` from a leader prefix holding a term at `i`. -/
 theorem ackInF_intro (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List EntryM) (i : w64) :
@@ -2262,12 +2275,7 @@ theorem ackInF_intro (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List 
     ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackInF γ t i := by
   intro Hs
   obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
-  have Hr := plogTermAt_some_range _ _ _ _ Hx
-  iintro #Hp #Hpf
-  unfold ackInF; iright
-  iexists ldr, bL, l, fp
-  iframe Hp Hpf
-  ipureintro; exact Hr
+  exact ackInF_intro_le γ ldr t bL l fp i (plogTermAt_some_range _ _ _ _ Hx).2
 
 /-- What minting `p` after the maps `W` needs, beyond the fragments: a vote's justification
 (`voteJust` without its `isVlog` and `voteEv`, which *enter* mints, and with the histories of

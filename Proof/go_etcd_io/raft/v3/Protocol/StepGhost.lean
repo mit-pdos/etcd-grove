@@ -762,15 +762,8 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
     have Hi := Hlacks.2 Hr k.2 (by rw [← Hkk, show W.acks !! k = some u from Hk]; rfl)
     rw [Hc] at Hk2
     rw [Hb, Hlg, Hk1]
-    unfold ackAgree
-    isplitr; · ipureintro; exact Hi
-    iexists id, s.base, s.log
-    isplitr; · iexact Hp
-    isplitr
-    · ipureintro
-      refine ⟨plogTermAt_in_range _ _ _ ⟨?_, Hi⟩, rfl⟩
-      have := Hlog_ok.2.1; omega
-    · iexists fpl; iexact Hpf
+    iapply ackAgree_intro γ s.base s.log s.term k.2 id s.base s.log fpl Hi
+      (plogTermAt_in_range _ _ _ ⟨by have := Hlog_ok.2.1; omega, Hi⟩) rfl $$ Hp Hpf
   ihave #Hmatched' : matchedOk (GF := GF) γ id s' fp $$ []
   · rw [matchedOk_nl γ id s' fp Hnl]; ipureintro; trivial
   ihave #Hrecs' : logRecs (GF := GF) γ s'.base s'.log $$ []
@@ -1291,20 +1284,11 @@ theorem ackAgree_full (γ : RaftNames) (b : entryID) (es fp : List EntryM)
           plogTermAt base0 X i = plogTermAt base0 (fp ++ es) i⌝ := by
   intro Hf Hb
   unfold ackAgree
-  iintro ⟨-, %ldr, %bL, %l, #Hp, %Hsq, %fpX, #Hpf⟩
-  obtain ⟨Hs, Heq⟩ := Hsq
-  ihave %HfX : ⌜FullOk bL fpX⌝ $$ []
-  · iunfold lpfull at Hpf
-    icases Hpf with ⟨%F0, -, -, %H⟩
-    ipureintro; exact H.1
-  iexists fpX ++ l
-  isplitr
-  · iapply leadFull_intro $$ Hp Hpf
+  iintro ⟨-, %X, #HX, %Hsq⟩
+  iexists X
+  iframe HX
   ipureintro
-  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
-  have HbL := (plogTermAt_some_range _ _ _ _ Hx).1
-  rw [full_term_at bL fpX l i HfX HbL, full_term_at b fp es i Hf Hb]
-  exact ⟨Hs, Heq⟩
+  rw [full_term_at b fp es i Hf Hb]; exact Hsq
 
 /-! #### Lookups through the slot (stage II helpers, durability R2) -/
 

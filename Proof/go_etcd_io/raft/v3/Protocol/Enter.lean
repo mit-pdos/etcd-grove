@@ -338,15 +338,9 @@ theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (
       have Hli := Hlacks.2 Hr k.2 (by rw [← Hk1]; rw [show W.acks !! k = some u from hk]; rfl)
       obtain ⟨Hte, Hle⟩ := Hre k.2 Hk2
       icases HL $$ %Hr with ⟨%fpL, #Hp, #Hpf⟩
-      unfold ackAgree
-      isplitr; · ipureintro; rw [← Hle]; exact Hli
-      iexists id, s.base, s.log
       rw [Hk1]
-      iframe Hp
-      isplitr
-      · ipureintro
-        refine ⟨plogTermAt_in_range _ _ _ ⟨by omega, Hli⟩, Hte⟩
-      iexists fpL; iexact Hpf
+      iapply ackAgree_intro γ S'.base S'.ents s.term k.2 id s.base s.log fpL
+        (by rw [← Hle]; exact Hli) (plogTermAt_in_range _ _ _ ⟨by omega, Hli⟩) Hte $$ Hp Hpf
     · have Hacks' : acksOk (GF := GF) γ s W.acks = iprop([∗map] k ↦ _u ∈ W.acks, ackOk γ s k) := by
         unfold acksOk; split
         · rename_i h; exact absurd h Hr
@@ -362,10 +356,10 @@ theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (
       ihave #Ha := Hok $$ %(And.intro Hk1 Hk2)
       obtain ⟨Hte, Hle⟩ := Hre k.2 Hk2
       unfold ackAgree
-      icases Ha with ⟨%Hi, %ldr, %bL, %l, #Hp, %Hag, #Hpf⟩
+      icases Ha with ⟨%Hi, %X, #HX, %Hag⟩
       isplitr; · ipureintro; rw [← Hle]; exact Hi
-      iexists ldr, bL, l
-      iframe Hp Hpf
+      iexists X
+      iframe HX
       ipureintro; exact ⟨Hag.1, Hag.2.trans Hte⟩
   isplitr; · rw [Hc, Ht]; iexact Hcommit
   iframe Hinv Hai
@@ -1025,33 +1019,30 @@ private theorem restart_ack_one (γ : RaftNames) (S : RaftState) (F : List Entry
   · -- above `S.commit`: `durPers`'s own agreement, re-based
     ihave #Ha := Hag $$ %(And.intro Hk1 Hhi)
     iunfold ackAgree at Ha
-    icases Ha with ⟨%Hi, %ldr, %bL, %l, #Hp, %HagE, #Hpf⟩
+    icases Ha with ⟨%Hi, %X, #HX, %HagE⟩
     iframe Htbl HrF Hci
     iintro %_
     unfold ackAgree
     isplitr; · ipureintro; rw [HlB, ← HlS]; exact Hi
-    iexists ldr, bL, l
-    iframe Hp Hpf
+    iexists X
+    iframe HX
     ipureintro
     refine ⟨HagE.1, ?_⟩
     rw [HagE.2, HtS k.2 (by omega), HtB k.2 (by omega)]
-  -- in `(c, S.commit]`: the acknowledgement's leader
+  -- in `(c, S.commit]`: the acknowledgement's leader's full log
   iunfold ackInF at Hai
-  icases Hai with (%H0 | ⟨%ldr, %bL, %l, %fpL, #Hp, #Hpf, %Hr⟩)
+  icases Hai with (%H0 | ⟨%X, #HX, %HiX⟩)
   · exfalso; have := uint_Z_nonneg c; omega
-  icases lpfull_fp $$ Hpf with ⟨-, %HfL⟩
-  ihave #HLf := leadFull_intro $$ Hp Hpf
-  icases leadFull_wf γ _ _ $$ HLf with ⟨%HwL, #HrL⟩
-  have HiL : plogTermAt bL l k.2 = plogTermAt base0 (fpL ++ l) k.2 :=
-    (full_term_at bL fpL l k.2 HfL.1 Hr.1).symm
-  have HlastL : plogLastIndexZ base0 (fpL ++ l) = plogLastIndexZ bL l := full_last_index _ _ _ HfL.1
-  have HlenL : plogLastIndexZ base0 (fpL ++ l) = ((fpL ++ l).length : Int) := by
+  icases leadFull_wf γ _ _ $$ HX with ⟨%HwL, #HrL⟩
+  have HlenL : plogLastIndexZ base0 X = (X.length : Int) := by
     unfold plogLastIndexZ; rw [base0_index]; simp
   have HlenF : plogLastIndexZ base0 F = (F.length : Int) := by
     unfold plogLastIndexZ; rw [base0_index]; simp
+  have HsX : (plogTermAt base0 X k.2).isSome :=
+    plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, HiX⟩
   -- the leader's full log agrees with `F` at the index, by `S.commit`'s certificate
   ihave Hagr : iprop(votesTbl (GF := GF) γ ∗
-      ⌜plogTermAt base0 (fpL ++ l) k.2 = plogTermAt base0 F k.2⌝) $$ [Htbl]
+      ⌜plogTermAt base0 X k.2 = plogTermAt base0 F k.2⌝) $$ [Htbl]
   · ihave #Hcj := commitIn_j γ F S.commit S.term $$ Hci
     unfold commitJ
     icases Hcj with (%Hb0 | ⟨%t', %n, %G, #Hq, %Hcn⟩)
@@ -1069,34 +1060,28 @@ private theorem restart_ack_one (γ : RaftNames) (S : RaftState) (F : List Entry
         (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩) HGF
         $$ HrG HrF with %HGFall
     by_cases Hne : t' = S.term
-    · -- a commit fact of `S.term`: the same leader's log
+    · -- a commit fact of `S.term`: two full logs of the same leader
       have Ht' : t' = k.1 := Hne.trans Hk1.symm
       subst Ht'
-      iunfold leadFull at HGl
-      icases HGl with ⟨%ldr', %bL', %l', %fp', #Hp2, #Hpf2, %HG⟩
-      subst HG
-      icases lpfull_fp $$ Hpf2 with ⟨-, %Hf2⟩
-      icases leadPrefix_base γ ldr ldr' k.1 bL bL' l l' $$ Hp Hp2 with %Hbb
-      subst Hbb
-      have Hn' : plogLastIndexZ base0 (fp' ++ l') = plogLastIndexZ bL l' := full_last_index _ _ _ Hf2.1
-      icases leadPrefix_agree γ ldr ldr' k.1 bL l l' k.2 (plogTermAt_in_range _ _ _ Hr)
-          (plogTermAt_in_range _ _ _ ⟨Hr.1, by omega⟩) $$ Hp Hp2 with %Hll
+      icases leadFull_agree γ k.1 X G k.2 HsX
+          (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩)
+          $$ HX HGl with %HXG
       iframe Htbl
       ipureintro
-      rw [← HiL, Hll, ← full_term_at bL fp' l' k.2 Hf2.1 Hr.1, HGFall k.2 (by omega)]
+      rw [HXG, HGFall k.2 (by omega)]
     · -- a commit fact of an earlier term: Leader Completeness
       have Hlt : uint.Z t' < uint.Z k.1 := by
         have : uint.Z t' ≠ uint.Z S.term := fun h => Hne (uint_Z_inj.mp h)
         rw [Hk1]; omega
-      icases leadFull_camp γ k.1 (fpL ++ l) $$ HLf with ⟨%ldr2, %F0, #Hl2, #Hc0, %Hpre⟩
+      icases leadFull_camp γ k.1 X $$ HX with ⟨%ldr2, %F0, #Hl2, #Hc0, %Hpre⟩
       icases isCamp_ok γ ldr2 k.1 F0 $$ Hc0 with %Hcok
       have Hcl := camp_last k.1 F0 Hcok
-      icases lc_core γ ((uint.Z k.1).toNat + 1) k.1 t' n G ldr2 F0 (fpL ++ l)
+      icases lc_core γ ((uint.Z k.1).toNat + 1) k.1 t' n G ldr2 F0 X
           (by have := uint_Z_nonneg k.1; omega) Hlt HwL.1
           (by rw [plogTermAt_prefix _ F0 _ _ Hpre (by rw [Hcl]; rfl)]; exact Hcl)
           $$ Htbl Hq Hl2 Hc0 HrL with %HnL
       have Hnr := (plogTermAt_some_range _ _ _ _ HnL).2
-      icases full_match γ (fpL ++ l) G n HwL.1 HwG.1 (by rw [HnL]; rfl) (by rw [HnL, HGn])
+      icases full_match γ X G n HwL.1 HwG.1 (by rw [HnL]; rfl) (by rw [HnL, HGn])
           $$ HrL HrG with %HLG
       iframe Htbl
       ipureintro
@@ -1106,13 +1091,11 @@ private theorem restart_ack_one (γ : RaftNames) (S : RaftState) (F : List Entry
   iintro %_
   unfold ackAgree
   isplitr; · ipureintro; rw [HlB]; omega
-  iexists ldr, bL, l
-  iframe Hp
-  isplitr
-  · ipureintro
-    refine ⟨plogTermAt_in_range _ _ _ Hr, ?_⟩
-    rw [HiL, Hagr, HtB k.2 (by omega)]
-  iexists fpL; iexact Hpf
+  iexists X
+  iframe HX
+  ipureintro
+  refine ⟨HsX, ?_⟩
+  rw [Hagr, HtB k.2 (by omega)]
 
 /-- **R4, the acknowledgements at a restart**: every acknowledgement of `S.term` above a lower
 stored commit `c` agrees with the restarted log -- above `S.commit` by `durPers`, in

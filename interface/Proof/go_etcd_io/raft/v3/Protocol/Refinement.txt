@@ -45,9 +45,9 @@ theorem ownRaftGhost_stepC_in [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNa
 
 theorem ownRaftGhost_step_app_stale [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (m : Msg) : m.ty = MsgType.app → m.src ≠ id → m.term = s.term → s.role ≠
-    Role.leader → uint.Z m.index < uint.Z s.commit → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \
-    ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs (padoptLeader s m.src) [Msg.mk MsgType.appResp id
-    m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []]) md
+    Role.leader → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id
+    (psendMsgs (padoptLeader s m.src) [Msg.mk MsgType.appResp id m.src s.term false s.commit (W64 0)
+    (W64 0) (W64 0) []]) md
 
 theorem ownRaftGhost_respond [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (t :
     PState) (q : ReadReq) : ⊢ ownRaftGhost γ id t md -∗ respFacts γ q ={⊤ \ ↑(raftRegN γ)}=∗
@@ -176,9 +176,8 @@ theorem ownLogGhost_reject_ok [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w
     hint ≤ uint.Z m.index⌝ ∗ ownLogGhost γ id s kl W
 
 theorem commitIn_ackInF [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp
-    F : List EntryM) (c tm : w64) : uint.Z tm ≤ uint.Z t → uint.Z bL.index' ≤ uint.Z c → ⊢ votesTbl
-    γ -∗ leadPrefix γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ commitIn γ F c tm -∗ votesTbl γ ∗
-    ackInF γ t c
+    F : List EntryM) (c tm : w64) : uint.Z tm ≤ uint.Z t → ⊢ votesTbl γ -∗ leadPrefix γ ldr t bL l
+    -∗ lpfull γ ldr t bL l fp -∗ commitIn γ F c tm -∗ votesTbl γ ∗ ackInF γ t c
 
 theorem lastRec_persistent [ReceiptGS GF] (γ : RaftNames) (L : Int) : Persistent (lastRec γ L)
 
