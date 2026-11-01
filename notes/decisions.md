@@ -29000,3 +29000,28 @@ how every caller extracts facts at the linearization point. Chosen: one name, `k
 a write), at exactly the old strength, with `kvRevFits.lt`/`.of_lt`/`.mono` so callers need not
 unfold it.
 
+
+## The backend for the auth split: open shares at acquisition, a reader pool, idle parts (2026-11-01 · Draft, not frozen · `notes/backend-auth-split-plan.md`)
+
+What the auth-on snapshot install's restated premise needs of the backend, after the user's
+decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
+
+- **A read in progress holds no open share.** Today `readTx.UnsafeRange` takes `bOpen γ qo` to
+  rule out the stopped interval, so a reader holds a share from `RLock` to `RUnlock` and a
+  release cannot give `Close` its share while reads run, though Go's `Close` waits for them
+  (`commit` takes `readTx.Lock()`). Chosen: the held read (`rtHeldF`) records that the interval is
+  live, which `RLock` establishes with the share it takes and gives back; the interval stays live
+  while held (only the stop's commit, under the write lock, clears it). `UnsafeRange` drops the
+  share; `Close` keeps `bOpen γ 1`. Today's statements are corollaries.
+- **Readers draw slots from a pool with a thread token** (the Bounds rule), as minibolt's `isDB`
+  and rafthttp's `raftPool`: `rdPool`/`rdLoan`/`rdTok_borrow`/`rdTok_giveBack` over Perennial's
+  `threadPool`. Where it is built is open (the plan's Q2; drafted: the constructor, under
+  `ThreadBoundLe GF (2 ^ 29)`, the other half of the slots left counted for mvcc).
+- **`rbOwn` is the writer's contents; idleness is a separate predicate.** The auth Draft's
+  `rbOwn_split_in` split `rbOwn` into idle parts, false while the holder's own write is pending
+  (a held batch with a pending delete: readers still see the key). Chosen: `rbPart γ S r` (the
+  writer's contents on the tracked buckets of `S`; `rbOwn = rbPart ⊤`, meaning kept) and
+  `rbOwnIn γ S r` (idle: readers see `r` there), split/join over disjoint sets; `rbPut` takes its
+  bucket's part only; `Unlock` turns a part handed in into the idle part (Go writes the session
+  back and commits a pending delete, etcd-io/etcd#17119); a fresh backend's are idle. The split the
+  premise needs is restated over `rbOwnIn ⊤`.
