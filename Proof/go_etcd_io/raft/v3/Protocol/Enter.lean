@@ -158,7 +158,7 @@ theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bo
   iintro Hlive Hg
   unfold ownRaftGhost
   icases Hg with ⟨%γs, %V, %πc, %kl, %Hsname, #Hslot, Hvirt, -, -, %Hidnz, -, -, -, -, Hlg, -, -, -,
-    #Hlcamps, Hlcm, Hrd, -⟩
+    Hlcm, Hrd, -⟩
   unfold ownLogGhost
   icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, %Htname, Hterms, #Htfrags, -, -, -, -, -, -, -, -,
     -, -, -, -, -, -, -, %Hwname, Hwins, #Hwfrags, -, -, -, #Hinv, -⟩
@@ -212,7 +212,7 @@ theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bo
   imodintro
   unfold raftIdSlot slotInv slotBody
   iexists γs, E0, g + 1
-  iframe Hvirt Hslot Hinv Hcinv Hlcamps
+  iframe Hvirt Hslot Hinv Hcinv
   isplitr; · ipureintro; exact Hsname
   isplitr; · ipureintro; exact Hidnz
   isplitl [Hgen]

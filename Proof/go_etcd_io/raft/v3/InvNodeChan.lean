@@ -1281,8 +1281,28 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
           nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd es ms p' L }} := by
-  -- PORT(durability stage II): `readyP` holds the cut batch (I-3)
-  sorry
+  iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
+  unfold nodeDriverChan
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold isReadyChanRaw
+  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq]
+  · iframe Hrc
+  iintro %rd
+  iintro !> HP
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iapply HΦ
+  iexists ce, es, ms, p', L
+  iframe Hdata Hcut
+  unfold nodeDriverBusy
+  iframe Hnode Hld
+  isplitr
+  · unfold dlvLb; iframe Hlb Hk
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
 
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) :
@@ -1349,8 +1369,20 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
         dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd es ms p' L := by
-  -- PORT(durability stage II): `readyP` holds the cut batch (I-3)
-  sorry
+  iintro HP Hdrv
+  unfold nodeDriverChan
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iexists ce, es, ms, p', L
+  iframe Hdata Hcut
+  unfold nodeDriverBusy dlvLb
+  iframe Hnode Hlb Hk Hld
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
 
 /-- The handshake's send, where the payload is made only when the send happens (a ghost
 update inside the atomic update): `run` hands out the storage's append right with a

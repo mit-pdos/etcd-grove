@@ -882,16 +882,6 @@ theorem alloc_slots (ids : GSet w64) :
       have Hy' : ids !! x = some uy := Hy
       rw [Hx] at Hy'; cases Hy'
 
-/-- (stage II helper; **not provable as stated**, `sorry`: durability stage I, R6) A fresh node's
-leader-side keys are campaigns' terms. `ledgerCamps` quantifies over every fragment of the four
-leader-side maps, with no relation to their authorities, so no allocation can establish it: a
-fragment `t ↪[γm]□ x` is compatible with the core of the fresh authority `ghostMapAuth γm 1 ∅`, and
-`isCampK γ id t F k` does not follow from it. The allocation of `raftIdSlot` (and so of every
-cluster) rests on this. -/
-private theorem ledgerCamps_fresh (γ : RaftNames) (id : w64) : ⊢ ledgerCamps (GF := GF) γ id := by
-  -- PORT(durability stage II): unprovable as stated (see the docstring); back to stage I
-  sorry
-
 /-- (stage II helper) The durable invariants of the initial state over no promise. -/
 private theorem durPers_init (γ : RaftNames) (id : w64) :
     ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ [] -∗ durPers γ id RaftState.init DurMaps.empty := by
@@ -1021,7 +1011,6 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
     iintro %b %hb
     cases hb
   ihave #Hdp := durPers_init γ id $$ Hinv Hc0
-  ihave #Hlcs := ledgerCamps_fresh (GF := GF) γ id
   imodintro
   isplitl [Hv1 Ha1 Hc1 Hl1 He1]
   · unfold ownDurGhost
@@ -1034,7 +1023,7 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
     ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
   unfold raftIdSlot slotInv
   iexists γs, DurMaps.empty, 0
-  iframe Hvirt1 Hslot Hinv Hcinv Hlcs
+  iframe Hvirt1 Hslot Hinv Hcinv
   isplitr; · ipureintro; exact Hγs
   isplitr; · ipureintro; exact Hnz
   isplitl [Hgen1]

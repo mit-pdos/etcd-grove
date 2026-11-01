@@ -689,8 +689,9 @@ theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       · unfold isTermLog
         iexists γm
         isplitr; · ipureintro; exact Htname
-        iapply (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (γt : TermRec) => iprop(t ↪[γm]□ γt))
-          Hγt) $$ Htfrags
+        icases (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (γt : TermRec) =>
+          iprop(t ↪[γm]□ γt ∗ campKey γ id t)) Hγt) $$ Htfrags with ⟨#Hx, -⟩
+        iexact Hx
       isplitr; · ipureintro; exact ⟨Hlog_ok.1, Hpre⟩
       isplitr; · iexact Hrecs
       iexact Hlf
