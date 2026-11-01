@@ -517,19 +517,20 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (by omega)).2 $$ [Hpc]
   · rw [show 4096 * hwm + 4096 - 4096 * hwm = 4096 by omega]; iexact Hpc
   rw [← Hmaps]
-  wp_apply wp_WriteAt f fd p _ buf (dataPage mv.pgid' v) (DFrac.own 1) (mv.pgid' * W64 4096) _
+  wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) buf (dataPage mv.pgid' v) (DFrac.own 1)
+      (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half)
       ⟨p, true, true⟩ 1 m2 (tail2.take 4096) rfl hoffI (by omega) (by omega)
       (by rw [hoff, htk, hdl]; omega) (fun _ => rfl) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
     as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %h, %Hres, Hm, Hpg, Hpc⟩
-  · rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)]; iframe; iframe #
-  rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)] at *
-  rw [hoff, hdl] at Hres
+  · rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)]
+    iframe Hf Hbuf Hfd Hm Hpg Hpc; iframe #
+  rw [hoff, dataPage_length, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)] at *
   have hj : j ≤ 4096 := Hres.1
   have hys : ys.length = 4096 := by
     have h1 := congrArg List.length Hres.2.1
     simp only [List.length_map, pwBytes_length] at h1
-    rw [pwSize_inside _ _ _ (by omega), hdl] at h1; omega
-  rw [pwSize_inside _ _ _ (by omega)]
+    rw [pwSize_inside m2.size (4096 * hwm) j (by omega), dataPage_length] at h1; omega
+  rw [pwSize_inside m2.size (4096 * hwm) j (by omega)]
   sorry
 
 end proof
