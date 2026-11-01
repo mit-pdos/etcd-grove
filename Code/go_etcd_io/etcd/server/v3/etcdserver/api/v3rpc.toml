@@ -47,6 +47,8 @@ translate = ["!*",
   # the lease rows at the gRPC level (item 6, branch `lease-grpc`): the read handlers, over the
   # server's lease package (`lease.ErrLeaseNotFound`)
   "LeaseServer.LeaseTimeToLive", "LeaseServer.LeaseLeases",
+  # the keep-alive stream (item 6's second stage, branch `lease-keepalive`)
+  "LeaseServer.LeaseKeepAlive", "LeaseServer.leaseKeepAlive",
   # the auth plan's A2 (2026-10-23): auth.go's AuthAdmin (the API layer's admin and
   # authenticated-user guards) and maintenance.go's guarded wrappers (the inner
   # maintenanceServer methods stay names only: the wrappers' specs take their triples)
