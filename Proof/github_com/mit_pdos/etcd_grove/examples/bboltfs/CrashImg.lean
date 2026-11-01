@@ -594,6 +594,86 @@ theorem commitMetaIdle_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8}
     (fun k b hb _ => idleImg_clean hI hb) (fun hv => ?_)
   exact idleImg_slot hI h.dur hc (by omega) (by have := h.lo; rcases s with _ | _ | s <;> omega) hv
 
+/-! ### As obligations on the states of the crash invariant (`Proof/os/CrashSt.lean`) -/
+
+section states
+variable {p : GoString} (s : CSt) (hl : s.bs.length = s.m.size)
+include hl
+
+/-- `init`'s idle states (Open's, W1's narrowings, S1 and its failure). -/
+theorem initIdle_okS (hb : s.busy = .idle) (h : initIdle s.m s.bs) :
+    CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_idle s hb (crashOkQ_idle hl (initIdle_good h))
+
+/-- `init`'s first write in flight. -/
+theorem initW1_okS {t : Nat} {data : List w8} (hb : s.busy = .write t 0 data)
+    (hhi : s.m.hi ≤ 2 ^ 30) (hdl : data.length ≤ 2 ^ 30)
+    (hdur : ∀ i < 2, durOk s.m i (fun _ => False))
+    (hcache : ∀ i < 2, 4096 * i + 80 ≤ s.bs.length → ¬ metaValid (fileMeta (s.bs.map Prod.fst) i))
+    (hz : ∀ k < 8192, data[k]? = some 0) : CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_write s hb hl (crashOkQ_writing hl (initW1_good hhi hdl hdur hcache hz))
+
+/-- `init`'s idle states after S1 (the meta write's narrowings, S2, failures). -/
+theorem initMid_okS (hb : s.busy = .idle) (h : initMid s.m s.bs)
+    (hc : ∀ i < 2, cacheOk s.bs i (fun X => X = bInitMeta i)) : CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_idle s hb (crashOkQ_idle hl (initMid_idle_good h hc))
+
+/-- `init`'s meta write in flight. -/
+theorem initW2_okS {t : Nat} {data : List w8} (hb : s.busy = .write t 0 data) (h : initMid s.m s.bs)
+    (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ s.m.size)
+    (hc : ∀ i < 2, 4096 * i + 80 ≤ s.bs.length → metaValid (fileMeta (s.bs.map Prod.fst) i) →
+      fileMeta (s.bs.map Prod.fst) i = bInitMeta i)
+    (hw : ∀ i < 2, metaValid (fileMeta (writeBytes (s.bs.map Prod.fst) 0 data) i) →
+      fileMeta (writeBytes (s.bs.map Prod.fst) 0 data) i = bInitMeta i) :
+    CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_write s hb hl (crashOkQ_writing hl (initW2_good h hdl hsz hc hw))
+
+/-- A commit's idle states before the meta write. -/
+theorem commitClean_okS (hb : s.busy = .idle) (h : commitClean s.m s.bs) :
+    CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_idle s hb (crashOkQ_idle hl fun img D hI =>
+    commit_clean_img h hI.1 (by have := hI.2.1; have := h.hi; omega)
+      (fun k b hb' _ => idleImg_clean hI hb'))
+
+/-- A commit's writes before the meta write (the data page), in flight: they miss the metas and
+the current root page. -/
+theorem commitClean_write_okS {t off : Nat} {data : List w8} (hb : s.busy = .write t off data)
+    (h : commitClean s.m s.bs) (hdl : off + data.length ≤ 2 ^ 30)
+    (hmiss : ∀ k, (k < 8192 ∨ (4096 * curRoot ((s.bs.map Prod.fst).take 8192) ≤ k ∧
+        k < 4096 * curRoot ((s.bs.map Prod.fst).take 8192) + 4096)) →
+      k < cfLo s.m off ∨ cfHi s.m off data.length ≤ k) :
+    CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_write s hb hl (crashOkQ_writing hl fun img D hW =>
+    commit_clean_img h hW.1 (by have := hW.2.1; have := h.hi; omega)
+      (fun k b hb' hk => writingImg_clean hW hb' (hmiss k hk)))
+
+/-- A commit's growing truncate in flight. -/
+theorem commitClean_trunc_okS {t sz : Nat} (hb : s.busy = .trunc t sz) (h : commitClean s.m s.bs)
+    (hsz : sz ≤ 2 ^ 30) : CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_trunc s hb hl fun img D hI =>
+    commit_clean_img h hI.1 (by have := hI.2.1; have := h.hi; simp only [ftMeta] at *; omega)
+      (fun k b hb' _ => idleImg_clean hI hb')
+
+/-- A commit's meta write in flight. -/
+theorem commitMetaW_okS {t sl : Nat} {data : List w8} {mp : List w8} {N : Meta}
+    (hb : s.busy = .write t (4096 * (1 - sl)) data) (h : commitMeta s.m s.bs mp N sl)
+    (hdl : data.length = 4096) (hhi : 4096 * (1 - sl) + 4096 ≤ 2 ^ 30) (hR : 2 ≤ curRoot mp)
+    (hc : 4096 * (1 - sl) + 80 ≤ s.bs.length → metaValid (fileMeta (s.bs.map Prod.fst) (1 - sl)) →
+      fileMeta (s.bs.map Prod.fst) (1 - sl) = fileMeta mp (1 - sl) ∨
+        fileMeta (s.bs.map Prod.fst) (1 - sl) = N)
+    (hw : fileMeta (writeBytes (s.bs.map Prod.fst) (4096 * (1 - sl)) data) (1 - sl) = N) :
+    CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_write s hb hl (crashOkQ_writing hl (commitMetaW_good h hdl hhi hR hc hw))
+
+/-- A commit's idle states after the meta write (or its failure, or a failed sync of it). -/
+theorem commitMetaIdle_okS {mp : List w8} {N : Meta} {sl : Nat} (hb : s.busy = .idle)
+    (h : commitMeta s.m s.bs mp N sl)
+    (hc : cacheOk s.bs (1 - sl) (fun X => X = fileMeta mp (1 - sl) ∨ X = N)) :
+    CrashOkS (P1 p) p Good (some s) :=
+  crashOkS_idle s hb (crashOkQ_idle hl (commitMetaIdle_good h hc))
+
+end states
+
 end pure
 
 end bboltfs
