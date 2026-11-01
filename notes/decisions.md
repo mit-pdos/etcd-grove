@@ -28529,3 +28529,8 @@ sites); `NewServer`'s configuration premises become `cfgScopeOk` (D3); the close
 workload hypotheses one `Workload` record (D4). Enforcement: `etc/bounds-check.py --check` (gates
 and CI) against a baseline that may only go down, so branches in flight that add a premise of
 these kinds must say why when they rewrite it.
+
+*Corrected 2026-11-01, before any spec moved:* not one constant for the repository. `2 ^ 29` threads
+would have weakened every closed result proved under `n + 2 ≤ 2 ^ 31`. Each spec states the power
+of two its own proof needs, and Perennial's `pow_succ` instance meets it from any smaller one
+(`notes/bounds-plan.md`, B1).

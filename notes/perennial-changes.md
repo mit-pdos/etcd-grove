@@ -825,6 +825,20 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### The thread and receipt bounds as instances (2026-11-01, bounds plan B1; landed `6e3ca6ca3`)
+
+- **Limitation.** A proof needing `threadBound GF` or `receiptBound GF` small took the bound as a
+  premise, restated by every spec up to the adequacy theorem (46 Spec files for the thread bound,
+  the `threadBound`/`receiptBound` chain in 20; `notes/bounds-plan.md`).
+- **Change.** `Perennial/ProgramLogic/Bounds.lean`: the `Prop`-valued classes `ThreadBoundLe GF k`
+  and `ReceiptBoundLe GF k`, with `le`/`le_of`/`lt_of`/`weaken` and `of_eq` for the adequacy
+  theorem (an example in `ThreadTokensTest.lean`; the proof reference's thread-token section).
+  Nothing trusted. Landed as Perennial `6e3ca6ca3`; the pin moved to it on 2026-11-01.
+- **Follow-up, `pow_succ`** (branch `bound-classes-pow`): an instance at `2 ^ e` gives one at
+  `2 ^ (e + 1)` by instance search, so each spec states its own power of two.
+- **Use here.** B1: each spec's section takes the instance at the bound its proof needs, the specs
+  drop the premises, and each closed result builds its instances from its adequacy choice.
+
 ### `fmt.Sprintf`: `%x` of an integer, and named integer types (2026-10-31)
 
 - **Missing (at the pin `6da88b280`).** `fmt.wp_Sprintf` admitted arguments of predeclared basic
