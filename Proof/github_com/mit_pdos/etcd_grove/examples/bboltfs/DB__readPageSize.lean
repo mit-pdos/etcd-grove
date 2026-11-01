@@ -42,13 +42,15 @@ theorem DB.readPageSize.wp_proof
   (try wp_auto)
   ihave HI : (∃ (j : w64), "i" ∷ i_ptr ↦ j ∗
       "Hbuf" ∷ (∃ vs : List w8, buf ↦* vs ∗ ⌜vs.length = 4096⌝) ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ 2⌝ : IProp GF) $$ [i Hbuf]
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ 2 ∧
+        ∀ i < sint.nat j, ¬ metaValid (fileMeta (xs.map Prod.fst) i)⌝ : IProp GF) $$ [i Hbuf]
   · iexists W64 0; iframe; isplitl
     · iexists _; iframe; ipureintro; rw [List.length_replicate]
-    · ipureintro; decide
+    · ipureintro; refine ⟨by decide, by decide, ?_⟩; intro i hi; have h0 : sint.nat (W64 0) = 0 := rfl; omega
   wp_for HI
   wp_if_destruct
-  · rw [show sint.Z (W64 2) = 2 from rfl] at Hif
+  · obtain ⟨Hj0, Hj2, Hjv⟩ := Hj
+    rw [show sint.Z (W64 2) = 2 from rfl] at Hif
     icases Hbuf with ⟨%vs, Hbuf, %Hvs⟩
     ihave %Hbl := ownSlice_len $$ Hbuf
     have hw : 4096 * sint.nat j + 4096 ≤ xs.length := by
@@ -75,9 +77,9 @@ theorem DB.readPageSize.wp_proof
     obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | ⟨rfl, hne⟩⟩ := Hres
     · have hl4 : vs'.length = 4096 := by omega
       ihave %Hpos := ownSlice_ptr_pos buf vs' _ (by intro h; rw [h] at hl4; simp at hl4) $$ Hbuf
-      rw [Hvs]
+      (try rw [Hvs])
       (try wp_auto)
-      rw [hlen]
+      (try rw [hlen])
       (try wp_auto)
       wp_apply wp_pageAt
       · ipureintro; rw [hlen]; exact ⟨Hpos, by decide, by decide⟩
@@ -107,7 +109,7 @@ theorem DB.readPageSize.wp_proof
         iapply HΦ
         iframe
         ipureintro; intro _
-        refine ⟨sint.nat j, ?_, ?_, ?_⟩
+        refine ⟨fun _ => ⟨sint.nat j, ?_, ?_, ?_⟩, fun h => by cases h⟩
         · show (sint.Z j).toNat < 2; omega
         · rw [← hfm]; exact Hif
         · rw [← hfm]; rfl
@@ -122,20 +124,30 @@ theorem DB.readPageSize.wp_proof
         iframe
         isplitl
         · iexists vs'; iframe; ipureintro; exact hl4
-        · ipureintro; constructor <;> word
+        · ipureintro
+          refine ⟨by word, by word, ?_⟩
+          intro i hi
+          have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by
+            show (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1
+            have : sint.Z (j + W64 1) = sint.Z j + 1 := by word
+            omega
+          rw [hj1] at hi
+          rcases Nat.lt_succ_iff_lt_or_eq.1 hi with hi | rfl
+          · exact Hjv i hi
+          · rw [← hfm]; exact Hif
     · cases err with
       | nil => exact absurd rfl hne
       | ok ie =>
       (try wp_auto)
       wp_for_post
+      iapply HΦ
       iframe
-      iexists (j + W64 1)
-      iframe
-      isplitl
-      · iexists vs'; iframe; ipureintro; omega
-      · ipureintro; constructor <;> word
-  · rw [show sint.Z (W64 2) = 2 from rfl] at Hif
+      ipureintro; intro h; cases h
+  · obtain ⟨Hj0, Hj2, Hjv⟩ := Hj
+    rw [show sint.Z (W64 2) = 2 from rfl] at Hif
     (try wp_auto)
     iapply HΦ
     iframe
-    ipureintro; intro h; cases h
+    ipureintro; intro _
+    refine ⟨fun h => (nomatch h), fun _ i hi => Hjv i ?_⟩
+    show i < (sint.Z j).toNat; omega

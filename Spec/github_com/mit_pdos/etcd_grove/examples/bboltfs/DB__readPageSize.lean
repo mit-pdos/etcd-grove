@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.readPageSize()` (`examples/bboltfs/minibolt.go`, db.go's `getPageSize`): reads meta pages 0 and 1 of `db.file` with `ReadAt`, before the file is mapped, and answers the page size of the first that it read and that validates. The file holds at least those two pages (`Open` calls it when `filesz ≥ 4 * pageSize`); the client holds a fraction of their bytes `xs` and of the file's `OsMeta`. A read may fail (an environmental failure), so `ok` says only that the size is that of a valid meta of the two (`fileMeta`). -/
+/- Lean-first (no Rocq counterpart). `db.readPageSize()` (`examples/bboltfs/minibolt.go`, db.go's `getPageSize`): reads meta pages 0 and 1 of `db.file` with `ReadAt`, before the file is mapped, and answers the page size of the first that it read and that validates. The file holds at least those two pages (`Open` calls it when `filesz ≥ 4 * pageSize`); the client holds a fraction of their bytes `xs` and of the file's `OsMeta`. A read may fail (an environmental failure), which is an error (never "no valid meta": `Open` would initialize over the database). Without an error, `ok` says whether a meta of the two is valid (`fileMeta`), and the size is that of the first valid one. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Store
@@ -30,11 +30,13 @@ abbrev DB.readPageSize.spec : Prop :=
       osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path dqm (some m) ∗
       osBytes (GF := GF) d.path 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"readPageSize")) (Val #()))
-  {{ (ps : w64) (ok : Bool), RET (PairV #ps #ok);
+  {{ (ps : w64) (ok : Bool) (err : GoInterface), RET (PairV (PairV #ps #ok) #err);
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       osMeta d.path dqm (some m) ∗ osBytes d.path 0 dqb xs ∗
-      ⌜ok = true → ∃ i < 2, metaValid (fileMeta (xs.map Prod.fst) i) ∧
-        ps = W64 (uint.Z (fileMeta (xs.map Prod.fst) i).pageSize')⌝ }}
+      ⌜err = interface.nil →
+        (ok = true → ∃ i < 2, metaValid (fileMeta (xs.map Prod.fst) i) ∧
+          ps = W64 (uint.Z (fileMeta (xs.map Prod.fst) i).pageSize')) ∧
+        (ok = false → ∀ i < 2, ¬ metaValid (fileMeta (xs.map Prod.fst) i))⌝ }}
 
 end spec
 
