@@ -29013,12 +29013,14 @@ decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
   live, which `RLock` establishes with the share it takes and gives back; the interval stays live
   while held (only the stop's commit, under the write lock, clears it). `UnsafeRange` drops the
   share; `Close` keeps `bOpen γ 1`. Today's statements are corollaries.
-- **Readers draw slots from a pool with a thread token, owned by the readers' owners** (the Bounds
-  rule; the shape of minibolt's `isDB` and rafthttp's `raftPool`). First drafted in the backend's
-  constructor; review round 2 found no client could use it (every reader of `readTx` holds its
-  owner's read lock across `RLock`: mvcc's `s.mu`, auth's `beMu`), so the constructor keeps giving
-  counted slots, local to their owner, and mvcc and auth pool bundles that contain one
-  (`notes/bounds-locks.md`, B2). The open share leaves mvcc's `bkRTx` with decision 1 (Q5).
+- **Readers draw slots from a pool with a thread token** (the Bounds rule; the shape of minibolt's
+  `isDB` and rafthttp's `raftPool`): the backend's constructor builds a pool of `2 ^ 28` slots (at
+  J8a's thread bound) for the readers that hold no lock of their owner's (member, alarm and auth
+  admin reads, `Recover`s), and leaves the rest counted for the owners whose readers nest a slot
+  under their own read lock (auth's `beMu`, mvcc's `s.mu`), which pool bundles (`notes/bounds-locks.md`,
+  B2). Review round 2 dropped the pool on the premise that every reader holds an owner lock;
+  round 3 showed it false. Where the pool lives is the plan's Q2, open. mvcc's `bkRTx` loses its
+  open share for an acquisition guard in the store (Q5).
 - **`rbOwn` is the writer's contents; idleness is a separate predicate.** The auth Draft's
   `rbOwn_split_in` split `rbOwn` into idle parts, false while the holder's own write is pending
   (a held batch with a pending delete: readers still see the key). Chosen: `rbPart γ S r` (the
