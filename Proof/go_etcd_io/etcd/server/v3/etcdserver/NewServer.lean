@@ -422,7 +422,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrhb Hrvalid Hrlok
     Hrstor Hrinfl Hrdpf Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem
-    Hrvs (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
+    Hrvs HwalR (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
     (by simp [srvErM, HρRaft]))
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot']
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta⟩
@@ -531,7 +531,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP, HlP⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -785,7 +785,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · ipureintro; rfl
     iexists T, γf
     iframe Hcpo HT
-  -- the auth store's reader slots: one for the auth applier, one for the KV's (D14i)
+  -- the auth store's reader slots: one for the auth applier (2026-11-01, J8a: unused, `Apply` borrows
+  -- the KV's), one for the KV's (D14i)
   icases replicate_take1 _ _ hM1 $$ HRDs with ⟨HRD, HRDs⟩
   icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, HRDs⟩
   -- (D19g (b)) the auth store's reader slots for request goroutines
@@ -836,9 +837,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist QuotaBackendBytesS
   ipersist WarningApplyDurationS
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
-      cfg.WarningApplyDuration' RD (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [HRD be Hafr]
+      cfg.WarningApplyDuration' (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [be Hafr]
     as %ua ⟨be, Hafr, %up, %uopts, %Hua, %Huopts, Hulate⟩
-  · iframe #; iframe HRD be Hafr
+  · iframe #; iframe be Hafr
   -- the alarm store handed over: its apply contract (D14i)
   ihave #HalA := HalAf $$ Hafr
   (try wp_auto)
@@ -890,7 +891,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15, Hrnwal⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -906,16 +907,27 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexact NodeC
+  -- (2026-10-31) the WAL's open token (`bootOk`'s) at the wrapper's storage, split: the raft
+  -- loop's half and the apply side's
+  ihave Hwt : rnWalTok (srvRAddr s) 1 $$ [Hwalo]
+  · iunfold rnFixed at Hfix
+    iNamed Hfix
+    iunfold rnWalTok
+    iexists rvr.raftNodeConfig'.storage'
+    iframe storageC
+    rw [Hrnwal]; iexact Hwalo
+  icases rnWalTok_split (srvRAddr s) $$ Hwt with ⟨Hwth, Hwtl⟩
   ipersist memberID
   ipersist beHooks
   ipersist stats
-  ihave #Hprocok : srvProcOk γn s id $$ []
+  ihave #Hprocok : srvProcOk γn s id γd $$ []
   · iunfold srvProcOk
     iexists cfg.Logger', bc.cl', sstats, γrn
     rw [← Hid]
     iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind
     ipureintro
-    exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1]⟩
+    exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1],
+      by rw [Hrn1]; (first | (rw [Hid]; exact Hsloc) | (rw [← Hid]; exact Hsloc) | exact Hsloc)⟩
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
   -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
   -- the names raft's names give the member (`RaftNames.reSnapLoc`, `snapDir_init`)
@@ -1274,7 +1286,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
   ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Hsnone]
   · iunfold srvBuildGap
-    rw [Hrn8]
+    rw [Hrn8, show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
     iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn [] Hsnone
     rw [Hrn1, Hrn5, Hrid]; iexact Hminv
   ihave #Hrn' := Hrn
@@ -1380,6 +1392,21 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist EnableDistributedTracingS
   ipersist TracerOptionsS
   ipersist MaxConcurrentStreamsS
+  -- (D22 S-g) the KV's closer, kept; (M2) in compaction mode split into the closer without the
+  -- right and the apply thread's compaction right at `-1` (`srvKVCloserW_cmpRight_of_new`)
+  ihave Hcl0 : srvKVCloser s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) $$ [Hwcl]
+  · unfold srvKVCloser; iexists ws; iframe kv; iexact Hwcl
+  ihave HclR : iprop(|={⊤}=> srvKVCloserW s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) ∗
+      apply.cmpRight (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) (-1)) $$ [Hcl0 Hcr]
+  · cases cmp
+    · imodintro
+      rw [srvKVCloserW_off _ _ (Hkbw rfl)]
+      iframe Hcl0
+      unfold apply.cmpRight
+      simp only [show ¬ mvcc.kbCmpM γw.st.kb from Hkbw rfl, ↓reduceIte]
+      ipureintro; trivial
+    · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr
+  imod HclR with ⟨Hcl, Hcmr⟩
   -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`srvSnapBoot`,
   -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority, the stocks of
   -- the auth store's reader resource and `lgMu`'s reader slots (dropped here until J1a)
@@ -1389,13 +1416,34 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 2 ^ 22 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
+  -- (D22 J1b) the alarm store's `Get`, from its apply contract on the backend (`Tal = True`)
+  ihave #HalG : apply.alarmGetIs alst iprop(True) false $$ []
+  · iapply apply.alarmGetIs_of_ok
+    iapply apply.alarmGetOk_of _ γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook
+      (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be))
+    iunfold alarmApplyOk at HalA
+    iapply HalA $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := cmp } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
+      %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] []
+    · ipureintro; exact Hγw.2.2.1
+    · ipureintro; exact Hhknn
+    · iunfold rwLens
+      iintro !> Hrw
+      iunfold srvRestRWH at Hrw
+      iunfold srvObjsOn at Hrw
+      icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
+      isplitl [Hrw Hal]
+      · iframe Hrw Hal
+      iintro ⟨Hrw, Hal⟩
+      iunfold srvRestRWH
+      iunfold srvObjsOn
+      iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt HRDstock Hlgstock]
+      ρ.rd $$ [Hγt Hlgstock Hopen Hcl Hpath]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
-    isplitr [HRDstock Hlgstock]
+    isplitr [Hlgstock Hopen Hcl Hpath]
     · icases Hbh with ⟨%lgh, #Hbh'⟩
       ihave #Hfix' := Hfix
       iunfold rnFixed at Hfix'
@@ -1411,7 +1459,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iframe HalS HalA HisAuth HauR Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
-        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdbo, Hmmap, Hbuq, ?_, Hdirps.1⟩
+        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, Hcmp0.symm, HbP,
+          Hci0, HhP, HPwf, HPlim, HlP, Hwq, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
@@ -1420,11 +1469,24 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · iunfold lessorLookupOk; iexact Hllk
       isplitr
       · iexists _; iexact Hvcn
-      iunfold srvMembersDir; iexact Hmembers
+      isplitr
+      · iunfold srvMembersDir; iexact Hmembers
+      isplitr
+      · rw [Hγw.2.1]; iexact Hlinv
+      iexists ws, γw; iframe kv Hws
+    isplitl [Hlgstock]
     · iunfold srvSnapStock
-      iexists _, _
-      iframe HRDstock Hlgstock
-      ipureintro; constructor <;> omega
+      iexists _
+      iframe Hlgstock
+      ipureintro; omega
+    -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
+    -- alarm store's `Get`; (2026-11-01) the KV's closer, the backend file's directory entry
+    iunfold srvSnapRes
+    iexists ({ d with cm := cmp } : mvcc.KBReal), alst, iprop(True), false, cfg.DataDir'
+    iframe HSC Hopen alarmStore HalG DataDirS Hpath
+    isplitr
+    · ipureintro; exact Hγw.2.2.1
+    iexact Hcl
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
   ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]
   · iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact Hbmr2
@@ -1452,7 +1514,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D21 M5) the server is member `id` of the network: `RaftHandler`'s premise
   ihave #Hnm : srvNetMember γn s id ⟨t, c⟩ $$ []
   · iunfold srvNetMember
-    iframe Hprocok
+    isplitr
+    · iexists γd; iexact Hprocok
     simp only
     iframe Htrf
     isplitr
@@ -1525,21 +1588,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists astl, c
     rw [← Hastl]
     iframe authStore Hc Hau
-  -- (D22 S-g) the KV's closer, kept; (M2) in compaction mode split into the closer without the
-  -- right and the apply thread's compaction right at `-1` (`srvKVCloserW_cmpRight_of_new`)
-  ihave Hcl0 : srvKVCloser s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) $$ [Hwcl]
-  · unfold srvKVCloser; iexists ws; iframe kv; iexact Hwcl
-  ihave HclR : iprop(|={⊤}=> srvKVCloserW s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) ∗
-      apply.cmpRight (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) (-1)) $$ [Hcl0 Hcr]
-  · cases cmp
-    · imodintro
-      rw [srvKVCloserW_off _ _ (Hkbw rfl)]
-      iframe Hcl0
-      unfold apply.cmpRight
-      simp only [show ¬ mvcc.kbCmpM γw.st.kb from Hkbw rfl, ↓reduceIte]
-      ipureintro; trivial
-    · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr
-  imod HclR with ⟨Hcl, Hcmr⟩
   -- (M2) the boot log's certificate (the compactor's first lower bound, `srvRevLb … 0`)
   ihave ⟨Hkvw, #Hc0⟩ := txn.kvWriter_cert _ _ _ $$ Hkvw
   -- (M2) the compaction's write-back supply: `True` off; on, the stock of the `N` tokens set aside
@@ -1578,11 +1626,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists ws, γw
     simp only
     iframe Hpool kv Hws Htag
-  isplitl [Hcl]
-  · -- (D22 S-g) the KV's closer, kept (until then dropped here)
-    iexact Hcl
-  -- (D22 S-j2) the backend file's directory entry, `bootOk`'s, kept
-  iframe Hpath
+  -- (D22 S-g, S-j2) the KV's closer and the backend file's directory entry: in the built part
+  -- since D22 J1b (`srvSnapBoot`)
   unfold srvBuiltG
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr
@@ -1675,14 +1720,19 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ipureintro; simp
   isplitr
   · -- `#Hsab`: `msgSnapC`, a bag of raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed)
+    -- (2026-10-31, S1) the raft node's bag and the started transport
     unfold srvApplyAllBuilt
     iexists _
-    iframe NHmsc
-    iunfold isRNMsgSnapC at NHmsci
-    icases NHmsci with ⟨%γmc, #Hmcb⟩
-    iframe Hinfl
-    iexists γmc, _
-    iframe Hmcb
+    iframe NHmsc Hinfl
+    isplitr
+    · iexists γrn
+      iframe NHmsci
+      ipureintro; simp [Hrn1, HρRaft]
+    isplitr
+    · iexists (transportIface t), γn, id, srvTrKey γn γk, iprop(False)
+      iframe Htrf Htrall
+      ipureintro; rw [Hγn.1, ← hργ]
+    ipureintro; exact ⟨Hc0, Hlog0⟩
   isplitr
   · -- `#Hkvi`
     unfold Perennial.named
@@ -1707,6 +1757,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
+  isplitl [Hwth]
+  · iexact Hwth
+  isplitl [Hwtl]
+  · iexact Hwtl
+  isplitr
+  · ipureintro; exact Hdisk
   isplitr
   · ipureintro; rfl
   isplitl [Hsend]
@@ -1818,7 +1874,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         rw [Hrvs, GMap.elem_of_list_to_set] at hf
         exact (Hdirps.1 f).2 hf
       · exact srvMemOk_boot _ _ ps (by rw [HρRaft]) (by rw [hργ]; unfold SrvRaft.cfg; rw [Hrvs])
-          Hrnodup (by omega) (by rw [hργ]; exact Hrbok)
+          Hrnodup (by have := Hdirps.2; omega) (by rw [hργ]; exact Hrbok)
       · unfold SrvRaft.cfg
         rw [Hrvs, GMap.elem_of_list_to_set, Hid, ← Hrid]
         exact Hrmem
@@ -1986,8 +2042,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · iintro %w ⟨HΦ', %Hw, HP⟩
         subst Hw
         iapply HΦ' $$ HP
-  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) [] Hbo
-  · ipureintro; rfl
+  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) Hbo
   icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
   obtain ⟨hns, hcr⟩ := Hz trivial
   subst hns hcr
@@ -2346,7 +2401,7 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, H13, H14, -⟩)
+    H8, H9, H10, H11, H12, -⟩)
   · ileft; iexact Hl
   iright
   isplitr
@@ -2354,7 +2409,7 @@ theorem NewServer.wp_proof
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
   · ipureintro; exact ⟨H1.1, H1.2.1⟩
-  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
 
 
 

@@ -41,7 +41,7 @@ abbrev StartCompactingServer.spec : Prop :=
   γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null → 0 < sint.Z retention →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       threadTok ∗
       -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock

@@ -47,7 +47,7 @@ abbrev startServer.spec : Prop :=
   γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://127.0.0.1:23926" ∈ dir id →
   lg ≠ null →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       threadTok ∗
       (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ' : SrvRaft),

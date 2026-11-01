@@ -254,6 +254,12 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
     "Hbw" ∷ sto.wal' ↦ bw ∗ "Hbc" ∷ bs.cluster' ↦ bc ∗ "Hbv" ∷ bs.raft' ↦ bv ∗
+    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`bootstrapWAL`'s `ReadAll`),
+    -- which `NewStorage`'s contract takes
+    "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
+    -- (2026-10-31, the user's decision) and its open token, whole: the WAL `bootstrap` opened is the
+    -- server's (`storage.walOpen`; the raft loop's `Save`s and `Close`, the apply thread's `SaveSnap`)
+    "Hwalo" ∷ storage.walOpen bw.w' 1 ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
@@ -357,13 +363,17 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
-    -- the backend of the real instance, with the server's hooks
+    -- the backend of the real instance, with the server's hooks (2026-11-01, J8a-1, approved: and
+    -- its parameters `newBackend` configures, well-formed with the batch limit `openLimit cfg`, as
+    -- `OpenSnapshotBackend`'s `openPre` requires of a snapshot's backend)
     "%Hbe" ∷ ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be ∧
       mvcc.bridgeParams d.P ∧ ciKeys d.P ∧ storage.hooksParams d.P ∧
+      d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧
       -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook
       -- keys: what a revocation's deletions from it take (`mvcc.storeRb`)
       mvcc.leaseParams d.P⌝ ∗
+
     -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
     -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
     -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty
@@ -462,9 +472,10 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
-      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.id ms γs (W64 0) (W64 0) := by
   subst Hms0
   iintro #Hpkg #Hrn #Hinv Hnone
+  ihave #Hinv0 := Hinv
   iunfold memStorInv at Hinv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
@@ -489,11 +500,12 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   have Hsv0 := Hsv.2 rfl
   subst Hsv0
   subst Herr
-  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone]
+  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] []
   · ipureintro
     exact ⟨rfl, rfl, Hnn.1, Hnn.2⟩
   · iapply epCsOk_of_csOptA $$ Hcs
   · iexact Hnone
+  · iexact Hinv0
 
 end snap
 

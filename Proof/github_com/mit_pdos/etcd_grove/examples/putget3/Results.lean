@@ -59,7 +59,7 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget3.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     (n : Nat)

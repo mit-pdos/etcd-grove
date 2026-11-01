@@ -403,7 +403,7 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
       savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
       savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗ certLink γ.raft sn := by
   iintro #Hci #Hsv #Hgk
-  have HcN : raftCertN γ.raft = N := HU.2.2.1
+  have HcN : raftCertN γ.raft = N := HU.2.1
   unfold certLink storCertOk
   isplitr
   · iintro !> %sv %E %HE Hc
@@ -465,12 +465,11 @@ private theorem wp_StartNode_impl
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
   icases Hcl' with ⟨%HU, #Hci, #Hpool⟩
-  have Hsl := HU.2.1
   have Hdyn := Hmr.1.2.2.1
   have Hns : γ.raft.reNoSnap = false := Hmr.1.2.2.2.1
   obtain ⟨h0, h1, Hmd⟩ := Hmr.mode
   have HdynOk : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true := fun γn h => by
-    rw [h.2.2.2, Hmd]; rfl
+    rw [h.2.2, Hmd]; rfl
   -- the boot bundle
   icases Hboot with ⟨%i, %Rb, %Hi, HRb, #HFI, #HLI, #HIS⟩
   cases Hi
@@ -595,7 +594,7 @@ private theorem wp_StartNode_impl
       exfalso; exact absurd h (by simp [bootPState, initPState])
   iintro !> %nd ⟨%γn, %n, %Hf, HQ, #Hnode, Hdrv, Hlive, Hcf, Hpeers⟩
   obtain ⟨Hγr, Hγb, Hγs, Hmd', Hsn', Hnd', Hd1, Hd2, Hd3, Hd4, Hd5⟩ := Hf
-  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hsl, Hmd'⟩
+  have Hnok : NodeOk γ γn := ⟨Hγr, Hγb, Hmd'⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   ihave #Htb : nodeTabOk (GF := GF) γ cv.ID' γn $$ []
   · unfold nodeTabOk

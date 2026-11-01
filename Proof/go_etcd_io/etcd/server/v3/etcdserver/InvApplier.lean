@@ -417,6 +417,39 @@ theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
 def epConfState (ep cs : Loc) : IProp GF :=
   iprop(epConfStateAddr ep ↦ cs ∗ epCsOk cs)
 
+/-- (2026-10-31, the snapshot track's S5) **`ep.confState` reports the voters** of the server's raft
+names `γs` (persistent): a read-only conf state of the cluster's simple membership, raft's answer to
+a validated conf change (`applyConfChange`; `epCsCfg` at the read names). -/
+def epCsVoters (γs : ServerRaftNames) (cs : Loc) : IProp GF :=
+  iprop(∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜confStateIs c (Membership.simple γs.raft.cfg)⌝)
+
+instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
+    Persistent (epCsVoters (GF := GF) γs cs) := by
+  unfold epCsVoters; infer_instance
+
+/-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
+nothing applied yet, or it reports the voters (the log's first entry is a conf entry,
+`srv_first_entry`, that validates on a fresh backend, `ccValidOn_boot`). -/
+def epCsAt (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) : IProp GF :=
+  iprop(⌜L = []⌝ ∨ epCsVoters γs cs)
+
+instance epCsAt_persistent (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    Persistent (epCsAt (GF := GF) γs L cs) := by
+  unfold epCsAt; infer_instance
+
+theorem epCsAt_voters (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    epCsVoters (GF := GF) γs cs ⊢ epCsAt γs L cs := by
+  iintro #H; iunfold epCsAt; iright; iexact H
+
+theorem epCsAt_ne (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) (h : L ≠ []) :
+    epCsAt (GF := GF) γs L cs ⊢ epCsVoters γs cs := by
+  iintro #H
+  iunfold epCsAt at H
+  icases H with (%h' | #H)
+  · exact absurd h' h
+  · iexact H
+
 end defs
 
 section defs_lc

@@ -65,10 +65,11 @@ def srvPeersCover (γs : ServerRaftNames) (lid : w64) (_A : List EntryModel) (pr
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
-members of raft's boot configuration, of at most `2 ^ 62` members. -/
+members of raft's boot configuration, of fewer than `2 ^ 61` members (2026-10-31, the snapshot
+track: what certifying a snapshot takes, `SnapListsOk`; until then at most `2 ^ 62`). -/
 def srvMemOk (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
   (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.cfg) ∧
-    GMap.size γs.raft.cfg ≤ 2 ^ 62
+    GMap.size γs.raft.cfg < 2 ^ 61
 
 /-- A normal entry keeps the members' ids. -/
 theorem restEntry_normal_memKeys (c0 : w64) (m : EntryModel) (r : apply.RestM) (ht : m.typ = W32 0)
@@ -189,7 +190,7 @@ theorem memBoot_keys (bootLog : List EntryM) (S : GSet w64)
 /-- **The rest model's members at the start of a new cluster** are the boot peers (`srvBootLogOk`). -/
 theorem srvMemOk_boot (γs : ServerRaftNames) (c0 : w64)
     (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.cfg = GMap.listToSet ps)
-    (hnd : ps.Nodup) (hlen : (ps.length : Int) ≤ 2 ^ 62) (hb : srvBootLogOk ps γs.raft.boot) :
+    (hnd : ps.Nodup) (hlen : (ps.length : Int) < 2 ^ 61) (hb : srvBootLogOk ps γs.raft.boot) :
     srvMemOk γs c0 [] := by
   unfold srvMemOk
   rw [hpre, List.append_nil, restModel_nil, hcfg]
@@ -264,6 +265,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (2026-10-31, #11) **Fewer than `2^61` voters** (`srvMemOk`'s bound), the resource kept. -/
+theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg < 2 ^ 61⌝ := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+    Hmr, %Hp, #Hd⟩
+  isplitl
+  · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
+    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe
+    isplitr
+    · ipureintro; exact H7
+    ipureintro; exact Hp
+  ipureintro; exact Hp.2.2
 
 /-- **A normal entry keeps the resource** (the peers and the members as they are). -/
 theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
@@ -418,7 +434,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
             by_cases hkk : cm.nodeId = k
             · subst hkk; exact hin
             · rw [GMap.lookup_insert_ne _ _ hkk] at hk; exact Hp.2.1 k hk)
-        _ ≤ 2 ^ 62 := Hp.2.2
+        _ ≤ 2 ^ 62 := by have := Hp.2.2; omega
   iintro %v3 Hmr
   have hpa : ∀ bk, ccPeersAfter v3 cm bk prs = prs := by
     intro bk; unfold ccPeersAfter

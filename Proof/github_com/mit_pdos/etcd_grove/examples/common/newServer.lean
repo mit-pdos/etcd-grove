@@ -105,7 +105,7 @@ theorem newServer.wp_proof
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr
@@ -206,7 +206,7 @@ theorem newServer.wp_proofCompact
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr

@@ -70,6 +70,10 @@
   approved") `storage.dbOpensOk`: bbolt's `Open` succeeds on the files the server opens after its
   start, which the snapshot path's `OpenBackend` needs; and, in `bootstrap`'s contract (`bootOk`'s
   `Hpath`), the backend file's directory entry, which `NewServer` returns for that path.
+  (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
+  premise") Widened to `storage.diskOk`, the one disk premise: with `dbOpensOk`, the snapshot's
+  files and the storage's releases (`snapOpensOk`) and the WAL's snapshot records and close
+  (`walSaveOk`, `walCloseOk`); and `bootOk` gives the WAL's open token (`storage.walOpen`).
 
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
@@ -233,7 +237,7 @@ abbrev NewServer.spec : Prop :=
       -- succeeds on the database files the server opens after its start (`storage.OpenBackend`'s
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
-      "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -252,11 +256,8 @@ abbrev NewServer.spec : Prop :=
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
-          -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
-          srvKVCloserW srv E ∗
-          -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
-          -- `applySnapshot`'s `OpenSnapshotBackend`
-          backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+          -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
+          -- directory entry are in the built part (`srvSnapBoot`'s `srvSnapRes`)
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk))
             γrn b (W64 0)
             (W64 0) bootKV N ∗
@@ -405,7 +406,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- succeeds on the database files the server opens after its start (`storage.OpenBackend`'s
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
-      "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -426,11 +427,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           srvWatchBuilt srv E ∗
-          -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
-          srvKVCloserW srv E ∗
-          -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
-          -- `applySnapshot`'s `OpenSnapshotBackend`
-          backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+          -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
+          -- directory entry are in the built part (`srvSnapBoot`'s `srvSnapRes`)
           srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk))
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗
@@ -586,7 +584,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- succeeds on the database files the server opens after its start (`storage.OpenBackend`'s
       -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
-      "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
+      "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -607,11 +605,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           srvWatchBuilt srv E ∗
-          -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
-          srvKVCloserW srv E ∗
-          -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
-          -- `applySnapshot`'s `OpenSnapshotBackend`
-          backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+          -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
+          -- directory entry are in the built part (`srvSnapBoot`'s `srvSnapRes`)
           srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk))
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗

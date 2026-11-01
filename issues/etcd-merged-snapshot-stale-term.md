@@ -196,6 +196,9 @@ candidate: issues/upstream/etcd-merged-snapshot-stale-term/
      `T`, both are frozen until a higher term. So content applied while the node is still at
      `m.Term` is a prefix of the term-`m.Term` leader's log, committed at `m.Term`. This also
      excludes the second shape, which needs the sender at a later term.
+     Since 2026-10-31 the fork's merge has a second, proof-only guard next to it: the
+     message's snapshot index at most `ep.appliedi` (`goose-lean-snapguard` 633036387;
+     `notes/decisions.md`, "The merged snapshot's index guard"); not a fix of this issue.
   2. Read raft's status in `applyAll` (`s.r.Status()`) and merge only if it is leader at
      `m.Term` (`notes/decisions.md` D22a (D)). Same effect, but it goes through `node.Status`.
      etcd's cached `s.isLeader()` is not enough (it passes after a re-election at a later term),

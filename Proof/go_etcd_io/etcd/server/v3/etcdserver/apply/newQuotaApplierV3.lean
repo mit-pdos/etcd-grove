@@ -311,7 +311,7 @@ theorem apply.newQuotaApplierV3.wp_proof
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
     imodintro
-    iintro %Φ' ⟨#Hw, HA, #Haf⟩ HΦ'
+    iintro %Φ' ⟨#Hw, HA, #Hlend, #Haf⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty) (m := go!"Apply")]
     wp_call
     wp_auto

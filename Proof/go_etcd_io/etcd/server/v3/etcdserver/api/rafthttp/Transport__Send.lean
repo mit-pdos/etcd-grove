@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.String
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -193,17 +194,17 @@ theorem rafthttp.Transport.Send.wp_proof
         rw [_root_.decide_eq_false Hlgnn]
         haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
         haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
-        repeat' (first
-          | (wp_apply hGetType.1 ml _ _ _ st $$ [] as -; iframe #)
-          | (ihave #HT := hTypeString st.msg.Type'
-             iunfold fmt.stringMethodSpec at HT
-             wp_apply HT as %_)
-          | (wp_apply hIDString as %_ -)
-          | (wp_apply hIDStringPtr _ _ _ $$ [to] as %_ ⟨to, -⟩; iexact to)
-          | (wp_apply hZString as %_ -)
+        repeat' (first_callee
+          | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [] as -; iframe #)
+          | "String" => (ihave #HT := hTypeString st.msg.Type'
+                         iunfold fmt.stringMethodSpec at HT
+                         wp_apply HT as %_)
+          | "String" => (wp_apply hIDString as %_ -)
+          | "String" => (wp_apply hIDStringPtr _ _ _ $$ [to] as %_ ⟨to, -⟩; iexact to)
+          | "zap.String" => (wp_apply hZString as %_ -)
           | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr;
               (ipureintro; rfl); iintro %_ ⟨-, -⟩)
-          | (wp_apply hDebug lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+          | "Debug" => (wp_apply hDebug lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
           | wp_auto)
         next_msg
   · (try wp_auto)

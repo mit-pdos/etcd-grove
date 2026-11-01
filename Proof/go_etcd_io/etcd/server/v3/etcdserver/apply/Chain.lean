@@ -438,6 +438,41 @@ theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
   iintro Hrd
   iframe
 
+/-- (2026-11-01, J8a: the reader resource borrowed per call) **`A` lends the auth store's reader
+resource**: the auth layer's `Apply` borrows `E.RD` from its caller's resources `A` for the admin
+check (`IsAdminPermitted`) and gives it back; the apply thread's `A` holds it in `kvOwn`
+(`rdLend_kvOwn`). Until then the auth layer's mutex held a copy, so each applier made took one. -/
+def rdLend (E : AEnv GF) (A : IProp GF) : IProp GF :=
+  iprop(□ (A -∗ E.RD ∗ (E.RD -∗ A)))
+
+instance rdLend_persistent (E : AEnv GF) (A : IProp GF) : Persistent (rdLend E A) := by
+  unfold rdLend; infer_instance
+
+open Iris.ProofMode in
+/-- A lender framed with more resources (the auth layer's `authInfo`, `L hs`). -/
+theorem rdLend_frame (E : AEnv GF) (A X : IProp GF) : rdLend E A ⊢ rdLend E iprop(A ∗ X) := by
+  unfold rdLend
+  iintro #Hl
+  imodintro
+  iintro ⟨HA, HX⟩
+  ihave ⟨Hrd, Hb⟩ := Hl $$ HA
+  iframe Hrd
+  iintro Hrd
+  iframe HX
+  iapply Hb; iexact Hrd
+
+open Iris.ProofMode in
+/-- The apply thread's resources lend it through their `kvOwn`. -/
+theorem rdLend_kvOwn (E : AEnv GF) (X : IProp GF) (log : mvcc.Log) (Y : IProp GF) :
+    ⊢ rdLend E iprop(X ∗ kvOwn E log ∗ Y) := by
+  unfold rdLend
+  iintro !> ⟨HX, Hkv, HY⟩
+  ihave ⟨Hrd, Hb⟩ := kvOwn_rd E log $$ Hkv
+  iframe Hrd
+  iintro Hrd
+  iframe HX HY
+  iapply Hb; iexact Hrd
+
 open Iris.ProofMode in
 /-- The auth store's reader resource and the lease owner's resource (`leasesLive`'s
 `lease.lessorUser`, at the item map of the log's state) of the apply thread's KV resources, lent
@@ -1338,7 +1373,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
     -- auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF),
-      {{ irrWrapperIs r rq skip ∗ A ∗
+      {{ irrWrapperIs r rq skip ∗ A ∗ rdLend E A ∗
           ({{ chainRes c (.ok ai) (principalOf rq) ∗ A }} (App (App (Val #af) (Val #r)) (Val #v3))
             {{ (ar : Loc), RET #ar; chainResAny c (.ok ai) ∗ B ar }}) }}
         (App (App (App (Val #(methods ai.ty go!"Apply" ai.v)) (Val #r)) (Val #v3)) (Val #af))
@@ -1419,15 +1454,16 @@ def authInfoIdle (p : Loc) : IProp GF :=
     (zeroValDef : go_etcd_io.etcd.server.v3.auth.AuthInfo))
 
 /-- **The `*authApplierV3` `p`**: its inner applier, auth store and lessor, read-only, with
-their contracts, and its mutex, whose resource is its `authInfo` and a reader resource of the auth
-store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
+their contracts, and its mutex, whose resource is its `authInfo` (2026-11-01, J8a: until then also a
+reader resource of the auth store, `E.RD`, unit A2, which `Apply` now borrows from its caller,
+`rdLend`). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
       isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
       isApplyLessor le E.s E.γ E.P E.f E.RO E.RW) ∗
-    sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoIdle p ∗ E.RD))
+    sync.isMutex (structFieldRef authApplierV3 go!"mu" p) (authInfoIdle p))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :
     Persistent (authIs E p inner) := by

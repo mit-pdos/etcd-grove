@@ -47,6 +47,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.putgetc',
+         # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
+         'github_com.mit_pdos.etcd_grove.examples.compactkv',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
@@ -2076,6 +2078,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putgetc':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.compactkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':

@@ -1354,6 +1354,14 @@ P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 the lemma in `Bag.lean`, next to `bag_send_au`.
 
 
+## A bag channel's non-blocking receive (2026-10-31, S1)
+
+The receive counterpart of the previous entry: `applyAll`'s `select` on `msgSnapC` (with a
+`default`) needs a non-blocking receive's atomic update from a bag. Proved locally as
+`chanBag_nbRecv : isChanBag γ ch P ⊢ (∀ v, P v -∗ Φ v true) -∗ nonblockingRecvAuInner γ Loc Φ`
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapSendBranch.lean`, generic). Proposed change: the
+lemma in `Bag.lean`, next to `bag_send_au` (with `bag_nb_send_au`).
+
 ## A typed points-to's fraction validity (2026-10-31, lease-keys Part B)
 
 `typedPointsto l v dq` has value agreement (`typedPointsto_combine_sep_gives`, `⌜v1 = v2⌝`) but

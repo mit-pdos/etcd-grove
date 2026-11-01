@@ -53,7 +53,7 @@ abbrev newServer.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   lg ≠ null → retention = W64 0 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
@@ -82,7 +82,7 @@ abbrev newServer.specCompact : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   lg ≠ null → 0 < sint.Z retention →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock

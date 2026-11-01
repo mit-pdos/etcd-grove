@@ -40,7 +40,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   intro E γr b ss wal cl dq bv cv lok γs pre pv ps ctxs Q
   letI := srvStor (GF := GF) γr
   intro Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
-    Hps Hpsne Hnodup H0 Hpslen Hid Hvs
+    Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal
   wp_start as Hpre
   iNamed Hpre
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
@@ -96,6 +96,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `serverstorage.NewStorage(b.lg, wal, ss)`
   iunfold rnNewStorageOk at Hns
   wp_apply Hns $$ %bv.lg' %wal %ss [] as %st ⟨#Hst, %Hstss⟩
+  · ipureintro; exact Hwal
   (try wp_auto)
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs

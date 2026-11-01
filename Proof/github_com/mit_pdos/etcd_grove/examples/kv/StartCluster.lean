@@ -236,7 +236,7 @@ theorem StartCluster.wp_proof
   -- receipts), then the store's invariant from the client's share, with the client's half of the
   -- store's state and the sequence-number tokens, and the store's registry of the snapshots made
   imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) Hrb
-    with ⟨%γr, -, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
+    with ⟨%γr, %Hγc, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
@@ -325,6 +325,8 @@ theorem StartCluster.wp_proof
       unfold kvPeerOk
       iexists n
       iframe HisNode
+      isplitr
+      · ipureintro; rw [Hγc.2]
       ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),

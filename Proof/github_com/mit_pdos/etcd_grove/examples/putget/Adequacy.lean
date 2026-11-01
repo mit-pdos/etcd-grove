@@ -20,7 +20,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
   bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
   `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
-  `storage.dbOpensOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
+  `storage.diskOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
   and the execution's length (`n + 2 ≤ 2 ^ 31`: the thread bound and, with `N = n + 1`, the
   time-receipt bounds; `n + 7 ≤ backend.wbInit`: the backend's write-back budget `bootstrap`'s
   contract gives);
@@ -122,7 +122,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
     (n : Nat)

@@ -76,7 +76,7 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)

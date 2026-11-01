@@ -18,7 +18,7 @@ package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
 * pure facts of the program and its environment: `BootFacts id₁ id₂ id₃ bootLog` (the member ids
   and the bootstrap log Go computes, the ids' 16 low bits distinct and not `0`), `ckptEffectsOk`,
   `authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
-  `storage.dbOpensOk` (D22 S-j2),
+  `storage.diskOk` (D22 S-j2),
   `namesUnclaimed`/`addrsUnclaimed` (D19d), and the execution's length (`n + 2 ≤ 2 ^ 31`;
   `n + 7 ≤ backend.wbInit`);
 * the semantics, as putget's;
@@ -117,7 +117,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget3.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     (n : Nat)

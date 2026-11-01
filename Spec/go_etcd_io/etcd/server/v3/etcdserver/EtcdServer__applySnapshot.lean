@@ -148,14 +148,12 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        -- (S8d's named premises, S-j1's: `NewServer`'s contracts of the stores on whichever backend)
        alarmApplyOk al ∗ authApplyOk ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
        lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
-       -- (S-j1's) a second reader resource of the auth store: `NewUberApplier` takes one, the KV's
-       E.RD ∗
        □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', tI)⌝ →
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN) (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R A' ss γt γn t c rs idm lp al ast cl Tal }} 
+    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal }} 
 
 end spec
 

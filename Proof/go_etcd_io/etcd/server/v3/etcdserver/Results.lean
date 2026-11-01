@@ -1782,6 +1782,12 @@ theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
     (EtcdServer.applyEntries.spec_on EtcdServer.wp_applyEntries)
     EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency
     EtcdServer.wp_snapshotIfNeededAndCompactRaftLog
+    raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata
+    raftpb.SnapshotMetadata.wp_GetIndex EtcdServer.wp_createMergedSnapshotMessage
+    EtcdServer.wp_sendMergedSnap mvcc.store.wp_Commit backend.backend.wp_Snapshot
+    storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
+    backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
+    schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
 /-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
 `isServerRunOn`, every scheduled job `server_apply_all_on` over the apply thread's mode-`on`

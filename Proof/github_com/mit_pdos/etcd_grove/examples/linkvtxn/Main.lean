@@ -92,7 +92,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (linkvtxnDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)`

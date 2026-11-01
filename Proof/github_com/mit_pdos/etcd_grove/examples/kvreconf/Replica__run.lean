@@ -324,7 +324,7 @@ theorem Replica.run.wp_proof
       iunfold readyRest at Hrest
       icases Hrest with ⟨%msl, #Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
       iunfold readySnap at Hsnap
-      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven⟩
+      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, -⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
       subst Hce0
       wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩

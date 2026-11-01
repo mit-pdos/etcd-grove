@@ -83,6 +83,16 @@ tracked buckets `bk` (`membersOfBk`); `true` when it returns `nil`. -/
 def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : ConfChangeM) : Bool :=
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
+/-- **Buckets with no records decode to no members** (2026-10-31, the user's decision; a trust-boundary
+axiom on the opaque `membersOfBk`, `notes/axiom-review/members-empty.md`: survives). `readMembersFromBackend`
+(`server/storage/schema/membership.go:91-123`) makes both maps and writes them only in the
+`UnsafeForEach` callbacks over the `members` and `members_removed` buckets, so over buckets with no
+keys (or absent ones, which read empty) it returns two empty maps and no error. What makes a fresh
+backend's first boot `AddNode` validate (`ccValidOn_boot`). -/
+axiom membership.membersOfBk_empty [GooseExts] (bk : GMap GoString backend.BktData)
+    (hm : (bk.lookup go!"members").getD ∅ = ∅) (hr : (bk.lookup go!"members_removed").getD ∅ = ∅) :
+    membership.membersOfBk bk = (∅, ∅)
+
 /-- **The member an `AddNode`'s `AddMember` adds** (D43 M5e, 2026-10-26): the context's member
 (`ccMemberOf`) with the change's node as its id (`json.Unmarshal`'s `ID` field, which
 `applyConfChange` checks against the change's `NodeId`). -/
@@ -216,6 +226,18 @@ theorem restModel_keep [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List 
 
 theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
     restModel c0 bootLog [] = restBoot bootLog := rfl
+
+/-- (2026-10-31, S5) **A fresh backend validates an `AddNode`**: its members buckets are empty
+(`membersOfBk_empty`), so no member, no removed one, no peer URL taken. -/
+theorem ccValidOn_boot [GooseExts] (m : ConfChangeM) (ht : m.type = W32 0) :
+    membership.ccValidOn restBootBk m = true := by
+  unfold membership.ccValidOn
+  rw [membership.membersOfBk_empty restBootBk (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
+    (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])]
+  simp only [decide_eq_true_eq]
+  refine ⟨by simp, ?_⟩
+  rw [if_pos ht]
+  refine ⟨by simp, fun u _ ⟨k, pus, hk, _⟩ => by simp at hk⟩
 
 theorem restModel_append [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (m : EntryModel) :

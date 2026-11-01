@@ -197,10 +197,10 @@ theorem ModeDec.uniq {γ : Cluster} {c1 c2 : Membership} {g1 g2 : GName}
   exact cfgOf_inj (Option.some.inj e')
 
 /-- What a cluster's names say (the `isCluster` of `InvNodeRule`): its nodes in the dynamic mode of
-the client's decisions, with snapshots and a registry of them, no snapshot directories, the storages'
-certificate registries in `N`. -/
+the client's decisions, with snapshots and a registry of them, the storages' certificate registries
+in `N`. (2026-11-01, J8a: the snapshot directories the client's, `Cluster.snapLoc`; until then none.) -/
 def UniNames (γ : Cluster) (N : Namespace) : Prop :=
-  (∃ c0 g, ModeDec γ c0 g) ∧ γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧
+  (∃ c0 g, ModeDec γ c0 g) ∧ γ.raft.reCertNs = N ∧
     -- (2026-10-29, stage U5) no empty `ConfChangeV2` in the bootstrap log (it is empty)
     (∀ x ∈ γ.raft.reBoot, ¬ IsEmptyV2 x)
 
@@ -1137,12 +1137,11 @@ theorem committedAtTerm_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE 
   ipureintro; rw [strip_length]; exact Hlen
 
 /-- (2026-10-27) What a hard state says, the committed log delivered with it of length `n` (raft's
-`hsWit`, as the client sees it). (2026-10-28, stage U3d) Or nothing outside raft's no-snapshot mode:
-after a snapshot `Ready` the witness bounds the log before the snapshot, not the one delivered up to
-it (a dynamic cluster in the no-snapshot mode keeps `nodeDriver_hardStateCommitted`). -/
+`hsWit`, as the client sees it). (2026-10-28, stage U3d, until 2026-10-31: or nothing outside raft's
+no-snapshot mode, the witness of a snapshot `Ready` bounding the log before the snapshot; it now
+bounds the one delivered up to it, the snapshot's index being at most the commit index.) -/
 def hsCommitted (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) : IProp GF :=
-  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝ ∨
-    ⌜γ.raft.reNoSnap = false⌝)
+  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝)
 
 instance hsCommitted_persistent (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) :
     Persistent (hsCommitted (GF := GF) γ N h n) := by
@@ -1158,7 +1157,7 @@ theorem hsCommitted_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   · imodintro; ileft; ipureintro; exact H
   imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw with #Hc
   imodintro
-  iright; ileft
+  iright
   iframe Hc
   ipureintro; exact Hn
 
@@ -1640,13 +1639,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- What a node's names say of it: of the cluster's names and budget, with no snapshot directory,
-in the cluster's mode (`Cluster.mode`). (2026-10-27: until then in the static mode, taking
+/-- What a node's names say of it: of the cluster's names and budget, in the cluster's mode (`Cluster.mode`). (2026-10-27: until then in the static mode, taking
 snapshots; raft-final, 2026-10-29, U9: until then also taking snapshots from the network unless the
 cluster is in raft's no-snapshot mode, `NodeNames.snapIn`, deleted.) -/
 def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
-  γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γ.raft.reSnapLoc = (fun _ => none) ∧
-    γn.mode = γ.mode inferInstance
+  γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γn.mode = γ.mode inferInstance
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
@@ -1877,7 +1874,7 @@ storage's certificate link and raft's view of the configuration (`nodeCfg`), whi
 dynamic node's (2026-10-27) its configuration names (`nodeTabOk`: its view of the configuration is
 `nodeConfig`, which the application holds apart), the witness of its hard state
 (`hsCommitted`) and (2026-10-28, stage U3d) outside raft's no-snapshot mode the storage's certificate
-link. -/
+link. (2026-10-31) The witness also after a snapshot `Ready`, bounding the log up to the snapshot. -/
 def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜NodeOk γ γn ∧ γn.stor = st.storage ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
@@ -2010,6 +2007,17 @@ credit, which the receiver now mints from its own receipt, `rdPool`.) -/
 def msgCredits (γ : Cluster) (_N : Namespace) (st : MsgSt) : IProp GF :=
   stTks γ.raft st
 
+/-- (open) **A message's snapshot local to the node `id`** (2026-11-01, J8a; raft's `snapLocal`, at
+the directory the client chose for `id`, `Cluster.snapLoc`): what `node.Step` takes of a message with
+a `MsgSnap` beside its certificate, and a `Ready` handing that snapshot out gives back. -/
+def snapLocalMsg (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
+  iprop(□ ∀ sv : SnapshotM, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗
+    snapLocal γ.raft id sv.Metadata'.Index')
+
+instance snapLocalMsg_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
+    Persistent (snapLocalMsg (GF := GF) γ id st) := by
+  unfold snapLocalMsg; infer_instance
+
 /-- (open) A `Ready`'s storage part (the draft's `readySnap`). -/
 def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
@@ -2032,7 +2040,9 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
       (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
-      snapGivenU γ id (uint.nat l.snap.Metadata'.Index'))
+      snapGivenU γ id (uint.nat l.snap.Metadata'.Index') ∗
+      -- (2026-11-01, J8a) the snapshot local to the node (raft's `snapLocal`, `snapLocalMsg`)
+      snapLocal γ.raft id l.snap.Metadata'.Index')
 
 /-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -2176,12 +2186,14 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readyData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, -, Hss, %Hnull, #Hidx, %Hix⟩
+      ⟨%h, Hhs, %Hp'⟩, #Hhw, Hss, %Hnull, #Hidx, %Hix⟩
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
     · rw [← Hγr]; iexact Hrs
     imod api_msgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms $$ Hci Hpool Hmo Htks with Hms
+    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' (ds ++ ce).length $$ Hci [Hhw] with #Hhc
+    · rw [← Hγr]; iexact Hhw
     rw [Hid0]
     iunfold readyIdx at Hidx
     icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
@@ -2248,7 +2260,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     isplitr
     · ipureintro; exact Hdyn
     isplitr
-    · unfold hsCommitted; iright; iright; ipureintro; exact HU.noSnap
+    · have Hn : (st.delivered ++ strip ce).length = (ds ++ ce).length := by
+        rw [List.length_append, List.length_append, strip_length, Hlen]
+      rw [← Hp', Hn]; iexact Hhc
     iright
     iexists es, none
     isplitr
@@ -2260,7 +2274,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, -, Hss, #Hidx, Hsnap, #Hdlv, -, #HD, -, %Hfacts, Hout⟩
+      ⟨%h, Hhs, %Hp'⟩, #Hhw, Hss, #Hidx, Hsnap, #Hdlv, #Hloc, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
@@ -2274,6 +2288,8 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
     · rw [← Hγr]; iexact Hrs
     imod api_msgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms $$ Hci Hpool Hmo Htks with Hms
+    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' l.dlv.length $$ Hci [Hhw] with #Hhc
+    · rw [← Hγr]; iexact Hhw
     imod snapshotCert_of_raft γ N ⊤ CoPset.subseteq_top HU.noSnap _ $$ Hci [HD] with #Hcert
     · rw [← Hγr]; iexact HD
     ihave #Hsn := nodeTabOk_storNames γ id γn $$ Htab
@@ -2315,11 +2331,14 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         rw [Hdl]; rfl
       isplitl [Hrng]
       · rw [← Hγs]; iexact Hrng
-      unfold snapGivenU
-      iexists γn.sn
-      rw [← Hid]
-      iframe Hsn
-      iunfold storGiven at Hgv; iexact Hgv
+      isplitr
+      · unfold snapGivenU
+        iexists γn.sn
+        rw [← Hid]
+        iframe Hsn
+        iunfold storGiven at Hgv; iexact Hgv
+      iExactEq Hloc
+      first | rw [Hγr, Hid0, Hid] | rw [← Hγr, Hid0, Hid] | simp only [Hγr, Hid0, Hid]
     unfold nodeDriver
     dsimp only
     iexists γn, id, l.dlv
@@ -2330,7 +2349,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     isplitr
     · ipureintro; exact Hdyn
     isplitr
-    · unfold hsCommitted; iright; iright; ipureintro; exact HU.noSnap
+    · rw [← Hp', strip_length]; iexact Hhc
     iright
     iexists es, some l
     isplitr
@@ -2968,11 +2987,11 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ⊢
+      msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
   intro Hto
   subst Hto
-  iintro ⟨#Hsent, Hm, Htk⟩
+  iintro ⟨#Hsent, Hm, Htk, #Hloc⟩
   icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   ihave %Hbnd : ⌜st.msg.Type' = MsgSnap →
       ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ $$ []
@@ -3009,7 +3028,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     unfold stepIn
     isplitr; · ipureintro; exact Hnn
     iintro %γn %Hnok -
-    obtain ⟨Hγr, -, -, -⟩ := Hnok
+    obtain ⟨Hγr, -, -⟩ := Hnok
     imodintro
     unfold stepP
     iright
@@ -3034,7 +3053,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     unfold stepIn
     isplitr; · ipureintro; exact Hnn
     iintro %γn %Hnok Htc
-    obtain ⟨Hγr, Hγb, Hsl, -⟩ := Hnok
+    obtain ⟨Hγr, Hγb, -⟩ := Hnok
     -- the credits: a read request's from the receipt, a `MsgTimeoutNow`'s the receipt itself
     ihave Hcr : |={⊤}=> rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
         tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc]
@@ -3093,7 +3112,8 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       · iunfold msgDat at Hdat
         iapply Hdat $$ %sv
         ipureintro; exact ⟨Hty, Hsv⟩
-      iapply snapLocal_none (by rw [Hsl])
+      iunfold snapLocalMsg at Hloc
+      iapply Hloc $$ %sv %(⟨Hty, Hsv⟩)
     rw [← Hγr, ← Hγb]
     iframe Hlb Hrd Htc
 

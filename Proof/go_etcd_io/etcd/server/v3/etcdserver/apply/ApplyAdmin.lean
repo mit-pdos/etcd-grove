@@ -118,6 +118,8 @@ theorem apply.uberApplier.Apply.wp_admin
           apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
       [Ha Hkv Hcs Ho Hrc HW Hx] as %ar Hpost
   · iframe Hw Ha Hkv Hcs Ho Hrc HW Hx
+    isplitr
+    · iapply apply.rdLend_kvOwn
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hcs, Ho, Hrc, HW, Hx⟩ HΦ'
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post (apply.principalOf rq) W γa hs Own)
