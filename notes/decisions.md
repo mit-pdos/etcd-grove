@@ -28626,3 +28626,13 @@ the compaction revision would miss an event; the compaction cannot know the earl
 watch client's workload can. Three spec-reviewer rounds; no axiom, no `sorry`, no exported
 statement changed. Next: the Probe (`KeyDel_lt_of_noDup`, `syncWatchers`' compaction branch).
 
+## Watches across a compaction: the create token's fact, a disjunction (2026-11-01 · accepted, the user's approval · branch `watch-w1`)
+
+The Draft (entry above) gated the create token's store fact on the mode: `⌜γ.st.cm⌝ → noDupKeys
+γ.st`. W1's proof of `syncWatchers` needs only that the compaction revision under `revMu` is `-1`
+or a revision of the committed log that writes no key twice (`watchNoDup_crev`), and each of
+`noCompactor` and `noDupKeys` gives that. So the token carries `watchNoDup γ := noCompactor γ ∨
+noDupKeys γ`: weaker for clients (one of a store that never compacts keeps giving
+`noCompactor`, the token's old fact), and without the gate's margin (a compaction-mode store
+frozen by its creator). Presented to the user side by side with the approved gate; approved.
+`wsWatchFrozen γ σ := ⌜σ.M = ∅⌝ ∨ watchNoDup γ.st`.

@@ -164,7 +164,7 @@ behind a compaction revision, `crevLb`), `chooseAll`/`choose` sending the compac
 `noCompactor` inside `watchNoDup`): proved through `noCompactor_withPhys` (`BiEntails.to_eq` of
 its laws).
 
-**A refinement of the approved gate, to confirm with the user**: the create token carries
+**A refinement of the approved gate, approved by the user** (`decisions.md`): the create token carries
 `watchNoDup γ := noCompactor γ ∨ noDupKeys γ` instead of the approved `⌜cm⌝ → noDupKeys γ`. It is
 weaker for clients (a client of a store that does not compact keeps giving `noCompactor`, the
 create token's old fact), and it needs no case on the mode inside the store (a compaction-mode
