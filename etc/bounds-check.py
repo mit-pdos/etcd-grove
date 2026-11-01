@@ -17,14 +17,14 @@ tracked and new leaks are refused:
                    `R` a name of two characters or more (Spec and Proof; a single-letter `R` or
                    `iprop(..)` is a generic lemma's variable): the reader slots B2 moves into
                    thread pools, and the other stocks B0's inventory sorts
-    len-literal    a length bounded by a literal power of two in a Spec file, `.length < 2 ^ k` or
-                   `≤` (B5's named predicates; a library's own precondition goes to the allowlist)
     wire-unfold    `unfold`/`simp` of `wireSlack` or `grpcMsgMax` in a Proof file (B5's generic
                    message-size lemma)
 
 Only code counts: comments and docstrings are stripped first. The package of a file is its
 directory (below `Spec/` or `Proof/`, with a part's root prefixed, `RaftWitness/...`); `stock` counts
-Spec and Proof together, `wire-unfold` Proof only.
+Spec and Proof together, `wire-unfold` Proof only. (Length literals in specs, `.length ≤ 2 ^ k`,
+were counted until 2026-11-01: each is a library's exact precondition on its input, which naming
+would not simplify; `notes/bounds-plan.md`, B5.)
 
 Owners, whose own invariants legitimately do this reasoning, are listed in `etc/bounds-allow.txt`
 (`KIND REGEX  # why`, the regex searched in the file's path): their matches are not counted.
@@ -60,7 +60,6 @@ KINDS: list[tuple[str, re.Pattern[str], str]] = [
     ("spec-rev", re.compile(r"\brev\s*\+\s*\d+\s*<\s*2\s*\^\s*63\b"), "spec"),
     ("stock", re.compile(r"\[∗\s*list\]\s*\S+\s*∈\s*List\.replicate\s+(?:\([^()]*(?:\([^()]*\)[^()]*)*\)|\S+)"
                          r"\s*\(\),\s*(?!iprop\b)(?:\(\s*)?([A-Za-z_][\w.']*[\w'][\w.']*)"), "both"),
-    ("len-literal", re.compile(r"\.length\s*(<|≤)\s*2\s*\^\s*\d+"), "spec"),
     ("wire-unfold", re.compile(r"\b(unfold|simp|dsimp|rw)\b[^\n]*\b(wireSlack|grpcMsgMax)\b"), "proof"),
 ]
 KIND_NAMES = [k for k, _, _ in KINDS]

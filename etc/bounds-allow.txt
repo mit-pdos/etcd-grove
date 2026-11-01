@@ -2,6 +2,4 @@
 # (notes/bounds-plan.md: a bound is reasoned about by the adequacy theorem, the bounded object's
 # owner, or one predicate per boundary; an owner's own matches are not leaks.)
 
-# The standard library's specs: a slice-length precondition is the library function's own
-# (its Go code's arithmetic overflows past it), stated at the boundary it owns.
-len-literal ^(RaftWitness/)?Spec/(sort|slices|path|strings|bytes|internal)/
+# (The len-literal kind and its standard-library entry went on 2026-11-01: notes/bounds-plan.md, B5.)

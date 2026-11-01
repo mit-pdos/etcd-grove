@@ -28987,3 +28987,16 @@ No axiom or `sorry` added or removed; `bootOk`'s text changed (a `NewServer.spec
 axioms, 10 `sorry`s: no change); `etc/api-check.py` and `etc/gen-interface.py --check --layout` on
 `etc/api/raft.txt` pass (0 new layout violations); `etc/gen-link.py`: every mode matches but the known
 `--lintest-logkvcompact` and `--lintest-logkvsnap`; `etc/gen-btree-link.py` matches.
+
+## B4: the revision bound named, not a law (2026-11-01 · the user's choice · `notes/bounds-plan.md`, B4)
+
+The client's posts restated `σ.rev + 3 < 2 ^ 63` (or `+ 4`) 15 times in specs, plus their proofs.
+It is a guarantee the reply gives its caller (a revision it may add up to three to), not a premise
+a caller threads, so it did not cost callers the reasoning the bounds plan is about. A law of the
+client model (`etcdKV γ σ` carrying the bound, the posts dropping it) would need the server's
+receipt-backed invariant inside the client's atomic update, whose masks exclude it, and would change
+how every caller extracts facts at the linearization point. Chosen: one name, `kvRevFits r`
+(`client/v3/KVService.lean`), stated of the reply's revision (`σ.rev` for a read, `σ.rev + 1` for
+a write), at exactly the old strength, with `kvRevFits.lt`/`.of_lt`/`.mono` so callers need not
+unfold it.
+

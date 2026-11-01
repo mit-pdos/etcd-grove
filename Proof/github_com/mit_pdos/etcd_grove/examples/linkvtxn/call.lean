@@ -62,7 +62,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
         iexists σ
         iframe HQ
         ipureintro
-        refine ⟨?_, by omega, fun hg => ?_⟩
+        refine ⟨?_, by assumption, fun hg => ?_⟩
         · rw [Hy]; unfold getOut; split <;> rfl
         · rw [Hy]; exact getOut_eq σ hg.1 x.Key'
     · exact absurd hk Hif
@@ -81,7 +81,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
         iexists σ
         iframe HQ
         ipureintro
-        refine ⟨?_, by omega, fun hg => ?_⟩
+        refine ⟨?_, by assumption, fun hg => ?_⟩
         · rw [Hy]; rfl
         · rw [Hy]; exact listOut_eq σ hg
     · exact absurd hk Hif
@@ -102,7 +102,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
         iexists σ
         iframe HQ
         ipureintro
-        refine ⟨?_, by omega, fun _ => ?_⟩
+        refine ⟨?_, Hb.mono (by omega), fun _ => ?_⟩
         · rw [Hy]; rfl
         · rw [Hy]; exact putOut_eq σ x.Key' x.Val'
     · exact absurd hk Hif
@@ -125,7 +125,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
         iexists σ
         iframe HQ
         ipureintro
-        refine ⟨?_, by omega, fun hg => ?_⟩
+        refine ⟨?_, Hb.mono (by omega), fun hg => ?_⟩
         · rw [Hy]; rfl
         · rw [Hy]; exact delOut_eq σ hg x.Key'
     · exact absurd hk Hif

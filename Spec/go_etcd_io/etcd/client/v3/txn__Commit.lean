@@ -58,7 +58,7 @@ abbrev txn.Commit.spec : Prop :=
           opRespsRel false ((txnWireOf b.model).branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.2 m.resps ∧
           m.hdr.revision = W64 ((if txn.txnReadonly (txnWireOf b.model) then σ.rev else
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1).rev : Nat) : Int) ∧
-          σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ ∧
+          kvRevFits σ.rev ∧ kvLogOk σ ∧
           (txn.txnReadonly (txnWireOf b.model) = false →
             kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}

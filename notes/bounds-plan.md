@@ -214,17 +214,40 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 
 ### B4. Counters and stocks from receipts
 
-The receipts already are the single budget for lifetime counters. What leaks into specs:
+**Done (2026-11-01, the user's choice: "name it, then move on").**
 
-- **`receiptBound GF ≤ N + 1` and the `N + 7` write tokens.** This is the same work as "one token
-  count goes with restore in compaction mode" (`notes/decisions.md`). Do it there, owned by the
-  backend's stock (`srvWTStockInv`), not as a premise of `NewServer`. Not duplicated here.
-- **The client's `σ.rev + k < 2^63`.** State it once as a law of the client's model
-  (`etcdState_rev_lt`, from the server's receipt-backed revision bound) and delete the about 10
-  restatements.
-- **`boot.length ≤ 2^60`.** Moves into B5's configuration bundle.
+- **The client's revision bound is named.** `kvRevFits r` (`r + 3 < 2 ^ 63`, the reply's revision
+  and the three after it fit `int64`) is defined in `client/v3/KVService.lean`, with `kvRevFits.lt`,
+  `.of_lt` and `.mono`. The posts of `kv.Put`/`Get`/`Delete`, `txn.Commit`, the kubernetes client's
+  three methods, linkvtxn's six calls and k8setcd3's `seedOne` say `kvRevFits σ.rev` (a read's
+  reply) or `kvRevFits (σ.rev + 1)` (a write's) in place of the literal, at exactly the same
+  strength. `examples/common/Writer.lean` keeps the literal until the snapshot branches land (with
+  the four example proofs that feed it).
+- **Not a model law.** The bound is a guarantee the posts give their callers, not a premise anyone
+  threads. A law of the client model would need the server's invariant inside the client's atomic
+  update, which the masks exclude (`notes/decisions.md`, "B4: the revision bound named, not a
+  law").
+- **Routed elsewhere.** `receiptBound GF ≤ N + 1` and the `N + 7` write tokens go with "one token
+  count goes with restore in compaction mode" (`notes/decisions.md`; the snapshot track). The
+  bootstrap log's `boot.length ≤ 2 ^ 60` goes with B5's `cfgScopeOk`.
 
-### B5. Sizes: one predicate per boundary (D3, D4)
+### B5. Sizes (decided 2026-11-01, the user's: deferred to after the snapshot branches)
+
+- **Now: nothing.** The parts that are free now proved small:
+  - the 25 message-size unfolds (`wire-unfold`) each compute one concrete transaction's size in 2-4
+    lines; the existing `txnSizeOk_of_bounds` (`cache/v3/InvEtcdTxn.lean`) would save a line or two
+    each, since `simp` still evaluates the transaction's shape;
+  - the length literals in specs (`key.length ≤ 2 ^ 27`, ...) are each library's exact precondition
+    on its input, documented by the key- and value-length laws; names would add vocabulary without
+    removing reasoning. The `len-literal` kind left `etc/bounds-check.py`.
+- **After the snapshot branches, with B1's server batch** (same files, one rebuild): D3's
+  `cfgScopeOk` (`NewServer`'s configuration premises, restated by `spec`/`specCompact`/`specM`, and
+  the `simp` blocks the examples copy to discharge them) and D4's `Workload` record (the closed
+  results' hypotheses).
+
+The first version of this section, for the record:
+
+#### (first version) Sizes: one predicate per boundary (D3, D4)
 
 - **Configuration (D3).** `cfgScopeOk cfg` bundles `etcdMaxRequestBytesOk`, `maxTxnOpsOk`, the
   compaction-mode clause and `boot.length ≤ 2^60`. It is defined once next to `NewServer`.
