@@ -348,6 +348,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     iframe Hown Hlast Htx
     isplitr
     · unfold isDB; iexists f, fd, path; iframe #
+    iframe Hpath
     iapply readers_of γ db f fd path
     iframe; iframe #
   · obtain ⟨Herr5, rfl⟩ := He5
