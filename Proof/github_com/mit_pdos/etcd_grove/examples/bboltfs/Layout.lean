@@ -7,8 +7,7 @@ order. The types and their layouts are those of Perennial's `unsafememory` examp
 -/
 module
 
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.bboltfs
-public import Perennial.Proof.github_com.mit_pdos.perennial.goose.testdata.examples.unsafememory.Layout
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Bytes
 
 @[expose] public section
 
@@ -38,7 +37,7 @@ instance Pgid.isPlain : go.IsPlain Pgid.ty 8 := ⟨8, Pgid.layout⟩
 theorem InBucket.fields_layout : go.PlainLayout (go.StructType InBucket.fields) 16 8 := by
   have := Pgid.layout
   simp only [InBucket.fields, InBucket.fieldsUnsealed]
-  solve_plain_struct_layout
+  bboltfs_plain_struct_layout
 
 theorem InBucket.layout : go.PlainLayout InBucket.ty 16 8 :=
   .named _ _ 16 8 go.is_underlying (by unfold InBucket.ty; simp) InBucket.fields_layout
@@ -50,7 +49,7 @@ instance InBucket.isPlain : go.IsPlain InBucket.ty 16 := ⟨8, InBucket.layout�
 theorem Page.fields_layout : go.PlainLayout (go.StructType Page.fields) 16 8 := by
   have := Pgid.layout
   simp only [Page.fields, Page.fieldsUnsealed]
-  solve_plain_struct_layout
+  bboltfs_plain_struct_layout
 
 theorem Page.layout : go.PlainLayout Page.ty 16 8 :=
   .named _ _ 16 8 go.is_underlying (by unfold Page.ty; simp) Page.fields_layout
@@ -62,7 +61,7 @@ theorem Meta.fields_layout : go.PlainLayout (go.StructType Meta.fields) 64 8 := 
   have := Pgid.layout
   have := InBucket.layout
   simp only [Meta.fields, Meta.fieldsUnsealed]
-  solve_plain_struct_layout
+  bboltfs_plain_struct_layout
 
 theorem Meta.layout : go.PlainLayout Meta.ty 64 8 :=
   .named _ _ 64 8 go.is_underlying (by unfold Meta.ty; simp) Meta.fields_layout
@@ -109,9 +108,9 @@ instance InBucket.bytesView : BytesView (GF := GF) InBucket where
     have := Pgid.layout
     have off := structFieldRef_offset _ InBucket InBucket.fields_layout
     have o1 : go.PlainFieldOffset InBucket.fields 0 go!"root" 0 := by
-      simp only [InBucket.fields, InBucket.fieldsUnsealed]; solve_plain_field_offset
+      simp only [InBucket.fields, InBucket.fieldsUnsealed]; bboltfs_plain_field_offset
     have o2 : go.PlainFieldOffset InBucket.fields 0 go!"sequence" 8 := by
-      simp only [InBucket.fields, InBucket.fieldsUnsealed]; solve_plain_field_offset
+      simp only [InBucket.fields, InBucket.fieldsUnsealed]; bboltfs_plain_field_offset
     simp only [TypedPointsto.typedPointstoDef]
     rw [off _ _ o1 l hl, off _ _ o2 l hl]
     exact bytesView_field l 0 _ dq _ _ _ hl (bytesView_last_field l 8 _ dq _ _ hl)
@@ -122,13 +121,13 @@ instance Page.bytesView : BytesView (GF := GF) Page where
     have := Pgid.layout
     have off := structFieldRef_offset _ Page Page.fields_layout
     have o0 : go.PlainFieldOffset Page.fields 0 go!"id" 0 := by
-      simp only [Page.fields, Page.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Page.fields, Page.fieldsUnsealed]; bboltfs_plain_field_offset
     have o1 : go.PlainFieldOffset Page.fields 0 go!"flags" 8 := by
-      simp only [Page.fields, Page.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Page.fields, Page.fieldsUnsealed]; bboltfs_plain_field_offset
     have o2 : go.PlainFieldOffset Page.fields 0 go!"count" 10 := by
-      simp only [Page.fields, Page.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Page.fields, Page.fieldsUnsealed]; bboltfs_plain_field_offset
     have o3 : go.PlainFieldOffset Page.fields 0 go!"overflow" 12 := by
-      simp only [Page.fields, Page.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Page.fields, Page.fieldsUnsealed]; bboltfs_plain_field_offset
     simp only [TypedPointsto.typedPointstoDef]
     rw [off _ _ o0 l hl, off _ _ o1 l hl, off _ _ o2 l hl, off _ _ o3 l hl]
     exact (bytesView_field l 0 _ dq _ _ _ hl
@@ -143,23 +142,23 @@ instance Meta.bytesView : BytesView (GF := GF) Meta where
     have := InBucket.layout
     have off := structFieldRef_offset _ Meta Meta.fields_layout
     have o0 : go.PlainFieldOffset Meta.fields 0 go!"magic" 0 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o1 : go.PlainFieldOffset Meta.fields 0 go!"version" 4 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o2 : go.PlainFieldOffset Meta.fields 0 go!"pageSize" 8 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o3 : go.PlainFieldOffset Meta.fields 0 go!"flags" 12 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o4 : go.PlainFieldOffset Meta.fields 0 go!"root" 16 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o5 : go.PlainFieldOffset Meta.fields 0 go!"freelist" 32 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o6 : go.PlainFieldOffset Meta.fields 0 go!"pgid" 40 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o7 : go.PlainFieldOffset Meta.fields 0 go!"txid" 48 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     have o8 : go.PlainFieldOffset Meta.fields 0 go!"checksum" 56 := by
-      simp only [Meta.fields, Meta.fieldsUnsealed]; solve_plain_field_offset
+      simp only [Meta.fields, Meta.fieldsUnsealed]; bboltfs_plain_field_offset
     simp only [TypedPointsto.typedPointstoDef]
     rw [off _ _ o0 l hl, off _ _ o1 l hl, off _ _ o2 l hl, off _ _ o3 l hl, off _ _ o4 l hl, off _ _ o5 l hl, off _ _ o6 l hl, off _ _ o7 l hl, off _ _ o8 l hl]
     exact (bytesView_field l 0 _ dq _ _ _ hl

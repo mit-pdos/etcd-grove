@@ -8,11 +8,13 @@ hand.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__sum64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__validate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__write
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Page__meta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
 
@@ -41,6 +43,14 @@ theorem Meta.wp_validate :
     EtcdGrove.bboltfs.Meta.validate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Meta.validate.wp_proof Meta.wp_sum64
 
+theorem wp_pickMeta :
+    EtcdGrove.bboltfs.pickMeta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.pickMeta.wp_proof Meta.wp_validate
+
+theorem DB.wp_meta :
+    EtcdGrove.bboltfs.DB.«meta».spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.«meta».wp_proof wp_pickMeta
+
 theorem Page.wp_meta :
     EtcdGrove.bboltfs.Page.«meta».spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Page.«meta».wp_proof
@@ -57,9 +67,9 @@ theorem wp_initPages :
     EtcdGrove.bboltfs.initPages.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.initPages.wp_proof wp_pageAt Page.wp_meta Meta.wp_sum64
 
-theorem wp_pickMeta :
-    EtcdGrove.bboltfs.pickMeta.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.pickMeta.wp_proof Meta.wp_validate
+theorem wp_mmapSize :
+    EtcdGrove.bboltfs.mmapSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.mmapSize.wp_proof
 
 end links
 

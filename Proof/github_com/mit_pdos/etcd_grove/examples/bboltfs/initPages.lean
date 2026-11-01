@@ -15,7 +15,6 @@ namespace EtcdGrove
 namespace bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.bboltfs
-open github_com.mit_pdos.perennial.goose.testdata.examples.unsafememory (bytesPointsto_in_bounds)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

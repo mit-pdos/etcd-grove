@@ -11,3 +11,7 @@ bboltfs_Meta__validate: bboltfs_Meta__sum64
 bboltfs_Meta__write: bboltfs_Meta__sum64 bboltfs_Page__meta
 bboltfs_initPages: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__sum64
 bboltfs_pickMeta: bboltfs_Meta__validate
+#
+# minibolt (`examples/bboltfs/minibolt.go`)
+bboltfs_mmapSize:
+bboltfs_DB__meta: bboltfs_pickMeta

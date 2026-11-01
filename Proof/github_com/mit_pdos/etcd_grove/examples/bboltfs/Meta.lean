@@ -13,7 +13,6 @@ and version are (`metaValid_withSum`). `pickMetaRes` is `pickMeta`'s choice. `[5
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Layout
-public import Perennial.Proof.github_com.mit_pdos.perennial.goose.testdata.examples.unsafememory.Meta
 
 @[expose] public section
 
@@ -23,8 +22,6 @@ namespace Perennial
 
 namespace github_com.mit_pdos.etcd_grove.examples.bboltfs
 
-open github_com.mit_pdos.perennial.goose.testdata.examples.unsafememory
-  (fnv64 fnvFrom fnvOffset fnvStep)
 
 /-! ## The checksum of a `Meta` -/
 
