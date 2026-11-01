@@ -76,6 +76,36 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
       ipureintro; exact Hmi
     · iright; iexact Herr
 
+/-- **The server's header fields, from its request side** (a law: `raftLeaseRead_of_server`'s
+`srvHeaderFacts` premise needs no source of its own): the cluster's id and the member's of
+`isServerReqM`'s fields (`srvReqFieldsAtM`: `cluster`, `memberID`, `lead`, `srvPeersOk`'s
+`clusterCid`). -/
+theorem srvHeaderFacts_of_reqM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReqM (GF := GF) on s E ρ ⊢ ∃ cs ms : w64, srvHeaderFacts s cs ms := by
+  iintro #H
+  ihave ⟨%v, #Hf⟩ : ∃ v : ReqFields, srvReqFieldsAtM on s E ρ v $$ [H]
+  · cases on with
+    | false =>
+      iunfold isServerReqM at H
+      icases H with ⟨#Hv, -⟩
+      iexact Hv
+    | true =>
+      iunfold isServerReqM at H
+      icases H with ⟨#Hv, -, -⟩
+      iexact Hv
+  iunfold srvReqFieldsAtM at Hf
+  icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, #Hcl, -, #Hpeers,
+    -, -, -, -, -, -⟩
+  iunfold srvPeersOk at Hpeers
+  icases Hpeers with ⟨#Hcid, -, -⟩
+  iexists v.cid, v.memberID
+  iunfold srvHeaderFacts
+  iexists v.cluster
+  iframe #
+  iunfold srvAtomicU64 at Hlead
+  iunfold srvLeadInv
+  iexact Hlead
+
 /-- **The server's renewals, from its linked spec** (the keep-alive's contract): `raftLeaseRenew` at
 `S' := E.RD ∗ lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`, over the server's
 facts, its peer round tripper (`srvPeerRt`) and the spec's thread bound. -/
