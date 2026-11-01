@@ -53,12 +53,13 @@ one `pread` (`wp_osPRead_racy`) per iteration, retried on `EINTR`, until `b` is 
 reads nothing (`io.EOF`, whose value `eof` the client knows) or one fails. The result's `n`
 bytes of `b` are exact at every held byte; with `nil` they are all of `b`, and with `io.EOF`
 they reach every held byte inside `[off, off + len(b))`. A failure is a `*PathError`, so never
-`io.EOF`. Past `n`, `b` holds anything. -/
+`io.EOF`. Past `n`, `b` holds anything. The read must end below `2^63`: past it the model's
+offset (an `int64`) would wrap, and `pread` take a negative one. -/
 abbrev os.File.ReadAt.specRacy : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
     (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List (w8 × Bool)))
     (eof : GoInterface),
-  d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 →
+  d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
       osFd (GF := GF) fd dq d ∗
       ([∗list] r ∈ rs, osBytes (GF := GF) d.path r.1 r.2.1 r.2.2) ∗

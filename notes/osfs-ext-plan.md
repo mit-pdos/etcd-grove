@@ -203,17 +203,20 @@ every change marks what it changes as dirty, but the trusted file does not state
 Extension-level specs (`GooseLang/Ext/OsFs/Specs.lean`, `Write.lean`, `Truncate.lean`): `Close`,
 `Flock`, `Fstat`, `PRead` (exact and racing), `Fsync`, `Mmap` (with the mapping's bounds),
 `Munmap`, `Open` without `O_TRUNC`, `PWriteStart`/`PWriteFinish` (and the facts a retried write
-needs: `pwBytes_retry`, `mcellsAny_split`/`_merge`). Stated, `sorry`: `FtruncateStart`/
-`FtruncateFinish` for a growing truncate (`Truncate.lean`; the first step takes the client's
-halves of every mapped cell past the size, up to `hi`, since a truncate in flight affects every
-byte from the size on). Not yet: a shrinking truncate, `Open` with `O_TRUNC`.
+needs: `pwBytes_retry`, `mcellsAny_split`/`_merge`), `FtruncateStart`/`FtruncateFinish` for a
+growing truncate (`Truncate.lean`; the first step takes the client's halves of every mapped cell
+past the size, up to `hi`, since a truncate in flight affects every byte from the size on; a
+failed truncate that left the file unchanged gives back `ftMeta m sz`, the crash bound widened,
+as a failed write gives back `pwMeta`), and the racing `PRead` over a list of held ranges
+(`wp_osPRead_racy_list`). Each is named `wp_os<Op>` (`wp_osClose`, ...), clear of Perennial's
+channel `wp_Close`. Not yet: a shrinking truncate, `Open` with `O_TRUNC`.
 
 Go-level specs (`Spec/`, proved in `Proof/`): `syscall.Fdatasync`, `syscall.Flock`, `unix.Mmap`,
 `unix.Munmap`, `unix.Madvise`, `os.OpenFile` (`O_RDWR|O_CREATE`), `(*os.File).Fd`, `Name`, `Stat`
 with `fileStat.Size`, `Sync`, `Close`, `WriteAt` (offset ≥ 0, `0 < len(b) ≤ maxRW`; EINTR
-retries), `ReadAt` (exact: inside the file, `len(b) ≤ maxRW`), `Truncate` (growing; over the
-`sorry` ftruncate specs). Stated, `sorry`: the racing `ReadAt` (`File.ReadAt.specRacy`). An open
-file is `os.ownFile` (`Proof/os/Base.lean`), field by field.
+retries), `ReadAt` (exact: inside the file, `len(b) ≤ maxRW`; and racing, `File.ReadAt.specRacy`,
+which needs the read to end below `2^63`), `Truncate` (growing). An open file is `os.ownFile`
+(`Proof/os/Base.lean`), field by field.
 
 `os.file` and `os.fileStat` are trusted types, for which goose emits no field get/set facts;
 `TrustedCode/os.lean` states them by hand (`file.FieldAssumptions`, `fileStat.FieldAssumptions`,
