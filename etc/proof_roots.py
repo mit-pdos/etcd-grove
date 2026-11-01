@@ -15,8 +15,10 @@ here too.
 The roots are the theorems of every `Link.lean` and `Results.lean` under `Proof/` and
 `<root>/Proof/`, so a new package's proofs are picked up when its directory has them.
 `etc/tcb-report.lean` imports the modules of one run into one environment; the runs
-group the root modules by the part roots they reach (none, for most), read off the
-import graph of this repository's files.
+group the root modules by the part roots they reach (none, for most), and by the local
+translations they reach of a standard-library package Perennial also translates (`Code.os`,
+project `bboltfs`: it declares the same names as `Perennial.Code.os`, which raft's
+translation imports), read off the import graph of this repository's files.
 
 The JSON (`.lake/tcb.json` by default) starts with a `{"t":"meta", ...}` line naming the
 modules it was computed from and the commit; `load` refuses one that is not of the
@@ -135,8 +137,20 @@ def _imports(mod, memo={}):
     return memo[mod]
 
 
+PERENNIAL = os.path.join(ROOT, ".lake", "packages", "perennial")
+
+
+def shadows_perennial(mod):
+    """Whether `mod` is this repository's translation `Code.<pkg>` of a package Perennial
+    translates too (`Perennial.Code.<pkg>`): the two declare the same names, so no environment
+    can hold both."""
+    return mod.startswith("Code.") and os.path.exists(
+        os.path.join(PERENNIAL, "Perennial", *mod.split(".")) + ".lean")
+
+
 def parts_reached(mod):
-    """The part roots whose modules `mod` imports, transitively."""
+    """The part roots whose modules `mod` imports, transitively, and the local translations it
+    imports that shadow Perennial's (`shadows_perennial`)."""
     seen, todo, reached = set(), [mod], set()
     while todo:
         m = todo.pop()
@@ -145,6 +159,8 @@ def parts_reached(mod):
         seen.add(m)
         if m.split(".")[0] in PART_ROOTS:
             reached.add(m.split(".")[0])
+        if shadows_perennial(m):
+            reached.add(m)
         todo += _imports(m)
     return tuple(sorted(reached))
 
