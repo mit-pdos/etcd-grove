@@ -92,19 +92,24 @@ the premises are packaged and which resources the specs take.
   B2 needs the nesting column: one thread token pays for one loan at a time (`ThreadPool.lean`'s
   header).
 
-### B1. One bounds class, discharged once (D1)
+### B1. The bounds as instances, discharged once (D1)
 
-- A typeclass `[SmallWorld GF]` with two fields, `threadBound GF ≤ 2^29` and `receiptBound GF ≤ 2^48`.
-  These are the strongest bounds any spec uses, and every weaker form follows by `omega` inside the
-  owner's proof.
-- Specs drop the premises: the 46 thread-bound files, and the first two links of the 20-file chain.
-  Owner proofs use the class.
-- The adequacy theorems build the instance from their `n + 2 ≤ 2^31` and their choice of `T`.
-- `receiptBound GF ≤ N + 1` is not a smallness bound: it ties the write-token stock to the step bound.
-  It stays until B4.
-- Where the class lives is D1. It is a fact about no Go package, so CLAUDE.md sends it to Perennial (a
-  generic `ThreadBoundLe GF k`/`ReceiptBoundLe GF k` pair, with the constants chosen here). A local
-  definition marked as the stopgap can serve until that change lands.
+- Perennial's `ThreadBoundLe GF k` and `ReceiptBoundLe GF k` (`ProgramLogic/Bounds.lean`, landed
+  `6e3ca6ca3`, the D1 change), with `pow_succ`: an instance at `2 ^ e` gives one at every larger
+  power of two by instance search.
+- **Each spec states the power of two its own proof needs** (`[ThreadBoundLe GF (2 ^ 31)]` for a
+  wait group's counter, `2 ^ 30` for an `RWMutex`'s readers, `[ReceiptBoundLe GF (2 ^ 48)]` for the
+  id generator), as an instance among its section's variables, not as a premise of the triple. A
+  caller under a smaller power meets it with no step of its own. A bound that is not a power of two
+  (`2 ^ 30 - 1`, `threadBound GF + 3 ≤ 2 ^ 31`) is restated as the next power of two where that
+  costs no result anything, or derived inside the owner from the instance.
+- **No result is weakened.** The first version of this stage fixed one constant for the whole
+  repository (`2 ^ 29` threads), which would have weakened every closed result proved under
+  `n + 2 ≤ 2 ^ 31` (the examples' adequacy theorems take `threadBound GF = n + 2`). Corrected on
+  2026-11-01 before any spec moved: each closed result keeps its own premise and builds its
+  instance from it (`ThreadBoundLe.of_eq`, then `weaken`).
+- `receiptBound GF ≤ N + 1` is not a smallness bound: it ties the write-token stock to the step
+  bound. It stays until B4.
 
 ### B2. Reader slots in pools owned by their package (D2)
 
@@ -233,7 +238,9 @@ Use `etc/importers.py --count` before each statement change for the rebuild budg
 
 ## Decisions (2026-11-01, the user's: the recommendation on each)
 
-- **D1: a Perennial change, with a local stopgap until it lands; `2^29` threads, `2^48` receipts.**
+- **D1: a Perennial change** (landed `6e3ca6ca3`, with `pow_succ` after it). The constants: each spec
+  states its own power of two (B1), not one constant for the repository, which would have
+  weakened results.
 - **D2: a counted stock at the nesting site**, unless B0's inventory shows many sites (then the
   lock-level split, proposed to Perennial on its own).
 - **D3: yes**, `cfgScopeOk`.
