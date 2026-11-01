@@ -4,9 +4,10 @@ The Linux file extension of GooseLang [Trusted definitions!].
 A node's regular files as Linux exposes them to one process through `pread`, `pwrite`,
 `fstat`, `ftruncate`, `fdatasync`/`fsync`, `close` and a read-only shared `mmap`: the page
 cache that reads and the mappings see, the image on disk that a crash keeps, and the fds and
-mappings of the process. Its Go side is the wrapper package named by `osFsExt.name`, whose
-functions mirror the `os`/`syscall`/`golang.org/x/sys/unix` calls bbolt makes; their trusted
-models (`TrustedCode/...`) call the operations below and marshal Go values. The design and its
+mappings of the process. It is named after `os` (`osFsExt.name`); this repository translates
+`os`, `syscall` and `golang.org/x/sys/unix` itself (project `bboltfs` of `etc/goose.py`), and
+their trusted models (`TrustedCode/os.lean`, `syscall.lean`, `golang_org/x/sys/unix.lean`) call
+the operations below and marshal Go values. The design and its
 decisions (D1–D8) are in `notes/osfs-ext-plan.md`.
 
 **Environment** (hypotheses of the adequacy statement, not of this file): the paths in the
@@ -373,6 +374,10 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       (st' = st.setFile d.path (f.synced (InflightAt st d.path ·)) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
          st' = st.setFile d.path (f.syncFailed (InflightAt st d.path ·)))
+  /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`. Trivial (D7): the lock state is not modelled, so
+  the errno is anything (a lock held elsewhere, EINTR, ...); only the fd must be open. -/
+  | "Flock" => ∃ (fd how e : w64) (d : OsFd), v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧
+      st' = st ∧ e' = Val (#e)
   /- `close(fd)`: `#fd ↦ #errno`. The fd is freed whatever the errno. -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = { st with fds := GMap.delete fd st.fds } ∧ e' = Val (#e)

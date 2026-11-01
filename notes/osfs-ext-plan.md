@@ -3,12 +3,13 @@
 **Date:** 2026-10-31. **Status:** design agreed in outline; decisions D1–D8 below take the
 recommended option until the user says otherwise. **Perennial pin:** `d62b13ac1`.
 
-The extension is this repository's (`GooseLang/Ext/OsFs/`), not Perennial's. Perennial
-translates the standard library and owns its trust lists (`os.toml` translates nothing and
-trusts nothing), so the extension's Go side is a thin wrapper package whose API mirrors exactly
-the `os`/`syscall`/`golang.org/x/sys/unix` calls bbolt makes. That package's functions are
-`trusted` here (as `examples/durable`'s are for `durableExt`), and the bbolt fork calls the
-wrapper instead of `os`. Where the wrapper lives is open (W below).
+The extension is this repository's (`GooseLang/Ext/OsFs/`), not Perennial's, and is named
+`"os"`. This repository translates `os`, `syscall`, `io/fs` and `golang.org/x/sys/unix` itself,
+for project `bboltfs` of `etc/goose.py` (lean roots `os=`, ...), instead of using Perennial's
+`os`. Their `.toml`s trust exactly the calls bbolt makes, modelled in `TrustedCode/` in terms of
+the extension, so the bbolt fork can call `os` directly. Lean refuses a module that imports
+both this `os` and Perennial's (raft's translation still uses Perennial's), so moving every
+project to `os=` is the step after.
 
 ## Environment assumptions (hypotheses of the adequacy statement)
 
@@ -97,7 +98,7 @@ becomes an image, which is then both `cur` and `durable`:
   durable.length`. In those cases it is arbitrary (D1).
 - **Afterwards.** A file the crash keeps is named, and all of it is durable.
 
-## Trusted Go models (the wrapper's functions)
+## Trusted Go models
 
 - `*File` mirrors Go's `File{*file}`: a cell holding a pointer to an inner cell holding
   `(fd, name)`.
@@ -108,7 +109,7 @@ becomes an image, which is then both `cur` and `durable`:
 - `Sync` and `Fdatasync` are both `Fsync` (D3).
 - Errors are `&PathError{op, name, Errno(e)}`. A short `ReadAt` returns `io.EOF`.
 - Trivial ones:
-  - `Flock` returns nil or an arbitrary Errno; it is stuck on a fd not open (D7).
+  - `Flock` is the extension's `Flock`: any errno, stuck on an fd not open (D7).
   - `Madvise`, `Mlock` and `Munlock` return nil or an arbitrary Errno.
   - `SameFile` and `Getenv` are arbitrary.
   - `Getpagesize` is 4096.
@@ -158,7 +159,6 @@ a byte.
 - **D7:** `Flock` is trivial (single-process spec).
 - **D8 (changed 2026-10-31):** a `Stat` or `pread` racing a change returns a nondeterministic
   answer instead of being stuck. Only mapped loads are stuck on a race.
-- **W (open):** where the wrapper package lives.
 
 ## Tests of the trusted definitions
 
@@ -181,7 +181,7 @@ every change marks what it changes as dirty, but the trusted file does not state
 ## Work
 
 1. `GooseLang/Ext/OsFs/Impl.lean`: state, `render`, step, crash.
-2. The wrapper package, its trusted models (`TrustedCode/...`), its `.toml`; constants.
+2. The `os`/`syscall`/`unix` translation, its trusted models (`TrustedCode/...`) and `.toml`s (done, `dc1e2a2999`).
 3. Test programs: `examples/bboltfs` (targets, stuck probes, unprovable probes, a minibolt).
 4. `Specs.lean` (untrusted): mapped cells use the ordinary byte points-to; per-byte file ghost state
    that owns the mapped cells; the durable/dirty ghost state; `ExtCrashInterp`.

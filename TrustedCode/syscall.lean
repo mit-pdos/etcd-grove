@@ -42,15 +42,12 @@ noncomputable def Fdatasync.impl : val :=
 /-- `Flock(fd int, how int) error`: `flock(2)`, trivial (`notes/osfs-ext-plan.md`, D7): the
 specifications are about one process, which never contends with itself for a lock it holds
 through one open file description, so the lock state is not modelled. The result is `nil` or an
-arbitrary nonzero `Errno` (`ArbitraryInt`): it covers every answer Linux gives, a lock held
-elsewhere (`EWOULDBLOCK` with `LOCK_NB`), `EINTR`, `EINVAL` for a bad `how`, `ENOLCK`. A blocking
-`flock` that never returns is a run the model need not contain.
-
-The extension's `Fstat`, whose result is discarded, makes the model stuck on an fd that is not
-open, as every operation of the extension is (D6); it changes nothing (its state is unchanged),
-and Go makes no such call. The extension has no operation that only checks an fd. -/
+arbitrary nonzero `Errno`, the extension's `Flock`: it covers every answer Linux gives, a lock
+held elsewhere (`EWOULDBLOCK` with `LOCK_NB`), `EINTR`, `EINVAL` for a bad `how`, `ENOLCK`. It is
+stuck on an fd that is not open (D6). A blocking `flock` that never returns is a run the model
+need not contain. -/
 noncomputable def Flock.impl : val :=
-  λ: "fd" "how", ExternalOp osFsExt.name "Fstat" "fd" ;; model.errno ArbitraryInt
+  λ: "fd" "how", model.errno (ExternalOp osFsExt.name "Flock" ("fd", "how"))
 
 end code
 end syscall
