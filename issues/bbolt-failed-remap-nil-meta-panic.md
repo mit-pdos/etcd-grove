@@ -26,10 +26,9 @@ later transaction panics.
 **Expected**: an error from the failed commit, and later transactions either served from a valid
 mapping or refused with an error.
 
-**How the proof handles it**: not yet. minibolt's `Get`/`Snapshot` specs
-(`Spec/github_com/mit_pdos/etcd_grove/examples/bboltfs/DB__Get.lean`) are unprovable under the
-model, in which `Munmap` and `Mmap` may fail (`Spec/golang_org/x/sys/unix/{Munmap,Mmap}.lean`):
-the lock invariant of `mmaplock` cannot promise a reader a mapping.
+**How the proof handles it**: minibolt is fixed (2026-11-01): `Get` and `Snapshot` refuse with
+`errFailed` when they find no mapping (`meta0 == nil`) under `mmaplock`, so they never call `meta`
+on a failed remap; their specs are about the fixed code. bbolt itself is not proved.
 
 **Possible fixes**: in minibolt, set `failed` (under `metalock`) before `mmap` releases
 `mmaplock` on an error, or keep the old mapping until the new one is made (map first, then unmap

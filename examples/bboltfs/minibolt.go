@@ -208,6 +208,13 @@ func (db *DB) Get() (uint64, uint64, bool, error) {
 		return 0, 0, false, errFailed
 	}
 	db.mmaplock.RLock()
+	if db.meta0 == nil {
+		// a remap failed (issues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
+		// and the commit that remapped is failing; refuse, as after a failed commit
+		db.mmaplock.RUnlock()
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
 	m := *db.meta()
 	db.metalock.Unlock()
 	off := int(m.root.root) * pageSize
@@ -233,6 +240,13 @@ func (db *DB) Snapshot() (uint64, uint64, bool, error) {
 		return 0, 0, false, errFailed
 	}
 	db.mmaplock.RLock()
+	if db.meta0 == nil {
+		// a remap failed (issues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
+		// and the commit that remapped is failing; refuse, as after a failed commit
+		db.mmaplock.RUnlock()
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
 	m := *db.meta()
 	db.metalock.Unlock()
 	defer db.mmaplock.RUnlock()
@@ -322,6 +336,9 @@ func (db *DB) commit(m Meta, v uint64) error {
 	m.write(mp)
 	db.metalock.Lock()
 	if _, err := db.file.WriteAt(mbuf, int64(mp.id)*pageSize); err != nil {
+		// part of the meta may be in the page cache, and so in the mapping: fail the handle
+		// before a reader can see it, so that no reader needs the checksum to reject it
+		db.failed = true
 		db.metalock.Unlock()
 		return err
 	}
