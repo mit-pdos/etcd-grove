@@ -26,7 +26,7 @@ the file `p`, with the whole of its `OsMeta` and its cells' client halves. -/
 def mappingRes (sl : GoSlice) : IProp GF :=
   iprop(⌜sl = slice.nil⌝ ∨
     ∃ (base : Loc) (len : w64) (p : GoString) (m : OsMeta) (vf : Nat → val),
-      ⌜sl = ⟨base, len, len⟩ ∧ 0 < base.addr ∧ m.maps !! base = some len.toNat⌝ ∗
+      ⌜sl = ⟨base, len, len⟩ ∧ 0 < base.addr ∧ 0 < len.toInt ∧ m.maps !! base = some len.toNat⌝ ∗
       osInv (GF := GF) ∗ osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
       cellsR (GF := GF) base 0 len.toNat vf)
 

@@ -33,14 +33,14 @@ theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF :=
     iframe
     unfold unmappedRes
     ileft; ipureintro; exact ⟨rfl, rfl⟩
-  · obtain ⟨rfl, Hpos, Hb⟩ := Hsl
+  · obtain ⟨rfl, Hpos, Hlen, Hb⟩ := Hsl
     have hne : ({ ptr := base, len := len, cap := len } : GoSlice) ≠ slice.nil := by
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hpos
     wp_auto
     rw [decide_eq_false hne]
     wp_auto
-    wp_apply wp_Munmap base len p m vf Hb $$ [Hinv Hm Hc] as %e He
+    wp_apply wp_Munmap base len p m vf Hlen Hb $$ [Hinv Hm Hc] as %e He
     · iframe; iframe #
     (try wp_auto)
     iapply HΦ
