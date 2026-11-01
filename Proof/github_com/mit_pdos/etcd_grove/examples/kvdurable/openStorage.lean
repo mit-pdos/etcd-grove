@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Proof.go_etcd_io.raft.v3.LemmasEnts
 
 @[expose] public section
 
@@ -160,7 +161,75 @@ theorem openStorage.wp_proof
       iframe Hls
       iapply BigSepL2.bigSepL2_singleton.2; iexact Hl
     ipureintro; omega
-  · sorry
+  · have Hjk : uint.nat j = f.ents.length := by rw [← Hnl]; have := Hj; word
+    rw [Hjk, List.take_length, List.drop_length] at *
+    ihave %Hlsl := entsBig_length $$ Hls
+    imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hsv with #Hsv
+    ihave #HentsO : entsRO sv f.ents $$ []
+    · iunfold entsRO; iunfold entsPts; iexists ls; iframe Hsv Hls
+    imod ownSnapS_persist _ _ _ $$ Hsnap with #Hsnap
+    ihave #HsM := ownSnapS_M _ _ _ $$ Hsnap
+    try wp_auto
+    wp_apply wp_GetMetadata.1 sp DFrac.discard f.snap $$ [$HsM] as %pm ⟨#Hpm, -⟩
+    wp_apply wp_SMGetIndex pm DFrac.discard f.snap.Metadata' $$ [$Hpm] as -
+    try wp_auto
+    ihave %Hrvl := ownSlice_len _ _ _ $$ Hrv
+    have Hrv0 : rv.len = W64 0 := by
+      simp only [encEntries, List.length_nil] at Hrvl; word
+    have Hlast : uint.Z (f.prev + W64 f.ents.length) = uint.Z f.prev + f.ents.length := by word
+    rw [decide_eq_true Hrv0]
+    try wp_auto
+    rw [decide_eq_false (by omega)]
+    try wp_auto
+    rw [decide_eq_false (by rw [Hlast]; word)]
+    try wp_auto
+    rw [decide_eq_false (by omega)]
+    try wp_auto
+    rw [decide_eq_false (by rw [Hlast]; word)]
+    try wp_auto
+    wp_apply wp_GetMetadata.1 sp DFrac.discard f.snap $$ [$HsM] as %pm2 ⟨#Hpm2, -⟩
+    wp_apply wp_SMGetTerm pm2 DFrac.discard f.snap.Metadata' $$ [$Hpm2] as -
+    try wp_auto
+    -- the term checks, refuted by `KdSnapTermOk`
+    wp_join (v := #false) at (if: #(decide (f.prev = W64 0)) then _ else _) with [prevTerm]
+    · wp_if_destruct
+      · rw [decide_eq_true (Hst0 Hif)]
+        iframe; ipureintro; rfl
+      · wp_join_done
+    try wp_auto
+    wp_join (v := #false) at (if: #(decide (f.snap.Metadata'.Index' = f.prev)) then _ else _)
+      with [prevTerm st]
+    · wp_if_destruct
+      · have : f.prevTerm = f.snap.Metadata'.Term' := by
+          rw [← Hsterm]; unfold imgTermAt; rw [Hif, ite_eq_left (Nat.le_refl _)]
+        rw [decide_eq_true this.symm]
+        iframe; ipureintro; rfl
+      · wp_join_done
+    try wp_auto
+    wp_join (v := #false) at (if: #(decide (uint.Z f.prev < uint.Z f.snap.Metadata'.Index')) then _ else _)
+      with [st ents si prev]
+    · wp_if_destruct
+      · have Hgt : uint.nat f.prev < uint.nat f.snap.Metadata'.Index' := by word
+        obtain ⟨e, He⟩ : ∃ e, f.ents[uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1]? = some e :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        icases entsRO_lookup sv f.ents _ e He $$ HentsO with ⟨%ls', %l, #Hls', #Hel, %Hl⟩
+        ihave %Hsvl := entsPts_len _ _ _ $$ HentsO
+        rw [ite_eq_left ⟨by word, by word⟩]
+        wp_apply wp_load_slice_index sv (sint.Z (f.snap.Metadata'.Index' - f.prev - W64 1)) ls'
+          DFrac.discard l (by word) $$ [Hls'] with -
+        · iframe Hls'; ipureintro
+          rw [show (sint.Z (f.snap.Metadata'.Index' - f.prev - W64 1)).toNat =
+            uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1 by word]
+          exact Hl.1
+        wp_apply wp_EGetTerm.1 l DFrac.discard e $$ [Hel] with -
+        · iframe Hel
+        have Ht : e.Term' = f.snap.Metadata'.Term' := by
+          rw [← Hsterm]; unfold imgTermAt; rw [ite_eq_right (by omega), He]; rfl
+        rw [decide_eq_true Ht]
+        iframe; ipureintro; rfl
+      · wp_join_done
+    try wp_auto
+    sorry
 
 end proof
 
