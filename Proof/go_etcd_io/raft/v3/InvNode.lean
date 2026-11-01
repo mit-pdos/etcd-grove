@@ -599,8 +599,12 @@ theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (rd : Ready)
         uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
         (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e⌝ ∗
       readyRest γ N rd st ce es h none ms ss := by
-  -- PORT(durability stage II): readyRest restated (no `∃ ms`, `softStateIs`)
-  sorry
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readyRest readySnap
+  iintro ⟨-, -, -, -, -, -, -, -, -, %Hb⟩
+  ipureintro
+  intro e0 he
+  exact (Hb e0 he).2
 
 /-- (raft-final phase 2, for kvreconf) **A `Ready`'s entries have consecutive indices** (pure):
 from its first index on (`LogIndicesOk` after a snapshot; `readySnap`'s clause otherwise). -/
@@ -611,8 +615,31 @@ theorem readyRest_indices (γ : Cluster) (N : Namespace) (rd : Ready)
       ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : EntryM), es[j]? = some e →
         uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗
       readyRest γ N rd st ce es h L ms ss := by
-  -- PORT(durability stage II): readyRest restated (no `∃ ms`, `softStateIs`)
-  sorry
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readyRest
+  cases L with
+  | none =>
+    unfold readySnap
+    iintro ⟨-, -, -, -, -, -, -, -, -, %Hb⟩
+    ipureintro
+    intro e0 he
+    exact (Hb e0 he).1
+  | some l =>
+    unfold readySnap
+    iintro ⟨-, -, -, -, -, -, %Hf, -⟩
+    ipureintro
+    intro e0 he j e hj
+    have HI := Hf.2.2.2.2.2.2.2.2.2
+    have h0 : es[0]? = some e0 := by
+      cases es with
+      | nil => simp at he
+      | cons x xs => simpa using he
+    have a0 := HI 0 e0 h0
+    have aj := HI j e hj
+    have u1 := uint_nat_eq e.Index'
+    have u2 := uint_nat_eq e0.Index'
+    push_cast at a0 aj
+    omega
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -898,8 +925,16 @@ theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Name
     readyFits (GF := GF) γ N ∗ readyRest γ N rd st ce es h L ms ss ⊢
       readyRest γ N rd st ce es h L ms ss ∗
         ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
-  -- PORT(durability stage II): readyRest restated (no `∃ ms`, `softStateIs`)
-  sorry
+  unfold readyFits readyRest
+  iintro ⟨%Hf, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn⟩
+  obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
+  isplitl
+  · iframe Hes Hm Hms Hh Hss Hsn
+    ipureintro; exact ⟨Lx, H1, Hhd, H3, HLx⟩
+  · ipureintro
+    intro e0 he0
+    have := Hhd e0 he0
+    omega
 
 /-- (2026-10-27, the server port's addition) **A sent `MsgSnap` carries a certified snapshot**
 (raft's `msgCert`: a `MsgSnap`'s snapshot is one of its storage's, whose certificates are the

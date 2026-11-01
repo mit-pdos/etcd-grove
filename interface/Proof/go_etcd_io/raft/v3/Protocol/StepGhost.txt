@@ -102,11 +102,11 @@ theorem ack_invs_insert [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (s : PState) 
 
 theorem ownLogGhost_ack [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) (i : w64) (Hnc : s.role ≠ Role.candidate) (Hli : s.role = Role.leader
-    → uint.Z i ≤ plogLastIndexZ s.base s.log) : ⊢ ackOk γ s (s.term, i) -∗ (∀ fp, ⌜FullOk s.base fp
-    ∧ PlogWf s.base s.log⌝ -∗ logRecs γ base0 fp -∗ commitIn γ (fp ++ s.log) s.commit s.term -∗ hist
-    γ (fp ++ s.log) s.term i (bnd s kl)) -∗ ownLogGhost γ id s kl W -∗ ownLogGhost γ id s kl (W.add
-    (Prom.ack s.term i)) ∗ promJust γ id W (Prom.ack s.term i) ∗ □ (durFrags γ id (W.add (Prom.ack
-    s.term i)) -∗ isAcked γ id s.term i)
+    → uint.Z i ≤ plogLastIndexZ s.base s.log) : ⊢ ackInF γ s.term i -∗ ackOk γ s (s.term, i) -∗ (∀
+    fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗ logRecs γ base0 fp -∗ commitIn γ (fp ++ s.log)
+    s.commit s.term -∗ hist γ (fp ++ s.log) s.term i (bnd s kl)) -∗ ownLogGhost γ id s kl W -∗
+    ownLogGhost γ id s kl (W.add (Prom.ack s.term i)) ∗ promJust γ id W (Prom.ack s.term i) ∗ □
+    (durFrags γ id (W.add (Prom.ack s.term i)) -∗ isAcked γ id s.term i)
 
 theorem hist_of_commit [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (F : List EntryM) (c tm : w64) (B :
     Int) : PlogWf base0 F → uint.Z tm < B → ⊢ logRecs γ base0 F -∗ commitIn γ F c tm -∗ hist γ F tm

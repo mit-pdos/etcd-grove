@@ -178,8 +178,13 @@ instance snapMadeU_persistent (γ : Cluster) (s : SnapRec) :
 /-- A fresh node's dynamic ghost state, from the allocation's (as `raft_dyn_alloc`'s). -/
 theorem ownRaftGhostR_rinit (γr : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) :
     ownRaftGhost (GF := GF) γr id initPState true ⊢ ownRaftGhostR γr dec c0 id (rinit c0) := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  iintro Hg
+  unfold ownRaftGhostR
+  rw [show (rinit c0).p = initPState from rfl]
+  iframe Hg
+  isplitr; · ipureintro; exact RInv_rinit dec c0
+  unfold logRecs rinit
+  iapply (BigSepL.bigSepL_nil).2; iempintro
 
 /-! ## The laws -/
 

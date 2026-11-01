@@ -416,7 +416,7 @@ private theorem ownRaftGhost_leadInfo (γ : RaftNames) (id : w64) (ps : PState) 
   · ipureintro; exact Hlead_ok
   isplitr
   · iexact Hlead
-  iapply ownRaftGhost_intro γ id ps γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] Hout Htally Hlead Hlg [] [] [] Hlcamps Hlcm Hrd
+  iapply ownRaftGhost_intro γ id ps γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] Hout Htally Hlead Hlg [] [] [] Hlcm Hrd
   · ipureintro; exact Hhist
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes

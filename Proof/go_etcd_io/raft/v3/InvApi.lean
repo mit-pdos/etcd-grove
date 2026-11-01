@@ -1672,8 +1672,9 @@ instance nodeTabOk_persistent (γ : Cluster) (n : Loc) (γn : NodeNames) :
 
 theorem nodeTabOk_agree (γ : Cluster) (n : Loc) (γ1 γ2 : NodeNames) :
     ⊢ nodeTabOk (GF := GF) γ n γ1 -∗ nodeTabOk γ n γ2 -∗ ⌜(cfgNamesOf γ1) = (cfgNamesOf γ2)⌝ := by
-  -- PORT(durability stage II): restated (I-2, the table keyed by the node object)
-  sorry
+  unfold nodeTabOk
+  iintro #E1 #E2
+  iapply ghostMapElem_agree $$ E1 E2
 
 /-- (2026-11-01, durability stage I-2) **The node table's invariant** (in `N .@ "nodetab"`): its
 authority, every key a node struct (`n ↦□`), so that a node whose struct is still owned whole is
@@ -1704,8 +1705,13 @@ instance storKeyNames_timeless (K : GName) (sn : StorNames) :
 
 theorem storKeyNames_agree (K : GName) (sn1 sn2 : StorNames) :
     ⊢ storKeyNames (GF := GF) K sn1 -∗ storKeyNames K sn2 -∗ ⌜sn1 = sn2⌝ := by
-  -- PORT(durability stage II): proof (new lemma; as the old `nodeStorNames_agree`)
-  sorry
+  unfold storKeyNames
+  iintro #E1 #E2
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ E1 E2
+  ipureintro
+  simp only [Prod.mk.injEq] at H
+  obtain ⟨h1, h2, h3, h4, h5⟩ := H
+  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5; subst h1 h2 h3 h4 h5; rfl
 
 /-- (U8 v2, 2026-10-29; 2026-11-01, durability stage I-4: keyed by the storage's key, with
 `snapGiven` merged in) **Compacting the storage of key `K` up to `k` is safe** (the API's
@@ -1757,8 +1763,10 @@ theorem nodeCommitLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeCommitLbU (GF :=
 
 theorem nodeCommitLbU_mono (γ : Cluster) (K : GName) (i i' : Nat) (h : i' ≤ i) :
     nodeCommitLbU (GF := GF) γ K i ⊢ nodeCommitLbU γ K i' := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+  unfold nodeCommitLbU
+  iintro (%H | ⟨%sn, %l, #Hs, #Hc, %Hl, #Hd⟩)
+  · ileft; ipureintro; omega
+  · iright; iexists sn, l; iframe Hs Hc Hd; ipureintro; omega
 
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **Node `id`'s durable state is `S`** (the
 API's `raftState`): the protocol's durable half at `S` (`ownDurGhost`: its share of the promise
@@ -1845,18 +1853,60 @@ instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
 (2026-11-01, durability stage I-2: the table keyed by the location, so no id agreement needed.) -/
 theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (n : Loc) :
     ⊢ nodeTabOk (GF := GF) γ n γ1 -∗ nodeTabOk γ n γ2 -∗ ⌜γ1.live = γ2.live⌝ := by
-  -- PORT(durability stage II): restated (I-2)
-  sorry
+  iintro #T1 #T2
+  ihave %Hn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+  simp only [cfgNamesOf, Prod.mk.injEq] at Hn
+  ipureintro; exact Hn.2.2.2.2.1
 
 theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
-  -- PORT(durability stage II): the table keyed by `n` (I-2), `nodeLiveRaw` with the generation
-  sorry
+  unfold nodeRunning nodeStopped
+  iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, #Hs⟩⟩
+  ihave %Hlv := nodeNames_live_agree γ γ1 γ2 n $$ T1 T2
+  unfold EtcdGrove.nodeLiveRaw EtcdGrove.nodeStoppedRaw
+  rw [Hlv]
+  icases Hl with ⟨Hl, -⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ Hl Hs
+  cases H
 
 theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Qp) :
     nodeRunning (GF := GF) n γ N (p + q) ⊣⊢ nodeRunning n γ N p ∗ nodeRunning n γ N q := by
-  -- PORT(durability stage II): the table keyed by `n` (I-2), `nodeLiveRaw` with the generation
-  sorry
+  unfold nodeRunning
+  constructor
+  · iintro ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
+    icases (EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q |>.1 $$ Hl with ⟨Hl1, Hl2⟩
+    isplitl [Hl1]
+    · iexists γ1, id1; iframe Hl1 H1 T1; ipureintro; exact Hok1
+    · iexists γ1, id1; iframe Hl2 H1 T1; ipureintro; exact Hok1
+  · iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl1⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, Hl2⟩⟩
+    ihave %Hlv := nodeNames_live_agree γ γ1 γ2 n $$ T1 T2
+    ihave %Hid := isNode_id_agree γ1 γ2 id1 id2 n $$ H1 H2
+    subst Hid
+    ihave %Hg1 := EtcdGrove.isNode_id γ1 id1 n $$ H1
+    ihave %Hg2 := EtcdGrove.isNode_id γ2 id1 n $$ H2
+    have Hr : γ2.raft = γ1.raft := Hok2.1.1.trans Hok1.1.1.symm
+    have Hi : γ2.id = γ1.id := Hg2.trans Hg1.symm
+    iexists γ1, id1
+    iframe H1 T1
+    isplitr
+    · ipureintro; exact Hok1
+    iunfold EtcdGrove.nodeLiveRaw at Hl1 Hl2
+    icases Hl1 with ⟨Hl1, Hs1⟩
+    icases Hl2 with ⟨Hl2, Hs2⟩
+    iunfold slotLive at Hs1 Hs2
+    icases Hs1 with ⟨%γs, %Hγs, Hs1⟩
+    icases Hs2 with ⟨%γs', %Hγs', Hs2⟩
+    rw [Hr, Hi, Hγs] at Hγs'; cases Hγs'
+    ihave %Hgen := ghostVar_agree _ _ _ _ _ $$ Hs1 Hs2
+    iapply ((EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q).2
+    unfold EtcdGrove.nodeLiveRaw slotLive
+    isplitl [Hl1 Hs1]
+    · iframe Hl1; iexists γs; iframe Hs1; ipureintro; exact Hγs
+    isplitl [Hl2]
+    · rw [Hlv]; iexact Hl2
+    iexists γs
+    rw [Hgen]
+    iframe Hs2; ipureintro; exact Hγs
 
 /-- The node's `Ready` channel `ch` (persistent): the node struct's `readyc`. -/
 def isReadyChan (n : Loc) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=

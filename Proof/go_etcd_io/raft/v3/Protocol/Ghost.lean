@@ -3591,23 +3591,50 @@ theorem hist_of_agree (γ : RaftNames) (F X : List EntryM) (t i : w64) (B : Int)
 
 /-! ### Acknowledgements, justified
 
-`ackAgree γ b es t i`: the log `(b, es)` reaches `i` and has, at `i`, the term some log of
-the leader of `t` has there. `ownLogGhost` keeps it of every acknowledgement a
+`ackAgree γ b es t i`: the log `(b, es)` reaches `i` and has, at `i`, the term the full log of a
+prefix of the leader of `t` has there (`leadFull`). `ownLogGhost` keeps it of every acknowledgement a
 non-leader has made in its current term above its commit index (`acksOk`): that is what
-`heartbeat_commit_le_last` needs, and what a later `app`/`snap` of the same term cannot
-undo -- they come from the same leader, so they agree with the log at and below `i`
-(`ackAgree_term`). -/
+`heartbeat_commit_le_last` and the heartbeat's commit need, and what a later `app`/`snap` of the same
+term cannot undo -- they come from the same leader, so they agree with the log at and below `i`
+(`ackAgree_term`). (2026-11-01, durability stage II(d) round 9: in full-log coordinates on the
+leader's side, until then a `leadPrefix` holding `i`; an acknowledgement below the leader's base --
+a refused snapshot's, `Step.snapStale` -- has the former but not the latter.) -/
 
 def ackAgree (γ : RaftNames) (b : entryID) (es : List EntryM) (t i : w64) :
     IProp GF :=
   iprop(⌜uint.Z i ≤ plogLastIndexZ b es⌝ ∗
-    ∃ ldr bL l, leadPrefix γ ldr t bL l ∗
-      ⌜(plogTermAt bL l i).isSome ∧ plogTermAt bL l i = plogTermAt b es i⌝ ∗
-      ∃ fp, lpfull γ ldr t bL l fp)
+    ∃ X, leadFull γ t X ∗
+      ⌜(plogTermAt base0 X i).isSome ∧ plogTermAt base0 X i = plogTermAt b es i⌝)
 
 instance ackAgree_persistent (γ : RaftNames) (b : entryID) (es : List EntryM)
     (t i : w64) : Persistent (ackAgree (GF := GF) γ b es t i) := by
   unfold ackAgree; infer_instance
+instance ackAgree_timeless (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (t i : w64) : Timeless (ackAgree (GF := GF) γ b es t i) := by
+  unfold ackAgree; infer_instance
+
+/-- `ackAgree` from a prefix of the leader holding the log's term at `i`. -/
+theorem ackAgree_intro (γ : RaftNames) (b : entryID) (es : List EntryM) (t i ldr : w64)
+    (bL : entryID) (l fp : List EntryM) :
+    uint.Z i ≤ plogLastIndexZ b es → (plogTermAt bL l i).isSome →
+    plogTermAt bL l i = plogTermAt b es i →
+    ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackAgree γ b es t i := by
+  intro Hi Hs Heq
+  iintro #Hp #Hpf
+  ihave %Hf : ⌜FullOk bL fp⌝ $$ []
+  · iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, -, -, %H⟩
+    ipureintro; exact H.1
+  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
+  have HbL := (plogTermAt_some_range _ _ _ _ Hx).1
+  unfold ackAgree
+  isplitr; · ipureintro; exact Hi
+  iexists fp ++ l
+  isplitr; · iapply leadFull_intro $$ Hp Hpf
+  ipureintro
+  rw [full_term_at bL fp l i Hf HbL]
+  exact ⟨Hs, Heq⟩
+
 /-- A log that agrees with the leader of `t` at `i` agrees, at and below `i`, with every
 other log of that leader. -/
 theorem ackAgree_term (γ : RaftNames) (b : entryID) (es : List EntryM)
@@ -3620,10 +3647,18 @@ theorem ackAgree_term (γ : RaftNames) (b : entryID) (es : List EntryM)
       ⌜plogTermAt b es j = plogTermAt bL l' j⌝ := by
   intro Hwf Hj1 Hj2 Hji Hs'
   unfold ackAgree
-  iintro #Hr ⟨%Hi, %ldr, %bL0, %l, #Hp, %HsEq, -⟩ #Hp'
-  obtain ⟨Hs, Heq⟩ := HsEq
+  iintro #Hr ⟨%Hi, %X, #HX, %HsEq⟩ #Hp'
+  iunfold leadFull at HX
+  icases HX with ⟨%ldr, %bL0, %l, %fpX, #Hp, #Hpf, %HXe⟩
+  subst HXe
+  ihave %Hf : ⌜FullOk bL0 fpX⌝ $$ []
+  · iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, -, -, %H⟩
+    ipureintro; exact H.1
   icases leadPrefix_base γ ldr ldr' t bL0 bL l l' $$ Hp Hp' with %Hb
   subst Hb
+  rw [full_term_at bL0 fpX l i Hf (by omega)] at HsEq
+  obtain ⟨Hs, Heq⟩ := HsEq
   ihave ⟨%Hwfl, #Hrl⟩ := leadPrefix_wf γ ldr t _ l $$ Hp
   icases logRecs_agree γ b es _ l $$ Hr Hrl with %HRA
   have Hsi : (plogTermAt b es i).isSome := by rw [← Heq]; exact Hs

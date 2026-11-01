@@ -190,9 +190,30 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
         if boot = [] then joinAuth γ (GMap.listToSet vs)
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
   intro Hrb Hne Hnd Hnz Hlen HB
-  -- PORT(durability stage II): the allocation restated (I-7: `raftState`/`nodeVacant` per voter,
-  -- `nodeBoot` persistent); from `cluster_alloc_dec_impl`/`cluster_alloc_boot_impl`
-  sorry
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    joinAuth nodeBoot Cluster.dup Cluster.bootLen isCommittedLogLb raftState nodeVacant
+  by_cases hb : boot = []
+  · subst hb
+    rw [if_pos rfl]
+    iintro -
+    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup E Hrb Hne Hnd Hnz Hlen
+      with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
+    imodintro
+    iexists γ
+    rw [if_pos rfl]
+    iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
+    ipureintro; exact Hd
+  · simp only [hb, ↓reduceIte]
+    iintro Hm
+    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup E Hrb Hne Hnd Hnz Hlen (HB hb)
+      $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
+    icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
+      (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
+        ApiImpl.nodeVacantU γ id))).1 $$ Hbs with ⟨#Hbs, Hrs⟩
+    imodintro
+    iexists γ
+    iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
+    ipureintro; exact Hd
 
 /-! ## Joining -/
 
