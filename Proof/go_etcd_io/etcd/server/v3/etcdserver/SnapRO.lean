@@ -20,7 +20,7 @@ with the names it is stated over (`srvSnapBoot`):
 
 Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the whole configuration read-only
 (`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a struct while `v3rpc.NewWatchServer` may
-write its `WatchProgressNotifyInterval`, `issues/etcd-cfg-watch-progress-interval-race.md`), and
+write its `WatchProgressNotifyInterval`, `nonissues/etcd-cfg-watch-progress-interval-race.md`), and
 the meta reads of every backend (`specSnap`'s `isMetaBackend` family, false as stated for names the
 backend was not opened with).
 

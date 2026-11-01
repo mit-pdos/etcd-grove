@@ -46,7 +46,7 @@ over mvcc's `store.Compact`). That is the first thing Scope found.
   divides by zero: `issues/etcd-compactor-periodic-tiny-retention.md`; etcd accepts it).
 - The compactor runs on every member; `run` pauses it on a follower and resumes it on the leader
   (`server.go:762-785`). It starts in `NewServer`, before `Start`
-  (`issues/etcd-compactor-started-before-start.md`): `Compact`'s contract must hold from then on.
+  (`nonissues/etcd-compactor-started-before-start.md`): `Compact`'s contract must hold from then on.
 - Other compactions (a client's `Compact`) stay out of the pilot's workload; the examples issue none.
 
 ## The top-level statements (drafts)
@@ -146,7 +146,7 @@ before `v3compactor`'s, which now imports it).
 - `reqPropOk`'s compaction form: a compaction at `r ≤` a revision the proposer has seen
   (`idxCert`); the compactor's `P r` implies it in both modes.
 - `EtcdServer.Compact.spec` over `processInternalRaftRequestOnce` (glue), from `NewServer` on
-  (the compactor runs before `Start`: `issues/etcd-compactor-started-before-start.md`); its
+  (the compactor runs before `Start`: `nonissues/etcd-compactor-started-before-start.md`); its
   `Physc` wait only when `r.Physical` (the compactor never sets it).
 - `NewServer`: the premise `AutoCompactionRetention = 0` replaced by the mode/retention premises;
   `compactorOk` derived from `New.spec` instead of assumed.
@@ -185,7 +185,7 @@ Draft's design, before any proof):
    calls (`compactableOk c P R`, `R` given to `Run`). Request ids are minted from the server's
    persistent `□ |==> idCred ρ.ids 1`.
 3. **Before `Start`.** `Compact`'s proof needs `isServerReq`, which the proofs establish in `Start`,
-   but the compactor runs from `NewServer` on (`issues/etcd-compactor-started-before-start.md`).
+   but the compactor runs from `NewServer` on (`nonissues/etcd-compactor-started-before-start.md`).
    The glue for `NewServer` must give the compactor a `Compact` contract before `Start`: either an
    `isServerReq` established in `NewServer`, or a contract whose resource waits for `Start`. Open.
 4. **Two more translated functions**: `Compact` reads `r.GetPhysical()`/`r.GetRevision()` for its
@@ -252,7 +252,7 @@ whose invariant contradicts the function; repairs introduce defects.
 |---|---|
 | `Compact`'s permit `Pc` is vacuous (each caller picks it; round 2's repair) | removed; C3's permit will be server-wide, fixed at `NewServer` and recorded by the compaction form of the proposal permit (step 3, with the model step) |
 | `periodicRunTok` does not own the `revs` slice (since round 1: rounds 1-2 missed it) | the empty slice and its capacity (what `make` gives) |
-| **`NewServer` cannot meet `Run`'s pre**: `Compact` needs `isServerReq`, which only `start()` makes true, and the Go code can call it before (a nil `s.w`) | **fork fix** (the user's choice (a)): `start()` runs the compactor (`964dccdb4`, branch `goose-lean-compactorstart`; `issues/etcd-compactor-started-before-start.md`) |
+| **`NewServer` cannot meet `Run`'s pre**: `Compact` needs `isServerReq`, which only `start()` makes true, and the Go code can call it before (a nil `s.w`) | **fork fix** (the user's choice (a)): `start()` runs the compactor (`964dccdb4`, branch `goose-lean-compactorstart`; `nonissues/etcd-compactor-started-before-start.md`) |
 | `Compact` unprovable (its callee excludes compactions); physical compactions uncovered | expected: step 3's model step; physical stays out (scope) |
 | `New`'s `10 ≤ ret` vs C2's "any accepted retention" | Scope narrowed: C2 covers a periodic retention of at least 10ns (a negative one is the busy loop of the tiny-retention issue) |
 | revision mode took an unused first-sample ghost | `modeRunPre`: only the periodic `Run` takes `firstUnset` |
@@ -265,7 +265,7 @@ snapshot (stale). Repaired from its second tier: the server's `compactorOk` is n
 (its non-nil `{True} Run {True}` assumed what no real compactor does); the first sample's ghost name
 is the compactor's, returned by `New` inside its run token (`CompactEnv.γf` and `modeRunPre` gone);
 stale text. And the fork fix's Go regression test, which reproduces the panic at `c00a2dc06`
-(`issues/etcd-compactor-started-before-start/repro_test.go`).
+(`nonissues/etcd-compactor-started-before-start/repro_test.go`).
 
 | round | first-tier findings | new | caused by the previous repair | false or stale |
 |---|---|---|---|---|

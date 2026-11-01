@@ -146,7 +146,7 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   (the server's `NewServer` passes `.static`: a dynamic `NewServer` needs a dynamic bootstrap
   contract, the example's, M8).
   *Scoped 2026-10-25* (the user's decisions, D43 "M3"): (i) the leader's `Advance` before its apply
-  loop applies a conf change (`issues/etcd-leader-advance-before-applyconfchange.md`) violates raft's
+  loop applies a conf change (`nonissues/etcd-leader-advance-before-applyconfchange.md`) violates raft's
   A1 in the dynamic mode (`node.Advance.spec`: `NoConfIn ds ca`), so the fork gets the drafted fix
   (the leader does the follower's second `notifyc` send); (ii) the server stays **parametric in the
   mode**: the static examples keep their statements, the dynamic one's resources are carried as raft's

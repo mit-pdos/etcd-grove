@@ -1,135 +1,74 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#12196 pr merged: added cancellableContext (the window dates from it); not about the Err/Done order
   - golang/go#75533 issue closed: the same Err-before-Done window in Go's own cancelCtx, fixed by golang/go@8ca209ec39
-candidate: issues/upstream/etcd-stream-interceptor-err-before-done/
+blocks-proof: yes
 ---
 
-# The stream interceptor's cancellable context reports an error before it is done
+# server: a require-leader stream's context returns a non-nil Err while its Done channel is still open
 
-- **Status**: open (not reported).
-- **Where**: `server/etcdserver/api/v3rpc/interceptor.go` at the pinned revision (`upamanyus/etcd`
-  `bc8b52a50`, the same code as upstream `main`): `cancellableContext.Cancel` (lines 288–293:
-  `c.lock.Lock(); c.cancelReason = reason; c.lock.Unlock(); c.cancel()`) and
-  `cancellableContext.Err` (297–304: the stored reason if non-nil, else the embedded context's
-  `Err()`). Its users: `newStreamInterceptor` (the require-leader branch wraps the stream in a
-  `serverStreamWithCtx` whose `Context()` is the `cancellableContext`; the deferred
-  `ctx.Cancel(nil)`, line 256) and `monitorLeader` (`ssWithCtx.ctx.Cancel(rpctypes.ErrGRPCNoLeader)`,
-  line 342, then `<-ss.Context().Done()`). The contract: `context.Context`'s documentation, "If
-  Done is not yet closed, Err returns nil. If Done is closed, Err returns a non-nil error".
-- **What happens**: between `Cancel`'s unlock (line 291) and its `c.cancel()` (line 292), a
-  concurrent `Err()` returns the stored reason (`ErrGRPCNoLeader`) while `Done()` is still open: a
-  non-nil `Err()` on a context that is not done. Who can observe it: any code holding the stream's
-  context, i.e. the handler (`ss.Context()` is the wrapper), while the leader monitor cancels the
-  stream. etcd's own handler (`watch.go`) reads `stream.Context().Err()` after `Done()` is closed
-  (line 227: no window) and, in `isClientCtxErr(stream.Context().Err(), err)` (lines 201, 494, 520,
-  544), after a stream error: there the window can only change how the error is classified (a
-  debug log instead of a warning and a `streamFailures` count, or the reverse), a wrong reason at
-  most. A handler polling `Err() != nil` as "done" (a common idiom) would stop before the
-  context's `Done()` is closed; nothing in etcd does.
+For a gRPC stream opened with require-leader metadata (`clientv3.WithRequireLeader`), when the member
+cancels the stream because it has lost its leader, the stream's `Context().Err()` returns the
+no-leader error for a short time before the context's `Done()` channel is closed.
 
-  Reproduction (deterministic: a test of the package that observes the state at the moment
-  `Cancel` reaches `c.cancel()`, by wrapping the `cancel` field `newCancellableContext` set; run
-  without touching the tree with `go test -overlay overlay.json -run
-  TestCancellableContextErrBeforeDone -v ./etcdserver/api/v3rpc/` from `server/`, the overlay
-  mapping `etcdserver/api/v3rpc/zz_err_before_done_test.go` to this file; it passes, logging
-  `Done() open, Err() = no leader`):
+**Expected:** `Err()` should return nil until `Done()` is closed, as `context.Context` requires ("If
+Done is not yet closed, Err returns nil"), and the no-leader error afterwards.
 
-  ```go
-package v3rpc
+**Impact:** stream handlers that read `Context().Err()` while the member cancels a require-leader
+stream for lack of a leader. etcd's own watch and lease handlers read `Err()` only after `Done()` is
+closed or after a stream error, where the early error can at most change how that error is logged and
+counted; no wrong result in etcd is known.
 
-import (
-	"context"
-	"errors"
-	"testing"
-)
+**Reproduction:** `TestCancellableContextErrBeforeDone` in
+[`issues/etcd-stream-interceptor-err-before-done/interceptor_test.go`](etcd-stream-interceptor-err-before-done/interceptor_test.go),
+copied into `server/etcdserver/api/v3rpc` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef
+(2026-10-28), go1.27.3 linux/amd64. It wraps the context's internal cancel function to call `Err()`
+from another goroutine at the moment `Cancel` (as `monitorLeader` calls it) reaches it:
 
-// cancellableContext.Cancel stores the reason, unlocks, then calls the underlying cancel: in
-// between, Err() returns the reason while Done() is still open, against context.Context's
-// contract ("If Done is not yet closed, Err returns nil"). The test observes that state from
-// inside the cancel call (the moment Cancel reaches c.cancel()), deterministically.
-func TestCancellableContextErrBeforeDone(t *testing.T) {
-	c := newCancellableContext(context.Background())
-	reason := errors.New("no leader")
-	realCancel := c.cancel
-	observed := false
-	c.cancel = func() {
-		observed = true
-		select {
-		case <-c.Done():
-			t.Fatal("Done() already closed before the underlying cancel")
-		default:
-		}
-		if err := c.Err(); err == nil {
-			t.Fatal("expected a non-nil Err() in the window")
-		} else {
-			t.Logf("Done() open, Err() = %v", err)
-		}
-		realCancel()
-	}
-	c.Cancel(reason)
-	if !observed {
-		t.Fatal("cancel not called")
-	}
-	<-c.Done()
-	if !errors.Is(c.Err(), reason) {
-		t.Fatalf("Err() = %v after Cancel", c.Err())
-	}
-}
-  ```
+```
+$ go test ./etcdserver/api/v3rpc/ -run '^TestCancellableContextErrBeforeDone$' -count=1
+--- FAIL: TestCancellableContextErrBeforeDone (0.00s)
+    interceptor_test.go:37: Err() = test reason before Done is closed
+FAIL
+```
 
-  A test racing a goroutine's `Err()` against `Cancel` would hit the window only sometimes; the
-  wrapper above shows the state the window exposes.
-- **How it happens**: `Cancel` publishes the reason under the lock, releases the lock, and only
-  then closes `Done()`. `Err()` reads the reason under the lock, without looking at `Done()`.
+**Cause:** `cancellableContext.Cancel` stores the reason under its lock, releases the lock, and only
+then closes `Done()`
+([L288-L293](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/interceptor.go#L288-L293)),
+while `Err` returns the stored reason without looking at `Done()`
+([L295-L304](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/interceptor.go#L295-L304)).
 
-  1. A client opens a watch stream with require-leader metadata. The interceptor wraps the
-     stream's context in a `cancellableContext`.
-  2. The member loses its leader. `monitorLeader` calls `Cancel(rpctypes.ErrGRPCNoLeader)`,
-     which stores the reason and unlocks.
-  3. Before `Cancel` reaches `c.cancel()`, the handler calls `ss.Context().Err()`. It returns
-     `ErrGRPCNoLeader`, while `ss.Context().Done()` is still open.
+## Proof
 
-  ```go
-  // server/etcdserver/api/v3rpc/interceptor.go:288-304 (etcd main f061acd09)
-  func (c *cancellableContext) Cancel(reason error) {
-  	c.lock.Lock()
-  	c.cancelReason = reason // <- visible to Err() after the unlock
-  	c.lock.Unlock()
-  	c.cancel()              // <- Done() closes only here
-  }
+yes: the require-leader branch is excluded by the premise `v3rpc.runsNoRequireLeader` (no client asks
+for a leader on a stream), which etcd's clients do not meet
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvStreamInterceptor.lean`): with the window
+the wrapper cannot meet Perennial's `isContext`.
 
-  // Err will return the preserved cancel reason error if present, and will
-  // otherwise return the underlying error from the parent context.
-  func (c *cancellableContext) Err() error {
-  	c.lock.RLock()
-  	defer c.lock.RUnlock()
-  	if c.cancelReason != nil {
-  		return c.cancelReason
-  	}
-  	return c.Context.Err()
-  }
-  ```
-- **Expected**: `Err()` is `nil` until `Done()` is closed (the `context.Context` contract the
-  wrapper implements by embedding).
-- **How the proof handles it**: the require-leader branch, the only place a `cancellableContext`
-  is made, is excluded by the premise `v3rpc.runsNoRequireLeader`
-  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvStreamInterceptor.lean`: no client asks
-  for a leader on a stream); with the window, the wrapper cannot meet Perennial's `isContext` (its
-  `Err` clause), so the branch could not be proved even with a `context.WithCancel` spec over any
-  parent context (`notes/status-history.md`, "W-W, the stream interceptor"; `notes/decisions.md`, "The
-  stream interceptor's require-leader premise").
-- **Possible fixes**: call `c.cancel()` before publishing the reason is not enough (a reader
-  could then see `Done()` closed and `Err()` the parent's `context.Canceled`, the reason lost,
-  which is what the wrapper exists to avoid); instead make `Err` consult `Done` first:
-  `select { case <-c.Context.Done(): default: return nil }` before reading the reason, so that the
-  reason is reported only once the context is done (the reason is stored before the cancel, so it
-  is visible by then). Or use Go 1.20's `context.WithCancelCause(parent)` and
-  `context.Cause(ctx)`, which store the cause and close `Done` atomically, and drop the wrapper's
-  lock. The upstream candidate (`issues/upstream/etcd-stream-interceptor-err-before-done/`) takes the
-  smallest: `Cancel` calls `c.cancel()` before releasing its lock, as Go's `cancelCtx` closes `Done` under its
-  mutex (Go fixed the same window in its own contexts: golang/go#75533).
-- **Found**: 2026-10-15, the watch slice's unit W-W (the stream interceptor), while specifying
-  the require-leader branch against Perennial's `context.isContext`.
+## Fix
+
+**Branch**: `fix/etcd-stream-interceptor-err-before-done` in `~/etcd-fixes/etcd-stream-interceptor-err-before-done` (upamanyus/etcd, not pushed): 9bc0dc213 test, 8330458d9 fix
+**Base**: etcd-io/etcd@3aaab3479b6c4f5fe1b2b8f33437093c2caae88a
+
+**PR draft**:
+
+Title: etcdserver: do not report a stream's cancel reason before it is done
+
+[`cancellableContext.Cancel`](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/interceptor.go#L286-L293) stores the reason under its lock, releases the lock, and only then closes `Done()`, while [`Err`](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/etcdserver/api/v3rpc/interceptor.go#L295-L304) returns the stored reason without looking at `Done()`. In between, `Err` is non-nil on a context that is not done, which `context.Context` forbids. This PR closes `Done()` before releasing the lock, as Go's own `cancelCtx` does.
+
+Fixes: the issue, once filed.
+
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
+
+**If a reviewer asks**: canceling before storing the reason would lose the reason (`Err()` the inner
+`context.Canceled`); `Err` checking `Done` first (Go's own fix, golang/go@8ca209ec39) is also correct,
+with more lines; `context.WithCancelCause` would change what `Err()` returns to `context.Canceled`,
+which the handlers' `isClientCtxErr` reads.
+
+## Notes
+
+The test reaches the window through the context's internal `cancel` field, not through a server:
+the window is a few instructions wide. The user's 2026-10 review chose to report it (Go fixed the same
+window in its own contexts).

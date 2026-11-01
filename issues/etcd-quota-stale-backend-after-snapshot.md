@@ -1,172 +1,76 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/etcd#20553 pr merged: related, not this bug (another holder of the backend across applySnapshot's swap: the maintenance Defragment path, now under bemu; fixes #20271); does not touch the gRPC quota servers
-candidate: issues/upstream/etcd-quota-stale-backend-after-snapshot/
+  - etcd-io/etcd#20553 pr merged: related, not this bug (another holder of the backend across applySnapshot's swap, the maintenance Defragment path; fixes #20271); does not touch the gRPC quota
+blocks-proof: yes
 ---
 
-# After a member installs a leader's snapshot, its gRPC quota check still measures the old, closed backend
+# etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota
 
-- **Status**: a bug (a wrong result, then a cluster-wide loss of write availability), reproduced
-  by an integration test at the pin; reachable with the default configuration through normal
-  operations (a lagging member caught up by a snapshot, then the documented NOSPACE recovery).
-- **Where**: at the etcd pin of `etc/goose.py` (`8a24be2a3`):
-  `server/etcdserver/api/v3rpc/quota.go:53-95`: `NewQuotaKVServer`/`NewQuotaLeaseServer` build
-  their `quotaAlarmer` from `newBackendQuota(s, …)`, which calls
-  `storage.NewBackendQuota(…, s.Backend(), name)` once, when the gRPC server is built
-  (`v3rpc/grpc.go:80-82`; also `v3client.go:33-36`); `storage.BackendQuota.Available`
-  (`server/storage/quota.go`) then reads `b.be.Size()` of that backend forever.
-  `server/etcdserver/server.go:1011-1159` (`applySnapshot`) replaces `s.be` by the snapshot's
-  backend (`s.be = newbe`, `:1093`) and closes the old one in a goroutine; it rebuilds the apply
-  chain (`s.uberApply = s.NewUberApplier()`, `:1158`, whose `quotaApplierV3` takes the new
-  `s.be`), but not the gRPC quota servers. `backend.Size()` (`backend/backend.go:455`) is an
-  atomic updated only at commits, so a closed backend's size is frozen.
-- **What happens**: after a snapshot install, every `Put`/`Txn`/`LeaseGrant` the member receives
-  is checked against the old backend's last size. If that size was over `--quota-backend-bytes`
-  (the member's db had grown past the quota before it fell behind), every mutating request to
-  the member is refused with `ErrGRPCNoSpace`, and each refusal proposes a NOSPACE alarm
-  activation (`quotaAlarmer.check`, `quota.go:40-51`), which, once applied, makes **every** member
-  refuse writes. Compacting, defragmenting (which works on the new backend) and disarming do not
-  help: the next write through that member raises the alarm again. Only a restart of the member
-  clears it. The documented recovery from NOSPACE (compact, defragment every member, disarm) thus
-  fails whenever a member that was down during it catches up by a snapshot. In the other
-  direction (old db small, new db over quota) the gRPC check of that member never refuses; the
-  apply path's quota (rebuilt with the new backend) still raises the alarm, so that direction is
-  only a missed early refusal.
+After a member installs a leader's snapshot, its gRPC quota check keeps measuring the backend it
+started with, which the snapshot replaced and closed. If that old db was over
+`--quota-backend-bytes`, every write through the member fails with `etcdserver: mvcc: database
+space exceeded` although its current db is under the quota, and each refusal raises a NOSPACE
+alarm that stops writes on every member; disarming does not help until the member restarts.
 
-  Reproduction (`tests/integration`, run at the pin: two runs failed at the last assertion, a
-  third failed earlier, in the setup's disarm step; with the fix below it passes 3 of 3):
+**Expected:** a write should be refused only when the member's db plus the write exceeds
+`--quota-backend-bytes` (the flag's [documentation](https://etcd.io/docs/v3.6/op-guide/maintenance/#space-quota)),
+as the apply path's quota, rebuilt after a snapshot, already checks.
 
-```go
-package integration
+**Impact:** default configuration apart from the quota itself. A member whose db was over its
+quota when it started and that then catches up by a snapshot under the quota: for example a member
+that was down while the cluster recovered from NOSPACE (compact, defragment, disarm), the
+documented recovery. The cluster then cannot take writes until that member is restarted. The quota
+has been built once since it was added (2016), so every release has it.
 
-import (
-	"os"
-	"testing"
-	"time"
+**Reproduction:** `TestV3StorageQuotaAfterSnapshot` in
+[`issues/etcd-quota-stale-backend-after-snapshot/quota_after_snapshot_test.go`](etcd-quota-stale-backend-after-snapshot/quota_after_snapshot_test.go),
+copied into `tests/integration` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef
+(2026-10-28), go1.27.3 linux/amd64:
 
-	"github.com/stretchr/testify/require"
-
-	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
-	"go.etcd.io/etcd/tests/v3/framework/integration"
-)
-
-func TestV3QuotaCheckAfterSnapshotInstall(t *testing.T) {
-	integration.BeforeTest(t)
-	quotasize := int64(16 * os.Getpagesize())
-
-	clus := integration.NewCluster(t, &integration.ClusterConfig{
-		Size: 3, SnapshotCount: 10, SnapshotCatchUpEntries: 5,
-	})
-	defer clus.Terminate(t)
-
-	// A quota on member 2 only.
-	clus.Members[2].QuotaBackendBytes = quotasize
-	clus.Members[2].Stop(t)
-	require.NoError(t, clus.Members[2].Restart(t))
-	clus.WaitMembersForLeader(t, clus.Members)
-
-	// Grow every member's db past member 2's quota (through member 0, which has none).
-	kvc0 := integration.ToGRPC(clus.Client(0)).KV
-	waitForRestart(t, kvc0)
-	_, err := kvc0.Put(t.Context(), &pb.PutRequest{Key: []byte("big"), Value: make([]byte, quotasize)})
-	require.NoError(t, err)
-	time.Sleep(time.Second)
-	require.Greater(t, clus.Members[2].Server.Backend().Size(), quotasize)
-	// Member 2's apply raises the NOSPACE alarm; wait for it.
-	for i := 0; ; i++ {
-		alarms, aerr := clus.Members[0].Server.Alarm(t.Context(), &pb.AlarmRequest{Action: pb.AlarmRequest_GET})
-		require.NoError(t, aerr)
-		if len(alarms.Alarms) > 0 {
-			break
-		}
-		require.Less(t, i, 100, "no alarm")
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	// Member 2 goes down; the others recover from NOSPACE: disarm, delete, compact, defragment.
-	clus.Members[2].Stop(t)
-	alarms, err := clus.Members[0].Server.Alarm(t.Context(), &pb.AlarmRequest{Action: pb.AlarmRequest_GET})
-	require.NoError(t, err)
-	for _, a := range alarms.Alarms {
-		_, err = clus.Members[0].Server.Alarm(t.Context(), &pb.AlarmRequest{
-			Action: pb.AlarmRequest_DEACTIVATE, MemberID: a.MemberID, Alarm: a.Alarm})
-		require.NoError(t, err)
-	}
-	_, err = kvc0.DeleteRange(t.Context(), &pb.DeleteRangeRequest{Key: []byte("big")})
-	require.NoError(t, err)
-	for i := 0; i < 40; i++ {
-		_, err = kvc0.Put(t.Context(), &pb.PutRequest{Key: []byte("k"), Value: []byte("v")})
-		require.NoError(t, err)
-	}
-	rev, err := kvc0.Range(t.Context(), &pb.RangeRequest{Key: []byte("k")})
-	require.NoError(t, err)
-	_, err = kvc0.Compact(t.Context(), &pb.CompactionRequest{Revision: rev.Header.Revision, Physical: true})
-	require.NoError(t, err)
-	for i := 0; i < 2; i++ {
-		require.NoError(t, clus.Members[i].Server.Backend().Defrag())
-	}
-	for i := 0; i < 40; i++ { // the leader snapshots and compacts its raft log past member 2
-		_, err = kvc0.Put(t.Context(), &pb.PutRequest{Key: []byte("k"), Value: []byte("v")})
-		require.NoError(t, err)
-	}
-
-	// Member 2 restarts and catches up by the leader's (defragmented) snapshot.
-	require.NoError(t, clus.Members[2].Restart(t))
-	clus.WaitMembersForLeader(t, clus.Members)
-	kvc2 := integration.ToGRPC(clus.Client(2)).KV
-	waitForRestart(t, kvc2)
-	integration.WaitClientV3(t, clus.Members[2].Client)
-	deadline := time.Now().Add(10 * time.Second)
-	for clus.Members[2].Server.Backend().Size() >= quotasize && time.Now().Before(deadline) {
-		time.Sleep(100 * time.Millisecond)
-	}
-	sz2 := clus.Members[2].Server.Backend().Size()
-	require.Less(t, sz2, quotasize, "member 2 did not install the leader's snapshot")
-
-	// Member 2's db is under its quota: a small put through it should succeed.
-	_, err = kvc2.Put(t.Context(), &pb.PutRequest{Key: []byte("after"), Value: []byte("x")})
-	require.NoErrorf(t, err, "put through member 2 after its snapshot install (db %d < quota %d)", sz2, quotasize)
-}
+```
+$ go test ./integration -run TestV3StorageQuotaAfterSnapshot -count=1
+        	Error Trace:	.../tests/integration/zz_quota_snap_test.go:67
+        	Error:      	Received unexpected error:
+        	            	rpc error: code = ResourceExhausted desc = etcdserver: mvcc: database space exceeded
+        	Messages:   	put through member 2 with db size 24576 under quota 65536
+--- FAIL: TestV3StorageQuotaAfterSnapshot (1.26s)
+FAIL	go.etcd.io/etcd/tests/v3/integration	13.135s
 ```
 
-  Observed (two of the runs): member 2's db after catching up is 28-32 KiB under a 64 KiB quota;
-  the put fails with `etcdserver: mvcc: database space exceeded`; one second later the alarm list
-  holds `NOSPACE` for member 2, and a put through member 0 (db 28 KiB, no quota) fails the same
-  way (every member's apply logs `no space`).
-- **Expected**: the gRPC quota check measures the member's current backend, as the apply path's
-  quota does after `applySnapshot` rebuilds it; nothing documents that a member keeps judging
-  writes by a backend it closed.
-- **How the proof handles it**: not yet: today no member installs a snapshot (`bootOk`'s
-  `"%Hnosnap"`, D21 M3), and `applySnapshot`'s spec covers only the empty snapshot
-  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean`). Track T-S
-  (`notes/decisions.md`, D22, decision D22g) states the quota's contract over the backend
-  captured at construction (closed or not) rather than the current one.
-- **Possible fixes**: make `newBackendQuota` read `s.Backend()` at each check. Tested at the pin
-  (the test above passes 3 of 3):
+**Cause:** the KV and lease gRPC servers check writes against a quota that
+[`newBackendQuota`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/quota.go#L93-L95)
+builds once, when the servers are created, over `s.Backend()` at that time.
+[`applySnapshot`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/server.go#L1082-L1083)
+replaces that backend and closes the old one, whose size then stays frozen; it rebuilds only the
+[applier's quota](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/server.go#L1146-L1148).
+Each refused write [proposes a NOSPACE alarm](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3rpc/quota.go#L38-L51).
 
-```go
-func newBackendQuota(s *etcdserver.EtcdServer, name string) storage.Quota {
-	return &serverQuota{s: s, name: name}
-}
+## Proof
 
-// serverQuota measures the server's current backend: applySnapshot replaces it.
-type serverQuota struct {
-	s    *etcdserver.EtcdServer
-	name string
-}
+yes: the verified fork carries the fix (`8f793b820`, `etc/goose.py`; the quota alarmer holds the
+server and reads its current backend, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvQuota.lean`).
 
-func (q *serverQuota) cur() storage.Quota {
-	return storage.NewBackendQuota(q.s.Logger(), q.s.Cfg.QuotaBackendBytes, q.s.Backend(), q.name)
-}
+## Fix
 
-func (q *serverQuota) Available(req any) bool { return q.cur().Available(req) }
-func (q *serverQuota) Cost(req any) int        { return q.cur().Cost(req) }
-func (q *serverQuota) Remaining() int64        { return q.cur().Remaining() }
-```
+**Branch**: `fix/etcd-quota-stale-backend-after-snapshot` in `~/etcd-fixes/etcd-quota-stale-backend-after-snapshot` (upamanyus/etcd, not pushed): b0baf43c1 test, 563ae7f6c fix
+**Base**: etcd-io/etcd@6782f5229b8a6dbc5f6d421107fd70d66de98694
 
-  (A version that does not rebuild the `BackendQuota` per call would keep the configured size
-  and read only `s.Backend().Size()`.)
-- **Found**: 2026-10-19, scoping track T-S (the snapshot path), reading `applySnapshot`'s
-  backend swap against the holders of `s.Backend()`.
+**PR draft**:
+
+Title: server: check the gRPC quota against the current backend
+
+The KV and lease gRPC servers check writes against a quota that [`newBackendQuota`](https://github.com/etcd-io/etcd/blob/6782f5229b8a6dbc5f6d421107fd70d66de98694/server/etcdserver/api/v3rpc/quota.go#L93-L95) builds once, when the servers are created, over the member's backend at that time. [`applySnapshot`](https://github.com/etcd-io/etcd/blob/6782f5229b8a6dbc5f6d421107fd70d66de98694/server/etcdserver/server.go#L1082-L1083) replaces that backend with the snapshot's and closes the old one, so the quota keeps measuring the closed backend; `applySnapshot` rebuilds only the [applier's quota](https://github.com/etcd-io/etcd/blob/6782f5229b8a6dbc5f6d421107fd70d66de98694/server/etcdserver/server.go#L1146-L1148). This PR builds the gRPC quota at each check, over the server's current backend.
+
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
+
+A reviewer may ask about the cost (one small allocation and a read lock per write, negligible
+next to a proposal) and why not rebuild in `applySnapshot` (the gRPC servers are created outside
+`EtcdServer`, which holds no reference to them).
+
+## Notes
+
+INDEX-reviewed.md's Plan is "Skip for now" (availability, not safety): a filing decision; the
+finding stays an issue. The branch's base is three weeks behind the recorded base; the test fails
+at both.

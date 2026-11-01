@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # The checker's state values, shared (2026-10-19)
 
 A model's `rep v s` need not be persistent (`ModelSpec`): etcd's robustness model sorts its
-states in place in `Equal` (`issues/etcd-robustness-model-equal-mutates.md`). `checkSingle`
+states in place in `Equal` (`nonissues/etcd-robustness-model-equal-mutates.md`). `checkSingle`
 keeps a state value in several places at once (the current state, the stack's frames, the
 cache's entries), so it shares each one in a non-atomic invariant (iris-lean's
 `NonAtomicInvariant`) of a pool `p` allocated at its start, whose token `na_own p ⊤` it keeps

@@ -48,7 +48,7 @@ invariant at the bootstrap log (`kvInv_alloc_boot`), the cluster's claims at the
 `Φs` (the caller's: a member's at its prefix), with the reserved id `0`, the proposals' mint, the
 read contexts, and each member's share: its prefix's entry of the claims, `2 ^ 48` of the
 cluster's read credits, its boot token and its snapshot directory. The pure premises (D21e (A),
-`issues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
+`nonissues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
 `0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
 theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)

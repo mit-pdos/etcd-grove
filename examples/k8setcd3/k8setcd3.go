@@ -14,7 +14,7 @@
 // (tryUpdate, validateDeletion) on the model's object. The one change is D30g's: the model knows
 // whether a stored value is the store's current encoding of its object (an item's canonical
 // bit), and an update is a no-op only on a canonical item, as the store's is
-// (issues/k8s-correctness-model-noop-rewrite.md). The driver seeds some keys with values in an
+// (nonissues/k8s-correctness-model-noop-rewrite.md). The driver seeds some keys with values in an
 // older encoding (the codec still decodes them), so the traffic reaches that case.
 //
 // As examples/linkvtxn's model, Model runs over configurations with pending failed writes: a

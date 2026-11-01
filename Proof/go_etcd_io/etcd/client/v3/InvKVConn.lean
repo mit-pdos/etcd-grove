@@ -823,7 +823,7 @@ it returns
 * `nil`: an attempt succeeded, the last one (the loop returns at the first `nil`), and `out` holds
   its reply's copy of a response (`Rep.recv out m'`) with its run's `Φ m'`; other attempts may
   have run the handler: an attempt that failed with a gRPC `Canceled` or `DeadlineExceeded` while
-  `ctx` is not done is retried whatever the method (`issues/etcd-client-retry-put-ctx-error.md`);
+  `ctx` is not done is retried whatever the method (`nonissues/etcd-client-retry-put-ctx-error.md`);
 * an error: a client error (`clientErr`) that grpc's `status` accepts (`statusErrOk`); nothing
   about whether, or how often, the handler ran, nor about `out`. -/
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=

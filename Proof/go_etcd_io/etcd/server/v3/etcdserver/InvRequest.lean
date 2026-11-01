@@ -29,7 +29,7 @@ verified raft to v3.7 (`notes/STATUS.md`, "Retargeting raft to upstream").
 2): `Next` returns an id nobody holds, which the proposer claims for its request's data. The ids
 of other members' requests (other generators, other prefixes) are claimed in the same map: that
 the members' prefixes (`uint16(memberID)`) differ is a premise of the raft contract's apply side
-(`issues/etcd-request-id-member-prefix.md`).
+(`nonissues/etcd-request-id-member-prefix.md`).
 
 **The wait registry** (`isWait w γi γw R RD`: `pkg/v3/wait/Defs.lean`, `wait.New`'s contract
 since unit 2). The server's registration condition (`reqWaitR`): `Ψ` is `resultΨ E rq` for the

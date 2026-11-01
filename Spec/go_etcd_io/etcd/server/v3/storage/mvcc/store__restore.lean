@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 R4, R5c), returning `nil`. It reads with a `ReadTx` (a reader's token `RT`, given back): for a
 bucket with data, over a clean read buffer (`restoreView`: the store's clean view and the
 backend's clean-view `ReadTx`, `keyCleanRead`), where a limited range returns the range's first
-entries (`issues/etcd-unsafe-range-limit-buffer.md`: with entries in the read buffer it may skip
+entries (`nonissues/etcd-unsafe-range-limit-buffer.md`: with entries in the read buffer it may skip
 some).
 
 * **The index** is rebuilt while private (`ownIdxPriv`, as `newTreeIndex` returns it:

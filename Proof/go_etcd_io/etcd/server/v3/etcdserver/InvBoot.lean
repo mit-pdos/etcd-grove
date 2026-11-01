@@ -233,7 +233,7 @@ opaque ckptEffectsOk : Prop
 /-- **The auth store's records fit bbolt's value bound** (opaque, a workload premise; unit N4,
 2026-10-17): a user's record grows with its roles and a role's with its permissions, each grant
 within the request size bound; a record above bbolt's `MaxValueSize` (`2 ^ 31 - 2` bytes) makes
-the backend's put fatal (`issues/etcd-backend-put-value-too-large-fatal.md`). The model does not
+the backend's put fatal (`nonissues/etcd-backend-put-value-too-large-fatal.md`). The model does not
 keep the auth store's contents, so the bound is named, a premise of `auth.NewAuthStore`'s axiom
 and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop

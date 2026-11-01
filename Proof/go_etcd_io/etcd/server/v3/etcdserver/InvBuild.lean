@@ -25,7 +25,7 @@ halves of the unit share, frozen once placed:
   now proved): every committed log's entries have good shapes (`logShape`; until D19c's move the
   apply premises themselves, `entriesOk`) and its ids are claimed under this server's generator
   (`batchWaitOk`). For several members both are facts about the other members' requests
-  (`issues/etcd-request-id-member-prefix.md`).
+  (`nonissues/etcd-request-id-member-prefix.md`).
 * **The built part** `srvBuilt` and **the residual** `srvBuildGap`. Since D17 (2026-10-17) the
   residual has one row, the raft storage's snapshot contract `rnSnapOnce`; the others (the KV
   rows, the write budget, the uber-applier's, `storeSmall`, the id budget, `ClusterVersion()`'s

@@ -29,7 +29,7 @@ remote is started for; or, D22 J-T, 2026-10-27, `id`'s no-remote token, which `N
 out; until M5c, not among the frozen ids `AddRemote` was called for): it returns the token and
 the no-remote fact. It resumes the peer of `id` (`peer.Resume`, if one is added): the transport
 delivers again (until the next `CutPeer`); a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
-its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
+its pipeline, a second one panics (`nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
 method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=
   PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64),

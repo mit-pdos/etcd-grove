@@ -40,7 +40,7 @@ put or delete the member's encoding in the alarm bucket (`MustPutAlarm`/`MustDel
 `LockInsideApply`, the backend open, a share lent in `mvcc.bkRTx`, the frozen hook run under
 `Pk`; the alarm bucket a hook bucket, the readers' view unchanged; `Unlock`, one write-back). The
 put's key is not empty for an alarm type other than `NONE` (the contract's premise of `Activate`,
-`issues/etcd-alarm-activate-none-zero-fatal.md`).
+`nonissues/etcd-alarm-activate-none-zero-fatal.md`).
 
 Over an empty alarm bucket (the tracked buckets' half `backend.rbOwn d.γB r` says so, D22,
 2026-10-23; until then the opaque token `bkFresh d.γB "alarm"`, D14i, 2026-10-17: the creation

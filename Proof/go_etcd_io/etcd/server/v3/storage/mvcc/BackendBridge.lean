@@ -13,7 +13,7 @@ backend whose parameters `P` have schema's buckets and whose hook's buckets are 
 - The puts' condition (`keyPutOk`, `InvStore.lean`): at most `2^56` per session, a key of
   `1..MaxKeySize` bytes above every key of the bucket and of the session's puts (the safe-range
   discipline the backend now requires of `Key`'s `UnsafeSeqPut`); no bound on the value (an
-  oversized one is fatal in the backend: `issues/etcd-backend-put-value-too-large-fatal.md`).
+  oversized one is fatal in the backend: `nonissues/etcd-backend-put-value-too-large-fatal.md`).
 - The lock's tokens: `bkLocked γ P b l`, the batch lock held in a session whose write buffer's
   `Key` bucket is the puts `l` (no delete pending), with a write-back's budget for its `Unlock`;
   `bkLockedO γ P b n`, `NewStore`'s session after `n` bucket creations (nothing the readers see
@@ -25,7 +25,7 @@ backend whose parameters `P` have schema's buckets and whose hook's buckets are 
   order). The order is the backend's invariant (`safeRv`, `rtHeld_safe`: unit 5); the size (the
   range's limit is `2^63 - 1` entries) is the premise `keySized`. A `ConcurrentReadTx` promises
   no range (its cached read buffer can repeat a committed key:
-  `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`).
+  `nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`).
 - Unit 5: `storeBackend_of_backend` gives the contract `NewStore` takes for every store of a
   real instance (`KBReal`), with the late-bound lock resource `lateW`.
 - The compaction's clauses (2026-10-13, the merge with mvcc's unit 5a): the snapshots are exact
@@ -870,7 +870,7 @@ theorem rtRange_sublist {P : BParams} (hP : bridgeParams P) {rv : RView} (hR : r
 
 /-- **A limited range of a `Key` bucket over a clean read buffer** (nothing off the hook's
 buckets, `rbClean`) is the range's first `limit` entries: bbolt's window alone (the restore
-plan's R5a; with entries in the buffer it is not, `issues/etcd-unsafe-range-limit-buffer.md`). -/
+plan's R5a; with entries in the buffer it is not, `nonissues/etcd-unsafe-range-limit-buffer.md`). -/
 theorem rtRange_clean {P : BParams} (hP : bridgeParams P) {rv : RView} (hR : rv.2.Wf)
     (hs : keySafe rv) {m : Bucket} (hv : keyView (vData P rv) m) (hcl : rbClean P rv.2)
     (klo khi : GoString) (hne : khi ≠ []) (lim : w64) (hlim : 0 < sint.Z lim) :

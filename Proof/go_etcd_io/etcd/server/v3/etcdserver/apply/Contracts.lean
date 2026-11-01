@@ -384,7 +384,7 @@ instance alarmMemberIs_persistent (m : Loc) : Persistent (alarmMemberIs (GF := G
 /-- **The `*v3alarm.AlarmStore` `st`** (trust boundary: `v3alarm` is names-only): `Get` returns
 a slice (its own: a loop over its map, under its mutex); `Activate` and `Deactivate` write the
 alarm bucket under the batch lock (or not: an alarm already set, or not set). `Activate` takes an alarm type other than `NONE` (`0`): the
-member `{0, NONE}` encodes to an empty bbolt key, fatal (`issues/etcd-alarm-activate-none-zero-fatal.md`;
+member `{0, NONE}` encodes to an empty bbolt key, fatal (`nonissues/etcd-alarm-activate-none-zero-fatal.md`;
 unit N4, 2026-10-17); its one caller, `applierV3backend.Alarm`, skips `NONE`. (D22,
 2026-10-23) The writes take and give back the alarm bucket's write right `RW` (as the auth
 store's). -/

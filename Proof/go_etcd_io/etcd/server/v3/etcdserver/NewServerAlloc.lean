@@ -13,7 +13,7 @@ calling `NewServer`. Lean-first (no Rocq counterpart).
   `kvInv`, the client's `etcdKV` at the bootstrap log's model and the fresh-token authorities.
 * `srvClusterBoot_alloc`: that, with the cluster's claims (`idCluster_alloc`, under the pure
   premise that the members' ids' 16 low bits are distinct and not `0`: D21e (A),
-  `issues/etcd-request-id-member-prefix.md`), the proposals' mint (`srvPropMint`), the read
+  `nonissues/etcd-request-id-member-prefix.md`), the proposals' mint (`srvPropMint`), the read
   contexts (`srvRdCtxInv`), and each member's share: its prefix's entry of the claims and `2 ^ 48`
   of raft's read credits (fewer than `2 ^ 16` members, from the premise).
 
@@ -164,7 +164,7 @@ invariant at the bootstrap log (`kvInv_alloc_boot`), the cluster's claims at the
 `Φs` (the caller's: a member's at its prefix), with the reserved id `0`, the proposals' mint, the
 read contexts, and each member's share: its prefix's entry of the claims, `2 ^ 48` of the
 cluster's read credits, its boot token and its snapshot directory. The pure premises (D21e (A),
-`issues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
+`nonissues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
 `0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
 theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)

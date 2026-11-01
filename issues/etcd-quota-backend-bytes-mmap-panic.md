@@ -1,52 +1,57 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-11-01
+links: []
+blocks-proof: yes
 ---
 
-# A `--quota-backend-bytes` above about 2.5·10^14 (amd64) makes etcd panic at startup ("mmap too large")
+# etcd: a `--quota-backend-bytes` above about 230 TiB crashes etcd at startup with "mmap too large"
 
-- **Status**: an unstated precondition. etcd's configuration accepts any positive
-  `QuotaBackendBytes` (the flag's help says only "Sets the maximum size (in bytes) that the etcd
-  backend database may consume"). But the backend maps 110% of it up front, and bbolt refuses a map
-  above its `maxMapSize`, so the server panics while opening its database. There is no validation
-  and no documented limit. Low severity: it needs an absurd quota, an operator's mistake, not a
-  client's, and the failure is immediate and loud. But the panic message ("failed to open
-  database ... mmap too large") does not point at the flag.
-- **Where** (the fork's `249d76bea`, `etc/goose.py`'s pin; upstream `main` has the same code):
-  - `server/storage/backend.go:53-56` (`newBackend`): for a quota `q > 0` other than
-    `DefaultQuotaBytes` (2 GiB), `bcfg.MmapSize = uint64(q + q/10)` ("permit 10% excess over quota
-    for disarm").
-  - `server/storage/backend/backend.go:225`: `bopts.InitialMmapSize = bcfg.mmapSize()`, passed to
-    `bolt.Open` (`:233`).
-  - bbolt v1.5.0 `db.go:590` (`mmapSize`): `if size > common.MaxMapSize { return 0, errors.New("mmap
-    too large") }`; `MaxMapSize` is `0xFFFFFFFFFFFF` (256 TiB) on amd64 and arm64, smaller on 32-bit
-    platforms.
-  - `server/storage/backend/backend.go:235`: `bcfg.Logger.Panic("failed to open database", ...)`, on
-    `OpenBackend`'s goroutine (`server/storage/backend.go`), so the process dies.
-  - `server/embed/config.go:616`: the flag's documentation, with no upper bound. `quota.go` only
-    warns above the recommended `MaxQuotaBytes` (8 GiB).
-  - A `q` with `q + q/10` above `MaxInt64` overflows in `newBackend` too.
-- **What happens**: reproduction `issues/etcd-quota-backend-bytes-mmap-panic/repro_test.go`. Copy it
-  into `server/storage/` and run `go test ./storage -run 'TestOpenBackend(Large|Default)Quota' -v` from
-  `server/`. With `QuotaBackendBytes: 1 << 50` the child process dies with `panic: failed to open
-  database` and bbolt's `mmap too large`. The control, with the default quota in the same
-  environment, opens. Run at the pin (go1.27.3, amd64):
+etcd accepts any positive `--quota-backend-bytes`, but it maps 110% of the quota when it opens its
+database, and bbolt refuses a mapping above 256 TiB (amd64, arm64; less on 32-bit platforms), so a
+larger quota makes etcd panic at startup with `failed to open database` and `mmap too large`, a
+message that does not name the flag.
 
-  ```
-  --- PASS: TestOpenBackendLargeQuota (0.01s)
-      quota_repro_test.go:52: the child panicked (exit status 2)
-  --- PASS: TestOpenBackendDefaultQuota (0.00s)
-  ```
-- **Expected**: the configuration is rejected at validation with a message naming the flag and its
-  maximum, or the documentation states the limit.
-- **How the proof handles it**: `storage.OpenBackend`'s axiom takes `openPre`, which now includes
-  `openMmapOk cfg` (`Proof/go_etcd_io/etcd/server/v3/storage/InvOpen.lean`): the quota is not
-  positive, is the default, or `q + q/10 ≤ 0xFFFFFFFFFFFF`. `NewServer.spec`, `specCompact` and
-  `specM` take it as a premise (`"%Hmmap"`), and the examples discharge it with their default quota.
-  The `axiom` skill found the gap: `notes/axiom-review/openbackend.md` (the counterexample on branch
-  `axiom/openbackend`, `examples/axiomcx/openquota`).
-- **Possible fixes**: validate `QuotaBackendBytes` in `embed.Config.Validate` (or in
-  `newBackend`) against `MaxMapSize·10/11` and the `int64` overflow, with a clear error; or clamp
-  the mmap size to bbolt's maximum (the quota alarm still applies); and document the limit in the
-  flag's help.
-- **Found**: 2026-10-29, by the `axiom` skill's review of `storage.OpenBackend`
-  (`notes/axiom-review/openbackend.md`).
+**Expected:** etcd should reject the value at startup with an error naming the flag and its
+maximum, or document the limit; the flag's help ("Sets the maximum size (in bytes) that the etcd
+backend database may consume. ... Set to 0 to use the default 2GiB limit.") states none, and
+[`Config.Validate`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/embed/config.go#L926)
+already rejects other unusable values with such errors.
+
+**Impact:** an operator's absurd setting (the recommended maximum is 8 GiB, above which etcd only
+warns); the failure is immediate and loud. Every release.
+
+**Reproduction:** `TestLargeQuotaBackendBytesFlag` in
+[`issues/etcd-quota-backend-bytes-mmap-panic/quota_flag_test.go`](etcd-quota-backend-bytes-mmap-panic/quota_flag_test.go),
+copied into `server/embed` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28),
+go1.27.3 linux/amd64. It parses `--quota-backend-bytes=1125899906842624` (1 PiB) with etcd's own
+flag set (`Config.AddFlags`, as `etcdmain` does) and starts a single member with `StartEtcd`, in a
+child process:
+
+```
+$ go test ./embed -run TestLargeQuotaBackendBytesFlag -count=1
+--- FAIL: TestLargeQuotaBackendBytesFlag (0.04s)
+    zz_quota_test.go:50: etcd with --quota-backend-bytes=1125899906842624 crashed (exit status 2): panic: failed to open database
+
+        goroutine 117 [running]:
+        go.uber.org/zap/zapcore.CheckWriteAction.OnWrite(0x2?, 0x398af4cd75f0?, {0x0?, 0x0?, 0x398af4e98320?})
+FAIL	go.etcd.io/etcd/server/v3/embed	0.091s
+```
+
+**Cause:** [`newBackend`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/storage/backend.go#L53-L56)
+sets the initial mmap size to `q + q/10` for a quota `q`, which bbolt v1.5.0's `Open` refuses above
+its `maxMapSize`, and the backend
+[panics](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/storage/backend/backend.go#L225-L236)
+on the error. (A `q` with `q + q/10` above `MaxInt64` overflows there too.)
+
+## Proof
+
+yes: `storage.OpenBackend`'s trust-boundary axiom needed the premise `openMmapOk cfg` (the quota
+not positive, the default, or `q + q/10 ≤ 0xFFFFFFFFFFFF`;
+`Proof/go_etcd_io/etcd/server/v3/storage/InvOpen.lean`), which `NewServer.spec` takes and etcd does
+not check; found by the `axiom` skill (`notes/axiom-review/openbackend.md`).
+
+## Fix
+
+`Config.Validate` rejects a quota whose mapping would exceed bbolt's maximum (or `newBackend`
+clamps the mapping), and the flag's help states the limit.

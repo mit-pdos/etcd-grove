@@ -1,124 +1,46 @@
 ---
 upstream: reported
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#22614 issue open: this bug, reported 2026-10-19
-  - etcd-io/etcd#22618 pr open: a fix of this bug by someone else (NUAAwqy), opened 2026-10-19: the candidate's fix and test verbatim (identical diff to 27352098d), crediting #22614; "Fixes #22614"; needs-ok-to-test, no review
-  - etcd-io/etcd#22408 pr open: related, not this bug (the same getWatchLoop retry path: back-off and GetTimeout are never read; still open, not in main 22cc5d9ac)
-  - etcd-io/etcd#21536 issue closed: related, not this bug (the user's cache report: Get(WithRev) with revision gaps; fixed by #21540)
-  - etcd-io/etcd#20691 pr merged: related (made the demux keep a min/max revision range, where Init's purge comes from; not checked further)
-candidate: issues/upstream/cache-ready-after-retry/
+  - etcd-io/etcd#22618 pr open: a fix by someone else (NUAAwqy), our branch's fix and test verbatim, "Fixes #22614"; needs-ok-to-test, no review
+  - etcd-io/etcd#22408 pr open: related, not this bug (the same retry loop: back-off and GetTimeout never read)
+  - etcd-io/etcd#21536 issue closed: related, not this bug (Get(WithRev) with revision gaps; fixed by #21540)
+  - etcd-io/etcd#20691 pr merged: related (made the demux keep a min/max revision range, where Init's purge comes from)
+blocks-proof: yes
 ---
 
-# cache: Cache never becomes ready again after a watch retry that purges the demux
+# cache: the cache never becomes ready again after a compaction cancels its upstream watch
 
-## Summary
+When the cache's upstream watch fails (a compaction cancels it, for one) and the cache retries from a
+fresh `Get` at a revision that does not continue what it had seen, the retried watch's first response
+purges the cache's demux, which stops the store watcher just registered for it; the loop goes around
+with its `sync.Once` spent, so `Ready()` stays false, `WaitReady` never returns and `Cache.Watch`
+blocks, while the store keeps up to date.
 
-When the cache's upstream watch fails and the cache retries from a fresh Get, the retried watch can leave the cache permanently not ready. If the Get's revision is not right after the last revision the demux observed (the usual case when etcd has moved on during the retry, and always when the failed watch had observed no events), `demux.Init` purges the demux on the retried watch's first response; the purge stops the store watcher that was just registered for that same watch, the watch loop goes around once, and `ready.Set()` is never called again because it sits behind a `sync.Once` that is already spent. The upstream watch keeps flowing and the store stays current, but `Ready()` stays false, `WaitReady` never returns, and `Cache.Watch` blocks until its context is canceled. We found this while formally verifying the cache package.
-
-## What happens
-
-References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
-
-1. `getWatchLoop` calls `getWatch` (`cache/cache.go:331`), which does a Get, `store.Restore`s it (`cache.go:344`) and calls `watch(rev)` with `rev = Get revision + 1`.
-2. `watch` (`cache.go:348`) creates `readyOnce` once per call (`cache.go:349`), then in its loop creates the store watcher `storeW` and registers it with the demux (`cache.go:351-352`), starts `applyStorage(storeW)` (`cache.go:355-361`), and calls `watchEvents`.
-3. `watchEvents` (`cache.go:388`) opens the upstream watch at `rev`, and on its first response runs
-   `readyOnce.Do(func() { c.demux.Init(rev); c.ready.Set() })` (`cache.go:405-408`).
-   So `Init` runs after `storeW` is registered.
-
-   ```go
-   // cache/cache.go:348-370 and 397-421 (etcd main f061acd09), watch and watchEvents
-   func (c *Cache) watch(rev int64) error {
-   	readyOnce := sync.Once{} // <- one Once per watch() call
-   	for {
-   		storeW := newWatcher(c.cfg.PerWatcherBufferSize, nil)
-   		c.demux.Register(storeW, rev) // <- 1. register
-   		// ... go applyStorage(storeW): returns nil when storeW is stopped ...
-   		err := c.watchEvents(rev, applyErr, &readyOnce)
-   		c.demux.Unregister(storeW)
-
-   		if err != nil {
-   			return err
-   		}
-   	} // <- err == nil: loop with the same, spent Once
-   }
-   // ... watchEvents:
-   		case resp, ok := <-watchCh:
-   			// ...
-   			readyOnce.Do(func() {
-   				c.demux.Init(rev) // <- 2. may purge: stops storeW
-   				c.ready.Set()
-   			})
-   			// ...
-   		case err := <-applyErr: // nil, because storeW was stopped
-   			c.ready.Reset() // <-
-   			return err
-   ```
-4. `demux.Init` (`cache/demux.go:119`) purges the demux when the demux was initialized before and either never saw an event (`maxRev == 0`, `demux.go:130-134`) or `rev != maxRev+1` (`demux.go:141`). `purge` (`demux.go:296`) stops every registered watcher (`demux.go:301,304`), including the `storeW` registered in step 2.
-
-   ```go
-   // cache/demux.go:119-143 (etcd main f061acd09)
-   func (d *demux) Init(minRev int64) {
-   	// ...
-   	if d.minRev == 0 {
-   		// Watch started for empty demux
-   		d.minRev = minRev
-   		return
-   	}
-   	if d.maxRev == 0 {
-   		// Watch started on initialized demux that never got any event.
-   		d.purge() // <-
-   		d.minRev = minRev
-   		return
-   	}
-   	if minRev == d.maxRev+1 {
-   		// Watch continuing from last revision it observed.
-   		return
-   	}
-   	// Watch opened on revision mismatching dmux last observed revision.
-   	d.purge() // <- the usual case after a retry: stops every registered watcher
-   	d.minRev = minRev
-   }
-   ```
-5. `applyStorage` sees `storeW`'s channel closed and returns nil (`cache.go:378-379`); the goroutine closes `applyErr`. `watchEvents` receives nil from it, calls `c.ready.Reset()` and returns nil (`cache.go:418-420`). Note that `ready.Set()` ran in step 3 just before this, so the cache is briefly ready.
-6. `watch` unregisters `storeW` and, the error being nil, loops (`cache.go:363-368`): a new `storeW` is registered at the same `rev` and a new upstream watch is opened. This time nothing is purged (the demux now has `minRev == rev`, and `Init` is not called again anyway), so events flow: `Broadcast` succeeds and the new `storeW` applies them to the store. But `readyOnce` is spent, so `ready.Set()` never runs again for this `watch` call, and `watch` only returns on an error. `Ready()` stays false for as long as the upstream watch stays healthy.
-
-For example, in the test below: the first Get answers revision 9, the cache watches from 10, and the demux sees the event at 10 (`maxRev = 10`). The upstream watch fails. The retry's Get answers 12, so `watch(13)` registers a new `storeW` at 13. The retried watch's first response runs `Init(13)`: `13 != maxRev+1 = 11`, so the demux is purged and that `storeW` is stopped. The loop registers another `storeW` and the store reaches revision 13, but `WaitReady` never returns.
-
-The first watch after `New` does not hit this, because the demux is fresh (`minRev == 0`, `demux.go:125-128`) and `Init` does not purge. A retry whose Get returns exactly the last revision the demux saw (`rev == maxRev+1`, `demux.go:136-138`) does not hit it either.
-
-## How to reproduce
-
-The branch below adds `TestCacheReadyAfterWatchRetry` (`cache/watch_retry_test.go`). It uses a fake `clientv3.Watcher` that gives each `Watch` call its own response channel, so the test decides which upstream watch each response goes to. The scenario: the first Get answers revision 9, the cache watches from 10, the watch is created and the cache becomes ready; optionally an event at revision 10 is delivered; then the upstream watch is canceled with an error and the cache becomes not ready. The retry's Get answers revision `R`, the cache watches from `R+1`, the retried watch is created, an event at `R+1` is delivered on it, and the test checks that the store reaches `R+1`, that the cache becomes ready, and that a `Cache.Watch` from `R+1` receives the event.
-
-- With `R = 10` and the event at 10 (the retry continues the demux), the test passes on `main`.
-- With `R = 12` and the event at 10 (`demux.go:141` purges), and with `R = 12` and no event (`demux.go:132` purges), the store reaches revision 13 but `WaitReady` times out on `main`.
+**Reproduction:** `TestCacheReadyAfterCompactionResync` in
+[`issues/cache-ready-after-retry/cache_ready_after_retry_test.go`](cache-ready-after-retry/cache_ready_after_retry_test.go),
+copied into `cache` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3
+linux/amd64 (it uses `cache_test.go`'s mock watcher and KV stub):
 
 ```
-go test ./cache/ -run TestCacheReadyAfterWatchRetry -v
+$ go test . -run '^TestCacheReadyAfterCompactionResync$' -count=1
+getWatch failed, will retry after 50ms: etcdserver: mvcc: required revision has been compacted
+--- FAIL: TestCacheReadyAfterCompactionResync (0.00s)
+    cache_ready_after_retry_test.go:58: cache not ready after the resync
+FAIL
 ```
 
-In a real deployment this is a cache whose upstream watch fails (for example, a canceled watch or a `Broadcast` validation error) while writes continue on etcd.
+## Proof
 
-## Expected
+yes: the verified fork carries the fix (`64313a1f8`, fork branch `cache-ready-after-retry`); the bug
+itself is liveness (readiness never set), which the cache's safety specs do not state.
 
-After a retried upstream watch is established, the cache becomes ready again, as it does after the first watch, and `WaitReady` and `Cache.Watch` proceed.
+## Fix
 
-## Proposed fix
+**Branch**: `fix/cache-ready-after-retry` in `~/etcd-fixes/cache-ready-after-retry` (upamanyus/etcd, pushed): 4c9743e0e test, 27352098d fix
+**Base**: etcd-io/etcd@22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4
 
-Branch `cache-ready-after-retry` (one commit, with the test). `rev` is known when `watch` is entered, so `Init` does not need the first response. `watch` now calls `c.demux.Init(rev)` once, before the loop and so before the first `storeW` is registered; a purge then only stops watchers of earlier watches. The first response of the upstream watch still gates readiness, now just `readyOnce.Do(c.ready.Set)`.
+## Notes
 
-Alternatives that do not work:
-
-- A new `sync.Once` per loop iteration (so `Init` and `ready.Set` run again on each iteration's first response): after the purge `maxRev` is 0, so every iteration's `Init` takes the `maxRev == 0` branch, purges again and stops that iteration's `storeW`, and `watch` reopens the upstream watch in a loop. The test above catches this (it fails after ten reopened watches).
-- Dropping the `Once` and calling `ready.Set()` on every first response, with `Init` still in `watchEvents`: same purge loop, with readiness flapping.
-
-With `Init` out of the loop, one `Once` per `watch` call is enough: nothing else purges the demux (`demux.Purge` and `demux.Compact` are not called outside tests), and a `storeW` is otherwise stopped only when it lags behind the demux history, in which case the next iteration's upstream watch, restarted from the same `rev`, replays revisions the demux rejects as stale, so the cache retries from a new Get with a new `watch` call.
-
-## Also noticed
-
-Two observations from the same verification, for the maintainers' judgment; neither is a bug and the branch does not change them:
-
-- Each upstream watch is opened with `c.internalCtx` (`cache.go:390`) and is never canceled when `watchEvents` returns, so every retry leaves the previous upstream watch (client goroutines and server-side watcher) open until the cache is closed; in the scenario above, each round of the loop adds one. A child context canceled when `watchEvents` returns would close it.
-- When `getWatch` returns and is retried, the previous iteration's `applyStorage` goroutine may still be draining the responses buffered in its stopped watcher while the next `Restore` or `Apply` runs. This is safe: every such response was broadcast before the retry's `Get`, so its revision is at most the `Get`'s, and `store.Apply` rejects it as stale through `validateRevisions` (`cache/store.go:126,178`); the goroutine's error goes to a channel nobody reads. We mention it because the safety argument is implicit in the code.
-- `newCache` validates `HistoryWindowSize` and `BTreeDegree` but not `PerWatcherBufferSize`; a negative value makes `newWatcher`'s `make(chan …, bufSize)` panic, and so does a huge one (`makechan` panics when the buffer would exceed the maximum allocation; the proofs now require `bufSize < 2^32`, 2026-10-12). Should it be validated like the others?
+#22618 carries this branch's diff; we have not opened a PR of our own.

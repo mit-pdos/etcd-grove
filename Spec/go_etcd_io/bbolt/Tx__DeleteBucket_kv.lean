@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.DeleteBucket(name)`: the bucket deleted and its name's generation bumped, so that the
 handles of the deleted bucket are no longer current (bbolt frees its nodes: an old handle panics
-on `Put`, `issues/bbolt-deleted-bucket-handle.md`); or, if absent, `errors.ErrBucketNotFound`'s
+on `Put`, `nonissues/bbolt-deleted-bucket-handle.md`); or, if absent, `errors.ErrBucketNotFound`'s
 value. (Until 2026-10-27 handles had no generation and outlived the delete: false, found by
 `etc/spec-test/bbolt`.) -/
 abbrev bbolt.Tx.DeleteBucket_kv.spec : Prop :=

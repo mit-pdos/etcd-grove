@@ -6,7 +6,7 @@ and grpc-go from memory (no checkout; marked where uncertain). I did not reopen 
 (the faithful chain, the refresh path in scope, the anonymous client out of scope), gate (A), or the
 credentials axioms (1).
 
-No new Go bug found. The relevant existing issue is `issues/etcd-auth-token-md-empty.md`; finding F2
+No new Go bug found. The relevant existing issue is `nonissues/etcd-auth-token-md-empty.md`; finding F2
 contradicts the claim that issue relies on ("grpc's transports never put a key with no value").
 
 ---
@@ -43,7 +43,7 @@ contradicts the claim that issue relies on ("grpc's transports never put a key w
   - `outgoingOf` is opaque, so nothing excludes such a context.
 - **Fix**: compare value lists and state that grpc never delivers an empty list:
   `∀ k, ¬reserved k → mdVals md k = mdVals cm k ++ mdVals (outgoingOf ctx) k`, plus
-  `∀ k, mdGet md k ≠ some []`. The second conjunct is also what `issues/etcd-auth-token-md-empty.md`
+  `∀ k, mdGet md k ≠ some []`. The second conjunct is also what `nonissues/etcd-auth-token-md-empty.md`
   says of real transports. `mdMergeAt` and its three-way match then go away.
   `clientAttempt_tok` (`ClientUser.lean:83`) re-proves with the non-emptiness conjunct.
 

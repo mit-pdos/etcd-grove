@@ -20,7 +20,7 @@
 // Each spec is transcribed by hand from its Lean statement (the comment on each step cites it).
 // The -old flags select statements found false: -old-info and -old-cursor-kvw the axiom audit's
 // (notes/audit.md, "bbolt"), as they were before audit B4b (commit 39dd386a43); -old-wbkt the
-// handles without a generation, as before 2026-10-27 (issues/bbolt-deleted-bucket-handle.md).
+// handles without a generation, as before 2026-10-27 (nonissues/bbolt-deleted-bucket-handle.md).
 package main
 
 import (

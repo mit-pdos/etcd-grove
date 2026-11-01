@@ -2,98 +2,72 @@
 upstream: none
 checked: 2026-10-26
 links:
-  - etcd-io/raft#441 pr merged: related, not this bug: EnsureSnapshot/EnsureSnapshotMetadata no longer reassign non-nil fields, after a race found in etcd-io/etcd#21778 (ApplySnapshot writing its argument); EnsureConfState still writes AutoLeave
-candidate: issues/upstream/raft-memorystorage-initialstate-unlocked/
+  - etcd-io/raft#441 pr merged: related, not this bug: EnsureSnapshot/EnsureSnapshotMetadata no longer reassign non-nil fields, after a race found in etcd-io/etcd#21778 (ApplySnapshot writing its argument)
+blocks-proof: no
 ---
 
-# raft: `MemoryStorage.InitialState` accesses its fields without the mutex
+# raft: data race between `MemoryStorage.InitialState` and `MemoryStorage.SetHardState`
 
-**Status**: open (not reported upstream; candidate drafted 2026-10-21, at raft `main` 1931ff5be, still unlocked; re-checked 2026-10-23, `main` unchanged). **Also in raft v3.7.0** (2026-10-15, the retarget's
-inventory): `storage.go:128-134` still takes no lock, and now also *writes*: `pb.EnsureConfState(cs)`
-sets the stored snapshot's `ConfState.AutoLeave` when it is nil (`raftpb/util.go:20-28`), and
-returns `ms.hardState` and that `ConfState` uncloned (the caller shares them with the storage).
+`MemoryStorage.InitialState` reads the stored hard state and `ConfState`, and may set that
+`ConfState`'s `AutoLeave`, without taking the storage's mutex, so it races with `SetHardState`,
+`ApplySnapshot` and `CreateSnapshot` called on another goroutine; the race detector reports it on
+every run.
 
-**Where** (etcd-io/raft at `40f8be730b18`, the revision `etc/goose.py` pins):
+**Expected:** `InitialState` should be safe to call concurrently with the other methods, as
+[`MemoryStorage`'s mutex comment](https://github.com/etcd-io/raft/blob/c51f010c851edd0dada5af41bafbf68e54617767/storage.go#L105-L108)
+says it "protects access to all fields" and that its methods run on different goroutines.
 
-- `storage.go:98-101`: `MemoryStorage`'s `sync.Mutex`: "Protects access to all fields. Most
-  methods of MemoryStorage are run on the raft goroutine, but Append() is run on an
-  application goroutine."
-- `storage.go:121-124`: `InitialState` increments `ms.callStats.initialState` and reads
-  `ms.hardState` and `ms.snapshot.Metadata.ConfState` without taking the lock, while
-  `SetHardState`, `ApplySnapshot` and `CreateSnapshot` write those fields under it.
+**Impact:** an application that creates a node on a `MemoryStorage` (raft calls `InitialState` once,
+in `newRaft`), or calls `InitialState` itself, while another goroutine writes to the same storage.
+Raft alone does not race, and etcd does not: it fills its `MemoryStorage` before starting the node
+on it. Same code in v3.7.0; release-3.6 also reads without the lock.
 
-**What happens**: a data race whenever `InitialState` runs concurrently with one of those
-writers (e.g. the application calling `SetHardState` on its goroutine while a node is
-being created on another). Reproduction (in package `raft`,
-`go test -race -run TestMemoryStorageInitialStateRace`; the race detector reports the
-read at `storage.go:123` against the write in `SetHardState`):
+**Reproduction:** `TestStorageInitialStateConcurrent` in
+[`issues/raft-memorystorage-initialstate-unlocked/initialstate_concurrent_test.go`](raft-memorystorage-initialstate-unlocked/initialstate_concurrent_test.go),
+copied into the module root at etcd-io/raft@c51f010c851e (2026-10-23), go1.27.3 linux/amd64:
 
-```go
-func TestMemoryStorageInitialStateRace(t *testing.T) {
-	ms := NewMemoryStorage()
-	done := make(chan struct{})
-	go func() {
-		for i := uint64(0); i < 1000; i++ {
-			_ = ms.SetHardState(pb.HardState{Term: i})
-		}
-		close(done)
-	}()
-	for i := 0; i < 1000; i++ {
-		_, _, _ = ms.InitialState()
-	}
-	<-done
-}
+```
+$ go test -race . -run '^TestStorageInitialStateConcurrent$' -count=1
+WARNING: DATA RACE
+Write at 0x00c000140248 by goroutine 10:
+  go.etcd.io/raft/v3.(*MemoryStorage).SetHardState()
+      storage.go:140 +0x92
+...
+Previous read at 0x00c0000dc0c8 by goroutine 9:
+  go.etcd.io/raft/v3.(*MemoryStorage).InitialState()
+      storage.go:133 +0x431
+...
+--- FAIL: TestStorageInitialStateConcurrent (0.00s)
+    testing.go:1867: race detected during execution of test
+FAIL
 ```
 
-In raft's own use `InitialState` is called once, from `newRaft`, before any `Ready` is
-handed to the application, so raft itself does not race; the issue is the method against
-its type's documentation.
+**Cause:** every exported method of `MemoryStorage` takes its mutex except
+[`InitialState`](https://github.com/etcd-io/raft/blob/c51f010c851edd0dada5af41bafbf68e54617767/storage.go#L128-L134),
+which increments a call counter, reads `ms.hardState` and the snapshot's `ConfState`, and calls
+`pb.EnsureConfState` on the stored `ConfState`, all unlocked.
 
-**How it happens**: `MemoryStorage` embeds a mutex documented to protect all of its fields.
-Every exported method takes it except `InitialState`, which increments a counter and reads
-`hardState` and the snapshot's `ConfState` bare. In the test above:
+## Proof
 
-1. A goroutine calls `SetHardState` in a loop; each call takes the lock and writes
-   `ms.hardState`.
-2. The test goroutine calls `InitialState` in a loop; each call reads `ms.hardState` without
-   the lock.
-3. The race detector reports the read at `storage.go:123` against the write in
-   `SetHardState`.
+no: `MemoryStorage.InitialState.spec` takes the storage's unlocked half (`memStorMeta`,
+`Proof/go_etcd_io/raft/v3/InvMemstorage.lean`), which the writers need too, so it cannot run
+concurrently with them (`Spec/go_etcd_io/raft/v3/MemoryStorage__InitialState.lean`); raft and etcd
+meet that (one call, in `newRaft`, before any concurrent use).
 
-```go
-// storage.go:97-101 and 120-124 (etcd-io/raft 40f8be7)
-type MemoryStorage struct {
-	// Protects access to all fields. Most methods of MemoryStorage are
-	// run on the raft goroutine, but Append() is run on an application
-	// goroutine.
-	// ...
+## Fix
 
-// InitialState implements the Storage interface.
-func (ms *MemoryStorage) InitialState() (pb.HardState, pb.ConfState, error) {
-	ms.callStats.initialState++ // <- no lock
-	return ms.hardState, ms.snapshot.Metadata.ConfState, nil // <-
-}
-```
+**Branch**: `fix/raft-memorystorage-initialstate-unlocked` in `~/etcd-fixes/raft-memorystorage-initialstate-unlocked` (upamanyus/etcd-raft, not pushed): ecb890e test, 15190e3 fix
+**Base**: etcd-io/raft@1931ff5beacc1e2539003c0c70f096285f04c425
 
-```go
-// storage.go:128-134 (raft v3.7.0)
-func (ms *MemoryStorage) InitialState() (*pb.HardState, *pb.ConfState, error) {
-	ms.callStats.initialState++
-	cs := ms.snapshot.GetMetadata().GetConfState()
-	cs = pb.EnsureConfState(cs) // <- may write the stored ConfState
-	return ms.hardState, cs, nil // <- shared with the storage
-}
-```
+**PR draft**:
 
-**Expected**: `InitialState` takes the lock like every other exported method, or the
-documentation says it must not run concurrently with the writers.
+Title: raft: take the lock in MemoryStorage.InitialState
 
-**How the proof handles it**: the lock's invariant holds only half of `hardState` and of
-`snapshot`, and not the `initialState` counter; the other halves and the counter are
-`memStorMeta` (`Proof/go_etcd_io/raft/v3/InvMemstorage.lean`), which `InitialState`'s spec
-takes and the writers' specs need too, so they cannot run concurrently
-(`Spec/go_etcd_io/raft/v3/MemoryStorage__InitialState.lean`).
+`MemoryStorage` embeds a mutex that, as [its comment says](https://github.com/etcd-io/raft/blob/1931ff5beacc1e2539003c0c70f096285f04c425/storage.go#L105-L108), protects access to all of its fields, and every other method takes it. [`InitialState`](https://github.com/etcd-io/raft/blob/1931ff5beacc1e2539003c0c70f096285f04c425/storage.go#L128-L134) does not: it increments a call counter, reads the hard state and the snapshot's `ConfState`, and may set the `ConfState`'s `AutoLeave`, all without the lock, so it races with `SetHardState`, `ApplySnapshot` and `CreateSnapshot`. This PR takes the lock in `InitialState`.
 
-**Possible fixes**: `ms.Lock(); defer ms.Unlock()` in `InitialState`.
+The first commit adds a test of the issue's example, which fails on `main` under `go test -race`; the second, the fix, makes it pass.
 
-**Found**: 2026-10-12, specifying `MemoryStorage.InitialState` (Lean-first).
+A reviewer may ask about returning copies: not needed, as `MemoryStorage` never mutates in place an
+object it has handed out (a `-race` stress test reading and marshalling the returned values found
+nothing with the fix). The test fails only under `-race`, which raft's amd64 CI job uses. No
+changelog entry (a race fix to backport, as #441).

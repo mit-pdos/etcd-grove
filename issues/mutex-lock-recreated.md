@@ -1,81 +1,52 @@
 ---
 upstream: reported
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#22613 issue open: this bug, reported 2026-10-19
   - etcd-io/etcd#22617 pr open: the fix, opened 2026-10-19
   - etcd-io/etcd#22082 issue open: related, not this bug (same-session key recreated with a newer create revision; Unlock deletes it unfenced, here Lock returns without checking myRev)
   - etcd-io/etcd#22115 pr open: related, not this bug (fences Unlock with IsOwner; Lock's final existence-only check unchanged)
-  - etcd-io/etcd#22387 pr open: related (fixes #19597): Lock returns ErrSessionExpired when its key is deleted during the wait, which narrows this bug but does not fix it (deletion and recreation between Lock's RPCs): the candidate's test still fails in 15 of 20 runs with it (2026-10-18)
-candidate: issues/upstream/mutex-lock-recreated/
+  - etcd-io/etcd#22387 pr open: related (fixes #19597): Lock returns ErrSessionExpired when its key is deleted during the wait, which narrows this bug but does not fix it (deletion and recreation between Lock's RPCs): the test still fails in 15 of 20 runs with it (2026-10-18)
+blocks-proof: yes
 ---
 
-# concurrency: Mutex.Lock can return nil while another session holds the lock
+# concurrency: Mutex.Lock returns while another session holds the lock
 
-## Summary
+`Mutex.Lock` (`client/v3/concurrency`) can return nil while another session holds the lock, when
+another `Mutex` on the same session and prefix deletes the session's key during the wait (a failed
+`TryLock` or a canceled `Lock`) and a `Lock` on that session recreates it after another session's
+key: two callers then both believe they hold the lock (`IsOwner()` fencing still fails correctly).
+The v3lock service reaches it when a client retries a canceled `Lock` RPC with the same lease while
+another `Lock` RPC on that lease waits.
 
-`Mutex.Lock` in `client/v3/concurrency` can return nil while a key of another session is the first-created key under the lock prefix, so two callers both believe they hold the lock. This needs two `Mutex` values on the same session and prefix, one of which is canceled while waiting and then locks again. The affected caller's `IsOwner()` comparison is false, so transactions guarded by it fail, but code that relies on `Lock` returning nil is not mutually excluded. The v3lock service can reach this state from a client that retries a canceled `Lock` RPC with the same lease. I found this while formally verifying the concurrency package.
+**Reproduction:** `TestMutexLockKeyRecreated` in
+[`issues/mutex-lock-recreated/mutex_recreated_test.go`](mutex-lock-recreated/mutex_recreated_test.go),
+copied into `tests/integration/clientv3/concurrency` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3:
 
-## What happens
-
-Line references are to `client/v3/concurrency/mutex.go` at f061acd09.
-
-Two `Mutex` values on one session share the key `pfx/<lease>`. `tryAcquire` (lines 111-132) creates that key if it is absent; otherwise it takes the `Else` branch and reuses the existing key, recording its create revision in `m.myRev` (lines 127-130). A waiting `Lock` then waits for every key under the prefix created before `m.myRev` (`waitDeletes(ctx, client, m.pfx, m.myRev-1)`, line 89), checks only that `m.myKey` still exists (`Get`, lines 97-105), and returns nil (lines 106-108). It does not check that the key's create revision is still `m.myRev`.
-
-```go
-// client/v3/concurrency/mutex.go:111-132 (etcd main f061acd09), tryAcquire
-	m.myKey = fmt.Sprintf("%s%x", m.pfx, s.Lease())
-	cmp := v3.Compare(v3.CreateRevision(m.myKey), "=", 0)
-	// ...
-	put := v3.OpPut(m.myKey, "", v3.WithLease(s.Lease()))
-	// reuse key in case this session already holds the lock
-	get := v3.OpGet(m.myKey)
-	// ...
-	m.myRev = resp.Header.Revision
-	if !resp.Succeeded {
-		m.myRev = resp.Responses[0].GetResponseRange().Kvs[0].CreateRevision // <- the shared key's revision
-	}
+```
+$ go test ./integration/clientv3/concurrency -run '^TestMutexLockKeyRecreated$' -count=1
+--- FAIL: TestMutexLockKeyRecreated (0.25s)
+        	Error:      	An error is expected but got nil.
+        	Messages:   	m2 locked while m3 holds the lock
+FAIL
 ```
 
-```go
-// client/v3/concurrency/mutex.go:89-108 and 152-154 (etcd main f061acd09), Lock after the wait; IsOwner
-	werr := waitDeletes(ctx, client, m.pfx, m.myRev-1)
-	// ...
-	// make sure the session is not expired, and the owner key still exists.
-	gresp, werr := client.Get(ctx, m.myKey)
-	// ...
-	if len(gresp.Kvs) == 0 { // is the session key lost? // <- existence only
-		return ErrSessionExpired
-	}
-	m.hdr = gresp.Header
+## Proof
 
-	return nil
-// ...
-func (m *Mutex) IsOwner() v3.Cmp {
-	return v3.Compare(v3.CreateRevision(m.myKey), "=", m.myRev) // <- the revision Lock never re-checked
-}
-```
+yes: the proved spec of `Lock` has a weaker outcome, `keyRecreated` (the key present with a later
+create revision, not `lockedAt`), so mutual exclusion holds only for one `Mutex` per session and
+prefix (`Proof/go_etcd_io/etcd/client/v3/concurrency/InvMutex.lean`); the verified fork carries no
+fix.
 
-Schedule, with mutexes A and B on session S, C on session T, D on session U, all on the same prefix:
+## Fix
 
-1. C locks.
-2. A calls `Lock`; it creates `pfx/<lease S>` at revision r1 and waits behind C.
-3. B calls `Lock`; it reuses the same key, with `myRev = r1`, and waits behind C.
-4. A's context is canceled. Its `Lock` calls `Unlock` (lines 91-93), which deletes the shared key (line 144).
-5. D calls `Lock`; it creates its key at r2 > r1 and waits behind C.
-6. A calls `Lock` again; it recreates `pfx/<lease S>` at r3 > r2 and waits behind C and D.
-7. C unlocks.
+**Branch**: `fix/mutex-lock-recreated` in `~/etcd-fixes/mutex-lock-recreated` (upamanyus/etcd, pushed): b28d26713 test, 34adb1693 fix
+**Base**: etcd-io/etcd@22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4
 
-D's key is now the first-created key, and D's `Lock` returns nil. B's `waitDeletes(r1-1)` has nothing left to wait for, its `Get` finds `pfx/<lease S>` (now at r3), and B's `Lock` also returns nil. B's `IsOwner()` (`CreateRevision(myKey) == myRev`, line 153) compares against r1 and is false.
+## Notes
 
-## How to reproduce
-
-`TestMutexLockSharedSessionKeyRecreated` in `tests/integration/clientv3/concurrency/mutex_recreated_test.go` (on the branch below) runs this schedule; without the fix it fails with B's `Lock` returning nil while D holds the lock; `TestMutexLockSeparateSessionsKeyNotRecreated` runs the same schedule with B on its own session and passes. The v3lock service (`server/etcdserver/api/v3lock/lock.go`, lines 35-49) creates a new session with the request's lease and a new `Mutex` for every `Lock` RPC, so a client that cancels a waiting `Lock` RPC and retries it with the same lease, while another `Lock` RPC on that lease is still waiting, triggers the same schedule.
-
-## Expected
-
-`Lock` returns nil only when the caller's key, with the create revision it waited for, is the first-created key under the prefix. In the schedule above, B should keep waiting until D unlocks.
-
-## Proposed fix
-
-The upstream candidate (`issues/upstream/mutex-lock-recreated/`, branch `fix/mutex-lock-recreated`, rebuilt 2026-10-18 off `main` 22cc5d9ac as a tests commit and a fix commit; test `TestMutexLockKeyRecreated`, which asserts only that `Lock` does not succeed while another session holds the lock, so it passes with either option) takes the smaller option: `Lock` returns `ErrSessionExpired` when the key it waited for is missing or has a create revision other than `m.myRev` (one line, consistent with the existing missing-key check and with open PR #22387), and its issue asks the maintainers whether they prefer `Lock` to keep waiting. The earlier draft (113b0b324) did the following: after the final `Get`, if the key's create revision differs from `m.myRev`, set `m.myRev` to the new revision and wait again for the keys created before it, looping until the key found is the one waited for. This is how `tryAcquire` already treats an existing key of the same session, as that session's place in the queue. I considered returning an error instead (a new error, or `ErrSessionExpired`), but that would make `Lock` fail for a caller whose context was not canceled and whose session is alive, only because another `Mutex` on the same session was canceled, and would leave retrying to every caller. `TryLock` does not wait and is unchanged.
+The PR returns `ErrSessionExpired` when the key's create revision differs from `m.myRev`; the
+issue asks whether the maintainers prefer `Lock` to keep waiting (the older draft branch
+`mutex-lock-recreated`, 113b0b324). The test asserts only that `m2` does not lock while `m3` holds
+the lock, so it passes with either.

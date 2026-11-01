@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#17223 issue closed: the same nil read tx (`UnsafeRange` on a closed backend), reached at shutdown; closed by #17757 and gRPC's GracefulStop draining handlers, which do not cover a snapshot install
   - etcd-io/etcd#21873 pr closed: the same class (a holder of `s.be` using it across applySnapshot's swap and close), for `monitorKVHash`; not merged
@@ -10,126 +10,96 @@ links:
   - etcd-io/etcd#14256 issue closed: the same `Tx.Bucket` stack from watch at shutdown (3.4)
   - etcd-io/etcd#22608 issue closed: the same class in mvcc (`store.hash` racing with `Restore` replacing the backend); fixed by #22609
   - etcd-io/etcd#22609 pr merged: holds mvcc's `s.mu` across `Hash`'s use of the backend; does not touch the auth store
-candidate: issues/upstream/etcd-auth-snapshot-closed-backend-panic/
+blocks-proof: yes
 ---
 
-# A member with auth enabled panics on a permission check while it installs a leader's snapshot
+# server: a member with auth enabled panics on a permission check while it restores a snapshot from the leader
 
-- **Status**: a bug (a reachable nil-pointer panic in a gRPC handler, which crashes the member).
-  It needs auth enabled; the rest is normal operation: a lagging member catches up by a
-  snapshot while clients send it requests. Reproduced end to end by an integration test, at the
-  pin (7 of 10 runs) and on upstream `main` (3 of 3). The fix (below) is to close the old backend
-  last. With it the test passes 6 of 6 runs at the pin and 3 of 3 on `main`. The upstream
-  candidate (`issues/upstream/etcd-auth-snapshot-closed-backend-panic/`, off `main` `bf9cadf04`)
-  calls the permission check directly in its test (fails 20 of 20 runs on disk, and under
-  `-race`) and also guards `as.be`, which the reorder alone leaves racy.
-- **Where**: at the etcd pin of `etc/goose.py` (`8a24be2a3`; upstream `main` `bf9cadf04` has
-  the same code, at `server.go:1082-1111`):
-  - `server/etcdserver/server.go:1011-1159` (`applySnapshot`): `s.be = newbe` (`:1093`), then
-    `go oldbe.Close()` (`:1100-1110`), then `s.restoreAlarms()` (`:1112`, which ends with a
-    `ForceCommit` of the new backend: an fsync), and only then
-    `s.authStore.Recover(schema.NewAuthBackend(lg, newbe))` (`:1121`). Until `Recover` sets it,
-    the auth store's `as.be` is the old backend (`schema/auth.go`'s `authBackend.ReadTx` calls
-    `abe.be.ReadTx()` on it).
-  - `server/storage/backend/backend.go:463-488`: `Close` stops the batch loop, which runs
-    `batchTx.CommitAndStop()`. That calls `unsafeCommit(stop=true)` (`batch_tx.go:381-406`), which
-    calls `readTx.reset()` (`read_tx.go:133-138`: `rt.tx = nil`, an empty bucket cache) and
-    opens no new read transaction.
-  - `server/storage/backend/read_tx.go:78-122` (`baseReadTx.UnsafeRange`): after a reset the
-    buffer and the bucket cache are empty, so the bucket is looked up with
-    `baseReadTx.tx.Bucket(...)` (`:103`) on the nil `*bolt.Tx`. bbolt's `Tx.Bucket` is
-    `tx.root.Bucket(name)` (`bbolt@v1.5.0/tx.go:112`): a nil-pointer dereference. There is no
-    closed check.
-  - `server/auth/store.go`: the checks that read `as.be` with no lock: `CheckPassword`
-    (`:361-394`), `isOpPermitted` (`:859-899`, under `IsRangePermitted`/`IsPutPermitted`/
-    `IsDeleteRangePermitted`) and `IsAdminPermitted` (`:913-935`). Each does
-    `as.be.ReadTx()`, `RLock`, `UnsafeGetUser`. The store's locks do not cover this read:
-    `enabledMu` guards `enabled`, `rangePermCacheMu` the permission cache, read after the user
-    lookup. The token provider (`AuthInfoFromCtx`) does not touch the backend. `s.bemu` guards
-    `s.be` only, and `applySnapshot` releases it before the close begins.
-  - They run on gRPC goroutines, before (or without) going through raft:
-    `EtcdServer.doSerialize` (`v3_server.go:1035-1057`, from `Range`/`RangeStream`/read-only
-    `Txn`), the watch create's `IsRangePermitted` (`v3rpc/watch.go:246`), `checkLeaseRenew`
-    (`v3_server.go:575-605`, from `LeaseKeepAlive`), `Authenticate`'s `CheckPassword`
-    (`v3_server.go:853`), and `AuthAdmin.isPermitted` (`v3rpc/auth.go:182-189`, from the
-    maintenance RPCs). etcd installs no panic recovery: `v3rpc.Server` (`v3rpc/grpc.go:44-95`)
-    chains only logging, metrics and etcd's own interceptors, and `embed` passes no extra
-    interceptor (`embed/serve.go:184,244`). A linearizable `Range` is not exposed: its read
-    index is at least the snapshot's index, so it waits for the apply loop until after
-    `applySnapshot` has returned. A serializable one is exposed.
-- **What happens**: during the window from the old backend's `CommitAndStop` (in the close
-  goroutine) to the end of `authStore.Recover`, every serializable read, watch create, lease
-  keep-alive, `Authenticate` or admin RPC that reaches the member hits a nil `*bolt.Tx` and
-  panics. The process exits. On a member that is behind, the window is the time `restoreAlarms`
-  takes, including its fsync. A request that had already taken the old backend's read lock
-  completes safely, because `CommitAndStop` takes the write side of that lock first.
+With auth enabled, a member that has fallen behind and is restoring a snapshot sent by the leader
+crashes (nil-pointer panic) if a serializable read reaches it during the restore. Watch creation,
+lease keep-alives, `Authenticate` and maintenance requests check permissions the same way.
 
-  Reproduction: `issues/etcd-auth-snapshot-closed-backend-panic/repro_test.go`. Copy it into
-  `tests/integration/` and run `go test ./integration -run
-  'TestAuthStoreCheckOnClosedBackend|TestV3AuthReadDuringSnapshotInstall' -count=1 -v` from
-  `tests/`.
-  - `TestAuthStoreCheckOnClosedBackend` (unit level, deterministic) builds the state
-    `applySnapshot` leaves in the window. It creates an auth store on a temporary backend, adds
-    `root`, enables auth and closes the backend. Then each of `IsRangePermitted`,
-    `IsPutPermitted`, `IsAdminPermitted` and `CheckPassword` panics with `runtime error: invalid
-    memory address or nil pointer dereference`, at `bbolt.(*Tx).Bucket` ← `read_tx.go:103` ←
-    `schema.unsafeGetUser` ← the check. (Each check gets a fresh store: the panic leaves the read
-    tx's `txMu` locked, so a second check on the same backend blocks.) This shows the closed
-    backend panics. The test below shows that the window is reached.
-  - `TestV3AuthReadDuringSnapshotInstall` (end to end) uses 3 members, `SnapshotCount: 10` and
-    `SnapshotCatchUpEntries: 5`, with auth enabled (`root`). It cuts a follower off from its
-    peers, makes 40 puts through the leader, starts 32 goroutines sending serializable `Get`s
-    as `root` to the follower, then heals the partition. The follower then installs the leader's
-    snapshot (the test checks that `Server.Backend()` changed). Results at the pin: 7 of 10 runs
-    panic, about 0.5 s in. The goroutine's stack is
-    `bbolt.(*Tx).Bucket` ← `read_tx.go:103` ← `auth_users.go:57` ← `authStore.isOpPermitted`
-    (`store.go:883`) ← `IsRangePermitted` ← `EtcdServer.Range` (`v3_server.go:146`, via
-    `doSerialize`) ← `kvServer.Range`. The member's log stops at `restoring auth store`, after
-    `closing old backend file` and `restored alarm store`. On `main`, 3 of 3 runs panic with the
-    same stack. The runs that pass also installed the snapshot once, with about 2900 reads
-    during the run.
-- **Expected**: installing a snapshot is internal to a member. A permission check reads the auth
-  store's current backend, or one still open, and returns a result or an error. Nothing documents
-  that a member can crash on a client request while it catches up.
-- **Same class, narrower windows** (found by reading the code, not reproduced): other holders of
-  the old backend that can use it after its close has begun.
-  - `store.hash()` (`mvcc/kvstore.go:156-163`, behind the maintenance `Hash` RPC) reads `s.b`
-    twice without `s.mu`. `store.Restore` replaces `s.b` under `s.mu` before the swap, so a
-    `Hash` that loaded the old `s.b` just before can run its `ForceCommit` or `Hash` on the
-    closing backend. If the commit loop has stopped, `ForceCommit`'s `batchTx.commit(false)` begins
-    a new bolt transaction: a `Fatal` (`failed to begin tx`) if the db is closed, or a write
-    transaction that is never committed, which `db.Close` then waits on. `Hash` on a closed db
-    returns an error. Upstream etcd-io/etcd#22609 (merged, in `main` `bf9cadf04`) now runs the
-    `ForceCommit` under `s.mu`; its `Hash` still reads the old backend after `s.mu` is released,
-    which on a closed db is that error.
-  - The maintenance `Snapshot` RPC (`v3rpc/maintenance.go:141,146`) takes `ms.bg.Backend()` twice
-    and uses each result after `bemu` is released. `ReadStorageVersion(…ReadTx())` on a reset read
-    tx is the same nil-tx panic. `Snapshot()` on a stopped backend has the same `begin` problem.
-  - The gRPC quota servers keep a backend captured at startup:
-    [etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)
-    (wrong results there, not a crash).
-- **How the proof handles it**: not yet. Today no member installs a snapshot (`bootOk`'s
-  `"%Hnosnap"`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean:56,202`),
-  and `applySnapshot`'s spec covers only the empty snapshot. The auth store's invariant holds
-  `as.be` as a persistent read-only field (`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean:10-11`,
-  `:167`; `Recover` is left out). Its backend contract `authBackendOk`/`authReadTxOk`
-  (`InvAuth.lean:121-138`, assumed, not proved of the real backend) says `ReadTx`/`UnsafeGetUser`
-  always return. A closed backend does not meet that contract. Track T-S (the snapshot path,
-  `notes/decisions.md` D22) has to restate both: `be` is replaced by `Recover`, and the old
-  backend's reads stay valid only until its close.
-- **Possible fixes**:
-  1. Close the old backend last: move the `go oldbe.Close()` block after `restoreAlarms`,
-     `authStore.Recover` and `cluster.SetBackend`
-     (`issues/etcd-auth-snapshot-closed-backend-panic/fix.patch`, which also applies to `main`).
-     With it the end-to-end test passes 6 of 6 runs at the pin and 3 of 3 on `main`. A small
-     window is left: a check that read `as.be` (old) just before `Recover` and calls
-     `ReadTx`/`RLock` after the close has started. `as.be` is also written by `Recover` and read
-     by gRPC goroutines with no synchronization, which is a data race.
-  2. A complete fix also guards `as.be`: Recover would take a lock (or set an
-     `atomic.Pointer`), and the checks would hold it from loading `as.be` until `RUnlock`. Or the
-     backend would refuse reads after close (`baseReadTx` would check `tx == nil` and return
-     empty, or error, instead of dereferencing). The same applies to `store.hash` (take `s.mu`
-     for reading) and to the maintenance `Snapshot` (hold `bemu` for reading across its two uses,
-     as `StorageVersion()` does).
-- **Found**: 2026-10-19, from a review of `applySnapshot`'s backend swap while scoping track
-  T-S (the snapshot path). It looked at the holders of the old backend after the swap.
+**Expected:** a member should answer every request while it catches up by a snapshot, and keep
+running; nothing documents that a client request may crash a member during a snapshot restore.
+
+**Impact:** any cluster with auth enabled in which a member falls far enough behind to be sent a
+snapshot (a partition, a slow or restarted member) while clients send it serializable reads,
+watches or keep-alives. The member process exits; a restart recovers it. Reproduced on `main`; release
+branches not checked.
+
+**Reproduction:** `TestV3AuthRangePermittedDuringSnapshotRestore` in
+[`issues/etcd-auth-snapshot-closed-backend-panic/snapshot_restore_auth_test.go`](etcd-auth-snapshot-closed-backend-panic/snapshot_restore_auth_test.go),
+copied into `tests/integration` at etcd-io/etcd@1573d5941 (2026-10-28), go1.27.3 linux/amd64. A
+3-member cluster (`SnapshotCount: 10`, `SnapshotCatchUpEntries: 5`, auth on with `root`); a
+follower is partitioned while 20 puts go through the leader; 4 goroutines call the follower's
+`IsRangePermitted` for `root` (the check a serializable `Range` makes); the partition heals:
+
+```
+$ go test ./integration -run '^TestV3AuthRangePermittedDuringSnapshotRestore$' -count=1
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0xc86d93]
+go.etcd.io/bbolt.(*Tx).Bucket(...)
+	go.etcd.io/bbolt@v1.5.0/tx.go:112
+go.etcd.io/etcd/server/v3/storage/backend.(*baseReadTx).UnsafeRange(...)
+	server/storage/backend/read_tx.go:103 +0x233
+go.etcd.io/etcd/server/v3/storage/schema.unsafeGetUser(...)
+	server/storage/schema/auth_users.go:57 +0x9d
+go.etcd.io/etcd/server/v3/storage/schema.(*authReadTx).UnsafeGetUser(...)
+	server/storage/schema/auth_users.go:53 +0x4d
+go.etcd.io/etcd/server/v3/auth.(*authStore).isOpPermitted(...)
+	server/auth/store.go:883 +0x4af
+go.etcd.io/etcd/server/v3/auth.(*authStore).IsRangePermitted(...)
+	server/auth/store.go:906 +0x4e
+go.etcd.io/etcd/tests/v3/integration.TestV3AuthRangePermittedDuringSnapshotRestore.func1()
+FAIL	go.etcd.io/etcd/tests/v3/integration	0.350s
+```
+
+(On 2026-10-21 at `bf9cadf04`: 20 of 20 runs on ext4, with or without `-race`; 12 of 20 with
+`TMPDIR` on tmpfs. A variant sending serializable `Get`s as `root` through gRPC panicked from
+`kvServer.Range` in 19 of 20 runs.)
+
+**Cause:** [`applySnapshot`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/server.go#L1082-L1116)
+swaps `s.be` and starts `go oldbe.Close()`, then restores the alarms (an fsync) and only then calls
+`authStore.Recover(newbe)`. Until then the auth store's checks on gRPC goroutines
+([`isOpPermitted`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/auth/store.go#L879-L883),
+`CheckPassword`, `IsAdminPermitted`) read the old backend, whose close has reset its read
+transaction to a nil `*bolt.Tx`
+([`read_tx.go`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/storage/backend/read_tx.go#L103));
+etcd's gRPC server has no panic recovery. `Recover` also writes `as.be` with no synchronization
+with those checks (a data race under `-race`).
+
+## Proof
+
+yes: the verified fork moves the auth store before the old backend's close (`d52eec43e`,
+`etc/goose.py`); `Spec/go_etcd_io/etcd/server/v3/auth/authStore__lockedReadTx.lean` specifies the
+fix's locked read.
+
+## Fix
+
+**Branch**: `fix/etcd-auth-snapshot-closed-backend-panic` in `~/etcd-fixes/etcd-auth-snapshot-closed-backend-panic` (upamanyus/etcd, not pushed): 75d3f9bb0 test, 25dcea502 fix
+**Base**: etcd-io/etcd@bf9cadf044f0531036a61c9b6dbeba8aef2a3b30
+
+**PR draft**:
+
+Title: server: close the old backend after the auth store moves off it
+
+[`applySnapshot`](https://github.com/etcd-io/etcd/blob/bf9cadf044f0531036a61c9b6dbeba8aef2a3b30/server/etcdserver/server.go#L1082-L1114) starts closing the old backend before `authStore.Recover` moves the auth store to the new one. Permission checks on gRPC goroutines ([`isOpPermitted`](https://github.com/etcd-io/etcd/blob/bf9cadf044f0531036a61c9b6dbeba8aef2a3b30/server/auth/store.go#L879-L881), `CheckPassword`, `IsAdminPermitted`) read the auth store's backend, so in between they can lock a read transaction that the close has reset, and dereference a nil bolt transaction. This PR starts the close after `Recover` and `SetBackend`, and, since `Recover` replaces that backend without synchronizing with the checks (a race the new test reports under `-race`), makes `Recover` and the checks share a lock that a check holds until its read transaction is locked.
+
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
+
+A reviewer may ask why both changes: the reorder alone leaves the `as.be` race (reported under
+`-race` in 10 of 10 runs) and a tiny window for a check that loaded the old `as.be` just before
+`Recover`; the lock alone does not help (10 of 10 panics). Alternatives considered: an
+`atomic.Pointer` (removes the race, not the window), the backend refusing reads after close (every
+caller changes, and the check would deny a valid user). mvcc's #22609 fixed the same hand-off in
+`store.hash` the same way.
+
+## Notes
+
+- Security classification pending (the user's decision): a public filing exposes that, with auth
+  on, any authenticated user's serializable read can crash a member during a snapshot restore. By
+  the 2026-10-21 threat model (trusted clients) it is a robustness bug.
+- INDEX-reviewed.md's plan: skip for now (a restart recovers).
+- Same class, narrower windows, by code reading only: the maintenance `Snapshot` RPC takes
+  `Backend()` twice and uses each after `bemu` is released; `store.hash` after #22609 still reads
+  the old backend after `s.mu` is released (an error on a closed db, not a panic).

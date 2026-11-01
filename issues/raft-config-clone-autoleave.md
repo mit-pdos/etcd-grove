@@ -1,91 +1,53 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-11-01
 links:
+blocks-proof: no
 ---
 
-# raft: `tracker.Config.Clone` drops `AutoLeave`, so `Status().Config.AutoLeave` is always false
+# raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave
 
-**Status**: open (not reported upstream; not checked whether raft after `40f8be7` fixed it).
+In a joint configuration entered with auto-leave (a `ConfChangeV2` with the `Auto` or
+`JointImplicit` transition), `Status().Config.AutoLeave` is false and `Status().Config.String()`
+omits "autoleave", although the node's configuration has it and will leave the joint state on its
+own. `ApplyConfChange`'s `ConfState` reports it correctly.
 
-**Where** (etcd-io/raft at `40f8be730b18`, the revision `etc/goose.py` pins):
+**Expected:** `Status().Config` should be a copy of the configuration, `AutoLeave` included, as
+[`Config.Clone`](https://github.com/etcd-io/raft/blob/c51f010c851edd0dada5af41bafbf68e54617767/tracker/tracker.go#L95-L112),
+which `Status` uses, documents: "a copy of the Config that shares no memory with the original".
 
-- `tracker/tracker.go:95-109`: `Config.Clone`, documented "Clone returns a copy of the
-  Config that shares no memory with the original", builds
-  `Config{Voters: ..., Learners: ..., LearnersNext: ...}`: `AutoLeave` is not copied, so the
-  copy has `AutoLeave = false`.
-- `status.go:74`: `getStatus` reports `s.Config = r.trk.Config.Clone()`.
-- `confchange/confchange.go:337-347`: `Changer.checkAndCopy` copies with `Clone`.
+**Impact:** an application that reads `Status().Config.AutoLeave` to decide whether it must propose
+leaving a joint configuration itself gets the wrong answer (a redundant leave proposal, which the
+leader refuses), and logs or debug output of the status omit "autoleave". Nothing inside raft
+reads the cloned field. etcd never enters a joint configuration and is not affected. Same code in
+v3.7.0.
 
-**What happens**: in a joint configuration entered with auto-leave (`EnterJoint(true, ...)`,
-a `ConfChangeV2` with `ConfChangeTransitionJointImplicit` or `Auto`), `Status().Config` and
-anything else built with `Clone` reports `AutoLeave: false`, unlike the configuration it
-copies. Inside `confchange` it is harmless: every `Changer` method either rejects a joint
-configuration or overwrites `AutoLeave` (`EnterJoint` sets it, `LeaveJoint` clears it).
-Reproduction (a test in package `confchange`):
+**Reproduction:** `TestRawNodeStatusAutoLeave` in
+[`issues/raft-config-clone-autoleave/status_autoleave_test.go`](raft-config-clone-autoleave/status_autoleave_test.go)
+(a single-voter `RawNode` leader applies a `ConfChangeV2` with `JointImplicit` adding voter 2,
+which never answers, so the configuration stays joint), copied into the module root at
+etcd-io/raft@c51f010c851e (2026-10-23), go1.27.3 linux/amd64:
 
-```go
-func TestCloneDropsAutoLeave(t *testing.T) {
-	tr := tracker.MakeProgressTracker(10, 0)
-	c := Changer{Tracker: tr, LastIndex: 1}
-	cfg, prs, err := c.Simple(pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tr.Config, tr.Progress = cfg, prs
-	c = Changer{Tracker: tr, LastIndex: 1}
-	cfg, _, err = c.EnterJoint(true, pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: 3})
-	if err != nil || !cfg.AutoLeave {
-		t.Fatal(err)
-	}
-	if cfg.Clone().AutoLeave {
-		t.Fatal("Clone kept AutoLeave")
-	}
-	// passes: Clone() has AutoLeave == false
-}
+```
+$ go test . -run '^TestRawNodeStatusAutoLeave$' -count=1
+raft2026/11/01 04:11:00 INFO: 1 switched to configuration voters=(1 2)&&(1) autoleave
+--- FAIL: TestRawNodeStatusAutoLeave (0.00s)
+    status_autoleave_test.go:72:
+        	Error:      	Should be true
+        	Messages:   	Status().Config: voters=(1 2)&&(1)
+FAIL
 ```
 
-**How it happens**: `Clone`'s result literal lists only the voter and learner sets, so
-`AutoLeave` takes its zero value. `getStatus` reports the configuration through `Clone`. The
-test above runs:
+**Cause:** `Clone`'s result literal lists only the voter and learner sets, so `AutoLeave` takes
+its zero value; [`getStatus`](https://github.com/etcd-io/raft/blob/c51f010c851edd0dada5af41bafbf68e54617767/status.go#L74)
+reports the configuration through `Clone`.
 
-1. A `Changer` over `MakeProgressTracker(10, 0)` applies `Simple(AddNode 1)`: the configuration
-   is `voters=(1)`.
-2. `EnterJoint(true, AddNode 3)` returns a joint configuration `voters=(1 3)&&(1)` with
-   `AutoLeave = true`.
-3. `cfg.Clone()` returns the same sets with `AutoLeave = false`.
+## Proof
 
-On a running node the same happens in `Status()`: in a joint configuration entered with
-auto-leave, `Status().Config.AutoLeave` is false and `Config.String()` omits "autoleave". An
-application that reads it to decide whether it must propose the leave itself gets the wrong
-answer; the redundant leave it then proposes is refused by the leader.
+no: `tracker.Config.Clone.spec` states the clone with `autoLeave := false`, as the code does
+(`Spec/go_etcd_io/raft/v3/tracker/Config__Clone.lean`), and `confchange` overwrites the field
+wherever it matters; no premise.
 
-```go
-// tracker/tracker.go:95-112 and status.go:74 (etcd-io/raft 40f8be7)
-// Clone returns a copy of the Config that shares no memory with the original.
-func (c *Config) Clone() Config {
-	// ...
-	return Config{ // <- AutoLeave is not copied
-		Voters:       quorum.JointConfig{clone(c.Voters[0]), clone(c.Voters[1])},
-		Learners:     clone(c.Learners),
-		LearnersNext: clone(c.LearnersNext),
-	}
-}
-// status.go, getStatus
-	s.Config = r.trk.Config.Clone() // <-
-```
+## Fix
 
-etcd sees no effect: it never enters a joint configuration and does not read `AutoLeave`. The
-code is the same in raft v3.7.0.
-
-**Expected**: a copy, `AutoLeave` included, as the documentation says (or documentation
-saying `Clone` resets it).
-
-**How the proof handles it**: `tracker.Config.Clone.spec` states the clone with
-`autoLeave := false` (`Spec/go_etcd_io/raft/v3/tracker/Config__Clone.lean`), and the
-`confchange` model clears it in `checkAndCopy` (`clearAutoLeave`, `InvConfchange.lean`).
-
-**Possible fixes**: copy the field (`AutoLeave: c.AutoLeave` in `Clone`'s literal), or
-document the reset.
-
-**Found**: 2026-10-12, while generalizing the `confchange` specs (the spec of `Config.Clone`).
+Add `AutoLeave: c.AutoLeave` to `Clone`'s result literal.

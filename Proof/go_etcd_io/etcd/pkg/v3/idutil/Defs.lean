@@ -26,7 +26,7 @@ full id; each member's generator issues under its prefix (`uint16(memberID) << 4
 its issued ids at its prefix's entry of a second cluster map (`γi.cnt`), whose element it owns
 (`idShare`), so that the cluster's map holds the reserved `0` and exactly the ids the members
 issued. Request ids are unique across members only if the prefixes differ
-(`issues/etcd-request-id-member-prefix.md`): the allocation's pure premise (`idPfxOk` of each
+(`nonissues/etcd-request-id-member-prefix.md`): the allocation's pure premise (`idPfxOk` of each
 member's prefix, the prefixes `Nodup`), the only premise this adds. The claimers' facts are per
 prefix (`Φs`, the cluster's choice; a member's own `Φs γi.pfx`): a member reads the claimer's
 fact of an id of its own prefix only (`idClaim_fact`). The wait slots stay the member's.
@@ -82,7 +82,7 @@ def idPfx (id : w64) : w64 := id &&& W64 (2 ^ 64 - 2 ^ 48)
 def idPfxOf (m : w16) : w64 := W64 (uint.Z m) <<< W64 48
 
 /-- **A good member prefix** (D21e (A)): not `0` (D19c: a generator of prefix `0` issues the id
-`0` of raft's bootstrap conf changes, `issues/etcd-request-id-zero-bootstrap-confchange.md`), its
+`0` of raft's bootstrap conf changes, `nonissues/etcd-request-id-zero-bootstrap-confchange.md`), its
 48 low bits `0`. -/
 def idPfxOk (p : w64) : Prop := p ≠ W64 0 ∧ p &&& W64 (2 ^ 48 - 1) = W64 0
 
@@ -187,7 +187,7 @@ theorem idPfxOf_toNat (m : w16) : (idPfxOf m).toNat = m.toNat * 2 ^ 48 := by
   omega
 
 /-- **The member ids' prefixes, good and distinct** (D21e (A)): from the pure premise that the
-member ids' 16 low bits are distinct and not `0` (`issues/etcd-request-id-member-prefix.md`). -/
+member ids' 16 low bits are distinct and not `0` (`nonissues/etcd-request-id-member-prefix.md`). -/
 def idPfxsOf (ps : List w64) : List w64 := ps.map (fun id => idPfxOf (W16 (uint.Z id)))
 
 theorem idPfxOf_low (id : w64) : uint.Z (W16 (uint.Z id)) = uint.Z id % 2 ^ 16 := by
@@ -497,7 +497,7 @@ theorem idCnt_alloc_list (γ : GName) (ps : List w64) (C : GMap w64 (List w64))
     iframe Hp Hps
 
 /-- **The cluster's claims, allocated** (D21e (A), stage M4) for the members' prefixes `ps`, under
-the pure premise that they are good and distinct (`issues/etcd-request-id-member-prefix.md`): the
+the pure premise that they are good and distinct (`nonissues/etcd-request-id-member-prefix.md`): the
 claims invariant (at the claimers' facts `Φs`, the caller's choice), the reserved id `0`
 (`idNoZero`, D19c) and each prefix's entry of the prefixes' map (a member's share, with its
 slots, `idShare`). -/

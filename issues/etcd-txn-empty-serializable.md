@@ -1,78 +1,70 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#20418 issue closed: stale reads from a paused process (robustness); different cause
-candidate: issues/upstream/etcd-txn-empty-serializable/
+blocks-proof: yes
 ---
 
-# server/etcdserver: a transaction with comparisons and no operations is served without a linearizable read
+# etcdserver: a Txn with comparisons and no operations returns a stale result from a member that is behind
 
-## Status
+A `Txn` with comparisons and no operations (`Txn(ctx).If(cmps...).Commit()`) is answered from the
+member's local state without the read index, so a member that is behind (a follower that has not
+applied the latest writes, or a leader cut off by a partition) returns a stale verdict and revision:
+`If(Version("foo") = 0)` succeeds at revision 1 after a put of `foo` returned at revision 2.
 
-A bug in the read path (a linearizability violation of a public request), found by code inspection,
-reproduced on 2026-10-21 at upstream `main` 7ff040cb8 by an integration test. A `Txn` whose `Success` and `Failure` lists are both empty (`Txn(ctx).If(cmps...)
-.Commit()`, or `.Then()`/`.Else()` with no operations) is read-only and, vacuously, "serializable":
-the server answers it from the member's local state without the read index, so its verdict
-(`Succeeded`) and header revision can be stale, although the request asked for no serializable
-read (the client cannot even say so: serializability is a property of a transaction's ranges).
+**Expected:** such a txn should be linearizable, as the same txn with a `Get` is: the
+[`RangeRequest`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/api/etcdserverpb/rpc.proto#L478-L484)
+documentation says ranges are linearizable unless `serializable` is set, and a txn without
+operations has no range that asked for it (`clientv3.Txn` has no way to ask).
 
-## Where
+**Impact:** any cluster, default configuration, for clients that send compare-only transactions
+(e.g. to test a condition) to a member that is behind; a linearizability violation of the verdict
+and header revision. Rare in practice: most txns carry an operation. All v3 releases
+(`IsTxnSerializable` has been vacuously true for an empty txn since 2016).
 
-At the pinned revision (`etc/goose.py`, etcd `8a24be2a324f`):
+**Reproduction:** `TestTxnCompareOnlyLinearizable` in
+[`issues/etcd-txn-empty-serializable/txn_compare_only_test.go`](etcd-txn-empty-serializable/txn_compare_only_test.go),
+copied (as `zz_txn_compare_only_test.go`) into `tests/integration/clientv3` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3; a follower partitioned
+from the other two members answers after a put through the leader returned:
 
-- `server/etcdserver/txn/txn.go:338-350`, `IsTxnSerializable`: `true` unless some operation of
-  either branch is not a serializable range; for no operations at all, `true`.
-- `server/etcdserver/v3_server.go:344-351`, `(*EtcdServer).Txn`: for a read-only transaction
-  (`IsTxnReadonly`, likewise vacuously true), `LinearizableReadNotify` only if
-  `!IsTxnSerializable(r)`; then the transaction runs on the local store.
+```
+$ (cd tests && go test ./integration/clientv3 -run '^TestTxnCompareOnlyLinearizable$' -count=1)
+--- FAIL: TestTxnCompareOnlyLinearizable (0.32s)
+    zz_txn_compare_only_test.go:48:
+        	Error:      	"1" is not greater than or equal to "2"
+        	Test:       	TestTxnCompareOnlyLinearizable
+        	Messages:   	txn answered without the put (succeeded: true)
+FAIL
+```
 
-The documentation of `Txn` (`api/etcdserverpb/rpc.proto`, the KV service) promises a
-linearizable transaction unless its ranges are serializable; `clientv3.Txn` has no option for a
-serializable comparison.
+**Cause:** for a read-only txn, `EtcdServer.Txn` takes the read index only if `!IsTxnSerializable(r)`
+([v3_server.go#L345-L352](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/v3_server.go#L345-L352));
+`IsTxnSerializable` is true unless some operation is not a serializable range
+([txn.go#L338-L350](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/txn/txn.go#L338-L350)),
+so it is true for a txn with no operations.
 
-## What happens
+## Proof
 
-A member that is behind (a follower that has not applied the latest entries, or a leader cut
-off by a partition that has not yet stepped down) answers a compare-only transaction against its
-old state: e.g. `If(Value(k) = "a")` succeeds after another client's `Put(k, "b")` returned, and
-the reply's revision is older than the put's. A transaction with at least one non-serializable
-range in either branch (or any write) is not affected: it takes the read index (or goes through
-raft).
+yes: the server's model has the same rule, so a compare-only txn's reply carries no linearization
+point, and the linearizability result of `examples/linkvtxn` takes the premise that the workload
+sends none (`GenIn`, `Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Calls.lean`).
 
-Reproduced (2026-10-21, upstream `main` 7ff040cb8, go1.27.1): `TestTxnCompareOnlyLinearizable` in
-`tests/integration/clientv3/txn_test.go` on the fix branch `fix/etcd-txn-empty-serializable`
-(`~/etcd-fixes/etcd-txn-empty-serializable`, test commit bf3c1135b). A 3-member integration cluster; a
-follower partitioned from the others (`InjectPartition`); `Put(foo, bar)` through the leader returns at
-revision 2; then `Txn(ctx).If(Compare(Version("foo"), "=", 0)).Commit()` at the follower returns
-`Succeeded: true` at revision 1. The same txn with `Then(OpGet("foo"))` fails with `context deadline
-exceeded` (1s): it waits for the read index instead of answering stale.
+## Fix
 
-## Expected
+**Branch**: `fix/etcd-txn-empty-serializable` in `~/etcd-fixes/etcd-txn-empty-serializable` (upamanyus/etcd, not pushed): bf3c1135b test, e3010762c fix
+**Base**: etcd-io/etcd@7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b
 
-A transaction is linearizable unless every one of its ranges asks to be serializable; one with
-no ranges at all asks for nothing, so it should be linearizable (`IsTxnSerializable` false for
-an empty transaction, or `Txn` taking the read index for it).
+**PR draft**:
 
-## How the proof handles it
+Title: etcdserver: serve a txn without operations linearizably
 
-The server's model has the same rule (`txn.txnSerializable`, `server/v3/etcdserver/txn/TxnRun.lean`;
-`client_txn_end_to_end`'s read update only for `txnSerializable = false`), so a compare-only
-transaction's reply carries no linearization point. `examples/linkvtxn`'s generator never makes
-one (a multi-operation transaction has one to three operations, a compare-and-set a put and a
-get), and `linkvtxn.Apply`'s input premise says so (`GenIn`,
-`Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Calls.lean`).
+[`Txn`](https://github.com/etcd-io/etcd/blob/7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b/server/etcdserver/v3_server.go#L345-L352) skips the read index for a read-only txn when [`IsTxnSerializable`](https://github.com/etcd-io/etcd/blob/7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b/server/etcdserver/txn/txn.go#L338-L350) holds, assuming that the client asked for a serializable read. `IsTxnSerializable` checks only that every operation is a serializable range, so it holds for a txn without operations, which asks for no serializable read although its comparisons read keys. This PR makes `IsTxnSerializable` false for a txn without operations.
 
-## Possible fixes
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
 
-`IsTxnSerializable` returns `false` when both lists are empty (a one-line guard), or `Txn` calls
-`LinearizableReadNotify` for a read-only transaction with no operations. `IsTxnSerializable` has one
-caller (`(*EtcdServer).Txn`), which wants the corrected answer, so the candidate fixes the helper
-(fix commit e3010762c; alternatives in the candidate's `meta.md`). `IsTxnReadonly`, also vacuously true,
-is right (no writes) for both its callers.
-
-## Found
-
-2026-10-20, linkv-txn stage F (the linearizability instance over the robustness tester's KV
-workload): the read-only transaction's case of `call`'s proof needs the read update, which the
-client's end-to-end spec gives only for a transaction that is not serializable.
+**If a reviewer asks**: fixing the caller instead (`|| no ops` in `Txn`) leaves the helper wrong for
+the next caller; `IsTxnReadonly`, also vacuously true, is right (no writes). A nested txn op is
+neither a range nor read-only, so such txns already go through raft. Cost: a compare-only txn now
+waits for the read index; a client wanting the old local answer can add a serializable `Get`.

@@ -1,80 +1,53 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/etcd#22396 pr open: related, not this bug (bounds parseCompactionRetention: rejects negative and overflowing retentions, e.g. a negative period/10 retry interval that busy-loops); still accepts a positive retention below 10ns such as `5ns`
-  - etcd-io/etcd#9485 pr merged: introduced the retry interval min(period, 1h)/10 and `int(period/retryInterval)+1` retentions (c2a6347, 2018), the division that is by zero here; periods below 30s not discussed
+  - etcd-io/etcd#22396 pr open: related, not this bug (bounds parseCompactionRetention: rejects negative and overflowing retentions); still accepts a positive retention below 10ns such as `5ns`
+  - etcd-io/etcd#9485 pr merged: introduced the retry interval min(period, 1h)/10 and `int(period/retryInterval)+1` retentions (2018), the division that is by zero here
+blocks-proof: yes
 ---
 
-# server/etcdserver/api/v3compactor: a periodic retention below 10ns panics in `New` (divide by zero)
+# v3compactor: a periodic auto-compaction retention below 10ns crashes etcd at startup
 
-- **Status**: a bug (a reachable panic at startup on an accepted configuration).
-- **Where**: the fork `upamanyus/etcd` at `107edf7e4` (`etc/goose.py`'s etcd pin).
-  `v3compactor.New` (`server/etcdserver/api/v3compactor/compactor.go:66-67`) calls
-  `newPeriodic`, which sizes `pc.revs` with `pc.getRetentions()` (`periodic.go:60`):
-  `int(pc.period/pc.getRetryInterval()) + 1` (`periodic.go:177-179`), where
-  `getRetryInterval()` is `min(period, 1h) / 10` (`periodic.go:183-189`), `0` for any period
-  strictly between `-10ns` and `10ns`. `NewServer` calls `New` whenever the retention is not
-  zero (`server/etcdserver/server.go:383-384`), and `embed`'s `parseCompactionRetention`
-  (`server/embed/etcd.go:928-947`) accepts any duration string for the periodic mode
-  (`time.ParseDuration`), e.g. `--auto-compaction-mode=periodic --auto-compaction-retention=5ns`.
-- **What happens**: `runtime error: integer divide by zero` in `New`, so `NewServer` (and the
-  member) panics instead of rejecting the configuration. Reproduction (a test in
-  `server/etcdserver/api/v3compactor`, `go test -run TestPeriodicTinyRetentionPanics .`; it passes,
-  i.e. confirms the panic, at the pin):
+`etcd --auto-compaction-mode=periodic --auto-compaction-retention=5ns` (any retention strictly
+between 0 and 10ns) is accepted by the flag parsing and then panics while the server is created:
+`runtime error: integer divide by zero`.
 
-  ```go
-  func TestPeriodicTinyRetentionPanics(t *testing.T) {
-  	defer func() {
-  		r := recover()
-  		if r == nil {
-  			t.Fatal("expected a panic")
-  		}
-  		t.Logf("New(periodic, 5ns) panicked: %v", r)
-  	}()
-  	New(zaptest.NewLogger(t), ModePeriodic, 5*time.Nanosecond, nil, nil)
-  }
-  ```
-- **Expected**: an error from the configuration's validation (or from `New`), as for an unknown
-  mode.
-- **How the proof handles it**: `NewServer`'s proof (unit N1 of the server-construction unit,
-  `notes/STATUS.md`) does not yet state `v3compactor.New`'s contract (pending, `?` in
-  `etc/link-lean-first-server.txt`); its true statement needs the premise
-  `mode = "periodic" → retention ≤ -10ns ∨ 10ns ≤ retention` (the analysis in `notes/STATUS.md`,
-  "Server construction, unit N1").
-- **Possible fixes**: reject a periodic retention below some minimum (at least `10ns`; a sensible
-  bound is a second) in `parseCompactionRetention` or the server config's validation, or compute
-  the retry interval with a floor of `1` in `getRetryInterval`.
-- **Found**: 2026-10-17, auditing the contract of `v3compactor.New` for `NewServer`'s proof.
-- **Triage (2026-10-23, etcd main `3aaab3479`)**: does etcd validate similar flags?
-  - *Still there at main*: unchanged. `parseCompactionRetention` (`embed/etcd.go:928-947`)
-    accepts any `time.ParseDuration` string, `NewServer` calls `v3compactor.New` for any non-zero
-    retention (`server.go:383-389`), `newPeriodic` sizes `revs` with `getRetentions()`
-    (`periodic.go:60`), `period / (min(period, 1h)/10)` (`periodic.go:177-189`), a division by
-    zero for `|period| < 10ns`. `Config.Validate` checks only the mode (`embed/config.go:999-1005`).
-  - *Siblings*: the same validation pattern as for `--compaction-batch-limit` (that file's
-    triage): `Validate` rejects the values that would crash or wedge the server (zero
-    heartbeat/election, `config.go:981-992`; non-positive `--compact-hash-check-time`,
-    `:1022-1024`; unknown compaction mode) and leaves the rest unvalidated, defaulted or
-    clamped (`--watch-progress-notify-interval` is clamped up to a minimum, `v3rpc/watch.go:77-84`).
-    The retention's own sibling in the same function, a negative periodic duration (`-1h`: a
-    negative retry interval and a busy loop), is what the open PR `#22396` ("server/embed: bound
-    --auto-compaction-retention") rejects in `parseCompactionRetention`; it still accepts `5ns`.
-    A closer unvalidated sibling: a negative `--corrupt-check-time` also panics at startup
-    (`time.NewTicker`, `server.go:2245-2249`).
-  - *Help text*: "Auto compaction retention length. 0 means disable auto compaction."
-    (`etcdmain/help.go:167-170`, `embed/config.go:714-715`); a unit-less integer is hours, so
-    sub-10ns periods need an explicit `ns` (`"5ns"`) or a fraction like `"0.000000001h"`: an
-    accidental value is unlikely, an intended one meaningless.
-  - *Would a startup check break anyone?* No: `"0"` (disabled) is unaffected if the bound is
-    on non-zero values; any positive period below 10ns crashes today, so nobody runs one. A
-    minimum of 1s (or 10ns, the exact crash bound) changes nothing for a working config.
-  - *Upstream*: no duplicate (searches `auto-compaction-retention divide by zero`,
-    `parseCompactionRetention`: only `#22396` and older mode PRs `#14896`, `#15741`).
-  - *Recommendation*: **upstream, but as a comment/suggestion on (or follow-up to) `#22396`**
-    rather than a separate PR: the PR already adds the bounds check in the right place; it
-    should also reject `0 < retention < 10ns` (or, better, a periodic retention below a
-    sensible minimum such as 1s), or `getRetryInterval` should floor at 1ns. If `#22396` lands
-    without it, a one-line follow-up with a regression test (`New(ModePeriodic, 5ns)`). Very low
-    severity (startup panic on an absurd value, fails loudly); documentation adds nothing since
-    the crash already tells the operator.
+**Expected:** the retention should be rejected with an error, as an unknown
+`--auto-compaction-mode` is
+([config.go#L999-L1005](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/embed/config.go#L999-L1005)).
+
+**Impact:** only a meaningless configuration (a retention needs an explicit `ns` unit, or a fraction
+of an hour, to get there); the member fails loudly at startup, with a stack trace instead of an
+error message. No running member is affected.
+
+**Reproduction:** `TestPeriodicTinyRetention` in
+[`issues/etcd-compactor-periodic-tiny-retention/periodic_tiny_retention_test.go`](etcd-compactor-periodic-tiny-retention/periodic_tiny_retention_test.go),
+copied (as `zz_periodic_tiny_retention_test.go`) into `server/embed` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3; it follows the flag
+through `parseCompactionRetention` to the `v3compactor.New` call `NewServer` makes:
+
+```
+$ (cd server && go test ./embed -run '^TestPeriodicTinyRetention$' -count=1)
+--- FAIL: TestPeriodicTinyRetention (0.00s)
+    zz_periodic_tiny_retention_test.go:36: retention 5ns accepted, then v3compactor.New panicked: runtime error: integer divide by zero
+FAIL
+```
+
+**Cause:** `parseCompactionRetention` accepts any `time.ParseDuration` string in periodic mode
+([etcd.go#L928-L947](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/embed/etcd.go#L928-L947)),
+and `NewServer` creates the compactor for any non-zero retention
+([server.go#L384](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/server.go#L384)).
+`newPeriodic` sizes its revision list with `period / retryInterval`, where the retry interval is
+`min(period, 1h) / 10`, zero below 10ns
+([periodic.go#L177-L189](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3compactor/periodic.go#L177-L189)).
+
+## Proof
+
+yes: `NewServer`'s statement needs the premise that a periodic retention is at least 10ns in absolute
+value, which etcd's flag handling does not ensure (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/New.lean`).
+
+## Fix
+
+Make #22396's bound in `parseCompactionRetention` also reject `0 < retention < 10ns` (or a periodic
+retention below a sensible minimum, such as a second); a comment on #22396 is likely enough.

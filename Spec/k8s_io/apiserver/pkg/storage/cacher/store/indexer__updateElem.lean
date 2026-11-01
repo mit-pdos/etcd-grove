@@ -3,7 +3,7 @@
 element's index values to the new one's (either may be `nil`): the indexer stays well-formed
 (`ownIndexer`; what the indices hold is not specified: no read through an index is verified yet)
 and there is no error, since the index functions never fail (`ownIndexer`'s `isIndexFn`, the
-premise of the store's specs: `issues/k8s-watchcache-index-error-partial-update.md`). Lean-first (no Rocq counterpart).
+premise of the store's specs: `nonissues/k8s-watchcache-index-error-partial-update.md`). Lean-first (no Rocq counterpart).
 -/
 module
 

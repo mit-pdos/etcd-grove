@@ -190,7 +190,7 @@ abbrev raft.applyConfChange.spec : Prop :=
     (c' : CCState),
   -- the model's answer: `confchange`'s errors (which `applyConfChange` turns into a panic)
   -- and an undefined `Transition` with joint consensus (`ConfChangeV2.EnterJoint`'s panic,
-  -- `issues/nonissues/raft-unknown-transition-panic.md`) are `none`
+  -- `nonissues/raft-unknown-transition-panic.md`) are `none`
   ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
   -- not too many tracked ids (`ownTrackerC`'s bound)
   (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →

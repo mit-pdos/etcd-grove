@@ -10,8 +10,12 @@ From one finding, `issues/<slug>.md`, produce for the user to review:
 - a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: signed-off commits off current upstream `main`, first the
   tests (which fail at that commit), then the fix, then (in raft, for a change not to be backported) the changelog
   entry;
-- `issues/upstream/<slug>/issue.md`, `pr.md` and `meta.md` (base commit, commands run and results, duplicates
-  found, answers to likely reviewer questions, state).
+- the finding's own file, `issues/<slug>.md`, brought to filing quality: its report (title, what happens,
+  **Expected**, **Impact**, **Reproduction**, **Cause**; `issues/README.md`) is the issue's content, and its
+  `## Fix` section names the branch (`**Branch**:`, `**Base**:`), holds the PR text (`**PR draft**:`) and the
+  answers to likely reviewer questions (`**If a reviewer asks**:`). There is no other draft file: `check.py
+  <slug> --print issue` and `--print pr` render the texts to paste, in the target's form, with the disclosure.
+  The test is the file in `issues/<slug>/` and the tests commit of the branch, the same test.
 
 Never push, file, or comment on GitHub unless the user asks; a branch already pushed is replaced only by a
 force-push the user approved. Aim for a candidate the user can file as it is. `example/` holds approved candidates:
@@ -67,7 +71,7 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 4. **Duplicates**, in a background agent while you do steps 5-8: at most five searches
    (`curl -s 'https://api.github.com/search/issues?q=repo:etcd-io/etcd+<terms>'`; about ten a minute are allowed
    unauthenticated) for the symptom and the root cause; open only matches that look like the same bug. If an open
-   PR fixes it, stop and tell the user. Record matches in `meta.md` and the finding's front matter
+   PR fixes it, stop and tell the user. Record matches in the finding's front matter (`links`)
    (`issues/README.md`).
 5. **The example**: the reproduction, in whatever form the bug needs (usually a Go test; `etcdctl` commands, a
    client program, a cluster configuration when that is what shows it). Build binaries only if it needs them. Run
@@ -107,51 +111,58 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
     `IsDefaultOrdering` itself, one change fixing two bugs, where our #22616 and the `rangestream` candidate
     patched two callers). Read every caller first; this differs from the `IsSingleton` case above, where the
     helper did what it said and a caller needed more. Before settling on a fix, list the candidate layers and
-    fixes in `meta.md`, "If a reviewer asks", and say why the chosen one is the one a maintainer would pick.
+    fixes in `## Fix`, `**If a reviewer asks**:`, and say why the chosen one is the one a maintainer would pick.
   - A comment only when it says why (an ordering that matters), never what the code does.
    - A fix that changes only documentation (doc comments, `doc.go`, `README.md`) has no test that can fail before it
      and pass after: the branch is that one commit, and the reproduction test goes on a branch `repro/<slug>` off the
-     same base (worktree `~/etcd-fixes/<slug>-repro`), which `meta.md` names in its line "**Reproduction branch**"
+     same base (worktree `~/etcd-fixes/<slug>-repro`), which the issue's `## Fix` names in its line "**Reproduction branch**"
      (the branch and the worktree, each in backticks, as on the line "**Branch**") and the issue links instead of
      `fix/<slug>`; the PR leaves out the first-commit sentence, and the hand-off pushes both branches. `check.py`
      accepts this shape only when the fix changes no code or tests.
    - Try the simplest alternative first (reorder, one more condition); if it fails, run it and record why in
-     `meta.md`, "If a reviewer asks", with the other alternatives and costs; do not research more for it.
+     `**If a reviewer asks**:`, with the other alternatives and costs; do not research more for it.
 8. **Verify**: check out the tests commit (the new tests fail) and the fix commit (they pass, the module's tests
    pass), `gofmt -l`, `go vet`. When running a test against the base by `go test -overlay`, overlay every file the
-   fix changes. Record the commands and results in `meta.md`.
+   fix changes. Paste the failing output of the tests commit into **Reproduction**; the commands log is not kept.
 9. **Review** the branch as a maintainer would (the `code-review` skill, or by hand): correctness, every caller of
    anything changed, comments and docs that still claim the old behavior, alternatives a reviewer will raise.
    Check each finding against the code before acting: a scenario counts only if it is reachable under the
-   documented protocol. Fix what belongs to this change; record other real bugs in `issues/` (with "found by code
-   reading" or the reproduction), and record findings that turn out unreachable as `upstream: not-filing` with why.
-10. **Write** `issue.md` and `pr.md` (below), commit, and run
-    `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN. In `meta.md`,
-    answer the questions a reader will ask: why the fix works (what the base does at each step, what the fix
-    changes), why the test shows the bug and not a misuse, how the candidate relates to its siblings.
-11. **Hand off**: branch and commits, base, the files, the commit messages to rewrite, anything not verified, and
-    the push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin fix/<slug>` (with
-    `--force-with-lease=fix/<slug>:<sha>` over an earlier push, once the user approves). State `draft` in `meta.md`.
+   documented protocol. Fix what belongs to this change; record other real bugs in `issues/` (with the
+   reproduction) or `nonissues/` (found by code reading), and move a finding that turns out unreachable to
+   `nonissues/` with why.
+10. **Write** the issue file's report and `## Fix` (below), and run
+    `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN. In
+    `**If a reviewer asks**:`, answer the questions a reader will ask: why the fix works (what the base does at
+    each step, what the fix changes), why the test shows the bug and not a misuse, how the change relates to its
+    siblings.
+11. **Hand off**: branch and commits, base, the commit messages to rewrite, anything not verified, the push
+    command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin fix/<slug>` (with
+    `--force-with-lease=fix/<slug>:<sha>` over an earlier push, once the user approves), and the commands that
+    print the texts to file: `check.py <slug> --print issue`, `--print pr`.
 
 ## The issue
 
-For etcd, the bug-report form's sections, as in `example/`. Only the symptom, the expectation and the
-reproduction: no root cause, code names, code links, history, other issues, or claims about other releases.
+The issue file holds the content; `check.py --print issue` puts it in the target's form. For etcd, the
+bug-report form's sections: the paragraph after the title is "What happened?", **Expected** "What did you
+expect?", **Reproduction** "How can we reproduce it?" (the local test link becomes the test on the fork's branch,
+or, without a branch, the test inlined), **Impact** "Anything else?", then the disclosure; **Cause** goes to the PR
+only. So the parts of the report that reach an etcd issue have no root cause, code names, code links, history,
+other issues, or claims about other releases.
 
 bbolt's and raft's issue forms are free-form (no template; raft has none, and etcd's structured sections read as
-boilerplate there): no headings. Write the same content as plain paragraphs, in this order: the symptom with the
-setup it needs (base commit, Go version and platform, options) in the first sentence, the steps, the expectation
-in one sentence, (raft) the cause, the test link and its output, then any question, then the disclosure (the
-2026-10-23 reviews). The sections below say what each part contains.
+boilerplate there): `check.py` renders plain paragraphs, in this order: the symptom with the setup it needs (base
+commit, Go version and platform, options) in the first sentence, the expectation, (raft) the cause, the test link
+and its output, the impact, then the disclosure (the 2026-10-23 reviews). The sections below say what each part
+contains.
 
-A raft issue explains the bug as well as the symptom (the 2026-10-23 review): after the expectation, one paragraph
-saying what raft's code does at each step of the example and which assumption fails, naming the functions, with
+A raft issue explains the bug as well as the symptom (the 2026-10-23 review): **Cause** is one paragraph saying
+what raft's code does at each step of the example and which assumption fails, naming the functions, with
 permalinks at the base (`https://github.com/etcd-io/raft/blob/<sha>/<path>#L<a>-L<b>`, the full sha), so that a
 maintainer sees from the issue alone why it happens. Say what is wrong, not how to fix it: the change and its
-alternatives stay in the PR and `meta.md`.
+alternatives stay in `## Fix`.
 
-- **Title**: the symptom and the condition, covering every case the issue shows.
-- **What happened?** The configuration that matters ("With `ReadOnlySafe`:"), then, for more than two events,
+- **Title** (the file's `# ` line): the symptom and the condition, covering every case the issue shows.
+- **What happened?** (the paragraph after the title) The configuration that matters ("With `ReadOnlySafe`:"), then, for more than two events,
   numbered steps, each saying when it happens relative to the others ("Before committing an entry in its new term,
   node 1 answers ..."); the example's output when it shows the bug at a glance; one sentence on who else is
   affected, as one clause naming the whole condition ("for any client sending X with Y and Z").
@@ -161,24 +172,25 @@ alternatives stay in the PR and `meta.md`.
   branch (`https://github.com/upamanyus/etcd/blob/fix/<slug>/<path>#L<a>-L<b>`, the test's lines from its doc
   comment to its closing brace, checked on GitHub after the push, and `.../tree/fix/<slug>`), not described, with
   its failing assertion.
-- **Anything else?** Impact or workarounds if any; side findings as questions to the maintainers; then, word for
-  word: "Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and
-  reviewed the report."
-- **Version** and **configuration**: what the reproduction ran on (the base commit; `etcd --version` and `etcdctl
-  version` if it ran binaries; not that it ran none) and the configuration it needs.
+- **Anything else?** (**Impact**) Who hits it, plainly (maintainers push back on overstated impact: raft#533's "a
+  HA cluster has at least 3 nodes", etcd#22612's "bug for 10 years"), workarounds if any; side findings as
+  questions to the maintainers. `check.py` adds, word for word: "Found while formally verifying etcd. Written with
+  the assistance of generative AI; I reproduced the bug and reviewed the report."
+- **Version** and **configuration**: what the reproduction ran on (the base commit, in **Reproduction**;
+  `etcd --version` and `etcdctl version` if it ran binaries; not that it ran none) and the configuration it needs.
 
 Outputs are pasted from runs, never typed; trivial lines (setup `OK`s, trailing blank lines) may go, and test output
 may be trimmed to the assertion.
 
 ## The PR
 
-A few plain sentences, as in `example/`, no sections. `Title:` the fix commit's subject. Then: the root cause,
+`**PR draft**:` in the issue's `## Fix`; `check.py --print pr` adds the disclosure. A few plain sentences, as in
+`example/`, no sections. `Title:` the fix commit's subject. Then: the root cause (**Cause**, for etcd and bbolt),
 saying what each piece of code does and which assumption is wrong ("assuming, as its comment says, that ...; X does
 not guarantee that"), with permalinks at the base (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`);
 the change as "This PR ...", with why code moves if it moves; `Fixes #<issue>`; "The first commit adds a test of
 the issue's example, which fails on `main`; the second, the fix, makes it pass."; for split candidates, the
-conflict note (step 3); and, word for word: "Written with the assistance of generative AI; I reviewed and tested
-every change." Nothing else: alternatives, costs and backports stay in `meta.md`.
+conflict note (step 3). Nothing else: alternatives, costs and backports stay in `**If a reviewer asks**:`.
 
 ## Writing
 
@@ -196,8 +208,9 @@ The reader is an etcd maintainer with two minutes, who knows etcd and not this r
 
 ## After filing
 
-Set the finding's front matter to `upstream: reported` with the issue and PR in `links`, and `meta.md`'s state to
-`filed` (`fixed` when merged; `etc/issues-status.py --refresh` updates states). Fill in the PR number in the raft
+Set the finding's front matter to `upstream: reported` with the issue and PR in `links` (`fixed` when merged;
+`etc/issues-status.py --refresh` updates the links' states), and trim the file: a filed issue keeps the title, the
+first paragraph, **Reproduction** and `## Proof` (`issues/README.md`); the rest is on GitHub. Fill in the PR number in the raft
 changelog commit and the sibling's conflict note. After a PR is open, revise with new commits, not force-pushes,
 unless a reviewer asks for a rebase: then rebuild the branch on `upstream/main` (keep the old head as a local
 `backup/<slug>-v1` branch), apply the review, and leave the force-push for the user to approve; update the
