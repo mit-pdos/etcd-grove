@@ -254,7 +254,14 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     ⌜E.γ.kb = some d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
-      (∀ f, dir f ≠ [] ↔ f ∈ ps)⌝ ∗
+      (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
+      -- (2026-11-01, J8a-1, item 7) the environment's facts `specSnap` takes: the snapshot files'
+      -- opens, the backend not compacting and its parameters, the store watchable, the rest
+      -- buckets' resource at this backend, the receipts' bound
+      storage.snapOpensOk ∧ d.cm = false ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
+      storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ E.γ.watchQ = true ∧
+      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
+      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ cfg.ServerFeatureGate' ∗
@@ -280,11 +287,22 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     membership.isRaftCluster cl ∗ clusterApplyOk cl ∗
     (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗ srvMembersDir cl ps dir ∗
     -- the Key bucket's size bound of every backend at the boot parameters
-    □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b))
+    □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    -- (2026-11-01, J8a-1, item 7) the lessor's invariant, the KV the watchable store
+    lease.lessorInv lp E.γ.leases ∗
+    (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+     mvcc.isWatchableStore wsl E.s γw0))
 
 instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     Persistent (srvSnapRO (GF := GF) s ci E γr γt) := by
   unfold srvSnapRO; infer_instance
+
+/-- (2026-11-01, J8a-1, item 7) **The auth store's contract mode off, from auth off**: `authOn` is the
+mode's `isOn`, which only `.off` is not (`specSnap`'s `hoff` from the run's `authOn = false`). -/
+theorem authMode_off_of (E : apply.AEnv GF) (h : E.authOn = false) : E.authMode = auth.AuthMode.off := by
+  unfold apply.AEnv.authOn at h
+  cases hm : E.authMode <;> simp_all [auth.AuthMode.isOn]
 
 /-- **The reader-slot stock** (see the file header; spatial): `m` of `lgMu`'s reader slots, at least
 `2 ^ 28` (2026-11-01, J8a: until then also as many of the auth store's reader resource `E.RD`). -/

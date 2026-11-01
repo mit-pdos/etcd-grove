@@ -80,6 +80,9 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    `hooksParams`, `bridgeParams`), `lessorInv`, `isWatchableStore` in the apply thread, `authMode =
    .off` (not only `authOn = false`), `hRO`'s fields tied to the stores'. Mechanical: each into
    `srvSnapRO` from `NewServer`/`bootOk`; some are `NewServer.spec` premises today (`hsop` is L3's).
+   *Done 2026-11-01* (decisions, "`specSnap`'s environment facts in `srvSnapRO`") but for
+   `hdir`/`hdok` (with J8a-6); `d.P.Wf ∧ d.P.limit = openLimit cfg` added to `bootOk` (approved);
+   `hoff` from `authOn = false` (`authMode_off_of`).
 8. **`specSnap` restated for the payload**: `isNotify2`'s first receive (item 4), `snapDirInv` at
    `srvSnapRm γt γr` (as `srvSnapRO` has it) in place of `snapTakenLb γt`, the image facts from
    `snapRecv_image` (`hch`, `|boot| ≤ i`: lemmas).

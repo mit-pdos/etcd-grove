@@ -28226,3 +28226,28 @@ layer's `Apply` (`authApplierV3.Apply.spec`/`specL`, the chain's `Apply` triple 
 (`snapWalkPost`) carries the old KV's `E.RD` to the new `kvOwn`, and `specSnap` loses its second
 `E.RD`. `NewServer` still takes one copy for the auth applier out of the stock it gets; it is
 unused (the stock is `rwmutex.actualMaxReaders` large, not a premise).
+
+## `specSnap`'s environment facts in `srvSnapRO` (2026-11-01, J8a-1, item 7)
+
+`specSnap`'s premises about the server's environment, which `run`'s snapshot case must supply, now
+come from the snapshot path's bundle `srvSnapRO`, built by `NewServer`:
+- pure: `snapOpensOk` (`diskOk`'s), the backend `d` not compacting and its parameters
+  (`bridgeParams`, `ciKeys`, `hooksParams`: `bootOk`'s), the store watchable (`watchQ`), the rest
+  buckets' resource at `d` (`E.RO = srvRestOwnH d.γB …`), `receiptBound ≤ wbInit - 6` (from
+  `bootOk`'s `N + 7 ≤ wbInit` and `NewServer`'s `receiptBound ≤ N + 1`: no new premise);
+- persistent: the lessor's invariant and the watchable store at `s.kv`.
+They are facts of the current backend (`d`, `E.RO`), so `srvSnapRO` has to be re-established after
+each install (item 5), not carried. `hoff` needs no threading: `authOn` is `authMode.isOn`, so the
+run's `authOn = false` gives it (`authMode_off_of`).
+
+Not yet: the network's directory (`hdir : γn.dir = dir`, `hdok`), which needs the transport's names
+(`srvApRes`'s): with the `lgMu` pool stage (J8a-6), which restates the transport's state.
+
+`d.P.Wf ∧ d.P.limit = openLimit cfg` was not stated by `bootOk` (the bootstrap contract, which the
+examples assume): added to its `%Hbe` with the user's approval (2026-11-01). It is true of the code:
+`bootstrapBackend` opens the backend through `newBackend` (`serverstorage.OpenBackend`), which sets
+the batch limit as `openLimit` does, and the snapshot path's `openPre` already asks the same of its
+backends. `srvSnapRO` carries it.
+
+A wrong turn on the way: `hrbw` was weakened to `receiptBound ≤ 2^48` (what `SnapApplyKV` needs),
+but the walk's backend swap (`srv_be_swap`) needs `receiptBound ≤ wbInit - 5`: reverted.

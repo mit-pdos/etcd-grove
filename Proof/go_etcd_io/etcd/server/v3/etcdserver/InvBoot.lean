@@ -363,10 +363,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
-    -- the backend of the real instance, with the server's hooks
+    -- the backend of the real instance, with the server's hooks (2026-11-01, J8a-1, approved: and
+    -- its parameters `newBackend` configures, well-formed with the batch limit `openLimit cfg`, as
+    -- `OpenSnapshotBackend`'s `openPre` requires of a snapshot's backend)
     "%Hbe" ∷ ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be ∧
-      mvcc.bridgeParams d.P ∧ ciKeys d.P ∧ storage.hooksParams d.P⌝ ∗
+      mvcc.bridgeParams d.P ∧ ciKeys d.P ∧ storage.hooksParams d.P ∧
+      d.P.Wf ∧ d.P.limit = storage.openLimit cfg⌝ ∗
     -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
     -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
     -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty

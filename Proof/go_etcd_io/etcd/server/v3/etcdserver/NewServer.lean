@@ -519,7 +519,7 @@ theorem NewServer.wp_proofM (on : Bool)
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -1339,7 +1339,8 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe HalS HalA HisAuth HauR Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
-        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1⟩
+        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, trivial, HbP,
+          Hci0, HhP, HPwf, HPlim, Hwq, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir
@@ -1348,7 +1349,11 @@ theorem NewServer.wp_proofM (on : Bool)
       · iunfold lessorLookupOk; iexact Hllk
       isplitr
       · iexists _; iexact Hvcn
-      iunfold srvMembersDir; iexact Hmembers
+      isplitr
+      · iunfold srvMembersDir; iexact Hmembers
+      isplitr
+      · rw [Hγw.2.1]; iexact Hlinv
+      iexists ws, γw; iframe kv Hws
     isplitl [Hlgstock]
     · iunfold srvSnapStock
       iexists _
