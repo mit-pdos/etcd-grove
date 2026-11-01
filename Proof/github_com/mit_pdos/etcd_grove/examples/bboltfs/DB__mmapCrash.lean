@@ -170,7 +170,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
   icases Hw with ⟨%fsz, Hfsz, Hdsz, Hf, Hfd, Hown, %Hw⟩
   icases csOwn_wf' _ _ _ $$ Hown with ⟨Hown, %Hwf⟩
   have hl : bs.length = m.size := Hwf.1
-  obtain ⟨h2, hsz, Hw'⟩ := Hw
+  obtain ⟨h2, hsz, hokM, Hw'⟩ := Hw
   obtain ⟨hmp, hcc, hfsz, hfd0, h16, hsz30, hml⟩ := Hw' Hfl
   subst hfsz
   wp_auto
@@ -204,11 +204,13 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
   have hcc1 : ∀ M : GMap Loc Nat, commitClean { m with maps := M } bs :=
     fun M => commitClean_meta hcc rfl rfl
   have hpost : ∀ M : GMap Loc Nat, 2 ≤ hwm ∧ 4096 * hwm ≤ ({ m with maps := M } : OsMeta).size ∧
+      (∀ M' : GMap Loc Nat, dbOk p (some ⟨{ ({ m with maps := M } : OsMeta) with maps := M' }, bs, 8192,
+        4096 * hwm, .idle⟩)) ∧
       (fl = false → (bs.map Prod.fst).take 8192 = mp ∧ commitClean { m with maps := M } bs ∧
         m.size = ({ m with maps := M } : OsMeta).size ∧ 0 ≤ fd.toInt ∧
         4 * 4096 ≤ ({ m with maps := M } : OsMeta).size ∧
         ({ m with maps := M } : OsMeta).size ≤ 2 ^ 30 ∧ mapLen none ≤ 2 ^ 30) :=
-    fun M => ⟨h2, hsz, fun _ => ⟨hmp, hcc1 M, rfl, hfd0, h16, hsz30, by simp only [mapLen]; omega⟩⟩
+    fun M => ⟨h2, hsz, hokM, fun _ => ⟨hmp, hcc1 M, rfl, hfd0, h16, hsz30, by simp only [mapLen]; omega⟩⟩
   cases err with
   | ok ie =>
     (try wp_auto)
@@ -393,7 +395,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     rw [hszeq]
     iframe
     ipureintro
-    exact ⟨h2, hsz, fun _ => ⟨hmp, hcc1 _, trivial, hfd0, h16, hsz30,
+    exact ⟨h2, hsz, hokM, fun _ => ⟨hmp, hcc1 _, trivial, hfd0, h16, hsz30,
       by have := Hsz2.2.2.2.2 (by omega); omega⟩⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩

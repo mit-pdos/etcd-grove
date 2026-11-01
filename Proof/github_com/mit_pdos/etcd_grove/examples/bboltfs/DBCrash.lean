@@ -120,7 +120,9 @@ variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 
 /-- The writer's part of the file, with the mapping in the state `st`, as a state of the crash
-invariant `γc` (see the file header): `writerFile`'s, with `csOwn` for the `OsMeta` and bytes. -/
+invariant `γc` (see the file header): `writerFile`'s, with `csOwn` for the `OsMeta` and bytes,
+and the state `dbOk` whatever the mappings (for `munmap` once failed, when `commitClean` may no
+longer hold). -/
 def writerFileC (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) : IProp GF :=
   iprop(∃ fsz : Nat,
@@ -129,6 +131,7 @@ def writerFileC (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
     osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
     csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩)) ∧
       (fl = false → (bs.map Prod.fst).take 8192 = mp ∧ commitClean m bs ∧ fsz = m.size ∧
         0 ≤ fd.toInt ∧ 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 30 ∧ mapLen st ≤ 2 ^ 30)⌝)
 

@@ -640,7 +640,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
     iframe
     isplitr
     · ipureintro
-      exact ⟨hn2, hnsz, fun _ => ⟨hmp, Hr.cc, rfl, Hfd, Hr.h16, Hr.h30,
+      exact ⟨hn2, hnsz, fun M => writer_okS 8192 _ Hr.len Hr.cc M, fun _ => ⟨hmp, Hr.cc, rfl, Hfd, Hr.h16, Hr.h30,
         by simp only [mapLen]; omega⟩⟩
     dsimp only
     iframe
