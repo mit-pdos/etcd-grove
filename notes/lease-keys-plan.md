@@ -481,3 +481,7 @@ Nothing outside the lease package needed more. The three checks proved
 the auth store at the lower bound, the two errors) and linked (`etc/link-lean-first-server.txt`).
 A `lean-check` artifact: a kernel error on an abstracted `word` proof that `lake build` does not
 reproduce (the server's elaboration of a file copied from another open one).
+
+**2026-11-01, the `putKeep` gap closed without a change** (`notes/lease-txnput-plan.md`): a
+lease-keeping put attaches no lease, and its wire `Lease` is `0` after gRPC validation, so
+`opLeaseClass`'s `True` is complete; F4 is withdrawn. The `PrevKv` gap stands.
