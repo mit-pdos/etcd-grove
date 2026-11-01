@@ -502,3 +502,100 @@ Open, in order (items 5-7 not started; what round 3 learned of them):
    the meta write, `durOk m (1 - s) (old or new)` (from `wp_osFsync_keep` over the meta pages).
    `Open` must carry `curInSlot` from `goodImg` (add it to `fileOk`/`dbFresh`).
 7. `BootCrashSafety`, once 5-6 are done; stated with `P1s` if the user agrees (above).
+
+### minibolt's crash proof, round 4 (2026-11-01, branch `osfs-mbcrash`)
+
+`origin/lean` already merged (Perennial pin `2130bdb99`, unchanged).
+
+Done (no `sorryAx`; `#print axioms` of everything below: `propext`, `Classical.choice`,
+`Quot.sound`, plus goose's usual opaque `os.*`/`sync.*`/`syscall.*` types for the Go-level specs):
+- **P1 is P1s** (the coordinator's decision, `52d050ccae`): `BootP1.lean`'s `P1` has `data ≠ []`
+  in its third case, with the reason in its docstring; `P1s` and `P1s_P1` are gone, `CrashOk.lean`
+  and `CrashImg.lean` use `P1`.
+- **`Proof/os/CrashSt.lean`: a crash invariant generic in a predicate on states** (items 1–3's
+  infrastructure). A new state type instead of `CFile` (left as is, for crashlog):
+  `CSt = ⟨m, bs, fa, fb, busy⟩`, `CState = Option CSt`, `busy ∈ {idle, write t off data,
+  trunc t sz}`. The invariant `csInv N p γ Ok` holds `ghostVar γ ½ s`, `invResS p s` and `⌜Ok s⌝`
+  for any `Ok : CState → Prop`; the caller holds `csOwn p γ s`. Bytes are per byte (`cByte`,
+  `cBytes`): **`[fa, fb)` frozen**, held by the invariant at `DFrac.discard` (minibolt's committed
+  pages: `pageIs` copies come from `cs_freeze`), every other byte at a half each (invariant and
+  caller), minus a write's taken bytes (its token holds them). `CSt.Wf`: `bs.length = m.size`,
+  `fa ≤ fb ≤ m.size`, a write misses `[fa, fb)` (`off + n ≤ fa ∨ fb ≤ off`), a truncate grows.
+  Mappings are allowed (any `m.maps`). A crash sees `sMeta`/`sRuns` (one run per byte)/`sToks`;
+  `CrashOkS Q p Good s` is `CrashOkQ`'s condition on that view, and `crashOkS_idle`/
+  `crashOkS_write` reduce it to `CrashOkQ` of the corresponding `CFile` (`RunsSub`: a crash's view
+  does not depend on fractions), so round 3's lemmas apply. `csInv_alloc` (from `osFileStart`,
+  state `csStart fo`, nothing frozen), `csInv_crash_keep` (needs `CrashOkS Q p Good s`).
+- **`Proof/os/CrashStOps.lean`: the extension's steps over `csInv`**: `wp_osOpen_cs` (`csOpen`),
+  `wp_osPWriteStart_cs`/`wp_osPWriteFinish_cs` (mapped cells passed through: `mcellsAny` in,
+  `mcells` out), `wp_osFtruncateStart_cs`/`wp_osFtruncateFinish_cs` (grown: `csGrownOwn`, or
+  `ftMeta` on failure), `wp_osFsync_cs` (state `H ++ (F ++ T)`, `F` frozen: `csSynced false` syncs
+  `T` and keeps `H` (shown clean) in `dur` via `wp_osFsync_keep`; `csSynced true` syncs `H`),
+  `wp_osMmap_cs`, `wp_osMunmap_cs`, and the ghost step `cs_freeze` (freeze a superset; the caller
+  gets `osBytes p fa' DFrac.discard` of the frozen bytes). Each takes `Ok` of every state it may
+  leave as a hypothesis.
+- **`Spec/os/CrashSt.lean` + `Proof/os/CrashStSpec.lean`: the crash-aware Go-level specs**
+  (item 4): `os.OpenFile.specCrashS`, `os.File.WriteAt.specCrashS` (obligation: `Ok` of every
+  `WReach` state, idle and with the next attempt in flight; post `WReach m bs off data m' bs'`;
+  `WReach.narrow`), `os.File.Truncate.specCrashS` (growth; `Ok` of each `TReach` state, idle and
+  truncating), `os.File.Sync.specCrashS`, `syscall.Fdatasync.specCrashS`,
+  `golang_org.x.sys.unix.Mmap.specCrashS`/`Munmap.specCrashS`; all proved
+  (`*.wp_proof_crashS`). Item 2 is covered by the frozen bytes: committed pages sit in the
+  invariant discarded, a sync covers the bytes the writer holds whole (`csSynced`).
+- **minibolt's obligations on the new states** (`CrashOk.lean`, `CrashImg.lean`):
+  `crashOkS_trunc` (a growing truncate in flight: `idleImg (ftMeta m sz)`; P1's third case cannot
+  apply), and `initIdle_okS`, `initW1_okS`, `initMid_okS`, `initW2_okS`, `commitClean_okS`,
+  `commitClean_write_okS`, `commitClean_trunc_okS`, `commitMetaW_okS`, `commitMetaIdle_okS`: round
+  3's image lemmas as `CrashOkS (P1 p) p Good (some s)`.
+
+**New gap (blocks item 1's last lemma and every failure path after a partial write): the ghost
+state forgets which bytes a failed write left untouched.** A clean byte cannot be in flight
+(`OsCoh.bytes`: `x.2 = true → CleanPhys f i ∧ ¬ InflightAt st p i`), so `PWriteStart` takes the
+range's bytes with their flags dropped (`TokInfo.saved` keeps only values) and `PWriteFinish`
+returns `pwBytes`, **all flagged dirty**, including the bytes past the `k` written. Physically
+those bytes are untouched (`pwFile` marks only `[min off len, off + k)` dirty) and stay clean, so
+P1's page-cache case (every byte of the slot dirty or lost) excludes a torn slot; the ghost state
+cannot show it, and `cacheOk` of a torn slot (`k` inside a slot: new bytes, then old ones, none
+clean in the ghost) is not provable. Round 3's "bytes outside the written prefix keep their
+flags" holds only outside the write's range. Affected: `cacheOk` for every idle `WReach` state
+of a write whose range covers a slot: `init`'s W1/W2 and commit's meta write, i.e. their failure
+paths (`initIdle_okS`'s `cache`, `initMid_okS`'s and `commitMetaIdle_okS`'s `hc`).
+- Proposed fix (untrusted ghost, `GooseLang/Ext/OsFs/{Ghost,Facts,Write}.lean`; a decision for
+  the user, like `OsMeta.dur`): `TokInfo` keeps the taken bytes' clean flags (`cl : List Bool`),
+  with a coherence clause `cl[j] = true → f.dirty i = false ∧ f.lost i = false ∧ i < f.sizeLo ∧
+  f.durable[i]? = f.cur[i]?` (`CleanPhys` without `¬ InflightAt`), kept by every step (no sync
+  while a token holds the bytes, other writes touch other bytes); `pwBytes` keeps those flags for
+  the bytes past the written prefix. Then "a partially written slot keeps a clean old byte, or is
+  all the new data" holds for `WReach` states (given the old slot clean), and `cacheOk` follows.
+  Cost: every `TokInfo` construction (`⟨c, q, saved, om⟩`), `wp_osPWriteStart`/`Finish`, the
+  truncate token, `Facts.lean`'s preservation lemmas.
+- Partial alternative without the ghost change: `init`'s two writes have concrete data. W1 writes
+  zeros over the slots: a torn slot is the old one (if `k` stops before it) or starts with a zero
+  byte, whose magic (`0xED0CDAED`, no zero byte) fails: provable now, by induction on `WReach`.
+  W2's torn slots are `initMeta i`'s prefix then zeros, 2 × 64 concrete cases: `decide +kernel`
+  checks one in well under a second with a concrete `GooseExts` (`osFsExts`), but `Meta` is
+  parameterized by `[GooseExts]` (free variable: `decide` refuses, `rfl` fails), so the proof needs
+  `metaValid (decode L : Meta) ↔` an instance-free check on the tuple `Meta.byteEncoding` is
+  `ofEquiv` of (likely `Iff.rfl`). Commit's meta write has no such way out (the new meta is not
+  concrete): it needs the ghost fix.
+
+Open, in order:
+5. **The DB rework** (not started; the plan):
+   - `isDB` gains `csInv dbCrashN p γc (CrashOkS (P1 p) p Good)`; `rwR`'s `writerFile` holds
+     `csOwn p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩)` in place of `osMeta 1`, `osBytes ½ mxc`
+     and `osBytes 1 tail` (`thrBytes` of that state is `osBytes 0 ½ mxc ∗ osBytes (4096 hwm) ½
+     tail`, `idle_thrBytes`); `metaR` loses its `osBytes ½ mxc` (the invariant holds that half
+     now; the meta `WriteAt` gets the other half from it). Committed pages: `pageIs` from
+     `cs_freeze` after the meta sync (`fb` becomes `4096 * (hwm + 1)`). `rwR` also needs what
+     `commitClean` asks (clean metas and root page, `curInSlot`, `4096 * curPgid ≤ m.lo`,
+     `m.hi ≤ 2^30`), most of it already in `writerFile`/`metaR`.
+   - `curInSlot` into `fileOk`/`dbFresh` (from `goodImg`, `goodImg_fileOk`).
+   - Re-prove as crash-aware variants, each step's `Ok` from the `*_okS` lemmas: `init` first
+     (self-contained: `DB.init.spec` holds the file whole; a `DB.init.specCrash` over `csOwn` with
+     `fa = fb = 0` needs only the W1/W2 torn-slot lemmas above), then `Open` (OpenFile, Stat,
+     readPageSize with the caller's halves, init, mmap via `Mmap.specCrashS`), `commit`
+     (Truncate/Sync/data WriteAt/Fdatasync/meta WriteAt/Fdatasync/freeze), `Close`
+     (`Munmap.specCrashS`). Keep the existing non-crash specs (`Link.lean`) as they are; the crash
+     variants are new files; `Snapshot`/`Get` unchanged if `pageIs` stays.
+6. `BootMinibolt`'s per-generation proof and `BootCrashSafety` (`osFsQ_crash_adequacyT` with
+   `P1`, `csInv_alloc`, `csInv_crash_keep`; `crashlog/Results.lean`'s shape with `Hinit_wp`).
