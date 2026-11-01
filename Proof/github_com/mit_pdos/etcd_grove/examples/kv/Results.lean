@@ -26,8 +26,8 @@ porcupine's.
   2026-10-30, D4 of the client repair: `kv_porcupine_safe` does not reach it; it can return with
   kvreconf's `validConf` guard.)
 * **The storage** (`kv_NewStorage`, `kv_storage_isStorage`, `kv_bootStorage`): `*kv.Storage`
-  meets node `id`'s `Storage` contract (`isStorage γ id`) once its `MemoryStorage` has its
-  invariant at `kvJ γ id`, and a fresh one is what `RestartNode` takes (`bootStorage`).
+  meets node `id`'s `Storage` contract (`isStorage γ (kvKey γ id)`) once its `MemoryStorage` has its
+  invariant at `kvJ γ (kvKey γ id)`, and a fresh one is what `RestartNode` takes (`bootStorage`).
 * **The ghost state's allocation** (`kvStorInv_alloc`, `rkvInv_alloc`, `Alloc.lean`).
 * **The cluster** (`kv_StartCluster`, `cluster.go`) and **the randomized linearizability test**
   (`kv_Check`, `check.go`): `Check` over replicas of one store, from the empty store, returns
@@ -118,11 +118,11 @@ theorem kv_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG) :=
 /-- **A store's storage is node `id`'s raft `Storage`** (2026-10-30, stage F of the client repair:
 until then `isStorage (kvStorIface s)` over the owner's view): the storage `NewStorage` returns (its
 record, `kvStorRec`), its `MemoryStorage`'s invariant at node `id`'s justifications (`kvJ`), meets
-raft's `Storage` contract of node `id` (`isStorage γ id`). -/
+raft's `Storage` contract of node `id` (`isStorage γ (kvKey γ id)`). -/
 theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
-      kvStorRec (GF := GF) s ms γs -∗ memStorInvP ms γs (kvJ γ id) -∗
-      isStorage γ id (kvStorIface s) :=
+      kvStorRec (GF := GF) s ms γs -∗ memStorInvP ms γs (kvJ γ (kvKey γ id)) -∗
+      isStorage γ (kvKey γ id) (kvStorIface s) :=
   kvStorage_isStorage kv.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex
     MemoryStorage.wp_Term MemoryStorage.wp_Entries s ms γs γ id
 
@@ -136,8 +136,9 @@ theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters
       kvStorRec (GF := GF) s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      bootStorage γ id (kvStorIface s) (HardStateM.mk (W64 0) (W64 0) (W64 0))
-        (kv.kvConfState voters) iprop(memStorInvP ms γs (kvJ γ id)) :=
+      restartStorage γ (kvStorIface s)
+        ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
+        (kv.kvConfState voters) 0 iprop(memStorInvP ms γs (kvJ γ (kvKey γ id))) :=
   kvStorage_bootStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot
     MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term
     MemoryStorage.wp_Entries s ms γs vsl voters γ id

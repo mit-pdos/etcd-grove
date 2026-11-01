@@ -44,8 +44,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **A founder's start token in a cluster with a bootstrap log** (`InvNodeRule`'s `nodeBoot`): node
 `id`, one of the voters `ps`, of the cluster; raft's names those of the voters' membership and of the
 bootstrap log of the peers `ps` (`BootLogOk`), whose bytes are `Marshal`'s at the peers' changes with
-the contexts `ctxs` (`bootMarshal`), committed; the term budget at the bootstrap term; the node's raft
-ghost state at the bootstrap state and its (empty) table of views. -/
+the contexts `ctxs` (`bootMarshal`), committed; the term budget at the bootstrap term. (2026-11-01,
+durability stage I-7: persistent; until then also the node's raft ghost state at the bootstrap state
+and its (empty) table of views, which moved to `raftStateU`/`nodeVacantU`.) -/
 def nodeBootU (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id : w64) :
     IProp GF :=
   iprop(isClusterU γ N ∗
@@ -53,9 +54,11 @@ def nodeBootU (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List 
       γ.raft.reCfg = GMap.listToSet ps ∧
       (∃ g, ModeDec γ (Membership.simple (GMap.listToSet ps)) g) ∧ BootLogOk ps γ.raft.reBoot⌝ ∗
     bootMarshal ps ctxs γ.raft.reBoot ∗ isCommitted γ.raft γ.raft.reBoot ∗
-    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1) ∗
-    ownRaftGhost γ.raft id (bootPState γ.raft.reBoot) true ∗
-    (∃ g : GName, ⌜γ.nodeTab !! id = some g⌝ ∗ ghostMapAuth g 1 (∅ : GMap w64 CfgNames)))
+    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1))
+
+instance nodeBootU_persistent (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (id : w64) : Persistent (nodeBootU (GF := GF) γ N ps ctxs id) := by
+  unfold nodeBootU; infer_instance
 
 /-- No entry of a bootstrap log is an empty `ConfChangeV2` (each is a `ConfChange`, type `1`). -/
 theorem bootLogOk_noEmptyV2 {ps : List w64} {L : List EntryM} (H : BootLogOk ps L) :
@@ -78,7 +81,8 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
-        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id := by
+        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
+          nodeVacantU γ id := by
   -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
   sorry
 

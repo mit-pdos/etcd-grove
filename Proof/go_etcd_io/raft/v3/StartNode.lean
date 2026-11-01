@@ -129,119 +129,8 @@ private theorem StartNode.wp_raw
     (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     StartNode.specRaw (GF := GF) (hG := hG) := by
-  intro γ md bud c cv lok si sn γdlm γcap γccq γcam γlive σ hs csm R R' peers dq pv ps ctxs bootLog
-    P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0
-    R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
-  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
-    #Hbud, #Hlb0, #Hcl, Hdlm, #Hdlb, Hcap, Hccq, Hcam, #Hcamlb, Hlive⟩
-  ihave #Hcinv : raftCommitInv γ $$ [Hghost]
-  · iapply bootInit_inv γ md cv.ID' _ bootLog $$ Hghost
-  wp_auto
-  wp_apply wp_setupNode γ md c cv lok si sn σ hs csm R R' peers dq pv ps ctxs bootLog
-    P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0
-    R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
-    $$ [$Hc $Hlg $HR $HFI $HLI $HIS $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hcl]
-    as %np ⟨HR', %nv, %rn, Hnp, %Hnvrn, Hchans, Hrn, Hpeers⟩
-  ipersist Hnp
-  try wp_auto
-  ipersist n
-  -- the node's ghost state
-  imod dghostVar_alloc ((([] : List EntryM), hsZero) : List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
-  icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
-  imod dghostVar_alloc (([], [], [], hsZero, none) : List EntryM × List EntryM ×
-    List EntryM × HardStateM × Option SnapLoan) with ⟨%γrof, Hrof⟩
-  icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
-  -- (2026-10-15, stage N) the configuration shared with the driver
-  icases dghostVar_halves _ _ $$ Hcap with ⟨Hcap1, Hcap2⟩
-  icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
-  -- (D19i part 1) the driver's request on `advancec`
-  imod dghostVar_alloc (((none, none) : AdvReq)) with ⟨%γreq, Hreq⟩
-  icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
-  -- (2026-10-29, stage U9a) whether the node is stopped: the client's half and `run`'s
-  icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
-  unfold newNodeChans
-  icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
-    #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
-  let γn : NodeNames := { raft := γ, id := cv.ID', bud := bud, stor := interface.ok si, propc := γp,
-                          recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
-                          done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
-                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
-                          sn := sn, live := γlive }
-  ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1]
-  · unfold nodeLiveRaw; iexact Hlive1
-  ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2]
-  · unfold nodeLiveRaw; iexact Hlive2
-  imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
-  imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
-  imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
-  imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
-  imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
-  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
-  imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
-  icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
-  imod start_handshake nv.stop' (fun (_ : Unit) => nodeLiveRaw γn 1) iprop(True) γs $$ Hcs Hos
-    with #Hhs
-  imod start_handshake nv.status' statusChP iprop(True) γst
-    $$ Hcst Host with #Hhst
-  imod tickCred_zero bud with Hcr0
-  imod inv_alloc tickN ⊤ (tickInv γn) $$ [Hot Hcr0] with #Htickinv
-  · inext
-    unfold tickInv
-    iexists []
-    iframe
-  icases ownRawNode_shared γ rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
-  ihave #Hnode : isNodeChan γn cv.ID' np $$ []
-  · unfold isNodeChan
-    iexists nv, r, lok'
-    simp only [named]
-    rw [Hnvrn]
-    iframe #
-    ipureintro; rfl
-  -- `go n.run()`
-  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1]
-  · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1]
-    · iframe Hnode
-      unfold runPre
-      iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
-        HardStateM × Option SnapLoan)
-      rw [Hnvrn]
-      iframe Hnp Hrn Hrof1 Hrof2
-      isplitr
-      · ipureintro; exact ⟨rfl, rfl, rfl⟩
-      iframe Hdlv1 Hlb0
-      iframe Hpend Hlive1
-      unfold runCfg
-      isplitr
-      · ipureintro
-        exact ⟨rfl, Nat.le_refl _, rfl, fun _ h => by simp at h, rfl⟩
-      isplitl [Hdlm]
-      · iExactEq Hdlm; rfl
-      isplitr
-      · simp only [rsDlv]
-        iapply dlvKeysAt_nil
-      iexists 0
-      iframe Hcap1 Hcam
-      isplitr
-      · ipureintro; exact Nat.le_refl _
-      iapply undecFree_empty
-    itrivial
-  iapply HΦ
-  iexists γn, np
-  isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  iframe Hnode Hlive2 HR' Hpeers
-  isplitl [Hdlv2 Hreq1 Hreq2]
-  · unfold nodeDriverChan dlvLb
-    iframe Hnode Hdlv2 Hdlb
-    isplitr
-    · iapply dlvKeysAt_nil
-    iexists _
-    iframe Hreq1 Hreq2
-  unfold nodeCfg
-  iframe Hcap2 Hcamlb
-  iexists _
-  iframe Hccq1 Hccq2
-
+  -- PORT(durability stage II): `NewRawNode.spec` generalized (I-6: `rawNodeAt`); the raw triple to restate for a restart (I-2, I-6)
+  sorry
 
 end proof
 
@@ -313,88 +202,23 @@ private theorem snapValid_raftCert (γ : Cluster) (N : Namespace) (E : CoPset) (
     (fun x hx => Hni x hx) Hsz HD HkK (by rw [HLlen, ← Hlen]; exact Hmat.1) Hmat.2
     $$ Hcinv HLc HM HK
 
-/-- Raft's reading of the contract's `Bnd`: an applied lower bound or a snapshot handed out of the
-node's storage names (its table's entry). -/
-private theorem storBnd_raftBnd (γ : Cluster) (id : w64) (sn : StorNames) (c : Nat) :
-    ⊢ nodeStorNames (GF := GF) γ id sn -∗ monoNatLbOwn sn.ga 0 -∗ EtcdGrove.storBnd γ id c -∗
+/-- Raft's reading of the contract's `Bnd`: compacting up to it is safe, of the storage's key's
+names. (2026-11-01, durability stage I-4: keyed by the storage's key.) -/
+private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c : Nat) :
+    ⊢ storKeyNames (GF := GF) K sn -∗ monoNatLbOwn sn.ga 0 -∗ EtcdGrove.storBnd γ K c -∗
       raftBnd sn c := by
-  iintro #Hsn #H0 Hb
-  unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb EtcdGrove.snapGiven nodeAppliedLbU snapGivenU
-    raftBnd
-  icases Hb with ⟨%k, %Hk, ((%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl)⟩) | ⟨%sn', #Hsn', #Hl⟩)⟩
-  · iexists 0
-    isplitr; · ipureintro; omega
-    ileft; iexact H0
-  · ihave %He := nodeStorNames_agree γ id sn' sn $$ Hsn' Hsn
-    subst He
-    iexists k
-    isplitr; · ipureintro; exact Hk
-    ileft; iexact Hl
-  · ihave %He := nodeStorNames_agree γ id sn' sn $$ Hsn' Hsn
-    subst He
-    iexists k
-    isplitr; · ipureintro; exact Hk
-    iright; iexact Hl
-  · ihave %He := nodeStorNames_agree γ id sn' sn $$ Hsn' Hsn
-    subst He
-    iexists k
-    isplitr; · ipureintro; exact Hk
-    iright; iexact Hl
+  -- PORT(durability stage II): restated (I-4: keyed by `K`, `snapGiven` merged)
+  sorry
 
-/-- Raft's reading of the contract's `DL` for a valid snapshot: the node's delivered committed log
-reaches its index, so raft certified the term there (`dlvKeys`, of the node's storage names). -/
-private theorem storDL_raftDL (γ : Cluster) (id : w64) (sn : StorNames) (sv : SnapshotM)
-    (Hdyn : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true) :
-    ⊢ nodeStorNames (GF := GF) γ id sn -∗ EtcdGrove.snapshotValid γ sv -∗
-      EtcdGrove.storDL γ id (uint.nat sv.Metadata'.Index') -∗
+/-- Raft's reading of the contract's `DL` for a valid snapshot: the node on the storage committed
+up to its index, so raft certified the term there (or handed out a snapshot past it). (2026-11-01,
+durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
+private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : SnapshotM) :
+    ⊢ storKeyNames (GF := GF) K sn -∗ EtcdGrove.snapshotValid γ sv -∗
+      EtcdGrove.nodeCommitLb γ K (uint.nat sv.Metadata'.Index') -∗
       raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term' := by
-  iintro #Hsn Hv Hdl
-  unfold EtcdGrove.snapshotValid EtcdGrove.isCommittedLogLb EtcdGrove.storDL EtcdGrove.isNode
-    EtcdGrove.deliveredLogLb
-  icases Hv with ⟨%l1, %m, #Hlb1, -, -, %Hp⟩
-  obtain ⟨Hlen, Hpos, Hlast, -⟩ := Hp
-  icases Hdl with ⟨%n, %N', %l, Hnode, Hdlv, %Hi⟩
-  iunfold isNode at Hnode
-  icases Hnode with ⟨%γn0, -, #Hch0, -⟩
-  iunfold deliveredLogLb at Hdlv
-  icases Hdlv with ⟨⟨%γn, %id', %ds, %Hf, #Hch, (%Hnd | #Htab), #Hdk⟩, #Hlb⟩
-  · exfalso; rw [Hdyn γn Hf.1] at Hnd; cases Hnd
-  ihave %Hid := isNode_id_agree γn0 γn id id' n $$ Hch0 Hch
-  subst Hid
-  ihave #Hsn2 := nodeTabOk_storNames γ id γn $$ Htab
-  ihave %Hs := nodeStorNames_agree γ id γn.sn sn $$ Hsn2 Hsn
-  icases isCommittedLogLb_agree_impl γ l1 l $$ [Hlb1 Hlb] with %Hcm
-  · iframe Hlb1 Hlb
-  have Hpre : l1 <+: l := by
-    rcases Hcm with h | h
-    · exact h
-    · have e := h.eq_of_length (by have := h.length_le; omega)
-      rw [e]
-      exact ⟨[], List.append_nil _⟩
-  obtain ⟨t, Ht⟩ := Hpre
-  have Hj : l1.length - 1 < l1.length := by omega
-  have Hl1j : l1[l1.length - 1]?.map LogEntry.term = some sv.Metadata'.Term' := by
-    rw [← List.getLast?_eq_getElem?]; exact Hlast
-  have Hlj : l[l1.length - 1]? = l1[l1.length - 1]? := by
-    rw [← Ht, List.getElem?_append_left Hj]
-  rw [← Hlj, ← Hf.2] at Hl1j
-  unfold strip at Hl1j
-  rw [List.getElem?_map, Option.map_map] at Hl1j
-  cases hde : ds[l1.length - 1]? with
-  | none => rw [hde] at Hl1j; cases Hl1j
-  | some e =>
-    rw [hde] at Hl1j
-    simp only [Option.map_some, Option.some.injEq, Function.comp] at Hl1j
-    iunfold dlvLb at Hdk
-    icases Hdk with ⟨-, #Hk⟩
-    iunfold dlvKeys at Hk
-    iunfold dlvKeysAt at Hk
-    ihave #Hke := (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
-      iprop((0 + j + 1) ↪[γn.sn.gd]□ e.Term' : IProp GF)) hde) $$ Hk
-    unfold raftDL
-    ileft
-    rw [← Hs, show uint.nat sv.Metadata'.Index' = 0 + (l1.length - 1) + 1 by omega, ← Hl1j]
-    iExactEq Hke; rfl
+  -- PORT(durability stage II): restated (I-4: `nodeCommitLb` keyed by `K`)
+  sorry
 
 /-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
 `snapshotValid`, their snapshot pin raft's certificate. -/
@@ -453,7 +277,7 @@ voters' membership. -/
 private theorem wp_StartNode_impl
     (hS : EtcdGrove.StartNode.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.StartNode.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  -- PORT(durability stage II): the spec restated (durability I-2/I-4/I-6/I-7: `nodeVacant`, the update over `raftState`, `restartStorage`)
   sorry
 
 end wrap

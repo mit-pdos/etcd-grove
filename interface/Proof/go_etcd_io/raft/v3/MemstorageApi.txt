@@ -2,23 +2,23 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def memStorInv [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (γ :
-    Cluster) (id : w64) : IProp GF :=
-  memStorInvP ms γs (memStorJ γ id)
+def memStorInv (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : IProp GF :=
+  memStorInvP ms γs (memStorJ γ K)
 
-def memStorJ [package_sem : Assumptions] [MemStorReg GF] (γ : Cluster) (id : w64) : MemJust GF :=
-  { SV := snapshotValid γ, B := fun k => iprop(nodeAppliedLb γ id k ∨ snapGiven γ id k), DL := storDL γ id, SV_pers := ⋯,
-    B_pers := ⋯, B_timeless := ⋯, DL_pers := ⋯ }
+def memStorJ (γ : Cluster) (K : GName) : MemJust GF :=
+  { SV := snapshotValid γ, B := fun k => nodeAppliedLb γ K k, DL := nodeCommitLb γ K, SV_pers := ⋯, B_pers := ⋯,
+    B_timeless := ⋯, DL_pers := ⋯ }
 
 theorem memStorage_isStorage [package_sem : Assumptions] [MemStorReg GF] (wp_LastIndex :
     MemoryStorage.LastIndex.spec) (wp_FirstIndex : MemoryStorage.FirstIndex.spec) (wp_Term :
     MemoryStorage.Term.spec) (wp_Entries : MemoryStorage.Entries.spec) (wp_Snapshot :
-    MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) : ⊢
-    memStorInv ms γs γ id -∗ memStorReg ms γs -∗ isStorage γ id (memStorIface ms)
+    MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : ⊢
+    memStorInv ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms)
 
-theorem memStorInv_persistent [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs :
-    MemStorNames) (γ : Cluster) (id : w64) : Persistent (memStorInv ms γs γ id)
+theorem memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : Persistent
+    (memStorInv ms γs γ K)
 
 theorem memStorInv_alloc [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
-    (γ : Cluster) (id : w64) (E : CoPset) : ⊢ memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty
-    ={E}=∗ memStorInv ms γs γ id
+    (γ : Cluster) (K : GName) (c : Nat) (sv : SnapshotM) (E : CoPset) : ⊢ memStorLock ms γs -∗
+    memStorFresh ms γs c sv -∗ nodeAppliedLb γ K c -∗ ⌜sv.Metadata'.Index' = W64 0⌝ ∨ snapshotValid
+    γ sv ∗ nodeCommitLb γ K (uint.nat sv.Metadata'.Index') ={E}=∗ memStorInv ms γs γ K

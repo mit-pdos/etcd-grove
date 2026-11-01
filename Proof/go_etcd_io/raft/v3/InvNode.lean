@@ -427,40 +427,70 @@ theorem msgCredits_intro (γ : Cluster) (N : Namespace) (st : MsgSt) :
   imodintro
   iempintro
 
-/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
+/-! ## A node's durable state and its id's slot (2026-11-01, durability stage I-2)
 
-/-- **Raft's applied index of node `id` has reached `k`** (persistent, timeless; raft-issued: by
-`Advance`, `node.Advance`'s post). -/
-@[no_expose] def nodeAppliedLb (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
-  ApiImpl.nodeAppliedLbU γ id k
+`notes/raft-durability-proof-plan.md`; candidate 12 (`raftState`, `nodeVacant`). -/
 
-/-- **Node `id` handed out a snapshot at index `k`** to install (persistent, timeless; raft-issued:
-by a snapshot `Ready`). -/
-@[no_expose] def snapGiven (γ : Cluster) (id : w64) (k : Nat) : IProp GF :=
-  ApiImpl.snapGivenU γ id k
+/-- **Node `id`'s durable state is `S`** (exclusive; the client's): the state its storage must
+hold for a restart (`RestartNode`'s update reads it), which only the client's *enter* of a
+`Ready`'s batch moves (`readyEnter`). Allocation gives it at `RaftState.init` (`cluster_alloc`,
+`joinAuth_join`). -/
+@[no_expose] def raftState (γ : Cluster) (id : w64) (S : RaftState) : IProp GF :=
+  ApiImpl.raftStateU γ id S
 
-instance nodeAppliedLb_persistent (γ : Cluster) (id : w64) (k : Nat) :
-    Persistent (nodeAppliedLb (GF := GF) γ id k) := by
-  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_persistent γ id k
+/-- **No node of `id` runs** (exclusive): what `RestartNode`/`StartNode` take and `node.Stop`
+gives back, so that at most one node of an id runs at a time. Allocation gives it. -/
+@[no_expose] def nodeVacant (γ : Cluster) (id : w64) : IProp GF :=
+  ApiImpl.nodeVacantU γ id
 
-instance nodeAppliedLb_timeless (γ : Cluster) (id : w64) (k : Nat) :
-    Timeless (nodeAppliedLb (GF := GF) γ id k) := by
-  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_timeless γ id k
+/-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2;
+2026-11-01, durability stage I-4: keyed by the storage key `K`) -/
 
-instance snapGiven_persistent (γ : Cluster) (id : w64) (k : Nat) :
-    Persistent (snapGiven (GF := GF) γ id k) := by
-  unfold snapGiven; exact ApiImpl.snapGivenU_persistent γ id k
+/-- **Compacting the storage of key `K` up to `k` is safe** (persistent, timeless; raft-issued): the
+node on it applied at least `k` (`node.Advance`'s post), or handed out a snapshot at `k` or later
+(a snapshot `Ready`, `readySnap`), or `k` is at most the applied index it was started at (the
+attach, `restartStorage`). (2026-11-01, durability stage I-4: keyed by the storage, not the node's
+id; `snapGiven` merged into it, raft's own reading `raftBnd` being that disjunction.) -/
+@[no_expose] def nodeAppliedLb (γ : Cluster) (K : GName) (k : Nat) : IProp GF :=
+  ApiImpl.nodeAppliedLbU γ K k
 
-instance snapGiven_timeless (γ : Cluster) (id : w64) (k : Nat) :
-    Timeless (snapGiven (GF := GF) γ id k) := by
-  unfold snapGiven; exact ApiImpl.snapGivenU_timeless γ id k
+/-- **The node on the storage of key `K` has committed at least `i`** (persistent, timeless;
+raft-issued; until 2026-11-01 the open `storDL γ id i`, "delivered to some node of `id`"): the
+committed log's terms up to `i` are certified for the storage. Given at the attach (at the stored
+commit), by the `Ready` loop (`nodeDriver_nodeCommitLb`) and at a snapshot `Ready`
+(`readySnap`). -/
+@[no_expose] def nodeCommitLb (γ : Cluster) (K : GName) (i : Nat) : IProp GF :=
+  ApiImpl.nodeCommitLbU γ K i
 
-theorem nodeAppliedLb_zero (γ : Cluster) (id : w64) : ⊢ nodeAppliedLb (GF := GF) γ id 0 := by
-  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_zero γ id
+instance nodeAppliedLb_persistent (γ : Cluster) (K : GName) (k : Nat) :
+    Persistent (nodeAppliedLb (GF := GF) γ K k) := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_persistent γ K k
 
-theorem nodeAppliedLb_mono (γ : Cluster) (id : w64) (k k' : Nat) :
-    k' ≤ k → nodeAppliedLb (GF := GF) γ id k ⊢ nodeAppliedLb γ id k' := by
-  intro h; unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_mono γ id k k' h
+instance nodeAppliedLb_timeless (γ : Cluster) (K : GName) (k : Nat) :
+    Timeless (nodeAppliedLb (GF := GF) γ K k) := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_timeless γ K k
+
+instance nodeCommitLb_persistent (γ : Cluster) (K : GName) (i : Nat) :
+    Persistent (nodeCommitLb (GF := GF) γ K i) := by
+  unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_persistent γ K i
+
+instance nodeCommitLb_timeless (γ : Cluster) (K : GName) (i : Nat) :
+    Timeless (nodeCommitLb (GF := GF) γ K i) := by
+  unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_timeless γ K i
+
+theorem nodeAppliedLb_zero (γ : Cluster) (K : GName) : ⊢ nodeAppliedLb (GF := GF) γ K 0 := by
+  unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_zero γ K
+
+theorem nodeAppliedLb_mono (γ : Cluster) (K : GName) (k k' : Nat) :
+    k' ≤ k → nodeAppliedLb (GF := GF) γ K k ⊢ nodeAppliedLb γ K k' := by
+  intro h; unfold nodeAppliedLb; exact ApiImpl.nodeAppliedLbU_mono γ K k k' h
+
+theorem nodeCommitLb_zero (γ : Cluster) (K : GName) : ⊢ nodeCommitLb (GF := GF) γ K 0 := by
+  unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_zero γ K
+
+theorem nodeCommitLb_mono (γ : Cluster) (K : GName) (i i' : Nat) :
+    i' ≤ i → nodeCommitLb (GF := GF) γ K i ⊢ nodeCommitLb γ K i' := by
+  intro h; unfold nodeCommitLb; exact ApiImpl.nodeCommitLbU_mono γ K i i' h
 
 /-! ## The rest of a `Ready` -/
 
@@ -472,7 +502,7 @@ its entries at their positions), past what was delivered, half of the snapshot, 
 (`snapshotCert`; its validity, `snapshotCert_valid`), every range of the storage from an index at
 most the snapshot's on, with the end, and the right to install it (`snapGiven`). (Until U8 v2 the
 old contract's `readyOut`: the storage itself.) -/
-def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
   | none => iprop(⌜rd.Snapshot' = null⌝ ∗ appendRight st.storage es ∗
       ceFrozen st.storage st.delivered.length (LogEntry.toEntries ce st.delivered.length) es ∗
@@ -493,33 +523,67 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
       (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
-      snapGiven γ id (uint.nat l.snap.Metadata'.Index'))
+      -- (2026-11-01, durability stage I-4; until then `snapGiven γ id`) compacting up to the
+      -- snapshot is safe, and the node committed up to it
+      nodeAppliedLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
+      nodeCommitLb γ st.key (uint.nat l.snap.Metadata'.Index'))
 
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
-vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages (each owned as
-`Ready` hands it out, `readyDq`, sent, with its credits), the hard state `h` (`nil` or not:
-`hsOpt`) and the soft state, the indices' bound, and the storage's part (`readySnap`, by the
-snapshot's loan `L`). (2026-10-27, for etcd's server: the messages are the node `id`'s, `sentMsg`.) -/
-def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) : IProp GF :=
-  iprop(∃ ms : List QMsg,
-    entsRO rd.Entries' es ∗
+vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages `ms` (each owned
+as `Ready` hands it out, `readyDq`, with its credits; (2026-11-01, durability stage I-3) their
+`sentMsg` no longer here: `readyEnter` gives it, and at role leader `readyLeaderMsgs`), the hard
+state `h` (`nil` or not: `hsOpt`) and the soft state `ss` (`softStateIs`; until 2026-11-01
+`softStateRO`, which `softStateIs_RO` gives), the indices' bound, and the storage's part
+(`readySnap`, by the snapshot's loan `L`). -/
+def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+    (ms : List QMsg) (ss : Option (w64 × StateType)) : IProp GF :=
+  iprop(entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
-      msgCredits γ N q.st) ∗
-    hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗
-    readySnap γ N id rd st ce es L)
+    readySnap γ N rd st ce es L)
 
 /-- The implementation's rest of a `Ready` is the draft's. -/
-private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (rd : Ready)
     (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (L : Option SnapLoan) :
-    ApiImpl.readyRest (GF := GF) γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L := by
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    ApiImpl.readyRest (GF := GF) γ N rd st ce es h L ms ss ⊢ readyRest γ N rd st ce es h L ms ss := by
   cases L <;> exact .rfl
+
+/-- (2026-11-01, durability stage I-3) **The messages `ms` of a `Ready` of node `id`, sent**
+(persistent): each one's `sentMsg`. -/
+def readyMsgs (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : IProp GF :=
+  iprop([∗list] q ∈ ms, sentMsg γ N id q.st)
+
+instance readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    Persistent (readyMsgs (GF := GF) γ N id ms) := by
+  unfold readyMsgs; infer_instance
+
+/-- (2026-11-01, durability stage I-3; candidate 12 §3) **Entering a `Ready`'s batch** (the
+receive's update): when the client enters the batch's durable state `st'.durable` (a durable client:
+in the write that makes it durable; any other: at once), with a share of the node's liveness (so a
+stopped node's batch is dead), its durable state moves to it, and it gets the loop's token at the
+state after the `Ready` (`st'`, busy) and the right to send the messages (`readyMsgs`). A
+commit-only batch leaves the durable state but its commit index, so even a durable client
+applies it at once. -/
+def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    (ms : List QMsg) : IProp GF :=
+  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗
+    raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
+      raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
+      readyMsgs γ N id ms)
+
+/-- (2026-11-01, durability stage I-3; candidate 12's deletion of *check*) **At role leader a
+`Ready`'s messages may be sent first** (before the batch is entered): a leader's messages carry no
+pending promise (raft's leader-outbox invariant). -/
+def readyLeaderMsgs (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) : IProp GF :=
+  iprop(⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms)
 
 /-- (raft-final, 2026-10-29, the design's A2, review 1's H2) **A `Ready`'s committed entries inside
 its batch are the batch's** (pure): after a `Ready` without a snapshot whose entries `es` start at
@@ -527,54 +591,28 @@ index `k`, the committed entry at log index `|delivered| + 1 + j` (position `j` 
 `k`, is `es`'s at that index (both lists are read from raft's log in the same step). So a snapshot
 the client creates at an in-batch index has the committed term (`snapshotValid`), and `ce` ends within
 the batch. -/
-theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
-    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
-    readyRest (GF := GF) γ N id rd st ce es h none ⊢
+theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h none ms ss ⊢
       ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
         uint.nat e0.Index' ≤ st.delivered.length + 1 + j →
         (es[st.delivered.length + 1 + j - uint.nat e0.Index']?).map LogEntry.ofEntryM = some e⌝ ∗
-      readyRest γ N id rd st ce es h none := by
-  refine (persistent_entails_left ?_).trans sep_comm.1
-  unfold readyRest readySnap
-  iintro ⟨%ms, -, -, -, -, -, -, -, -, -, %Hb⟩
-  ipureintro
-  intro e0 he
-  exact (Hb e0 he).2
+      readyRest γ N rd st ce es h none ms ss := by
+  -- PORT(durability stage II): readyRest restated (no `∃ ms`, `softStateIs`)
+  sorry
 
 /-- (raft-final phase 2, for kvreconf) **A `Ready`'s entries have consecutive indices** (pure):
 from its first index on (`LogIndicesOk` after a snapshot; `readySnap`'s clause otherwise). -/
-theorem readyRest_indices (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+theorem readyRest_indices (γ : Cluster) (N : Namespace) (rd : Ready)
     (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (L : Option SnapLoan) :
-    readyRest (GF := GF) γ N id rd st ce es h L ⊢
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h L ms ss ⊢
       ⌜∀ e0, es.head? = some e0 → ∀ (j : Nat) (e : EntryM), es[j]? = some e →
         uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗
-      readyRest γ N id rd st ce es h L := by
-  refine (persistent_entails_left ?_).trans sep_comm.1
-  unfold readyRest
-  cases L with
-  | none =>
-    unfold readySnap
-    iintro ⟨%ms, -, -, -, -, -, -, -, -, -, %Hb⟩
-    ipureintro
-    intro e0 he
-    exact (Hb e0 he).1
-  | some l =>
-    unfold readySnap
-    iintro ⟨%ms, -, -, -, -, -, -, %Hf, -⟩
-    ipureintro
-    intro e0 he j e hj
-    have HI := Hf.2.2.2.2.2.2.2.2.2
-    have h0 : es[0]? = some e0 := by
-      cases es with
-      | nil => simp at he
-      | cons x xs => simpa using he
-    have a0 := HI 0 e0 h0
-    have aj := HI j e hj
-    have u1 := uint_nat_eq e.Index'
-    have u2 := uint_nat_eq e0.Index'
-    push_cast at a0 aj
-    omega
+      readyRest γ N rd st ce es h L ms ss := by
+  -- PORT(durability stage II): readyRest restated (no `∃ ms`, `softStateIs`)
+  sorry
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -656,6 +694,23 @@ instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l :
 theorem nodeDriver_deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver deliveredLogLb; exact ApiImpl.nodeDriver_deliveredLogLb_impl n γ N st
+
+/-- (2026-11-01, durability stage I-4; candidate 12's `nodeDriver_storDL`) **The `Ready` loop's
+storage holds the committed log it was delivered**: the node on it committed at least that far. -/
+theorem nodeDriver_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢
+      nodeDriver n γ N st ∗ nodeCommitLb γ st.key st.delivered.length := by
+  unfold nodeDriver nodeCommitLb; exact ApiImpl.nodeDriver_nodeCommitLb_impl n γ N st
+
+/-- (2026-11-01, durability stage I-4; the user's `deliveredLogLb ⊢ nodeCommitLb`) **What was
+delivered to the node is committed for its storage**: with its `Ready` loop's token, which names
+the storage's key. -/
+theorem deliveredLogLb_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) (l : List LogEntry) :
+    nodeDriver (GF := GF) n γ N st ∗ deliveredLogLb n γ N l ⊢
+      nodeDriver n γ N st ∗ nodeCommitLb γ st.key l.length := by
+  unfold nodeDriver deliveredLogLb nodeCommitLb
+  exact ApiImpl.deliveredLogLb_nodeCommitLb_impl n γ N st l
 
 theorem deliveredLogLb_mono (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
@@ -783,6 +838,26 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
   simp only [Prod.mk.injEq] at Hag
   rw [← Hag.2]; exact Hl1
 
+/-- (2026-11-01, durability stage I-3; candidate 12 §3) **What receiving a `Ready` gives** (the
+receive's postcondition; until then spelled out in it, with the loop's token in place of *enter*):
+its committed entries `ce`, the committed log's next entries after those delivered so far, which
+it extends (ungated facts: one node per id runs); its read states, each a `readStateOk`; the rest
+of the `Ready` (`readyRest`: the entries `es` to persist, the messages `ms`, the hard state `h`, the
+soft state `ss`, the snapshot's loan `L`); at role leader the messages sent (`readyLeaderMsgs`);
+and *enter* (`readyEnter`), which gives the loop's token at the state after the `Ready`
+(`NodeDriverState.afterReady`) and the messages sent. -/
+def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+    (rd : Ready) : IProp GF :=
+  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+      (ms : List QMsg) (ss : Option (w64 × StateType)),
+    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+    isCommittedLogLb γ (st.delivered ++ ce) ∗
+    (∃ rs, readStatesPts rd.ReadStates' rs ∗
+      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+    readyRest γ N rd st ce es h L ms ss ∗
+    readyLeaderMsgs γ N id st ms ss ∗
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
 `select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's
 token at rest, the node's `Ready` channel is a channel of `Ready`s whose receive gives
@@ -794,39 +869,12 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
         (£ 1 ∗ £ 1 -∗
-          ▷ (∀ rd : Ready, (∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-              (L : Option SnapLoan),
-              committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-              isCommittedLogLb γ (st.delivered ++ ce) ∗
-              (∃ rs, readStatesPts rd.ReadStates' rs ∗
-                [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-              readyRest γ N id rd st ce es h L ∗
-              nodeDriver n γ N (match L with
-                | none => { st with
-                    delivered := st.delivered ++ ce
-                    hardState := phsNext st.hardState h
-                    handling := some (es, none) }
-                | some l => { st with
-                    delivered := strip l.dlv
-                    hardState := phsNext st.hardState h
-                    handling := some (es, some l) })) -∗ Φ rd true) -∗
+          ▷ (∀ rd : Ready, readyGot n γ N id st rd -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := by
   intro Hh
-  unfold isReadyChan isNode nodeDriver
-  iintro Hrc Hn Hdrv
-  icases ApiImpl.isReadyChan_recvAu_impl n ch γ N id st Φ Hh $$ Hrc Hn Hdrv
-    with ⟨%γc, #Hch, Hau⟩
-  iexists γc
-  iframe Hch
-  iintro Hlc HΦ
-  iapply Hau $$ Hlc
-  inext
-  iintro %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
-  iapply HΦ
-  iexists ce, es, h, L
-  unfold isCommittedLogLb readStateOk
-  iframe Hce Hlb Hrs Hdrv
-  iapply readyRest_of_impl $$ Hrest
+  -- PORT(durability stage II): the receive restated (`readyGot`: *enter* and the leader's
+  -- messages, the driver behind *enter*)
+  sorry
 
 end api
 
@@ -844,23 +892,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- (2026-10-27, the server port's addition) **A `Ready`'s entries fit `MemoryStorage.Append`'s
 bound** (`readyFits`). -/
-theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Namespace) (rd : Ready)
     (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (L : Option SnapLoan) :
-    readyFits (GF := GF) γ N ∗ readyRest γ N id rd st ce es h L ⊢
-      readyRest γ N id rd st ce es h L ∗
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyFits (GF := GF) γ N ∗ readyRest γ N rd st ce es h L ms ss ⊢
+      readyRest γ N rd st ce es h L ms ss ∗
         ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
-  unfold readyFits readyRest
-  iintro ⟨%Hf, %ms, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn⟩
-  obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
-  isplitl
-  · iexists ms
-    iframe Hes Hm Hms Hh Hss Hsn
-    ipureintro; exact ⟨Lx, H1, Hhd, H3, HLx⟩
-  · ipureintro
-    intro e0 he0
-    have := Hhd e0 he0
-    omega
+  -- PORT(durability stage II): readyRest restated (no `∃ ms`, `softStateIs`)
+  sorry
 
 /-- (2026-10-27, the server port's addition) **A sent `MsgSnap` carries a certified snapshot**
 (raft's `msgCert`: a `MsgSnap`'s snapshot is one of its storage's, whose certificates are the
@@ -895,39 +934,18 @@ loan `L`, if any. The loop's new state, by whether the `Ready` carries a snapsho
 committed log delivered grows by `ce`; with one, it is the committed log up to the snapshot
 (`strip l.dlv`); either way the hard state after `h` (`phsNext`), busy with `es` and the loan.
 (2026-10-27: the new state stated, not an existential. For etcd's server: the node's `isNode` taken,
-so that its messages are the node `id`'s, `readyRest`.) -/
+so that its messages are the node `id`'s, `readyRest`.) (2026-11-01, durability stage I-3: the post
+is `readyGot`; the loop's token and the messages' `sentMsg` behind *enter*, `readyEnter`.) -/
 theorem node.wp_readyRecv :
   ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
   {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
-  {{ (rd : Ready), RET (PairV #rd #true);
-      ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan),
-        committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-        isCommittedLogLb γ (st.delivered ++ ce) ∗
-        (∃ rs, readStatesPts rd.ReadStates' rs ∗
-          [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-        readyRest γ N id rd st ce es h L ∗
-        nodeDriver n γ N (match L with
-          | none => { st with
-              delivered := st.delivered ++ ce
-              hardState := phsNext st.hardState h
-              handling := some (es, none) }
-          | some l => { st with
-              delivered := strip l.dlv
-              hardState := phsNext st.hardState h
-              handling := some (es, some l) }) }}
+  {{ (rd : Ready), RET (PairV #rd #true); readyGot n γ N id st rd }}
   := by
   intro n ch γ N id st Hh
-  iintro %Φ Hpre HΦ
-  unfold isReadyChan isNode nodeDriver
-  iapply (ApiImpl.node.wp_readyRecv_impl n ch γ N id st Hh) $$ Hpre
-  iintro !> %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
-  iapply HΦ
-  iexists ce, es, h, L
-  unfold isCommittedLogLb readStateOk
-  iframe Hce Hlb Hrs Hdrv
-  iapply readyRest_of_impl $$ Hrest
+  -- PORT(durability stage II): the receive restated (`readyGot`)
+  sorry
 
 end readyRecv
 

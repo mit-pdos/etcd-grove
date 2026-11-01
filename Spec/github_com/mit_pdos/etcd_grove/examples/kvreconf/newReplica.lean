@@ -40,10 +40,10 @@ abbrev newReplica.spec : Prop :=
   confStateIs (bootCS vs) (Membership.simple (GMap.listToSet vs)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf ∗
       context.isClosedchanInit ∗ kvrCluster γr vs ∗ isStats sts ∗ isNode n γr.cluster kvrRaftN id ∗
-      nodeDriver n γr.cluster kvrRaftN (NodeDriverState.init (kvrStorIface st)) ∗
+      nodeDriver n γr.cluster kvrRaftN (NodeDriverState.init (kvrStorIface st) (kvrKey γr.cluster id)) ∗
       nodeRunning n γr.cluster kvrRaftN 1 ∗
       nodeConfig n γr.cluster kvrRaftN ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-      kvrStorRec st ms γs ∗ memStorInvP ms γs (kvrJ γr.cluster id) ∗ memStorMeta ms γs hs ∗
+      kvrStorRec st ms γs ∗ memStorInvP ms γs (kvrJ γr.cluster (kvrKey γr.cluster id)) ∗ memStorMeta ms γs hs ∗
       memSnapNone γs ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
       id ↪[γr.rseq] W64 0 }}
     (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvreconf.newReplica))

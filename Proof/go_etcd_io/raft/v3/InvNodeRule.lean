@@ -139,28 +139,26 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
     Persistent (snapMade (GF := GF) γ s) := by
   unfold snapMade; exact ApiImpl.snapMadeU_persistent γ s
 
-/-- **A founder's boot token** (exclusive): node `id` of a new cluster of the voters `vs`, for its
-`RestartNode` on an empty storage whose `InitialState` names the voters
-(`RestartNode.spec`). -/
-@[no_expose] def nodeFounder (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
-  ApiImpl.nodeFounderU γ N vs id
+-- (2026-11-01, durability stage I-7) `nodeFounder` and `nodeJoin` deleted: allocation and
+-- `joinAuth_join` give the id's durable state at `RaftState.init` and its vacant slot
+-- (`raftState`, `nodeVacant`, `InvNode.lean`) in their place.
 
-/-- **The ids started or reserved** (exclusive): every node id in `U` has had its token taken
-(a founder's or a joiner's); the others' are here. -/
+/-- **The ids started or reserved** (exclusive): every node id in `U` has had its durable state and
+slot taken (a founder's or a joiner's); the others' are here. -/
 @[no_expose] def joinAuth (γ : Cluster) (U : GSet w64) : IProp GF := ApiImpl.joinAuthU γ U
 
-/-- **A newcomer's token** (exclusive): node `id`, not a founder, for its `RestartNode` on an empty
-storage whose `InitialState` names the initial membership's voters (`RestartNode.spec`). -/
-@[no_expose] def nodeJoin (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
-  ApiImpl.nodeJoinU γ N id
-
-/-- **A founder's start token in a cluster with a bootstrap log** (exclusive; 2026-10-30, stage
-R5): node `id`, one of the voters `vs`, of a cluster whose committed log starts with the voters'
-`AddNode`s with the contexts `ctxs` (`BootLog`), for its `StartNode` on an empty storage
-(`StartNode.spec`). -/
+/-- **A founder of a cluster with a bootstrap log** (persistent; 2026-10-30, stage R5; until
+2026-11-01, durability stage I-7, an exclusive start token, whose ghost state moved to `raftState`
+and `nodeVacant`): node `id`, one of the voters `vs`, of a cluster whose committed log starts with
+the voters' `AddNode`s with the contexts `ctxs` (`BootLog`), for its `StartNode` on an empty storage
+(`StartNode.spec`). Persistent, so a first start that crashed may be retried. -/
 @[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (id : w64) : IProp GF :=
   ApiImpl.nodeBootU γ N vs ctxs id
+
+instance nodeBoot_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) : Persistent (nodeBoot (GF := GF) γ N vs ctxs id) := by
+  unfold nodeBoot; exact ApiImpl.nodeBootU_persistent γ N vs ctxs id
 
 open Classical in
 /-- **A new cluster of the voters `vs`** (§3 of the decision switch; until U9, 2026-10-29,
@@ -173,13 +171,13 @@ cluster (with snapshots), the authority over its decisions, none recorded (a boo
 as any other, `confDecide`: an `AddNode` of a voter keeps the voters' membership,
 `Membership.applyChange_addVoter`), the membership of no entry the voters', the registry of the
 snapshots made (empty), the bootstrap log's length (`Cluster.bootLen`, for `readyFits_intro`).
-Without a bootstrap log: the join authority at the voters (2026-10-29, stage U4) and one founder's
-token per voter, for `RestartNode`; with one: the bootstrap log committed and one start token per
-voter, for `StartNode` (no join authority: raft keeps the bootstrap log in every node's log, which a
-newcomer's empty storage does not hold). The term budget, backed by time receipts (`receiptBound`), is
-the cluster's; so (U9) are the read requests' credits (raft takes them from its own time receipts:
-until U9 the post's `readCredits γ (2^64-2)`), and leader transfer is on in every cluster (until U9 the
-post's `leaderTransferOn γ N`). -/
+Per voter (2026-11-01, durability stage I-7; until then a founder's or a start token): its durable
+state at `RaftState.init` and its vacant slot (`raftState`, `nodeVacant`), for `RestartNode` without
+a bootstrap log, or with one (and the bootstrap log committed) for `StartNode` with its persistent
+`nodeBoot`. Without a bootstrap log, the join authority at the voters (2026-10-29, stage U4); with one
+none (raft keeps the bootstrap log in every node's log, which a newcomer's empty storage does not
+hold). The term budget, backed by time receipts (`receiptBound`), is the cluster's; so (U9) are the
+read requests' credits, and leader transfer is on in every cluster. -/
 theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (dup : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
@@ -188,39 +186,24 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
       ∃ γ, ⌜γ.dup = dup ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
-        if boot = [] then joinAuth γ (GMap.listToSet vs) ∗ [∗list] id ∈ vs, nodeFounder γ N vs id
+        ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
+        if boot = [] then joinAuth γ (GMap.listToSet vs)
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
   intro Hrb Hne Hnd Hnz Hlen HB
-  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeFounder nodeBoot Cluster.dup Cluster.bootLen isCommittedLogLb
-  by_cases hb : boot = []
-  · subst hb
-    rw [if_pos rfl]
-    iintro -
-    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup E Hrb Hne Hnd Hnz Hlen
-      with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
-    imodintro
-    iexists γ
-    rw [if_pos rfl]
-    iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
-    ipureintro; exact Hd
-  · simp only [hb, ↓reduceIte]
-    iintro Hm
-    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup E Hrb Hne Hnd Hnz Hlen (HB hb)
-      $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
-    imodintro
-    iexists γ
-    iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs
-    ipureintro; exact Hd
+  -- PORT(durability stage II): the allocation restated (I-7: `raftState`/`nodeVacant` per voter,
+  -- `nodeBoot` persistent); from `cluster_alloc_dec_impl`/`cluster_alloc_boot_impl`
+  sorry
 
 /-! ## Joining -/
 
-/-- **Reserving a new id**: its token, out of the authority. -/
+/-- **Reserving a new id**: its durable state at `RaftState.init` and its vacant slot, out of the
+authority (2026-11-01, durability stage I-7; until then a newcomer's token, `nodeJoin`). -/
 theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
     id ∉ U → id ≠ W64 0 →
-    isCluster (GF := GF) γ N ∗ joinAuth γ U ==∗ joinAuth γ ({[id]} ∪ U) ∗ nodeJoin γ N id := by
+    isCluster (GF := GF) γ N ∗ joinAuth γ U ==∗
+      joinAuth γ ({[id]} ∪ U) ∗ raftState γ id RaftState.init ∗ nodeVacant γ id := by
   intro hU hz
-  unfold isCluster joinAuth nodeJoin
+  unfold isCluster joinAuth raftState nodeVacant
   exact ApiImpl.joinAuth_join_impl γ N U id hU hz
 
 /-! ## Stopped nodes (2026-10-29, stage U9a) -/
@@ -550,47 +533,54 @@ instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
 
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
 
-/-- The compaction's justification (`isStorageP`'s `Bnd`): an applied lower bound or a snapshot
-handed out at or past `c`. -/
-def storBnd (γ : Cluster) (id : w64) (c : Nat) : IProp GF :=
-  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ (nodeAppliedLb γ id k ∨ snapGiven γ id k))
+/-- The compaction's justification (`isStorageP`'s `Bnd`): compacting at or past `c` is safe
+(`nodeAppliedLb`, which since 2026-11-01 holds the snapshot hand-out). (2026-11-01, durability stage
+I-4: keyed by the storage's key `K`.) -/
+def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
+  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k)
 
-/-- A stored snapshot's bound (`isStorageP`'s `DL`): the committed log delivered to the node `id`
-reaches its index. -/
-def storDL (γ : Cluster) (id : w64) (i : Nat) : IProp GF :=
-  iprop(∃ (n : Loc) (N : Namespace) (l : List LogEntry), isNode n γ N id ∗ deliveredLogLb n γ N l ∗
-    ⌜i ≤ l.length⌝)
+-- (2026-11-01, durability stage I-4) `storDL γ id i` (an open definition: "the committed log
+-- delivered to some node `id`") is now the sealed `nodeCommitLb γ K i` (`InvNode.lean`): it is
+-- given at the attach, before anything is delivered.
 
-/-- **The storage contract of node `id`'s storage `st`** (persistent; the frozen design's §2,
-`isStorageP` at the cluster's pieces). -/
-def isStorage (γ : Cluster) (id : w64) (st : Storage) : IProp GF :=
-  isStorageP (snapshotValid γ) (storBnd γ id) (storDL γ id) st
+/-- **The storage contract of the storage `st` of key `K`** (persistent; the frozen design's §2,
+`isStorageP` at the cluster's pieces). (2026-11-01, durability stage I-4: keyed by `K`.) -/
+def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
+  isStorageP (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
 
-/-- (U8 v2, 2026-10-29) **A fresh storage `st` to boot node `id` from** (the boot bundle; approved
-as decision (B)): a frame `R` of the client's, with `FirstIndex` answering `1` and `LastIndex` `0`
-over it, and `InitialState` answering the hard state `hs` and the conf state `csm`, after which the
-client makes the storage contract (`isStorage`) with index `0` a frozen entry of term `0`, the last
-index `0`. `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`,
-and a `MemoryStorage`'s `InitialState` reads its snapshot without the lock
+/-- (2026-11-01, durability stage I-4) **The storage `st` holds the contents `σ`**, as the storage
+contract states its log: compacted at the base, the base's entry (of the base's term) frozen, the
+entries above it owned, the end after them. What a restarted node's view of its storage starts
+from (until then `bootStorage`'s at the empty log). -/
+def storHolds (st : Storage) (σ : StorContents) : IProp GF :=
+  iprop(∃ e0 : EntryM, ⌜e0.Term' = σ.base.term'⌝ ∗ storCompacted st σ.b ∗
+    storLog st σ.b DFrac.discard [e0] ∗ storLog st (σ.b + 1) (DFrac.own 1) σ.ents ∗
+    storEnd st (σ.last + 1))
+
+/-- (2026-11-01, durability stage I-4; candidate 12 §4, generalizing `bootStorage`) **A storage `st`
+to start a node from, holding `σ`**: a frame `R` of the client's, with `FirstIndex` answering
+`σ.b + 1` and `LastIndex` `σ.last` over it, and `InitialState` answering `σ`'s hard state and the
+conf state `csm`, after which -- given the fresh key `K` raft names the storage by, and raft's
+bounds at the attach (compacting up to the applied index it starts at, `max σ.b A`, is safe; it
+committed up to the stored commit) -- the client makes the storage contract (`isStorage γ K st`)
+and gives the storage's log (`storHolds`), keeping its frame `F`, which `RestartNode`'s post returns.
+`newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`, and a
+`MemoryStorage`'s `InitialState` reads its snapshot without the lock
 (`issues/raft-memorystorage-initialstate-unlocked.md`), so its invariant (`memStorInv`) can only be
-made once `InitialState` returned: the contract comes in `InitialState`'s post. No law gives a bare
-`MemoryStorage`'s bundle: its `InitialState` answers the empty `ConfState`, and `RestartNode` needs
-the voters' (raft-final, the design's P7, A6): a client wraps it, with an `InitialState` of its own
-(kvreconf's), over its own `StorageModel` instance. (raft-final, 2026-10-29, the design's A3, review 1's
-H3) `InitialState`'s post also gives back a client-chosen frame `Q`, which `RestartNode`'s post
-returns (a `MemoryStorage`'s client keeps its `memStorMeta` for `SetHardState`). -/
-def bootStorage (γ : Cluster) (id : w64) (st : Storage) (hs : HardStateM) (csm : ConfStateM)
-    (Q : IProp GF) : IProp GF :=
+made once `InitialState` returned: the contract comes in `InitialState`'s post. Each attach has its
+key, so a key's bounds are one node's. -/
+def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat)
+    (F : IProp GF) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
     ({{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
-       {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+       {{ RET (PairV #(W64 (σ.b + 1)) #interface.nil); R }}) ∗
     ({{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
-       {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+       {{ RET (PairV #(W64 σ.last) #interface.nil); R }}) ∗
     ({{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
-          hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-          |={⊤}=> isStorage γ id st ∗ (∃ e0 : EntryM, ⌜e0.Term' = W64 0⌝ ∗
-            storLog st 0 DFrac.discard [e0] ∗ storEnd st 1) ∗ Q }}))
+          hsOpt hp σ.hs ∗ csPts cs DFrac.discard csm al ∗
+          ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
+            |={⊤}=> isStorage γ K st ∗ storHolds st σ ∗ F }}))
 
 /-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
 a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what

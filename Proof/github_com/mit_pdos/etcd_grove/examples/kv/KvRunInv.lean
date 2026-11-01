@@ -44,10 +44,13 @@ variable [KVStor GF]
 def kvRunInv (γr : RKVNames) (r n st : Loc) (γs : MemStorNames) (rp pp ap sp cp : Loc) :
     IProp GF :=
   iprop(∃ (D : List LogEntry) (hd : HardStateM) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
-      (a sI : w64) (c : Nat),
+      (a sI : w64) (c : Nat)
+      -- (2026-11-01, durability stage I-8; PORT(durability layer 4)) the driver's new fields
+      (K : GName) (S : RaftState) (ro : StateType),
     "Hrd" ∷ rp ↦ rdv ∗
     "Hdrv" ∷ nodeDriver n γr.cluster kvRaftN
-      { storage := kvStorIface st, delivered := D, hardState := hd, handling := none } ∗
+      { storage := kvStorIface st, delivered := D, hardState := hd, handling := none,
+        key := K, durable := S, role := ro } ∗
     "Hrun" ∷ nodeRunning n γr.cluster kvRaftN 1 ∗
     "Hown" ∷ runOwn γr r D ∗
     "Hview" ∷ appNode γr n D D.length kvMembership ∗

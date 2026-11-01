@@ -18,8 +18,8 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                           ownRawNode γ rn id
                             { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
                               storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
-                              cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L,
-                              phs := phsNext rs.phs h } ∗
+                              cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
+                              dur := rs.dur, role := rs.role } ∗
                         "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
                           "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
                             "#Hents" ∷ entsRO rd.Entries' es ∗

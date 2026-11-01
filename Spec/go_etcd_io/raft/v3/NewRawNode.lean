@@ -87,11 +87,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 -- (2026-10-26, raft's signature, stage 1) `rnInit` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- See the file header. (raft-final phase 1, 2026-10-29: over `newRaft`'s boot bundle, U8 v2 step 4's
-decision (B); until then raft's view of an empty storage with an `InitialState` closure.) -/
+decision (B); until then raft's view of an empty storage with an `InitialState` closure.) (2026-11-01,
+durability stage I-6: `newRaft`'s generalized premises -- a storage holding a log from a base, a
+hard state, `Applied`, any `ConfState` `Restore` accepts -- and the node open at it, `rawNodeAt`;
+until then an empty storage, `rawNodeFresh`, which `rawNodeAt_fresh` gives back.) -/
 abbrev NewRawNode.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (sn : StorNames) (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF),
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState),
   -- the Config, as for `newRaft`
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -103,31 +106,28 @@ abbrev NewRawNode.spec : Prop :=
   -- conf-change validation on (2026-10-13; `newRaft`'s premise)
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  -- synchronous storage writes, nothing applied
+  -- synchronous storage writes
   cv.AsyncStorageWrites' = false →
-  -- (2026-10-17) pre-vote either way (2026-10-10 to 2026-10-17: off, `cv.PreVote' = false`)
-  cv.Applied' = W64 0 →
-  -- an empty storage: no entries, no `HardState` (raft's view of it fresh, `newRaft`'s)
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
-  σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ →
-  HsEmpty hs →
-  -- the persisted ConfState: voters only (2026-10-16, stage R5: the record `csm`, as
-  -- `newRaft`'s; until then the Goose value `cs` and the list `voters` its slice held);
-  -- (2026-10-16, stage R8b) possibly none: a new cluster's conf state is empty
-  csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
-  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
-  csm.VotersOutgoing' = [] →
-  csm.Learners' = [] →
-  csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
-  σ.fl = W64 0 →
+  -- (durability stage I-6) `newRaft`'s view of the storage, from the base
+  LogIndicesOk σ.prev σ.ents → σ.pend = [] → σ.fr = uint.nat σ.prev.index' →
+  uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
+  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
+  uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
+  (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
+    uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
+  (cv.Applied' = W64 0 ∨ uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
+    uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
+  -- the persisted ConfState: one `Restore` accepts (possibly empty: a new cluster's)
+  restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
+    some cs' →
+  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
+    csm.LearnersNext'.length ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
-      -- (raft-final phase 1) `newRaft`'s boot bundle
+      -- (raft-final phase 1) `newRaft`'s start bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
-         {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+         {{ RET (PairV #(W64 (uint.nat σ.prev.index' + 1)) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
-         {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+         {{ RET (PairV #(W64 (uint.nat σ.prev.index' + σ.ents.length)) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
@@ -136,9 +136,9 @@ abbrev NewRawNode.spec : Prop :=
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       -- (D17d, 2026-10-18) what the `InitialState` premise's caller gets back
       R' ∗
-      -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
+      -- (2026-11-01, durability stage I-6) the node open, at the restored state (`InvBoot.lean`)
       ∃ s : NState,
-        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' cv.PreVote' s ∗
+        rawNodeAt rn cv.ID' si cs' cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s ∗
         ⌜err = interface.nil⌝ ∗
         -- (raft-final phase 2) the log's and the ghost state's storage names, the bundle's
         ⌜s.logst.sn = sn ∧ s.gh.sn = sn⌝ }}

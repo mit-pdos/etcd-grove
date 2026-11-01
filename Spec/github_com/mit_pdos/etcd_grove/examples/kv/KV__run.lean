@@ -44,7 +44,7 @@ abbrev KV.run.spec : Prop :=
       isReplica γr γp r id n st ∗
       -- the node's driver token, idle at its start, on the store's storage, and its view of its
       -- configuration (2026-10-28), at the voters' membership, nothing applied
-      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
+      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) (kvKey γr.cluster id)) ∗
       nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
       -- (2026-10-30) the node runs: the store never stops it
       nodeRunning n γr.cluster kvRaftN 1 ∗

@@ -104,31 +104,9 @@ sequence-number tokens of `S0`, `γ.dup = false`, and each voter's founder token
 theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={E}=> ∃ γr : RKVNames, ⌜γr.cluster.dup = false⌝ ∗ kvCluster γr ∗ rkvInv γr ∗
         rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
-        [∗list] id ∈ kvVoters, nodeFounder γr.cluster kvRaftN kvVoters id := by
-  iintro
-  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false E Hrb (by decide) (by decide)
-      (by decide) (by decide) (fun h => absurd rfl h) $$ [] with
-    ⟨%γ, %Hγ, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hrest⟩
-  · iempintro
-  have Hif : (if ([] : List LogEntry) = [] then
-      iprop(joinAuth γ (GMap.listToSet kvVoters) ∗
-        [∗list] id ∈ kvVoters, nodeFounder (GF := GF) γ kvRaftN kvVoters id)
-    else iprop(isCommittedLogLb γ [] ∗ [∗list] id ∈ kvVoters, nodeBoot γ kvRaftN kvVoters [] id)) =
-      iprop(joinAuth γ (GMap.listToSet kvVoters) ∗
-        [∗list] id ∈ kvVoters, nodeFounder (GF := GF) γ kvRaftN kvVoters id) := if_pos rfl
-  rw [Hif]
-  icases Hrest with ⟨-, Hfounders⟩
-  imod confPolicy_alloc γ kvConfN kvRule E $$ Hdec with #Hpol
-  imod rkvInv_alloc (GF := GF) E γ S0 $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hseqs⟩
-  subst Hγr
-  imod kvSnapInv_alloc γr E $$ Hsm with #Hsinv
-  imodintro
-  iexists γr
-  isplitr
-  · ipureintro; exact Hγ.1
-  iframe Hinv Hval Hseqs Hfounders
-  unfold kvCluster
-  iframe Hiscl Hpol Hca0 Hsinv
+        [∗list] id ∈ kvVoters, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 end alloc
 

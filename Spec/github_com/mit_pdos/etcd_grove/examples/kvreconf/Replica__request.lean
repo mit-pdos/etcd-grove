@@ -42,7 +42,7 @@ abbrev Replica.request.spec : Prop :=
   ap <+: D → c ≤ uint.nat snapIndex →
   {{ isReplicaR γr vs id r n st sts ρ ∗ repOwn γr r ap (W64 ap.length) csp m mA A ∗
       memCompacted ρ.γs c ∗ frozenTo ρ.γs c D ∗ deliveredLogLb n γr.cluster kvrRaftN D ∗
-      (⌜compact = false⌝ ∨ nodeAppliedLb γr.cluster id ap.length) }}
+      (⌜compact = false⌝ ∨ nodeAppliedLb γr.cluster (kvrKey γr.cluster id) ap.length) }}
     (App (App (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"request")) (Val #snapIndex))
       (Val #snap)) (Val #compact))
   {{ (ret : w64), RET #ret; repOwn γr r ap (W64 ap.length) csp m mA A ∗

@@ -5,8 +5,8 @@
 theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRawNode.spec)
     (wp_newNode : newNode.spec) (wp_node_run : node.run.spec) : RestartNode.spec
   -- `Perennial.EtcdGrove.RestartNode.spec`, unfolded:
-  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (hs : HardStateM)
-    (csm : ConfStateM) (Q : IProp GF),
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorContents) (csm : ConfStateM)
+    (a : Nat) (m : Membership) (Q : RaftState → IProp GF) (F : IProp GF),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -16,31 +16,34 @@ theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRaw
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      cv.Applied' = W64 0 →
-                        HsEmpty hs →
-                          csm.Voters' = vs →
-                            csm.VotersOutgoing' = [] →
-                              csm.Learners' = [] →
-                                csm.LearnersNext' = [] →
-                                  csm.AutoLeave' = false →
-                                    ⊢
-                                      ∀ Φ,
-                                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                            typedPointsto c cv (DFrac.own 1) ∗
-                                              isLogger lok ∗
-                                                bootStorage γ cv.ID' (GoInterface.ok si) hs csm Q ∗
-                                                  (nodeFounder γ N vs cv.ID' ∨
-                                                    nodeJoin γ N cv.ID' ∗
-                                                      confAt γ 0 (Membership.simple (listToSet vs)) ∗ ⌜vs.Nodup⌝) -∗
-                                          (▷
-                                              ∀ nd,
-                                                (∃ n,
-                                                    ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                      isNode n γ N cv.ID' ∗
-                                                        nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si)) ∗
-                                                          nodeConfig n γ N
-                                                              { applied := 0,
-                                                                membership := Membership.simple (listToSet vs) } ∗
-                                                            nodeRunning n γ N 1 ∗ Q) -∗
-                                                  Φ (intoVal nd)) -∗
-                                            WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
+                      uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit →
+                        max σ.b (uint.nat cv.Applied') ≤ a →
+                          a ≤ σ.commit →
+                            γ.bootLen ≤ σ.commit →
+                              confStateIs csm m →
+                                ⊢
+                                  ∀ Φ,
+                                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                        typedPointsto c cv (DFrac.own 1) ∗
+                                          isLogger lok ∗
+                                            isCluster γ N ∗
+                                              nodeVacant γ cv.ID' ∗
+                                                AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅ <{
+                                                      raftState γ cv.ID' S, COMM Q S }> ∗
+                                                  confAt γ a m ∗
+                                                    restartStorage γ (GoInterface.ok si) σ csm (uint.nat cv.Applied') F -∗
+                                      (▷
+                                          ∀ nd,
+                                            (∃ n S l K,
+                                                ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                  isNode n γ N cv.ID' ∗
+                                                    isCommittedLogLb γ l ∗
+                                                      ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
+                                                        nodeDriver n γ N
+                                                            { storage := GoInterface.ok si, delivered := l,
+                                                              hardState := σ.hs, handling := none, key := K, durable := S,
+                                                              role := StateFollower } ∗
+                                                          nodeConfig n γ N { applied := a, membership := m } ∗
+                                                            nodeRunning n γ N 1 ∗ Q S ∗ F) -∗
+                                              Φ (intoVal nd)) -∗
+                                        WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}

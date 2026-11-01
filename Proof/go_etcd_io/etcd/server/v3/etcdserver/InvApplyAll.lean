@@ -127,7 +127,7 @@ server (its registry, `srvClusterOk`) and a committed log `A` of length `ai` who
 def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid : w64) (ai at' : w64) :
     IProp GF :=
   letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
-  iprop(memStorInv ms γs γr.raft.raft.cl nid ∗ storDL γr.raft.raft.cl nid (uint.nat ai) ∗
+  iprop(memStorInv ms γs γr.raft.raft.cl (srvKey γr.raft.raft.cl nid) ∗ nodeCommitLb γr.raft.raft.cl (srvKey γr.raft.raft.cl nid) (uint.nat ai) ∗
     srvRaftLogInv γr.raft ∗
     ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜uint.Z ai = A.length ∧ lastTermIs A at'⌝)
 

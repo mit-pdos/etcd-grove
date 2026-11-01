@@ -291,7 +291,7 @@ def rnCfgAt (γ : RNNames) (L : List EntryModel) : IProp GF :=
 
 /-- The driver's state at the committed log `L` handed out and the hard state `p`, idle. -/
 def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) : NodeDriverState :=
-  ⟨memStorIface γ.ms, srvLE γ.srv L, p, none⟩
+  ⟨memStorIface γ.ms, srvLE γ.srv L, p, none, srvKey γ.node.cl γ.id, (srvDur γ.node.cl γ.id).1, (srvDur γ.node.cl γ.id).2⟩
 
 /-- The driver, idle, handed the committed log `L` so far: the node API's `nodeDriver` at
 `pre ++ L` (2026-10-27; until then raft's), with the driver's view of the configuration after `L`
@@ -305,7 +305,7 @@ before `Advance`: the node API's `nodeDriver` busy, without the view. -/
 def rnBusyN (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   nodeDriver γ.nl γ.node.cl srvClusterN
-    ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none)⟩
+    ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none), srvKey γ.node.cl γ.id, (srvDur γ.node.cl γ.id).1, (srvDur γ.node.cl γ.id).2⟩
 
 /-- The driver with a `Ready` in hand (`rnBusyN`) and its view after the log before it, `d`. -/
 def rnBusy (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp GF :=
@@ -432,7 +432,7 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List Entry
     (p p' : HardStateM) (l : SnapLoan) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ (esL msL : List Loc) (hs : HardStateModel),
-    readySnap γ.node.cl srvClusterN γ.id rd (rnDrvSt γ d p) [] (es.map EntryModel.toM) (some l) ∗
+    readySnap γ.node.cl srvClusterN rd (rnDrvSt γ d p) [] (es.map EntryModel.toM) (some l) ∗
     ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length⌝ ∗ □ E.C A' ∗
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgR E γ m) ∗
@@ -447,7 +447,7 @@ def rnBusyS (γ : RNNames) (d A' es : List EntryModel) (p : HardStateM) (l : Sna
     IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(nodeDriver γ.nl γ.node.cl srvClusterN
-      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l)⟩ ∗
+      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), srvKey γ.node.cl γ.id, (srvDur γ.node.cl γ.id).1, (srvDur γ.node.cl γ.id).2⟩ ∗
     rnCfgAt γ d)
 
 /-- **The `raft.Node` `n`** (see the file header; 2026-10-30, the repair: raft's unified node API):
@@ -475,7 +475,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       -- (2026-10-30, the repair) and the node's applied index past the committed log handed out
       {{ RET #(); rnDrv γ (d ++ ce) p ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
-          nodeAppliedLb γ.node.cl γ.id (γ.pre ++ d ++ ce).length }}) ∗
+          nodeAppliedLb γ.node.cl (srvKey γ.node.cl γ.id) (γ.pre ++ d ++ ce).length }}) ∗
     -- (2026-10-30, the repair: snapshots allowed) `Advance` after a snapshot `Ready`: the storage's
     -- `snapReceipt` (the snapshot applied, the entries after it appended) and the snapshot's
     -- certificate; the idle driver at the snapshot's log `A'` with its view there
@@ -486,7 +486,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
           nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       {{ RET #(); rnDrv γ A' p ∗ nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half ∗
-          nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length }}) ∗
+          nodeAppliedLb γ.node.cl (srvKey γ.node.cl γ.id) (γ.pre ++ A').length }}) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ nodeRunning γ.nl γ.node.cl srvClusterN 1 }}
         (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #()))
@@ -653,6 +653,7 @@ dynamic cluster's `ApplyConfChange`). A `Ready` with a snapshot is refuted (`srv
 theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames)
     (L : List EntryModel) (p : HardStateM) (rd : Ready) (ce : List LogEntry)
     (es : List EntryM) (h : HardStateM) (Lo : Option SnapLoan)
+    (ms : List QMsg) (ss : Option (w64 × StateType))
     (HLi : srvIdxOkW E.γr.raft.ai0 L) :
     letI := srvStor (GF := GF) γ.node
     rnEnvOk E γ -∗ rnReadStateBridge E γ -∗ rnCfgAt γ L -∗
@@ -660,7 +661,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       isCommittedLogLb γ.node.cl ((rnDrvSt γ L p).delivered ++ ce) -∗
       (∃ rs, readStatesPts rd.ReadStates' rs ∗
         [∗list] s ∈ rs, readStateOk γ.node.cl srvClusterN s.RequestCtx' s.Index') -∗
-      readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p) ce es h Lo -∗
+      readyRest γ.node.cl srvClusterN rd (rnDrvSt γ L p) ce es h Lo ms ss -∗
       nodeDriver γ.nl γ.node.cl srvClusterN (match Lo with
           | none => { rnDrvSt γ L p with
               delivered := (rnDrvSt γ L p).delivered ++ ce
@@ -677,149 +678,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       (∃ (es' A' : List EntryModel) (p' : HardStateM) (l : SnapLoan),
         rnReadySnap E γ rd L es' A' p p' l ∗ rnBusyS γ L A' es' p' l ∗
         ⌜srvIdxOkW E.γr.raft.ai0 A'⌝) := by
-  letI := srvStor (GF := GF) γ.node
-  simp only [committedEntriesAt, rnDrvSt]
-  iintro #Henv #Hbr Hcfg #Hce #Hcom ⟨%sts, #Hrs, #Hrsok⟩ Hrest Hdrv
-  ihave #Henv' := Henv
-  iunfold rnEnvOk at Henv'
-  icases Henv' with ⟨-, %Hn, -, #Hinv, #HM, #HC, -, -⟩
-  obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  ihave #Hcl : srvClusterOk E.γr.raft $$ []
-  · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
-  cases Lo with
-  | some l =>
-    -- SNAPSHOT-SORRY: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from
-    -- the driver
-    sorry
-  | none =>
-  ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
-  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
-  icases readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
-    with ⟨Hrest, %Hfit61⟩
-  · iframe Hfits Hrest
-  simp only [readyRest, readySnap]
-  icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩⟩
-  obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
-  obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
-  have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
-  have Hce'len : ce'.length = ce.length := by rw [Hce'def]; exact rnCe_length _ ce
-  have Hdel : srvLE γ.srv (L ++ ce') = srvLE γ.srv L ++ ce := by
-    rw [srvLE_append, Hce'LE]
-  have HsrvLE : srvLE E.γr.raft (L ++ ce') = srvLE γ.srv (L ++ ce') := by
-    unfold srvLE RNNames.srv; rw [Hpre]
-  have Hlen : ((srvLE γ.srv (L ++ ce')).length : Int) ≤ Lx := by
-    rw [Hdel]; simpa [rnDrvSt] using Hdl
-  have hfit : (γ.pre.length : Int) + L.length + ce'.length < 2 ^ 64 := by
-    have : (srvLE γ.srv (L ++ ce')).length = γ.pre.length + L.length + ce'.length := by
-      simp [srvLE]; omega
-    omega
-  icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
-  icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
-  imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
-  imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
-  -- `E.C (L ++ ce)` from the committed log, the next index fitting
-  ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
-  · rw [HsrvLE, Hdel, Hraft]; iexact Hcom
-  ihave #Hfits' : readyFits E.γr.raft.raft.cl srvClusterN $$ []
-  · first | (rw [Hraft]; iexact Hfits) | (rw [← Hraft]; iexact Hfits)
-  ihave %Hnext := isCommittedLogLb_length E.γr.raft.raft.cl srvClusterN _ $$ [Hfits' Hcom']
-  · iframe Hfits' Hcom'
-  have HLi' : ∀ (n : Nat) (m : EntryModel), (L ++ ce')[n]? = some m →
-      uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
-    intro n m hm
-    rcases Nat.lt_or_ge n L.length with hn | hn
-    · rw [List.getElem?_append_left hn] at hm
-      exact (HLi n m hm).1
-    · rw [List.getElem?_append_right hn] at hm
-      have hl : (n - L.length) < ce'.length := (List.getElem?_eq_some_iff.1 hm).1
-      rw [Hce'def] at hm
-      have hi := rnCe_index _ ce _ m hm
-      have hl' : (srvLE γ.srv L).length = γ.pre.length + L.length := by
-        simp [srvLE, RNNames.srv]
-      rw [hi, hl']
-      have : ((γ.pre.length + L.length : Nat) : Int) + ((n - L.length : Nat) : Int) + 1 < 2 ^ 64 := by
-        push_cast
-        omega
-      rw [Hai0]
-      word
-  imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) (L ++ ce') HLi' $$ Hinv Hcom'
-    with #HLb
-  ihave %HLiW := srvRLogLb_idx E.γr.raft _ $$ HLb
-  imod HC $$ %(L ++ ce') HLb [] with #HEC
-  · ipureintro
-    rw [HsrvLE, srvLE_length] at Hnext
-    simp only [RNNames.srv] at Hnext
-    rw [Hai0]
-    simp only [List.length_append] at Hnext ⊢
-    omega
-  ihave ⟨Hdrv, #Hdlb⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
-  imodintro
-  ileft
-  iexists ce', es.map EntryModel.ofM, phsNext p h
-  isplitl [Happ Hmok]
-  · iunfold rnReadyData
-    iexists ceL, esL, ms.map QMsg.loc, HardStateModel.ofM h
-    iframe HceL HesL Hmsgs Hmok HEC
-    isplitr
-    · rw [Hce'def]; unfold rnCe
-      iapply entriesAt_of_entRO ceL _ $$ Hcero
-    isplitr
-    · iapply entriesAt_of_entRO esL es $$ Hesro
-    isplitl [Happ]
-    · iunfold rnAppendRight
-      rw [EntryModel.map_toM_ofM]
-      iframe Happ
-      ipureintro
-      constructor
-      · intro e0 He0
-        rw [List.head?_map] at He0
-        cases Hh : es.head? with
-        | none => rw [Hh] at He0; cases He0
-        | some x =>
-          rw [Hh] at He0; cases He0
-          have := Hfit61 x Hh
-          simp only [List.length_map]
-          show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 61
-          omega
-      · intro e0 He0 j e He
-        rw [List.head?_map] at He0
-        rw [List.getElem?_map] at He
-        cases Hh : es.head? with
-        | none => rw [Hh] at He0; cases He0
-        | some x =>
-          rw [Hh] at He0; cases He0
-          cases Hj : es[j]? with
-          | none => rw [Hj] at He; cases He
-          | some y =>
-            rw [Hj] at He; cases He
-            exact (Hidx x Hh).1 j y Hj
-    isplitr
-    · iunfold softStateAt; iexact Hss
-    isplitr
-    · iunfold hardStateAt
-      rw [HardStateModel.toM_ofM]
-      iexact Hhs
-    isplitr
-    · rw [HardStateModel.toM_ofM]; ipureintro; rfl
-    isplitr
-    · iunfold readStatesPts at Hrs
-      icases Hrs with ⟨%vs, #Hvs, #Hrs2⟩
-      iexists vs
-      iframe Hvs
-      iapply rnReadStates_of_api E γ vs sts $$ Hbr Hrs2 Hrsok
-    isplitr
-    · ipureintro; exact Hsnap
-    iunfold rnCeFrozen
-    rw [EntryModel.map_toM_ofM, Hce'LE]
-    iframe Hcf
-    ipureintro; exact Hidx
-  isplitl [Hcfg Hdrv]
-  · iunfold rnBusy
-    iframe Hcfg
-    iunfold rnBusyN
-    rw [EntryModel.map_toM_ofM, Hdel]
-    iexact Hdrv
-  · rw [Hdel]; iframe Hdlb; ipureintro; exact HLiW
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 /-! ## The other components -/
 
@@ -1045,7 +905,7 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     -- index past the batch (until then the storage's floor)
     rnAdvChan ap.raftAdvancedC'
       (letI := srvStor (GF := GF) γ.node
-       iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ F ++ ce).length ∗
+       iprop(nodeAppliedLb γ.node.cl (srvKey γ.node.cl γ.id) (γ.pre ++ F ++ ce).length ∗
         -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
         srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1))) ∗
     committedLast E.γr ce ∗
@@ -1075,7 +935,7 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     -- receive until the two-receive notify is written with the branch's proof (SNAPSHOT-SORRY)
     (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
-    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
+    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl (srvKey γ.node.cl γ.id) (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
       srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) ∗
     committedAtLeast E.γr sv.Metadata'.Index' ∗

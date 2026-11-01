@@ -47,7 +47,9 @@ def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc
       (A : GMap (List w8) (List w8)) (snapIndex : w64) (c : Nat)
       (pv : GoSlice) (ps : List ReadState),
     "Hdrv" ∷ nodeDriver n γr.cluster kvrRaftN
-      { storage := kvrStorIface st, delivered := D, hardState := hd, handling := none } ∗
+      { storage := kvrStorIface st, delivered := D, hardState := hd, handling := none,
+        key := kvrKey γr.cluster id, durable := (kvrDur γr.cluster id).1,
+        role := (kvrDur γr.cluster id).2 } ∗
     "Hrun" ∷ nodeRunning n γr.cluster kvrRaftN 1 ∗
     "Hprod" ∷ handoffProducer ρ.rd false ∗
     "Hown" ∷ repOwn γr r D (W64 D.length) csp m mA A ∗
@@ -57,7 +59,7 @@ def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc
     "#Hcp" ∷ memCompacted ρ.γs c ∗
     "#Hfz" ∷ frozenTo ρ.γs c D ∗
     "%Hsi" ∷ ⌜c ≤ uint.nat snapIndex ∧ c ≤ D.length⌝ ∗
-    "#Hal" ∷ nodeAppliedLb γr.cluster id D.length ∗
+    "#Hal" ∷ nodeAppliedLb γr.cluster (kvrKey γr.cluster id) D.length ∗
     "pending" ∷ pp ↦ pv ∗
     "Hpv" ∷ pv ↦* ps ∗
     "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
@@ -68,37 +70,8 @@ theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ
     (pp sp : Loc) :
     runStart (GF := GF) γr vs id r n st ρ ∗ pp ↦ slice.nil ∗ sp ↦ W64 0 ⊢
       runInv γr id r n st ρ pp sp := by
-  iintro ⟨Hs, Hpp, Hsp⟩
-  iunfold runStart at Hs
-  icases Hs with ⟨%csp, %mA, %hs, Hdrv, Hrun, Hcfg, Hown, Hprod, Hmeta⟩
-  ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
-  unfold runInv
-  iexists [], hsZero, hs, csp, mA, Membership.simple (GMap.listToSet vs), ∅, W64 0, 0,
-    slice.nil, []
-  unfold NodeDriverState.init
-  iframe Hdrv Hrun Hprod Hown Hmeta Hsp Hpp
-  isplitl [Hcfg]
-  · unfold appNode
-    iexists ⟨0, Membership.simple (GMap.listToSet vs)⟩
-    iframe Hcfg Hdl
-    isplitl []
-    · iapply skippedIn_noConf γr.cluster [] 0 0 (fun _ _ _ h _ => absurd h (Nat.not_lt_zero _))
-    ipureintro; exact ⟨rfl, Nat.le_refl _⟩
-  isplitl []
-  · iapply memCompacted_zero
-  isplitl []
-  · unfold frozenTo LogEntry.toEntries; simp only [List.mapIdx_nil, List.drop_nil]
-    iapply memLog_nil
-  isplitl []
-  · ipureintro; exact ⟨Nat.zero_le _, Nat.le_refl _⟩
-  isplitl []
-  · iapply nodeAppliedLb_zero
-  isplitl []
-  · iapply ownSlice_nil
-  isplitl []
-  · iapply ownSliceCap_nil
-  iapply BigSepL.bigSepL_nil.2
-  itrivial
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 end inv
 

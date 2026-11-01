@@ -42,7 +42,8 @@ nothing for no entries), or after a snapshot `Ready` the storage compacted at th
 dummy and the batch after it (`snapReceipt`); the post: raft's applied index has reached the
 committed log delivered (`nodeAppliedLb`, the snapshot's index after a snapshot `Ready`). (Until U8
 v2 the old contract's receipts and `storFloor`/`storTermsAt`; until then also the static cluster's
-`node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.) -/
+`node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.)
+(2026-11-01, durability stage I-4: `nodeAppliedLb` of the storage's key, `st.key`.) -/
 abbrev node.Advance.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan) (v : ConfigView),
@@ -58,7 +59,7 @@ abbrev node.Advance.spec : Prop :=
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
-      nodeAppliedLb γ id st.delivered.length ∗
+      nodeAppliedLb γ st.key st.delivered.length ∗
       match L with
       | none => nodeConfig n γ N v
       | some l => ∃ m : Membership,

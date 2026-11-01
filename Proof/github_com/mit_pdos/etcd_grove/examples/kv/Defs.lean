@@ -448,7 +448,7 @@ the storage's record, its `MemoryStorage`'s invariant at node `id`'s justificati
 token), and the cluster's voters (`Storage.voters`), the configuration of every snapshot it takes. -/
 def runStor (γr : RKVNames) (id : w64) (st : Loc) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames) (vsl : GoSlice),
-    kvStorRec st ms γs ∗ memStorInvP ms γs (kvJ γr.cluster id) ∗ memSnapLb γs 0 ∗
+    kvStorRec st ms γs ∗ memStorInvP ms γs (kvJ γr.cluster (kvKey γr.cluster id)) ∗ memSnapLb γs 0 ∗
     st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ kvVoters)
 
 instance runStor_persistent (γr : RKVNames) (id : w64) (st : Loc) :

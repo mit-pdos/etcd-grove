@@ -45,7 +45,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
-        [∗list] id ∈ vs, nodeFounderU γ N vs id := by
+        [∗list] id ∈ vs, raftStateU γ id RaftState.init ∗ nodeVacantU γ id := by
   -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
   sorry
 

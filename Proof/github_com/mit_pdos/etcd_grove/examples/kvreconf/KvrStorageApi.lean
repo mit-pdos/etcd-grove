@@ -11,7 +11,7 @@ What the rest of kvreconf uses of `*kvreconf.Storage` (`KvrStorage.lean`'s vocab
   replica call: `FirstIndex`, `LastIndex`, `Term`, `Entries`, `Append`, `ApplySnapshot`,
   `SetHardState`, `CreateSnapshot`, `Compact`;
 - **the contract** (`kvrStorage_isStorage`, under `kvrStorageModel`): a registered wrapper whose
-  `MemoryStorage` has its invariant at `kvrJ γ id` is node `id`'s storage (`isStorage`), as raft's
+  `MemoryStorage` has its invariant at `kvrJ γ (kvrKey γ id)` is node `id`'s storage (`isStorage`), as raft's
   `memStorage_isStorageP` is proved (`Snapshot` is the wrapper's own, `Storage.Snapshot.spec`);
 - **the boot premise** (`kvr_bootStorage`): what `RestartNode` asks of a fresh storage
   (`bootStorage`), from what `NewMemoryStorage` gives; its `InitialState` allocates the invariant;
@@ -237,13 +237,12 @@ attribute [local instance] kvrStorageModel
 
 /-- `kvrJ`'s compaction justification is the API's (`storBnd`). -/
 theorem kvrJ_bnd (γ : Cluster) (id : w64) (c : Nat) :
-    memBnd (kvrJ (GF := GF) γ id) c ⊢ storBnd γ id c := by
+    memBnd (kvrJ (GF := GF) γ (kvrKey γ id)) c ⊢ storBnd γ (kvrKey γ id) c := by
   unfold memBnd storBnd kvrJ; exact .rfl
 
-theorem kvrJ_B0 (γ : Cluster) (id : w64) : ⊢ (kvrJ (GF := GF) γ id).B 0 := by
-  unfold kvrJ
-  iintro
-  ileft; iapply nodeAppliedLb_zero
+theorem kvrJ_B0 (γ : Cluster) (id : w64) : ⊢ (kvrJ (GF := GF) γ (kvrKey γ id)).B 0 := by
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 /-- **The store's storage meets node `id`'s storage contract** (under `kvrStorageModel`). -/
 theorem kvrStorage_isStorage
@@ -254,8 +253,8 @@ theorem kvrStorage_isStorage
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf -∗
-      kvrStorRec s ms γs -∗ memStorInvP ms γs (kvrJ γ id) -∗
-      isStorage γ id (kvrStorIface s) := by
+      kvrStorRec s ms γs -∗ memStorInvP ms γs (kvrJ γ (kvrKey γ id)) -∗
+      isStorage γ (kvrKey γ id) (kvrStorIface s) := by
   iintro #Hpkg #Hrec #Hinv
   ihave #Hl : memStorLock ms γs $$ []
   · iunfold memStorInvP at Hinv; icases Hinv with ⟨#Hl, -⟩; iexact Hl
@@ -328,14 +327,14 @@ theorem kvrStorage_isStorage
     imodintro
     iintro %Φ ⟨#Hc, #Hesu⟩ HΦ
     ihave #Hc := kvrStorCompacted_to s ms γs c $$ Hrec Hc
-    wp_apply wp_Snapshot s ms γs (kvrJ γ id) c esu $$ [$Hpkg $Hrec $Hinv $Hc $Hesu]
+    wp_apply wp_Snapshot s ms γs (kvrJ γ (kvrKey γ id)) c esu $$ [$Hpkg $Hrec $Hinv $Hc $Hesu]
       as %snap %err Hres
     iapply HΦ
     iexact Hres
   isplitr
   · iintro !> %c #Hc
     ihave #Hc := kvrStorCompacted_to s ms γs c $$ Hrec Hc
-    imod memCompacted_bound ms γs (kvrJ γ id) c $$ Hinv Hc with Hb
+    imod memCompacted_bound ms γs (kvrJ γ (kvrKey γ id)) c $$ Hinv Hc with Hb
     imodintro
     iapply kvrJ_bnd γ id c $$ Hb
   iintro !> %k %dq %es H
@@ -367,9 +366,10 @@ theorem kvr_bootStorage
       kvrStorRec s ms γs -∗ kvrStorBoot s bp csm -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      bootStorage γ id (kvrStorIface s) hs csm
-        iprop(memStorMeta ms γs hs ∗ memStorInvP ms γs (kvrJ γ id)) := by
-  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
+      restartStorage γ (kvrStorIface s) ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0
+        iprop(memStorMeta ms γs hs ∗ memStorInvP ms γs (kvrJ γ (kvrKey γ id))) := by
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 /-- **A new wrapper's records** (`&Storage{MemoryStorage: ms, boot: bp}`, its two fields as
 allocated; the bootstrap conf state read-only): the registry's record (`kvr_register`) and the boot

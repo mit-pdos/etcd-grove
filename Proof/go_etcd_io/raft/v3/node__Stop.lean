@@ -48,51 +48,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n
-  wp_start as ⟨#Hnode, Hlive⟩
-  ihave #Hnode' := Hnode
-  open_node Hnode'
-  wp_auto_lc 3
-  wp_apply_core chan.wp_select_blocking
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · -- `n.stop <- struct{}{}`: the client's half of `live` to `run`; then `<-n.done`
-    simp only [chan.blockingClausePre]
-    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.stop',
-      γ.stop, ()
-    isplitr
-    · ipureintro; exact ⟨rfl, rfl⟩
-    isplitr
-    · iapply isHandshake_isChan $$ Hstop
-    iapply handshake_send_au γ.stop nv.stop' () (fun (_ : Unit) => nodeLiveRaw γ 1) iprop(True)
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlive]
-    · iexact Hlive
-    inext
-    iintro -
-    wp_auto
-    wp_apply chan.wp_receive (V := Unit) nv.done' γ.done $$ [] as -
-    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
-    iapply node_done_recv_au γ nv.done' _ $$ Hdone
-    iintro #Hst
-    wp_auto
-    iapply HΦ
-    iexact Hst
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · -- `<-n.done`: stopped already
-    simp only [chan.blockingClausePre]
-    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
-    iapply node_done_recv_au γ nv.done' _ $$ Hdone
-    iintro #Hst
-    wp_auto
-    iapply HΦ
-    iexact Hst
-  iapply BigAndL.bigAndL_nil.2
-  itrivial
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 end proof
 
@@ -112,17 +69,8 @@ needed). -/
 private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
-  intro n γ N id
-  iintro %Φ ⟨#Hinit, -, Hlive⟩ HΦ
-  iunfold nodeRunning at Hlive
-  icases Hlive with ⟨%γn, %id1, %Hok, #Hn, #Htb, Hl⟩
-  iapply (hS γn id1 n) $$ [Hl]
-  · iframe Hinit Hn Hl
-  iintro !> #Hst
-  iapply HΦ
-  iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
-  iframe Hn Htb Hst
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 end wrap
 

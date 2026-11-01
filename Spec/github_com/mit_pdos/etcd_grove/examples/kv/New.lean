@@ -40,7 +40,7 @@ abbrev New.spec : Prop :=
       -- node `id` of the store's cluster, its driver token idle at its start on the store's
       -- storage, its view of its configuration at the voters' membership, nothing applied
       isNode n γr.cluster kvRaftN id ∗
-      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
+      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) (kvKey γr.cluster id)) ∗
       nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
       -- (2026-10-30) the node runs: the store never stops it
       nodeRunning n γr.cluster kvRaftN 1 ∗

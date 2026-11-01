@@ -5,6 +5,12 @@
 def strip (L : List EntryM) : List LogEntry :=
   List.map LogEntry.ofEntryM L
 
+def StorContents.commit (σ : StorContents) : Nat :=
+  uint.nat σ.hs.Commit'
+
+def StorContents.last (σ : StorContents) : Nat :=
+  σ.b + σ.ents.length
+
 def LogEntry.isConfChange (e : LogEntry) : Prop :=
   e.type = W32 1 ∨ e.type = W32 2
 
@@ -32,6 +38,12 @@ def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Pro
                     MarshalsConfChange
                       (some (ConfChangeIM.v1 { type := W32 0, nodeId := id, context := ctx, id := W64 0 })) e.data
 
+structure StorContents : Type where
+  hs : HardStateM
+  snap : Option SnapshotM
+  base : entryID
+  ents : List EntryM
+
 def instDecidableIsEmptyV2_1 (e : LogEntry) : Decidable e.isEmptyV2 :=
   id inferInstance
 
@@ -41,6 +53,16 @@ def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
 def LogEntry.isFiller (e : LogEntry) : Prop :=
   e.data = [] ∧ e.type = W32 0
 
+def NodeDriverState.afterReady (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h :
+    HardStateM) (L : Option SnapLoan) (ss : Option (w64 × StateType)) : NodeDriverState :=
+  { storage := st.storage,
+    delivered :=
+      match L with
+      | none => st.delivered ++ ce
+      | some l => strip l.dlv,
+    hardState := phsNext st.hardState h, handling := some (es, L), key := st.key,
+    durable := readyDurable st.durable (phsNext st.hardState h) L es, role := roleAfter st.role ss }
+
 theorem committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List LogEntry) : Persistent
     (committedEntriesAt sl base ce)
 
@@ -49,6 +71,21 @@ structure NodeDriverState : Type where
   delivered : List LogEntry
   hardState : HardStateM
   handling : Option (List EntryM × Option SnapLoan)
+  key : GName
+  durable : RaftState
+  role : StateType
+
+def StorageHolds (S : RaftState) (σ : StorContents) : Prop :=
+  uint.Z S.base.index' ≤ uint.Z σ.base.index' ∧
+    plogTermAt S.base S.ents σ.base.index' = some σ.base.term' ∧
+      σ.ents = S.entsFrom σ.base ∧
+        σ.hs.Term' = S.term ∧
+          σ.hs.Vote' = S.vote ∧
+            σ.b ≤ σ.commit ∧
+              σ.commit ≤ uint.nat S.commit ∧
+                (∀ (sv : SnapshotM),
+                    σ.snap = some sv → σ.b ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' ≤ σ.commit) ∧
+                  (S.base.index' ≠ σ.base.index' → σ.snap.isSome = true)
 
 def NoConfChangeIn (l : List LogEntry) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬e.isConfChange
@@ -65,8 +102,12 @@ def LogEntry.isEmptyV2 (e : LogEntry) : Prop :=
 def Membership.simple (vs : GSet w64) : Membership :=
   { voters := vs, votersOutgoing := ∅, learners := ∅, learnersNext := ∅, autoLeave := false }
 
-def NodeDriverState.init (stor : Storage) : NodeDriverState :=
-  { storage := stor, delivered := [], hardState := hsZero, handling := none }
+def StorContents.b (σ : StorContents) : Nat :=
+  uint.nat σ.base.index'
+
+def NodeDriverState.init (stor : Storage) (K : GName) : NodeDriverState :=
+  { storage := stor, delivered := [], hardState := hsZero, handling := none, key := K, durable := RaftState.init,
+    role := W64 0 }
 
 structure ConfigView : Type where
   applied : Nat

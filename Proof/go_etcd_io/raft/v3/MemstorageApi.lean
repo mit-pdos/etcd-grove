@@ -37,42 +37,52 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [MemStorReg GF]
 
-/-- The API's justifications for node `id`'s `MemoryStorage` (`isStorage`'s pieces). -/
-def memStorJ (γ : Cluster) (id : w64) : MemJust GF where
+/-- The API's justifications for the `MemoryStorage` of key `K` (`isStorage`'s pieces; 2026-11-01,
+durability stage I-4: keyed by the storage's key, `snapGiven` merged into `nodeAppliedLb`). -/
+def memStorJ (γ : Cluster) (K : GName) : MemJust GF where
   SV := snapshotValid γ
-  B k := iprop(nodeAppliedLb γ id k ∨ snapGiven γ id k)
-  DL := storDL γ id
+  B k := nodeAppliedLb γ K k
+  DL := nodeCommitLb γ K
   SV_pers := fun sv => by infer_instance
   B_pers := fun k => by infer_instance
   B_timeless := fun k => by infer_instance
-  DL_pers := fun i => by unfold storDL; infer_instance
+  DL_pers := fun i => by infer_instance
 
-/-- **Node `id`'s `MemoryStorage` invariant** (persistent): the generic one at the API's
+/-- **The `MemoryStorage` invariant of key `K`** (persistent): the generic one at the API's
 justifications. -/
-def memStorInv (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) : IProp GF :=
-  memStorInvP ms γs (memStorJ γ id)
+def memStorInv (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : IProp GF :=
+  memStorInvP ms γs (memStorJ γ K)
 
-instance memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
-    Persistent (memStorInv (GF := GF) ms γs γ id) := by
+instance memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    Persistent (memStorInv (GF := GF) ms γs γ K) := by
   unfold memStorInv; infer_instance
 
-/-- Its allocation, from `NewMemoryStorage`'s fuel (`memStorFresh`) once `InitialState` returned. -/
-theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) (E : CoPset) :
-    ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs 0 memSnapEmpty ={E}=∗ memStorInv ms γs γ id := by
-  sorry -- durability stage I (I-5): memStorInvP_alloc generalized (arity fix only; re-keyed by K in a later layer)
+/-- **The attach** (2026-11-01, durability stage I-4/I-5; until then from the fresh token at `0`):
+from `NewMemoryStorage`'s detached token at the compaction point `c` and the stored snapshot `sv`,
+once `InitialState` returned, with raft's bound at `c` (`nodeAppliedLb`, every lower point by
+`nodeAppliedLb_mono`) and the stored snapshot's validity (the client's certificate, and raft's
+commit bound at its index). It consumes the token: a storage is attached once. -/
+theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (c : Nat)
+    (sv : SnapshotM) (E : CoPset) :
+    ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs c sv -∗ nodeAppliedLb γ K c -∗
+      (⌜sv.Metadata'.Index' = W64 0⌝ ∨ snapshotValid γ sv ∗
+        nodeCommitLb γ K (uint.nat sv.Metadata'.Index')) ={E}=∗
+      memStorInv ms γs γ K := by
+  -- PORT(durability stage II): restated (I-4: keyed by `K`, the generalized attach)
+  sorry
 
-/-- **A registered `MemoryStorage` meets node `id`'s storage contract.** -/
+/-- **A registered `MemoryStorage` meets the storage contract of key `K`.** -/
 theorem memStorage_isStorage
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
-    ⊢ memStorInv (GF := GF) ms γs γ id -∗ memStorReg ms γs -∗ isStorage γ id (memStorIface ms) := by
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
   unfold memStorInv isStorage
   exact memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
-    (memStorJ γ id)
+    (memStorJ γ K)
 
 end api
 

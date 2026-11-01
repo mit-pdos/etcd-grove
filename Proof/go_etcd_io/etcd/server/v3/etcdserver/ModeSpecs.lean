@@ -119,7 +119,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOff : Prop :=
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
-      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl (srvKey γr.raft.raft.cl nid) (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
@@ -151,7 +151,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specFullOn : Prop :=
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
-      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl (srvKey γr.raft.raft.cl nid) (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))

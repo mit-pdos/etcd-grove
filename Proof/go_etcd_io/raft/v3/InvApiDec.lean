@@ -62,9 +62,11 @@ theorem ModeDec.fold {γ : Cluster} {c0 : Membership} {g : GName} (h : ModeDec �
   rfl
 
 /-- **A cluster of client decisions, with snapshots** (`InvNodeRule`'s `isCluster`); (raft-final,
-2026-10-29, U7: the design's §2.9) with the read credits' exchange (`rdPool`). -/
+2026-10-29, U7: the design's §2.9) with the read credits' exchange (`rdPool`); (2026-11-01,
+durability stage I-2) and the node table's invariant (`nodeTabInv`), where `RestartNode` registers
+a node's names. -/
 def isClusterU (γ : Cluster) (N : Namespace) : IProp GF :=
-  iprop(⌜UniNames γ N⌝ ∗ clusterInv γ N ∗ rdPool γ N)
+  iprop(⌜UniNames γ N⌝ ∗ clusterInv γ N ∗ rdPool γ N ∗ nodeTabInv γ N)
 
 instance isClusterU_persistent (γ : Cluster) (N : Namespace) :
     Persistent (isClusterU (GF := GF) γ N) := by

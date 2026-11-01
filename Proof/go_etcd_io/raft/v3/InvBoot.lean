@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 -- (2026-10-25, T-M M2a) `rboot`, `ownRaftGhostR`: a new cluster in the dynamic mode
 public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
+public import Spec.go_etcd_io.raft.v3.newRaft
 
 @[expose] public section
 
@@ -80,6 +81,56 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
     "%Hdom" ∷ ⌜domSet s.progress = V⌝ ∗
     -- (D22l) `prevHardSt` the zero record (`r.hardState()` at term `0`, nothing committed)
     "%Hhz" ∷ ⌜hprev = hsZero⌝)
+
+/-- (2026-11-01, durability stage I-6) The protocol state a node restarted on a storage holds: a
+follower of the hard state's term with its vote, no leader, the stored log from the view's base,
+the commit index `loadState` restores. -/
+def restartPState (hs : HardStateM) (vw : StorState) : PState :=
+  let p := initPState
+  { p with term := hs.Term', vote := hs.Vote', base := vw.prev, log := vw.ents,
+           commit := committedAfter vw.prev hs }
+
+/-- (2026-11-01, durability stage I-6) **The `RawNode` at `rn` of the node `id` that `NewRawNode`
+built on a storage holding a log** (raft's view `σ` of it, from its base; the hard state `hs`, the
+conf state's tracker `cs`, `Applied` `A`): `rawNodeFresh` generalized -- the raft struct at the
+configuration `cs` (`ownRaftPhysC`), at a state refining the restarted follower's protocol state (the
+hard state's term and vote, the stored log from the base, the commit index `loadState` restores), the
+log stable with nothing unstable or handed out, applying from `A` (or the base), the certification
+bound at the base; `prevHardSt` the hard state `r.hardState()` reads then. -/
+def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
+    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) : IProp GF :=
+  iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
+    "Hrn" ∷ rawNodeOwn rn rnv ∗
+    "Hphys" ∷ ownRaftPhysC cs.cfg rnv.raft' id s ∗
+    "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
+    "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
+    "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+    "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
+    "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
+    "%Hrel" ∷ ⌜NStateRel s (restartPState hs σ)⌝ ∗
+    "%Hterm" ∷ ⌜s.term = hs.Term' ∧ s.vote = hs.Vote' ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = []⌝ ∗
+    "%Hlog" ∷ ⌜s.logst.prev = σ.prev ∧ s.logst.sents = σ.ents ∧
+      s.logst.uents = [] ∧ s.logst.stored = σ.ents ∧ s.logst.committed = committedAfter σ.prev hs ∧
+      s.logst.applied = s.logst.applying ∧
+      s.logst.applying = w64Max σ.prev.index' (if A = W64 0 then σ.prev.index' else A) ∧
+      s.logst.unpersisted = [] ∧ s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧
+      s.logst.dtk = uint.nat σ.prev.index'⌝ ∗
+    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
+    "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
+    "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
+    "%Hdom" ∷ ⌜domSet s.progress = domSet cs.prs⌝ ∗
+    "%Hhz" ∷ ⌜hprev = HardStateM.mk hs.Term' hs.Vote' (committedAfter σ.prev hs)⌝)
+
+/-- (2026-11-01, durability stage I-6) On an empty storage, at the voters' tracker, the node built
+is `rawNodeFresh`'s (what `setupNode`'s `Bootstrap` takes). -/
+theorem rawNodeAt_fresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr pre : Bool)
+    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) :
+    HsEmpty hs → σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → A = W64 0 →
+    rawNodeAt (GF := GF) rn id si (cfgState V ∅) sdr pre hs σ A s ⊢
+      rawNodeFresh rn id si V sdr pre s := by
+  -- PORT(durability stage II): proof (new lemma)
+  sorry
 
 /-- Closing `rawNodeFresh`: the pure facts first, the resources in the order of the definition. -/
 theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)

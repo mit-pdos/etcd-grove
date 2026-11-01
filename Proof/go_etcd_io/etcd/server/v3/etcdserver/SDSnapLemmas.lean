@@ -35,7 +35,8 @@ instance srvFrozenBelow_persistent_SD (γs : MemStorNames) (n : Nat) :
 
 instance srvSnapStor_persistent_SD (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid ai at' : w64) :
     Persistent (srvSnapStor (GF := GF) ms γs γr nid ai at') := by
-  unfold srvSnapStor storDL; infer_instance
+  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  sorry
 
 /-- **`Compact`'s entry premise** at an index `k` from `1` to the applied index `n`: frozen
 (`srvFrozenAt` at `n`, `srvFrozenBelow` below it) or compacted. -/

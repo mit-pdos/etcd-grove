@@ -458,7 +458,7 @@ reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any st
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl (srvKey γ.node.cl γ.id) -∗ memSnapNone γs -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
   sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 

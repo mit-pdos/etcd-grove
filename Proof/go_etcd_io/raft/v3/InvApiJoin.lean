@@ -75,11 +75,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **One node's allocated part**: raft's ghost state of node `id` at the initial state (term `0`,
-an empty log), and its table of views, empty. -/
+/-- **One node's allocated part** (2026-11-01, durability stage I-7; until then raft's ghost state
+of node `id` at the initial state and its table of views, empty): its durable state at
+`RaftState.init` and its vacant slot. -/
 def joinSlotU (γ : Cluster) (id : w64) : IProp GF :=
-  iprop(ownRaftGhost γ.raft id initPState true ∗
-    (∃ g : GName, ⌜γ.nodeTab !! id = some g⌝ ∗ ghostMapAuth g 1 (∅ : GMap w64 CfgNames)))
+  iprop(raftStateU γ id RaftState.init ∗ nodeVacantU γ id)
 
 /-- What every node's `RestartNode` takes besides its part (persistent): the cluster's initial
 membership the voters of raft's names (`reCfg`, none of them `0`), the empty log committed and the
@@ -96,9 +96,7 @@ instance joinBaseU_persistent (γ : Cluster) : Persistent (joinBaseU (GF := GF) 
 def joinAuthU (γ : Cluster) (U : GSet w64) : IProp GF :=
   iprop(joinBaseU γ ∗ [∗map] id ↦ _u ∈ toMap (allNodeIds \ U), joinSlotU γ id)
 
-/-- **A joiner's token** (`InvNodeRule`'s `nodeJoin`): node `id`'s part, of the cluster. -/
-def nodeJoinU (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
-  iprop(isClusterU γ N ∗ ⌜id ≠ W64 0⌝ ∗ joinBaseU γ ∗ joinSlotU γ id)
+-- (2026-11-01, durability stage I-7) `nodeJoinU` (`nodeJoin`'s body) deleted.
 
 theorem joinAuthU_eq (γ : Cluster) (U U' : GSet w64) (h : ∀ x, x ∈ U ↔ x ∈ U') :
     joinAuthU (GF := GF) γ U = joinAuthU γ U' := by
@@ -107,132 +105,21 @@ theorem joinAuthU_eq (γ : Cluster) (U U' : GSet w64) (h : ∀ x, x ∈ U ↔ x 
 /-- **Taking a new id's part out of the authority.** -/
 theorem joinAuth_join_impl (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
     id ∉ U → id ≠ W64 0 →
-    isClusterU (GF := GF) γ N ∗ joinAuthU γ U ==∗ joinAuthU γ ({[id]} ∪ U) ∗ nodeJoinU γ N id := by
+    isClusterU (GF := GF) γ N ∗ joinAuthU γ U ==∗
+      joinAuthU γ ({[id]} ∪ U) ∗ raftStateU γ id RaftState.init ∗ nodeVacantU γ id := by
   intro hU hz
-  iintro ⟨#Hc, H⟩
-  unfold joinAuthU
-  icases H with ⟨#Hb, H⟩
-  have hin : (toMap (allNodeIds \ U)) !! id = some () :=
-    (GMap.elem_of_gset _ _).1 ((GMap.elem_of_difference _ _ _).2 ⟨(mem_allNodeIds id).2 hz, hU⟩)
-  icases (BigSepM.bigSepM_delete (Φ := fun x (_u : Unit) => joinSlotU (GF := GF) γ x) hin).1 $$ H
-    with ⟨Hs, H⟩
-  have he : toMap (allNodeIds \ ({[id]} ∪ U)) = Std.delete (toMap (allNodeIds \ U)) id := by
-    apply GMap.set_eq
-    intro x
-    rw [GMap.elem_of_difference, GMap.elem_of_union, GMap.elem_of_singleton]
-    show _ ↔ ((Std.delete (toMap (allNodeIds \ U)) id : GMap w64 Unit).lookup x).isSome = true
-    by_cases hx : x = id
-    · subst hx
-      have : (Std.delete (toMap (allNodeIds \ U)) x : GMap w64 Unit) !! x = none :=
-        GMap.lookup_delete _ _
-      show _ ↔ ((Std.delete (toMap (allNodeIds \ U)) x : GMap w64 Unit) !! x).isSome = true
-      rw [this]; simp
-    · have : (Std.delete (toMap (allNodeIds \ U)) id : GMap w64 Unit) !! x = (toMap (allNodeIds \ U)) !! x :=
-        GMap.lookup_delete_ne _ (Ne.symm hx)
-      show _ ↔ ((Std.delete (toMap (allNodeIds \ U)) id : GMap w64 Unit) !! x).isSome = true
-      rw [this]
-      show _ ↔ x ∈ allNodeIds \ U
-      rw [GMap.elem_of_difference]
-      constructor
-      · rintro ⟨h1, h2⟩; exact ⟨h1, fun h => h2 (.inr h)⟩
-      · rintro ⟨h1, h2⟩; exact ⟨h1, fun h => h.elim hx h2⟩
-  imodintro
-  isplitl [H]
-  · iframe Hb
-    rw [he]; iexact H
-  unfold nodeJoinU
-  iframe Hc Hb Hs
-  ipureintro; exact hz
+  -- PORT(durability stage II): restated (I-7: the id's durable state and slot out)
+  sorry
 
-/-- **A founder's boot token** (`InvNodeRule`'s `nodeFounder`): node `id`'s part, of a cluster of
-the voters `vs` (its initial membership theirs). What its `RestartNode` takes. (Until stage U4 in
-`InvApiDec.lean`, with the part's contents spelled out.) -/
-def nodeFounderU (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
-  iprop(nodeJoinU γ N id ∗
-    ⌜γ.raft.reCfg = GMap.listToSet vs ∧ (∃ g, ModeDec γ (Membership.simple (GMap.listToSet vs)) g) ∧
-      vs ≠ [] ∧ vs.Nodup ∧ W64 0 ∉ vs ∧ (vs.length : Int) < 2 ^ 62⌝)
-
-/-- **A joiner is a node of the founders' membership**: told the initial membership's voters `vs`
-(`confAtU` at `0`, a list without repeats), its token is a founder's of `vs`. -/
-theorem nodeJoin_founder_impl (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) :
-    vs.Nodup →
-    nodeJoinU (GF := GF) γ N id ∗ confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ⊢
-      nodeFounderU γ N vs id := by
-  intro Hnd
-  iintro ⟨Hj, #Hca⟩
-  ihave #Hb : joinBaseU (GF := GF) γ $$ [Hj]
-  · iunfold nodeJoinU at Hj
-    icases Hj with ⟨-, -, #Hb, -⟩
-    iexact Hb
-  iunfold joinBaseU at Hb
-  icases Hb with ⟨%Hm, -⟩
-  iunfold confAtU at Hca
-  icases Hca with ⟨%l, %M, -, -, %Hf⟩
-  obtain ⟨-, c0, g, Hmd, Hfd⟩ := Hf
-  rw [List.take_zero, decFold_nil] at Hfd
-  cases Hfd
-  obtain ⟨⟨g0, Hm0⟩, Hz0⟩ := Hm
-  have Hc := congrArg Membership.voters (Hmd.uniq Hm0).1
-  simp only [Membership.simple] at Hc
-  unfold nodeFounderU
-  iframe Hj
-  ipureintro
-  have Hsz := (memValid_simple_facts Hmd.valid).2
-  rw [GMap.size_list_to_set vs Hnd] at Hsz
-  refine ⟨Hc.symm, ⟨g, Hmd⟩, ?_, Hnd, ?_, by omega⟩
-  · intro h
-    apply γ.raft.reCfg_ne
-    rw [← Hc, h]; rfl
-  · intro h
-    apply Hz0
-    rw [← Hc]
-    exact (GMap.elem_of_list_to_set _ _).2 h
+-- (2026-11-01, durability stage I-7) `nodeFounderU` and `nodeJoin_founder_impl` deleted.
 
 /-- Taking out the parts of the distinct ids `vs`, none in `U`, nor `0`. -/
 theorem joinAuth_join_list (γ : Cluster) (N : Namespace) (vs : List w64) :
     ∀ (U : GSet w64), vs.Nodup → (∀ x ∈ vs, x ∉ U ∧ x ≠ W64 0) →
     isClusterU (GF := GF) γ N ∗ joinAuthU γ U ==∗
-      joinAuthU γ (GMap.listToSet vs ∪ U) ∗ [∗list] id ∈ vs, nodeJoinU γ N id := by
-  induction vs with
-  | nil =>
-    intro U _ _
-    iintro ⟨#Hc, H⟩
-    imodintro
-    rw [joinAuthU_eq γ (GMap.listToSet [] ∪ U) U (fun x => by
-      rw [GMap.elem_of_union, GMap.listToSet_nil, GMap.elem_of_empty]; simp)]
-    iframe H
-    iapply (BigSepL.bigSepL_nil (Φ := fun _ id => nodeJoinU (GF := GF) γ N id)).2
-    iempintro
-  | cons p ps ih =>
-    intro U Hnd Hx
-    rw [List.nodup_cons] at Hnd
-    obtain ⟨HpU, Hp0⟩ := Hx p (List.mem_cons_self ..)
-    iintro ⟨#Hc, H⟩
-    imod joinAuth_join_impl γ N U p HpU Hp0 $$ [H] with ⟨H, Hp⟩
-    · iframe Hc H
-    imod ih ({[p]} ∪ U) Hnd.2 (fun x hx => by
-      obtain ⟨h1, h2⟩ := Hx x (List.mem_cons_of_mem _ hx)
-      refine ⟨fun h => ?_, h2⟩
-      rcases (GMap.elem_of_union _ _ _).1 h with h | h
-      · rw [GMap.elem_of_singleton] at h; subst h; exact Hnd.1 hx
-      · exact h1 h) $$ [H] with ⟨H, Hs⟩
-    · iframe Hc H
-    imodintro
-    rw [joinAuthU_eq γ (GMap.listToSet (p :: ps) ∪ U) (GMap.listToSet ps ∪ ({[p]} ∪ U)) (fun x => by
-      simp only [GMap.elem_of_union, GMap.elem_of_list_to_set, GMap.elem_of_singleton,
-        List.mem_cons]
-      constructor
-      · rintro ((h | h) | h)
-        · exact .inr (.inl h)
-        · exact .inl h
-        · exact .inr (.inr h)
-      · rintro (h | h | h)
-        · exact .inl (.inr h)
-        · exact .inl (.inl h)
-        · exact .inr h)]
-    iframe H
-    iapply (BigSepL.bigSepL_cons (Φ := fun _ id => nodeJoinU (GF := GF) γ N id)).2
-    iframe Hp Hs
+      joinAuthU γ (GMap.listToSet vs ∪ U) ∗ [∗list] id ∈ vs, joinSlotU γ id := by
+  -- PORT(durability stage II): restated (I-7: `joinSlotU` in place of `nodeJoinU`)
+  sorry
 
 end join
 
