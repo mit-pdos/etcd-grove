@@ -54,7 +54,7 @@ variable [GooseExts]
 /-- `commitClean` does not look at the mappings or `ok`. -/
 theorem commitClean_meta {m m' : OsMeta} {bs : List (w8 × Bool)} (h : commitClean m bs)
     (hhi : m'.hi = m.hi) (hlo : m'.lo = m.lo) : commitClean m' bs :=
-  ⟨hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.metas, h.root⟩
+  ⟨hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.metas, h.root, h.tx⟩
 
 /-- The writer's idle states while not failed are `dbOk`, whatever the mappings (`Mmap`'s and
 `Munmap`'s obligations). -/
@@ -90,7 +90,7 @@ theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)} (hsz : m.size ≤
     rw [hmp, List.length_take]; omega
   refine ⟨by simp only [initDoneMeta]; omega, by simp only [initDoneMeta]; omega,
     metaPagesOk_init _ hmp' hlen, ?_, ?_, ?_,
-    fun k hk => hcl k (by omega), fun k hk => hcl _ (by rw [hroot]; omega)⟩
+    fun k hk => hcl k (by omega), fun k hk => hcl _ (by rw [hroot]; omega), ?_⟩
   · unfold curInSlot
     rw [hc, initMeta_txid, show (W64 ((1 : Nat) : Int)).toNat % 2 = 1 by decide,
       initMetas _ hmp' 1 (by decide)]
@@ -109,6 +109,9 @@ theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)} (hsz : m.size ≤
         List.take_of_length_le (by omega)]
     rw [this, initRoot_val, initMeta_txid]
     exact .inl ⟨by decide, rfl⟩
+  · unfold txOk
+    rw [hpg, hc, initMeta_txid]
+    decide
 
 end pure
 

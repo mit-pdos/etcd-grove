@@ -72,7 +72,7 @@ def committedImg (F : List w8) : Prop :=
   4 * 4096 ≤ F.length ∧ metaPagesOk (imgMetas F) ∧ 4096 * curPgid (imgMetas F) ≤ F.length ∧
     bootOk (curMeta (imgMetas F)).txid'.toNat
       (pageVal ((F.drop (4096 * curRoot (imgMetas F))).take 4096)) ∧
-    curInSlot (imgMetas F)
+    curInSlot (imgMetas F) ∧ txOk (imgMetas F)
 
 theorem goodImg_cases {F : List w8} (h : goodImg F) : noValid F ∨ committedImg F := by
   obtain ⟨-, h | ⟨h4, h0, h1⟩ | h⟩ := h
@@ -119,13 +119,13 @@ theorem start_initIdle {m : OsMeta} {F : List w8} (hs : openStart m F) (hn : noV
 
 theorem start_commitClean {m : OsMeta} {F : List w8} (hs : openStart m F) (hc : committedImg F) :
     commitClean m (F.map (·, true)) := by
-  obtain ⟨h4, hmp, hpg, hboot, hslot⟩ := hc
+  obtain ⟨h4, hmp, hpg, hboot, hslot, htx⟩ := hc
   have hg := hs.good.1
   have hr1 := hmp.2.2.1
   have hr2 := hmp.2.2.2.1
-  simp only [imgMetas] at hmp hpg hboot hslot hr1 hr2
+  simp only [imgMetas] at hmp hpg hboot hslot hr1 hr2 htx
   refine ⟨by rw [hs.hi, ← hs.len]; exact hg, by rw [hs.lo, ← hs.len]; exact h4, ?_, ?_, ?_, ?_,
-    fun k hk => clean_get F k (by omega), fun k hk => ?_⟩ <;> rw [fst_clean']
+    fun k hk => clean_get F k (by omega), fun k hk => ?_, ?_⟩ <;> rw [fst_clean']
   · exact hmp
   · exact hslot
   · rw [hs.lo, ← hs.len]; exact hpg
@@ -133,6 +133,7 @@ theorem start_commitClean {m : OsMeta} {F : List w8} (hs : openStart m F) (hc : 
   · have : 4096 * (curRoot (F.take 8192) + 1) ≤ 4096 * curPgid (F.take 8192) :=
       Nat.mul_le_mul_left _ hr2
     exact clean_get F _ (by omega)
+  · exact htx
 
 /-- The starting state is `dbOk`: `init`'s idle states, or a commit's. -/
 theorem start_okS {p : GoString} {m : OsMeta} {F : List w8} (hs : openStart m F) :
