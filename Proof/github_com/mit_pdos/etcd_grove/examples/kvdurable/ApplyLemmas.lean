@@ -290,6 +290,22 @@ theorem repOwn_other (γ : KdNames) (r : Loc) (ap : List LogEntry)
   iapply kvreconf.kvr_confAt_normal γ.r.cluster (ap ++ [e]) ap.length e m (by simp) hc
   iframe Hce Hcfg
 
+/-- A conf change frozen read-only (see the file header). -/
+theorem kd_ownConfChangeV2_persist (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
+    ownConfChangeV2 (GF := GF) p dq m ⊢ |==> ownConfChangeV2 p DFrac.discard m := by
+  iintro H
+  iunfold ownConfChangeV2 at H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ chs).dfractional_persist _ $$ HCh with #HCh
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hch with #Hch
+  imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
+  imodintro
+  iunfold ownConfChangeV2
+  iexists pt, chs, ls, cs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HT cT HCh Hch Hccs HC Hcs Hpb
 
 end laws
 
