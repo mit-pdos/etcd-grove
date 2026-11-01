@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__readPageSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__sum64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__validate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__write
@@ -17,6 +18,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
+public import Proof.os.File__ReadAt
 
 @[expose] public section
 
@@ -29,7 +31,7 @@ namespace bboltfs
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.bboltfs
 
 section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -51,17 +53,25 @@ theorem DB.wp_meta :
     EtcdGrove.bboltfs.DB.«meta».spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.«meta».wp_proof wp_pickMeta
 
+theorem wp_pageAt :
+    EtcdGrove.bboltfs.pageAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.pageAt.wp_proof
+
 theorem Page.wp_meta :
     EtcdGrove.bboltfs.Page.«meta».spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Page.«meta».wp_proof
 
+theorem os.File.wp_ReadAt :
+    EtcdGrove.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.ReadAt.wp_proof
+
+theorem DB.wp_readPageSize :
+    EtcdGrove.bboltfs.DB.readPageSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.readPageSize.wp_proof wp_pageAt Page.wp_meta Meta.wp_validate os.File.wp_ReadAt
+
 theorem Meta.wp_write :
     EtcdGrove.bboltfs.Meta.write.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Meta.write.wp_proof Meta.wp_sum64 Page.wp_meta
-
-theorem wp_pageAt :
-    EtcdGrove.bboltfs.pageAt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.pageAt.wp_proof
 
 theorem wp_initPages :
     EtcdGrove.bboltfs.initPages.spec (GF := GF) (hG := hG) :=

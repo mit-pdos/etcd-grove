@@ -492,6 +492,8 @@ LEAN_FIRST = {
                  "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
                  "The examples' shared start's proofs (`examples/common`)", [""]),
 }
+# The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
+EXTS = {"--bboltfs": "osFsExt"}
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
@@ -842,7 +844,7 @@ namespace EtcdGrove
 open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -1012,7 +1014,7 @@ variable [sem : go.Semantics]
         out.append(f"""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1037,7 +1039,7 @@ variable [sem : go.Semantics]
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

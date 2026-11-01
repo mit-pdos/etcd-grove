@@ -15,3 +15,5 @@ bboltfs_pickMeta: bboltfs_Meta__validate
 # minibolt (`examples/bboltfs/minibolt.go`)
 bboltfs_mmapSize:
 bboltfs_DB__meta: bboltfs_pickMeta
+bboltfs_DB__readPageSize: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__validate os_File__ReadAt
+os_File__ReadAt:
