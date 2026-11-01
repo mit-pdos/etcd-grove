@@ -41,6 +41,10 @@ theorem init_join1 (p : GoString) (xs ys : List (w8 × Bool)) (n : Nat) (hys : y
   iapply (osBytes_append p 0 _ _ _).2
   rw [hys, Nat.zero_add]; iframe
 
+theorem durOf_map_clean (lo : Nat) (xs : List (w8 × Bool)) :
+    durOf lo (xs.map (fun x => (x.1, true))) = durOf lo xs := by
+  simp only [durOf, List.map_map]; rfl
+
 end osbytes
 
 section proof
@@ -176,12 +180,15 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- the file after the first write and sync: `A`, of size `max m.size 16384`
   have hS : pwSize m.size 0 16384 = max m.size 16384 := by rw [pwSize_full _ _ _ (by decide)]
-  have hm1 : ({ m with size := pwSize m.size 0 16384, hi := h } : OsMeta).synced =
-      { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384 } := by
-    simp only [OsMeta.synced, hS]
+  have hm1 : ({ m with size := pwSize m.size 0 16384, hi := h } : OsMeta).synced 0
+        (ys ++ xs.drop 16384) =
+      { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
+               dur := durOf 0 (ys ++ xs.drop 16384) } := by
+    simp only [OsMeta.synced, hS, hok, if_true]
   rw [hm1]
   generalize hm1' :
-    ({ m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384 } : OsMeta) = m1
+    ({ m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
+               dur := durOf 0 (ys ++ xs.drop 16384) } : OsMeta) = m1
   have hm1s : m1.size = max m.size 16384 := by rw [← hm1']
   have hm1m : m1.maps = ∅ := by rw [← hm1']; exact hmaps
   have hm1ok : m1.ok = true := by rw [← hm1']; exact hok
@@ -258,10 +265,6 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   subst He
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
-  have hm2 : ({ m1 with size := pwSize m1.size 0 8192, hi := h2 } : OsMeta).synced = m1 := by
-    rw [← hm1']
-    simp only [OsMeta.synced, pwSize_full _ _ _ (by decide : 0 < 8192)]
-    rw [show max (max m.size 16384) (0 + 8192) = max m.size 16384 by omega]
   have hfin : (ys2 ++ A.drop 8192).map (fun x => (x.1, true)) = initFile xs := by
     have key : (ys2 ++ A.drop 8192).map Prod.fst = I ++ (xs.map Prod.fst).drop 16384 := by
       rw [List.map_append, hys2', List.map_drop, hAfst, ← hFd, List.append_assoc,
@@ -269,6 +272,14 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
         List.map_drop]
     unfold initFile
     rw [hI, ← key, List.map_map]; rfl
+  have hm2 : ({ m1 with size := pwSize m1.size 0 8192, hi := h2 } : OsMeta).synced 0
+        (ys2 ++ A.drop 8192) =
+      { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
+               dur := durOf 0 (initFile xs) } := by
+    rw [← hm1']
+    simp only [OsMeta.synced, pwSize_full _ _ _ (by decide : 0 < 8192), hok, if_true]
+    rw [show max (max m.size 16384) (0 + 8192) = max m.size 16384 by omega, ← hfin,
+      durOf_map_clean]
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by
     have : (m.size : Int) < 2 ^ 63 := by omega
     word
@@ -283,6 +294,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     · rw [hsz64, show sint.Z (W64 16384) = 16384 from rfl] at Hif
       rw [show max (m.size : Int) 16384 = 16384 by omega]
+      simp only [hok]
       iframe
   · iapply HΦ
     iframe Hf Hfd
@@ -291,6 +303,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     · rw [hsz64, show sint.Z (W64 16384) = 16384 from rfl] at Hif
       rw [show max (m.size : Int) 16384 = m.size by omega]
+      simp only [hok]
       iframe
 
 end proof

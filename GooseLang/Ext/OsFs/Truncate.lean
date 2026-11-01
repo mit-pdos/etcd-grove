@@ -203,12 +203,14 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
       refine ⟨f.truncate n, file_eq_some.1 hfk, ⟨hlen.symm, by rw [truncate_named]; exact hmo.named,
         by rw [truncate_sizeLo]; have := hmo.lo; dsimp only; omega,
         by rw [truncate_sizeHi]; have := hmo.hi; dsimp only; omega,
-        fun hok i => by rw [truncate_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_⟩⟩
+        fun hok i => by rw [truncate_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_,
+        fun i d h => by rw [truncate_durable]; exact hmo.dur i d h⟩⟩
       obtain ⟨h1, n1⟩ := hdel t' c' h1
       exact absurd h2 (hother t' c' n1 h1)
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
-      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_⟩⟩
+      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
+        hm1.dur⟩⟩
       · show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -375,7 +377,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⟨rfl, rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.path f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant

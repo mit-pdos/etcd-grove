@@ -283,7 +283,7 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
     {m om : OsMeta} {q : Qp} {xs : List (w8 × Bool)} (hcp : c.path = p)
     (hf : st.file p = some f) (Hml : Γm !! p = some (some m))
     (hom : om.size = m.size ∧ om.named = m.named ∧ om.ok = m.ok ∧ om.maps = m.maps ∧
-      om.lo ≤ m.lo ∧ m.hi ≤ om.hi ∧ om.lo ≤ c.target st ∧ c.target st ≤ om.hi)
+      om.lo ≤ m.lo ∧ m.hi ≤ om.hi ∧ om.lo ≤ c.target st ∧ c.target st ≤ om.hi ∧ om.dur = m.dur)
     (ht : st.inflight !! t = none) (hfree : ∀ i, Affects st c i → ¬ InflightAt st p i)
     (hq : Reaches st c → q = 1)
     (hfrac : ∀ t ti, Γt !! t = some ti → ti.c.path = p → ti.q ≠ 1)
@@ -294,7 +294,7 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
       (insertBytes p (affLo st c) (xs.map (fun x => (x.1, false))) Γb) (<[p := some om]> Γm) Γf
       (<[t := ⟨c, q, xs.map Prod.fst, om⟩]> Γt) := by
   subst hcp
-  obtain ⟨hs1, hs2, hs3, hs4, hs5, hs6, hs7, hs8⟩ := hom
+  obtain ⟨hs1, hs2, hs3, hs4, hs5, hs6, hs7, hs8, hs9⟩ := hom
   have hΓt : Γt !! t = none := by
     have := hcoh.toks t; rw [ht] at this
     cases h : Γt !! t
@@ -322,14 +322,15 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
     split at hm
     · subst_vars; cases hm; simp only [↓reduceIte] at hmo
       refine ⟨hs1 ▸ hmo.size, hs2 ▸ hmo.named, Nat.le_trans hs5 hmo.lo, Nat.le_trans hmo.hi hs6,
-        fun hok => hmo.ok (hs3 ▸ hok), fun b len => hs4 ▸ hmo.maps b len, fun t' c' h1 h2 => ?_⟩
+        fun hok => hmo.ok (hs3 ▸ hok), fun b len => hs4 ▸ hmo.maps b len, fun t' c' h1 h2 => ?_,
+        hs9 ▸ hmo.dur⟩
       by_cases he : t = t'
       · subst he; rw [GMap.lookup_insert] at h1; cases h1; exact ⟨hs7, hs8⟩
       · rw [GMap.lookup_insert_ne _ _ he] at h1
         have := hmo.targets t' c' h1 h2
         exact (show om.lo ≤ c'.target st ∧ c'.target st ≤ om.hi from ⟨by omega, by omega⟩)
     · rename_i hne; simp only [hne, ↓reduceIte] at hmo
-      refine ⟨hmo.size, hmo.named, hmo.lo, hmo.hi, hmo.ok, hmo.maps, fun t' c' h1 h2 => ?_⟩
+      refine ⟨hmo.size, hmo.named, hmo.lo, hmo.hi, hmo.ok, hmo.maps, fun t' c' h1 h2 => ?_, hmo.dur⟩
       by_cases he : t = t'
       · subst he; rw [GMap.lookup_insert] at h1; cases h1; exact absurd h2 hne
       · rw [GMap.lookup_insert_ne _ _ he] at h1; exact hmo.targets t' c' h1 h2
@@ -606,7 +607,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
       by rw [← hc]; simp only [OsChange.target, hsz, pwMeta]; have := hmo.lo; have := hmo.size
          omega,
       by rw [← hc]; simp only [OsChange.target, hsz, pwMeta]; have := hmo.hi; have := hmo.size
-         omega⟩
+         omega, rfl⟩
     ht (hcp ▸ hfree) (fun hr => hq (by rw [← hc] at hr; simpa [Reaches, hsz] using hr))
     Hfrac (fun h1 => noTok_of_whole hcoh (Hwhole h1)) (by rw [hlo, hhi, hlen])
     (fun k hk => by rw [hlo]; exact Hbl k hk)
@@ -991,7 +992,8 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
     · rename_i hpq; subst hpq; cases hm
       refine ⟨pwFile f off data k, file_eq_some.1 hfk, ⟨by rw [hlen], by rw [pwFile_named, hmo.named],
         by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact hmo.lo, ?_, fun hok i => by
-          rw [pwFile_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_⟩⟩
+          rw [pwFile_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_,
+          fun i d h => by rw [pwFile_durable]; exact hmo.dur i d h⟩⟩
       · rw [pwFile_sizeHi _ _ _ _ hk hszf.2]
         have ht1 := hmo.targets t ti.c hct hcp
         have ht2 := hmo.hi
@@ -1000,7 +1002,8 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
       · rw [htg c' ⟨t', h1⟩]; exact hmo.targets t' c' (hdel t' c' h1).1 h2
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
-      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_⟩⟩
+      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
+        hm1.dur⟩⟩
       · show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2

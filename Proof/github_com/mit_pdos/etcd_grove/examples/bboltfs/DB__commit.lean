@@ -610,7 +610,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         ileft
         isplitr
         · ipureintro; trivial
-        iexists (m'.grown len).synced, tail2
+        iexists (m'.grown len).synced 0 [], tail2
         iframe
         ipureintro
         exact ⟨rfl, Nat.le_refl _, Hlen, Hok', Htl2,
@@ -806,7 +806,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       List.map_map]
     rfl
   rw [hsyn]
-  generalize hm4 : ({ m2 with size := m2.size, hi := h } : OsMeta).synced = m4
+  generalize hm4 : ({ m2 with size := m2.size, hi := h } : OsMeta).synced (4096 * hwm) ys = m4
   have hm4m : m4.maps = {[base := len]} := by rw [← hm4]; exact Hmaps
   have hm4s : m4.size = m2.size := by rw [← hm4]; rfl
   have hm4o : m4.ok = true := by rw [← hm4]; exact Hok2
@@ -1055,7 +1055,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   rw [hmv] at hct'
   rw [hhwm] at hcr' hcp'
   have hmpl : mp'.length = 8192 := hok'.1
-  generalize hm5 : ({ m4 with size := m4.size, hi := h2 } : OsMeta).synced = m5
+  generalize hm5 : ({ m4 with size := m4.size, hi := h2 } : OsMeta).synced 0 X = m5
   have hm5m : m5.maps = {[base := len]} := by rw [← hm5]; exact hm4m
   have hm5s : m5.size = m2.size := by rw [← hm5]; exact hm4s
   have hm5o : m5.ok = true := by rw [← hm5]; exact hm4o
