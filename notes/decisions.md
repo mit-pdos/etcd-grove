@@ -28208,3 +28208,21 @@ assumption; a fork change would alter raft's behavior.
 post), and `srvProcOk γn s id γd` the member's directory (`γ.node.snapLoc id = some γd`), from which
 `stepIn_of_recv` builds `snapLocalMsg` out of `netRecv`'s `netSnapRecv`. `rnApSnap` carrying it to the
 apply thread is J8a's next step (`notes/snapshot-j8a-plan.md`, item 1).
+
+## The auth store's reader resource borrowed per `Apply` (2026-11-01, J8a-1, the user's decision)
+
+**Before** (2026-10-14, unit A2): the auth applier's mutex held `authInfoIdle p ∗ E.RD`, so each
+applier made took a reader resource of the auth store, and every snapshot install (which makes a
+new applier, `NewUberApplier`) leaked one: J1b's `srvSnapStock` kept 2^28 copies for them, and
+`specSnap` took a second `E.RD`.
+
+**Now** (the user's choice, J8a's stocks): the mutex holds `authInfoIdle p` only, and the auth
+layer's `Apply` (`authApplierV3.Apply.spec`/`specL`, the chain's `Apply` triple in `applierTriples`,
+`applierAdmL`) takes a lending law of its caller's resources `A`, `rdLend E A := □ (A -∗ E.RD ∗
+(E.RD -∗ A))`, and borrows `E.RD` for the admin check (`IsAdminPermitted`) only. The apply thread's
+`A` lends it from its `kvOwn` (`rdLend_kvOwn`); the layers pass the law through. So
+`newAuthApplierV3`, `newApplierV3` and both `NewUberApplier`s take no `RD` (and their posts no
+`⌜E.RD = RD⌝`), `srvSnapStock` keeps only `lgMu`'s reader slots, the snapshot walk's post
+(`snapWalkPost`) carries the old KV's `E.RD` to the new `kvOwn`, and `specSnap` loses its second
+`E.RD`. `NewServer` still takes one copy for the auth applier out of the stock it gets; it is
+unused (the stock is `rwmutex.actualMaxReaders` large, not a premise).

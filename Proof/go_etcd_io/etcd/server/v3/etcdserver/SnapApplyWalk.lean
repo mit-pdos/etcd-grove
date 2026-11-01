@@ -776,9 +776,9 @@ theorem applySnapshot_walk
   icases Hcs0 with ⟨Hcs0, -⟩
   (try wp_auto)
   -- `s.uberApply = s.NewUberApplier()`
-  wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad E.RD (DFrac.own (1 : Qp).half) Tal zal hbuq
-    $$ [HbeA HERD HTal] as %ua' ⟨HbeA, HTal, %up', %opts', %Hua', %Hopts', Hube⟩
-  · iframe #; iframe HbeA HERD HTal
+  wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad (DFrac.own (1 : Qp).half) Tal zal hbuq
+    $$ [HbeA HTal] as %ua' ⟨HbeA, HTal, %up', %opts', %Hua', %Hopts', Hube⟩
+  · iframe #; iframe HbeA HTal
   (try wp_auto)
   -- the deferred "applied snapshot" log and the gauge's `Dec`
   wp_apply hU64 as %fd1 -

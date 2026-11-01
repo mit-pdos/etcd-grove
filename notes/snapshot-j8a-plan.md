@@ -64,6 +64,8 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
      lending law of their frame `A` (`A ⊢ E.RD ∗ (E.RD -∗ A)`, `kvOwn`'s: `Chain.lean:435`).
      Then `newAuthApplierV3`, `apply.NewUberApplier`, `EtcdServer.NewUberApplier` take no `RD`;
      `NewServer`'s `HRD` and `specSnap`'s second `E.RD` go. Apply package only.
+     *Done 2026-11-01* (decisions, "The auth store's reader resource borrowed per `Apply`"): and
+     `srvSnapStock`'s `E.RD` copies gone, the walk's post carrying the old KV's `E.RD`.
    - `lgMu`: the transport's `R` (8 copies per `AddPeer`, `startPeer`'s `HR1`-`HR8`, of which
      `RemoveAllPeers` returns 4) becomes a pool's: `threadPool.init` on J1b's 2^28 stock
      (`threadBound ≤ 2^28`, `NewServer.spec` and the closed theorems' `n + 2 ≤ 2^28`), each of the

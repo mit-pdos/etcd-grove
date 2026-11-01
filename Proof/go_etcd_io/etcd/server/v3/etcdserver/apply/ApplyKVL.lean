@@ -146,6 +146,8 @@ theorem apply.uberApplier.Apply.wp_kvL
         apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs HFS HSp HRO HL] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO HL
+    isplitr
+    · iapply apply.rdLend_kvOwn
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO, HL⟩ HΦ'
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq) ci L hs)

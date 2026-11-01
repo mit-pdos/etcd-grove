@@ -56,6 +56,8 @@ theorem apply.uberApplier.Apply.wp_proof
         apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs HFS HSp HRO Hco] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO Hco
+    isplitr
+    · iapply apply.rdLend_kvOwn
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO, Hco⟩ HΦ'
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq) x.crev) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO Hco]

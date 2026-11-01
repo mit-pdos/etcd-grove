@@ -303,7 +303,7 @@ theorem apply.newApplierV3Backend.wp_proof
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
     imodintro
-    iintro %Φ' ⟨#Hw, HA, #Haf⟩ HΦ'
+    iintro %Φ' ⟨#Hw, HA, #Hlend, #Haf⟩ HΦ'
     iapply (hApply p r v3 af (iprop(apply.chainRes .backend
         (.ok ⟨go.GoType.PointerType applierV3backend.ty, #p⟩) (apply.principalOf rq) ∗ A))
       (fun ar => iprop(apply.chainResAny .backend

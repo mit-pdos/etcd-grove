@@ -703,7 +703,8 @@ theorem NewServer.wp_proofM (on : Bool)
   -- the compactor is off (`AutoCompactionRetention = 0`)
   rw [Hacr]
   (try wp_auto)
-  -- the auth store's reader slots: one for the auth applier, one for the KV's (D14i)
+  -- the auth store's reader slots: one for the auth applier (2026-11-01, J8a: unused, `Apply` borrows
+  -- the KV's), one for the KV's (D14i)
   icases replicate_take1 _ _ hM1 $$ HRDs with ⟨HRD, HRDs⟩
   icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, HRDs⟩
   -- (D19g (b)) the auth store's reader slots for request goroutines
@@ -752,9 +753,9 @@ theorem NewServer.wp_proofM (on : Bool)
   ipersist QuotaBackendBytesS
   ipersist WarningApplyDurationS
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
-      cfg.WarningApplyDuration' RD (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [HRD be Hafr]
+      cfg.WarningApplyDuration' (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [be Hafr]
     as %ua ⟨be, Hafr, %up, %uopts, %Hua, %Huopts, Hulate⟩
-  · iframe #; iframe HRD be Hafr
+  · iframe #; iframe be Hafr
   -- the alarm store handed over: its apply contract (D14i)
   ihave #HalA := HalAf $$ Hafr
   (try wp_auto)
@@ -1318,11 +1319,11 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt HRDstock Hlgstock Hopen Hwcl Hpath]
+      ρ.rd $$ [Hγt Hlgstock Hopen Hwcl Hpath]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
-    isplitr [HRDstock Hlgstock Hopen Hwcl Hpath]
+    isplitr [Hlgstock Hopen Hwcl Hpath]
     · icases Hbh with ⟨%lgh, #Hbh'⟩
       ihave #Hfix' := Hfix
       iunfold rnFixed at Hfix'
@@ -1348,11 +1349,11 @@ theorem NewServer.wp_proofM (on : Bool)
       isplitr
       · iexists _; iexact Hvcn
       iunfold srvMembersDir; iexact Hmembers
-    isplitl [HRDstock Hlgstock]
+    isplitl [Hlgstock]
     · iunfold srvSnapStock
-      iexists _, _
-      iframe HRDstock Hlgstock
-      ipureintro; constructor <;> omega
+      iexists _
+      iframe Hlgstock
+      ipureintro; omega
     -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
     -- alarm store's `Get`; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
@@ -1864,8 +1865,7 @@ theorem NewServer.wp_proofM (on : Bool)
       · iintro %w ⟨HΦ', %Hw, HP⟩
         subst Hw
         iapply HΦ' $$ HP
-  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) [] Hbo
-  · ipureintro; rfl
+  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) Hbo
   icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
   obtain ⟨hns, hcr⟩ := Hz trivial
   subst hns hcr

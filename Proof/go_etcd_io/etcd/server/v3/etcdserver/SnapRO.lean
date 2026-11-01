@@ -15,8 +15,9 @@ with the names it is stated over (`srvSnapBoot`):
   the cluster's), the cluster's `Members()` (`srvMembersDir`, `bootOk`'s `Hmembers`), and the
   Key bucket's size bound of every backend at the boot parameters (`keySized`, `bootOk`'s);
 * the snapshot-taken counter's authority at `0` (`γt`, the removal fact's);
-* the reader-slot stocks `NewServer` dropped until J1a (`srvSnapStock`): the auth store's reader
-  resource `E.RD` and `lgMu`'s reader slots, for the snapshots' `NewUberApplier` and `AddPeer`s.
+* the reader-slot stock `NewServer` dropped until J1a (`srvSnapStock`): `lgMu`'s reader slots, for
+  the snapshots' `AddPeer`s (2026-11-01, J8a: and no longer the auth store's reader resource `E.RD`,
+  which the snapshots' `NewUberApplier` took until the auth layer's `Apply` borrowed its caller's).
 
 Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the whole configuration read-only
 (`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a struct while `v3rpc.NewWatchServer` may
@@ -285,11 +286,10 @@ instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     Persistent (srvSnapRO (GF := GF) s ci E γr γt) := by
   unfold srvSnapRO; infer_instance
 
-/-- **The reader-slot stocks** (see the file header; spatial): `n` of the auth store's reader
-resource and `m` of `lgMu`'s reader slots, at least `2 ^ 28` each. -/
+/-- **The reader-slot stock** (see the file header; spatial): `m` of `lgMu`'s reader slots, at least
+`2 ^ 28` (2026-11-01, J8a: until then also as many of the auth store's reader resource `E.RD`). -/
 def srvSnapStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ n m : Nat, ⌜2 ^ 28 ≤ n ∧ 2 ^ 28 ≤ m⌝ ∗
-    ([∗list] _x ∈ List.replicate n (), E.RD) ∗ ([∗list] _x ∈ List.replicate m (), srvLgReader s))
+  iprop(∃ m : Nat, ⌜2 ^ 28 ≤ m⌝ ∗ ([∗list] _x ∈ List.replicate m (), srvLgReader s))
 
 /-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m
 (C)): the right to close the server's watchable store (`mvcc.wsCloser`: its stop channel's close,

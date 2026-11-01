@@ -148,7 +148,9 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
     backend.pathOwn bp ∗ Tal ∗
-    (∀ E1 : apply.AEnv GF, ⌜E1.RD = E.RD⌝ -∗ apply.backendOptsOk E1 opts' -∗
+    -- (2026-11-01, J8a) the old KV's reader resource of the auth store (`NewUberApplier` takes none)
+    E.RD ∗
+    (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
       apply.uberIs E1 up' opts' ∗ ∃ ns cr, ⌜zal = true → ns = false ∧ cr = false⌝ ∗
         apply.uberOwn E1 up' (apply.alarmChain E1.authOn ns cr)) ∗
     srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗

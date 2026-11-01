@@ -26,10 +26,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`newAuthApplierV3(as, base, lessor)`**: the auth applier over `base` (an applier of the chain `c`), the auth store `as` and the lessor `lessor` with their contracts: a pointer whose interface value is an applier of the chain `auth c` (its mutex made, with its `authInfo` and the reader resource `E.RD`, the admin check's). -/
+/-- **`newAuthApplierV3(as, base, lessor)`**: the auth applier over `base` (an applier of the chain `c`), the auth store `as` and the lessor `lessor` with their contracts: a pointer whose interface value is an applier of the chain `auth c` (its mutex made, with its `authInfo`; 2026-11-01, J8a: until then also the reader resource `E.RD`, which `Apply` now borrows from its caller). -/
 abbrev apply.newAuthApplierV3.spec : Prop :=
-  ∀ (st base le : GoInterface) (RD : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD }}
+  ∀ (st base le : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3))
       (Val #st)) (Val #base)) (Val #le))
   {{ (p : Loc), RET #p;
@@ -37,10 +37,10 @@ abbrev apply.newAuthApplierV3.spec : Prop :=
       structFieldRef authApplierV3 go!"applierV3" p ↦□ base ∗
       -- (the auth plan's E3k) its store and lessor, read-only, and its structure (`authIs`)
       structFieldRef authApplierV3 go!"as" p ↦□ st ∗ structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
-      □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗
+      □ (∀ E : AEnv GF,
         apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
         apply.authIs E p base) ∗
-      □ (∀ (E : AEnv GF) (c : apply.Chain), ⌜E.RD = RD⌝ -∗
+      □ (∀ (E : AEnv GF) (c : apply.Chain),
         apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
         apply.applierSpec E c base -∗
         apply.applierSpec E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p)) }}
