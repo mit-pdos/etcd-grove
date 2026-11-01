@@ -158,3 +158,10 @@ Built (`lake build` of each module):
 - **Found** (no source anywhere, for a later stage): `srvAuthLeaseLb s E` (a premise of every lease
   discharge); `NewServer` drops `NewLessor`'s remaining `lessorRdOf` slots (`NewServer.lean:621`), so
   no run slot can supply the renewal's `lessorRdOf γl` yet.
+
+## Freeze (2026-11-01, the user's)
+
+Approved: K2-K6 as in the Probe (the wire model's ghost bounds shared by both ends, `leaseKAStreamOk`
+over `kaUpZero`, `kaDn`, `leaseServerAt`'s logger, `srvPeerRt`), with the margins; `srvHeaderFacts`
+by a law from `isServerReqM` (not exported); K7: `bootOk` states `prt` a `*http.Transport` and
+`NewServer`'s three forms export `srvPeerRt` and `srvLessorRd`.
