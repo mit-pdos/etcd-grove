@@ -134,6 +134,37 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     model the store's alarms (a ghost "no alarm" half in `alarmLockInv`, `Recover` re-establishing it
     from the empty bucket, `Get` returning empty under it), which changes `v3alarm`'s predicates and
     the `NewAlarmStore` axiom's post (**approval: a trusted statement**).
+  - *5e, design (2026-11-01)*: the Go steps after `applySnapshot` and where each one's
+    resources come from.
+    - **`applySnapshot`** (`specSnap`): its premises come from:
+      - `srvSnapOwn`'s `srvSnapRO`/`srvSnapRes`/`γt` (the config through J8a-3's rebuild fact, at
+        `{cfg with SnapshotCount', SnapshotCatchUpEntries'}`);
+      - `snapDir_take` (the file and `□ srvImage γ i D`), then `snapRecv_image` (the image facts,
+        `srvRLogLb γr.raft A'`), over the fresh start's `γr.raft = ⟨γ, [], 0⟩`, `c0 = 0`, the boot
+        chain and `log0` (premises, as `run` has them), `|boot| ≤ i`;
+      - `srvApRes`'s `ccMembRes` (`trLive`);
+      - `E.cmp = false` and `authOn = false` (the run's mode off);
+      - the payload (`isNotify2`, `ownSnapM`, `nodeSnapLocal` → `snapSaved`);
+      - open (J8a-4/J8a-6): `isMetaBackend`, `trPeersNoRem`, the `8·|ps|` `c.R`, `hdir`/`hdok`.
+    - **`applyEntries`**: `specNil`.
+    - **`VerifyBackendConsistency`, the gauge**: as `wp_proof`, at `E'`.
+    - **`applyWait.Trigger(i)`**: `applied_jump`. `kvLogAt γr i (kvModel A')` comes from
+      `srvRLogLb A'`; `idxCert` from `snapRecv_kv_jump`'s `certOk`. That lemma also turns `kvApplied A x`
+      into `kvAppliedL A'`, and `kvApplied_of_jump` gives `kvApplied A' x'` from `srvSnapApplied`'s
+      chain.
+    - **`<-notifyc`**: `wp_notify2_receive2`.
+    - **`raftAdvancedC`**: the payload's `nodeAppliedLb`/`storDL`/`srvFrozenAt`/`srvFrozenBelow` at `i`.
+    - **`snapshotIfNeededAndCompactRaftLog`**: `specNoop`, since disk = mem = applied index after the walk.
+    - **The merge branch** (`msgSnapC`), as `wp_proof`'s at `γ'`, `E'`, `A'`. Its inputs:
+      - `lastTermIs A' sv.Term` and the voters' conf state, from the payload's `snapshotCert`
+        through `snapshotCert_valid` (`snapshotValid`: a committed log of length `i`, its last term,
+        `confStateIs` at `confAt`; `srv_confAt_simple`). No raft API change.
+      - `srvWTPool E'` = `srvWTPool E` (it names only `E.γbe`, which `beSucc` keeps).
+      - `i < 2^61` from the payload.
+    - **Post**: `applyAll.spec`'s shape after the jump: `γ'`, `E'`, the applied log the image's `A'`
+      (`srvRLogLb A'`, length `i`), `srvApRes` at `A'` (`srvMemOk` from the image facts,
+      `srvPeersCover` from the walk's `L`), `srvSnapOwn` at `E'` (`srvSnapRO_succ`). J8b ties `A'`
+      to raft's `cum`.
   - *5e*: `applyAll.specSnap` and its proof: `snapDir_take` (`snapSaved` from the payload's
     `nodeSnapLocal`, `nodeSnapLocal_elem`, `snapLoc`), `snapRecv_image`/`snapRecv_kv_jump` (the image
     facts, the KV jump), `specSnap`, `specNil`, `applied_jump` for `applyWait.Trigger(i)` (Go does not
