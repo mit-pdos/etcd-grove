@@ -18,7 +18,10 @@ apply, txn and v3rpc `Link.lean`s):
   write transaction, which must start at the read's revision: txn.go, "writes are serialized on
   the raft loop", or `NewReadOnlyTxnWrite` of the read when it does not write; ranges in the write
   transaction see its pending changes); lease `Grant`/`Revoke` (the revoke deletes the lease's keys
-  through mvcc's range deleter, `s.Write`, in one revision); `KV().Commit()`.
+  through mvcc's range deleter, `s.Write`, in one revision); `KV().Commit()`. (Correction,
+  2026-11-01: etcd's proof excludes every lease request from its workload, `rqOk`'s
+  `leaseGrant`/`leaseRevoke`/`leaseCheckpoint` are `False`, D14h; its `Revoke` contract is vacuous.
+  So the leases are in etcd's Go use but not in what its proof relies on.)
 - **The post-lock hook** (`getTxPostLockInsideApplyHook`, the consistent index's save), installed
   on the backend after `mvcc.New`, run in every write's lock (`LockInsideApply`).
 - **Request goroutines reading concurrently with the writer**: `Read(ConcurrentReadTxMode)` with
@@ -70,13 +73,45 @@ not sent to watchers ("a watcher received an event it should not have, or missed
 not run by `LockInsideApply` ("the post-lock hook did not run in the write's lock"), and `put` not
 detaching a key from its old lease (the revoke then deletes a key no longer on it).
 
-**For a proof**: this version leaves out what blocked the first (compaction and `NoDelPutAt`, the
-store's own `Put`/`DeleteRange`/`Range`, `FakeLessor`, no hook). Still in the way: `backend.New`'s
-possible panic, the Iris environment premises and the refuted bbolt axioms (items 6-8 below). Not
-yet checked against the specs: what it uses beyond the first version (`NewLessor` with a `nil`
-cluster, `Grant`, `Revoke`, `GetLease`, `Lookup`, `Lease.Keys`, the watch stream's calls and the
-progress guarantee, `Commit`, `NewReadOnlyTxnWrite`), and the history shared through a mutex and
-atomics, which a proof would carry as an invariant.
+**For a proof** (checked against the specs on `lean`, 2026-11-01; no proof attempted). This version
+leaves out what blocked the first (compaction and `NoDelPutAt`, the store's own
+`Put`/`DeleteRange`/`Range`, `FakeLessor`, no hook). Its core has the specs it needs:
+
+- the setup is the server's: `mvcc.New` over the real backend, the hook installed after it
+  (`SetTxPostLockInsideApplyHook` gives `plHook`, frozen by `plHook_persist`, then
+  `hookIs_of_init`); the hook check from `csContract` (the writer's own triple of its closure);
+- the writer: the sole writer's pin (revision tokens, `watchWriter`) for `Put`, `DeleteRange` and
+  `Txn`'s read then write at the same revision; reads in the write transaction exact on the
+  pending state; `store.Commit`;
+- the readers: the floor through an invariant holding the published revision's certificate
+  (`End` returns it); "the revision read is in the history" through the certificate map `γ.cok`:
+  the writer registers each log in it (`certOkNext`, which `End` requires) in the same critical
+  section as its history append, and `store.Read` returns `certOk` of the log read (the server's
+  `kvCertInv` pattern);
+- the watches: `watchRecvOk` (each watcher's events exactly its range's changes from its first
+  revision, in order; each response's revision at or above its events'), `covFact` (an event-less
+  response covers its watcher: every event up to its revision received) and `respCompl` (a `-1`
+  response covers every watcher registered when it was sent: stronger than the test checks).
+
+Not provable as written:
+
+1. **`Watch` of a valid range succeeding**: `watchStream.Watch.spec` allows `ErrEmptyWatcherRange`
+   for any range (the code returns it for an empty range or a closed stream); the test's "a watch
+   failed" check needs the spec to exclude it for a non-empty range on an open stream (or the test
+   to tolerate it).
+2. **The leases**, which etcd's proof does not rely on (above): `NewLessor` needs a non-nil cluster
+   (`clusterOk`; the test passes `nil`: a stub with `Version() == nil` would do); `Revoke`'s premise
+   `□ ∀ pend (all deletes), certOkNext γ log pend` cannot be met by a caller that registers its logs
+   in `γ.cok` (one log per revision), only with `certFree`, which gives up the readers' argument
+   above: a spec stronger than needed, unused (the server's `Revoke` contract is vacuous); the
+   `Lookup` that `NewLessor` gives returns `nil` or the lease for any id, so the checks "a live
+   lease is found" and "a revoked lease is gone" are not provable (`GetLease`, `Revoke`'s keys and
+   `Lease.Keys` are exact).
+3. Outside mvcc, as before: `backend.New`'s possible panic, the Iris environment premises
+   (`fileHolds`, `keySized`; and `NewLessor`'s pure `ckptEffectsOk`), the refuted bbolt axioms.
+
+Not checked: the Goose translation of the test (closures, `atomic.Int64`, map iteration,
+`sort.Slice`/`sort.Strings`, which leave with the leases).
 
 ## The first version (2026-10-30)
 
