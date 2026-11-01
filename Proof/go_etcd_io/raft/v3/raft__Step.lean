@@ -190,8 +190,40 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
       ▷ stepPost γ md c r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
+  iintro #Hinit Hphys Hghost Hrest Hmsg #Hmc HΦ
+  have Hcl_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+      isMessage γ (absMsg .heartbeat m ents ctx) ={⊤}=∗
+      ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn ∗
+      ⌜uint.Z s.term ≤ uint.Z m.Term' →
+       uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ := by
+    iintro Hg #Hm
+    by_cases Hle : uint.Z s.term ≤ uint.Z m.Term'
+    · -- a leader receiving a heartbeat of its own term: the sender is a second leader
+      -- of the term, which `isLeader_unique` excludes
+      ihave #Hl2 := isMessage_heartbeat_isLeader γ m ents ctx $$ Hm
+      ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hg Hl2
+      imod heartbeat_commit_le_last ⊤ γ id (toPState s) (absMsg .heartbeat m ents ctx)
+        CoPset.subseteq_top rfl Hto Hle (fun Heq Hr => Hnl Heq ((proleRole_leader _).1 Hr))
+        $$ Hg Hm with ⟨Hg, %Hc⟩
+      imodintro
+      iframe Hg
+      ipureintro
+      exact fun _ => Hc
+    · imodintro
+      iframe Hg
+      ipureintro
+      exact fun h => absurd h Hle
+  imod Hcl_lem $$ Hghost Hmc with ⟨Hghost, %Hcl⟩
+  ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
+  have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
+  wp_apply (wp_Step_MsgHeartbeat P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hcl Hfv)
+    $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+  obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+  iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
+    (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hmc Hghost Hrest Hphys
+    [] HΦ
+  ileft; ipureintro; exact Herr
 
 private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
