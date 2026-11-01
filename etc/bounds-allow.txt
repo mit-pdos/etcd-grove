@@ -1,0 +1,7 @@
+# etc/bounds-check.py's owners: KIND REGEX (searched in the file's path)  # why
+# (notes/bounds-plan.md: a bound is reasoned about by the adequacy theorem, the bounded object's
+# owner, or one predicate per boundary; an owner's own matches are not leaks.)
+
+# The standard library's specs: a slice-length precondition is the library function's own
+# (its Go code's arithmetic overflows past it), stated at the boundary it owns.
+len-literal ^(RaftWitness/)?Spec/(sort|slices|path|strings|bytes|internal|os)/

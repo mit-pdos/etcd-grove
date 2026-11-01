@@ -108,7 +108,8 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
-    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0) :
+    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
+    (hrl : γk.rlog = γs.raft.log) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvModelSt γk (bootEntries γs.raft.boot)) ={E}=∗
       kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries γs.raft.boot)) := by
@@ -178,7 +179,8 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
       ⌜plainLogM γk.cmp L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L⌝ ∗
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+        γk.rlog = γs.raft.log⌝ ∗
         kvWork γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
@@ -189,7 +191,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     isplitr
     · ipureintro
       exact ⟨plainLogM_of _ _ hok.1, hok.2.1, hok.2.2.1, hok.2.2.2.1, hok.2.2.2.2,
-        cmpLogOk_plain _ _ _ hok.1⟩
+        cmpLogOk_plain _ _ _ hok.1, hrl⟩
     iunfold kvWork
     iframe Hcl
     ipureintro

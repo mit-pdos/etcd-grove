@@ -159,7 +159,8 @@ theorem CompactSmall_of_cert (s : Loc) (γ : StoreNames) (log : Log) (c : Int) :
   iunfold isStore at Hs
   iNamed Hs
   iunfold idxCert at Hc
-  icases Hc with ⟨-, -, -, %Hlt⟩
+  icases Hc with ⟨-, -, -, Hp⟩
+  ihave %Hlt := preceipt_lt _ $$ Hp
   ipureintro
   exact CompactSmall_of_logCh c (by have : (2 : Nat) ^ 48 < 2 ^ 62 := by decide
                                     omega)

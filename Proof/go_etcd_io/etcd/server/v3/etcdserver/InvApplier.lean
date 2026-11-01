@@ -155,7 +155,7 @@ theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact hc _
   · obtain ⟨pend, -, rfl⟩ := h
     exact hc _
-  · exact h.elim
+  · subst h; exact List.prefix_refl _
   · exact h.elim
   · rcases h with rfl | rfl <;> exact List.prefix_refl _
 
@@ -417,6 +417,39 @@ theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
 def epConfState (ep cs : Loc) : IProp GF :=
   iprop(epConfStateAddr ep ↦ cs ∗ epCsOk cs)
 
+/-- (2026-10-31, the snapshot track's S5) **`ep.confState` reports the voters** of the server's raft
+names `γs` (persistent): a read-only conf state of the cluster's simple membership, raft's answer to
+a validated conf change (`applyConfChange`; `epCsCfg` at the read names). -/
+def epCsVoters (γs : ServerRaftNames) (cs : Loc) : IProp GF :=
+  iprop(∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜confStateIs c (Membership.simple γs.raft.cfg)⌝)
+
+instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
+    Persistent (epCsVoters (GF := GF) γs cs) := by
+  unfold epCsVoters; infer_instance
+
+/-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
+nothing applied yet, or it reports the voters (the log's first entry is a conf entry,
+`srv_first_entry`, that validates on a fresh backend, `ccValidOn_boot`). -/
+def epCsAt (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) : IProp GF :=
+  iprop(⌜L = []⌝ ∨ epCsVoters γs cs)
+
+instance epCsAt_persistent (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    Persistent (epCsAt (GF := GF) γs L cs) := by
+  unfold epCsAt; infer_instance
+
+theorem epCsAt_voters (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    epCsVoters (GF := GF) γs cs ⊢ epCsAt γs L cs := by
+  iintro #H; iunfold epCsAt; iright; iexact H
+
+theorem epCsAt_ne (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) (h : L ≠ []) :
+    epCsAt (GF := GF) γs L cs ⊢ epCsVoters γs cs := by
+  iintro #H
+  iunfold epCsAt at H
+  icases H with (%h' | #H)
+  · exact absurd h' h
+  · iexact H
+
 end defs
 
 section defs_lc
@@ -476,27 +509,30 @@ write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver
 2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
 alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
 (`srvObjsOn`). (Question 5's core stage, part (1), the user's Q5-4 and review round 16's M1,
-2026-10-29) The store's backend does not compact (`d.cm = false`: no restore in compaction mode,
-`store.Restore`'s premise; M2 turns the server's compaction on). -/
+2026-10-29: the store's backend did not compact, `d.cm = false`.) (M2's apply side, 2026-10-31, the
+user's (a): the snapshot track's draft `srvEnvOkD` in place) The store's backend compacts in the
+server's compaction mode (`d.cm = E.cmp`); a snapshot is installed only with the mode off (the
+interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode). -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
-        H = srvObjsOn al st lp cl d.be ∧ d.cm = false
+        H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
 
-/-- **The cluster's compaction mode is off at an apply environment whose store does not compact**
-(M2's apply side, item 19 with S-5's law): `srvEnvOk`'s backend has `d.cm = false`, and the KV
-names' mode is the server's, which is its store's backend's (`srvKVInvs`). -/
-theorem srvKV_mode_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
-    (γr : ReadNames) (h : srvEnvOk s γ ci E cl)
-    (ht : γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)) : γr.kv.cmp = false := by
+/-- **The store compacts exactly in the server's mode** (S-5's law, from `srvEnvOk`). -/
+theorem srvEnvOk_kbCmp (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : mvcc.kbCmpM E.γ.kb ↔ E.cmp = true := by
   obtain ⟨-, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
-  rw [ht.1]
-  cases hE : E.cmp
-  · rfl
-  · have := ht.2.2 hE
-    rw [hkb] at this
-    simp [mvcc.kbCmpM, hcm] at this
+  rw [hkb, ← hcm]; rfl
+
+/-- **At a store that does not compact, the server's mode is off** (`srvEnvOk`). -/
+theorem srvEnvOk_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (d : mvcc.KBReal) (h : srvEnvOk s γ ci E cl) (hkb : E.γ.kb = some d) (hcm : d.cm = false) :
+    E.cmp = false := by
+  obtain ⟨-, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := h
+  rw [hkb] at hkb0
+  cases hkb0
+  rw [← hcm0, hcm]
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its

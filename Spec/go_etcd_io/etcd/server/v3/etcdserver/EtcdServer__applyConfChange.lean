@@ -36,7 +36,9 @@ caller's hook triple and update, a write session's token spent), or, if the vali
 there is none and it stores the applying index `(i, t)` into the consistent index (read from
 `ciApplying`, which the caller's `Pre` lends). Without `v3` it writes nothing to the backend and
 does not call raft. It may change `cc` (`NodeId` on a failed validation), but not its `Id`, and
-hands it to raft read-only.
+hands it to raft read-only. (2026-10-31, the snapshot track's S5) `ep.confState` after it is
+raft's answer, which reports the voters (`epCsVoters`: the cluster's membership is the voters' at
+every committed index, `srv_confAt_simple`), or, if the validation fails, as before.
 
 **Scope** (`ccApplyOkM`): an `AddNode` of a member of raft's configuration whose context
 unmarshals to it, not a promotion (`ccApplyOk`, the boot entries'), and, in raft's dynamic mode
@@ -97,7 +99,8 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
       ⌜removed = false⌝ ∗ srvLgReader s ∗ srvUberApplyAddr s ↦ ua ∗
       (∃ (m' : ConfChangeM) (csl : Loc), ownConfChange cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
-        epConfState ep csl) ∗
+        epConfState ep csl ∗
+        (epCsVoters γs csl ∨ ⌜membership.ccValidOn rs.bk m = false ∧ csl = cs⌝)) ∗
       E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) ∗
       dvCCPost γs dv k m' ∗ ccMembRes γs cl tl lid (ccPeersAfter v3 m rs.bk prs) ∗
       mvcc.storeRT E.γ }}

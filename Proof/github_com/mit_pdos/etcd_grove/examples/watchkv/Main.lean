@@ -165,7 +165,7 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (wkDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
   ihave ⟨%Hcmp0, Hmb⟩ := common.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
   -- watchkv's invariant over the KV state's half, at the plan: the bootstrap log changes no KV
@@ -306,7 +306,7 @@ theorem Main.wp_proof
   -- the client's `KV`: a client of etcd's KV, sending a write at most once
   imod (client.isKv_of_newClient cl go!"127.0.0.1:23872"
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) R.E ρ.rd
-      cid mid ρ.rd.kv rfl (by omega)) $$ [Hnc Hwo HKV] with ⟨%api, #Hkvf, #Hkv⟩
+      cid mid ρ.rd.kv (kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%api, #Hkvf, #Hkv⟩
   · iframe #
   -- the client's `Watcher`, with the watch server's facts (D19f): a watcher of etcd's KV
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl

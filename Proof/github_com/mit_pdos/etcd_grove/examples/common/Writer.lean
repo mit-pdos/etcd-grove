@@ -81,7 +81,7 @@ theorem Writer.wp_proof
     -- `cancel()`
     (try wp_auto)
     wp_apply Hcancel
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, -⟩ | ⟨%Herr, -⟩)
     · subst Herr
       ihave #Hok : OkF ⟨m.hdr.revision, x.Key', x.Val'⟩ $$ [HQ]
       · rw [Hs.1]

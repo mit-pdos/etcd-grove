@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkPutAuth.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.checkPutAuth.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on RW ai info dq r o
-  wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hr⟩
+  intro st le γ P f RD on RW ai info dq r o L I
+  wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu, #Hr⟩
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
   icases Hst' with ⟨%sti, %Hsti, #HPut, #HRange, -⟩
@@ -45,23 +45,27 @@ theorem apply.checkPutAuth.wp_proof
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h)); (iintro %h; cases h)
+    iapply HΦ; iframe Hai Hrd Hu; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h)); (iintro %h; cases h)
   | nil =>
   wp_auto
   rw [← Hsti]
-  wp_apply (hLP st le γ P f RD on RW ai info dq lease) $$ [$Hst $Hle $Hai $Hrd] as %err ⟨Hai, Hrd, #HeI2, %Hoff2⟩
+  wp_apply (hLP st le γ P f RD on RW ai info dq lease L I) $$ [$Hst $Hle $Hai $Hrd $Hu]
+    as %err ⟨Hai, Hrd, Hu, #HeI2, %Hoff2, #Hlc⟩
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h)); (iintro %h; cases h)
+    iapply HΦ; iframe Hai Hrd Hu; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h)); (iintro %h; cases h)
   | nil =>
   wp_auto
   cases pk
   · wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
+    iapply HΦ; iframe Hai Hrd Hu; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
     iintro %_
-    simp only [apply.putClass, apply.putPerms, txn.putOpOf.proj_key, txn.putOpOf.proj_base, Bool.false_eq_true, ↓reduceIte]
-    iapply (apply.classRes_of_permVerdict on info k [] .write) $$ Hv1
+    isplitl []
+    · simp only [apply.putClass, apply.putPerms, txn.putOpOf.proj_key, txn.putOpOf.proj_base, Bool.false_eq_true, ↓reduceIte]
+      iapply (apply.classRes_of_permVerdict on info k [] .write) $$ Hv1
+    · simp only [txn.putOpOf.proj_leaseID]
+      iapply Hlc; rfl
   wp_auto
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   rw [Hsti]
@@ -70,16 +74,19 @@ theorem apply.checkPutAuth.wp_proof
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h)); (iintro %h; cases h)
+    iapply HΦ; iframe Hai Hrd Hu; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h)); (iintro %h; cases h)
   | nil =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
+    iapply HΦ; iframe Hai Hrd Hu; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); isplitl []; (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
     iintro %_
-    simp only [apply.putClass, apply.putPerms, txn.putOpOf.proj_key, txn.putOpOf.proj_base, ↓reduceIte]
-    iapply apply.classRes_cons
     isplitl []
-    · iapply (apply.classRes_of_permVerdict on info k [] .write) $$ Hv1
-    · iapply (apply.classRes_of_permVerdict on info k [] .read) $$ Hv3
+    · simp only [apply.putClass, apply.putPerms, txn.putOpOf.proj_key, txn.putOpOf.proj_base, ↓reduceIte]
+      iapply apply.classRes_cons
+      isplitl []
+      · iapply (apply.classRes_of_permVerdict on info k [] .write) $$ Hv1
+      · iapply (apply.classRes_of_permVerdict on info k [] .read) $$ Hv3
+    · simp only [txn.putOpOf.proj_leaseID]
+      iapply Hlc; rfl
 
 end proof
 

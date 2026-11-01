@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.Close()` (`examples/bboltfs/minibolt.go`, db.go's `Close`): all three locks, unmap, unlock the file, close it. It takes every reader token and the committer's token: nothing may use the handle afterwards (the locks' resources then hold no mapping and no open file). It returns `close`'s error. On success, unless the handle failed, it gives back the file (`dbClosed`): its `OsMeta`, its bytes, and what the current transaction `t` holds, at the token's high water mark `n`, for the caller to reopen it. A failed handle's token is at high water mark 0 (`Commit`), so a caller whose token has a positive one knows `Close` gives the file back if it returns no error. -/
+/- Lean-first (no Rocq counterpart). `db.Close()` (`examples/bboltfs/minibolt.go`, db.go's `Close`): all three locks, unmap, unlock the file, close it. It takes the committer's token: no `Commit` or `Close` may follow, and a read afterwards finds no mapping and refuses (the locks' resources then hold no mapping and no open file). It returns `close`'s error. On success, unless the handle failed, it gives back the file (`dbClosed`): its `OsMeta`, its bytes, and what the current transaction `t` holds, at the token's high water mark `n`, for the caller to reopen it. A failed handle's token is at high water mark 0 (`Commit`), so a caller whose token has a positive one knows `Close` gives the file back if it returns no error. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.MapCells
@@ -41,9 +41,7 @@ def dbClosed (γ : DBNames) (p : GoString) (t n : Nat) : IProp GF :=
 /-- See the file header. -/
 abbrev DB.Close.spec : Prop :=
   ∀ (γ : DBNames) (db : Loc) (t n : Nat),
-  {{ isDB (GF := GF) γ db ∗ dbOwner (GF := GF) γ t n ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        dbReader (GF := GF) γ db) }}
+  {{ isDB (GF := GF) γ db ∗ dbOwner (GF := GF) γ t n }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ∃ p : GoString, db.[DB, go!"path"] ↦□ p ∗
       ((⌜err = interface.nil⌝ ∗ dbClosed (GF := GF) γ p t n) ∨ ⌜err ≠ interface.nil⌝ ∨

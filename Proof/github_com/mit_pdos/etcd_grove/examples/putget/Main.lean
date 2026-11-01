@@ -132,7 +132,7 @@ theorem Main.wp_proof
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23790" cid mid
-      R Hrb48 Hrf)
+      R Hrb48 Hrf rfl)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with

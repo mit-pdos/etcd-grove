@@ -2,14 +2,19 @@
 **`applyAll`'s `msgSnapC` branch: the sender's backend and store contracts** (D22 S-h, 2026-10-20;
 `notes/decisions.md`, "D22 S-h carried out"). Lean-first (no Rocq counterpart).
 
-The branch is dead: `msgSnapC` carries nothing (`isRNMsgSnapC`'s `rnSnapMsg`, `False` since the
-server's clusters send no snapshot, 2026-10-27). Until 2026-10-27 this file also proved the branch
-itself (`snapBranch_send`, over `SnapSendBundle.lean`'s `srvMergedBundle`, the merged message as the
-network's snapshot bundle) from raft's internals (`isRaftMsg`, `raftCommitInv`, `raftSnapCert`,
-`isCommitted`, `termLB`): deleted with the port onto raft's node API, which has the server send no
-snapshot. What is left are the sender's contracts of `s.KV().Commit()` (`srvKVCommitOk_of_kv`) and
-`s.be.Snapshot()` (`srvBeSnapOk_of_backend`, `srvBeSnapOk_window`: the stored-index window), and the
-sole writer's well-formed log (`soleWriter_idxWf`, the image's).
+(2026-10-31, S1) The branch is live again: `msgSnapC` carries raft's `MsgSnap`s (`isRNMsgSnapC`'s
+`rnSnapMsg`), which `applyAll` merges with the backend's image when the guard holds
+(`notes/decisions.md`, "The merged snapshot's index guard"). This file has what the branch's proof
+uses beside `SnapCert.lean`'s `srv_merged_sent`: the bag's nonblocking receive
+(`chanBag_nbRecv`), the conf states' agreement (`csPts_agree`), the merged message as the network's
+snapshot bundle (`srvMerged_bundle`), and the two lemmas left for S2 (`sorry`): the snapshot window
+(`mergedCreate_window`, the contracts `createMergedSnapshotMessage` takes of `s.KV().Commit()` and
+`s.be.Snapshot()`, over the image's observation `mergedObs`) and the image (`merged_image`, the
+observation as the network's image certificate). (2026-10-27 to 2026-10-31 the branch was dead,
+`rnSnapMsg` `False`; until 2026-10-27 this file proved it from raft's internals, `snapBranch_send`,
+deleted with the port onto raft's node API.) The rest are the sender's contracts of `s.KV().Commit()`
+(`srvKVCommitOk_of_kv`) and `s.be.Snapshot()` (`srvBeSnapOk_of_backend`, `srvBeSnapOk_window`: the
+stored-index window), and the sole writer's well-formed log (`soleWriter_idxWf`, the image's).
 -/
 module
 
@@ -24,6 +29,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyKVCore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapCert
 
 @[expose] public section
 
@@ -272,6 +280,227 @@ theorem soleWriter_idxWf (γ : mvcc.StoreNames) (log : mvcc.Log) :
   obtain ⟨hwf, -, hcs⟩ := Hp
   have hne : log ≠ [] := by intro h; subst h; simp at H2
   refine ⟨mvcc.LogWf'.append_nil hwf hne, by omega, by simp, hcs⟩
+
+/-! ## The merged snapshot (2026-10-31, S1) -/
+
+/-- **A bag's nonblocking receive**: whatever the bag holds, a value received carries `P`. (A fact
+of Perennial's bag idiom, `Bag.lean`, beside `bag_recv_au`: `notes/perennial-changes.md`.) -/
+theorem chanBag_nbRecv (γ : ChanNames) (ch : Loc) (P : Loc → IProp GF)
+    (Φ : Loc → Bool → IProp GF) :
+    isChanBag γ ch P ⊢ (∀ v, P v -∗ Φ v true) -∗ nonblockingRecvAuInner γ Loc Φ := by
+  rw [isChanBag_unseal]; unfold isChanBagDef nonblockingRecvAuInner
+  iintro ⟨-, #Hinv⟩ HΦ
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  unfold chanBagInv
+  icases Hi with ⟨%s, Hoc0, Hi⟩
+  iexists s
+  iframe Hoc0
+  rcases s with (_ | ⟨v, rest⟩) | _ | v | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals dsimp only
+  case Buffered.cons =>
+    iintro Hoc
+    icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨HP, Hi⟩
+    imod Hmask with -
+    imod Hclose $$ [Hoc Hi] with -
+    · inext; iexists .Buffered rest; iframe
+    imodintro
+    iapply HΦ $$ HP
+  case SndPending =>
+    iintro Hoc
+    imod Hmask with -
+    imod Hclose $$ [Hoc] with -
+    · inext; iexists .RcvCommit; iframe
+    imodintro
+    iapply HΦ $$ Hi
+  all_goals first | itrivial | (iexfalso; iexact Hi)
+
+/-- Two read-only views of a conf state agree. -/
+theorem csPts_agree (p : Loc) (c1 c2 : ConfStateM) (al1 al2 : Bool) :
+    csPts (GF := GF) p DFrac.discard c1 al1 ∗ csPts p DFrac.discard c2 al2 ⊢ ⌜c1 = c2⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold csPts at H1 H2
+  icases H1 with ⟨%sv1, %sl1, %so1, %sn1, %pa1, -, HV1, Hv1, HL1, Hl1, HO1, Ho1, HN1, Hn1, HA1,
+    #cA1, -, -⟩
+  icases H2 with ⟨%sv2, %sl2, %so2, %sn2, %pa2, -, HV2, Hv2, HL2, Hl2, HO2, Ho2, HN2, Hn2, HA2,
+    #cA2, -, -⟩
+  icombine HV1 HV2 gives %e1
+  icombine HL1 HL2 gives %e2
+  icombine HO1 HO2 gives %e3
+  icombine HN1 HN2 gives %e4
+  icombine HA1 HA2 gives %e5
+  subst e1 e2 e3 e4 e5
+  ihave %f1 := ownSlice_agree _ _ _ _ _ $$ Hv1 Hv2
+  ihave %f2 := ownSlice_agree _ _ _ _ _ $$ Hl1 Hl2
+  ihave %f3 := ownSlice_agree _ _ _ _ _ $$ Ho1 Ho2
+  ihave %f4 := ownSlice_agree _ _ _ _ _ $$ Hn1 Hn2
+  ihave %f5 : ⌜c1.AutoLeave' = c2.AutoLeave'⌝ $$ []
+  · iapply cellRO_agree pa1
+    isplit
+    · iexact cA1
+    · iexact cA2
+  ipureintro
+  cases c1; cases c2
+  simp_all
+
+/-- A conf state read back from a nested pointer (`createMergedSnapshotMessage`'s `csOpt`) is the
+one a read-only view of it holds. -/
+theorem csOpt_agree (p : Loc) (c1 c2 : ConfStateM) :
+    csOpt (GF := GF) p DFrac.discard c1 ∗ csPts p DFrac.discard c2 false ⊢ ⌜c1 = c2⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold csOpt at H1
+  icases H1 with (%Hn | H1)
+  · iunfold csPts at H2
+    icases H2 with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, -⟩
+    exact absurd Hn.1 Hnn
+  · iapply csPts_agree p c1 c2 false false
+    iframe H1 H2
+
+/-- **A `MsgSnap` the server's node sent has a snapshot past index `0`**: its certificate
+(`sentMsg_snapshot`) is of a non-empty committed log (`snapshotCert_made`). -/
+theorem srv_sentSnap_pos (γr : ReadNames) (sid : w64) (st : MsgSt) (sv : SnapshotM)
+    (hty : st.msg.Type' = MsgSnap) (hsv : st.snap = some sv) :
+    letI := srvStor (GF := GF) γr.raft.raft
+    srvRaftLogInv (GF := GF) γr.raft ∗ sentMsg γr.raft.raft.cl srvClusterN sid st ⊢
+      ⌜0 < uint.Z sv.Metadata'.Index'⌝ := by
+  letI := srvStor (GF := GF) γr.raft.raft
+  iintro ⟨#Hinv, #Hs⟩
+  ihave ⟨%sv0, %Hsv0, #Hk⟩ := sentMsg_snapshot _ _ _ _ hty $$ Hs
+  rw [hsv] at Hsv0
+  cases Hsv0
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave ⟨%l, %m, -, -, -, %Hf⟩ := snapshotCert_made _ _ _ $$ [Hc Hk]
+  · iframe Hc Hk
+  ipureintro
+  obtain ⟨hl, ht, -⟩ := Hf
+  simp only [snapTrip, snapId] at hl ht
+  rcases l with _ | ⟨e, l⟩
+  · simp at ht
+  · simp only [List.length_cons] at hl
+    have := uint_nat_eq sv.Metadata'.Index'
+    omega
+
+/-- The frozen entry's index is below `2 ^ 61` (`memLog_bound`). -/
+theorem srvFrozenTerm_bound (γs : MemStorNames) (ai at' : w64) :
+    srvFrozenTerm (GF := GF) γs ai at' ⊢ ⌜uint.Z ai < 2 ^ 61⌝ := by
+  iintro #Hft
+  iunfold srvFrozenTerm at Hft
+  icases Hft with (%H0 | ⟨%e, #He, -⟩)
+  · ipureintro; have := uint_nat_eq ai; omega
+  ihave %Hb := memLog_bound γs (uint.nat ai) DFrac.discard [e] $$ He
+  ipureintro
+  rcases Hb with h | h
+  · cases h
+  · have := uint_nat_eq ai; simp only [List.length_singleton] at h; omega
+
+/-- **The merged message as the network's snapshot bundle** (`netSnapBundle`, `sendMergedSnap`'s
+premise): read-only, of a `MsgSnap` the node `sid` sent (`srv_merged_sent`), with new credits (a
+`MsgSnap` is no `MsgProp`, `msgCredits_intro`), the reader's streams of the image `D`, and the
+image's certificate at the snapshot's index (`merged_image`). -/
+theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgSt) (sid : w64)
+    (c : ConfStateM) (ai at' : w64) (D : backend.Data) (hty : st.msg.Type' = MsgSnap) :
+    letI := srvStor (GF := GF) γ
+    msgOwn ml DFrac.discard (mergedSt st c ai at') ∗
+      sentMsg γ.cl srvClusterN sid { st with snap := some (memSnapMade ai at' c []) } ∗
+      backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
+      □ (srvNet (GF := GF) γ).img ai D ⊢ |==> netSnapBundle (srvNet γ) ml rc := by
+  have hP : (mergedSt st c ai at').msg.Type' ≠ MsgProp := by
+    simp only [mergedSt]; rw [hty]; simp [MsgSnap, MsgProp]
+  letI := srvStor (GF := GF) γ
+  rw [show ({ st with snap := some (memSnapMade ai at' c []) } : MsgSt) = mergedSt st c ai at'
+    from rfl]
+  iintro ⟨#Hm, #Hs, Hrs, #Himg⟩
+  ihave %Hsh := sentMsg_shape γ.cl srvClusterN sid _ $$ Hs
+  imod msgCredits_intro γ.cl srvClusterN (mergedSt st c ai at')
+    hP with HO
+  imodintro
+  iunfold netSnapBundle
+  iexists mergedSt st c ai at', SnapshotM.mk [] (SnapshotMetadataM.mk c ai at'), D
+  iframe Hm Hrs Himg
+  isplitr
+  · iintro !>
+    simp only [srvNet]
+    iexists sid; iexact Hs
+  isplitl [HO]
+  · simp only [srvNet]; iexact HO
+  ipureintro
+  exact ⟨by simp only [mergedSt]; exact hty, rfl, Hsh.1.2.2.2.2.2.2.2⟩
+
+/-- **What the merged snapshot's image observes** (`createMergedSnapshotMessage`'s `Qd`): the
+backend's data `D` holds the KV log `log` in its `Key` bucket, the consistent index `ai` and some
+term in `Meta`, the other buckets of the committed log `A` (`bkRestAt`), and `log` is a well-formed
+committed log (`IdxWf`): `imageAt`'s clauses, over the apply thread's KV log in place of the model
+(`merged_image` relates them). (2026-10-31, the user's decision) No compaction key in `Meta` only
+with the store's compaction mode `cmp` off (`noCmpData`; until then unconditionally, `keyImage`,
+which is false of a snapshot taken with compactions applied): a compacted image is the image
+certificate's to state (`merged_image`, the durability work's `srvImageR`). -/
+def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
+    (D : backend.Data) : Prop :=
+  (∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketMap log).lookup k) ∧
+    (cmp = false → mvcc.noCmpData D) ∧
+    backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+      go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
+    (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+      go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
+    bkRestAt γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D ∧ mvcc.IdxWf log []
+
+/-- **(S2, open) The merged snapshot's window** (`createMergedSnapshotMessage`'s premise): with the
+apply thread at the applied index `ai`, its consistent index (`loopOk`, `ciEff γ st.k = ai`) and
+its KV at the log `x.log` (the shared row, `srvApplyKVCore`, in either auth mode), two time
+receipts (for the commit's write token and the snapshot's write-back token), the contracts of
+`s.KV().Commit()` (`srvKVCommitOk`) and `s.be.Snapshot()` (`srvBeSnapOk`) with the window's
+resources (`RC`, the commit's `RC'` giving the snapshot's `RS`; D22 the stored-index window:
+`storeReq_freeze`, `srvBeSnapOk_window`), the snapshot observing `mergedObs` at `ai`; once the
+snapshot is taken (`RS'`, with `s.be` back), the apply thread's resources again, at a state of the
+same consistent index. -/
+theorem mergedCreate_window
+    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (st : ApplyState)
+    (ai a t : w64) (A : List EntryModel) (x : apply.ApplyKV) (γw γp : GName) (ua kv : GoInterface)
+    (hok : loopOk γ st ai) (hci : ciEff γ st.k = ai) (hpos : 0 < uint.Z ai)
+    (hlen : uint.Z ai = A.length) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ ∗
+      srvWTPool E γp ∗ appliedLogAt γr ai x.log ∗ srvRLogLb γr.raft A ∗ ⧗ 1 ∗ ⧗ 1 ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗
+      srvRest E γr A ⊢
+    |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF),
+      srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
+      srvBeSnapOk be RS RS' (mergedObs γr E.cmp ai A x.log) ∗ (RC' -∗ RS) ∗
+      (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
+        applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
+        ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
+  sorry
+
+/-- **(S2, open) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`,
+which the bundle carries): an observation `mergedObs` at the applied index `ai` of the applied log
+`A` (`kvApplied`: the KV log the model's, `kvModel`) of the server, with the KV's start values
+(`isServerApplyAll`'s). The image is exact at `ai` (the consistent index the applied index:
+`mergedCreate_window`'s `ciEff γ st.k = ai`). With the auth mode off: with auth on, the KV log is
+the mode-on model's (`kvModelOn`), not the image `srvNet` carries (`srvImage`, mode off), so the
+on-mode branch is open (`notes/decisions.md`, "applyAll's merge branch (S1)"). Reach the image only
+through this lemma (`srvImage`, `srvImageR` change with the durability work). -/
+theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
+    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
+    ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
+      |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
+  sorry
 
 end proof
 

@@ -123,7 +123,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with

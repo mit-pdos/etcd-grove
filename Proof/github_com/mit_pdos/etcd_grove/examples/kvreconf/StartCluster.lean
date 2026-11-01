@@ -75,11 +75,11 @@ theorem StartCluster.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   -- the ghost state
-  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true ⊤ Hrb
+  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) ⊤ Hrb
     (by intro h; have := congrArg List.length h; rw [bootVoters_length] at this; simp at this; omega)
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h)
-    $$ [] with ⟨%γ, ⟨%Hdup, -⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hjf⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, -⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hjf⟩
   · rw [if_pos rfl]; iempintro
   isimp only [↓reduceIte] at Hjf
   icases Hjf with ⟨Hjoin, Hfounders⟩
@@ -189,7 +189,7 @@ theorem StartCluster.wp_proof
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
   have HVv : uint.nat o.Voters' ≤ 9 := by omega
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)

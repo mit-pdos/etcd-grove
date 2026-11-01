@@ -512,7 +512,7 @@ theorem KV.run.wp_proof
     · iexact Hdrv
     ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
     iunfold readySnap at HS
-    icases HS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven⟩
+    icases HS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, -⟩
     obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
     subst Hce0
     have Hslen : (strip l.dlv).length = uint.nat l.snap.Metadata'.Index' := by

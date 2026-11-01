@@ -180,7 +180,7 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -195,10 +195,11 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 29) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.linkv3p.initialize'
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.Main)) (Val #clients))
       (Val #ops)) (schedLit steps))

@@ -50,20 +50,32 @@ theorem snap_add16 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
     sint.Z (x * W64 4096 + W64 16) = ((4096 * x.toNat + 16 : Nat) : Int) := by
   word
 
+/-- `DB.Snapshot.spec` with the reader slot the caller borrowed (`dbReader_borrow`), behind a later. -/
+abbrev DB.Snapshot.readerSpec : Prop :=
+  ∀ (γ : DBNames) (db : Loc) (t : Nat) (o : Option (Nat × Nat)),
+  {{ isDB (GF := GF) γ db ∗ ▷ dbReader (GF := GF) γ db ∗ dbLast (GF := GF) γ t ∗
+      dbOwnerOpt (GF := GF) γ o }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Snapshot")) (Val #()))
+  {{ (txid v : w64) (has : Bool) (err : GoInterface), RET (PairV (PairV (PairV #txid #v) #has) #err);
+      dbReader (GF := GF) γ db ∗ dbOwnerOpt (GF := GF) γ o ∗
+      ((⌜err = interface.nil ∧ t ≤ txid.toNat ∧ ∀ x, o = some x → txid.toNat = x.1⌝ ∗ dbLast (GF := GF) γ txid.toNat ∗
+          dbTx (GF := GF) γ txid.toNat (if has then some v else none)) ∨
+       ⌜err ≠ interface.nil⌝) }}
+
 set_option maxHeartbeats 4000000 in
-theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
+theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
     (wp_ReadAt : os.File.ReadAt.specRacy (GF := GF) (hG := hG)) :
-    DB.Snapshot.spec (GF := GF) (hG := hG) := by
+    DB.Snapshot.readerSpec (GF := GF) (hG := hG) := by
   intro γ db t o
   wp_start as ⟨Hdb, Hrd, Hlast, Hoo⟩
   iunfold isDB at Hdb
-  icases Hdb with ⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩
-  iunfold dbReader at Hrd
-  icases Hrd with ⟨%f', %fd', %p', #Hfile', #Hpath', Hrd⟩
+  icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩, -⟩
   iunfold pkgFacts at Hpkg
   icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He, %eof, #Heof, %Heof⟩
   wp_auto
+  iunfold dbReader at Hrd
+  icases Hrd with ⟨%f', %fd', %p', #Hfile', #Hpath', Hrd⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) $$ [$Hmeta $Hsync]
@@ -431,6 +443,27 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
           isplitl [Hrd]
           · iunfold dbReader; iexists f', fd', p; iframe; iframe #
           iframe Hoo; iright; ipureintro; intro h; cases h
+
+/-- `DB.Snapshot.wp_reader`, the reader slot borrowed from `isDB`'s pool with the thread token and
+given back after. -/
+theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
+    (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
+    (wp_ReadAt : os.File.ReadAt.specRacy (GF := GF) (hG := hG)) :
+    DB.Snapshot.spec (GF := GF) (hG := hG) := by
+  intro γ db t o
+  wp_start_folded as ⟨#Hdb, Htok, Hlast, Hoo⟩
+  iapply wp_fupd
+  iapply fupd_wp
+  imod dbReader_borrow γ db $$ [Htok] with ⟨Hrd, Hloan⟩
+  · iframe; iframe #
+  imodintro
+  wp_apply DB.Snapshot.wp_reader wp_meta wp_pageAt wp_ReadAt γ db t o $$ [$Hdb $Hrd $Hlast $Hoo]
+    as %txid %v %has %err ⟨Hrd, Hoo, Hres⟩
+  imod dbReader_giveBack γ db $$ [Hloan Hrd] with Htok
+  · iframe
+  imodintro
+  iapply HΦ
+  iframe
 
 end proof
 

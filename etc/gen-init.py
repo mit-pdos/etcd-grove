@@ -47,6 +47,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.putgetc',
+         # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
+         'github_com.mit_pdos.etcd_grove.examples.compactkv',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
@@ -365,6 +367,17 @@ initializer runs its variables' untranslated initializers (`version.go`): string
                                   post='globalAddr MinClusterVersion ↦ go!"3.0.0"', pat='H@'),
     },
     finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
+)
+
+# (the lease-renew plan, 2026-11-01) names only: `LeaseRenew` reads `LeasePrefix`
+SPECIAL['go_etcd_io.etcd.server.v3.lease.leasehttp'] = dict(
+    doc='''Its fact (`lease/leasehttp/Base.lean`): `LeasePrefix` holds some string. Its initializer
+runs its variables' untranslated initializers (`http.go`); the trust-boundary axiom
+`LeasePrefix_init` states the one the fact reads (`"/leases"`, its value not stated),
+`opaqueInitsOk` the others.''',
+    custom={'LeasePrefix': dict(doc='/-- `LeasePrefix = "/leases"` (`http.go`): some string. -/',
+                                post='∃ p : GoString, globalAddr LeasePrefix ↦ p', pat='⟨%p@, H@⟩')},
+    finish=['ipersist HLeasePrefix'] + FIN_PRE[:6],
 )
 
 # The k8s etcd3 store's packages (stage 6g, 2026-10-23): their facts are in
@@ -775,8 +788,8 @@ def counter_inc(x, file='metrics.go'):
                 pat='⟨%c@, H@, #S@⟩')
 
 SPECIAL['go_etcd_io.etcd.server.v3.lease'] = dict(
-    doc='''Its fact (`leaseInit`, `Base.lean`): the error variables `ErrLeaseNotFound`,
-`ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
+    doc='''Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
+`ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
 (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
@@ -787,15 +800,18 @@ other untranslated initializers run.''',
                 doc='/-- `leaseTotalTTLs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
                 post='∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦ GoInterface.ok h ∗ go_etcd_io.etcd.server.v3.storage.backend.histSpec h',
                 pat='⟨%h@, H@, #S@⟩')},
-    alloc_types={'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
+    alloc_types={'ErrNotPrimary': 'GoInterface',
+                 'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
     before={'leaseGranted': [
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
         'wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx',
         'wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL']},
-    finish=['ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
+    finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
+            'ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP',
             'ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF',
             'ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx',
             'ihave #TTL := EtcdGrove.errorMsg_triple _ _ _ $$ MTL',
@@ -1334,7 +1350,7 @@ errors by `EtcdGrove.ErrorStringLeaf`.""",
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd19', 'KNF') +
             ['ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd10',
-             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF⟩',
+             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, -⟩',
              'ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk',
              '  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
@@ -2076,6 +2092,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putgetc':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.compactkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':

@@ -164,7 +164,7 @@ theorem applySnapshot_walk
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN) (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss hk γt γn t c rs idm lp al ast cl memI
+    {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Tal zal }} := by
   wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HalG, HTal, #HoSC, HoOh, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
@@ -776,9 +776,9 @@ theorem applySnapshot_walk
   icases Hcs0 with ⟨Hcs0, -⟩
   (try wp_auto)
   -- `s.uberApply = s.NewUberApplier()`
-  wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad E.RD (DFrac.own (1 : Qp).half) Tal zal hbuq
-    $$ [HbeA HERD HTal] as %ua' ⟨HbeA, HTal, %up', %opts', %Hua', %Hopts', Hube⟩
-  · iframe #; iframe HbeA HERD HTal
+  wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad (DFrac.own (1 : Qp).half) Tal zal hbuq
+    $$ [HbeA HTal] as %ua' ⟨HbeA, HTal, %up', %opts', %Hua', %Hopts', Hube⟩
+  · iframe #; iframe HbeA HTal
   (try wp_auto)
   -- the deferred "applied snapshot" log and the gauge's `Dec`
   wp_apply hU64 as %fd1 -

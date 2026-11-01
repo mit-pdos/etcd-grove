@@ -1,11 +1,10 @@
 /- Lean-first (no Rocq counterpart). The proof of `testMiniboltConcurrent`: `Open` as in
 `testMinibolt`, under the programs' predicate `valueOkP`, so that every transaction a reader sees
 holds what `valueOk` accepts (`dbTx` carries `γ.vp`), whatever the writer has committed by then.
-Each reader goroutine gets one of `Open`'s reader tokens and its cell of `results`, keeps a lower
-bound `dbLast γ last` of the txid (so `last <= txid` holds), and gives the token and its cell,
-holding true, back through the `WaitGroup` (Perennial's join idiom). The writer keeps the
-committer's token at `(v - 1, v + 2)`; on an error it breaks. After `Wait`, `Close` gets every
-reader token back. -/
+Each reader goroutine reads with the thread token its `go` statement gives it (`wp_fork_tok_body`),
+keeps a lower bound `dbLast γ last` of the txid (so `last <= txid` holds), and gives its cell of
+`results`, holding true, back through the `WaitGroup` (Perennial's join idiom). The writer keeps the
+committer's token at `(v - 1, v + 2)`; on an error it breaks. After `Wait`, `Close`. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.testMiniboltConcurrent
@@ -124,13 +123,10 @@ local macro "mb_finish" : tactic => `(tactic| (
   · iframe Hwg
   (try wp_auto)
   rw [show List.range 2 = [0, 1] from rfl]
-  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hd0, Hres⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hd1, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hc0, Hres⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hc1, -⟩
   unfold readerDone
-  icases Hd0 with ⟨Hr0, Hc0⟩
-  icases Hd1 with ⟨Hr1, Hc1⟩
-  ihave Hrds := Hrds $$ Hr0 Hr1
-  wp_apply wp_Close γ db _ _ $$ [Hown Hrds] as %e -
+  wp_apply wp_Close γ db _ _ $$ [Hown] as %e -
   · iframe; iframe #
   (try wp_auto)
   have hsl2 : sint.Z sl.len = 2 := slice_len2 sl Hsll
@@ -145,31 +141,9 @@ local macro "mb_finish" : tactic => `(tactic| (
   iapply HΦ
   itrivial))
 
-/-- What reader `i` gives back through the `WaitGroup`: its reader token, and its cell of
-`results` holding true. -/
-def readerDone (γ : DBNames) (db : Loc) (sl : GoSlice) (i : Nat) : IProp GF :=
-  iprop(dbReader (GF := GF) γ db ∗ typedPointsto (sliceIndexRef Bool ((i : Nat) : Int) sl) true (DFrac.own 1))
-
-/-- Two of the reader tokens, and the way back. -/
-theorem reader_two (γ : DBNames) (db : Loc) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), dbReader (GF := GF) γ db) ⊢
-      dbReader (GF := GF) γ db ∗ dbReader (GF := GF) γ db ∗ (dbReader (GF := GF) γ db -∗
-        dbReader (GF := GF) γ db -∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), dbReader (GF := GF) γ db) := by
-  have h : Int.toNat sync.rwmutex.actualMaxReaders = (Int.toNat sync.rwmutex.actualMaxReaders - 2) + 1 + 1 := by
-    have : 2 < Int.toNat sync.rwmutex.actualMaxReaders := by
-      rw [sync.rwmutex.actualMaxReaders_unseal]; decide
-    omega
-  rw [h, List.replicate_succ, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H2⟩
-  icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨H2, H3⟩
-  iframe H1 H2
-  iintro H1 H2
-  iapply BigSepL.bigSepL_cons.2
-  iframe H1
-  iapply BigSepL.bigSepL_cons.2
-  iframe
+/-- What reader `i` gives back through the `WaitGroup`: its cell of `results`, holding true. -/
+def readerDone (sl : GoSlice) (i : Nat) : IProp GF :=
+  typedPointsto (sliceIndexRef Bool ((i : Nat) : Int) sl) true (DFrac.own 1)
 
 theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     (wp_Get : DB.Get.spec (GF := GF) (hG := hG))
@@ -179,15 +153,15 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
     (wp_envFailure : envFailure.spec (GF := GF) (hG := hG))
     (wp_valueOk : valueOk.spec (GF := GF) (hG := hG)) :
     testMiniboltConcurrent.spec (GF := GF) (hG := hG) := by
-  intro dir
-  wp_start as ⟨#Hpkg, #Henv, #Hos, Hm⟩
+  intro _ dir
+  wp_start as ⟨#Hpkg, #Henv, #Hos, Hm, -⟩
   ihave Hf := dbFile_absent (dir ++ go!"/db") $$ Hm
   ihave #Hpkg' := Hpkg
   iunfold pkgFacts at Hpkg'
   icases Hpkg' with ⟨#Hsync, -⟩
   wp_auto
   wp_apply wp_Open (dir ++ go!"/db") 1 none 4 valueOkP (by simp [valueOkP]) $$ [Hf]
-    as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, -, Hown, #Hlast, -, Hrds⟩ | ⟨%Herr, -⟩)
+    as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, -, Hown, #Hlast, -⟩ | ⟨%Herr, -⟩)
   · iframe #; iframe
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -202,7 +176,6 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
     itrivial
   subst Herr
   (try wp_auto)
-  icases reader_two γ db $$ Hrds with ⟨Hrd0, Hrd1, Hrds⟩
   wp_apply (wp_slice_make2 (V := Bool) (W64 2)) as %sl ⟨Hsl, -⟩
   · ipureintro; decide
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
@@ -212,7 +185,7 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr $$ wg with ⟨%γwg, Hwg⟩
   imod sync.join.init wg_ptr γwg $$ Hwg with Hwg
   ihave Hwg := sync.join.ownAdder_wand
-    iprop([∗list] c ∈ List.range (sint.nat (W64 0)), readerDone γ db sl c)
+    iprop([∗list] c ∈ List.range (sint.nat (W64 0)), readerDone sl c)
     wg_ptr (W32 0) iprop(True) $$ [] Hwg
   · iintro _
     rw [show sint.nat (W64 0) = 0 from rfl, List.range_zero]
@@ -223,20 +196,13 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
   ihave Hcells : ([∗list] c ∈ List.range' (sint.nat (W64 0)) (2 - sint.nat (W64 0)),
       typedPointsto (sliceIndexRef Bool ((c : Nat) : Int) sl) false (DFrac.own 1) : IProp GF) $$ [Hcells]
   · rw [H00, Nat.sub_zero, ← List.range_eq_range']; iexact Hcells
-  ihave Hrdl : ([∗list] c ∈ List.range' (sint.nat (W64 0)) (2 - sint.nat (W64 0)),
-      dbReader (GF := GF) γ db : IProp GF) $$ [Hrd0 Hrd1]
-  · rw [H00, Nat.sub_zero, show List.range' 0 2 = [0, 1] from rfl]
-    iapply BigSepL.bigSepL_cons.2; iframe Hrd0
-    iapply BigSepL.bigSepL_cons.2; iframe Hrd1
-    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   ihave HI : (∃ (k : w64) (na : w32),
       "r" ∷ r_ptr ↦ k ∗
-      "Hwg" ∷ sync.join.ownAdder wg_ptr na ([∗list] c ∈ List.range (sint.nat k), readerDone γ db sl c) ∗
+      "Hwg" ∷ sync.join.ownAdder wg_ptr na ([∗list] c ∈ List.range (sint.nat k), readerDone sl c) ∗
       "Hcells" ∷ ([∗list] c ∈ List.range' (sint.nat k) (2 - sint.nat k),
         typedPointsto (sliceIndexRef Bool ((c : Nat) : Int) sl) false (DFrac.own 1)) ∗
-      "Hrdl" ∷ ([∗list] c ∈ List.range' (sint.nat k) (2 - sint.nat k), dbReader (GF := GF) γ db) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 2 ∧ sint.Z na = sint.Z k⌝ : IProp GF)
-    $$ [r Hwg Hcells Hrdl]
+    $$ [r Hwg Hcells]
   · iexists W64 0, W32 0
     iframe
     ipureintro
@@ -246,21 +212,21 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
   · have Hlt : sint.Z k < 2 := by have h := Hif; simp at h; exact h
     have hkn : sint.nat k < 2 := by word
     wp_apply (sync.join.WaitGroup.wp_Add_of sync.WaitGroup.wp_Add
-      (readerDone γ db sl (sint.nat k)) wg_ptr _ na) $$ [Hwg] as ⟨Hwg, Hdone⟩
+      (readerDone sl (sint.nat k)) wg_ptr _ na) $$ [Hwg] as ⟨Hwg, Hdone⟩
     · iframe; iframe #; ipureintro; word
     rw [show 2 - sint.nat k = (2 - (sint.nat k + 1)) + 1 by omega, List.range'_succ]
     icases BigSepL.bigSepL_cons.1 $$ Hcells with ⟨Hcell, Hcells⟩
-    icases BigSepL.bigSepL_cons.1 $$ Hrdl with ⟨Hrdk, Hrdl⟩
-    wp_apply wp_fork $$ [Hdone Hcell Hrdk]
-    · (try wp_auto)
+    wp_apply wp_fork_tok_body $$ [Hdone Hcell]
+    · iintro Htokr
+      (try wp_auto)
       wp_apply wp_with_defer as %defer defer
       (try wp_auto)
       ihave #Hl0 : dbLast (GF := GF) γ (zero_val w64 : w64).toNat $$ []
       · iunfold dbLast; iunfold dbLast at Hlast
         iapply (monoNatLbOwn_le (γ := γ.last) (n := 1) _ (by decide)) $$ Hlast
       ihave HJ : (∃ (i lst : w64), "i" ∷ i_ptr ↦ i ∗ "ok" ∷ ok_ptr ↦ true ∗ "last" ∷ last_ptr ↦ lst ∗
-          "#Hl" ∷ dbLast (GF := GF) γ lst.toNat ∗ "Hrdk" ∷ dbReader (GF := GF) γ db ∗
-          "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ 20⌝ : IProp GF) $$ [i ok last Hrdk]
+          "#Hl" ∷ dbLast (GF := GF) γ lst.toNat ∗ "Htokr" ∷ threadTok ∗
+          "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ 20⌝ : IProp GF) $$ [i ok last Htokr]
       · iexists W64 0, zero_val w64
         iframe; unfold named; iframe Hl0; ipureintro; exact ⟨by decide, by decide⟩
       have hsl2 : sint.Z sl.len = 2 := slice_len2 sl Hsll
@@ -272,10 +238,10 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
       wp_if_destruct
       · have Hlti : sint.Z i < 20 := by have h := Hif; simp at h; exact h
         wp_if_destruct
-        wp_apply wp_Get γ db lst.toNat none $$ [Hrdk] as %txid %v %has %err ⟨Hrdk, -, Hres⟩
+        wp_apply wp_Get γ db lst.toNat none $$ [Htokr] as %txid %v %has %err ⟨Htokr, -, Hres⟩
         · unfold dbOwnerOpt; iframe; try iframe #
         rotate_left
-        wp_apply wp_Snapshot γ db lst.toNat none $$ [Hrdk] as %txid %v %has %err ⟨Hrdk, -, Hres⟩
+        wp_apply wp_Snapshot γ db lst.toNat none $$ [Htokr] as %txid %v %has %err ⟨Htokr, -, Hres⟩
         · unfold dbOwnerOpt; iframe; try iframe #
         all_goals (
           icases Hres with (⟨%Hok, #Hlt', #Htxr⟩ | %Herr)
@@ -291,10 +257,10 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
             (try wp_auto)
             wp_for_post
             wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
-              (readerDone γ db sl _) wg_ptr) $$ [Hdone Hrdk Hcell]
+              (readerDone sl _) wg_ptr) $$ [Hdone Hcell]
             · iframe Hdone; iframe #; unfold readerDone; rw [hkk]; iframe
             (try wp_auto)
-            itrivial
+            iframe Htokr
           obtain ⟨rfl, Hle, -⟩ := Hok
           icases dbTx_vp γ _ _ $$ Htxr with %Hvt
           rw [Hvp] at Hvt
@@ -315,10 +281,10 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
         rw [ite_eq_left hkb]
         (try wp_auto)
         wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
-          (readerDone γ db sl _) wg_ptr) $$ [Hdone Hrdk Hcell]
+          (readerDone sl _) wg_ptr) $$ [Hdone Hcell]
         · iframe Hdone; iframe #; unfold readerDone; rw [hkk]; iframe
         (try wp_auto)
-        itrivial
+        iframe Htokr
     wp_for_post
     have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
     iframe
@@ -336,7 +302,7 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
     refine ⟨by word, by word, by word⟩
   · have hk2 : sint.nat k = 2 := k_eq2 k Hk.2.1 Hif
     rw [hk2]
-    iclear Hcells Hrdl
+    iclear Hcells
     ihave HW : (∃ x : w64, "v" ∷ v_ptr ↦ x ∗ "Hown" ∷ dbOwner (GF := GF) γ (x.toNat - 1) (x.toNat + 2) ∗
         "%Hx" ∷ ⌜2 ≤ x.toNat ∧ x.toNat ≤ 41⌝ : IProp GF) $$ [v Hown]
     · iexists W64 2

@@ -223,7 +223,14 @@ theorem Storage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF :=
   wp_apply wp ms γs J i e cs dq c data bs eood  $$ [HP] as %snap %err HQ
   · iexact HP
   iapply HΦ
-  iexact HQ
+  icases HQ with ⟨Hcs, Hlb, Hr⟩
+  iframe Hcs Hlb
+  icases Hr with (⟨%He, Hs⟩ | Hn)
+  · ileft
+    isplitr
+    · ipureintro; exact He
+    iapply ownSnapV_M $$ Hs
+  · iright; iexact Hn
 
 theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface) :

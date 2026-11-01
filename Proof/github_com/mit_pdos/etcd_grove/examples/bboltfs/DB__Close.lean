@@ -65,9 +65,9 @@ theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err
 theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     DB.Close.spec (GF := GF) (hG := hG) := by
   intro γ db t n
-  wp_start as ⟨Hdb, Hown, -⟩
+  wp_start as ⟨Hdb, Hown⟩
   iunfold isDB at Hdb
-  icases Hdb with ⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩
+  icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩, -⟩
   iunfold pkgFacts at Hpkg
   icases Hpkg with ⟨#Hsync, -⟩
   (try wp_auto)

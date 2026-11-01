@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 public import Perennial.Proof.context
 public import Perennial.Ghost.Token
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
@@ -259,16 +260,23 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- (D22 receiver epochs, S7f, 2026-10-23) the current backend `B`, at the start's logical names,
     -- with the server's view at it
     ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServer C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
+    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
+    -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken, at least the applied index (no snapshot
     -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
+    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back, at the current backend
+    srvSnapOwn C.s C.ci B.E C.γr ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
+      -- (2026-10-31, the snapshot track: #11's S1) the consistent index at least the applied one
+      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       entriesStep C.c₀ A C.x₀ x ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
@@ -285,19 +293,24 @@ instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF 
   unfold compactorOk; infer_instance
 
 /-- **The compactor's run, once** (M2, S4; not persistent): what `start`'s `s.compactor.Run()`
-spends: nil, or the compactor's contract with its run token `T` and its run precondition `P`
-(`NewServer` makes them: the run token from `v3compactor.New`, `P` the environment's contracts,
-`v3compactor.runPre`). -/
-def compactorRun (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ (T P : IProp GF), v3compactor.compactorOk c T P ∗ T ∗ P)
+spends: nil, or (auth off) the compactor's contract with its run token `T` and how to make its run
+precondition `P` from the server's views, which `start` builds (`NewServer` makes the token, from
+`v3compactor.New`, and the wand: `P` is `v3compactor.runPre` of the server's `Rev` and `Compact`,
+whose contracts need the request and read views, `CompactEnv.lean`; the wand holds the rest, the
+reader slots the compactor's calls borrow). -/
+def compactorRun (s : Loc) (E : apply.AEnv GF) (c : GoInterface) : IProp GF :=
+  iprop(⌜c = GoInterface.nil⌝ ∨ ⌜E.authOn = false⌝ ∗ ∃ (T P : IProp GF),
+    v3compactor.compactorOk c T P ∗ T ∗
+    (∀ ρ : ReqNames, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 -∗ |={⊤}=> P))
 
 /-- The run's contract is the compactor's. -/
-theorem compactorRun_ok (c : GoInterface) :
-    compactorRun (GF := GF) c ⊢ compactorOk c := by
+theorem compactorRun_ok (s : Loc) (E : apply.AEnv GF) (c : GoInterface) :
+    compactorRun (GF := GF) s E c ⊢ compactorOk c := by
   iintro H
   iunfold compactorRun at H
   iunfold compactorOk
-  icases H with (%H | ⟨%T, %P, #Hc, -, -⟩)
+  icases H with (%H | ⟨-, %T, %P, #Hc, -, -⟩)
   · ileft; ipureintro; exact H
   · iright; iexists T, P; iexact Hc
 
@@ -313,8 +326,11 @@ stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record; until then f
 (`optU64`), with the conf-state pointer's non-nilness stated; until stage R8b (2026-10-16) the
 pointers were non-nil by the conf state having a voter (`Voters' ≠ []`), which a new cluster's
 fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`) does not meet:
-`run` uses only the pointers. -/
-def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
+`run` uses only the pointers. (2026-10-31, #11) With the storage's invariant at the node `nid` of the
+cluster `cl` (`memStorInv`, at the registry `rg`; persistent), which `NewServer` allocated: what
+`CreateSnapshot` and `Compact` take (`srvSnapStor`). -/
+def rnSnapOnce (rg : GName) (cl : Cluster) (nid : w64) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) :
+    IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
       ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
@@ -326,6 +342,7 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
       -- empty snapshot; until then the application's snapshot token `memSnapTok`)
       epCsOk cs -∗ memSnapNone γs -∗
+      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nid) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -387,7 +404,9 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗
+    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
+    srvSnapOwn s ci E γr ai₀)
 
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
@@ -408,8 +427,15 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
@@ -418,11 +444,46 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
     "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
-    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`):
-    -- its persistent bundle, the snapshot-taken counter's authority, the reader-slot stocks
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
+    -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
+    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt))
 
 end defs
+
+section snapDisk
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (2026-10-31, #11) **The disk snapshot's storage, from the snapshot path's bundle and the raft
+wrapper**: the bundle's storage over the snapshotter (`srvSnapRO`) is the wrapper's, whose WAL
+contract is `isRaftNode`'s (`isRNWal`); a snapshot at `j` is removable once `j + 1` is applied
+(`srvSnapRm`'s right disjunct). -/
+theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName)
+    (Er : RNEnv GF) (γn : RNNames) :
+    srvSnapRO (GF := GF) s ci E γr γt ∗ isRaftNode Er γn (srvRAddr s) ⊢ srvSnapDisk s γr := by
+  iintro ⟨#Hro, #Hrn⟩
+  iunfold srvSnapRO at Hro
+  icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
+    #HL, #HD, #HF, #HFg, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
+  iunfold isRaftNode at Hrn
+  iNamed Hrn
+  icombine HSt Hst gives %Heq
+  iunfold srvSnapDisk
+  iexists stp, ss, γd, srvImage γr.raft.raft, srvSnapRm γt γr
+  iframe HSt Hinv
+  isplitr
+  · ipureintro; exact Hp.2.2.1
+  isplitr
+  · rw [Heq]; iexact Hsti
+  iintro !> %j #Hj
+  iunfold srvSnapRm
+  iright; iexact Hj
+
+end snapDisk
 
 end EtcdGrove
 end Perennial

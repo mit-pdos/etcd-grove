@@ -33,6 +33,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
@@ -276,14 +277,18 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   iunfold srvFieldsAt at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
-  -- (M2's apply side, item 19 with S-5's law) the cluster's compaction mode is off: the server's
-  -- store does not compact (`srvEnvOk`), and the KV names' mode is its backend's (`srvKVInvs`)
-  have hcmp0 : γr.kv.cmp = false := srvKV_mode_off s γ ci E fv.cluster γr HEo Hktie
-  rw [hcmp0, plainEntryM_false] at Hpe
-  rw [hcmp0, plainLogM_false] at Hpc0
-  -- (D22, 2026-10-23) a covered request: its rest buckets' effect is `dispatch`'s
-  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainCover rq :=
-    fun rq hd hdec => (Hpc0.1 m (by simp) Htyp hd rq hdec).1
+  -- (M2's apply side, 2026-10-31) the entry: a covered request (D22: its rest buckets' effect is
+  -- `dispatch`'s), or, in the cluster's compaction mode, a compaction in M2's scope
+  have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainOrCmp rq :=
+    fun rq hd hdec => plainOrCmp_of_entryM _ m Hpe Htyp hd rq hdec
+  -- a compaction's facts (`cmpAdmit`): its claim from the KV invariant's (`kv_entry_claim`, S3-3),
+  -- the store compacting in the server's mode (`srvEnvOk`), the KV names' mode the server's
+  have hkbE := srvEnvOk_kbCmp s γ ci E fv.cluster HEo
+  imod kv_entry_claim γr.raft γr.kv A m $$ HkI HrI HAm with %Hcl
+  have Hca : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq →
+      apply.cmpAdmit E.γ.kb x.log rq :=
+    fun rq hd hdec => cmpAdmit_of_entry γr.kv γr.kv.cmp A m rq E.γ.kb x.log Hxl
+      (fun h => hkbE.2 (by rw [← Hktie.1]; exact h)) Htyp hd hdec Hcl
   ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
   ihave #Pnot : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
@@ -364,8 +369,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false
-        (Hpe Htyp hdata rq hdec).1 Hoff Htyp
+      ihave #Hcp := kv_certPre_M E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false
+        (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
       · rw [HEo.1]; iexact HFS
@@ -389,18 +394,18 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         isplitr
         · itrivial
         iframe Hcx
-        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq (Hpl rq hdata hdec))⟩
+        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
-      rw [srvRest_apply E γr A m rq false x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
+      rw [srvRest_apply_M E γr A m rq false x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
       (try wp_auto)
       have hes : entryStep m false x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 (kvLeases γr.kv A) m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plainM γr.kv.c0 (kvLeases γr.kv A) _ m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m false x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -489,8 +494,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true
-        (Hpe Htyp hdata rq hdec).1 Hoff Htyp
+      ihave #Hcp := kv_certPre_M E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true
+        (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
       -- the floor its proposer recorded with the entry's claim (the vertical slice's unit V2)
@@ -591,11 +596,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
             · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
             iexact Hst
         · iframe Hst Happ Hbe HcF
-          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq (Hpl rq hdata hdec))⟩
+          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
-      rw [srvRest_apply E γr A m rq true x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
+      rw [srvRest_apply_M E γr A m rq true x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st1 = ⟨m.index, m.index, m.index, false⟩ ∨ st1 = { st with p := m.index }⌝) $$ [Hout]
@@ -609,7 +614,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       have hes : entryStep m true x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 (kvLeases γr.kv A) m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plainM γr.kv.c0 (kvLeases γr.kv A) _ m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m true x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -651,7 +656,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Papp
       icases Hai with ⟨-, -, #Hev⟩
-      ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpace rq x x' ar out (Hpe Htyp hdata rq hdec).1
+      ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpace_M rq x x' ar out (Hpl rq hdata hdec)
         (Hxch.trans Hch0) Hstep $$ Hev HRes
       icases Hnn with (%Hn0 | ⟨%err', #Herr', #Hnn⟩)
       · exact absurd Hn0 Har0

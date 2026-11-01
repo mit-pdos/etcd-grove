@@ -44,7 +44,7 @@ structure SrvTr (GF : BundledGFunctors) where
 
 /-- **The server `s` is member `id` of the network `γn`** (persistent; see the file header). -/
 def srvNetMember (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) : IProp GF :=
-  iprop(srvProcOk γn s id ∗ rnTransportAddr (srvRAddr s) ↦□ transportIface τ.t ∗ ⌜τ.c.lid = id⌝ ∗
+  iprop((∃ γd, srvProcOk γn s id γd) ∗ rnTransportAddr (srvRAddr s) ↦□ transportIface τ.t ∗ ⌜τ.c.lid = id⌝ ∗
     trState γn τ.t τ.c ∗ trOpened τ.c ∗
     ⌜∀ f, (netRh γn).member f → f ≠ id → f ∈ τ.c.L⌝)
 

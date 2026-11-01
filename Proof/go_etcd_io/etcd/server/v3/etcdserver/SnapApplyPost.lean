@@ -49,6 +49,7 @@ theorem srvSnapApplied_of_walk
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -59,6 +60,8 @@ theorem srvSnapApplied_of_walk
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.γ.kb = some d)
+    -- (M2's apply side, the user's (a)) the interim restriction: no install in compaction mode
+    (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null)
@@ -71,6 +74,7 @@ theorem srvSnapApplied_of_walk
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (hkI : mvcc.keyImage ([[], []] ++ R) D) (hbr : mvcc.bridgeParams d.P)
+    (hlp : mvcc.leaseParams d.P)
     (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat ai)
@@ -102,17 +106,17 @@ theorem srvSnapApplied_of_walk
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
       srvWTPool E γp ∗
-      E.RD ∗ snapWalkPost s ep sv γ ci E ρ γr d D A x R ss hk γt γn t c rs idm lp al ast cl memI
+      snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Tal zal ⊢
-    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss γt γn t c rs idm lp al ast cl Tal := by
+    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
-    #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, HRD2, Hw⟩
+    #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
     %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
     #Hws, -, -, #HhP, -, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
-    Hcsa, Hcso, Hpath, HTal, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
+    Hcsa, Hcso, Hpath, HTal, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
   subst hγB
@@ -120,11 +124,12 @@ theorem srvSnapApplied_of_walk
   ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
   imod HplRO with #HplRO
   -- step 2: the server's view
-  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' $$ []
+  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm $$ []
   · iframe #
   -- step 3: the new applier's options
-  ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hMID hLead hTerm hFS hCIg
+  ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg
     s γ ci TM E ρ γr π0 d'.γB d.P d' p' γw ws g opts' lg al ast lp cl rfl hkb' hγw hwq hgnn hoff
+    (by rw [hP']; exact hlp)
     ⟨ho1, ho2, ho3, ho4, ho5, ho6, ho7, ho11, ho12⟩ $$ []
   · iframe #
   -- step 4: the applier state

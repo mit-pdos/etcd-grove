@@ -367,14 +367,14 @@ theorem EtcdServer.start.wp_proof
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab
-    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl⟩
+    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl, #Htrb, %Hkv0⟩
     iexists _, msc, sc1
     iframe #
     isplitr
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    ipureintro; exact Hlgn
+    ipureintro; exact ⟨Hlgn, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
@@ -389,10 +389,12 @@ theorem EtcdServer.start.wp_proof
     #Hlog, Hkr, Hfs⟩
   -- (the auth-mode merge) auth off: the reader view's gated row holds trivially
   imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hAuthOff, Hkv, Hkr⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr]
+  -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
+  icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA HAR Hao Hfs Hwg1 HRD Hkr Hso]
   · iunfold applyStart
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog Hkr
+    iframe Hth Hbe Hca Halg Hbm Hao Hso Hfs Hwg1 Hlog Hkr
     isplitr
     · ipureintro; exact Hlo
     iunfold srvApplyKV
@@ -415,40 +417,7 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
-  -- `go s.run()`, with the write budget backed by time receipts (D19b)
-  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
-  -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
-  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
-  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
-  subst Hcreq
-  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
-  · iunfold compactorRun at Hcr
-    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
-    · rw [Hcpn]
-      (try wp_auto)
-      wp_join_done
-    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
-    rw [Hci]
-    (try wp_auto)
-    wp_apply HRun $$ [HT HP]
-    · iframe HT HP
-    (try wp_auto)
-    wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
-  · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
-      ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
-    · iunfold isServerRun
-      iframe
-      iframe Hrf Hsa Hsrv Hrn
-      isplitr
-      · ipureintro; exact HEr
-      iexists γp
-      iframe HWB
-      rw [Hai0]; iexact HWA0
-    ipureintro; exact isPanic_intoVal ()
-  -- the views
+  -- the views (before the compactor's run, whose precondition `NewServer` makes from them)
   icases Hreqb with ⟨%vq, #Hvq⟩
   iunfold srvReqBuilt at Hvq
   icases Hvq with ⟨#Q1, #Q2, #Q3, #Q4, #Q5, #Q6, #Q7, #Q8, #Q9, #Q10, #Q11, #Q12, #Q13, #Q14,
@@ -508,6 +477,50 @@ theorem EtcdServer.start.wp_proof
     iintro !> %h
     have h' : E.authOn = true := h
     rw [hAuthOff] at h'; cases h'
+  -- `go s.run()`, with the write budget backed by time receipts (D19b)
+  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
+  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
+  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
+  subst Hcreq
+  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
+  · iunfold compactorRun at Hcr
+    icases Hcr with (%Hcpn | ⟨-, %T, %P, #Hcp, HT, HP⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    -- the run's precondition, from the views
+    ihave Hcred0 := HNR
+    imod Hcred0 with #Hcred
+    imod HP $$ %({ ρ with wait := γw } : ReqNames) [] with HP
+    · iframe Hpkg Hreq Hcred
+      subst Hρrd; iexact Hrd
+    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
+    rw [Hci]
+    (try wp_auto)
+    wp_apply HRun $$ [HT HP]
+    · iframe HT HP
+    (try wp_auto)
+    wp_join_done
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
+  · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
+      ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
+    · iunfold isServerRun
+      iframe
+      iframe Hrf Hsa Hsrv Hrn
+      isplitr
+      · ipureintro; exact HEr
+      isplitr
+      · ipureintro; exact Hdisk
+      isplitr
+      · iexists vd.kv; iframe R1 R2
+      iframe Hsnapb
+      iexists γp
+      iframe HWB
+      rw [Hai0]; iexact HWA0
+    ipureintro; exact isPanic_intoVal ()
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_server hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
@@ -870,14 +883,14 @@ theorem EtcdServer.start.wp_proofOn
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab
-    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl⟩
+    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl, #Htrb, %Hkv0⟩
     iexists _, msc, sc1
     iframe #
     isplitr
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    ipureintro; exact Hlgn
+    ipureintro; exact ⟨Hlgn, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
@@ -916,8 +929,10 @@ theorem EtcdServer.start.wp_proofOn
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
   ihave Hkr := kvRunOn_nil_at γr ai₀ c₀ x₀ $$ Hkr
+  -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
+  icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
   ihave Hstart : applyStartOn s γ ci b E γr ai₀ c₀ x₀ γw $$
-      [Hth Hbe Hca Halg Hbm Hwg1 Hrow Hao Hkr Hrest Hap Hfs]
+      [Hth Hbe Hca Halg Hbm Hwg1 Hrow Hao Hkr Hrest Hap Hfs Hso]
   · iunfold applyStartOn
     iexists st₀, a, t, f
     isplitl [Hth]
@@ -946,7 +961,7 @@ theorem EtcdServer.start.wp_proofOn
     · iexact Hrest
     isplitl [Hap]
     · iexact Hap
-    iexact Hfs
+    iframe Hso Hfs
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
@@ -956,26 +971,30 @@ theorem EtcdServer.start.wp_proofOn
   subst Hcreq
   wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
   · iunfold compactorRun at Hcr
-    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
+    icases Hcr with (%Hcpn | ⟨%Hoff, -⟩)
     · rw [Hcpn]
       (try wp_auto)
       wp_join_done
-    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
-    rw [Hci]
-    (try wp_auto)
-    wp_apply HRun $$ [HT HP]
-    · iframe HT HP
-    (try wp_auto)
-    wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
+    -- auth on: no compactor (`compactorRun`'s run is auth off's)
+    have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
+    rw [hon] at Hoff; cases Hoff
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ γa hM hRB
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
     · iunfold isServerRunOn
       iframe
       iframe Hrf Hsa Hsrv Hrn Hlnil
       isplitr
       · ipureintro; exact HEr
+      isplitr
+      · ipureintro; exact Hdisk
+      isplitr
+      · icases Hrdb with ⟨%vd, #Hvd⟩
+        iunfold srvReadBuilt at Hvd
+        icases Hvd with ⟨#R1, #R2, -⟩
+        iexists vd.kv; iframe R1 R2
+      iframe Hsnapb
       iexists γp
       iframe HWB
       rw [Hai0]; iexact HWA0

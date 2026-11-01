@@ -114,7 +114,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (k8setcd3Dir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)`
@@ -153,7 +153,7 @@ theorem Main.wp_proof
     ihave ⟨Hg, %Hnr⟩ := common.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23896" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48 Hrf)
+    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl)
       $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
     · iframe; iframe #
     imodintro
@@ -169,7 +169,7 @@ theorem Main.wp_proof
   subst Hserr
   wp_auto
   iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
+  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `kubernetes.New(Config{Endpoints: {clientAddr}, Logger: lg, MaxUnaryRetries: 1})`
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
@@ -180,6 +180,7 @@ theorem Main.wp_proof
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R go!"127.0.0.1:23896" [] null null [] null default
+  haveI : ThreadBoundLe GF (2 ^ 31) := ⟨Htb⟩
   wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V (fun _ => iprop(True))) $$ [] as %kc %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -192,9 +193,7 @@ theorem Main.wp_proof
       refine ⟨?_, ?_⟩
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
-    isplitr
-    · iapply clientAuthPre_anon; rfl
-    ipureintro; exact Htb
+    iapply clientAuthPre_anon; rfl
   icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · cases cerr with

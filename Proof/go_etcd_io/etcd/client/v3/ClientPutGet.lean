@@ -545,7 +545,8 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
           ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
-            kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝) ∨
+            kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝ ∗
+          kvRevLb γ m.hdr.revision) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
@@ -561,17 +562,137 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
       simp
     ipureintro; exact hsz
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, #Hrv⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m, σ
-    iframe Hm HQ
+    iframe Hm HQ Hrv
     ipureintro; exact ⟨Hs.1, Hs.2.2.1, Hs.2.2.2⟩
   · iright
     isplitl []
     · ipureintro; exact Herr.1
     · iexact Hke
+
+/-- **`cli.Compact(ctx, rev)` by `New`'s client `cl`** (the client's `kv.Compact`, 2026-11-01;
+`kv.Compact` through the `KV` field, as `client_Put_kv`): on a compacting cluster, at a revision
+past `0` the KV has reached (`kvRevLb`, a `Put`'s reply's), no options: `nil` and the reply's
+message, or a client error. -/
+theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (rev : w64) (hr : 1 ≤ sint.Z rev) (hc : γ.cmp = true) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
+        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvRevLb γ rev }}
+      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Compact")) (Val #(GoInterface.ok ci))) (Val #rev)) (Val #slice.nil))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : CompactRespM, compactRespMsg resp m) ∨
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hrv⟩ HΦ
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Compact_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (v3.kv.wp_Compact api γ dup ci cd rev hr hc) $$ [] as %resp %err Hout
+  · iframe #
+  iapply HΦ
+  iexact Hout
+
+/-- The get of one key at revision `rev` selects the key's key-values of the store it reads, as
+the get at the latest (pure; `srvRangeOk_getKey`: the selection does not read the revision). -/
+theorem srvRangeOk_getKeyRev (key : GoString) (rev : w64) (s kvs : List EtcdKv) (more : Bool)
+    (h : txn.srvRangeOk (rangeWireOf (opGetModel key [withRevM rev])) s kvs more) :
+    kvs = s.filter (fun v => decide (v.key = key)) := by
+  generalize ho : rangeWireOf (opGetModel key [withRevM rev]) = o at h
+  have ho' : o = { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } := by
+    rw [← ho]; rfl
+  subst ho'
+  obtain ⟨L, hsort, hmore, hkvs⟩ := h
+  have hpre : txn.srvPre { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } s =
+      s.filter (fun v => decide (v.key = key)) := by
+    have hr : txn.kvRead false = id := by funext v; simp [txn.kvRead]
+    unfold txn.srvPre
+    simp [txn.rangeLimitOf, txn.hasRevFilters, mvcc.limitOf, mvcc.takeLimit, txn.fastKeysOnly,
+      rangeIn, inRange, hr]
+    apply List.filter_congr
+    intro v _
+    simp [kvFilterOk]
+  have hord : ({ getKeyOp key with base := { (getKeyOp key).base with rev := rev } } :
+      OpFull).effSortOrder = W64 0 := by
+    simp [OpFull.effSortOrder]
+  have hL : L = txn.srvPre { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } s := by
+    obtain ⟨-, -, -, h4⟩ := hsort
+    exact h4 (by rw [hord]; decide) (by rw [hord]; decide)
+  have hm : txn.srvMore { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } L =
+      false := by
+    simp [txn.srvMore]
+  rw [hkvs]
+  unfold txn.srvTrunc
+  rw [hm, hL, hpre]
+  have hresp : ∀ o : OpFull, o.keysOnly = false → txn.respKv o = id := fun o h => by
+    funext v; simp [txn.respKv, h]
+  rw [hresp _ rfl]
+  simp
+
+/-- **`cli.Get(ctx, key, WithRev(rev))` by a client whose `KV` field is a `*kv` of etcd's KV `γ`**
+(`isKv`; `kv.Get.spec` through the field, as `client_Put_kv`), with a read update: `nil` and the
+reply's message `m` with the state `σ` the update fired at, `rev` at most its revision, `m`'s
+key-values the key's in `σ`'s store at the revision read (`readRev`: `rev`, or the current if
+`rev ≤ 0`); or a client error (a compacted revision's `ErrCompacted` among them). -/
+theorem client_Get_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key : GoString) (rev : w64) (sl : GoSlice)
+    (Q : KVState → IProp GF)
+    (hsz : opSizeOk (opGetModel key [withRevM rev])) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
+        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [withRevM rev] ∗
+        kvReadAu γ Q }}
+      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
+          □ Q σ ∗ ⌜sint.Z rev ≤ (σ.rev : Int) ∧
+            m.kvs = (σ.at (σ.readRev rev)).kvs.filter (fun v => decide (v.key = key))⌝) ∨
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+  ihave #Hopts' := optsAt_res sl [withRevM rev] iprop(True) $$ Hopts
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (v3.kv.wp_Get api γ dup ci cd key sl [withRevM rev] iprop(True) Q) $$ []
+    as %resp %err ⟨-, Hout⟩
+  · iframe #
+    isplitl []
+    · itrivial
+    isplitl []
+    · rw [show (opGetModel key [withRevM rev]).base.sortSet = false from rfl]
+      iapply sortNamesIf_false
+    isplitl []
+    · ipureintro
+      refine ⟨?_, rfl⟩
+      unfold opGetPanics opFold OpFull.newOp withRevM; simp
+    isplitl []
+    · imodintro
+      iright
+      isplitl []
+      · ipureintro; rfl
+      iunfold kvReadAu at Hau
+      iunfold kvAu at Hau
+      iexact Hau
+    ipureintro; exact hsz
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro
+    obtain ⟨hrv, hsel, -⟩ := Hs
+    refine ⟨hrv, ?_⟩
+    exact srvRangeOk_getKeyRev key rev _ _ _ hsel
+  · iright
+    iframe Hke
+    ipureintro; exact Herr
 
 end kv_api
 

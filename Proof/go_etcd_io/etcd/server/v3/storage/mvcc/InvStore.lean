@@ -1596,7 +1596,8 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
         (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
       {{ lease.leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
-          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
+          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
+          ⌜∀ it ∈ l, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Attach" #lp)) (Val #id)) (Val #items))
       {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.insertAll I l id) ∗ items ↦*{dq} l }}) ∗

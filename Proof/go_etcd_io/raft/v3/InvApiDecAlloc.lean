@@ -39,9 +39,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A new cluster of client decisions**, of the voters `vs`, with snapshots (`InvNodeRule`'s
 `cluster_alloc`). -/
-theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E : CoPset) :
+theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
+    (sl : w64 → Option GName) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup ∧ γ.raft.reBoot.length = 0⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
+    ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = 0⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
@@ -68,7 +69,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
   ihave Hcl := Hcl0
   imod ownRaftGhost_alloc_core_reg E (GMap.listToSet vs) allNodeIds (some (DynCfg.all dc))
     (fun _ _ => True) [] (W64 0) (allocOut N [] bud md tab) none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
+    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) sl
     (N .@ "raft") N (some g) (some gd) dup Hcne Hnz0 BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup⟩ := Hγ
@@ -99,7 +100,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
   · unfold isClusterU rdPool
     isplitr
-    · ipureintro; exact ⟨⟨c0, gd, Hmr⟩, Hsl, Hcert, by rw [HbootL]; simp⟩
+    · ipureintro; exact ⟨⟨c0, gd, Hmr⟩, Hcert, by rw [HbootL]; simp⟩
     isplitr
     · unfold clusterInv
       iframe Hcinv Hinv HspT
@@ -132,7 +133,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
   iexists γ
   iframe Hops Hctx Hdc Hja
   isplitr
-  · ipureintro; exact ⟨Hdup, by rw [HbootL]; rfl⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

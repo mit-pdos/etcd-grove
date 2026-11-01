@@ -33,7 +33,7 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
     (_hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
     (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk RNNames.srv
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv
   rw [h, hγs, hpre, hn, hnl, hid]
 
 set_option maxHeartbeats 0 in
@@ -88,7 +88,9 @@ theorem newRaftNode.wp_proof :
   imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd⟩) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
-      nodeRunning nl node.cl srvClusterN (1 : Qp).half))) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
+      nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
+      storage.walOpen (storage.walOf cv.storage') (1 : Qp).half)) _ stc γst (by trivial)
+    $$ Hstc Hsto with #Hstb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
   ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd iprop(True) .Unknown $$ []

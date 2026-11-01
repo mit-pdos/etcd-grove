@@ -202,7 +202,7 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (ckDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
   ihave ⟨%Hcmp0, Hmb⟩ := common.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
   -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
@@ -352,7 +352,7 @@ theorem Main.wp_proof
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKVa, #Hkvo⟩, -⟩
-  imod (client.isKv_of_regs api [go!"127.0.0.1:23873"] R.E ρ.rd cid mid γk.kv (by rw [hγkv])
+  imod (client.isKv_of_regs api [go!"127.0.0.1:23873"] R.E ρ.rd cid mid γk.kv (by rw [hγkv]; exact kvSame_refl _)
       (by omega)) $$ [Hkvo] with #Hisk
   · iframe Hkvo
     iapply client.kvRegs_one
@@ -360,7 +360,7 @@ theorem Main.wp_proof
   -- the writers' client of the KV, sending a write at most once
   imod (client.isKv_of_newClient cl go!"127.0.0.1:23873"
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) R.E ρ.rd
-      cid mid γk.kv (by rw [hγkv]) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
+      cid mid γk.kv (by rw [hγkv]; exact kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
   · iframe #
   ihave #Hkw : client.isKvWatcher w γk.kv $$ []
   · unfold client.isKvWatcher
@@ -382,12 +382,13 @@ theorem Main.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax; omega⟩
   wp_apply (wp_CNew (EM := client.etcdModelOfKV γk) cl ckPfx slice.nil []) $$ []
     as %c %cerr Hnew
   · iframe #
     isplitr
     · ipureintro; intro _; exact cfgDefault_bounded
-    ipureintro; unfold cacheWgOwedMax; have : ckPfx.length = 3 := rfl; omega
+    ipureintro; have : ckPfx.length = 3 := rfl; omega
   irevert Hnew
   unfold newCacheResult
   rw [if_pos cfgDefault_valid]

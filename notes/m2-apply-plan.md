@@ -1,6 +1,21 @@
 # Plan: M2, the apply side (spec-first; branch `m2-apply`)
 
-Status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
+**Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
+the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
+compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
+`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+rests on the same proofs (both still on the server's snapshot-track `sorry`s). `notes/STATUS.md`, "M2,
+the apply side".
+What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
+installed only with the mode off", `specSnap`'s `d.cm = false`; the storage plan's "B2 by sealed
+logs" Drafts are its unswitched design); `kvApplied`'s `crevOf` clause (deferred, `notes/decisions.md`,
+"stage 4c"); the compaction arm with auth on (`applyEntryNormal` applies compactions on the auth-off
+path only), with the auth-mode merge of `applyAll`/`run`'s `spec`/`specOn` (the apply plan's stage 5,
+which needs nothing of M2 and waits on SNAPSHOT-SORRY #7/#8); one token count in place of `bootstrap`'s
+`N + N` (the user's later, moved to restore in compaction mode: `notes/decisions.md`, "One token count goes with restore in compaction mode"); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
+`etcdserver/`, `apply/` and `mvcc/`; they import only each other) to delete or fold in.
+
+Earlier status (2026-10-31): **approved** (the user's Q5: the consolidated items of "The switch in place");
 **the Probe: done** (item 18, G2, the commit step's compaction arm, S3-3's transfer lemma, G1:
 "The Probe"); **the switch: stages 1-4 done** but for what waits on the snapshot track's `srvEnvOkD`
 ("The switch", the last section). Before: review rounds done (round 7: nothing in the first tier); the switch restated in place
@@ -685,6 +700,11 @@ merge (the auth-mode merge, after the snapshot track's SNAPSHOT-SORRYs #7/#8) an
    three plain ones over the new invariant), `CompactMode.lean`'s family retired; the Probe's copies
    (`M2ApplyProbe.lean`) become today's lemmas.
 5. Item 14 (`NewServer.specD`) and `applyAll`/`run` stay blocked (Q4; the auth-mode merge).
+   **2026-10-31:** item 14 done. `applyAll`/`run` need nothing of M2 (their specs never mention the
+   mode; item 13 superseded): what is left is the auth-mode merge of their `spec`/`specOn`, which
+   rewrites the files the snapshot track (`snap-s1`, `snap-sorries`) is changing for #7/#8. The user
+   (2026-10-31): wait for `snap-s1` to land, then merge. `kvApplied`'s `crevOf` clause waits too (it
+   changes every `kvApplied` producer, the install and `run`'s loop among them).
 
 **Stage 1: done (2026-10-31).** Three findings of the Probe kind (the approved `Compaction.specD` was
 not provable over today's callees), each settled by the agent, reversible, for the user to review
@@ -787,7 +807,18 @@ the Probe's `kv_prop_au_cmp` with `cmpReach_reqLb`, moved to `KVLemmas.lean`), s
 `specCompact` and its `sorry` retired; trust base 19 `sorry`s), `EtcdServer.Compact.spec` the Draft's
 (item 15, `rfl`), `compactableOk_server` at `E.cmp = true`, `CompactMode.lean`'s family retired (it
 keeps `srvRevLb`, `cmpReach_of_srvRevLb`, `compactResultIs`). `kvApplied`'s `crevOf` clause deferred to
-the compaction arm (`notes/decisions.md`, "stage 4c"). **Stage 4 is done but for what waits on
+the compaction arm (`notes/decisions.md`, "stage 4c"). **`srvEnvOkD` in place and the compaction arm: done (2026-10-31, branch `m2-envok`, the user's (a))**:
+`srvEnvOk`'s `d.cm = E.cmp`, a snapshot installed only with the mode off (the interim restriction),
+`applyEntryNormal` (auth off) applying compaction entries (`ApplyCmpArm.lean`); the compaction's
+outcome the chain's and its error named (`notes/decisions.md`, "`srvEnvOkD` in place"). Left: lifting
+the restriction (restore in compaction mode, the collaborator's (b)), `kvApplied`'s `crevOf` clause,
+stage 5 (Q4, the auth-mode merge). **`NewServer.specCompact`: proved (2026-10-31, branch
+`m2-newsc`)**: one proof over both compaction modes (`NewServer.wp_proofG`/`specG`), the post's
+closer `srvKVCloserW` (item 20 in place), the compaction's write-back stock (`srvCmpStock`, at `N`
+more tokens: `bootstrap`'s contract at `N + N` in the compaction chain), the compactor's run
+contract built in `start` from its views (`compactorRun`'s wand); `notes/decisions.md`,
+"`NewServer.specCompact` proved". **Item 14: done (2026-10-31, branch `m2-specd`)**: `NewServer.spec` in both
+modes (`notes/decisions.md`, "M2 item 14"). (Before:) **Stage 4 is done but for what waits on
 `srvEnvOkD`** (the snapshot track's, the collaborator's): `applyEntryNormal`'s compaction arm and
 `kvApplied`'s `crevOf` clause. Next: stage 5 (blocked: Q4, the auth-mode merge), or `NewServer.specD`
 (item 14) when Q4 is answered.

@@ -163,10 +163,11 @@ theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bo
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #HKV, #HW, #Hkv, #Hw, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ dup pfx hp hff $$ []
   · iframe #
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb, hpl⟩
+  ipureintro; exact ⟨Hcfg, hpl⟩
 
 /-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D48): `cache_end_to_end_client`
 for the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition):
@@ -180,7 +181,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (γ : client.KMNames) (hV : V.addr = ep)
     (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hk : V.kst = γ.kv.st)
-    (hst : γr.kv.st = γ.kv.st) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hst : kvSame γr.kv γ.kv) (hrb : receiptBound GF ≤ 2 ^ 62)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (hpl : V.pfx.length ≤ 2 ^ 28) (sl : GoSlice)
     (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
@@ -213,10 +214,11 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     ipureintro; exact H.2
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp hff $$ []
   · iframe #
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb, hpl⟩
+  ipureintro; exact ⟨Hcfg, hpl⟩
 
 /-- **etcd's server, started for a cache** (the started-server step; as `client.etcd_kv_started`,
 the ghost step between `net.Listen` and `go gs.Serve(lis)`): the server `v3rpc.Server` built and a
@@ -266,7 +268,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
     #Hws, #Hims, #His, Hwslots, #Hkf, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs Hrf) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
+    hregs Hrf hrd) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst

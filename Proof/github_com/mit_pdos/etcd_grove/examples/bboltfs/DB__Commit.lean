@@ -144,7 +144,7 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
   intro γ db t n v Ht Hn Hvp
   wp_start as ⟨Hdb, Hown⟩
   iunfold isDB at Hdb
-  icases Hdb with ⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩
+  icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩, -⟩
   ihave #Hpkg2 := Hpkg
   iunfold pkgFacts at Hpkg2
   icases Hpkg2 with ⟨#Hsync, %e1, %e2, #He1, -, %He, -⟩

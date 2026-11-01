@@ -68,6 +68,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.MapCells
 public import Proof.os.Base
 public import Perennial.Proof.sync.RWMutexGuard
+public import Perennial.Proof.sync.RWMutexThreads
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
@@ -458,19 +459,58 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗ ghostVar γ.cls (1 : Qp).half true ∗
      ∃ st, ghostVar γ.map (1 : Qp).half st ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st))
 
-/-- The persistent part of an open database: the file, its path, and the three locks with
-their resources. -/
-def isDB (γ : DBNames) (db : Loc) : IProp GF :=
-  iprop(∃ (f : Loc) (fd : w64) (p : GoString),
-    pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
-    sync.isMutex db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p) ∗
-    sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗
-    sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
-
-/-- A reader's token of an open database (one of `mmaplock`'s reader tokens), on the path of `isDB` (`db.path`). -/
+/-- A reader slot of an open database (one of `mmaplock`'s reader tokens), on the path of `isDB`
+(`db.path`). Readers do not hold one: `isDB`'s pool lends one to a thread token for each read
+transaction (`dbReader_borrow`, `dbReader_giveBack`). -/
 def dbReader (γ : DBNames) (db : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (p : GoString), db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
     sync.ownRWMutex db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
+
+/-- The namespace of an open database's pool of reader slots. -/
+def dbPoolN : Namespace := nroot .@ "minibolt_readers"
+
+/-- The persistent part of an open database: the file, its path, the three locks with
+their resources, and the pool of `mmaplock`'s reader slots (`threadPool`), from which a thread
+token borrows one for a read transaction. -/
+def isDB (γ : DBNames) (db : Loc) : IProp GF :=
+  iprop((∃ (f : Loc) (fd : w64) (p : GoString),
+    pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
+    sync.isMutex db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p) ∗
+    sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗
+    sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p)) ∗
+    ∃ γp : GName, threadPool.isThreadPool dbPoolN γp (dbReader (GF := GF) γ db))
+
+instance isDB_persistent (γ : DBNames) (db : Loc) : Persistent (isDB (GF := GF) γ db) := by
+  unfold isDB; infer_instance
+
+/-- A reader slot lent out by an open database's pool (`dbReader_borrow`). -/
+def dbLoan (γ : DBNames) (db : Loc) : IProp GF :=
+  iprop(∃ γp : GName, threadPool.isThreadPool dbPoolN γp (dbReader (GF := GF) γ db) ∗
+    threadPool.ownThreadLoan γp)
+
+/-- Borrow a reader slot of an open database with a thread token. -/
+theorem dbReader_borrow (γ : DBNames) (db : Loc) :
+    isDB (GF := GF) γ db ∗ threadTok ⊢ |={⊤}=> ▷ dbReader (GF := GF) γ db ∗ dbLoan (GF := GF) γ db := by
+  iintro ⟨Hdb, Htok⟩
+  iunfold isDB at Hdb
+  icases Hdb with ⟨-, %γp, #Hpool⟩
+  imod threadPool.borrow dbPoolN γp (dbReader (GF := GF) γ db) ⊤ (fun _ _ => CoPset.mem_full)
+    $$ [Hpool Htok] with ⟨Hrd, Hloan⟩
+  · iframe; iframe #
+  imodintro
+  iframe Hrd
+  unfold dbLoan
+  iexists γp
+  iframe; iframe #
+
+/-- Give a borrowed reader slot back, for the thread token. -/
+theorem dbReader_giveBack (γ : DBNames) (db : Loc) :
+    dbLoan (GF := GF) γ db ∗ dbReader (GF := GF) γ db ⊢ |={⊤}=> threadTok := by
+  iintro ⟨Hl, Hrd⟩
+  iunfold dbLoan at Hl
+  icases Hl with ⟨%γp, #Hpool, Hloan⟩
+  iapply threadPool.giveBack dbPoolN γp (dbReader (GF := GF) γ db) ⊤ (fun _ _ => CoPset.mem_full)
+  iframe; iframe #
 
 end preds
 

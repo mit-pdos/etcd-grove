@@ -251,7 +251,7 @@ theorem committed_emptyV2_joint_impl (γ : Cluster) (N : Namespace) (l : List Lo
     isClusterU (GF := GF) γ N ∗ isCommittedLogLb γ l ∗ confAtU γ k m ⊢ ⌜m.isJoint⌝ := by
   unfold isClusterU
   iintro ⟨⟨%Hu, -⟩, #Hl, #Hm⟩
-  obtain ⟨⟨c0, g, hmd⟩, -, -, Hboot⟩ := Hu
+  obtain ⟨⟨c0, g, hmd⟩, -, Hboot⟩ := Hu
   ihave #Hl' := Hl
   iunfold isCommittedLogLb at Hl'
   icases Hl' with (%Hnil | ⟨-, -, -, #Hcf⟩)

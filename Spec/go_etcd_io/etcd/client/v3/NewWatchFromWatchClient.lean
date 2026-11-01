@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -31,10 +32,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 `Watcher`. No fact about the server (D19f): construction only allocates; `isClientWatcher_of_core`
 adds them. -/
 abbrev NewWatchFromWatchClient.spec : Prop :=
-  ∀ (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface),
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ v3rpc.watchStubAt V.wc V.conn ∗
       ⌜c ≠ null⌝ ∗ structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
-      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.NewWatchFromWatchClient)) (Val #(wcIface V.wc)))
       (Val #c))
   {{ (wi : GoInterface), RET #wi; ∃ (w lg : Loc),

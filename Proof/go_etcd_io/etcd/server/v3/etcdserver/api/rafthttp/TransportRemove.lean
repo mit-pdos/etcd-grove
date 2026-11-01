@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -164,14 +165,14 @@ theorem rafthttp.Transport.removePeer_core
   | none =>
     simp only [Option.getD_none, Option.isSome_none, Bool.false_eq_true, _root_.decide_false]
     (try wp_auto)
-    repeat' (first
-      | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
-      | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-      | (wp_apply hZString as %_ -)
+    repeat' (first_callee
+      | "String" => (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
+      | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+      | "zap.String" => (wp_apply hZString as %_ -)
       | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
          iintro %_ ⟨-, -⟩)
-      | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-      | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+      | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+      | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
       | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
       | wp_auto)
     iapply HΦ
@@ -216,16 +217,16 @@ theorem rafthttp.Transport.removePeer_core
     wp_apply wp_mapDelete $$ [Hfmm] as Hfmm
     · iexact Hfmm
     (try wp_auto)
-    repeat' (first
-      | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
-      | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    repeat' (first_callee
+      | "String" => (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
+      | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
       | (wp_apply Hprem as %_ -)
       | (wp_apply Hsrem as %_ -)
-      | (wp_apply hZString as %_ -)
+      | "zap.String" => (wp_apply hZString as %_ -)
       | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
          iintro %_ ⟨-, -⟩)
-      | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-      | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+      | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+      | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
       | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
       | wp_auto)
     iapply HΦ

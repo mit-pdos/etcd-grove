@@ -147,6 +147,29 @@ structure KVNames where
   /-- The cluster's compaction mode (M2's apply side, item 5: one for every member; `srvKVInvs` and
   `srvReqFieldsAt` tie each member's `E.cmp` to it). -/
   cmp : Bool := false
+  /-- The cluster's log of requested raft entries (`SrvRaft.log`: one for the cluster, every
+  member's `ServerRaftNames.raft.log`; `kvInv`'s tie `γk.rlog = γ.raft.log`), where a revision
+  reached is read (`kvRevLb`; the client's `kv.Compact`, 2026-10-31). -/
+  rlog : GName := 0
+
+/-- **Two KV names of one cluster's KV** (pure; the client's `kv.Compact`, 2026-10-31): the same
+state, the same model (its start index, chain and start log), the same requested log and the same
+mode; a member's own names (its certificates' map `cok`, `hi`, `ids`) aside. -/
+def kvSame (γk γk' : KVNames) : Prop :=
+  γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
+    γk.rlog = γk'.rlog ∧ γk.cmp = γk'.cmp
+
+theorem kvSame_refl (γk : KVNames) : kvSame γk γk := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem kvSame_symm {γk γk' : KVNames} (h : kvSame γk γk') : kvSame γk' γk := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+  exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm⟩
+
+theorem kvSame_trans {γk γk' γk'' : KVNames} (h : kvSame γk γk') (h' : kvSame γk' γk'') :
+    kvSame γk γk'' := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+  obtain ⟨h1', h2', h3', h4', h5', h6'⟩ := h'
+  exact ⟨h1.trans h1', h2.trans h2', h3.trans h3', h4.trans h4', h5.trans h5', h6.trans h6'⟩
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -297,7 +320,8 @@ def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
     ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L⌝ ∗
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+      γk.rlog = γ.raft.log⌝ ∗
       kvWork γ.raft γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
@@ -537,26 +561,63 @@ def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → I
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
-/-- **A compaction's revision reached** (persistent; M2's apply side, item 6): a KV certificate
-(`kvCert`: the model of a committed raft log, by `kvCertInv`; or one of the start's two revisions)
-of a log longer than it. What `reqPropOk`'s compaction form carries to the commit, where the KV
-invariant records the revision as one of the model before the entry (`cmpLogOk`): read through
-`kvCertInv` before the atomic update, compared inside it (`kv_prop_au`). -/
-def cmpReach (γk : KVNames) (r : w64) : IProp GF :=
-  iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝)
+/-- **etcd's KV `γk` has reached revision `r`** (persistent; the client's `kv.Compact`, 2026-10-31,
+in place of M2's `cmpReach`): the cluster's requested raft log has a prefix whose KV model is
+longer than `r`, so every entry requested later is applied after revision `r` exists. One for the
+cluster (`kvSame` names agree on it), unlike a member's certificates. A `Put`'s reply gives it at
+the put's revision; the start's revisions are free (`kvRevLb_start`). What `reqPropOk`'s compaction
+form carries to the commit, where the KV invariant records the revision as one of the model
+before the entry (`cmpLogOk`, `kv_prop_au_cmp`). Clients use its laws only. -/
+def kvRevLb (γk : KVNames) (r : w64) : IProp GF :=
+  iprop(∃ L₀ : List EntryModel, monoListLbOwn γk.rlog L₀ ∗
+    ⌜sint.Z r < (kvModel γk L₀).length⌝)
 
-instance cmpReach_persistent (γk : KVNames) (r : w64) : Persistent (cmpReach (GF := GF) γk r) := by
-  unfold cmpReach; infer_instance
+omit raftAsm in
+instance kvRevLb_persistent (γk : KVNames) (r : w64) : Persistent (kvRevLb (GF := GF) γk r) := by
+  unfold kvRevLb; infer_instance
+
+omit raftAsm in
+/-- A revision below a reached one is reached. -/
+theorem kvRevLb_mono (γk : KVNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    kvRevLb (GF := GF) γk r ⊢ kvRevLb γk r' := by
+  iintro H
+  iunfold kvRevLb at H
+  icases H with ⟨%L₀, #HL, %Hl⟩
+  iunfold kvRevLb
+  iexists L₀
+  iframe HL
+  ipureintro; omega
+
+omit raftAsm in
+/-- The start log's revisions are reached (`log0 = [[], []]` in every cluster: `0` and `1`). -/
+theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length) :
+    ⊢ |==> kvRevLb (GF := GF) γk r := by
+  iintro
+  imod (monoListLbOwn_nil (GF := GF) (A := EntryModel) γk.rlog) with #H0
+  imodintro
+  iunfold kvRevLb
+  iexists []
+  iframe H0
+  ipureintro
+  exact h
+
+omit raftAsm in
+/-- The same cluster's KV names agree on the revisions reached. -/
+theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
+    kvRevLb (GF := GF) γk r ⊢ kvRevLb γk' r := by
+  obtain ⟨-, h2, h3, h4, h5, -⟩ := h
+  unfold kvRevLb kvModel
+  rw [h2, h3, h4, h5]
 
 /-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
 (`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
-revision (`cmpReach`), its result trivial. -/
+revision (`kvRevLb`), its result trivial. -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
     (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
-      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ cmpReach γk r))
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
@@ -971,7 +1032,7 @@ theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outco
     · rw [h.1]; exact commitLog_grow _ _
   · obtain ⟨pend, -, h⟩ := h
     rw [h]; exact commitLog_grow _ _
-  · exact h.elim
+  · rw [h]; left; rfl
   · exact h.elim
   · rcases h with h | h <;> (rw [h]; left; rfl)
 

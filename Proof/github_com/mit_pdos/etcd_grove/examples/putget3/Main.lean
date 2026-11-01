@@ -305,7 +305,7 @@ theorem Main.wp_proof
     $$ [Hac Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
-    iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf)
+    iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with
