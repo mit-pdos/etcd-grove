@@ -779,8 +779,13 @@ def readyCut (γ : NodeNames) (rd : Ready) (es : List EntryM) (ms : List QMsg) (
     (L : Option SnapLoan) : IProp GF :=
   iprop(∃ (x : RaftState × StateType) (S' : RaftState) (W : DurMaps)
       (ss : Option (w64 × StateType)),
-    dghostVar γ.dur (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.bw (DFrac.own (1 : Qp).half) W ∗
+    dghostVar γ.dur (DFrac.own (1 : Qp).half) x ∗
+    -- (2026-11-01, stage II(g), approved fix D) `bw` also records the durable state and role the
+    -- batch enters, by which `run` recognizes the driver's half of `dur` back at `Advance`
+    dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, (S', roleAfter x.2 ss)) ∗
     pendBatch γ.raft γ.id γ.gen S' W ∗ ⌜S' = readyDurable x.1 p' L es⌝ ∗
+    -- (2026-11-01, stage II(g), approved fix B) the budget covers the entered term (`raftState`'s)
+    termLB γ.bud S'.term ∗
     softStateIs rd.SoftState' ss ∗
     ([∗list] q ∈ ms, □ (durFrags γ.raft γ.id W -∗ isRaftMsg γ.raft γ.id q.st)) ∗
     □ (⌜roleAfter x.2 ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st))
@@ -839,8 +844,11 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
     capPay γ L x ∗
     -- (2026-11-01, durability stage I-3/I-8, R7) `run`'s halves back: the durable state and role
     -- recorded after the `Ready`, and the batch's maps with the fragments *enter* minted
+    -- ((2026-11-01, stage II(g), approved fix D) with the generation's free queue, which *enter*
+    -- freed, for `run`'s next cut; `bw` recording `y`)
     (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
-      dghostVar γ.bw (DFrac.own (1 : Qp).half) W ∗ durFrags γ.raft γ.id W) ∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+      slotFree γ.raft γ.id γ.gen) ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     -- (2026-10-28, the decision switch) or skipped (`undecFree`); (raft-final, 2026-10-29, the
@@ -1010,6 +1018,10 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     (∃ x : List EntryM × List EntryM × List EntryM × HardStateM × Option SnapLoan,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
+    -- (2026-11-01, stage II(g), approved fix D) the driver's halves back (`advanceP`'s)
+    (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+      slotFree γ.raft γ.id γ.gen) ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
     -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
     -- until then unguarded)
@@ -1091,11 +1103,45 @@ durability stage I-3, R8) with the same share of the node's generation of its id
 def nodeLiveRaw (γ : NodeNames) (q : Qp) : IProp GF :=
   iprop(dghostVar γ.live (DFrac.own q.half) false ∗ slotLive γ.raft γ.id q.half γ.gen)
 
+/-- (stage II helper) A share of the generation splits and combines. -/
+instance slotLive_fractional (γ : RaftNames) (id : w64) (g : Nat) :
+    Fractional (fun q => slotLive (GF := GF) γ id q g) where
+  fractional p q := by
+    unfold slotLive
+    constructor
+    · iintro ⟨%γs, %H, Hv⟩
+      icases ((ghostVar_half_fractional (GF := GF) γs.2.2 g).fractional p q).1 $$ Hv with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists γs; iframe H1; ipureintro; exact H
+      · iexists γs; iframe H2; ipureintro; exact H
+    · iintro ⟨⟨%γs, %H, H1⟩, ⟨%γs', %H', H2⟩⟩
+      rw [H] at H'; cases H'
+      iexists γs
+      isplitr
+      · ipureintro; exact H
+      iapply ((ghostVar_half_fractional (GF := GF) γs.2.2 g).fractional p q).2
+      iframe H1 H2
+
 instance nodeLiveRaw_fractional (γ : NodeNames) :
     Fractional (nodeLiveRaw (GF := GF) γ) where
   fractional p q := by
-    -- PORT(durability stage II): `nodeLiveRaw` holds the generation's share (I-3)
-    sorry
+    unfold nodeLiveRaw
+    rw [Qp_half_add]
+    constructor
+    · iintro ⟨Hl, Hs⟩
+      icases ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).1 $$ Hl
+        with ⟨Hl1, Hl2⟩
+      icases ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).1 $$ Hs
+        with ⟨Hs1, Hs2⟩
+      isplitl [Hl1 Hs1]
+      · iframe Hl1 Hs1
+      · iframe Hl2 Hs2
+    · iintro ⟨⟨Hl1, Hs1⟩, ⟨Hl2, Hs2⟩⟩
+      isplitl [Hl1 Hl2]
+      · iapply ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).2
+        iframe Hl1 Hl2
+      · iapply ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).2
+        iframe Hs1 Hs2
 
 instance nodeLiveRaw_timeless (γ : NodeNames) (q : Qp) : Timeless (nodeLiveRaw (GF := GF) γ q) := by
   unfold nodeLiveRaw slotLive; infer_instance
@@ -1131,8 +1177,10 @@ instance propErrRaw_persistent (γ : NodeNames) (cd : context.ContextDesc (IProp
 
 theorem nodeLiveRaw_stopped (γ : NodeNames) (q : Qp) :
     nodeLiveRaw (GF := GF) γ q ∗ nodeStoppedRaw γ ⊢ False := by
-  -- PORT(durability stage II): `nodeLiveRaw` holds the generation's share (I-3)
-  sorry
+  unfold nodeLiveRaw nodeStoppedRaw
+  iintro ⟨⟨H1, -⟩, H2⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
+  cases H
 
 /-- (2026-10-29, stage U9a) The closing side of a broadcast also gives its persistent side. -/
 theorem ownBroadcastChan_pending_unknown (ch : Loc) (γc : ChanNames) (Q : IProp GF) :
@@ -1245,8 +1293,28 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
           nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd es ms p' L }} := by
-  -- PORT(durability stage II): `readyP` holds the cut batch (I-3)
-  sorry
+  iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
+  unfold nodeDriverChan
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold isReadyChanRaw
+  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq]
+  · iframe Hrc
+  iintro %rd
+  iintro !> HP
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iapply HΦ
+  iexists ce, es, ms, p', L
+  iframe Hdata Hcut
+  unfold nodeDriverBusy
+  iframe Hnode Hld
+  isplitr
+  · unfold dlvLb; iframe Hlb Hk
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
 
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) :
@@ -1313,8 +1381,20 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
         dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd es ms p' L := by
-  -- PORT(durability stage II): `readyP` holds the cut batch (I-3)
-  sorry
+  iintro HP Hdrv
+  unfold nodeDriverChan
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iexists ce, es, ms, p', L
+  iframe Hdata Hcut
+  unfold nodeDriverBusy dlvLb
+  iframe Hnode Hlb Hk Hld
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
 
 /-- The handshake's send, where the payload is made only when the send happens (a ghost
 update inside the atomic update): `run` hands out the storage's append right with a

@@ -490,8 +490,14 @@ instance softStateIs_persistent (p : Loc) (ss : Option (w64 × StateType)) :
 /-- A soft state at a value is read-only (`softStateRO`). -/
 theorem softStateIs_RO (p : Loc) (ss : Option (w64 × StateType)) :
     softStateIs (GF := GF) p ss ⊢ softStateRO p := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+  unfold softStateRO
+  cases ss with
+  | none => unfold softStateIs; iintro %H; ileft; ipureintro; exact H
+  | some x =>
+    obtain ⟨lead, rs⟩ := x
+    unfold softStateIs
+    iintro ⟨#H1, #H2⟩
+    iright; iexists lead, rs; iframe H1 H2
 
 /-- (U8 v2, 2026-10-29; until then the right to append, or with a snapshot the storage itself and
 its certificate in the storage's registry) **What a `Ready` hands the application for the storage**

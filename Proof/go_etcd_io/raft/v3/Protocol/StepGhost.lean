@@ -588,7 +588,7 @@ carries until it is entered.) -/
 theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
     (i : w64) (Hnc : s.role ≠ .candidate)
     (Hli : s.role = .leader → uint.Z i ≤ plogLastIndexZ s.base s.log) :
-    ⊢ ackOk (GF := GF) γ s (s.term, i) -∗
+    ⊢ ackInF (GF := GF) γ s.term i -∗ ackOk γ s (s.term, i) -∗
       (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗
          logRecs γ base0 fp -∗
          commitIn γ (fp ++ s.log) s.commit s.term -∗
@@ -596,7 +596,7 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
       ownLogGhost γ id s kl W -∗
       ownLogGhost γ id s kl (W.add (.ack s.term i)) ∗ promJust γ id W (.ack s.term i) ∗
       □ (durFrags γ id (W.add (.ack s.term i)) -∗ isAcked γ id s.term i) := by
-  iintro #Hk Hhnew H
+  iintro #Hai #Hk Hhnew H
   unfold ownLogGhost
   icases H with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
@@ -625,7 +625,7 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
     iframe # ∗ <;> iframe %
   isplitr
   · unfold promJust promNeed
-    imodintro; iintro -; ipureintro; trivial
+    imodintro; iintro -; iexact Hai
   · unfold durFrags
     imodintro
     iintro ⟨-, #Ha, -⟩
@@ -689,8 +689,9 @@ theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       · unfold isTermLog
         iexists γm
         isplitr; · ipureintro; exact Htname
-        iapply (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (γt : TermRec) => iprop(t ↪[γm]□ γt))
-          Hγt) $$ Htfrags
+        icases (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (γt : TermRec) =>
+          iprop(t ↪[γm]□ γt ∗ campKey γ id t)) Hγt) $$ Htfrags with ⟨#Hx, -⟩
+        iexact Hx
       isplitr; · ipureintro; exact ⟨Hlog_ok.1, Hpre⟩
       isplitr; · iexact Hrecs
       iexact Hlf
@@ -761,15 +762,8 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
     have Hi := Hlacks.2 Hr k.2 (by rw [← Hkk, show W.acks !! k = some u from Hk]; rfl)
     rw [Hc] at Hk2
     rw [Hb, Hlg, Hk1]
-    unfold ackAgree
-    isplitr; · ipureintro; exact Hi
-    iexists id, s.base, s.log
-    isplitr; · iexact Hp
-    isplitr
-    · ipureintro
-      refine ⟨plogTermAt_in_range _ _ _ ⟨?_, Hi⟩, rfl⟩
-      have := Hlog_ok.2.1; omega
-    · iexists fpl; iexact Hpf
+    iapply ackAgree_intro γ s.base s.log s.term k.2 id s.base s.log fpl Hi
+      (plogTermAt_in_range _ _ _ ⟨by have := Hlog_ok.2.1; omega, Hi⟩) rfl $$ Hp Hpf
   ihave #Hmatched' : matchedOk (GF := GF) γ id s' fp $$ []
   · rw [matchedOk_nl γ id s' fp Hnl]; ipureintro; trivial
   ihave #Hrecs' : logRecs (GF := GF) γ s'.base s'.log $$ []
@@ -1290,20 +1284,11 @@ theorem ackAgree_full (γ : RaftNames) (b : entryID) (es fp : List EntryM)
           plogTermAt base0 X i = plogTermAt base0 (fp ++ es) i⌝ := by
   intro Hf Hb
   unfold ackAgree
-  iintro ⟨-, %ldr, %bL, %l, #Hp, %Hsq, %fpX, #Hpf⟩
-  obtain ⟨Hs, Heq⟩ := Hsq
-  ihave %HfX : ⌜FullOk bL fpX⌝ $$ []
-  · iunfold lpfull at Hpf
-    icases Hpf with ⟨%F0, -, -, %H⟩
-    ipureintro; exact H.1
-  iexists fpX ++ l
-  isplitr
-  · iapply leadFull_intro $$ Hp Hpf
+  iintro ⟨-, %X, #HX, %Hsq⟩
+  iexists X
+  iframe HX
   ipureintro
-  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
-  have HbL := (plogTermAt_some_range _ _ _ _ Hx).1
-  rw [full_term_at bL fpX l i HfX HbL, full_term_at b fp es i Hf Hb]
-  exact ⟨Hs, Heq⟩
+  rw [full_term_at b fp es i Hf Hb]; exact Hsq
 
 /-! #### Lookups through the slot (stage II helpers, durability R2) -/
 
@@ -1314,33 +1299,15 @@ instance durShares_timeless (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) :
   unfold durShares; infer_instance
 
 /-- (Lean helper.) The queue's current batch, if any, extends the entered maps. -/
-private theorem slot_batch_le (γ : RaftNames) (id : w64) (E : DurMaps) (Mq : GMap Nat (Option RaftBatch))
-    (g : Nat) :
-    (∀ b, ⌜Mq !! g = some (some b)⌝ -∗ batchOk (GF := GF) γ id E b) ⊢
-      ⌜DurLe E (virtQ E (Mq !! g))⌝ ∗ (∀ b, ⌜Mq !! g = some (some b)⌝ -∗ batchOk γ id E b) := by
-  iintro Hb
+private theorem slot_batch_le (E : DurMaps) (Mq : GMap Nat (Option RaftBatch)) (g : Nat) :
+    (∀ b, Mq !! g = some (some b) → b.2.2 = E ∧ DurLe E b.2.1) → DurLe E (virtQ E (Mq !! g)) := by
+  intro H
   cases h : Mq !! g with
-  | none =>
-    isplitr; · ipureintro; exact DurLe_refl E
-    iexact Hb
+  | none => exact DurLe_refl E
   | some o =>
     cases o with
-    | none =>
-      isplitr; · ipureintro; exact DurLe_refl E
-      iexact Hb
-    | some b =>
-      ihave Hbo := Hb $$ %b %rfl
-      unfold batchOk
-      icases Hbo with ⟨%π, %Hπ, #Hj, #Hd⟩
-      isplitr
-      · ipureintro
-        show DurLe E b.2
-        rw [Hπ.1]; exact DurLe_virt E π Hπ.2
-      iintro %b' %hb'
-      cases hb'
-      iexists π
-      iframe Hj Hd
-      ipureintro; exact Hπ
+    | none => exact DurLe_refl E
+    | some b => exact (H b h).2
 
 /-- **Opening the slot** against the node's half of its virtual maps `V`: the entered maps `E`,
 below `V`, with their authority shares, until the slot is closed. -/
@@ -1354,22 +1321,22 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
-  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, Hb⟩
+  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hs] at Hγs'; cases Hγs'
   icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv Hv' with %HV
-  icases (later_mono (slot_batch_le γ id E Mq g)) $$ Hb with ⟨>%Hle, Hb⟩
+  have Hle := slot_batch_le E Mq g Hb
   imodintro
   iexists E
   isplitr; · ipureintro; rw [HV]; exact Hle
   isplitl [Hsh]; · iexact Hsh
   isplitl [Hv]; · iexact Hv
   iintro Hsh
-  imod Hclose $$ [Hsh Hv' Hg Hq Hb] with -
+  imod Hclose $$ [Hsh Hv' Hg Hq] with -
   · inext
     iexists γs, E, g, Mq
     isplitr; · ipureintro; exact Hs
-    iframe Hsh Hfr Hv' Hg Hq Hb
-    ipureintro; exact ⟨Hdom, Hcur⟩
+    iframe Hsh Hfr Hai Hv' Hg Hq
+    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
   imodintro; ipureintro; trivial
 
 /-- An entered vote's fragment against the authority share. -/
