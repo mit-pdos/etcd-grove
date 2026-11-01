@@ -646,3 +646,23 @@ To apply when the Draft is rebased onto J8b:
    a named `sorry` (`run_job_snap_cmp`); `run_snap_jobOn` needs the same split.
 5. `run`'s auth-on site (`EtcdServer__run.lean`, the second SNAPSHOT-SORRY, ~:1400) is left to this track;
    the mode-off lemma is `run_job_snap` (final statement from the J8b session once it builds).
+
+## The user's decisions on the restated Draft's questions (2026-11-01)
+
+All seven recommendations accepted:
+1. Release vs `Close`: change the backend's specs so that a read in progress needs no open share of
+   its own, and `Close` waits for the readers (as Go's does: `close_test.go`).
+2. The realization's readers (`R`) are backed by the reader's thread token (the Bounds rule), not by a
+   partition of the backend's reader pool; also for today's premise.
+3. The name tie travels with the write token in `authApplyResPre`, not in `authBeOn` (supersedes
+   decision 3b's wording).
+4. Per-bucket idleness (`rbOwnIn`, its laws, a per-bucket `rbPut`) is a backend change of its own,
+   staged before the merge.
+5. The fixed quarter `authOpenQ` for the realization; the apply thread's open half becomes a quarter in
+   mode on.
+6. Mode-off guards: trace who produces the mode-off contract first, then decide.
+7. At the merge: drop `authApplyResPre`'s untied `authWBackendOk` (S5), and fix where boot's
+   `ghostMapAuth γa.fresh` lives.
+
+Next: the backend stage (1, 2 as it touches the backend, 4), spec-first, before the auth premise is
+applied.
