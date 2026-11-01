@@ -199,7 +199,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   imod Hp with ⟨Hcur, Hout, Hx, Ho, Hps, Hmr, Hrest, %Hpos⟩
   icases (mapFields_join db st).1 $$ [Hflds Hflds0] with ⟨Hd, H0, H1⟩
   · iframe
-  wp_apply wp_munmap db (mapSlice st) (W64 (mapLen st)) (mapPtr0 st) (mapPtr1 st) p m
+  wp_apply wp_munmap db (DFrac.own 1) (mapSlice st) (W64 (mapLen st)) (mapPtr0 st) (mapPtr1 st) p m (fun _ => rfl)
     $$ [Hd Hdsz H0 H1 Hmr] as %err ⟨Hd, Hdsz, H0, H1, Hun⟩
   · iframe
   rw [mapSlice_ite st Hpos (fun st => W64 (mapLen st)) (W64 0) rfl,

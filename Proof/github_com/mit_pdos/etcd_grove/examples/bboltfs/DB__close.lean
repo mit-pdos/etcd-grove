@@ -28,10 +28,10 @@ theorem DB.close.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     (wp_Flock : syscall.Flock.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
     DB.close.spec (GF := GF) (hG := hG) := by
-  intro db sl dsz m0 m1 f dqd fd name d p m
+  intro db dq sl dsz m0 m1 f dqd fd name d p m Hdq
   wp_start as ⟨#Hinv, Hd, Hs, H0, H1, Hm, Hfile, Hf, Hfd⟩
   (try wp_auto)
-  wp_apply wp_munmap db sl dsz m0 m1 p m $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hs, H0, H1, Hun⟩
+  wp_apply wp_munmap db dq sl dsz m0 m1 p m Hdq $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hs, H0, H1, Hun⟩
   · iframe
   (try wp_auto)
   wp_apply wp_Fd f fd name _ $$ [Hf] as Hf

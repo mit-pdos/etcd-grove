@@ -23,7 +23,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 
 theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)) :
     DB.munmap.spec (GF := GF) (hG := hG) := by
-  intro db sl dsz m0 m1 p m
+  intro db dq sl dsz m0 m1 p m Hdq
   wp_start as ⟨Hd, Hs, H0, H1, Hm⟩
   unfold mappingRes
   icases Hm with (%Hnil | ⟨%base, %len, %vf, %Hsl, #Hinv, Hm, Hc⟩)
@@ -38,6 +38,7 @@ theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF :=
     have hne : ({ ptr := base, len := len, cap := len } : GoSlice) ≠ slice.nil := by
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hpos
+    obtain rfl := Hdq hne
     wp_auto
     rw [decide_eq_false hne]
     wp_auto

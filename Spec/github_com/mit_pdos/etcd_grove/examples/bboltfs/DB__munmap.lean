@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.munmap()` (`examples/bboltfs/minibolt.go`, bolt_unix.go's `munmap` with `db.invalidate`): with no mapping (`dataref` nil), nil; with one, `unix.Munmap` of it (all its cells' client halves and the whole of the file's `OsMeta`), whose result it returns. Afterwards `dataref` is nil, and, after an unmap, `datasz` is 0 and the meta pointers nil. -/
+/- Lean-first (no Rocq counterpart). `db.munmap()` (`examples/bboltfs/minibolt.go`, bolt_unix.go's `munmap` with `db.invalidate`): with no mapping (`dataref` nil), nil, reading only `dataref`, so that the fields may be held at any fraction `dq`; with one, `unix.Munmap` of it (and the whole fields) (all its cells' client halves and the whole of the file's `OsMeta`), whose result it returns. Afterwards `dataref` is nil, and, after an unmap, `datasz` is 0 and the meta pointers nil. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Store
@@ -42,14 +42,15 @@ def unmappedRes (p : GoString) (m : OsMeta) (sl : GoSlice) (err : GoInterface) :
 
 /-- See the file header. -/
 abbrev DB.munmap.spec : Prop :=
-  ∀ (db : Loc) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : GoString) (m : OsMeta),
-  {{ db.[DB, go!"dataref"] ↦ sl ∗ db.[DB, go!"datasz"] ↦ dsz ∗ db.[DB, go!"meta0"] ↦ m0 ∗
-      db.[DB, go!"meta1"] ↦ m1 ∗ mappingRes (GF := GF) p m sl }}
+  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : GoString) (m : OsMeta),
+  (sl ≠ slice.nil → dq = DFrac.own 1) →
+  {{ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗ db.[DB, go!"meta0"] ↦{dq} m0 ∗
+      db.[DB, go!"meta1"] ↦{dq} m1 ∗ mappingRes (GF := GF) p m sl }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
-  {{ (err : GoInterface), RET #err; db.[DB, go!"dataref"] ↦ slice.nil ∗
-      db.[DB, go!"datasz"] ↦ (if sl = slice.nil then dsz else W64 0) ∗
-      db.[DB, go!"meta0"] ↦ (if sl = slice.nil then m0 else null) ∗
-      db.[DB, go!"meta1"] ↦ (if sl = slice.nil then m1 else null) ∗
+  {{ (err : GoInterface), RET #err; db.[DB, go!"dataref"] ↦{dq} slice.nil ∗
+      db.[DB, go!"datasz"] ↦{dq} (if sl = slice.nil then dsz else W64 0) ∗
+      db.[DB, go!"meta0"] ↦{dq} (if sl = slice.nil then m0 else null) ∗
+      db.[DB, go!"meta1"] ↦{dq} (if sl = slice.nil then m1 else null) ∗
       unmappedRes (GF := GF) p m sl err }}
 
 end spec
