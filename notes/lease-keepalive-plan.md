@@ -36,59 +36,93 @@ request's (its `ID`), sent after the renewal of that ID returned.
   `Recv`'s error; the watch stream (`InvWatchStream.lean`, `watchServer.Watch.spec`) is the
   precedent for a handler's spec over it (`watchStreamSpec γs … Dn := □ ∀ j m, Dn j m ∗-∗ watchDn …`).
 
-## Draft
+## Draft (revised after the review, with the user's choices)
 
 **K1. Translation** (`Code/.../v3rpc.toml`): `LeaseServer.LeaseKeepAlive` and
-`LeaseServer.leaseKeepAlive`. `isClientCtxErr`, `streamFailures` and the zap calls are the watch
-loop's (specs exist).
+`LeaseServer.leaseKeepAlive` (done). `isClientCtxErr`, `streamFailures` and the zap calls are the
+watch loop's (specs exist).
 
-**K2. The messages** (`InvLeaseKeepAlive.lean`): `pbLeaseKeepAliveRequest` (model: `ID`),
-`pbLeaseKeepAliveResponse` (model: the header `HdrM`, `ID`, `TTL`), `StreamMsg` instances as
-`pbWatchRequest`'s (the received request owned).
+**K2. One wire model, the client's** (review finding 2): `pbLeaseKeepAliveRequest`/`Response`
+already exist (`client/v3/InvLessor.lean`, used by the client's keep-alive proofs and
+`leaseKAStreamOk`); they move to a module both ends import, and the server uses them. The response's
+model is `(ID, TTL)`, read-only once sent (`keepAliveRespMsg`): the stream specification states no
+header content. **The request's model gains ghost bounds** (the user's choice, 2026-11-01: "ghost
+bounds per request", as watch's create `bound`): `{id, nb, mb}`, the wire carrying `id` only; the
+client's content `Up j q` gives `□ authPubLbM M q.nb ∗ □ lessorLb γl q.mb` (`kaUpOk`). The client's
+keep-alive specs and proofs (`lessor.sendKeepAliveLoop`, `recvKeepAliveLoop`, `resetRecv`,
+`KeepAlive`, `leaseClient.LeaseKeepAlive`, `retryLeaseClient.LeaseKeepAlive`, `leaseKAStreamOk`) are
+restated as callers: the client may send bounds `0` (the facts at `0` hold trivially).
 
-**K3. The contract grows a third triple**: `lessorRenewOk s E γl S R`, the server's
-`LeaseRenew(ctx, id)` at `S ∗ R`, the context, `authPubLbM n`, `lessorLb m`, given back, with the
-answer `renewAns`: `nil` and the verdict, or a non-nil `applyErrIs` error. `raftLeaseRead :=
-lessorTTLOk ∗ lessorLeasesOk ∗ lessorRenewOk`. The server's `S` widens to `E.RD ∗ lessorRdOf γl ∗
-threadTok ∗ srvLgReader s ∗ srvReadReader s γr` (the unary reads frame the two readers).
+**K3. The contract grows a renewal triple with its own resources** (finding 5):
+`lessorRenewOk s E γl S'`, the server's `LeaseRenew(ctx, id)` at `S'`, the context,
+`authPubLbM n`, `lessorLb m`, given back, with the answer `renewAns`: `nil` and the verdict, or a
+non-nil `applyErrIs` error. `raftLeaseRead s E γl S R S' := lessorTTLOk ∗ lessorLeasesOk ∗
+lessorRenewOk` (the unary reads' `S` unchanged; no `R` in the renewal, which never reads the store).
+The server's `S' := E.RD ∗ lessorRdOf γl ∗ srvLgReader s ∗ srvReadReader s γr` (the loop's
+`threadTok` is the forked goroutine's own).
 
-**K4. The stream specification** (`kaStreamSpec γs … Dn := □ ∀ j m, Dn j m ∗-∗ kaDn … j m`): the
-`j`th response
+**K4. The stream specification, over the run's token** (finding 1): `kaStreamSpec … tok Dn := □ ∀ j
+r, Dn j r ∗-∗ kaDn … tok j r`, with
 ```
-kaDn s E γl ci cid mid n m γs j r :=
-  ∃ q, upAt γs j q ∗ ⌜r.id = q.id ∧ r.hdr.clusterId = cid ∧ r.hdr.memberId = mid⌝ ∗
-    (⌜r.ttl = 0⌝ ∨ leaseCheckFrom s E (ok ci) n (fun info => leaseKeysVerdictFrom E.authMode n info γl m q.id .write))
+kaDn s E γl γs tok j r :=
+  ∃ q, upAt γs j q ∗ ⌜r.id = q.id⌝ ∗
+    (⌜r.ttl = 0⌝ ∨ leaseCheckT s E tok q.nb (fun info => leaseKeysVerdictFrom E.authMode q.nb info γl q.mb q.id .write))
 ```
-answers the `j`th request (its ID), with the handler's ids; a non-zero TTL carries the renewal's
-verdict at the stream's lower bounds `n`, `m`. `Up` is free (the server needs nothing of a request).
+the `j`th response answers the `j`th request (its ID); a non-zero TTL carries the renewal's
+verdict at that request's bounds, for the run's token `tok = auth.ctxTokenOf (ok ci)` (registrable
+at the metadata's token, `auth.mdTokenOf md`, as `watchDn`). `leaseCheckT` states the check over a
+token (`infoBoundT`, `infoBoundT_of_principalBoundI`); `leaseCheckFrom` implies it.
 
-**K5. `v3rpc.LeaseServer.LeaseKeepAlive.spec`**: `leaseServerAt p s A cid mid`, `raftLeaseRead s E γl
-S R` with `A.revR = R`, the stream (`srvStreamIs st γs pbLeaseKeepAliveRequest
-pbLeaseKeepAliveResponse Up Dn ci cd`, `kaStreamSpec … Dn`, both tokens at `[]`), `authPubLbM n`,
-`lessorLb m`, and the run's `S ∗ R`; it returns an error, with `kaStreamSpec` (as `Watch`'s: `S ∗ R`
-stay with the goroutine, which may outlive the handler). `leaseKeepAlive`'s own spec: the same, the
-tokens consumed, its answer ignored.
+**K5. `v3rpc.LeaseServer.LeaseKeepAlive.spec`**: `leaseServerAt p s A cid mid` (gaining the logger,
+`lg ↦□ lg ∗ ⌜lg ≠ null⌝`, proved by `NewLeaseServer`: finding 3; an interface diff for every lease
+handler), `raftLeaseRead s E γl S R S'` with `A.revR = R`, the stream (`srvStreamIs st γs
+pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn ci cd`, `kaStreamSpec … Dn`, `kaUpOk Up`,
+both tokens at `[]`) and the run's `R ∗ S'`; it returns an error, with `kaStreamSpec`.
+`leaseKeepAlive`'s own spec: the same, the stream tokens consumed, `R ∗ S'` given back when the loop
+ends (finding 7).
 
-**K6. The discharge**: `raftLeaseRead_of_server` takes `EtcdServer.LeaseRenew.spec` too, and
-`srvPeerRt s` (`∃ rt, peerRt ↦□ rt ∗ ⌜rt a *http.Transport⌝`) beside `srvLessorRd` etc.
+**K6. The discharge**: `raftLeaseRead_of_server` takes `EtcdServer.LeaseRenew.spec` too and
+`srvPeerRt s`, a named predicate (`∃ rt, peerRt ↦□ rt ∗ ⌜rt a *http.Transport⌝`), which
+`EtcdServer.LeaseRenew.spec`'s inline premise is restated with (same meaning).
 
-**K7. `NewServer` exports `srvPeerRt s`** (a frozen spec, the user's choice): `NewServer`'s post (all
-three forms, `spec`/`specM`/`specG`) gains `srvPeerRt srv`; its source is `bootstrap`'s result's
-`prt` (`srv.peerRt = b.prt`, `server.go`), which `bootstrapContract` (a premise every closed result
-carries) must then state is a `*http.Transport` (what `rafthttp.NewRoundTripper` returns,
-`transport.NewTimeoutTransport`); the field is never written after construction, so its points-to
-can be made persistent in `NewServer`'s proof.
+**K7. `NewServer` exports the server's lease facts** (the user's choice, 2026-11-01: "export all
+three now"; a frozen spec): `NewServer`'s post (`spec`/`specM`/`specG`) gains `srvPeerRt srv`,
+`srvLessorRd srv γl` and `srvHeaderFacts srv cid mid`, so the discharge has no premise without a
+source. `srvPeerRt`'s source is `bootstrap`'s `prt` (`srv.peerRt = b.prt`, `server.go:330`), which
+`bootOk` then states is a `*http.Transport` (a pure conjunct; Go: `rafthttp.NewRoundTripper`,
+`transport.NewTimeoutTransport`, `bootstrap.go:72`); the field is never written after construction.
+`srvLessorRd` from `NewLessor`'s `lessorInv` (in `NewServer`'s proof today); `srvHeaderFacts` from
+the cluster, member id and leader-invariant facts the proof builds. Restated as callers: the
+corollaries `wp_proofM`/`wp_proof`, the examples carrying `bootstrapContract` (stronger premise,
+proofs unchanged), and the callers destructuring the post (`examples/authkv/startServer.lean`,
+`examples/common/newServer.lean`, ...; counted with `etc/importers.py` at the Probe).
 
 ## Margins (stated, not closed)
 
-- The header's revision is not related to the renewal (Go's comment: no later than it); the
-  response states only the ids.
+- No header content is stated (the wire model's), so nothing about its revision. Go's comment says
+  the revision is no later than the renewal's; on a follower `fill` uses the local revision while
+  the forwarded renewal runs at the leader without waiting for its applied index
+  (`leasehttp/http.go:91`), so the comment may not hold (to check: finding 9; an `issues/` entry if
+  it reproduces).
 - A TTL of 0 (`ErrLeaseNotFound`) carries nothing, not even authentication (the unary margin).
-- When the context wins the select, the loop's error is dropped; the spec says nothing of the
-  returned error.
+- Nothing of the renewal itself (that the lease was renewed, its TTL): `LeaseRenew.spec` states none.
+- The verdict is of the local member's lessor, which on a follower can lag the leader's
+  (`issues/etcd-lease-renew-keys-follower-lag.md`): not the cluster's certificate.
+- A failed `Send` may have delivered its response; the content was spent either way.
+- When the context wins the select, the loop's error is dropped.
 
 ## Not in this stage
 
-The registration (`_Lease_LeaseKeepAlive_Handler`, the quota wrapper's promoted
-`LeaseKeepAlive`, as for the unary reads); the client's keep-alive; `srvLessorRd`/`srvHeaderFacts`
-from `NewServer` (still premises of the discharge).
+The registration (`_Lease_LeaseKeepAlive_Handler`, the quota wrapper's promoted `LeaseKeepAlive`;
+grpc's one per-run `S` for every stream method, to be combined with `watchRunSlot`: finding 6); the
+client's keep-alive beyond restating it.
+
+## Review (2026-11-01, an independent spec-reviewer)
+
+Nine findings; the Draft above is revised for 1-8: (1) the stream spec named the run's `n`, `m` and
+context, unregistrable (fix: token form, per-request ghost bounds); (2) a second wire model for
+the client's messages (fix: one shared); (3) the loop logs but `leaseServerAt` had no logger; (4)
+exporting `peerRt` alone closed nothing (fix: all three, the user's choice); (5) the shared `S`
+widened with reader slots the unary reads do not use (fix: `S'`); (6) the registration's single
+stream slot (recorded); (7) `leaseKeepAlive` should give back its resources; (8) missing margins;
+(9) the header-revision comment may not hold in Go (to check).
