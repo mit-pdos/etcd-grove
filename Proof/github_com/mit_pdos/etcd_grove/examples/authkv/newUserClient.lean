@@ -46,6 +46,7 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   -- `clientv3.New(Config{Endpoints: {clientAddr}, ..., Username: name, Password: pw, Logger: lg})`
+  haveI : ThreadBoundLe GF (2 ^ 31) := ⟨by omega⟩
   wp_apply (wp_New _ [go!"127.0.0.1:23916"] V P) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -58,12 +59,10 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
       refine ⟨?_, ?_⟩
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
-    isplitr
-    · iunfold clientAuthPre
-      iright
-      iframe #
-      ipureintro; exact ⟨Htb, Hsz⟩
-    ipureintro; omega
+    iunfold clientAuthPre
+    iright
+    iframe #
+    ipureintro; exact ⟨Htb, Hsz⟩
   iapply HΦ
   iexact Hcl
 

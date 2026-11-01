@@ -4,6 +4,7 @@
 module
 
 public import Proof.k8s_io.client_go.tools.cache.SIIDefs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -27,9 +28,8 @@ objects `nil` or meeting `OK` (`meta.Accessor` returning on them, `accRet`): the
 `evs.length`-th event, sent to every listener (all are syncing, `ProcDefs.lean`). In an execution
 of fewer than `2^63` Go steps. -/
 abbrev sharedIndexInformer.OnUpdate.spec : Prop :=
-  ∀ (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (OK : GoInterface → IProp GF)
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (OK : GoInterface → IProp GF)
     (old new : GoInterface),
-  receiptBound GF ≤ 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗
       accRet OK ∗ okNil OK old ∗ okNil OK new ∗ infH p γp γe evs }}
     (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"OnUpdate"))

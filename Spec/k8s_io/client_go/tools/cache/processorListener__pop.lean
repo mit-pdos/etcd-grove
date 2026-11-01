@@ -7,6 +7,7 @@ module
 
 public import Proof.k8s_io.client_go.tools.cache.ListenerDefs
 public import Proof.k8s_io.utils.buffer.Defs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -32,8 +33,7 @@ invariant is `received = sent ++ pending`); it returns once `addCh` is closed, c
 `nextCh`. In an execution of fewer than `2^61` Go steps (the ring's growth: fewer than `2^61`
 notifications pending). -/
 abbrev processorListener.pop.spec : Prop :=
-  ∀ (l : Loc) (γ : LNames) (Q : Nat → Ev → IProp GF) (done : Loc),
-  receiptBound GF ≤ 2 ^ 61 →
+  ∀ [ReceiptBoundLe GF (2 ^ 61)] (l : Loc) (γ : LNames) (Q : Nat → Ev → IProp GF) (done : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isListener l γ Q ∗
       structFieldRef processorListener go!"done" l ↦□ done ∗
       spscConsumer (V := GoInterface) γ.add [] ∗ spscProducer (V := GoInterface) γ.next [] ∗
