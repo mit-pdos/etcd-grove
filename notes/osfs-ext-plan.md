@@ -226,3 +226,30 @@ which needs the read to end below `2^63`), `Truncate` (growing). An open file is
 `os.file` and `os.fileStat` are trusted types, for which goose emits no field get/set facts;
 `TrustedCode/os.lean` states them by hand (`file.FieldAssumptions`, `fileStat.FieldAssumptions`,
 in goose's form), a trust-base item. `OpenFile` and `Stat` take them as instance hypotheses.
+
+### Crash proofs: a premise on crashes, and what they need of specs (2026-11-01, branch `osfs-boot`)
+
+- **A premise `Q` on crashes** (`GooseLang/Ext/OsFs/CrashP1.lean`, proved): a program is closed
+  with `osFsSemWith Q` (step `OsStep`, crash `OsCrash ∧ Q`), so the end-to-end statement shows
+  `Q`. The specs are proved for `osFs_semantics` and are reused as they are: the WP depends on
+  the semantics only through the extensions' steps (`SemCongr.lean`, `wp_sem_congr`, generic,
+  a candidate for Perennial). `osFsQ_crash_adequacy` takes each generation's proof in
+  `osFs_semantics`'s terms; after a crash `crashRestQ Q` gives the files and, by
+  `osCrashQ_take`, the crashed state `st` (coherent with the old ghost maps) and `Q st st'`.
+  `HasExt.sem_eq` (Perennial) asks for the whole `ExtSemantics`, though only its step is used
+  (`HasExt.step_iff`); weakening it to the step would make `wp_sem_congr` unnecessary.
+- **minibolt's P1** (`Proof/.../bboltfs/BootP1.lean`): a valid meta slot of the crash image is
+  the slot's durable bytes, or its page-cache bytes if all 64 are dirty or lost, or what a
+  write in flight leaves. The "dirty or lost" condition excludes a page-cache mix left by a
+  failed `pwrite` (its untouched bytes stay clean), which validates only by a collision.
+  `BootCrashSafety dir` is the statement of `BootMinibolt`'s crash safety (a `def`).
+- **The gap: crash-aware specs.** There is no crash WP: what the crash part of a generation's
+  proof uses must be in an invariant at every step, and `osCrash_take` needs the old
+  generation's `osMeta p` (some fraction) and the bytes it reads. minibolt's specs (`Open`,
+  `Commit`, `Close`, `init`) and the `os` wrappers' (`File.Sync`, `WriteAt`, `Truncate`, ...)
+  take the whole `OsMeta` and the bytes as Hoare triples, and `DB.lean` keeps them in lock
+  resources (`rwlock` holds the whole `OsMeta`), so at a crash in the middle of a call nothing
+  can be handed to `osCrash_take`. `Open`'s error case also drops the bytes. A crash proof
+  needs the database file's `OsMeta` fraction and meta-page bytes in an invariant across every
+  step (logically atomic specs of the `os` wrappers, the extension's operations being single
+  steps), and minibolt's proofs redone over it.
