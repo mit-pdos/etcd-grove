@@ -470,6 +470,9 @@ theorem arith_hwm (hwm s : Nat) (h2 : 2 ≤ hwm) (hsz : (hwm + 2) * 4096 ≤ s) 
       4096 * hwm + 4096 ≤ s := by
   omega
 
+theorem arith_sub4096 (a b : Nat) (h : a + 4096 ≤ b) : b - a = 4096 + (b - a - 4096) := by
+  omega
+
 /-- What the data page's write reaches, as the writer's state. -/
 theorem dataW_after {p : GoString} {m2 m4 : OsMeta} {bs2 bs4 : List (w8 × Bool)} {hwm : Nat}
     {mp D : List w8} (hcc : commitClean m2 bs2) (hbl : bs2.length = m2.size)
@@ -1162,6 +1165,143 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     · iframe; iframe #
     iframe
     ipureintro; exact ⟨Hok', by omega⟩
+  iintro (⟨%Hbv, %m2, %bs2, Hws, %Hm2, db, «$res0», v, pg, m, Hown⟩ |
+    ⟨%e, %Hbv, db, «$res0», Herr⟩)
+  rotate_left
+  · obtain ⟨rfl, He⟩ := Hbv
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact He
+    iunfold commitErrC at Herr
+    iexact Herr
+  subst Hbv
+  clear hcc hmp Hwf hsz Hmaps Hsz Hok' Hlen Hcw hbl hpgb hsZ
+  iunfold writerStC at Hws
+  icases Hws with ⟨Hcur, Hmap, Hout, Hflds, Hw, Hcls, %Hstp, Htok, #Hinv, Hwc⟩
+  iunfold writerFileC at Hw
+  icases Hw with ⟨%fsz, Hfsz, Hdsz, Hf, Hfd, Hcs, %Hwf⟩
+  obtain ⟨hmp, hcc, rfl, -, h16, h30, hl30⟩ := Hwf.2.2.2 rfl
+  obtain ⟨Hmaps, Hsz, -, -⟩ := Hstp
+  obtain ⟨Hok2, Hgrow⟩ := Hm2
+  icases csOwn_wf' _ _ _ $$ Hcs with ⟨Hcs, %Hcw⟩
+  have hbl : bs2.length = m2.size := Hcw.1
+  have h2 := Hwf.1
+  obtain ⟨-, h4', -, h8, hin⟩ := arith_hwm hwm m2.size h2 Hgrow
+  dsimp only [mapLen]
+  (try wp_auto)
+  -- the data page
+  wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %buf ⟨Hbuf, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  ihave %Hblen := ownSlice_len $$ Hbuf
+  ihave %Hpos := ownSlice_ptr_pos buf _ _ (List.ne_nil_of_length_pos (by rw [List.length_replicate]; decide)) $$ Hbuf
+  have hbl' : sint.Z buf.len = 4096 := by
+    have h1 := Hblen.1; have h2 := Hblen.2; simp only [List.length_replicate] at h1
+    have : sint.nat buf.len = (sint.Z buf.len).toNat := rfl
+    omega
+  wp_apply wp_pageAt
+  · ipureintro; rw [hbl']; exact ⟨Hpos, by decide, by decide⟩
+  rw [show sint.Z (W64 0) = 0 from rfl, loc_add_0]
+  icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) buf _ _ Hpos $$ Hbuf
+    with ⟨Hb, Hclose⟩
+  simp only [flatMap_encode_w8, show zero_val w8 = (0 : w8) from rfl]
+  rw [zeroPage_val]
+  icases (valPage_view _ _ _ _ _ Hpos).1 $$ Hb with ⟨Hh, Hv, Hr⟩
+  (try wp_auto)
+  rw [ite_eq_left (by rw [hbl']; decide), show sliceIndexRef w8 (sint.Z (W64 16)) buf = buf.ptr +ₗ 16 from
+    sliceIndexRef_byte_W64 buf 16 Hpos (by decide)]
+  (try wp_auto)
+  ihave Hh : buf.ptr ↦ dataHdr mv.pgid' $$ [Hh]
+  · simp only [dataHdr, pageHdr]; iexact Hh
+  ihave Hb := (valPage_view buf.ptr _ _ v _ Hpos).2 $$ [Hh Hv Hr]
+  · iframe
+  ihave Hbuf := Hclose $$ %(dataPage mv.pgid' v) [] [Hb]
+  · ipureintro; rw [dataPage_length, ← zeroPage_val, List.length_replicate]
+  · simp only [dataPage]; iexact Hb
+  -- its write, at the high water mark (inside the file)
+  have hoff : (mv.pgid' * W64 4096).toNat = 4096 * hwm := by
+    rw [BitVec.toNat_mul, hpg]; show hwm * 4096 % 2 ^ 64 = _; omega
+  have hoffI : 0 ≤ (mv.pgid' * W64 4096).toInt := by
+    rw [BitVec.toInt_eq_toNat_cond, hoff]; split <;> omega
+  have hdl := dataPage_length mv.pgid' v
+  icases (writerCells_top base hwm len).1 $$ Hwc with ⟨Hwc4, Htop⟩
+  rw [arith_sub4096 (4096 * hwm) len (Nat.le_trans hin Hsz)]
+  icases cellsAny_split _ _ _ _ $$ Htop with ⟨Hpc, Htop⟩
+  ihave Hpc := (mcellsAny_single (GF := GF) base len (4096 * hwm) (4096 * hwm + 4096)
+    (Nat.le_add_right _ _) (Nat.le_trans hin Hsz)).2 $$ [Hpc]
+  · rw [Nat.add_sub_cancel_left]; iexact Hpc
+  rw [← Hmaps]
+  have hobl := fun fb => dataW_obl (p := p) (D := dataPage mv.pgid' v) hcc hbl
+    (by rw [hmp, show curPgid mp = hwm from hhwm]; exact Nat.le_refl _) h4'
+    (by rw [hdl]; exact Nat.le_trans hin h30) 8192 fb
+  rw [← hoff] at hobl
+  wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) buf (dataPage mv.pgid' v) (DFrac.own 1)
+      (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ dbCrashN γc (dbOk p) m2 bs2
+      8192 (4096 * hwm) rfl hoffI (by rw [hdl]; decide) (by rw [hdl]; decide) dbCrashN_disj
+      (.inr (by rw [hoff]; exact Nat.le_refl _)) (hobl _) $$ [Hf Hbuf Hfd Hcs Hpc]
+    as %n %err ⟨Hf, Hbuf, Hfd, Hpc, %m4, %bs4, %Hres, Hcs⟩
+  · simp only [cfLo]
+    rw [hoff, hdl, Nat.min_eq_left h4']
+    iframe Hf Hbuf Hfd Hcs Hpc; iframe #
+  rw [hoff, dataPage_length] at Hres
+  simp only [cfLo]
+  rw [hoff, hdl, Nat.min_eq_left h4']
+  icases (mcellsAny_single (GF := GF) base len (4096 * hwm) (4096 * hwm + 4096)
+    (Nat.le_add_right _ _) (Nat.le_trans hin Hsz)).1 $$ [Hpc] with Hpc
+  · rw [Hmaps]; iexact Hpc
+  rw [Nat.add_sub_cancel_left]
+  obtain ⟨hR, ⟨rfl, rfl, -, hd4⟩ | ⟨rfl, hne⟩⟩ := Hres
+  rotate_left
+  · obtain ⟨-, -, -, hs4, hm4, -, hok4⟩ := dataW_after (p := p) hcc hbl hmp hhwm h2 hin hdl h30 hR
+    cases err with
+    | nil => exact absurd rfl hne
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact hne
+    ihave Herr := dataErrC γ γc db f fd p mp hwm base len γm m4 bs4 m2.size _ hwm
+      ⟨by rw [hm4]; exact Hmaps, by rw [hs4]; exact Hsz, Hbase, Hl41, h2, by rw [hs4]; exact hin,
+        hok4⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc4 Hpc Htop]
+    · iframe Hown Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc4 Hpc Htop; iframe #
+    iunfold commitErrC at Herr
+    iexact Herr
+  obtain ⟨hcc4, hbl4, hmp4, hs4, hm4, ho4, -⟩ := dataW_after (p := p) hcc hbl hmp hhwm h2 hin hdl h30 hR
+  (try wp_auto)
+  wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
+  · iexact Hf
+  (try wp_auto)
+  obtain ⟨M5, B5, H, F, T, hsplit, hH, hF, hHc, hsyn, hok5, hokF5, hokF5', hc5, hcl5, hbl5, hpg5,
+    hm5, hs5, ho5, ht5⟩ := dataS_facts (p := p) (v := v) hcc4 hbl4 hmp4 hmv hhwm h2
+      (by rw [ho4]; exact Hok2) (by rw [hs4]; exact Hgrow) (by rw [hs4]; exact h30) hd4 Ht Hb Hboot
+  rw [hsplit]
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ dbCrashN γc (dbOk p) m4 H F T
+      8192 (4096 * hwm) false hH hF (fun _ => hHc) dbCrashN_disj (by rw [hsyn]; exact hok5) hokF5
+    $$ [Hfd Hcs] as %e ⟨Hfd, Hs⟩
+  · iframe Hfd Hcs; iframe #
+  icases Hs with (⟨%He, Hcs⟩ | ⟨%He, Hcs⟩)
+  rotate_left
+  · unfold errnoErr; rw [if_neg He]
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; simp
+    ihave Herr := dataErrC γ γc db f fd p mp hwm base len γm { m4 with ok := false } (H ++ (F ++ T))
+      m2.size _ hwm ⟨by rw [← hm4] at Hmaps; exact Hmaps, by rw [← hs4] at Hsz; exact Hsz, Hbase,
+        Hl41, h2, by rw [← hs4] at hin; exact hin, hokF5'⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc4 Hpc Htop]
+    · iframe Hown Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc4 Hpc Htop; iframe #
+    iunfold commitErrC at Herr
+    iexact Herr
+  subst He
+  unfold errnoErr; rw [if_pos rfl]
+  (try wp_auto)
+  rw [hsyn]
   sorry
 
 end proof
