@@ -190,26 +190,20 @@ every change marks what it changes as dirty, but the trusted file does not state
    that owns the mapped cells; the durable/dirty ghost state; `ExtCrashInterp`.
 5. Adequacy with the environment assumptions as premises.
 6. minibolt's proofs (`Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/`, linked by
-   `etc/gen-link.py --bboltfs`): its page and meta helpers (`page.go`: `pageAt`, `Page.meta`,
-   `Meta.sum64`, `Meta.validate`, `Meta.write`, `initPages`, `pickMeta`) are proved, over byte
-   points-tos at any fraction (`Pages.lean`'s views), so that they apply to the mapped cells'
-   client halves. Of `minibolt.go` (2026-11-01): `mmapSize`, `meta`, `readPageSize`, `munmap` and
-   `close` are proved (the last two over the statements of `Munmap` and `Close`), and the write
-   transaction, `commit` and `Commit` (`DB.wp_Commit` free of `sorryAx`; publishing the new meta
-   pages and the committed page is `Publish.lean`'s `metas_publish`); the
-   representation predicate and lock invariants are `DB.lean` (readers load committed bytes
-   through cells held in a closable invariant per mapping, so they need no `OsMeta`), with the
-   statements of `Get`, `Snapshot`, `Commit`, `Close` and `Open` over it. `Get`/`Snapshot` are not
-   provable for the code as it is (`issues/bbolt-failed-remap-nil-meta-panic.md`), and a reader
-   racing a failed (partial) meta `WriteAt` needs a premise like P1 at run time.
-   The client programs `testMinibolt` and `testMiniboltConcurrent` (`programs.go`) are proved and
-   linked (2026-11-01, branch `osfs-programs`; `wp_testMinibolt`, `wp_testMiniboltConcurrent` free
-   of `sorryAx`), from no file at `dir/db`, after four refinements of the specs: `Get`/`Snapshot`
-   take an optional committer token (`dbOwnerOpt`) and then read its txid; the file predicates are
-   indexed by the high water mark (`dbFile p t vo n`, `init` gives 4); a failed commit sets the
-   token to `(t, 0)`, so `Close` fails only for a token at 0; and `DBNames.vp`, the client's
-   predicate on transaction values, is carried by `dbTx` and required by `Commit` (the programs'
-   is `valueOkP`). `envFailure` needs `envFacts` (`envErrors` in an invariant).
+   `etc/gen-link.py --bboltfs`), as of 2026-11-01: every function of `page.go` and `minibolt.go`
+   (`Open`, `init`, `mmap`, `munmap`, `meta`, `readPageSize`, `Get`, `Snapshot`, `commit`,
+   `Commit`, `Close`, `close`, `flock`, the page helpers) and the two non-crash programs,
+   `testMinibolt` and `testMiniboltConcurrent` (`{{ pkgFacts ∗ envFacts ∗ osInv ∗ osMeta
+   (dir ++ "/db") 1 none }} f(dir) {{ RET #true }}`), with no `sorryAx`. The representation and
+   lock invariants are `DB.lean`; readers borrow mapped cells from the mapping invariant
+   (`MapLoan.lean`), since a Go load is a sequence of non-atomic byte reads. Every result takes
+   the hand-written `os.file`/`os.fileStat` field assumptions (`TrustedCode/os.lean`) as
+   hypotheses. Not done: a closed theorem through `osFs_adequacy` (it must establish `pkgFacts`
+   and `envFacts` from package initialization), and `BootMinibolt`'s crash safety
+   (`BootCrashSafety` is stated, with P1 as a strengthened crash relation and the machinery in
+   `CrashP1.lean`/`SemCongr.lean`; the specs are Hoare triples that keep the file's resources in
+   lock resources, so no generation's proof can hand them to the crash interpretation; that
+   needs logically atomic `os` specs and a crash invariant).
 
 ### Program logic, as of 2026-11-01 (branch `osfs-specs`)
 
