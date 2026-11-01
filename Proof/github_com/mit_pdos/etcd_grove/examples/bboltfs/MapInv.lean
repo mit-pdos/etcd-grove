@@ -431,7 +431,7 @@ theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
     mapInv (GF := GF) γ p base len γm ∗ ghostVar γm 1 () ⊢ |={⊤}=> ▷ mapCells (GF := GF) γ p base len := by
   iintro ⟨#Hinv, Htok⟩
   unfold mapInv
-  icases Hinv with ⟨%γl, #Hinv⟩
+  icases Hinv with ⟨%_, %γl, #Hinv⟩
   imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (>Hc | >Htok2)
   · icases mapLend_full γ p base len γm γl $$ [Hc Htok] with ⟨Hc, Htok⟩
@@ -444,7 +444,7 @@ theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
     grind
 
-theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
+theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (hlen : len < 2 ^ 63) :
     mapCells (GF := GF) γ p base len ⊢
       |={⊤}=> ∃ γm, ghostVar γm 1 () ∗ mapInv (GF := GF) γ p base len γm := by
   iintro Hc
@@ -456,6 +456,7 @@ theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
   iexists γm
   iframe
   unfold mapInv
+  isplitr; · ipureintro; exact hlen
   iexists γl
   iexact Hinv
 

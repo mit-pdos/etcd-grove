@@ -191,7 +191,7 @@ theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     (mp : List w8) (hwm r : Nat) (q s : Qp) (h1 : 2 ≤ r) (h2 : r < hwm) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ghostVar γm s () ⊢
-    |={⊤}=> ghostVar γm q () ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗
+    |={⊤}=> ghostVar γm q () ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ⌜4096 * hwm ≤ len⌝ ∗
       ∃ B, pageIs (GF := GF) p r B ∗ r ↪[γl]{#s.half.half} B ∗
         bytesPointsto (GF := GF) (base +ₗ ((4096 * r : Nat) : Int)) (DFrac.own s.half.half) B := by
   iintro ⟨#Hinv, Hq, Hcur, Hs⟩
@@ -214,6 +214,7 @@ theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
       iexists B; iframe HB; iexact Hr
     imodintro
     iframe Hq Hcur
+    isplitr; · ipureintro; exact Hl
     iexists B; iframe HB; iframe
   · iexfalso
     iapply gv_false_one γm q $$ [Hq Htok]
@@ -269,7 +270,62 @@ theorem metaLent_unlent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one, Qp.val_half] at Hbad
     grind
 
+theorem osBytes_disc_agree (p : GoString) :
+    ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
+    osBytes (GF := GF) p off DFrac.discard xs ∗ osBytes (GF := GF) p off DFrac.discard ys ⊢ ⌜xs = ys⌝
+  | [], [], _, _ => by iintro -; ipureintro; rfl
+  | [], _ :: _, _, h => by simp at h
+  | _ :: _, [], _, h => by simp at h
+  | x :: xs, y :: ys, off, h => by
+    iintro ⟨H1, H2⟩
+    icases (osBytes_cons p off _ x xs).1 $$ H1 with ⟨Hx, H1⟩
+    icases (osBytes_cons p off _ y ys).1 $$ H2 with ⟨Hy, H2⟩
+    unfold osByte
+    icases gElem_valid_2 _ _ _ _ _ x y $$ Hx Hy with %Hxy
+    icases osBytes_disc_agree p xs ys (off + 1) (by simpa using h) $$ [H1 H2] with %Hr
+    · iframe
+    ipureintro
+    rw [Hxy.2, Hr]
+
+/-- Two views of a committed page agree. -/
+theorem pageIs_agree (p : GoString) (r : Nat) (B B' : List w8) :
+    pageIs (GF := GF) p r B ∗ pageIs (GF := GF) p r B' ⊢ ⌜B = B'⌝ := by
+  unfold pageIs
+  iintro ⟨⟨%Hl, H1⟩, ⟨%Hl', H2⟩⟩
+  icases osBytes_disc_agree p (B.map (·, true)) (B'.map (·, true)) (4096 * r)
+    (by simp only [List.length_map]; omega) $$ [H1 H2] with %H
+  · iframe
+  ipureintro
+  have := congrArg (List.map Prod.fst) H
+  simp only [List.map_map] at this
+  have e : (Prod.fst ∘ fun x : w8 => (x, true)) = id := rfl
+  rw [e, List.map_id, List.map_id] at this
+  exact this
+
 end loans
+
+/-- `pickMeta` of the meta pages picks the current meta. -/
+theorem pick_cur [GooseExts] (mp : List w8) (m0 m1 : Loc)
+    (h : metaValid (fileMeta mp 0) ∨ metaValid (fileMeta mp 1)) :
+    (pickMetaRes m0 (fileMeta mp 0) m1 (fileMeta mp 1) = m0 ∧ curMeta mp = fileMeta mp 0) ∨
+      (pickMetaRes m0 (fileMeta mp 0) m1 (fileMeta mp 1) = m1 ∧ curMeta mp = fileMeta mp 1) := by
+  unfold pickMetaRes pickValid curMeta
+  by_cases h1 : uint.Z (fileMeta mp 0).txid' < uint.Z (fileMeta mp 1).txid' <;>
+    by_cases h2 : metaValid (fileMeta mp 0) <;> by_cases h3 : metaValid (fileMeta mp 1) <;>
+    simp only [h1, h2, h3, if_true, if_false, true_and, and_true, true_or, or_true] <;> simp_all
+
+/-- The meta cells' bytes as the two metas. -/
+theorem metasOf_take [GooseExts] (mp : List w8) (h : mp.length = 8192) :
+    (decode ((metasOf mp).take 64) : Meta) = fileMeta mp 0 ∧
+      (decode ((metasOf mp).drop 64) : Meta) = fileMeta mp 1 := by
+  unfold metasOf fileMeta pageMeta
+  have h1 : ((mp.drop 16).take 64).length = 64 := by simp; omega
+  constructor
+  · rw [List.take_left' h1]; simp
+  · rw [List.drop_left' h1, List.drop_drop]
+
+theorem metasOf_length (mp : List w8) (h : mp.length = 8192) : (metasOf mp).length = 128 := by
+  unfold metasOf; simp; omega
 
 end github_com.mit_pdos.etcd_grove.examples.bboltfs
 

@@ -235,9 +235,9 @@ def mapLend (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GN
 def mapN : Namespace := nroot .@ "minibolt_map"
 
 /-- The invariant of the mapping at `base`, closable with the whole of `γm`'s token (and then
-holding `mapCells`, `mapInv_close`), with its loan tokens at `γl`. -/
+holding `mapCells`, `mapInv_close`), with its loan tokens at `γl`; its length is an `int`. -/
 def mapInv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) : IProp GF :=
-  iprop(∃ γl, inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ()))
+  iprop(⌜len < 2 ^ 63⌝ ∗ ∃ γl, inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ()))
 
 /-- The state of the mapping: `some (base, len, γm)`, the mapping at `base` of length `len`,
 whose invariant is closable with `γm`'s token; `none`, no mapping (before the first one, after a
