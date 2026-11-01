@@ -13,7 +13,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.CrashGood
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.BootP1
-public import Proof.os.CrashFileQ
+public import Proof.os.CrashSt
 
 @[expose] public section
 
@@ -245,6 +245,43 @@ theorem crashOkQ_writing {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} {t
     simp only [OsChange.mk.injEq, OsChangeKind.write.injEq] at this
     obtain ⟨-, rfl, rfl⟩ := this
     exact Or.inr (Or.inr (by rw [h3, hcur]))
+
+/-- **The truncating obligation**: a state with the client's growing truncate to `sz` in flight
+is crash-safe under P1 if every `idleImg` of the size bound it widens (`ftMeta`) is good: the
+truncate is no write, so P1's third case does not apply. -/
+theorem crashOkS_trunc {p : GoString} (s : CSt) {t sz : Nat} (hb : s.busy = .trunc t sz)
+    (hwf : s.bs.length = s.m.size)
+    (H : ∀ img D, idleImg (ftMeta s.m sz) s.bs img D → goodImg img) :
+    CrashOkS (P1 p) p Good (some s) := by
+  have hsub := s.runsSub_whole (DFrac.own (1 : Qp).half) (fun k => by simp [CSt.taken, hb])
+  intro fo hfc hseen
+  simp only [sMeta, sRuns, sToks, CSt.vmeta, hb] at hfc hseen
+  have hfc := fileCrashedR_sub hsub hfc
+  have hseen := crashSeenR_sub hsub hseen
+  rcases hfc with ⟨rfl, -⟩ | ⟨img, rfl, hlo, hhi, hcl⟩
+  · trivial
+  obtain ⟨st, st', f, -, hP, hst', hf, hcur, hdur, hdl, hcp, hclean, htok⟩ :=
+    seen_file (m := ftMeta s.m sz) hwf hseen
+  refine H img f.durable ⟨hlo, hhi, fun k x hk hc => ?_, hdur, hdl, hclean,
+    fun i hi hlen hv => ?_⟩
+  · simpa using hcl _ List.mem_cons_self k x hk hc
+  have hnc : ∀ k, f.dirty k = true ∨ f.lost k = true → ∀ x, s.bs[k]? = some x → x.2 = false := by
+    intro k hk x hx
+    obtain ⟨hkl, rfl⟩ := List.getElem?_eq_some_iff.1 hx
+    cases hc : s.bs[k].2
+    · rfl
+    · have := hcp k hkl hc
+      rcases hk with hk | hk
+      · rw [this.1] at hk; cases hk
+      · rw [this.2.1] at hk; cases hk
+  rcases hP f img i hf hst' hi hlen hv with h1 | ⟨hdl2, h2⟩ | ⟨t', off, data, ht, hne, h3⟩
+  · exact Or.inl h1
+  · exact Or.inr ⟨fun k hk => hnc _ (hdl2 k hk), by rw [h2, hcur]⟩
+  · obtain ⟨ti, hc, hin | hnil⟩ := htok t' _ ht rfl
+    · simp only [CSt.toks, hb, List.mem_singleton, Prod.mk.injEq] at hin
+      obtain ⟨-, rfl⟩ := hin
+      cases hc
+    · exact absurd (hnil off data rfl) hne
 
 /-- **Obligation 1**: the file `OpenFile` creates, empty. -/
 theorem crashOkQ_create (p : GoString) : CrashOkQ (P1 p) p Good (some (newMeta, [], none)) := by

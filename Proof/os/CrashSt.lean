@@ -218,6 +218,13 @@ theorem CSt.runsSub_of (s : CSt) (rs' : List (Nat × DFrac × List (w8 × Bool))
   obtain ⟨r, hr, rfl⟩ := s.runs_getElem _ hj
   exact ⟨_, hr, 0, by simp [ht], by simp [ht, he], rfl⟩
 
+/-- All of a state's bytes, as one run, when no write in flight took any. -/
+theorem CSt.runsSub_whole (s : CSt) (dq : DFrac) (ht : ∀ k, s.taken k = false) :
+    RunsSub [(0, dq, s.bs)] s.runs := by
+  refine s.runsSub_of _ fun r' hr' k hk => ?_
+  simp only [List.mem_singleton] at hr'; subst hr'
+  exact ⟨by simpa using hk, by simp, by simpa using ht k⟩
+
 /-- **An idle state's crash obligation is the `CFile`'s** (`CrashOkQ`, whose lemmas apply). -/
 theorem crashOkS_idle {Q : OsState → OsState → Prop} {p : GoString} {Good : Option OsFile → Prop}
     (s : CSt) (hb : s.busy = .idle) (h : CrashOkQ Q p Good (some (s.m, s.bs, none))) :
