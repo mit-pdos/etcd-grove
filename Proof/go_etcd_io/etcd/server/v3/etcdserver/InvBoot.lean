@@ -75,14 +75,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
-/-- **The network's directory, well formed** (rafthttp stage 6d, 2026-10-24; a premise of
-`NewServer.spec`, of the caller's directory): no member `0` (raft's ids are not `0`; the directory
-gives an unknown host the owner `0`, `netOwner`), each host of one member's URLs only
-(`dirHostsDistinct`), every peer URL a plain `http://` URL (`types.plainPeerURL`: what the
-transport's `AddPeer` parses). -/
-def netDirOk (dir : w64 → List GoString) : Prop :=
-  dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
-
 /-- **The member's configured peer URLs are its directory URLs** (2026-10-27, D22 J-T, W8; a
 premise of `NewServer.spec`, of the caller's configuration): non-empty, each of only the scheme
 `http` and a plain host (`http.urlRootPlain`), `http://` and the host one of the member's peer

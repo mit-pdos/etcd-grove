@@ -259,7 +259,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     iapply HΦ'
     iframe
   simp only [ccMembRes]
-  icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, Hlive⟩
+  icases Hmr with ⟨#Hrc, %γn, %c, %ps, %Hcl, Hlive, #Hmd, %Hdk⟩
   ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
   wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -344,9 +344,9 @@ local macro "succ_tail" : tactic => `(tactic| (
     · ileft; iexact Hpo
     try simp only [ccMembRes]
     iframe Hrc
-    iexists γn, c
-    iframe Hlive
-    ipureintro; exact Hcl
+    iexists γn, c, ps
+    iframe Hlive Hmd
+    ipureintro; exact ⟨Hcl, Hdk⟩
   · wsteps
     rw [decide_eq_false hlid]
     simp only [Bool.not_false]
@@ -411,9 +411,9 @@ local macro "succ_tail" : tactic => `(tactic| (
     · ileft; iexact Hpo
     try simp only [ccMembRes]
     iframe Hrc
-    iexists γn, c
-    iframe Hlive
-    ipureintro; exact Hcl))
+    iexists γn, c, ps
+    iframe Hlive Hmd
+    ipureintro; exact ⟨Hcl, Hdk⟩))
 
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.applyConfChange.wp_proof

@@ -30,7 +30,8 @@ J8a-4).
 
 The stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`),
 `memberDirIs`, `srvMembersDir` and `lessorLookupOk` moved here from `InvBoot.lean` and
-`SnapApplyDefs.lean` (J1a), unchanged; `authRecoverOk` is S8d's `srvAuthRecoverOk`, renamed.
+`SnapApplyDefs.lean` (J1a), unchanged (`memberDirIs` and `srvMembersDir` moved on to
+`InvApRes.lean`, 2026-11-01, for `ccMembRes`); `authRecoverOk` is S8d's `srvAuthRecoverOk`, renamed.
 -/
 module
 
@@ -64,15 +65,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-/-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
-(`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/
-def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
-  iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
-    membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
-    membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
-    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
-    ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
 
 
 /-- **The alarm store `a`'s apply contract on whichever backend it is on** (persistent; D22 receiver
@@ -240,19 +232,6 @@ def authRecoverOk (ast : Loc) : IProp GF :=
 
 instance authRecoverOk_persistent (ast : Loc) : Persistent (authRecoverOk (GF := GF) ast) := by
   unfold authRecoverOk; infer_instance
-
-/-- `bootOk`'s contract of the cluster's `Members()` (S8d's named premise, threaded from `NewServer`). -/
-def srvMembersDir (cl : Loc) (ps : List w64) (dir : w64 → List GoString) : IProp GF :=
-  iprop(□ (∀ Φ : val → IProp GF,
-    (∀ (sl : GoSlice) (ms : List (Loc × w64)), ⌜ms.map Prod.snd = ps⌝ -∗
-      sl ↦* ms.map Prod.fst -∗ ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
-    WP (App (Val (cl @!! go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
-      (Val #())) {{ Φ }}))
-
-instance srvMembersDir_persistent (cl : Loc) (ps : List w64) (dir : w64 → List GoString) :
-    Persistent (srvMembersDir (GF := GF) cl ps dir) := by
-  unfold srvMembersDir; infer_instance
 
 /-- The lessor `lp`'s `Lookup` (`lease.NewLessor.spec`'s, the trust boundary; S8d's named premise,
 threaded from `NewServer`): what `isApplyLessor_of_lessorInv` takes. -/

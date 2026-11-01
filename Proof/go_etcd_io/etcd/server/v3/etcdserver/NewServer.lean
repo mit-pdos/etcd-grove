@@ -1866,9 +1866,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       rw [hργ]
       iframe Hrc
       isplitl [Htlive]
-      · iexists γn, c
+      · iexists γn, c, ps
+        rw [Hγn.2]
         iframe Htlive
-        ipureintro; rw [Hcl, Hid]
+        isplitr
+        · ipureintro; rw [Hcl, Hid]
+        isplitr
+        · iunfold srvMembersDir; iexact Hmembers
+        ipureintro; exact ⟨Hdirok, Hdirps.1⟩
       ipureintro
       refine ⟨⟨fun f hf hne => ?_, ?_⟩, ?_⟩
       · apply Hcov f _ (by rw [Hid] at hne; exact hne)

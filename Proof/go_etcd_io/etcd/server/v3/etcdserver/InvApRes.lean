@@ -7,7 +7,10 @@ transport's peers. What it needs beyond the apply environment:
 * `ccMembRes γs cl t lid rs`: in raft's static mode the cluster's static instance
   (`isRaftCluster`) and (D22 J-T, 2026-10-27: until then frozen, with its stop token) the live
   transport (`trLive`, the peers' ids `rs`: `AddPeer` of a known peer returns, `AddPeer_known`,
-  and the snapshot path's `RemoveAllPeers` and `AddPeer`s take it); in the dynamic mode the live
+  and the snapshot path's `RemoveAllPeers` and `AddPeer`s take it), and (2026-11-01, J8a) the
+  network's directory, well formed (`netDirOk`, moved here from `InvBoot.lean`), with the
+  cluster's `Members()` of it (`srvMembersDir`, from `SnapRO.lean`), what the snapshot path's
+  `AddPeer`s need of the members' URLs (`applySnapshot`'s `hdir`/`hdok`); in the dynamic mode the live
   transport, with no pool (`c.L = []`: no remote is ever started, so `RemovePeer` needs no
   no-remote token; M8's dynamic `NewServer` is to restate it), the cluster's dynamic instance and
   the removed map's writer half (`rcRemovedOwn`).
@@ -19,6 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 
 @[expose] public section
 
@@ -223,13 +227,46 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+/-- **The network's directory, well formed** (rafthttp stage 6d, 2026-10-24; a premise of
+`NewServer.spec`, of the caller's directory): no member `0` (raft's ids are not `0`; the directory
+gives an unknown host the owner `0`, `netOwner`), each host of one member's URLs only
+(`dirHostsDistinct`), every peer URL a plain `http://` URL (`types.plainPeerURL`: what the
+transport's `AddPeer` parses). -/
+def netDirOk (dir : w64 → List GoString) : Prop :=
+  dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
+
+/-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
+(`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/
+def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
+  iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
+    membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
+    membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
+    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
+    ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
+
+/-- `bootOk`'s contract of the cluster's `Members()` (S8d's named premise, threaded from `NewServer`). -/
+def srvMembersDir (cl : Loc) (ps : List w64) (dir : w64 → List GoString) : IProp GF :=
+  iprop(□ (∀ Φ : val → IProp GF,
+    (∀ (sl : GoSlice) (ms : List (Loc × w64)), ⌜ms.map Prod.snd = ps⌝ -∗
+      sl ↦* ms.map Prod.fst -∗ ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
+    WP (App (Val (cl @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
+      (Val #())) {{ Φ }}))
+
+instance srvMembersDir_persistent (cl : Loc) (ps : List w64) (dir : w64 → List GoString) :
+    Persistent (srvMembersDir (GF := GF) cl ps dir) := by
+  unfold srvMembersDir; infer_instance
+
 /-- **The cluster and the transport, as `applyConfChange` writes them** (see the file header),
 the transport `t` with the member `lid` and the peers' ids `rs`. -/
 def ccMembRes (_γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
   -- (2026-10-30, the repair, D3: static membership after boot, the old static mode's resource;
   -- until then, in the dynamic mode, the live transport with the removal registry `rcDyn`)
-  iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF), ⌜c.lid = lid⌝ ∗
-      trLive γn t c rs)
+  -- (2026-11-01, J8a: `applySnapshot`'s `hdir`/`hdok`) also the network's directory, well formed,
+  -- and the cluster's `Members()` of it, which the snapshot walk's `AddPeer`s read
+  iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF) (ps : List w64),
+      ⌜c.lid = lid⌝ ∗ trLive γn t c rs ∗ srvMembersDir cl ps γn.dir ∗
+      ⌜netDirOk γn.dir ∧ ∀ f, γn.dir f ≠ [] ↔ f ∈ ps⌝)
 
 /-- **The local member a voter** (persistent; 2026-10-30, the repair, T1d: D3's static membership
 needs no positional policy, the server's conf entries being the boot log's `ccPolOk`; until then,
