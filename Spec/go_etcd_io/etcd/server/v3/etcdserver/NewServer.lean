@@ -34,7 +34,8 @@
   size clauses at the log it meets, small by the store's time receipts); the member id's 16 low
   bits not `0` (since M4 the cluster's allocation's premise) and the conf-change policy
   `srvCCPolicy` admitting id-`0` conf changes only (D19c: no request claims the id `0` of raft's
-  bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
+  bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): the logic's thread bound
+  `threadBound GF ≤ 2 ^ 28` (J8a-6, 2026-11-01: the transport's thread pool; `2 ^ 31` until then),
   and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
   a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`) and
   `receiptBound GF ≤ N + 1` (D19b: `start` puts the `N` write tokens in a receipt-backed budget,
@@ -166,8 +167,10 @@ abbrev NewServer.spec : Prop :=
   (cfg.AutoCompactionRetention' = 0 ∨
     (cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention')) →
   E₀.cmp = decide (cfg.AutoCompactionRetention' ≠ 0) → ρ.rd.kv.cmp = E₀.cmp →
-  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
-  threadBound GF ≤ 2 ^ 31 →
+  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
+  -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
+  -- reader slots, a thread pool, having `2 ^ 28` of them)
+  threadBound GF ≤ 2 ^ 28 →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
@@ -333,8 +336,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (M2, the storage side, review round 2's N1, the approval's item 11) the stand-in's mode off: the
   -- server's store does not compact (`envAgree`'s `E.γ.cm = E.cmp` then reads it off the post)
   E₀.cmp = false →
-  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
-  threadBound GF ≤ 2 ^ 31 →
+  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
+  -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
+  -- reader slots, a thread pool, having `2 ^ 28` of them)
+  threadBound GF ≤ 2 ^ 28 →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
@@ -509,8 +514,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
     else cfg.AutoCompactionRetention' = 0) →
   -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
   E₀.cmp = cmp →
-  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
-  threadBound GF ≤ 2 ^ 31 →
+  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
+  -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
+  -- reader slots, a thread pool, having `2 ^ 28` of them)
+  threadBound GF ≤ 2 ^ 28 →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)

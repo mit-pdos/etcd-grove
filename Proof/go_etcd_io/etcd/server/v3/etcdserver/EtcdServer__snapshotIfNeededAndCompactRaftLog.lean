@@ -32,12 +32,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
     (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG))
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hok haw hci hrel hsz
     hwso
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
@@ -77,7 +77,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     -- (D19i part 1) the trigger fires only past index `0`
     have Hai1 : 1 ≤ uint.Z ai := by
       first
-        | (have := Hr2 rfl; omega)
+        | (have := (Hr2 rfl).1; omega)
         | (have h := Hr1 rfl
            have : uint.Z ai ≠ uint.Z d := fun e => h (by word)
            have := Hdm.1
@@ -126,6 +126,46 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
       · ipureintro; exact Hdm'
       iapply memSnapLb_mono γs _ _ (by simp) $$ Hslb'
     ipureintro; exact hst')
+
+/-- `specNoop`: neither check fires at the snapshot indices. -/
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofNoop
+    (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
+    (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG)) :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop (GF := GF) (hG := hG) := by
+  intro s γr ep ai hai
+  wp_start as ⟨#Hsa, Hfs, Hai, Hd, Hm⟩
+  ihave #Hsa' := Hsa
+  iunfold isServerApplyAll at Hsa'
+  icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, -, -, -, -, -⟩
+  iunfold srvFS at Hfs
+  icases Hfs with ⟨%f, Hf⟩
+  (try wp_auto)
+  wp_apply hD s ep f ai ai sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, %Hr1⟩
+  · iframe #; iframe
+  (try wp_auto)
+  wp_apply hM s ep ai ai $$ [Hai Hm] as %r2 ⟨Hai, Hm, %Hr2⟩
+  · iframe #; iframe
+  have h1 : r1 = false := by cases r1 <;> simp_all
+  have h2 : r2 = false := by
+    cases r2
+    · rfl
+    · exfalso; have := (Hr2 rfl).2 rfl; omega
+  subst h1 h2
+  (try wp_auto)
+  iapply HΦ
+  iframe Hai Hd Hm
+  iunfold srvFS; iexists f; iexact Hf
+
+/-- **`snapshotIfNeededAndCompactRaftLog.spec`** (J8b, 2026-11-01): `wp_proofBatch` and
+`wp_proofNoop`. -/
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
+    (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
+    (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG))
+    (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
+    (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) :=
+  ⟨EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch hD hM hS hC,
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofNoop hD hM⟩
 
 end proof
 

@@ -23,20 +23,20 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`t.MendPeer(id)`** on a started transport with one of its lock's reader tokens, `id` never a
-remote (`trNoRemOr`: D43 M5c, not among the ids `c.L` the pool has `R`s for, the only ids a
-remote is started for; or, D22 J-T, 2026-10-27, `id`'s no-remote token, which `NewServer` gives
-out; until M5c, not among the frozen ids `AddRemote` was called for): it returns the token and
-the no-remote fact. It resumes the peer of `id` (`peer.Resume`, if one is added): the transport
-delivers again (until the next `CutPeer`); a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
-its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
-method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
+/-- **`t.MendPeer(id)`** on a started transport with one of its lock's reader tokens, of any id: it
+returns the token. It resumes the peer of `id` (`peer.Resume`, if one is added) and its remote
+(`remote.Resume`, if one is started): the transport
+delivers again (until the next `CutPeer`); a dropped message is one the network may lose. A remote's
+`Resume` sets its paused flag (the fork's fix, J8a-7, 2026-11-01: upstream's `remote.Pause` stops the
+pipeline and a second one panics, `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`;
+until then `id` had to be no remote, `trNoRemOr`). The method set's premise `PeerPausable`
+(`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=
   PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trState γn t c ∗ trTok γn t c ∗ trNoRemOr c id }}
+      trState γn t c ∗ trTok γn t c }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
-  {{ RET #(); trTok γn t c ∗ trNoRemOr c id }}
+  {{ RET #(); trTok γn t c }}
 
 end spec
 

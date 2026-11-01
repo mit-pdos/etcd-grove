@@ -507,12 +507,12 @@ theorem EtcdServer.applyEntries.wp_proofOn
     omega
 
 
-/-- **`applyEntries.spec`**, in the environment's auth mode (step 3 of the auth-mode merge,
+/-- **`applyEntries.specBatch`**, in the environment's auth mode (step 3 of the auth-mode merge,
 2026-10-30): `wp_proofOff` with auth off, `wp_proofOn` with auth on. -/
-theorem EtcdServer.applyEntries.wp_proof
+theorem EtcdServer.applyEntries.wp_proofBatch
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
+    EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG) := by
   have hOff := EtcdServer.applyEntries.wp_proofOff hGI (EtcdServer.apply.spec_off hApply)
   have hOn := EtcdServer.applyEntries.wp_proofOn hGI (EtcdServer.apply.spec_on hApply)
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa hany hRB Hms Hai1
@@ -548,6 +548,24 @@ theorem EtcdServer.applyEntries.wp_proof
     simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true]
     exact hOn s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hm
       (hRB hon) Hms Hai1 Hok hEok hdv
+
+/-- `specNil`: the empty batch's early return. -/
+theorem EtcdServer.applyEntries.wp_proofNil :
+    EtcdServer.applyEntries.specNil (GF := GF) (hG := hG) := by
+  intro s ep ap es
+  wp_start as ⟨#Hes, #Hesl⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
+  wp_auto
+  wp_if_destruct
+  · iapply HΦ; itrivial
+  · exfalso; apply Hif; simp only [List.length_nil] at Hlen; word
+
+/-- **`applyEntries.spec`** (J8b, 2026-11-01): `wp_proofBatch` and `wp_proofNil`. -/
+theorem EtcdServer.applyEntries.wp_proof
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
+  ⟨EtcdServer.applyEntries.wp_proofBatch hGI hApply, EtcdServer.applyEntries.wp_proofNil⟩
 
 end proof2
 

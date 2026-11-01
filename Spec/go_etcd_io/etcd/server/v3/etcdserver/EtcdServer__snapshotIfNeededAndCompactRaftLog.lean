@@ -37,7 +37,7 @@ and `specOn` its corollaries), kept. It takes what `snapshot` takes (`isServerM`
 spec, whose proof closed the snapshot branch with SNAPSHOT-SORRY #11, and this one, then `specFull`;
 2026-10-31, #11: `applyAll` uses this one, the other is gone. The snapshot track's S6: until then
 the KV commit contract with `RC`, post `RC ∨ RC'`.) -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
@@ -72,6 +72,24 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+
+/-- (2026-11-01, J8a-5) **Nothing due** (after a snapshot's install, `applyAll.specSnap`): with the
+disk and in-memory snapshot indices at the applied index `ai` (and `ai + memorySnapshotCount` not
+wrapping), neither snapshot is due, and the function returns at once. -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop : Prop :=
+  ∀ (s : Loc) (γr : ReadNames) (ep : Loc) (ai : w64),
+  uint.Z ai + 100 < 2 ^ 64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerApplyAll s γr ∗ srvFS s ∗
+      epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
+      (Val #ep))
+  {{ RET #(); srvFS s ∗ epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+
+/-- **`snapshotIfNeededAndCompactRaftLog`'s spec** (J8b, 2026-11-01): both cases, after a batch (`specBatch`) and at the snapshot indices (`specNoop`), for the link. -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
+  EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) ∧
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop (GF := GF) (hG := hG)
 
 end spec
 
