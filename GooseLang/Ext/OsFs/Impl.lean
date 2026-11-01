@@ -46,9 +46,12 @@ path resolution is never modelled.
   `runtime/debug.SetPanicOnFault(true)` would make it a recoverable panic, and Perennial does
   not model `runtime/debug` (calling it is stuck).
 * *Holes*: a mapped cell past EOF, or affected by an in-flight change, holds `osHole`
-  (`LitV LitPoison`, by construction never a byte), so a load of it is stuck (SIGBUS, or a mix
-  of old and new bytes): less defined than Linux, which is sound. The extension relies on no
-  rule of the core semantics but that a byte load needs a byte.
+  (`LitV LitPoison`, by construction never a byte), so a Go load of it is stuck (SIGBUS, or a
+  mix of old and new bytes): less defined than Linux, which is sound. Go's loads of plain
+  memory decode bytes (`LoadBytes`), which a hole is not. A raw `Load` of a hole would succeed,
+  but goosed code reaches mapped memory only through plain pointers, whose loads are byte
+  loads, since a conversion to a non-plain pointer type is stuck. The extension relies on no
+  other rule of the core semantics.
 
 **Heap.** The operations never touch user memory: the models pass buffers as Go strings. The
 one heap rule is `HeapRendered`, applied by every step: the cells of every mapping after the
@@ -120,17 +123,18 @@ structure OsState where
   /-- The allowed paths (the domain), and their files (`none`: no such file). -/
   files : GMap GoString (Option OsFile)
   fds : GMap w64 OsFd
-  /-- In-flight changes, by the token their first step returned. -/
-  inflight : GMap w64 OsChange
+  /-- In-flight changes, by the token their first step returned (`osTokV`). -/
+  inflight : GMap Nat OsChange
   /-- Mappings, by base address. -/
   maps : GMap Loc OsMap
 
 instance : Inhabited OsState := ⟨⟨∅, ∅, ∅, ∅⟩⟩
 
-/-- The Linux file extension. It has no values of its own and no global state. -/
+/-- The Linux file extension. Its values are the tokens of in-flight changes; it has no global
+state. -/
 @[reducible] def osFsExt : GooseExt where
   name := "os"
-  Val := Empty
+  Val := Nat
   LocalState := OsState
   GlobalState := Unit
 
@@ -299,6 +303,10 @@ end effects
 section step
 variable [GooseExts] [GoGlobalContext]
 
+/-- The token of an in-flight change, an opaque value of the extension: a program cannot forge
+one, and there are always fresh ones. -/
+abbrev osTokV (t : Nat) : val := ExtV (extVal osFsExt t)
+
 /-- A result and an errno, as the Go wrapper's models take them apart. -/
 abbrev osRes (v : val) (e : w64) : Expr := Val (PairV v (#e))
 
@@ -334,18 +342,18 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       FdOpen st fd d ∧ d.readable ∧ 0 ≤ off.toInt ∧ ReadSees st d.path off.toNat n.toNat r ∧
       st' = st ∧
       (e' = osRes (#r) 0 ∨ ∃ (k : Nat) (e : w64), k ≤ r.length ∧ e ≠ 0 ∧ e' = osRes (#(r.take k)) e)
-  /- The first step of `pwrite(fd, data, off)`: `(#fd, #off, #data) ↦ #token`. It makes no
+  /- The first step of `pwrite(fd, data, off)`: `(#fd, #off, #data) ↦ token`. It makes no
   system call and cannot fail. The bytes it may change must be clear of every other change. -/
-  | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (t : w64),
+  | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (t : Nat),
       v = PairV (#fd) (PairV (#off) (#data)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
       (let c : OsChange := ⟨d.path, .write off.toNat data⟩
        (∀ i, Affects st c i → ¬ InflightAt st d.path i) ∧
        st.inflight !! t = none ∧ st' = { st with inflight := <[t := c]> st.inflight }) ∧
-      e' = Val (#t)
-  /- The second step: `#token ↦ (#written, #errno)`. A prefix of the data is written: all of
+      e' = Val (osTokV t)
+  /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: all of
   it and errno 0, or any prefix and a nonzero errno. -/
-  | "PWriteFinish" => ∃ (t : w64) (p : GoString) (off : Nat) (data : List w8) (f : OsFile)
-      (k : Nat) (e : w64), v = #t ∧ st.inflight !! t = some ⟨p, .write off data⟩ ∧
+  | "PWriteFinish" => ∃ (t : Nat) (p : GoString) (off : Nat) (data : List w8) (f : OsFile)
+      (k : Nat) (e : w64), v = osTokV t ∧ st.inflight !! t = some ⟨p, .write off data⟩ ∧
       st.file p = some f ∧ k ≤ data.length ∧ (k = data.length ∧ e = 0 ∨ e ≠ 0) ∧
       (let st1 := { st with inflight := GMap.delete t st.inflight }
        st' = if k = 0 then st1 else
@@ -356,14 +364,14 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "Fstat" => ∃ (fd : w64) (d : OsFd) (sz : Nat), v = #fd ∧ FdOpen st fd d ∧
       StatSees st d.path sz ∧ st' = st ∧
       (e' = osRes (#(W64 sz)) 0 ∨ ∃ e : w64, e ≠ 0 ∧ e' = osRes (#(0 : w64)) e)
-  /- The first step of `ftruncate(fd, sz)`: `(#fd, #sz) ↦ #token`. It makes no system call
+  /- The first step of `ftruncate(fd, sz)`: `(#fd, #sz) ↦ token`. It makes no system call
   and cannot fail. No other change may be in flight on the file. -/
-  | "FtruncateStart" => ∃ (fd sz t : w64) (d : OsFd), v = PairV (#fd) (#sz) ∧ FdOpen st fd d ∧
+  | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd), v = PairV (#fd) (#sz) ∧ FdOpen st fd d ∧
       d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.path ∧ st.inflight !! t = none ∧
       st' = { st with inflight := <[t := ⟨d.path, .truncate sz.toNat⟩]> st.inflight } ∧
-      e' = Val (#t)
-  /- The second step: `#token ↦ #errno`. On failure the file may or may not be resized. -/
-  | "FtruncateFinish" => ∃ (t : w64) (p : GoString) (sz : Nat) (f : OsFile), v = #t ∧
+      e' = Val (osTokV t)
+  /- The second step: `token ↦ #errno`. On failure the file may or may not be resized. -/
+  | "FtruncateFinish" => ∃ (t : Nat) (p : GoString) (sz : Nat) (f : OsFile), v = osTokV t ∧
       st.inflight !! t = some ⟨p, .truncate sz⟩ ∧ st.file p = some f ∧
       (let st0 := { st with inflight := GMap.delete t st.inflight }
        let st1 := st0.setFile p (f.truncate sz)

@@ -168,7 +168,7 @@ structure MetaOk (p : GoString) (m : OsMeta) (f : OsFile) : Prop where
 
 /-- The ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString (Option OsMeta))
-    (Γf : GMap w64 OsFd) (Γt : GMap w64 TokInfo) : Prop where
+    (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo) : Prop where
   meta_dom : ∀ p, Γm !! p = none ↔ st.files !! p = none
   meta_none : ∀ p, Γm !! p = some none ↔ st.files !! p = some none
   meta_some : ∀ p m, Γm !! p = some (some m) →
@@ -564,7 +564,7 @@ variable {GF : BundledGFunctors}
 
 /-- What the ext holds for each in-flight change: the fraction of the file's `OsMeta` and the
 bytes its first step took. -/
-def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap w64 TokInfo) : IProp GF :=
+def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
   iprop([∗map] _t ↦ ti ∈ Γt,
     gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
     bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))
@@ -572,7 +572,7 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap w64 TokInfo) : IProp GF :=
 /-- The interpretation of the state `st`. -/
 def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
   iprop(∃ (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString (Option OsMeta))
-      (Γf : GMap w64 OsFd) (Γt : GMap w64 TokInfo),
+      (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo),
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ gAuth hL hL.γf Γf ∗ gAuth hL hL.γt Γt ∗
     tokRes hL st Γt ∗
@@ -664,7 +664,7 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (bytesMap st) with ⟨%γb, Hab, Hb⟩
   imod ghost_map_alloc (GF := GF) (metaMap st) with ⟨%γm, Ham, Hm⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 OsFd) with ⟨%γf, Haf, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 TokInfo) with ⟨%γt, Hat, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat TokInfo) with ⟨%γt, Hat, -⟩
   imod ghostVar_alloc (GF := GF) ((∅ : GMap Loc (Option w8 × Bool)), 0) with ⟨%γv, Hv⟩
   icases (ghostVar_split_half γv 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
   imodintro

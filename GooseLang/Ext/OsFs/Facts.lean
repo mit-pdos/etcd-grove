@@ -59,7 +59,7 @@ theorem coh_byte {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf �
   obtain ⟨h, h'⟩ := List.getElem?_eq_some_iff.1 hb
   exact ⟨f, hf, h, h'⟩
 
-theorem coh_tok {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {t : w64}
+theorem coh_tok {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     {c : OsChange} (ht : st.inflight !! t = some c) : ∃ ti, Γt !! t = some ti ∧ ti.c = c := by
   have := hcoh.toks t
   rw [ht] at this

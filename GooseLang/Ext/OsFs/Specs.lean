@@ -62,7 +62,7 @@ theorem tokRes_byte_free {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb �
     have hk'' : (ti.saved.map (·, false))[i - affLo st ti.c]? = some (f.cur.getD i 0, false) := by
       rw [List.getElem?_map, hk']; rfl
     unfold tokRes
-    icases BigSepM.bigSepM_lookup (Φ := fun (_t : w64) (ti : TokInfo) =>
+    icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
       iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
         bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
       hti $$ Htok with ⟨-, Hs⟩
@@ -76,7 +76,7 @@ theorem tokRes_byte_free {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb �
 
 /-- A client's fraction of a file's `OsMeta` leaves the changes in flight on it only fractions:
 none of them takes the whole. -/
-theorem tokRes_meta_frac {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString} {dq : DFrac}
+theorem tokRes_meta_frac {st : OsState} {Γt : GMap Nat TokInfo} {p : GoString} {dq : DFrac}
     {mo : Option OsMeta} :
     ⊢ tokRes hL st Γt -∗ gElem hL hL.γm p dq mo -∗
       ⌜∀ t ti, Γt !! t = some ti → ti.c.path = p → ti.q ≠ 1⌝ := by
@@ -87,7 +87,7 @@ theorem tokRes_meta_frac {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString} 
   · by_cases hp : ti.c.path = p
     · by_cases hq : ti.q = 1
       · unfold tokRes
-        icases BigSepM.bigSepM_lookup (Φ := fun (_t : w64) (ti : TokInfo) =>
+        icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
           iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
             bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
           hti $$ Htok with ⟨Hs, -⟩
@@ -99,7 +99,7 @@ theorem tokRes_meta_frac {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString} 
   · ipureintro; exact fun h => absurd h hti
 
 /-- The whole of a file's `OsMeta`: no change is in flight on it. -/
-theorem tokRes_meta_whole {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString}
+theorem tokRes_meta_whole {st : OsState} {Γt : GMap Nat TokInfo} {p : GoString}
     {mo : Option OsMeta} :
     ⊢ tokRes hL st Γt -∗ gElem hL hL.γm p (DFrac.own 1) mo -∗
       ⌜∀ t ti, Γt !! t = some ti → ti.c.path ≠ p⌝ := by
@@ -109,7 +109,7 @@ theorem tokRes_meta_whole {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString}
   by_cases hti : Γt !! t = some ti
   · by_cases hp : ti.c.path = p
     · unfold tokRes
-      icases BigSepM.bigSepM_lookup (Φ := fun (_t : w64) (ti : TokInfo) =>
+      icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
         iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
           bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
         hti $$ Htok with ⟨Hs, -⟩
@@ -165,7 +165,7 @@ def osFd (fd : w64) (dq : DFrac) (d : OsFd) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf fd dq d
 
 /-- The change in flight `t`, as `ti` says. -/
-def osTok (t : w64) (ti : TokInfo) : IProp GF :=
+def osTok (t : Nat) (ti : TokInfo) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt t (DFrac.own 1) ti
 
 instance osByte_timeless (p : GoString) (i : Nat) (dq : DFrac) (x : w8 × Bool) :
@@ -214,7 +214,7 @@ variable {s : Stuckness} {E : CoPset}
 of each change in flight, the invariant's share of the mapped cells, its thread tokens, and the
 heap. -/
 def osWorld (st : OsState) (Γb : GMap (GoString × Nat) (w8 × Bool))
-    (Γm : GMap GoString (Option OsMeta)) (Γf : GMap w64 OsFd) (Γt : GMap w64 TokInfo)
+    (Γm : GMap GoString (Option OsMeta)) (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo)
     (h : GMap Loc (NonAtomic val)) : IProp GF :=
   iprop(⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
