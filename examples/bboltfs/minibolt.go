@@ -358,21 +358,26 @@ func (db *DB) commit(m Meta, v uint64) error {
 	return nil
 }
 
-// Close is db.go's Close: all three locks, unmap, funlock, close.
-func (db *DB) Close() {
+// Close is db.go's Close: all three locks, unmap, funlock, close; it returns the first error.
+func (db *DB) Close() error {
 	db.rwlock.Lock()
 	defer db.rwlock.Unlock()
 	db.metalock.Lock()
 	defer db.metalock.Unlock()
 	db.mmaplock.Lock()
 	defer db.mmaplock.Unlock()
-	db.close()
+	return db.close()
 }
 
-func (db *DB) close() {
-	_ = db.munmap()
+// close is db.go's close: it reports a failed munmap (a mapping left behind) or close, as
+// bbolt does.
+func (db *DB) close() error {
+	err := db.munmap()
 	_ = syscall.Flock(int(db.file.Fd()), syscall.LOCK_UN)
-	_ = db.file.Close()
+	if cerr := db.file.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 // BootMinibolt is minibolt's boot program: it runs when the node starts and

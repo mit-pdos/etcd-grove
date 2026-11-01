@@ -1455,12 +1455,13 @@ noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (Var "m")) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"txid"))) (Var "m"))) (Val #(W64 1))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- Close is db.go's Close: all three locks, unmap, funlock, close.
+/-- Close is db.go's Close: all three locks, unmap, funlock, close; it returns the first error.
 
     go: minibolt.go:362:15 -/
 noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "db" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DB.ty)))) (Var "db"))
@@ -1470,8 +1471,12 @@ noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"mmaplock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -1496,28 +1501,48 @@ noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"rwlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #())))))))
-  (Val #()))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: minibolt.go:372:15 -/
+/-- close is db.go's close: it reports a failed munmap (a mapping left behind) or close, as
+    bbolt does.
+
+    go: minibolt.go:374:15 -/
 noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "db" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DB.ty)))) (Var "db"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"munmap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.syscall.LOCK_UN))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Flock []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #()))
-  (App (Val doExecute)
-  (Var "$r0")))))
-  (App (Val doExecute)
-  (Var "$r0"))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
   (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #()))
+  (Let "cerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "cerr"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "cerr") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- BootMinibolt is minibolt's boot program: it runs when the node starts and
     again after every crash. The value of the committed transaction txid is txid
@@ -1526,7 +1551,7 @@ noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
     under the model's crash relation, however often the node crashes, given the
     premise of README.md. On an error it stops.
 
-    go: minibolt.go:384:6 -/
+    go: minibolt.go:389:6 -/
 noncomputable def BootMinibolt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -2170,8 +2195,20 @@ noncomputable def testMinibolt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType DB.ty)))) (Pair (Var "db") (Var "$r0"))))))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve envFailure []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (Let "$r0" (Val #(W64 2))
   (Let "v" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2323,7 +2360,7 @@ noncomputable def testMinibolt.impl [GooseExts] [GoGlobalContext] : val :=
     meta under metalock); the Snapshot's ReadAt races them, and only the pages of
     its own transaction are claimed.
 
-    go: programs.go:89:6 -/
+    go: programs.go:92:6 -/
 noncomputable def testMiniboltConcurrent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2639,7 +2676,7 @@ class DB.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   get_mmaplock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"mmaplock") #x (Val #(x.mmaplock'))
   set_mmaplock : ∀ (x : DB) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"mmaplock") (PairV #x #y) (Val #(({ x with mmaplock' := y } : DB)))
   method_set : go.MethodSetIs DB.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Commit", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Get", (some (go.signature.Signature [] false [go.uint64, go.uint64, go.bool, go.error]))), (go!"Snapshot", (some (go.signature.Signature [] false [go.uint64, go.uint64, go.bool, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.close", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.commit", (some (go.signature.Signature [Meta.ty, go.uint64] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.init", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.readPageSize", (some (go.signature.Signature [] false [go.int, go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Commit", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Get", (some (go.signature.Signature [] false [go.uint64, go.uint64, go.bool, go.error]))), (go!"Snapshot", (some (go.signature.Signature [] false [go.uint64, go.uint64, go.bool, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.close", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.commit", (some (go.signature.Signature [Meta.ty, go.uint64] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.init", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.readPageSize", (some (go.signature.Signature [] false [go.int, go.bool, go.error])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Close" DB.Close.impl
   ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Commit" DB.Commit.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Get" DB.Get.impl

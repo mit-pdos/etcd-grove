@@ -67,7 +67,10 @@ func testMinibolt(dir string) bool {
 		}
 		ok = ok && txid == v && has && got == v && stxid == v && shas && sgot == v
 	}
-	db.Close()
+	if err := db.Close(); err != nil {
+		// a mapping may be left behind (a failed munmap): stop, as on any failure
+		return envFailure()
+	}
 	db, err = Open(dir + "/db")
 	if err != nil {
 		return envFailure()
