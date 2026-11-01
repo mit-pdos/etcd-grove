@@ -283,6 +283,61 @@ history (`authHistTie_catchup`'s `capLb (srvHist A')`: no new ghost state). Cost
    The applied log's auth state comes from `applyResOn` (`kvRunAtOn_sa`, proved).
 7. **The new backend's hook**: `authSchemaSnap` takes the hook frozen (`plHookRO`); the walk's open
    (`OpenSnapshotBackend` with the server's hooks) must give it (to check in J8b's walk).
+8. **The read contract's two strong clauses are false of the code in places, the boot premise's
+   included** (review round 1's F1; this widens what was finding 8). `authReadTxOk`'s latest clause
+   (`{R ∗ authOwn M hs} RLock {histLast M hs st}`, in `authSchemaSrv`'s post today, trusted) is
+   false **inside a batch transaction**: the batch `Unlock`'s pre is `authOwnF M hs` at the batch's
+   new state (`authBatchTxLk`, `InvAuth.lean` ~:956), which splits into `authOwn hs` and the lock's
+   quarter while the read buffer still holds the old state (a real backend writes the batch back to
+   the read buffer only at `Unlock`). So a program that reads through `ReadTx()` inside its own auth
+   batch gets a proved claim about the new state that the code does not meet. I confirmed this
+   reading of `Unlock`'s pre; whether a caller of the store can reach it (the store's admin steps
+   read through the batch transaction, not `ReadTx()`) is for the axiom check. Either way the trusted
+   premise is false as stated. **For the user: a pre-existing gap in boot's premise, not the
+   install's.** After an install the old backend makes it worse: its latest clause would claim
+   `hs ++ N`'s last, and its freshness clause (`authPubLbM i`) states it never received once the
+   index is published past it. The draft guards both (`authReadTxOkH`): the latest clause takes the
+   backend's write token `T` (no batch open; `authLockRetire` consumes `T`, so the clause dies with
+   the backend), and the freshness clause takes a part of the backend's **currency** `Cu q`, which
+   `beP` holds with the backend under the merge's redefinition and which `Recover` drops when it
+   swaps the backend under the write lock. The merge puts the same guards on `authReadTxOk` for
+   every backend, boot's included, and the store's proofs that use the two clauses provide them (the
+   apply thread holds `T`; readers hold `beP`'s part under `beMu`'s read lock). Today's clause 2 is
+   subsumed by the guarded latest clause.
+9. **The image certificate is still the mode-off one in the callers** (review round 1's F5):
+   `srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, false of an auth-on
+   cluster's images; `applyAll.specSnapOn` and `run_snap_jobOn` are read under `srvImageM
+   E.authMode` (`srvImageOn` in the mode `on`), a redefinition in the merge.
+10. **`authApplyResB` is redefined, not twinned** (review round 1's F4): `specSnapOn`'s
+   `srvApplyKVOn` holds `authApplyResB (.on γa)`, whose today's form (`authOwnFu`, no retirement)
+   cannot be carried over a jump; the merge redefines it in place with `authApplyResOn`'s parts (the
+   fuel at a base, `authLockRetire`, the hook clause `authWAtHook`). `authRecoverOn.spec` now gives
+   the hook clause at the new backend; building `authApplyResB`'s `authWBackendAt`/`isAuthStepsX` at
+   the server's hook from it is the boot's `authStepsAtHook` construction, not yet glued.
+11. **Smaller repairs of round 1**: `authBucketsAt` carries the revision's `uint64` bound (F2: the
+   bucket stores `u64Be (W64 st.revision)`, which does not bound `st.revision`); `srvHist_wf`'s
+   revision bound is `≤ |A'| + 1`, not `< 2^61` (F3, false at `2^61 - 1` distinct `UserAdd`s), and
+   the fuel's base `b ≤ 2^61`; `SnapImageFactsOn` has the KV jump's `hlen` (F7); the store's `R` at
+   the install is the server's `E.RD`; `specSnapOn` takes the applied log's auth state directly (no
+   `sa`); the boot form of the auth buckets is dropped (`authBucketsAt_after` proves `NewAuthStore`'s
+   buckets decode to `bump bootState`, so one form serves); `kvRunAtOn_sa` keeps `c0`/`ai0`.
+12. **`R`'s count** (review round 1's F9, for the axiom check): `R` is the store-level reader
+   resource; the copy the snapshot clause mints is lent against the backend's own read token
+   (`bkRTx`), so no backend's read lock needs `actualMaxReaders + 1` slots from its pool (the
+   model in `authSchemaSnap`'s docstring).
+
+### Packaging and one spec per function (open)
+
+`specSnapOn` is drafted as a standalone triple beside `specSnap` (as the coordinator asked); how it
+joins `spec`/`specSnap` (a third conjunct of J8b's `old ∧ snapshot triple`, one snapshot triple over
+the mode, or a separate linked result) does not change what it states. For the user. The same
+applies to the auth package's twins (review round 1's F8): `setRevision.specP`, `Recover.specP`
+beside `Recover.spec`, `authRecoverOn.spec` beside `authRecoverOk`. In the merge each becomes the
+mode-`on` case of one spec: an `authOwnPM M hs N` for every mode (`authOwn M (hs ++ N)` off the
+mode `on`), one `Recover.spec` over `M` and `N` (`N = []` today's spec without its unconditional
+append, which the plan found wrong under the tie), and the install's two `Recover` facts gated by
+`E.authMode`, as `srvSnapRO` gates `authRecoverOk` today. The Draft keeps them separate so that
+today's specs stay untouched until the user picks the candidate.
 
 ### Glue proved (no `sorry` of its own; over the drafted specs)
 
