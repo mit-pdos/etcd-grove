@@ -20,7 +20,6 @@ The design (`Specs.lean`'s header says it from a client's side):
   ghost state, which cannot name the heap (`ExtInterp.localCtx` sees the extension's ghost names
   only), so they live in an invariant of each generation (`osInv`, `Specs.lean`), tied to the
   state by a ghost variable holding the cells' view (`cellView`), half of it here and half there.
-  The thread tokens that bound the in-flight changes live there too.
 -/
 module
 

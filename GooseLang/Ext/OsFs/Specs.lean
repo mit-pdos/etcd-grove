@@ -179,11 +179,10 @@ instance osFd_timeless (fd : w64) (dq : DFrac) (d : OsFd) :
 def osN : Namespace := nroot .@ "osfs"
 
 /-- The invariant of the generation's mapped cells: the extension's share of each (`cellsRes`),
-for the view the state interpretation's half of the ghost variable names, and a thread token
-for each change in flight. -/
+for the view the state interpretation's half of the ghost variable names. -/
 def osInv : IProp GF :=
   inv osN iprop(∃ (cv : GMap Loc (Option w8 × Bool)) (n : Nat),
-    gVar (gooseOsGS (L := L)) (1 : Qp).half (cv, n) ∗ cellsRes cv ∗ threadToks n)
+    gVar (gooseOsGS (L := L)) (1 : Qp).half (cv, n) ∗ cellsRes cv)
 
 instance osInv_persistent : Persistent (osInv (L := L)) := by unfold osInv; infer_instance
 
@@ -197,9 +196,7 @@ theorem osInv_alloc (E : CoPset) :
   inext
   iexists ∅, 0
   iframe Hv
-  isplitl []
-  · unfold cellsRes; iapply BigSepM.bigSepM_empty.2; iempintro
-  · iapply threadToks_zero
+  unfold cellsRes; iapply BigSepM.bigSepM_empty.2; iempintro
 
 end resources
 
@@ -211,7 +208,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 variable {s : Stuckness} {E : CoPset}
 
 /-- What an operation's proof works with: the state, its ghost maps, what the extension holds
-of each change in flight, the invariant's share of the mapped cells, its thread tokens, and the
+of each change in flight, the invariant's share of the mapped cells, and the
 heap. -/
 def osWorld (st : OsState) (Γb : GMap (GoString × Nat) (w8 × Bool))
     (Γm : GMap GoString (Option OsMeta)) (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo)
@@ -219,8 +216,7 @@ def osWorld (st : OsState) (Γb : GMap (GoString × Nat) (w8 × Bool))
   iprop(⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt ∗
-    tokRes (gooseOsGS (L := L)) st Γt ∗ cellsRes (cellView st) ∗
-    threadToks (GMap.size st.inflight) ∗ naHeapCtx tls h)
+    tokRes (gooseOsGS (L := L)) st Γt ∗ cellsRes (cellView st) ∗ naHeapCtx tls h)
 
 /-- The lifting of an operation `o` of the extension: from the world before the step, the step
 exists, and every step leads to a world after it, and the rest of the program. -/
@@ -241,11 +237,11 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
-  icases Hi with ⟨%cv, %n, Hv', Hcells, Hth⟩
+  icases Hi with ⟨%cv, %n, Hv', Hcells⟩
   icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  imod HF $$ %σ %Γb %Γm %Γf %Γt %h [HAb HAm HAf HAt Htok Hcells Hth Hheap] with ⟨%Hex, Hcont⟩
+  imod HF $$ %σ %Γb %Γm %Γf %Γt %h [HAb HAm HAf HAt Htok Hcells Hheap] with ⟨%Hex, Hcont⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ E \ ↑osN from Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -258,9 +254,9 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   imod Hclose2
   imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hwp⟩
   unfold osWorld
-  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hheap⟩
+  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
-  imod Hclose $$ [Hv' Hcells Hth] with -
+  imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ'), (GMap.size σ'.inflight); iframe
   imodintro
   iframe Hheap Hwp
@@ -330,7 +326,7 @@ theorem wp_Close (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
   iapply wp_os_step "Close" (#fd) Φ (by simp) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
   icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
@@ -413,7 +409,7 @@ theorem wp_Flock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ 
   iapply wp_os_step "Flock" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
   icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
@@ -450,7 +446,7 @@ theorem wp_Fstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑os
   iapply wp_os_step "Fstat" _ Φ (by simp) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
   icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
@@ -506,7 +502,7 @@ theorem wp_PRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
   iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup hcoh d.path off.toNat dqb xs $$ HAb Htok Hbs with %Hbl
   unfold osFd osMeta
@@ -580,7 +576,7 @@ theorem wp_PRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
   iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup hcoh d.path lo dqb xs $$ HAb Htok Hbs with %Hbl
   unfold osFd
@@ -660,7 +656,7 @@ theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
   iapply wp_os_step "Fsync" _ Φ (by simp) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta osBytes
   icases bytesG_lookup _ d.path lo _ xs Γb $$ HAb Hbs with %Hbl
@@ -711,8 +707,7 @@ theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
     have htr : tokRes gooseOsGS (st.setFile d.path (f.synced (InflightAt st d.path ·))) Γt =
         tokRes (gooseOsGS (L := L)) st Γt := by
       unfold tokRes; simp only [affLo_congr hs]
-    rw [htr, show (st.setFile d.path (f.synced (InflightAt st d.path ·))).inflight = st.inflight
-      from rfl]
+    rw [htr]
     iframe
     isplitr
     · ipureintro
@@ -753,8 +748,7 @@ theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
     have htr : tokRes gooseOsGS (st.setFile d.path (f.syncFailed (InflightAt st d.path ·))) Γt =
         tokRes (gooseOsGS (L := L)) st Γt := by
       unfold tokRes; simp only [affLo_congr hsF]
-    rw [htr, show (st.setFile d.path (f.syncFailed (InflightAt st d.path ·))).inflight =
-      st.inflight from rfl]
+    rw [htr]
     iframe
     isplitr
     · ipureintro
@@ -792,7 +786,7 @@ theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
   iapply wp_os_step "Mmap" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
   icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
@@ -924,7 +918,7 @@ theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
     imodintro
     iexists Γb, _, Γf, Γt
     have htr : tokRes gooseOsGS st' Γt = tokRes (gooseOsGS (L := L)) st Γt := by rw [hst']; rfl
-    rw [htr, show st'.inflight = st.inflight by rw [hst']]
+    rw [htr]
     iframe
     isplitr
     · ipureintro
@@ -996,7 +990,7 @@ theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : 
   iapply wp_os_step "Munmap" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osMeta
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
@@ -1137,7 +1131,7 @@ theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : 
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf ∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt ∗ tokRes (gooseOsGS (L := L)) st Γt ∗
-        cellsRes (cellView st) ∗ threadToks st.inflight.size ∗ naHeapCtx tls h ∗
+        cellsRes (cellView st) ∗ naHeapCtx tls h ∗
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) (some m) ∗
         cellsR base 0 n vf ∗
         (gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1)
@@ -1146,7 +1140,7 @@ theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : 
         WP (Val (#e)) @ s; E {{ Φ }}) := by
     intro e st1 hst1 Hr Hfr
     obtain ⟨hwf1, hcoh1, hheap⟩ := hunmap st1 hst1
-    iintro ⟨HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ, Hm, Hc, HΦe⟩
+    iintro ⟨HAb, HAm, HAf, HAt, Htok, Hcells, Hσ, Hm, Hc, HΦe⟩
     imod gAuth_update _ _ _ _ _ (some { m with maps := GMap.delete base m.maps }) $$ HAm Hm
       with ⟨HAm, Hm⟩
     imod hheap Hr Hfr $$ [Hσ Hcells Hc] with ⟨Hσ, Hcells⟩
@@ -1155,7 +1149,7 @@ theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : 
     iexists Γb, _, Γf, Γt
     unfold osWorld
     have htr : tokRes gooseOsGS st1 Γt = tokRes (gooseOsGS (L := L)) st Γt := by rw [hst1]; rfl
-    rw [htr, show st1.inflight = st.inflight by rw [hst1]]
+    rw [htr]
     iframe
     isplitr
     · ipureintro; exact ⟨hwf1, hcoh1⟩
@@ -1311,7 +1305,7 @@ theorem wp_Open (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE :
   iapply wp_os_step "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osMeta
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
@@ -1430,10 +1424,7 @@ theorem wp_Open (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE :
     iexists Γb, Γm', (<[fd := openFd p fl]> Γf), Γt
     have htr' : tokRes gooseOsGS { st1 with fds := <[fd := openFd p fl]> st1.fds } Γt =
         tokRes (gooseOsGS (L := L)) st Γt := by rw [← htr1]; rfl
-    have hth : (threadToks st.inflight.size : IProp GF) =
-        threadToks ({ st1 with fds := <[fd := openFd p fl]> st1.fds } : OsState).inflight.size := by
-      simp [hin1]
-    rw [htr', hth]
+    rw [htr']
     iframe
     isplitr
     · ipureintro
@@ -1461,9 +1452,7 @@ theorem wp_Open (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE :
       · iframe
       imodintro
       iexists Γb, Γm', Γf, Γt
-      have hth : (threadToks st.inflight.size : IProp GF) = threadToks st'.inflight.size := by
-        simp [hin1]
-      rw [htr1, hth]
+      rw [htr1]
       iframe
       isplitr
       · ipureintro; exact ⟨hwf1, hcoh1⟩
@@ -1492,7 +1481,7 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFr
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
-  icases Hi with ⟨%cv, %n, Hv', Hcells, Hth⟩
+  icases Hi with ⟨%cv, %n, Hv', Hcells⟩
   icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
@@ -1512,7 +1501,7 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFr
     heapPointsto l (cellFrac x.2) (toCellVal x.1)) hcv $$ Hcells with ⟨Hl, Hcl⟩
   icombine Hl Hc gives %Hvv
   ihave Hcells := Hcl $$ Hl
-  imod Hclose $$ [Hv' Hcells Hth] with -
+  imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ), (GMap.size σ.inflight); iframe
   imodintro
   isplitl [HAb HAm HAf HAt Htok Hv]
