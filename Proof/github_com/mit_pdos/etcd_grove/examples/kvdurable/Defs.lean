@@ -19,12 +19,14 @@ predicates at kvdurable's structs (the model, `kvreconf.Base`'s pure definitions
   contents' shape (`KdFileOk`: what `openStorage` checks), and the stored snapshot's certificate
   (`kdSnapCert`: valid for raft's storage contract, and the store's encoded state of a committed
   prefix at the snapshot's configuration). Half of a ghost variable at `(S, o)`; the other half,
-  `kdWriter`, is the right to move them: the running incarnation's `dmu` holds it until it crashes
-  (`crash` takes it out with `crashed := true`), then the restarter.
+  `kdWriter`, is the right to move them: the incarnation's `dmu` holds it, also once crashed (its
+  `run` enters commit-only batches until it stops), until `crash`'s last critical section, after
+  `stop`, takes it out for the restarter.
 - **`dmu`'s lock invariant** (`kdDmuInv`, per incarnation): half of `crashed` (the other half, at
   `false`, is the crasher's token in `repStop`); the storage's image (`Storage.img`,
   `ownImage`) holding the contents `M`, the `MemoryStorage`'s hard state `M`'s (`memStorMeta`);
-  while not crashed, the writer's half at `(S, o)`; and (also after the crash: the loop and the
+  the writer's half at `(S, o)` (once crashed, either it or, after `crash` took it, `run`'s claim);
+  and (also after the crash: the loop and the
   snapshotter go on changing the storage until `stop`) `M`'s shape and snapshot certificate, and the
   pending batch (`KdPhase`): none (`M` holds `S`), a cut batch whose
   *enter* (`readyEnter`) has not fired (`M` holds the batch's durable state: `persist` fires it inside
@@ -433,9 +435,14 @@ def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (p
     "His" ∷ monoNatAuthOwn ph.is 1 (uint.nat M.snap.Metadata'.Index') ∗
     -- (2026-11-01, stage II (h)) `M`'s shape, certificate and phase also after the crash (the run
     -- loop and the snapshotter go on changing the storage until `stop`, and their changes' premises
-    -- are about `M`); only the writer's half leaves with the crash
+    -- are about `M`); the writer's half stays after the crash (`run` enters commit-only batches
+    -- until it stops) until `crash`'s last critical section, after `stop`, takes it out, leaving
+    -- `run`'s claim (`runDone`'s, through `stop`) in its place: `run` refutes that retired state
+    -- with its own claim (three halves of `ph.ph`, with the phase's) (2026-11-01, G6)
     "Hlive" ∷ (∃ (S : RaftState) (o : Option StorFile) (pz : KdPhase),
-      (if crashed then iprop(True) else kdWriter γ id S o) ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗
+      (if crashed then iprop(kdWriter γ id S o ∨
+          ∃ v : Option GName × RaftState, ghostVar ph.ph (1 : Qp).half v)
+        else kdWriter γ id S o) ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗
       kdPhaseInv γ id n ph.ph S M pz))
 
 /-- **The reads' sequence numbers** (`readSeqs`'s lock invariant): the last one issued, at least
@@ -494,7 +501,8 @@ def snapReqOk (γ : KdNames) (K : GName) (γs : MemStorNames) (dn : KdDmuNames) 
 
 /-- **Incarnation `r` of replica `id`, running** (persistent; kvreconf's `isReplicaR`): `isReplica`,
 `context`'s premise, the tick, the channels and their protocols (`runDone` and `snapDone` carry
-`run`'s and the snapshotter's halves of `nodeRunning` back to `stop`), the storage's `MemoryStorage`
+`run`'s and the snapshotter's halves of `nodeRunning` back to `stop`, and `runDone` `run`'s claim
+`ρ.ph.ph`, which `crash` leaves in `dmu` when it takes the writer out), the storage's `MemoryStorage`
 attached at the key `ρ.key` (`memStorInvP … (kdJ γ ρ.key)`). -/
 def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
     (ρ : KdRepNames) : IProp GF :=
@@ -509,7 +517,8 @@ def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n s
     "#Hsdc" ∷ r.[KReplica, go!"snapDone"] ↦□ ρ.sdc ∗
     "#HstopB" ∷ ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Unknown ∗
     "#HrdH" ∷ isHandoff (V := Unit) ρ.rd ρ.rdc
-      (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True) iprop(False) ∗
+      (fun _ => iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+        ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v)) iprop(True) iprop(False) ∗
     "#HtdH" ∷ isHandoff (V := Unit) ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
     "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γ ρ.key ρ.γs ρ.ph) ∗
     "#HsdH" ∷ isHandoff (V := Unit) ρ.sd ρ.sdc

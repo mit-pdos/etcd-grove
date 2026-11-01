@@ -381,12 +381,16 @@ func (r *Replica) stop() {
 
 // crash crashes the incarnation: from now on it writes nothing to its file, and it stops (stop).
 // What it does between the two is what it might have done before the crash, but for the writes:
-// it sends no message that needs a write it can no longer make (run).
+// it sends no message that needs a write it can no longer make (run). The last critical section of
+// dmu, after stop, does nothing at run time: once run and the snapshot goroutine have returned, it
+// lets the proof take the file's writer out of dmu's invariant.
 func (r *Replica) crash() {
 	r.dmu.Lock()
 	r.crashed = true
 	r.dmu.Unlock()
 	r.stop()
+	r.dmu.Lock()
+	r.dmu.Unlock()
 }
 
 // persist writes the storage's image to the file; false if the incarnation has crashed, which

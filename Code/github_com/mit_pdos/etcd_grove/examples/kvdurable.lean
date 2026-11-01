@@ -3965,9 +3965,11 @@ noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- crash crashes the incarnation: from now on it writes nothing to its file, and it stops (stop).
     What it does between the two is what it might have done before the crash, but for the writes:
-    it sends no message that needs a write it can no longer make (run).
+    it sends no message that needs a write it can no longer make (run). The last critical section of
+    dmu, after stop, does nothing at run time: once run and the snapshot goroutine have returned, it
+    lets the proof take the file's writer out of dmu's invariant.
 
-    go: kv.go:385:19 -/
+    go: kv.go:387:19 -/
 noncomputable def Replica.crash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3977,8 +3979,14 @@ noncomputable def Replica.crash.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Val #())))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"dmu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"dmu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"dmu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
   (App (Val doExecute)
@@ -3990,7 +3998,7 @@ noncomputable def Replica.crash.impl [GooseExts] [GoGlobalContext] : val :=
 /-- persist writes the storage's image to the file; false if the incarnation has crashed, which
     then writes nothing.
 
-    go: kv.go:394:19 -/
+    go: kv.go:398:19 -/
 noncomputable def Replica.persist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4056,7 +4064,7 @@ noncomputable def Replica.persist.impl [GooseExts] [GoGlobalContext] : val :=
     last Advance; after a restart, raft may still be handing back entries below the replicated
     state's index), without waiting (request).
 
-    go: kv.go:432:19 -/
+    go: kv.go:436:19 -/
 noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -4348,7 +4356,7 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
     applied index, after an Advance); a request is dropped if the goroutine has one pending. It
     returns the index of the latest snapshot asked for.
 
-    go: kv.go:532:19 -/
+    go: kv.go:536:19 -/
 noncomputable def Replica.request.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snapIndex"
@@ -4440,7 +4448,7 @@ noncomputable def Replica.request.impl [GooseExts] [GoGlobalContext] : val :=
     stops; known is the least index the stored snapshot is known to have reached (the storage's at
     start).
 
-    go: kv.go:562:19 -/
+    go: kv.go:566:19 -/
 noncomputable def Replica.snapshotter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "known"
@@ -4483,7 +4491,7 @@ noncomputable def Replica.snapshotter.impl [GooseExts] [GoGlobalContext] : val :
     needs to be durable: it writes the image to the file afterwards one time in two (a later write,
     of a Ready, writes it anyway). It returns what is known of the stored snapshot's index after it.
 
-    go: kv.go:582:19 -/
+    go: kv.go:586:19 -/
 noncomputable def Replica.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "req"
@@ -4618,7 +4626,7 @@ noncomputable def Replica.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
     and answers each operation waiting here that the snapshot covers -- whose entry this replica
     does not apply -- with the answer the snapshot records.
 
-    go: kv.go:626:19 -/
+    go: kv.go:630:19 -/
 noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "md"
@@ -4721,7 +4729,7 @@ noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
     the applied index -- one a restarted incarnation's snapshot covers, which raft hands back when
     Config.Applied is below the snapshot's index -- is skipped.
 
-    go: kv.go:652:19 -/
+    go: kv.go:656:19 -/
 noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -4813,7 +4821,7 @@ noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
     before it); every replica applies the same entries from the same configuration, so they all
     decide the same.
 
-    go: kv.go:687:19 -/
+    go: kv.go:691:19 -/
 noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cc"
@@ -4893,7 +4901,7 @@ noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
     operations applied records. An operation already applied (retried, so committed more than
     once) does not take effect again: it is answered with its recorded answer.
 
-    go: kv.go:710:19 -/
+    go: kv.go:714:19 -/
 noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "data"
@@ -5012,7 +5020,7 @@ noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
 /-- answer answers the pending reads whose index is applied with the current value of the key
     they read, and returns the others. A read nobody waits for any more (timed out) is dropped.
 
-    go: kv.go:737:19 -/
+    go: kv.go:741:19 -/
 noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "pending"
@@ -5119,7 +5127,7 @@ noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
     is false if none came. A proposal raft drops (no leader known) is proposed again until the
     timeout. If the operation was already applied here, its answer is the recorded one.
 
-    go: kv.go:761:19 -/
+    go: kv.go:765:19 -/
 noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "op"
@@ -5275,7 +5283,7 @@ noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
 /-- read reads key by a read index here, waiting up to timeout; ok is false if no answer came (or
     the read sequence numbers are used up: readSeqs).
 
-    go: kv.go:797:19 -/
+    go: kv.go:801:19 -/
 noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -5417,7 +5425,7 @@ noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- conf is the replica's configuration (nil before any) and its applied index.
 
-    go: kv.go:827:19 -/
+    go: kv.go:831:19 -/
 noncomputable def Replica.conf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5450,7 +5458,7 @@ noncomputable def Replica.conf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- contents is a copy of the store's contents and its applied index.
 
-    go: kv.go:834:19 -/
+    go: kv.go:838:19 -/
 noncomputable def Replica.contents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
