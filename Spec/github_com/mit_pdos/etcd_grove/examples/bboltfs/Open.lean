@@ -56,16 +56,20 @@ def dbFresh (p : GoString) (t : Nat) (vo : Option w64) : IProp GF :=
         fileOk xs) ∧
       freshTx xs = (t, vo)⌝)
 
-/-- A stored database at `p` (as `Close` leaves it, `dbClosed`) at transaction `t` holding `vo`:
-the whole `OsMeta`, the meta pages' bytes, the committed pages (`pageIs`), the current root page
-holding `vo`, and the bytes from the high water mark on (`storedOk`). -/
-def dbStored (p : GoString) (t : Nat) (vo : Option w64) : IProp GF :=
-  iprop(∃ (m : OsMeta) (mp : List w8) (mxc tail : List (w8 × Bool)) (B : List w8),
-    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ osBytes (GF := GF) p 0 (DFrac.own 1) mxc ∗
+/-- A stored database at `p` (as `Close` leaves it, `dbClosed`) at transaction `t` holding `vo`,
+besides its `OsMeta` `m`: the meta pages' bytes, the committed pages (`pageIs`), the current root
+page holding `vo`, and the bytes from the high water mark on (`storedOk`). -/
+def dbStoredAt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) : IProp GF :=
+  iprop(∃ (mp : List w8) (mxc tail : List (w8 × Bool)) (B : List w8),
+    osBytes (GF := GF) p 0 (DFrac.own 1) mxc ∗
     ([∗list] r ∈ List.range' 2 (curPgid mp - 2), ∃ B', pageIs (GF := GF) p r B') ∗
     osBytes (GF := GF) p (4096 * curPgid mp) (DFrac.own 1) tail ∗
     pageIs (GF := GF) p (curRoot mp) B ∗
     ⌜storedOk m mp mxc tail ∧ (curMeta mp).txid'.toNat = t ∧ pageVal B = vo⌝)
+
+/-- A stored database at `p`, with the whole of its `OsMeta` (`dbStoredAt`). -/
+def dbStored (p : GoString) (t : Nat) (vo : Option w64) : IProp GF :=
+  iprop(∃ m : OsMeta, osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ dbStoredAt (GF := GF) p t vo m)
 
 /-- The file `Open` opens, at transaction `t` holding `vo` (see the file header). -/
 def dbFile (p : GoString) (t : Nat) (vo : Option w64) : IProp GF :=

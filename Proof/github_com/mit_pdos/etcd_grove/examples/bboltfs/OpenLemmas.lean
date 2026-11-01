@@ -110,9 +110,9 @@ current meta. -/
 theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length = m.size)
     (hmp : metaPagesOk (F.take 8192)) (hpg : 4096 * curPgid (F.take 8192) ≤ m.size)
     (hok : m.ok = true) (hmaps : m.maps = ∅) (h16 : 4 * 4096 ≤ m.size) (h40 : m.size ≤ 2 ^ 40) :
-    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ osBytes (GF := GF) p 0 (DFrac.own 1) (F.map (·, true)) ⊢
-      |==> dbStored (GF := GF) p (curMeta (F.take 8192)).txid'.toNat
-        (pageVal (pageOf F (curRoot (F.take 8192)))) := by
+    osBytes (GF := GF) p 0 (DFrac.own 1) (F.map (·, true)) ⊢
+      |==> dbStoredAt (GF := GF) p (curMeta (F.take 8192)).txid'.toNat
+        (pageVal (pageOf F (curRoot (F.take 8192)))) m := by
   have hl8 := hmp.1
   have hr2 := hmp.2.2.1
   have hrp := hmp.2.2.2.1
@@ -127,7 +127,7 @@ theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length
     conv => lhs; rw [← List.take_append_drop (4096 * (n - 2)) (F.drop 8192)]
     rw [List.drop_drop, show 8192 + 4096 * (n - 2) = 4096 * n by omega]
   rw [hF]
-  iintro ⟨Hm, Hb⟩
+  iintro Hb
   icases (osBytes_app p 0 _ _ _).1 $$ Hb with ⟨Hb0, Hb⟩
   icases (osBytes_app p _ _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
   simp only [List.length_map, List.length_take, List.length_drop]
@@ -137,10 +137,10 @@ theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length
   ihave Hr := pages_acc (fun r => pageIs (GF := GF) p r (pageOf F r)) rt n (by omega) (by omega) $$ Hps
   icases Hr with ⟨#Hr, -⟩
   imodintro
-  unfold dbStored
-  iexists m, F.take 8192, (F.take 8192).map (·, true), (F.drop (4096 * n)).map (·, true), pageOf F rt
+  unfold dbStoredAt
+  iexists F.take 8192, (F.take 8192).map (·, true), (F.drop (4096 * n)).map (·, true), pageOf F rt
   rw [hn, hrt]
-  iframe Hm Hb0 Hb2
+  iframe Hb0 Hb2
   isplitr
   · iapply pages_ex p (pageOf F) (n - 2) 2 $$ Hps
   iframe Hr
@@ -149,6 +149,127 @@ theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length
   · rw [List.map_map]; exact List.map_id _
   · intro x hx; simp only [List.mem_map] at hx; obtain ⟨_, _, rfl⟩ := hx; rfl
   · rw [hn, List.length_map, List.length_drop, hl]
+
+/-- A file `init` lays out: of `OsMeta` `m` (no mapping, no byte lost, at most 1 TiB) and bytes
+`xs`, shorter than four pages or with no valid meta. -/
+def initAt (p : GoString) (m : OsMeta) : IProp GF :=
+  iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p 0 (DFrac.own 1) xs ∗
+    ⌜xs.length = m.size ∧ m.maps = ∅ ∧ m.ok = true ∧ m.size ≤ 2 ^ 30 ∧
+      (m.size < 4 * 4096 ∨ (¬ metaValid (fileMeta ((xs.map Prod.fst).take 8192) 0) ∧
+        ¬ metaValid (fileMeta ((xs.map Prod.fst).take 8192) 1)))⌝)
+
+/-- The file once open, of `OsMeta` `m`: one `init` lays out (at transaction 1, with no value), or
+a stored database. -/
+def openSt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) : IProp GF :=
+  iprop((⌜t = 1 ∧ vo = none⌝ ∗ initAt (GF := GF) p m) ∨ dbStoredAt (GF := GF) p t vo m)
+
+/-- The `OsMeta` of a file after an open that may create it. -/
+def openMetaOf : Option OsMeta → OsMeta
+  | some m => m
+  | none => newMeta
+
+theorem openMeta_of (mo : Option OsMeta) : openMeta mo true = some (openMetaOf mo) := by
+  cases mo <;> rfl
+
+theorem fst_clean (F : List w8) : (F.map (·, true)).map Prod.fst = F := by
+  rw [List.map_map]; exact List.map_id _
+
+theorem clean_of (xs : List (w8 × Bool)) (h : ∀ x ∈ xs, x.2 = true) :
+    xs = (xs.map Prod.fst).map (·, true) := by
+  rw [List.map_map]
+  conv => lhs; rw [← List.map_id xs]
+  apply List.map_congr_left
+  intro x hx; simp only [id, Function.comp_def]; rw [← h x hx]
+
+/-- `Open`'s precondition, as the file to open and what it will be once open. -/
+theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) :
+    dbFile (GF := GF) p t vo ⊢
+      |==> ∃ mo, osMeta (GF := GF) p (DFrac.own 1) mo ∗ openSt (GF := GF) p t vo (openMetaOf mo) := by
+  unfold dbFile dbFresh dbStored openSt openMetaOf
+  iintro (⟨%mo, %xs, Hm, Hb, %H⟩ | ⟨%m, Hm, Hs⟩)
+  · obtain ⟨hnone, hsome, htx⟩ := H
+    rcases mo with _ | m
+    · have := hnone rfl; subst this
+      imodintro
+      iexists none; iframe Hm
+      ileft
+      isplitr
+      · ipureintro; simp only [freshTx, List.length_nil] at htx
+        rw [if_neg (by omega)] at htx; cases htx; exact ⟨rfl, rfl⟩
+      unfold initAt
+      iexists []
+      isplitl
+      · iapply (osBytes_nil p 0 _).2; iempintro
+      · ipureintro; refine ⟨rfl, rfl, rfl, by decide, Or.inl (by decide)⟩
+    · obtain ⟨hl, hmaps, hok, hsz, hfok⟩ := hsome m rfl
+      dsimp only
+      by_cases hc : 4 * 4096 ≤ xs.length ∧ (metaValid (fileMeta ((xs.map Prod.fst).take 8192) 0) ∨
+          metaValid (fileMeta ((xs.map Prod.fst).take 8192) 1))
+      · simp only [freshTx] at htx
+        rw [if_pos hc] at htx
+        cases htx
+        rcases hfok with hshort | ⟨hclean, hno | ⟨hmp, hpg⟩⟩
+        · omega
+        · exfalso; rcases hc.2 with h | h
+          · exact hno.1 h
+          · exact hno.2 h
+        obtain ⟨F, rfl⟩ : ∃ F : List w8, xs = F.map (·, true) := ⟨_, clean_of xs hclean⟩
+        rw [fst_clean] at hmp hpg ⊢
+        rw [List.length_map] at hl hpg hc
+        imod stored_of_bytes p m F hl hmp (by rw [← hl]; exact hpg) hok hmaps (by omega) (by omega)
+          $$ Hb with Hs
+        imodintro
+        iexists some m; iframe Hm
+        iright; iexact Hs
+      · simp only [freshTx] at htx
+        rw [if_neg hc] at htx
+        cases htx
+        imodintro
+        iexists some m; iframe Hm
+        ileft
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl⟩
+        unfold initAt
+        iexists xs; iframe Hb
+        ipureintro
+        refine ⟨hl, hmaps, hok, hsz, ?_⟩
+        by_cases h16 : m.size < 4 * 4096
+        · exact Or.inl h16
+        · right
+          have : ¬ (metaValid (fileMeta ((xs.map Prod.fst).take 8192) 0) ∨
+              metaValid (fileMeta ((xs.map Prod.fst).take 8192) 1)) := fun h => hc ⟨by omega, h⟩
+          exact ⟨fun h => this (Or.inl h), fun h => this (Or.inr h)⟩
+  · imodintro
+    iexists some m; iframe Hm
+    iright; iexact Hs
+
+/-- The file `init` laid out, as a stored database at transaction 1 with no value. -/
+theorem stored_of_init (p : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (hl : xs.length = m.size)
+    (hok : m.ok = true) (hmaps : m.maps = ∅) (hsz : m.size ≤ 2 ^ 30) :
+    osBytes (GF := GF) p 0 (DFrac.own 1) (initFile xs) ⊢
+      |==> dbStoredAt (GF := GF) p 1 none
+        { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384 } := by
+  iintro Hb
+  rw [initFile_clean xs]
+  have ht : (((initFile xs).map Prod.fst).take 8192).take 8192 = initBytes.take 8192 := by
+    rw [List.take_take, Nat.min_self]; exact initFile_take xs
+  have hl' : ((initFile xs).map Prod.fst).length = max m.size 16384 := by
+    rw [List.length_map, initFile_length, hl]
+  have hmp := metaPagesOk_init _ ht (by rw [List.length_take, hl']; omega)
+  have hc := curMeta_init _ ht
+  have hpg : curPgid (((initFile xs).map Prod.fst).take 8192) = 4 := by
+    unfold curPgid; rw [hc, initMeta_pgid]; rfl
+  have hrt : curRoot (((initFile xs).map Prod.fst).take 8192) = 3 := by
+    unfold curRoot; rw [hc, initMeta_root]; rfl
+  have htx : (curMeta (((initFile xs).map Prod.fst).take 8192)).txid'.toNat = 1 := by
+    rw [hc, initMeta_txid]; rfl
+  have Hst := stored_of_bytes (GF := GF) p
+    { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384 }
+    ((initFile xs).map Prod.fst) hl' hmp
+    (by rw [hpg]; simp only; omega) hok hmaps (by simp only; omega) (by simp only; omega)
+  imod Hst $$ Hb with Hs
+  rw [htx, hrt, initFile_root]
+  iexact Hs
 
 end lemmas
 
