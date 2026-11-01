@@ -351,6 +351,99 @@ theorem stored_of_init (p : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (hl 
   rw [htx, hrt, initFile_root]
   iexact Hs
 
+/-- Bytes of a file, as two halves. -/
+theorem osBytes_halves (p : GoString) :
+    ∀ (xs : List (w8 × Bool)) (off : Nat),
+    osBytes (GF := GF) p off (DFrac.own 1) xs ⊢
+      osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
+        osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs
+  | [], off => by
+    iintro -; isplitl <;> (iapply (osBytes_nil p off _).2; iempintro)
+  | x :: xs, off => by
+    iintro H
+    icases (osBytes_cons p off _ x xs).1 $$ H with ⟨Hx, H⟩
+    icases osBytes_halves p xs (off + 1) $$ H with ⟨H1, H2⟩
+    unfold osByte
+    rw [← Qp.half_add_half 1] at *
+    icases (gElem_split _ _ _ _ _ _).1 $$ Hx with ⟨Hx1, Hx2⟩
+    rw [Qp.half_add_half]
+    isplitl [Hx1 H1]
+    · iapply (osBytes_cons p off _ x xs).2; unfold osByte; iframe
+    · iapply (osBytes_cons p off _ x xs).2; unfold osByte; iframe
+
+theorem ownFile_halves (f : Loc) (fd : w64) (p : GoString) :
+    os.ownFile (GF := GF) f fd p (DFrac.own 1) ⊣⊢
+      os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+        os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (ownFile_fractional f fd p).fractional _ _
+
+theorem osFd_halves (fd : w64) (d : OsFd) :
+    osFd (GF := GF) fd (DFrac.own 1) d ⊣⊢
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) d ∗ osFd (GF := GF) fd (DFrac.own (1 : Qp).half) d := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (osFd_fractional fd d).fractional _ _
+
+/-- The ghost state of a database opened at the meta pages `mp` (bytes `mxc`), at transaction `t`
+holding `vo`: `metalock`'s resource, and the writer's, the mapping's and the client's parts. -/
+theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × Bool)) (B : List w8)
+    (t : Nat) (vo : Option w64) (hmx : mxc.map Prod.fst = mp) (hmp : metaPagesOk mp)
+    (ht : (curMeta mp).txid'.toNat = t) (hvo : pageVal B = vo) :
+    db.[DB, go!"failed"] ↦ false ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      pageIs (GF := GF) p (curRoot mp) B ⊢
+      |==> ∃ γ : DBNames, metaR (GF := GF) γ db p ∗
+        ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗
+        ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗
+        ghostVar γ.map (1 : Qp).half (none : MapSt) ∗ ghostVar γ.map (1 : Qp).half (none : MapSt) ∗
+        ghostVar γ.out (1 : Qp).half.half false ∗ ghostVar γ.out (1 : Qp).half false ∗
+        ghostVar γ.cls (1 : Qp).half false ∗ dbOwner (GF := GF) γ t (curPgid mp) ∗
+        dbLast (GF := GF) γ t ∗ dbTx (GF := GF) γ t vo := by
+  iintro ⟨Hfl, Hmx, #HB⟩
+  imod ghostVar_alloc (GF := GF) (mp, false, curPgid mp) with ⟨%γcur, Hcur⟩
+  imod ghostVar_alloc (GF := GF) (none : MapSt) with ⟨%γmap, Hmap⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%γout, Hout⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Option w64) with ⟨%γtxs, Htxs⟩
+  imod ghost_map_insert (V := Option w64) t vo (by rfl) $$ Htxs with ⟨Htxs, Htx⟩
+  imod ghostMapElem_persist t γtxs _ vo $$ Htx with #Htx
+  imod mono_nat_own_alloc (GF := GF) t with ⟨%γlast, Hlast, #Hlb⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfail, Hfail, -⟩
+  imod ghostVar_alloc (GF := GF) (t, curPgid mp) with ⟨%γown, Hown⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%γcls, Hcls⟩
+  imodintro
+  iexists ⟨γcur, γmap, γout, γtxs, γlast, γfail, γown, γcls⟩
+  icases (ghostVar_split_half γcur 1 _).1 $$ Hcur with ⟨Hcur, Hc2⟩
+  icases (ghostVar_split_half γcur (1 : Qp).half _).1 $$ Hc2 with ⟨Hc3, Hc4⟩
+  icases (ghostVar_split_half γmap 1 _).1 $$ Hmap with ⟨Hmap1, Hmap2⟩
+  icases (ghostVar_split_half γout 1 _).1 $$ Hout with ⟨Hout1, Ho2⟩
+  icases (ghostVar_split_half γout (1 : Qp).half _).1 $$ Ho2 with ⟨Hout2, Hout3⟩
+  icases (ghostVar_split_half γown 1 _).1 $$ Hown with ⟨Hown1, Hown2⟩
+  icases (ghostVar_split_half γcls 1 _).1 $$ Hcls with ⟨Hcls1, Hcls2⟩
+  dsimp only
+  unfold dbOwner dbLast dbTx
+  dsimp only
+  iframe Hc3 Hc4 Hmap1 Hmap2 Hout1 Hout2 Hcls1 Hown1 Hlb Htx
+  unfold metaR
+  iexists false, mp, mp, curPgid mp, mxc, (∅ : GMap Nat (Option w64)).insert t vo
+  dsimp only
+  rw [← ht, ← hvo]
+  iframe Hfl Hcur Hout3 Htxs Hfail Hlast Hown2
+  isplitl [Hmx Hcls2]
+  · ileft; iframe
+  isplitr
+  · ipureintro
+    refine ⟨?_, hmx⟩
+    have := congrArg List.length hmx; rw [List.length_map] at this; rw [this, hmp.1]
+  isplitr
+  · ipureintro
+    refine ⟨rfl, hmp, rfl, fun k hk => ?_⟩
+    rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl
+  iexists B
+  unfold dbTx
+  dsimp only
+  iframe HB Htx
+  ipureintro
+  exact GMap.lookup_insert _ _ _
+
 end lemmas
 
 end bboltfs
