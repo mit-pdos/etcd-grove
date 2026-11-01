@@ -53,8 +53,8 @@ structure OsMeta where
   /-- The mappings of the file: base address to length. -/
   maps : GMap Loc Nat
   /-- Durable bytes known: `some d` at `i` if byte `i` of the image on disk is `d`. Only a
-  successful sync changes the image on disk (and resets this to nothing known); a client records
-  clean bytes in it with `osMeta_record_dur`. -/
+  successful sync changes the image on disk; it records the bytes it is given (`OsMeta.synced`).
+  At boot, all of the file is known. -/
   dur : List (Option w8)
 
 /-- An in-flight change, as the ghost state records it. -/
@@ -538,9 +538,9 @@ theorem bytesG_lookup (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × 
 
 end bytes
 
-/-- The ghost `OsMeta` of a file as on disk. -/
+/-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅, []⟩
+  ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅, f.cur.map some⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (GoString × Nat) (w8 × Bool) :=
@@ -640,7 +640,10 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
         · intro _ i; rw [hf]; rfl
         · intro b len; simp [initMeta, hmp]
         · intro t c ht; simp [hin] at ht
-        · intro i d h; simp [initMeta] at h
+        · intro i d h
+          simp only [initMeta, List.getElem?_map, Option.map_eq_some_iff, Option.some.injEq] at h
+          obtain ⟨b, hb, rfl⟩ := h
+          rw [hf]; exact hb
   · intro p i x hx
     simp only [bytesMap, GMap.lookup_mk] at hx
     cases hf : st.file p with
