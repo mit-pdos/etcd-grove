@@ -521,6 +521,12 @@ porcupine has to return its linearization.
   (11245 jobs), `etc/goose.py --check` and `etc/tcb-report.py --check` (766 axioms, 20 `sorry`s) unchanged.
 - Next: 7b, the precondition, cached-object and `ignoreNotFound` paths of `Delete`/
   `GuaranteedUpdate`/`Get` (nothing new from etcd).
+- (2026-11-01) The store's specs redesigned with the `spec` skill, three candidates and two
+  `spec-reviewer` rounds (scratch files, not committed; waiting on the user's decisions): one KV
+  in place of the member lists, the updates in the triples, the general methods (preconditions as
+  data with the model's own error, a cached object held by the key at its revision, Get's minimum),
+  errors through laws. Found: the store trusts a cached object at the current resource version
+  (`issues/k8s-etcd3-cached-object-trusted-at-current-rv.md`).
 
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 
