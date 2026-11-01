@@ -80,6 +80,7 @@ abbrev kReplicaTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica.ty
 abbrev kClusterTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster.ty
+abbrev KOptions [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvdurable.Options
 abbrev kReadSeqsTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs.ty
 
@@ -171,6 +172,14 @@ def KdFileOk (f : StorFile) : Prop :=
   uint.Z f.prev ≤ uint.Z f.snap.Metadata'.Index' ∧
   uint.nat f.snap.Metadata'.Index' ≤ uint.nat f.prev + f.ents.length ∧
   uint.Z f.prev ≤ uint.Z f.hs.Commit' ∧ uint.nat f.hs.Commit' ≤ uint.nat f.prev + f.ents.length
+
+/-- **The options a cluster may run with** (kvreconf's `OptsOk`, `RandomOptions`): one to five
+voters, a positive window of at most 256, not both sizes zero (raft's `RestartNode` premises, through
+`Cluster.config`). -/
+def kdOptsOk (o : KOptions) : Prop :=
+  1 ≤ uint.Z o.Voters' ∧ uint.Z o.Voters' ≤ 5 ∧
+  0 < sint.Z o.MaxInflightMsgs' ∧ sint.Z o.MaxInflightMsgs' ≤ 256 ∧
+  (o.MaxCommittedSizePerReady' ≠ W64 0 ∨ o.MaxSizePerMsg' ≠ W64 0)
 
 /-- The file's bytes (`durable.Write(file, string(encode()))`). -/
 def kdFileVal (o : Option StorFile) : Option GoString := o.map encStor
@@ -585,6 +594,11 @@ def sendSpec (γ : KdNames) (id : w64) (f : GoFunc) : IProp GF :=
       (App (Val #f) (Val #msl))
     {{ RET #(); True }})
 
+/-- **Some incarnation `r` of replica `id`, running** (persistent; kvreconf's `isRep`): what
+`c.replicas[id]` holds. -/
+def isRep (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
+  iprop(∃ (n st sts sq : Loc) (ρ : KdRepNames), isReplicaR γ vs dir id r n st sts sq ρ)
+
 /-- Replica `id` was started: it is below the cluster's next id (persistent). -/
 def repKnown (γ : KdNames) (id : w64) : IProp GF :=
   iprop(⌜id ≠ W64 0⌝ ∗ monoNatLbOwn γ.r.nid (uint.nat id + 1))
@@ -605,17 +619,19 @@ def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : I
     "%Hdom" ∷ ⌜(∀ i, (R !! i).isSome ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       (∀ i, i ∈ U ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       vs.length < uint.nat nid ∧ uint.nat nid ≤ 10⌝ ∗
-    "Hreps" ∷ ([∗map] id ↦ r ∈ R, ∃ (n st sts sq : Loc) (ρ : KdRepNames),
-      isReplicaR γ vs dir id r n st sts sq ρ) ∗
+    "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γ vs dir id r) ∗
     "Hfiles" ∷ ([∗list] i ∈ kvreconf.freshIds (uint.nat nid), dfile γ.files (kdFileName dir i) none ∗
       ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g))
 
 /-- **The cluster at `c`** (persistent; kvreconf's `isClusterC`), of the bootstrap voters `vs`, its
 replicas' files in the directory `dir`. -/
 def isClusterC (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp GF :=
-  iprop(∃ (bp sq : Loc),
+  iprop(∃ (o : KOptions) (bp sq : Loc),
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗
     "#Hcl" ∷ kdCluster γ vs ∗
+    -- (2026-11-01, the cluster helpers) the options, read by `Cluster.config` (kvreconf's `%Ho`)
+    "#Hopts" ∷ c.[KCluster, go!"opts"] ↦□ o ∗
+    "%Ho" ∷ ⌜kdOptsOk o ∧ vs = kvreconf.bootVoters (uint.nat o.Voters')⌝ ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "%Hdup" ∷ ⌜γ.r.cluster.dup = true⌝ ∗
     -- (2026-11-01, the start functions) the cluster has no bootstrap log (`cluster_alloc` at the

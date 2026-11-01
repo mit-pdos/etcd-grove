@@ -6,8 +6,9 @@ storage if there is no file), the stored snapshot's state decoded (its certifica
 `Config.Applied` chosen at random from the log's start to the snapshot's index (or `0`), then
 `RestartNode` (from the id's slot, `nodeVacant`; its update fires over the file's invariant, whose
 durable state the storage holds: `StorageHolds S (kdContents o)`; at the configuration point the
-snapshot's index, `confAt γ a m`), and `newReplica`. The writer's half goes to the new incarnation's
-`dmu`.
+snapshot's index, `confAt γ a m`), and `newReplica`, its transport `c.sender(id)` (for a started
+`id`, `repKnown`: each send looks its sender up by id, `c.replica(id)`). The writer's half goes to
+the new incarnation's `dmu`.
 -/
 module
 
@@ -39,7 +40,7 @@ abbrev Cluster.start.spec : Prop :=
     (o : Option StorFile),
   1 ≤ uint.nat id → uint.nat id ≤ 9 →
   {{ isClusterC γ vs dir c ∗ kdFileInv γ dir id ∗ nodeVacant γ.r.cluster id ∗
-      kdWriter γ id S o }}
+      kdWriter γ id S o ∗ repKnown γ id }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"start")) (Val #id))
   {{ (r : Loc), RET #r; (∃ (n st sts sq : Loc) (ρ : KdRepNames),
         isReplicaR γ vs dir id r n st sts sq ρ) ∗ repStop γ vs dir id r }}
