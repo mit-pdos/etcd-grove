@@ -6,8 +6,10 @@ asks the snapshot goroutine, without waiting, for a snapshot at `len ap` if `sna
 returns the latest snapshot index asked for. What the request carries (`snapReqOk`) comes from the
 applier's storage ranges: the delivered log `D` it applied a prefix of, frozen above the known
 compaction point `c ≤ snapIndex` (`frozenTo`, so the entry at `len ap` is frozen, its term `ap`'s
-last), the node's delivered log (`deliveredLogLb`), and, for a compaction, the node's applied index
-`len ap` (`Advance`'s, `nodeAppliedLb`); the snapshot's validity (`snapshotValid`) is certified in
+last), the node's delivered log (`deliveredLogLb`) and committed index on the storage (`nodeCommitLb`
+at `len D`, the run loop's, from its driver: the snapshotter holds none; 2026-11-01, durability
+layer 4, in place of unfolding the open `storDL`), and, for a compaction, the node's applied index
+`len ap` (`Advance`'s, `nodeAppliedLb`), both at the storage's key `ρ.key`; the snapshot's validity (`snapshotValid`) is certified in
 the store's registry (`kvrSnapInv`) with `ap`'s state.
 -/
 module
@@ -42,7 +44,8 @@ abbrev Replica.request.spec : Prop :=
   ap <+: D → c ≤ uint.nat snapIndex →
   {{ isReplicaR γr vs id r n st sts ρ ∗ repOwn γr r ap (W64 ap.length) csp m mA A ∗
       memCompacted ρ.γs c ∗ frozenTo ρ.γs c D ∗ deliveredLogLb n γr.cluster kvrRaftN D ∗
-      (⌜compact = false⌝ ∨ nodeAppliedLb γr.cluster (kvrKey γr.cluster id) ap.length) }}
+      nodeCommitLb γr.cluster ρ.key D.length ∗
+      (⌜compact = false⌝ ∨ nodeAppliedLb γr.cluster ρ.key ap.length) }}
     (App (App (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"request")) (Val #snapIndex))
       (Val #snap)) (Val #compact))
   {{ (ret : w64), RET #ret; repOwn γr r ap (W64 ap.length) csp m mA A ∗

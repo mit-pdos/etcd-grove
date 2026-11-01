@@ -15,8 +15,9 @@ the names `γs`. Then `storLog (kvStorIface s)`, `storEnd …`, `storCompacted �
 
 **Instance discipline.** Unlike kvreconf's, `kvStorageModel` is a global instance under
 `[KVStor GF]` (as kv's was before the repair): kv's specs are stated over it. raft's own
-`MemStorReg` is never in scope here, so `memStorJ`/`memStorInv` are not used: `kvJ γ (kvKey γ id)` is
-`memStorJ`'s fields, and the storage's invariant is `memStorInvP ms γs (kvJ γ (kvKey γ id))`.
+`MemStorReg` is never in scope here, so `memStorJ`/`memStorInv` are not used: `kvJ γ K` is
+`memStorJ`'s fields, and the storage's invariant is `memStorInvP ms γs (kvJ γ K)`, at the key `K` raft
+named the storage by at the attach.
 
 **The registry's authority** is in an invariant (`kvStorInv`), with half of each registered
 wrapper's `MemoryStorage` field: a wrapper whose field is still wholly owned (just allocated) is not
@@ -426,15 +427,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
-
-/-- (2026-11-01, durability stage I-4; **placeholder, PORT(durability layer 4)**) The storage key raft
-named node `id`'s storage by (`RestartNode`'s post, `restartStorage`'s continuation), and the
-durable state and role its `Ready` loop records: until layer 4 restates this client's invariants to
-carry them, its statements name them through these opaque constants (definitions, no axiom), so they
-are not provable as they stand and their proofs are `sorry`. -/
-noncomputable opaque kvKey (γ : Cluster) (id : w64) : GName := 0
-noncomputable opaque kvDur (γ : Cluster) (id : w64) : RaftState × StateType :=
-  (RaftState.init, W64 0)
 
 /-- The justifications for the `MemoryStorage` of key `K` (raft's `memStorJ`, without its registry;
 2026-11-01, durability stage I-4: keyed by the storage's key, `snapGiven` merged into

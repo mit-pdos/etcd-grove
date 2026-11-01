@@ -65,12 +65,12 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
       C.ρ.raft.raft.rule = srvRule C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
       C.ρ.raft.ai0 = W64 0)
     -- (2026-10-30, the repair) the node's id, whose applied index `raftAdvancedC`'s close reports
-    (nid : w64) :
+    (nk : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-          iprop(nodeAppliedLb C.ρ.raft.raft.cl (srvKey C.ρ.raft.raft.cl nid) (uint.nat C.ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb C.ρ.raft.raft.cl nk (uint.nat C.ai₀ + (A ++ ce).length) ∗
             srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
               (uint.nat C.ai₀ + (A ++ ce).length + 1))) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
@@ -151,7 +151,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     rw [srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0]; word
   have e2 : uint.nat ai + 1 = uint.nat C.ai₀ + A.length + 1 := by word
   ihave #Hracc' : rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-      iprop(nodeAppliedLb C.ρ.raft.raft.cl (srvKey C.ρ.raft.raft.cl nid)
+      iprop(nodeAppliedLb C.ρ.raft.raft.cl nk
         (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
         srvFrozenRange C.γs (uint.nat ai + 1)
           ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) $$ []
@@ -161,7 +161,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
-      C.ms C.γs C.wt dv γnc w nid hms hb1 Hloop hok' hdv Hw)
+      C.ms C.γs C.wt dv γnc w nk hms hb1 Hloop hok' hdv Hw)
     $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR Hrh]
   · rw [hun]
     iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
@@ -264,12 +264,12 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
       C.ρ.raft.raft.rule = srvRule C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
       C.ρ.raft.ai0 = W64 0)
     -- (2026-10-30, the repair) the node's id, whose applied index `raftAdvancedC`'s close reports
-    (nid : w64) :
+    (nk : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         srvLessorNil C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-          iprop(nodeAppliedLb C.ρ.raft.raft.cl (srvKey C.ρ.raft.raft.cl nid) (uint.nat C.ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb C.ρ.raft.raft.cl nk (uint.nat C.ai₀ + (A ++ ce).length) ∗
             srvFrozenRange C.γs (uint.nat C.ai₀ + A.length + 1)
               (uint.nat C.ai₀ + (A ++ ce).length + 1))) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
@@ -350,7 +350,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     rw [srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0]; word
   have e2 : uint.nat ai + 1 = uint.nat C.ai₀ + A.length + 1 := by word
   ihave #Hracc' : rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
-      iprop(nodeAppliedLb C.ρ.raft.raft.cl (srvKey C.ρ.raft.raft.cl nid)
+      iprop(nodeAppliedLb C.ρ.raft.raft.cl nk
         (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
         srvFrozenRange C.γs (uint.nat ai + 1)
           ((max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1))) $$ []
@@ -360,7 +360,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
-      C.ms C.γs C.wt dv γnc w nid γa sa (by rw [beSucc_authMode HB]; exact hM) hRB hms hb1 Hloop hok' hdv Hw)
+      C.ms C.γs C.wt dv γnc w nk γa sa (by rw [beSucc_authMode HB]; exact hM) hRB hms hb1 Hloop hok' hdv Hw)
     $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh]
   · rw [hun]
     iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
@@ -871,7 +871,7 @@ theorem EtcdServer.run.wp_proof
       have hp0 : γn.pre = [] := Hc0a.2.1
       have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
       ihave #Hrac' : rnAdvChan apv.raftAdvancedC' (letI := srvStor (GF := GF) ρ.raft.raft
-          iprop(nodeAppliedLb ρ.raft.raft.cl (srvKey ρ.raft.raft.cl γn.id) (uint.nat ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb ρ.raft.raft.cl γn.key (uint.nat ai₀ + (A ++ ce).length) ∗
             srvFrozenRange γn.γs (uint.nat ai₀ + A.length + 1)
               (uint.nat ai₀ + (A ++ ce).length + 1))) $$ []
       · rw [hnd0, show uint.nat ai₀ + (A ++ ce).length = (γn.pre ++ A ++ ce).length by
@@ -880,7 +880,7 @@ theorem EtcdServer.run.wp_proof
         iexact Hrac
       have hJ := run_job_body hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok rfl hdvn hdvs
-        γn.id
+        γn.key
       simp only [run_job_body_match] at hJ
       iapply hJ $$ [Hrun Hres Hnrc Hdv Hrh]
       · iframe #
@@ -1392,7 +1392,7 @@ theorem EtcdServer.run.wp_proofOn
       have hp0 : γn.pre = [] := Hc0a.2.1
       have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
       ihave #Hrac' : rnAdvChan apv.raftAdvancedC' (letI := srvStor (GF := GF) ρ.raft.raft
-          iprop(nodeAppliedLb ρ.raft.raft.cl (srvKey ρ.raft.raft.cl γn.id) (uint.nat ai₀ + (A ++ ce).length) ∗
+          iprop(nodeAppliedLb ρ.raft.raft.cl γn.key (uint.nat ai₀ + (A ++ ce).length) ∗
             srvFrozenRange γn.γs (uint.nat ai₀ + A.length + 1)
               (uint.nat ai₀ + (A ++ ce).length + 1))) $$ []
       · rw [hnd0, show uint.nat ai₀ + (A ++ ce).length = (γn.pre ++ A ++ ce).length by
@@ -1402,7 +1402,7 @@ theorem EtcdServer.run.wp_proofOn
       have hJ := run_job_bodyOn hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce
         γa hM hRB ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok rfl hdvn hdvs
-        γn.id
+        γn.key
       simp only [run_job_body_match] at hJ
       iapply hJ $$ [Hrun Hres Hnrc Hdv Hrh]
       · iframe #

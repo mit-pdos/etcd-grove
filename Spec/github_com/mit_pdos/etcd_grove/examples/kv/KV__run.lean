@@ -11,8 +11,8 @@ committed entries (counting them: the applied index), answer the reads whose ind
 
 2026-10-30 (stage F of the client repair): the node's running token (`nodeRunning … 1`: the store
 never stops a node, so `Advance`'s and `ApplyConfChange`'s stopped answers are refuted), and what
-the applier holds of its storage is persistent (`runStor`: the storage's invariant at node `id`'s
-justifications, the stored snapshot open for writes); until then the snapshot token at the fresh
+the applier holds of its storage is persistent (`runStor`: the storage's invariant at the
+justifications of the storage's key `K`, the driver's (2026-11-01, durability layer 4), the stored snapshot open for writes); until then the snapshot token at the fresh
 storage.
 -/
 module
@@ -39,18 +39,21 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.run.spec : Prop :=
-  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc),
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc) (K : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗
       -- the node's driver token, idle at its start, on the store's storage, and its view of its
       -- configuration (2026-10-28), at the voters' membership, nothing applied
-      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) (kvKey γr.cluster id)) ∗
+      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
+      -- (2026-11-01, durability layer 4) the node's durable state, at its start: the store keeps
+      -- nothing durable and enters each `Ready`'s batch at once (`readyEnter`)
+      raftState γr.cluster id RaftState.init ∗
       nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
       -- (2026-10-30) the node runs: the store never stops it
       nodeRunning n γr.cluster kvRaftN 1 ∗
       runOwn γr r [] ∗
       -- what the applier holds of its storage (`runStor`, persistent)
-      runStor γr id st ∗
+      runStor γr K st ∗
       sendSpec send γr.cluster }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"run")) (Val #send))
   {{ RET #(); True }}

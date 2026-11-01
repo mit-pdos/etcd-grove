@@ -13,7 +13,7 @@ in their own predicates so that the proved methods stay as they are.
 `read` and the network's `step` time out) and the replica's fields that `newReplica` sets and
 `run`/`ticker`/`stop` read: the tick interval, the three channels, and the storage's registration
 (`kvrStorRec`, `KvrStorage.lean`) with its `MemoryStorage`'s invariant at the API's justifications
-(`memStorInvP … (kvrJ γ (kvrKey γ id))`). The names live in a record `ρ : RepNames`, so that the tokens below
+(`memStorInvP … (kvrJ γ ρ.key)`, at the storage's key `ρ.key`). The names live in a record `ρ : RepNames`, so that the tokens below
 can refer to them:
 
 - `stopc` is closed once, by `stop` (Perennial's broadcast idiom, `Q := True`). Its `Pending` token
@@ -28,7 +28,9 @@ can refer to them:
 
 `isRep γr vs id r` hides the node, storage, stats and names (persistent). `repStop γr vs r` is
 `isReplicaR` together with the stopper's three tokens (exclusive): what `Replica.stop` takes.
-`runStart` is what `run` starts with. The replica's own resources are its node's driver, running
+`runStart` is what `run` starts with. The replica's own resources are its node's driver (at the
+storage's key `ρ.key`), its durable state (`raftState`, at `RaftState.init`: kvreconf keeps nothing
+durable and enters each `Ready`'s batch at once; 2026-11-01, durability layer 4), running
 token and configuration view, the replicated state at the empty prefix, the producer's token of
 `runDone`, and the `MemoryStorage`'s hard state (`memStorMeta`, what `RestartNode`'s boot bundle
 returns as its frame `Q`).
@@ -137,6 +139,10 @@ structure RepNames where
   sdc : Loc
   /-- `snapDone`'s handoff names -/
   sd : HandoffNames
+  /-- (2026-11-01, durability layer 4) the key raft named the storage by at the attach
+  (`restartStorage`'s continuation, `RestartNode`'s post), which the storage's justifications
+  (`kvrJ`) and the node's storage bounds are keyed by -/
+  key : GName
 
 /-- The snapshot goroutine's request struct. -/
 abbrev RSnapReq [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvreconf.snapReq
@@ -164,15 +170,15 @@ instance frozenTo_persistent (γs : MemStorNames) (c : Nat) (D : List LogEntry) 
   unfold frozenTo; infer_instance
 
 /-- **What a request to the snapshot goroutine carries** (see the file header). -/
-def snapReqOk (γr : RNames) (id : w64) (γs : MemStorNames) (q : RSnapReq) : IProp GF :=
+def snapReqOk (γr : RNames) (K : GName) (γs : MemStorNames) (q : RSnapReq) : IProp GF :=
   iprop((⌜q.data' = slice.nil⌝ ∨ ∃ (e : EntryM) (c : ConfStateM) (bs : List w8),
       memLog γs (uint.nat q.index') DFrac.discard [e] ∗
-      (kvrJ γr.cluster (kvrKey γr.cluster id)).SV (memSnapMade q.index' e.Term' c bs) ∗
-      (kvrJ γr.cluster (kvrKey γr.cluster id)).DL (uint.nat q.index') ∗
+      (kvrJ γr.cluster K).SV (memSnapMade q.index' e.Term' c bs) ∗
+      (kvrJ γr.cluster K).DL (uint.nat q.index') ∗
       ownCSM q.cs' DFrac.discard c ∗ q.data' ↦* bs) ∗
     (⌜q.compact' = W64 0⌝ ∨ ∃ (c : Nat) (D : List LogEntry),
       memCompacted γs c ∗ frozenTo γs c D ∗ ⌜uint.nat q.compact' ≤ D.length⌝ ∗
-      nodeAppliedLb γr.cluster (kvrKey γr.cluster id) (uint.nat q.compact')))
+      nodeAppliedLb γr.cluster K (uint.nat q.compact')))
 
 /-- **Replica `id` at `r`, running** (persistent; see the file header). -/
 def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames) :
@@ -189,12 +195,12 @@ def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ 
       iprop(True) iprop(False) ∗
     "#HtdH" ∷ isHandoff (V := Unit) ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
     "#Hsnc" ∷ r.[RReplica, go!"snapc"] ↦□ ρ.snc ∗
-    "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γr id ρ.γs) ∗
+    "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γr ρ.key ρ.γs) ∗
     "#Hsdc" ∷ r.[RReplica, go!"snapDone"] ↦□ ρ.sdc ∗
     "#HsdH" ∷ isHandoff (V := Unit) ρ.sd ρ.sdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
     "#HsnLb" ∷ memSnapLb ρ.γs 0 ∗
     "#HstRec" ∷ kvrStorRec st ρ.ms ρ.γs ∗
-    "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kvrJ γr.cluster (kvrKey γr.cluster id)))
+    "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kvrJ γr.cluster ρ.key))
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
@@ -220,7 +226,8 @@ def repStop (γr : RNames) (vs : List w64) (r : Loc) : IProp GF :=
 /-- **What `run` starts with** (see the file header). -/
 def runStart (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ : RepNames) : IProp GF :=
   iprop(∃ (csp mA : Loc) (hs : HardStateM),
-    nodeDriver n γr.cluster kvrRaftN (NodeDriverState.init (kvrStorIface st) (kvrKey γr.cluster id)) ∗
+    nodeDriver n γr.cluster kvrRaftN (NodeDriverState.init (kvrStorIface st) ρ.key) ∗
+    raftState γr.cluster id RaftState.init ∗
     nodeRunning n γr.cluster kvrRaftN 1 ∗
     nodeConfig n γr.cluster kvrRaftN ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
     repOwn γr r [] (W64 0) csp (Membership.simple (GMap.listToSet vs)) mA ∅ ∗

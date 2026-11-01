@@ -35,19 +35,21 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
-  ∀ (γr : RKVNames) (id : w64) (n st : Loc) (send : GoFunc),
+  ∀ (γr : RKVNames) (id : w64) (n st : Loc) (send : GoFunc) (K : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ rkvInv γr ∗
       -- node `id` of the store's cluster, its driver token idle at its start on the store's
       -- storage, its view of its configuration at the voters' membership, nothing applied
       isNode n γr.cluster kvRaftN id ∗
-      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) (kvKey γr.cluster id)) ∗
+      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
+      -- (2026-11-01, durability layer 4) its durable state, at its start
+      raftState γr.cluster id RaftState.init ∗
       nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
       -- (2026-10-30) the node runs: the store never stops it
       nodeRunning n γr.cluster kvRaftN 1 ∗
       kvCluster γr ∗
       (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗ id ↪[γr.seq] (W64 0) ∗
       -- what `run` holds of the storage (`runStor`, persistent)
-      runStor γr id st ∗
+      runStor γr K st ∗
       sendSpec send γr.cluster }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.New))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))

@@ -71,7 +71,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specFull (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ kv RC RC' sa hok haw hci hrel
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nk γp w TM ρ kv RC RC' sa hok haw hci hrel
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, Hcok, HRC, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hapl, Hai, Hat,
     Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   ihave #Hsa' := Hsa
@@ -121,7 +121,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     -- (E3p) `snapshot` takes the row's part shared by both auth modes
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     first
-      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nid (W64 0) kv RC RC' ua
+      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nk (W64 0) kv RC RC' ua
             hok hci hrel $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV HRC Hcok]
           as ⟨%st', HSS, -, HRC, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
          · iframe #
@@ -133,7 +133,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
          simp only [↓reduceIte] at *
          ihave HRC : iprop(RC ∨ RC') $$ [HRC]
          · iright; iexact HRC)
-      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nid (W64 0) kv RC RC' ua
+      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nk (W64 0) kv RC RC' ua
             hok hci hrel $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hcok]
           as ⟨%st', HSS, -, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
          · iframe #
@@ -151,7 +151,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofFull
     have hcI : 1 ≤ compactIdx ai scu ∧ compactIdx ai scu ≤ uint.nat ai := by
       unfold compactIdx; split <;> constructor <;> word
     ihave #Hfr := srvFrozen_get γs (uint.nat ai) (compactIdx ai scu) hcI.1 hcI.2 $$ [$Hfa $Hfb]
-    wp_apply hC s ai ms γs γr.raft.raft nid scu lg Hai1 $$ [Hlr] as Hlr
+    wp_apply hC s ai ms γs γr.raft.raft nk scu lg Hai1 $$ [Hlr] as Hlr
     · iframe #; iframe Hlr; ipureintro; exact Hlgn
     (try wp_auto)
     ihave HKV := HKVk $$ HKV

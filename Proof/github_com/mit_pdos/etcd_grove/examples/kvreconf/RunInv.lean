@@ -6,12 +6,17 @@ Lean-first (no Rocq counterpart).
 At the top of the loop, for the delivered log `D` (`kvreconf-gap-design.md` §2.5):
 - the node's driver at `D`, handling no `Ready`, and the loop's whole `nodeRunning` (so the stopped
   answers of `Advance` and `ApplyConfChange` are refuted, `nodeRunning_stopped`);
+- (2026-11-01, durability layer 4) the node's durable state `S` (`raftState`), the driver's: kvreconf
+  persists nothing, so each `Ready`'s *enter* (`readyEnter`) is applied at once, from this
+  `raftState` and the loop's `nodeRunning`; the driver keyed by the storage's key `ρ.key`;
 - `runDone`'s producer token;
 - the replicated state at `D` (`repOwn`) and the node's view (`appNode`);
 - the storage's hard state (`memStorMeta`);
 - a known compaction point `c ≤ snapIndex` (`snapIndex`: the latest snapshot asked for or installed)
   with `D` frozen above it (`frozenTo`);
-- the node's applied index (`nodeAppliedLb`, `Advance`'s, what `Compact` needs);
+- the node's applied index (`nodeAppliedLb`, `Advance`'s, what `Compact` needs) and committed index
+  (`nodeCommitLb`, the driver's `nodeDriver_nodeCommitLb`: what a snapshot request carries to the
+  snapshotter, which holds no driver; 2026-11-01, durability layer 4);
 - the pending read states (`rsOk` of each).
 -/
 module
@@ -45,11 +50,11 @@ attribute [local instance] kvrStorageModel
 def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc) : IProp GF :=
   iprop(∃ (D : List LogEntry) (hd hs : HardStateM) (csp mA : Loc) (m : Membership)
       (A : GMap (List w8) (List w8)) (snapIndex : w64) (c : Nat)
-      (pv : GoSlice) (ps : List ReadState),
+      (pv : GoSlice) (ps : List ReadState) (S : RaftState) (role : StateType),
     "Hdrv" ∷ nodeDriver n γr.cluster kvrRaftN
       { storage := kvrStorIface st, delivered := D, hardState := hd, handling := none,
-        key := kvrKey γr.cluster id, durable := (kvrDur γr.cluster id).1,
-        role := (kvrDur γr.cluster id).2 } ∗
+        key := ρ.key, durable := S, role := role } ∗
+    "Hraft" ∷ raftState γr.cluster id S ∗
     "Hrun" ∷ nodeRunning n γr.cluster kvrRaftN 1 ∗
     "Hprod" ∷ handoffProducer ρ.rd false ∗
     "Hown" ∷ repOwn γr r D (W64 D.length) csp m mA A ∗
@@ -59,7 +64,8 @@ def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc
     "#Hcp" ∷ memCompacted ρ.γs c ∗
     "#Hfz" ∷ frozenTo ρ.γs c D ∗
     "%Hsi" ∷ ⌜c ≤ uint.nat snapIndex ∧ c ≤ D.length⌝ ∗
-    "#Hal" ∷ nodeAppliedLb γr.cluster (kvrKey γr.cluster id) D.length ∗
+    "#Hal" ∷ nodeAppliedLb γr.cluster ρ.key D.length ∗
+    "#Hcl" ∷ nodeCommitLb γr.cluster ρ.key D.length ∗
     "pending" ∷ pp ↦ pv ∗
     "Hpv" ∷ pv ↦* ps ∗
     "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗

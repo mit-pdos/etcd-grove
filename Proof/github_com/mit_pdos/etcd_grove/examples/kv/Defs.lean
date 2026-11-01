@@ -442,17 +442,19 @@ def runOwn (γr : RKVNames) (r : Loc) (ap : List LogEntry) : IProp GF :=
 
 /-- **What the applier holds of its storage `st`** (persistent; 2026-10-30, stage F: until then
 the storage's snapshot token at the application's view, its certificate registry and cap):
-the storage's record, its `MemoryStorage`'s invariant at node `id`'s justifications (`kvJ`: what
+the storage's record, its `MemoryStorage`'s invariant at the justifications of the storage's key
+`K` (`kvJ`, the key raft named the storage by at the attach, the node's driver's; 2026-11-01,
+durability layer 4: until then node `id`'s; what
 `ApplySnapshot`, `CreateSnapshot` and `Compact` take), the stored snapshot open for writes
 (`memSnapLb γs 0`, `memSnapNone_open`; the applier is the storage's only writer, so it needs no
 token), and the cluster's voters (`Storage.voters`), the configuration of every snapshot it takes. -/
-def runStor (γr : RKVNames) (id : w64) (st : Loc) : IProp GF :=
+def runStor (γr : RKVNames) (K : GName) (st : Loc) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames) (vsl : GoSlice),
-    kvStorRec st ms γs ∗ memStorInvP ms γs (kvJ γr.cluster (kvKey γr.cluster id)) ∗ memSnapLb γs 0 ∗
+    kvStorRec st ms γs ∗ memStorInvP ms γs (kvJ γr.cluster K) ∗ memSnapLb γs 0 ∗
     st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ kvVoters)
 
-instance runStor_persistent (γr : RKVNames) (id : w64) (st : Loc) :
-    Persistent (runStor (GF := GF) γr id st) := by
+instance runStor_persistent (γr : RKVNames) (K : GName) (st : Loc) :
+    Persistent (runStor (GF := GF) γr K st) := by
   unfold runStor; infer_instance
 
 /-- **The applier's view of its node** (kvreconf's, 2026-10-30), the committed log delivered `l`
