@@ -71,6 +71,36 @@ methods but `Size` (`Name`, `Mode`, `ModTime`, `IsDir`, `Sys`) are not translate
 @[reducible] def fileStat.underlying : go.GoType :=
   go.GoType.StructType [go.field_decl.FieldDecl go!"size" go.int64]
 
+/-- The struct-field facts goose emits for every translated struct (as `File.TypeAssumptions`'s
+`get_file`/`set_file` in `Code.os`), stated by hand for `file`: goose cannot see the trusted
+layout `file.underlying`, so it emits none. Getting a field of a `file` value gives the field;
+setting it gives the value with that field replaced. Specs that need them take them as instance
+hypotheses, as they take a package's generated `Assumptions`. Part of the trust base. -/
+class file.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  get_fd : ∀ (x : file), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet file.underlying go!"fd") #x (Val #(x.fd'))
+  set_fd : ∀ (x : file) (y : w64), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet file.underlying go!"fd") (PairV #x #y) (Val #(({ x with fd' := y } : file)))
+  get_name : ∀ (x : file), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet file.underlying go!"name") #x (Val #(x.name'))
+  set_name : ∀ (x : file) (y : GoString), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet file.underlying go!"name") (PairV #x #y)
+    (Val #(({ x with name' := y } : file)))
+
+/-- The struct-field facts goose emits for every translated struct, stated by hand for
+`fileStat`, whose layout `fileStat.underlying` is trusted (as `file.FieldAssumptions`). Part of
+the trust base. -/
+class fileStat.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  get_size : ∀ (x : fileStat), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet fileStat.underlying go!"size") #x (Val #(x.size'))
+  set_size : ∀ (x : fileStat) (y : w64), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet fileStat.underlying go!"size") (PairV #x #y)
+    (Val #(({ x with size' := y } : fileStat)))
+
+attribute [instance] file.FieldAssumptions.get_fd file.FieldAssumptions.set_fd
+  file.FieldAssumptions.get_name file.FieldAssumptions.set_name
+  fileStat.FieldAssumptions.get_size fileStat.FieldAssumptions.set_size
+
 /-! The types as goose names them (their `.ty` is in `Code.os`, which imports this file), and
 helpers of the models (not Go functions). -/
 
