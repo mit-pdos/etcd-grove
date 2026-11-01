@@ -28,6 +28,10 @@ def cellFrac (b : Bool) : DFrac := DFrac.own (if b then 1 else (1 : Qp).half)
 def cellsRes (cv : GMap Loc (Option w8 × Bool)) : IProp GF :=
   [∗map] l ↦ x ∈ cv, heapPointsto l (cellFrac x.2) (toCellVal x.1)
 
+instance cellsRes_timeless (cv : GMap Loc (Option w8 × Bool)) :
+    Timeless (cellsRes (GF := GF) cv) := by
+  unfold cellsRes; infer_instance
+
 /-- The client's halves of the cells of `C`. -/
 def halves (C : GMap Loc val) : IProp GF :=
   [∗map] l ↦ v ∈ C, heapPointsto l (DFrac.own (1 : Qp).half) v

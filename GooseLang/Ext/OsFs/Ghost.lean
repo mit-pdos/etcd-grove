@@ -296,6 +296,84 @@ structure OsGS (GF : BundledGFunctors) where
   γt : GName
   γv : GName
 
+/-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
+
+section wrappers
+variable {GF : BundledGFunctors} (hL : OsGS GF)
+variable {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
+
+/-- The authoritative map `m` of the ghost map `γ` of `hL`. -/
+def gAuth (γ : GName) (m : GMap K V) : IProp GF :=
+  letI := hL.osAllG; ghostMapAuth γ 1 m
+
+/-- The entry `k ↦ v` of the ghost map `γ` of `hL`. -/
+def gElem (γ : GName) (k : K) (dq : DFrac) (v : V) : IProp GF :=
+  letI := hL.osAllG; ghostMapElem γ k dq v
+
+/-- The ghost variable of the cells' view. -/
+def gVar (q : Qp) (a : GMap Loc (Option w8 × Bool) × Nat) : IProp GF :=
+  letI := hL.osAllG; ghostVar hL.γv q a
+
+instance gElem_timeless (γ : GName) (k : K) (dq : DFrac) (v : V) :
+    Timeless (gElem (K := K) (V := V) hL γ k dq v) := by
+  unfold gElem; letI := hL.osAllG; infer_instance
+
+instance gAuth_timeless (γ : GName) (m : GMap K V) : Timeless (gAuth hL γ m) := by
+  unfold gAuth; letI := hL.osAllG; infer_instance
+
+instance gVar_timeless (q : Qp) (a : GMap Loc (Option w8 × Bool) × Nat) :
+    Timeless (gVar hL q a) := by
+  unfold gVar; letI := hL.osAllG; infer_instance
+
+theorem gAuth_lookup (γ : GName) (m : GMap K V) (k : K) (dq : DFrac) (v : V) :
+    ⊢ gAuth hL γ m -∗ gElem hL γ k dq v -∗ ⌜m !! k = some v⌝ := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_lookup
+
+theorem gAuth_update (γ : GName) (m : GMap K V) (k : K) (v w : V) :
+    ⊢ gAuth hL γ m -∗ gElem hL γ k (DFrac.own 1) v ==∗
+      gAuth hL γ (<[k := w]> m) ∗ gElem hL γ k (DFrac.own 1) w := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_update w
+
+theorem gAuth_insert (γ : GName) (m : GMap K V) (k : K) (v : V) (h : m !! k = none) :
+    ⊢ gAuth hL γ m ==∗ gAuth hL γ (<[k := v]> m) ∗ gElem hL γ k (DFrac.own 1) v := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_insert k v h
+
+theorem gAuth_delete (γ : GName) (m : GMap K V) (k : K) (v : V) :
+    ⊢ gAuth hL γ m -∗ gElem hL γ k (DFrac.own 1) v ==∗ gAuth hL γ (GMap.delete k m) := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_delete
+
+theorem gElem_valid_2 (γ : GName) (k : K) (dq1 dq2 : DFrac) (v1 v2 : V) :
+    ⊢ gElem hL γ k dq1 v1 -∗ gElem hL γ k dq2 v2 -∗ ⌜✓ (dq1 • dq2) ∧ v1 = v2⌝ := by
+  unfold gElem; letI := hL.osAllG
+  exact ghostMapElem_valid_2 k γ dq1 dq2 v1 v2
+
+theorem gElem_valid (γ : GName) (k : K) (dq : DFrac) (v : V) :
+    ⊢ gElem hL γ k dq v -∗ ⌜✓ dq⌝ := by
+  unfold gElem; letI := hL.osAllG
+  exact ghostMapElem_valid k γ dq v
+
+theorem gElem_split (γ : GName) (k : K) (q1 q2 : Qp) (v : V) :
+    gElem hL γ k (DFrac.own (q1 + q2)) v ⊣⊢ gElem hL γ k (DFrac.own q1) v ∗ gElem hL γ k (DFrac.own q2) v := by
+  unfold gElem; letI := hL.osAllG
+  exact (ghostMapElem_fractional k γ v).fractional q1 q2
+
+theorem gVar_agree (q1 q2 : Qp) (a1 a2 : GMap Loc (Option w8 × Bool) × Nat) :
+    ⊢ gVar hL q1 a1 -∗ gVar hL q2 a2 -∗ ⌜a1 = a2⌝ := by
+  unfold gVar; letI := hL.osAllG
+  exact ghostVar_agree _ _ _ _ _
+
+theorem gVar_update (a1 a2 b : GMap Loc (Option w8 × Bool) × Nat) :
+    ⊢ gVar hL (1 : Qp).half a1 -∗ gVar hL (1 : Qp).half a2 ==∗
+      gVar hL (1 : Qp).half b ∗ gVar hL (1 : Qp).half b := by
+  unfold gVar; letI := hL.osAllG
+  exact ghostVar_update_halves _ _ _ _
+
+end wrappers
+
 /-- The ghost `OsMeta` of a file as on disk. -/
 def initMeta (f : OsFile) : OsMeta :=
   ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅⟩
@@ -324,27 +402,29 @@ def metaMap (st : OsState) : GMap GoString (Option OsMeta) :=
 section ghost
 variable {GF : BundledGFunctors}
 
+/-- What the ext holds for each in-flight change: the fraction of the file's `OsMeta` and the
+bytes its first step took. -/
+def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap w64 TokInfo) : IProp GF :=
+  iprop([∗map] _t ↦ ti ∈ Γt,
+    gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+    [∗list] k ↦ b ∈ ti.saved, gElem hL hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1)
+      (b, false))
+
 /-- The interpretation of the state `st`. -/
 def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
-  letI := hL.osAllG
   iprop(∃ (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString (Option OsMeta))
       (Γf : GMap w64 OsFd) (Γt : GMap w64 TokInfo),
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
-    ghostMapAuth hL.γb 1 Γb ∗ ghostMapAuth hL.γm 1 Γm ∗ ghostMapAuth hL.γf 1 Γf ∗
-    ghostMapAuth hL.γt 1 Γt ∗
-    ([∗map] _t ↦ ti ∈ Γt,
-      ghostMapElem hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
-      [∗list] k ↦ b ∈ ti.saved, ghostMapElem hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1)
-        (b, false)) ∗
-    ghostVar hL.γv (1 : Qp).half (cellView st, GMap.size st.inflight))
+    gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ gAuth hL hL.γf Γf ∗ gAuth hL hL.γt Γt ∗
+    tokRes hL st Γt ∗
+    gVar hL (1 : Qp).half (cellView st, GMap.size st.inflight))
 
 /-- The start resources for a state with no fd, change or mapping: every file and byte, whole,
 and the half of the cells' view that the invariant takes (`osInv_alloc`). -/
 def osStart (hL : OsGS GF) (st : OsState) : IProp GF :=
-  letI := hL.osAllG
-  iprop(([∗map] k ↦ x ∈ bytesMap st, ghostMapElem hL.γb k (DFrac.own 1) x) ∗
-    ([∗map] p ↦ mo ∈ metaMap st, ghostMapElem hL.γm p (DFrac.own 1) mo) ∗
-    ghostVar hL.γv (1 : Qp).half ((∅ : GMap Loc (Option w8 × Bool)), 0))
+  iprop(([∗map] k ↦ x ∈ bytesMap st, gElem hL hL.γb k (DFrac.own 1) x) ∗
+    ([∗map] p ↦ mo ∈ metaMap st, gElem hL hL.γm p (DFrac.own 1) mo) ∗
+    gVar hL (1 : Qp).half ((∅ : GMap Loc (Option w8 × Bool)), 0))
 
 end ghost
 
@@ -429,14 +509,14 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv⟩ : OsGS GF)
   isplitl [Hab Ham Haf Hat Hv1]
-  · unfold osCtx
+  · unfold osCtx tokRes gAuth gVar
     iexists (bytesMap st), (metaMap st), ∅, ∅
     rw [cellView_of_maps_empty h.2.2.1, h.2.1, GMap.map_size_empty]
     iframe Hab Ham Haf Hat Hv1
     isplitr
     · ipureintro; exact ⟨hwf, hcoh⟩
     · iapply BigSepM.bigSepM_empty.2; itrivial
-  · unfold osStart
+  · unfold osStart gElem gVar
     iframe
 
 /-- The ghost state of the Linux file extension. The program gets every file and byte of the
