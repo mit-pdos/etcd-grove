@@ -229,7 +229,7 @@ theorem srvMem_bootStorage
     (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (id : w64) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
-    memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs ∗
+    memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ⊢
       bootStorage γr.cl id (memStorIface ms) (HardStateM.mk (W64 0) (W64 0) (W64 0))
@@ -243,7 +243,7 @@ theorem srvMem_bootStorage
   · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
   unfold bootStorage
   iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
-  iexists iprop(memStorFresh ms γs ∗
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗
     memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1)
   isplitr
   · ipureintro; rfl
@@ -331,7 +331,7 @@ abbrev NodeStartSpec : Prop :=
         -- `InitialState` allocates the storage's invariant at the node's justifications
         "#Hreg" ∷ memStorReg bv.storage' γs ∗
         "#Hlock" ∷ memStorLock bv.storage' γs ∗
-        "Hfresh" ∷ memStorFresh bv.storage' γs ∗
+        "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
         "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
         "#Hlog0" ∷ memLog γs 0 DFrac.discard [zero_val EntryM] ∗ "Hend" ∷ memEnd γs 1 ∗
         -- the peers, their contexts

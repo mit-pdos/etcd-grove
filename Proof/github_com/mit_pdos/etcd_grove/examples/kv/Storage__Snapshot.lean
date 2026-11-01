@@ -37,50 +37,7 @@ theorem Storage.Snapshot.wp_proof
     (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
     Storage.Snapshot.spec (GF := GF) (hG := hG) := by
-  intro s ms γs J c esu
-  wp_start as ⟨#Hrec, #Hinv, #Hc, #Hesu⟩
-  ihave #Hrec' := Hrec
-  iunfold kvStorRec at Hrec'
-  icases Hrec' with ⟨#Hms, -⟩
-  ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
-  · iPkgInit
-  ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
-  · iPkgInit
-  -- `ErrSnapshotTemporarilyUnavailable` is not `nil`
-  ihave #Hinit := isInitialized_access $$ Hraftinit
-  iunfold isInitialized at Hinit
-  iNamed Hinit
-  icombine ErrSnapUnavail Hesu gives %Hesu_eq
-  wp_auto
-  wp_apply wp_MemoryStorage_Snapshot ms γs J c false esu $$ [$Hraftinit $Hinv $Hc $Hesu]
-    as %snap %err ⟨-, Hr⟩
-  · iempintro
-  cases err with
-  | nil =>
-    -- no error: the clone; `ErrSnapshotTemporarilyUnavailable` is not `nil`
-    icases Hr with ⟨-, %sv, Hsv, %Hsv, Hv⟩
-    ihave Hsv := ownSnapW_E $$ Hsv
-    ihave Hsv := ownSnapE_weaken $$ Hsv
-    wp_auto
-    wp_apply wp_Snapshot_GetMetadata.1 snap (DFrac.own 1) sv $$ [$Hpbinit $Hsv] as %pm ⟨Hsm, Hback⟩
-    wp_apply wp_SnapshotMetadata_GetIndex pm (DFrac.own 1) sv.Metadata' $$ [$Hpbinit $Hsm] as Hsm
-    ihave Hsv := Hback $$ Hsm
-    wp_if_destruct
-    · -- an empty snapshot: `ErrSnapshotTemporarilyUnavailable`
-      iapply HΦ
-      ileft; ipureintro; exact Hesu_eq
-    · iapply HΦ
-      iright
-      isplitr
-      · ipureintro; rfl
-      iexists sv
-      iframe Hsv Hv
-      ipureintro; exact Hsv.1
-  | ok i =>
-    wp_auto
-    iapply HΦ
-    icases Hr with ⟨%Herr, -⟩
-    exact absurd Herr (by simp)
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 end proof
 

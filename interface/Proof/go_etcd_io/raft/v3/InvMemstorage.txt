@@ -14,7 +14,8 @@ def memStorN : Namespace :=
   nroot.@"raft_memstor"
 
 theorem memStorFresh_compacted [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (c : Nat)
-    : memStorFresh ms γs ∗ memCompacted γs c ⊢ ⌜c = 0⌝ ∗ memStorFresh ms γs
+    (sv : SnapshotM) (c' : Nat) : memStorFresh ms γs c sv ∗ memCompacted γs c' ⊢ ⌜c' ≤ c⌝ ∗
+    memStorFresh ms γs c sv
 
 theorem MemJust.B_timeless'.{u_1} (J : MemJust GF) (k : Nat) : Timeless (J.B k)
 
@@ -53,6 +54,12 @@ theorem memLogL_frozen_ne (γ : GName) (k : Nat) (es : List EntryM) (i : Nat) (e
 
 theorem memSnapLb_mono [package_sem : Assumptions] (γs : MemStorNames) (i i' : Nat) (h : i' ≤ i) :
     memSnapLb γs i ⊢ memSnapLb γs i'
+
+def memStorAt (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (P :
+    IProp GF) : IProp GF :=
+  match o with
+  | some (c, sv) => iprop(memStorLock ms γs ∗ memStorFresh ms γs c sv)
+  | none => iprop(memStorInvP ms γs J ∗ P)
 
 theorem memSnapNone_open [package_sem : Assumptions] (γs : MemStorNames) : ⊢ memSnapNone γs ==∗
     memSnapLb γs 0
@@ -229,7 +236,9 @@ def memCsArg (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) : IProp GF :=
   | some c => ownCSM cs dq c
 
 theorem memStorInvP_alloc [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust
-    GF) (E : CoPset) : ⊢ memStorLock ms γs -∗ memStorFresh ms γs -∗ J.B 0 ={E}=∗ memStorInvP ms γs J
+    GF) (E : CoPset) (c : Nat) (sv : SnapshotM) : ⊢ memStorLock ms γs -∗ memStorFresh ms γs c sv -∗
+    (□ ∀ k, ⌜k ≤ c⌝ -∗ J.B k) -∗ ⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat
+    sv.Metadata'.Index') ={E}=∗ memStorInvP ms γs J
 
 theorem memLogL.eq_def (γ : GName) (k : Nat) (dq : DFrac) (x✝ : List EntryM) : memLogL γ k dq x✝ =
     match x✝ with | [] => iprop(emp) | e :: es => iprop(k ↪[γ]{dq} e ∗ memLogL γ (k + 1) dq es)
@@ -267,13 +276,13 @@ theorem memSnap_take [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames)
     : CoPset) (hE : ↑memStorN ⊆ E) : ⊢ memStorInvP ms γs J -∗ memKey γs.lk ={E}=∗ ▷ memSnapHome ms
     γs J
 
-def memStorFresh (ms : Loc) (γs : MemStorNames) : IProp GF :=
-  iprop(monoListAuthOwn γs.jc 1 [0] ∗
+def memStorFresh (ms : Loc) (γs : MemStorNames) (c : Nat) (sv : SnapshotM) : IProp GF :=
+  iprop((∃ L, monoListAuthOwn γs.jc 1 L ∗ ⌜0 ∈ L ∧ ∀ (k : Nat), k ∈ L → k ≤ c⌝) ∗
       memKey γs.hk ∗
         ∃ sp,
           typedPointsto (structFieldRef MemoryStorage go!"snapshot" ms) sp
               (DFrac.own 1) ∗
-            ownSnapM sp (DFrac.own 1) memSnapEmpty ∗ ghostVar γs.sx (Qp.half 1) memSnapEmpty)
+            ownSnapM sp (DFrac.own 1) sv ∗ ghostVar γs.sx (Qp.half 1) sv)
 
 theorem memEnd_excl [package_sem : Assumptions] (γs : MemStorNames) (e e' : Nat) : memEnd γs e ∗
     memEnd γs e' ⊢ False

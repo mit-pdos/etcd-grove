@@ -562,6 +562,16 @@ repository, `/home/ubuntu/spec-scratch/raft-durability/candidate.md`: candidate 
 text. Candidates 4-10 and the `spec-reviewer` agent's nine reviews (`review-1.md` to `review-9.md`)
 are beside it.
 
+**Stage I, layer 2 (I-5 of `notes/raft-durability-proof-plan.md`, 2026-10-31): the detached
+`MemoryStorage`, statements only.** `memStorFresh ms γs c sv` (detached at a compaction point and a
+stored snapshot), `memStorAt` (a call's mode: detached, or attached at `J` with the call's bounds),
+the generalized attach `memStorInvP_alloc`, `memStorFresh_compacted` at `c' ≤ c`, and the mode `o`
+on the `Snapshot`/`ApplySnapshot`/`Compact`/`CreateSnapshot` specs (`InitialState`: detached at any
+`c sv`; `NewMemoryStorage`: at `0 memSnapEmpty`). 22 proofs are `sorry` until stage II (the six
+`MemoryStorage` proofs, the two lemmas, `memStorage_isStorageP`, `memStorInv_alloc`, and twelve
+client wrappers and boots in kvreconf, kv and etcd's server); the list is in the scratch directory,
+`stageI-2-worklist.md`. The node-API predicates are not re-keyed yet (I-4).
+
 The user set its shape:
 - the Ready hands the client an update it applies when it enters the batch's state (at its
   durable write, or at once);
