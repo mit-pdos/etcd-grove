@@ -1398,4 +1398,135 @@ theorem wp_PWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) (q
 
 end specs2
 
+/-! ## Repeated writes (a retried `pwrite`) -/
+
+theorem pwSize_pwSize (sz off j k : Nat) :
+    pwSize (pwSize sz off j) off k = pwSize sz off (max j k) := by
+  unfold pwSize
+  by_cases hj : j = 0 <;> by_cases hk : k = 0 <;> simp [hj, hk] <;> omega
+
+theorem pwBytes_length (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) :
+    (pwBytes sz off data k xs).length = min (off + data.length) (pwSize sz off k) - min off sz := by
+  simp [pwBytes]
+
+theorem pwBytes_getElem (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) (i : Nat)
+    (hi : i < (pwBytes sz off data k xs).length) :
+    ((pwBytes sz off data k xs)[i]).1 = pwByte off data k (min off sz) xs (min off sz + i) := by
+  simp [pwBytes]
+
+/-- Before any write, the bytes of the range are the client's. -/
+theorem pwBytes_zero (sz off : Nat) (data : List w8) (xs : List (w8 × Bool))
+    (hlen : xs.length = min (off + data.length) sz - min off sz) :
+    (pwBytes sz off data 0 xs).map Prod.fst = xs.map Prod.fst := by
+  apply List.ext_getElem
+  · simp [pwBytes, pwSize, hlen]
+  · intro i h1 h2
+    simp only [List.getElem_map]
+    rw [pwBytes_getElem _ _ _ _ _ _ (by simpa using h1)]
+    simp only [List.length_map] at h2
+    unfold pwByte
+    rw [if_neg (by omega), if_neg (by omega), List.getD_eq_getElem?_getD,
+      show min off sz + i - min off sz = i by omega, List.getElem?_eq_getElem h2]; rfl
+
+/-- A write of `k` bytes over the file a write of `j` bytes left: the file a write of `max j k`
+bytes leaves. The bytes of the range: those before the second write's range (the first's zero
+gap), then what the second wrote over the first. -/
+theorem pwBytes_retry (sz off : Nat) (data : List w8) (j k : Nat) (xs ys : List (w8 × Bool))
+    (hj : j ≤ data.length) (hk : k ≤ data.length)
+    (hlen : xs.length = min (off + data.length) sz - min off sz)
+    (hys : ys.map Prod.fst = (pwBytes sz off data j xs).map Prod.fst) :
+    (ys.take (min off (pwSize sz off j) - min off sz) ++
+      pwBytes (pwSize sz off j) off data k (ys.drop (min off (pwSize sz off j) - min off sz))).map
+        Prod.fst = (pwBytes sz off data (max j k) xs).map Prod.fst := by
+  have hyl : ys.length = min (off + data.length) (pwSize sz off j) - min off sz := by
+    have := congrArg List.length hys; simp only [List.length_map, pwBytes_length] at this; exact this
+  have hsz : sz ≤ pwSize sz off j := by unfold pwSize; split <;> omega
+  have hval : ∀ i (hi : i < ys.length), ys[i].1 = pwByte off data j (min off sz) xs (min off sz + i) := by
+    intro i hi
+    have := congrArg (·[i]?) hys
+    simp only [List.getElem?_map, List.getElem?_eq_getElem hi,
+      List.getElem?_eq_getElem (show i < (pwBytes sz off data j xs).length by
+        rw [pwBytes_length]; omega), Option.map_some, Option.some.injEq] at this
+    rw [this, pwBytes_getElem]
+  apply List.ext_getElem
+  · simp only [List.length_map, List.length_append, List.length_take, pwBytes_length, hyl,
+      pwSize_pwSize]
+    unfold pwSize; split <;> split <;> omega
+  · intro i h1 h2
+    simp only [List.getElem_map]
+    rw [pwBytes_getElem _ _ _ _ _ _ (by simpa using h2)]
+    simp only [List.length_map, List.length_append, List.length_take] at h1
+    rw [List.getElem_append]
+    split
+    · rename_i hlt
+      simp only [List.length_take] at hlt
+      rw [List.getElem_take, hval i (by omega)]
+      unfold pwByte
+      rw [if_pos (by unfold pwSize at *; split at hlt <;> omega),
+        if_pos (by unfold pwSize at *; split at hlt <;> omega)]
+    · rename_i hlt
+      simp only [List.length_take, Nat.not_lt] at hlt
+      have hlo : min off sz ≤ min off (pwSize sz off j) := by omega
+      have hmin : min (min off (pwSize sz off j) - min off sz) ys.length =
+          min off (pwSize sz off j) - min off sz := by rw [hyl]; omega
+      rw [hmin] at hlt h1
+      simp only [List.length_take, hmin]
+      rw [pwBytes_getElem _ _ _ _ _ _ (by omega)]
+      rw [show min off (pwSize sz off j) + (i - (min off (pwSize sz off j) - min off sz)) =
+        min off sz + i by omega]
+      unfold pwByte
+      by_cases c1 : min off sz + i < off
+      · rw [if_pos c1, if_pos c1]
+      · rw [if_neg c1, if_neg c1]
+        by_cases c2 : min off sz + i < off + k
+        · rw [if_pos c2, if_pos (by omega)]
+        · rw [if_neg c2]
+          rw [List.getD_eq_getElem?_getD, List.getElem?_drop,
+            show min off (pwSize sz off j) - min off sz + (min off sz + i - min off (pwSize sz off j))
+              = i by omega]
+          have hi : i < ys.length := by
+            simp only [List.length_map, pwBytes_length] at h2
+            rw [hyl]; unfold pwSize at h2 ⊢; split at h2 <;> split <;> omega
+          rw [List.getElem?_eq_getElem hi]
+          simp only [Option.getD_some]
+          rw [hval i hi]
+          unfold pwByte
+          rw [if_neg c1]
+          by_cases c3 : min off sz + i < off + j
+          · rw [if_pos c3, if_pos (by omega)]
+          · rw [if_neg c3, if_neg (by omega)]
+
+section specs3
+variable [GooseExts] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : NaHeapGS Loc val GF]
+
+theorem cellsR_append (b : Loc) (lo n1 n2 : Nat) (vf : Nat → val) :
+    cellsR (GF := GF) b lo (n1 + n2) vf ⊣⊢ cellsR b lo n1 vf ∗ cellsR b (lo + n1) n2 vf := by
+  unfold cellsR
+  rw [← List.range'_append_1]
+  exact BigSepL.bigSepL_append
+
+theorem cellsR_congr (b : Loc) (lo n : Nat) (vf vf' : Nat → val)
+    (h : ∀ i, lo ≤ i → i < lo + n → vf i = vf' i) :
+    cellsR (GF := GF) b lo n vf ⊣⊢ cellsR b lo n vf' := by
+  unfold cellsR
+  have hm : ∀ {k x}, (List.range' lo n)[k]? = some x → lo ≤ x ∧ x < lo + n :=
+    fun hk => List.mem_range'_1.1 (List.mem_of_getElem? hk)
+  constructor
+  · apply BigSepL.bigSepL_mono; intro k x hk; rw [h x (hm hk).1 (hm hk).2]
+  · apply BigSepL.bigSepL_mono; intro k x hk; rw [h x (hm hk).1 (hm hk).2]
+
+/-- The client's halves of the cells of one mapping over `[lo, hi)`, cut at its length. -/
+theorem cellsR_split (b : Loc) (len lo mid hi : Nat) (vf : Nat → val) (h1 : lo ≤ mid)
+    (h2 : mid ≤ hi) :
+    cellsR (GF := GF) b (min lo len) (min hi len - min lo len) vf ⊣⊢
+      cellsR b (min lo len) (min mid len - min lo len) vf ∗
+        cellsR b (min mid len) (min hi len - min mid len) vf := by
+  rw [show min hi len - min lo len = (min mid len - min lo len) + (min hi len - min mid len) by omega]
+  refine (cellsR_append _ _ _ _ _).trans ?_
+  rw [show min lo len + (min mid len - min lo len) = min mid len by omega]
+  exact .rfl
+
+end specs3
+
 end Perennial
