@@ -660,3 +660,81 @@ Open, in order:
    `1 - s` clean: both meta slots stay clean between commits, as every meta write is followed by a
    sync and no other write touches the metas; carry that in `rwR`), `Close`.
 6. `BootMinibolt`'s per-generation proof and `BootCrashSafety` (unchanged plan).
+
+### minibolt's crash proof, round 6 (2026-11-01, branch `osfs-mbcrash`)
+
+`origin/lean` not merged this round (Perennial pin still `2130bdb99`).
+
+Done (no `sorryAx`; `#print axioms DB.init.wp_proof_crash`: `propext`, `Classical.choice`,
+`Quot.sound`, plus goose's usual opaque `os.*` types):
+- **5a. `DB.init.specCrash`** (`Spec/.../bboltfs/DB__initCrash.lean`, proof
+  `DB.init.wp_proof_crash` in `Proof/.../bboltfs/DB__initCrash.lean`; `DB.init.spec` kept).
+  Pre: `csInv N p γ (CrashOkS (P1 p) p Good)`, `↑osN ⊆ ⊤ \ ↑N`, `csOwn p γ (some ⟨m, xs, 0, 0,
+  .idle⟩)`, `m.ok`, `m.maps = ∅`, `m.size ≤ 2^30`, `initIdle m xs`, `slotsClean xs` (new def).
+  Post: success `csOwn p γ (some ⟨initDoneMeta m xs, initFile xs, 0, 0, .idle⟩)` (`initDoneMeta`:
+  `DB.init.spec`'s `OsMeta`, as a def: `⟨{ m with … }, …⟩` does not parse inside `⟨…⟩`), failure
+  `∃ sz s', filesz ↦ sz ∗ csOwn p γ (some s')`. Takes `os.File.WriteAt.specCrashS`,
+  `syscall.Fdatasync.specCrashS`, `initPages.spec`, `os.File.Fd.spec`. Helpers there:
+  `narrow_full0` (a successful write at 0: size `max`, bytes data ++ old suffix), `synced_eq`,
+  `csSynced_nil`, `initBytes_page3`.
+- `CrashImg.lean`: `initW2_reach` (W2's reached states: `initMid` and `cacheOk`; used for the
+  failed-sync obligation), `initW2_obl` now uses it. **`CrashImg`'s structure `commitMeta` is
+  renamed `commitMetaSt`**: it clashed with `Writer.lean`'s `commitMeta` (any file importing both
+  failed).
+- **5b started: `Proof/.../bboltfs/DBCrash.lean`** (the DB's resources over the crash invariant;
+  see its header): `dbCrashN`, `dbOk p := CrashOkS (P1 p) p Good`, `writerFileC γc … mp fl hwm st
+  m bs` (`csOwn p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩)` in place of `osMeta 1`, the meta
+  half and the tail; while not failed: `(bs.map fst).take 8192 = mp`, **`commitClean m bs`** (so
+  both meta slots and the root page clean, `curInSlot`, `bootOk`, `4096 * curPgid ≤ m.lo` hold
+  between commits), and `writerFile`'s other facts), `metaRC` (`metaR` without `mx`/`mxc`/the meta
+  bytes; `cls` is `∃ c, ghostVar γ.cls ½ c`), `rwRC` (`rwR` with `writerFileC`), `isDBC γ γc db`
+  (`isDB` with `rwRC`/`metaRC`, `csInv dbCrashN p γc (dbOk p)`, and `∀ t vo, γ.vp t vo → bootOk t
+  vo`: `Good` needs `bootOk` of every committed root page, so commit's new `commitClean.boot` comes
+  from `γ.vp`). Lemmas: `commitClean_meta` (ignores maps/ok), **`writer_okS`** (the `Mmap`/`Munmap`
+  obligations: any mappings, from `commitClean`), **`init_commitClean`** (`commitClean
+  (initDoneMeta m xs) (initFile xs)`: after `init`, a commit may start). `mapR`, `mapInv`,
+  `pageIs`, `writerCells`, `writerExtra` are reused unchanged.
+
+Findings for the rest of 5b:
+- `os.File.ReadAt.specRacy` (Snapshot) needs only `osBytes`, no `osMeta`: Snapshot/Get need no
+  file change, only re-proofs against `isDBC`/`metaRC` (their proofs destructure `metaR`; `metaRC`
+  differs only by the missing meta bytes and `mx = mp`).
+- `readPageSize` needs no crash variant: `csOwn_idle` splits an idle `csOwn` into `osMeta ½` and
+  `thrBytes`, and `idle_thrBytes` (with `fa = fb = 0` at Open: `H = []`) gives `osBytes 0 ½ bs`;
+  call `DB.readPageSize.spec` with `dqm = dqb = ½` and fold back. Same for `File.Stat`.
+- `Mmap`/`Munmap` change only the mappings: `golang_org.x.sys.unix.Mmap.specCrashS`/`Munmap.specCrashS`
+  with `writer_okS`. `CrashOkS` does depend on the maps syntactically (`CrashSeenR` fixes `Γm`), so
+  the obligation needs `commitClean` (i.e. `fl = false`, which `DB.mmap.spec` already assumes).
+
+Open, in order:
+5b. (a) **`DB.munmap.specCrash` and `DB.mmap.specCrash`** (new files): copies of `DB__munmap.lean`
+   and `DB__mmap.lean` with `mappingResC`/`unmappedResC` (`csOwn p γc (some ⟨m, bs, fa, fb,
+   .idle⟩)` plus `⌜bs.length = m.size ∧ commitClean m bs⌝` in place of `osMeta 1 m`), `writerFileC`,
+   and the `*.specCrashS` of `Mmap`/`Munmap` with `writer_okS`. `mmap_prep`/`mmap_unmapped`
+   (`DB__mmap.lean`) have `osMeta` in their statements: crash copies needed.
+   (b) **`Open.specCrash`**: pre `csInv dbCrashN p γc (dbOk p) ∗ csOwn p γc s` with `s = none` or an
+   idle state all clean whose bytes are a `goodImg` (`csStart (some f)` with `Good (some f)`, as
+   `csInv_alloc`/`csInv_crash_keep` give), and `∀ t vo, vp t vo → bootOk t vo`; post `isDBC γ γc
+   db …` (as `Open.spec`'s) or failure `∃ s', csOwn p γc s'`. Steps: `os.OpenFile.specCrashS`
+   (`Ok (csOpen s)`: `csOpen none` is the empty file, `initIdle_okS`; an existing file is `s`),
+   flock, `Stat`/`readPageSize` via `csOwn_idle` (above), `DB.init.specCrash` on a short or
+   uninitialized file (`initIdle` from `goodImg`'s first two cases with every byte clean and
+   `m.dur` the whole file, as `initMeta f` sets it; `slotsClean` from all clean), then
+   `init_commitClean`; for a committed file `commitClean` from `goodImg`'s third case (needs
+   `curInSlot` in `fileOk`/`dbFresh`, or take `goodImg` directly in the crash spec); then
+   `cs_freeze` from `(0, 0)` to `(8192, 4096 * hwm)` (hsub vacuous), whose discarded bytes give
+   every `pageIs p r B` for `2 ≤ r < hwm` (split with `bytesG_append`, all clean), and
+   `DB.mmap.specCrash`.
+   (c) **`DB.commit.specCrash`** (copy of `DB__commit.lean`, 1139 lines; `writerSt`/`writerStF`
+   need crash copies over `writerFileC`): Truncate (`commitClean_trunc_okS` in flight,
+   `commitClean_okS` idle, both from `commitClean_meta` for `ftMeta`/`grown`), data `WriteAt` at
+   page `hwm` (`commitClean_write_okS`; misses the metas and root page: `hwm > curRoot`), Fdatasync
+   with `H = metas`, `F` = frozen, `T` = tail, `hd = false` (`csSynced false` keeps the clean
+   metas in `dur`: gives `commitMetaSt.dur` for slot `1 - s` with `durOk_of`), meta `WriteAt` at
+   `4096 * (1 - s)` (`commitMetaW_okS`/`commitMetaIdle_okS`, `cacheOk_wreach` from the slot clean
+   by `commitClean.metas`), Fdatasync, then `cs_freeze` to `(8192, 4096 * (hwm + 1))` for the new
+   page's `pageIs`, and the new `commitClean` (`boot` from `isDBC`'s `vpBoot` and `dbTx`).
+   (d) **`Close`** over `rwRC`/`metaRC` (Munmap crash, file close); its post hands back `csOwn`.
+   (e) `Get`/`Snapshot` re-proved against `isDBC` (mechanical).
+6. `BootMinibolt`'s per-generation proof and `BootCrashSafety` (unchanged plan; at boot every byte
+   is clean, `csStart`, which gives `slotsClean` and `Open.specCrash`'s premise).
