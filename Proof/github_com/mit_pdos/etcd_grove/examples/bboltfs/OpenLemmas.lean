@@ -91,6 +91,13 @@ theorem pages_of_bytes (p : GoString) (dq : DFrac) (F : List w8) :
     iapply BigSepL.bigSepL_cons.2
     iframe
 
+theorem osBytes_take_drop (p : GoString) (dq : DFrac) (xs : List (w8 × Bool)) (n : Nat)
+    (h : n ≤ xs.length) :
+    osBytes (GF := GF) p 0 dq xs ⊣⊢ osBytes (GF := GF) p 0 dq (xs.take n) ∗ osBytes (GF := GF) p n dq (xs.drop n) := by
+  conv => lhs; rw [← List.take_append_drop n xs]
+  refine (osBytes_app p 0 dq _ _).trans ?_
+  rw [List.length_take, Nat.min_eq_left h, Nat.zero_add]; exact .rfl
+
 /-- Committed pages, forgetting their contents. -/
 theorem pages_ex (p : GoString) (G : Nat → List w8) :
     ∀ k s, ([∗list] r ∈ List.range' s k, pageIs (GF := GF) p r (G r)) ⊢
@@ -162,6 +169,79 @@ def initAt (p : GoString) (m : OsMeta) : IProp GF :=
 a stored database. -/
 def openSt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) : IProp GF :=
   iprop((⌜t = 1 ∧ vo = none⌝ ∗ initAt (GF := GF) p m) ∨ dbStoredAt (GF := GF) p t vo m)
+
+theorem openSt_facts (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) :
+    openSt (GF := GF) p t vo m ⊢ openSt (GF := GF) p t vo m ∗
+      ⌜m.size ≤ 2 ^ 40 ∧ m.ok = true ∧ m.maps = ∅⌝ := by
+  unfold openSt initAt dbStoredAt
+  iintro (⟨%Ht, %xs, Hb, %H⟩ | ⟨%mp, %mxc, %tail, %B, H1, H2, H3, H4, %H⟩)
+  · isplitl
+    · ileft; iframe; ipureintro; exact ⟨Ht, H⟩
+    · ipureintro; exact ⟨by omega, H.2.2.1, H.2.1⟩
+  · isplitl
+    · iright; iexists mp, mxc, tail, B; iframe; ipureintro; exact H
+    · ipureintro; obtain ⟨⟨_, _, _, _, _, hok, hmaps, _, h40⟩, _⟩ := H; exact ⟨h40, hok, hmaps⟩
+
+/-- The file once open, as `Open` found it: a stored database (`valid`), or one for `init`. -/
+def validSt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) (b : Bool) : IProp GF :=
+  match b with
+  | true => dbStoredAt (GF := GF) p t vo m
+  | false => iprop(⌜t = 1 ∧ vo = none⌝ ∗ initAt (GF := GF) p m)
+
+/-- The meta pages of a file once open, of four pages or more: for `readPageSize`, with what
+they say (no valid meta: for `init`; a valid one: a stored database). -/
+theorem openSt_metas (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) (h16 : 4 * 4096 ≤ m.size) :
+    openSt (GF := GF) p t vo m ⊢ ∃ X : List (w8 × Bool), osBytes (GF := GF) p 0 (DFrac.own 1) X ∗
+      ⌜X.length = 2 * 4096⌝ ∗
+      ((⌜∀ i < 2, ¬ metaValid (fileMeta (X.map Prod.fst) i)⌝ ∗
+          (osBytes (GF := GF) p 0 (DFrac.own 1) X -∗ validSt (GF := GF) p t vo m false)) ∨
+       (⌜∃ i < 2, metaValid (fileMeta (X.map Prod.fst) i)⌝ ∗
+          (osBytes (GF := GF) p 0 (DFrac.own 1) X -∗ validSt (GF := GF) p t vo m true))) := by
+  unfold openSt
+  iintro (⟨%Ht, Hi⟩ | Hs)
+  · unfold initAt
+    icases Hi with ⟨%xs, Hb, %H⟩
+    obtain ⟨hl, hmaps, hok, hsz, hno⟩ := H
+    have hno' : ¬ metaValid (fileMeta ((xs.map Prod.fst).take 8192) 0) ∧
+        ¬ metaValid (fileMeta ((xs.map Prod.fst).take 8192) 1) := hno.resolve_left (by omega)
+    icases (osBytes_take_drop p _ xs 8192 (by omega)).1 $$ Hb with ⟨H0, H1⟩
+    iexists xs.take 8192
+    iframe H0
+    isplitr
+    · ipureintro; rw [List.length_take]; omega
+    ileft
+    isplitr
+    · ipureintro; intro i hi; rw [List.map_take]
+      rcases (by omega : i = 0 ∨ i = 1) with rfl | rfl
+      · exact hno'.1
+      · exact hno'.2
+    iintro H0
+    unfold validSt initAt
+    isplitr
+    · ipureintro; exact Ht
+    iexists xs
+    isplitl
+    · iapply (osBytes_take_drop p _ xs 8192 (by omega)).2; iframe
+    · ipureintro; exact ⟨hl, hmaps, hok, hsz, hno⟩
+  · unfold dbStoredAt
+    icases Hs with ⟨%mp, %mxc, %tail, %B, Hb, Hps, Ht, Hr, %H⟩
+    iexists mxc
+    iframe Hb
+    have H' := H
+    obtain ⟨⟨hmx, -, hmp, -⟩, -⟩ := H'
+    isplitr
+    · ipureintro; have := congrArg List.length hmx; rw [List.length_map] at this; rw [this, hmp.1]
+    iright
+    isplitr
+    · ipureintro; rw [hmx]
+      rcases hmp.2.1 with h | h
+      · exact ⟨0, by omega, h⟩
+      · exact ⟨1, by omega, h⟩
+    iintro Hb
+    unfold validSt dbStoredAt
+    iexists mp, mxc, tail, B
+    iframe
+    ipureintro; exact H
 
 /-- The `OsMeta` of a file after an open that may create it. -/
 def openMetaOf : Option OsMeta → OsMeta
