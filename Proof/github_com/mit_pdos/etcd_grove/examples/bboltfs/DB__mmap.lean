@@ -82,7 +82,7 @@ theorem mmap_prep (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List 
     · iframe; ipureintro; exact Hmaps
     · ipureintro; intro _ _ _ h; cases h
   · dsimp only [mmapPre, mapRest, mapSlice, unmapRest]
-    iintro ⟨#Hos, Hcur, Hout, Hm, ⟨%Hf, Htok, Hwc⟩, ⟨Htok2, #Hinv, Hf2, Hfd2⟩⟩
+    iintro ⟨#Hos, Hcur, Hout, Hm, ⟨%Hf, Htok, Hwc⟩, ⟨-, Htok2, #Hinv, Hf2, Hfd2⟩⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hf
     icombine Htok Htok2 as Htok
     ihave Hc := mapInv_close γ p base len γm $$ [Htok]
@@ -368,7 +368,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   icases (mapFields_join db (some (base, sz.toNat, γm))).2 $$ [Hd H0 H1] with ⟨Hflds, Hflds0⟩
   · dsimp only [mapSlice, mapPtr0, mapPtr1]; rw [hszeq]; iframe
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hmap0 Hflds0 Htok2 Hf2 Hfd2]
-  · iframe #; inext; iexists (some (base, sz.toNat, γm)); iframe; unfold mapRest; dsimp only; iframe; iframe #
+  · iframe #; inext; iexists (some (base, sz.toNat, γm)); iframe; unfold mapRest; dsimp only; iframe; iframe #; ipureintro; exact Hbd.1
   (try wp_auto)
   iapply HΦ
   iexists (some (base, sz.toNat, γm)), { m1 with maps := <[base := sz.toNat]> m1.maps }

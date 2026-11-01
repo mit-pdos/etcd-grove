@@ -32,8 +32,9 @@ abbrev DB.close.spec : Prop :=
       osFd (GF := GF) fd (DFrac.own 1) d }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
   {{ RET #(); db.[DB, go!"dataref"] ↦{dq} slice.nil ∗
-      (∃ (dsz' : w64) (m0' m1' : Loc), db.[DB, go!"datasz"] ↦{dq} dsz' ∗
-        db.[DB, go!"meta0"] ↦{dq} m0' ∗ db.[DB, go!"meta1"] ↦{dq} m1') ∗
+      db.[DB, go!"datasz"] ↦{dq} (if sl = slice.nil then dsz else W64 0) ∗
+      db.[DB, go!"meta0"] ↦{dq} (if sl = slice.nil then m0 else null) ∗
+      db.[DB, go!"meta1"] ↦{dq} (if sl = slice.nil then m1 else null) ∗
       (∃ err, unmappedRes (GF := GF) p m sl err) ∗
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile f (-1 : w64) name (DFrac.own 1) }}
 

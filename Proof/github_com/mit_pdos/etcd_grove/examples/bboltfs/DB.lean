@@ -16,7 +16,11 @@ The ghost names (`DBNames`) name:
 - `txs`, a ghost map from txids to values (`dbTx γ t vo`, persistent: transaction `t`'s root page
   holds `vo`, `pageVal`), `last` (a monotone counter: the current txid, `dbLast γ t` its lower
   bounds), `fail` (a monotone counter, 1 once failed, `dbFailed γ`), and `own` (the committer's
-  token `dbOwner γ t n`: the current txid and high water mark; the other half in `metalock`).
+  token `dbOwner γ t n`: the current txid and high water mark; the other half in `metalock`,
+  where it agrees with the meta pages while not failed; once closed, the committer's half is in
+  `rwlock`, so that neither `Commit` nor `Close` can follow).
+- `cls`, a ghost variable: the database is closed. 1/2 `rwlock`, 1/2 `metalock` (with its half of
+  the meta pages' bytes while open: `Close` takes them, for its caller to reopen the file).
 
 A committed page `r` (`2 ≤ r < hwm`) is never written again: its bytes are clean (synced) and its
 `osBytes` discarded (`pageIs`, persistent), and the client halves of its mapped cells live in the
@@ -29,9 +33,10 @@ when it mapped the file, and no write touches them since).
   `Munmap` all take it), the bytes from `hwm` on and half the meta pages' bytes, the client
   halves of the mapped cells it may write (the meta pages' header and tail, and the pages from
   `hwm` on), `filesz`, `datasz`, halves of the mapping fields, and half the file and its fd.
-- `metalock` (`metaR`): `failed`, half the meta pages' bytes (a meta `WriteAt` takes both
-  halves: it runs under both mutexes), the transaction map, and while not failed: the meta pages
-  are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it.
+- `metalock` (`metaR`): `failed`, half the meta pages' bytes until closed (a meta `WriteAt` takes
+  both halves: it runs under both mutexes), the transaction map, and while not failed: the meta
+  pages are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it;
+  once failed, its half of `own`.
 - `mmaplock` (`mapR γ db q`, Perennial's guarded `RWMutex`): the mapping, fractionally: the
   mapping fields, a fraction `q` of the mapping invariant's token (`ghostVar γm q ()`: a remap,
   with `q = 1`, closes the invariant and takes every cell back for `Munmap`), and fractions of the
@@ -91,11 +96,11 @@ def curRoot (mp : List w8) : Nat := (curMeta mp).root'.root'.toNat
 def curPgid (mp : List w8) : Nat := (curMeta mp).pgid'.toNat
 
 /-- The meta pages of an open database: a valid meta, whose root page is committed (past the
-meta, freelist pages... from page 2) below its high water mark, small enough to map (`mmapSize`'s
-bound). -/
+meta, freelist pages... from page 2) below its high water mark, small enough to map below 1 GiB (minibolt's `mmapSize` bound;
+`ReadAt` of the file up to the high water mark is then at most 1 GiB). -/
 def metaPagesOk (mp : List w8) : Prop :=
   mp.length = 8192 ∧ (metaValid (fileMeta mp 0) ∨ metaValid (fileMeta mp 1)) ∧
-    2 ≤ curRoot mp ∧ curRoot mp < curPgid mp ∧ (curPgid mp + 2) * 4096 ≤ 2 ^ 40
+    2 ≤ curRoot mp ∧ curRoot mp < curPgid mp ∧ (curPgid mp + 1) * 4096 ≤ 2 ^ 30
 
 /-- What a root page holds: a value if its `count` is 1 (`Get`'s `has`). -/
 def pageVal (B : List w8) : Option w64 :=
@@ -122,6 +127,7 @@ structure DBNames where
   last : GName
   fail : GName
   own : GName
+  cls : GName
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
@@ -201,7 +207,7 @@ the fraction `q/2` of its invariant's token (the writer holds the other half), t
 the fraction `q/2` of the file and its fd for `Snapshot`'s `ReadAt` (the writer holds the other
 half, and all of it while there is no mapping). -/
 def mapRest (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (q : Qp) : MapSt → IProp GF
-  | some (base, len, γm) => iprop(ghostVar γm q.half () ∗ mapInv (GF := GF) γ p base len γm ∗
+  | some (base, len, γm) => iprop(⌜0 < base.addr⌝ ∗ ghostVar γm q.half () ∗ mapInv (GF := GF) γ p base len γm ∗
       os.ownFile (GF := GF) f fd p (DFrac.own q.half) ∗
       osFd (GF := GF) fd (DFrac.own q.half) ⟨p, true, true⟩)
   | none => emp
@@ -286,12 +292,16 @@ instance mapR_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
       ipureintro; exact Heq)
 
 /-- What minibolt's code needs of the initialized program: `sync`'s initialization, and the
-package's error values, which are not nil. (The package's `isPkgInit` would give them, once
+package's error values, which are not nil, and `io.EOF`, which is not nil and not a `*PathError`
+(`Snapshot` compares `ReadAt`'s error with it). (The package's `isPkgInit` would give them, once
 `os`, `syscall` and `golang.org/x/sys/unix`, which it imports, have `IsPkgInit` instances.) -/
 def pkgFacts : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗ ∃ (e1 e2 : GoInterface),
     globalAddr errFailed ↦□ e1 ∗ globalAddr errPageSize ↦□ e2 ∗
-    ⌜e1 ≠ interface.nil ∧ e2 ≠ interface.nil⌝)
+    ⌜e1 ≠ interface.nil ∧ e2 ≠ interface.nil⌝ ∗
+    ∃ eof : GoInterface, globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
+      ⌜eof ≠ interface.nil ∧
+        ∀ pe : Loc, eof ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe⌝)
 
 instance pkgFacts_persistent : Persistent (pkgFacts (GF := GF)) := by
   unfold pkgFacts; infer_instance
@@ -301,15 +311,16 @@ def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
   iprop(∃ (b : Bool) (mp mx : List (w8)) (hwm : Nat) (mxc : List (w8 × Bool))
       (T : GMap Nat (Option w64)),
     db.[DB, go!"failed"] ↦ b ∗ ghostVar γ.cur (1 : Qp).half (mp, b, hwm) ∗
-    osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗ ⌜mxc.length = 8192 ∧ mxc.map Prod.fst = mx⌝ ∗
+    ((osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗ ghostVar γ.cls (1 : Qp).half false) ∨
+      ghostVar γ.cls (1 : Qp).half true) ∗ ⌜mxc.length = 8192 ∧ mxc.map Prod.fst = mx⌝ ∗
     ghostMapAuth γ.txs 1 T ∗ ghostVar γ.out (1 : Qp).half.half false ∗
     match b with
-    | true => monoNatAuthOwn γ.fail 1 1
+    | true => monoNatAuthOwn γ.fail 1 1 ∗ ∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x
     | false =>
       monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp⌝ ∗
       monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
       ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
-      ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗
+      ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
         ⌜T !! (curMeta mp).txid'.toNat = some (pageVal B)⌝)
 
 /-- The client halves of the mapped cells at `base` the writer holds: the meta pages' headers
@@ -347,13 +358,13 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
   iprop((∃ (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta),
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗
+    writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗ ghostVar γ.cls (1 : Qp).half false ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
       ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len
     | none => dbFailed (GF := GF) γ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm) ∨
-   ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗
+   ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗ ghostVar γ.cls (1 : Qp).half true ∗
      ∃ st, ghostVar γ.map (1 : Qp).half st ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st))
 
 /-- The persistent part of an open database: the file, its path, and the three locks with
@@ -365,9 +376,9 @@ def isDB (γ : DBNames) (db : Loc) : IProp GF :=
     sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
 
-/-- A reader's token of an open database (one of `mmaplock`'s reader tokens). -/
+/-- A reader's token of an open database (one of `mmaplock`'s reader tokens), on the path of `isDB` (`db.path`). -/
 def dbReader (γ : DBNames) (db : Loc) : IProp GF :=
-  iprop(∃ (f : Loc) (fd : w64) (p : GoString), db.[DB, go!"file"] ↦□ f ∗
+  iprop(∃ (f : Loc) (fd : w64) (p : GoString), db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
     sync.ownRWMutex db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
 
 end preds
