@@ -196,7 +196,9 @@ committed log's history), while the latest state's ghost variable (`authCurHalf`
 ties to the `revision` atomic) stays at the applied state. No shared invariant ties the history's
 last to the latest state: only the admin side's `authOwnF`/`authOwn` do, and the apply thread holds
 the pending form `authOwnP hs N` instead. So `stI` is recorded before `beMu`'s window opens, and
-every read contract, `authSnap`, and the verdict lemmas keep their text.
+the timing needs no change to the read contracts (`authSnap` and the verdict lemmas keep their
+text). The read contracts are changed anyway, for other reasons (findings 8 and 16: the write
+token and the currency guards), for every backend.
 - `auth.authCatchUpFirst` (**proved**): `authInv ∗ authOwnF hs ∗ capLb (hs ++ N) ={E}=∗ authOwnP hs N ∗
   authLockI (.on γa) stI ∗ authStateAt (|hs ++ N| - 1) stI`. The lock's share at `stI` comes out, so
   the new backend's lock gets it at the premise's call, exactly as boot's lock gets the share at
@@ -234,9 +236,11 @@ history (`authHistTie_catchup`'s `capLb (srvHist A')`: no new ghost state). Cost
 - **The store's `R`** is fixed at the store's construction (`beP`, the readers' `authRd`), so the
   snapshot clause is produced **by the boot premise**, at the boot's `R`, and carried: the
   generalized premise `authSchemaSrvG` is today's `authSchemaSrv` whose post also gives the boot
-  token's retirement and `authSchemaSnap γa R`; boot's `authSchemaSrv` is its weakening
-  (`authSchemaSrv_of_G`, **proved**). `NewServer.specM true`'s premise list keeps its length; its
-  text changes (the user's decision: a trusted statement).
+  token's retirement and `authSchemaSnap γa R`, and whose boot read contract is the guarded one
+  (review round 2's F3). So boot's premise **changes in place**: it is not a weakening of
+  today's (`authSchemaSrv_of_G`, proved in round 1 before the guard, is dropped), and its users
+  (`lockedReadTx.specL`, the four `…Permitted.specL`) supply the guards. `NewServer.specM true`'s
+  premise list keeps its length; its text changes (the user's decision: a trusted statement).
 - **The lock's share of the old backend** (a finding of the glue): `Recover` (any candidate) appends
   with the whole authority `authOwnF`, whose batch-lock quarter is in the old backend's batch lock,
   which the install never takes (Go's `applySnapshot` locks no auth batch transaction). So each
@@ -326,6 +330,73 @@ history (`authHistTie_catchup`'s `capLb (srvHist A')`: no new ghost state). Cost
    (`bkRTx`), so no backend's read lock needs `actualMaxReaders + 1` slots from its pool (the
    model in `authSchemaSnap`'s docstring).
 
+### The axiom check (2026-11-01, the `axiom` skill, read-only; Go tests in the session's scratchpad)
+
+The premise's parts quantify over the auth ghost names `γa`, so a refuting program allocates `γa`
+itself and owns every part of it the premise does not take. Findings, all **of today's boot premise
+`authSchemaSrv` as well** (on `lean`, trusted), not only of the draft:
+
+13. **Today's latest clause is false inside a batch** (finding 8, confirmed by a Go program: in an
+   auth batch, `UnsafePutUser(alice)`, then `ReadTx().RLock()`, `UnsafeGetUser("alice")` returns
+   nil, `batchTxBuffered.Unlock` writing the read buffer only at `Unlock`; the ghost derivation
+   appends with the full history fraction and forms `authOwn` at the new state). No caller of the
+   auth store reaches it (every admin operation reads only through the batch transaction between
+   `commitRevision` and `Unlock`; `ReadTx` is used only by `CheckPassword`, `Recover`,
+   `isOpPermitted`, `IsAdminPermitted`, outside batches). The draft's `T` guard is the right fix
+   for it. Related: `auth.authPublish` (`Fresh.lean`) needs only `authOwn`, not `T`, so a proof
+   could publish inside the same window.
+14. **The freshness clause is refuted, guarded or not** (attack A): the premise takes no share of
+   the published-index authority `authPubAuth γa`, which the program owns outright and raises past
+   the history; `RLock` with `R ∗ authPubLb γa 1` then promises a recorded state at an index the
+   history lacks: False, so `rtx.RLock(); panic("x")` gets a no-panic triple. The currency `Cu`
+   does not help (`R` and `Cu` are built without any share of `γa.pub`). Repair (for the user):
+   the premise takes the published-index authority into the backend's realization (publication
+   through the write contract's `Unlock`, or with `T`), or the clause is relative to a lower bound
+   the backend mints for committed states.
+15. **`rbOwn` back to the caller lets it write the auth buckets** (attack B): `authSchemaSnap`
+   returns `backend.rbOwn d.γB r`, boot's premise through its `Post`; `rbOwn` is the client's write
+   authority over every tracked bucket, the auth buckets among them (`restBuckets`), and the
+   realization keeps none of it, so the caller writes a user through the raw backend and every
+   `RLock` clause's reads are false (a Go program: a raw `UnsafePut(AuthUsers, "bob", …)`, then the
+   auth read transaction's `UnsafeGetUser("bob")` non-nil). Not reachable in etcd (only schema's
+   auth code writes those buckets). Repair (for the user): return the client's half only of the
+   non-auth tracked buckets (`rbOwn` split by bucket set, a backend-level change), in both the boot
+   premise and the snapshot clause.
+- Not refuted: `authLockRetire` (the one lock quarter is only in `T`, in an open batch, or retired;
+  cycling it across two backends did not give a `T` whose backend's committed state differs from the
+  history's last), `R` lent against `bkRTx` (the count is preserved: redeeming the token spends an
+  `R`), `curFrac` (a definition).
+
+### Review round 2 (2026-11-01)
+
+16. **Every read at a retired backend is false once it is closed** (F2): `applySnapshot` closes the
+   old backend in a goroutine, after which its read transaction dereferences a nil bolt
+   transaction (`issues/etcd-auth-snapshot-closed-backend-panic.md`); so the draft guards clause 1
+   by the currency too (`Cu q` in every `RLock` clause).
+17. **Boot's contract guarded now** (F3): `authSchemaSrvG`'s boot read contract is `authBackendOkH`
+   (above, "Q2's premise").
+18. **`SnapImageFactsOn` had dropped `himg` and `hA'`** (F5), needed by `specSnapOn`; restored (`hA'`
+   on the non-auth buckets).
+19. **Repaired, smaller**: `run_snap_jobOn`'s `A'` is the post's (an existential, with `srvRLogLb`
+   and `A <+: A'`), not a binder pinned by its length (S7); the guarded latest clause is not a
+   weaker pre than today's (it takes `T`; S2); the fuel at a base needs a `stepOk_of_fuel` variant
+   at `k + b + 1 < 2^63` (S4).
+20. **Repeated, for the user** (rounds 1 and 2, the same statements): the premise's `rbOwn` (F1 =
+   finding 15: the rest's ownership of the auth buckets, D22's decision); the redefinitions
+   `specSnapOn` is read under (F4: `authApplyResB` with `authApplyResOn`'s parts, `srvImageM`, the
+   mode-on rest owner, which depends on F1's answer), and `Recover.specP` needs `beP` redefined to
+   hold the guarded contract and the currency (S1); one spec per function (F6, below).
+21. **Open, smaller** (second tier): `authApplyResOn`'s own write contract `be P f` is tied to
+   nothing (S5: `authWAtHook` gives the field's); `Recover.specP`/`setRevision.specP`'s
+   `authStateAt` premise is redundant beside `authOwnP` (S6); `srvImageOn` is a mode-indexed copy
+   (S8); the write-back budget of the snapshot clause's `T` (boot's comes from `ownToks wb 2`) and
+   the reader count of the minted `R` (bounded by live goroutines) for the axiom check (S9);
+   `srvHist_wf`'s `authSmall` needs the model's `UserAdd` to reject long names
+   (`issues/etcd-auth-useradd-long-name-fatal.md`) and `permKeysOk` the grant step to mirror
+   `isValidPermissionRange` (S10).
+- **A security-sensitive finding** (round 2's reviewer): recorded in `etcd-grove-private` (the
+  user's decision, 2026-11-01), not here.
+
 ### Packaging and one spec per function (open)
 
 `specSnapOn` is drafted as a standalone triple beside `specSnap` (as the coordinator asked); how it
@@ -345,8 +416,9 @@ today's specs stay untouched until the user picks the candidate.
   `authRecoverOk`) from `Recover.specP`, `authSchemaSnap`, `authHistTie_catchup`, `catchup_list`,
   `authLockRetire`, `authCatchUpFirst` and `srvHist_wf` (the only `sorry` it reaches besides the
   callee spec). The catch-up's ghost steps go through as drafted.
-- `kvRunAtOn_sa`: `specSnapOn`'s `hsa` from `run`'s loop resource.
-- `authSchemaSrv_of_G`, `authCatchUpFirst`, `authSnapC_of_snap`, `authFuelB_of_fuel`.
+- `kvRunAtOn_sa`: `specSnapOn`'s applied auth state from `run`'s loop resource (`kvRunAtOn` only: not
+  the `uint.Z ai ≤ w` or `entriesStep` conjuncts of `applyRes`/`applyResOn`, which J8b drops).
+- `authCatchUpFirst`, `authSnapC_of_snap`, `authFuelB_of_fuel`, `authBucketsAt_after`.
 - Not glued: `applyAll.specSnapOn`'s body (the twin of J8a-5's proved `ApplyAllSnap.lean`) and
   `run_snap_jobOn` (the twin of J8b's job), which wait on J8b's shape; the install walk's mode-on
   steps besides `Recover` (`srvApplyKVOn`'s row at the new backend needs the admin steps at the new
