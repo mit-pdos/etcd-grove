@@ -138,7 +138,7 @@ theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
       restartStorage γ (kvStorIface s)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        (kv.kvConfState voters) 0 iprop(memStorInvP ms γs (kvJ γ (kvKey γ id))) :=
+        (kv.kvConfState voters) 0 (fun _ => iprop(memStorInvP ms γs (kvJ γ (kvKey γ id)))) :=
   kvStorage_bootStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot
     MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term
     MemoryStorage.wp_Entries s ms γs vsl voters γ id

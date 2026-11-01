@@ -4,7 +4,7 @@
 
 def RestartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorContents) (csm : ConfStateM)
-    (a : Nat) (m : Membership) (Q : RaftState → IProp GF) (F : IProp GF),
+    (a : Nat) (m : Membership) (Q : RaftState → IProp GF) (F : GName → IProp GF),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -42,6 +42,6 @@ def RestartNode.spec : Prop :=
                                                               hardState := σ.hs, handling := none, key := K, durable := S,
                                                               role := StateFollower } ∗
                                                           nodeConfig n γ N { applied := a, membership := m } ∗
-                                                            nodeRunning n γ N 1 ∗ Q S ∗ F) -∗
+                                                            nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
                                               Φ (intoVal nd)) -∗
                                         WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}

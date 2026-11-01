@@ -400,7 +400,7 @@ theorem kvStorage_bootStorage
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
       restartStorage γ (kvStorIface s)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        (kv.kvConfState voters) 0 iprop(memStorInvP ms γs (kvJ γ (kvKey γ id))) := by
+        (kv.kvConfState voters) 0 (fun _ => iprop(memStorInvP ms γs (kvJ γ (kvKey γ id)))) := by
   -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
   sorry
 

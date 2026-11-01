@@ -86,13 +86,14 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗ "#Hh" ∷ hsOpt rd.HardState' h -∗
           (▷
-              ∀ steps,
-                "Hrn" ∷
-                    ownRawNode γ rn id
-                      { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
-                        storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := rs.cfg,
-                        capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h, dur := rs.dur,
-                        role := rs.role } -∗
+              ∀ steps ss,
+                "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+                    "Hrn" ∷
+                      ownRawNode γ rn id
+                        { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
+                          storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := rs.cfg,
+                          capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
+                          dur := readyDurable rs.dur (phsNext rs.phs h) L es, role := roleAfter rs.role ss } -∗
                   Φ (intoVal ())) -∗
             WP
               ((intoVal

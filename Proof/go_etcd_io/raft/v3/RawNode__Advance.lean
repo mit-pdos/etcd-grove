@@ -1573,9 +1573,11 @@ theorem RawNode.Advance.wp_proof
             show s1.logst.dtk = l.dlv.length
             rw [logStoreRec_dtk Hs1.2.2.1, Hs0dtk]
             have H := Hsdt; unfold SdtTie sdtLen at H; rw [hsl] at H; exact H)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc'
+          Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc' [Hdur]
         · iapply lentPend_none rfl; iapply pendList_nil
         · iapply loanCom_none γ rfl
+        · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
+          sorry
       isplitr
       · ipureintro
         rw [Htrm0]
@@ -1901,8 +1903,10 @@ theorem RawNode.Advance.wp_proof
         (by rw [Hsg1.2.2]; exact Hrs_out)
         (by rw [Hsg1.2.2]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc1) HrnflA HloanA
         (Hsdt.ofRec Hs1.2.2.1 Hs1.2.2.2.2)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc'
+        Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc' [Hdur]
       · iapply lentPend_none hsl; iapply pendList_nil
+      · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
+        sorry
     isplitr
     · ipureintro
       rw [Htrm]

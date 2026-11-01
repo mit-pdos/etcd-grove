@@ -43,7 +43,9 @@ messages (`newStorageAppendRespMsg`, `newStorageApplyRespMsg`), the apply acknow
 `phsNext rs.phs h`, `h` the `Ready`'s hard state, `hsOpt rd.HardState' h`, which the caller
 names.) (D22 S-d3a, 2026-10-21) With a snapshot (`L`): the acknowledgement queued shares the
 `Ready`'s snapshot, the snapshot is in progress, and the node records the loan (`RNState.slent`);
-either way no snapshot is restored since this `Ready` (`psnap` off). -/
+either way no snapshot is restored since this `Ready` (`psnap` off). (2026-11-01, durability stage
+I fix G2) The node records the batch's durable state (`readyDurable`, as the driver does:
+`NodeDriverState.afterReady`) and the role after the `Ready`'s soft state `ss` (`roleAfter`). -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
@@ -51,11 +53,14 @@ abbrev RawNode.acceptReady.spec : Prop :=
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
-  {{ (steps : List Pending), RET #();
+  {{ (steps : List Pending) (ss : Option (w64 × StateType)), RET #();
+      -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
+      "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
-                  slent := L } }}
+                  slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                  role := roleAfter rs.role ss } }}
 
 end spec
 

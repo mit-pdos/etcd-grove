@@ -928,10 +928,19 @@ theorem RawNode.acceptReady.wp_proof
       · iexact Hpc
   -- (D19i part 1) the floor and `applied` unmoved; `applying` moved to the last committed entry
   -- handed out, whose acknowledgement is queued
+  -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
+  ihave #Hss : ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
+      ⌜roleAfter rs.role ss = v.RaftState'⌝ $$ []
+  · -- PORT(durability stage II): G2, the soft state `prevSoftSt` now points to, as `softStateIs`
+    -- of the `Ready`'s (`nil`: the old one, `Hrole`)
+    sorry
+  icases Hss with ⟨%ss, #Hss, %HroleN⟩
   let rsN : RNState :=
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
-              outlb := 0, unst := false, phs := phsNext rs.phs hrd, psnap := false, slent := L }
+              outlb := 0, unst := false, phs := phsNext rs.phs hrd, psnap := false, slent := L,
+              dur := readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst),
+              role := roleAfter rs.role ss }
   have HrnflN : RNFl rsN (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length) := by
     have Hfl0 : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.fl = s.logst.fl := by
       rw [Hlogst, Haf9, Hf_fl]
@@ -1021,8 +1030,9 @@ theorem RawNode.acceptReady.wp_proof
     rw [show (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.stored = s.logst.sents ++ s.logst.uents by
       rw [Hlogst, Haf11, Hf_sents, Hf_uents]]
     exact Hip_last
-  iapply HΦ $$ %(readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
+  iapply HΦ $$ %(readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce) %ss
   simp only [named]
+  iframe Hss
   ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.snap)
     (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
   -- (U8 v2) the certified height after the `Ready`: the committed log handed out
@@ -1054,7 +1064,10 @@ theorem RawNode.acceptReady.wp_proof
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    HsdtN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
+    HsdtN HroleN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' []
+  · -- PORT(durability stage II): G2, the `Ready` keeps the durable state's tie (`durTie`: the batch
+    -- handed out, `readyDurable`, is the log up to the unstable entries not yet handed out)
+    sorry
 
 end proof
 

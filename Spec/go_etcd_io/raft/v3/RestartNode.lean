@@ -52,7 +52,7 @@ names no namespace.) -/
 abbrev RestartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership)
-    (Q : RaftState → IProp GF) (F : IProp GF),
+    (Q : RaftState → IProp GF) (F : GName → IProp GF),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -87,7 +87,7 @@ abbrev RestartNode.spec : Prop :=
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
         nodeRunning n γ N 1 ∗
-        Q S ∗ F }}
+        Q S ∗ F K }}
 
 end spec
 

@@ -209,8 +209,8 @@ theorem srvMem_bootStorage
       restartStorage γr.cl (memStorIface ms)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         memSnapEmpty.Metadata'.ConfState' 0
-        iprop(memStorInv ms γs γr.cl (srvKey γr.cl id) ∗
-          memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0))) := by
+        (fun _ => iprop(memStorInv ms γs γr.cl (srvKey γr.cl id) ∗
+          memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) := by
   -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
   sorry
 

@@ -399,7 +399,7 @@ theorem kvr_bootStorage
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
       restartStorage γ (kvrStorIface s) ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0
-        iprop(memStorMeta ms γs hs ∗ memStorInvP ms γs (kvrJ γ (kvrKey γ id))) := by
+        (fun _ => iprop(memStorMeta ms γs hs ∗ memStorInvP ms γs (kvrJ γ (kvrKey γ id)))) := by
   -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
   sorry
 

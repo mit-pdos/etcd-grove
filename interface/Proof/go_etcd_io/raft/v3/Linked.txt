@@ -152,7 +152,7 @@ theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
 theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
   -- `Perennial.EtcdGrove.RestartNode.spec`, unfolded:
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorContents) (csm : ConfStateM)
-    (a : Nat) (m : Membership) (Q : RaftState → IProp GF) (F : IProp GF),
+    (a : Nat) (m : Membership) (Q : RaftState → IProp GF) (F : GName → IProp GF),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -190,7 +190,7 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
                                                               hardState := σ.hs, handling := none, key := K, durable := S,
                                                               role := StateFollower } ∗
                                                           nodeConfig n γ N { applied := a, membership := m } ∗
-                                                            nodeRunning n γ N 1 ∗ Q S ∗ F) -∗
+                                                            nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
                                               Φ (intoVal nd)) -∗
                                         WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
 
@@ -284,7 +284,7 @@ theorem RaftLink.MemoryStorage.wp_CreateSnapshot [package_sem : Assumptions] :
 theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
   -- `Perennial.EtcdGrove.StartNode.spec`, unfolded:
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (csm : ConfStateM) (Q F : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
+    (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -324,7 +324,7 @@ theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
                                                           nodeConfig n γ N
                                                               { applied := 0,
                                                                 membership := Membership.simple (listToSet vs) } ∗
-                                                            nodeRunning n γ N 1 ∗ Q ∗ F ∗ ownSlice peers pv dq) -∗
+                                                            nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
                                                   Φ (intoVal nd)) -∗
                                             WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers)) {{ Φ }}
 

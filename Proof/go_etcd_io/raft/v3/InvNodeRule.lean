@@ -563,14 +563,16 @@ to start a node from, holding `σ`**: a frame `R` of the client's, with `FirstIn
 conf state `csm`, after which -- given the fresh key `K` raft names the storage by, and raft's
 bounds at the attach (compacting up to the applied index it starts at, `max σ.b A`, is safe; it
 committed up to the stored commit) -- the client makes the storage contract (`isStorage γ K st`)
-and gives the storage's log (`storHolds`), keeping its frame `F`, which `RestartNode`'s post returns.
+and gives the storage's log (`storHolds`), keeping its frame `F K`, which `RestartNode`'s post returns
+at the driver's key. (2026-11-01, stage-I fix G1-frame: the frame depends on the key, so that a
+client allocating its storage's invariant at `K` in the continuation has it at the driver's key.)
 `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`, and a
 `MemoryStorage`'s `InitialState` reads its snapshot without the lock
 (`issues/raft-memorystorage-initialstate-unlocked.md`), so its invariant (`memStorInv`) can only be
 made once `InitialState` returned: the contract comes in `InitialState`'s post. Each attach has its
 key, so a key's bounds are one node's. -/
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat)
-    (F : IProp GF) : IProp GF :=
+    (F : GName → IProp GF) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
     ({{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
        {{ RET (PairV #(W64 (σ.b + 1)) #interface.nil); R }}) ∗
@@ -580,7 +582,7 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
           hsOpt hp σ.hs ∗ csPts cs DFrac.discard csm al ∗
           ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
-            |={⊤}=> isStorage γ K st ∗ storHolds st σ ∗ F }}))
+            |={⊤}=> isStorage γ K st ∗ storHolds st σ ∗ F K }}))
 
 /-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
 a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what

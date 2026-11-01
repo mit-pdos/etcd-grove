@@ -44,7 +44,7 @@ its view of the configuration at the voters' membership with nothing applied, it
 the update's `COMM` and the storage's frame; and the peers' slice. -/
 abbrev StartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : IProp GF)
+    (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer),
   -- `NewRawNode`'s premises
   ConfigValid cv →
@@ -73,7 +73,7 @@ abbrev StartNode.spec : Prop :=
       ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-        nodeRunning n γ N 1 ∗ Q ∗ F ∗ peers ↦*{dq} pv }}
+        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv }}
 
 end spec
 
