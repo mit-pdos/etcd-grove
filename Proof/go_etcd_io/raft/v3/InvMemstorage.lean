@@ -699,13 +699,58 @@ def memStorAt (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat 
   | some (c, sv) => iprop(memStorLock ms γs ∗ memStorFresh ms γs c sv)
   | none => iprop(memStorInvP ms γs J ∗ P)
 
+/-- The attached mode unfolded (for `rw`/`simp only` at a call site or in a post). -/
+theorem memStorAt_none (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (P : IProp GF) :
+    memStorAt ms γs J none P = iprop(memStorInvP ms γs J ∗ P) := rfl
+
+/-- The detached mode unfolded. -/
+theorem memStorAt_some (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) (sv : SnapshotM)
+    (P : IProp GF) :
+    memStorAt ms γs J (some (c, sv)) P = iprop(memStorLock ms γs ∗ memStorFresh ms γs c sv) := rfl
+
+/-- **An attached caller's mode** (I-5): the storage's invariant at `J` and the call's bounds give
+the attached mode, for an attached call site (`iapply memStorAt_none_intro $$ Hsi HP`). -/
+theorem memStorAt_none_intro (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (P : IProp GF) :
+    ⊢ memStorInvP ms γs J -∗ P -∗ memStorAt ms γs J none P := by
+  iintro Hi HP
+  rw [memStorAt_none]
+  iframe Hi HP
+
 /-- **A detached storage is compacted at most at `c`** (I-5; `c = 0` gives a wrapper's
 `FirstIndex` answering exactly `1`, as `bootStorage` needed): with the detached token, every
 justified compaction point is at most `c`. -/
 theorem memStorFresh_compacted (ms : Loc) (γs : MemStorNames) (c : Nat) (sv : SnapshotM) (c' : Nat) :
     memStorFresh (GF := GF) ms γs c sv ∗ memCompacted γs c' ⊢
       ⌜c' ≤ c⌝ ∗ memStorFresh ms γs c sv := by
-  sorry -- durability stage I (I-5): restated
+  iintro ⟨Hf, Hc⟩
+  iunfold memCompacted at Hc
+  icases Hc with (%H | ⟨#-, %L, #HL, %Hk⟩)
+  · iframe Hf; ipureintro; omega
+  iunfold memStorFresh at Hf
+  icases Hf with ⟨⟨%L', Ha, %HL'⟩, Hrest⟩
+  ihave %Hp := mono_list_auth_lb_valid γs.jc 1 L' L $$ Ha HL
+  isplitr
+  · ipureintro
+    obtain ⟨k, hk, hck⟩ := Hk
+    have hs := Hp.2.sublist.subset hk
+    have := HL'.2 k hs
+    omega
+  iunfold memStorFresh
+  iframe Hrest
+  iexists L'
+  iframe Ha
+  ipureintro; exact HL'
+
+/-- Every element of a list of points at most `c` is justified, from the justification of every
+point up to `c` (the attach's `□ ∀`). -/
+theorem memJust_bigSepL_le (J : MemJust GF) (c : Nat) (L : List Nat) (hL : ∀ k ∈ L, k ≤ c) :
+    □ (∀ k, ⌜k ≤ c⌝ -∗ J.B k) ⊢ [∗list] k ∈ L, J.B k := by
+  apply BigSepL.bigSepL_intro
+  intro i x hx
+  iintro #H
+  iapply H
+  ipureintro
+  exact hL x (List.mem_of_getElem? hx)
 
 /-- **The attach** (I-5, the generalized allocation of the storage's invariant at the
 justifications `J`): from the detached token at `c` and `sv`, the justification of every
@@ -716,7 +761,25 @@ theorem memStorInvP_alloc (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (E : 
     ⊢ memStorLock ms γs -∗ memStorFresh ms γs c sv -∗ □ (∀ k, ⌜k ≤ c⌝ -∗ J.B k) -∗
       (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ={E}=∗
       memStorInvP ms γs J := by
-  sorry -- durability stage I (I-5): restated
+  iintro #Hl Hf #HB Hval
+  iunfold memStorFresh at Hf
+  icases Hf with ⟨⟨%L, Ha, %HL⟩, Hhk, %sp, Hsp, Hsnap, Hsx⟩
+  ihave #HB0 := HB $$ %0 %(Nat.zero_le c)
+  ihave #HBL := memJust_bigSepL_le J c L HL.2 $$ HB
+  imod inv_alloc memStorN E (memJustInv ms γs J) $$ [Ha Hhk Hsp Hsnap Hsx Hval] with #Hinv
+  · inext
+    iunfold memJustInv
+    isplitl [Ha]
+    · iexists L
+      iframe Ha HBL
+    ileft
+    iunfold memSnapHome
+    iframe Hhk
+    iexists sp, sv
+    iframe
+  imodintro
+  iunfold memStorInvP
+  iframe Hl HB0 Hinv
 
 /-- **The compaction's justification** (the contract's `storCompacted_bound`). -/
 theorem memCompacted_bound (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (c : Nat) :
