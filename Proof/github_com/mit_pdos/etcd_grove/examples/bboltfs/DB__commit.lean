@@ -16,7 +16,7 @@ public import Spec.os.File__Sync
 public import Spec.os.File__WriteAt
 public import Spec.os.File__Fd
 public import Spec.syscall.Fdatasync
-public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Writer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Publish
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.InitLayout
 public import Perennial.Proof.sync.Results
 
@@ -290,6 +290,51 @@ theorem metaPage_cells_split (base : Loc) (i : Nat) :
   isplitl [H0]
   · iexists v0; iexact H0
   · iexists v1; iexact H1
+
+/-- An error exit of `commit` once it failed the handle (the meta's write or sync), with a mapping:
+the writer's half of the meta pages' bytes `mxc`, the data page's bytes and cells back with the
+rest. -/
+theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
+    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m3 : OsMeta)
+    (mxc ys rest : List (w8 × Bool)) (fsz t n : Nat)
+    (h : m3.maps = {[base := len]} ∧ m3.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
+      4096 * hwm + 4096 ≤ m3.size ∧ mxc.length = 8192 ∧ ys.length = 4096 ∧
+      rest.length = m3.size - 4096 * hwm - 4096) :
+    dbOwner (GF := GF) γ t n ∗ dbFailed (GF := GF) γ ∗ ghostVar γ.cur (1 : Qp).half.half (mp, true, hwm) ∗
+      ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
+      mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
+      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      mapInv (GF := GF) γ p base len γm ∗ hdrTail (GF := GF) base 0 ∗ hdrTail (GF := GF) base 1 ∗
+      cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
+      cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
+      db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
+      os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osMeta (GF := GF) p (DFrac.own 1) (some m3) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
+      osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
+      commitErr (GF := GF) γ db f fd p t n := by
+  iintro ⟨Hown, #Hfailed, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, T0, T1, Hpc, Htop, Hfsz, Hdsz, Hf,
+    Hfd, Hm, Hmx, Hpg, Hrest⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
+  icases page_rejoin p base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
+  · iframe Hpg Hrest Hpc Htop
+  ihave Hwc4 := (hdrTails base).2 $$ [T0 T1]
+  · iframe T0 T1
+  ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
+  · iframe Hwc4 Htop
+  unfold commitErr writerStF writerFile
+  iframe Hown Hcur Hmap Hout Hflds Hcls
+  iexists m3
+  dsimp only [mapLen]
+  isplitl [Hfsz Hdsz Hf Hfd Hm Hmx Htail Htok Hwc]
+  · isplitl [Hfsz Hdsz Hf Hfd Hm Hmx Htail]
+    · iexists mxc, ys ++ rest, fsz
+      iframe
+      ipureintro
+      exact ⟨h5, by omega, h7, by simp only [List.length_append]; omega, fun h => by cases h⟩
+    · iframe; iframe #; ipureintro; exact ⟨h1, h2, h3, h4⟩
+  · iright; iframe #; ipureintro; rfl
 
 /-- The header of the meta page `commit` writes after `mv`. -/
 def metaHdrOf (mv : Meta) : Page :=
@@ -894,12 +939,40 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   iintro Hm Hmxw Hc1
   obtain ⟨-, hys2', hh2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
-  · -- TODO: the meta `WriteAt` failed: `failed := true` under `metalock` (`fail_cur_inv`,
-    -- `metas_in` at `fl = true` with `X`'s metas, `mono_nat_own_update` of `fail` for `dbFailed`,
-    -- `metaR`'s failed branch with half of `X` (`osBytes_halves`) and `Hown2`), unlock, and
-    -- `commitErr` at `fl = true` (the writer's half of `X`, the data page's bytes and cells back
-    -- with the rest, `hdrTails`, `writerCells_top`).
-    sorry
+  · -- the meta `WriteAt` failed: fail the handle
+    cases err2 with
+    | nil => exact absurd rfl hne2
+    | ok ie =>
+    (try wp_auto)
+    have hl1 : ((X.map Prod.fst).drop 16 |>.take 64).length = 64 := by simp; omega
+    icases osBytes_halves p X 0 $$ Hmxw with ⟨Hx1, Hx2⟩
+    imod meta_fail γ db p base len γm mx hwm
+        (((X.map Prod.fst).drop 16).take 64 ++ ((X.map Prod.fst).drop 4112).take 64)
+        (by simp; omega) X hXl T _
+        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1]
+      with ⟨HR, #Hfailed, Htok, Hcur, Hout⟩
+    · rw [List.take_left' hl1, List.drop_left' hl1]
+      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1; iframe #
+    wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
+      $$ [$Hmeta $Hsync $Hlocked HR]
+    · iexact HR
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact hne2
+    ihave Hpc := cellsB_any base _ _ $$ Hpc
+    rw [dataPage_length]
+    ihave Herr := dataErrT γ db f fd p mx hwm base len γm { m4 with size := m4.size, hi := h2 } X
+      ((dataPage mv.pgid' v).map (·, true)) (tail2.drop 4096) m2.size _ _
+      ⟨hm4m, by rw [hm4s]; exact Hsz, Hbase, Hl41, Hwf.1, by show 4096 * hwm + 4096 ≤ m4.size; omega, hXl,
+        by simp only [List.length_map, dataPage_length],
+        by simp only [List.length_drop]; show _ = m4.size - _ - _; omega⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest]
+    · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest
+      iframe #
+    iunfold commitErr at Herr
+    iexact Herr
   (try wp_auto)
   -- TODO: the meta write succeeded (`ys2.map fst = metaPageOf mv`, `pwBytes_inside`). `Fd`, then
   -- `Fdatasync` over `X` (lo 0): on an error, as the failed `WriteAt` above (with `ok := false`).
