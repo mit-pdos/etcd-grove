@@ -53,6 +53,13 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
 
 ## Second tier: real, narrower or partly known
 
+- **[etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md)** (re-ranked
+  2026-11-01; was "declined": #16380 closed not planned when the only effect known was the check's
+  inconsistency): a revision such a transaction commits puts a key and then deletes it, and
+  compacting at that revision drops the put, so a watch from the compaction revision (what a client
+  re-watches from after `CompactRevision`) skips the `PUT` event, through gRPC with the default
+  configuration. Reproduced at the mvcc level. New evidence for the maintainers, with the earlier
+  fix (#16395) at hand.
 4. **[etcd-compact-past-raft-applied](etcd-compact-past-raft-applied.md)**: the apply loop
    snapshots and compacts raft's in-memory log before `Advance` has moved raft's `applied`, so a
    campaign in that window panics the member (`hasUnappliedConfChanges`: "unavailable due to
@@ -443,8 +450,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md) (the same
   cause, one size check covers all three). Cheap robustness fixes, not a priority for etcd.
 - **Declined, unreproduced or out of scope**:
-  [etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md) (maintainers declined:
-  #16380 closed not planned),
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,
