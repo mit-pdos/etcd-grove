@@ -500,54 +500,79 @@ theorem Replica.run.wp_proof
             (max (max fz (uint.nat M.prev)) (D ++ ce).length -
               uint.nat (imgAppend (imgSetHardState M (phsNext hd h)) k es).prev)) $$ []
       · simp only [imgAppend_prev, imgSetHardState]; iexact Hfz3
-      cases syncb
-      · -- a commit-only batch: entered at once (its durable state's commit only moves)
-        have Hlen0 : rdv.Entries'.len = W64 0 := by
-          refine Classical.byContradiction fun hne => ?_
-          exact absurd (Hsync.2 (Or.inl hne)) (by simp)
-        have Hes0 : es = [] := by
-          apply List.eq_nil_of_length_eq_zero
-          rw [Hesl.1, Hlen0]; rfl
-        have Htv : (phsNext hd h).Term' = S.term ∧ (phsNext hd h).Vote' = S.vote := by
-          by_cases hE : h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0
-          · rw [phsNext_empty hd h hE]; exact ⟨Htie.1.symm, Htie.2.symm⟩
-          · rw [phsNext_ne hd h hE]
-            have hn : ¬ (h.Vote' ≠ hd.Vote' ∨ h.Term' ≠ hd.Term') := fun hv =>
-              absurd (Hsync.2 (Or.inr ⟨hE, hv⟩)) (by simp)
-            simp only [ne_eq, not_or, Decidable.not_not] at hn
-            exact ⟨hn.2.trans Htie.1.symm, hn.1.trans Htie.2.symm⟩
-        subst Hes0
-        imod dmu_close_enter γ dir id r n st ρ.ms ρ.γs ρ.ph crashed ip M
-          (imgAppend (imgSetHardState M (phsNext hd h)) k []) fz
-          (max (max fz (uint.nat M.prev)) (D ++ ce).length) S
-          { storage := kdStorIface st, delivered := D, hardState := hd, handling := none, key := ρ.key,
-            durable := S, role := role }
-          { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h,
-            handling := some ([], none), key := ρ.key, durable := readyDurable S (phsNext hd h) none [],
-            role := roleAfter role ss } ms Hok3 Hh3 rfl HMc3 (by omega) Hfzc3 His3
-          (fun σ Hσ Hc => holds_commit_only S σ (phsNext hd h) Hσ Htv.1 Htv.2
-            (by rw [imgAppend_hs] at Hc; simpa [imgSetHardState] using Hc))
-          $$ [Hlc1 Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun]
-          with ⟨HI, Hclaim, Hres, Hrun, Hcmh, #Hicl'⟩
-        · iframe Hlc1 HfInv Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun
-        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked HI]
-        · inext; iexact HI
-        sorry
-      · -- a cut batch: recorded, `persist` enters it
-        imod dmu_close_cut γ id r n st ρ.ms ρ.γs ρ.ph crashed ip M
-          (imgAppend (imgSetHardState M (phsNext hd h)) k es) fz
-          (max (max fz (uint.nat M.prev)) (D ++ ce).length) S
-          { storage := kdStorIface st, delivered := D, hardState := hd, handling := none, key := ρ.key,
-            durable := S, role := role }
-          { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h,
-            handling := some (es, none), key := ρ.key, durable := readyDurable S (phsNext hd h) none es,
-            role := roleAfter role ss } ms Hok3 Hh3 rfl HMc3 (by omega) Hfzc3
-          His3 $$ [Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter]
-          with ⟨%γb, HI, Hclaim, #Hsv, Hcmh, #Hicl'⟩
-        · iframe Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter
-        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked HI]
-        · inext; iexact HI
-        sorry
+      wp_join iprop(∃ γb : GName, r_ptr ↦ r ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+          ghostVar ρ.ph.cm (1 : Qp).half (phsNext hd h) ∗
+          monoNatLbOwn ρ.ph.ic (max (max fz (uint.nat M.prev)) (D ++ ce).length) ∗
+          (if syncb then iprop(ghostVar ρ.ph.ph (1 : Qp).half (some γb, readyDurable S (phsNext hd h) none es) ∗
+              savedPropOwn γb DFrac.discard (kdBatchRes γ id n
+                { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h,
+                  handling := some (es, none), key := ρ.key, durable := readyDurable S (phsNext hd h) none es,
+                  role := roleAfter role ss } ms))
+           else iprop(ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), readyDurable S (phsNext hd h) none es) ∗
+              kdBatchRes γ id n
+                { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h,
+                  handling := some (es, none), key := ρ.key, durable := readyDurable S (phsNext hd h) none es,
+                  role := roleAfter role ss } ms)))
+        at next with [r Hlc1 Hrest Himage Hmeta Hic His Hcm Hph Hclaim Hcmh Henter Hrun Hlocked]
+        as ⟨%γb, r, Hrun, Hcmh, #Hicl', Hphase⟩
+      · try wp_auto
+        cases syncb
+        · -- a commit-only batch: entered at once (its durable state's commit only moves)
+          have Hlen0 : rdv.Entries'.len = W64 0 := by
+            refine Classical.byContradiction fun hne => ?_
+            exact absurd (Hsync.2 (Or.inl hne)) (by simp)
+          have Hes0 : es = [] := by
+            apply List.eq_nil_of_length_eq_zero
+            rw [Hesl.1, Hlen0]; rfl
+          have Htv : (phsNext hd h).Term' = S.term ∧ (phsNext hd h).Vote' = S.vote := by
+            by_cases hE : h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0
+            · rw [phsNext_empty hd h hE]; exact ⟨Htie.1.symm, Htie.2.symm⟩
+            · rw [phsNext_ne hd h hE]
+              have hn : ¬ (h.Vote' ≠ hd.Vote' ∨ h.Term' ≠ hd.Term') := fun hv =>
+                absurd (Hsync.2 (Or.inr ⟨hE, hv⟩)) (by simp)
+              simp only [ne_eq, not_or, Decidable.not_not] at hn
+              exact ⟨hn.2.trans Htie.1.symm, hn.1.trans Htie.2.symm⟩
+          subst Hes0
+          imod dmu_close_enter γ dir id r n st ρ.ms ρ.γs ρ.ph crashed ip M
+            (imgAppend (imgSetHardState M (phsNext hd h)) k []) fz
+            (max (max fz (uint.nat M.prev)) (D ++ ce).length) S
+            { storage := kdStorIface st, delivered := D, hardState := hd, handling := none, key := ρ.key,
+              durable := S, role := role }
+            { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h,
+              handling := some ([], none), key := ρ.key, durable := readyDurable S (phsNext hd h) none [],
+              role := roleAfter role ss } ms Hok3 Hh3 rfl HMc3 (by omega) Hfzc3 His3
+            (fun σ Hσ Hc => holds_commit_only S σ (phsNext hd h) Hσ Htv.1 Htv.2
+              (by rw [imgAppend_hs] at Hc; simpa [imgSetHardState] using Hc))
+            $$ [Hlc1 Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun]
+            with ⟨HI, Hclaim, Hres, Hrun, Hcmh, #Hicl'⟩
+          · iframe Hlc1 HfInv Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter Hrun
+          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked HI]
+          · inext; iexact HI
+          wp_join_done
+          iexists γ.files
+          simp only [imgAppend_hs, imgSetHardState, Bool.false_eq_true, ↓reduceIte]
+          iframe
+          iexact Hicl'
+        · -- a cut batch: recorded, `persist` enters it
+          imod dmu_close_cut γ id r n st ρ.ms ρ.γs ρ.ph crashed ip M
+            (imgAppend (imgSetHardState M (phsNext hd h)) k es) fz
+            (max (max fz (uint.nat M.prev)) (D ++ ce).length) S
+            { storage := kdStorIface st, delivered := D, hardState := hd, handling := none, key := ρ.key,
+              durable := S, role := role }
+            { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h,
+              handling := some (es, none), key := ρ.key, durable := readyDurable S (phsNext hd h) none es,
+              role := roleAfter role ss } ms Hok3 Hh3 rfl HMc3 (by omega) Hfzc3
+            His3 $$ [Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter]
+            with ⟨%γb, HI, Hclaim, #Hsv, Hcmh, #Hicl'⟩
+          · iframe Hrest Himg Himage Hmeta Hic Hfz3' His Hcm Hcert3 Hph Hclaim Hcmh Henter
+          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked HI]
+          · inext; iexact HI
+          wp_join_done
+          iexists γb
+          simp only [imgAppend_hs, imgSetHardState, ↓reduceIte]
+          iframe
+          iframe Hicl' Hsv
+      sorry
     | some lo =>
       sorry
   iapply BigAndL.bigAndL_cons.2
