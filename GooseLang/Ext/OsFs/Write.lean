@@ -1529,4 +1529,42 @@ theorem cellsR_split (b : Loc) (len lo mid hi : Nat) (vf : Nat → val) (h1 : lo
 
 end specs3
 
+section specs4
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+
+theorem mcellsAny_split (M : GMap Loc Nat) (lo mid hi : Nat) (h1 : lo ≤ mid) (h2 : mid ≤ hi) :
+    mcellsAny (GF := GF) M lo hi ⊢ mcellsAny M lo mid ∗ mcellsAny M mid hi := by
+  unfold mcellsAny
+  rw [← BigSepM.bigSepM_sep_eq]
+  apply BigSepM.bigSepM_mono
+  intro b len _
+  iintro ⟨%vf, H⟩
+  icases (cellsR_split b len lo mid hi vf h1 h2).1 $$ H with ⟨H1, H2⟩
+  isplitl [H1]
+  · iexists vf; iexact H1
+  · iexists vf; iexact H2
+
+theorem mcellsAny_merge (M : GMap Loc Nat) (lo mid hi : Nat) (h1 : lo ≤ mid) (h2 : mid ≤ hi) :
+    mcellsAny (GF := GF) M lo mid ∗ mcellsAny M mid hi ⊢ mcellsAny M lo hi := by
+  unfold mcellsAny
+  rw [← BigSepM.bigSepM_sep_eq]
+  apply BigSepM.bigSepM_mono
+  intro b len _
+  iintro ⟨⟨%vf1, H1⟩, ⟨%vf2, H2⟩⟩
+  iexists (fun i => if i < min mid len then vf1 i else vf2 i)
+  iapply (cellsR_split b len lo mid hi _ h1 h2).2
+  isplitl [H1]
+  · iapply (cellsR_congr _ _ _ vf1 _ (fun i _ hi => by show vf1 i = if i < min mid len then vf1 i else vf2 i; rw [if_pos (by omega)])).1 $$ H1
+  · iapply (cellsR_congr _ _ _ vf2 _ (fun i hi _ => by show vf2 i = if i < min mid len then vf1 i else vf2 i; rw [if_neg (by omega)])).1 $$ H2
+
+theorem mcells_any (M : GMap Loc Nat) (lo hi : Nat) (vf : Nat → val) :
+    mcells (GF := GF) M lo hi vf ⊢ mcellsAny M lo hi := by
+  unfold mcells mcellsAny
+  apply BigSepM.bigSepM_mono
+  intro b len _
+  iintro H; iexists vf; iexact H
+
+end specs4
+
 end Perennial
