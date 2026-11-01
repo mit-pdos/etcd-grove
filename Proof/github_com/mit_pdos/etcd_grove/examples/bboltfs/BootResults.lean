@@ -13,8 +13,7 @@ takes the file from it (`csInv_crash_keep`), a `Good` file of the new generation
 boot the file is absent.
 
 The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Close`, `Commit`,
-from the crash-aware proofs of their callees and the crash-free ones of `Link.lean`), except
-`Commit`'s callee `DB.commit.specCrash`, whose proof is in progress: a hypothesis (`Hcommit`).
+from the crash-aware proofs of their callees and the crash-free ones of `Link.lean`).
 
 **What is assumed** (hypotheses of `bootCrashSafety`):
 * `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`
@@ -38,6 +37,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.BootMinibolt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.BootP1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.OpenCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__CommitCrash
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__commitCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__GetCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__CloseCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__closeCrash
@@ -94,9 +94,13 @@ theorem DB.wp_CloseC : DB.Close.specCrash (GF := GF) (hG := hG) :=
 theorem DB.wp_GetC : DB.Get.specCrash (GF := GF) (hG := hG) :=
   DB.Get.wp_proof_crash DB.wp_meta wp_pageAt
 
-theorem DB.wp_CommitC (wp_commit : DB.commit.specCrash (GF := GF) (hG := hG)) :
-    DB.Commit.specCrash (GF := GF) (hG := hG) :=
-  DB.Commit.wp_proof_crash DB.wp_meta wp_commit
+theorem DB.wp_commitC : DB.commit.specCrash (GF := GF) (hG := hG) :=
+  DB.commit.wp_proof_crash DB.wp_mmapC os.File.Truncate.wp_proof_crashS os.File.Sync.wp_proof_crashS
+    wp_pageAt os.File.WriteAt.wp_proof_crashS os.File.wp_Fd syscall.Fdatasync.wp_proof_crashS
+    Page.wp_meta Meta.wp_write
+
+theorem DB.wp_CommitC : DB.Commit.specCrash (GF := GF) (hG := hG) :=
+  DB.Commit.wp_proof_crash DB.wp_meta DB.wp_commitC
 
 /-- The package initializer's spec (an assumption of `bootCrashSafety`: see the file header). -/
 abbrev initialize'.spec : Prop :=
@@ -135,7 +139,6 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
     (Hinit_wp : ∀ hG : HeapGS .hasLC GF, initialize'.spec (GF := GF) (hG := heapAt hG lctx))
-    (Hcommit : ∀ hG : HeapGS .hasLC GF, DB.commit.specCrash (GF := GF) (hG := heapAt hG lctx))
     (Hprem : ∀ fo, Good fo → bootPremises fo)
     (N T : Nat) (hT : T ≤ 2 ^ 30) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -183,7 +186,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       unfold boot
       wp_apply (Hinit_wp hG) $$ Hgs as #Hpkg
       wp_pures
-      wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC (DB.wp_CommitC (Hcommit hG)) DB.wp_CloseC dir γ
+      wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC DB.wp_CommitC DB.wp_CloseC dir γ
           fo0 hg0 (Hprem fo0 hg0) $$ [Hown Htok]
       · iframe; iframe #
       ipureintro; rfl
@@ -204,16 +207,13 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       ipureintro; exact hg'
 
 /-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`), under the hypotheses of the
-file header: the package initializer (`Hinit_wp`), `commit`'s spec, whose proof is in progress
-(`Hcommit`), `bootPremises` of every `Good` file (`Hprem`, false as things stand), and
+file header: the package initializer (`Hinit_wp`), `bootPremises` of every `Good` file (`Hprem`, false as things stand), and
 fewer than `2 ^ 30` live threads in executions of at least `2 ^ 30 - 2` steps (`Hlive`). -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (dir : GoString)
     (Hinit_wp : ∀ hG : HeapGS .hasLC osFsGF,
       initialize'.spec (GF := osFsGF) (hG := heapAt hG lctx))
-    (Hcommit : ∀ hG : HeapGS .hasLC osFsGF,
-      DB.commit.specCrash (GF := osFsGF) (hG := heapAt hG lctx))
     (Hprem : ∀ fo, Good fo → bootPremises fo)
     (Hlive : ∀ (σ : state) (g : GlobalState) (n : Nat), 2 ^ 30 ≤ n + 2 →
       @RealCrashThreadsBelow osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
@@ -221,11 +221,11 @@ theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hfile Hthreads n κs t2 σ2 b Hsteps
   by_cases hn : n + 2 ≤ 2 ^ 30
-  · exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hcommit Hprem (n + 1) (n + 2) hn
+  · exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hprem (n + 1) (n + 2) hn
       σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
       (@RealCrashThreadsBelow.of_single osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
         _ _ _ Hthreads)
-  · exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hcommit Hprem (n + 1) (2 ^ 30)
+  · exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hprem (n + 1) (2 ^ 30)
       (Nat.le_refl _) σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
       (Hlive σ g n (by omega))
 
