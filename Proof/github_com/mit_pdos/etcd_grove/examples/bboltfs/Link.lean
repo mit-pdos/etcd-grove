@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__readPageSize
@@ -19,7 +20,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
+public import Proof.os.File__Fd
 public import Proof.os.File__ReadAt
+public import Proof.syscall.Flock
+public import Spec.os.File__Close
 public import Spec.golang_org.x.sys.unix.Munmap
 
 @[expose] public section
@@ -38,6 +42,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
+
+theorem os.File.wp_Fd :
+    EtcdGrove.os.File.Fd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.Fd.wp_proof
+
+theorem syscall.wp_Flock :
+    EtcdGrove.syscall.Flock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.syscall.Flock.wp_proof
 
 theorem Meta.wp_sum64 :
     EtcdGrove.bboltfs.Meta.sum64.spec (GF := GF) (hG := hG) :=
@@ -93,12 +105,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
+variable (h_os_File__Close : EtcdGrove.os.File.Close.spec (GF := GF) (hG := hG))
 variable (h_unix_Munmap : EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
-include h_unix_Munmap
+include h_os_File__Close h_unix_Munmap
 
 theorem DB.wp_munmap :
     EtcdGrove.bboltfs.DB.munmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.munmap.wp_proof h_unix_Munmap
+
+theorem DB.wp_close :
+    EtcdGrove.bboltfs.DB.close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.close.wp_proof (DB.wp_munmap h_os_File__Close h_unix_Munmap) os.File.wp_Fd syscall.wp_Flock h_os_File__Close
 
 end links_pending
 
