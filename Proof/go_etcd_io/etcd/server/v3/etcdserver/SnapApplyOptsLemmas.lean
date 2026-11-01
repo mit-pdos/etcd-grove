@@ -304,7 +304,7 @@ theorem snap_isSnapshotServer
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
   iunfold srvFieldsAt at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -⟩
-  rw [Henv.1]
+  rw [Henv.2.1]
   iunfold apply.isSnapshotServer
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr
