@@ -630,6 +630,101 @@ theorem wp_osPRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
       have h' : lo + k - off.toNat < r.length := by simp at hlt; omega
       simp only [List.getElem_take]; exact (key k hk h1 h2).2 h'⟩) Hfd Hbs
 
+/-- The facts `osBytes_lookup` gives, for every range of a list of held ranges. -/
+theorem osBytes_lookup_list {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt)
+    (p : GoString) :
+    ∀ (rs : List (Nat × DFrac × List (w8 × Bool))),
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗ tokRes (gooseOsGS (L := L)) st Γt -∗
+      ([∗list] x ∈ rs, osBytes (L := L) p x.1 x.2.1 x.2.2) -∗
+      ⌜∀ x ∈ rs, ∀ k (hk : k < x.2.2.length), ∃ f, st.file p = some f ∧
+        f.cur[x.1 + k]? = some x.2.2[k].1 ∧ ¬ InflightAt st p (x.1 + k)⌝
+  | [] => by
+    iintro _ _ _; ipureintro; intro x hx; cases hx
+  | x :: rs => by
+    iintro HAb Htok Hbs
+    icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨H1, H2⟩
+    icases osBytes_lookup hcoh p x.1 x.2.1 x.2.2 $$ HAb Htok H1 with %h1
+    icases osBytes_lookup_list hcoh p rs $$ HAb Htok H2 with %h2
+    ipureintro
+    intro y hy
+    rcases List.mem_cons.1 hy with rfl | hy
+    · exact h1
+    · exact h2 y hy
+
+/-- `wp_osPRead_racy` for a list of held ranges (each `(lo, dq, xs)`: `osBytes p lo dq xs`). -/
+theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
+    (rs : List (Nat × DFrac × List (w8 × Bool))) (hE : ↑osN ⊆ E) (hrd : d.readable = true)
+    (hoff : 0 ≤ off.toInt) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
+      ([∗list] x ∈ rs, osBytes (L := L) d.path x.1 x.2.1 x.2.2) -∗
+      (∀ r : List w8, ∀ e : w64,
+        ⌜∀ x ∈ rs, ∀ k (hk : k < x.2.2.length), off.toNat ≤ x.1 + k →
+          x.1 + k < off.toNat + n.toNat →
+          (e = 0 → x.1 + k - off.toNat < r.length) ∧
+          ∀ (h : x.1 + k - off.toNat < r.length), r[x.1 + k - off.toNat] = x.2.2[k].1⌝ -∗
+        osFd (L := L) fd dq d -∗ ([∗list] x ∈ rs, osBytes (L := L) d.path x.1 x.2.1 x.2.2) -∗
+        Φ (PairV (#r) (#e))) -∗
+      WP (ExternalOp osFsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv Hfd Hbs HΦ
+  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  icases osBytes_lookup_list hcoh d.path rs $$ HAb Htok Hbs with %Hbl
+  unfold osFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf⟩ := hwf.fds fd d hfd
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, off, n, d, _, rfl, hfd, hrd, hoff, readSees_exists hf _ _, rfl,
+      Or.inl rfl⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', off', n', d', r, hv, hfd', -, -, hrs, rfl, hres⟩ := Hst
+  injection hv with h1 h2
+  injection h2 with h3 h4
+  cases go.intoVal_inj h1; cases go.intoVal_inj h3; cases go.intoVal_inj h4
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  obtain ⟨⟨sz, hss, hrl⟩, hrb⟩ := hrs
+  have key : ∀ x ∈ rs, ∀ k (hk : k < x.2.2.length), off.toNat ≤ x.1 + k →
+      x.1 + k < off.toNat + n.toNat →
+      x.1 + k - off.toNat < r.length ∧
+      ∀ (h : x.1 + k - off.toNat < r.length), r[x.1 + k - off.toNat] = x.2.2[k].1 := by
+    intro x hx k hk h1 h2
+    obtain ⟨f', hf', hb, hn⟩ := Hbl x hx k hk
+    rw [hf] at hf'; cases hf'
+    have hlt : x.1 + k < f.cur.length := (List.getElem?_eq_some_iff.1 hb).1
+    have hgt := statSees_gt hf hlt hn hss
+    refine ⟨by rw [hrl]; omega, fun hlt' => ?_⟩
+    have hn' : ¬ InflightAt st' d.path (off.toNat + (x.1 + k - off.toNat)) := by
+      rw [show off.toNat + (x.1 + k - off.toNat) = x.1 + k by omega]; exact hn
+    have := hrb _ hlt' hn'
+    simp only [hf, Option.map_some, Option.bind_some] at this
+    rw [show off.toNat + (x.1 + k - off.toNat) = x.1 + k by omega, hb] at this
+    exact (Option.some.inj this).symm
+  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  · iframe
+  imodintro
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hwf, hcoh⟩
+  rcases hres with rfl | ⟨k', e, hk', he, rfl⟩
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(fun x hx k hk h1 h2 =>
+      ⟨fun _ => (key x hx k hk h1 h2).1, (key x hx k hk h1 h2).2⟩) Hfd Hbs
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(fun x hx k hk h1 h2 => ⟨fun h => absurd h he, fun hlt => by
+      have h' : x.1 + k - off.toNat < r.length := by simp at hlt; omega
+      simp only [List.getElem_take]; exact (key x hx k hk h1 h2).2 h'⟩) Hfd Hbs
+
 /-- The `OsMeta` after a successful sync: the size is durable. -/
 def OsMeta.synced (m : OsMeta) : OsMeta := { m with lo := m.size, hi := m.size }
 
