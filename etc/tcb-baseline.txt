@@ -783,7 +783,6 @@ sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry RawNode.Advance.wp_proof
-sorry RawNode.Bootstrap.wp_proof
 sorry RawNode.Campaign.wp_proof
 sorry RawNode.ForgetLeader.wp_proof
 sorry RawNode.Propose.wp_proof
@@ -794,7 +793,6 @@ sorry RawNode.ReportUnreachable.wp_proof
 sorry RawNode.Step.wp_proof
 sorry RawNode.Tick.wp_proof
 sorry RawNode.TransferLeader.wp_proof
-sorry RawNode.acceptReady.wp_proof
 sorry RawNode.readyWithoutAccept.wp_proof
 sorry RestartNode.wp_raw
 sorry StartNode.wp_raw
