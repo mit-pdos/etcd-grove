@@ -244,7 +244,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-    Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole⟩
+    Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst⟩
 
 /-! ## A `Ready`'s batch and committed entries (raft-final phase 2, for `readyData`) -/
 
@@ -512,7 +512,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc [Hdur]
-  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
 /-! ## The tick channel -/
 
@@ -769,8 +769,15 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
               · exact .inl h2
               · exact .inr ⟨_, h2, h3, by simp [Hs]⟩, Hfl', Hsd, Hu, Ha, Hc⟩))
           (Hsdt.snap Hdag Hsl0) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
-      · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
-        sorry
+      · -- (durability stage II (i)) the step keeps `durTie`'s fields
+        rcases Hsl0 with ⟨Hpv0, Hsn0', -, -⟩ | ⟨-, Hpv0, Hsn0', -, Hc0, -⟩
+        · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn0' Hpv0 Hsd $$ Hdur
+        · iapply durTie_vac γ Hsn0'
+          intro l hl heq
+          obtain ⟨-, -, Hlc, -⟩ := Hloan.2.2 l hl
+          have : uint.Z (snapId sv0).index' = uint.Z (snapId l.snap).index' := by rw [heq]
+          simp only [snapId] at this
+          omega
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
@@ -831,8 +838,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         (RNFl.keep Hrnfl Hfl' Hap' Ha)
         (Hloan.step_xw s'.term Hgx (fun _ => ⟨.inl Hsn, Hfl', (logStoreRec_stored Hsd), Hu, Ha, Hc⟩))
         (Hsdt.ofRec Hsn Hsd) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
-    · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
-      sorry
+    · -- (durability stage II (i)) the step keeps `durTie`'s fields
+      iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro
   rw [Htrm]
   exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
@@ -1076,8 +1083,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (Hloan.keep Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1)
       Hfr'.2.2.1 Hap' Hc)
     (Hsdt.ofRec Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.1) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
-  · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
-    sorry
+  · -- (durability stage II (i)) the step keeps `durTie`'s fields
+    iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr'.2.2.2.1 Hfr'.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1) $$ Hdur
 
 end step
 
@@ -1472,7 +1479,7 @@ theorem wp_applyConf_dyn
       (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')
       (by unfold SdtTie; rw [Hls']; exact Hsdt) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rw [Hls']) (by rw [Hls'])
-        (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; rfl) $$ Hdur
+        (by rw [Hls']) $$ Hdur
   ipureintro; exact Hcs0
 
 /-! ### The static mode -/
@@ -1562,7 +1569,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl' Hsloc' Hlw' Hxw' [Hdur]
   iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rw [Hls]) (by rw [Hls])
-    (by rw [Hls]) (by rw [Hls]) (by rw [Hls]; rfl) $$ Hdur
+    (by rw [Hls]) $$ Hdur
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/

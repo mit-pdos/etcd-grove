@@ -658,6 +658,45 @@ theorem ownRaftPhysC_applying (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   iframe H
   ipureintro; exact Hb.2.1
 
+/-- (2026-11-01, durability stage II (i)) **What a `Ready` cuts from**: with no snapshot pending, the
+log's in-progress prefix (`offsetInProgress - offset` unstable entries after the stable ones) is a
+prefix of what the storage will hold, all of it when everything is in progress (`LogPersistRel`),
+`offsetInProgress` between the offset and the end, the entries numbered from the boundary. What makes
+the batch of the unstable entries not yet handed out, appended to the recorded durable state, the
+full log (`durFull_cut`); `ownRawNodeReady` keeps it of the state before the hand-out. -/
+def PersistCut (ls : LogState) : Prop :=
+  ls.snap = none →
+    LogPersistRel ls.sents ls.uents (uint.Z ls.inprogress - logOffset ls) ls.stored ∧
+    logOffset ls ≤ uint.Z ls.inprogress ∧
+    uint.Z ls.inprogress ≤ logOffset ls + (ls.uents.length : Int) ∧
+    LogIndicesOk ls.prev (ls.sents ++ ls.uents)
+
+/-- (durability stage II (i)) The log's `PersistCut`, from the persistence invariant (`Hpersist`). -/
+theorem ownRaftLog_persistCut (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗ ⌜PersistCut ls⌝ ∗ ownRaftLog l ls := by
+  iintro H0
+  iNamed H0
+  isplitr
+  · ipureintro
+    intro Hc
+    have Hrel := (Hpersist Hc).rel
+    rw [Hoffset] at Hrel Hipb
+    exact ⟨Hrel, Hipb.1, Hipb.2, Hidx⟩
+  · iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      Happlied Hpapplied Hcommitted Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
+      Huents_cap Hl_logger Hu_logger
+
+/-- ... read through the struct. -/
+theorem ownRaftPhysC_persistCut (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜PersistCut s.logst⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_log_same c r id s $$ H with ⟨Hlog, Hback⟩
+  icases ownRaftLog_persistCut _ _ $$ Hlog with ⟨%Hb, Hlog⟩
+  ihave H := Hback $$ Hlog
+  iframe H
+  ipureintro; exact Hb
+
 -- (U8 v2, 2026-10-29) `ownRaftPhysC_last_bound` moved to `InvRaftPhys.lean` (`raft.appliedTo`'s).
 
 /-- The log's `applied ≤ applying ≤ committed`, read through the struct. -/
@@ -2127,32 +2166,69 @@ theorem snapLocOk_of_snap (γ : RaftNames) (id : w64) {o : Option entryID} {P : 
     (hs : P → o = none) (hp : P) : ⊢ snapLocOk (GF := GF) γ id o := by
   rw [hs hp]; iapply snapLocOk_none
 
-/-- (2026-11-01, durability stage I fix G2; stage I-3 worklist, "Open design points") **The node's
-recorded durable state is its log**: unless a snapshot is pending and not yet handed out, the durable
-state the client entered last (`rs.dur`, as the driver recorded it), with the unstable entries not yet
-handed out appended (as a batch appends them, `RaftState.next`), is the node's full log -- for every
-recorded full prefix `fp` below the log's boundary. So the next `Ready`'s batch, cut from `rs.dur`
-(`readyCut`'s `S' = readyDurable rs.dur ...`), enters the full log (`ownRaftGhost_cut`'s `DurFull`
-premise). Persistent; stated against the recorded prefix (`logRecs`), not `ownRawNode`'s ghost `fp`,
-which the static mode leaves unconstrained. -/
+/-- (2026-11-01, durability stage I fix G2; stage I-3 worklist, "Open design points"; strengthened
+2026-11-01, durability stage II (i), as `stageI-6-attach.md` proposed) **The node's recorded durable
+state is what its storage holds**: unless a snapshot is pending that is not the one lent out, the
+durable state the client entered last (`rs.dur`, as the driver recorded it) is the full log as the
+storage holds it once the entries handed out are appended (`LogState.stored`, after the log's
+boundary) -- for every recorded full prefix `fp` below the boundary -- and its base is at most the
+boundary. Every step keeps it (it reads only `prev`, the pending snapshot and `stored`, which only a
+`Ready`, an acknowledgement and a restore move; a restore makes it vacuous); a `Ready` re-establishes
+it from the log (`durFull_cut`: what raft handed out is a prefix of `stored`, `PersistCut`). So the
+next `Ready`'s batch, cut from `rs.dur` (`readyCut`'s `S' = readyDurable rs.dur ...`), enters the
+full log (`ownRaftGhost_cut`'s `DurFull` premise). (Until this strengthening the tie stated the
+batch's state directly, `DurFull (rs.dur.next … (nextUnstable s.logst)) (fp ++ sents ++ uents)`,
+which no step could keep: nothing in the step specs relates the log after a step to the one before
+below `offsetInProgress`.) Persistent; stated against the recorded prefix (`logRecs`), not
+`ownRawNode`'s ghost `fp`, which the static mode leaves unconstrained. -/
 def durTie (γ : RaftNames) (rs : RNState) (s : NState) : IProp GF :=
-  iprop(□ (⌜s.logst.snap = none ∨ rs.slent.isSome⌝ -∗ ∀ fp, ⌜FullOk s.logst.prev fp⌝ -∗
-    logRecs γ base0 fp -∗
-    ⌜DurFull (rs.dur.next rs.dur.term rs.dur.vote rs.dur.commit none (nextUnstable s.logst))
-      (fp ++ s.logst.sents ++ s.logst.uents)⌝))
+  iprop(□ (⌜s.logst.snap = none ∨
+        ∃ l, rs.slent = some l ∧ s.logst.snap = some (snapId l.snap)⌝ -∗
+    ∀ fp, ⌜FullOk s.logst.prev fp⌝ -∗ logRecs γ base0 fp -∗
+    ⌜DurFull rs.dur (fp ++ s.logst.stored) ∧
+      uint.Z rs.dur.base.index' ≤ uint.Z s.logst.prev.index'⌝))
 
 instance durTie_pers (γ : RaftNames) (rs : RNState) (s : NState) :
     Persistent (durTie (GF := GF) γ rs s) := by
   unfold durTie; infer_instance
 
-/-- `durTie` reads only the recorded durable state, the loan and the log's boundary, entries and
-unstable entries not yet handed out. -/
+/-- `durTie` reads only the recorded durable state, the loan, the pending snapshot, the log's
+boundary and what the storage holds. -/
 theorem durTie_congr (γ : RaftNames) {rs rs' : RNState} {s s' : NState}
     (hd : rs'.dur = rs.dur) (hl : rs'.slent = rs.slent) (hsn : s'.logst.snap = s.logst.snap)
-    (hp : s'.logst.prev = s.logst.prev) (hse : s'.logst.sents = s.logst.sents)
-    (hue : s'.logst.uents = s.logst.uents) (hnu : nextUnstable s'.logst = nextUnstable s.logst) :
+    (hp : s'.logst.prev = s.logst.prev) (hst : s'.logst.stored = s.logst.stored) :
     durTie (GF := GF) γ rs s ⊢ durTie γ rs' s' := by
-  unfold durTie; rw [hd, hl, hsn, hp, hse, hue, hnu]
+  unfold durTie; rw [hd, hl, hsn, hp, hst]
+
+/-- (durability stage II (i)) **A restore makes the tie vacuous**: a snapshot pending that is not
+the one lent out (a `MsgSnap`'s restore, above the commit index, so above a lent snapshot). -/
+theorem durTie_vac (γ : RaftNames) {rs : RNState} {s : NState} {x : entryID}
+    (hsn : s.logst.snap = some x) (hl : ∀ l, rs.slent = some l → x ≠ snapId l.snap) :
+    ⊢ durTie (GF := GF) γ rs s := by
+  unfold durTie
+  iintro !> %Hc
+  exfalso
+  rcases Hc with h | ⟨l, h1, h2⟩
+  · rw [hsn] at h; cases h
+  · rw [hsn] at h2; exact hl l h1 (Option.some.inj h2)
+
+/-- (durability stage II (i)) **The acknowledgement of a lent snapshot keeps the tie**: the loan
+returned, the boundary and what the storage holds kept, and no snapshot left pending only if the
+lent one was (`stableSnapTo` hits only at its index). -/
+theorem durTie_ack (γ : RaftNames) {rs rs' : RNState} {s s' : NState} {l : SnapLoan}
+    (hd : rs'.dur = rs.dur) (hl : rs.slent = some l) (hl' : rs'.slent = none)
+    (hp : s'.logst.prev = s.logst.prev) (hst : s'.logst.stored = s.logst.stored)
+    (hsn : s'.logst.snap = none → s.logst.snap = some (snapId l.snap)) :
+    durTie (GF := GF) γ rs s ⊢ durTie γ rs' s' := by
+  unfold durTie
+  iintro #H !> %Hc
+  have Hs' : s'.logst.snap = none := by
+    rcases Hc with h | ⟨l', h1, -⟩
+    · exact h
+    · rw [hl'] at h1; cases h1
+  rw [hd, hp, hst]
+  iapply H
+  ipureintro; exact .inr ⟨l, hl, hsn Hs'⟩
 
 /-- (durability stage II, G2) `DurFull` of a batch's state reads only the base and the entries: not
 the hard state's term, vote and commit. -/
@@ -2205,13 +2281,10 @@ theorem nextUnstable_acceptUnstable (ls : LogState)
   simp only
   rw [this]; omega
 
-/-- (durability stage II, G2) **A fresh node's tie**: at the initial durable state, with an empty
-stable log from the zero boundary, nothing handed out and no snapshot, the unstable entries
-numbered from `1`. -/
+/-- (durability stage II, G2) **A fresh node's tie**: at the initial durable state, with the log's
+boundary at zero and the storage holding nothing after it. -/
 theorem durTie_fresh (γ : RaftNames) (rs : RNState) (s : NState) (Hd : rs.dur = RaftState.init)
-    (Hp : s.logst.prev = entryID.mk (W64 0) (W64 0)) (Hse : s.logst.sents = [])
-    (Hnu : nextUnstable s.logst = s.logst.uents)
-    (Hidx : ∀ e0, s.logst.uents.head? = some e0 → uint.Z e0.Index' = 1) :
+    (Hp : s.logst.prev = entryID.mk (W64 0) (W64 0)) (Hst : s.logst.stored = []) :
     ⊢ durTie (GF := GF) γ rs s := by
   unfold durTie
   iintro !> %_ %fp %Hfp _
@@ -2222,24 +2295,77 @@ theorem durTie_fresh (γ : RaftNames) (rs : RNState) (s : NState) (Hd : rs.dur =
     have : uint.Z (entryID.mk (W64 0) (W64 0)).index' = 0 := rfl
     omega)
   subst Hfp0
-  rw [Hd, Hnu, Hse, List.nil_append, List.nil_append]
-  have Happ : appendEnts (entryID.mk (W64 0) (W64 0)) [] s.logst.uents = s.logst.uents := by
-    cases hu : s.logst.uents with
-    | nil => rfl
-    | cons e0 r =>
-      have h1 := Hidx e0 (by rw [hu]; rfl)
-      unfold appendEnts plogTruncateAppend
-      have : (uint.Z (entryID.mk (W64 0) (W64 0)).index' + 1 - uint.Z e0.Index').toNat = 0 := by
-        have : uint.Z (entryID.mk (W64 0) (W64 0)).index' = 0 := rfl
-        omega
-      simp only [this, List.drop_zero, List.take_nil, List.nil_append]
-  refine ⟨?_, ?_⟩
-  · show appendEnts (entryID.mk (W64 0) (W64 0)) [] s.logst.uents = _
-    rw [Happ]
-    show _ = s.logst.uents.drop (uint.nat (W64 0))
-    rfl
-  · show FullOk (entryID.mk (W64 0) (W64 0)) (s.logst.uents.take (uint.nat (W64 0)))
-    exact FullOk_base0
+  rw [Hd, Hst, Hp]
+  refine ⟨⟨rfl, FullOk_base0⟩, Int.le_refl _⟩
+
+/-- (durability stage II (i)) **A `Ready`'s batch is the full log**: if the recorded durable state is
+what the storage holds (`durTie`, with no snapshot pending) and what raft handed out is a prefix of
+that (`PersistCut`), the batch of the unstable entries not yet handed out, appended to it, is the
+full log: they start past the in-progress prefix, which is the storage's, above the durable base.
+-/
+theorem durFull_cut (D : RaftState) (fp : List EntryM) (ls : LogState) (t v c : w64)
+    (HP : PersistCut ls) (Hsn : ls.snap = none) (Hfp : FullOk ls.prev fp)
+    (HD : DurFull D (fp ++ ls.stored)) (Hb : uint.Z D.base.index' ≤ uint.Z ls.prev.index') :
+    DurFull (D.next t v c none (nextUnstable ls)) (fp ++ ls.sents ++ ls.uents) := by
+  obtain ⟨⟨Hpre, Hall⟩, Hip1, Hip2, Hidx⟩ := HP Hsn
+  obtain ⟨HDe, HDf⟩ := HD
+  have Hfl : (fp.length : Int) = uint.Z ls.prev.index' := Hfp.1
+  have hb0 := uint_nat_eq D.base.index'
+  have hk : (uint.Z ls.inprogress - logOffset ls).toNat ≤ ls.uents.length := by
+    omega
+  have Hnu : nextUnstable ls = ls.uents.drop (uint.Z ls.inprogress - logOffset ls).toNat := rfl
+  generalize hkd : (uint.Z ls.inprogress - logOffset ls).toNat = k at hk Hnu Hpre Hall
+  have hbfp : uint.nat D.base.index' ≤ fp.length := by omega
+  have HfT : ∀ L : List EntryM, (fp ++ L).take (uint.nat D.base.index') =
+      fp.take (uint.nat D.base.index') := fun L => List.take_append_of_le_length hbfp
+  rw [Hnu]
+  cases hd : ls.uents.drop k with
+  | nil =>
+    have hkU : k = ls.uents.length := by
+      have := List.drop_eq_nil_iff.1 hd; omega
+    have Hst := Hall hkU
+    refine ⟨?_, ?_⟩
+    · show appendEnts D.base D.ents [] = _
+      simp only [appendEnts]
+      rw [List.append_assoc, Hst]; exact HDe
+    · show FullOk D.base _
+      rw [List.append_assoc, Hst]; exact HDf
+  | cons e0 r =>
+    have he0 : ls.uents[k]? = some e0 := by
+      have h := congrArg (fun L : List EntryM => L[0]?) hd
+      simp only [List.getElem?_drop, Nat.add_zero, List.getElem?_cons_zero] at h
+      exact h
+    have he0' : (ls.sents ++ ls.uents)[ls.sents.length + k]? = some e0 := by
+      rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact he0
+    have Hi0 := Hidx _ _ he0'
+    obtain ⟨tl, htl⟩ := Hpre
+    have hlenA : (ls.sents ++ ls.uents.take k).length = ls.sents.length + k := by
+      simp only [List.length_append, List.length_take]; omega
+    refine ⟨?_, ?_⟩
+    · show appendEnts D.base D.ents (e0 :: r) = _
+      have hz : (uint.Z D.base.index' + 1 - uint.Z e0.Index').toNat = 0 := by
+        push_cast at Hi0; omega
+      simp only [appendEnts, hz, List.drop_zero, plogTruncateAppend]
+      have hn : (uint.Z e0.Index' - uint.Z D.base.index' - 1).toNat =
+          (fp ++ (ls.sents ++ ls.uents.take k)).length - uint.nat D.base.index' := by
+        simp only [List.length_append, List.length_take]
+        push_cast at Hi0; omega
+      rw [hn, HDe, ← htl]
+      show _ = List.drop (uint.nat D.base.index') (fp ++ ls.sents ++ ls.uents)
+      have hle : uint.nat D.base.index' ≤ (fp ++ (ls.sents ++ ls.uents.take k)).length := by
+        simp only [List.length_append, List.length_take]; omega
+      have hA : fp ++ (ls.sents ++ ls.uents.take k ++ tl) =
+          (fp ++ (ls.sents ++ ls.uents.take k)) ++ tl := by simp
+      rw [hA, List.drop_append_of_le_length hle,
+        List.take_append_of_le_length (by simp only [List.length_drop]; omega),
+        List.take_of_length_le (by simp only [List.length_drop]; omega), ← hd,
+        ← List.drop_append_of_le_length hle]
+      congr 1
+      rw [List.append_assoc, List.append_assoc, List.append_assoc, List.take_append_drop]
+    · show FullOk D.base (List.take (uint.nat D.base.index') (fp ++ ls.sents ++ ls.uents))
+      rw [List.append_assoc, HfT]
+      rw [HfT] at HDf
+      exact HDf
 
 /-- See the file header. `s` is the node's physical state, `c` the configuration the struct is
 at, `fp` the ghost full prefix (the dynamic mode's ghost part is `⟨rs.capplied, rs.cfg, fp⟩`);
@@ -2590,7 +2716,7 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle', H5⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, Hloan.2.2⟩
     Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur]
-  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
 /-- (2026-10-17) The term is within the ceiling. -/
 theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
@@ -2641,7 +2767,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h)⟩
     Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur]
-  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
 /-- (2026-10-28, stage U4a) `delivered`'s terms after the log's boundary are the log's, up to
 `applying` (`logTermsTo`): both are prefixes of the global committed log (`isCommitted_agree`), the
@@ -2770,7 +2896,7 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       ⟨fun h => by simp at h, Hrnfl.2⟩
       ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h)⟩
       Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur]
-    · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+    · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   iexists s.logst.applying
   isplitr
   · ipureintro; exact HDl.symm

@@ -182,8 +182,8 @@ theorem RawNode.Propose.wp_proof
       (RNFl.keep Hrnfl Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.2 Hap')
       (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.2.1 Hap' Hc)
       (Hsdt.ofRec Hfr.2.2.2.1 Hfr.2.2.2.2.2.1) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
-    · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
-      sorry
+    · -- (durability stage II (i)) the step keeps `durTie`'s fields
+      iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr.2.2.2.1 Hfr.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) $$ Hdur
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd

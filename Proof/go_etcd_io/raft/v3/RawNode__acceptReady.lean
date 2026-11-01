@@ -1075,34 +1075,29 @@ theorem RawNode.acceptReady.wp_proof
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
     HsdtN HroleN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' []
-  · -- (durability stage II, G2) the `Ready` keeps the durable state's tie: the batch handed out
-    -- (`readyDurable`) is the log up to the unstable entries not yet handed out (none left now)
-    have Hnu' : nextUnstable (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst = [] := by
-      have h : nextUnstable (logAcceptApplying (logAcceptUnstable ls0) ce sz) =
-          nextUnstable (logAcceptUnstable ls0) := by
-        unfold logAcceptApplying; split <;> rfl
-      rw [Hlogst, h]
-      exact nextUnstable_acceptUnstable ls0 Hwf3
+  · -- (durability stage II, G2; (i)) the `Ready` keeps the durable state's tie: the batch handed out
+    -- (`readyDurable`) is what the storage holds once it is appended, the whole log (`durFull_cut`)
     have Hp' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.prev = s.logst.prev := by
       rw [Hlogst, Haf1, Hf_prev]
-    have Hse' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.sents = s.logst.sents := by
-      rw [Hlogst, Haf14, Hf_sents]
-    have Hue' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.uents = s.logst.uents := by
-      rw [Hlogst, Haf13, Hf_uents]
+    have Hst' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.stored =
+        s.logst.sents ++ s.logst.uents := by
+      rw [Hlogst, Haf11, Hf_sents, Hf_uents]
     unfold durTie
-    rw [Hnu', Hp', Hse', Hue']
+    rw [Hp', Hst']
     iintro !> %_ %fp %Hfp #Hrec
+    rw [← List.append_assoc]
     cases hl : L with
     | none =>
       have Hsn : s.logst.snap = none := (Hrdp.1 hl).2
       ihave %H := Hdur $$ %(.inl Hsn) %fp %Hfp Hrec
       ipureintro
-      rw [DurFull_next_nil]
-      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _
+      obtain ⟨H1, H2⟩ := H
+      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _ ∧
+        uint.Z (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)).base.index' ≤ _
       rw [hl]
       unfold readyDurable
       simp only [Option.map_none]
-      exact (DurFull_next_tvc _ _ _ _ _ _ _ _ _ _).1 H
+      exact ⟨durFull_cut _ _ _ _ _ _ Hpst Hsn Hfp H1 H2, H2⟩
     | some l =>
       obtain ⟨-, Hrd⟩ := Hrdp.2 l hl
       obtain ⟨Hsn, -, -, -, -, -, -, -, -, Hnul, -⟩ := Hrd
@@ -1111,11 +1106,12 @@ theorem RawNode.acceptReady.wp_proof
       rw [Hhp, Hhs] at Hh
       obtain ⟨Hprev, Hsents, -⟩ := Hh
       ipureintro
-      rw [DurFull_next_nil]
-      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _
+      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _ ∧
+        uint.Z (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)).base.index' ≤ _
       rw [hl]
       unfold readyDurable
       simp only [Option.map_some]
+      refine ⟨?_, by rw [Hprev]; exact Int.le_refl _⟩
       rw [Hnul, Hsents, List.nil_append, List.append_nil]
       rw [Hprev] at Hfp
       have Hidx' := Hidx

@@ -534,22 +534,7 @@ theorem RawNode.Bootstrap.wp_proof
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp
-        · show sk.logst.sents = _; rw [HNls]; exact Hse
-        · show nextUnstable sk.logst = sk.logst.uents
-          rw [HNls]
-          unfold nextUnstable logOffset
-          simp only [logAppend, Hp, Hse, Hsvr.2, List.length_nil]
-          have : (uint.Z (W64 1) - (uint.Z (entryID.mk (W64 0) (W64 0)).index' + ((0 : Nat) : Int) + 1)).toNat = 0 := by
-            rfl
-          rw [this, List.drop_zero]
-        · intro e0 he0
-          have hu : sk.logst.uents = bootLog := by
-            rw [HNls]; simp only [logAppend, Hue, List.nil_append]
-          rw [hu] at he0
-          have h0 : bootLog[0]? = some e0 := by
-            rw [List.head?_eq_getElem?] at he0; exact he0
-          have := (HbEnt 0 e0 h0).2.1
-          simpa using this
+        · show sk.logst.stored = _; rw [HNls]; exact Hsd
     | dyn dec c0 h0 h1 =>
       -- (2026-10-25, T-M M2a) the dynamic mode: the ghost state at `rboot c0 bootLog`, the
       -- configuration index `0`, the configuration the peers' (`ownRaftPhysC` at it, as
@@ -613,22 +598,7 @@ theorem RawNode.Bootstrap.wp_proof
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp
-        · show sk.logst.sents = _; rw [HNls]; exact Hse
-        · show nextUnstable sk.logst = sk.logst.uents
-          rw [HNls]
-          unfold nextUnstable logOffset
-          simp only [logAppend, Hp, Hse, Hsvr.2, List.length_nil]
-          have : (uint.Z (W64 1) - (uint.Z (entryID.mk (W64 0) (W64 0)).index' + ((0 : Nat) : Int) + 1)).toNat = 0 := by
-            rfl
-          rw [this, List.drop_zero]
-        · intro e0 he0
-          have hu : sk.logst.uents = bootLog := by
-            rw [HNls]; simp only [logAppend, Hue, List.nil_append]
-          rw [hu] at he0
-          have h0 : bootLog[0]? = some e0 := by
-            rw [List.head?_eq_getElem?] at he0; exact he0
-          have := (HbEnt 0 e0 h0).2.1
-          simpa using this
+        · show sk.logst.stored = _; rw [HNls]; exact Hsd
   · iexact Hpeers
 
 end proof

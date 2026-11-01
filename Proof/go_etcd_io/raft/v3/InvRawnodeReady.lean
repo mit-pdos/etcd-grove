@@ -1186,7 +1186,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hsdt" ∷ ⌜SdtTie rs s⌝ ∗
   -- (2026-11-01, durability stage I fix G2) as `ownRawNode`'s: the recorded role and durable state
   "%Hrole" ∷ ⌜rs.role = sv.RaftState'⌝ ∗
-  "#Hdur" ∷ durTie γ rs s)
+  "#Hdur" ∷ durTie γ rs s ∗
+  -- (2026-11-01, durability stage II (i)) what the `Ready` cuts from (`PersistCut`, of the log
+  -- before the hand-out, which the hand-out replaces by the whole log)
+  "%Hpst" ∷ ⌜PersistCut s.logst⌝)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -1330,7 +1333,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc [Hdur]
-  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
 -- (2026-10-26, raft's signature, stage 1) `readyIdx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -1805,7 +1808,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole⟩
+      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst⟩
   isplitl [Hout]
   · rw [Hstor.2]; iexact Hout
   iframe Hcef

@@ -131,8 +131,8 @@ theorem RawNode.TransferLeader.wp_proof
           simp only [Bool.or_false] at H
           exact H)
       (Hsdt.ofRec Hsn Hsd) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
-    · -- PORT(durability stage II): G2, the step keeps the durable state's tie (`durTie`)
-      sorry
+    · -- (durability stage II (i)) the step keeps `durTie`'s fields
+      iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
     
   · exfalso; revert Hc'; msg_ne
 
