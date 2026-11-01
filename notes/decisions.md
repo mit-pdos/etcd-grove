@@ -28467,3 +28467,51 @@ What changes:
 - `InvBoot`'s `opaque alarmFresh` is deleted.
 
 The `NewAlarmStore` axiom is the only trusted change. What it asserts: `restore` over an empty alarm bucket leaves the map empty, which is true of `alarms.go`'s `restore`, a range over the bucket.
+
+## J8a-3: the server's configuration read-only, from the fork's `NewWatchServer` fix (2026-11-01, `notes/snapshot-j8a-plan.md` item 3)
+
+**2026-11-01 · accepted, the user's decision (the fork change and the `new_watch_server` restatement) · branch `snap-j8a-3`**
+
+Supersedes in part "D22 J1a" (its "The whole configuration read-only" item, which left it to J8a).
+
+**The fork change** (the user's decision of 2026-11-01): `upamanyus/etcd` branch
+`goose-lean-watchcfg` `7cf3644ec` (on `633036387`), the pin of `etc/goose.py`: `NewWatchServer`
+keeps the adjusted progress interval in a local and passes it to `SetProgressReportInterval`; it no
+longer writes `s.Cfg.WatchProgressNotifyInterval`, the race of
+`issues/etcd-cfg-watch-progress-interval-race.md` (with `applySnapshot`'s struct copy
+`OpenSnapshotBackend(s.Cfg, …)` and another listener's read). A field-wise restatement of
+`specSnap`'s `srvCfgAddr s ↦□ cfg` was not an option: the copy reads every field.
+
+**Statement changes:**
+- `v3rpc.NewWatchServer.spec` (exported: v3rpc's `new_watch_server`, the user's approval): the pre
+  takes `srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝` (was `↦ d`),
+  the post drops `∃ d', … ↦ d'`. The proof follows the new code (the local `interval`).
+- Internal: `v3rpc.Server.spec` the same (pre `↦□ d`, post without `d'`); `srvServeBuilt` drops
+  the owned field, `srvServeCfg` gains it read-only; the examples' `Serve.spec`/`specOn` drop the
+  owned conjunct (their pure premise `cfg.WatchProgressNotifyInterval' = 0` stays, now only for the
+  bound), and `common/Defs.lean`'s `memberBuilt`, `memberUp`, `memberUpOn`, `grpcUp`, `grpcUpOn`
+  their conjuncts (and `grpcUp`'s and `grpcUpOn`'s `d'`); `srvServeFacts_interval` (`InvServe.lean`)
+  gives `v3rpc.Server`'s premise from `srvServeFacts`.
+
+**Not at `NewServer`: at `start`.** `EtcdServer.start` writes two configuration fields
+(`SnapshotCount`, `SnapshotCatchUpEntries`, to their defaults when zero, `server.go:554-570`; the
+only other writes to `s.Cfg`), before `go s.run()` and the listeners: not a race, but the whole
+struct is read-only only from then on, at the updated values. So (the coordinator's landing (a),
+with the other session's specifics):
+- `srvSnapRO` gains, as its last conjunct inside its `□ ∃ cfg …` (at the same `cfg` as its
+  field-wise facts), **the configuration's rebuild**: `□ (∀ (sc scu : w64), srvCfgFieldAddr s
+  go!"SnapshotCount" ↦□ sc -∗ srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗ srvCfgAddr s
+  ↦□ ({ cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu }))`. Last, so that the
+  positional destructurings (`srvSnapRO_succ`, `srvSnapDisk_of_RO`) are unchanged. `NewServer`
+  persists every other field after the monitors' (39 `ipersist`s) and proves it by
+  `typedPointsto_combine`.
+- `isServerRun`/`isServerRunOn` gain `"#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s
+  go!"SnapshotCount" ↦□ sc ∗ srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu)`, which `start`
+  persists (`ipersist Hsc`/`Hscu`, as before) and frames. No ready-made `∃ cfg', srvCfgAddr s ↦□
+  cfg'`: the caller could not tie it to `srvSnapRO`'s hidden `cfg`; applying the rebuild to
+  `"#Hsncfg"` inside its `srvSnapRO` destructuring gives `srvCfgAddr s ↦□ cfg'` with `cfg'`'s other
+  fields `cfg`'s (`applyAll.specSnap`'s, J8a-5).
+- The field-wise facts stay: deriving them from the whole would need the two fields, which
+  `srvSnapRO` is built without.
+Not changed: `NewServer.spec`'s forms, `start`'s, `run`'s, `Start`'s text (definition bodies only).
+No axiom, no `sorry`.

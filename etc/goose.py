@@ -195,12 +195,15 @@ PROJECTS = [
         # issues/etcd-compaction-delete-then-put.md). Then (S1, the snapshot plan's #7, 2026-10-31)
         # branch `goose-lean-snapguard` (on 249d76bea): the queued MsgSnap merged only if its
         # snapshot is at or below the applied index (633036387; a guard for the proof, not a bug
-        # fix: notes/decisions.md, "The merged snapshot's index guard").
+        # fix: notes/decisions.md, "The merged snapshot's index guard"). Then (#8's J8a-3,
+        # 2026-11-01) branch `goose-lean-watchcfg` (on 633036387): `NewWatchServer` keeps the adjusted
+        # progress interval local instead of writing `s.Cfg` (7cf3644ec,
+        # issues/etcd-cfg-watch-progress-interval-race.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="633036387c667023e2d044735b1887f4b04b84a1",
+        rev="7cf3644ecf7cca97b65b34369b12aba368f98edb",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

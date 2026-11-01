@@ -19,11 +19,13 @@ with the names it is stated over (`srvSnapBoot`):
   the snapshots' `AddPeer`s (2026-11-01, J8a: and no longer the auth store's reader resource `E.RD`,
   which the snapshots' `NewUberApplier` took until the auth layer's `Apply` borrowed its caller's).
 
-Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the whole configuration read-only
-(`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a struct while `v3rpc.NewWatchServer` may
-write its `WatchProgressNotifyInterval`, `issues/etcd-cfg-watch-progress-interval-race.md`), and
-the meta reads of every backend (`specSnap`'s `isMetaBackend` family, false as stated for names the
-backend was not opened with).
+The whole configuration read-only (`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a
+struct) is the bundle's last conjunct, a rebuild from the two fields `start` writes (J8a-3,
+2026-11-01: the fork's `NewWatchServer` no longer writes the configuration,
+`issues/etcd-cfg-watch-progress-interval-race.md`; `isServerRun`'s `"#Hsncfg"` holds the fields).
+Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the meta reads of every backend
+(`specSnap`'s `isMetaBackend` family, false as stated for names the backend was not opened with;
+J8a-4).
 
 The stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`),
 `memberDirIs`, `srvMembersDir` and `lessorLookupOk` moved here from `InvBoot.lean` and
@@ -385,7 +387,15 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     lease.lessorInv lp E.γ.leases ∗
     (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-     mvcc.isWatchableStore wsl E.s γw0))
+     mvcc.isWatchableStore wsl E.s γw0) ∗
+    -- (J8a-3, 2026-11-01) **the configuration's rebuild**: the whole struct read-only at `cfg` but
+    -- for the two fields `start` writes (`SnapshotCount`, `SnapshotCatchUpEntries`), from those
+    -- read-only (`isServerRun`'s `"#Hsncfg"`, which `start` persists): `applySnapshot.specSnap`'s
+    -- `srvCfgAddr s ↦□ cfg'` (its struct copy `OpenSnapshotBackend(s.Cfg, …)`)
+    □ (∀ (sc scu : w64), srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc -∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗
+      srvCfgAddr s ↦□ ({ cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } :
+        go_etcd_io.etcd.server.v3.config.ServerConfig)))
 
 instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     Persistent (srvSnapRO (GF := GF) s ci E γr γt) := by

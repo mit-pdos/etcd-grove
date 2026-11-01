@@ -39,6 +39,10 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    `issues/etcd-cfg-watch-progress-interval-race.md`). A field-wise restatement is not sound: the
    copy reads every field. Fix the fork (`NewWatchServer` not writing the server's config), pin bump.
    **Approval: fork change.**
+   *Done 2026-11-01 (J8a-3, decisions "J8a-3")*: the fork's `7cf3644ec`; `NewWatchServer.spec` over
+   the field `↦□`. `start` writes `SnapshotCount`/`SnapshotCatchUpEntries`, so the whole struct is
+   read-only from `start` on: `srvSnapRO`'s last conjunct is the rebuild (`□ ∀ sc scu, … ↦□ sc -∗
+   … ↦□ scu -∗ srvCfgAddr s ↦□ {cfg with …}`), `isServerRun`'s `"#Hsncfg"` the two fields.
 4. **`applyAll` needs a snapshot spec.** `applyAll.spec` takes `taSnapshotAddr ap ↦□ null`, and its
    post's `ai'`, `ciEff`, `termAfter` and `entriesStep` clauses are false after a jump. A separate
    `applyAll.specSnap` (pre: the payload's facts, `srvSnapOwn`, …; post: the apply thread at the
@@ -103,7 +107,7 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
   over the payload's forms (item 8), the walk's missing post (item 5). Done 2026-11-01 (but for
   `hdir`/`hdok`, with J8a-6, and item 8's image lemmas, with J8a-5).
 - **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); done.
-- **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3).
+- **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3). Done 2026-11-01.
 - **J8a-4**: the `isMetaBackend` restatement (item 2).
 - **J8a-5**: `applyAll.specSnap` (item 4). `run`'s two `sorry`s over it need `applyRes` restated
   (`kvReach`, `notes/snapshot-sj-plan.md` §6), J8b's. Steps:
@@ -169,8 +173,7 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     `nodeSnapLocal`, `nodeSnapLocal_elem`, `snapLoc`), `snapRecv_image`/`snapRecv_kv_jump` (the image
     facts, the KV jump), `specSnap`, `specNil`, `applied_jump` for `applyWait.Trigger(i)` (Go does not
     call `setAppliedIndex`, J5), `wp_notify2_receive2`, `specNoop`, the merge branch at `i`. Its
-    premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3, the peer's: from `srvSnapRO`'s rebuild
-    fact and `isServerRun`'s `srvSnapCountAddr s ↦□ sc ∗ srvSnapCatchUpAddr s ↦□ scu`, at
-    `{cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu}`), the `isMetaBackend` family (J8a-4), the
+    premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3; since done, from `srvSnapRO`'s rebuild
+    applied to `isServerRun`'s `"#Hsncfg"`), the `isMetaBackend` family (J8a-4), the
     transport's `8·|ps|` copies of `c.R`, `trPeersNoRem`, `hdir`/`hdok` (J8a-6).
 - **J8a-6** (with the peer?): the `lgMu` pool in `rafthttp` (item 6).

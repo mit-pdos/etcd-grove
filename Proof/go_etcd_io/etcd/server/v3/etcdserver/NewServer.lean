@@ -1399,6 +1399,58 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist EnableDistributedTracingS
   ipersist TracerOptionsS
   ipersist MaxConcurrentStreamsS
+  -- (J8a-3, 2026-11-01) the configuration read-only but for the two fields `start` writes
+  -- (`SnapshotCount`, `SnapshotCatchUpEntries`): the rest persisted, and the whole struct back
+  -- read-only from those two once `start` has persisted them (`srvSnapRO`'s rebuild)
+  ipersist NameS
+  ipersist DiscoveryCfgS
+  ipersist ClientURLsS
+  ipersist PeerURLsS
+  ipersist DataDirS
+  ipersist DedicatedWALDirS
+  ipersist MaxWALFilesS
+  ipersist BackendBatchIntervalS
+  ipersist BackendBatchLimitS
+  ipersist BackendFreelistTypeS
+  ipersist InitialPeerURLsMapS
+  ipersist InitialClusterTokenS
+  ipersist NewClusterS
+  ipersist PeerTLSInfoS
+  ipersist CORSS
+  ipersist HostWhitelistS
+  ipersist InitialElectionTickAdvanceS
+  ipersist BootstrapTimeoutS
+  ipersist AutoCompactionRetentionS
+  ipersist AutoCompactionModeS
+  ipersist CompactionBatchLimitS
+  ipersist CompactionSleepIntervalS
+  ipersist StrictReconfigCheckS
+  ipersist AuthTokenS
+  ipersist BcryptCostS
+  ipersist TokenTTLS
+  ipersist InitialCorruptCheckS
+  ipersist CompactHashCheckTimeS
+  ipersist PreVoteS
+  ipersist SocketOptsS
+  ipersist ForceNewClusterS
+  ipersist LeaseCheckpointIntervalS
+  ipersist EnableGRPCGatewayS
+  ipersist WatchProgressNotifyIntervalS
+  ipersist UnsafeNoFsyncS
+  ipersist MemoryMlockS
+  ipersist BootstrapDefragThresholdMegabytesS
+  ipersist MaxLearnersS
+  ipersist LocalAddressS
+  ihave #HcfgRb : iprop(□ (∀ (sc scu : w64),
+      srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc -∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗
+      srvCfgAddr s ↦□ ({ cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } :
+        go_etcd_io.etcd.server.v3.config.ServerConfig))) $$ []
+  · iintro !> %sc %scu #Hsc #Hscu
+    iapply typedPointsto_combine _ _ _ HCfgnn
+    simp only [TypedPointsto.typedPointstoDef]
+    rw [Hfgi]
+    iframe #
   -- (D22 S-g) the KV's closer, kept; (M2) in compaction mode split into the closer without the
   -- right and the apply thread's compaction right at `-1` (`srvKVCloserW_cmpRight_of_new`)
   ihave Hcl0 : srvKVCloser s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) $$ [Hwcl]
@@ -1459,7 +1511,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · iunfold srvMembersDir; iexact Hmembers
       isplitr
       · rw [Hγw.2.1]; iexact Hlinv
-      iexists ws, γw; iframe kv Hws
+      isplitr
+      · iexists ws, γw; iframe kv Hws
+      -- (J8a-3) the configuration's rebuild
+      iexact HcfgRb
     isplitl [Hlgstock]
     · iunfold srvSnapStock
       iexists _
@@ -1480,16 +1535,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (by iintro H; iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact H) $$ Hbms
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
+      cfg 64 $$ [Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
   · unfold srvServeBuilt srvServeFacts srvServeCfg srvLeadTimeReader
     isplitr
     · isplitr
       · iexists ws, γw
         iframe kv Hws
         ipureintro; rfl
-      · iframe MaxConcurrentStreamsS TracerOptionsS EnableDistributedTracingS MetricsS WarningUnaryRequestDurationS MaxTxnOpsS LoggerS QuotaBackendBytesS
+      · iframe MaxConcurrentStreamsS TracerOptionsS EnableDistributedTracingS MetricsS WarningUnaryRequestDurationS MaxTxnOpsS LoggerS QuotaBackendBytesS WatchProgressNotifyIntervalS
         try (ipureintro; exact Hmto)
-    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
+    iframe Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
   -- (D19i part 2) the storage version monitor's read token, with an open share
   -- (D19i part 2) the storage version monitor's backend access
   ihave HSV : srvSVRes s

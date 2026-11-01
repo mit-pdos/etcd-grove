@@ -517,9 +517,11 @@ theorem EtcdServer.start.wp_proof
       isplitr
       · iexists vd.kv; iframe R1 R2
       iframe Hsnapb
-      iexists γp
-      iframe HWB
-      rw [Hai0]; iexact HWA0
+      isplitr
+      · iexists γp
+        iframe HWB
+        rw [Hai0]; iexact HWA0
+      iexists _, _; iframe Hsc Hscu
     ipureintro; exact isPanic_intoVal ()
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_server hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
@@ -995,9 +997,11 @@ theorem EtcdServer.start.wp_proofOn
         icases Hvd with ⟨#R1, #R2, -⟩
         iexists vd.kv; iframe R1 R2
       iframe Hsnapb
-      iexists γp
-      iframe HWB
-      rw [Hai0]; iexact HWA0
+      isplitr
+      · iexists γp
+        iframe HWB
+        rw [Hai0]; iexact HWA0
+      iexists _, _; iframe Hsc Hscu
     ipureintro; exact isPanic_intoVal ()
   -- the views
   icases Hreqb with ⟨%vq, #Hvq⟩
