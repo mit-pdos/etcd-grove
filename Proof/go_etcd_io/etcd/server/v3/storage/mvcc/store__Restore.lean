@@ -267,7 +267,7 @@ theorem mvcc.store.Restore.wp_proof
         mvcc.isTreeIndex ti (γ.withPhys p').idx ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.idxReader ti (γ.withPhys p').idx) ∗
-        ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝)
+        ⧖ (mvcc.logCh ([[], []] ++ R)))
       iprop(dghostVar γ.rst (DFrac.own (1 : Qp).half) false ∗
         mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) ⟨b', ti, sc, stopc⟩ ∗
         mvcc.writerFrag (γ.withPhys p') ∗
@@ -281,12 +281,12 @@ theorem mvcc.store.Restore.wp_proof
         mvcc.isTreeIndex ti (γ.withPhys p').idx)
       $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts Hlc3 Hwsd]
   · iunfold mvcc.revUnlockW
-    iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, %Hrc⟩ HΨ
+    iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, #Hrc⟩ HΨ
     imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R hR) $$
         Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 Hnlb Hok' Hv Hrd
         [] [] Hrts
       with ⟨HR, Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv', HlogQ, Hold, Hnew⟩
-    · ipureintro; exact Hrc
+    · iexact Hrc
     · ipureintro; exact Hrb
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl2 HR]
     · inext; iexact HR

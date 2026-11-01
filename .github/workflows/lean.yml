@@ -91,6 +91,10 @@ jobs:
             case "$c" in *-layout.txt) continue ;; esac
             ./etc/api-check.py "$c" --check
           done
+      # The bound reasoning stays with its owners (`notes/bounds-plan.md`, B0): no new
+      # thread-bound, receipt-bound or reader-slot premise in a spec. Reads the sources only.
+      - name: Check the bounds baseline
+        run: ./etc/bounds-check.py --check
       - name: Build
         # `timed-build.py` is `lake build`, recording each module compile's
         # timing for the report below.

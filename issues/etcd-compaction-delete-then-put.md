@@ -168,6 +168,46 @@ links:
   ```
 - **Expected**: compaction keeps, for every key, the revision a read at the compaction revision
   (or later) returns: here `(c, 1)`.
+- **A second symptom, at the fork pin: a watch from the compaction revision misses the delete**
+  (2026-11-01, reproduced at the mvcc level, found by the spec review of watches across a
+  compaction, `notes/watch-compaction-plan.md`). The fork's fixed `doCompact` keeps the live value:
+  of revision `c`'s two changes of the key, the put `(c, 1)` is kept and the tombstone `(c, 0)` is
+  not, so `scheduleCompaction` deletes the tombstone from the key bucket. A watch from `c` (what a
+  client re-watches from when it is told `CompactRevision = c`) reads the bucket from `c`
+  (`syncWatchers`' `rangeEvents`) and gets only the `PUT`, where the history has `DELETE` then `PUT`
+  (an uncompacted store sends both). At the pin it is reachable only through mvcc's own API, since
+  `249d76bea` closes the gRPC path; upstream, with #22395 open, through gRPC too. Test (package
+  `mvcc`, run with `go test -overlay`; fails at the pin: 1 event):
+
+  ```go
+  func TestWatchFromCompactRevLosesEvent(t *testing.T) {
+  	b, _ := betesting.NewDefaultTmpBackend(t)
+  	s := newWatchableStore(zaptest.NewLogger(t), b, &lease.FakeLessor{}, StoreConfig{})
+  	defer cleanup(s, b)
+  	s.Put([]byte("foo"), []byte("v1"), lease.NoLease) // rev 2
+  	txn := s.Write(traceutil.TODO())                   // rev 3: delete then put
+  	txn.DeleteRange([]byte("foo"), nil)
+  	txn.Put([]byte("foo"), []byte("v2"), lease.NoLease)
+  	txn.End()
+  	ch, err := s.Compact(traceutil.TODO(), 3)
+  	if err != nil {
+  		t.Fatal(err)
+  	}
+  	<-ch
+  	w := s.NewWatchStream()
+  	w.Watch(t.Context(), 0, []byte("foo"), nil, 3)
+  	s.syncWatchers()
+  	if wr := <-w.Chan(); len(wr.Events) != 2 {
+  		t.Fatalf("revision 3 has two changes of foo, the watch from 3 got %d", len(wr.Events))
+  	}
+  }
+  ```
+
+  A fix: keep the tombstone at `c` as well when the key is re-created at `c` (the bucket keeps both
+  of `c`'s changes; the index's generations are unaffected), or have `chooseAll` treat
+  `minRev == compactRev` as compacted when revision `c` re-created a key (simpler: treat
+  `minRev <= compactRev` as compacted, at the cost of a compaction response for a watch exactly at
+  `c`).
 - **How the proof handles it**: the compaction model's theorem that a read at or above the
   compaction revision never names a revision compaction may delete (`named_not_del`,
   `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Compact.lean`, over `kiGet_avail`) needs the

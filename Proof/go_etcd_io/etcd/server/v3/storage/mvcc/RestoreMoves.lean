@@ -312,7 +312,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       monoNatLbOwn p'.nev (evsOf (([[], []] ++ R) ++ [[]])).length -∗ certOk γ ([[], []] ++ R) -∗
       restoreViewOut (γ.withPhys p') (1 : Qp).half R -∗
       ([∗list] _x ∈ List.replicate nReaders (), idxReader o'.ti (γ.withPhys p').idx) -∗
-      ⌜logCh ([[], []] ++ R) < receiptBound GF⌝ -∗ ⌜receiptBound GF ≤ 2 ^ 48⌝ -∗
+      ⧖ (logCh ([[], []] ++ R)) -∗ ⌜receiptBound GF ≤ 2 ^ 48⌝ -∗
       ([∗list] _x ∈ List.replicate (nReaders - 1) (), storeRT (γ.withPhys p')) ={⊤}=∗
       revMuInv s γ 1 ∗ dghostVar γ.rst (DFrac.own (1 : Qp).half) false ∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) o' ∗ writerFrag (γ.withPhys p') ∗
@@ -321,7 +321,8 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       (if γ.watchQ then logQ γ ([[], []] ++ R) else iprop(True)) ∗
       ([∗list] _x ∈ List.replicate (nReaders - 2) (), storeRT γ) ∗ storeRT (γ.withPhys p') := by
   iintro Hlc Hlc' #Hwi Hwsd #Hpool Hc1 Hfrag Hc2 Hc3 Htkr Hr1 Hr2 Hheld Hrev Hcmp #Hnv #Hok Hview
-    Hrds %Hrc %Hrb Hrts
+    Hrds #Hrc %Hrb Hrts
+  ihave %Hrclt := preceipt_lt _ $$ Hrc
   have hlen := restoreLogOk_len hR
   obtain ⟨-, hwf, -⟩ := hR
   have hwfL : LogWf' ([[], []] ++ R) := hwf.1.prefix
@@ -431,9 +432,9 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   have hsmall : ([[], []] ++ R).length + 3 ≤ 2 ^ 63 := by omega
   ihave #Hcert : idxCert (GF := GF) γ.idx ([[], []] ++ R) $$ []
   · iunfold idxCert
-    iframe Hhlb Hllb
+    iframe Hhlb Hllb Hrc
     ipureintro
-    refine ⟨⟨hwfL, by omega, fun cs hcs => hwf.2.2.2 cs hcs⟩, Hrc⟩
+    exact ⟨hwfL, by omega, fun cs hcs => hwf.2.2.2 cs hcs⟩
   have hevs : (evsOf (([[], []] ++ R) ++ [[]])).length = (evsOf ([[], []] ++ R)).length := by
     rw [evsOf_append ([[], []] ++ R) []]; simp [evsOfRev]
   rw [hevs]
@@ -493,6 +494,8 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
       bucketView (γ.withPhys p') (1 : Qp).half (bucketMap L') -∗ compactRes (γ.withPhys p') -∗
       kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' := by
   iintro Hlc #Hwi Hc Hw Hcur Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
+  -- the rebuild's receipts, as the writer's persistent one (M2's B2)
+  imod receipt_snapshot _ $$ Hrc with ⟨-, #Hrc⟩
   iunfold restoreWriter at Hw
   icases Hw with ⟨%ntok, Hw⟩
   iNamed Hw
@@ -526,14 +529,14 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
   ihave Hhist := hh.2 $$ [Hh Hhist]
   · iframe Hh Hhist
   icases ghostVar_halves p'.wv L' $$ Hwv with ⟨Hwv, HwvR⟩
-  imod Hclose $$ [Hc Htoks Hhist Hlw Hrc Hclog Hwv Hcur Hlrd Hwk HwvR Hbv Hcres Hrr] with -
+  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd Hwk HwvR Hbv Hcres Hrr] with -
   · inext
     iunfold writerInvBody
     ileft
     iexists p', o'
     iframe Hc
     ileft
-    isplitl [Htoks Hhist Hlw Hrc Hclog Hwv Hcur Hlrd]
+    isplitl [Htoks Hhist Hlw Hclog Hwv Hcur Hlrd]
     · iunfold writerL
       iexists L', ntok
       simp only [named]
@@ -543,7 +546,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
       iframe #
       isplitr
       · ipureintro; exact Hbudget
-      isplitl [Hhist Hlw Hrc]
+      isplitl [Hhist Hlw]
       · iunfold idxWriter
         simp only [StoreNames.withPhys_idx_hist, StoreNames.withPhys_idx_nev,
           StoreNames.withPhys_idx_log, idxLogAuth_withPhys, histShape_nil, List.length_nil,

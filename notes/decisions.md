@@ -28371,6 +28371,8 @@ go ahead with item 14" (Q4: merge once the compaction-on case is proved, done th
 - The examples' glue keeps `newServer.spec`/`newServer.specCompact` apart (the example-level
   statements: the off examples' fixed `retention = 0`, putgetc's compacting start); both are over
   the one `NewServer.spec` now.
+- *(2026-11-01: moved to restore in compaction mode, "One token count goes with restore in compaction
+  mode".)*
 - Later (the user's): one token count for the write budget and the compaction's stock, in place of
   `N + N`.
 
@@ -28484,3 +28486,96 @@ when it can be proved. The notes' many "(the collaborator's)" and "for the colla
 reasoning at the time; they are left as written, and read as open items. What still holds: work on
 an active branch (e.g. `snap-j8a`) is that session's until it lands, so coordinate with it before
 editing the same files.
+
+## M2's B2, the mvcc half switched: persistent receipts in the index's ghost state (2026-11-01 · accepted, the user's "start the mvcc half" · branch `m2-b2-mvcc`)
+
+The mvcc half of "M2's storage side: B2 by sealed logs, persistent receipts" (2026-10-30, drafted), in
+place, ahead of the snapshot half (which waits on J8a and SNAPSHOT-SORRY #7: they edit the same files).
+
+**In place** (`mvcc/InvIndex.lean`): `idxSealed` and `idxCert` carry `⧖ (logCh log)` in place of the
+pure `⌜logCh log < receiptBound GF⌝` (`idxSealed_small` from it by `preceipt_lt`; new `idxSealed_rcpt`,
+`idxCert_rcpt`); the writer's handles `idxWriter`/`idxWriterSealed` hold `⧖ (logCh ilog +
+pend.length)` in place of the exclusive `⧗` (the Draft's `idxWriterP` is now `idxWriter`; the seal and
+commit lemmas need no `receipt_snapshot`); `treeIndex.Put`/`Tombstone` raise it by the change's Go
+step (`wp_raise_receipt`, the Draft's `wp_proofP`s), spec texts unchanged. The handles' builders:
+`restore_finish` turns the rebuild's exclusive receipts into it (`receipt_snapshot`); `IdxPriv`'s new
+index starts at `⧖ 0`. Consumers that read the bound (`InvCompact.CompactSmall_of_cert`, the client's
+`WatchFire.sealed_logOk`, `KVService.idxCert_logOk`) take it through `preceipt_lt`. What is lost:
+the writer's receipts no longer add up with another pool's (`receipt_add`); nothing used it.
+
+**One statement the Draft had not listed: `store.restore.spec`** (the rebuild, `Spec/.../store__restore.lean`).
+It took `ents = logEnts … ∨ logCh L' < receiptBound` as a pure premise and gave the unlock's payload
+the pure bound, from which `restore_switch` built the new `idxCert`: with `idxCert` carrying `⧖`, the
+second disjunct cannot produce it. Restated: the premise is the pre's last conjunct
+`⌜ents = logEnts …⌝ ∨ ⧖ (logCh L')` (the caller's receipt: in compaction mode a compacted image's,
+which is what the snapshot half carries with it), and the unlock's payload is `⧖ (logCh L')` (the
+rebuild's receipts snapshotted for the whole bucket, else the caller's). `restore_switch` takes `⧖`;
+`store.restore.specNC` (what `NewStore` and `store.Restore` use, the whole bucket) passes the left
+disjunct. Every caller of `store.restore` was on the whole-bucket case, so nothing above mvcc moved.
+
+**Left in the Draft** (`M2StorageDraftSealed.lean`, now 140 lines): `idxSealedR`/`idxCertR` as names for
+`idxSealed`/`idxCert` (the server Draft's texts use them), and the restore's premise by the mode
+(`restoreRcptM`, `Restore.specMR`, `specMR_of_specM`), which wait on `Restore.specM` (itself a Draft).
+
+
+## One token count goes with restore in compaction mode (2026-11-01 · accepted, the user's)
+
+Item 14 left `bootstrap`'s contract at `N + N` in compaction mode (the write-back pool `srvWTPool` and
+the compaction's stock `srvCmpStock`, `CmpSupply.lean`, each with its own receipt bound), with one
+count for both "later" (the user's). Reconsidered on 2026-11-01 (asked "is it a good plan?"):
+- **It costs no result anything.** The closed results' only trace of it was the premise
+  `Hwb : n + n + 7 ≤ backend.wbInit`, and `backend.wbInit = 2^40 - 1` while every result already
+  assumes `n + 2 ≤ 2^31` (or `2^29`): `Hwb` followed from `Hn`, and so did the off examples'
+  `n + 7 ≤ backend.wbInit`. Dropped from every adequacy theorem and its `Results` restatement
+  (cachekv, compactkv, k8setcd3, linkv3p's two, linkvtxn, putget, putget3, putgetc, watchkv): each
+  proof derives it (`unfold backend.wbInit; omega`).
+- **One count means one receipt counter for the pool and the stock**, the shape the storage
+  Draft's `srvWTStockInv` sketches for a stock per backend across swaps, which restore in compaction
+  mode (lifting `srvEnvOkD`'s interim rule: a snapshot installed only with the mode off) needs
+  anyway. Done alone now it would rebuild `srvCmpStock` twice and move `NewServer.spec`'s count and
+  the compaction chain's (`StartCompactingServer`, `newServer`, the examples) for no stronger result.
+- So the change goes with restore in compaction mode, on the snapshot track's side (after J8b),
+  not on its own.
+
+## Bounds localized: reasoned about where owned, a check against new leaks (2026-11-01 · accepted, the user's · `notes/bounds-plan.md`)
+
+Thread bounds, reader slots, counters and sizes had leaked into every layer: 46 Spec files took a
+`threadBound` premise in five forms, 20 restated the `threadBound`/`receiptBound` chain, 70 places
+in the proofs counted reader slots out by hand (64, `64 - 2`, `actualMaxReaders`), and size literals
+were restated across the client libraries. An agent proving an ordinary function had to redo that
+arithmetic. The rule adopted: a bound is reasoned about by the adequacy theorem (the constants), by
+the bounded object's owner inside its invariant (Perennial's `threadPool` and
+`RWMutexThreads`, `sync.tokJoin`, the time receipts: the machinery the lessor already uses), or by
+one named predicate per boundary; a spec in between takes a `threadTok` and the owner's handle.
+The user took the recommendation on each open question: the bounds class goes to Perennial with a
+local stopgap (D1; `2^29` threads, `2^48` receipts); a goroutine holding two read locks at once
+pays for the inner one with a counted stock at that call path (D2, unless the inventory finds many
+sites); `NewServer`'s configuration premises become `cfgScopeOk` (D3); the closed results'
+workload hypotheses one `Workload` record (D4). Enforcement: `etc/bounds-check.py --check` (gates
+and CI) against a baseline that may only go down, so branches in flight that add a premise of
+these kinds must say why when they rewrite it.
+
+## The leasing pilot: the pool, and the wait group's loan receipts (2026-11-01 · `notes/bounds-plan.md`, B2)
+
+The first package moved off counted reader stocks (the plan's pilot, the user's "start the leasing
+pilot"). `isLeasingKV` holds a `threadPool` of `leaseCache.mu`'s reader slots (all but the one
+`NewKV` reads `waitSession` with) under a new name `γ.rp`; `NewKV.spec`'s thread premise becomes
+`threadBound GF ≤ 2 ^ 30 - 1` (the pool's `init` needs one slot per live thread but one; it replaces
+`threadBound GF + leasingWgOwedMax ≤ 2 ^ 31`, which it implies, so the spec mentions the thread bound
+once, as before, until B1), and `newKVResult` hands out no slots. The exported methods (`Get`, `Put`,
+`Delete`, `Do`, `txnLeasing.Commit`) take and return the thread's token instead of slots and borrow
+one around their call; `get` borrows itself (`getOutcome` has no slot). The internal functions keep
+`lkvReader`. `Put`, `Delete` and `Commit` now take a `threadTok` they did not before: every thread
+has one, and no caller outside the package exists.
+
+The design point: a goroutine started on a wait group whose counter is bounded by thread tokens has
+its token in the wait group, so it cannot borrow. `get`'s lease monitor is such a goroutine and keeps
+a slot for life. The wait group's running slots now hold the pool's loan receipt instead of a thread
+token: `get` borrows a slot, hands it to the monitor and deposits the loan at `Add(1)`, and the `go`
+statement gives `get` a fresh token; the monitor's `Done` returns the receipt, and the goroutine
+gives the slot back for the token it exits with (`monitorLease.spec` returns the slot). The counter
+stays bounded: `k` loans are fewer than the live threads, since the pool holds a token for each
+(`threadPool.loans_lt`, a Perennial change, local until it lands: `notes/perennial-changes.md`).
+The server's `GoAttach` goroutines are the same case. Considered and not taken: lending the token
+out of the wait group (`sync.tokJoin`'s `lend_acc`), which needs the lent receipts' own law and
+rewriting the wait group on `tokJoin`; the receipt in the slot is the same accounting with neither.

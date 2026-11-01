@@ -33,7 +33,7 @@ theorem leasingKV.Close.wp_proof : leasingKV.Close.spec (GF := GF) (hG := hG) :=
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel0, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #HisWg, #HwgInv, %Hbound⟩
+    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #HisWg, #HwgInv, #Hpool, %Hbound⟩
   iunfold isLeasingCancel at Hcan
   icases Hcan with ⟨%cancel, #Hcf, #Hcs⟩
   iunfold concurrency.cancelSpec at Hcs

@@ -21,6 +21,7 @@ public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
 public import Proof.context.WithTimeoutBackground
+public import Proof.go_etcd_io.etcd.client.v3.WithRev
 
 @[expose] public section
 
@@ -61,7 +62,7 @@ theorem compactkv.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.D
     compactkv.Main.spec (GF := GF) (hG := hG) :=
   compactkv.Main.wp_proof zap.NewNop.wp_proof compactkv.wp_StartCompactingServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny WithRev.wp_proof
 
 end results
 
