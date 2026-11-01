@@ -27951,3 +27951,16 @@ reviews: `.claude/skills/spec/examples/compact-client.md` (the approved spec and
   scope only with auth off, and an auth-on client reaches `Put` through `kv.Put.specG`, not
   `kv.Put.spec`; so the auth-off registration (`etcdPutSpec`) hands `kvRevLb` beside `putReplied`,
   which stays unchanged (and with it `kvInvOn` and the auth-on registrations).
+- **Stage 3 (the `Compact` RPC), what the approved candidate missed, settled with the user**:
+  the server's handler (`kvServer.Compact`) reads the admin guard `aa`, which `NewKVServer.spec`'s
+  post did not export: the user chose "strengthen NewKVServer" (2026-11-01): `kvServerIs`/`kvServerAt`
+  carry `aa`'s field facts (no new premise: the server's auth facts come from the views,
+  `srvAuthAt_of_views`), and every server registers `Compact` (`kvRegsAt`, `etcdKVRegs`,
+  `v3rpc.kvRegs`; vacuous in mode off: the spec's precondition needs the compaction mode). Two
+  strengthenings of `EtcdServer.Compact.spec`'s post (`compactOutIs`), both true of the code: the
+  reply's log has at least two revisions (`store.Rev` called at the readers' first certificate),
+  so the header's revision is not `0` (the handler then keeps its store reader, `hdrRevIn`'s first
+  arm); the error arm's error is not `nil`. The no-options premise is `opts_sl = slice.nil`, what
+  goose passes for a call with no variadic arguments (candidate 3 said `len = 0`). The examples'
+  registration bundles (`common.etcdKVAt`, `linkv3p`'s `memberServed`/`memberAt`, `linkvtxn`'s
+  `Check` premises) gain `Compact`.

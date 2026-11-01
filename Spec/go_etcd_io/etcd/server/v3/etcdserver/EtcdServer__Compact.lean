@@ -26,13 +26,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- What `Compact` returns: `nil` and a response whose header holds a revision the store has reached
-(`s.kv.Rev()`, the call's last line), or an error the server's request path can report
+(`s.kv.Rev()`, the call's last line; past the store's start, so not `0`: since the client's
+`kv.Compact`, 2026-11-01, which needs the header's revision set, `v3rpc.hdrRevIn`), or an error the server's request path can report
 (`applyErrIs`, which `errors.Is` can test: the compactor's `ErrCompacted` check). -/
 def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (v : etcdserverpb.ResponseHeader)
       (log : mvcc.Log), structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦ h ∗ h ↦ v ∗
-      mvcc.idxCert E.γ.idx log ∗ ⌜log ≠ [] ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
-    (⌜resp = null⌝ ∗ applyErrIs err))
+      mvcc.idxCert E.γ.idx log ∗
+      ⌜log ≠ [] ∧ 2 ≤ log.length ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 
 /-- `s.Compact(ctx, r)` for a non-physical compaction request (the pilot's scope: the compactor never
 sets `Physical`; the physical wait, `Physc` and `ForceCommit`, is the gRPC caller's and not specified

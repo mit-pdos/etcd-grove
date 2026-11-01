@@ -406,9 +406,21 @@ def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu1 γr.kv (.deleteRange o) Q ∗
       ∀ m : DelRespM, deleteReplied E γr F o Q cid mid m -∗ Φ m)
 
+/-- **etcd's spec of the KV service's `Compact`** (the client's `kv.Compact`, 2026-11-01): a caller
+asking a compaction at a revision past `0` (M2's scope) the KV has reached (`kvRevLb`), not
+physical, on a compacting server (`γr.kv.cmp`, M2's scope), gets a reply message with the
+member's header. A compaction is not a state change of the clients' KV (M2's A4): no update. -/
+def etcdCompactSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+  fun (o : CompactReqM) (Φ : CompactRespM → IProp GF) =>
+    iprop(⌜1 ≤ sint.Z o.revision ∧ o.physical = false ∧ γr.kv.cmp = true⌝ ∗
+      kvRevLb γr.kv o.revision ∗
+      ∀ m : CompactRespM, ⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ -∗ Φ m)
+
 end defs
 
 /-! ## The members -/
+
 
 /-- **A member as its client sees it**: its client address and what etcd's specs it registers
 there are at (`etcd_kv_started`'s): its apply environment, read names, cluster and member ids. -/
@@ -557,14 +569,16 @@ instance clientWriteOnce_persistent (cl : Loc) (addrs : List GoString) :
 def txnWriteOnce (tp : Loc) (addrs : List GoString) : IProp GF :=
   iprop(⌜∀ a ∈ addrs, noRefusalAt a⌝)
 
-/-- **etcd's KV registrations at a member** (persistent): etcd's `Put`, `Range`, `DeleteRange` and
-`Txn` at its address, at its apply environment, read names and ids (`etcd_kv_started`'s). -/
+/-- **etcd's KV registrations at a member** (persistent): etcd's `Put`, `Range`, `DeleteRange`,
+`Txn` and (the client's `kv.Compact`, 2026-11-01) `Compact` at its address, at its apply
+environment, read names and ids (`etcd_kv_started`'s). -/
 def kvRegsAt (x : SrvAt GF) : IProp GF :=
   iprop(isGrpcRpc x.addr go!"/etcdserverpb.KV/Put" (etcdPutSpec x.E x.γr x.cid x.mid) ∗
     isGrpcRpc x.addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec x.E x.γr x.cid x.mid) ∗
     isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
       (etcdDeleteSpec x.E x.γr x.cid x.mid) ∗
-    isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid))
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid) ∗
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec x.E x.γr x.cid x.mid))
 
 instance kvRegsAt_persistent (x : SrvAt GF) : Persistent (kvRegsAt x) := by
   unfold kvRegsAt; infer_instance
@@ -600,14 +614,14 @@ theorem kvRegs_put (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
       isGrpcRpc x.addr go!"/etcdserverpb.KV/Put" (etcdPutSpec x.E x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨#H1, -, -, -⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨#H1, -, -, -, -⟩; iexact H1
 
 /-- The registrations of `Range` at the members. -/
 theorem kvRegs_range (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
       isGrpcRpc x.addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec x.E x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, #H1, -, -⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, #H1, -, -, -⟩; iexact H1
 
 /-- The registrations of `DeleteRange` at the members. -/
 theorem kvRegs_del (ms : List (SrvAt GF)) :
@@ -615,14 +629,21 @@ theorem kvRegs_del (ms : List (SrvAt GF)) :
       isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
         (etcdDeleteSpec x.E x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, #H1, -⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, #H1, -, -⟩; iexact H1
 
 /-- The registrations of `Txn` at the members. -/
 theorem kvRegs_txn (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
       isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, #H1⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, #H1, -⟩; iexact H1
+
+/-- The registrations of `Compact` at the members. -/
+theorem kvRegs_compact (ms : List (SrvAt GF)) :
+    ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
+      isGrpcRpc x.addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec x.E x.γr x.cid x.mid) :=
+  BigSepL.bigSepL_mono fun _ => by
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, -, #H1⟩; iexact H1
 
 /-- One member's registrations are its server's at its one address. -/
 theorem kvRegs_one (a : GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
@@ -646,6 +667,17 @@ def kvDeleteSpec (ms : List (SrvAt GF)) :
 /-- **etcd's `Txn` at a connection to the members `ms`**. -/
 def kvTxnSpec (ms : List (SrvAt GF)) : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse :=
   anySpec ms fun x => etcdTxnSpec x.E x.γr x.γr x.cid x.mid
+
+/-- **etcd's `Compact` at a connection to the members `ms`**. -/
+def kvCompactSpec (ms : List (SrvAt GF)) :
+    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+  anySpec ms fun x => etcdCompactSpec x.E x.γr x.cid x.mid
+
+/-- The members' registrations of `Compact` register the conjunction at their addresses. -/
+theorem kvRegs_rpcCompact (ms : List (SrvAt GF)) :
+    kvRegs ms ⊢
+      isGrpcRpcs (ms.map SrvAt.addr) go!"/etcdserverpb.KV/Compact" (kvCompactSpec ms) :=
+  (kvRegs_compact ms).trans (isGrpcRpcs_anySpec ms SrvAt.addr _ _)
 
 /-- The members' registrations of `Put` register the conjunction at their addresses. -/
 theorem kvRegs_rpcPut (ms : List (SrvAt GF)) :
