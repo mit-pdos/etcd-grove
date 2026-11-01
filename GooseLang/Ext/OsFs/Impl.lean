@@ -128,7 +128,7 @@ instance : Inhabited OsState := ⟨⟨∅, ∅, ∅, ∅⟩⟩
 
 /-- The Linux file extension. It has no values of its own and no global state. -/
 @[reducible] def osFsExt : GooseExt where
-  name := "github.com/mit-pdos/etcd-grove/osfs"
+  name := "os"
   Val := Empty
   LocalState := OsState
   GlobalState := Unit
