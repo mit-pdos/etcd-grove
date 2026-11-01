@@ -574,6 +574,8 @@ approved (`notes/decisions.md`, "The lease keep-alive entry point"): `lessor.Ren
 - **C1 and lease grants**: `ckptEffectsOk` covers `Renew`'s checkpointer proposal, unexercised
   while `srvGrantGuard` is `False`.
 - **`issues/etcd-lease-renew-keys-follower-lag.md`**: a candidate, not yet reproduced.
+- **Three `threadBound` premises** (`LeaseRenew.spec`, C1, C2) raised the bounds baseline by 3
+  (the user's choice); they go in the lease package's bounds stage.
 
 ## The lease checks' revision re-check (2026-11-01, branch `lease-revcheck`; not stated)
 

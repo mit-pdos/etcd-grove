@@ -28472,6 +28472,11 @@ Frozen and linked:
   translated. The post: on `nil` the last `checkLeaseRenew`'s verdict (`leaseKeysVerdictFrom
   .write`) at the caller's context; the margin: the local lessor may lag the renewing one
   (`issues/etcd-lease-renew-keys-follower-lag.md`, a candidate), and the leader's re-lookup.
+- **The bounds baseline raised by 3** (the user's choice at the merge, 2026-11-01): `LeaseRenew.spec`,
+  C1 and C2 take `threadBound GF ≤ 2^30 - 1`, as their siblings in the baseline (`checkLeaseRenew`,
+  `LeaseLeases`, `LeaseTimeToLive`); item 5 predates the bounds plan. `etc/bounds-baseline.txt`:
+  etcdserver's `spec-thread` 9 → 11, lease's 3 → 4. They go with their siblings in the lease
+  package's bounds stage (`lessorRdOf`/`isLeaseObj`'s pools as the owners, `notes/bounds-locks.md`).
 
 ## D22 and bbolt are open to every session (2026-11-01 · accepted, the user's)
 
