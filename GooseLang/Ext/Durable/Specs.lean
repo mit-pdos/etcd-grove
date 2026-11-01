@@ -250,8 +250,9 @@ attribute [local instance] durableExts
 attribute [local instance] durableExtsSemantics durableExtsInterp
 
 /-- Closing off a program proves `HasExt` by computation: `durableExt` is the program's
-extension named `durableExt.name`, with its semantics and ghost state. -/
-example : HasExt durableExt where
+extension named `durableExt.name`, with its semantics and ghost state. Not an instance (it holds
+only under `durableExts`): a closed theorem makes it a local one. -/
+theorem durableExts_hasExt : HasExt durableExt where
   registered := rfl
   sem_eq := rfl
   interp_eq := rfl

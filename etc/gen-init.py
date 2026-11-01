@@ -58,6 +58,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
          'github_com.mit_pdos.etcd_grove.examples.kvreconf',
+         # (2026-10-31) the durable-state extension's Go package (kvdurable's files), until a root
+         # imports it
+         'github_com.mit_pdos.etcd_grove.examples.durable',
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
          'github_com.mit_pdos.etcd_grove.examples.watchkv',

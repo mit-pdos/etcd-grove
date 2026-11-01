@@ -17,6 +17,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
+
+- **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
+  `extsGlobalStart`/`extsLocalStart`; this repository's `init_adequate`
+  (`examples/common/Adequacy.lean`), the proposed generic closed theorem, dropped them.
+- **Here.** `init_adequate_start` (`examples/common/AdequacyStart.lean`), any extension list, the
+  body's WP taking both start resources; `durable_init_adequate` (`examples/common/DurableExt.lean`)
+  for `[durableExt]`.
+- **Proposal.** Land it in Perennial with `init_adequate` (one theorem, `init_adequate` its
+  corollary for resources dropped).
+
 ### Slices: an empty slice literal is not nil (2026-10-29, authkv G2)
 
 - **Limitation.** `wp_slice_literal` gives an arbitrary pointer for an empty literal, so a proof
