@@ -17,6 +17,9 @@ bboltfs_mmapSize:
 bboltfs_DB__meta: bboltfs_pickMeta
 bboltfs_DB__readPageSize: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__validate os_File__ReadAt
 os_File__ReadAt:
+bboltfs_DB__init: bboltfs_initPages os_File__WriteAt os_File__Fd syscall_Fdatasync
+os_File__WriteAt:
+syscall_Fdatasync:
 bboltfs_DB__munmap: unix_Munmap
 bboltfs_DB__close: bboltfs_DB__munmap os_File__Fd syscall_Flock os_File__Close
 os_File__Fd:

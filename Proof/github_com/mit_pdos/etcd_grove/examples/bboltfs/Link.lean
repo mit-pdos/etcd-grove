@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__close
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__mmap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmap
@@ -24,6 +25,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
 public import Proof.os.File__Close
 public import Proof.os.File__Fd
 public import Proof.os.File__ReadAt
+public import Proof.os.File__WriteAt
+public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
 public import Proof.golang_org.x.sys.unix.Madvise
 public import Proof.golang_org.x.sys.unix.Mmap
@@ -70,9 +73,33 @@ theorem DB.wp_close :
     EtcdGrove.bboltfs.DB.close.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.close.wp_proof DB.wp_munmap os.File.wp_Fd syscall.wp_Flock os.File.wp_Close
 
+theorem wp_pageAt :
+    EtcdGrove.bboltfs.pageAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.pageAt.wp_proof
+
+theorem Page.wp_meta :
+    EtcdGrove.bboltfs.Page.«meta».spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.Page.«meta».wp_proof
+
 theorem Meta.wp_sum64 :
     EtcdGrove.bboltfs.Meta.sum64.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Meta.sum64.wp_proof
+
+theorem wp_initPages :
+    EtcdGrove.bboltfs.initPages.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.initPages.wp_proof wp_pageAt Page.wp_meta Meta.wp_sum64
+
+theorem os.File.wp_WriteAt :
+    EtcdGrove.os.File.WriteAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.WriteAt.wp_proof
+
+theorem syscall.wp_Fdatasync :
+    EtcdGrove.syscall.Fdatasync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.syscall.Fdatasync.wp_proof
+
+theorem DB.wp_init :
+    EtcdGrove.bboltfs.DB.init.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.init.wp_proof wp_initPages os.File.wp_WriteAt os.File.wp_Fd syscall.wp_Fdatasync
 
 theorem Meta.wp_validate :
     EtcdGrove.bboltfs.Meta.validate.spec (GF := GF) (hG := hG) :=
@@ -98,14 +125,6 @@ theorem golang_org.x.sys.unix.wp_Madvise :
     EtcdGrove.golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG) :=
   EtcdGrove.golang_org.x.sys.unix.Madvise.wp_proof
 
-theorem wp_pageAt :
-    EtcdGrove.bboltfs.pageAt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.pageAt.wp_proof
-
-theorem Page.wp_meta :
-    EtcdGrove.bboltfs.Page.«meta».spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.Page.«meta».wp_proof
-
 theorem DB.wp_mmap :
     EtcdGrove.bboltfs.DB.mmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.mmap.wp_proof DB.wp_munmap wp_mmapSize os.File.wp_Fd golang_org.x.sys.unix.wp_Mmap golang_org.x.sys.unix.wp_Madvise golang_org.x.sys.unix.wp_Munmap wp_pageAt Page.wp_meta
@@ -121,10 +140,6 @@ theorem DB.wp_readPageSize :
 theorem Meta.wp_write :
     EtcdGrove.bboltfs.Meta.write.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Meta.write.wp_proof Meta.wp_sum64 Page.wp_meta
-
-theorem wp_initPages :
-    EtcdGrove.bboltfs.initPages.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.initPages.wp_proof wp_pageAt Page.wp_meta Meta.wp_sum64
 
 end links
 
