@@ -35,7 +35,7 @@ nesting (Go) — B2 note.
   (`2^23 - 8·|L|`); `SnapRO.lean:344`. 26 Spec files. Also inside `quotaRd`, `etcdIcRs`, `srvSVRes`.
   RLock: `server.go:449` (`Logger`), brief. Nested *inside* `wgMu` (GoAttach, below). B2: pool in
   the server's invariant (`NewServer`); callers are gRPC handlers (B2a), the apply thread and
-  GoAttach'ed goroutines (have tokens).
+  GoAttach'ed goroutines (which get no thread token: their spec gives none; corrected 2026-11-01, `notes/bounds-waitgroups.md`, 5).
 - **`srvLeadTimeReader`** (`InvProposer.lean:480`). `EtcdServer.leadTimeMu`. Made `NewServer.lean:1227`;
   K = 64 in `srvServeBuilt`. Stocks: `examples/common/Defs.lean:273,360`, `Served.lean:101`,
   `InvServe.lean:112`, `ServeFromStart.lean:241`. 8 Spec files; in `etcdRunSlot`, `authSlot`,

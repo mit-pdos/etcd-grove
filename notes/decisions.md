@@ -1134,7 +1134,11 @@ it and what the proofs changed.
   `cacheWgInv` while registered. Nothing comes back through the wait group (the loops'
   writers stay in the goroutines), so `Close`'s postcondition is the token. Go's own
   implementation would not panic here (a waiter registers only while the counter is positive
-  and the last `Done` clears it), so this is the spec's conservatism, not a finding.
+  and the last `Done` clears it), so this is the spec's conservatism, not a finding. *Wrong (corrected
+  2026-11-01):* Go's `WaitGroup` does panic when an `Add` from zero overlaps a pending `Wait`
+  ("Add called concurrently with Wait", or the waiter's "reused before previous Wait has
+  returned"), and `Close` cancels the loops, so the counter reaches zero while it waits: the token
+  is a real precondition of the code, `issues/etcd-cache-watch-during-close-waitgroup.md`.
 - **`NewDemux` takes the caller's wait group abstractly**: `wgSlotProtocol wg Pslot Prun Pret`
   (the triples of `Add(1)` and `Done()`), instantiated by `newCache` with the cache's slot and
   "open" token. *Rejected:* `NewDemux` stating `cacheWgInv` (the demux would depend on the
@@ -28589,6 +28593,20 @@ stays bounded: `k` loans are fewer than the live threads, since the pool holds a
 The server's `GoAttach` goroutines are the same case. Considered and not taken: lending the token
 out of the wait group (`sync.tokJoin`'s `lend_acc`), which needs the lent receipts' own law and
 rewriting the wait group on `tokJoin`; the receipt in the slot is the same accounting with neither.
+
+## B2a replaced: the request path's run slots built in `NewServer` (2026-11-01 · the user's choice · `notes/bounds-plan.md`, B2)
+
+B2a was to give each gRPC handler a thread token so that request-path readers borrow from pools.
+`grpc.serve` (the axiom) runs a handler logically in the calling client's thread, with one of the
+`n` per-run slots the server handed it; a thread token an axiom produced would break the thread
+bound, so the only sound one is the caller's, and that would take `threadTok` through `Invoke`'s
+axiom, the 13 generated stub specs, the client library's specs and every example's calls (4 of 210
+client spec files take one today). Chosen instead: keep the per-run slots, and have `NewServer` build
+the `n` bundles from its own locks' stocks, so the counting lives in the server, the one owner, and
+the examples stop splitting stocks (`etcdGrpcSlots_of_started`, `watchRunSlots_of`, the 64/`64 - 2`
+splits). No trust-boundary change; pools remain for goroutines without a bound of their own.
+*Rejected for now:* the caller's token through `Invoke` (uniform, no per-run slots at all, but an
+axiom change and the plan's largest stage).
 
 ## Watches across a compaction: the Draft approved (2026-11-01 · accepted, the user's approval of candidate 4 · branch `watch-cmp`)
 
