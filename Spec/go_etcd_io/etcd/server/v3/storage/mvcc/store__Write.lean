@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -47,6 +48,20 @@ abbrev mvcc.store.Write.spec : Prop :=
       (∃ (ilog : mvcc.Log) (crev : Int),
         mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
         ⌜c ≤ crev⌝) ∗ Q ∗ mvcc.hookIs γ P f }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Write(trace)` opens a write transaction, the store's writer until its `End`: at the
+store's state `σ`, which nothing else changes before then (`mvccTxn_write_agree`), no pending
+change. Under the batch lock, whose invariant is `P`, the post-lock hook `f` runs on the caller's
+`Pre` (`hookRun`: `f`'s triple, or with no hook the caller's update), giving `Q`; `End` takes `P`
+back. The caller's thread token is the transaction's until its `End`. -/
+abbrev mvcc.store.Write.specC : Prop :=
+  ∀ (s : Loc) (γ : mvcc.MvccName) (trace : Loc) (te : Bool) (P Pre Q : IProp GF) (f : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isMvcc s γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗
+      mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
+  {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+      (∃ σ : mvcc.MvccState, mvcc.mvccTxn mw γ trace (.write σ [])) ∗ Q }}
 
 end spec
 

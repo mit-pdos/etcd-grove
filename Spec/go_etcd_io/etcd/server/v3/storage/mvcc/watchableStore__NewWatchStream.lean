@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -44,6 +45,16 @@ abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
         ⌜γo.ids = γc.ids ∧ γo.prog = γc.prog ∧ γo.sentl = γc.sentl ∧ γo.rsn = γc.rsn ∧
           γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗ savedPropOwn γo.prog DFrac.discard Q ∗
         savedPredOwn γo.rsn DFrac.discard Ψ }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.NewWatchStream()`: a new stream `ι` of the store, open, its channel, and the
+consumer's view (nothing received). -/
+abbrev mvcc.watchableStore.NewWatchStream.specC : Prop :=
+  ∀ (ws : Loc) (γ : mvcc.MvccName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchableMvcc ws γ }}
+    (App (Val (ws @!! go.GoType.PointerType watchableStore.ty @!! go!"NewWatchStream")) (Val #()))
+  {{ (st : Loc), RET #(interface.mkOk (go.GoType.PointerType watchStream.ty) #st);
+      ∃ (ι : mvcc.WsName) (ch : GoChan), mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsChan ι ch ∗
+        mvcc.wsOpen ι 1 ∗ mvcc.wsRecv ι [] }}
 
 end spec
 

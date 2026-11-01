@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -39,6 +40,18 @@ abbrev mvcc.watchableStore.Write.spec : Prop :=
   {{ (tw : Loc) (crev : Int), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
       mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev ∗ Q ∗
       mvcc.hookIs γ.st P f }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Write(trace)`: the store's write transaction (`store.Write.specC`), wrapped
+(`mvccWatchTxnOf`) so that its `End` notifies the watchers. -/
+abbrev mvcc.watchableStore.Write.specC : Prop :=
+  ∀ (ws : Loc) (γ : mvcc.MvccName) (trace : Loc) (te : Bool) (P Pre Q : IProp GF) (f : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableMvcc ws γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗
+      mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q }}
+    (App (Val (ws @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
+  {{ (tw : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
+      (∃ (mw : Loc) (σ : mvcc.MvccState), mvcc.mvccWatchTxnOf tw mw ∗
+        mvcc.mvccTxn mw γ trace (.write σ [])) ∗ Q }}
 
 end spec
 

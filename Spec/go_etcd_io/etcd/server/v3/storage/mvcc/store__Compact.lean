@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -87,6 +88,36 @@ abbrev mvcc.store.Compact.spec : Prop :=
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
         mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Compact(trace, rev)`, by the caller's update at the store's state `σ` (under `s.mu`
+held exclusively: no transaction open):
+* `σ.crev < rev ≤ σ.rev`: the compaction revision is `rev` (reads below it fail with
+  `ErrCompacted` from now on), `nil`, and the job's channel; the batch lock taken for the
+  scheduled-compaction key, so the hook runs (the critical-section contract: `Pre` to `Q'` by
+  `hookRun`, then `Q' ={⊤}=∗ P ∗ Post` before the lock is released);
+* `rev ≤ σ.crev`: `ErrCompacted` and a barrier's channel, `Pre` back;
+* `σ.rev < rev`: `ErrFutureRev` and a `nil` channel, `Pre` back.
+A compacted revision may delete a key and put it again (fixed upstream, etcd-io/etcd#22377). -/
+abbrev mvcc.store.Compact.specC : Prop :=
+  ∀ (s : Loc) (γ : mvcc.MvccName) (trace : Loc) (te : Bool) (rev : w64) (P : IProp GF)
+    (f : GoFunc) (Pre Q' Post : IProp GF) (Q : mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isMvcc s γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗
+      mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ (if σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)
+              then σ.compactTo (sint.Z rev) else σ), COMM Q σ }> }}
+    (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
+      threadTok ∗ traceutil.ownTrace trace te ∗ ∃ σ : mvcc.MvccState, Q σ ∗
+      ((⌜err = GoInterface.nil ∧ σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)⌝ ∗ Post ∗
+          mvcc.mvccCompactChan ch) ∨
+       (⌜sint.Z rev ≤ σ.crev⌝ ∗
+          (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
+          Pre ∗ mvcc.mvccCompactChan ch) ∨
+       (⌜(σ.rev : Int) < sint.Z rev ∧ ch = chan.nil⌝ ∗
+          (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
+          Pre)) }}
 
 end spec
 

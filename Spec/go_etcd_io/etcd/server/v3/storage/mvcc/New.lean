@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -58,6 +59,38 @@ abbrev mvcc.New.spec : Prop :=
           mvcc.watchReader s st γ) ∗
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
         mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `New(lg, b, le, cfg)` over a fresh real backend `d` (what its creator holds, as
+`NewStore_backend` takes it: the backend unchanged in this candidate, `notes/mvcc-api-candidate.md`)
+and the receipt-paid write-backs (`□ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB)`: so that no write takes a
+token), the store's lessor `le` (any implementation, `isMvccLessor`, with its resource `R`) and a
+batch-limit not negative: the watchable store `ws` of a new store `γ` at `mvccStart`, its
+lessor's and backend's names `γ`'s, the client's empty announcements, the batch lock's invariant
+`Pk`, the right to close it, and the range deleter it set on the lessor. The threads bound the
+store's readers (`threadBound GF ≤ 2 ^ 30`: Go's read-write mutexes allow `2 ^ 30` readers). -/
+abbrev mvcc.New.specC : Prop :=
+  ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal) (Pk R : IProp GF)
+    (γl : GName) (rd0 : GoFunc),
+  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → threadBound GF ≤ 2 ^ 30 →
+  mvcc.bridgeParams d.P →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+      mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
+      □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        mvcc.bkRTx d.γB d.P d.be) ∗
+      mvcc.isMvccLessor le γl R ∗ R ∗ lease.rdOwn γl rd0 }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
+      (Val #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
+      (Val #le)) (Val #cfg))
+  {{ (ws : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws);
+      ∃ γ : mvcc.MvccName, ⌜mvcc.mvccLeases γ = γl ∧ mvcc.mvccBackend γ = d.γB⌝ ∗
+        mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccState γ mvcc.mvccStart ∗ mvcc.mvccAnnAuth γ ∅ ∗
+        mvcc.mvccHookInit γ Pk ∗ mvcc.mvccCloser ws γ ∗
+        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.mvccDeleter rd ws γ) }}
 
 end spec
 

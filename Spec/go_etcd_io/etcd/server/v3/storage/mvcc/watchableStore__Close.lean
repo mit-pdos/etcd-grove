@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -31,6 +32,14 @@ abbrev mvcc.watchableStore.Close.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.wsCloserM s st γ.st c }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Close")) (Val #()))
+  {{ RET #(GoInterface.nil); True }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Close()`, by the holder of the right to close: its loops stopped, its store
+closed; `nil`. -/
+abbrev mvcc.watchableStore.Close.specC : Prop :=
+  ∀ (ws : Loc) (γ : mvcc.MvccName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccCloser ws γ }}
+    (App (Val (ws @!! go.GoType.PointerType watchableStore.ty @!! go!"Close")) (Val #()))
   {{ RET #(GoInterface.nil); True }}
 
 end spec

@@ -6,6 +6,7 @@ then, the server's `srvKVCommitOk` its contract). Lean-first (no Rocq counterpar
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -37,6 +38,16 @@ abbrev mvcc.store.Commit.spec : Prop :=
       X ∗ mvcc.storeReq γ X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Commit")) (Val #()))
   {{ RET #(); mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ Y }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Commit()`: the backend's commit (`ForceCommit`, under `s.mu` held exclusively),
+serving the request `X ⇒ Y` of its hooks (`mvccCommitReq`: for the server, the consistent index
+saved); the store's state unchanged. -/
+abbrev mvcc.store.Commit.specC : Prop :=
+  ∀ (s : Loc) (γ : mvcc.MvccName) (X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isMvcc s γ ∗ threadTok ∗ X ∗ mvcc.mvccCommitReq γ X Y }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Commit")) (Val #()))
+  {{ RET #(); threadTok ∗ Y }}
 
 end spec
 

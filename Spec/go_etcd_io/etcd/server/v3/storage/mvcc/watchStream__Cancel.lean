@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -32,6 +33,15 @@ abbrev mvcc.watchStream.Cancel.spec : Prop :=
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
   {{ (err : GoInterface), RET #err;
       ⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Cancel(id)`: the watcher cancelled (no longer covered by the stream's progress),
+`nil` or `ErrWatcherNotExist`. -/
+abbrev mvcc.watchStream.Cancel.specC : Prop :=
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok }}
+    (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
+  {{ (err : GoInterface), RET #err; threadTok ∗ mvcc.wsCanceled ι id ∗
+      (⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err) }}
 
 end spec
 

@@ -6,6 +6,7 @@ transaction's `txnReadWrite` around a `storeTxnRead`, down to `storeTxnCommon.Fi
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -33,6 +34,13 @@ abbrev mvcc.metricsTxnWrite.FirstRev.spec : Prop :=
       mvcc.isTxnRead mw s γ trace log rev crev Z }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"FirstRev")) (Val #()))
   {{ RET #(W64 crev : w64); mvcc.isTxnRead mw s γ trace log rev crev Z }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.FirstRev()`: the compaction revision of the state the transaction began at. -/
+abbrev mvcc.metricsTxnWrite.FirstRev.specC : Prop :=
+  ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace k }}
+    (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"FirstRev")) (Val #()))
+  {{ RET #(W64 k.state.crev : w64); mvcc.mvccTxn mw γ trace k }}
 
 end spec
 

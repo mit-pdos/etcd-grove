@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -36,6 +37,24 @@ abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
       mvcc.isTxnWrite mw s γ trace ilog (pend ++ [.put k v leaseID]) (puts + W64 1) deletes
         (putSize + (key.len + value.len)) crev Z ∗
       lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Put(key, value, lease)` in a write transaction begun at `σ`: the put appended to
+the pending changes, at the pending revision (returned); the lease (none, or a live one) attached
+in the lessor's item map, which the caller, the lease owner, holds at the pending state's. (The
+key's bound is today's spec's, kept: its reason to be found.) -/
+abbrev mvcc.metricsTxnWrite.Put.specC : Prop :=
+  ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState) (pend : List mvcc.Change)
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.mvccTxn mw γ trace (.write σ pend) ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log pend) ∗
+      ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
+    (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
+      (Val #value)) (Val #leaseID))
+  {{ RET #(W64 (σ.log.length : Int) : w64);
+      mvcc.mvccTxn mw γ trace (.write σ (pend ++ [.put k v leaseID])) ∗
+      lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log (pend ++ [.put k v leaseID])) }}
 
 end spec
 

@@ -6,6 +6,7 @@ txn package (unit 3: `txn` and `executeTxn` test `len(txnWrite.Changes())`); see
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -36,6 +37,16 @@ abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
   {{ (chs : GoSlice) (ps : List Loc), RET #chs;
       chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
       mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Changes()`: the key-values of the pending changes (`changesAre`: a put's new
+key-value, a delete's key alone), read-only (later changes only append); none for a read
+transaction. -/
+abbrev mvcc.metricsTxnWrite.Changes.specC : Prop :=
+  ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace k }}
+    (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
+  {{ (chs : GoSlice) (ps : List Loc), RET #chs; mvcc.mvccTxn mw γ trace k ∗
+      chs ↦*□ ps ∗ ⌜ps.length = k.pend.length⌝ ∗ mvcc.changesAre ps k.state.log k.pend }}
 
 end spec
 

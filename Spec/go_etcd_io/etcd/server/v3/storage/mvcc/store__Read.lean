@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -50,6 +51,21 @@ abbrev mvcc.store.Read.spec : Prop :=
         ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
         ⌜∀ q L, oa = some (q, L) → log = L⌝ }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Read(mode, trace)`, in either mode, opens a read transaction at the store's state
+`σ`: the caller's update fires at `σ`, unchanged (the transaction's snapshot, taken under
+`s.revMu`: every write ended before the call is in it). The caller's thread token is the
+transaction's until its `End` (the store's readers are bounded by the threads). -/
+abbrev mvcc.store.Read.specC : Prop :=
+  ∀ (s : Loc) (γ : mvcc.MvccName) (mode : w32) (trace : Loc) (te : Bool)
+    (Q : mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isMvcc s γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ σ, COMM Q σ }> }}
+    (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
+  {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+      ∃ σ : mvcc.MvccState, mvcc.mvccTxn mw γ trace (.read σ) ∗ Q σ }}
 
 end spec
 
