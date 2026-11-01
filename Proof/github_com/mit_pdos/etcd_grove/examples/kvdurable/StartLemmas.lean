@@ -211,6 +211,45 @@ theorem kd_restartAu (γ : Cluster) (N : Namespace) (id : w64) (σ : StorContent
     iframe H
     ipureintro; rfl
 
+/-- No file holds what a node at the initial state holds. -/
+theorem kdEmpty_holds : StorageHolds RaftState.init (kdContents none) := by
+  unfold StorageHolds
+  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_⟩
+  · simp [plogTermAt, RaftState.init, kdContents, kdEmpty]
+  · rfl
+  · simp [StorContents.b, StorContents.commit, kdContents, kdEmpty]
+  · simp [StorContents.commit, RaftState.init, kdContents, kdEmpty]
+  · intro sv h; simp [kdContents, kdEmpty] at h
+  · intro h; exact absurd rfl h
+
+/-- **A replica's file, before its first start** (`StartCluster`, `startNew`): from the file's entry
+(no file), the writer's variable whole and the id's durable state at `RaftState.init`, its invariant
+at no contents and the writer's half. -/
+theorem kdFile_alloc (γ : KdNames) (dir : GoString) (id : w64) (E : CoPset)
+    (g : RaftState × Option GoString) :
+    ⊢ dfile (GF := GF) γ.files (kdFileName dir id) none -∗ ghostVar (γ.wr id) (1 : Qp) g -∗
+      raftState γ.r.cluster id RaftState.init ={E}=∗
+      kdFileInv γ dir id ∗ kdWriter γ id RaftState.init none := by
+  iintro Hdf Hg HrS
+  imod ghostVar_update (RaftState.init, kdFileVal (none : Option StorFile)) (γ.wr id) g $$ Hg with Hg
+  icases (ghostVar_split_half (GF := GF) (γ.wr id) (1 : Qp) _).1 $$ Hg with ⟨Hw1, Hw2⟩
+  ihave Hinv : iprop(|={E}=> kdFileInv γ dir id) $$ [HrS Hdf Hw1]
+  · unfold kdFileInv
+    iapply inv_alloc
+    inext
+    iexists RaftState.init, none
+    isplitl [HrS Hdf]
+    · ileft; iframe HrS; iExactEq Hdf; rfl
+    iframe Hw1
+    isplitl []
+    · ipureintro; exact ⟨kdEmpty_holds, fun f h => by cases h⟩
+    iintro %f %h; cases h
+  imod Hinv with #Hinv
+  imodintro
+  iframe Hinv
+  unfold kdWriter
+  iexact Hw2
+
 /-- **A frozen prefix cut shorter**: the entries of `xs.take n` from `k` frozen give those of
 `xs.take m`, for `m ≤ n`. -/
 theorem memLog_take_le (γs : MemStorNames) (k : Nat) (xs : List EntryM) (m n : Nat) (h : m ≤ n) :
