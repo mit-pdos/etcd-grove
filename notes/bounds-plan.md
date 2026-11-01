@@ -1,7 +1,8 @@
 # Bounds localized: thread counts, reader slots, counters and sizes in one place each (plan, 2026-11-01)
 
 **Status:** accepted, 2026-11-01: the user took the recommendation on each of D1-D4 ("follow your
-recommendations on D1-D4; start with B0"). B0 in progress (branch `bounds-b0`).
+recommendations on D1-D4; start with B0"). B0 done (2026-11-01): `etc/bounds-check.py` (532 at the start) in the gates and CI, the
+lock inventory `notes/bounds-locks.md`. Next: B2's leasing pilot, then B2a.
 
 ## The problem
 
@@ -129,13 +130,27 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 
   I recommend (a) unless the inventory shows more than two or three nesting sites; (b) is then the
   general fix, proposed to Perennial on its own.
-- **Order.**
+- **B0's inventory (2026-11-01, `notes/bounds-locks.md`).** 23 reader locks have counted stocks.
+  Every nesting stays inside one owner (auth's permission check, mvcc's `store.Read`, the backend's
+  `readTx` over `txMu`), where one thread token covers the owner's bundle as one pool item, except at
+  three sites that cross owners, each on one long-lived goroutine:
+  - the apply thread (mvcc's `store.mu` over `lessor.mu`/`Lease.mu`);
+  - the storage-version monitor (`bemu` over the backend's `readTx.mu`);
+  - `GoAttach` (`wgMu` over `lgMu`, depositing the caller's thread token in the wait group inside
+    that section, so `wgMu` stays counted).
+
+  Three sites is few, so D2's (a) holds: each keeps a counted slot. **No gRPC or `net/http` handler
+  gets a thread token today**, so B2a comes before every request-path pool (order below).
+- **Order** (as the inventory recommends; it supersedes the order first written here).
   1. Pilot on the leasing client (`client/v3/leasing`: one lock, `lkvReader`, not touched by any
      active branch).
-  2. The auth store's `E.RD` (the most mentions).
-  3. The server's own locks (`lg`, `leadTime`, `read`, `bemu`, `wg`, quota).
-  4. mvcc's `storeReader`/`watchReader`, after `m2-b2-mvcc` lands.
-  5. The examples' slot plumbing, last.
+  2. B2a: a `threadTok` for each gRPC run and stream and each `net/http` handler (a trust-boundary
+     change, for approval).
+  3. The auth store's `E.RD` (the most mentions).
+  4. The server's own locks (`lg`, `leadTime`, `read`, `bemu`, `wg`, quota).
+  5. mvcc's `storeReader`/`watchReader`, after `m2-b2-mvcc` lands.
+  6. The examples' slot plumbing, last.
+  7. Any time: the cache's three locks, client-go's two.
 
 ### B3. Wait groups backed by thread tokens
 
