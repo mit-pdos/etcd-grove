@@ -117,12 +117,17 @@ func (db *DB) readPageSize() (int, bool, error) {
 	return 0, false, nil
 }
 
-// init writes db.go's four initial pages: the freelist and root pages, synced,
+// init writes db.go's four initial pages: all four with the meta pages zero, synced,
 // then the two metas, synced.
 func (db *DB) init() error {
 	buf := make([]byte, 4*pageSize)
 	initPages(buf, pageSize)
-	if _, err := db.file.WriteAt(buf[2*pageSize:], 2*pageSize); err != nil {
+	// first all four pages, with the meta pages zero: whatever a crash left in the meta slots
+	// (an interrupted init's arbitrary bytes) is overwritten and synced before any meta is
+	// written, so no leftover bytes can complete into a valid meta
+	first := make([]byte, 4*pageSize)
+	copy(first[2*pageSize:], buf[2*pageSize:])
+	if _, err := db.file.WriteAt(first, 0); err != nil {
 		return err
 	}
 	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
